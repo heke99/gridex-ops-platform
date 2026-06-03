@@ -165,7 +165,7 @@ function parseAgtActorNotes(notes?: string | null): {
 }
 
 type PageProps = {
-  searchParams?: Promise<{ companyId?: string }> | { companyId?: string };
+  searchParams?: Promise<{ companyId?: string }>;
 };
 
 export default async function EdielAgtPage({ searchParams }: PageProps) {

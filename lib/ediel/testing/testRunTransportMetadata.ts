@@ -4,8 +4,8 @@ import { getEdielAgtTestCaseByCode } from '@/lib/ediel/agtRegistry'
 import { createEdielSupplierAgtOutboundCommand } from '@/lib/ediel/agtEngine'
 import { getEdielTgtTestCaseByCode } from '@/lib/ediel/tgtRegistry'
 import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder'
-import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 import { createSmimeEncryptedPayloadReference } from '@/lib/ediel/transport/smime'
+import { resolveOutboundRecipientCertificate, routeReceiverSubaddress } from '@/lib/ediel/security/outboundRecipientCertificate'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 import { assertEdielEnvironmentGate } from '@/lib/ediel/testing/environmentGate'
@@ -223,18 +223,20 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     input.encryptionMode ??
     String(routeProfile?.encryption_mode ?? mailboxSecurity?.encryption_mode ?? 'none')
   )
-  const effectiveCertificateId =
-    String(routeProfile?.certificate_id ?? '') ||
-    String(mailboxSecurity?.certificate_id ?? '') ||
-    null
-  const certificate = await resolveCertificate(effectiveCertificateId)
-
-  if (effectiveEncryption === 'smime') {
-    const certStatus = evaluateCertificateStatus(certificate ?? {})
-    if (!certificate || !certStatus.isUsableForSmime) {
-      throw new Error(`Testet kan inte startas förrän certifikat/route är komplett: ${certStatus.message}`)
-    }
-  }
+  // Test runs must lock the receiver public route certificate only.
+  // Mailbox certificate is private/inbound material and must not be used as outbound recipient.
+  const effectiveCertificateId = String(routeProfile?.certificate_id ?? '') || null
+  const certificate = effectiveEncryption === 'smime'
+    ? await resolveOutboundRecipientCertificate({
+        certificateId: effectiveCertificateId,
+        receiverEdielId: String(routeProfile?.receiver_ediel_id ?? ''),
+        receiverSubaddress: routeReceiverSubaddress(routeProfile),
+        messageType: messageFamily,
+        environment,
+        routeProfileId: String(routeProfile?.id ?? '') || null,
+        smtpTo: String(routeProfile?.smtp_to ?? ''),
+      })
+    : await resolveCertificate(effectiveCertificateId)
 
   await assertEdielEnvironmentGate({
     companyId: input.companyId,
@@ -272,7 +274,7 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     businessCode,
     encryptionMode: effectiveEncryption,
     certificateId: effectiveCertificateId,
-    certificateFingerprintSha256: String(certificate?.fingerprint_sha256 ?? certificate?.certificate_fingerprint ?? '') || null,
+    certificateFingerprintSha256: String((certificate as any)?.fingerprintSha256 ?? (certificate as any)?.fingerprint_sha256 ?? (certificate as any)?.certificate_fingerprint ?? '') || null,
     routeProfileId: String(routeProfile?.id ?? '') || null,
     expectedFlow,
     actualFlow: [],
@@ -310,7 +312,7 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     if (effectiveEncryption === 'smime' && rawEdifact) {
       const encrypted = await createSmimeEncryptedPayloadReference({
         rawEdifact,
-        publicCertificatePem: String(certificate?.public_certificate_pem ?? ''),
+        publicCertificatePem: String((certificate as any)?.publicCertificatePem ?? (certificate as any)?.public_certificate_pem ?? ''),
         filename: message.file_name,
       })
       encryptedPayloadRef = encrypted.encryptedPayloadRef

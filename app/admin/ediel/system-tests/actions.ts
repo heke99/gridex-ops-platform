@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { resolveOutboundRecipientCertificate } from '@/lib/ediel/security/outboundRecipientCertificate'
 import { activeRulebookRules, defaultApplicationReferenceForProcess } from '@/lib/ediel/rulebook/rulebook'
 import { STATIC_FIELD_RULES } from '@/lib/ediel/rulebook/fieldMatrix'
 import { STATIC_CODE_RULES } from '@/lib/ediel/rulebook/codeRules'
@@ -181,12 +182,14 @@ async function upsertSystemTestMailbox(params: {
     smtp_from: params.email,
     signing_mode: params.encryptionMode === 'smime' ? 'smime' : 'none',
     encryption_mode: params.encryptionMode,
-    certificate_id: params.certificateId ?? null,
-    security_status: params.encryptionMode === 'smime' ? 'certificate_configured' : 'test_unencrypted_allowed',
+    // The mailbox is transport only. Do not attach receiver public certificates here.
+    certificate_id: null,
+    security_status: params.encryptionMode === 'smime' ? 'receiver_certificate_on_route_required' : 'test_unencrypted_allowed',
     metadata: {
       source: 'admin_ediel_system_tests_simple_setup',
       shared_transport_only: true,
       gridex_is_ediel_agent: false,
+      receiver_certificate_must_live_on_route: true,
     },
     updated_at: new Date().toISOString(),
   }
@@ -436,8 +439,8 @@ async function upsertSimpleSystemTestRoute(params: {
     sender_subaddress: null,
     sender_sub_address: null,
     receiver_ediel_id: params.receiverEdielId,
-    receiver_subaddress: null,
-    receiver_sub_address: null,
+    receiver_subaddress: params.receiverMessageSubaddress ?? null,
+    receiver_sub_address: params.receiverMessageSubaddress ?? null,
     receiver_message_subaddress: params.receiverMessageSubaddress ?? null,
     subaddress_required: params.subaddressRequired,
     application_reference: appRef,
@@ -571,7 +574,18 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
   try {
     if (!companyId) throw new Error('Välj bolag.')
     if (!edielId) throw new Error('Fyll i Div3rsa/bolagets Ediel-ID.')
-    if (encryptionMode === 'smime' && !certificateId) throw new Error('Krypterat test kräver vald krypteringsversion/certifikat.')
+    const effectiveProdatSubaddress = prodatSubaddress ?? (portalEdielId === '91100' ? 'PRODAT' : null)
+    if (encryptionMode === 'smime') {
+      if (!certificateId) throw new Error('Krypterat test kräver mottagarens publika krypteringscertifikat.')
+      await resolveOutboundRecipientCertificate({
+        certificateId,
+        receiverEdielId: portalEdielId,
+        receiverSubaddress: effectiveProdatSubaddress,
+        messageType: 'PRODAT',
+        environment: 'test',
+        smtpTo: portalEmail,
+      })
+    }
 
   const companyResult = await supabaseService
     .from('companies')
@@ -608,8 +622,8 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
     receiverEdielId: portalEdielId,
     smtpTo: portalEmail,
     mailbox,
-    receiverMessageSubaddress: prodatSubaddress,
-    subaddressRequired: prodatSubaddressRequired,
+    receiverMessageSubaddress: effectiveProdatSubaddress,
+    subaddressRequired: prodatSubaddressRequired || Boolean(effectiveProdatSubaddress),
     encryptionMode,
     certificateId,
     mailboxId,
@@ -626,7 +640,7 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
     receiverMessageSubaddress: null,
     subaddressRequired: false,
     encryptionMode,
-    certificateId,
+    certificateId: null,
     mailboxId,
   })
 
@@ -640,7 +654,7 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
       testPortalEmail: portalEmail,
       testBrpEdielId,
       testBrpName: testBrpEdielId ? 'Edielportalen test-BRP' : null,
-      defaultReceiverSubaddress: prodatSubaddress,
+      defaultReceiverSubaddress: effectiveProdatSubaddress,
       defaultSenderSubaddress: null,
       routeProfileId: prodatRouteProfileId,
       isActive: true,
@@ -654,7 +668,7 @@ export async function saveSimpleSystemTestCompanySetupAction(formData: FormData)
       testPortalEmail: portalEmail,
       testBrpEdielId,
       testBrpName: testBrpEdielId ? 'Edielportalen test-BRP' : null,
-      defaultReceiverSubaddress: prodatSubaddress,
+      defaultReceiverSubaddress: effectiveProdatSubaddress,
       defaultSenderSubaddress: null,
       routeProfileId: prodatRouteProfileId,
       isActive: true,

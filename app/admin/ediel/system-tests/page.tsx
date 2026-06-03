@@ -38,6 +38,12 @@ type CertificateOption = {
   status?: string | null;
   environment?: string | null;
   scope?: string | null;
+  owner_ediel_id?: string | null;
+  owner_subaddress?: string | null;
+  message_type?: string | null;
+  purpose?: string | null;
+  usage?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 type FilterPacket =
   | "all"
@@ -103,6 +109,30 @@ function Badge({
     >
       {children}
     </span>
+  );
+}
+
+function metadataText(metadata: Record<string, unknown> | null | undefined, ...keys: string[]): string | null {
+  for (const key of keys) {
+    const value = metadata?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function isOutboundRecipientCertificate(certificate: CertificateOption): boolean {
+  const usage = certificate.usage ?? metadataText(certificate.metadata, "usage", "certificateUsage");
+  const purpose = certificate.purpose ?? metadataText(certificate.metadata, "purpose", "certificatePurpose");
+  const ownerEdielId = certificate.owner_ediel_id ?? metadataText(certificate.metadata, "ownerEdielId", "owner_ediel_id");
+  const ownerSubaddress = certificate.owner_subaddress ?? metadataText(certificate.metadata, "ownerSubaddress", "owner_subaddress");
+  const messageType = certificate.message_type ?? metadataText(certificate.metadata, "messageType", "message_type");
+  return (
+    usage === "outbound_recipient" &&
+    (purpose === "encryption" || purpose === "both") &&
+    ownerEdielId === "91100" &&
+    (ownerSubaddress ?? "").toUpperCase() === "PRODAT" &&
+    (!messageType || messageType === "PRODAT") &&
+    (certificate.environment ?? "test") === "test"
   );
 }
 
@@ -757,11 +787,14 @@ function SimpleCompanySetupPanel({
           <option value="smime">Krypterat S/MIME-test</option>
         </select>
         <select name="certificateId" defaultValue="" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-          <option value="">Välj krypteringsversion/certifikat om S/MIME</option>
+          <option value="">Receiver public encryption certificate saknas/välj 91100:PRODAT</option>
           {certificates.map((certificate) => {
             const fingerprint = certificate.fingerprint_sha256 ?? certificate.certificate_fingerprint ?? "";
+            const ownerEdielId = certificate.owner_ediel_id ?? metadataText(certificate.metadata, "ownerEdielId", "owner_ediel_id");
+            const ownerSubaddress = certificate.owner_subaddress ?? metadataText(certificate.metadata, "ownerSubaddress", "owner_subaddress");
             const label = [
-              certificate.display_name ?? "S/MIME certifikat",
+              certificate.display_name ?? "Receiver public certificate",
+              ownerEdielId ? `owner ${ownerEdielId}${ownerSubaddress ? `:${ownerSubaddress}` : ""}` : null,
               certificate.environment ?? "test",
               certificate.status ?? "status okänd",
               fingerprint ? fingerprint.slice(0, 12) : null,
@@ -877,7 +910,9 @@ export default async function EdielSystemTestsPage({
       .limit(50),
   ]);
   const companies = ((companiesResult.data ?? []) as CompanyOption[]);
-  const certificates = certificatesResult.error ? [] : ((certificatesResult.data ?? []) as CertificateOption[]);
+  const certificates = certificatesResult.error
+    ? []
+    : ((certificatesResult.data ?? []) as CertificateOption[]).filter(isOutboundRecipientCertificate);
   const div3rsaCompany =
     companies.find((company) => String(company.name ?? "").toLowerCase().includes("div3rsa")) ??
     companies.find((company) => String(company.name ?? "").toLowerCase().includes("diversa")) ??

@@ -35,6 +35,25 @@ function normalizeMailboxEmail(value: string | null): string {
   return (value ?? 'ediel@gridex.se').trim().toLowerCase() || 'ediel@gridex.se'
 }
 
+
+type CertificateUsage = 'outbound_recipient' | 'inbound_private' | 'sender_signing'
+type CertificatePurpose = 'encryption' | 'signing' | 'both'
+
+function normalizeCertificateUsage(value: string | null, hasPrivateMaterial: boolean): CertificateUsage {
+  if (value === 'outbound_recipient' || value === 'sender_signing' || value === 'inbound_private') return value
+  return hasPrivateMaterial ? 'inbound_private' : 'outbound_recipient'
+}
+
+function normalizeCertificatePurpose(value: string | null, usage: CertificateUsage): CertificatePurpose {
+  if (value === 'encryption' || value === 'signing' || value === 'both') return value
+  return usage === 'sender_signing' ? 'signing' : usage === 'outbound_recipient' ? 'encryption' : 'both'
+}
+
+function parseOwnerEdielIdFromSubject(subject?: string | null): string | null {
+  const match = String(subject ?? '').match(/serialNumber\s*=\s*([A-Za-z0-9_-]+)/i)
+  return match?.[1]?.trim() || null
+}
+
 function cleanPastedCertificate(value: string | null): string | null {
   if (!value) return null
   const trimmed = value.trim()
@@ -78,7 +97,7 @@ function isSchemaCompatibilityError(error: unknown): boolean {
   )
 }
 
-async function applyCertificateAsMailboxDefault(input: {
+async function applyCertificateAsMailboxPrivateMaterial(input: {
   mailboxEmail: string
   environment: 'test' | 'production'
   certificateId: string
@@ -91,13 +110,15 @@ async function applyCertificateAsMailboxDefault(input: {
       encryption_mode: 'smime',
       signing_mode: 'smime',
       certificate_id: input.certificateId,
-      security_status: 'certificate_configured',
+      security_status: 'private_certificate_configured',
       updated_at: new Date().toISOString(),
       metadata: {
         scope: 'platform_shared',
         shared_transport_only: true,
         default_certificate_source: input.source,
         certificate_id: input.certificateId,
+        certificate_usage: 'inbound_private_or_sender_signing',
+        warning: 'Mailbox certificate is private/sender material and must not be used as outbound recipient certificate.',
       },
     })
     .is('company_id', null)
@@ -106,32 +127,22 @@ async function applyCertificateAsMailboxDefault(input: {
 
   if (error) throw error
 
-  const { error: routeError } = await supabaseService
-    .from('ediel_route_profiles')
-    .update({
-      encryption_mode: 'smime',
-      signing_mode: 'smime',
-      certificate_id: input.certificateId,
-      security_policy_status: 'mailbox_default_certificate',
-      updated_at: new Date().toISOString(),
-      updated_by: input.actorUserId,
-    })
-    .eq('environment', input.environment)
-    .ilike('mailbox', input.mailboxEmail)
-
-  if (routeError) throw routeError
-
+  // Important: never update ediel_route_profiles.certificate_id here.
+  // Route certificate_id is the receiver public encryption certificate, not our mailbox/private P12.
   await supabaseService.from('ediel_certificate_events').insert({
     certificate_id: input.certificateId,
     company_id: null,
-    event_type: 'linked_to_route',
-    message: `Certifikatet sparades som gemensam S/MIME-default för ${input.mailboxEmail} (${input.environment}).`,
+    event_type: 'linked_to_mailbox',
+    message: `Certifikatet sparades som privat mailbox-/signeringsmaterial för ${input.mailboxEmail} (${input.environment}). Det kopplades inte till outbound routes.`,
     metadata: {
       mailboxEmail: input.mailboxEmail,
       environment: input.environment,
-      appliesToRoutesUsingSameMailbox: true,
+      appliesToRoutesUsingSameMailbox: false,
+      usage: 'inbound_private_or_sender_signing',
     },
     created_by: input.actorUserId,
+  }).then(({ error }) => {
+    if (error && !isSchemaCompatibilityError(error)) throw error
   })
 }
 
@@ -180,6 +191,12 @@ async function insertCertificateRecord(input: {
   fileSize: number | null
   metadata: Awaited<ReturnType<typeof importP12Certificate>>
   status: ReturnType<typeof evaluateCertificateStatus>
+  usage: CertificateUsage
+  purpose: CertificatePurpose
+  ownerEdielId: string | null
+  ownerSubaddress: string | null
+  messageType: string | null
+  isPrivateMaterialAvailable: boolean
 }) {
   const now = new Date().toISOString()
   const richPayload = {
@@ -194,14 +211,22 @@ async function insertCertificateRecord(input: {
     fingerprint_sha256: input.metadata.fingerprintSha256,
     certificate_fingerprint: input.metadata.fingerprintSha256,
     public_certificate_pem: input.metadata.publicCertificatePem,
-    p12_secret_reference: input.metadata.p12SecretReference,
+    owner_ediel_id: input.ownerEdielId,
+    owner_subaddress: input.ownerSubaddress,
+    message_type: input.messageType,
+    purpose: input.purpose,
+    usage: input.usage,
+    is_private_material_available: input.isPrivateMaterialAvailable,
+    source: input.isPrivateMaterialAvailable ? 'p12_import' : 'pem_import',
+    needs_verification: !input.ownerEdielId || (input.usage === 'outbound_recipient' && !input.ownerSubaddress && input.messageType === 'PRODAT'),
+    p12_secret_reference: input.metadata.p12SecretReference ?? `public://ediel-certificates/${input.metadata.fingerprintSha256}/certificate`,
     private_key_secret_reference: input.metadata.privateKeySecretReference,
     p12_alias: input.metadata.p12Alias,
     valid_from: input.metadata.validFrom,
     valid_to: input.metadata.validTo,
     certificate_valid_from: input.metadata.validFrom,
     certificate_valid_to: input.metadata.validTo,
-    secret_reference: input.metadata.p12SecretReference,
+    secret_reference: input.metadata.p12SecretReference ?? `public://ediel-certificates/${input.metadata.fingerprintSha256}/certificate`,
     encryption_status: input.status.isUsableForSmime ? 'valid' : input.status.status,
     status: input.status.status === 'renewal_available' ? 'active' : input.status.status,
     last_validation_at: now,
@@ -222,7 +247,17 @@ async function insertCertificateRecord(input: {
       publicCertificatePem: input.metadata.publicCertificatePem,
       p12SecretReference: input.metadata.p12SecretReference,
       privateKeySecretReference: input.metadata.privateKeySecretReference,
-      privateMaterialStoredAsSecretReferenceOnly: true,
+      ownerEdielId: input.ownerEdielId,
+      owner_ediel_id: input.ownerEdielId,
+      ownerSubaddress: input.ownerSubaddress,
+      owner_subaddress: input.ownerSubaddress,
+      messageType: input.messageType,
+      message_type: input.messageType,
+      usage: input.usage,
+      purpose: input.purpose,
+      isPrivateMaterialAvailable: input.isPrivateMaterialAvailable,
+      source: input.isPrivateMaterialAvailable ? 'p12_import' : 'pem_import',
+      privateMaterialStoredAsSecretReferenceOnly: input.isPrivateMaterialAvailable,
       passwordStored: false,
       certificateStatus: input.status,
     },
@@ -244,7 +279,7 @@ async function insertCertificateRecord(input: {
       certificate_fingerprint: input.metadata.fingerprintSha256,
       certificate_valid_from: input.metadata.validFrom,
       certificate_valid_to: input.metadata.validTo,
-      secret_reference: input.metadata.p12SecretReference,
+      secret_reference: input.metadata.p12SecretReference ?? `public://ediel-certificates/${input.metadata.fingerprintSha256}/certificate`,
       encryption_status: input.status.isUsableForSmime ? 'valid' : input.status.status,
       status: input.status.status === 'renewal_available' ? 'active' : input.status.status,
       last_validation_at: now,
@@ -423,6 +458,16 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
     valid_from: metadata.validFrom,
     valid_to: metadata.validTo,
   })
+  const hasPrivateMaterial = Boolean(metadata.p12SecretReference || metadata.privateKeySecretReference)
+  const usage = normalizeCertificateUsage(stringValue(formData, 'certificateUsage'), hasPrivateMaterial)
+  const purpose = normalizeCertificatePurpose(stringValue(formData, 'certificatePurpose'), usage)
+  const ownerEdielId = stringValue(formData, 'ownerEdielId') ?? parseOwnerEdielIdFromSubject(metadata.subject)
+  const ownerSubaddress = stringValue(formData, 'ownerSubaddress')
+  const messageType = stringValue(formData, 'messageType')?.toUpperCase() ?? null
+
+  if (hasPrivateMaterial && usage === 'outbound_recipient') {
+    throw new Error('P12/PFX med privat nyckel får inte importeras som mottagarcertifikat. Importera mottagarens publika .cer/.pem som outbound_recipient i stället.')
+  }
 
   const data = await insertCertificateRecord({
     actorUserId: context.userId,
@@ -435,20 +480,29 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
     fileSize: hasFile && file instanceof File ? file.size : null,
     metadata,
     status,
+    usage,
+    purpose,
+    ownerEdielId,
+    ownerSubaddress,
+    messageType,
+    isPrivateMaterialAvailable: hasPrivateMaterial,
   })
 
-  let mailboxDefaultApplied = true
-  try {
-    await applyCertificateAsMailboxDefault({
-      mailboxEmail,
-      environment,
-      certificateId: data.id,
-      actorUserId: context.userId,
-      source: importSource,
-    })
-  } catch (error) {
-    if (!isSchemaCompatibilityError(error)) throw error
-    mailboxDefaultApplied = false
+  let mailboxDefaultApplied = false
+  if (hasPrivateMaterial && (usage === 'inbound_private' || usage === 'sender_signing')) {
+    try {
+      await applyCertificateAsMailboxPrivateMaterial({
+        mailboxEmail,
+        environment,
+        certificateId: data.id,
+        actorUserId: context.userId,
+        source: importSource,
+      })
+      mailboxDefaultApplied = true
+    } catch (error) {
+      if (!isSchemaCompatibilityError(error)) throw error
+      mailboxDefaultApplied = false
+    }
   }
 
   await supabaseService.from('ediel_certificate_events').insert({
@@ -456,8 +510,10 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
     company_id: null,
     event_type: 'imported',
     message: mailboxDefaultApplied
-      ? 'Certifikat importerades och sparades som mailbox-default. PIN/lösenord lagrades inte.'
-      : 'Certifikat importerades. Mailbox-default kunde inte skrivas eftersom databasschemat saknar nya mailbox-/routekolumner.',
+      ? 'Privat certifikat importerades och kopplades endast till mailbox/inbound-signering. Inga outbound routes uppdaterades.'
+      : usage === 'outbound_recipient'
+        ? 'Mottagarens publika certifikat importerades. Koppla det till rätt route innan skick.'
+        : 'Certifikat importerades. Inga outbound routes uppdaterades.',
     metadata: {
       fingerprintSha256: metadata.fingerprintSha256,
       environment,
@@ -467,6 +523,12 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
       mailboxEmail,
       certificateStatus: status,
       mailboxDefaultApplied,
+      usage,
+      purpose,
+      ownerEdielId,
+      ownerSubaddress,
+      messageType,
+      isPrivateMaterialAvailable: hasPrivateMaterial,
     },
     created_by: context.userId,
   }).then(({ error }) => {
@@ -497,7 +559,7 @@ export async function importEdielP12CertificateAction(formData: FormData) {
   certificateRedirect(
     'success',
     result.mailboxDefaultApplied
-      ? 'Certifikatet sparades och kopplades som mailbox-default.'
-      : 'Uppgiften sparades. Om detta bara var Unika identifieraren aktiveras S/MIME först när certifikat/PEM/P12 finns.'
+      ? 'Privat certifikat sparades för inbound/signering. Outbound routes uppdaterades inte.'
+      : 'Certifikatet sparades. Mottagarcertifikat måste kopplas till rätt route innan S/MIME-skick.'
   )
 }

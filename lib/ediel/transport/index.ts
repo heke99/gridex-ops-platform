@@ -33,6 +33,12 @@ import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateProductionTransportSecurity } from '@/lib/ediel/config'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
+import {
+  describeCertificate,
+  fullEdielAddress,
+  resolveOutboundRecipientCertificate,
+  routeReceiverSubaddress,
+} from '@/lib/ediel/security/outboundRecipientCertificate'
 
 const execFileAsync = promisify(execFile)
 
@@ -371,6 +377,49 @@ export function isSupportedSmtpMimeMode(value: string | null | undefined): value
     value === 'ediel-singlepart-compact' ||
     value === 'nodemailer-attachment'
   )
+}
+
+
+async function inspectCmsRecipientInfo(params: {
+  encryptedDer: Buffer
+  expectedSerialNumber?: string | null
+}): Promise<{
+  raw: string | null
+  serialNumbers: string[]
+  expectedReceiverPresent: boolean
+}> {
+  const tempDir = await mkdtemp(join(tmpdir(), 'gridex-ediel-cms-inspect-'))
+  const inputPath = join(tempDir, 'smime.der')
+  try {
+    await writeFile(inputPath, params.encryptedDer)
+    const { stdout } = await execFileAsync('openssl', [
+      'cms',
+      '-inform',
+      'DER',
+      '-cmsout',
+      '-print',
+      '-in',
+      inputPath,
+    ], { maxBuffer: 1024 * 1024 * 6 })
+    const raw = String(stdout ?? '')
+    const serialNumbers = Array.from(raw.matchAll(/serialNumber:\s*([0-9A-Fa-f]+)/g))
+      .map((match) => match[1]?.trim().toUpperCase() ?? '')
+      .filter(Boolean)
+    const expected = String(params.expectedSerialNumber ?? '').trim().toUpperCase()
+    const normalizedExpected = expected.replace(/^0+/, '') || expected
+    const expectedReceiverPresent = Boolean(
+      expected && serialNumbers.some((serial) => {
+        const normalizedSerial = serial.replace(/^0+/, '') || serial
+        return serial === expected || normalizedSerial === normalizedExpected
+      }),
+    )
+    return { raw, serialNumbers, expectedReceiverPresent }
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(`S/MIME CMS recipientInfo kunde inte verifieras före SMTP: ${detail}`)
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
 }
 
 function resolveSmtpMimeMode(
@@ -1170,10 +1219,10 @@ export async function sendEdielMessageViaSmtp(
     routeProfile?.encryption_mode ??
     mailboxSecurity?.encryptionMode ??
     'none'
-  const effectiveCertificateId =
-    routeProfile?.certificate_id ??
-    mailboxSecurity?.certificateId ??
-    null
+  // Outbound S/MIME encryption must use the receiver route certificate only.
+  // The shared mailbox certificate is our own/private transport material and must never
+  // be used as recipientCertificatePem for another Ediel party.
+  const effectiveCertificateId = routeProfile?.certificate_id ?? null
   await assertRouteTransportSecurity({
     message,
     routeProfile,
@@ -1314,18 +1363,21 @@ export async function sendEdielMessageViaSmtp(
       throw new Error('S/MIME-läget stöder just nu EDIFACT. Använd ediel-singlepart-base64 för XML/AI-listor tills separat XML-S/MIME är byggt.')
     }
 
-    const configuredRecipientCertPath = optionalEnv('EDIEL_SMIME_RECIPIENT_CERT_PATH', null)
-    let recipientCertificatePem: string | null = null
-    if (effectiveCertificateId) {
-      const { data, error } = await supabaseService
-        .from('ediel_certificates')
-        .select('public_certificate_pem')
-        .eq('id', effectiveCertificateId)
-        .maybeSingle()
-      if (error) throw error
-      recipientCertificatePem = String(data?.public_certificate_pem ?? '') || null
-    }
-    const recipientCertPath = recipientCertificatePem ? null : configuredRecipientCertPath
+    const receiverSubaddress =
+      routeReceiverSubaddress(routeProfile) ??
+      message.receiver_sub_address ??
+      null
+    const outboundRecipientCertificate = await resolveOutboundRecipientCertificate({
+      certificateId: effectiveCertificateId,
+      receiverEdielId: routeProfile?.receiver_ediel_id ?? message.receiver_ediel_id ?? null,
+      receiverSubaddress,
+      messageType: String(message.message_family ?? routeProfile?.message_family ?? ''),
+      environment: message.environment,
+      routeProfileId: routeProfile?.id ?? null,
+      smtpTo: message.receiver_email,
+    })
+    const recipientCertificatePem = outboundRecipientCertificate.publicCertificatePem
+    const recipientCertPath = null
     const innerMime = buildInnerEdifactMimeForSmime({
       filename: fileName,
       decodedPayload: normalizedPayload,
@@ -1336,6 +1388,28 @@ export async function sendEdielMessageViaSmtp(
       recipientCertPath,
       recipientCertificatePem,
     })
+    const cmsRecipientInfo = await inspectCmsRecipientInfo({
+      encryptedDer,
+      expectedSerialNumber: outboundRecipientCertificate.serialNumber,
+    })
+    if (!cmsRecipientInfo.expectedReceiverPresent) {
+      await createEdielMessageEvent({
+        actorUserId,
+        edielMessageId: message.id,
+        eventType: 'manual_note',
+        eventStatus: 'error',
+        message: 'SMTP-skick stoppades: S/MIME-kuvertet innehåller inte förväntat mottagarcertifikat.',
+        payload: {
+          expectedReceiverAddress: fullEdielAddress(routeProfile?.receiver_ediel_id ?? message.receiver_ediel_id ?? null, 'ZZ', receiverSubaddress),
+          expectedReceiverCertificate: describeCertificate(outboundRecipientCertificate.raw),
+          actualCmsRecipientSerials: cmsRecipientInfo.serialNumbers,
+          cmsExpectedReceiverPresent: false,
+        },
+      })
+      throw new Error(
+        `Sending blocked: S/MIME envelope does not include expected receiver certificate for ${fullEdielAddress(routeProfile?.receiver_ediel_id ?? message.receiver_ediel_id ?? null, 'ZZ', receiverSubaddress) ?? 'receiver'}.`,
+      )
+    }
     const rawMime = buildOuterSmimeMime({
       from,
       to: message.receiver_email,
@@ -1357,12 +1431,15 @@ export async function sendEdielMessageViaSmtp(
       rawPayload: null,
       encryptedPayloadRef,
       encryptionMode: 'smime',
-      certificateFingerprint: null,
+      certificateFingerprint: outboundRecipientCertificate.fingerprintSha256,
       metadata: {
         mimeMode,
         encryptedPayloadLength,
         encryptedPayloadSha256: sha256(encryptedDer),
         recipientCertPath,
+        expectedReceiverCertificate: describeCertificate(outboundRecipientCertificate.raw),
+        actualCmsRecipientSerials: cmsRecipientInfo.serialNumbers,
+        cmsExpectedReceiverPresent: cmsRecipientInfo.expectedReceiverPresent,
       },
     }).catch((error) => {
       console.warn('[ediel-transport] Could not store S/MIME payload snapshot', error)
@@ -1376,8 +1453,11 @@ export async function sendEdielMessageViaSmtp(
       message: 'S/MIME envelope byggt enligt Ediel-regler före SMTP-skickning.',
       payload: {
         mimeMode,
-        recipientCertPath: recipientCertPath ?? 'database:ediel_certificates.public_certificate_pem',
-        certificateId: effectiveCertificateId,
+        recipientCertPath: 'database:ediel_certificates.public_certificate_pem',
+        certificateId: outboundRecipientCertificate.id,
+        expectedReceiverCertificate: describeCertificate(outboundRecipientCertificate.raw),
+        actualCmsRecipientSerials: cmsRecipientInfo.serialNumbers,
+        cmsExpectedReceiverPresent: cmsRecipientInfo.expectedReceiverPresent,
         outerContentType: 'application/pkcs7-mime; smime-type=enveloped-data; name=smime.p7m',
         outerContentTransferEncoding: 'base64',
         outerContentDisposition: 'attachment; filename=smime.p7m',

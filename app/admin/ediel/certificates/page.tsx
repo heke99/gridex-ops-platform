@@ -34,6 +34,13 @@ type CertificateDisplayRow = {
   renewal_window_days?: number | null
   warning_days_before_expiry?: number | null
   critical_days_before_expiry?: number | null
+  owner_ediel_id?: string | null
+  owner_subaddress?: string | null
+  message_type?: string | null
+  purpose?: string | null
+  usage?: string | null
+  is_private_material_available?: boolean | null
+  needs_verification?: boolean | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -56,7 +63,7 @@ async function listCertificateRows(): Promise<{
 }> {
   const rich = await supabaseService
     .from('ediel_certificates')
-    .select('id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry, metadata')
+    .select('id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry, owner_ediel_id, owner_subaddress, message_type, purpose, usage, is_private_material_available, needs_verification, metadata')
     .order('updated_at', { ascending: false })
     .limit(100)
 
@@ -111,7 +118,7 @@ export default async function EdielCertificatesPage({ searchParams }: Certificat
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h1 className="text-xl font-black text-slate-950">Lägg till certifikat</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-            Superadmin kan registrera Expisoft/Ediel S/MIME-certifikat via fil eller inklistrad text. Klistra in PEM-certifikat för publik kryptering eller base64-kodad .p12/.pfx med PIN. Certifikatet sparas som gemensam default för vald mailbox och miljö, så routes som använder samma e-post ärver krypteringen.
+Superadmin kan registrera S/MIME-certifikat. Importera vårt P12/PFX som privat inbound/signering. Importera mottagarens publika PEM/CER som outbound_recipient. Systemet kopplar inte längre P12/mailbox-certifikat till outbound routes automatiskt.
           </p>
           <form action={importEdielP12CertificateAction} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <input name="displayName" placeholder="Certificate name" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
@@ -125,7 +132,26 @@ export default async function EdielCertificatesPage({ searchParams }: Certificat
               <option value="test">test</option>
               <option value="production">production</option>
             </select>
-            <input name="password" type="password" placeholder="PIN/lösenord" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <select name="certificateUsage" defaultValue="inbound_private" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="inbound_private">Vårt privata certifikat: inbound_private</option>
+              <option value="sender_signing">Vårt signeringscertifikat: sender_signing</option>
+              <option value="outbound_recipient">Mottagarens publika certifikat: outbound_recipient</option>
+            </select>
+            <select name="certificatePurpose" defaultValue="both" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="both">both</option>
+              <option value="encryption">encryption</option>
+              <option value="signing">signing</option>
+            </select>
+            <input name="ownerEdielId" placeholder="Certifikatets ägare Ediel-ID, t.ex. 21660 eller 91100" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="ownerSubaddress" placeholder="Ägarens subadress, t.ex. PRODAT" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <select name="messageType" defaultValue="PRODAT" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="PRODAT">PRODAT</option>
+              <option value="UTILTS">UTILTS</option>
+              <option value="APERAK">APERAK</option>
+              <option value="CONTRL">CONTRL</option>
+              <option value="">Generellt</option>
+            </select>
+            <input name="password" type="password" placeholder="PIN/lösenord endast för P12/PFX" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <input name="certificateFile" type="file" accept=".p12,.pfx" className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2" />
             <textarea
               name="certificateText"
@@ -140,10 +166,10 @@ export default async function EdielCertificatesPage({ searchParams }: Certificat
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2 xl:col-span-4"
             />
             <p className="text-xs leading-5 text-slate-600 md:col-span-2 xl:col-span-4">
-              När ett riktigt certifikat sparas sätts mailboxens encryption_mode till smime för vald miljö. Om du bara sparar Unika identifieraren påverkas inte kryptering ännu; den används som spårning inför certifikatbeställning/aktivering.
+P12/PFX med privat nyckel sparas som inbound_private/sender_signing och får inte väljas som mottagarcertifikat. Mottagarens publika PEM/CER ska sparas som outbound_recipient med rätt owner_ediel_id/subadress och kopplas till route.
             </p>
             <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
-              Spara certifikat och mailbox-default
+Spara certifikat
             </button>
           </form>
         </section>
@@ -161,6 +187,11 @@ export default async function EdielCertificatesPage({ searchParams }: Certificat
                 const subject = row.subject ?? textFromMetadata(row, 'subject') ?? 'Subject saknas'
                 const scope = row.scope ?? textFromMetadata(row, 'scope') ?? 'platform_shared'
                 const environment = row.environment ?? textFromMetadata(row, 'environment') ?? 'test'
+                const usage = row.usage ?? textFromMetadata(row, 'usage') ?? 'usage saknas'
+                const purpose = row.purpose ?? textFromMetadata(row, 'purpose') ?? 'purpose saknas'
+                const ownerEdielId = row.owner_ediel_id ?? textFromMetadata(row, 'ownerEdielId') ?? textFromMetadata(row, 'owner_ediel_id')
+                const ownerSubaddress = row.owner_subaddress ?? textFromMetadata(row, 'ownerSubaddress') ?? textFromMetadata(row, 'owner_subaddress')
+                const messageType = row.message_type ?? textFromMetadata(row, 'messageType') ?? textFromMetadata(row, 'message_type')
                 const uniqueIdentifier = uniqueIdentifierFromMetadata(row)
                 return (
                 <tr key={row.id} className="border-t border-slate-100">
@@ -168,6 +199,7 @@ export default async function EdielCertificatesPage({ searchParams }: Certificat
                     <div className="font-semibold text-slate-950">{displayName}</div>
                     <div className="mt-1 font-mono text-xs text-slate-600">{fingerprint ?? 'Fingerprint saknas'}</div>
                     <div className="mt-1 text-xs text-slate-600">{subject}</div>
+                    <div className="mt-1 text-xs font-semibold text-slate-700">{usage} · {purpose} · owner {ownerEdielId ?? 'saknas'}{ownerSubaddress ? `:${ownerSubaddress}` : ''}{messageType ? ` · ${messageType}` : ''}</div>
                     {uniqueIdentifier ? (
                       <div className="mt-1 text-xs font-semibold text-amber-700">Unik identifierare: {uniqueIdentifier}</div>
                     ) : null}
