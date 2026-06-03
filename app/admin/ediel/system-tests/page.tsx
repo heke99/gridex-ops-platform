@@ -16,7 +16,11 @@ import {
 } from "@/lib/ediel/tgtRegistry";
 import { createEdielTgtRunFromTemplateAction } from "@/app/admin/ediel/actions";
 import { saveSimpleSystemTestCompanySetupAction } from "@/app/admin/ediel/system-tests/actions";
-import { EDIEL_SYSTEM_TEST_PACKAGES, getEdielSystemTestPackage, isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages";
+import {
+  EDIEL_SYSTEM_TEST_PACKAGES,
+  getEdielSystemTestPackage,
+  isAgtSystemTestCase,
+} from "@/lib/ediel/systemTestPackages";
 
 export const dynamic = "force-dynamic";
 
@@ -113,7 +117,10 @@ function Badge({
   );
 }
 
-function metadataText(metadata: Record<string, unknown> | null | undefined, ...keys: string[]): string | null {
+function metadataText(
+  metadata: Record<string, unknown> | null | undefined,
+  ...keys: string[]
+): string | null {
   for (const key of keys) {
     const value = metadata?.[key];
     if (typeof value === "string" && value.trim()) return value.trim();
@@ -121,11 +128,23 @@ function metadataText(metadata: Record<string, unknown> | null | undefined, ...k
   return null;
 }
 
-function isOutboundRecipientCertificate(certificate: CertificateOption): boolean {
-  const usage = certificate.usage ?? metadataText(certificate.metadata, "usage", "certificateUsage");
-  const purpose = certificate.purpose ?? metadataText(certificate.metadata, "purpose", "certificatePurpose");
-  const messageType = certificate.message_type ?? metadataText(certificate.metadata, "messageType", "message_type");
-  const environment = String(certificate.environment ?? metadataText(certificate.metadata, "environment") ?? "").toLowerCase();
+function isOutboundRecipientCertificate(
+  certificate: CertificateOption,
+): boolean {
+  const usage =
+    certificate.usage ??
+    metadataText(certificate.metadata, "usage", "certificateUsage");
+  const purpose =
+    certificate.purpose ??
+    metadataText(certificate.metadata, "purpose", "certificatePurpose");
+  const messageType =
+    certificate.message_type ??
+    metadataText(certificate.metadata, "messageType", "message_type");
+  const environment = String(
+    certificate.environment ??
+      metadataText(certificate.metadata, "environment") ??
+      "",
+  ).toLowerCase();
   const status = String(certificate.status ?? "").toLowerCase();
   return (
     usage === "outbound_recipient" &&
@@ -133,6 +152,42 @@ function isOutboundRecipientCertificate(certificate: CertificateOption): boolean
     (!messageType || messageType === "PRODAT") &&
     (!environment || environment === "production" || environment === "test") &&
     (!status || ["active", "valid", "renewal_available"].includes(status))
+  );
+}
+
+const CURRENT_AGT_DGI_PRODAT_CODES = new Set([
+  "E3",
+  "E4",
+  "E5",
+  "E6",
+  "E7",
+  "E8",
+]);
+const CURRENT_AGT_DGI_UTILTS_CODES = new Set(["UE1", "UE2"]);
+
+function isCurrentAgtDgiProdatCase(
+  testCase: EdielTgtTestCaseDefinition,
+): boolean {
+  return (
+    testCase.roleCode === "esco" &&
+    testCase.suite === "PRODAT" &&
+    CURRENT_AGT_DGI_PRODAT_CODES.has(testCase.testCaseCode.toUpperCase())
+  );
+}
+
+function isCurrentAgtDgiUtiltsCase(
+  testCase: EdielTgtTestCaseDefinition,
+): boolean {
+  return (
+    testCase.roleCode === "esco" &&
+    testCase.suite === "UTILTS" &&
+    CURRENT_AGT_DGI_UTILTS_CODES.has(testCase.testCaseCode.toUpperCase())
+  );
+}
+
+function isCurrentAgtDgiCase(testCase: EdielTgtTestCaseDefinition): boolean {
+  return (
+    isCurrentAgtDgiProdatCase(testCase) || isCurrentAgtDgiUtiltsCase(testCase)
   );
 }
 
@@ -148,8 +203,12 @@ function caseGroup(testCase: EdielTgtTestCaseDefinition): string {
   const code = testCase.testCaseCode.toUpperCase();
   if (code.startsWith("U3.1")) return "U3.1 - Korrekt UTILTS E66";
   if (code.startsWith("U3.2")) return "U3.2 - Felaktig UTILTS E66";
+  if (isCurrentAgtDgiProdatCase(testCase))
+    return "AGT DGI - Energitjänsteföretag PRODAT E3-E8";
+  if (isCurrentAgtDgiUtiltsCase(testCase))
+    return "AGT DGI - Energitjänsteföretag UTILTS UE1-UE2";
   if (testCase.roleCode === "esco" && testCase.suite === "PRODAT")
-    return "ESCO PRODAT tillstånd";
+    return "ESCO PRODAT legacy/regression";
   if (testCase.roleCode === "esco" && testCase.suite === "UTILTS")
     return "ESCO UTILTS övriga";
   if (testCase.suite === "UTILTS") return "UTILTS leverantör";
@@ -162,6 +221,8 @@ function casePriority(testCase: EdielTgtTestCaseDefinition): number {
   if (code === "U3.1.2") return 2;
   if (code === "U3.2.1") return 3;
   if (code === "U3.2.2") return 4;
+  if (isCurrentAgtDgiProdatCase(testCase)) return 5;
+  if (isCurrentAgtDgiUtiltsCase(testCase)) return 6;
   if (testCase.roleCode === "esco" && testCase.suite === "UTILTS") return 10;
   if (testCase.roleCode === "esco" && testCase.suite === "PRODAT") return 20;
   if (testCase.suite === "UTILTS") return 30;
@@ -378,21 +439,11 @@ function matchesPacket(
   if (packet === "u3") return isU3(testCase);
   if (packet === "u31") return isU3(testCase) && code.startsWith("U3.1");
   if (packet === "u32") return isU3(testCase) && code.startsWith("U3.2");
-  if (packet === "esco") return testCase.roleCode === "esco";
+  if (packet === "esco") return isCurrentAgtDgiCase(testCase);
   if (packet === "utilts") return testCase.suite === "UTILTS";
   if (packet === "prodat") return testCase.suite === "PRODAT";
-  if (packet === "e")
-    return (
-      testCase.roleCode === "esco" &&
-      testCase.suite === "PRODAT" &&
-      (/^E\d/i.test(code) || code.startsWith("8.") || code.startsWith("9."))
-    );
-  if (packet === "ue")
-    return (
-      testCase.roleCode === "esco" &&
-      testCase.suite === "UTILTS" &&
-      (code.startsWith("UE") || code.startsWith("U3."))
-    );
+  if (packet === "e") return isCurrentAgtDgiProdatCase(testCase);
+  if (packet === "ue") return isCurrentAgtDgiUtiltsCase(testCase);
   if (packet === "l")
     return (
       testCase.roleCode === "supplier" &&
@@ -409,12 +460,13 @@ function matchesPacket(
     return (
       code.startsWith("L") ||
       code.startsWith("UL") ||
-      code.startsWith("UE") ||
-      code.startsWith("E")
+      isCurrentAgtDgiCase(testCase)
     );
   if (packet === "tgt")
-    return (
-      !code.startsWith("L") && !code.startsWith("UL") && !code.startsWith("UE")
+    return !(
+      code.startsWith("L") ||
+      code.startsWith("UL") ||
+      isCurrentAgtDgiCase(testCase)
     );
   return true;
 }
@@ -424,8 +476,7 @@ function isAgtCase(testCase: EdielTgtTestCaseDefinition): boolean {
   return (
     code.startsWith("L") ||
     code.startsWith("UL") ||
-    code.startsWith("UE") ||
-    /^E\d/.test(code)
+    isCurrentAgtDgiCase(testCase)
   );
 }
 
@@ -568,7 +619,7 @@ function QuickFilters({
     { key: "u3", label: "U3 alla" },
     { key: "u31", label: "U3.1 korrekta" },
     { key: "u32", label: "U3.2 felaktiga" },
-    { key: "esco", label: "Alla energitjänsteföretag" },
+    { key: "esco", label: "AGT DGI aktuella E/UE" },
     { key: "e", label: "E3–E8 PRODAT ESCO" },
     { key: "ue", label: "UE1–UE2 UTILTS ESCO" },
     { key: "utilts", label: "Alla UTILTS" },
@@ -613,19 +664,40 @@ function StartRunForm({
       ? "tgt_dgi_utilts_u3"
       : "tgt_ddq_prodat_utilts";
   return (
-    <form action={createEdielTgtRunFromTemplateAction} className="flex flex-wrap items-center gap-2">
-      {companyId ? <input type="hidden" name="companyId" value={companyId} /> : null}
+    <form
+      action={createEdielTgtRunFromTemplateAction}
+      className="flex flex-wrap items-center gap-2"
+    >
+      {companyId ? (
+        <input type="hidden" name="companyId" value={companyId} />
+      ) : null}
       <input type="hidden" name="testSuite" value={testCase.suite} />
       <input type="hidden" name="roleCode" value={testCase.roleCode} />
       <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
       <input type="hidden" name="setupPackage" value={setupPackage} />
-      <input type="hidden" name="runtimeTestSuite" value={isAgt ? "AGT" : "TGT"} />
-      <input type="hidden" name="environmentType" value={isAgt ? "agt_test" : "tgt_test"} />
-      <input type="hidden" name="certificateEnvironment" value={isAgt ? "production" : "test"} />
-      <input type="hidden" name="transportEnvironment" value={isAgt ? "production_smtp" : "test"} />
+      <input
+        type="hidden"
+        name="runtimeTestSuite"
+        value={isAgt ? "AGT" : "TGT"}
+      />
+      <input
+        type="hidden"
+        name="environmentType"
+        value={isAgt ? "agt_test" : "tgt_test"}
+      />
+      <input
+        type="hidden"
+        name="certificateEnvironment"
+        value={isAgt ? "production" : "test"}
+      />
+      <input
+        type="hidden"
+        name="transportEnvironment"
+        value={isAgt ? "production_smtp" : "test"}
+      />
       <select
         name="encryptionMode"
-        defaultValue="none"
+        defaultValue={isAgt && testCase.suite === "PRODAT" ? "smime" : "none"}
         className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
         title="Välj transportläge för just denna testkörning"
       >
@@ -749,8 +821,12 @@ function SimpleCompanySetupPanel({
   setupMessage: string | null;
 }) {
   const packageDefinition = getEdielSystemTestPackage(selectedSetupPackage);
-  const defaultEdielId = runtime?.actorEdielId ?? selectedCompany?.ediel_id ?? "";
-  const defaultActorRole = packageDefinition.value === "custom" ? selectedActorRole : packageDefinition.actorRole;
+  const defaultEdielId =
+    runtime?.actorEdielId ?? selectedCompany?.ediel_id ?? "";
+  const defaultActorRole =
+    packageDefinition.value === "custom"
+      ? selectedActorRole
+      : packageDefinition.actorRole;
   const defaultTestBrpEdielId = packageDefinition.testBrpEdielId ?? "";
   const receiverPreview = `${packageDefinition.portalEdielId}:ZZ${packageDefinition.receiverSubaddress ? `:${packageDefinition.receiverSubaddress}` : ""}`;
 
@@ -766,33 +842,45 @@ function SimpleCompanySetupPanel({
           </h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
             Fyll i saknade uppgifter här en gång. Systemet sparar aktör,
-            Edielportalen-route, shared mailbox och systemtestinställning
-            så testknapparna nedan kan köra testerna direkt från denna sida.
+            Edielportalen-route, shared mailbox och systemtestinställning så
+            testknapparna nedan kan köra testerna direkt från denna sida.
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
           <div className="font-bold text-slate-950">Aktuell runtime</div>
-          <div>Bolag: {selectedCompany?.name ?? selectedCompanyId ?? "saknas"}</div>
+          <div>
+            Bolag: {selectedCompany?.name ?? selectedCompanyId ?? "saknas"}
+          </div>
           <div>Aktör Ediel-ID: {runtime?.actorEdielId ?? "saknas"}</div>
-          <div>Portal: {runtime?.testPortalEdielId ?? "saknas"} · {runtime?.testPortalEmail ?? "saknas"}</div>
+          <div>
+            Portal: {runtime?.testPortalEdielId ?? "saknas"} ·{" "}
+            {runtime?.testPortalEmail ?? "saknas"}
+          </div>
         </div>
       </div>
 
       {setupStatus && setupMessage ? (
-        <div className={`mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold ${
-          setupStatus === "success"
-            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-            : "border-red-200 bg-red-50 text-red-800"
-        }`}>
+        <div
+          className={`mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+            setupStatus === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
           {setupMessage}
         </div>
       ) : null}
 
       <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-        <div className="font-bold text-slate-950">Resolved Ediel test route</div>
+        <div className="font-bold text-slate-950">
+          Resolved Ediel test route
+        </div>
         <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           <div>Setup: {packageDefinition.label}</div>
-          <div>Suite: {packageDefinition.testSuiteType} · {packageDefinition.marketRole}</div>
+          <div>
+            Suite: {packageDefinition.testSuiteType} ·{" "}
+            {packageDefinition.marketRole}
+          </div>
           <div>Family: {packageDefinition.messageFamily}</div>
           <div>Receiver: {receiverPreview}</div>
           <div>SMTP to: {packageDefinition.portalEmail}</div>
@@ -802,53 +890,149 @@ function SimpleCompanySetupPanel({
         </div>
       </div>
 
-      <form action={saveSimpleSystemTestCompanySetupAction} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <select name="setupPackage" defaultValue={packageDefinition.value} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+      <form
+        action={saveSimpleSystemTestCompanySetupAction}
+        className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
+      >
+        <select
+          name="setupPackage"
+          defaultValue={packageDefinition.value}
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        >
           {EDIEL_SYSTEM_TEST_PACKAGES.map((item) => (
-            <option key={item.value} value={item.value}>{item.label}</option>
-          ))}
-        </select>
-        <select name="companyId" defaultValue={selectedCompanyId ?? ""} required className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-          <option value="">Välj bolag</option>
-          {companies.map((company) => (
-            <option key={company.id} value={company.id}>
-              {company.name ?? company.id}{company.org_number ? ` · ${company.org_number}` : ""}
+            <option key={item.value} value={item.value}>
+              {item.label}
             </option>
           ))}
         </select>
-        <select name="actorRole" defaultValue={defaultActorRole} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+        <select
+          name="companyId"
+          defaultValue={selectedCompanyId ?? ""}
+          required
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="">Välj bolag</option>
+          {companies.map((company) => (
+            <option key={company.id} value={company.id}>
+              {company.name ?? company.id}
+              {company.org_number ? ` · ${company.org_number}` : ""}
+            </option>
+          ))}
+        </select>
+        <select
+          name="actorRole"
+          defaultValue={defaultActorRole}
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        >
           <option value="esco">Energitjänsteföretag / DGI</option>
           <option value="supplier">Elleverantör / DDQ</option>
         </select>
-        <input name="edielId" defaultValue={defaultEdielId} required placeholder="Bolagets Ediel-ID" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-        <input name="mailbox" defaultValue="ediel@gridex.se" required placeholder="Teknisk mailbox" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-        <input name="portalEdielId" defaultValue={runtime?.testPortalEdielId ?? packageDefinition.portalEdielId} required placeholder="Edielportalen Ediel-ID" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-        <input name="portalEmail" defaultValue={runtime?.testPortalEmail ?? packageDefinition.portalEmail} required placeholder="Edielportalen e-post" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-        <input name="testBrpEdielId" defaultValue={defaultTestBrpEdielId} placeholder="Test-BRP (bara leverantör)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-        <select name="encryptionMode" defaultValue={packageDefinition.encryptionMode} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+        <input
+          name="edielId"
+          defaultValue={defaultEdielId}
+          required
+          placeholder="Bolagets Ediel-ID"
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        />
+        <input
+          name="mailbox"
+          defaultValue="ediel@gridex.se"
+          required
+          placeholder="Teknisk mailbox"
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        />
+        <input
+          name="portalEdielId"
+          defaultValue={
+            runtime?.testPortalEdielId ?? packageDefinition.portalEdielId
+          }
+          required
+          placeholder="Edielportalen Ediel-ID"
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        />
+        <input
+          name="portalEmail"
+          defaultValue={
+            runtime?.testPortalEmail ?? packageDefinition.portalEmail
+          }
+          required
+          placeholder="Edielportalen e-post"
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        />
+        <input
+          name="testBrpEdielId"
+          defaultValue={defaultTestBrpEdielId}
+          placeholder="Test-BRP (bara leverantör)"
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        />
+        <select
+          name="encryptionMode"
+          defaultValue={packageDefinition.encryptionMode}
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        >
           <option value="none">Okrypterat test</option>
           <option value="smime">Krypterat S/MIME-test</option>
         </select>
-        <select name="certificateId" defaultValue="" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-          <option value="">Auto-hämta från Expisoft eller välj receiver certificate</option>
+        <select
+          name="certificateId"
+          defaultValue=""
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="">
+            Auto-hämta från Expisoft eller välj receiver certificate
+          </option>
           {certificates.map((certificate) => {
-            const fingerprint = certificate.fingerprint_sha256 ?? certificate.certificate_fingerprint ?? "";
-            const ownerEdielId = certificate.owner_ediel_id ?? metadataText(certificate.metadata, "ownerEdielId", "owner_ediel_id");
-            const ownerSubaddress = certificate.owner_subaddress ?? metadataText(certificate.metadata, "ownerSubaddress", "owner_subaddress");
+            const fingerprint =
+              certificate.fingerprint_sha256 ??
+              certificate.certificate_fingerprint ??
+              "";
+            const ownerEdielId =
+              certificate.owner_ediel_id ??
+              metadataText(
+                certificate.metadata,
+                "ownerEdielId",
+                "owner_ediel_id",
+              );
+            const ownerSubaddress =
+              certificate.owner_subaddress ??
+              metadataText(
+                certificate.metadata,
+                "ownerSubaddress",
+                "owner_subaddress",
+              );
             const label = [
               certificate.display_name ?? "Receiver public certificate",
-              ownerEdielId ? `owner ${ownerEdielId}${ownerSubaddress ? `:${ownerSubaddress}` : ""}` : null,
+              ownerEdielId
+                ? `owner ${ownerEdielId}${ownerSubaddress ? `:${ownerSubaddress}` : ""}`
+                : null,
               certificate.environment ?? "test",
               certificate.status ?? "status okänd",
               fingerprint ? fingerprint.slice(0, 12) : null,
-              certificate.valid_to ?? certificate.certificate_valid_to ? `giltigt till ${(certificate.valid_to ?? certificate.certificate_valid_to)?.slice(0, 10)}` : null,
-            ].filter(Boolean).join(" · ");
-            return <option key={certificate.id} value={certificate.id}>{label}</option>;
+              (certificate.valid_to ?? certificate.certificate_valid_to)
+                ? `giltigt till ${(certificate.valid_to ?? certificate.certificate_valid_to)?.slice(0, 10)}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            return (
+              <option key={certificate.id} value={certificate.id}>
+                {label}
+              </option>
+            );
           })}
         </select>
-        <input name="prodatSubaddress" defaultValue={packageDefinition.receiverSubaddress ?? ""} placeholder="PRODAT subadress om krävs, annars tom" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <input
+          name="prodatSubaddress"
+          defaultValue={packageDefinition.receiverSubaddress ?? ""}
+          placeholder="PRODAT subadress om krävs, annars tom"
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        />
         <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-          <input type="checkbox" name="prodatSubaddressRequired" defaultChecked={packageDefinition.receiverSubaddressRequired} />
+          <input
+            type="checkbox"
+            name="prodatSubaddressRequired"
+            defaultChecked={packageDefinition.receiverSubaddressRequired}
+          />
           PRODAT subadress krävs
         </label>
         <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -861,7 +1045,8 @@ function SimpleCompanySetupPanel({
       </form>
 
       <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-        Efter sparning: välj testkort nedan och klicka <strong>Starta testkörning</strong>. Allt sker från denna sida.
+        Efter sparning: välj testkort nedan och klicka{" "}
+        <strong>Starta testkörning</strong>. Allt sker från denna sida.
       </div>
     </section>
   );
@@ -956,13 +1141,23 @@ export default async function EdielSystemTestsPage({
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
-  const companies = ((companiesResult.data ?? []) as CompanyOption[]);
+  const companies = (companiesResult.data ?? []) as CompanyOption[];
   const certificates = certificatesResult.error
     ? []
-    : ((certificatesResult.data ?? []) as CertificateOption[]).filter(isOutboundRecipientCertificate);
+    : ((certificatesResult.data ?? []) as CertificateOption[]).filter(
+        isOutboundRecipientCertificate,
+      );
   const div3rsaCompany =
-    companies.find((company) => String(company.name ?? "").toLowerCase().includes("div3rsa")) ??
-    companies.find((company) => String(company.name ?? "").toLowerCase().includes("diversa")) ??
+    companies.find((company) =>
+      String(company.name ?? "")
+        .toLowerCase()
+        .includes("div3rsa"),
+    ) ??
+    companies.find((company) =>
+      String(company.name ?? "")
+        .toLowerCase()
+        .includes("diversa"),
+    ) ??
     null;
   const selectedCompanyId =
     String(query.companyId ?? "").trim() ||
@@ -970,7 +1165,8 @@ export default async function EdielSystemTestsPage({
     div3rsaCompany?.id ||
     companies[0]?.id ||
     null;
-  const selectedCompany = companies.find((company) => company.id === selectedCompanyId) ?? null;
+  const selectedCompany =
+    companies.find((company) => company.id === selectedCompanyId) ?? null;
   const q = String(query.q ?? "")
     .trim()
     .toUpperCase();
@@ -980,16 +1176,22 @@ export default async function EdielSystemTestsPage({
   const role = String(query.role ?? "")
     .trim()
     .toLowerCase();
-  const selectedActorRole: "esco" | "supplier" = role === "supplier" ? "supplier" : "esco";
+  const selectedActorRole: "esco" | "supplier" =
+    role === "supplier" ? "supplier" : "esco";
   const packet = normalizePacket(query.packet);
   const family = normalizeFamily(query.family);
   const selectedSetupPackage =
-    packet === "u3" || packet === "u31" || packet === "u32" || family === "UTILTS"
-      ? "tgt_dgi_utilts_u3"
-      : selectedActorRole === "supplier"
-        ? "agt_ddq_prodat_l"
-        : "agt_dgi_prodat_e3_e8";
-  const selectedPackageDefinition = getEdielSystemTestPackage(selectedSetupPackage);
+    selectedActorRole === "esco" && packet === "ue"
+      ? "agt_dgi_utilts_ue1_ue2"
+      : packet === "u3" || packet === "u31" || packet === "u32"
+        ? "tgt_dgi_utilts_u3"
+        : selectedActorRole === "esco" && family === "UTILTS"
+          ? "agt_dgi_utilts_ue1_ue2"
+          : selectedActorRole === "supplier"
+            ? "agt_ddq_prodat_l"
+            : "agt_dgi_prodat_e3_e8";
+  const selectedPackageDefinition =
+    getEdielSystemTestPackage(selectedSetupPackage);
   const systemTestRuntime = await getEdielSystemTestRuntimeContext({
     companyId: selectedCompanyId,
     testSuite: selectedPackageDefinition.testSuiteType,
@@ -1001,7 +1203,9 @@ export default async function EdielSystemTestsPage({
 
   const [testRuns, messages] = await Promise.all([
     listEdielTestRuns({ companyId: selectedCompanyId }).catch(() => []),
-    listEdielMessages({ companyId: selectedCompanyId, limit: 300 }).catch(() => []),
+    listEdielMessages({ companyId: selectedCompanyId, limit: 300 }).catch(
+      () => [],
+    ),
   ]);
   const testRunsForCards = testRuns as TestRunList;
 
@@ -1057,7 +1261,13 @@ export default async function EdielSystemTestsPage({
         selectedActorRole={selectedActorRole}
         selectedSetupPackage={selectedSetupPackage}
         runtime={systemTestRuntime}
-        setupStatus={query.setupStatus === "success" ? "success" : query.setupStatus === "error" ? "error" : null}
+        setupStatus={
+          query.setupStatus === "success"
+            ? "success"
+            : query.setupStatus === "error"
+              ? "error"
+              : null
+        }
         setupMessage={query.setupMessage ?? null}
       />
 
@@ -1138,7 +1348,9 @@ export default async function EdielSystemTestsPage({
 
         <form className="mt-4 grid gap-3 md:grid-cols-8">
           <input type="hidden" name="packet" value={packet} />
-          {selectedCompanyId ? <input type="hidden" name="companyId" value={selectedCompanyId} /> : null}
+          {selectedCompanyId ? (
+            <input type="hidden" name="companyId" value={selectedCompanyId} />
+          ) : null}
           <input
             name="q"
             defaultValue={q}

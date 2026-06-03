@@ -1,108 +1,160 @@
-import Link from 'next/link'
-import AdminHeader from '@/components/admin/AdminHeader'
-import { requirePlatformAdminAccess } from '@/lib/admin/guards'
-import { supabaseService } from '@/lib/supabase/service'
-import { processInboundMailQueueAction, runInboundMailEngineAction, saveSharedMailboxProfileAction } from '@/app/admin/inbound-mail/actions'
+import Link from "next/link";
+import AdminHeader from "@/components/admin/AdminHeader";
+import { requirePlatformAdminAccess } from "@/lib/admin/guards";
+import { supabaseService } from "@/lib/supabase/service";
+import {
+  processInboundMailQueueAction,
+  runInboundMailEngineAction,
+  saveSharedMailboxProfileAction,
+} from "@/app/admin/inbound-mail/actions";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
 type MailboxRow = {
-  id: string
-  mailbox_name: string | null
-  company_id: string | null
-  email_address: string | null
-  environment: string | null
-  is_active: boolean | null
-  imap_host?: string | null
-  username?: string | null
-  secret_reference?: string | null
-  poll_interval_minutes: number | null
-  last_polled_at: string | null
-  locked_at?: string | null
-  metadata?: Record<string, unknown> | null
-  last_error: string | null
-}
+  id: string;
+  mailbox_name: string | null;
+  company_id: string | null;
+  email_address: string | null;
+  environment: string | null;
+  is_active: boolean | null;
+  imap_host?: string | null;
+  username?: string | null;
+  secret_reference?: string | null;
+  poll_interval_minutes: number | null;
+  last_polled_at: string | null;
+  locked_at?: string | null;
+  metadata?: Record<string, unknown> | null;
+  last_error: string | null;
+};
 
 type PollRunRow = {
-  id: string
-  environment: string | null
-  status: string | null
-  configured_mailboxes: number | null
-  due_mailboxes: number | null
-  skipped_locked: number | null
-  skipped_not_due: number | null
-  fetched_messages: number | null
-  stored_emails: number | null
-  deduped_emails: number | null
-  processed_jobs: number | null
-  failed_jobs: number | null
-  started_at: string | null
-  finished_at: string | null
-}
+  id: string;
+  environment: string | null;
+  status: string | null;
+  configured_mailboxes: number | null;
+  due_mailboxes: number | null;
+  skipped_locked: number | null;
+  skipped_not_due: number | null;
+  fetched_messages: number | null;
+  stored_emails: number | null;
+  deduped_emails: number | null;
+  processed_jobs: number | null;
+  failed_jobs: number | null;
+  started_at: string | null;
+  finished_at: string | null;
+};
 
 type InboundEmailRow = {
-  id: string
-  company_id: string | null
-  mailbox_id: string | null
-  from_address: string | null
-  subject: string | null
-  received_at: string | null
-  processing_status: string | null
-  match_status: string | null
-  message_family?: string | null
-  message_code?: string | null
-  created_at: string
-}
+  id: string;
+  company_id: string | null;
+  mailbox_id: string | null;
+  from_address: string | null;
+  subject: string | null;
+  received_at: string | null;
+  processing_status: string | null;
+  match_status: string | null;
+  message_family?: string | null;
+  message_code?: string | null;
+  created_at: string;
+};
 
 type ParseRow = {
-  id: string
-  inbound_email_message_id: string | null
-  message_family: string | null
-  message_code: string | null
-  parse_status: string | null
-  interchange_reference: string | null
-  transaction_reference: string | null
-  created_at: string
-}
+  id: string;
+  inbound_email_message_id: string | null;
+  message_family: string | null;
+  message_code: string | null;
+  parse_status: string | null;
+  interchange_reference: string | null;
+  transaction_reference: string | null;
+  created_at: string;
+};
 
 async function safeCount(table: string, filters: Record<string, string> = {}) {
-  let query = supabaseService.from(table).select('id', { count: 'exact', head: true })
-  for (const [key, value] of Object.entries(filters)) query = query.eq(key, value)
-  const { count } = await query
-  return count ?? 0
+  let query = supabaseService
+    .from(table)
+    .select("id", { count: "exact", head: true });
+  for (const [key, value] of Object.entries(filters))
+    query = query.eq(key, value);
+  const { count } = await query;
+  return count ?? 0;
 }
 
 async function safeOrCount(table: string, orFilter: string) {
-  const { count } = await supabaseService.from(table).select('id', { count: 'exact', head: true }).or(orFilter)
-  return count ?? 0
+  const { count } = await supabaseService
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .or(orFilter);
+  return count ?? 0;
 }
 
 export default async function InboundMailPage() {
-  const admin = await requirePlatformAdminAccess()
+  const admin = await requirePlatformAdminAccess();
 
-  const [mailboxesResult, messagesResult, parseResult, pollRunsResult, totalMessages, manualReviewCount, failedMessageCount, failedJobCount] = await Promise.all([
-    supabaseService.from('ediel_mailboxes').select('*').order('updated_at', { ascending: false }).limit(50),
-    supabaseService.from('inbound_email_messages').select('*').order('created_at', { ascending: false }).limit(25),
-    supabaseService.from('inbound_ediel_parse_results').select('*').order('created_at', { ascending: false }).limit(25),
-    supabaseService.from('ediel_inbound_poll_runs').select('*').order('started_at', { ascending: false }).limit(10),
-    safeCount('inbound_email_messages'),
-    safeOrCount('inbound_email_messages', 'processing_status.eq.manual_review,match_status.eq.manual_review'),
-    safeCount('inbound_email_messages', { processing_status: 'failed' }),
-    safeOrCount('inbound_processing_jobs', 'status.eq.failed,status.eq.retry'),
-  ])
+  const [
+    mailboxesResult,
+    messagesResult,
+    parseResult,
+    pollRunsResult,
+    totalMessages,
+    manualReviewCount,
+    failedMessageCount,
+    failedJobCount,
+  ] = await Promise.all([
+    supabaseService
+      .from("ediel_mailboxes")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(50),
+    supabaseService
+      .from("inbound_email_messages")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(25),
+    supabaseService
+      .from("inbound_ediel_parse_results")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(25),
+    supabaseService
+      .from("ediel_inbound_poll_runs")
+      .select("*")
+      .order("started_at", { ascending: false })
+      .limit(10),
+    safeCount("inbound_email_messages"),
+    safeOrCount(
+      "inbound_email_messages",
+      "processing_status.eq.manual_review,match_status.eq.manual_review",
+    ),
+    safeCount("inbound_email_messages", { processing_status: "failed" }),
+    safeOrCount("inbound_processing_jobs", "status.eq.failed,status.eq.retry"),
+  ]);
 
-  if (mailboxesResult.error) throw mailboxesResult.error
-  if (messagesResult.error) throw messagesResult.error
-  if (parseResult.error) throw parseResult.error
+  if (mailboxesResult.error) throw mailboxesResult.error;
+  if (messagesResult.error) throw messagesResult.error;
+  if (parseResult.error) throw parseResult.error;
 
-  const mailboxes = (mailboxesResult.data ?? []) as MailboxRow[]
-  const sharedTestMailbox = mailboxes.find((mailbox) => mailbox.company_id === null && mailbox.environment === 'test' && mailbox.metadata?.scope === 'platform_shared')
-  const sharedProductionMailbox = mailboxes.find((mailbox) => mailbox.company_id === null && mailbox.environment === 'production' && mailbox.metadata?.scope === 'platform_shared')
-  const pollRuns = pollRunsResult.error ? [] : (pollRunsResult.data ?? []) as PollRunRow[]
-  const messages = (messagesResult.data ?? []) as InboundEmailRow[]
-  const parseRows = (parseResult.data ?? []) as ParseRow[]
-  const parseByMessageId = new Map(parseRows.map((row) => [row.inbound_email_message_id, row]))
-  const failedCount = failedMessageCount + failedJobCount
+  const mailboxes = (mailboxesResult.data ?? []) as MailboxRow[];
+  const sharedTestMailbox = mailboxes.find(
+    (mailbox) =>
+      mailbox.company_id === null &&
+      mailbox.environment === "test" &&
+      mailbox.metadata?.scope === "platform_shared",
+  );
+  const sharedProductionMailbox = mailboxes.find(
+    (mailbox) =>
+      mailbox.company_id === null &&
+      mailbox.environment === "production" &&
+      mailbox.metadata?.scope === "platform_shared",
+  );
+  const pollRuns = pollRunsResult.error
+    ? []
+    : ((pollRunsResult.data ?? []) as PollRunRow[]);
+  const messages = (messagesResult.data ?? []) as InboundEmailRow[];
+  const parseRows = (parseResult.data ?? []) as ParseRow[];
+  const parseByMessageId = new Map(
+    parseRows.map((row) => [row.inbound_email_message_id, row]),
+  );
+  const failedCount = failedMessageCount + failedJobCount;
 
   return (
     <div>
@@ -117,19 +169,41 @@ export default async function InboundMailPage() {
         <section className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Engine-körning</p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-950">Pollning och köprocessor</h2>
-              <p className="mt-1 text-sm text-slate-700">Normal drift kör shared mailbox via cron var 5:e minut. Knappen är platform/debug och använder shared test-mailbox med force.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                Engine-körning
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-slate-950">
+                Pollning och köprocessor
+              </h2>
+              <p className="mt-1 text-sm text-slate-700">
+                Normal drift kör shared mailbox via cron var 5:e minut. För
+                AGT/aktörstest mot Edielportalen ska du använda
+                production-knappen. Manuell import hämtar även redan lästa
+                senaste mail och markerar inte mail som läst.
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <form action={runInboundMailEngineAction}>
+                <input type="hidden" name="environment" value="production" />
+                <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-950/10 hover:bg-emerald-800">
+                  Importera AGT/produktion via IMAP
+                </button>
+              </form>
+              <form action={runInboundMailEngineAction}>
                 <input type="hidden" name="environment" value="test" />
-                <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-950/10 hover:bg-emerald-800">Importera via IMAP och synka</button>
+                <button className="rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">
+                  Importera TGT/test via IMAP
+                </button>
               </form>
               <form action={processInboundMailQueueAction}>
-                <button className="rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Processa kö</button>
+                <button className="rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">
+                  Processa kö
+                </button>
               </form>
-              <Link href="/admin/inbound-mail/diagnostics" className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              <Link
+                href="/admin/inbound-mail/diagnostics"
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
                 Diagnostics
               </Link>
             </div>
@@ -137,58 +211,137 @@ export default async function InboundMailPage() {
         </section>
 
         <section className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Produktionssetup</p>
-          <h2 className="mt-2 text-lg font-semibold text-slate-950">Shared Ediel-mailbox per miljö</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+            Produktionssetup
+          </p>
+          <h2 className="mt-2 text-lg font-semibold text-slate-950">
+            Shared Ediel-mailbox per miljö
+          </h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
-            Spara endast `secret_reference`, aldrig lösenord. Tenant routing sker efter EDIFACT-innehåll, inte från e-postadressen.
+            Spara endast `secret_reference`, aldrig lösenord. Tenant routing
+            sker efter EDIFACT-innehåll, inte från e-postadressen.
           </p>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <div className={`rounded-2xl border p-4 text-sm ${sharedTestMailbox ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
-              <p className="font-semibold">Test mailbox: {sharedTestMailbox ? 'konfigurerad' : 'saknas'}</p>
-              <p className="mt-1">{sharedTestMailbox?.email_address ?? 'Skapa en shared mailbox för environment=test.'}</p>
+            <div
+              className={`rounded-2xl border p-4 text-sm ${sharedTestMailbox ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}
+            >
+              <p className="font-semibold">
+                Test mailbox: {sharedTestMailbox ? "konfigurerad" : "saknas"}
+              </p>
+              <p className="mt-1">
+                {sharedTestMailbox?.email_address ??
+                  "Skapa en shared mailbox för environment=test."}
+              </p>
             </div>
-            <div className={`rounded-2xl border p-4 text-sm ${sharedProductionMailbox ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
-              <p className="font-semibold">Production mailbox: {sharedProductionMailbox ? 'konfigurerad' : 'saknas'}</p>
-              <p className="mt-1">{sharedProductionMailbox?.email_address ?? 'Krävs innan produktionscron kan pollas säkert.'}</p>
+            <div
+              className={`rounded-2xl border p-4 text-sm ${sharedProductionMailbox ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-red-200 bg-red-50 text-red-900"}`}
+            >
+              <p className="font-semibold">
+                Production mailbox:{" "}
+                {sharedProductionMailbox ? "konfigurerad" : "saknas"}
+              </p>
+              <p className="mt-1">
+                {sharedProductionMailbox?.email_address ??
+                  "Krävs innan produktionscron kan pollas säkert."}
+              </p>
             </div>
           </div>
 
-          <form action={saveSharedMailboxProfileAction} className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <form
+            action={saveSharedMailboxProfileAction}
+            className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+          >
             <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">Miljö</span>
-              <select name="environment" defaultValue="production" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
+              <span className="text-xs font-semibold text-slate-700">
+                Miljö
+              </span>
+              <select
+                name="environment"
+                defaultValue="production"
+                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+              >
                 <option value="test">test</option>
                 <option value="production">production</option>
               </select>
             </label>
             <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">Mailboxnamn</span>
-              <input name="mailbox_name" defaultValue="Gridex shared production Ediel" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+              <span className="text-xs font-semibold text-slate-700">
+                Mailboxnamn
+              </span>
+              <input
+                name="mailbox_name"
+                defaultValue="Gridex shared production Ediel"
+                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                required
+              />
             </label>
             <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">E-postadress</span>
-              <input name="email_address" type="email" placeholder="ediel@example.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+              <span className="text-xs font-semibold text-slate-700">
+                E-postadress
+              </span>
+              <input
+                name="email_address"
+                type="email"
+                placeholder="ediel@example.se"
+                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                required
+              />
             </label>
             <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">IMAP-host</span>
-              <input name="imap_host" placeholder="imap.example.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+              <span className="text-xs font-semibold text-slate-700">
+                IMAP-host
+              </span>
+              <input
+                name="imap_host"
+                placeholder="imap.example.se"
+                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                required
+              />
             </label>
             <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">IMAP-port</span>
-              <input name="imap_port" type="number" defaultValue={993} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+              <span className="text-xs font-semibold text-slate-700">
+                IMAP-port
+              </span>
+              <input
+                name="imap_port"
+                type="number"
+                defaultValue={993}
+                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                required
+              />
             </label>
             <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">IMAP-folder</span>
-              <input name="imap_folder" defaultValue="INBOX" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+              <span className="text-xs font-semibold text-slate-700">
+                IMAP-folder
+              </span>
+              <input
+                name="imap_folder"
+                defaultValue="INBOX"
+                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                required
+              />
             </label>
             <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">Username</span>
-              <input name="username" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+              <span className="text-xs font-semibold text-slate-700">
+                Username
+              </span>
+              <input
+                name="username"
+                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                required
+              />
             </label>
             <label className="grid gap-1 xl:col-span-2">
-              <span className="text-xs font-semibold text-slate-700">Secret reference</span>
-              <input name="secret_reference" defaultValue="env:GRIDEX_SHARED_EDIEL_IMAP_PASS" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+              <span className="text-xs font-semibold text-slate-700">
+                Secret reference
+              </span>
+              <input
+                name="secret_reference"
+                defaultValue="env:GRIDEX_SHARED_EDIEL_IMAP_PASS"
+                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                required
+              />
             </label>
             <div className="xl:col-span-3">
               <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">
@@ -200,27 +353,49 @@ export default async function InboundMailPage() {
 
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Inkommande mail</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-950">{totalMessages}</p>
-            <p className="mt-1 text-sm text-slate-700">Sparade raw email/EDIFACT-payloads.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+              Inkommande mail
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-slate-950">
+              {totalMessages}
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              Sparade raw email/EDIFACT-payloads.
+            </p>
           </div>
           <div className="rounded-3xl border border-amber-100 bg-white p-5 shadow-sm shadow-amber-950/5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">Manual review</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-950">{manualReviewCount}</p>
-            <p className="mt-1 text-sm text-slate-700">Osäkra tenant-/kund-/request-matchningar.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">
+              Manual review
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-slate-950">
+              {manualReviewCount}
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              Osäkra tenant-/kund-/request-matchningar.
+            </p>
           </div>
           <div className="rounded-3xl border border-red-100 bg-white p-5 shadow-sm shadow-red-950/5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-700">Fel</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-950">{failedCount}</p>
-            <p className="mt-1 text-sm text-slate-700">Mail eller köjobb som behöver åtgärd.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-700">
+              Fel
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-slate-950">
+              {failedCount}
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              Mail eller köjobb som behöver åtgärd.
+            </p>
           </div>
         </section>
 
         <section className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Mailboxar</p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-950">Aktiva Ediel-mailboxar</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                Mailboxar
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-slate-950">
+                Aktiva Ediel-mailboxar
+              </h2>
             </div>
             <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
               Shared Ediel-mailboxar pollas var 5:e minut
@@ -229,30 +404,62 @@ export default async function InboundMailPage() {
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {mailboxes.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-700">Inga mailboxar finns ännu.</div>
-            ) : mailboxes.map((mailbox) => (
-              <div key={mailbox.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-slate-950">{mailbox.mailbox_name ?? mailbox.email_address ?? mailbox.id}</p>
-                    <p className="mt-1 text-xs text-slate-500">{mailbox.environment ?? 'test'} · {mailbox.poll_interval_minutes ?? 5} min · {(mailbox.metadata?.scope as string | undefined) ?? (mailbox.company_id ? 'tenant' : 'legacy shared')}</p>
-                  </div>
-                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${mailbox.is_active ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
-                    {mailbox.is_active ? 'Aktiv' : 'Inaktiv'}
-                  </span>
-                </div>
-                <p className="mt-3 text-xs text-slate-600">Senast pollad: {mailbox.last_polled_at ?? '—'}</p>
-                {mailbox.locked_at ? <p className="mt-1 text-xs font-medium text-amber-700">Låst sedan: {mailbox.locked_at}</p> : null}
-                {mailbox.last_error ? <p className="mt-2 text-xs font-medium text-red-700">{mailbox.last_error}</p> : null}
+              <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-700">
+                Inga mailboxar finns ännu.
               </div>
-            ))}
+            ) : (
+              mailboxes.map((mailbox) => (
+                <div
+                  key={mailbox.id}
+                  className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-950">
+                        {mailbox.mailbox_name ??
+                          mailbox.email_address ??
+                          mailbox.id}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {mailbox.environment ?? "test"} ·{" "}
+                        {mailbox.poll_interval_minutes ?? 5} min ·{" "}
+                        {(mailbox.metadata?.scope as string | undefined) ??
+                          (mailbox.company_id ? "tenant" : "legacy shared")}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-semibold ${mailbox.is_active ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}
+                    >
+                      {mailbox.is_active ? "Aktiv" : "Inaktiv"}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-xs text-slate-600">
+                    Senast pollad: {mailbox.last_polled_at ?? "—"}
+                  </p>
+                  {mailbox.locked_at ? (
+                    <p className="mt-1 text-xs font-medium text-amber-700">
+                      Låst sedan: {mailbox.locked_at}
+                    </p>
+                  ) : null}
+                  {mailbox.last_error ? (
+                    <p className="mt-2 text-xs font-medium text-red-700">
+                      {mailbox.last_error}
+                    </p>
+                  ) : null}
+                </div>
+              ))
+            )}
           </div>
         </section>
 
         <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5">
           <div className="border-b border-slate-100 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Cron health</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-950">Senaste poll-körningar</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+              Cron health
+            </p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-950">
+              Senaste poll-körningar
+            </h2>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-100 text-sm">
@@ -267,15 +474,35 @@ export default async function InboundMailPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {pollRuns.length === 0 ? <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-600">Inga poll-körningar loggade ännu.</td></tr> : null}
+                {pollRuns.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-6 text-center text-slate-600"
+                    >
+                      Inga poll-körningar loggade ännu.
+                    </td>
+                  </tr>
+                ) : null}
                 {pollRuns.map((run) => (
                   <tr key={run.id}>
-                    <td className="px-4 py-3">{run.environment ?? '—'}</td>
-                    <td className="px-4 py-3">{run.status ?? '—'}</td>
-                    <td className="px-4 py-3">{run.configured_mailboxes ?? 0} konfig · {run.due_mailboxes ?? 0} due · {run.skipped_locked ?? 0} låsta · {run.skipped_not_due ?? 0} ej due</td>
-                    <td className="px-4 py-3">{run.fetched_messages ?? 0} hämtade · {run.stored_emails ?? 0} sparade · {run.deduped_emails ?? 0} dedupe</td>
-                    <td className="px-4 py-3">{run.processed_jobs ?? 0} processed · {run.failed_jobs ?? 0} failed</td>
-                    <td className="px-4 py-3">{run.started_at ?? '—'}</td>
+                    <td className="px-4 py-3">{run.environment ?? "—"}</td>
+                    <td className="px-4 py-3">{run.status ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {run.configured_mailboxes ?? 0} konfig ·{" "}
+                      {run.due_mailboxes ?? 0} due · {run.skipped_locked ?? 0}{" "}
+                      låsta · {run.skipped_not_due ?? 0} ej due
+                    </td>
+                    <td className="px-4 py-3">
+                      {run.fetched_messages ?? 0} hämtade ·{" "}
+                      {run.stored_emails ?? 0} sparade ·{" "}
+                      {run.deduped_emails ?? 0} dedupe
+                    </td>
+                    <td className="px-4 py-3">
+                      {run.processed_jobs ?? 0} processed ·{" "}
+                      {run.failed_jobs ?? 0} failed
+                    </td>
+                    <td className="px-4 py-3">{run.started_at ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -285,8 +512,12 @@ export default async function InboundMailPage() {
 
         <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5">
           <div className="border-b border-slate-100 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Inkommande</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-950">Senaste mail och parserresultat</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+              Inkommande
+            </p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-950">
+              Senaste mail och parserresultat
+            </h2>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-100 text-sm">
@@ -301,26 +532,42 @@ export default async function InboundMailPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {messages.map((message) => {
-                  const parsed = parseByMessageId.get(message.id)
+                  const parsed = parseByMessageId.get(message.id);
                   return (
                     <tr key={message.id}>
                       <td className="px-4 py-4">
-                        <div className="font-semibold text-slate-950">{message.subject ?? 'Utan ämne'}</div>
-                        <div className="mt-1 text-xs text-slate-500">{message.from_address ?? 'okänd avsändare'} · {message.received_at ?? message.created_at}</div>
+                        <div className="font-semibold text-slate-950">
+                          {message.subject ?? "Utan ämne"}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {message.from_address ?? "okänd avsändare"} ·{" "}
+                          {message.received_at ?? message.created_at}
+                        </div>
                       </td>
-                      <td className="px-4 py-4 text-slate-700">{parsed?.message_family ?? '—'} {parsed?.message_code ?? ''}</td>
-                      <td className="px-4 py-4 text-slate-700">{message.processing_status ?? 'received'} · {message.match_status ?? 'not_checked'}</td>
+                      <td className="px-4 py-4 text-slate-700">
+                        {parsed?.message_family ?? "—"}{" "}
+                        {parsed?.message_code ?? ""}
+                      </td>
+                      <td className="px-4 py-4 text-slate-700">
+                        {message.processing_status ?? "received"} ·{" "}
+                        {message.match_status ?? "not_checked"}
+                      </td>
                       <td className="px-4 py-4 text-xs text-slate-600">
-                        <div>UNB: {parsed?.interchange_reference ?? '—'}</div>
-                        <div>TN/ACW: {parsed?.transaction_reference ?? '—'}</div>
+                        <div>UNB: {parsed?.interchange_reference ?? "—"}</div>
+                        <div>
+                          TN/ACW: {parsed?.transaction_reference ?? "—"}
+                        </div>
                       </td>
                       <td className="px-4 py-4 text-right">
-                        <Link href={`/admin/inbound-mail/${message.id}`} className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                        <Link
+                          href={`/admin/inbound-mail/${message.id}`}
+                          className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
                           Visa
                         </Link>
                       </td>
                     </tr>
-                  )
+                  );
                 })}
               </tbody>
             </table>
@@ -328,5 +575,5 @@ export default async function InboundMailPage() {
         </section>
       </main>
     </div>
-  )
+  );
 }

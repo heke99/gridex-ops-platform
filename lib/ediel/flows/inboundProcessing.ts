@@ -802,6 +802,8 @@ export async function pollAndIngestEdielMailbox(params: {
   force?: boolean;
   limit?: number;
   markSeen?: boolean;
+  includeSeenRecent?: boolean;
+  recentDays?: number;
   sharedOnly?: boolean;
   createDiagnosticMessagesForUnresolved?: boolean;
 }) {
@@ -833,6 +835,8 @@ export async function pollAndIngestEdielMailbox(params: {
     sharedOnly: useSharedMailbox,
     force: params.force ?? true,
     markSeen: params.markSeen,
+    includeSeenRecent: params.includeSeenRecent,
+    recentDays: params.recentDays,
     messageLimitPerMailbox: params.limit ?? 10,
     createDiagnosticMessagesForUnresolved:
       params.createDiagnosticMessagesForUnresolved ?? false,
@@ -848,7 +852,7 @@ export async function pollAndIngestEdielMailbox(params: {
     });
   }
 
-  return incoming;
+  return Object.assign(incoming, { pollResult: result });
 }
 
 export async function createNegativeUtiltsResponse(params: {
