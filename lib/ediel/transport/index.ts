@@ -409,7 +409,7 @@ function encryptSmimeEnvelopedDataWithForge(params: {
     const content = forge.util.createBuffer()
     content.putBytes(params.innerMime.toString('binary'))
     envelope.content = content
-    envelope.encrypt()
+    envelope.encrypt(undefined, forge.pki.oids['des-EDE3-CBC'])
     return Buffer.from(forge.asn1.toDer(envelope.toAsn1()).getBytes(), 'binary')
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
@@ -434,6 +434,91 @@ export function isSupportedSmtpMimeMode(value: string | null | undefined): value
 }
 
 
+function normalizeCmsSerial(value: unknown): string | null {
+  if (value == null) return null
+  if (Buffer.isBuffer(value)) return value.toString('hex').toUpperCase()
+  if (value instanceof Uint8Array) return Buffer.from(value).toString('hex').toUpperCase()
+
+  const raw = String(value).trim()
+  if (!raw) return null
+
+  const hexLike = raw.replace(/[^0-9A-Fa-f]/g, '')
+  if (hexLike.length > 0 && hexLike.length >= raw.replace(/\s+/g, '').length / 2) {
+    return hexLike.toUpperCase()
+  }
+
+  return Buffer.from(raw, 'binary').toString('hex').toUpperCase()
+}
+
+function serialMatchesExpected(serial: string | null | undefined, expectedSerial: string | null | undefined): boolean {
+  const serialHex = normalizeCmsSerial(serial)
+  const expectedHex = normalizeCmsSerial(expectedSerial)
+  if (!serialHex || !expectedHex) return false
+  const normalizedSerial = serialHex.replace(/^0+/, '') || serialHex
+  const normalizedExpected = expectedHex.replace(/^0+/, '') || expectedHex
+  return serialHex === expectedHex || normalizedSerial === normalizedExpected
+}
+
+function findExpectedSerialAsDerInteger(encryptedDer: Buffer, expectedSerialNumber?: string | null): boolean {
+  const expected = normalizeCmsSerial(expectedSerialNumber)
+  if (!expected) return false
+  const evenHex = expected.length % 2 === 0 ? expected : `0${expected}`
+  const serialBytes = Buffer.from(evenHex, 'hex')
+  if (serialBytes.length === 0 || serialBytes.length > 127) return false
+
+  const derInteger = Buffer.concat([Buffer.from([0x02, serialBytes.length]), serialBytes])
+  if (encryptedDer.includes(derInteger)) return true
+
+  // DER INTEGER values with the high bit set are prefixed by 00 to keep them positive.
+  if ((serialBytes[0] ?? 0) >= 0x80) {
+    const positiveDerInteger = Buffer.concat([Buffer.from([0x02, serialBytes.length + 1, 0x00]), serialBytes])
+    return encryptedDer.includes(positiveDerInteger)
+  }
+
+  return false
+}
+
+function inspectCmsRecipientInfoWithForge(params: {
+  encryptedDer: Buffer
+  expectedSerialNumber?: string | null
+  opensslDiagnostic?: string | null
+}): {
+  raw: string | null
+  serialNumbers: string[]
+  expectedReceiverPresent: boolean
+} {
+  const diagnostics: string[] = ['node-forge CMS recipientInfo inspection']
+  if (params.opensslDiagnostic) diagnostics.push(`OpenSSL diagnostic: ${params.opensslDiagnostic}`)
+
+  try {
+    const asn1 = forge.asn1.fromDer(params.encryptedDer.toString('binary'))
+    const message = forge.pkcs7.messageFromAsn1(asn1) as unknown as { recipients?: Array<Record<string, unknown>> }
+    const recipients = Array.isArray(message.recipients) ? message.recipients : []
+    const serialNumbers = recipients
+      .map((recipient) => normalizeCmsSerial(recipient.serialNumber))
+      .filter((serial): serial is string => Boolean(serial))
+    const expectedReceiverPresent = Boolean(
+      params.expectedSerialNumber && serialNumbers.some((serial) => serialMatchesExpected(serial, params.expectedSerialNumber)),
+    )
+
+    return {
+      raw: `${diagnostics.join(' | ')} | recipients=${recipients.length}`,
+      serialNumbers,
+      expectedReceiverPresent,
+    }
+  } catch (error) {
+    const forgeDetail = error instanceof Error ? error.message : String(error)
+    diagnostics.push(`node-forge parse failed: ${forgeDetail}`)
+
+    const expectedReceiverPresent = findExpectedSerialAsDerInteger(params.encryptedDer, params.expectedSerialNumber)
+    return {
+      raw: `${diagnostics.join(' | ')} | DER serial fallback=${expectedReceiverPresent ? 'matched' : 'not_matched'}`,
+      serialNumbers: expectedReceiverPresent && params.expectedSerialNumber ? [normalizeCmsSerial(params.expectedSerialNumber) ?? params.expectedSerialNumber] : [],
+      expectedReceiverPresent,
+    }
+  }
+}
+
 async function inspectCmsRecipientInfo(params: {
   encryptedDer: Buffer
   expectedSerialNumber?: string | null
@@ -446,31 +531,34 @@ async function inspectCmsRecipientInfo(params: {
   const inputPath = join(tempDir, 'smime.der')
   try {
     await writeFile(inputPath, params.encryptedDer)
-    const { stdout } = await execFileAsync('openssl', [
-      'cms',
-      '-inform',
-      'DER',
-      '-cmsout',
-      '-print',
-      '-in',
-      inputPath,
-    ], { maxBuffer: 1024 * 1024 * 6 })
-    const raw = String(stdout ?? '')
-    const serialNumbers = Array.from(raw.matchAll(/serialNumber:\s*([0-9A-Fa-f]+)/g))
-      .map((match) => match[1]?.trim().toUpperCase() ?? '')
-      .filter(Boolean)
-    const expected = String(params.expectedSerialNumber ?? '').trim().toUpperCase()
-    const normalizedExpected = expected.replace(/^0+/, '') || expected
-    const expectedReceiverPresent = Boolean(
-      expected && serialNumbers.some((serial) => {
-        const normalizedSerial = serial.replace(/^0+/, '') || serial
-        return serial === expected || normalizedSerial === normalizedExpected
-      }),
-    )
-    return { raw, serialNumbers, expectedReceiverPresent }
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error)
-    throw new Error(`S/MIME CMS recipientInfo kunde inte verifieras före SMTP: ${detail}`)
+    try {
+      const { stdout } = await execFileAsync('openssl', [
+        'cms',
+        '-inform',
+        'DER',
+        '-cmsout',
+        '-print',
+        '-in',
+        inputPath,
+      ], { maxBuffer: 1024 * 1024 * 6 })
+      const raw = String(stdout ?? '')
+      const serialNumbers = Array.from(raw.matchAll(/serialNumber:\s*([0-9A-Fa-f]+)/g))
+        .map((match) => normalizeCmsSerial(match[1]))
+        .filter((serial): serial is string => Boolean(serial))
+      const expectedReceiverPresent = Boolean(
+        params.expectedSerialNumber && serialNumbers.some((serial) => serialMatchesExpected(serial, params.expectedSerialNumber)),
+      )
+      return { raw, serialNumbers, expectedReceiverPresent }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      const fallback = inspectCmsRecipientInfoWithForge({
+        encryptedDer: params.encryptedDer,
+        expectedSerialNumber: params.expectedSerialNumber,
+        opensslDiagnostic: detail,
+      })
+      if (fallback.expectedReceiverPresent) return fallback
+      throw new Error(`S/MIME CMS recipientInfo kunde inte verifieras före SMTP: ${detail}; Node/forge fallback hittade inte förväntat mottagarcertifikat.`)
+    }
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }
