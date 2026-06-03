@@ -1,5 +1,6 @@
 export type EdielSystemTestSetupPackage =
   | 'agt_dgi_prodat_e3_e8'
+  | 'agt_dgi_utilts_ue1_ue2'
   | 'tgt_dgi_utilts_u3'
   | 'agt_ddq_prodat_l'
   | 'tgt_ddq_prodat_utilts'
@@ -51,6 +52,28 @@ export const EDIEL_SYSTEM_TEST_PACKAGES: EdielSystemTestPackageDefinition[] = [
     transportEnvironment: 'production_smtp',
     smtpProvider: 'strato',
     routeName: 'AGT DGI PRODAT - Edielportalen',
+    targetSystem: 'ediel_portalen_agt',
+    environmentType: 'agt_test',
+  },
+  {
+    value: 'agt_dgi_utilts_ue1_ue2',
+    label: 'AGT - Energitjansteforetag / DGI - UTILTS UE1-UE2',
+    testSuiteType: 'AGT',
+    actorRole: 'esco',
+    dbActorRole: 'energy_service_company',
+    marketRole: 'DGI',
+    messageFamily: 'UTILTS',
+    portalEdielId: '91100',
+    portalEmail: '91100@ediel.se',
+    receiverSubaddress: null,
+    receiverSubaddressRequired: false,
+    applicationReference: '23-DGI-E66-S',
+    testBrpEdielId: null,
+    encryptionMode: 'none',
+    certificateEnvironment: 'production',
+    transportEnvironment: 'production_smtp',
+    smtpProvider: 'strato',
+    routeName: 'AGT DGI UTILTS - Edielportalen',
     targetSystem: 'ediel_portalen_agt',
     environmentType: 'agt_test',
   },
@@ -156,7 +179,7 @@ export function isAgtSystemTestCase(input: {
   suite?: string | null
 }): boolean {
   const setup = String(input.setupPackage ?? '').trim()
-  if (setup === 'agt_dgi_prodat_e3_e8' || setup === 'agt_ddq_prodat_l') return true
+  if (setup === 'agt_dgi_prodat_e3_e8' || setup === 'agt_dgi_utilts_ue1_ue2' || setup === 'agt_ddq_prodat_l') return true
   if (String(input.runtimeTestSuite ?? '').toUpperCase() === 'AGT') return true
   const code = String(input.testCaseCode ?? '').trim().toUpperCase()
   const suite = String(input.suite ?? '').toUpperCase()
@@ -176,10 +199,12 @@ export function isAgtSystemTestCase(input: {
     'E7',
     'E8',
   ])
+  const agtEscoUtiltsCodes = new Set(['UE1', 'UE2'])
   return (
     role === 'esco' &&
-    suite === 'PRODAT' &&
-    (agtEscoProdatCodes.has(code) || ['E3', 'E4', 'E5', 'E6', 'E7', 'E8'].some((prefix) => code.startsWith(`${prefix}.`)))
+    ((suite === 'PRODAT' &&
+      (agtEscoProdatCodes.has(code) || ['E3', 'E4', 'E5', 'E6', 'E7', 'E8'].some((prefix) => code.startsWith(`${prefix}.`)))) ||
+      (suite === 'UTILTS' && agtEscoUtiltsCodes.has(code)))
   )
 }
 

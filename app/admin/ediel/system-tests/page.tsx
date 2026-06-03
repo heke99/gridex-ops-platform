@@ -259,13 +259,6 @@ function normalizeStatus(value: string | undefined): FilterStatus {
   return "all";
 }
 
-function statusTone(status: string | null | undefined): Tone {
-  if (status === "passed") return "emerald";
-  if (status === "failed") return "red";
-  if (status === "running" || status === "draft") return "amber";
-  if (status === "not_started") return "slate";
-  return "slate";
-}
 
 function runsForCase(testCase: EdielTgtTestCaseDefinition, runs: TestRunList) {
   return runs.filter(
@@ -605,11 +598,16 @@ function StartRunForm({
   });
   const setupPackage = isAgt
     ? testCase.roleCode === "esco"
-      ? "agt_dgi_prodat_e3_e8"
+      ? testCase.suite === "UTILTS"
+        ? "agt_dgi_utilts_ue1_ue2"
+        : "agt_dgi_prodat_e3_e8"
       : "agt_ddq_prodat_l"
     : testCase.roleCode === "esco" && testCase.suite === "UTILTS"
       ? "tgt_dgi_utilts_u3"
       : "tgt_ddq_prodat_utilts";
+  const firstStep = testCase.expectedSteps[0];
+  const isPortalToActor = firstStep?.actor === "portal" && firstStep.direction === "inbound";
+  const defaultEncryptionMode = isAgt && testCase.suite === "PRODAT" ? "smime" : "none";
   return (
     <form action={createEdielTgtRunFromTemplateAction} className="flex flex-wrap items-center gap-2">
       {companyId ? <input type="hidden" name="companyId" value={companyId} /> : null}
@@ -623,15 +621,15 @@ function StartRunForm({
       <input type="hidden" name="transportEnvironment" value={isAgt ? "production_smtp" : "test"} />
       <select
         name="encryptionMode"
-        defaultValue="none"
+        defaultValue={defaultEncryptionMode}
         className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
         title="Välj transportläge för just denna testkörning"
       >
         <option value="none">Okrypterat test</option>
-        <option value="smime">Krypterat test</option>
+        <option value="smime">Krypterat PRODAT-test</option>
       </select>
       <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
-        Starta testkörning
+        {isPortalToActor ? "Starta inbound-körning" : "Starta outbound-körning"}
       </button>
     </form>
   );
@@ -654,6 +652,8 @@ function TestCard({
     (run) => run.status === "running" || run.status === "draft",
   ).length;
   const latestRun = latestRunForCase(testCase, activeRuns);
+  const firstStep = testCase.expectedSteps[0];
+  const isPortalToActor = firstStep?.actor === "portal" && firstStep.direction === "inbound";
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -701,6 +701,13 @@ function TestCard({
       <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs leading-5 text-slate-700">
         {testCase.testDataHint}
       </div>
+
+      {isPortalToActor ? (
+        <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs leading-5 text-blue-900">
+          <div className="font-black text-blue-950">Portal/nätägare → Gridex</div>
+          <div>Starta testkörningen här, starta sedan motsvarande test i Edielportalen och låt IMAP-pollningen hämta inbound-meddelandet. Gridex ska inte skapa första PRODAT/UTILTS-filen för detta test.</div>
+        </div>
+      ) : null}
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
         <span>{caseRuns.length} körning(ar)</span>
@@ -859,7 +866,7 @@ function SimpleCompanySetupPanel({
       </form>
 
       <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-        Efter sparning: välj testkort nedan och klicka <strong>Starta testkörning</strong>. Allt sker från denna sida.
+        Efter sparning: välj testkort nedan och klicka <strong>Starta testkörning</strong>. Testkortet visar om flödet är inbound eller outbound.
       </div>
     </section>
   );

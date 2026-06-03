@@ -129,11 +129,16 @@ function StartRunForm({ testCase, companyId }: { testCase: EdielTgtTestCaseDefin
   });
   const setupPackage = isAgt
     ? testCase.roleCode === "esco"
-      ? "agt_dgi_prodat_e3_e8"
+      ? testCase.suite === "UTILTS"
+        ? "agt_dgi_utilts_ue1_ue2"
+        : "agt_dgi_prodat_e3_e8"
       : "agt_ddq_prodat_l"
     : testCase.roleCode === "esco" && testCase.suite === "UTILTS"
       ? "tgt_dgi_utilts_u3"
       : "tgt_ddq_prodat_utilts";
+  const firstStep = testCase.expectedSteps[0];
+  const isPortalToActor = firstStep?.actor === "portal" && firstStep.direction === "inbound";
+  const defaultEncryptionMode = isAgt && testCase.suite === "PRODAT" ? "smime" : "none";
   return (
     <form action={createEdielTgtRunFromTemplateAction} className="flex flex-wrap items-center gap-2">
       {companyId ? <input type="hidden" name="companyId" value={companyId} /> : null}
@@ -147,18 +152,18 @@ function StartRunForm({ testCase, companyId }: { testCase: EdielTgtTestCaseDefin
       <input type="hidden" name="transportEnvironment" value={isAgt ? "production_smtp" : "test"} />
       <select
         name="encryptionMode"
-        defaultValue="none"
+        defaultValue={defaultEncryptionMode}
         className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
         title="Välj transportläge för just denna testkörning"
       >
         <option value="none">Okrypterat test</option>
-        <option value="smime">Krypterat test</option>
+        <option value="smime">Krypterat PRODAT-test</option>
       </select>
       <button
         type="submit"
         className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
       >
-        Starta ny testkörning
+        {isPortalToActor ? "Starta inbound-körning" : "Starta ny testkörning"}
       </button>
     </form>
   );
@@ -639,9 +644,18 @@ export default async function SystemTestCasePage({
     );
   }
 
+  const isAgt = isAgtSystemTestCase({
+    testCaseCode: testCase.testCaseCode,
+    roleCode: testCase.roleCode,
+    suite: testCase.suite,
+  });
+  const firstStep = testCase.expectedSteps[0];
+  const isPortalToActor =
+    firstStep?.actor === "portal" && firstStep.direction === "inbound";
+
   const systemTestRuntime = await getEdielSystemTestRuntimeContext({
     companyId: selectedCompanyId,
-    testSuite: "TGT",
+    testSuite: isAgt ? "AGT" : "TGT",
     actorRole: testCase.roleCode,
   }).catch(() => null);
 
@@ -776,8 +790,8 @@ export default async function SystemTestCasePage({
         </h2>
         <ol className="mt-3 list-decimal space-y-1 pl-5">
           <li>
-            Klicka <strong>Starta ny testkörning</strong> i Gridex. Kör bara ett
-            U3-test åt gången.
+            Klicka <strong>{isPortalToActor ? "Starta inbound-körning" : "Starta ny testkörning"}</strong> i Gridex. Kör bara ett
+            test åt gången.
           </li>
           <li>
             Starta exakt samma testfall i Edielportalen:{" "}
@@ -945,7 +959,7 @@ export default async function SystemTestCasePage({
         <div className="mt-4 space-y-3">
           {evaluations.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-700">
-              Ingen run finns ännu. Starta testkörning först.
+              Ingen run finns ännu. {isPortalToActor ? "Starta inbound-körning" : "Starta outbound-körning"} först.
             </div>
           ) : (
             evaluations.map((evaluation) => {
