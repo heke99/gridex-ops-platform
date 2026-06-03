@@ -2,6 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
+import { classifyProductionInboundDecision } from '@/lib/ediel/inbound/productionInboundDecisionEngine'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -21,7 +22,17 @@ function isPositiveAperak(parsed: ParsedEdifactEnvelope): boolean {
   return parsed.messageFamily === 'APERAK' && !isNegativeAperak(parsed)
 }
 
+function productionDecisionForParsed(parsed: ParsedEdifactEnvelope) {
+  return classifyProductionInboundDecision({
+    messageFamily: parsed.messageFamily,
+    messageCode: parsed.messageCode,
+    rawPayload: parsed.rawPayload,
+  })
+}
+
 function isRejectedZ14(parsed: ParsedEdifactEnvelope): boolean {
+  const decision = productionDecisionForParsed(parsed)
+  if (decision.scenario === 'prodat_permission_rejected') return true
   if (parsed.messageFamily !== 'PRODAT' || String(parsed.messageCode ?? '').toUpperCase() !== 'Z14') return false
   const raw = parsed.rawPayload.toUpperCase()
   return raw.includes('Z14N') || raw.includes('S18') || raw.includes('E18') || parsed.segments.some((segment) => segment.startsWith('STS+') && /\+(?:E18|S18|39|41)(?::|\+|$)/.test(segment))
@@ -706,6 +717,11 @@ async function updateBusinessStatusFromInbound(input: {
   const outbound = matchedOutboundRow(input.outboundMatch)
   const sourceType = typeof outbound.source_type === 'string' ? outbound.source_type : null
   const sourceId = typeof outbound.source_id === 'string' ? outbound.source_id : null
+  const decision = productionDecisionForParsed(input.parsed)
+  const responsePayload = {
+    ...input.responsePayload,
+    productionInboundDecision: decision,
+  }
 
   if (!sourceId) {
     await importUtiltsMeteringValue({
@@ -714,7 +730,7 @@ async function updateBusinessStatusFromInbound(input: {
       outboundMatch: input.outboundMatch,
       meteringPointMatch: input.meteringPointMatch,
       inboundEdielMessageId: input.inboundEdielMessageId,
-      responsePayload: input.responsePayload,
+      responsePayload,
       actorUserId: input.actorUserId ?? null,
     })
     return
@@ -724,7 +740,7 @@ async function updateBusinessStatusFromInbound(input: {
     if (input.parsed.messageFamily === 'PRODAT' && input.parsed.messageCode === 'Z04') {
       await supabaseService
         .from('supplier_switch_requests')
-        .update({ status: 'confirmed', completed_at: nowIso(), metadata: input.responsePayload, updated_at: nowIso() })
+        .update({ status: 'confirmed', completed_at: nowIso(), metadata: responsePayload, updated_at: nowIso() })
         .eq('id', sourceId)
         .eq('company_id', input.companyId)
     }
@@ -732,7 +748,7 @@ async function updateBusinessStatusFromInbound(input: {
     if (isNegativeAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' || isNegativeContrL(input.parsed)) {
       await supabaseService
         .from('supplier_switch_requests')
-        .update({ status: 'rejected', failed_at: nowIso(), failure_reason: eventMessageForParsed(input.parsed), metadata: input.responsePayload, updated_at: nowIso() })
+        .update({ status: 'rejected', failed_at: nowIso(), failure_reason: eventMessageForParsed(input.parsed), metadata: responsePayload, updated_at: nowIso() })
         .eq('id', sourceId)
         .eq('company_id', input.companyId)
     }
@@ -742,7 +758,7 @@ async function updateBusinessStatusFromInbound(input: {
     if (input.parsed.messageFamily === 'PRODAT' && ['Z02', 'Z14'].includes(String(input.parsed.messageCode ?? '').toUpperCase())) {
       await supabaseService
         .from('grid_owner_data_requests')
-        .update({ status: 'received', response_payload: input.responsePayload, received_at: nowIso(), updated_at: nowIso() })
+        .update({ status: 'received', response_payload: responsePayload, received_at: nowIso(), updated_at: nowIso() })
         .eq('id', sourceId)
         .eq('company_id', input.companyId)
     }
@@ -750,7 +766,7 @@ async function updateBusinessStatusFromInbound(input: {
     if (input.parsed.messageFamily === 'UTILTS') {
       await supabaseService
         .from('grid_owner_data_requests')
-        .update({ status: 'received', response_payload: input.responsePayload, received_at: nowIso(), updated_at: nowIso() })
+        .update({ status: 'received', response_payload: responsePayload, received_at: nowIso(), updated_at: nowIso() })
         .eq('id', sourceId)
         .eq('company_id', input.companyId)
     }
@@ -758,7 +774,7 @@ async function updateBusinessStatusFromInbound(input: {
     if (isNegativeAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' || isNegativeContrL(input.parsed)) {
       await supabaseService
         .from('grid_owner_data_requests')
-        .update({ status: 'failed', failure_reason: eventMessageForParsed(input.parsed), response_payload: input.responsePayload, failed_at: nowIso(), updated_at: nowIso() })
+        .update({ status: 'failed', failure_reason: eventMessageForParsed(input.parsed), response_payload: responsePayload, failed_at: nowIso(), updated_at: nowIso() })
         .eq('id', sourceId)
         .eq('company_id', input.companyId)
     }
@@ -769,10 +785,25 @@ async function updateBusinessStatusFromInbound(input: {
       companyId: input.companyId,
       parsed: input.parsed,
       outbound,
-      responsePayload: input.responsePayload,
+      responsePayload,
       actorUserId: input.actorUserId ?? null,
     })
   }
+  if (decision.scenario === 'prodat_permission_terminated' && sourceType === 'metering_permission' && sourceId) {
+    const { error } = await supabaseService
+      .from('metering_permissions')
+      .update({
+        status: 'terminated',
+        terminated_at: nowIso(),
+        metadata: input.responsePayload,
+        updated_by: input.actorUserId ?? null,
+        updated_at: nowIso(),
+      })
+      .eq('company_id', input.companyId)
+      .eq('id', sourceId)
+    if (error) console.warn('[inbound-mail] Kunde inte markera metering_permission som terminated från Z15V', error)
+  }
+
 
   await importUtiltsMeteringValue({
     companyId: input.companyId,
@@ -780,7 +811,7 @@ async function updateBusinessStatusFromInbound(input: {
     outboundMatch: input.outboundMatch,
     meteringPointMatch: input.meteringPointMatch,
     inboundEdielMessageId: input.inboundEdielMessageId,
-    responsePayload: input.responsePayload,
+    responsePayload,
     actorUserId: input.actorUserId ?? null,
   })
 }

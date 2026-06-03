@@ -126,6 +126,8 @@ export type InboundEngineRunResult = {
     jobsProcessed: number
     errorsByMailbox: Array<{ mailboxId: string; mailboxName: string; errors: string[] }>
     configurationError: string | null
+    autoProcessedEdielMessages: number
+    autoProcessErrors: string[]
   }
   results: PollMailboxResult[]
 }
@@ -766,13 +768,17 @@ async function storeMailboxFetchMessage(input: {
 
   const subject = stringOrNull(envelope?.subject) ?? extractHeader(rawEmail, 'Subject')
   const internalDate = input.message.internalDate instanceof Date ? input.message.internalDate.toISOString() : null
-  const smime = await unpackInboundSmimeIfNeeded({ rawEmail })
+  const smime = await unpackInboundSmimeIfNeeded({
+    rawEmail,
+    environment: input.mailbox.environment,
+    companyId: input.mailbox.company_id,
+  })
   const parseSource = smime.decryptedText ?? rawEmail
   const parsedMime = splitMimeParts(parseSource)
 
   const stored = await storeInboundEmail({
     mailboxId: input.mailbox.id,
-    companyId: isPlatformSharedMailbox(input.mailbox) ? null : input.mailbox.company_id,
+    companyId: smime.matchedCompanyId ?? (isPlatformSharedMailbox(input.mailbox) ? null : input.mailbox.company_id),
     environment: input.mailbox.environment,
     internetMessageId: messageId,
     fromAddress,
@@ -798,6 +804,13 @@ async function storeMailboxFetchMessage(input: {
               encryptedPayloadRef: smime.encryptedPayloadRef,
               smimeValidationError: smime.validationError,
               decryptedPayloadStoredInBodyText: Boolean(smime.decryptedText),
+              matchedCertificateId: smime.matchedCertificateId ?? null,
+              matchedCompanyId: smime.matchedCompanyId ?? null,
+              matchedOwnerEdielId: smime.matchedOwnerEdielId ?? null,
+              matchedOwnerSubaddress: smime.matchedOwnerSubaddress ?? null,
+              recipientFingerprint: smime.recipientFingerprint ?? null,
+              recipientSerialNumber: smime.recipientSerialNumber ?? null,
+              evidence: smime.evidence ?? null,
             },
           }]
         : []),
@@ -822,6 +835,13 @@ async function storeMailboxFetchMessage(input: {
         inboundEmailMessageId: stored.id,
         mailboxId: input.mailbox.id,
         environment: input.mailbox.environment,
+        matchedCertificateId: smime.matchedCertificateId ?? null,
+        matchedCompanyId: smime.matchedCompanyId ?? null,
+        matchedOwnerEdielId: smime.matchedOwnerEdielId ?? null,
+        matchedOwnerSubaddress: smime.matchedOwnerSubaddress ?? null,
+        recipientFingerprint: smime.recipientFingerprint ?? null,
+        recipientSerialNumber: smime.recipientSerialNumber ?? null,
+        evidence: smime.evidence ?? null,
       },
       status: smime.securityStatus === 'decrypted' ? 'stored' : 'manual_review',
     })
@@ -1230,6 +1250,26 @@ export async function runInboundEdielMailEngine(input: {
   const edielMessageIds = input.createDiagnosticMessagesForUnresolved
     ? await ensureDiagnosticEdielMessagesForInboundEmails(diagnosticInboundEmailIds)
     : await listEdielMessageIdsForInboundEmails(allInboundEmailMessageIds)
+  let autoProcessedEdielMessages = 0
+  const autoProcessErrors: string[] = []
+  if (edielMessageIds.length > 0) {
+    try {
+      const { processInboundEdielMessage } = await import('@/lib/ediel/flows/inboundProcessing')
+      for (const edielMessageId of edielMessageIds) {
+        try {
+          await processInboundEdielMessage({
+            actorUserId: input.actorUserId ?? 'system',
+            edielMessageId,
+          })
+          autoProcessedEdielMessages += 1
+        } catch (error) {
+          autoProcessErrors.push(`${edielMessageId}: ${error instanceof Error ? error.message : 'Okänt fel'}`)
+        }
+      }
+    } catch (error) {
+      autoProcessErrors.push(error instanceof Error ? error.message : 'Kunde inte ladda inboundProcessing.')
+    }
+  }
   const fetchedMessages = results.reduce((sum, item) => sum + item.fetched, 0)
   const storedEmails = results.reduce((sum, item) => sum + item.stored, 0)
 
@@ -1262,6 +1302,8 @@ export async function runInboundEdielMailEngine(input: {
         .filter((result) => result.errors.length > 0)
         .map((result) => ({ mailboxId: result.mailboxId, mailboxName: result.mailboxName, errors: result.errors })),
       configurationError: configuredMailboxes.length === 0 ? NO_ACTIVE_EDIEL_MAILBOX_ERROR : null,
+      autoProcessedEdielMessages,
+      autoProcessErrors,
     },
     results,
   }

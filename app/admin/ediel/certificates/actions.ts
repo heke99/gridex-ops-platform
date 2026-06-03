@@ -194,7 +194,7 @@ async function insertCertificateRecord(input: {
   importSource: 'file' | 'paste'
   fileName: string | null
   fileSize: number | null
-  metadata: Awaited<ReturnType<typeof importP12Certificate>>
+  metadata: Awaited<ReturnType<typeof importP12Certificate>> & { passwordSecretReference?: string | null }
   status: ReturnType<typeof evaluateCertificateStatus>
   usage: CertificateUsage
   purpose: CertificatePurpose
@@ -252,6 +252,7 @@ async function insertCertificateRecord(input: {
       publicCertificatePem: input.metadata.publicCertificatePem,
       p12SecretReference: input.metadata.p12SecretReference,
       privateKeySecretReference: input.metadata.privateKeySecretReference,
+      passwordSecretReference: input.metadata.passwordSecretReference ?? null,
       ownerEdielId: input.ownerEdielId,
       owner_ediel_id: input.ownerEdielId,
       ownerSubaddress: input.ownerSubaddress,
@@ -475,6 +476,17 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
   const ownerEdielId = stringValue(formData, 'ownerEdielId') ?? parseOwnerEdielIdFromSubject(metadata.subject)
   const ownerSubaddress = stringValue(formData, 'ownerSubaddress')
   const messageType = stringValue(formData, 'messageType')?.toUpperCase() ?? null
+  const p12SecretReferenceOverride = stringValue(formData, 'p12SecretReference')
+  const privateKeySecretReferenceOverride = stringValue(formData, 'privateKeySecretReference')
+  const passwordSecretReference = stringValue(formData, 'passwordSecretReference')
+  const metadataForStorage: typeof metadata & { passwordSecretReference?: string | null } = hasPrivateMaterial
+    ? {
+        ...metadata,
+        p12SecretReference: p12SecretReferenceOverride ?? metadata.p12SecretReference,
+        privateKeySecretReference: privateKeySecretReferenceOverride ?? metadata.privateKeySecretReference,
+        passwordSecretReference,
+      }
+    : metadata
 
   if (hasPrivateMaterial && usage === 'outbound_recipient') {
     throw new Error('P12/PFX med privat nyckel får inte importeras som mottagarcertifikat. Importera mottagarens publika .cer/.pem som outbound_recipient i stället.')
@@ -492,7 +504,7 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
     importSource,
     fileName: hasFile && file instanceof File ? file.name : null,
     fileSize: hasFile && file instanceof File ? file.size : null,
-    metadata,
+    metadata: metadataForStorage,
     status,
     usage,
     purpose,
@@ -529,7 +541,7 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
         ? 'Mottagarens publika certifikat importerades. Koppla det till rätt route innan skick.'
         : 'Certifikat importerades. Inga outbound routes uppdaterades.',
     metadata: {
-      fingerprintSha256: metadata.fingerprintSha256,
+      fingerprintSha256: metadataForStorage.fingerprintSha256,
       environment,
       scope,
       fileName: hasFile && file instanceof File ? file.name : null,
@@ -543,6 +555,8 @@ async function importEdielP12Certificate(formData: FormData): Promise<{ id: stri
       ownerSubaddress,
       messageType,
       isPrivateMaterialAvailable: hasPrivateMaterial,
+      p12SecretReference: hasPrivateMaterial ? metadataForStorage.p12SecretReference : null,
+      passwordSecretReference: hasPrivateMaterial ? metadataForStorage.passwordSecretReference ?? null : null,
     },
     created_by: context.userId,
   }).then(({ error }) => {

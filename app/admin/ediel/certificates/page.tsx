@@ -161,7 +161,10 @@ Superadmin kan registrera S/MIME-certifikat. Importera vårt P12/PFX som privat 
               <option value="CONTRL">CONTRL</option>
               <option value="">Generellt</option>
             </select>
-            <input name="password" type="password" placeholder="PIN/lösenord endast för P12/PFX" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="password" type="password" placeholder="PIN/lösenord endast för P12/PFX-validering" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="p12SecretReference" placeholder="P12 secret ref, t.ex. env:EDIEL_PRODUCTION_SMIME_P12_BASE64" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="passwordSecretReference" placeholder="P12 password ref, t.ex. env:EDIEL_PRODUCTION_SMIME_P12_PASSWORD" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="privateKeySecretReference" placeholder="Private key ref om separat nyckel används" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <input name="certificateFile" type="file" accept=".p12,.pfx,.pem,.cer,.crt" className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2" />
             <textarea
               name="certificateText"
@@ -176,7 +179,7 @@ Superadmin kan registrera S/MIME-certifikat. Importera vårt P12/PFX som privat 
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2 xl:col-span-4"
             />
             <p className="text-xs leading-5 text-slate-600 md:col-span-2 xl:col-span-4">
-P12/PFX med privat nyckel sparas som inbound_private/sender_signing och får inte väljas som mottagarcertifikat. Mottagarens publika PEM/CER ska sparas som outbound_recipient med rätt owner_ediel_id/subadress och kopplas till route.
+P12/PFX med privat nyckel sparas som inbound_private/sender_signing och får inte väljas som mottagarcertifikat. I produktion ska P12-materialet ligga i env/secret manager och anges som env:-referens ovan; databasen sparar bara referensen. Mottagarens publika PEM/CER ska sparas som outbound_recipient med rätt owner_ediel_id/subadress och kopplas till route.
             </p>
             <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
 Spara certifikat

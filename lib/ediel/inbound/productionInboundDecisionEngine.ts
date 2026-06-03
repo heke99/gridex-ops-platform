@@ -58,8 +58,17 @@ function inferUtiltsResolution(input: ProductionInboundDecisionInput): 'quarter'
 
 export function classifyProductionInboundDecision(input: ProductionInboundDecisionInput): ProductionInboundDecision {
   const family = normalize(input.messageFamily)
-  const code = normalize(input.messageCode) || null
+  const raw = normalize(input.rawPayload)
+  let code = normalize(input.messageCode) || null
   const notes: string[] = []
+
+  if (family === 'PRODAT' && code === 'Z14') {
+    if (raw.includes('Z14V')) code = 'Z14V'
+    else if (raw.includes('Z14N')) code = 'Z14N'
+  }
+  if (family === 'PRODAT' && code === 'Z15') {
+    if (raw.includes('Z15V')) code = 'Z15V'
+  }
 
   if (family === 'PRODAT' && code === 'Z14V') {
     return {
