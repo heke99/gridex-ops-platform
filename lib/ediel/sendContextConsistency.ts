@@ -97,6 +97,27 @@ function addIssue(target: EdielSendConsistencyIssue[], code: string, message: st
   target.push({ code, message, severity })
 }
 
+function routeAllowsNonProdatSmime(routeProfile: EdielRouteProfileRow | null): boolean {
+  const metadata = routeProfile?.metadata
+  return Boolean(
+    metadata &&
+      typeof metadata === 'object' &&
+      !Array.isArray(metadata) &&
+      (metadata.bilateralSmimeException === true || metadata.allowNonProdatSmime === true),
+  )
+}
+
+function applyMessageFamilyEncryptionPolicy(params: {
+  messageFamily?: string | null
+  encryptionMode: 'none' | 'smime'
+  routeProfile: EdielRouteProfileRow | null
+}): 'none' | 'smime' {
+  const family = String(params.messageFamily ?? '').toUpperCase()
+  if (family === 'PRODAT') return params.encryptionMode
+  if (params.encryptionMode === 'smime' && !routeAllowsNonProdatSmime(params.routeProfile)) return 'none'
+  return params.encryptionMode
+}
+
 export async function validateEdielSendContext(params: {
   message: EdielMessageRow
   smtpMimeModeOverride?: string | null
@@ -113,7 +134,12 @@ export async function validateEdielSendContext(params: {
   const routeTransportEncryption = transportSecurityModeToEncryptionMode(routeTransportSecurityMode)
   const resolvedEncryptionMode = selectedEncryptionMode ?? routeTransportEncryption ?? routeEncryption ?? 'none'
   const resolvedSmtpMimeMode = resolveSmtpMimeMode(resolvedEncryptionMode, params.smtpMimeModeOverride)
-  const finalEncryptionMode: 'none' | 'smime' = resolvedSmtpMimeMode === 'ediel-smime-enveloped' ? 'smime' : 'none'
+  const finalEncryptionMode: 'none' | 'smime' = applyMessageFamilyEncryptionPolicy({
+    messageFamily: params.message.message_family,
+    encryptionMode: resolvedSmtpMimeMode === 'ediel-smime-enveloped' ? 'smime' : 'none',
+    routeProfile,
+  })
+  const finalSmtpMimeMode = resolveSmtpMimeMode(finalEncryptionMode, finalEncryptionMode === 'smime' ? params.smtpMimeModeOverride : 'ediel-singlepart-base64')
   const blockingIssues: EdielSendConsistencyIssue[] = []
   const warnings: EdielSendConsistencyIssue[] = []
   const receiverSubaddress =
@@ -188,7 +214,7 @@ export async function validateEdielSendContext(params: {
     warnings,
     selectedEncryptionMode,
     resolvedEncryptionMode: finalEncryptionMode,
-    resolvedSmtpMimeMode,
+    resolvedSmtpMimeMode: finalSmtpMimeMode,
     sendButtonLabel: finalEncryptionMode === 'smime' ? 'Skicka krypterat' : 'Skicka okrypterat EDIFACT',
     linkedTestRun,
     linkedTestRunIds: linkedRuns.map((run) => run.id),

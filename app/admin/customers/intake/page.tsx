@@ -37,7 +37,7 @@ export default async function CustomerIntakePage() {
   const companyScope = await getOperationalCompanyScope(access.userId);
 
   const [gridOwnersResult, electricitySuppliersResult, priceAreasResult, contractOffersResult] = await Promise.all([
-    safeLoad("Nätägare", () => listGridOwners(supabase)),
+    safeLoad("Nätägare", () => listGridOwners(supabase, { customerFlowOnly: true })),
     safeLoad("Elhandlare", () => listElectricitySuppliers(supabase, { activeOnly: true })),
     safeLoad("Prisområden", () => listPriceAreas(supabase)),
     safeLoad("Avtalserbjudanden", () =>

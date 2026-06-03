@@ -1,7 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { saveEdielPartyRegistryEntryAction } from '@/app/admin/ediel/actors/actions'
+import { refreshExpisoftReceiverCertificateAction, saveEdielPartyRegistryEntryAction } from '@/app/admin/ediel/actors/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -130,6 +130,20 @@ export default async function EdielActorsPage() {
                   </div>
                   <div className="mt-1 text-slate-700">{address.environment} · {address.message_family} {address.business_code ?? '*'} · {address.smtp_address}</div>
                   <div className="mt-1 font-semibold text-slate-800">{address.transport_security_mode} · cert {address.receiver_certificate_id ?? 'saknas'}</div>
+                  <form action={refreshExpisoftReceiverCertificateAction} className="mt-3 flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="partyId" value={party.id} />
+                    <input type="hidden" name="edielId" value={address.ediel_id} />
+                    <input type="hidden" name="subaddress" value={address.subaddress ?? ''} />
+                    <input type="hidden" name="smtpEmail" value={address.smtp_address} />
+                    <input type="hidden" name="forceRefresh" value="true" />
+                    <button className="rounded-lg border border-emerald-300 bg-white px-3 py-1 font-semibold text-emerald-800">
+                      Fetch receiver certificate from Expisoft
+                    </button>
+                    <span className="font-mono text-slate-600">mail={address.smtp_address}</span>
+                  </form>
+                  <div className="mt-2 break-all text-slate-600">
+                    ldap://sodir01.expisoft.se:389/c=se?userCertificate?sub?mail={address.smtp_address}
+                  </div>
                 </div>
               ))}
             </div>

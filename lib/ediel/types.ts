@@ -471,6 +471,7 @@ export type EdielRouteProfileRow = {
   allow_unencrypted_production_granted_by?: string | null;
   allow_unencrypted_production_reason?: string | null;
   security_policy_status?: string | null;
+  metadata?: Record<string, unknown> | null;
   payload_format: EdielPayloadFormat;
   notes: string | null;
   created_at: string;

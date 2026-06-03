@@ -6,7 +6,7 @@ import {
   markCommunicationSent,
 } from './communicationLogs'
 import { getCompanyEmailTemplate } from './emailTemplates'
-import { getEmailProvider } from './providers'
+import { sendApplicationEmail } from './sendApplicationEmail'
 import { renderEmailTemplate, type EmailTemplateVariables } from './templateRenderer'
 
 type SendCompanyEmailInput = {
@@ -87,7 +87,7 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   })
 
   try {
-    const result = await getEmailProvider().sendEmail({
+    const result = await sendApplicationEmail({
       from: sender.from,
       to: input.to,
       replyTo: sender.replyTo,

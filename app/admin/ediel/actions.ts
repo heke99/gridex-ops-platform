@@ -143,6 +143,7 @@ import {
   getEdielSystemTestSettings,
   requireEdielSystemTestRuntimeContext,
 } from "@/lib/ediel/systemTestSettings";
+import { isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 import { createSafeMasterdataProposalForMessage } from "@/lib/ediel/operationalVerification";
 import {
@@ -1635,6 +1636,19 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode")) ?? "";
   const encryptionMode = formString(formData.get("encryptionMode")) === "smime" ? "smime" : "none";
+  const setupPackage = formString(formData.get("setupPackage"));
+  const runtimeTestSuite = formString(formData.get("runtimeTestSuite"));
+  const isAgtRuntime = isAgtSystemTestCase({
+    setupPackage,
+    runtimeTestSuite,
+    testCaseCode,
+    roleCode,
+    suite: testSuite,
+  });
+  const runtimeSuite = isAgtRuntime ? "AGT" : "TGT";
+  const environmentType = formString(formData.get("environmentType")) ?? (isAgtRuntime ? "agt_test" : "tgt_test");
+  const certificateEnvironment = formString(formData.get("certificateEnvironment")) ?? (isAgtRuntime ? "production" : "test");
+  const transportEnvironment = formString(formData.get("transportEnvironment")) ?? (isAgtRuntime ? "production_smtp" : "test");
   const definition = getEdielTgtTestCaseByCode(
     testSuite,
     roleCode,
@@ -1651,8 +1665,8 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
   }
 
   await requireCompanyOperationalForWrites(companyId);
-  const systemTestSettings = await getEdielSystemTestSettings({ companyId, testSuite: "TGT" });
-  await requireEdielSystemTestRuntimeContext({ companyId, testSuite: "TGT", actorRole: roleCode });
+  const systemTestSettings = await getEdielSystemTestSettings({ companyId, testSuite: runtimeSuite });
+  await requireEdielSystemTestRuntimeContext({ companyId, testSuite: runtimeSuite, actorRole: roleCode });
 
   if (!definition) {
     throw new Error(
@@ -1672,7 +1686,11 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
       definition.purpose,
       `Testdata: ${definition.testDataHint}`,
       ...definition.notes,
-      "Autopilot: första Gridex-fil skapas automatiskt om första steget ägs av Gridex.",
+      `Runtime suite: ${runtimeSuite}. Environment type: ${environmentType}.`,
+      `Certificate environment: ${certificateEnvironment}. Transport environment: ${transportEnvironment}.`,
+      isAgtRuntime
+        ? "AGT: actor test uses production SMTP/certificate readiness while keeping AGT logical flow."
+        : "Autopilot: första Gridex-fil skapas automatiskt om första steget ägs av Gridex.",
     ].join("\n"),
     status: "running",
     startedAt: new Date().toISOString(),
@@ -1681,7 +1699,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
     businessCode: definition.expectedSteps[0]?.code ?? null,
     encryptionMode,
     routeProfileId: systemTestSettings?.routeProfileId ?? null,
-    environmentType: "tgt_test",
+    environmentType,
     expectedFlow: definition.expectedSteps,
   });
 

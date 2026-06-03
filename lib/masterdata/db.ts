@@ -122,6 +122,7 @@ export async function savePriceAreaLocality(
 
 export async function listGridOwners(
   supabase: SupabaseClient,
+  options: { customerFlowOnly?: boolean } = {},
 ): Promise<GridOwnerRow[]> {
   const { data, error } = await supabase
     .from("grid_owners")
@@ -129,7 +130,34 @@ export async function listGridOwners(
     .order("name", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as GridOwnerRow[];
+  const rows = (data ?? []) as GridOwnerRow[];
+  if (!options.customerFlowOnly) return rows;
+
+  const edielIds = rows.map((row) => row.ediel_id).filter((value): value is string => Boolean(value));
+  if (edielIds.length === 0) return rows.filter((row) => row.is_active && row.lifecycle_status !== "blocked");
+
+  const parties = await supabase
+    .from("ediel_parties")
+    .select("ediel_id,roles,status,visible_to_customer_flow")
+    .in("ediel_id", edielIds)
+    .eq("visible_to_customer_flow", true)
+    .eq("status", "verified");
+
+  if (parties.error) {
+    if (["42P01", "42703", "PGRST204", "PGRST205"].includes(parties.error.code ?? "")) {
+      return rows.filter((row) => row.is_active && row.lifecycle_status !== "blocked");
+    }
+    throw parties.error;
+  }
+
+  const visibleEdielIds = new Set(
+    ((parties.data ?? []) as Array<{ ediel_id?: string | null; roles?: string[] | null }>)
+      .filter((party) => Array.isArray(party.roles) && party.roles.includes("grid_owner"))
+      .map((party) => party.ediel_id)
+      .filter((value): value is string => Boolean(value)),
+  );
+
+  return rows.filter((row) => row.is_active && row.ediel_id && visibleEdielIds.has(row.ediel_id));
 }
 
 export async function getGridOwnerById(

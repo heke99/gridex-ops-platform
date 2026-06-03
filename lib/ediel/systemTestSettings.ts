@@ -25,6 +25,15 @@ export type EdielSystemTestSettings = {
   defaultSenderSubaddress: string | null;
   routeProfileId: string | null;
   transportProfileId: string | null;
+  setupPackage?: string | null;
+  actorRole?: string | null;
+  messageFamily?: string | null;
+  applicationReference?: string | null;
+  environmentType?: string | null;
+  certificateEnvironment?: string | null;
+  transportEnvironment?: string | null;
+  smtpProvider?: string | null;
+  metadata?: Record<string, unknown> | null;
   isActive: boolean;
 };
 
@@ -41,6 +50,15 @@ export type SaveEdielSystemTestSettingsInput = {
   defaultSenderSubaddress?: string | null;
   routeProfileId?: string | null;
   transportProfileId?: string | null;
+  setupPackage?: string | null;
+  actorRole?: string | null;
+  messageFamily?: string | null;
+  applicationReference?: string | null;
+  environmentType?: string | null;
+  certificateEnvironment?: string | null;
+  transportEnvironment?: string | null;
+  smtpProvider?: string | null;
+  metadata?: Record<string, unknown> | null;
   isActive?: boolean;
 };
 
@@ -53,6 +71,13 @@ function clean(value: unknown): string | null {
 function upper(value: unknown): string | null {
   const normalized = clean(value)?.toUpperCase() ?? null;
   return normalized && normalized.length > 0 ? normalized : null;
+}
+
+function metadata(row: Record<string, unknown>): Record<string, unknown> {
+  const value = row.metadata;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function isMissingRelationError(error: unknown): boolean {
@@ -199,6 +224,15 @@ export async function getEdielSystemTestSettings(params: {
     defaultSenderSubaddress: upper(row.default_sender_subaddress),
     routeProfileId: clean(row.route_profile_id),
     transportProfileId: clean(row.transport_profile_id),
+    setupPackage: clean(row.setup_package) ?? clean(metadata(row).setupPackage),
+    actorRole: clean(row.actor_role) ?? clean(metadata(row).actorRole),
+    messageFamily: upper(row.message_family ?? metadata(row).messageFamily),
+    applicationReference: upper(row.application_reference ?? metadata(row).applicationReference),
+    environmentType: clean(row.environment_type) ?? clean(metadata(row).environmentType),
+    certificateEnvironment: clean(row.certificate_environment) ?? clean(metadata(row).certificateEnvironment),
+    transportEnvironment: clean(row.transport_environment) ?? clean(metadata(row).transportEnvironment),
+    smtpProvider: clean(row.smtp_provider) ?? clean(metadata(row).smtpProvider),
+    metadata: metadata(row),
     isActive: row.is_active !== false,
   };
 }
@@ -257,6 +291,25 @@ export async function saveEdielSystemTestSettings(
     default_sender_subaddress: upper(input.defaultSenderSubaddress),
     route_profile_id: clean(input.routeProfileId),
     transport_profile_id: clean(input.transportProfileId),
+    setup_package: clean(input.setupPackage),
+    actor_role: clean(input.actorRole),
+    message_family: upper(input.messageFamily),
+    application_reference: upper(input.applicationReference),
+    environment_type: clean(input.environmentType),
+    certificate_environment: clean(input.certificateEnvironment),
+    transport_environment: clean(input.transportEnvironment),
+    smtp_provider: clean(input.smtpProvider),
+    metadata: {
+      ...(input.metadata ?? {}),
+      setupPackage: clean(input.setupPackage),
+      actorRole: clean(input.actorRole),
+      messageFamily: upper(input.messageFamily),
+      applicationReference: upper(input.applicationReference),
+      environmentType: clean(input.environmentType),
+      certificateEnvironment: clean(input.certificateEnvironment),
+      transportEnvironment: clean(input.transportEnvironment),
+      smtpProvider: clean(input.smtpProvider),
+    },
     is_active: input.isActive !== false,
     created_by: input.actorUserId,
     updated_by: input.actorUserId,
@@ -283,6 +336,14 @@ export async function saveEdielSystemTestSettings(
         defaultSenderSubaddress: upper(input.defaultSenderSubaddress),
         routeProfileId: clean(input.routeProfileId),
         transportProfileId: clean(input.transportProfileId),
+        setupPackage: clean(input.setupPackage),
+        actorRole: clean(input.actorRole),
+        messageFamily: upper(input.messageFamily),
+        applicationReference: upper(input.applicationReference),
+        environmentType: clean(input.environmentType),
+        certificateEnvironment: clean(input.certificateEnvironment),
+        transportEnvironment: clean(input.transportEnvironment),
+        smtpProvider: clean(input.smtpProvider),
       },
       metadata: {
         source: "ediel_system_test_settings",
@@ -325,6 +386,7 @@ export type EdielSystemTestRuntimeContext = {
   defaultReceiverSubaddress: string | null;
   testBrpEdielId: string | null;
   testBrpName: string | null;
+  settings: EdielSystemTestSettings | null;
 };
 
 async function getActiveTestActorSetting(
@@ -396,6 +458,7 @@ export async function getEdielSystemTestRuntimeContext(params: {
     defaultReceiverSubaddress: upper(settings?.defaultReceiverSubaddress),
     testBrpEdielId: upper(settings?.testBrpEdielId),
     testBrpName: settings?.testBrpName ?? null,
+    settings,
   };
 }
 

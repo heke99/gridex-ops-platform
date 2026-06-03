@@ -23,6 +23,7 @@ import {
   type EdielTgtTestCaseDefinition,
 } from "@/lib/ediel/tgtRegistry";
 import { createEdielTgtRunFromTemplateAction } from "@/app/admin/ediel/actions";
+import { isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages";
 import {
   createAndSendSystemTestAckAction,
   deleteSystemTestArtifactAction,
@@ -121,12 +122,29 @@ function expectedResponseText(testCase: EdielTgtTestCaseDefinition): string {
 }
 
 function StartRunForm({ testCase, companyId }: { testCase: EdielTgtTestCaseDefinition; companyId: string | null }) {
+  const isAgt = isAgtSystemTestCase({
+    testCaseCode: testCase.testCaseCode,
+    roleCode: testCase.roleCode,
+    suite: testCase.suite,
+  });
+  const setupPackage = isAgt
+    ? testCase.roleCode === "esco"
+      ? "agt_dgi_prodat_e3_e8"
+      : "agt_ddq_prodat_l"
+    : testCase.roleCode === "esco" && testCase.suite === "UTILTS"
+      ? "tgt_dgi_utilts_u3"
+      : "tgt_ddq_prodat_utilts";
   return (
     <form action={createEdielTgtRunFromTemplateAction} className="flex flex-wrap items-center gap-2">
       {companyId ? <input type="hidden" name="companyId" value={companyId} /> : null}
       <input type="hidden" name="testSuite" value={testCase.suite} />
       <input type="hidden" name="roleCode" value={testCase.roleCode} />
       <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
+      <input type="hidden" name="setupPackage" value={setupPackage} />
+      <input type="hidden" name="runtimeTestSuite" value={isAgt ? "AGT" : "TGT"} />
+      <input type="hidden" name="environmentType" value={isAgt ? "agt_test" : "tgt_test"} />
+      <input type="hidden" name="certificateEnvironment" value={isAgt ? "production" : "test"} />
+      <input type="hidden" name="transportEnvironment" value={isAgt ? "production_smtp" : "test"} />
       <select
         name="encryptionMode"
         defaultValue="none"

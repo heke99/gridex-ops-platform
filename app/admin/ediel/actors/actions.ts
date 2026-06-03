@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
+import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expisoftCertificateDirectory'
 
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key)
@@ -137,4 +138,19 @@ export async function saveEdielPartyRegistryEntryAction(formData: FormData) {
 
   revalidatePath('/admin/ediel/actors')
   revalidatePath('/admin/ediel/routes')
+}
+
+export async function refreshExpisoftReceiverCertificateAction(formData: FormData) {
+  await requirePlatformAdminActionAccess()
+  const smtpEmail = value(formData, 'smtpEmail')
+  if (!smtpEmail) throw new Error('SMTP address krävs för Expisoft lookup.')
+  await fetchReceiverCertificatesFromExpisoft({
+    smtpEmail,
+    edielId: value(formData, 'edielId'),
+    subaddress: value(formData, 'subaddress'),
+    partyId: value(formData, 'partyId'),
+    forceRefresh: boolValue(formData, 'forceRefresh'),
+  })
+  revalidatePath('/admin/ediel/actors')
+  revalidatePath('/admin/ediel/certificates')
 }

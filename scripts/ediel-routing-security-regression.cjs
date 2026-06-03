@@ -46,6 +46,9 @@ function canUseOutboundCertificate({ certificate, receiverEdielId, receiverSubad
 }
 
 function resolveTransport({ routeMode, selectedMode, route, receiver }) {
+  if (route.messageFamily && route.messageFamily !== 'PRODAT' && !route.bilateralSmimeException) {
+    return { smime: false, file: 'message.edi' }
+  }
   if (routeMode === 'needs_verification') throw new Error('needs_verification')
   const selected = selectedMode ?? routeMode
   if (selected === 'unencrypted') {
@@ -166,5 +169,16 @@ assert.equal(normalAdminCapabilities.canSelectVerifiedGridOwner, true)
 assert.equal(normalAdminCapabilities.canChangeTransportSecurityMode, false)
 assert.equal(normalAdminCapabilities.canChooseCertificate, false)
 assert.equal(normalAdminCapabilities.canChooseRoute, false)
+
+// Mail/provider separation and PRODAT-only S/MIME policy.
+const appMail = { provider: 'resend', env: 'EMAIL_PROVIDER' }
+const edielMail = { provider: 'strato', env: 'EDIEL_EMAIL_PROVIDER', from: 'ediel@gridex.se' }
+assert.equal(appMail.provider, 'resend')
+assert.equal(edielMail.provider, 'strato')
+assert.notEqual(appMail.env, edielMail.env)
+assert.equal(resolveTransport({ routeMode: 'required_encrypted', selectedMode: 'smime', route: { messageFamily: 'CONTRL' }, receiver: { edielId: '91100' } }).smime, false)
+assert.equal(resolveTransport({ routeMode: 'required_encrypted', selectedMode: 'smime', route: { messageFamily: 'APERAK' }, receiver: { edielId: '91100' } }).smime, false)
+assert.equal(resolveTransport({ routeMode: 'required_encrypted', selectedMode: 'smime', route: { messageFamily: 'UTILTS' }, receiver: { edielId: '91100' } }).smime, false)
+assert.equal(resolveTransport({ routeMode: 'required_encrypted', selectedMode: 'smime', route: { messageFamily: 'PRODAT' }, receiver: { edielId: '91100' } }).smime, true)
 
 console.log('ediel-routing-security-regression: ok')
