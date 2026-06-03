@@ -159,10 +159,27 @@ export function isAgtSystemTestCase(input: {
   if (setup === 'agt_dgi_prodat_e3_e8' || setup === 'agt_ddq_prodat_l') return true
   if (String(input.runtimeTestSuite ?? '').toUpperCase() === 'AGT') return true
   const code = String(input.testCaseCode ?? '').trim().toUpperCase()
+  const suite = String(input.suite ?? '').toUpperCase()
+  const role = String(input.roleCode ?? '').toLowerCase()
+  const agtEscoProdatCodes = new Set([
+    '8.1.1',
+    '8.1.2',
+    '8.1.3',
+    '8.2.1',
+    '9.1.1',
+    '9.1.2',
+    '9.2.1',
+    'E3',
+    'E4',
+    'E5',
+    'E6',
+    'E7',
+    'E8',
+  ])
   return (
-    String(input.roleCode ?? '').toLowerCase() === 'esco' &&
-    String(input.suite ?? '').toUpperCase() === 'PRODAT' &&
-    ['E3', 'E4', 'E5', 'E6', 'E7', 'E8'].some((prefix) => code === prefix || code.startsWith(`${prefix}.`))
+    role === 'esco' &&
+    suite === 'PRODAT' &&
+    (agtEscoProdatCodes.has(code) || ['E3', 'E4', 'E5', 'E6', 'E7', 'E8'].some((prefix) => code.startsWith(`${prefix}.`)))
   )
 }
 

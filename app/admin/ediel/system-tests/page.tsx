@@ -16,6 +16,7 @@ import {
 } from "@/lib/ediel/tgtRegistry";
 import { createEdielTgtRunFromTemplateAction } from "@/app/admin/ediel/actions";
 import { saveSimpleSystemTestCompanySetupAction } from "@/app/admin/ediel/system-tests/actions";
+import { EDIEL_SYSTEM_TEST_PACKAGES, getEdielSystemTestPackage, isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages";
 
 export const dynamic = "force-dynamic";
 
@@ -597,12 +598,29 @@ function StartRunForm({
   testCase: EdielTgtTestCaseDefinition;
   companyId: string | null;
 }) {
+  const isAgt = isAgtSystemTestCase({
+    testCaseCode: testCase.testCaseCode,
+    roleCode: testCase.roleCode,
+    suite: testCase.suite,
+  });
+  const setupPackage = isAgt
+    ? testCase.roleCode === "esco"
+      ? "agt_dgi_prodat_e3_e8"
+      : "agt_ddq_prodat_l"
+    : testCase.roleCode === "esco" && testCase.suite === "UTILTS"
+      ? "tgt_dgi_utilts_u3"
+      : "tgt_ddq_prodat_utilts";
   return (
     <form action={createEdielTgtRunFromTemplateAction} className="flex flex-wrap items-center gap-2">
       {companyId ? <input type="hidden" name="companyId" value={companyId} /> : null}
       <input type="hidden" name="testSuite" value={testCase.suite} />
       <input type="hidden" name="roleCode" value={testCase.roleCode} />
       <input type="hidden" name="testCaseCode" value={testCase.testCaseCode} />
+      <input type="hidden" name="setupPackage" value={setupPackage} />
+      <input type="hidden" name="runtimeTestSuite" value={isAgt ? "AGT" : "TGT"} />
+      <input type="hidden" name="environmentType" value={isAgt ? "agt_test" : "tgt_test"} />
+      <input type="hidden" name="certificateEnvironment" value={isAgt ? "production" : "test"} />
+      <input type="hidden" name="transportEnvironment" value={isAgt ? "production_smtp" : "test"} />
       <select
         name="encryptionMode"
         defaultValue="none"
@@ -713,6 +731,7 @@ function SimpleCompanySetupPanel({
   selectedCompanyId,
   selectedCompany,
   selectedActorRole,
+  selectedSetupPackage,
   runtime,
   setupStatus,
   setupMessage,
@@ -722,12 +741,16 @@ function SimpleCompanySetupPanel({
   selectedCompanyId: string | null;
   selectedCompany: CompanyOption | null;
   selectedActorRole: "esco" | "supplier";
+  selectedSetupPackage: string;
   runtime: EdielSystemTestRuntimeContext | null;
   setupStatus: "success" | "error" | null;
   setupMessage: string | null;
 }) {
+  const packageDefinition = getEdielSystemTestPackage(selectedSetupPackage);
   const defaultEdielId = runtime?.actorEdielId ?? selectedCompany?.ediel_id ?? "";
-  const defaultTestBrpEdielId = selectedActorRole === "supplier" ? "91109" : "";
+  const defaultActorRole = packageDefinition.value === "custom" ? selectedActorRole : packageDefinition.actorRole;
+  const defaultTestBrpEdielId = packageDefinition.testBrpEdielId ?? "";
+  const receiverPreview = `${packageDefinition.portalEdielId}:ZZ${packageDefinition.receiverSubaddress ? `:${packageDefinition.receiverSubaddress}` : ""}`;
 
   return (
     <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">
@@ -742,7 +765,7 @@ function SimpleCompanySetupPanel({
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
             Fyll i saknade uppgifter här en gång. Systemet sparar aktör,
             Edielportalen-route, shared mailbox och systemtestinställning
-            så TGT-knapparna nedan kan köra testerna direkt från denna sida.
+            så testknapparna nedan kan köra testerna direkt från denna sida.
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
@@ -763,7 +786,26 @@ function SimpleCompanySetupPanel({
         </div>
       ) : null}
 
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+        <div className="font-bold text-slate-950">Resolved Ediel test route</div>
+        <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          <div>Setup: {packageDefinition.label}</div>
+          <div>Suite: {packageDefinition.testSuiteType} · {packageDefinition.marketRole}</div>
+          <div>Family: {packageDefinition.messageFamily}</div>
+          <div>Receiver: {receiverPreview}</div>
+          <div>SMTP to: {packageDefinition.portalEmail}</div>
+          <div>App ref: {packageDefinition.applicationReference}</div>
+          <div>Transport: {packageDefinition.transportEnvironment}</div>
+          <div>Cert env: {packageDefinition.certificateEnvironment}</div>
+        </div>
+      </div>
+
       <form action={saveSimpleSystemTestCompanySetupAction} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <select name="setupPackage" defaultValue={packageDefinition.value} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          {EDIEL_SYSTEM_TEST_PACKAGES.map((item) => (
+            <option key={item.value} value={item.value}>{item.label}</option>
+          ))}
+        </select>
         <select name="companyId" defaultValue={selectedCompanyId ?? ""} required className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
           <option value="">Välj bolag</option>
           {companies.map((company) => (
@@ -772,16 +814,16 @@ function SimpleCompanySetupPanel({
             </option>
           ))}
         </select>
-        <select name="actorRole" defaultValue={selectedActorRole} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+        <select name="actorRole" defaultValue={defaultActorRole} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
           <option value="esco">Energitjänsteföretag / DGI</option>
           <option value="supplier">Elleverantör / DDQ</option>
         </select>
         <input name="edielId" defaultValue={defaultEdielId} required placeholder="Bolagets Ediel-ID" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
         <input name="mailbox" defaultValue="ediel@gridex.se" required placeholder="Teknisk mailbox" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-        <input name="portalEdielId" defaultValue={runtime?.testPortalEdielId ?? "91100"} required placeholder="Edielportalen Ediel-ID" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-        <input name="portalEmail" defaultValue={runtime?.testPortalEmail ?? "91100@ediel.se"} required placeholder="Edielportalen e-post" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <input name="portalEdielId" defaultValue={runtime?.testPortalEdielId ?? packageDefinition.portalEdielId} required placeholder="Edielportalen Ediel-ID" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <input name="portalEmail" defaultValue={runtime?.testPortalEmail ?? packageDefinition.portalEmail} required placeholder="Edielportalen e-post" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
         <input name="testBrpEdielId" defaultValue={defaultTestBrpEdielId} placeholder="Test-BRP (bara leverantör)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-        <select name="encryptionMode" defaultValue="none" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+        <select name="encryptionMode" defaultValue={packageDefinition.encryptionMode} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
           <option value="none">Okrypterat test</option>
           <option value="smime">Krypterat S/MIME-test</option>
         </select>
@@ -802,10 +844,14 @@ function SimpleCompanySetupPanel({
             return <option key={certificate.id} value={certificate.id}>{label}</option>;
           })}
         </select>
-        <input name="prodatSubaddress" placeholder="PRODAT subadress om krävs, annars tom" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        <input name="prodatSubaddress" defaultValue={packageDefinition.receiverSubaddress ?? ""} placeholder="PRODAT subadress om krävs, annars tom" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
         <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-          <input type="checkbox" name="prodatSubaddressRequired" />
+          <input type="checkbox" name="prodatSubaddressRequired" defaultChecked={packageDefinition.receiverSubaddressRequired} />
           PRODAT subadress krävs
+        </label>
+        <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          <input type="checkbox" name="createBothRoutes" />
+          Skapa även kompletterande UTILTS-route
         </label>
         <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
           Spara och gör redo för tester
@@ -933,13 +979,20 @@ export default async function EdielSystemTestsPage({
     .trim()
     .toLowerCase();
   const selectedActorRole: "esco" | "supplier" = role === "supplier" ? "supplier" : "esco";
-  const systemTestRuntime = await getEdielSystemTestRuntimeContext({
-    companyId: selectedCompanyId,
-    testSuite: "TGT",
-    actorRole: selectedActorRole,
-  }).catch(() => null);
   const packet = normalizePacket(query.packet);
   const family = normalizeFamily(query.family);
+  const selectedSetupPackage =
+    packet === "u3" || packet === "u31" || packet === "u32" || family === "UTILTS"
+      ? "tgt_dgi_utilts_u3"
+      : selectedActorRole === "supplier"
+        ? "agt_ddq_prodat_l"
+        : "agt_dgi_prodat_e3_e8";
+  const selectedPackageDefinition = getEdielSystemTestPackage(selectedSetupPackage);
+  const systemTestRuntime = await getEdielSystemTestRuntimeContext({
+    companyId: selectedCompanyId,
+    testSuite: selectedPackageDefinition.testSuiteType,
+    actorRole: selectedPackageDefinition.actorRole,
+  }).catch(() => null);
   const testType = normalizeTestType(query.testType);
   const direction = normalizeDirection(query.direction);
   const status = normalizeStatus(query.status);
@@ -1000,6 +1053,7 @@ export default async function EdielSystemTestsPage({
         selectedCompanyId={selectedCompanyId}
         selectedCompany={selectedCompany}
         selectedActorRole={selectedActorRole}
+        selectedSetupPackage={selectedSetupPackage}
         runtime={systemTestRuntime}
         setupStatus={query.setupStatus === "success" ? "success" : query.setupStatus === "error" ? "error" : null}
         setupMessage={query.setupMessage ?? null}
