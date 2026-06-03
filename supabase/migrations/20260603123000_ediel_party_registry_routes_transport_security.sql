@@ -383,9 +383,14 @@ update public.ediel_route_profiles rp
  where to_regclass('public.ediel_route_profiles') is not null
    and rp.environment = 'test'
    and rp.receiver_ediel_id = '91100'
-   and upper(coalesce(rp.message_family, 'PRODAT')) = 'PRODAT';
+  and upper(coalesce(rp.message_family, 'PRODAT')) = 'PRODAT';
 
-create or replace view public.ediel_route_runtime_v as
+-- Existing installations may already have ediel_route_runtime_v as `select rp.*`,
+-- where the first column is named id. PostgreSQL cannot CREATE OR REPLACE a
+-- view while changing existing column names/order, so recreate it explicitly.
+drop view if exists public.ediel_route_runtime_v;
+
+create view public.ediel_route_runtime_v as
 select
   rp.company_id,
   rp.id as route_profile_id,

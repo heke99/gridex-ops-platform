@@ -1,5 +1,29 @@
 -- Mail readiness, Expisoft certificate cache, and AGT/TGT setup package metadata.
 
+-- Keep this migration runnable even if the earlier party-registry migration was
+-- rolled back by a later statement. The full registry migration uses the same
+-- table shape, so this is a no-op when it has already succeeded.
+create table if not exists public.ediel_parties (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  organization_number text null,
+  ediel_id text not null,
+  roles text[] not null default '{}'::text[],
+  status text not null default 'draft',
+  visible_to_customer_flow boolean not null default false,
+  source text not null default 'manual',
+  notes text null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  created_by uuid null,
+  updated_by uuid null,
+  constraint ediel_parties_status_chk check (status in ('draft', 'verified', 'inactive', 'blocked', 'needs_verification')),
+  constraint ediel_parties_source_chk check (source in ('ediel_registry', 'ediel_catalog', 'grid_owner_confirmation', 'manual_verified', 'manual', 'import'))
+);
+
+create unique index if not exists ediel_parties_ediel_id_idx
+  on public.ediel_parties(ediel_id);
+
 alter table if exists public.ediel_system_test_settings
   add column if not exists setup_package text null,
   add column if not exists actor_role text null,
