@@ -82,13 +82,67 @@ function extractCrlDistributionPoints(cert: X509Certificate): string | null {
   return crlLines.length > 0 ? crlLines.join('\n') : null
 }
 
+function looksLikeBase64Certificate(value: string): boolean {
+  const compact = value.replace(/\s+/g, '')
+  return compact.length > 200 && /^[A-Za-z0-9+/=]+$/.test(compact)
+}
+
 function normalizeLdapCertificateValue(value: unknown): Buffer[] {
   if (!value) return []
   if (Buffer.isBuffer(value)) return [value]
   if (value instanceof Uint8Array) return [Buffer.from(value)]
   if (Array.isArray(value)) return value.flatMap(normalizeLdapCertificateValue)
-  if (typeof value === 'string') return [Buffer.from(value, 'binary')]
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return []
+
+    const pemMatch = trimmed.match(/-----BEGIN CERTIFICATE-----([\s\S]+?)-----END CERTIFICATE-----/)
+    if (pemMatch?.[1]) return [Buffer.from(pemMatch[1].replace(/\s+/g, ''), 'base64')]
+
+    if (looksLikeBase64Certificate(trimmed)) return [Buffer.from(trimmed.replace(/\s+/g, ''), 'base64')]
+
+    return [Buffer.from(trimmed, 'binary')]
+  }
   return []
+}
+
+function getLdapEntryValue(entry: Record<string, unknown>, requestedName: string): unknown {
+  const requestedLower = requestedName.toLowerCase()
+  const foundKey = Object.keys(entry).find((key) => key.toLowerCase() === requestedLower)
+  return foundKey ? entry[foundKey] : undefined
+}
+
+function extractCertificateValuesFromLdapEntry(entry: Record<string, unknown>): Buffer[] {
+  const values: Buffer[] = []
+  const directAttributeNames = [
+    'userCertificate',
+    'userCertificate;binary',
+    'usercertificate',
+    'usercertificate;binary',
+  ]
+
+  for (const attributeName of directAttributeNames) {
+    values.push(...normalizeLdapCertificateValue(getLdapEntryValue(entry, attributeName)))
+  }
+
+  // Some LDAP clients normalize attribute names to lowercase or include options.
+  // Expisoft/OpenLDAP output may show "usercertificate::" even when requesting
+  // "userCertificate". Accept any userCertificate attribute, case-insensitively,
+  // but avoid duplicate buffers later by fingerprint.
+  for (const [key, value] of Object.entries(entry)) {
+    if (key.toLowerCase().startsWith('usercertificate')) {
+      values.push(...normalizeLdapCertificateValue(value))
+    }
+  }
+
+  const seen = new Set<string>()
+  return values.filter((buffer) => {
+    if (buffer.length === 0) return false
+    const fingerprint = createHash('sha256').update(buffer).digest('hex')
+    if (seen.has(fingerprint)) return false
+    seen.add(fingerprint)
+    return true
+  })
 }
 
 async function cachedLookup(email: string): Promise<Record<string, unknown> | null> {
@@ -267,10 +321,9 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
       attributes: ['userCertificate', 'userCertificate;binary'],
     })
 
-    const rawCertificates = search.searchEntries.flatMap((entry) => [
-      ...normalizeLdapCertificateValue((entry as Record<string, unknown>).userCertificate),
-      ...normalizeLdapCertificateValue((entry as Record<string, unknown>)['userCertificate;binary']),
-    ])
+    const rawCertificates = search.searchEntries.flatMap((entry) =>
+      extractCertificateValuesFromLdapEntry(entry as Record<string, unknown>),
+    )
 
     const certs: ExpisoftCertificateLookupResult['certificates'] = []
     for (const rawDer of rawCertificates) {
@@ -327,7 +380,10 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
       throttled: false,
       certificatesFound: certs.length,
       certificates: certs,
-      diagnostics: { entries: search.searchEntries.length },
+      diagnostics: {
+        entries: search.searchEntries.length,
+        ldapAttributeKeys: search.searchEntries.map((entry) => Object.keys(entry as Record<string, unknown>)),
+      },
     }
   } finally {
     await client.unbind().catch(() => undefined)
