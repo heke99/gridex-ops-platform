@@ -1,4 +1,5 @@
 import { execFile } from 'child_process'
+import forge from 'node-forge'
 import { createHash } from 'crypto'
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
@@ -126,6 +127,25 @@ function encodeBase64Mime(buffer: Buffer, lineLength = 76): string {
   return chunks.join('\r\n')
 }
 
+function encryptSmimeEnvelopedDataWithForge(params: {
+  innerMime: Buffer
+  recipientCertificatePem: string
+}): Buffer {
+  try {
+    const certificate = forge.pki.certificateFromPem(params.recipientCertificatePem)
+    const envelope = forge.pkcs7.createEnvelopedData()
+    envelope.addRecipient(certificate)
+    const content = forge.util.createBuffer()
+    content.putBytes(params.innerMime.toString('binary'))
+    envelope.content = content
+    envelope.encrypt(undefined, forge.pki.oids['des-EDE3-CBC'])
+    return Buffer.from(forge.asn1.toDer(envelope.toAsn1()).getBytes(), 'binary')
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(`S/MIME-kryptering misslyckades med Node/forge-fallback. ${detail}`)
+  }
+}
+
 export async function createSmimeEncryptedPayloadReference(input: {
   rawEdifact: string
   publicCertificatePem: string
@@ -158,21 +178,29 @@ export async function createSmimeEncryptedPayloadReference(input: {
 
     await writeFile(inputPath, innerMime, 'ascii')
     await writeFile(certPath, input.publicCertificatePem, 'utf8')
-    await execFileAsync('openssl', [
-      'smime',
-      '-encrypt',
-      '-binary',
-      '-des3',
-      '-outform',
-      'DER',
-      '-in',
-      inputPath,
-      '-out',
-      outputPath,
-      certPath,
-    ])
+    let encrypted: Buffer
+    try {
+      await execFileAsync('openssl', [
+        'smime',
+        '-encrypt',
+        '-binary',
+        '-des3',
+        '-outform',
+        'DER',
+        '-in',
+        inputPath,
+        '-out',
+        outputPath,
+        certPath,
+      ])
+      encrypted = await readFile(outputPath)
+    } catch {
+      encrypted = encryptSmimeEnvelopedDataWithForge({
+        innerMime: Buffer.from(innerMime, 'ascii'),
+        recipientCertificatePem: input.publicCertificatePem,
+      })
+    }
 
-    const encrypted = await readFile(outputPath)
     const digest = sha256(encrypted)
     return {
       encryptedPayloadRef: `test-center-smime://${digest.slice(0, 32)}`,
