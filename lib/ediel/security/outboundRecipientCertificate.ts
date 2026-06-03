@@ -72,6 +72,43 @@ export function fullEdielAddress(edielId?: string | null, qualifier?: string | n
   return sub ? `${id}:${q}:${sub}` : `${id}:${q}`
 }
 
+function metadataText(row: Record<string, unknown> | null | undefined, key: string): string | null {
+  const meta = row?.metadata
+  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return null
+  return text((meta as Record<string, unknown>)[key])
+}
+
+function lowerToken(value?: string | null): string | null {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  return normalized.length > 0 ? normalized : null
+}
+
+function routeLooksLikeAgtProdat(route: Record<string, unknown> | null | undefined, messageFamily?: string | null): boolean {
+  const family = lowerToken(
+    text(route?.message_family) ??
+      metadataText(route, 'messageFamily') ??
+      metadataText(route, 'message_family') ??
+      messageFamily,
+  )
+  if (family !== 'prodat') return false
+
+  const environmentType = lowerToken(
+    text(route?.environment_type) ?? metadataText(route, 'environmentType') ?? metadataText(route, 'environment_type'),
+  )
+  const targetSystem = lowerToken(
+    text(route?.target_system) ?? metadataText(route, 'targetSystem') ?? metadataText(route, 'target_system'),
+  )
+  const testSuiteType = lowerToken(metadataText(route, 'testSuiteType') ?? metadataText(route, 'test_suite_type'))
+  const setupPackage = lowerToken(metadataText(route, 'setupPackage') ?? metadataText(route, 'setup_package'))
+
+  return (
+    environmentType === 'agt_test' ||
+    targetSystem === 'ediel_portalen_agt' ||
+    testSuiteType === 'agt' ||
+    Boolean(setupPackage?.startsWith('agt_'))
+  )
+}
+
 function inferOwnerEdielId(row: CertificateRow): string | null {
   const explicit = textFrom(row, 'owner_ediel_id', 'owner_ediel_id', 'ownerEdielId')
   if (explicit) return explicit
@@ -152,17 +189,22 @@ export async function resolveOutboundRecipientCertificate(input: {
   const messageFamily = String(input.messageFamily ?? input.messageType ?? '').trim().toUpperCase()
   const businessCode = String(input.businessCode ?? '').trim().toUpperCase()
   const environment = String(input.environment ?? '').trim().toLowerCase()
-  const certificateEnvironment = String(input.certificateEnvironment ?? '').trim().toLowerCase() || environment
+  let certificateEnvironment = String(input.certificateEnvironment ?? '').trim().toLowerCase() || environment
 
   if (!certificateId) {
     if (input.routeProfileId) {
       const { data: routeProfile, error: routeError } = await supabaseService
         .from('ediel_route_profiles')
-        .select('receiver_certificate_id,certificate_id,receiver_ediel_id,receiver_subaddress,receiver_sub_address,receiver_message_subaddress')
+        .select('receiver_certificate_id,certificate_id,receiver_ediel_id,receiver_subaddress,receiver_sub_address,receiver_message_subaddress,message_family,environment_type,target_system,certificate_environment,metadata')
         .eq('id', input.routeProfileId)
         .maybeSingle()
       if (routeError) throw routeError
       const route = (routeProfile ?? {}) as Record<string, unknown>
+      if (routeLooksLikeAgtProdat(route, messageFamily)) {
+        // Ediel actor tests are logical test runs, but Expisoft/Ediel requires production certificates.
+        // This also protects older route rows that still have certificate_environment='test'.
+        certificateEnvironment = 'production'
+      }
       certificateId =
         text(route.receiver_certificate_id) ??
         text(route.certificate_id) ??
@@ -285,11 +327,18 @@ export async function resolveOutboundRecipientCertificate(input: {
     )
   }
 
-  if (certEnvironment && certificateEnvironment && certEnvironment !== certificateEnvironment) {
+  const isEdielPortalAgtProdat =
+    normalize(messageFamily) === 'PRODAT' &&
+    normalize(receiverEdielId) === '91100' &&
+    normalize(receiverSubaddress) === 'PRODAT' &&
+    environment === 'test' &&
+    certEnvironment === 'production'
+
+  if (certEnvironment && certificateEnvironment && certEnvironment !== certificateEnvironment && !isEdielPortalAgtProdat) {
     throw new Error(`Sändning stoppad: certifikatet är för ${certEnvironment}, men routen kräver certifikatmiljö ${certificateEnvironment}.`)
   }
 
-  if (certEnvironment && environment && certEnvironment !== environment && certificateEnvironment === environment) {
+  if (certEnvironment && environment && certEnvironment !== environment && certificateEnvironment === environment && !isEdielPortalAgtProdat) {
     throw new Error(`Sändning stoppad: certifikatet är för ${certEnvironment}, men meddelandet skickas i ${environment}.`)
   }
 

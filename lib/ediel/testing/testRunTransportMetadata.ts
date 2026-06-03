@@ -26,7 +26,47 @@ function routeMetadataText(routeProfile: Record<string, unknown> | null | undefi
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
 
+function normalizeRouteToken(value?: string | null): string | null {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  return normalized.length > 0 ? normalized : null
+}
+
+function routeLooksLikeAgtProdat(routeProfile: Record<string, unknown> | null | undefined): boolean {
+  const messageFamily = normalizeRouteToken(
+    routeText(routeProfile, 'message_family') ??
+      routeMetadataText(routeProfile, 'messageFamily') ??
+      routeMetadataText(routeProfile, 'message_family'),
+  )
+  if (messageFamily !== 'prodat') return false
+
+  const environmentType = normalizeRouteToken(
+    routeText(routeProfile, 'environment_type') ??
+      routeMetadataText(routeProfile, 'environmentType') ??
+      routeMetadataText(routeProfile, 'environment_type'),
+  )
+  const targetSystem = normalizeRouteToken(
+    routeText(routeProfile, 'target_system') ??
+      routeMetadataText(routeProfile, 'targetSystem') ??
+      routeMetadataText(routeProfile, 'target_system'),
+  )
+  const testSuiteType = normalizeRouteToken(
+    routeMetadataText(routeProfile, 'testSuiteType') ?? routeMetadataText(routeProfile, 'test_suite_type'),
+  )
+  const setupPackage = normalizeRouteToken(routeMetadataText(routeProfile, 'setupPackage') ?? routeMetadataText(routeProfile, 'setup_package'))
+
+  return (
+    environmentType === 'agt_test' ||
+    targetSystem === 'ediel_portalen_agt' ||
+    testSuiteType === 'agt' ||
+    Boolean(setupPackage?.startsWith('agt_'))
+  )
+}
+
 function routeCertificateEnvironment(routeProfile: Record<string, unknown> | null | undefined, fallbackEnvironment?: string | null): string | null {
+  // Ediel actor tests are logical test runs, but Ediel/Expisoft requires production certificates.
+  // Old route rows may still have certificate_environment='test', so AGT PRODAT routes must be normalized here too.
+  if (routeLooksLikeAgtProdat(routeProfile)) return 'production'
+
   return (
     routeText(routeProfile, 'certificate_environment') ??
     routeMetadataText(routeProfile, 'certificateEnvironment') ??

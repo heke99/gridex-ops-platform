@@ -1,6 +1,5 @@
 // lib/ediel/transport.ts
 
-import nodemailer from 'nodemailer'
 import forge from 'node-forge'
 import { execFile } from 'child_process'
 import { createHash } from 'crypto'
@@ -43,6 +42,8 @@ import {
   isAgtPortalProdatAddress,
   normalizeTransportSecurityMode,
 } from '@/lib/ediel/partyRegistry'
+import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
+import { sendEdielEmail } from '@/lib/email/sendEdielEmail'
 
 const execFileAsync = promisify(execFile)
 
@@ -53,25 +54,74 @@ type SmtpSendResult = {
   response?: string
 }
 
-function requireEnv(name: string, fallback?: string | null): string {
-  const value = process.env[name] ?? fallback ?? ''
-  if (!value) {
-    throw new Error(`Missing required env: ${name}`)
-  }
-  return value
-}
-
-function optionalEnv(name: string, fallback?: string | null): string | null {
-  const value = process.env[name] ?? fallback ?? null
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
-}
-
 function requireActorUserId(value?: string | null): string {
   const trimmed = value?.trim()
   if (!trimmed) {
     throw new Error('Inloggad användare saknas för Ediel-åtgärden. Logga in igen och försök på nytt.')
   }
   return trimmed
+}
+
+
+function routeText(routeProfile: Record<string, unknown> | null | undefined, column: string): string | null {
+  const value = routeProfile?.[column]
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function routeMetadataText(routeProfile: Record<string, unknown> | null | undefined, key: string): string | null {
+  const metadata = routeProfile?.metadata
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null
+  const value = (metadata as Record<string, unknown>)[key]
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function normalizeRouteToken(value?: string | null): string | null {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  return normalized.length > 0 ? normalized : null
+}
+
+function routeLooksLikeAgtProdat(routeProfile: Record<string, unknown> | null | undefined): boolean {
+  const messageFamily = normalizeRouteToken(
+    routeText(routeProfile, 'message_family') ??
+      routeMetadataText(routeProfile, 'messageFamily') ??
+      routeMetadataText(routeProfile, 'message_family'),
+  )
+  if (messageFamily !== 'prodat') return false
+
+  const environmentType = normalizeRouteToken(
+    routeText(routeProfile, 'environment_type') ??
+      routeMetadataText(routeProfile, 'environmentType') ??
+      routeMetadataText(routeProfile, 'environment_type'),
+  )
+  const targetSystem = normalizeRouteToken(
+    routeText(routeProfile, 'target_system') ??
+      routeMetadataText(routeProfile, 'targetSystem') ??
+      routeMetadataText(routeProfile, 'target_system'),
+  )
+  const testSuiteType = normalizeRouteToken(
+    routeMetadataText(routeProfile, 'testSuiteType') ?? routeMetadataText(routeProfile, 'test_suite_type'),
+  )
+  const setupPackage = normalizeRouteToken(routeMetadataText(routeProfile, 'setupPackage') ?? routeMetadataText(routeProfile, 'setup_package'))
+
+  return (
+    environmentType === 'agt_test' ||
+    targetSystem === 'ediel_portalen_agt' ||
+    testSuiteType === 'agt' ||
+    Boolean(setupPackage?.startsWith('agt_'))
+  )
+}
+
+function routeCertificateEnvironment(routeProfile: Record<string, unknown> | null | undefined, fallbackEnvironment?: string | null): string | null {
+  // Ediel actor tests are logical test runs, but Ediel/Expisoft requires production certificates.
+  // Old route rows may still have certificate_environment='test', so AGT PRODAT routes must be normalized here too.
+  if (routeLooksLikeAgtProdat(routeProfile)) return 'production'
+
+  return (
+    routeText(routeProfile, 'certificate_environment') ??
+    routeMetadataText(routeProfile, 'certificateEnvironment') ??
+    routeMetadataText(routeProfile, 'certificate_environment') ??
+    (fallbackEnvironment && fallbackEnvironment.trim().length > 0 ? fallbackEnvironment.trim() : null)
+  )
 }
 
 function sanitizeMimeHeader(value: string | null | undefined, fallback = ''): string {
@@ -359,7 +409,7 @@ function encryptSmimeEnvelopedDataWithForge(params: {
     const content = forge.util.createBuffer()
     content.putBytes(params.innerMime.toString('binary'))
     envelope.content = content
-    envelope.encrypt(undefined, forge.pki.oids['des-EDE3-CBC'])
+    envelope.encrypt()
     return Buffer.from(forge.asn1.toDer(envelope.toAsn1()).getBytes(), 'binary')
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
@@ -384,48 +434,6 @@ export function isSupportedSmtpMimeMode(value: string | null | undefined): value
 }
 
 
-function normalizeCertificateSerial(value?: string | number | null): string {
-  const text = String(value ?? '').trim().toUpperCase()
-  return text.replace(/^0+/, '') || text
-}
-
-function inspectCmsRecipientInfoWithForge(params: {
-  encryptedDer: Buffer
-  expectedSerialNumber?: string | null
-}): {
-  raw: string | null
-  serialNumbers: string[]
-  expectedReceiverPresent: boolean
-} {
-  try {
-    const asn1 = forge.asn1.fromDer(params.encryptedDer.toString('binary'))
-    const cmsMessage = forge.pkcs7.messageFromAsn1(asn1) as {
-      recipients?: Array<{ serialNumber?: string | number | null }>
-    }
-    const serialNumbers = Array.from(new Set(
-      (cmsMessage.recipients ?? [])
-        .map((recipient) => String(recipient.serialNumber ?? '').trim().toUpperCase())
-        .filter(Boolean),
-    ))
-    const expected = String(params.expectedSerialNumber ?? '').trim().toUpperCase()
-    const normalizedExpected = normalizeCertificateSerial(expected)
-    const expectedReceiverPresent = Boolean(
-      expected && serialNumbers.some((serial) => {
-        const normalizedSerial = normalizeCertificateSerial(serial)
-        return serial === expected || normalizedSerial === normalizedExpected
-      }),
-    )
-    return {
-      raw: `node-forge recipientInfo serials: ${serialNumbers.join(', ') || 'none'}`,
-      serialNumbers,
-      expectedReceiverPresent,
-    }
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error)
-    throw new Error(`Node/forge CMS recipientInfo-verifiering misslyckades: ${detail}`)
-  }
-}
-
 async function inspectCmsRecipientInfo(params: {
   encryptedDer: Buffer
   expectedSerialNumber?: string | null
@@ -438,38 +446,28 @@ async function inspectCmsRecipientInfo(params: {
   const inputPath = join(tempDir, 'smime.der')
   try {
     await writeFile(inputPath, params.encryptedDer)
-    try {
-      const { stdout } = await execFileAsync('openssl', [
-        'cms',
-        '-inform',
-        'DER',
-        '-cmsout',
-        '-print',
-        '-in',
-        inputPath,
-      ], { maxBuffer: 1024 * 1024 * 6 })
-      const raw = String(stdout ?? '')
-      const serialNumbers = Array.from(raw.matchAll(/serialNumber:\s*([0-9A-Fa-f]+)/g))
-        .map((match) => match[1]?.trim().toUpperCase() ?? '')
-        .filter(Boolean)
-      const expected = String(params.expectedSerialNumber ?? '').trim().toUpperCase()
-      const normalizedExpected = normalizeCertificateSerial(expected)
-      const expectedReceiverPresent = Boolean(
-        expected && serialNumbers.some((serial) => {
-          const normalizedSerial = normalizeCertificateSerial(serial)
-          return serial === expected || normalizedSerial === normalizedExpected
-        }),
-      )
-      return { raw, serialNumbers, expectedReceiverPresent }
-    } catch (opensslError) {
-      try {
-        return inspectCmsRecipientInfoWithForge(params)
-      } catch (forgeError) {
-        const opensslDetail = opensslError instanceof Error ? opensslError.message : String(opensslError)
-        const forgeDetail = forgeError instanceof Error ? forgeError.message : String(forgeError)
-        throw new Error(`${opensslDetail}; ${forgeDetail}`)
-      }
-    }
+    const { stdout } = await execFileAsync('openssl', [
+      'cms',
+      '-inform',
+      'DER',
+      '-cmsout',
+      '-print',
+      '-in',
+      inputPath,
+    ], { maxBuffer: 1024 * 1024 * 6 })
+    const raw = String(stdout ?? '')
+    const serialNumbers = Array.from(raw.matchAll(/serialNumber:\s*([0-9A-Fa-f]+)/g))
+      .map((match) => match[1]?.trim().toUpperCase() ?? '')
+      .filter(Boolean)
+    const expected = String(params.expectedSerialNumber ?? '').trim().toUpperCase()
+    const normalizedExpected = expected.replace(/^0+/, '') || expected
+    const expectedReceiverPresent = Boolean(
+      expected && serialNumbers.some((serial) => {
+        const normalizedSerial = serial.replace(/^0+/, '') || serial
+        return serial === expected || normalizedSerial === normalizedExpected
+      }),
+    )
+    return { raw, serialNumbers, expectedReceiverPresent }
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     throw new Error(`S/MIME CMS recipientInfo kunde inte verifieras före SMTP: ${detail}`)
@@ -512,6 +510,30 @@ function encryptionModeFromMimeMode(value?: string | null): 'none' | 'smime' | n
     return 'none'
   }
   return null
+}
+
+function routeAllowsNonProdatSmime(routeProfile: Awaited<ReturnType<typeof getEdielRouteProfileByCommunicationRouteId>> | null): boolean {
+  const metadata = routeProfile?.metadata
+  return Boolean(
+    metadata &&
+      typeof metadata === 'object' &&
+      !Array.isArray(metadata) &&
+      ((metadata as Record<string, unknown>).bilateralSmimeException === true ||
+        (metadata as Record<string, unknown>).allowNonProdatSmime === true),
+  )
+}
+
+function applyMessageFamilyEncryptionPolicy(params: {
+  messageFamily?: string | null
+  requestedEncryptionMode: string | null
+  routeProfile: Awaited<ReturnType<typeof getEdielRouteProfileByCommunicationRouteId>> | null
+}): 'none' | 'smime' | 'pgp' | string | null {
+  const family = String(params.messageFamily ?? '').toUpperCase()
+  if (family === 'PRODAT') return params.requestedEncryptionMode
+  if (params.requestedEncryptionMode === 'smime' && !routeAllowsNonProdatSmime(params.routeProfile)) {
+    return 'none'
+  }
+  return params.requestedEncryptionMode
 }
 
 async function resolveMailboxSecurityDefaults(params: {
@@ -557,6 +579,8 @@ async function assertRouteTransportSecurity(params: {
   const transportSecurityMode = rawTransportSecurityMode
     ? normalizeTransportSecurityMode(rawTransportSecurityMode)
     : null
+  const family = String(message.message_family ?? routeProfile?.message_family ?? '').toUpperCase()
+  const nonProdatSmimeAllowed = family === 'PRODAT' || routeAllowsNonProdatSmime(routeProfile)
   const agtPortalUnencryptedAllowed =
     effectiveEncryptionMode === 'none' &&
     routeProfile?.allow_unencrypted_test === true &&
@@ -571,7 +595,7 @@ async function assertRouteTransportSecurity(params: {
     throw new Error('Sändning stoppad: transport security är inte verifierad för routen.')
   }
 
-  if (transportSecurityMode === 'required_encrypted' && effectiveEncryptionMode !== 'smime' && !agtPortalUnencryptedAllowed) {
+  if (transportSecurityMode === 'required_encrypted' && effectiveEncryptionMode !== 'smime' && !agtPortalUnencryptedAllowed && nonProdatSmimeAllowed) {
     throw new Error('Sändning stoppad: routen kräver S/MIME-kryptering.')
   }
 
@@ -589,7 +613,7 @@ async function assertRouteTransportSecurity(params: {
   }
 
   if (message.environment !== 'production') {
-    if (effectiveEncryptionMode === 'smime' && !effectiveCertificateId) {
+    if (effectiveEncryptionMode === 'smime' && nonProdatSmimeAllowed && !effectiveCertificateId) {
       throw new Error('Sändning stoppad: krypterat Ediel-test kräver mottagarens publika S/MIME-certifikat på routen.')
     }
     return
@@ -691,12 +715,6 @@ function buildSinglePartEdielMime(params: {
 
 function safePreview(value: string, maxLength = 600): string {
   return value.replace(/\r/g, '\\r').replace(/\n/g, '\\n').slice(0, maxLength)
-}
-
-function resolveSmtpPort(value?: number | null): number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  const env = process.env.EDIEL_SMTP_PORT
-  return env ? Number(env) : 465
 }
 
 type ParsedInboundEnvelope = {
@@ -1323,7 +1341,7 @@ export async function sendEdielMessageViaSmtp(
       })
     : null
   const overrideEncryptionMode = encryptionModeFromMimeMode(params?.smtpMimeMode)
-  const effectiveEncryptionMode =
+  const requestedEncryptionMode =
     overrideEncryptionMode ??
     (routeProfile?.transport_security_mode === 'required_encrypted' || routeProfile?.transport_security_mode === 'encrypted'
       ? 'smime'
@@ -1331,6 +1349,11 @@ export async function sendEdielMessageViaSmtp(
         ? 'none'
         : routeProfile?.encryption_mode) ??
     'none'
+  const effectiveEncryptionMode = applyMessageFamilyEncryptionPolicy({
+    messageFamily: message.message_family,
+    requestedEncryptionMode,
+    routeProfile,
+  })
   // Outbound S/MIME encryption must use the receiver route certificate only.
   // The shared mailbox certificate is our own/private transport material and must never
   // be used as recipientCertificatePem for another Ediel party.
@@ -1342,23 +1365,9 @@ export async function sendEdielMessageViaSmtp(
     effectiveCertificateId,
   })
 
-  const host = requireEnv('EDIEL_SMTP_HOST', routeProfile?.smtp_host ?? null)
-  const port = resolveSmtpPort(routeProfile?.smtp_port ?? null)
-  const user = requireEnv(
-    'EDIEL_SMTP_USER',
-    routeProfile?.mailbox ?? process.env.EDIEL_SMTP_USER ?? null
-  )
-  const pass = requireEnv('EDIEL_SMTP_PASS')
-  const from = optionalEnv('EDIEL_SMTP_FROM', routeProfile?.mailbox ?? null) ?? user
-  const replyTo = optionalEnv('EDIEL_SMTP_REPLY_TO', null)
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false },
-  })
+  const edielMail = assertEdielSmtpReadiness()
+  const from = edielMail.from
+  const replyTo = edielMail.replyTo
 
   const extension = inferAttachmentExtension(message)
   const bodyText = inferBodyText(message)
@@ -1404,6 +1413,9 @@ export async function sendEdielMessageViaSmtp(
     message: 'SMTP-skick förberett. Kontrollera denna payload om Edielportalen inte registrerar meddelandet.',
     payload: {
       mimeMode,
+      smtpProvider: edielMail.provider,
+      senderLane: 'ediel_strato',
+      appLevelDkimEnabled: edielMail.appLevelDkimEnabled,
       contentType,
       contentTransferEncoding,
       envelopeFrom: from,
@@ -1438,6 +1450,8 @@ export async function sendEdielMessageViaSmtp(
       mimeMode,
       routeProfileId: routeProfile?.id ?? null,
       routeEncryptionMode,
+      smtpProvider: edielMail.provider,
+      senderLane: 'ediel_strato',
       canonicalRawEdifactBeforePackaging: true,
     },
   }).catch((error) => {
@@ -1454,15 +1468,11 @@ export async function sendEdielMessageViaSmtp(
   let cmsExpectedReceiverPresent: boolean | null = null
 
   if (mimeMode === 'nodemailer-attachment') {
-    result = await transporter.sendMail({
+    result = await sendEdielEmail({
       from,
       to: message.receiver_email,
-      replyTo: replyTo ?? undefined,
       subject: smtpSubject,
       text: '',
-      headers: {
-        'X-Gridex-Ediel-Message-Id': message.id,
-      },
       attachments: [
         {
           filename: fileName,
@@ -1489,6 +1499,7 @@ export async function sendEdielMessageViaSmtp(
       businessCode: String(message.message_code ?? routeProfile?.business_code ?? ''),
       messageType: String(message.message_family ?? routeProfile?.message_family ?? ''),
       environment: message.environment,
+      certificateEnvironment: routeCertificateEnvironment(routeProfile as Record<string, unknown> | null, message.environment),
       routeProfileId: routeProfile?.id ?? null,
       smtpTo: message.receiver_email,
     })
@@ -1604,11 +1615,9 @@ export async function sendEdielMessageViaSmtp(
       },
     })
 
-    result = await transporter.sendMail({
-      envelope: {
-        from,
-        to: [message.receiver_email],
-      },
+    result = await sendEdielEmail({
+      to: message.receiver_email,
+      envelopeFrom: from,
       raw: rawMime,
     })
   } else if (mimeMode === 'ediel-multipart-validation-base64') {
@@ -1653,11 +1662,9 @@ export async function sendEdielMessageViaSmtp(
       },
     })
 
-    result = await transporter.sendMail({
-      envelope: {
-        from,
-        to: [message.receiver_email],
-      },
+    result = await sendEdielEmail({
+      to: message.receiver_email,
+      envelopeFrom: from,
       raw: rawMime,
     })
   } else if (mimeMode === 'ediel-singlepart-base64') {
@@ -1696,11 +1703,9 @@ export async function sendEdielMessageViaSmtp(
       },
     })
 
-    result = await transporter.sendMail({
-      envelope: {
-        from,
-        to: [message.receiver_email],
-      },
+    result = await sendEdielEmail({
+      to: message.receiver_email,
+      envelopeFrom: from,
       raw: rawMime,
     })
   } else {
@@ -1718,11 +1723,9 @@ export async function sendEdielMessageViaSmtp(
     rawMimePreview = safePreview(rawMime.toString('latin1'), 900)
     decodedPayloadPreview = safePreview(normalizedPayload, 900)
 
-    result = await transporter.sendMail({
-      envelope: {
-        from,
-        to: [message.receiver_email],
-      },
+    result = await sendEdielEmail({
+      to: message.receiver_email,
+      envelopeFrom: from,
       raw: rawMime,
     })
   }
