@@ -216,74 +216,20 @@ export async function unpackInboundSmimeIfNeeded(input: {
     environment: input.environment,
     companyId: input.companyId,
   })
-  if (storeDecrypt?.securityStatus === 'decrypted') return storeDecrypt
+  if (storeDecrypt) return storeDecrypt
 
-  const certPath = process.env.EDIEL_SMIME_DECRYPT_CERT_PATH ?? process.env.EDIEL_SMIME_RECIPIENT_CERT_PATH
-  const keyPath = process.env.EDIEL_SMIME_DECRYPT_KEY_PATH ?? process.env.EDIEL_SMIME_PRIVATE_KEY_PATH
-  const keyPassword = process.env.EDIEL_SMIME_PRIVATE_KEY_PASSWORD ?? null
-
-  if (!certPath || !keyPath) {
-    return storeDecrypt ?? {
-      detected: true,
-      decryptedText: null,
-      encryptedPayloadRef,
-      securityStatus: 'decrypt_failed',
-      validationError: 'S/MIME upptäcktes men varken DB/env-PFX eller decrypt-certifikat/privat nyckel finns konfigurerat.',
-    }
-  }
-
-  const tempDir = await mkdtemp(join(tmpdir(), 'gridex-ediel-inbound-smime-'))
-  const inputPath = join(tempDir, 'message.eml')
-  const outputPath = join(tempDir, 'decrypted.mime')
-
-  try {
-    await writeFile(inputPath, rawEmail, 'utf8')
-    const args = [
-      'smime',
-      '-decrypt',
-      '-in',
-      inputPath,
-      '-recip',
-      certPath,
-      '-inkey',
-      keyPath,
-      '-out',
-      outputPath,
-    ]
-    if (keyPassword) {
-      args.push('-passin', `env:EDIEL_SMIME_PRIVATE_KEY_PASSWORD`)
-    }
-
-    await execFileAsync('openssl', args)
-    const decrypted = await readFile(outputPath, 'utf8')
-    return {
-      detected: true,
-      decryptedText: decrypted,
-      encryptedPayloadRef,
-      securityStatus: 'decrypted',
-      validationError: null,
-      evidence: {
-        decryptMethod: 'openssl_fallback',
-        dbAttempt: storeDecrypt?.evidence ?? null,
-      },
-    }
-  } catch (error) {
-    return {
-      detected: true,
-      decryptedText: null,
-      encryptedPayloadRef,
-      securityStatus: 'decrypt_failed',
-      validationError: [
-        storeDecrypt?.validationError,
-        formatErrorMessage(error, 'S/MIME-dekryptering misslyckades.'),
-      ].filter(Boolean).join(' | '),
-      evidence: {
-        decryptMethod: 'openssl_fallback_failed',
-        dbAttempt: storeDecrypt?.evidence ?? null,
-      },
-    }
-  } finally {
-    await rm(tempDir, { recursive: true, force: true })
+  return {
+    detected: true,
+    decryptedText: null,
+    encryptedPayloadRef,
+    securityStatus: 'decrypt_failed',
+    validationError:
+      'S/MIME upptäcktes men inget DB/env-PFX kunde användas för inbound-dekryptering. Inbound på Vercel får inte falla tillbaka till openssl-paths; lägg in EDIEL_PRODUCTION_SMIME_P12_BASE64 + EDIEL_PRODUCTION_SMIME_P12_PASSWORD och koppla certifikatposten till env-referenser.',
+    evidence: {
+      decryptMethod: 'node_forge_pkcs7_required',
+      dbAttempt: null,
+      dbValidationError: null,
+    },
   }
 }
 

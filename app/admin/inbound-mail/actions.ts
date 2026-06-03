@@ -54,6 +54,8 @@ export async function runInboundMailEngineAction(formData: FormData) {
     markSeen: false,
     includeSeenRecent: true,
     recentDays: 14,
+    messageLimitPerMailbox: 50,
+    processLimit: 100,
     createDiagnosticMessagesForUnresolved: true,
   });
   revalidatePath("/admin/inbound-mail");

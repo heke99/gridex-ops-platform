@@ -1909,11 +1909,11 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
   const mailbox = formString(formData.get("mailbox"));
   const mailboxLabel = mailbox ?? "aktiv testmailbox";
   const limitRaw = formString(formData.get("limit"));
-  const limitNumber = limitRaw ? Number(limitRaw) : 10;
+  const limitNumber = limitRaw ? Number(limitRaw) : 50;
   const limit =
     Number.isFinite(limitNumber) && limitNumber > 0
       ? Math.min(Math.floor(limitNumber), 50)
-      : 10;
+      : 50;
   const startedAt = new Date().toISOString();
 
   const definition =

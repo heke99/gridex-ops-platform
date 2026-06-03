@@ -48,16 +48,21 @@ export function messageCodePrefixesForTgtAutoMatch(message: EdielMessageRow): st
     // ESCO permission flows. The technical UNB application reference is still
     // PRODAT, so TGT matching must use the actual business message code from
     // UNH/BGM instead of assuming only supplier/grid-owner switch tests.
-    if (code === 'Z13') return ['8.1']
-    if (code === 'Z14') return ['8.1', '8.2']
-    if (code === 'Z15') return ['9.1', '9.2']
-    if (code === 'Z18') return ['9.1']
+    const text = textForTgtAutoMatch(message)
+    const isAgtDgi = text.includes('23-DGI-PRODAT')
+    if (code === 'Z13') return isAgtDgi ? ['E3', 'E4', '8.1'] : ['8.1']
+    if (code === 'Z14') return isAgtDgi ? ['E5', 'E6', '8.1', '8.2'] : ['8.1', '8.2']
+    if (code === 'Z15') return isAgtDgi ? ['E7', '9.1', '9.2'] : ['9.1', '9.2']
+    if (code === 'Z18') return isAgtDgi ? ['E8', '9.1'] : ['9.1']
   }
 
   if (family === 'UTILTS') {
     if (code === 'S02') return ['U1.1', 'U1.2']
     if (code === 'S03') return ['U1.3', 'U1.4']
-    if (code === 'E66') return ['U2.1', 'U2.2', 'U3.1', 'U3.2']
+    if (code === 'E66') {
+      const text = textForTgtAutoMatch(message)
+      return text.includes('23-DGI-E66') ? ['UE1', 'UE2', 'U3.1', 'U3.2', 'U2.1', 'U2.2'] : ['U2.1', 'U2.2', 'U3.1', 'U3.2']
+    }
     if (code === 'E31') return ['U2.3', 'U2.4']
   }
 
@@ -959,6 +964,19 @@ function utiltsE66DgiApplicationReference(message: EdielMessageRow, rawText: str
   return null
 }
 
+
+function looksLikeAgtDgiApplicationReference(message: EdielMessageRow, rawText: string): boolean {
+  const text = utiltsApplicationReference(message, rawText)
+  return text.includes('23-DGI-PRODAT') || text.includes('23-DGI-E66')
+}
+
+function prodatVariantMarker(rawText: string, variants: string[]): boolean {
+  const normalized = rawText.toUpperCase()
+  return variants.some((variant) =>
+    new RegExp(`(^|[^A-Z0-9])${variant}([^A-Z0-9]|$)`, 'i').test(normalized),
+  )
+}
+
 function shouldPreferPositiveUtiltsE66QuarterTgtCase(message: EdielMessageRow, rawText: string): boolean {
   if (!looksLikePositiveUtiltsE66QuarterEnergyCase(message, rawText)) return false
 
@@ -1041,11 +1059,16 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
     }
 
     if (code === 'Z14') {
+      if (looksLikeAgtDgiApplicationReference(message, rawText)) {
+        if (prodatVariantMarker(rawText, ['Z14N'])) return 'E6'
+        return 'E5'
+      }
       if (/\b8\.2\.1\b/i.test(rawText)) return '8.2.1'
       return '8.1.1'
     }
 
     if (code === 'Z15') {
+      if (looksLikeAgtDgiApplicationReference(message, rawText)) return 'E7'
       if (/\b9\.2\.1\b/i.test(rawText) || rawText.includes('Z75') || rawText.includes('Z79')) return '9.2.1'
       return '9.1.1'
     }
@@ -1074,6 +1097,10 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
       if (/\bU3\.1\.1\b/i.test(rawText) || /\bU3\.1\.1\b/i.test(text)) return 'U3.1.1'
 
       const dgiE66Profile = utiltsE66DgiApplicationReference(message, rawText)
+      if (looksLikeAgtDgiApplicationReference(message, rawText)) {
+        if (dgiE66Profile === 'E66-T') return 'UE1'
+        if (dgiE66Profile === 'E66-S') return 'UE2'
+      }
       if (dgiE66Profile === 'E66-T' && textLooksLikeUtiltsFunctionalError(rawText)) return 'U3.2.2'
       if (dgiE66Profile === 'E66-T' && textLooksLikeUtiltsE66QuarterGuideError(rawText)) return 'U3.2.1'
       if (dgiE66Profile === 'E66-T') return 'U3.1.2'

@@ -1177,10 +1177,12 @@ export async function pollEdielMailbox(input: {
             : 14;
         const since = new Date(Date.now() - recentDays * 24 * 60 * 60 * 1000);
         result.searchedSeenRecentSince = since.toISOString();
-        for await (const message of client.fetch(
-          { seen: true, since },
-          fetchOptions,
-        )) {
+        // Fetch all recent messages instead of only seen:true. Several IMAP
+        // providers differ in how they expose Seen/Unseen after webmail or
+        // previous client access. UID de-dupe above prevents duplicates from
+        // the unseen pass, while this keeps manual AGT sync from missing a
+        // message just because it is already read or has inconsistent flags.
+        for await (const message of client.fetch({ since }, fetchOptions)) {
           const shouldContinue = await handleFetchedMessage(
             message,
             "seenRecent",
@@ -1402,14 +1404,14 @@ async function ensureDiagnosticEdielMessagesForInboundEmails(
 
   if (parseError) throw parseError;
 
-  const inserts = ((parseRows ?? []) as Array<Record<string, unknown>>).map(
+  const parseInserts = ((parseRows ?? []) as Array<Record<string, unknown>>).map(
     (row) => ({
       company_id: row.company_id ?? null,
       direction: "inbound",
       message_standard: "edifact",
       message_family: row.message_family ?? "OTHER",
       message_code: row.message_code ?? null,
-      environment: "test",
+      environment: row.environment ?? "test",
       status: "received",
       transport_type: "email",
       sender_ediel_id: row.sender_ediel_id ?? null,
@@ -1448,20 +1450,152 @@ async function ensureDiagnosticEdielMessagesForInboundEmails(
     }),
   );
 
+  const parseInboundIds = new Set(
+    ((parseRows ?? []) as Array<Record<string, unknown>>)
+      .map((row) => row.inbound_email_message_id)
+      .filter((value): value is string => typeof value === "string" && value.length > 0),
+  );
+  const missingPayloadIds = missingIds.filter((id) => !parseInboundIds.has(id));
+  const fallbackInserts: Array<Record<string, unknown>> = [];
+
+  if (missingPayloadIds.length > 0) {
+    const { data: inboundRows, error: inboundError } = await supabaseService
+      .from("inbound_email_messages")
+      .select("id,company_id,environment,internet_message_id,from_address,to_address,subject,received_at,processing_status,match_status,error_message,raw_edifact_payload,body_text,message_family,message_code,created_at")
+      .in("id", missingPayloadIds);
+    if (inboundError) throw inboundError;
+
+    const { data: attachmentRows, error: attachmentError } = await supabaseService
+      .from("inbound_email_attachments")
+      .select("inbound_email_message_id,filename,mime_type,is_edifact_candidate,metadata")
+      .in("inbound_email_message_id", missingPayloadIds);
+    if (attachmentError) throw attachmentError;
+
+    const attachmentsByEmail = new Map<string, Array<Record<string, unknown>>>();
+    for (const attachment of (attachmentRows ?? []) as Array<Record<string, unknown>>) {
+      const inboundId = typeof attachment.inbound_email_message_id === "string" ? attachment.inbound_email_message_id : null;
+      if (!inboundId) continue;
+      const list = attachmentsByEmail.get(inboundId) ?? [];
+      list.push(attachment);
+      attachmentsByEmail.set(inboundId, list);
+    }
+
+    for (const row of (inboundRows ?? []) as Array<Record<string, unknown>>) {
+      const inboundId = typeof row.id === "string" ? row.id : null;
+      if (!inboundId) continue;
+      const attachments = attachmentsByEmail.get(inboundId) ?? [];
+      const smimeAttachment = attachments.find((attachment) => {
+        const mimeType = String(attachment.mime_type ?? "").toLowerCase();
+        const filename = String(attachment.filename ?? "").toLowerCase();
+        return mimeType.includes("pkcs7") || filename.includes("smime") || filename.endsWith(".p7m");
+      });
+      const smimeMetadata =
+        smimeAttachment && typeof smimeAttachment.metadata === "object" && smimeAttachment.metadata
+          ? (smimeAttachment.metadata as Record<string, unknown>)
+          : null;
+      const smimeError = typeof smimeMetadata?.smimeValidationError === "string" ? smimeMetadata.smimeValidationError : null;
+      const securityStatus = typeof smimeMetadata?.securityStatus === "string" ? smimeMetadata.securityStatus : null;
+      const reason = smimeError
+        ? `Inbound S/MIME kunde inte dekrypteras: ${smimeError}`
+        : row.error_message ?? "Inbound mail importerades men ingen EDIFACT-payload kunde läsas.";
+
+      fallbackInserts.push({
+        company_id: row.company_id ?? null,
+        direction: "inbound",
+        message_standard: "email",
+        message_family: row.message_family ?? "OTHER",
+        message_code: row.message_code ?? null,
+        environment: row.environment ?? "test",
+        status: "failed",
+        transport_type: "email",
+        raw_payload: row.raw_edifact_payload ?? row.body_text ?? null,
+        parsed_payload: {},
+        validation_report: {
+          status: securityStatus === "decrypt_failed" ? "inbound_smime_decrypt_failed" : "inbound_missing_edifact_payload",
+          reason,
+          inboundEmailMessageId: inboundId,
+          internetMessageId: row.internet_message_id ?? null,
+          fromAddress: row.from_address ?? null,
+          toAddress: row.to_address ?? null,
+          subject: row.subject ?? null,
+          smimeMetadata,
+          attachments: attachments.map((attachment) => ({
+            filename: attachment.filename ?? null,
+            mimeType: attachment.mime_type ?? null,
+            isEdifactCandidate: attachment.is_edifact_candidate ?? false,
+            metadata: attachment.metadata ?? {},
+          })),
+        },
+        tenant_resolution_status: row.company_id ? "tenant_resolved" : "tenant_unresolved",
+        business_match_status: "business_blocked",
+        processing_status: securityStatus === "decrypt_failed" ? "smime_decrypt_failed" : "missing_payload",
+        inbound_email_message_id: inboundId,
+        message_received_at: row.received_at ?? row.created_at ?? nowIso(),
+        parsed_at: nowIso(),
+        failure_reason: reason,
+      });
+    }
+  }
+
+  const inserts = [...parseInserts, ...fallbackInserts];
   if (inserts.length === 0) return existingIds;
 
   const { data: inserted, error: insertError } = await supabaseService
     .from("ediel_messages")
     .insert(inserts)
-    .select("id");
+    .select("id,inbound_email_message_id,company_id,environment,message_family,message_code,failure_reason,validation_report");
 
   if (insertError) throw insertError;
 
+  const insertedRows = (inserted ?? []) as Array<Record<string, unknown>>;
+  const fallbackInboundIdSet = new Set(
+    fallbackInserts
+      .map((row) => row.inbound_email_message_id)
+      .filter((value): value is string => typeof value === "string" && value.length > 0),
+  );
+  const unresolvedRows = insertedRows
+    .filter((row) =>
+      typeof row.inbound_email_message_id === "string" &&
+      fallbackInboundIdSet.has(row.inbound_email_message_id),
+    )
+    .map((row) => ({
+      company_id: row.company_id ?? null,
+      source_message_id: row.id ?? null,
+      environment: row.environment ?? null,
+      raw_message_type: row.message_family ?? "EMAIL",
+      message_family: row.message_family ?? "OTHER",
+      message_code: row.message_code ?? null,
+      reason:
+        typeof row.failure_reason === "string" && row.failure_reason.trim()
+          ? row.failure_reason
+          : "Inbound mail kunde inte processas automatiskt.",
+      issue_type: "inbound_mail_processing_blocked",
+      severity: "warning",
+      extracted_identifiers: {
+        inboundEmailMessageId: row.inbound_email_message_id ?? null,
+        validationReport: row.validation_report ?? {},
+      },
+      suggested_matches: [],
+      status: "open",
+    }));
+
+  if (unresolvedRows.length > 0) {
+    const { error: unresolvedError } = await supabaseService
+      .from("ediel_unresolved_items")
+      .insert(unresolvedRows);
+    if (unresolvedError) {
+      console.warn(
+        "[inbound-mail] Kunde inte skapa unresolved items för fallback-diagnostik",
+        unresolvedError,
+      );
+    }
+  }
+
   return [
     ...existingIds,
-    ...((inserted ?? []) as Array<{ id?: string | null }>)
+    ...insertedRows
       .map((row) => row.id)
-      .filter((id): id is string => Boolean(id)),
+      .filter((id): id is string => typeof id === "string" && id.length > 0),
   ];
 }
 
@@ -1475,7 +1609,9 @@ async function logInboundPollRun(
     started_at: result.startedAt,
     finished_at: result.finishedAt,
     status:
-      result.failedJobs > 0 || result.debug.errorsByMailbox.length > 0
+      result.failedJobs > 0 ||
+      result.debug.errorsByMailbox.length > 0 ||
+      result.debug.autoProcessErrors.length > 0
         ? "warning"
         : "success",
     configured_mailboxes: result.configuredMailboxes,
@@ -1493,6 +1629,8 @@ async function logInboundPollRun(
       edielMessageIds: result.edielMessageIds,
       overdueTasks: result.overdueTasks,
       configurationError: result.debug.configurationError,
+      autoProcessedEdielMessages: result.debug.autoProcessedEdielMessages,
+      autoProcessErrors: result.debug.autoProcessErrors,
       pollOptions: {
         includeSeenRecent: result.results.some((item) =>
           Boolean(item.searchedSeenRecentSince),

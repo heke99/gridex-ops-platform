@@ -779,7 +779,7 @@ export default async function SystemTestCasePage({
         <ol className="mt-3 list-decimal space-y-1 pl-5">
           <li>
             Klicka <strong>Starta ny testkörning</strong> i Gridex. Kör bara ett
-            U3-test åt gången.
+            systemtest åt gången.
           </li>
           <li>
             Starta exakt samma testfall i Edielportalen:{" "}
@@ -813,9 +813,9 @@ export default async function SystemTestCasePage({
         </h2>
         <p className="mt-1 text-sm leading-6 text-blue-950">
           Använd detta när Edielportalen har skickat inbound-filen. Knappen
-          pollar IMAP direkt, importerar olästa Ediel-meddelanden och låser
+          pollar IMAP direkt, importerar olästa och senaste redan lästa Ediel-meddelanden och låser
           synken till <strong>{testCase.testCaseCode}</strong> så
-          U3.1.1/U3.1.2/U3.2.1/U3.2.2 inte blandas ihop.
+          E/UE- eller U-testfall inte blandas ihop.
         </p>
         <form
           action={pollAndSyncTgtSystemTestMailboxAction}
@@ -846,7 +846,7 @@ export default async function SystemTestCasePage({
             Max antal
             <input
               name="limit"
-              defaultValue="10"
+              defaultValue="50"
               inputMode="numeric"
               className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
             />

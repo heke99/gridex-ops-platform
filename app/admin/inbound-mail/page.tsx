@@ -42,6 +42,8 @@ type PollRunRow = {
   failed_jobs: number | null;
   started_at: string | null;
   finished_at: string | null;
+  errors_by_mailbox?: unknown;
+  metadata?: Record<string, unknown> | null;
 };
 
 type InboundEmailRow = {
@@ -470,6 +472,7 @@ export default async function InboundMailPage() {
                   <th className="px-4 py-3">Mailboxar</th>
                   <th className="px-4 py-3">Mail</th>
                   <th className="px-4 py-3">Jobb</th>
+                  <th className="px-4 py-3">Detalj</th>
                   <th className="px-4 py-3">Start</th>
                 </tr>
               </thead>
@@ -477,7 +480,7 @@ export default async function InboundMailPage() {
                 {pollRuns.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="px-4 py-6 text-center text-slate-600"
                     >
                       Inga poll-körningar loggade ännu.
@@ -501,6 +504,22 @@ export default async function InboundMailPage() {
                     <td className="px-4 py-3">
                       {run.processed_jobs ?? 0} processed ·{" "}
                       {run.failed_jobs ?? 0} failed
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600">
+                      {Array.isArray((run.metadata as Record<string, unknown> | null)?.results)
+                        ? `${((run.metadata as Record<string, unknown>).results as unknown[]).length} mailbox-resultat`
+                        : "—"}
+                      {(run.metadata as Record<string, unknown> | null)?.configurationError ? (
+                        <div className="mt-1 font-medium text-red-700">
+                          {String((run.metadata as Record<string, unknown>).configurationError)}
+                        </div>
+                      ) : null}
+                      {Array.isArray((run.metadata as Record<string, unknown> | null)?.autoProcessErrors) &&
+                      (((run.metadata as Record<string, unknown>).autoProcessErrors as unknown[]).length > 0) ? (
+                        <div className="mt-1 font-medium text-amber-700">
+                          Auto-processfel: {((run.metadata as Record<string, unknown>).autoProcessErrors as unknown[]).length}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">{run.started_at ?? "—"}</td>
                   </tr>
