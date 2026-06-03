@@ -52,6 +52,14 @@ function envNumber(name: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function firstNonBlank(...values: Array<string | undefined | null>): string | null {
+  for (const value of values) {
+    const trimmed = String(value ?? '').trim()
+    if (trimmed) return trimmed
+  }
+  return null
+}
+
 function flattenTxt(records: string[][]): string[] {
   return records.map((record) => record.join(''))
 }
@@ -85,31 +93,29 @@ async function checkTcp(host: string, port: number, timeoutMs = 3000): Promise<{
 }
 
 export function edielSmtpConfig() {
+  const from = firstNonBlank(process.env.EDIEL_SMTP_FROM, 'ediel@gridex.se') ?? 'ediel@gridex.se'
   return {
-    provider: process.env.EDIEL_EMAIL_PROVIDER ?? 'strato',
-    host: process.env.EDIEL_SMTP_HOST ?? 'smtp.strato.de',
+    provider: firstNonBlank(process.env.EDIEL_EMAIL_PROVIDER, 'strato') ?? 'strato',
+    host: firstNonBlank(process.env.EDIEL_SMTP_HOST, 'smtp.strato.de') ?? 'smtp.strato.de',
     port: envNumber('EDIEL_SMTP_PORT', 465),
     secure: envBool('EDIEL_SMTP_SECURE', true),
-    user: process.env.EDIEL_SMTP_USER ?? 'ediel@gridex.se',
-    password: process.env.EDIEL_SMTP_PASSWORD ?? '',
-    from: process.env.EDIEL_SMTP_FROM ?? 'ediel@gridex.se',
-    replyTo: process.env.EDIEL_SMTP_REPLY_TO ?? 'ediel@gridex.se',
+    user: firstNonBlank(process.env.EDIEL_SMTP_USER, from) ?? from,
+    password: firstNonBlank(process.env.EDIEL_SMTP_PASS, process.env.EDIEL_SMTP_PASSWORD) ?? '',
+    from,
+    replyTo: firstNonBlank(process.env.EDIEL_SMTP_REPLY_TO, from) ?? from,
     appLevelDkimEnabled: envBool('EDIEL_APP_DKIM_ENABLED', false),
   }
 }
 
 export function assertEdielSmtpReadiness() {
   const config = edielSmtpConfig()
-  const missing = [
-    'EDIEL_EMAIL_PROVIDER',
-    'EDIEL_SMTP_HOST',
-    'EDIEL_SMTP_PORT',
-    'EDIEL_SMTP_SECURE',
-    'EDIEL_SMTP_USER',
-    'EDIEL_SMTP_PASSWORD',
-    'EDIEL_SMTP_FROM',
-    'EDIEL_SMTP_REPLY_TO',
-  ].filter((key) => !String(process.env[key] ?? '').trim())
+  const missing: string[] = []
+  if (!config.provider) missing.push('EDIEL_EMAIL_PROVIDER')
+  if (!config.host) missing.push('EDIEL_SMTP_HOST')
+  if (!config.port) missing.push('EDIEL_SMTP_PORT')
+  if (!config.user) missing.push('EDIEL_SMTP_USER')
+  if (!config.password) missing.push('EDIEL_SMTP_PASS eller EDIEL_SMTP_PASSWORD')
+  if (!config.from) missing.push('EDIEL_SMTP_FROM')
 
   if (String(process.env.EMAIL_PROVIDER ?? '').toLowerCase() === 'strato') {
     throw new Error('Ediel mail readiness stoppad: EMAIL_PROVIDER får inte sättas till strato globalt. Resend ska vara default för applikationsmail; använd EDIEL_EMAIL_PROVIDER=strato för Ediel.')
