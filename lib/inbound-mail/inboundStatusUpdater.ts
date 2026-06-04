@@ -3,6 +3,7 @@ import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
 import { classifyProductionInboundDecision } from '@/lib/ediel/inbound/productionInboundDecisionEngine'
+import { tenantResolutionForStorage, type InboundTenantResolution } from '@/lib/ediel/tenant/resolveInboundTenant'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -121,6 +122,18 @@ function tenantResolutionStatus(status: 'unassigned' | 'ambiguous'): 'tenant_unr
   return status === 'ambiguous' ? 'tenant_ambiguous' : 'tenant_unresolved'
 }
 
+function tenantResolutionPayload(resolution?: InboundTenantResolution | null): Record<string, unknown> | null {
+  return resolution ? tenantResolutionForStorage(resolution) : null
+}
+
+function mergeTenantResolutionIntoPayload(
+  payload: Record<string, unknown>,
+  resolution?: InboundTenantResolution | null,
+): Record<string, unknown> {
+  const stored = tenantResolutionPayload(resolution)
+  return stored ? { ...payload, tenantResolution: stored } : payload
+}
+
 function matchedOutboundRow(match: InboundEntityMatch): Record<string, unknown> {
   return match.candidates?.[0] ?? {}
 }
@@ -201,6 +214,7 @@ export async function createParseResult(input: {
   inboundEmailMessageId: string
   companyId?: string | null
   parsed: ParsedEdifactEnvelope
+  tenantResolution?: InboundTenantResolution | null
 }): Promise<string> {
   const { data, error } = await supabaseService
     .from('inbound_ediel_parse_results')
@@ -217,8 +231,8 @@ export async function createParseResult(input: {
       receiver_sub_address: input.parsed.receiverSubAddress,
       application_reference: input.parsed.applicationReference,
       parse_status: 'parsed',
-      parsed_payload: input.parsed,
-      validation_report: { status: 'parsed_by_batch_7a1_engine' },
+      parsed_payload: mergeTenantResolutionIntoPayload(input.parsed as unknown as Record<string, unknown>, input.tenantResolution),
+      validation_report: mergeTenantResolutionIntoPayload({ status: 'parsed_by_batch_7a1_engine' }, input.tenantResolution),
       raw_payload: input.parsed.rawPayload,
     })
     .select('id')
@@ -235,6 +249,7 @@ export async function createInboundEdielMessage(input: {
   parsed: ParsedEdifactEnvelope
   outboundMatch?: InboundEntityMatch | null
   meteringPointMatch?: InboundEntityMatch | null
+  tenantResolution?: InboundTenantResolution | null
 }): Promise<string | null> {
   const matchedOutboundId = input.outboundMatch?.status === 'matched' ? input.outboundMatch.entityId : null
   const matchedMeteringPointId = input.meteringPointMatch?.status === 'matched' ? input.meteringPointMatch.entityId : null
@@ -268,8 +283,8 @@ export async function createInboundEdielMessage(input: {
     external_reference: input.parsed.bgmReference,
     original_message_id: input.parsed.bgmReference,
     raw_payload: input.parsed.rawPayload,
-    parsed_payload: input.parsed,
-    validation_report: { status: 'parsed_by_batch_7a1_inbound_mail_engine' },
+    parsed_payload: mergeTenantResolutionIntoPayload(input.parsed as unknown as Record<string, unknown>, input.tenantResolution),
+    validation_report: mergeTenantResolutionIntoPayload({ status: 'parsed_by_batch_7a1_inbound_mail_engine' }, input.tenantResolution),
     tenant_resolution_status: 'tenant_resolved',
     business_match_status:
       input.outboundMatch?.status === 'matched'
@@ -349,6 +364,7 @@ export async function createUnresolvedInboundEdielMessage(input: {
   reasons: string[]
   candidates: string[]
   environment?: string | null
+  tenantResolution?: InboundTenantResolution | null
 }): Promise<string | null> {
   const payload = payloadForInbound({
     parsed: input.parsed,
@@ -362,7 +378,7 @@ export async function createUnresolvedInboundEdielMessage(input: {
     message_standard: 'edifact',
     message_family: input.parsed.messageFamily,
     message_code: input.parsed.messageCode,
-    status: 'failed',
+    status: 'received',
     sender_ediel_id: input.parsed.senderEdielId,
     sender_sub_address: input.parsed.senderSubAddress,
     receiver_ediel_id: input.parsed.receiverEdielId,
@@ -376,19 +392,22 @@ export async function createUnresolvedInboundEdielMessage(input: {
     external_reference: input.parsed.bgmReference,
     original_message_id: input.parsed.bgmReference,
     raw_payload: input.parsed.rawPayload,
-    parsed_payload: input.parsed,
-    validation_report: {
-      status: 'blocked_by_inbound_mail_tenant_resolution',
+    parsed_payload: mergeTenantResolutionIntoPayload(input.parsed as unknown as Record<string, unknown>, input.tenantResolution),
+    validation_report: mergeTenantResolutionIntoPayload({
+      status: 'routing_unresolved_manual_review',
       reasons: input.reasons,
       candidates: input.candidates,
-    },
+      syntaxDecision: 'not_checked',
+      routingDecision: resolutionStatus,
+      note: 'Tenant-routing stoppade affärsuppdatering. Detta är inte ett EDIFACT-syntaxfel och ska inte automatiskt skapa negativ CONTRL.',
+    }, input.tenantResolution),
     tenant_resolution_status: resolutionStatus,
     business_match_status: 'blocked',
     processing_status: resolutionStatus,
     inbound_email_message_id: input.inboundEmailMessageId,
     message_received_at: nowIso(),
     parsed_at: nowIso(),
-    failure_reason: input.reasons.join(' ') || 'Tenant kunde inte lösas säkert.',
+    failure_reason: null,
   }
 
   const { data, error } = await supabaseService
@@ -824,6 +843,7 @@ export async function applySafeInboundStatusUpdate(input: {
   inboundEmailMessageId?: string | null
   parseResultId?: string | null
   actorUserId?: string | null
+  tenantResolution?: InboundTenantResolution | null
 }): Promise<void> {
   if (input.outboundMatch.status !== 'matched' || !input.outboundMatch.entityId) return
 
@@ -834,6 +854,7 @@ export async function applySafeInboundStatusUpdate(input: {
     parsed: input.parsed,
     outboundMatch: input.outboundMatch,
     meteringPointMatch: input.meteringPointMatch,
+    tenantResolution: input.tenantResolution ?? null,
   })
 
   const responsePayload = payloadForInbound({

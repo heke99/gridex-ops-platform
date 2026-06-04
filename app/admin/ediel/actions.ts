@@ -129,6 +129,7 @@ import {
   runTgtAutopilotForRun,
 } from "@/lib/ediel/tgtAutopilot";
 import { processEdielOperationalMessage } from "@/lib/ediel/operationalBridge";
+import { processInboundEdielMessage } from "@/lib/ediel/flows/inboundProcessing";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { assertCompanyLiveEdielForOutbound } from "@/lib/tenant/liveAccess";
 import {
@@ -2137,6 +2138,85 @@ function isOperationalAckMessage(message: EdielMessageRow): boolean {
     String(message.message_family) === "APERAK" ||
     isUtiltsErrAckMessage(message)
   );
+}
+
+
+export async function recalculateInboundAckAction(formData: FormData) {
+  const context = await requireAdminActionAccess([
+    "communication.write",
+    "communication.read",
+  ]);
+  const edielMessageId = formString(formData.get("edielMessageId"));
+
+  if (!edielMessageId) throw new Error("edielMessageId saknas");
+
+  const sourceMessage = await requireScopedEdielMessageForAction(
+    edielMessageId,
+    context,
+  );
+
+  if (sourceMessage.direction !== "inbound") {
+    throw new Error("ACK kan bara räknas om från inbound-meddelanden.");
+  }
+
+  const existingAckMessages = await listAckMessagesForSource({
+    sourceMessageId: edielMessageId,
+    companyId: sourceMessage.company_id ?? null,
+  });
+  const supersedableAckMessages = existingAckMessages.filter((message) => {
+    const status = String(message.status ?? "").toLowerCase();
+    return (
+      isOperationalAckMessage(message) &&
+      ["draft", "prepared", "queued"].includes(status)
+    );
+  });
+
+  for (const ackMessage of supersedableAckMessages) {
+    await updateEdielMessageStatus({
+      actorUserId: context.userId,
+      edielMessageId: ackMessage.id,
+      status: "cancelled",
+      failureReason:
+        "Superseded by ACK recalculation. Historical message kept for audit.",
+    });
+
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId: ackMessage.id,
+      eventType: "manual_note",
+      eventStatus: "info",
+      message:
+        "ACK-utkastet markerades som superseded inför omräkning av inbound runtime-beslut.",
+      payload: {
+        sourceMessageId: edielMessageId,
+        recalculationAction: "supersede_old_draft_ack",
+      },
+    });
+  }
+
+  await createEdielMessageEvent({
+    actorUserId: context.userId,
+    edielMessageId,
+    eventType: "manual_note",
+    eventStatus: "info",
+    message:
+      "Inbound ACK/routing-beslut räknades om med aktuell tenant-resolver och canonical runtime.",
+    payload: {
+      recalculationAction: "rerun_inbound_runtime_decision",
+      supersededAckMessageIds: supersedableAckMessages.map((message) => message.id),
+      keptAckMessageIds: existingAckMessages
+        .filter((message) => !supersedableAckMessages.some((superseded) => superseded.id === message.id))
+        .map((message) => message.id),
+    },
+  });
+
+  await processInboundEdielMessage({
+    actorUserId: context.userId,
+    edielMessageId,
+  });
+
+  await revalidateRelatedMessage(edielMessageId);
+  revalidateEdiel(edielMessageId);
 }
 
 export async function processEdielOperationalMessageAction(formData: FormData) {

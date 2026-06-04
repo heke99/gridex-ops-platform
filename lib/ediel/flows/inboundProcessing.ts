@@ -266,12 +266,20 @@ async function applyCanonicalRuntimeDecision(params: {
     params.message,
   );
   const now = new Date().toISOString();
+  const parsedPayloadBeforeRuntime = params.message.parsed_payload ?? {};
+  const validationReportBeforeRuntime = params.message.validation_report ?? {};
+  const persistedTenantResolution =
+    parsedPayloadBeforeRuntime.tenantResolution ??
+    validationReportBeforeRuntime.tenantResolution ??
+    null;
   const mergedParsedPayload = {
-    ...(params.message.parsed_payload ?? {}),
+    ...parsedPayloadBeforeRuntime,
     canonical: decision.parsedPayload,
+    ...(persistedTenantResolution ? { tenantResolution: persistedTenantResolution } : {}),
   };
   const mergedValidationReport = {
-    ...(params.message.validation_report ?? {}),
+    ...validationReportBeforeRuntime,
+    ...(persistedTenantResolution ? { tenantResolution: persistedTenantResolution } : {}),
     canonicalRuntime: decision.validationReport,
     canonicalRuntimeVersion: "2.5B",
     syntaxDecision: decision.syntaxDecision,
@@ -280,6 +288,7 @@ async function applyCanonicalRuntimeDecision(params: {
     responsePlan: decision.responsePlan,
     decisionTrace: decision.decisionTrace,
     sourceRules: decision.sourceRules,
+    runtimeTenantResolutionSource: persistedTenantResolution ? "persisted" : "not_available",
   };
 
   const nextStatus =
@@ -329,6 +338,8 @@ async function applyCanonicalRuntimeDecision(params: {
       issueCount: decision.issues.length,
       sourceRules: decision.sourceRules,
       decisionTrace: decision.decisionTrace,
+      tenantResolution: persistedTenantResolution,
+      runtimeTenantResolutionSource: persistedTenantResolution ? "persisted" : "not_available",
     },
   });
 
@@ -411,7 +422,13 @@ async function createAutomaticPositiveAcks(params: {
   }
 
   const aperakPlan = responsePlanItemFor(params.sourceMessage, "APERAK");
-  const shouldSendAperakFromPlan = aperakPlan?.outcome === "negative";
+  const shouldSendAperakFromPlan = Boolean(
+    aperakPlan?.outcome &&
+      (aperakPlan.outcome === "negative" ||
+        params.sourceMessage.requires_aperak ||
+        params.sourceMessage.message_family === "PRODAT" ||
+        params.sourceMessage.message_family === "UTILTS"),
+  );
   if (policy.shouldSendPositiveAperak || shouldSendAperakFromPlan) {
     try {
       const aperak = await createAckIfMissing({
@@ -689,31 +706,34 @@ export async function processInboundEdielMessage(params: {
     return message;
   }
 
-  const canonicalRuntime = await applyCanonicalRuntimeDecision({
+  const tenantResolution = await resolveInboundTenantForMessage({
     actorUserId,
     message,
   });
-  const tenantResolution = await resolveInboundTenantForMessage({
-    actorUserId,
-    message: canonicalRuntime.message,
-  });
-  const runtimeMessage = tenantResolution.message;
+  const tenantResolvedMessage = tenantResolution.message;
 
   if (tenantResolution.status !== "tenant_resolved") {
     await createEdielMessageEvent({
       actorUserId,
-      edielMessageId: runtimeMessage.id,
+      edielMessageId: tenantResolvedMessage.id,
       eventType: "manual_note",
       eventStatus: "warning",
       message:
-        "Inbound Ediel processing stopped before business matching because tenant resolution failed.",
+        "Inbound Ediel processing stopped before runtime/business matching because tenant routing is unresolved. No negative CONTRL is created for this routing issue.",
       payload: {
         tenantResolutionStatus: tenantResolution.status,
         evidence: tenantResolution.evidence,
+        ackDecision: "no_negative_contrl_for_routing_unresolved",
       },
     });
-    return runtimeMessage;
+    return tenantResolvedMessage;
   }
+
+  const canonicalRuntime = await applyCanonicalRuntimeDecision({
+    actorUserId,
+    message: tenantResolvedMessage,
+  });
+  const runtimeMessage = canonicalRuntime.message;
 
   if (canonicalRuntime.decision.syntaxDecision === "rejected") {
     await createAutomaticPositiveAcks({

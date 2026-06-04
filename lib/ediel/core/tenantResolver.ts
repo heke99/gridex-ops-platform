@@ -7,6 +7,12 @@ import {
 } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
+import {
+  extractMarketActorEdielIdFromRawPayload,
+  resolveInboundTenantFromIdentifiers,
+  tenantResolutionForStorage,
+  type InboundTenantResolution,
+} from '@/lib/ediel/tenant/resolveInboundTenant'
 
 export type EdielTenantResolutionResult =
   | {
@@ -48,24 +54,6 @@ type CanonicalPartySnapshot = {
 
 function trimOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
-}
-
-function upper(value: unknown): string {
-  return String(value ?? '').trim().toUpperCase()
-}
-
-function subaddressMatches(params: {
-  configured: unknown
-  observed: unknown
-  required?: unknown
-}): boolean {
-  const configured = upper(params.configured)
-  const observed = upper(params.observed)
-  const required = params.required === true
-
-  if (required && !observed) return false
-  if (!configured || !observed) return true
-  return configured === observed
 }
 
 function compactEvidence(evidence: TenantEvidence[]): TenantEvidence[] {
@@ -115,160 +103,8 @@ function snapshotFromMessage(message: EdielMessageRow): CanonicalPartySnapshot {
   }
 }
 
-async function evidenceFromTransport(message: EdielMessageRow): Promise<TenantEvidence[]> {
-  if (!message.communication_route_id) return []
-
-  const { data, error } = await supabaseService
-    .from('communication_routes')
-    .select('id,company_id,route_name,route_scope')
-    .eq('id', message.communication_route_id)
-    .maybeSingle()
-
-  if (error) throw error
-  const companyId = trimOrNull((data as { company_id?: unknown } | null)?.company_id)
-  if (!companyId) return []
-
-  return [{
-    companyId,
-    source: 'transport_route',
-    score: 200,
-    details: {
-      communicationRouteId: message.communication_route_id,
-      routeName: (data as { route_name?: unknown } | null)?.route_name ?? null,
-      routeScope: (data as { route_scope?: unknown } | null)?.route_scope ?? null,
-    },
-  }]
-}
-
-async function evidenceFromRouteProfiles(
-  message: EdielMessageRow,
-  snapshot: CanonicalPartySnapshot
-): Promise<TenantEvidence[]> {
-  if (!snapshot.receiver) return []
-
-  const { data, error } = await supabaseService
-    .from('ediel_route_profiles')
-    .select('*')
-    .eq('environment', message.environment)
-    .limit(1000)
-
-  if (error) throw error
-
-  const receiver = upper(snapshot.receiver)
-  const receiverSub = upper(snapshot.receiverSubAddress)
-  const appRef = upper(snapshot.applicationReference)
-  const family = upper(snapshot.messageFamily)
-  const code = upper(snapshot.messageCode)
-
-  return ((data ?? []) as Array<Record<string, unknown>>).flatMap((row) => {
-    const companyId = trimOrNull(row.company_id)
-    if (!companyId) return []
-
-    if (row.is_active === false || row.is_enabled === false) return []
-
-    const ownIds = [
-      row.own_ediel_id,
-      row.receiver_ediel_id,
-    ].map(upper).filter(Boolean)
-    if (!ownIds.includes(receiver)) return []
-
-    let score = 100
-    const profileSub = upper(
-      row.own_subaddress ??
-      row.receiver_message_subaddress ??
-      row.receiver_subaddress ??
-      row.receiver_sub_address
-    )
-    const profileApp = upper(row.application_reference)
-    const profileFamily = upper(row.message_family)
-    const profileCode = upper(row.message_code)
-
-    if (!subaddressMatches({
-      configured: profileSub,
-      observed: receiverSub,
-      required: row.subaddress_required,
-    })) return []
-
-    if (receiverSub && profileSub && receiverSub === profileSub) score += 40
-    if (appRef && profileApp && appRef === profileApp) score += 35
-    if (family && profileFamily && family === profileFamily) score += 15
-    if (code && profileCode && code === profileCode) score += 10
-    if (message.mailbox && trimOrNull(row.mailbox) === message.mailbox) score += 20
-
-    if (profileApp && appRef && profileApp !== appRef) return []
-    if (profileFamily && family && profileFamily !== family) return []
-    if (profileCode && code && profileCode !== code) return []
-
-    return [{
-      companyId,
-      source: 'ediel_route_profiles',
-      score,
-      details: {
-        routeProfileId: row.id,
-        subaddressRequired: row.subaddress_required === true,
-        receiverEdielId: snapshot.receiver,
-        receiverSubAddress: snapshot.receiverSubAddress,
-        applicationReference: snapshot.applicationReference,
-        messageFamily: snapshot.messageFamily,
-        messageCode: snapshot.messageCode,
-      },
-    }]
-  })
-}
-
-async function evidenceFromActorSettings(
-  message: EdielMessageRow,
-  snapshot: CanonicalPartySnapshot
-): Promise<TenantEvidence[]> {
-  if (!snapshot.receiver) return []
-
-  const { data, error } = await supabaseService
-    .from('ediel_actor_settings')
-    .select('*')
-    .eq('environment', message.environment)
-    .limit(1000)
-
-  if (error) throw error
-
-  const receiver = upper(snapshot.receiver)
-  const receiverSub = upper(snapshot.receiverSubAddress)
-
-  return ((data ?? []) as Array<Record<string, unknown>>).flatMap((row) => {
-    const companyId = trimOrNull(row.company_id)
-    if (!companyId || row.is_active === false) return []
-
-    const actorIds = [row.ediel_id, row.actor_ediel_id].map(upper).filter(Boolean)
-    if (!actorIds.includes(receiver)) return []
-
-    const actorSub = upper(
-      row.receiver_message_subaddress ??
-      row.receiver_subaddress ??
-      row.receiver_sub_address ??
-      row.sender_subaddress ??
-      row.sender_sub_address
-    )
-    if (!subaddressMatches({
-      configured: actorSub,
-      observed: receiverSub,
-      required: row.subaddress_required,
-    })) return []
-
-    return [{
-      companyId,
-      source: 'ediel_actor_settings',
-      score: actorSub && receiverSub ? 90 : 70,
-      details: {
-        actorSettingId: row.id,
-        subaddressRequired: row.subaddress_required === true,
-        receiverEdielId: snapshot.receiver,
-        receiverSubAddress: snapshot.receiverSubAddress,
-      },
-    }]
-  })
-}
-
 async function evidenceFromOriginalReferences(
-  snapshot: CanonicalPartySnapshot
+  snapshot: CanonicalPartySnapshot,
 ): Promise<TenantEvidence[]> {
   const references = [
     ['UNB_REF', snapshot.interchangeReference],
@@ -335,11 +171,48 @@ function chooseCompany(evidence: TenantEvidence[]): {
   return { status: 'tenant_ambiguous', companyId: null }
 }
 
+function evidenceFromSharedResolution(resolution: InboundTenantResolution): TenantEvidence[] {
+  return resolution.evidence.map((item) => ({
+    companyId: item.companyId,
+    source: item.source,
+    score: item.score,
+    details: item.details,
+  }))
+}
+
+function tenantResolutionFromReferenceChoice(params: {
+  snapshot: CanonicalPartySnapshot
+  message: EdielMessageRow
+  companyId: string
+  evidence: TenantEvidence[]
+}): InboundTenantResolution {
+  return {
+    status: 'resolved',
+    companyId: params.companyId,
+    transportEdielId: params.snapshot.receiver,
+    marketActorEdielId: extractMarketActorEdielIdFromRawPayload(params.message.raw_payload) ?? params.snapshot.receiver,
+    receiverEdielId: params.snapshot.receiver,
+    receiverSubaddress: params.snapshot.receiverSubAddress,
+    source: 'ediel_business_references',
+    confidence: params.evidence[0]?.score ?? 160,
+    evidence: params.evidence.map((item) => ({
+      companyId: item.companyId,
+      source: item.source === 'ediel_business_references' ? 'ediel_business_references' : 'manual',
+      score: item.score,
+      details: item.details,
+    })),
+    reasons: ['Inbound tenant löstes via sparade Ediel business references.'],
+    candidateCompanyIds: [...new Set(params.evidence.map((item) => item.companyId))],
+    warnings: [],
+  }
+}
+
 async function createUnresolvedTenantItem(params: {
   message: EdielMessageRow
   issueType: 'tenant_not_found' | 'tenant_ambiguous'
   snapshot: CanonicalPartySnapshot
   evidence: TenantEvidence[]
+  tenantResolution?: InboundTenantResolution | null
 }): Promise<string | null> {
   const existing = await supabaseService
     .from('ediel_unresolved_items')
@@ -372,6 +245,7 @@ async function createUnresolvedTenantItem(params: {
         bgmReference: params.snapshot.bgmReference,
         transactionReference: params.snapshot.transactionReference,
         businessReference: params.snapshot.businessReference,
+        tenantResolution: params.tenantResolution ? tenantResolutionForStorage(params.tenantResolution) : null,
       },
       suggested_matches: params.evidence,
       status: 'open',
@@ -388,7 +262,16 @@ async function patchMessageTenant(params: {
   snapshot: CanonicalPartySnapshot
   companyId: string | null
   status: 'tenant_resolved' | 'tenant_not_found' | 'tenant_ambiguous'
+  tenantResolution?: InboundTenantResolution | null
 }): Promise<EdielMessageRow> {
+  const storedTenantResolution = params.tenantResolution ? tenantResolutionForStorage(params.tenantResolution) : null
+  const parsedPayload = storedTenantResolution
+    ? { ...(params.message.parsed_payload ?? {}), tenantResolution: storedTenantResolution }
+    : params.message.parsed_payload
+  const validationReport = storedTenantResolution
+    ? { ...(params.message.validation_report ?? {}), tenantResolution: storedTenantResolution }
+    : params.message.validation_report
+
   const { data, error } = await supabaseService
     .from('ediel_messages')
     .update({
@@ -404,7 +287,12 @@ async function patchMessageTenant(params: {
       bgm_reference: params.snapshot.bgmReference,
       tenant_resolution_status: params.status,
       business_match_status: params.status === 'tenant_resolved' ? 'not_checked' : 'business_blocked',
-      processing_status: params.status === 'tenant_resolved' ? params.message.status : 'tenant_unresolved',
+      processing_status: params.status === 'tenant_resolved' ? params.message.status : 'routing_unresolved',
+      parsed_payload: parsedPayload,
+      validation_report: validationReport,
+      failure_reason: params.status === 'tenant_resolved'
+        ? params.message.failure_reason
+        : 'Routing unresolved: meddelandet är tekniskt läsbart men kunde inte kopplas säkert till tenant.',
       updated_at: new Date().toISOString(),
     })
     .eq('id', params.message.id)
@@ -420,41 +308,30 @@ export async function resolveInboundTenantForMessage(params: {
   message: EdielMessageRow
 }): Promise<EdielTenantResolutionResult> {
   const snapshot = snapshotFromMessage(params.message)
+  const marketActorEdielId = extractMarketActorEdielIdFromRawPayload(params.message.raw_payload) ?? snapshot.receiver
 
-  if (params.message.company_id) {
+  const sharedResolution = await resolveInboundTenantFromIdentifiers({
+    existingCompanyId: params.message.company_id ?? null,
+    mailbox: params.message.mailbox,
+    communicationRouteId: params.message.communication_route_id,
+    environment: params.message.environment,
+    senderEdielId: snapshot.sender,
+    senderSubaddress: snapshot.senderSubAddress,
+    receiverEdielId: snapshot.receiver,
+    receiverSubaddress: snapshot.receiverSubAddress,
+    marketActorEdielId,
+    applicationReference: snapshot.applicationReference,
+    messageFamily: snapshot.messageFamily,
+    messageCode: snapshot.messageCode,
+  })
+
+  if (sharedResolution.status === 'resolved' && sharedResolution.companyId) {
     const message = await patchMessageTenant({
       message: params.message,
       snapshot,
-      companyId: params.message.company_id,
+      companyId: sharedResolution.companyId,
       status: 'tenant_resolved',
-    })
-    return {
-      status: 'tenant_resolved',
-      companyId: params.message.company_id,
-      message,
-      evidence: [{
-        companyId: params.message.company_id,
-        source: 'existing_message_company_id',
-        score: 300,
-        details: { messageId: params.message.id },
-      }],
-    }
-  }
-
-  const evidence = compactEvidence([
-    ...(await evidenceFromTransport(params.message)),
-    ...(await evidenceFromRouteProfiles(params.message, snapshot)),
-    ...(await evidenceFromActorSettings(params.message, snapshot)),
-    ...(await evidenceFromOriginalReferences(snapshot)),
-  ])
-  const choice = chooseCompany(evidence)
-
-  if (choice.status === 'tenant_resolved' && choice.companyId) {
-    const message = await patchMessageTenant({
-      message: params.message,
-      snapshot,
-      companyId: choice.companyId,
-      status: 'tenant_resolved',
+      tenantResolution: sharedResolution,
     })
 
     await createEdielMessageEvent({
@@ -462,9 +339,52 @@ export async function resolveInboundTenantForMessage(params: {
       edielMessageId: params.message.id,
       eventType: 'linked',
       eventStatus: 'success',
-      message: 'Inbound Ediel tenant resolved before business matching.',
+      message: 'Inbound Ediel tenant resolved before runtime/business matching.',
+      payload: {
+        companyId: sharedResolution.companyId,
+        tenantResolution: tenantResolutionForStorage(sharedResolution),
+      },
+    })
+
+    return {
+      status: 'tenant_resolved',
+      companyId: sharedResolution.companyId,
+      message,
+      evidence: evidenceFromSharedResolution(sharedResolution),
+    }
+  }
+
+  const referenceEvidence = await evidenceFromOriginalReferences(snapshot)
+  const evidence = compactEvidence([
+    ...evidenceFromSharedResolution(sharedResolution),
+    ...referenceEvidence,
+  ])
+  const choice = chooseCompany(evidence)
+
+  if (choice.status === 'tenant_resolved' && choice.companyId) {
+    const referenceResolution = tenantResolutionFromReferenceChoice({
+      message: params.message,
+      snapshot,
+      companyId: choice.companyId,
+      evidence,
+    })
+    const message = await patchMessageTenant({
+      message: params.message,
+      snapshot,
+      companyId: choice.companyId,
+      status: 'tenant_resolved',
+      tenantResolution: referenceResolution,
+    })
+
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.message.id,
+      eventType: 'linked',
+      eventStatus: 'success',
+      message: 'Inbound Ediel tenant resolved through saved business references.',
       payload: {
         companyId: choice.companyId,
+        tenantResolution: tenantResolutionForStorage(referenceResolution),
         evidence,
       },
     })
@@ -472,18 +392,22 @@ export async function resolveInboundTenantForMessage(params: {
     return { status: 'tenant_resolved', companyId: choice.companyId, message, evidence }
   }
 
-  const issueType = choice.status === 'tenant_ambiguous' ? 'tenant_ambiguous' : 'tenant_not_found'
+  const issueType = sharedResolution.status === 'ambiguous' || choice.status === 'tenant_ambiguous'
+    ? 'tenant_ambiguous'
+    : 'tenant_not_found'
   const message = await patchMessageTenant({
     message: params.message,
     snapshot,
     companyId: null,
     status: issueType,
+    tenantResolution: sharedResolution,
   })
   const issueId = await createUnresolvedTenantItem({
     message,
     issueType,
     snapshot,
     evidence,
+    tenantResolution: sharedResolution,
   })
 
   await createEdielMessageEvent({
@@ -492,13 +416,14 @@ export async function resolveInboundTenantForMessage(params: {
     eventType: 'manual_note',
     eventStatus: 'warning',
     message: issueType === 'tenant_ambiguous'
-      ? 'Inbound Ediel tenant resolution is ambiguous; business updates are blocked.'
-      : 'Inbound Ediel tenant could not be resolved; business updates are blocked.',
+      ? 'Inbound Ediel tenant resolution is ambiguous; no negative CONTRL is created for this routing issue.'
+      : 'Inbound Ediel tenant could not be resolved; no negative CONTRL is created for this routing issue.',
     payload: {
       issueId,
       issueType,
       evidence,
       snapshot,
+      tenantResolution: tenantResolutionForStorage(sharedResolution),
     },
   })
 

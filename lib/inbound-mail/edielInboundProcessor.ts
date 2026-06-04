@@ -17,7 +17,7 @@ export async function processInboundEmailMessage(input: {
 }): Promise<{ status: string; companyId: string | null; parseResultId: string | null }> {
   const { data, error } = await supabaseService
     .from('inbound_email_messages')
-    .select('*, ediel_mailboxes(company_id,environment)')
+    .select('*, ediel_mailboxes(*)')
     .eq('id', input.inboundEmailMessageId)
     .maybeSingle()
 
@@ -63,10 +63,31 @@ export async function processInboundEmailMessage(input: {
     return { status: 'manual_review', companyId: typeof row.company_id === 'string' ? row.company_id : null, parseResultId: null }
   }
 
-  const mailbox = row.ediel_mailboxes as { company_id?: string | null; environment?: string | null } | null
+  const mailbox = row.ediel_mailboxes as {
+    id?: string | null
+    company_id?: string | null
+    environment?: string | null
+    mailbox?: string | null
+    email_address?: string | null
+    address?: string | null
+  } | null
+  const mailboxId =
+    typeof row.ediel_mailbox_id === 'string'
+      ? row.ediel_mailbox_id
+      : typeof row.mailbox_id === 'string'
+        ? row.mailbox_id
+        : mailbox?.id ?? null
+  const mailboxAddress = mailbox?.mailbox ?? mailbox?.email_address ?? mailbox?.address ?? null
+  const environment =
+    mailbox?.environment ??
+    (typeof row.environment === 'string' ? row.environment : null) ??
+    (typeof row.mailbox_environment === 'string' ? row.mailbox_environment : null)
+
   const tenant = await resolveTenantForInboundEdiel({
     mailboxCompanyId: typeof row.company_id === 'string' ? row.company_id : mailbox?.company_id ?? null,
-    environment: mailbox?.environment ?? null,
+    mailboxId,
+    mailbox: mailboxAddress,
+    environment,
     parsed,
   })
 
@@ -74,6 +95,7 @@ export async function processInboundEmailMessage(input: {
     inboundEmailMessageId: input.inboundEmailMessageId,
     companyId: tenant.companyId,
     parsed,
+    tenantResolution: tenant.shared,
   })
 
   if (tenant.status !== 'resolved' || !tenant.companyId) {
@@ -86,7 +108,8 @@ export async function processInboundEmailMessage(input: {
       tenantStatus: unresolvedTenantStatus,
       reasons: tenant.reasons,
       candidates: tenant.candidates,
-      environment: mailbox?.environment ?? null,
+      environment,
+      tenantResolution: tenant.shared,
     })
     await updateInboundEmailProcessingStatus({
       inboundEmailMessageId: input.inboundEmailMessageId,
@@ -130,6 +153,7 @@ export async function processInboundEmailMessage(input: {
       inboundEmailMessageId: input.inboundEmailMessageId,
       parseResultId,
       actorUserId: input.actorUserId ?? null,
+      tenantResolution: tenant.shared,
     })
   } else {
     await createInboundEdielMessage({
@@ -139,6 +163,7 @@ export async function processInboundEmailMessage(input: {
       parsed,
       outboundMatch,
       meteringPointMatch,
+      tenantResolution: tenant.shared,
     })
 
     await createInboundMailTask({

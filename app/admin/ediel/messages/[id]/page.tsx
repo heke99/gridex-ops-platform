@@ -23,6 +23,7 @@ import {
  createNegativeUtiltsResponseAction,
  deleteEdielMessageAction,
  processEdielOperationalMessageAction,
+ recalculateInboundAckAction,
  sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
 import type { EdielMessageEventRow, EdielMessageRow } from '@/lib/ediel/types'
@@ -117,6 +118,38 @@ function asStringArray(value: unknown): string[] {
  return value.filter(
  (item): item is string => typeof item === 'string' && item.trim().length > 0
  )
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+ if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+ return value as Record<string, unknown>
+}
+
+function stringOrNull(value: unknown): string | null {
+ return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function getTenantResolutionDiagnostics(message: EdielMessageRow) {
+ const parsedPayload = asRecord(message.parsed_payload)
+ const validationReport = asRecord(message.validation_report)
+ const tenantResolution = asRecord(parsedPayload.tenantResolution ?? validationReport.tenantResolution)
+ const reasons = asStringArray(tenantResolution.reasons)
+ const warnings = asStringArray(tenantResolution.warnings)
+
+ return {
+ status: stringOrNull(tenantResolution.status) ?? stringOrNull(message.tenant_resolution_status) ?? '—',
+ companyId: stringOrNull(tenantResolution.companyId) ?? message.company_id ?? '—',
+ transportEdielId: stringOrNull(tenantResolution.transportEdielId) ?? message.receiver_ediel_id ?? '—',
+ marketActorEdielId: stringOrNull(tenantResolution.marketActorEdielId) ?? '—',
+ receiverEdielId: stringOrNull(tenantResolution.receiverEdielId) ?? message.receiver_ediel_id ?? '—',
+ receiverSubaddress: stringOrNull(tenantResolution.receiverSubaddress) ?? message.receiver_sub_address ?? '—',
+ source: stringOrNull(tenantResolution.source) ?? '—',
+ confidence: tenantResolution.confidence ?? '—',
+ runtimeSource: stringOrNull(validationReport.runtimeTenantResolutionSource) ?? '—',
+ reasons,
+ warnings,
+ raw: tenantResolution,
+ }
 }
 
 function getDuplicateBlockEvents(events: EdielMessageEventRow[]): EdielMessageEventRow[] {
@@ -388,6 +421,7 @@ export default async function AdminEdielMessageDetailPage({
  : null
  )
  const prodatPortalReadiness = evaluateProdatPortalReadiness(message)
+ const tenantDiagnostics = getTenantResolutionDiagnostics(message)
  const hasContrlDraft = relatedAckMessages.some((ack) => ack.message_family === 'CONTRL')
  const hasAperakDraft = relatedAckMessages.some((ack) => ack.message_family === 'APERAK')
  const hasUtiltsErrDraft = relatedAckMessages.some(isUtiltsErrAckMessage)
@@ -475,6 +509,21 @@ Transport verifierad: {sendReadiness.resolvedEncryptionMode === 'smime' ? 'krypt
  </form>
  </div>
  )
+ ) : null}
+
+ {message.direction === 'inbound' ? (
+ <form action={recalculateInboundAckAction} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+ <input type="hidden" name="edielMessageId" value={message.id} />
+ <button
+ type="submit"
+ className="text-sm font-semibold text-emerald-800 hover:text-emerald-950"
+ >
+ Räkna om ACK / runtime
+ </button>
+ <div className="mt-1 text-xs text-emerald-700">
+ Markerar gamla ej skickade ACK-utkast som superseded och kör om tenant + runtime.
+ </div>
+ </form>
  ) : null}
 
  {message.status !== 'cancelled' ? (
@@ -614,6 +663,33 @@ Transport verifierad: {sendReadiness.resolvedEncryptionMode === 'smime' ? 'krypt
  <div>Kräver CONTRL: {message.requires_contrl ? 'Ja' : 'Nej'}</div>
  <div>Kräver APERAK: {message.requires_aperak ? 'Ja' : 'Nej'}</div>
  </div>
+ </div>
+ <div className="rounded-2xl border border-slate-200 p-4 md:col-span-2">
+ <div className="flex flex-wrap items-center justify-between gap-2">
+ <div className="text-xs uppercase tracking-wide text-slate-700">Tenant resolution</div>
+ <Pill text={String(tenantDiagnostics.status)} />
+ </div>
+ <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
+ <div>Company: {String(tenantDiagnostics.companyId)}</div>
+ <div>Source: {String(tenantDiagnostics.source)}</div>
+ <div>Transport Ediel ID: {String(tenantDiagnostics.transportEdielId)}</div>
+ <div>Market actor Ediel ID: {String(tenantDiagnostics.marketActorEdielId)}</div>
+ <div>Receiver Ediel ID: {String(tenantDiagnostics.receiverEdielId)}</div>
+ <div>Receiver subaddress: {String(tenantDiagnostics.receiverSubaddress)}</div>
+ <div>Confidence: {String(tenantDiagnostics.confidence)}</div>
+ <div>Runtime source: {String(tenantDiagnostics.runtimeSource)}</div>
+ </div>
+ {tenantDiagnostics.status !== 'resolved' && tenantDiagnostics.status !== 'tenant_resolved' ? (
+ <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+ Routing unresolved: meddelandet är tekniskt läsbart men kunde inte kopplas säkert till tenant. Ingen negativ CONTRL ska skickas automatiskt för detta routingfel.
+ </div>
+ ) : null}
+ {tenantDiagnostics.reasons.length > 0 || tenantDiagnostics.warnings.length > 0 ? (
+ <div className="mt-3 space-y-1 text-xs text-slate-600">
+ {tenantDiagnostics.reasons.map((reason) => <div key={reason}>Reason: {reason}</div>)}
+ {tenantDiagnostics.warnings.map((warning) => <div key={warning}>Warning: {warning}</div>)}
+ </div>
+ ) : null}
  </div>
  </div>
  </article>
