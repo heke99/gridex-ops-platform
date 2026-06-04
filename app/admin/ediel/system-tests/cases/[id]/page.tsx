@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { EdielMessageRow, EdielTestRunMessageRow } from "@/lib/ediel/types";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
 import {
@@ -60,6 +61,61 @@ function Badge({
       {children}
     </span>
   );
+}
+
+
+type LinkedTestRunMessage = {
+  link: EdielTestRunMessageRow;
+  message: EdielMessageRow | null;
+};
+
+function linkedMessageBusinessKey(item: LinkedTestRunMessage): string {
+  const message = item.message;
+  if (!message) return `missing:${item.link.id}`;
+  const direction = String(message.direction ?? item.link.expected_direction ?? "").toLowerCase();
+  const family = String(message.message_family ?? item.link.expected_family ?? "").toUpperCase();
+  const code = String(message.message_code ?? item.link.expected_code ?? "").toUpperCase();
+  const sender = String(message.sender_ediel_id ?? "");
+  const receiver = String(message.receiver_ediel_id ?? "");
+  if (direction === "inbound") {
+    return [
+      item.link.step_no ?? "",
+      direction,
+      family,
+      code,
+      sender,
+      receiver,
+    ].join("|");
+  }
+
+  return `link:${item.link.id}`;
+}
+
+function linkedMessageRank(item: LinkedTestRunMessage): number {
+  const status = String(item.message?.status ?? "");
+  const createdAt = Date.parse(item.message?.created_at ?? item.link.created_at ?? "");
+  const freshness = Number.isNaN(createdAt) ? 0 : createdAt;
+  const statusBonus = status === "failed" || status === "cancelled" ? 0 : 10_000_000_000_000;
+  return statusBonus + freshness;
+}
+
+function compactLinkedTestRunMessages(items: LinkedTestRunMessage[]): LinkedTestRunMessage[] {
+  const byKey = new Map<string, LinkedTestRunMessage>();
+
+  for (const item of items) {
+    const key = linkedMessageBusinessKey(item);
+    const current = byKey.get(key);
+    if (!current || linkedMessageRank(item) >= linkedMessageRank(current)) {
+      byKey.set(key, item);
+    }
+  }
+
+  return Array.from(byKey.values()).sort((a, b) => {
+    const stepA = a.link.step_no ?? 9999;
+    const stepB = b.link.step_no ?? 9999;
+    if (stepA !== stepB) return stepA - stepB;
+    return Date.parse(a.link.created_at ?? "") - Date.parse(b.link.created_at ?? "");
+  });
 }
 
 function statusTone(status: string | null | undefined): Tone {
@@ -704,12 +760,15 @@ export default async function SystemTestCasePage({
         artifactRows = [];
       }
 
+      const linkedMessages = links.map((link) => ({
+        link,
+        message: messagesById.get(link.ediel_message_id) ?? null,
+      }));
+
       return {
         runId: run.id,
-        links: links.map((link) => ({
-          link,
-          message: messagesById.get(link.ediel_message_id) ?? null,
-        })),
+        links: compactLinkedTestRunMessages(linkedMessages),
+        rawLinkCount: linkedMessages.length,
         artifacts: artifactRows,
       };
     }),
@@ -1104,7 +1163,14 @@ export default async function SystemTestCasePage({
                       <h3 className="text-sm font-semibold text-slate-950">
                         Testkopplade meddelanden
                       </h3>
-                      <Badge>{detail?.links.length ?? 0} kopplingar</Badge>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge>{detail?.links.length ?? 0} aktiva kopplingar</Badge>
+                        {detail && detail.rawLinkCount > detail.links.length ? (
+                          <Badge tone="amber">
+                            {detail.rawLinkCount - detail.links.length} äldre dubbletter dolda
+                          </Badge>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="mt-3 space-y-3">
                       {!detail || detail.links.length === 0 ? (

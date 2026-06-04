@@ -1191,9 +1191,158 @@ export async function updateEdielTestRunStatus(
   return data as EdielTestRunRow
 }
 
+function compactEdielTestBusinessKey(message: Partial<EdielMessageRow> | null | undefined): string | null {
+  if (!message) return null
+  const direction = String(message.direction ?? '').trim().toLowerCase()
+  const family = String(message.message_family ?? '').trim().toUpperCase()
+  const code = String(message.message_code ?? '').trim().toUpperCase()
+  if (!direction || !family) return null
+  const sender = String(message.sender_ediel_id ?? '').trim()
+  const receiver = String(message.receiver_ediel_id ?? '').trim()
+  return [direction, family, code, sender, receiver].join('|')
+}
+
+function isPreferredLinkedMessage(
+  candidate: Partial<EdielMessageRow> | null | undefined,
+  current: Partial<EdielMessageRow> | null | undefined,
+): boolean {
+  const candidateStatus = String(candidate?.status ?? '')
+  const currentStatus = String(current?.status ?? '')
+  if (candidateStatus !== 'failed' && currentStatus === 'failed') return true
+  if (candidateStatus === 'failed' && currentStatus !== 'failed') return false
+  const candidateCreatedAt = Date.parse(String(candidate?.created_at ?? ''))
+  const currentCreatedAt = Date.parse(String(current?.created_at ?? ''))
+  return (Number.isNaN(candidateCreatedAt) ? 0 : candidateCreatedAt) >= (Number.isNaN(currentCreatedAt) ? 0 : currentCreatedAt)
+}
+
+async function createRulebookValidationArtifactForTestRun(input: {
+  testRunId: string
+  edielMessageId: string
+  message?: Partial<EdielMessageRow> | null
+}): Promise<void> {
+  const message = input.message ?? (await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('id', input.edielMessageId)
+    .maybeSingle()
+    .then(({ data }) => data as Partial<EdielMessageRow> | null))
+
+  if (!message || typeof message.raw_payload !== 'string') return
+
+  const rawPayload = String(message.raw_payload ?? '')
+  const parsed = rawPayload ? parseRulebookMessage(rawPayload) : null
+  const validation = validateRulebookMessage({
+    family: String(message.message_family ?? ''),
+    code: String(message.message_code ?? ''),
+    processGroup: String(message.process_type ?? ''),
+    applicationReference: typeof message.application_reference === 'string' ? String(message.application_reference) : null,
+    rawPayload,
+    parsed,
+    mode: 'test',
+  })
+
+  await supabaseService.from('ediel_test_artifacts').insert({
+    test_run_id: input.testRunId,
+    ediel_message_id: input.edielMessageId,
+    artifact_type: 'rulebook_message_validation',
+    title: 'Rulebook-validering för kopplat Ediel-meddelande',
+    payload: { parsed, validation },
+  }).then(({ error: artifactError }) => {
+    if (artifactError && artifactError.code !== '23505') console.warn('Rulebook artifact could not be created', artifactError)
+  })
+}
+
+async function resolveExistingDuplicateTestRunLink(input: AttachEdielMessageToTestRunInput): Promise<EdielTestRunMessageRow | null> {
+  const { data: currentMessage, error: currentError } = await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('id', input.edielMessageId)
+    .maybeSingle()
+
+  if (currentError || !currentMessage) {
+    if (currentError) console.warn('Could not read Ediel message before test-run attach', currentError)
+    return null
+  }
+
+  const current = currentMessage as EdielMessageRow
+  const currentKey = compactEdielTestBusinessKey(current)
+  if (!currentKey || current.direction !== 'inbound') return null
+
+  let linkQuery = supabaseService
+    .from('ediel_test_run_messages')
+    .select('*')
+    .eq('test_run_id', input.testRunId)
+
+  if (input.stepNo !== undefined && input.stepNo !== null) linkQuery = linkQuery.eq('step_no', input.stepNo)
+  if (input.expectedDirection) linkQuery = linkQuery.eq('expected_direction', input.expectedDirection)
+  if (input.expectedFamily) linkQuery = linkQuery.eq('expected_family', input.expectedFamily)
+  if (input.expectedCode) linkQuery = linkQuery.eq('expected_code', input.expectedCode)
+
+  const { data: links, error: linkError } = await linkQuery.order('created_at', { ascending: false })
+  if (linkError) {
+    console.warn('Could not read existing test-run message links before attach', linkError)
+    return null
+  }
+
+  const existingLinks = (links ?? []) as EdielTestRunMessageRow[]
+  if (existingLinks.length === 0) return null
+
+  const existingIds = Array.from(new Set(existingLinks.map((link) => link.ediel_message_id).filter(Boolean)))
+  if (existingIds.length === 0) return null
+
+  const { data: existingMessages, error: existingMessagesError } = await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .in('id', existingIds)
+
+  if (existingMessagesError) {
+    console.warn('Could not read existing linked Ediel messages before attach', existingMessagesError)
+    return null
+  }
+
+  const messagesById = new Map(((existingMessages ?? []) as EdielMessageRow[]).map((message) => [message.id, message]))
+  const duplicates = existingLinks.filter((link) => {
+    const message = messagesById.get(link.ediel_message_id)
+    return compactEdielTestBusinessKey(message) === currentKey
+  })
+
+  if (duplicates.length === 0) return null
+
+  const duplicateMessages = duplicates
+    .map((link) => ({ link, message: messagesById.get(link.ediel_message_id) ?? null }))
+    .filter((entry) => Boolean(entry.message))
+
+  const bestExisting = duplicateMessages.reduce<typeof duplicateMessages[number] | null>((best, entry) => {
+    if (!best) return entry
+    return isPreferredLinkedMessage(entry.message, best.message) ? entry : best
+  }, null)
+
+  if (bestExisting?.message && !isPreferredLinkedMessage(current, bestExisting.message)) {
+    return bestExisting.link
+  }
+
+  const replaceableIds = duplicates
+    .filter((link) => link.ediel_message_id !== input.edielMessageId)
+    .map((link) => link.id)
+
+  if (replaceableIds.length > 0) {
+    const { error } = await supabaseService
+      .from('ediel_test_run_messages')
+      .delete()
+      .in('id', replaceableIds)
+    if (error) console.warn('Could not remove duplicate inbound test-run links', error)
+  }
+
+  const exact = duplicates.find((link) => link.ediel_message_id === input.edielMessageId)
+  return exact ?? null
+}
+
 export async function attachEdielMessageToTestRun(
   input: AttachEdielMessageToTestRunInput
 ): Promise<EdielTestRunMessageRow> {
+  const existingDuplicateLink = await resolveExistingDuplicateTestRunLink(input)
+  if (existingDuplicateLink) return existingDuplicateLink
+
   const payload = cleanObject({
     test_run_id: input.testRunId,
     ediel_message_id: input.edielMessageId,
@@ -1211,35 +1360,10 @@ export async function attachEdielMessageToTestRun(
 
   if (!error) {
     const row = data as EdielTestRunMessageRow
-    const { data: message } = await supabaseService
-      .from('ediel_messages')
-      .select('*')
-      .eq('id', input.edielMessageId)
-      .maybeSingle()
-
-    if (message && typeof (message as { raw_payload?: unknown }).raw_payload === 'string') {
-      const rawPayload = String((message as { raw_payload?: unknown }).raw_payload ?? '')
-      const parsed = rawPayload ? parseRulebookMessage(rawPayload) : null
-      const validation = validateRulebookMessage({
-        family: String((message as { message_family?: unknown }).message_family ?? ''),
-        code: String((message as { message_code?: unknown }).message_code ?? ''),
-        processGroup: String((message as { process_type?: unknown }).process_type ?? ''),
-        applicationReference: typeof (message as { application_reference?: unknown }).application_reference === 'string' ? String((message as { application_reference?: unknown }).application_reference) : null,
-        rawPayload,
-        parsed,
-        mode: 'test',
-      })
-      await supabaseService.from('ediel_test_artifacts').insert({
-        test_run_id: input.testRunId,
-        ediel_message_id: input.edielMessageId,
-        artifact_type: 'rulebook_message_validation',
-        title: 'Rulebook-validering för kopplat Ediel-meddelande',
-        payload: { parsed, validation },
-      }).then(({ error: artifactError }) => {
-        if (artifactError && artifactError.code !== '23505') console.warn('Rulebook artifact could not be created', artifactError)
-      })
-    }
-
+    await createRulebookValidationArtifactForTestRun({
+      testRunId: input.testRunId,
+      edielMessageId: input.edielMessageId,
+    })
     return row
   }
 

@@ -1659,14 +1659,50 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
         },
       });
     } catch (error) {
+      const sendFailure = errorMessage(error);
       await updateEdielMessageStatus({
         actorUserId: context.userId,
         edielMessageId: ackMessage.id,
         status: "failed",
-        failureReason: `Systemtest kunde skapa men inte skicka ${ackFamily}: ${errorMessage(error)}`,
+        failureReason: `Systemtest kunde skapa men inte skicka ${ackFamily}: ${sendFailure}`,
         failedAt: new Date().toISOString(),
       }).catch(() => undefined);
-      throw error;
+
+      await createEdielMessageEvent({
+        actorUserId: context.userId,
+        edielMessageId: sourceMessageId,
+        eventType: "manual_note",
+        eventStatus: "error",
+        message: `${ackFamily} skapades men kunde inte skickas. Öppna kvittensraden och kontrollera transport/certifikat.`,
+        payload: {
+          sourceMessageId,
+          ackMessageId: ackMessage.id,
+          ackFamily,
+          outcome: backendDecision.outcome,
+          requestedOutcome: outcome,
+          testCaseCode: testCaseCode ?? null,
+          error: sendFailure,
+        },
+      }).catch(() => undefined);
+
+      await auditSystemTestMaintenance({
+        actorUserId: context.userId,
+        action: "ediel.system_test.ack_send_failed",
+        testRunId,
+        edielMessageId: ackMessage.id,
+        reason: `${ackFamily} skapades men kunde inte skickas: ${sendFailure}`,
+        payload: {
+          sourceMessageId,
+          ackFamily,
+          outcome: backendDecision.outcome,
+          requestedOutcome: outcome,
+          testCaseCode: testCaseCode ?? null,
+          error: sendFailure,
+        },
+      });
+
+      revalidateSystemTests(testCaseCode);
+      return;
     }
   }
 
