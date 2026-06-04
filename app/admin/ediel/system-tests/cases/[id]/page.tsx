@@ -672,6 +672,9 @@ export default async function SystemTestCasePage({
     linked?: string;
     errors?: string;
     message?: string;
+    ackStatus?: string;
+    ackFamily?: string;
+    ackMessageId?: string;
   }>;
 }) {
   const { id } = await params;
@@ -726,10 +729,6 @@ export default async function SystemTestCasePage({
       run.test_case_code === testCase.testCaseCode &&
       run.status !== "cancelled",
   );
-  const evaluations = matchingRuns.map((run) =>
-    evaluateEdielTgtRun(run, messages),
-  );
-  const latest = evaluations[0] ?? null;
   const runDetails = await Promise.all(
     matchingRuns.map(async (run) => {
       const links = await listEdielTestRunMessages({ testRunId: run.id }).catch(
@@ -770,12 +769,26 @@ export default async function SystemTestCasePage({
         links: compactLinkedTestRunMessages(linkedMessages),
         rawLinkCount: linkedMessages.length,
         artifacts: artifactRows,
+        explicitMessageIds: links.map((link) => link.ediel_message_id),
+        linkedMessageRows: linkMessageRows,
       };
     }),
   );
   const runDetailById = new Map(
     runDetails.map((detail) => [detail.runId, detail]),
   );
+  const evaluations = matchingRuns.map((run) => {
+    const detail = runDetailById.get(run.id);
+    const byId = new Map(messages.map((message) => [message.id, message]));
+    for (const linkedMessage of detail?.linkedMessageRows ?? []) {
+      byId.set(linkedMessage.id, linkedMessage);
+    }
+
+    return evaluateEdielTgtRun(run, Array.from(byId.values()), {
+      explicitMessageIds: detail?.explicitMessageIds ?? [],
+    });
+  });
+  const latest = evaluations[0] ?? null;
 
   return (
     <div className="space-y-6">
@@ -811,6 +824,30 @@ export default async function SystemTestCasePage({
             <Link href="/admin/ediel/messages" className="underline">Öppna meddelandelogg</Link>
             <Link href="/admin/ediel/unresolved" className="underline">Öppna unresolved</Link>
           </div>
+        </section>
+      ) : null}
+
+      {query.ackStatus ? (
+        <section
+          className={`rounded-2xl border p-4 text-sm leading-6 ${
+            query.ackStatus === "sent"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+              : query.ackStatus === "failed"
+                ? "border-red-200 bg-red-50 text-red-900"
+                : "border-blue-200 bg-blue-50 text-blue-900"
+          }`}
+        >
+          <div className="font-black">ACK-resultat {query.ackFamily ? `· ${query.ackFamily}` : ""}</div>
+          <div className="mt-1">Status: {query.ackStatus}</div>
+          {query.message ? <div className="mt-2 font-semibold">{query.message}</div> : null}
+          {query.ackMessageId ? (
+            <Link
+              href={`/admin/ediel/messages/${encodeURIComponent(query.ackMessageId)}`}
+              className="mt-3 inline-flex underline"
+            >
+              Öppna kvittensmeddelandet och dess eventlogg
+            </Link>
+          ) : null}
         </section>
       ) : null}
 

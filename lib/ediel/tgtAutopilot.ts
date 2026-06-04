@@ -4,6 +4,8 @@ import {
   attachEdielMessageToTestRun,
   createEdielMessage,
   listEdielMessages,
+  listEdielMessagesByIds,
+  listEdielTestRunMessages,
   listEdielTestRuns,
 } from "@/lib/ediel/db";
 import {
@@ -323,13 +325,24 @@ function buildMockPortalInput(params: {
 async function getRunEvaluation(
   testRunId: string,
 ): Promise<EdielTgtRunEvaluation> {
-  const [runs, messages] = await Promise.all([
+  const [runs, messages, links] = await Promise.all([
     listEdielTestRuns(),
     listEdielMessages({ limit: 300 }),
+    listEdielTestRunMessages({ testRunId }).catch(() => []),
   ]);
   const run = runs.find((candidate) => candidate.id === testRunId);
   if (!run) throw new Error("TGT-run saknas eller är arkiverad.");
-  return evaluateEdielTgtRun(run, messages);
+
+  const linkedRows = await listEdielMessagesByIds(
+    links.map((link) => link.ediel_message_id),
+    { companyId: run.company_id ?? null },
+  ).catch(() => []);
+  const byId = new Map(messages.map((message) => [message.id, message]));
+  for (const linkedMessage of linkedRows) byId.set(linkedMessage.id, linkedMessage);
+
+  return evaluateEdielTgtRun(run, Array.from(byId.values()), {
+    explicitMessageIds: links.map((link) => link.ediel_message_id),
+  });
 }
 
 async function createDraftForStep(params: {

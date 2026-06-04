@@ -297,6 +297,22 @@ function ackSubAddressForSource(sourceMessage: EdielMessageRow, value?: string |
   return subAddress
 }
 
+function fallbackAckReceiverEmail(sourceMessage: EdielMessageRow): string | null {
+  const senderEmail = trimOrNull(sourceMessage.sender_email)
+  if (senderEmail) return senderEmail
+
+  const senderEdielId = trimOrNull(sourceMessage.sender_ediel_id)
+  if (!senderEdielId) return null
+
+  // Edielportalen/testsystemet sometimes arrives through shared-mail imports
+  // without a preserved envelope sender. ACKs to the portal still need an SMTP
+  // receiver, otherwise the send action creates a draft and then blocks at
+  // transport readiness. Keep this fallback deliberately narrow for the portal.
+  if (senderEdielId === '91100') return '91100@ediel.se'
+
+  return null
+}
+
 function sourceParties(sourceMessage: EdielMessageRow) {
   return {
     senderEdielId: trimOrNull(sourceMessage.receiver_ediel_id),
@@ -309,7 +325,7 @@ function sourceParties(sourceMessage: EdielMessageRow) {
     receiverEdielId: trimOrNull(sourceMessage.sender_ediel_id),
     receiverName: trimOrNull(sourceMessage.sender_name),
     receiverSubAddress: ackSubAddressForSource(sourceMessage, sourceMessage.sender_sub_address),
-    receiverEmail: trimOrNull(sourceMessage.sender_email),
+    receiverEmail: fallbackAckReceiverEmail(sourceMessage),
     mailbox: trimOrNull(sourceMessage.mailbox),
   }
 }

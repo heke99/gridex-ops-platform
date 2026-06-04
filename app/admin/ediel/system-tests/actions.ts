@@ -1535,6 +1535,28 @@ function canReuseSystemTestAck(params: {
   return true;
 }
 
+function redirectToSystemTestAckResult(params: {
+  testCaseCode?: string | null;
+  companyId?: string | null;
+  ackStatus: "sent" | "failed" | "created";
+  ackFamily?: string | null;
+  ackMessageId?: string | null;
+  message: string;
+}): never | void {
+  if (!params.testCaseCode) return;
+
+  const redirectParams = new URLSearchParams();
+  if (params.companyId) redirectParams.set("companyId", params.companyId);
+  redirectParams.set("ackStatus", params.ackStatus);
+  if (params.ackFamily) redirectParams.set("ackFamily", params.ackFamily);
+  if (params.ackMessageId) redirectParams.set("ackMessageId", params.ackMessageId);
+  redirectParams.set("message", params.message.slice(0, 220));
+
+  redirect(
+    `/admin/ediel/system-tests/cases/${encodeURIComponent(params.testCaseCode)}?${redirectParams.toString()}`,
+  );
+}
+
 export async function createAndSendSystemTestAckAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess();
   const sourceMessageId = formString(formData.get("sourceMessageId"));
@@ -1595,10 +1617,12 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
     });
   }
 
+  const ackMessageId = ackMessage.id;
+
   if (testRunId) {
     await attachEdielMessageToTestRun({
       testRunId,
-      edielMessageId: ackMessage.id,
+      edielMessageId: ackMessageId,
       stepNo,
       expectedDirection: "outbound",
       expectedFamily: ackFamily,
@@ -1608,7 +1632,7 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
         actorUserId: context.userId,
         action: "ediel.system_test.ack_attach_failed",
         testRunId,
-        edielMessageId: ackMessage.id,
+        edielMessageId: ackMessageId,
         reason: errorMessage(error),
       });
     });
@@ -1638,12 +1662,35 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
     },
   });
 
+  // Mark ACKs created from Systemtest before send. AGT/TGT runs may use
+  // production-like addressing/certificates while still being Edielportal tests;
+  // the send-lock must be able to distinguish that from real live customer traffic.
+  ackMessage = await updateEdielMessageStatus({
+    actorUserId: context.userId,
+    edielMessageId: ackMessage.id,
+    status: ackMessage.status,
+    validationReport: {
+      ...(ackMessage.validation_report ?? {}),
+      systemTestAckSend: {
+        enabled: true,
+        source: "system_test_ack_action",
+        testRunId,
+        testCaseCode: testCaseCode ?? null,
+        ackFamily,
+        outcome: backendDecision.outcome,
+        sourceMessageId,
+        createdAt: new Date().toISOString(),
+      },
+    },
+  });
+
   if (sendNow) {
     try {
-      await sendQueuedEdielMessage({
+      const sentMessage = await sendQueuedEdielMessage({
         actorUserId: context.userId,
         edielMessageId: ackMessage.id,
       });
+      ackMessage = sentMessage;
       await auditSystemTestMaintenance({
         actorUserId: context.userId,
         action: "ediel.system_test.ack_sent",
@@ -1702,11 +1749,29 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
       });
 
       revalidateSystemTests(testCaseCode);
+      redirectToSystemTestAckResult({
+        testCaseCode,
+        companyId: sourceMessage.company_id ?? null,
+        ackStatus: "failed",
+        ackFamily,
+        ackMessageId: ackMessage.id,
+        message: `${ackFamily} skapades men kunde inte skickas: ${sendFailure}`,
+      });
       return;
     }
   }
 
   revalidateSystemTests(testCaseCode);
+  redirectToSystemTestAckResult({
+    testCaseCode,
+    companyId: sourceMessage.company_id ?? null,
+    ackStatus: sendNow ? "sent" : "created",
+    ackFamily,
+    ackMessageId: ackMessage.id,
+    message: sendNow
+      ? `${ackFamily} skickades via SMTP. Kontrollera Edielportalens logg och meddelandets eventrad.`
+      : `${ackFamily} skapades som utkast.`,
+  });
 }
 
 export async function unlinkSystemTestMessageAction(formData: FormData) {

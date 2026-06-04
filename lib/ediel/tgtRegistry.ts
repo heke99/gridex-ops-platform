@@ -2600,6 +2600,26 @@ function messageOutcome(row: EdielMessageRow): "positive" | "negative" | null {
   return null;
 }
 
+export type EdielTgtRunEvaluationOptions = {
+  /**
+   * Messages explicitly linked through ediel_test_run_messages belong to this
+   * run even when their created_at is earlier than the run. This matters when
+   * an inbound message is imported first and linked/recalculated afterwards.
+   */
+  explicitMessageIds?: Iterable<string> | null;
+};
+
+function isSentGridexOutboundStep(
+  message: EdielMessageRow,
+  step: EdielTgtExpectedStep,
+): boolean {
+  if (step.actor !== "gridex" || step.direction !== "outbound") return true;
+
+  // The expected Gridex steps in TGT are "Skicka ..." steps. A draft proves
+  // that a payload exists, but it must not count as a passed Edielportal step.
+  return message.status === "sent";
+}
+
 function matchesExpectedStep(
   message: EdielMessageRow,
   step: EdielTgtExpectedStep,
@@ -2609,6 +2629,7 @@ function matchesExpectedStep(
   if (normalizeCode(String(message.message_code)) !== normalizeCode(step.code))
     return false;
   if (step.outcome && messageOutcome(message) !== step.outcome) return false;
+  if (!isSentGridexOutboundStep(message, step)) return false;
   return true;
 }
 
@@ -2627,6 +2648,11 @@ function stepIssues(
   if (step.outcome && messageOutcome(message) !== step.outcome) {
     issues.push(`Fel outcome: ${messageOutcome(message) ?? "saknas"}`);
   }
+  if (!isSentGridexOutboundStep(message, step)) {
+    issues.push(
+      `Meddelandet är ${message.status ?? "okänt"}; steget räknas först som godkänt när SMTP-skicket har status sent.`,
+    );
+  }
 
   return issues;
 }
@@ -2634,6 +2660,7 @@ function stepIssues(
 export function evaluateEdielTgtRun(
   testRun: EdielTestRunRow,
   messages: EdielMessageRow[],
+  options: EdielTgtRunEvaluationOptions = {},
 ): EdielTgtRunEvaluation {
   const definition = getEdielTgtTestCaseByCode(
     testRun.test_suite,
@@ -2654,6 +2681,9 @@ export function evaluateEdielTgtRun(
     };
   }
 
+  const explicitMessageIds = new Set(
+    Array.from(options.explicitMessageIds ?? []).filter(Boolean),
+  );
   const candidates = messages
     .filter((message) => {
       if (message.status === "cancelled") return false;
@@ -2666,7 +2696,11 @@ export function evaluateEdielTgtRun(
       ) {
         return false;
       }
-      if (testRun.created_at && message.created_at < testRun.created_at)
+      if (
+        testRun.created_at &&
+        message.created_at < testRun.created_at &&
+        !explicitMessageIds.has(message.id)
+      )
         return false;
       return true;
     })
