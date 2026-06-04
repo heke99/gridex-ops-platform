@@ -219,6 +219,11 @@ export async function loadInboundPrivateCertificates(input: {
   }
 
   for (const row of (data ?? []) as CertificateRow[]) {
+    const rowStatus = clean(row.status)?.toLowerCase() ?? null
+    if (rowStatus === 'archived' || rowStatus === 'deleted' || rowStatus === 'inactive') {
+      continue
+    }
+
     const ref = rowP12SecretReference(row) ?? clean(row.secret_reference)
     const p12Base64 = resolveSecretReference(ref)
     const password =
