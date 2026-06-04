@@ -31,7 +31,7 @@ function validateSecretReference(value: string): string {
   const normalized = value.trim();
   if (!normalized.startsWith("env:")) {
     throw new Error(
-      "Secret reference måste peka på env, t.ex. env:GRIDEX_SHARED_EDIEL_IMAP_PASS.",
+      "Secret reference måste peka på env, t.ex. env:EDIEL_IMAP_PASS eller env:EDIEL_SMTP_PASS.",
     );
   }
 
@@ -42,6 +42,30 @@ function validateSecretReference(value: string): string {
   }
 
   return normalized;
+}
+
+function optionalSecretReference(value: string | null): string | null {
+  return value ? validateSecretReference(value) : null;
+}
+
+function optionalNumber(value: string | null, fallback: number): number {
+  const parsed = Number(value ?? fallback);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+
+function checkboxValue(formData: FormData, key: string, fallback = false): boolean {
+  const value = formData.get(key);
+  if (value == null) return fallback;
+  return value === "on" || value === "true" || value === "1";
+}
+
+function requireMailboxId(formData: FormData): string {
+  const id = requiredText(formData, "mailbox_id", "Mailbox-id");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    throw new Error("Mailbox-id är ogiltigt.");
+  }
+  return id;
 }
 
 export async function runInboundMailEngineAction(formData: FormData) {
@@ -69,31 +93,50 @@ export async function processInboundMailQueueAction() {
 
 export async function saveSharedMailboxProfileAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess();
+  const mailboxId = text(formData, "mailbox_id");
   const environment = normalizeEnvironment(text(formData, "environment"));
   const mailboxName = requiredText(formData, "mailbox_name", "Mailboxnamn");
   const emailAddress = requiredText(formData, "email_address", "E-postadress");
   const imapHost = requiredText(formData, "imap_host", "IMAP-host");
   const username = requiredText(formData, "username", "IMAP-användare");
   const secretReference = validateSecretReference(
-    requiredText(formData, "secret_reference", "Secret reference"),
+    requiredText(formData, "secret_reference", "IMAP secret reference"),
   );
-  const imapPort = Number(text(formData, "imap_port") ?? 993);
+  const imapPort = optionalNumber(text(formData, "imap_port"), 993);
   const imapFolder = text(formData, "imap_folder") ?? "INBOX";
+  const imapSecure = checkboxValue(formData, "imap_secure", imapPort === 993);
 
-  if (!Number.isFinite(imapPort) || imapPort <= 0) {
-    throw new Error("IMAP-port är ogiltig.");
-  }
+  const smtpHost = text(formData, "smtp_host") ?? "smtp.strato.de";
+  const smtpPort = optionalNumber(text(formData, "smtp_port"), 465);
+  const smtpSecure = checkboxValue(formData, "smtp_secure", smtpPort === 465);
+  const smtpFrom = text(formData, "smtp_from") ?? emailAddress;
+  const smtpUsername = text(formData, "smtp_username") ?? smtpFrom;
+  const smtpSecretReference = optionalSecretReference(
+    text(formData, "smtp_secret_reference") ?? "env:EDIEL_SMTP_PASS",
+  );
+  const smtpTo = text(formData, "smtp_to");
 
-  const existing = await supabaseService
-    .from("ediel_mailboxes")
-    .select("id")
-    .is("company_id", null)
-    .eq("environment", environment)
-    .eq("mailbox_name", mailboxName)
-    .limit(1)
-    .maybeSingle();
+  const existing = mailboxId
+    ? await supabaseService
+        .from("ediel_mailboxes")
+        .select("id, metadata")
+        .eq("id", mailboxId)
+        .maybeSingle()
+    : await supabaseService
+        .from("ediel_mailboxes")
+        .select("id, metadata")
+        .is("company_id", null)
+        .eq("environment", environment)
+        .eq("mailbox_name", mailboxName)
+        .limit(1)
+        .maybeSingle();
 
   if (existing.error) throw existing.error;
+
+  const existingMetadata =
+    existing.data && typeof existing.data.metadata === "object" && existing.data.metadata
+      ? (existing.data.metadata as Record<string, unknown>)
+      : {};
 
   const payload = {
     company_id: null,
@@ -102,14 +145,24 @@ export async function saveSharedMailboxProfileAction(formData: FormData) {
     email_address: emailAddress,
     imap_host: imapHost,
     imap_port: imapPort,
+    smtp_host: smtpHost,
+    smtp_port: smtpPort,
+    smtp_from: smtpFrom,
+    smtp_to: smtpTo,
     username,
     secret_reference: secretReference,
     is_active: true,
     poll_interval_minutes: 5,
     last_error: null,
     metadata: {
+      ...existingMetadata,
       scope: "platform_shared",
       imap_folder: imapFolder,
+      imap_secure: imapSecure,
+      smtp_username: smtpUsername,
+      smtp_secret_reference: smtpSecretReference,
+      smtp_secure: smtpSecure,
+      smtp_provider: "strato",
       managedFrom: "admin/inbound-mail",
     },
     updated_at: new Date().toISOString(),
@@ -143,6 +196,10 @@ export async function saveSharedMailboxProfileAction(formData: FormData) {
         email_address: emailAddress,
         imap_host: imapHost,
         imap_port: imapPort,
+        smtp_host: smtpHost,
+        smtp_port: smtpPort,
+        smtp_from: smtpFrom,
+        smtp_to: smtpTo,
         username,
         secret_reference: secretReference,
         metadata: payload.metadata,
@@ -151,7 +208,62 @@ export async function saveSharedMailboxProfileAction(formData: FormData) {
     .then(() => null);
 
   revalidatePath("/admin/inbound-mail");
+  revalidatePath("/admin/ediel/mailboxes");
   revalidatePath("/admin/inbound-mail/diagnostics");
+}
+
+export async function deactivateSharedMailboxProfileAction(formData: FormData) {
+  const admin = await requirePlatformAdminActionAccess();
+  const mailboxId = requireMailboxId(formData);
+  const { error } = await supabaseService
+    .from("ediel_mailboxes")
+    .update({
+      is_active: false,
+      locked_at: null,
+      locked_by: null,
+      last_error: "Avaktiverad av superadmin. Mailbox pollas inte.",
+      updated_at: new Date().toISOString(),
+      updated_by: admin.userId,
+    })
+    .eq("id", mailboxId);
+  if (error) throw error;
+
+  await supabaseService.from("audit_logs").insert({
+    company_id: null,
+    actor_user_id: admin.userId,
+    action: "SUPERADMIN_SHARED_EDIEL_MAILBOX_DEACTIVATED",
+    entity_type: "ediel_mailboxes",
+    entity_id: mailboxId,
+  }).then(() => null);
+
+  revalidatePath("/admin/inbound-mail");
+  revalidatePath("/admin/ediel/mailboxes");
+}
+
+export async function deleteSharedMailboxProfileAction(formData: FormData) {
+  const admin = await requirePlatformAdminActionAccess();
+  const mailboxId = requireMailboxId(formData);
+  const confirm = text(formData, "confirm_delete");
+  if (confirm !== "DELETE") {
+    throw new Error("Skriv DELETE för att radera mailboxen.");
+  }
+
+  const { error } = await supabaseService
+    .from("ediel_mailboxes")
+    .delete()
+    .eq("id", mailboxId);
+  if (error) throw error;
+
+  await supabaseService.from("audit_logs").insert({
+    company_id: null,
+    actor_user_id: admin.userId,
+    action: "SUPERADMIN_SHARED_EDIEL_MAILBOX_DELETED",
+    entity_type: "ediel_mailboxes",
+    entity_id: mailboxId,
+  }).then(() => null);
+
+  revalidatePath("/admin/inbound-mail");
+  revalidatePath("/admin/ediel/mailboxes");
 }
 
 export async function reprocessInboundEmailAction(formData: FormData) {

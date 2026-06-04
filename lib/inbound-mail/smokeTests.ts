@@ -97,15 +97,26 @@ function mailboxLabel(mailbox: MailboxConfigRow): string {
   return mailbox.mailbox_name ?? mailbox.email_address ?? mailbox.id
 }
 
+function resolvedMailboxPassword(mailbox: MailboxConfigRow): string | null {
+  const mailboxForSecretLookup = {
+    id: mailbox.id,
+    environment: mailbox.environment ?? 'production',
+    secret_reference: mailbox.secret_reference,
+  }
+
+  return resolveMailboxPasswordFromSecretReference(mailboxForSecretLookup)
+}
+
 function mailboxConfigTest(mailbox: MailboxConfigRow): InboundSmokeTestResult {
   const problems: string[] = []
   const warnings: string[] = []
+  const resolvedPassword = resolvedMailboxPassword(mailbox)
 
   if (!mailbox.imap_host?.trim()) problems.push('imap_host saknas')
   if (!mailbox.username?.trim()) problems.push('username saknas')
   if (!mailbox.secret_reference?.trim()) problems.push('secret_reference saknas')
   else if (!mailbox.secret_reference.startsWith('env:')) problems.push('secret_reference måste börja med env:')
-  else if (!resolveMailboxPasswordFromSecretReference(mailbox)) problems.push('secret_reference pekar inte på ett tillgängligt env-lösenord')
+  else if (!resolvedPassword) problems.push('secret_reference pekar inte på ett tillgängligt env-lösenord')
 
   if (mailbox.imap_port !== null && (!Number.isFinite(mailbox.imap_port) || mailbox.imap_port <= 0)) problems.push('imap_port är ogiltig')
   if (mailbox.poll_interval_minutes !== null && mailbox.poll_interval_minutes <= 0) warnings.push('poll_interval_minutes bör vara större än 0')
@@ -128,7 +139,7 @@ function mailboxConfigTest(mailbox: MailboxConfigRow): InboundSmokeTestResult {
       hasImapHost: Boolean(mailbox.imap_host?.trim()),
       hasUsername: Boolean(mailbox.username?.trim()),
       hasSecretReference: Boolean(mailbox.secret_reference?.trim()),
-      hasResolvedPassword: Boolean(resolveMailboxPasswordFromSecretReference(mailbox)),
+      hasResolvedPassword: Boolean(resolvedPassword),
       imapPort: mailbox.imap_port,
       pollIntervalMinutes: mailbox.poll_interval_minutes,
       normalizedFolder,

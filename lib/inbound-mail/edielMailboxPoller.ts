@@ -18,6 +18,10 @@ export type EdielMailboxRow = {
   imap_port: number | null;
   smtp_host: string | null;
   smtp_port: number | null;
+  smtp_from?: string | null;
+  smtp_to?: string | null;
+  mailbox_type?: string | null;
+  tls_required?: boolean | null;
   username: string | null;
   secret_reference: string | null;
   environment: string;
@@ -234,14 +238,15 @@ async function bootstrapSharedMailboxFromEnv(
     `EDIEL_${envKey}_IMAP_USER`,
     "EDIEL_IMAP_USER",
   );
-  const imapHost = envValue(
-    `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_HOST`,
-    `GRIDEX_SHARED_${envKey}_EDIEL_IMAP_HOST`,
-    "GRIDEX_SHARED_EDIEL_IMAP_HOST",
-    "EDIEL_INBOUND_IMAP_HOST",
-    `EDIEL_${envKey}_IMAP_HOST`,
-    "EDIEL_IMAP_HOST",
-  );
+  const imapHost =
+    envValue(
+      `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_HOST`,
+      `GRIDEX_SHARED_${envKey}_EDIEL_IMAP_HOST`,
+      "GRIDEX_SHARED_EDIEL_IMAP_HOST",
+      "EDIEL_INBOUND_IMAP_HOST",
+      `EDIEL_${envKey}_IMAP_HOST`,
+      "EDIEL_IMAP_HOST",
+    ) ?? (emailAddress ? "imap.strato.de" : null);
   const username =
     envValue(
       `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_USERNAME`,
@@ -273,6 +278,27 @@ async function bootstrapSharedMailboxFromEnv(
       `EDIEL_${envKey}_IMAP_PORT`,
       "EDIEL_IMAP_PORT",
     ),
+    smtp_host:
+      envValue(
+        `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_HOST`,
+        "GRIDEX_SHARED_EDIEL_SMTP_HOST",
+        `EDIEL_${envKey}_SMTP_HOST`,
+        "EDIEL_SMTP_HOST",
+      ) ?? "smtp.strato.de",
+    smtp_port: envIntValue(
+      465,
+      `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_PORT`,
+      "GRIDEX_SHARED_EDIEL_SMTP_PORT",
+      `EDIEL_${envKey}_SMTP_PORT`,
+      "EDIEL_SMTP_PORT",
+    ),
+    smtp_from:
+      envValue(
+        `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_FROM`,
+        "GRIDEX_SHARED_EDIEL_SMTP_FROM",
+        `EDIEL_${envKey}_SMTP_FROM`,
+        "EDIEL_SMTP_FROM",
+      ) ?? emailAddress,
     username,
     secret_reference: secretReference,
     is_active: true,
@@ -287,6 +313,57 @@ async function bootstrapSharedMailboxFromEnv(
           `EDIEL_${envKey}_IMAP_FOLDER`,
           "EDIEL_IMAP_FOLDER",
         ) ?? "INBOX",
+      imap_secure:
+        (envValue(
+          `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_SECURE`,
+          "GRIDEX_SHARED_EDIEL_IMAP_SECURE",
+          `EDIEL_${envKey}_IMAP_SECURE`,
+          "EDIEL_IMAP_SECURE",
+        ) ?? "true") !== "false",
+      smtp_username:
+        envValue(
+          `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_USERNAME`,
+          `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_USER`,
+          "GRIDEX_SHARED_EDIEL_SMTP_USERNAME",
+          "GRIDEX_SHARED_EDIEL_SMTP_USER",
+          `EDIEL_${envKey}_SMTP_USERNAME`,
+          `EDIEL_${envKey}_SMTP_USER`,
+          "EDIEL_SMTP_USERNAME",
+          "EDIEL_SMTP_USER",
+        ) ?? emailAddress,
+      smtp_secret_reference:
+        envValue(
+          `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_SECRET_REFERENCE`,
+          "GRIDEX_SHARED_EDIEL_SMTP_SECRET_REFERENCE",
+        ) ??
+        (envValue(
+          `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_PASS`,
+          `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_PASSWORD`,
+          "GRIDEX_SHARED_EDIEL_SMTP_PASS",
+          "GRIDEX_SHARED_EDIEL_SMTP_PASSWORD",
+          `EDIEL_${envKey}_SMTP_PASS`,
+          `EDIEL_${envKey}_SMTP_PASSWORD`,
+          "EDIEL_SMTP_PASS",
+          "EDIEL_SMTP_PASSWORD",
+        )
+          ? `env:${[
+              `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_PASS`,
+              `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_PASSWORD`,
+              "GRIDEX_SHARED_EDIEL_SMTP_PASS",
+              "GRIDEX_SHARED_EDIEL_SMTP_PASSWORD",
+              `EDIEL_${envKey}_SMTP_PASS`,
+              `EDIEL_${envKey}_SMTP_PASSWORD`,
+              "EDIEL_SMTP_PASS",
+              "EDIEL_SMTP_PASSWORD",
+            ].find((name) => stringOrNull(process.env[name]))}`
+          : null),
+      smtp_secure:
+        (envValue(
+          `GRIDEX_SHARED_EDIEL_${envKey}_SMTP_SECURE`,
+          "GRIDEX_SHARED_EDIEL_SMTP_SECURE",
+          `EDIEL_${envKey}_SMTP_SECURE`,
+          "EDIEL_SMTP_SECURE",
+        ) ?? "true") !== "false",
       bootstrappedFromEnv: true,
     },
     updated_at: nowIso(),
@@ -354,17 +431,17 @@ function parseInboundDedupeFacts(rawPayload: string | null | undefined): {
 }
 
 export function resolveMailboxPasswordFromSecretReference(
-  mailbox: Pick<EdielMailboxRow, "id" | "secret_reference">,
+  mailbox: Pick<EdielMailboxRow, "id" | "secret_reference" | "environment">,
 ): string | null {
   const reference = stringOrNull(mailbox.secret_reference);
-  if (!reference) return null;
 
-  if (reference.startsWith("env:")) {
-    return process.env[reference.slice(4)] ?? null;
+  if (reference?.startsWith("env:")) {
+    const fromReference = process.env[reference.slice(4)] ?? null;
+    if (fromReference) return fromReference;
+  } else if (reference) {
+    const direct = process.env[reference];
+    if (direct) return direct;
   }
-
-  const direct = process.env[reference];
-  if (direct) return direct;
 
   const mailboxSpecific =
     process.env[
@@ -372,7 +449,107 @@ export function resolveMailboxPasswordFromSecretReference(
     ];
   if (mailboxSpecific) return mailboxSpecific;
 
-  return null;
+  const fallbackReference = envSecretReference(
+    normalizeEnvironment(mailbox.environment) ?? "test",
+  );
+  if (fallbackReference?.startsWith("env:")) {
+    const fallback = process.env[fallbackReference.slice(4)] ?? null;
+    if (fallback) return fallback;
+  }
+
+  return (
+    envValue(
+      "EDIEL_IMAP_PASS",
+      "EDIEL_IMAP_PASSWORD",
+      "GRIDEX_SHARED_EDIEL_IMAP_PASS",
+      "GRIDEX_SHARED_EDIEL_IMAP_PASSWORD",
+    ) ?? null
+  );
+}
+
+function metadataText(
+  mailbox: Pick<EdielMailboxRow, "metadata">,
+  key: string,
+): string | null {
+  const value = mailbox.metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function metadataBool(
+  mailbox: Pick<EdielMailboxRow, "metadata">,
+  key: string,
+  fallback: boolean,
+): boolean {
+  const value = mailbox.metadata?.[key];
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    return ["true", "1", "yes", "on"].includes(value.toLowerCase());
+  }
+  return fallback;
+}
+
+function resolveEffectiveMailboxForPolling(mailbox: EdielMailboxRow): EdielMailboxRow {
+  const environment = normalizeEnvironment(mailbox.environment) ?? "test";
+  const envKey = environment.toUpperCase();
+  const emailAddress =
+    stringOrNull(mailbox.email_address) ??
+    envValue(
+      `GRIDEX_SHARED_EDIEL_${envKey}_EMAIL`,
+      `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_EMAIL`,
+      "GRIDEX_SHARED_EDIEL_EMAIL",
+      "GRIDEX_SHARED_EDIEL_IMAP_EMAIL",
+      "EDIEL_INBOUND_EMAIL",
+      `EDIEL_${envKey}_IMAP_EMAIL`,
+      "EDIEL_IMAP_EMAIL",
+      `EDIEL_${envKey}_IMAP_USER`,
+      "EDIEL_IMAP_USER",
+    );
+  const imapHost =
+    stringOrNull(mailbox.imap_host) ??
+    envValue(
+      `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_HOST`,
+      `GRIDEX_SHARED_${envKey}_EDIEL_IMAP_HOST`,
+      "GRIDEX_SHARED_EDIEL_IMAP_HOST",
+      "EDIEL_INBOUND_IMAP_HOST",
+      `EDIEL_${envKey}_IMAP_HOST`,
+      "EDIEL_IMAP_HOST",
+    ) ??
+    (emailAddress ? "imap.strato.de" : null);
+  const username =
+    stringOrNull(mailbox.username) ??
+    envValue(
+      `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_USERNAME`,
+      `GRIDEX_SHARED_EDIEL_${envKey}_IMAP_USER`,
+      "GRIDEX_SHARED_EDIEL_IMAP_USERNAME",
+      "GRIDEX_SHARED_EDIEL_IMAP_USER",
+      "EDIEL_INBOUND_IMAP_USERNAME",
+      "EDIEL_INBOUND_IMAP_USER",
+      `EDIEL_${envKey}_IMAP_USERNAME`,
+      `EDIEL_${envKey}_IMAP_USER`,
+      "EDIEL_IMAP_USERNAME",
+      "EDIEL_IMAP_USER",
+    ) ??
+    emailAddress;
+  const secretReference =
+    stringOrNull(mailbox.secret_reference) ?? envSecretReference(environment);
+
+  return {
+    ...mailbox,
+    email_address: emailAddress ?? mailbox.email_address,
+    imap_host: imapHost,
+    imap_port: mailbox.imap_port ?? 993,
+    username: username ?? mailbox.username,
+    secret_reference: secretReference ?? mailbox.secret_reference,
+    metadata: {
+      ...(mailbox.metadata ?? {}),
+      imap_folder: metadataText(mailbox, "imap_folder") ?? "INBOX",
+      imap_secure: metadataBool(
+        mailbox,
+        "imap_secure",
+        (mailbox.imap_port ?? 993) === 993,
+      ),
+    },
+  };
 }
 
 export function normalizeImapMailboxFolder(value: unknown): string {
@@ -1095,21 +1272,27 @@ export async function pollEdielMailbox(input: {
   }
 
   try {
-    if (!input.mailbox.imap_host || !input.mailbox.username) {
-      throw new Error("Mailbox saknar imap_host eller username.");
+    const mailbox = resolveEffectiveMailboxForPolling(input.mailbox);
+    if (!mailbox.imap_host || !mailbox.username) {
+      throw new Error(
+        `Mailbox saknar imap_host eller username. email=${mailbox.email_address ?? "saknas"}, environment=${mailbox.environment}.`,
+      );
     }
 
-    const password = resolveMailboxPasswordFromSecretReference(input.mailbox);
+    const password = resolveMailboxPasswordFromSecretReference(mailbox);
     if (!password) {
-      throw new Error("Mailbox saknar giltig secret_reference/env-lösenord.");
+      throw new Error(
+        `Mailbox saknar giltig secret_reference/env-lösenord. Testade ${mailbox.secret_reference ?? "ingen reference"} samt EDIEL_IMAP_PASS/EDIEL_IMAP_PASSWORD.`,
+      );
     }
 
+    const imapPort = mailbox.imap_port ?? 993;
     const client = new ImapFlow({
-      host: input.mailbox.imap_host,
-      port: input.mailbox.imap_port ?? 993,
-      secure: (input.mailbox.imap_port ?? 993) === 993,
+      host: mailbox.imap_host,
+      port: imapPort,
+      secure: metadataBool(mailbox, "imap_secure", imapPort === 993),
       auth: {
-        user: input.mailbox.username,
+        user: mailbox.username,
         pass: password,
       },
       logger: false,
@@ -1117,7 +1300,7 @@ export async function pollEdielMailbox(input: {
 
     await client.connect();
     const folder = normalizeImapMailboxFolder(
-      input.mailbox.metadata?.imap_folder ?? input.mailbox.metadata?.folder,
+      mailbox.metadata?.imap_folder ?? mailbox.metadata?.folder,
     );
     result.folder = folder;
     const lock = await client.getMailboxLock(folder);

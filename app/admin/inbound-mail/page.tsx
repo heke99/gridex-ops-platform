@@ -3,6 +3,8 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
 import { supabaseService } from "@/lib/supabase/service";
 import {
+  deactivateSharedMailboxProfileAction,
+  deleteSharedMailboxProfileAction,
   processInboundMailQueueAction,
   runInboundMailEngineAction,
   saveSharedMailboxProfileAction,
@@ -18,10 +20,16 @@ type MailboxRow = {
   environment: string | null;
   is_active: boolean | null;
   imap_host?: string | null;
+  imap_port?: number | null;
+  smtp_host?: string | null;
+  smtp_port?: number | null;
+  smtp_from?: string | null;
+  smtp_to?: string | null;
   username?: string | null;
   secret_reference?: string | null;
   poll_interval_minutes: number | null;
   last_polled_at: string | null;
+  last_successful_poll_at?: string | null;
   locked_at?: string | null;
   metadata?: Record<string, unknown> | null;
   last_error: string | null;
@@ -87,6 +95,23 @@ async function safeOrCount(table: string, orFilter: string) {
     .select("id", { count: "exact", head: true })
     .or(orFilter);
   return count ?? 0;
+}
+
+function metadataText(mailbox: MailboxRow, key: string): string | null {
+  const value = mailbox.metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function metadataBool(mailbox: MailboxRow, key: string, fallback: boolean): boolean {
+  const value = mailbox.metadata?.[key];
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return ["true", "1", "yes", "on"].includes(value.toLowerCase());
+  return fallback;
+}
+
+function envName(reference: string | null | undefined): string {
+  if (!reference) return "—";
+  return reference.startsWith("env:") ? reference : `env:${reference}`;
 }
 
 export default async function InboundMailPage() {
@@ -273,7 +298,7 @@ export default async function InboundMailPage() {
               </span>
               <input
                 name="mailbox_name"
-                defaultValue="Gridex shared production Ediel"
+                defaultValue="Gridex shared Ediel mailbox"
                 className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
                 required
               />
@@ -285,66 +310,74 @@ export default async function InboundMailPage() {
               <input
                 name="email_address"
                 type="email"
-                placeholder="ediel@example.se"
+                placeholder="ediel@gridex.se"
                 className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
                 required
               />
             </label>
-            <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">
-                IMAP-host
-              </span>
-              <input
-                name="imap_host"
-                placeholder="imap.example.se"
-                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-                required
-              />
-            </label>
-            <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">
-                IMAP-port
-              </span>
-              <input
-                name="imap_port"
-                type="number"
-                defaultValue={993}
-                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-                required
-              />
-            </label>
-            <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">
-                IMAP-folder
-              </span>
-              <input
-                name="imap_folder"
-                defaultValue="INBOX"
-                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-                required
-              />
-            </label>
-            <label className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700">
-                Username
-              </span>
-              <input
-                name="username"
-                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-                required
-              />
-            </label>
-            <label className="grid gap-1 xl:col-span-2">
-              <span className="text-xs font-semibold text-slate-700">
-                Secret reference
-              </span>
-              <input
-                name="secret_reference"
-                defaultValue="env:GRIDEX_SHARED_EDIEL_IMAP_PASS"
-                className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-                required
-              />
-            </label>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 xl:col-span-3">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">IMAP inbound</p>
+              <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-slate-700">IMAP-host</span>
+                  <input name="imap_host" defaultValue="imap.strato.de" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-slate-700">IMAP-port</span>
+                  <input name="imap_port" type="number" defaultValue={993} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-slate-700">IMAP-folder</span>
+                  <input name="imap_folder" defaultValue="INBOX" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+                </label>
+                <label className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                  <input name="imap_secure" type="checkbox" defaultChecked /> SSL/TLS
+                </label>
+                <label className="grid gap-1 md:col-span-2">
+                  <span className="text-xs font-semibold text-slate-700">IMAP username</span>
+                  <input name="username" placeholder="ediel@gridex.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+                </label>
+                <label className="grid gap-1 md:col-span-2">
+                  <span className="text-xs font-semibold text-slate-700">IMAP password secret reference</span>
+                  <input name="secret_reference" defaultValue="env:EDIEL_IMAP_PASS" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" required />
+                </label>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 xl:col-span-3">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">SMTP outbound</p>
+              <p className="mt-1 text-xs text-slate-600">Detta visar och sparar SMTP-konfiguration för shared mailbox. Ediel-utskick använder fortfarande EDIEL_SMTP_* i runtime om inget routespecifikt anges.</p>
+              <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-slate-700">SMTP-host</span>
+                  <input name="smtp_host" defaultValue="smtp.strato.de" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-slate-700">SMTP-port</span>
+                  <input name="smtp_port" type="number" defaultValue={465} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                </label>
+                <label className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                  <input name="smtp_secure" type="checkbox" defaultChecked /> SSL/TLS
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-slate-700">SMTP till default</span>
+                  <input name="smtp_to" placeholder="tomt = route styr" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                </label>
+                <label className="grid gap-1 md:col-span-2">
+                  <span className="text-xs font-semibold text-slate-700">SMTP from</span>
+                  <input name="smtp_from" placeholder="ediel@gridex.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                </label>
+                <label className="grid gap-1 md:col-span-2">
+                  <span className="text-xs font-semibold text-slate-700">SMTP username</span>
+                  <input name="smtp_username" placeholder="ediel@gridex.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                </label>
+                <label className="grid gap-1 md:col-span-4">
+                  <span className="text-xs font-semibold text-slate-700">SMTP password secret reference</span>
+                  <input name="smtp_secret_reference" defaultValue="env:EDIEL_SMTP_PASS" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                </label>
+              </div>
+            </div>
             <div className="xl:col-span-3">
               <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">
                 Spara shared mailbox
@@ -410,7 +443,13 @@ export default async function InboundMailPage() {
                 Inga mailboxar finns ännu.
               </div>
             ) : (
-              mailboxes.map((mailbox) => (
+              mailboxes.map((mailbox) => {
+                const imapFolder = metadataText(mailbox, "imap_folder") ?? "INBOX";
+                const smtpUsername = metadataText(mailbox, "smtp_username") ?? mailbox.smtp_from ?? mailbox.email_address;
+                const smtpSecretReference = metadataText(mailbox, "smtp_secret_reference");
+                const imapSecure = metadataBool(mailbox, "imap_secure", (mailbox.imap_port ?? 993) === 993);
+                const smtpSecure = metadataBool(mailbox, "smtp_secure", (mailbox.smtp_port ?? 465) === 465);
+                return (
                 <div
                   key={mailbox.id}
                   className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4"
@@ -435,9 +474,31 @@ export default async function InboundMailPage() {
                       {mailbox.is_active ? "Aktiv" : "Inaktiv"}
                     </span>
                   </div>
+
+                  <div className="mt-3 rounded-xl bg-white p-3 text-xs text-slate-700">
+                    <p className="font-bold text-slate-900">IMAP inbound</p>
+                    <p>Host: {mailbox.imap_host ?? "saknas"}:{mailbox.imap_port ?? 993} · {imapSecure ? "SSL/TLS" : "utan SSL"}</p>
+                    <p>Username: {mailbox.username ?? "saknas"}</p>
+                    <p>Folder: {imapFolder}</p>
+                    <p>Secret: {envName(mailbox.secret_reference)}</p>
+                  </div>
+
+                  <div className="mt-3 rounded-xl bg-white p-3 text-xs text-slate-700">
+                    <p className="font-bold text-slate-900">SMTP outbound</p>
+                    <p>Host: {mailbox.smtp_host ?? "saknas"}:{mailbox.smtp_port ?? 465} · {smtpSecure ? "SSL/TLS" : "utan SSL"}</p>
+                    <p>From: {mailbox.smtp_from ?? mailbox.email_address ?? "saknas"}</p>
+                    <p>Username: {smtpUsername ?? "saknas"}</p>
+                    <p>Secret: {envName(smtpSecretReference)}</p>
+                  </div>
+
                   <p className="mt-3 text-xs text-slate-600">
                     Senast pollad: {mailbox.last_polled_at ?? "—"}
                   </p>
+                  {mailbox.last_successful_poll_at ? (
+                    <p className="mt-1 text-xs text-emerald-700">
+                      Senast lyckad: {mailbox.last_successful_poll_at}
+                    </p>
+                  ) : null}
                   {mailbox.locked_at ? (
                     <p className="mt-1 text-xs font-medium text-amber-700">
                       Låst sedan: {mailbox.locked_at}
@@ -448,8 +509,46 @@ export default async function InboundMailPage() {
                       {mailbox.last_error}
                     </p>
                   ) : null}
+
+                  <div className="mt-4 grid gap-2">
+                    <form action={saveSharedMailboxProfileAction} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3">
+                      <input type="hidden" name="mailbox_id" value={mailbox.id} />
+                      <input type="hidden" name="environment" value={mailbox.environment ?? "production"} />
+                      <input type="hidden" name="mailbox_name" value={mailbox.mailbox_name ?? "Gridex shared Ediel mailbox"} />
+                      <input type="hidden" name="email_address" value={mailbox.email_address ?? ""} />
+                      <input type="hidden" name="imap_host" value={mailbox.imap_host ?? "imap.strato.de"} />
+                      <input type="hidden" name="imap_port" value={mailbox.imap_port ?? 993} />
+                      <input type="hidden" name="imap_folder" value={imapFolder} />
+                      <input type="hidden" name="imap_secure" value={imapSecure ? "true" : "false"} />
+                      <input type="hidden" name="username" value={mailbox.username ?? mailbox.email_address ?? ""} />
+                      <input type="hidden" name="secret_reference" value={mailbox.secret_reference ?? "env:EDIEL_IMAP_PASS"} />
+                      <input type="hidden" name="smtp_host" value={mailbox.smtp_host ?? "smtp.strato.de"} />
+                      <input type="hidden" name="smtp_port" value={mailbox.smtp_port ?? 465} />
+                      <input type="hidden" name="smtp_secure" value={smtpSecure ? "true" : "false"} />
+                      <input type="hidden" name="smtp_from" value={mailbox.smtp_from ?? mailbox.email_address ?? ""} />
+                      <input type="hidden" name="smtp_username" value={smtpUsername ?? ""} />
+                      <input type="hidden" name="smtp_secret_reference" value={smtpSecretReference ?? "env:EDIEL_SMTP_PASS"} />
+                      <button className="rounded-xl border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">
+                        Återaktivera/spara om
+                      </button>
+                    </form>
+                    <form action={deactivateSharedMailboxProfileAction}>
+                      <input type="hidden" name="mailbox_id" value={mailbox.id} />
+                      <button className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50">
+                        Avaktivera
+                      </button>
+                    </form>
+                    <form action={deleteSharedMailboxProfileAction} className="flex gap-2">
+                      <input type="hidden" name="mailbox_id" value={mailbox.id} />
+                      <input name="confirm_delete" placeholder="Skriv DELETE" className="min-w-0 flex-1 rounded-xl border border-red-200 px-3 py-2 text-xs" />
+                      <button className="rounded-xl bg-red-700 px-3 py-2 text-xs font-semibold text-white hover:bg-red-800">
+                        Radera
+                      </button>
+                    </form>
+                  </div>
                 </div>
-              ))
+              );
+              })
             )}
           </div>
         </section>
