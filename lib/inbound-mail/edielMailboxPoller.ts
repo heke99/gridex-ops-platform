@@ -154,6 +154,29 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function postgresErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== 'object' || !('code' in error)) return null;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : null;
+}
+
+function postgresErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (!error || typeof error !== 'object') return String(error ?? '');
+  const candidate = error as { message?: unknown; details?: unknown; hint?: unknown };
+  return [candidate.message, candidate.details, candidate.hint]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .join(' ');
+}
+
+function isPostgresUniqueViolation(error: unknown): boolean {
+  return postgresErrorCode(error) === '23505';
+}
+
+function isUnsafeBatch7aTransactionConflict(error: unknown): boolean {
+  return postgresErrorMessage(error).includes('ux_ediel_batch7a_inbound_transaction');
+}
+
 function bufferToUtf8(value: unknown): string | null {
   if (!value) return null;
   if (Buffer.isBuffer(value)) return value.toString("utf8");
@@ -1723,14 +1746,53 @@ async function ensureDiagnosticEdielMessagesForInboundEmails(
   const inserts = [...parseInserts, ...fallbackInserts];
   if (inserts.length === 0) return existingIds;
 
+  const insertedRows: Array<Record<string, unknown>> = [];
+  const selectColumns = "id,inbound_email_message_id,company_id,environment,message_family,message_code,failure_reason,validation_report";
   const { data: inserted, error: insertError } = await supabaseService
     .from("ediel_messages")
     .insert(inserts)
-    .select("id,inbound_email_message_id,company_id,environment,message_family,message_code,failure_reason,validation_report");
+    .select(selectColumns);
 
-  if (insertError) throw insertError;
+  if (insertError) {
+    if (!isPostgresUniqueViolation(insertError)) throw insertError;
 
-  const insertedRows = (inserted ?? []) as Array<Record<string, unknown>>;
+    console.warn(
+      "[inbound-mail] Bulk-diagnostik för inbound ediel_messages träffade unique constraint; försöker rad-för-rad så IMAP-synk inte stoppas.",
+      insertError,
+    );
+
+    for (const insertRow of inserts) {
+      const { data: singleInserted, error: singleInsertError } = await supabaseService
+        .from("ediel_messages")
+        .insert(insertRow)
+        .select(selectColumns)
+        .maybeSingle();
+
+      if (singleInsertError) {
+        if (isPostgresUniqueViolation(singleInsertError)) {
+          if (isUnsafeBatch7aTransactionConflict(singleInsertError)) {
+            console.warn(
+              "[inbound-mail] Diagnostikrad hoppades över eftersom gammalt Batch 7A transaction-unique-index blockerar legitim inbound. Kör migration 20260604113000_fix_ediel_inbound_transaction_dedupe.sql.",
+              singleInsertError,
+            );
+            continue;
+          }
+
+          console.warn(
+            "[inbound-mail] Diagnostikrad fanns redan eller blockerades av annan unique constraint; fortsätter utan att stoppa IMAP-synk.",
+            singleInsertError,
+          );
+          continue;
+        }
+
+        throw singleInsertError;
+      }
+
+      if (singleInserted) insertedRows.push(singleInserted as Record<string, unknown>);
+    }
+  } else {
+    insertedRows.push(...((inserted ?? []) as Array<Record<string, unknown>>));
+  }
   const fallbackInboundIdSet = new Set(
     fallbackInserts
       .map((row) => row.inbound_email_message_id)

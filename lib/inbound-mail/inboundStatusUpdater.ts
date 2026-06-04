@@ -9,6 +9,71 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
+function postgresErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== 'object' || !('code' in error)) return null
+  const code = (error as { code?: unknown }).code
+  return typeof code === 'string' ? code : null
+}
+
+function postgresErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (!error || typeof error !== 'object') return String(error ?? '')
+  const candidate = error as { message?: unknown; details?: unknown; hint?: unknown }
+  return [candidate.message, candidate.details, candidate.hint]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .join(' ')
+}
+
+function isPostgresUniqueViolation(error: unknown): boolean {
+  return postgresErrorCode(error) === '23505'
+}
+
+function isUnsafeBatch7aTransactionConflict(error: unknown): boolean {
+  return postgresErrorMessage(error).includes('ux_ediel_batch7a_inbound_transaction')
+}
+
+async function findExistingInboundEdielMessageByCanonicalIdentity(input: {
+  companyId: string
+  inboundEmailMessageId?: string | null
+  parsed: ParsedEdifactEnvelope
+}): Promise<string | null> {
+  if (input.inboundEmailMessageId) {
+    const { data, error } = await supabaseService
+      .from('ediel_messages')
+      .select('id')
+      .eq('company_id', input.companyId)
+      .eq('direction', 'inbound')
+      .eq('inbound_email_message_id', input.inboundEmailMessageId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!error) {
+      const id = (data as { id?: string } | null)?.id ?? null
+      if (id) return id
+    }
+  }
+
+  if (input.parsed.interchangeReference && input.parsed.senderEdielId && input.parsed.receiverEdielId) {
+    const { data, error } = await supabaseService
+      .from('ediel_messages')
+      .select('id')
+      .eq('company_id', input.companyId)
+      .eq('direction', 'inbound')
+      .eq('sender_ediel_id', input.parsed.senderEdielId)
+      .eq('receiver_ediel_id', input.parsed.receiverEdielId)
+      .eq('interchange_reference', input.parsed.interchangeReference)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!error) return (data as { id?: string } | null)?.id ?? null
+    console.warn('[inbound-mail] Kunde inte kontrollera befintlig inbound ediel_message via interchange', error)
+  }
+
+  return null
+}
+
 function isNegativeContrL(parsed: ParsedEdifactEnvelope): boolean {
   return parsed.messageFamily === 'CONTRL' && parsed.segments.some((segment) => /(^|\+)UCI\+[^']*\+7(\+|$)/.test(segment))
 }
@@ -304,22 +369,11 @@ export async function createInboundEdielMessage(input: {
     ...ackColumnsForParsed(input.parsed),
   }
 
-  let existingId: string | null = null
-
-  if (input.parsed.interchangeReference && input.parsed.senderEdielId && input.parsed.receiverEdielId) {
-    const existing = await supabaseService
-      .from('ediel_messages')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('direction', 'inbound')
-      .eq('sender_ediel_id', input.parsed.senderEdielId)
-      .eq('receiver_ediel_id', input.parsed.receiverEdielId)
-      .eq('interchange_reference', input.parsed.interchangeReference)
-      .maybeSingle()
-
-    if (existing.error) console.warn('[inbound-mail] Kunde inte kontrollera befintlig inbound ediel_message', existing.error)
-    existingId = (existing.data as { id?: string } | null)?.id ?? null
-  }
+  const existingId = await findExistingInboundEdielMessageByCanonicalIdentity({
+    companyId: input.companyId,
+    inboundEmailMessageId: input.inboundEmailMessageId,
+    parsed: input.parsed,
+  })
 
   const result = existingId
     ? await supabaseService
@@ -335,6 +389,31 @@ export async function createInboundEdielMessage(input: {
         .maybeSingle()
 
   if (result.error) {
+    if (isPostgresUniqueViolation(result.error)) {
+      const existingAfterConflict = await findExistingInboundEdielMessageByCanonicalIdentity({
+        companyId: input.companyId,
+        inboundEmailMessageId: input.inboundEmailMessageId,
+        parsed: input.parsed,
+      })
+
+      if (existingAfterConflict) {
+        console.info('[inbound-mail] Inbound ediel_message fanns redan, återanvänder befintlig rad efter unique conflict.', {
+          existingAfterConflict,
+          inboundEmailMessageId: input.inboundEmailMessageId,
+          interchangeReference: input.parsed.interchangeReference,
+        })
+        return existingAfterConflict
+      }
+
+      if (isUnsafeBatch7aTransactionConflict(result.error)) {
+        console.warn(
+          '[inbound-mail] Inbound ediel_message blockerades av gammalt för grovt Batch 7A transaction-unique-index. Kör migration 20260604113000_fix_ediel_inbound_transaction_dedupe.sql och synka igen.',
+          result.error,
+        )
+        return null
+      }
+    }
+
     console.warn('[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message', result.error)
     return null
   }
