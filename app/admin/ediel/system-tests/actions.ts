@@ -1927,6 +1927,8 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
   }
 
   let targetRunId: string | null = null;
+  const redirectParams = new URLSearchParams();
+  if (companyId) redirectParams.set("companyId", companyId);
 
   try {
     const existingRuns = await listEdielTestRuns({ companyId }).catch(() => []);
@@ -2040,6 +2042,38 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
       });
     }
 
+    const pollStatus =
+      linked.length > 0
+        ? "linked"
+        : importedMessages.length > 0
+          ? "imported_without_match"
+          : recentMatchingMessages.length > 0
+            ? "linked_from_recent_import"
+            : "no_unread_messages";
+    const fetched =
+      typeof pollResult?.fetchedMessages === "number"
+        ? pollResult.fetchedMessages
+        : null;
+    const stored =
+      typeof pollResult?.storedEmails === "number"
+        ? pollResult.storedEmails
+        : null;
+    const deduped =
+      typeof pollResult?.dedupedEmails === "number"
+        ? pollResult.dedupedEmails
+        : null;
+    const errorCount = Array.isArray(
+      (pollResult?.debug as Record<string, unknown> | undefined)?.errorsByMailbox,
+    )
+      ? ((pollResult?.debug as Record<string, unknown>).errorsByMailbox as unknown[]).length
+      : 0;
+    redirectParams.set("imapStatus", pollStatus);
+    redirectParams.set("fetched", String(fetched ?? importedMessages.length));
+    redirectParams.set("stored", String(stored ?? importedMessages.length));
+    redirectParams.set("deduped", String(deduped ?? 0));
+    redirectParams.set("linked", String(linked.length));
+    redirectParams.set("errors", String(errorCount));
+
     await attachRulebookArtifact({
       actorUserId: context.userId,
       testRunId: targetRunId,
@@ -2059,19 +2093,15 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
         linkedCount: linked.length,
         linked,
         skipped,
-        pollStatus:
-          linked.length > 0
-            ? "linked"
-            : importedMessages.length > 0
-              ? "imported_without_match"
-              : recentMatchingMessages.length > 0
-                ? "linked_from_recent_import"
-                : "no_unread_messages",
+        pollStatus,
         createdAt: new Date().toISOString(),
       },
     });
   } catch (error) {
     const pollError = `IMAP-poll misslyckades: ${errorMessage(error)}`;
+    redirectParams.set("imapStatus", "error");
+    redirectParams.set("errors", "1");
+    redirectParams.set("message", errorMessage(error).slice(0, 220));
     if (targetRunId) {
       await updateEdielTestRunStatus({
         actorUserId: context.userId,
@@ -2126,8 +2156,9 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
   }
 
   revalidateSystemTests(definition.testCaseCode);
+  const queryString = redirectParams.toString();
   redirect(
-    `/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`,
+    `/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}${queryString ? `?${queryString}` : ""}`,
   );
 }
 

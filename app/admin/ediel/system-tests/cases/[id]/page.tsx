@@ -607,7 +607,16 @@ export default async function SystemTestCasePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ companyId?: string }>;
+  searchParams?: Promise<{
+    companyId?: string;
+    imapStatus?: string;
+    fetched?: string;
+    stored?: string;
+    deduped?: string;
+    linked?: string;
+    errors?: string;
+    message?: string;
+  }>;
 }) {
   const { id } = await params;
   const query = searchParams ? await searchParams : {};
@@ -615,6 +624,8 @@ export default async function SystemTestCasePage({
   const context = await requirePlatformAdminAccess();
   const scope = await getOperationalCompanyScope(context.userId);
   const selectedCompanyId = String(query.companyId ?? "").trim() || scope.companyId || null;
+  const imapStatus = String(query.imapStatus ?? "").trim();
+  const hasImapSyncResult = Boolean(imapStatus);
   const testCase = findDefinition(testCaseCode);
 
   if (!testCase) {
@@ -716,6 +727,33 @@ export default async function SystemTestCasePage({
         workspaceName="Plattformskontroll"
         workspaceMode="platform"
       />
+
+      {hasImapSyncResult ? (
+        <section
+          className={`rounded-2xl border p-4 text-sm leading-6 ${
+            imapStatus === "linked"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+              : imapStatus === "error"
+                ? "border-red-200 bg-red-50 text-red-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          <div className="font-black">IMAP-synkresultat för {testCase.testCaseCode}</div>
+          <div className="mt-1 grid gap-2 sm:grid-cols-5">
+            <span>Status: {imapStatus}</span>
+            <span>Hämtade: {query.fetched ?? "0"}</span>
+            <span>Sparade: {query.stored ?? "0"}</span>
+            <span>Dubbletter: {query.deduped ?? "0"}</span>
+            <span>Kopplade: {query.linked ?? "0"}</span>
+          </div>
+          {query.message ? <div className="mt-2 font-semibold">{query.message}</div> : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/admin/inbound-mail" className="underline">Öppna inbound-mail</Link>
+            <Link href="/admin/ediel/messages" className="underline">Öppna meddelandelogg</Link>
+            <Link href="/admin/ediel/unresolved" className="underline">Öppna unresolved</Link>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">

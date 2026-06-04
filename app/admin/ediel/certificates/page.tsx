@@ -5,6 +5,7 @@ import {
   archiveEdielCertificateAction,
   deleteEdielCertificateAction,
   importEdielP12CertificateAction,
+  validateEdielP12EnvCertificateAction,
 } from "@/app/admin/ediel/certificates/actions";
 import { evaluateCertificateStatus } from "@/lib/ediel/security/certificateStatus";
 
@@ -43,6 +44,11 @@ type CertificateDisplayRow = {
   message_type?: string | null;
   purpose?: string | null;
   usage?: string | null;
+  p12_secret_reference?: string | null;
+  p12_secret_ref?: string | null;
+  p12_password_secret_ref?: string | null;
+  password_secret_reference?: string | null;
+  secret_reference?: string | null;
   is_private_material_available?: boolean | null;
   needs_verification?: boolean | null;
   metadata?: Record<string, unknown> | null;
@@ -65,6 +71,42 @@ function uniqueIdentifierFromMetadata(
     textFromMetadata(row, "expisoftUniqueIdentifier")
   );
 }
+function p12SecretReference(row: CertificateDisplayRow): string | null {
+  return (
+    row.p12_secret_reference ??
+    row.p12_secret_ref ??
+    row.secret_reference ??
+    textFromMetadata(row, "p12SecretReference") ??
+    textFromMetadata(row, "p12_secret_reference") ??
+    textFromMetadata(row, "p12SecretRef") ??
+    textFromMetadata(row, "p12_secret_ref")
+  );
+}
+
+function p12PasswordSecretReference(row: CertificateDisplayRow): string | null {
+  return (
+    row.p12_password_secret_ref ??
+    row.password_secret_reference ??
+    textFromMetadata(row, "passwordSecretReference") ??
+    textFromMetadata(row, "p12PasswordSecretReference") ??
+    textFromMetadata(row, "p12_password_secret_ref")
+  );
+}
+
+function isInboundPrivateEnvReference(row: CertificateDisplayRow): boolean {
+  return (
+    String(row.usage ?? textFromMetadata(row, "usage") ?? "").toLowerCase() ===
+      "inbound_private" &&
+    String(p12SecretReference(row) ?? "").startsWith("env:")
+  );
+}
+
+function maskedEnvReference(value: string | null): string {
+  if (!value) return "saknas";
+  if (!value.startsWith("env:")) return "icke-env";
+  return value;
+}
+
 
 async function listCertificateRows(): Promise<{
   rows: CertificateDisplayRow[];
@@ -73,7 +115,7 @@ async function listCertificateRows(): Promise<{
   const rich = await supabaseService
     .from("ediel_certificates")
     .select(
-      "id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry, owner_ediel_id, owner_subaddress, message_type, purpose, usage, is_private_material_available, needs_verification, metadata",
+      "id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry, owner_ediel_id, owner_subaddress, message_type, purpose, usage, p12_secret_reference, p12_secret_ref, p12_password_secret_ref, password_secret_reference, secret_reference, is_private_material_available, needs_verification, metadata",
     )
     .order("updated_at", { ascending: false })
     .limit(100);
@@ -192,6 +234,17 @@ export default async function EdielCertificatesPage({
               </p>
             </div>
           </div>
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+            <div className="font-black">Ombudsmodell för SaaS-tenants</div>
+            <p className="mt-1">
+              Nya elbolag/tenants kan använda Div3rsa/Gridex som ombud och
+              transportkanal, men deras eget Ediel-ID ska fortfarande sparas som
+              certifikatets/aktörens owner_ediel_id. Ombuds-/transport-ID anges
+              separat, normalt 21660. Tenant avgörs senare av Ediel-ID,
+              subadress, certifikat/CMS och EDIFACT — aldrig enbart av mailboxen.
+            </p>
+          </div>
+
           <form
             action={importEdielP12CertificateAction}
             className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
@@ -257,6 +310,12 @@ export default async function EdielCertificatesPage({
               name="ownerSubaddress"
               placeholder="Ägarens subadress, t.ex. PRODAT"
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            />
+            <input
+              name="ombudEdielId"
+              defaultValue="21660"
+              placeholder="Ombud/transport Ediel-ID, t.ex. 21660"
+              className="rounded-xl border border-blue-300 bg-blue-50 px-3 py-2 text-sm"
             />
             <select
               name="messageType"
@@ -339,6 +398,12 @@ export default async function EdielCertificatesPage({
             <tbody>
               {rows.map((row) => {
                 const certStatus = evaluateCertificateStatus(row);
+                const inboundEnvReference = isInboundPrivateEnvReference(row);
+                const envValidationStatus = textFromMetadata(row, "envP12ValidationStatus");
+                const ombudEdielId =
+                  textFromMetadata(row, "ombudEdielId") ??
+                  textFromMetadata(row, "delegatedByEdielId") ??
+                  textFromMetadata(row, "representativeEdielId");
                 const displayName =
                   row.display_name ??
                   textFromMetadata(row, "displayName") ??
@@ -395,6 +460,19 @@ export default async function EdielCertificatesPage({
                         {ownerSubaddress ? `:${ownerSubaddress}` : ""}
                         {messageType ? ` · ${messageType}` : ""}
                       </div>
+                      {ombudEdielId ? (
+                        <div className="mt-1 text-xs font-semibold text-blue-700">
+                          Ombud/transport: Div3rsa/Gridex Ediel-ID {ombudEdielId}
+                        </div>
+                      ) : null}
+                      {inboundEnvReference ? (
+                        <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 p-2 text-xs leading-5 text-blue-900">
+                          <div className="font-bold">Inbound P12 via env</div>
+                          <div>P12: {maskedEnvReference(p12SecretReference(row))}</div>
+                          <div>Password: {maskedEnvReference(p12PasswordSecretReference(row))}</div>
+                          <div>Validering: {envValidationStatus ?? "ej körd"}</div>
+                        </div>
+                      ) : null}
                       {uniqueIdentifier ? (
                         <div className="mt-1 text-xs font-semibold text-amber-700">
                           Unik identifierare: {uniqueIdentifier}
@@ -427,6 +505,18 @@ export default async function EdielCertificatesPage({
                       ) : null}
                     </td>
                     <td className="space-y-2 p-4">
+                      {inboundEnvReference ? (
+                        <form action={validateEdielP12EnvCertificateAction}>
+                          <input
+                            type="hidden"
+                            name="certificateId"
+                            value={row.id}
+                          />
+                          <button className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-800">
+                            Validera P12 från env
+                          </button>
+                        </form>
+                      ) : null}
                       <form action={archiveEdielCertificateAction}>
                         <input
                           type="hidden"

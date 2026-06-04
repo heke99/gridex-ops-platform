@@ -7,6 +7,14 @@ export type CertificateStatusInput = {
   warning_days_before_expiry?: number | null
   critical_days_before_expiry?: number | null
   status?: string | null
+  encryption_status?: string | null
+  usage?: string | null
+  purpose?: string | null
+  p12_secret_reference?: string | null
+  p12SecretReference?: string | null
+  secret_reference?: string | null
+  is_private_material_available?: boolean | null
+  metadata?: Record<string, unknown> | null
 }
 
 export type CertificateRenewalStatus =
@@ -16,6 +24,7 @@ export type CertificateRenewalStatus =
   | 'critical'
   | 'expired'
   | 'pending_identifier'
+  | 'runtime_validation_required'
   | 'validation_failed'
 
 export type CertificateStatusEvaluation = {
@@ -38,6 +47,45 @@ function parseDate(value?: string | null): Date | null {
 
 function isoDate(value: Date | null): string | null {
   return value ? value.toISOString().slice(0, 10) : null
+}
+
+function metadataText(input: CertificateStatusInput, ...keys: string[]): string | null {
+  const meta = input.metadata && typeof input.metadata === 'object' ? input.metadata : null
+  if (!meta) return null
+  for (const key of keys) {
+    const value = meta[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
+
+function hasEnvP12Reference(input: CertificateStatusInput): boolean {
+  const reference =
+    input.p12_secret_reference ??
+    input.p12SecretReference ??
+    input.secret_reference ??
+    metadataText(
+      input,
+      'p12SecretReference',
+      'p12_secret_reference',
+      'p12SecretRef',
+      'p12_secret_ref',
+      'p12Base64Env',
+      'p12Env',
+    )
+  return typeof reference === 'string' && reference.trim().startsWith('env:')
+}
+
+function isInboundPrivateEnvReference(input: CertificateStatusInput): boolean {
+  const usage = String(input.usage ?? metadataText(input, 'usage') ?? '').toLowerCase()
+  const dbStatus = String(input.status ?? '').toLowerCase()
+  return (
+    usage === 'inbound_private' &&
+    dbStatus !== 'archived' &&
+    dbStatus !== 'deleted' &&
+    dbStatus !== 'inactive' &&
+    hasEnvP12Reference(input)
+  )
 }
 
 export function evaluateCertificateStatus(
@@ -74,6 +122,19 @@ export function evaluateCertificateStatus(
     }
   }
 
+  if (!validTo && isInboundPrivateEnvReference(input)) {
+    return {
+      status: 'runtime_validation_required',
+      isUsableForSmime: true,
+      validFrom: validFrom?.toISOString() ?? null,
+      validTo: null,
+      daysUntilExpiry: null,
+      renewalAvailableFrom: null,
+      message:
+        'Env-referens aktiv för inbound S/MIME. Klicka Validera P12 från env för att läsa giltighetstid och fingerprint.',
+    }
+  }
+
   if (!validTo) {
     return {
       status: 'validation_failed',
@@ -81,8 +142,8 @@ export function evaluateCertificateStatus(
       validFrom: validFrom?.toISOString() ?? null,
       validTo: null,
       daysUntilExpiry: null,
-      renewalAvailableFrom: null,
       message: 'Certifikatet saknar giltigt slutdatum.',
+      renewalAvailableFrom: null,
     }
   }
 

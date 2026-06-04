@@ -149,11 +149,11 @@ function profileFromP12(params: {
 }
 
 function rowP12SecretReference(row: CertificateRow): string | null {
-  return clean(row.p12_secret_reference) ?? metadataText(row, 'p12SecretReference', 'p12_secret_reference', 'p12Base64Env', 'p12Env')
+  return clean(row.p12_secret_reference) ?? clean(row.p12_secret_ref) ?? metadataText(row, 'p12SecretReference', 'p12_secret_reference', 'p12SecretRef', 'p12_secret_ref', 'p12Base64Env', 'p12Env')
 }
 
 function rowPasswordSecretReference(row: CertificateRow): string | null {
-  return metadataText(
+  return clean(row.p12_password_secret_ref) ?? clean(row.password_secret_reference) ?? metadataText(
     row,
     'p12PasswordSecretReference',
     'p12_password_secret_reference',
@@ -207,7 +207,7 @@ export async function loadInboundPrivateCertificates(input: {
 
   let query = supabaseService
     .from('ediel_certificates')
-    .select('id,company_id,environment,display_name,subject,issuer,serial_number,fingerprint_sha256,certificate_fingerprint,owner_ediel_id,owner_subaddress,usage,purpose,status,p12_secret_reference,private_key_secret_reference,secret_reference,metadata')
+    .select('id,company_id,environment,display_name,subject,issuer,serial_number,fingerprint_sha256,certificate_fingerprint,owner_ediel_id,owner_subaddress,usage,purpose,status,p12_secret_reference,p12_secret_ref,p12_password_secret_ref,password_secret_reference,private_key_secret_reference,secret_reference,metadata')
     .in('usage', ['inbound_private', 'sender_signing'])
 
   if (input.environment) query = query.eq('environment', input.environment)

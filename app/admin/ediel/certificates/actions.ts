@@ -10,6 +10,7 @@ import {
   importPublicCertificatePem,
 } from "@/lib/ediel/security/importP12Certificate";
 import { evaluateCertificateStatus } from "@/lib/ediel/security/certificateStatus";
+import { validateP12FromEnvReferences } from "@/lib/ediel/security/envP12CertificateValidator";
 import { invalidateEdielAgtReadiness } from "@/lib/ediel/testing/retestInvalidation";
 import { formatErrorMessage } from "@/lib/errors";
 
@@ -114,6 +115,48 @@ function normalizeSecretReference(value: string | null): string | null {
     );
   }
   return `env:${envName}`;
+}
+
+function metadataValue(row: Record<string, unknown>, key: string): string | null {
+  const metadata = row.metadata;
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function firstString(...values: Array<unknown>): string | null {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function envP12ReferencesFromCertificateRow(row: Record<string, unknown>): {
+  p12SecretReference: string | null;
+  passwordSecretReference: string | null;
+} {
+  return {
+    p12SecretReference: firstString(
+      row.p12_secret_reference,
+      row.p12_secret_ref,
+      row.secret_reference,
+      metadataValue(row, "p12SecretReference"),
+      metadataValue(row, "p12_secret_reference"),
+      metadataValue(row, "p12SecretRef"),
+      metadataValue(row, "p12_secret_ref"),
+      metadataValue(row, "p12Base64Env"),
+      metadataValue(row, "p12Env"),
+    ),
+    passwordSecretReference: firstString(
+      row.p12_password_secret_ref,
+      row.password_secret_reference,
+      metadataValue(row, "passwordSecretReference"),
+      metadataValue(row, "p12PasswordSecretReference"),
+      metadataValue(row, "p12_password_secret_ref"),
+      metadataValue(row, "p12PasswordEnv"),
+      metadataValue(row, "passwordEnv"),
+    ),
+  };
 }
 
 function envReferenceFingerprint(input: {
@@ -489,6 +532,7 @@ async function registerPrivateP12EnvReference(input: {
   ownerEdielId: string | null;
   ownerSubaddress: string | null;
   messageType: string | null;
+  ombudEdielId: string | null;
 }) {
   const now = new Date().toISOString();
   const fingerprint = envReferenceFingerprint({
@@ -511,6 +555,12 @@ async function registerPrivateP12EnvReference(input: {
     ownerEdielId: input.ownerEdielId,
     ownerSubaddress: input.ownerSubaddress,
     messageType: input.messageType,
+    ombudEdielId: input.ombudEdielId,
+    delegatedByEdielId: input.ombudEdielId,
+    representativeEdielId: input.ombudEdielId,
+    actorIdentityModel: input.ombudEdielId
+      ? "tenant_ediel_id_via_div3rsa_ombud"
+      : "direct_actor_ediel_id",
     p12SecretReference: input.p12SecretReference,
     p12_secret_reference: input.p12SecretReference,
     p12SecretRef: input.p12SecretReference,
@@ -597,7 +647,7 @@ async function registerPrivateP12EnvReference(input: {
 
 async function importEdielP12Certificate(
   formData: FormData,
-): Promise<{ id: string; mailboxDefaultApplied: boolean }> {
+): Promise<{ id: string; mailboxDefaultApplied: boolean; usage: CertificateUsage }> {
   const context = await requirePlatformAdminActionAccess();
   const file = formData.get("certificateFile");
   const password = stringValue(formData, "password");
@@ -664,6 +714,7 @@ async function importEdielP12Certificate(
 
     const ownerEdielId = stringValue(formData, "ownerEdielId");
     const ownerSubaddress = stringValue(formData, "ownerSubaddress");
+    const ombudEdielId = stringValue(formData, "ombudEdielId") ?? "21660";
     const messageType =
       stringValue(formData, "messageType")?.toUpperCase() ?? "PRODAT";
 
@@ -681,6 +732,7 @@ async function importEdielP12Certificate(
       ownerEdielId,
       ownerSubaddress,
       messageType,
+      ombudEdielId,
     });
 
     await supabaseService
@@ -700,6 +752,7 @@ async function importEdielP12Certificate(
           ownerEdielId,
           ownerSubaddress,
           messageType,
+          ombudEdielId,
           p12SecretReference,
           passwordSecretReference,
           privateKeySecretReference,
@@ -712,7 +765,7 @@ async function importEdielP12Certificate(
 
     revalidatePath("/admin/ediel/certificates");
     revalidatePath("/admin/ediel/control-tower");
-    return { id: data.id, mailboxDefaultApplied: false };
+    return { id: data.id, mailboxDefaultApplied: false, usage };
   }
 
   if (!hasFile && !pastedCertificate && uniqueIdentifier) {
@@ -748,7 +801,7 @@ async function importEdielP12Certificate(
 
     revalidatePath("/admin/ediel/certificates");
     revalidatePath("/admin/ediel/control-tower");
-    return { id: data.id, mailboxDefaultApplied: false };
+    return { id: data.id, mailboxDefaultApplied: false, usage: "outbound_recipient" };
   }
 
   const importSource: "file" | "paste" = hasFile ? "file" : "paste";
@@ -911,7 +964,7 @@ async function importEdielP12Certificate(
 
   revalidatePath("/admin/ediel/certificates");
   revalidatePath("/admin/ediel/control-tower");
-  return { id: data.id, mailboxDefaultApplied };
+  return { id: data.id, mailboxDefaultApplied, usage };
 }
 
 async function archiveCertificate(input: {
@@ -1017,6 +1070,188 @@ async function hardDeleteCertificate(input: {
   if (error) throw error;
 }
 
+
+export async function validateEdielP12EnvCertificateAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess();
+  const certificateId = stringValue(formData, "certificateId");
+  if (!certificateId) certificateRedirect("error", "Certifikat-id saknas.");
+
+  let row: Record<string, unknown> | null = null;
+  const rich = await supabaseService
+    .from("ediel_certificates")
+    .select(
+      "id,display_name,scope,environment,usage,purpose,owner_ediel_id,owner_subaddress,message_type,p12_secret_reference,p12_secret_ref,p12_password_secret_ref,password_secret_reference,secret_reference,metadata,status",
+    )
+    .eq("id", certificateId)
+    .maybeSingle();
+
+  if (!rich.error) {
+    row = rich.data as Record<string, unknown> | null;
+  } else if (!isSchemaCompatibilityError(rich.error)) {
+    certificateRedirect(
+      "error",
+      formatErrorMessage(rich.error, "Kunde inte läsa certifikatet."),
+    );
+  } else {
+    const legacy = await supabaseService
+      .from("ediel_certificates")
+      .select("id,certificate_fingerprint,secret_reference,metadata,status")
+      .eq("id", certificateId)
+      .maybeSingle();
+    if (legacy.error) {
+      certificateRedirect(
+        "error",
+        formatErrorMessage(legacy.error, "Kunde inte läsa certifikatet."),
+      );
+    }
+    row = legacy.data as Record<string, unknown> | null;
+  }
+
+  if (!row) certificateRedirect("error", "Certifikatet hittades inte.");
+
+  const references = envP12ReferencesFromCertificateRow(row);
+  if (!references.p12SecretReference || !references.passwordSecretReference) {
+    certificateRedirect(
+      "error",
+      "Certifikatet saknar P12 secret reference eller password secret reference.",
+    );
+  }
+
+  let validation;
+  try {
+    validation = await validateP12FromEnvReferences({
+      p12SecretReference: references.p12SecretReference,
+      passwordSecretReference: references.passwordSecretReference,
+      displayName: firstString(row.display_name, metadataValue(row, "displayName")),
+    });
+  } catch (error) {
+    const existingMetadata =
+      row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+        ? (row.metadata as Record<string, unknown>)
+        : {};
+    const failedMetadata = {
+      ...existingMetadata,
+      envP12ValidationStatus: "failed",
+      envP12ValidatedAt: new Date().toISOString(),
+      envP12ValidationError: formatErrorMessage(error, "P12 kunde inte valideras från env."),
+    };
+    await supabaseService
+      .from("ediel_certificates")
+      .update({
+        encryption_status: "validation_failed",
+        last_validation_at: new Date().toISOString(),
+        updated_by: context.userId,
+        updated_at: new Date().toISOString(),
+        metadata: failedMetadata,
+      })
+      .eq("id", certificateId)
+      .then(({ error: updateError }) => {
+        if (updateError && !isSchemaCompatibilityError(updateError)) throw updateError;
+      });
+    certificateRedirect(
+      "error",
+      formatErrorMessage(error, "P12 kunde inte valideras från env."),
+    );
+  }
+
+  const existingMetadata =
+    row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+  const metadata = {
+    ...existingMetadata,
+    envP12ValidationStatus: "valid",
+    envP12ValidatedAt: validation.validatedAt,
+    envP12PrivateKeyPresent: validation.privateKeyPresent,
+    p12SecretReference: references.p12SecretReference,
+    passwordSecretReference: references.passwordSecretReference,
+    p12Metadata: {
+      fingerprintSha256: validation.fingerprintSha256,
+      subject: validation.subject,
+      issuer: validation.issuer,
+      serialNumber: validation.serialNumber,
+      validFrom: validation.validFrom,
+      validTo: validation.validTo,
+      privateKeyPresent: validation.privateKeyPresent,
+    },
+  };
+
+  const richUpdate = await supabaseService
+    .from("ediel_certificates")
+    .update({
+      subject: validation.subject,
+      issuer: validation.issuer,
+      serial_number: validation.serialNumber,
+      fingerprint_sha256: validation.fingerprintSha256,
+      certificate_fingerprint: validation.fingerprintSha256,
+      public_certificate_pem: validation.publicCertificatePem,
+      valid_from: validation.validFrom,
+      valid_to: validation.validTo,
+      certificate_valid_from: validation.validFrom,
+      certificate_valid_to: validation.validTo,
+      encryption_status: "valid",
+      status: "active",
+      needs_verification: false,
+      is_private_material_available: true,
+      last_validation_at: validation.validatedAt,
+      updated_by: context.userId,
+      updated_at: validation.validatedAt,
+      metadata,
+    })
+    .eq("id", certificateId);
+
+  if (richUpdate.error && !isSchemaCompatibilityError(richUpdate.error)) {
+    certificateRedirect(
+      "error",
+      formatErrorMessage(richUpdate.error, "Kunde inte uppdatera certifikatmetadata."),
+    );
+  }
+
+  if (richUpdate.error && isSchemaCompatibilityError(richUpdate.error)) {
+    const legacy = await supabaseService
+      .from("ediel_certificates")
+      .update({
+        certificate_fingerprint: validation.fingerprintSha256,
+        certificate_valid_from: validation.validFrom,
+        certificate_valid_to: validation.validTo,
+        encryption_status: "valid",
+        status: "active",
+        last_validation_at: validation.validatedAt,
+        updated_by: context.userId,
+        updated_at: validation.validatedAt,
+        metadata,
+      })
+      .eq("id", certificateId);
+    if (legacy.error) {
+      certificateRedirect(
+        "error",
+        formatErrorMessage(legacy.error, "Kunde inte uppdatera certifikatmetadata."),
+      );
+    }
+  }
+
+  await supabaseService
+    .from("ediel_certificate_events")
+    .insert({
+      certificate_id: certificateId,
+      company_id: null,
+      event_type: "validated_env_p12",
+      message:
+        "Privat P12/PFX env-referens validerades på backend. Endast metadata sparades i databasen.",
+      metadata,
+      created_by: context.userId,
+    })
+    .then(({ error }) => {
+      if (error && !isSchemaCompatibilityError(error)) throw error;
+    });
+
+  revalidatePath("/admin/ediel/certificates");
+  certificateRedirect(
+    "success",
+    `P12 från env validerades. Giltigt till ${validation.validTo ?? "okänt datum"}.`,
+  );
+}
+
 export async function archiveEdielCertificateAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess();
   const certificateId = stringValue(formData, "certificateId");
@@ -1057,7 +1292,7 @@ export async function deleteEdielCertificateAction(formData: FormData) {
 }
 
 export async function importEdielP12CertificateAction(formData: FormData) {
-  let result: { id: string; mailboxDefaultApplied: boolean };
+  let result: { id: string; mailboxDefaultApplied: boolean; usage: CertificateUsage };
   try {
     result = await importEdielP12Certificate(formData);
   } catch (error) {
@@ -1070,8 +1305,8 @@ export async function importEdielP12CertificateAction(formData: FormData) {
 
   certificateRedirect(
     "success",
-    result.mailboxDefaultApplied
-      ? "Privat certifikat sparades för inbound/signering. Outbound routes uppdaterades inte."
-      : "Certifikatet sparades. Mottagarcertifikat måste kopplas till rätt route innan S/MIME-skick.",
+    result.usage === "outbound_recipient"
+      ? "Mottagarcertifikatet sparades. Koppla det till rätt route innan S/MIME-skick."
+      : "Certifikatet sparades. Det används för inbound S/MIME-dekryptering vid IMAP-synk. Klicka Validera P12 från env för att läsa giltighetstid om certifikatet ligger i Vercel env.",
   );
 }
