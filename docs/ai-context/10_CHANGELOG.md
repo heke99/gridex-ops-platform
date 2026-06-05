@@ -375,3 +375,34 @@ Template:
 ### Follow-up
 
 - Build full backend orchestrator/outbox tables and portal feedback import page from the master spec.
+
+## 2026-06-05 — Backend automation foundation Batch 2/3
+
+### Ändrat
+- Lade till backend automation foundation ovanpå befintligt inbound-flow: `lib/ediel/orchestrator/edielProcessingPipeline.ts`, `inboundOrchestrator.ts`, `autoAckOrchestrator.ts` och outbox/SLA/portal-feedback-moduler.
+- Inbound runtime sparar nu icke-blockerande automation trace/SLA/matchningsbeslut via `recordBackendAutomationPipelineTrace` utan att skapa dubbla ACK:ar.
+- Lade till business matching-moduler för kund, mätpunkt, process och permission med confidence-modell `high/medium/low`.
+- Lade till outbox lifecycle: create, process, send och supersede/blockering av motsatt final ACK.
+- Lade till SLA timers: CONTRL/APERAK due + warning/critical/expired.
+- Lade till portal-feedback parser och admin-sida `/admin/ediel/portal-feedback`.
+- Lade till migration `20260605160000_ediel_backend_automation_foundation.sql` för `ediel_processing_runs`, `ediel_decision_traces`, `ediel_outbox`, `ediel_ack_lifecycle`, `ediel_process_links`, `ediel_match_candidates`, `ediel_portal_validation_feedback`, `ediel_sla_timers`, rule profile shells och kompatibilitetsvyer för `ediel_permissions`/`ediel_unresolved_messages`.
+- Lade till regression `npm run ediel:automation-foundation-regression` och kopplade den till `npm run ediel:regression`.
+
+### Varför
+- Gridex ska gå från manuella superadmin-knappar till backend-driven Ediel-automation där UI visar beslut, inte styr beslut.
+- Tenant, route, kund/anläggning/mätpunkt/process och ACK-lifecycle måste vara spårbara innan autoskick i produktion.
+
+### Skyddar test/produktion
+- E6-lärdomen: portal/UI-facit kan avvika; backend decision trace ska vara källa.
+- Förhindrar positiv och negativ APERAK för samma inbound/transaktion via lifecycle guard.
+- Förhindrar tenant-läckage genom att osäker tenant/business match blir manual review och trace, inte autoskick.
+
+### Verifiering
+- `npm run ediel:automation-foundation-regression`
+- `npm run typecheck`
+- `npm run build`
+- `npm run ediel:regression`
+
+### Kvarstående risker
+- Full automatisk send-policy ska aktiveras stegvis efter att migrationen är körd och verkliga route/certifikat/tenant-data är verifierad.
+- Field matrix import och full UI för decision traces/outbox är foundation-ready men inte komplett byggt i denna batch.

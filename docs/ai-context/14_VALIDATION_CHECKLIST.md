@@ -231,3 +231,26 @@ Check:
 - Button text does not offer a manual positive/negative choice.
 - Sent opposite final ACK is blocked.
 - Wrong draft/prepared/queued ACK is superseded.
+
+## Backend automation foundation validation
+
+Kör efter patch:
+
+```bash
+npm run typecheck
+npm run build
+npm run ediel:automation-foundation-regression
+npm run ediel:regression
+```
+
+Databas:
+- Kör `20260605160000_ediel_backend_automation_foundation.sql`.
+- Kontrollera att dessa finns: `ediel_processing_runs`, `ediel_decision_traces`, `ediel_outbox`, `ediel_ack_lifecycle`, `ediel_process_links`, `ediel_match_candidates`, `ediel_portal_validation_feedback`, `ediel_sla_timers`.
+- Kontrollera att `ediel_permissions` och `ediel_unresolved_messages` finns som vyer.
+
+Flödestest:
+- Importera inbound PRODAT Z14/Z15/Z18 och verifiera decision trace.
+- Kontrollera att osäker business match ger manual review, inte autoskick.
+- Kontrollera att redan skickad motsatt final ACK blockerar ny ACK.
+- Kontrollera att draft/prepared motsatt ACK supersedas.
+- Kontrollera `/admin/ediel/portal-feedback` efter import av portalrapport.

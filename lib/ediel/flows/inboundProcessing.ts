@@ -50,6 +50,7 @@ import {
   applyInboundProdatZ14ToMeteringPermission,
 } from "@/lib/onboarding/inboundEdielLinking";
 import { resolveInboundTenantForMessage } from "@/lib/ediel/core/tenantResolver";
+import { analyzeEdielProcessingPipeline } from "@/lib/ediel/orchestrator/edielProcessingPipeline";
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
@@ -344,6 +345,34 @@ async function applyCanonicalRuntimeDecision(params: {
   });
 
   return { message: updated, decision };
+}
+
+
+async function recordBackendAutomationPipelineTrace(params: {
+  actorUserId: string;
+  message: EdielMessageRow;
+}) {
+  try {
+    await analyzeEdielProcessingPipeline({
+      actorUserId: params.actorUserId,
+      message: params.message,
+      createSlaTimers: true,
+      createDecisionTrace: true,
+    });
+  } catch (error) {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.message.id,
+      eventType: "manual_note",
+      eventStatus: "warning",
+      message:
+        "Backend automation pipeline trace kunde inte sparas. Inboundflödet fortsätter med befintlig runtime-logik.",
+      payload: {
+        automationPipeline: "trace_failed_non_blocking",
+        error: formatErrorMessage(error, "Automation pipeline trace misslyckades."),
+      },
+    }).catch(() => null);
+  }
 }
 
 async function createAutomaticPositiveAcks(params: {
@@ -734,6 +763,11 @@ export async function processInboundEdielMessage(params: {
     message: tenantResolvedMessage,
   });
   const runtimeMessage = canonicalRuntime.message;
+
+  await recordBackendAutomationPipelineTrace({
+    actorUserId,
+    message: runtimeMessage,
+  });
 
   if (canonicalRuntime.decision.syntaxDecision === "rejected") {
     await createAutomaticPositiveAcks({

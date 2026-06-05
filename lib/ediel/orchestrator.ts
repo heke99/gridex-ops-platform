@@ -563,3 +563,10 @@ export function buildAckDraft(params: {
 }): CreateEdielMessageInput {
   return buildAckDraftForSource(params)
 }
+export { runInboundEdielOrchestrator, inspectInboundEdielAutomation } from '@/lib/ediel/orchestrator/inboundOrchestrator'
+export { analyzeEdielProcessingPipeline, recordDecisionTrace } from '@/lib/ediel/orchestrator/edielProcessingPipeline'
+export { runAutoAckOrchestratorForInboundMessage } from '@/lib/ediel/orchestrator/autoAckOrchestrator'
+export { processEdielOutbox, sendOutboxItem, createOutboxItem, supersedeWrongDraftsForDecision } from '@/lib/ediel/orchestrator/outboxProcessor'
+export { createAckTimersForMessage, buildAckTimerPlan } from '@/lib/ediel/sla/createAckTimers'
+export { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
+export { parsePortalValidationReport, portalValidationReportStorageRows } from '@/lib/ediel/portal/parsePortalValidationReport'

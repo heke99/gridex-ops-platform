@@ -58,3 +58,18 @@ npm run build
 ## Next task
 
 Batch 2 should build the full backend orchestrator/outbox foundation from the master spec: inbound pipeline, tenant resolution, customer/metering point/process matching, auto-ack policy, SLA timers, manual review queues and decision traces.
+
+## Backend automation foundation — nästa status
+
+Batch 2/3 foundation är tillagd:
+- Inbound pipeline trace + SLA + matching kopplas in icke-blockerande i befintligt inbound-flow.
+- Business matching är uppdelad i kund, mätpunkt, process och permission.
+- Outbox/lifecycle-moduler finns för ACK-create/queue/send/supersede/block.
+- Portalfeedback kan parsas och visas i `/admin/ediel/portal-feedback`.
+- Ny migration: `20260605160000_ediel_backend_automation_foundation.sql`.
+
+Nästa prioritet:
+1. Kör SQL-migrationen.
+2. Kör `npm run typecheck`, `npm run build`, `npm run ediel:regression`.
+3. Testa E5/E6/E7/E8 igen och verifiera att `ediel_decision_traces`, `ediel_sla_timers` och `ediel_outbox` fylls korrekt.
+4. Aktivera autosend via outbox stegvis först när route/certifikat/tenant confidence är high.

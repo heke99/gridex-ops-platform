@@ -209,3 +209,13 @@ Important rule split:
 - E6 negative APERAK must come from backend rule `facility_not_identified` / no safe facility-process link in the AGT negative scenario.
 - Do not implement production logic as `if testCaseCode === E6`.
 - Production unlinked Z14/Z15/Z18 should go to manual review unless a deterministic business validation rule can safely choose a negative APERAK.
+
+## Permission lifecycle automation foundation
+
+PRODAT Z13/Z14/Z15/Z18 ska behandlas som permission lifecycle, inte isolerade testfall:
+- Z13 = begäran om tillgång.
+- Z14 = svar: godkänd/nekad/historisk.
+- Z18 = begäran om avslut.
+- Z15 = tillstånd upphör.
+
+Batch 2/3 foundation lägger business match och permission-matchning via `RFF+Z09`, `LIN`, `RFF+Z05`, `RFF+LI`, `NAD+UD`, sender/receiver Ediel ID och application reference. Osäker produktionskoppling ska bli manual review, inte gissad positiv/negativ APERAK.

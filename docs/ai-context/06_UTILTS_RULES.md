@@ -166,3 +166,13 @@ Rules:
 ### NULL values
 
 `QTY+136:NULL` can be valid when paired with the correct quality/status code, such as missing-value quality status. Do not treat all NULL meter values as errors without checking the rule profile and quality code.
+
+## UTILTS automation foundation
+
+UTILTS ska fortsatt separeras från PRODAT:
+- syntaxfel => CONTRL.
+- anvisnings-/applikationsfel => negativ APERAK.
+- process-/funktionsfel => UTILTS_ERR.
+- korrekt UTILTS => positiv APERAK.
+
+Batch 2/3 foundation gör att UTILTS-beslut sparas i decision traces och kan kopplas till outbox/SLA utan att UI styr APERAK/UTILTS_ERR manuellt.

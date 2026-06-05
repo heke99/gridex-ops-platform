@@ -204,3 +204,25 @@ Rules:
 - Production Z14/Z15/Z18 without safe permission/process/facility link must be manual review unless the engine has deterministic validation evidence for a negative APERAK.
 - The canonical error for facility not identified is `ERC+40::260` and `FTX+AAO++105::260+The object could not be identified`.
 - `RFF+LI` must be preserved from raw inbound payload where available.
+
+## Backend automation foundation rule contract
+
+All ny automation ska följa detta kontrakt:
+
+```txt
+inbound raw/canonical payload
++ tenant resolution
++ route/subadress/certifikat
++ message family/code/application reference
++ business match confidence
++ decision engine outcome
++ ack lifecycle state
+=> create ACK, queue outbox, manual_review eller blocked
+```
+
+Regel:
+- `confidence=high` + tenant resolved + route/certifikat säkert + no opposite final ACK => ACK får förberedas/queuas.
+- `confidence=medium|low` => match candidate/manual review.
+- `unknown_tenant` => platform-only unresolved, ingen business-ACK autosend.
+- `blocked_final_ack_exists` => tekniskt stopp; kräver superadmin audit/override.
+- Outbox är transport-lagret; UI får inte skapa positiv/negativ APERAK direkt utan backend decision.

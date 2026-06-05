@@ -113,3 +113,11 @@ Rules:
 - `systemTestAckSend.effectiveOutcome` / backend decision outcome is the expected actual outcome for sent Gridex ACK rows.
 - Draft/prepared/queued ACKs are not passed; Gridex outbound steps pass only after final SMTP/send status.
 - Sent ACK with backend outcome equal to actual payload outcome should pass even if an older static expected definition disagrees.
+
+## ACK lifecycle/outbox foundation
+
+ACK-flödet ska följa backend lifecycle:
+- Rätt final ACK finns redan => `already_sent_success`, ingen dubblett.
+- Motsatt final ACK finns => `blocked_final_ack_exists`, ingen ny ACK.
+- Motsatt draft/prepared/queued/failed finns => supersede och skapa aktuell backend decision.
+- Outbox-statusar: `draft`, `prepared`, `queued`, `sending`, `sent`, `failed`, `superseded`, `blocked`.

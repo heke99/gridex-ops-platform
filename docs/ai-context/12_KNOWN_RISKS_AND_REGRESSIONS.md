@@ -166,3 +166,12 @@ Correct approach:
 - keep E6 regression: negative APERAK with ERC 40 / FTX 105 and preserved RFF+LI is passing when backend selected `facility_not_identified`
 - do not change production into an E6-specific rule
 - production unlinked Z14/Z15/Z18 should remain manual review unless deterministic rule validation can choose negative APERAK safely
+
+## Backend automation foundation regressions
+
+Måste bevaras:
+- Backend decision engine är källa; UI/test expected får inte tvinga outcome.
+- `recordBackendAutomationPipelineTrace` i inbound-flow får inte blockera befintlig runtime om trace/matching-tabeller saknas eller felar; den ska skapa warning-event och låta inbound fortsätta.
+- `supersedeWrongDraftsForDecision` får bara supersede draft/prepared/queued/failed ACK med motsatt outcome. Final sent/acknowledged/validated med motsatt outcome ska alltid blockera med `blocked_final_ack_exists`.
+- Tenant unresolved eller business match < high confidence får inte autoskicka business-ACK i produktion.
+- Portalfeedback som visar grön portal men röd UI ska skapa regression-kandidat, inte testfallshårdkodning.
