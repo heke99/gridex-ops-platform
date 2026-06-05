@@ -1,3 +1,4 @@
+import { decideProdatAperak } from '@/lib/ediel/decisionEngine'
 import { selectRuleProfile, summarizeRuleProfile } from '@/lib/ediel/rulebook/ruleProfileSelector'
 
 export type EdielInboundMessageFamily = 'PRODAT' | 'UTILTS' | 'CONTRL' | 'APERAK' | 'UTILTS_ERR' | string
@@ -95,8 +96,17 @@ export function classifyProductionInboundDecision(input: ProductionInboundDecisi
   if (classification.manualReviewReason) notes.push(classification.manualReviewReason)
 
   if (family === 'PRODAT') {
+    const prodatDecision = decideProdatAperak({
+      rawPayload: input.rawPayload ?? null,
+      family: family,
+      messageCode: code,
+      applicationReference: input.rawPayload?.includes('23-DGI-PRODAT') ? '23-DGI-PRODAT' : null,
+      processType: classification.processType,
+      actorRole: input.actorRole ?? null,
+      testKind: 'production',
+    })
     const manualReviewRequired =
-      classification.applicationValidity !== 'valid' || classification.confidence === 'low'
+      classification.applicationValidity !== 'valid' || classification.confidence === 'low' || prodatDecision.kind === 'manual_review'
 
     let scenario: ProductionInboundScenario = 'prodat_other'
     let businessEffect: ProductionInboundBusinessEffect = 'none'
@@ -134,6 +144,7 @@ export function classifyProductionInboundDecision(input: ProductionInboundDecisi
       notes: [
         'Inbound PRODAT ska dekrypteras med mottagande aktörs privata PFX om mailet är S/MIME.',
         'Positiv CONTRL styrs av syntax. APERAK styrs av vald regelprofil och affärsvalidering.',
+        prodatDecision.reason,
         ...notes,
       ],
       ruleProfileId: classification.ruleProfileId,

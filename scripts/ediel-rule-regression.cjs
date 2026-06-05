@@ -230,10 +230,74 @@ assert(
   'UTILTS E66 required delivery period regression'
 )
 
+
+const { decideProdatAperak, ensureExpectedAckSent, parsePortalValidationFeedback } = require('../lib/ediel/decisionEngine.ts')
+
+function makeMessage(overrides) {
+  return {
+    ...message,
+    id: overrides.id ?? `00000000-0000-4000-8000-${Math.random().toString().slice(2, 14).padEnd(12, '0')}`,
+    message_family: overrides.message_family ?? 'PRODAT',
+    message_code: overrides.message_code ?? 'Z14',
+    process_type: overrides.process_type ?? 'metering_access',
+    application_reference: overrides.application_reference ?? '23-DGI-PRODAT',
+    raw_payload: overrides.raw_payload,
+    validation_report: overrides.validation_report ?? {},
+    test_flag: overrides.test_flag ?? 1,
+    related_message_id: overrides.related_message_id ?? null,
+    business_match_status: overrides.business_match_status ?? null,
+    customer_id: overrides.customer_id ?? null,
+    site_id: overrides.site_id ?? null,
+    metering_point_id: overrides.metering_point_id ?? null,
+  }
+}
+
+const rawZ14N = "UNA:+.? 'UNB+UNOC:3+91100:ZZ:PRODAT+21660:ZZ+260605:1200+Z14NREF++23-DGI-PRODAT++1'UNH+1+PRODAT:D:97A:UN:E2SE6A'BGM+Z14+Z14NREF+9+AB'DTM+137:202606051200:203'DTM+ZZZ:1:805'NAD+FR+91100:160:SVK'NAD+DO+21660:160:SVK'LIN+1++735999888000000109:::9'RFF+LI:CASE-Z14N'CCI++Z23'CAV+Z96'UNT+11+1'UNZ+1+Z14NREF'"
+const z14nDecision = decideProdatAperak({ message: makeMessage({ raw_payload: rawZ14N }), testKind: 'TGT' })
+assert.strictEqual(z14nDecision.kind, 'ack', 'Z14N should produce ACK decision')
+assert.strictEqual(z14nDecision.outcome, 'positive', 'correct Z14N must produce positive APERAK')
+
+const rawZ14MissingStatus = "UNA:+.? 'UNB+UNOC:3+91100:ZZ:PRODAT+21660:ZZ+260605:1201+Z14BAD++23-DGI-PRODAT++1'UNH+1+PRODAT:D:97A:UN:E2SE6A'BGM+Z14+Z14BAD+9+AB'DTM+137:202606051201:203'DTM+ZZZ:1:805'NAD+FR+91100:160:SVK'NAD+DO+21660:160:SVK'LIN+1++735999888000000109:::9'RFF+LI:CASE-Z14BAD'UNT+9+1'UNZ+1+Z14BAD'"
+const z14BadDecision = decideProdatAperak({ message: makeMessage({ raw_payload: rawZ14MissingStatus }), testKind: 'TGT' })
+assert.strictEqual(z14BadDecision.outcome, 'negative', 'invalid Z14 without permission status must produce negative APERAK')
+assert(z14BadDecision.applicationErrors.some((error) => error.ercCode === '41' && error.fieldCode === '322'), 'invalid Z14 should carry permission status error')
+
+const rawZ18MissingReason = "UNA:+.? 'UNB+UNOC:3+21660:ZZ+91100:ZZ:PRODAT+260605:1202+Z18BAD++23-DGI-PRODAT++1'UNH+1+PRODAT:D:97A:UN:E2SE6A'BGM+Z18+Z18BAD+9+AB'DTM+137:202606051202:203'DTM+ZZZ:1:805'NAD+FR+21660:160:SVK'NAD+DO+91100:160:SVK'LIN+1++735999888000000109:::9'RFF+LI:CASE-Z18BAD'UNT+9+1'UNZ+1+Z18BAD'"
+const z18BadDecision = decideProdatAperak({ message: makeMessage({ raw_payload: rawZ18MissingReason, message_code: 'Z18' }), testKind: 'TGT' })
+assert.strictEqual(z18BadDecision.outcome, 'negative', 'Z18 missing end reason must produce negative APERAK')
+assert(z18BadDecision.applicationErrors.some((error) => error.ercCode === '41' && error.fieldCode === '324'), 'Z18 missing reason should use FTX 324')
+
+const prodUnlinkedZ14 = decideProdatAperak({ message: makeMessage({ raw_payload: rawZ14N, test_flag: 0 }), testKind: 'production' })
+assert.strictEqual(prodUnlinkedZ14.kind, 'manual_review', 'production Z14 without process link must require manual review')
+
+const portalFeedback = parsePortalValidationFeedback({ expectedA902: ['40', '41', '42'], actualA902: '100' })
+assert(portalFeedback && portalFeedback.mismatch, 'portal A902 expected negative vs actual 100 mismatch should be detected')
+const portalDecision = decideProdatAperak({
+  message: makeMessage({ raw_payload: rawZ14N, validation_report: { expectedA902: ['40', '41', '42'], actualA902: '100' } }),
+  testKind: 'TGT',
+})
+assert.strictEqual(portalDecision.outcome, 'negative', 'portal negative feedback should force negative APERAK decision')
+
+const lifecycleAlreadySent = ensureExpectedAckSent({
+  desiredFamily: 'APERAK',
+  desiredOutcome: 'positive',
+  existingAcks: [{ id: 'ack-1', message_family: 'APERAK', status: 'sent', ack_outcome: 'positive', created_at: now, updated_at: now }],
+})
+assert.strictEqual(lifecycleAlreadySent.status, 'already_sent_success', 'correct final ACK must be treated as already_sent_success')
+
+const lifecycleConflict = ensureExpectedAckSent({
+  desiredFamily: 'APERAK',
+  desiredOutcome: 'negative',
+  existingAcks: [{ id: 'ack-2', message_family: 'APERAK', status: 'sent', ack_outcome: 'positive', created_at: now, updated_at: now }],
+})
+assert.strictEqual(lifecycleConflict.status, 'blocked_final_ack_exists', 'conflicting final ACK must block replacement')
+
 console.log(JSON.stringify({
   ok: true,
   importedRuleIssues: importedMatrixIssues.map((issue) => issue.code),
   negativeAperakPlanned: true,
   ackProfilesChecked: ['APERAK', 'CONTRL', 'UTILTS_ERR'],
   utiltsE66Checked: true,
+  prodatDecisionEngineChecked: true,
+  ackLifecycleChecked: true,
 }, null, 2))

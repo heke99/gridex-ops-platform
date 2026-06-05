@@ -202,3 +202,19 @@ npm run ediel:inbound-tenant-resolution-regression
 - Tenant admin sees simple status: Pågår, Klar, Väntar på motpart, Åtgärd krävs, Tekniskt stopp.
 - Technical terms and raw EDIFACT remain in superadmin/technical view.
 - Tenant admin cannot manually choose positive/negative APERAK as the normal workflow.
+
+## Decision node validation added 2026-06-05
+
+After applying this patch, validate these exact cases:
+
+- `decideProdatAperak()` returns positive APERAK for valid Z14N in TGT/AGT/test context.
+- `decideProdatAperak()` returns negative APERAK for Z14 without valid CCI/CAV Z23 status.
+- `decideProdatAperak()` returns negative APERAK with ERC 41 / FTX 324 for Z18 missing end reason.
+- `decideProdatAperak()` returns negative APERAK with ERC 42 / FTX 322 for invalid Z15 status.
+- `decideProdatAperak()` returns negative APERAK with ERC 42 / FTX 324 for invalid Z15 end reason.
+- `decideProdatAperak()` returns manual review for production Z14/Z15/Z18 without safe process/permission link.
+- Portal feedback where expected A902 is 40/41/42 and actual A902 is 100 is detected as mismatch.
+- `ensureExpectedAckSent()` returns `already_sent_success` for correct final ACK.
+- `ensureExpectedAckSent()` returns `blocked_final_ack_exists` for opposite final ACK.
+- `ensureExpectedAckSent()` returns `supersede_replaceable` only for draft/prepared/queued/failed/cancelled ACK.
+- `decideUtiltsResponse()` keeps AGT UE1/UE2 separate from TGT U3 and selects UTILTS_ERR where applicable.

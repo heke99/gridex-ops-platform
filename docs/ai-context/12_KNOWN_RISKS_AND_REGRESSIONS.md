@@ -145,3 +145,11 @@ AGT can intentionally differ from TGT because AGT validates actor communication/
 ### UI simplification risk
 
 Tenant admins should not get technical Ediel override controls. Technical override must stay superadmin/technical-admin only, with reason and audit.
+
+## 2026-06-05 decision node risks
+
+- Production Z14/Z15/Z18 now require a safe process/permission link before auto APERAK. If the production matcher does not populate `related_message_id`, `business_match_status`, `customer_id`, `site_id` or `metering_point_id`, the decision node will choose manual review. This is safer than guessing, but the matching pipeline must be completed for smooth production automation.
+- Z18 missing CCI/CAV Z25 now produces negative APERAK with field 324. If an official profile permits missing Z25 for a narrow case, add that exception to the rule profile before enabling auto-send.
+- Portal feedback parser supports common A902 expected/actual structures and text, but exact portal report import still needs a proper parser when report files are available.
+- The legacy `decideProdatAperakOutcome()` API cannot express manual review, so it maps manual review to a safe negative object/process error. New callers should use `decideProdatAperak()` directly.
+- Regression script needs installed project dependencies because existing imported Ediel modules transitively require Supabase/Next-related packages.

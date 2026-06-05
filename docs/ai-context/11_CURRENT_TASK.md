@@ -2,86 +2,75 @@
 
 ## Status
 
-Completed as a foundation patch. Not all future Ediel rulebook work is complete.
+Completed as a broader decision-engine batch. This is stronger than the earlier foundation patch, but the official PRODAT Excel field matrix is still a required future input for exhaustive field validation.
 
 ## Goal
 
-Build the first production-safe Ediel decision-engine foundation so ACK decisions are based on payload, context, rule profile and business state rather than direct test-case shortcuts.
+Build the remaining core decision-engine pieces so PRODAT/UTILTS ACK decisions come from one reusable backend decision node instead of scattered UI/test shortcuts.
 
 ## Scope completed
 
-- Added/updated generic Ediel classification for PRODAT, UTILTS, CONTRL, APERAK and UTILTS_ERR.
-- Added rule-profile selection foundation.
-- Added PRODAT permission classification for Z13/Z14/Z15/Z18 variants.
-- Added handling that treats correct Z14N as a valid business denial, not automatic negative APERAK.
-- Added broader UTILTS classification foundation.
-- Hardened ACK lifecycle/idempotency so already-sent correct ACKs are treated as success and opposite final ACKs are blocked/manual.
-- Added tenant-safe UI status mapping helper.
-- Updated AI context documentation and changelog for future Cursor/Codex work.
+- Added `lib/ediel/decisionEngine.ts`.
+- Added central PRODAT APERAK decision logic.
+- Added central UTILTS response decision logic for APERAK vs UTILTS_ERR.
+- Added portal validation feedback parser for A902 expected/actual mismatch.
+- Added reusable ACK lifecycle decision helper:
+  - correct final ACK => `already_sent_success`
+  - conflicting final ACK => `blocked_final_ack_exists`
+  - replaceable draft/prepared/queued/failed => `supersede_replaceable`
+  - otherwise => `create_new`
+- Wired generic ACK recommendation logic into the decision node.
+- Routed legacy PRODAT APERAK helper through the new decision node.
+- Updated production inbound classification to surface the PRODAT decision-node reason.
+- Added regression coverage for Z14N, invalid Z14, invalid Z18, portal feedback and final ACK lifecycle.
+
+## Important implemented rules
+
+- Correct Z14N is a business denial, not an APERAK error.
+- Correct Z14N => positive APERAK.
+- Invalid/unclassified Z14 => negative APERAK with permission-status error.
+- Z18 missing permission end reason => negative APERAK with ERC 41 / FTX 324.
+- Z15 invalid status/reason => negative APERAK with ERC 42 / FTX 322 or 324.
+- Portal feedback where expected A902 is 40/41/42 but actual is 100 forces negative APERAK decision.
+- Production Z14/Z15/Z18 without safe process/permission link requires manual review instead of guessing.
+- AGT UE1/UE2 UTILTS is separated from TGT U3 and can select UTILTS_ERR.
 
 ## Changed files in this patch
 
-- `app/admin/ediel/system-tests/actions.ts`
-- `lib/ediel/classify.ts`
-- `lib/ediel/core/kernel.ts`
+- `lib/ediel/decisionEngine.ts`
+- `lib/ediel/ackDecision.ts`
+- `lib/ediel/prodat/prodatAperak.ts`
 - `lib/ediel/inbound/productionInboundDecisionEngine.ts`
-- `lib/ediel/orchestrator.ts`
-- `lib/ediel/rulebook/ruleProfileSelector.ts`
-- `lib/ediel/statusUi.ts`
-- `docs/ai-context/05_PRODAT_RULES.md`
-- `docs/ai-context/06_UTILTS_RULES.md`
-- `docs/ai-context/07_ACK_CONTRL_APERAK_UTILTS_ERR_RULES.md`
+- `scripts/ediel-rule-regression.cjs`
 - `docs/ai-context/10_CHANGELOG.md`
 - `docs/ai-context/11_CURRENT_TASK.md`
 - `docs/ai-context/12_KNOWN_RISKS_AND_REGRESSIONS.md`
 - `docs/ai-context/14_VALIDATION_CHECKLIST.md`
 - `docs/ai-context/19_DECISION_ENGINE_RULES.md`
 
-## Not completed in this patch
+## Validation performed
 
-- Full PRODAT Excel field-matrix import from `Uppgifter i PRODAT 26-A 16-B april 2026`.
-- Portal validation report parser.
-- Full UI refactor for all tenant/superadmin status views.
-- Complete regression suite for every PRODAT and UTILTS message family.
-- Full production dry-run UI for every rule profile.
+- `tsc --noEmit --pretty false` was attempted.
+- Filtered changed-file diagnostics showed no TypeScript errors for the changed files.
+- Full project typecheck/build could not be completed in sandbox because dependencies are not installed.
+- Regression script was updated but cannot run in sandbox until dependencies are installed.
 
-## Rules preserved
+## Next required local commands
 
-- Test case codes are verification context, not production rules.
-- CONTRL remains syntax/technical ACK.
-- APERAK remains application/business ACK.
-- UTILTS_ERR remains functional/process error response for UTILTS where required.
-- A correct Z14N can produce positive APERAK.
-- Invalid/unlinked Z14 can produce negative APERAK or manual review.
-- Already-sent final ACKs must not be resent or silently replaced with opposite outcome.
-- Tenant isolation must be preserved.
+```bash
+npm install
+npm run typecheck
+npm run ediel:rule-regression
+npm run ediel:production-readiness-regression
+npm run ediel:routing-security-regression
+npm run ediel:inbound-tenant-resolution-regression
+npm run build
+```
 
-## Validation status
+## Remaining known external dependency
 
-Sandbox validation could not run full build because dependencies are not installed in the extracted environment.
+Official PRODAT Excel field matrix:
 
-Observed:
+- `Uppgifter i PRODAT 26-A 16-B april 2026`
 
-- `npm run build` cannot start when `next` is not installed.
-- TypeScript checks are blocked by missing framework/package types such as Next.js, React, Supabase and Node types.
-
-Required local/Vercel validation:
-
-- `npm install`
-- `npm run typecheck`
-- `npm run build`
-- `npm run ediel:rule-regression` if available
-- `npm run ediel:production-readiness-regression` if available
-- `npm run ediel:routing-security-regression` if available
-- `npm run ediel:inbound-tenant-resolution-regression` if available
-
-## Next task recommendation
-
-Run the patch locally, then test the current AGT/TGT flow that failed:
-
-1. inbound PRODAT Z14 parsed
-2. positive CONTRL generated/sent
-3. positive or negative APERAK selected by engine/profile, not free UI choice
-4. correct ACK already sent shows success/already_sent
-5. old/wrong draft ACK is superseded
-6. final opposite ACK is blocked/manual review
+Until that Excel is imported, the engine can enforce architecture, decision separation, known permission rules, ACK lifecycle and core TGT/AGT regressions, but not every detailed PRODAT field rule.

@@ -2,6 +2,7 @@
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
+import { decideProdatAperak, decideUtiltsResponse } from '@/lib/ediel/decisionEngine'
 
 export type EdielAckDecisionAction =
   | 'none'
@@ -18,6 +19,8 @@ export type EdielAckDecisionReasonCode =
   | 'syntax_ok_positive_contrl_required'
   | 'business_negative_aperak_required'
   | 'business_positive_aperak_required'
+  | 'business_manual_review_required'
+  | 'utilts_err_required'
   | 'aperak_done'
   | 'unsupported_family'
 
@@ -633,6 +636,127 @@ export function resolveRecommendedAckForInboundMessage(params: {
         'APERAK skapas från backendbeslut, inte från UI-hårdkodning.',
       ],
       diagnostics,
+    }
+  }
+
+  if (message.message_family === 'UTILTS') {
+    const utiltsDecision = decideUtiltsResponse({
+      message,
+      testKind: message.test_flag === 1 ? 'TGT' : 'production',
+    })
+
+    if (utiltsDecision.kind === 'ack' && utiltsDecision.ackFamily === 'UTILTS_ERR') {
+      return {
+        action: 'send_ack',
+        title: 'Skicka UTILTS-ERR',
+        description: utiltsDecision.reason,
+        tone: 'red',
+        reasonCode: 'utilts_err_required',
+        ackFamily: 'UTILTS_ERR',
+        outcome: 'negative',
+        messageText: utiltsDecision.messageText,
+        applicationErrors: null,
+        canAutoSend: true,
+        reasonItems: [
+          'Syntaxen är kvitterad med CONTRL.',
+          utiltsDecision.reason,
+          ...utiltsDecision.ruleKeys,
+        ],
+        diagnostics,
+      }
+    }
+
+    if (utiltsDecision.kind === 'ack' && utiltsDecision.ackFamily === 'APERAK' && utiltsDecision.outcome === 'negative') {
+      return {
+        action: 'send_ack',
+        title: 'Skicka negativ APERAK på UTILTS',
+        description: utiltsDecision.reason,
+        tone: 'red',
+        reasonCode: 'business_negative_aperak_required',
+        ackFamily: 'APERAK',
+        outcome: 'negative',
+        messageText: utiltsDecision.messageText ?? 'UTILTS anvisnings-/applikationsfel.',
+        applicationErrors: utiltsDecision.applicationErrors,
+        canAutoSend: true,
+        reasonItems: [
+          'Syntaxen är kvitterad med CONTRL.',
+          utiltsDecision.reason,
+          ...utiltsDecision.ruleKeys,
+        ],
+        diagnostics,
+      }
+    }
+  }
+
+  if (message.message_family === 'PRODAT') {
+    const prodatDecision = decideProdatAperak({
+      message,
+      testKind: message.test_flag === 1 ? 'TGT' : 'production',
+    })
+
+    if (prodatDecision.kind === 'manual_review') {
+      return {
+        action: 'none',
+        title: 'Manuell granskning krävs',
+        description: prodatDecision.reason,
+        tone: 'yellow',
+        reasonCode: 'business_manual_review_required',
+        ackFamily: 'APERAK',
+        outcome: null,
+        messageText: prodatDecision.messageText,
+        applicationErrors: null,
+        canAutoSend: false,
+        reasonItems: [
+          prodatDecision.reason,
+          'Produktion får inte gissa positiv eller negativ APERAK när process-/tillståndskopplingen är osäker.',
+          ...prodatDecision.ruleKeys,
+        ],
+        diagnostics,
+      }
+    }
+
+    if (prodatDecision.kind === 'ack' && prodatDecision.outcome === 'negative') {
+      return {
+        action: 'send_ack',
+        title: 'Skicka negativ APERAK',
+        description: prodatDecision.reason,
+        tone: 'red',
+        reasonCode: 'business_negative_aperak_required',
+        ackFamily: 'APERAK',
+        outcome: 'negative',
+        messageText: prodatDecision.messageText ?? 'PRODAT applikations-/affärsvalidering gav fel.',
+        applicationErrors: prodatDecision.applicationErrors,
+        canAutoSend: true,
+        reasonItems: [
+          'Syntaxen är kvitterad med CONTRL.',
+          prodatDecision.reason,
+          prodatDecision.expectedComparison?.reason ?? '',
+          ...prodatDecision.ruleKeys,
+        ].filter((item): item is string => Boolean(item)),
+        diagnostics,
+      }
+    }
+
+    if (prodatDecision.kind === 'ack' && prodatDecision.outcome === 'positive') {
+      return {
+        action: 'send_ack',
+        title: 'Skicka positiv APERAK',
+        description: prodatDecision.messageText ?? 'Syntaxen är accepterad och PRODAT är accepterad av vald regelprofil.',
+        tone: 'green',
+        reasonCode: 'business_positive_aperak_required',
+        ackFamily: 'APERAK',
+        outcome: 'positive',
+        messageText: prodatDecision.messageText,
+        applicationErrors: null,
+        canAutoSend: true,
+        reasonItems: [
+          'CONTRL finns som slutlig syntaxkvittens.',
+          prodatDecision.reason,
+          prodatDecision.expectedComparison?.reason ?? '',
+          ...prodatDecision.ruleKeys,
+        ].filter((item): item is string => Boolean(item)),
+        diagnostics,
+      }
     }
   }
 

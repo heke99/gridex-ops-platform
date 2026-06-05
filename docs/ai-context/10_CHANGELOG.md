@@ -265,3 +265,62 @@ Template:
 - Add portal validation report parser.
 - Add full regression cases for every PRODAT/UTILTS profile.
 - Add/verify superadmin manual review queue for rule_conflict and blocked_final_ack_exists.
+
+## 2026-06-05 — Build full Ediel decision node and regression coverage
+
+### Changed files
+
+- `lib/ediel/decisionEngine.ts`
+- `lib/ediel/ackDecision.ts`
+- `lib/ediel/prodat/prodatAperak.ts`
+- `lib/ediel/inbound/productionInboundDecisionEngine.ts`
+- `scripts/ediel-rule-regression.cjs`
+- `docs/ai-context/10_CHANGELOG.md`
+- `docs/ai-context/11_CURRENT_TASK.md`
+- `docs/ai-context/12_KNOWN_RISKS_AND_REGRESSIONS.md`
+- `docs/ai-context/14_VALIDATION_CHECKLIST.md`
+- `docs/ai-context/19_DECISION_ENGINE_RULES.md`
+
+### What changed
+
+- Added a reusable `lib/ediel/decisionEngine.ts` decision node for PRODAT APERAK, UTILTS APERAK/UTILTS_ERR, portal validation feedback and ACK lifecycle decisions.
+- Centralized the rules that correct Z14N is a valid business denial and must produce positive APERAK when payload/process is valid.
+- Added explicit negative APERAK handling for invalid Z14 missing/invalid permission status, Z18 missing permission end reason, Z15 invalid status/reason, and portal A902 mismatch feedback.
+- Added production-safe manual review behavior for Z14/Z15/Z18 where production cannot safely link the inbound message to a Z13/permission/process.
+- Wired the generic ACK recommendation path to the new decision node, including manual-review blocking and UTILTS_ERR selection.
+- Kept the legacy `decideProdatAperakOutcome()` API but routed it through the new decision node.
+- Added regression checks for Z14N positive APERAK, invalid Z14 negative APERAK, Z18 missing end reason, production unlinked Z14 manual review, portal A902 mismatch and final ACK lifecycle behavior.
+
+### Why
+
+- The previous foundation selected rule profiles but still lacked one reusable decision node that all runtime paths could call.
+- Test expected outcome must not be the production rule; it should only compare against the engine decision.
+- Production must not silently choose positive or negative APERAK when an inbound permission message cannot be matched to the right business process.
+- A sent final APERAK/CONTRL cannot be replaced by the opposite outcome.
+
+### Validation
+
+- `tsc --noEmit --pretty false` was attempted in sandbox.
+- No TypeScript diagnostics were reported for the changed files when filtering for:
+  - `lib/ediel/decisionEngine.ts`
+  - `lib/ediel/ackDecision.ts`
+  - `lib/ediel/prodat/prodatAperak.ts`
+  - `lib/ediel/inbound/productionInboundDecisionEngine.ts`
+- Full typecheck still cannot complete cleanly in sandbox because dependencies/types are not installed (`next`, `react`, `@supabase/supabase-js`, Node types, etc.).
+- `node scripts/ediel-rule-regression.cjs` was attempted but cannot run in sandbox without dependencies because the existing script imports modules that require `@supabase/supabase-js`.
+
+### Regression risks
+
+- Medium: generic ACK recommendations now block production Z14/Z15/Z18 without a safe process link. This is intentional for safety, but production flows must ensure related message/business match is populated before auto-ACK.
+- Medium: Z18 now produces negative APERAK when end reason is missing. If any valid Ediel profile allows missing Z25 in a specific context, that context must be represented in the rule profile before auto-send.
+- Low: legacy `decideProdatAperakOutcome()` cannot return `manual_review`; it maps manual review to a safe negative error for old callers.
+
+### Follow-up
+
+- Install dependencies and run:
+  - `npm install`
+  - `npm run typecheck`
+  - `npm run ediel:rule-regression`
+  - `npm run build`
+- Import the official PRODAT Excel field matrix once available.
+- Build full UI display for decision trace/manual review queue if not already complete in the target branch.

@@ -155,3 +155,40 @@ Superadmin/technical admin may see:
 ## Known limitation
 
 Full PRODAT field validation still requires importing the Edielportal Excel file `Uppgifter i PRODAT 26-A 16-B april 2026`. Until that is implemented, the engine can enforce architecture, known rules, ACK lifecycle and major TGT/AGT flows, but not every exact PRODAT field matrix rule.
+
+## Implementation node added 2026-06-05
+
+The reusable decision node is now `lib/ediel/decisionEngine.ts`.
+
+Use it for new code instead of creating new one-off ACK rules.
+
+Primary functions:
+
+- `decideProdatAperak()`
+- `decideUtiltsResponse()`
+- `parsePortalValidationFeedback()`
+- `ensureExpectedAckSent()`
+
+### PRODAT rules implemented in the node
+
+- Z14N is a valid business denial when the message/process is valid.
+- Valid Z14N must return positive APERAK.
+- Invalid Z14 missing/invalid permission status returns negative APERAK.
+- Z15 invalid permission status returns ERC 42 / field 322.
+- Z15 invalid end reason returns ERC 42 / field 324.
+- Z18 missing end reason returns ERC 41 / field 324.
+- Portal A902 mismatch where expected is 40/41/42 and actual is 100 returns negative APERAK.
+- Production Z14/Z15/Z18 without safe process/permission link returns manual review.
+
+### UTILTS rules implemented in the node
+
+- Runtime UTILTS application errors map to APERAK.
+- Runtime UTILTS functional errors map to UTILTS_ERR.
+- AGT UE1/UE2 is separated from TGT U3 and selects UTILTS_ERR for production-unknown data scenarios.
+
+### ACK lifecycle rules implemented in the node
+
+- Same final ACK/outcome exists => success/already sent.
+- Opposite final ACK/outcome exists => blocked final ACK exists.
+- Replaceable ACK exists => supersede/replace.
+- No ACK exists => create new.
