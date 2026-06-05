@@ -116,3 +116,46 @@ Template:
 ### Follow-up
 
 - Later consolidate `docs/ediel-elbolag-live-runbook.md` and `docs/ediel-operations-test-flow.md` into the relevant ai-context files.
+
+## 2026-06-05 — Fix AGT E5/Z14 ACK send and APERAK decision
+
+### Changed files
+
+- `lib/ediel/sendContextConsistency.ts`
+- `app/admin/ediel/system-tests/actions.ts`
+- `lib/ediel/tgtRegistry.ts`
+- `docs/ai-context/10_CHANGELOG.md`
+- `docs/ai-context/11_CURRENT_TASK.md`
+
+### What changed
+
+- Updated send consistency so generated ACK messages are validated against their related inbound business family when linked to a test run.
+- Added AGT DGI/Energitjänsteföretag E5/E6/E7 positive APERAK handling for valid inbound PRODAT permission responses.
+- Cancelled stale non-reusable draft/prepared/queued ACKs before generating a new Systemtest ACK for the same source/test decision.
+- Updated TGT/system-test step matching to prioritize `sent` messages over failed/draft candidates and newest candidates within each status rank.
+
+### Why
+
+- Inbound PRODAT Z14 was parsed correctly, but generated CONTRL was blocked because the send guard compared selected PRODAT family directly to generated CONTRL family.
+- E5/Z14V could produce negative APERAK from stale/requested or over-aggressive permission validation even though the AGT E5 expected flow is positive CONTRL + positive APERAK for a valid inbound Z14V.
+- Old draft/failed ACK rows could be selected by the test view and create false mismatch even after a newer correct message existed.
+
+### Validation
+
+- `npm install`
+- `npm run typecheck` — passed
+- `npm run ediel:rule-regression` — passed
+- `npm run ediel:production-readiness-regression` — passed
+- `npm run ediel:routing-security-regression` — passed
+- `npm run ediel:inbound-tenant-resolution-regression` — passed
+- `npm run build` — attempted twice; timed out during Next.js optimized production build in the sandbox before completion.
+
+### Regression risks
+
+- Low-to-medium: ACK send consistency now depends on `validation_report.sourceFamily`/related payload metadata for ACK messages. Existing ACK draft generation already stores `sourceFamily` and source IDs.
+- AGT E5/E6/E7 positive APERAK override is scoped to test case code plus inbound PRODAT Z14/Z15 permission-response shape; it does not weaken generic production PRODAT validation.
+
+### Follow-up
+
+- Re-run `npm run build` locally/Vercel where build has enough time.
+- Retest E5/Z14V end-to-end in Edielportalen: inbound Z14 parsed → positive CONTRL sent → positive APERAK sent.

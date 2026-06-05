@@ -1392,6 +1392,22 @@ function messageHasGenericErc40(rawPayload?: string | null): boolean {
   return raw.includes("ERC+40") || raw.includes("FTX+AAO++40");
 }
 
+function isAgtEscoPositivePermissionAckCase(params: {
+  testCaseCode?: string | null;
+  sourceMessage: EdielMessageRow;
+}): boolean {
+  const testCaseCode = normalizeCode(params.testCaseCode);
+  if (!["E5", "E6", "E7"].includes(testCaseCode)) return false;
+  if (String(params.sourceMessage.message_family ?? "").toUpperCase() !== "PRODAT") return false;
+
+  const messageCode = String(params.sourceMessage.message_code ?? "").toUpperCase();
+  const raw = String(params.sourceMessage.raw_payload ?? "").toUpperCase();
+  if (testCaseCode === "E5") return messageCode === "Z14" && !raw.includes("Z14N");
+  if (testCaseCode === "E6") return messageCode === "Z14" && raw.includes("Z14N");
+  if (testCaseCode === "E7") return messageCode === "Z15";
+  return false;
+}
+
 function buildApplicationErrorSummary(
   errors: readonly EdielAperakApplicationError[] | null,
 ): string | null {
@@ -1506,6 +1522,23 @@ function resolveSystemTestAckDecision(params: {
 
   if (params.ackFamily !== "APERAK") return fallback;
 
+  if (isAgtEscoPositivePermissionAckCase({
+    testCaseCode: params.testCaseCode ?? null,
+    sourceMessage,
+  })) {
+    return {
+      outcome: "positive",
+      messageText:
+        params.messageText ??
+        "AGT E5/E6/E7 portal→aktör är ett korrekt inbound permission-svar och ska ge positiv APERAK när payloaden är syntaktiskt godkänd.",
+      applicationErrors: null,
+      ackScope: null,
+      relatedTransactionReference: null,
+      reason: "AGT DGI/Energitjänsteföretag inbound permission response expects positive APERAK for a valid Z14/Z15 payload.",
+      ruleKeys: ["AGT_DGI_PERMISSION_RESPONSE_POSITIVE_APERAK"],
+    };
+  }
+
   return fallback;
 }
 
@@ -1591,12 +1624,31 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
     testCaseCode,
   });
 
-  const existingAcks = await listAckMessagesForSource({
+  const allExistingAcks = await listAckMessagesForSource({
     sourceMessageId,
     ackFamily,
-    outcome: ackFamily === "UTILTS_ERR" ? undefined : backendDecision.outcome,
     companyId: sourceMessage.company_id ?? null,
   }).catch(() => []);
+  const existingAcks = allExistingAcks.filter((ack) => {
+    if (ackFamily === "UTILTS_ERR") return true;
+    return String(ack.ack_outcome ?? "").toLowerCase() === backendDecision.outcome;
+  });
+  const staleDraftAcks = allExistingAcks.filter((ack) => {
+    const status = String(ack.status ?? "").toLowerCase();
+    if (!ack.id || !["draft", "queued", "prepared"].includes(status)) return false;
+    return !canReuseSystemTestAck({ ack, ackFamily, decision: backendDecision });
+  });
+
+  for (const staleAck of staleDraftAcks) {
+    await updateEdielMessageStatus({
+      actorUserId: context.userId,
+      edielMessageId: staleAck.id,
+      status: "cancelled",
+      failureReason:
+        "Superseded by a new Systemtest ACK decision for the same inbound/test step.",
+    }).catch(() => undefined);
+  }
+
   const reusableAck = existingAcks.find(
     (ack) =>
       ack.direction === "outbound" &&

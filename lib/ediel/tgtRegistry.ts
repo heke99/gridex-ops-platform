@@ -2620,6 +2620,29 @@ function isSentGridexOutboundStep(
   return message.status === "sent";
 }
 
+function stepStatusRank(message: EdielMessageRow): number {
+  const status = String(message.status ?? "").toLowerCase();
+  if (status === "sent" || status === "acknowledged" || status === "validated") return 4;
+  if (status === "failed") return 3;
+  if (status === "queued" || status === "prepared") return 2;
+  if (status === "draft") return 1;
+  return 0;
+}
+
+function pickBestStepCandidate(
+  candidates: EdielMessageRow[],
+  predicate: (message: EdielMessageRow) => boolean,
+): EdielMessageRow | null {
+  const matches = candidates.filter(predicate);
+  if (matches.length === 0) return null;
+
+  return matches.sort((a, b) => {
+    const rankDiff = stepStatusRank(b) - stepStatusRank(a);
+    if (rankDiff !== 0) return rankDiff;
+    return String(b.created_at ?? "").localeCompare(String(a.created_at ?? ""));
+  })[0] ?? null;
+}
+
 function matchesExpectedStep(
   message: EdielMessageRow,
   step: EdielTgtExpectedStep,
@@ -2708,9 +2731,9 @@ export function evaluateEdielTgtRun(
 
   const usedIds = new Set<string>();
   const matches = definition.expectedSteps.map((step) => {
-    const exact = candidates.find(
-      (message) =>
-        !usedIds.has(message.id) && matchesExpectedStep(message, step),
+    const exact = pickBestStepCandidate(
+      candidates,
+      (message) => !usedIds.has(message.id) && matchesExpectedStep(message, step),
     );
     if (exact) {
       usedIds.add(exact.id);
@@ -2722,7 +2745,8 @@ export function evaluateEdielTgtRun(
       };
     }
 
-    const close = candidates.find(
+    const close = pickBestStepCandidate(
+      candidates,
       (message) =>
         !usedIds.has(message.id) &&
         message.direction === step.direction &&

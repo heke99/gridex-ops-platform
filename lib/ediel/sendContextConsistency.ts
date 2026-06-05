@@ -93,6 +93,41 @@ async function getRouteProfileForMessage(message: EdielMessageRow, run: EdielTes
   return (data as EdielRouteProfileRow | null) ?? null
 }
 
+
+function isAckMessageFamily(value: unknown): boolean {
+  const family = String(value ?? '').trim().toUpperCase()
+  return family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
+}
+
+function objectValue(input: unknown, key: string): unknown {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null
+  return (input as Record<string, unknown>)[key]
+}
+
+function relatedBusinessFamilyForSend(message: EdielMessageRow): string | null {
+  const validationReport = message.validation_report ?? {}
+  const parsedPayload = message.parsed_payload ?? {}
+  const candidates = [
+    objectValue(validationReport, 'sourceFamily'),
+    objectValue(validationReport, 'sourceMessageFamily'),
+    objectValue(validationReport, 'relatedBusinessFamily'),
+    objectValue(parsedPayload, 'sourceFamily'),
+    objectValue(parsedPayload, 'sourceMessageFamily'),
+  ]
+  for (const candidate of candidates) {
+    const normalized = String(candidate ?? '').trim().toUpperCase()
+    if (normalized) return normalized
+  }
+  return null
+}
+
+function comparableMessageFamilyForRun(message: EdielMessageRow): string | null {
+  const generatedFamily = String(message.message_family ?? '').trim().toUpperCase()
+  if (!generatedFamily) return null
+  if (!isAckMessageFamily(generatedFamily)) return generatedFamily
+  return relatedBusinessFamilyForSend(message) ?? generatedFamily
+}
+
 function addIssue(target: EdielSendConsistencyIssue[], code: string, message: string, severity: 'blocking' | 'warning' = 'blocking') {
   target.push({ code, message, severity })
 }
@@ -173,8 +208,16 @@ export async function validateEdielSendContext(params: {
     if (run.company_id && params.message.company_id && run.company_id !== params.message.company_id) {
       addIssue(blockingIssues, 'tenant_mismatch', 'Sending blocked: outbound message tenant does not match the selected company.')
     }
-    if (run.message_family && params.message.message_family && String(run.message_family).toUpperCase() !== String(params.message.message_family).toUpperCase()) {
-      addIssue(blockingIssues, 'message_family_mismatch', 'Sending blocked: selected test suite/message family does not match the generated message.')
+    const selectedRunFamily = String(run.message_family ?? '').trim().toUpperCase()
+    const comparableFamily = comparableMessageFamilyForRun(params.message)
+    if (selectedRunFamily && comparableFamily && selectedRunFamily !== comparableFamily) {
+      addIssue(
+        blockingIssues,
+        'message_family_mismatch',
+        isAckMessageFamily(params.message.message_family)
+          ? 'Sending blocked: generated ACK is not linked to the selected test suite/message family.'
+          : 'Sending blocked: selected test suite/message family does not match the generated message.',
+      )
     }
     if (run.route_profile_id && routeProfile?.id && run.route_profile_id !== routeProfile.id) {
       addIssue(blockingIssues, 'route_profile_mismatch', 'Sending blocked: route profile does not match the selected test run.')
