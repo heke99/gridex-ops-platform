@@ -287,6 +287,33 @@ export default async function EdielPage() {
  />
  </section>
 
+ <section className="grid gap-5 xl:grid-cols-3">
+ <AreaCard
+ eyebrow="Backend automation"
+ title="Decision trace & SLA"
+ text="Se backendens beslut, rule keys, canAutoSend, manual review-reason och SLA-timers utan att UI styr APERAK/CONTRL-outcome."
+ href="/admin/ediel/automation"
+ cta="Öppna automation"
+ tone="settings"
+ />
+ <AreaCard
+ eyebrow="Outbox"
+ title="ACK-kö och skick"
+ text="Processa köade CONTRL, APERAK och UTILTS_ERR med samma route-, certifikat- och SMTP-skydd som övriga Ediel-flöden."
+ href="/admin/ediel/outbox"
+ cta="Öppna outbox"
+ tone="production"
+ />
+ <AreaCard
+ eyebrow="Portal feedback"
+ title="Expected/actual från portal"
+ text="Importera portalens rapporter när portalen och UI diffar, så regressionsfacit kan uppdateras utan testfallshårdkodning."
+ href="/admin/ediel/portal-feedback"
+ cta="Importera feedback"
+ tone="test"
+ />
+ </section>
+
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
  <div className="flex flex-wrap items-start justify-between gap-5">
  <div>

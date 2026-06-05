@@ -31,6 +31,7 @@ export async function createOutboxItem(input: CreateEdielOutboxItemInput): Promi
     ediel_message_id: input.message.id,
     source_message_id: input.sourceMessageId ?? input.message.related_message_id ?? null,
     status: input.status ?? 'prepared',
+    queued_at: (input.status ?? 'prepared') === 'queued' ? new Date().toISOString() : null,
     priority: input.priority ?? 100,
     lock_key: lockKey,
     message_family: input.message.message_family,

@@ -25,6 +25,12 @@ function assertAll() {
   assertIncludes('supabase/migrations/20260605160000_ediel_backend_automation_foundation.sql', 'ediel_sla_timers', 'SLA table')
   assertIncludes('supabase/migrations/20260605160000_ediel_backend_automation_foundation.sql', 'ediel_portal_validation_feedback', 'portal feedback table')
   assertIncludes('lib/ediel/flows/inboundProcessing.ts', 'recordBackendAutomationPipelineTrace', 'inbound trace integration')
+  assertIncludes('lib/ediel/flows/inboundProcessing.ts', 'createOutboxItem', 'inbound ACK outbox integration')
+  assertIncludes('lib/ediel/outbox/sendOutboxItem.ts', 'assertNoActiveSendLock', 'outbox send lock guard')
+  assertIncludes('app/admin/ediel/automation/page.tsx', 'Ediel automation', 'automation dashboard page')
+  assertIncludes('app/admin/ediel/outbox/page.tsx', 'processEdielOutboxAction', 'outbox processor UI')
+  assertIncludes('app/admin/ediel/portal-feedback/page.tsx', 'importPortalValidationFeedbackAction', 'portal feedback UI')
+  assertIncludes('app/api/ediel/outbox/process/route.ts', 'EDIEL_CRON_SECRET', 'protected outbox processor API')
 }
 
 assertAll()

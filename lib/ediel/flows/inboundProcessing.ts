@@ -51,6 +51,7 @@ import {
 } from "@/lib/onboarding/inboundEdielLinking";
 import { resolveInboundTenantForMessage } from "@/lib/ediel/core/tenantResolver";
 import { analyzeEdielProcessingPipeline } from "@/lib/ediel/orchestrator/edielProcessingPipeline";
+import { createOutboxItem } from "@/lib/ediel/outbox/createOutboxItem";
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
@@ -124,13 +125,40 @@ async function createAckIfMissing(params: {
             messageText: params.messageText ?? null,
           });
 
-  return createCanonicalAckMessage({
+  const ack = await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: params.ackFamily,
     outcome: params.outcome,
     draft,
   });
+
+  if (["draft", "prepared", "queued", "failed"].includes(String(ack.status))) {
+    await createOutboxItem({
+      actorUserId: params.actorUserId,
+      message: ack,
+      sourceMessageId: params.sourceMessage.id,
+      status: "queued",
+      payload: {
+        createdBy: "inbound_backend_automation",
+        ackFamily: params.ackFamily,
+        outcome: params.outcome ?? null,
+        sourceMessageId: params.sourceMessage.id,
+        messageFamily: params.sourceMessage.message_family,
+        messageCode: params.sourceMessage.message_code,
+      },
+    }).catch(async (error) => {
+      await createAckBlockedEvent({
+        actorUserId: params.actorUserId,
+        sourceMessage: params.sourceMessage,
+        ackFamily: params.ackFamily,
+        reason: `outbox queue misslyckades: ${formatErrorMessage(error, "okänt fel")}`,
+        details: { ackMessageId: ack.id },
+      });
+    });
+  }
+
+  return ack;
 }
 
 async function readCanonicalAckSnapshot(sourceMessageId: string) {
