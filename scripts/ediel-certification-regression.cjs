@@ -11,7 +11,9 @@ const systemTestPagePath = path.join(root, 'app/admin/ediel/system-tests/cases/[
 const systemTestActionsPath = path.join(root, 'app/admin/ediel/system-tests/actions.ts')
 const tgtAutopilotPath = path.join(root, 'lib/ediel/tgtAutopilot.ts')
 
-const required = [registryPath, migrationPath, pagePath, decisionPath, tgtRegistryPath, systemTestPagePath, systemTestActionsPath, tgtAutopilotPath]
+const tgtEdifactPath = path.join(root, 'lib/ediel/tgtEdifact.ts')
+
+const required = [registryPath, migrationPath, pagePath, decisionPath, tgtRegistryPath, systemTestPagePath, systemTestActionsPath, tgtAutopilotPath, tgtEdifactPath]
 const failures = []
 for (const file of required) {
   if (!fs.existsSync(file)) failures.push(`Missing file: ${path.relative(root, file)}`)
@@ -24,6 +26,7 @@ const tgtRegistry = fs.existsSync(tgtRegistryPath) ? fs.readFileSync(tgtRegistry
 const systemTestPage = fs.existsSync(systemTestPagePath) ? fs.readFileSync(systemTestPagePath, 'utf8') : ''
 const systemTestActions = fs.existsSync(systemTestActionsPath) ? fs.readFileSync(systemTestActionsPath, 'utf8') : ''
 const tgtAutopilot = fs.existsSync(tgtAutopilotPath) ? fs.readFileSync(tgtAutopilotPath, 'utf8') : ''
+const tgtEdifact = fs.existsSync(tgtEdifactPath) ? fs.readFileSync(tgtEdifactPath, 'utf8') : ''
 
 const requiredCases = [
   'L1','L2','L3','L4','L5','L7',
@@ -55,6 +58,9 @@ if (!systemTestPage.includes('Skapa och skicka PRODAT från Systemtest')) failur
 if (!systemTestActions.includes('createAndSendSystemTestOutboundForRunAction')) failures.push('Systemtest create-and-send outbound action missing')
 if (!systemTestActions.includes('runTgtAutopilotForRun')) failures.push('Systemtest create-and-send action must create missing draft through autopilot')
 if (!tgtAutopilot.includes('runtimeSuiteForRun')) failures.push('Autopilot must resolve AGT/TGT runtime suite from the test run')
+if (!tgtEdifact.includes('fallbackEscoPermissionGridAreaId')) failures.push('E3/E4/E8 Systemtest builder must provide AGT grid-area fallback without imported TGT portal rows')
+if (!tgtEdifact.includes('["E3", "E4", "E8"].includes(params.testCaseCode)')) failures.push('AGT actor-to-portal E3/E4/E8 must not be blocked by missing TGT portal testdata')
+if (!tgtEdifact.includes('735999888000000113')) failures.push('E8 Z18V must have deterministic synthetic metering point fallback for Systemtest outbound')
 
 if (failures.length > 0) {
   console.error('Certification regression failed:')

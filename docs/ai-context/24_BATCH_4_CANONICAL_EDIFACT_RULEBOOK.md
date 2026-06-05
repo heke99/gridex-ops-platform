@@ -575,3 +575,22 @@ Required behavior added:
 - Starting a new Systemtest run must keep `companyId` in the redirect, so the created run/draft remains visible after redirect.
 
 This fix is specifically important for E8 (`PRODAT Z18V`) but also applies to L1, L7, E3 and E4. Certification PRODAT must not be sent from a detached generic outbound page.
+
+## Batch 4 follow-up fix — AGT E3/E4/E8 must not require imported TGT portal testdata
+
+Problem found in live Systemtest E8: `Skapa och skicka PRODAT från Systemtest` still called the TGT draft builder path and blocked E8 with:
+
+- `Portaltestdata saknas: Anläggnings-id saknas i payload`
+- `Portaltestdata saknas: Nätområde saknas i payload`
+
+This is wrong for AGT actor → portal tests. E3, E4 and E8 are AGT certification sends from Gridex to Edielportalen. They must be creatable from Systemtest even when no imported TGT portal row exists.
+
+Required behavior:
+
+- E3/E4/E8 still use the normal Systemtest run, outbox/send pipeline, route, encryption and audit.
+- They must not require imported TGT portal testdata.
+- The builder may use deterministic AGT-safe synthetic values for object/grid area when portal data is absent.
+- E8/Z18V must have a deterministic synthetic metering point fallback and `RFF+Z05:TES` grid-area fallback so the internal preflight does not block before Edielportalen can validate the actual AGT exchange.
+- If AGT outbound is blocked, the error should point to AGT runtime/route/certificate/subaddress readiness, not tell the user to import TGT portal testdata.
+
+This does not create a separate test engine. It only ensures the shared Systemtest outbound builder uses AGT runtime context correctly for actor → portal certification cases.

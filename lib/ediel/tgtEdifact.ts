@@ -1367,6 +1367,13 @@ function fallbackEscoPermissionMeteringPointId(
 ): string {
   if (params.testSuite !== "PRODAT" || params.roleCode !== "esco") return "";
 
+  if (params.testCaseCode === "E3" && step.code === "Z13")
+    return "735999888000000108";
+  if (params.testCaseCode === "E4" && step.code === "Z13")
+    return "735999888000000112";
+  if (params.testCaseCode === "E8" && step.code === "Z18")
+    return "735999888000000113";
+
   if (params.testCaseCode === "8.1.1" && step.code === "Z13")
     return "735999888000000109";
   if (params.testCaseCode === "8.1.2" && step.code === "Z13")
@@ -1377,6 +1384,48 @@ function fallbackEscoPermissionMeteringPointId(
     return "735999888000000113";
 
   return "";
+}
+
+function fallbackEscoPermissionGridAreaId(
+  params: TestDataLookupParams,
+  step: EdielTgtExpectedStep,
+): string {
+  if (params.testSuite !== "PRODAT" || params.roleCode !== "esco") return "";
+
+  // AGT E3/E4/E8 are actor -> portal certification cases. They must be
+  // created from Systemtest even when no TGT portal row has been imported.
+  // The Edielportal validates transport/ack flow and will return negative
+  // APERAK for unknown application data, so a deterministic test grid area is
+  // safer than blocking the system-test builder on missing TGT testdata.
+  if (["E3", "E4", "E8"].includes(params.testCaseCode)) return "TES";
+
+  return "";
+}
+
+function withEscoPermissionAgtFallbacks(
+  params: TestDataLookupParams,
+  step: EdielTgtExpectedStep,
+  portalData: TgtPortalCustomerData,
+): TgtPortalCustomerData {
+  if (params.testSuite !== "PRODAT" || params.roleCode !== "esco")
+    return portalData;
+
+  const fallbackMeteringPointId = fallbackEscoPermissionMeteringPointId(
+    params,
+    step,
+  );
+  const fallbackGridAreaId = fallbackEscoPermissionGridAreaId(params, step);
+
+  if (!fallbackMeteringPointId && !fallbackGridAreaId) return portalData;
+
+  return {
+    ...portalData,
+    meteringPointId:
+      sanitizeCode(portalData.meteringPointId, "", 35) ||
+      fallbackMeteringPointId,
+    gridAreaId:
+      sanitizeCode(portalData.gridAreaId, "", 12) || fallbackGridAreaId,
+  };
 }
 
 function resolveEscoZ13MeteringPointId(
@@ -1794,7 +1843,15 @@ function buildProdatPermissionLineSegments(params: {
     "",
     35,
   );
-  const gridAreaId = sanitizeCode(portalData.gridAreaId, "", 12);
+  const gridAreaId = sanitizeCode(
+    portalData.gridAreaId ||
+      fallbackEscoPermissionGridAreaId(
+        { testSuite, roleCode, testCaseCode, systemTestContext },
+        step,
+      ),
+    "",
+    12,
+  );
   const lineReference =
     lineNo === 1
       ? refs.externalRef
@@ -2079,14 +2136,18 @@ function buildPortalProdatSegments(
       params.testCaseCode === "8.1.1")
       ? getPortalDataRows(params, step)
       : [getPortalData(params, step)];
-  const portalRows = sourceRows.map((row) => ({
-    ...applyProdatMutationToPortalData(row, mutation),
-    prodatTransactionType: transactionType,
-  }));
-  const primaryPortalData = portalRows[0] ?? {
-    ...applyProdatMutationToPortalData(getPortalData(params, step), mutation),
-    prodatTransactionType: transactionType,
-  };
+  const portalRows = sourceRows.map((row) =>
+    withEscoPermissionAgtFallbacks(params, step, {
+      ...applyProdatMutationToPortalData(row, mutation),
+      prodatTransactionType: transactionType,
+    }),
+  );
+  const primaryPortalData =
+    portalRows[0] ??
+    withEscoPermissionAgtFallbacks(params, step, {
+      ...applyProdatMutationToPortalData(getPortalData(params, step), mutation),
+      prodatTransactionType: transactionType,
+    });
 
   const bodySegments: string[] = [
     `BGM+${step.code}+${refs.externalRef}+9+AB`,

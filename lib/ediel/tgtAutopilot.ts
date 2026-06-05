@@ -503,12 +503,15 @@ export async function runTgtAutopilotForRun(params: {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.startsWith("TGT-utkastet är blockerat:")) {
+        const isAgtRuntime = runtimeSuiteForRun(evaluation.testRun) === "AGT";
         return {
           testRunId: params.testRunId,
           action: "blocked",
           messageId: null,
           stepNo: step.stepNo,
-          description: `${message} Importera eller uppdatera testdata från Edielportalen och tryck sedan på Försök skapa nästa GridCore-utkast.`,
+          description: isAgtRuntime
+            ? `${message.replace("TGT-utkastet", "AGT-utkastet")} Kontrollera AGT-runtime, route, subadress och certifikat. Aktör→portal-test ska inte kräva importerad TGT-portaltestdata.`
+            : `${message} Importera eller uppdatera testdata från Edielportalen och tryck sedan på Försök skapa nästa GridCore-utkast.`,
         };
       }
       throw error;
