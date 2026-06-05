@@ -382,30 +382,37 @@ function safeJsonPreview(value: unknown, maxLength = 900): string {
   }
 }
 
-function expectedAckStep(
-  testCase: EdielTgtTestCaseDefinition,
-  family: "CONTRL" | "APERAK" | "UTILTS_ERR",
-  outcome?: "positive" | "negative",
-) {
-  return (
-    testCase.expectedSteps.find(
-      (step) =>
-        step.actor === "gridex" &&
-        step.direction === "outbound" &&
-        step.family === family &&
-        (!outcome || step.outcome === outcome),
-    ) ??
-    testCase.expectedSteps.find(
-      (step) =>
-        step.actor === "gridex" &&
-        step.direction === "outbound" &&
-        step.family === family,
-    )
-  );
-}
-
 function shouldOfferAperak(messageFamily: string | null | undefined) {
   return messageFamily === "PRODAT" || messageFamily === "UTILTS";
+}
+
+
+function expectedAckActionsForInboundMessage(
+  testCase: EdielTgtTestCaseDefinition,
+  messageFamily: string | null | undefined,
+): EdielTgtExpectedStep[] {
+  const family = String(messageFamily ?? "").toUpperCase();
+  if (!family || family === "CONTRL" || family === "APERAK" || family === "UTILTS_ERR") return [];
+  return testCase.expectedSteps.filter((step) => {
+    if (step.actor !== "gridex" || step.direction !== "outbound") return false;
+    if (!step.required) return false;
+    if (step.family === "CONTRL") return true;
+    if (step.family === "APERAK") return shouldOfferAperak(family);
+    if (step.family === "UTILTS_ERR") return family === "UTILTS";
+    return false;
+  });
+}
+
+function ackActionTone(step: EdielTgtExpectedStep): Tone {
+  if (step.family === "CONTRL" && step.outcome !== "negative") return "emerald";
+  if (step.family === "APERAK" && step.outcome !== "negative") return "emerald";
+  return step.outcome === "negative" || step.family === "UTILTS_ERR" ? "red" : "emerald";
+}
+
+function ackActionLabel(step: EdielTgtExpectedStep): string {
+  if (step.family === "UTILTS_ERR") return "Skapa & skicka rekommenderad UTILTS_ERR";
+  const outcomeText = step.outcome === "negative" ? "negativ" : "positiv";
+  return `Skapa & skicka rekommenderad ${outcomeText} ${step.family}`;
 }
 
 function splitEdifactSegments(rawPayload: string | null | undefined): string[] {
@@ -1086,32 +1093,6 @@ export default async function SystemTestCasePage({
           ) : (
             evaluations.map((evaluation) => {
               const detail = runDetailById.get(evaluation.testRun.id);
-              const contrlPositiveStep = expectedAckStep(
-                testCase,
-                "CONTRL",
-                "positive",
-              );
-              const contrlNegativeStep = expectedAckStep(
-                testCase,
-                "CONTRL",
-                "negative",
-              );
-              const positiveAperakStep = expectedAckStep(
-                testCase,
-                "APERAK",
-                "positive",
-              );
-              const negativeAperakStep = expectedAckStep(
-                testCase,
-                "APERAK",
-                "negative",
-              );
-              const utiltsErrStep = expectedAckStep(
-                testCase,
-                "UTILTS_ERR",
-                "negative",
-              );
-
               return (
                 <div
                   key={evaluation.testRun.id}
@@ -1270,74 +1251,29 @@ export default async function SystemTestCasePage({
                             </div>
                             {message?.direction === "inbound" &&
                             message.message_family !== "CONTRL" ? (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <AckActionForm
-                                  sourceMessageId={message.id}
-                                  testRunId={evaluation.testRun.id}
-                                  testCase={testCase}
-                                  ackFamily="CONTRL"
-                                  outcome="positive"
-                                  stepNo={
-                                    contrlPositiveStep?.stepNo ??
-                                    contrlNegativeStep?.stepNo ??
-                                    null
-                                  }
-                                  label="Skapa & skicka positiv CONTRL"
-                                  tone="emerald"
-                                />
-                                <AckActionForm
-                                  sourceMessageId={message.id}
-                                  testRunId={evaluation.testRun.id}
-                                  testCase={testCase}
-                                  ackFamily="CONTRL"
-                                  outcome="negative"
-                                  stepNo={
-                                    contrlNegativeStep?.stepNo ??
-                                    contrlPositiveStep?.stepNo ??
-                                    null
-                                  }
-                                  label="Skapa & skicka negativ CONTRL"
-                                  tone="red"
-                                />
-                                {shouldOfferAperak(message.message_family) &&
-                                positiveAperakStep ? (
-                                  <AckActionForm
-                                    sourceMessageId={message.id}
-                                    testRunId={evaluation.testRun.id}
-                                    testCase={testCase}
-                                    ackFamily="APERAK"
-                                    outcome="positive"
-                                    stepNo={positiveAperakStep.stepNo}
-                                    label="Skapa & skicka positiv APERAK"
-                                    tone="emerald"
-                                  />
-                                ) : null}
-                                {shouldOfferAperak(message.message_family) &&
-                                negativeAperakStep ? (
-                                  <AckActionForm
-                                    sourceMessageId={message.id}
-                                    testRunId={evaluation.testRun.id}
-                                    testCase={testCase}
-                                    ackFamily="APERAK"
-                                    outcome="negative"
-                                    stepNo={negativeAperakStep.stepNo}
-                                    label="Skapa & skicka negativ APERAK"
-                                    tone="red"
-                                  />
-                                ) : null}
-                                {message.message_family === "UTILTS" &&
-                                utiltsErrStep ? (
-                                  <AckActionForm
-                                    sourceMessageId={message.id}
-                                    testRunId={evaluation.testRun.id}
-                                    testCase={testCase}
-                                    ackFamily="UTILTS_ERR"
-                                    outcome="negative"
-                                    stepNo={utiltsErrStep.stepNo}
-                                    label="Skapa & skicka UTILTS_ERR"
-                                    tone="red"
-                                  />
-                                ) : null}
+                              <div className="mt-3 space-y-2">
+                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-900">
+                                  Systemet visar bara kvittenserna som testfallet förväntar sig.
+                                  Positiv/negativ väljs av backend utifrån testkedjan, inte som fritt manuellt val.
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {expectedAckActionsForInboundMessage(
+                                    testCase,
+                                    message.message_family,
+                                  ).map((step) => (
+                                    <AckActionForm
+                                      key={`${message.id}-${step.stepNo}-${step.family}`}
+                                      sourceMessageId={message.id}
+                                      testRunId={evaluation.testRun.id}
+                                      testCase={testCase}
+                                      ackFamily={step.family as "CONTRL" | "APERAK" | "UTILTS_ERR"}
+                                      outcome={(step.outcome ?? "positive") as "positive" | "negative"}
+                                      stepNo={step.stepNo}
+                                      label={ackActionLabel(step)}
+                                      tone={ackActionTone(step)}
+                                    />
+                                  ))}
+                                </div>
                               </div>
                             ) : null}
                           </div>

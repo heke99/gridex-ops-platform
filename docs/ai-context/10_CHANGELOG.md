@@ -159,3 +159,47 @@ Template:
 
 - Re-run `npm run build` locally/Vercel where build has enough time.
 - Retest E5/Z14V end-to-end in Edielportalen: inbound Z14 parsed → positive CONTRL sent → positive APERAK sent.
+
+## 2026-06-05 — Lock Systemtest ACK actions to expected chain
+
+### Changed files
+
+- `app/admin/ediel/system-tests/actions.ts`
+- `app/admin/ediel/system-tests/cases/[id]/page.tsx`
+- `docs/ai-context/10_CHANGELOG.md`
+- `docs/ai-context/11_CURRENT_TASK.md`
+
+### What changed
+
+- Added a backend guard that resolves the expected ACK outcome from the Systemtest definition before creating CONTRL/APERAK/UTILTS_ERR.
+- The backend now follows the expected outbound ACK step for the test case instead of trusting a free manual UI outcome when a Systemtest definition exists.
+- Non-reusable draft/prepared/queued ACKs with a different outcome than the current backend decision are no longer reused and are superseded/cancelled.
+- The Systemtest case UI now renders only the ACK actions expected by the test chain instead of offering both positive and negative CONTRL/APERAK options.
+- The UI copy now explains that backend/test-chain logic selects positive/negative; the user only triggers the recommended expected ACK.
+
+### Why
+
+- E5/Z14 could be approved manually when the user selected the expected response, but the system still allowed wrong manual selections.
+- The system must understand the expected chain itself: inbound PRODAT Z14V in E5 should guide the UI/backend to positive CONTRL and positive APERAK.
+- Old negative APERAK drafts should not remain current when the expected test-chain decision is positive.
+
+### Validation
+
+- `npm install`
+- `npm run typecheck` — passed
+- `npm run ediel:rule-regression` — passed
+- `npm run ediel:production-readiness-regression` — passed
+- `npm run ediel:routing-security-regression` — passed
+- `npm run ediel:inbound-tenant-resolution-regression` — passed
+- `npm run build` — attempted; timed out during Next.js optimized production build in the sandbox before completion.
+
+### Regression risks
+
+- Low: UI now hides manual positive/negative alternatives on Systemtest case pages and exposes only expected ACK actions. Advanced manual override flows, if needed, should be implemented separately with reason/audit.
+- Low-to-medium: backend expected-outcome forcing applies when a Systemtest definition contains an expected outbound ACK outcome. This is intentional for Systemtest flows and avoids wrong UI-selected outcomes.
+
+### Follow-up
+
+- Re-run full production build locally/Vercel where build time is sufficient.
+- Re-test E5/Z14V: inbound Z14 parsed → recommended positive CONTRL sent → recommended positive APERAK sent.
+- If a future test needs manual override, add a separate superadmin/debug override with required reason and audit instead of free positive/negative buttons in the main test flow.

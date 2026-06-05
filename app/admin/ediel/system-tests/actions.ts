@@ -1420,6 +1420,30 @@ function buildApplicationErrorSummary(
     .join(" | ");
 }
 
+
+function expectedSystemTestAckOutcome(params: {
+  testCaseCode?: string | null;
+  ackFamily: AckFamily;
+}): AckOutcome | null {
+  const testCaseCode = normalizeCode(params.testCaseCode);
+  if (!testCaseCode) return null;
+  const definition =
+    getEdielTgtTestCaseByCode("PRODAT", "esco", testCaseCode) ??
+    getEdielTgtTestCaseByCode("UTILTS", "esco", testCaseCode) ??
+    getEdielTgtTestCases().find(
+      (testCase) => normalizeCode(testCase.testCaseCode) === testCaseCode,
+    ) ??
+    null;
+  const step = definition?.expectedSteps.find(
+    (expectedStep) =>
+      expectedStep.actor === "gridex" &&
+      expectedStep.direction === "outbound" &&
+      expectedStep.family === params.ackFamily &&
+      expectedStep.outcome,
+  );
+  return (step?.outcome as AckOutcome | undefined) ?? null;
+}
+
 function resolveSystemTestAckDecision(params: {
   sourceMessage: Awaited<ReturnType<typeof getEdielMessageById>>;
   ackFamily: AckFamily;
@@ -1427,14 +1451,21 @@ function resolveSystemTestAckDecision(params: {
   messageText: string | null;
   testCaseCode?: string | null;
 }): SystemTestAckDecision {
+  const expectedOutcome = expectedSystemTestAckOutcome({
+    testCaseCode: params.testCaseCode ?? null,
+    ackFamily: params.ackFamily,
+  });
+  const fallbackOutcome = expectedOutcome ?? params.requestedOutcome;
   const fallback: SystemTestAckDecision = {
-    outcome: params.requestedOutcome,
+    outcome: fallbackOutcome,
     messageText: params.messageText,
     applicationErrors: null,
     ackScope: null,
     relatedTransactionReference: null,
-    reason: null,
-    ruleKeys: [],
+    reason: expectedOutcome
+      ? "Systemtest decision follows the expected outbound ACK step, not a manual UI outcome."
+      : null,
+    ruleKeys: expectedOutcome ? ["SYSTEM_TEST_EXPECTED_ACK_OUTCOME"] : [],
   };
 
   const sourceMessage = params.sourceMessage;
@@ -1549,6 +1580,10 @@ function canReuseSystemTestAck(params: {
 }): boolean {
   const status = String(params.ack.status ?? "").toLowerCase();
   if (!["draft", "queued", "prepared"].includes(status)) return false;
+  const ackOutcome = String(params.ack.ack_outcome ?? "").toLowerCase();
+  if (params.ackFamily !== "UTILTS_ERR" && ackOutcome && ackOutcome !== params.decision.outcome) {
+    return false;
+  }
 
   // Negative APERAK in Systemtest must be rebuilt from the current backend/runtime
   // decision. Reusing a stale draft is how U3.2.1 kept sending ERC+40 after the
