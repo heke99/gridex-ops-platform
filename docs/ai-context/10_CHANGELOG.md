@@ -203,3 +203,65 @@ Template:
 - Re-run full production build locally/Vercel where build time is sufficient.
 - Re-test E5/Z14V: inbound Z14 parsed → recommended positive CONTRL sent → recommended positive APERAK sent.
 - If a future test needs manual override, add a separate superadmin/debug override with required reason and audit instead of free positive/negative buttons in the main test flow.
+
+## 2026-06-05 — Build Ediel decision engine foundation
+
+### Changed files
+
+- `app/admin/ediel/system-tests/actions.ts`
+- `lib/ediel/classify.ts`
+- `lib/ediel/core/kernel.ts`
+- `lib/ediel/inbound/productionInboundDecisionEngine.ts`
+- `lib/ediel/orchestrator.ts`
+- `lib/ediel/rulebook/ruleProfileSelector.ts`
+- `lib/ediel/statusUi.ts`
+- `docs/ai-context/05_PRODAT_RULES.md`
+- `docs/ai-context/06_UTILTS_RULES.md`
+- `docs/ai-context/07_ACK_CONTRL_APERAK_UTILTS_ERR_RULES.md`
+- `docs/ai-context/10_CHANGELOG.md`
+- `docs/ai-context/11_CURRENT_TASK.md`
+- `docs/ai-context/12_KNOWN_RISKS_AND_REGRESSIONS.md`
+- `docs/ai-context/14_VALIDATION_CHECKLIST.md`
+- `docs/ai-context/19_DECISION_ENGINE_RULES.md`
+
+### What changed
+
+- Added the first generic Ediel classification/rule-profile foundation.
+- Added broader classification for PRODAT, UTILTS, CONTRL, APERAK and UTILTS_ERR.
+- Added PRODAT permission classification for Z13/Z14/Z15/Z18, including Z14V/Z14N/Z14VH handling.
+- Added logic foundation so correct Z14N is treated as a valid business denial that can receive positive APERAK.
+- Added rule-profile selector foundation for PRODAT, UTILTS and ACK families.
+- Hardened ACK lifecycle/idempotency: correct sent ACK is success/already_sent, sent ACKs are not resent, wrong drafts can be superseded, opposite final ACK is blocked/manual review.
+- Added tenant-safe business status mapping helper.
+- Updated AI context docs with PRODAT, UTILTS, ACK, validation and known-risk rules.
+
+### Why
+
+- The system must not build one-off E5/E6/E7 or Z14 test patches.
+- Ediel production logic must be based on payload, context, route, actor role, tenant and business state.
+- TGT/AGT expected outcomes should verify engine decisions, not become production rules.
+- Z14N is a valid business-denial message and must not automatically become negative APERAK.
+- Final ACKs are operationally binding and must not be silently replaced with the opposite outcome.
+
+### Validation
+
+- Patch contents were generated as changed/added files only.
+- Full build/typecheck could not be completed in the sandbox because dependencies are not installed in the extracted environment.
+- Local validation required:
+  - `npm install`
+  - `npm run typecheck`
+  - `npm run build`
+  - Ediel regression scripts if available.
+
+### Regression risks
+
+- Medium: this is a foundation change touching ACK orchestration and classification. Run full Ediel regression before production sends.
+- Medium: full PRODAT field-level validation still requires importing the Edielportal Excel rule file.
+- Low-to-medium: tenant UI must be checked so technical statuses do not leak into the normal tenant workflow.
+
+### Follow-up
+
+- Import/version the PRODAT Excel field rules: `Uppgifter i PRODAT 26-A 16-B april 2026`.
+- Add portal validation report parser.
+- Add full regression cases for every PRODAT/UTILTS profile.
+- Add/verify superadmin manual review queue for rule_conflict and blocked_final_ack_exists.

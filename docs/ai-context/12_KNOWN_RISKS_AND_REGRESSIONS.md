@@ -112,3 +112,36 @@ Correct approach:
 - keep scope focused
 - expand only with explanation
 - document all changed files
+
+## 2026-06-05 Decision engine foundation risks
+
+### Full PRODAT field matrix is not complete
+
+The Edielportal Excel file `Uppgifter i PRODAT 26-A 16-B april 2026` is still required for complete field-level PRODAT validation. Until imported, the engine must avoid pretending it knows every field requirement.
+
+Risk if ignored:
+
+- false positive APERAK on field-level invalid PRODAT
+- false negative APERAK due to over-generalized rule
+
+Mitigation:
+
+- keep FieldMatrix scenario/profile-based
+- raise manual_review when profile data is missing
+- import/version the Excel rulebook later
+
+### Z14N regression risk
+
+Do not regress into treating all Z14N as negative APERAK. Z14N is a business denial and can be a valid message requiring positive APERAK.
+
+### ACK replacement risk
+
+Do not allow UI or retry code to send opposite APERAK after one final APERAK has already been sent for the same source message/transaction/context.
+
+### TGT/AGT/prod mixing risk
+
+AGT can intentionally differ from TGT because AGT validates actor communication/production-like setup. Keep `testKind`, actor role and business-state context separate.
+
+### UI simplification risk
+
+Tenant admins should not get technical Ediel override controls. Technical override must stay superadmin/technical-admin only, with reason and audit.

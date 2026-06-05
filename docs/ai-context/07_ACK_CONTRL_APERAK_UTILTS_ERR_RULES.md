@@ -64,3 +64,40 @@ The backend engine must be authoritative for:
 - encryption validation
 
 UI should display and explain, not silently override.
+
+## 2026-06-05 Decision engine update — ACK lifecycle and idempotency
+
+ACK lifecycle is production-critical.
+
+### Immutable final ACK rule
+
+Once a final ACK has been sent for the same source message/transaction/context, the system must not silently send an opposite outcome later.
+
+Rules:
+
+- correct ACK already sent => success / already_sent
+- do not resend a sent ACK
+- wrong draft/prepared/queued ACK => supersede or ignore
+- wrong sent APERAK/CONTRL => block and require manual correction/review
+- failed correct ACK may be retried or regenerated according to retry policy
+
+Do not mark an already-sent correct ACK as failed because a resend attempt was blocked.
+
+### Expected-vs-actual in TGT/AGT
+
+TGT/AGT expected outcome is verification context, not production logic.
+
+Flow:
+
+1. Engine decides from payload + context + profile.
+2. TGT/AGT comparator checks expected outcome.
+3. If they match, continue.
+4. If they conflict, raise rule_conflict/manual review.
+5. Do not silently create the payload the test page wants if the engine disagrees.
+
+### Forbidden ACK combinations
+
+- no APERAK on APERAK
+- no APERAK on CONTRL
+- no CONTRL on CONTRL
+- CONTRL on APERAK is allowed when required by the flow

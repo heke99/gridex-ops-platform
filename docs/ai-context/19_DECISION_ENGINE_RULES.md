@@ -1,45 +1,157 @@
 # Decision Engine Rules
 
-## Backend authority
+## Purpose
 
-Backend decision engines must be the source of truth for:
+Gridex must use production logic that is verified through TGT/AGT, not test logic that happens to work in production.
 
-- ACK result
-- positive/negative APERAK
-- UTILTS_ERR vs APERAK
-- send readiness
-- route selection
-- encryption requirement
-- tenant resolution
-- billing/export validation
-- import row validation
-- platform usage event creation
+The same decision engine should be used for:
 
-UI can recommend and display, but must not override backend decisions silently.
+- TGT/systemtest
+- AGT/actor test
+- bilateral tests
+- production/live
 
-## No hardcoded test fixes
+The difference is context, not separate engines.
 
-Decision logic must not hardcode:
+## Inputs every decision should consider
 
-- inbound id
-- message id
-- test run id
-- customer id
-- metering point id
-- timestamps
-- one-off reference strings
+- tenant/company id and tenant-resolution confidence
+- environment: test/production where relevant
+- test kind: TGT, AGT, bilateral or production
+- message family: PRODAT, UTILTS, APERAK, CONTRL, UTILTS_ERR
+- BGM/message code
+- Application Reference
+- sender and receiver Ediel ID
+- sender and receiver subaddress
+- actor role/subordinate role
+- route profile
+- transport/encryption requirements
+- parsed EDIFACT payload
+- related source message/business process
+- known customer/site/metering point/permission state
+- selected rule profile/version
 
-Use actual payload data, configuration, route profile, actor settings and environment.
+## Core pipeline
 
-## Manual override
+1. Receive or prepare message.
+2. Resolve tenant/company safely.
+3. Parse EDIFACT.
+4. Identify message family and BGM/message code.
+5. Classify scenario/variant/process.
+6. Select rule profile.
+7. Run syntax, application, business and process validation.
+8. Decide response: CONTRL, APERAK, UTILTS_ERR, manual_review or rule_conflict.
+9. For TGT/AGT, compare engine result against expected test step.
+10. Create/send ACK idempotently.
+11. Log decision trace, rule profile and reason.
+12. Show tenant-safe business status in UI; technical trace only to superadmin/technical admin.
 
-Manual override must be explicit, audited and reasoned.
+## CONTRL rules
 
-Manual override must not silently bypass:
+CONTRL is technical/syntax-level acknowledgement.
 
-- tenant routing
-- send readiness
-- encryption readiness
-- billing export finalization
-- finalized import correction
-- platform billing finalization
+- syntax/EDIFACT OK => positive CONTRL
+- syntax/EDIFACT error => negative CONTRL
+- do not use CONTRL to represent business rejection
+- do not send CONTRL on CONTRL
+
+## APERAK rules
+
+APERAK is application/business acknowledgement.
+
+- valid application/business message => positive APERAK
+- invalid application/business message => negative APERAK
+- negative business result is not automatically negative APERAK
+
+Example:
+
+- correct PRODAT Z14N = access denied as business result => positive APERAK
+- unlinked/invalid PRODAT Z14 = application/process error => negative APERAK or manual review
+
+## UTILTS_ERR rules
+
+UTILTS must split errors into the correct response type:
+
+- syntax error => CONTRL
+- application/anvisningsfel => negative APERAK
+- functional/process error => UTILTS_ERR
+- unknown production state => manual review
+
+## Rule profiles
+
+Rule profiles are required. They define required fields, optional fields, forbidden fields, expected references, business validation, error mapping and manual-review triggers.
+
+Initial profile names:
+
+- prodat_supplier_switch_z03
+- prodat_supplier_switch_z04
+- prodat_supplier_switch_z05
+- prodat_masterdata_z06
+- prodat_meter_change_z10
+- prodat_permission_z13
+- prodat_permission_z14
+- prodat_permission_z15
+- prodat_permission_z18
+- utilts_e66_monthly
+- utilts_e66_quarter
+- utilts_e66_energy_service
+- utilts_e31_sch
+- utilts_s01
+- utilts_s02
+- utilts_s03
+- utilts_s04
+- aperak_ack
+- contrl_ack
+- utilts_err
+
+## Manual review triggers
+
+Manual review is required when the system cannot safely decide.
+
+Examples:
+
+- uncertain tenant resolution
+- multiple possible related processes
+- missing customer/site/metering point state in production
+- route/certificate/encryption conflict
+- unknown PRODAT variant
+- FieldMatrix issue conflicts with scenario rule profile
+- engine decision conflicts with TGT/AGT expected result
+- a final ACK was already sent with the opposite outcome
+- masterdata required for production decision is missing
+
+Do not default uncertain production cases to positive or negative ACK.
+
+## ACK idempotency
+
+- correct sent ACK => success / already_sent
+- do not resend sent ACK
+- wrong draft/prepared/queued ACK => supersede/ignore
+- wrong final sent ACK => block/manual review
+- first sent APERAK on a message/transaction is binding unless a formal correction/cancellation process applies
+
+## UI mapping
+
+Tenant admins should see business status, not Ediel internals as the main UI.
+
+Recommended mapping:
+
+- parsed/classified/decision_ready => Pågår / Kontroll pågår
+- ack_sent and no remaining expected action => Klar
+- waiting for counterpart => Väntar på motpart
+- manual_review => Åtgärd krävs
+- rule_conflict/send_failed/security/route/certificate block => Tekniskt stopp
+
+Superadmin/technical admin may see:
+
+- CONTRL / APERAK / UTILTS_ERR
+- ERC / FTX
+- RFF / DOC / NAD
+- rule profile
+- decision trace
+- route/certificate/encryption diagnostics
+- raw EDIFACT
+
+## Known limitation
+
+Full PRODAT field validation still requires importing the Edielportal Excel file `Uppgifter i PRODAT 26-A 16-B april 2026`. Until that is implemented, the engine can enforce architecture, known rules, ACK lifecycle and major TGT/AGT flows, but not every exact PRODAT field matrix rule.

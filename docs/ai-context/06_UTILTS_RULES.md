@@ -130,3 +130,39 @@ Correct UTILTS-E66 daily settled quarter:
 - positive CONTRL
 - positive APERAK
 - BGM+312/ERC+100/OK
+
+## 2026-06-05 Decision engine update — UTILTS response rules
+
+UTILTS must separate syntax, application/anvisningsfel and functional/process errors.
+
+### Response selection
+
+- syntax/EDIFACT error => CONTRL
+- application/anvisningsfel => negative APERAK
+- functional/process error => UTILTS_ERR
+- valid UTILTS => positive APERAK
+- unknown production scenario => manual review, not guessed positive or negative ACK
+
+### TGT vs AGT context
+
+Do not merge TGT and AGT expectations into one rule.
+
+- TGT U3.1 correct UTILTS E66 to energy service company => positive CONTRL + positive APERAK.
+- AGT UE1/UE2 can require positive CONTRL + negative UTILTS/UTILTS_ERR because test data is unknown to the actor's production application.
+
+This means `testKind`, actor role, Application Reference, BGM code, transaction references and known business state must be part of the decision context.
+
+### Transaction-scoped APERAK
+
+UTILTS may require transaction-scoped results where some transactions are valid and others invalid.
+
+Rules:
+
+- RFF+ACW must point to the affected transaction/reference.
+- Positive UTILTS APERAK should use BGM 312, ERC 100, FTX OK.
+- Negative UTILTS APERAK should use BGM 313, ERC 41/42 and relevant FTX field/error code.
+- Multiple transactions can require separate ACK decisions depending on route/test/profile context.
+
+### NULL values
+
+`QTY+136:NULL` can be valid when paired with the correct quality/status code, such as missing-value quality status. Do not treat all NULL meter values as errors without checking the rule profile and quality code.

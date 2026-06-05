@@ -148,3 +148,57 @@ Check:
 - manual adjustments require reason
 - audit events exist for price/report changes
 - customer billing underlay is not mixed with platform billing
+
+## 2026-06-05 Decision engine foundation validation
+
+### Required commands after applying patch
+
+```bash
+npm install
+npm run typecheck
+npm run build
+```
+
+Run these if present in `package.json`:
+
+```bash
+npm run ediel:rule-regression
+npm run ediel:production-readiness-regression
+npm run ediel:routing-security-regression
+npm run ediel:inbound-tenant-resolution-regression
+```
+
+### PRODAT regression checks
+
+- Correct Z14V linked to Z13/process => positive APERAK.
+- Correct Z14N linked to Z13/process => positive APERAK.
+- Correct Z14VH linked to Z13/process => positive APERAK.
+- Invalid/unlinked Z14 => negative APERAK or manual review.
+- Z14N must not be globally mapped to negative APERAK.
+- No global `Z14 missing NAD UD/IT => negative APERAK` rule.
+- Correct Z15V/Z18V => positive APERAK.
+- Invalid Z15V status/reason => negative APERAK with ERC/FTX mapping.
+
+### UTILTS regression checks
+
+- TGT U3.1 correct E66 => positive CONTRL + positive APERAK.
+- AGT UE1/UE2 context stays separated from TGT U3.
+- application/anvisningsfel => negative APERAK.
+- functional/process error => UTILTS_ERR.
+- transaction-scoped APERAK keeps RFF+ACW pointing at the affected transaction.
+- NULL values are only errors when the selected profile/quality code says they are errors.
+
+### ACK lifecycle checks
+
+- Correct sent ACK => success/already_sent.
+- Sent ACK is not resent.
+- Wrong draft/prepared/queued ACK is superseded/ignored.
+- Wrong final sent APERAK/CONTRL is blocked/manual review.
+- Draft/failed ACK does not count as passed.
+- Engine-vs-expected mismatch in TGT/AGT raises rule_conflict/manual review instead of silently creating the expected payload.
+
+### UI checks
+
+- Tenant admin sees simple status: Pågår, Klar, Väntar på motpart, Åtgärd krävs, Tekniskt stopp.
+- Technical terms and raw EDIFACT remain in superadmin/technical view.
+- Tenant admin cannot manually choose positive/negative APERAK as the normal workflow.
