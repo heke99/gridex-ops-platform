@@ -314,6 +314,34 @@ export default async function EdielPage() {
  />
  </section>
 
+
+ <section className="grid gap-5 xl:grid-cols-3">
+ <AreaCard
+ eyebrow="Certifiering"
+ title="L/UL/E/UE-status"
+ text="Enkel matris för godkända, felade och ej startade testfall. Testfall är regression och facit, inte produktionslogik."
+ href="/admin/ediel/certification"
+ cta="Öppna certifiering"
+ tone="test"
+ />
+ <AreaCard
+ eyebrow="Regelprofiler"
+ title="Field Matrix + Rulebook"
+ text="Importera och granska Field Matrix-regler, men låt canonical Ediel-regler skydda APERAK, CONTRL, routing och Application Reference."
+ href="/admin/ediel/rule-profiles"
+ cta="Öppna regelprofiler"
+ tone="settings"
+ />
+ <AreaCard
+ eyebrow="Masterdata"
+ title="AI-lista och matchning"
+ text="Grund för AI-listimport och masterdata reconciliation så produktion kan skilja säkert fel från osäker matchning."
+ href="/admin/ediel/masterdata-reconciliation"
+ cta="Öppna masterdata"
+ tone="production"
+ />
+ </section>
+
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
  <div className="flex flex-wrap items-start justify-between gap-5">
  <div>

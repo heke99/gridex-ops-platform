@@ -9,6 +9,8 @@ import {
 } from '@/lib/ediel/rulebook/ruleProfileSelector'
 import { validateProdatBusinessRules } from '@/lib/ediel/prodat/prodatBusinessRules'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { evaluateApplicationReferenceGuard } from '@/lib/ediel/rulebook/canonicalRules'
+import { findCertificationCase } from '@/lib/ediel/rulebook/testCaseRuleRegistry'
 
 export type EdielEngineAckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
 export type EdielEngineAckOutcome = 'positive' | 'negative'
@@ -246,10 +248,10 @@ function buildKnownPermissionErrors(params: {
 
   if (code === 'Z15') {
     if (status && !['A75'].includes(status)) {
-      errors.push(errorForCode({ ercCode: '42', fieldCode: '322', text: `INCORRECT DATA - permission status ${status}`, rawPayload }))
+      errors.push(errorForCode({ ercCode: '41', fieldCode: '322', text: `INCORRECT DATA - permission status ${status}`, rawPayload }))
     }
     if (endReason && !['B79', 'B80'].includes(endReason)) {
-      errors.push(errorForCode({ ercCode: '42', fieldCode: '324', text: `INCORRECT DATA - permission end reason ${endReason}`, rawPayload }))
+      errors.push(errorForCode({ ercCode: '41', fieldCode: '324', text: `INCORRECT DATA - permission end reason ${endReason}`, rawPayload }))
     }
   }
 
@@ -309,6 +311,27 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
     testKind: input.testKind ?? null,
   })
   const portalFeedback = parsePortalValidationFeedback(messageValidationReport(input))
+  const applicationReferenceGuard = evaluateApplicationReferenceGuard({
+    family: classification.family,
+    messageCode: classification.messageCode,
+    applicationReference: input.applicationReference ?? input.message?.application_reference ?? null,
+  })
+
+  if (!applicationReferenceGuard.ok) {
+    return {
+      kind: 'manual_review',
+      ackFamily: 'APERAK',
+      outcome: null,
+      messageText: applicationReferenceGuard.reason ?? 'Application Reference kräver manuell teknisk granskning.',
+      applicationErrors: [],
+      reason: 'Canonical Application Reference guard stoppade auto-beslut. Testfallskod får inte skriva över detta.',
+      ruleKeys: [...applicationReferenceGuard.ruleKeys, classification.ruleProfileId],
+      classification: summarizeRuleProfile(classification),
+      portalFeedback,
+      expectedComparison: null,
+    }
+  }
+
   const businessErrors = validateProdatBusinessRules(rawPayload ?? '')
     .filter((item) => item.severity === 'error')
     .map((item) => prodatBusinessIssueToAperakError(rawPayload, item))
@@ -424,7 +447,14 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
   })
 
   const testCase = normalize(input.testCaseCode)
-  if ((input.testKind === 'AGT' || testCase.startsWith('UE')) && ['UE1', 'UE2'].includes(testCase) && input.message.message_family === 'UTILTS') {
+  const certificationCase = findCertificationCase(testCase)
+  const isCertificationUtiltsErr =
+    input.testKind !== 'production' &&
+    certificationCase?.messageFamily === 'UTILTS' &&
+    certificationCase.expectedBusinessResponseFamily === 'UTILTS_ERR' &&
+    input.message.message_family === 'UTILTS'
+
+  if (isCertificationUtiltsErr) {
     const comparison = compareEngineDecisionWithExpected({
       actualFamily: 'UTILTS_ERR',
       actualOutcome: 'negative',
@@ -435,10 +465,10 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
       kind: 'ack',
       ackFamily: 'UTILTS_ERR',
       outcome: 'negative',
-      messageText: 'AGT UE1/UE2 använder produktionsokända mätdata och ska därför kvitteras med UTILTS_ERR efter positiv CONTRL.',
+      messageText: 'Certifieringskontexten saknar säker mätpunkt/process och ska därför besvaras med UTILTS_ERR efter positiv CONTRL.',
       applicationErrors: [],
-      reason: 'AGT UE1/UE2 separeras från TGT U3: positiv CONTRL + UTILTS_ERR, inte positiv APERAK.',
-      ruleKeys: ['AGT_UE_UTILTS_ERR', classification.ruleProfileId],
+      reason: 'Samma UTILTS-engine används. Certifieringsprofilen anger att okänd process/mätdata ska ge UTILTS_ERR, inte APERAK.',
+      ruleKeys: ['UTILTS_CERTIFICATION_FUNCTIONAL_ERROR', certificationCase.testCaseCode, classification.ruleProfileId],
       classification: summarizeRuleProfile(classification),
       expectedComparison: comparison,
     }
