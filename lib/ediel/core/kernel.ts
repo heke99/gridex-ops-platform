@@ -70,6 +70,12 @@ function sequenceString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
 
+const FINAL_CANONICAL_ACK_STATUSES = new Set(['sent', 'acknowledged', 'validated'])
+
+function isFinalCanonicalAckStatus(value: unknown): boolean {
+  return FINAL_CANONICAL_ACK_STATUSES.has(String(value ?? '').toLowerCase())
+}
+
 export async function resolveCanonicalOutboundContext(params: {
   requestType: CanonicalRouteRequestType
   gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
@@ -479,6 +485,13 @@ export async function createCanonicalAckMessage(params: {
           ? parsedPayload.ackOutcome
           : null
 
+    const conflictingOutcome = Boolean(
+      attemptedOutcome &&
+        existingOutcome &&
+        attemptedOutcome !== existingOutcome
+    )
+    const finalDuplicate = isFinalCanonicalAckStatus(duplicate.status)
+
     await createCanonicalAckConflictEvent({
       actorUserId,
       edielMessageId: params.sourceMessage.id,
@@ -487,18 +500,26 @@ export async function createCanonicalAckMessage(params: {
       attemptedOutcome,
       existingAckMessageId: duplicate.id,
       existingOutcome,
-      reason:
-        attemptedOutcome &&
-        existingOutcome &&
-        attemptedOutcome !== existingOutcome
-          ? 'conflicting_outcome'
-          : attemptedOutcome
-            ? 'duplicate_same_outcome'
-            : 'duplicate_same_family',
+      reason: conflictingOutcome
+        ? 'conflicting_outcome'
+        : attemptedOutcome
+          ? 'duplicate_same_outcome'
+          : 'duplicate_same_family',
       payload: {
         duplicateBlockedIn: 'kernel',
+        existingAckStatus: duplicate.status,
+        finalDuplicate,
+        blockReason: finalDuplicate && conflictingOutcome ? 'blocked_final_ack_exists' : null,
       },
     })
+
+    if (conflictingOutcome) {
+      throw new Error(
+        finalDuplicate
+          ? `blocked_final_ack_exists: Final ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras.`
+          : `conflicting_ack_draft_exists: ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras tills den gamla draften ersätts.`
+      )
+    }
 
     return duplicate
   }

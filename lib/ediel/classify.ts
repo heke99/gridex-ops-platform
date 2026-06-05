@@ -85,7 +85,8 @@ function inferEdifactFamilyAndCode(rawPayload: string): {
     upper.includes('UTILTS_ERR') ||
     upper.includes('UTILTS-ERR') ||
     upper.includes('BGM+UTILTS_ERR') ||
-    upper.includes('BGM+UTILTS-ERR')
+    upper.includes('BGM+UTILTS-ERR') ||
+    upper.includes('BGM+ERR')
   ) {
     return { family: 'UTILTS_ERR', code: 'UTILTS_ERR' }
   }
@@ -109,9 +110,9 @@ function inferEdifactFamilyAndCode(rawPayload: string): {
     const bgmToken = bgmMatch?.[1]?.split(':')[0] ?? null
     const prodatCode =
       bgmToken &&
-      ['Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10'].includes(bgmToken)
+      ['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18'].includes(bgmToken)
         ? bgmToken
-        : ['Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10'].find((code) =>
+        : ['Z01', 'Z02', 'Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18'].find((code) =>
               upper.includes(`BGM+${code}`)
             ) ?? null
 

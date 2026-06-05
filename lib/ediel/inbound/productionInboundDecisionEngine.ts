@@ -1,18 +1,31 @@
+import { selectRuleProfile, summarizeRuleProfile } from '@/lib/ediel/rulebook/ruleProfileSelector'
+
 export type EdielInboundMessageFamily = 'PRODAT' | 'UTILTS' | 'CONTRL' | 'APERAK' | 'UTILTS_ERR' | string
 
 export type ProductionInboundScenario =
   | 'prodat_permission_approved'
   | 'prodat_permission_rejected'
   | 'prodat_permission_terminated'
+  | 'prodat_permission_requested'
+  | 'prodat_permission_termination_requested'
+  | 'prodat_permission_manual_review'
+  | 'prodat_other'
   | 'utilts_e66_quarter_values'
+  | 'utilts_e66_hour_values'
   | 'utilts_e66_sch_values'
+  | 'utilts_e31_values'
+  | 'utilts_other'
+  | 'ack_message'
   | 'unknown'
 
 export type ProductionInboundBusinessEffect =
   | 'activate_permission'
   | 'reject_permission'
   | 'terminate_permission'
+  | 'request_permission'
+  | 'request_permission_termination'
   | 'import_meter_values'
+  | 'register_ack'
   | 'none'
 
 export type ProductionInboundDecision = {
@@ -26,6 +39,8 @@ export type ProductionInboundDecision = {
   manualReviewRequired: boolean
   uiLabel: string
   notes: string[]
+  ruleProfileId?: string
+  classification?: Record<string, unknown>
 }
 
 export type ProductionInboundDecisionInput = {
@@ -33,139 +48,155 @@ export type ProductionInboundDecisionInput = {
   messageCode?: string | null
   rawPayload?: string | null
   utiltsResolution?: 'quarter' | 'sch' | 'hour' | 'month' | string | null
+  processType?: string | null
+  actorRole?: string | null
 }
 
 function normalize(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
-function rawContainsAny(rawPayload: string | null | undefined, needles: readonly string[]): boolean {
-  const raw = normalize(rawPayload)
-  return needles.some((needle) => raw.includes(needle.toUpperCase()))
-}
-
-function inferUtiltsResolution(input: ProductionInboundDecisionInput): 'quarter' | 'sch' | 'unknown' {
-  const explicit = normalize(input.utiltsResolution)
-  if (['QUARTER', 'KVART', '15', 'PT15M'].includes(explicit)) return 'quarter'
-  if (explicit === 'SCH') return 'sch'
-
-  const raw = normalize(input.rawPayload)
-  if (!raw) return 'unknown'
-  if (raw.includes('DTM+354:15:804') || raw.includes('PT15M') || raw.includes('KVART')) return 'quarter'
-  if (raw.includes('SCH')) return 'sch'
-  return 'unknown'
+function prodatUiLabel(scenario: ProductionInboundScenario, code: string | null): string {
+  switch (scenario) {
+    case 'prodat_permission_requested':
+      return 'PRODAT Z13 - begäran om tillgång/fullmakt'
+    case 'prodat_permission_approved':
+      return 'PRODAT Z14 - tillstånd/fullmakt godkänd'
+    case 'prodat_permission_rejected':
+      return 'PRODAT Z14 - tillstånd/fullmakt nekad'
+    case 'prodat_permission_terminated':
+      return 'PRODAT Z15 - tillstånd/fullmakt upphör'
+    case 'prodat_permission_termination_requested':
+      return 'PRODAT Z18 - begäran om avslut av tillstånd'
+    case 'prodat_permission_manual_review':
+      return `PRODAT ${code ?? ''} - tillståndsflöde kräver granskning`.trim()
+    default:
+      return `PRODAT ${code ?? ''} - mottaget meddelande`.trim()
+  }
 }
 
 export function classifyProductionInboundDecision(input: ProductionInboundDecisionInput): ProductionInboundDecision {
-  const family = normalize(input.messageFamily)
-  const raw = normalize(input.rawPayload)
-  let code = normalize(input.messageCode) || null
-  const notes: string[] = []
+  const classification = selectRuleProfile({
+    family: input.messageFamily ?? null,
+    messageCode: input.messageCode ?? null,
+    rawPayload: input.rawPayload ?? null,
+    processType: input.utiltsResolution ?? input.processType ?? null,
+    actorRole: input.actorRole ?? null,
+    testKind: 'production',
+  })
 
-  if (family === 'PRODAT' && code === 'Z14') {
-    if (raw.includes('Z14V')) code = 'Z14V'
-    else if (raw.includes('Z14N')) code = 'Z14N'
-  }
-  if (family === 'PRODAT' && code === 'Z15') {
-    if (raw.includes('Z15V')) code = 'Z15V'
-  }
+  const family = normalize(classification.family) || 'UNKNOWN'
+  const code = classification.messageCode
+  const notes: string[] = [
+    `Rule profile: ${classification.ruleProfileId}`,
+    ...classification.matchedSignals,
+  ]
 
-  if (family === 'PRODAT' && code === 'Z14V') {
+  if (classification.manualReviewReason) notes.push(classification.manualReviewReason)
+
+  if (family === 'PRODAT') {
+    const manualReviewRequired =
+      classification.applicationValidity !== 'valid' || classification.confidence === 'low'
+
+    let scenario: ProductionInboundScenario = 'prodat_other'
+    let businessEffect: ProductionInboundBusinessEffect = 'none'
+
+    if (classification.businessResult === 'permission_requested') {
+      scenario = 'prodat_permission_requested'
+      businessEffect = 'request_permission'
+    } else if (classification.businessResult === 'permission_approved') {
+      scenario = 'prodat_permission_approved'
+      businessEffect = 'activate_permission'
+    } else if (classification.businessResult === 'permission_rejected') {
+      scenario = 'prodat_permission_rejected'
+      businessEffect = 'reject_permission'
+      notes.push('Z14N är ett affärsbesked om nekad tillgång. Det är inte automatiskt negativ APERAK om payload/process är korrekt.')
+    } else if (classification.businessResult === 'permission_terminated') {
+      scenario = 'prodat_permission_terminated'
+      businessEffect = 'terminate_permission'
+    } else if (classification.businessResult === 'permission_termination_requested') {
+      scenario = 'prodat_permission_termination_requested'
+      businessEffect = 'request_permission_termination'
+    } else if (classification.ruleProfileId.startsWith('prodat_permission')) {
+      scenario = 'prodat_permission_manual_review'
+    }
+
     return {
-      scenario: 'prodat_permission_approved',
+      scenario,
       messageFamily: family,
       messageCode: code,
       direction: 'inbound',
       requiresPrivateDecryption: true,
       expectedResponses: ['CONTRL', 'APERAK'],
-      businessEffect: 'activate_permission',
-      manualReviewRequired: false,
-      uiLabel: 'PRODAT Z14V - tillstånd/fullmakt godkänd',
+      businessEffect,
+      manualReviewRequired,
+      uiLabel: prodatUiLabel(scenario, code),
       notes: [
         'Inbound PRODAT ska dekrypteras med mottagande aktörs privata PFX om mailet är S/MIME.',
-        'Positiv CONTRL kan skickas när syntaxen är korrekt; APERAK-beslut styrs av affärsvalideringen.',
+        'Positiv CONTRL styrs av syntax. APERAK styrs av vald regelprofil och affärsvalidering.',
+        ...notes,
       ],
+      ruleProfileId: classification.ruleProfileId,
+      classification: summarizeRuleProfile(classification),
     }
   }
 
-  if (family === 'PRODAT' && code === 'Z14N') {
+  if (family === 'UTILTS') {
+    let scenario: ProductionInboundScenario = 'utilts_other'
+    if (code === 'E66' && classification.variant === 'quarter') scenario = 'utilts_e66_quarter_values'
+    else if (code === 'E66' && classification.variant === 'hour') scenario = 'utilts_e66_hour_values'
+    else if (code === 'E66' && (classification.variant === 'sch' || classification.variant === 'month')) scenario = 'utilts_e66_sch_values'
+    else if (code === 'E31') scenario = 'utilts_e31_values'
+
     return {
-      scenario: 'prodat_permission_rejected',
+      scenario,
+      messageFamily: family,
+      messageCode: code ?? (normalize(input.messageCode) || null),
+      direction: 'inbound',
+      requiresPrivateDecryption: false,
+      expectedResponses: ['CONTRL', 'APERAK'],
+      businessEffect: code === 'E66' || code === 'E31' ? 'import_meter_values' : 'none',
+      manualReviewRequired: classification.applicationValidity === 'uncertain' && classification.variant === 'unknown',
+      uiLabel:
+        scenario === 'utilts_e66_quarter_values'
+          ? 'UTILTS E66 - kvartsmätvärden'
+          : scenario === 'utilts_e66_hour_values'
+            ? 'UTILTS E66 - timvärden'
+            : scenario === 'utilts_e66_sch_values'
+              ? 'UTILTS E66 - SCH/månadsavlästa mätvärden'
+              : scenario === 'utilts_e31_values'
+                ? 'UTILTS E31 - andelstal/mätvärdesunderlag'
+                : `UTILTS ${code ?? ''} - mottaget meddelande`.trim(),
+      notes: [
+        'UTILTS ska normalt inte kräva S/MIME i detta flöde.',
+        'Syntaxfel går till CONTRL, anvisnings-/applikationsfel till negativ APERAK och funktions-/processfel till UTILTS_ERR.',
+        ...notes,
+      ],
+      ruleProfileId: classification.ruleProfileId,
+      classification: summarizeRuleProfile(classification),
+    }
+  }
+
+  if (family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR') {
+    return {
+      scenario: 'ack_message',
       messageFamily: family,
       messageCode: code,
       direction: 'inbound',
-      requiresPrivateDecryption: true,
-      expectedResponses: ['CONTRL', 'APERAK'],
-      businessEffect: 'reject_permission',
+      requiresPrivateDecryption: false,
+      expectedResponses: classification.expectedResponses,
+      businessEffect: 'register_ack',
       manualReviewRequired: false,
-      uiLabel: 'PRODAT Z14N - tillstånd/fullmakt nekad',
-      notes: [
-        'Z14N kan vara affärsmässigt negativt men tekniskt korrekt.',
-        'Spara orsak/status på kund, anläggning och tillståndsflöde.',
-      ],
+      uiLabel: `${family} - inkommande kvittens`,
+      notes: ['Kvittensmeddelanden ska registreras och korreleras, inte behandlas som ny affärsbegäran.', ...notes],
+      ruleProfileId: classification.ruleProfileId,
+      classification: summarizeRuleProfile(classification),
     }
-  }
-
-  if (family === 'PRODAT' && code === 'Z15V') {
-    return {
-      scenario: 'prodat_permission_terminated',
-      messageFamily: family,
-      messageCode: code,
-      direction: 'inbound',
-      requiresPrivateDecryption: true,
-      expectedResponses: ['CONTRL', 'APERAK'],
-      businessEffect: 'terminate_permission',
-      manualReviewRequired: false,
-      uiLabel: 'PRODAT Z15V - tillstånd/fullmakt upphör',
-      notes: [
-        'Matcha mot befintligt tillstånd innan affärsuppdatering.',
-        'Om tillståndet inte kan identifieras ska positiv CONTRL och negativ APERAK användas där regeln kräver det.',
-      ],
-    }
-  }
-
-  if (family === 'UTILTS' && (code === 'E66' || rawContainsAny(input.rawPayload, ['BGM+E66']))) {
-    const resolution = inferUtiltsResolution(input)
-    if (resolution === 'quarter') {
-      return {
-        scenario: 'utilts_e66_quarter_values',
-        messageFamily: family,
-        messageCode: code ?? 'E66',
-        direction: 'inbound',
-        requiresPrivateDecryption: false,
-        expectedResponses: ['CONTRL', 'APERAK'],
-        businessEffect: 'import_meter_values',
-        manualReviewRequired: false,
-        uiLabel: 'UTILTS E66 - kvartsmätvärden',
-        notes: [
-          'UTILTS ska normalt inte kräva S/MIME i detta flöde.',
-          'Importera mätvärden först efter att mätpunkt och period matchats säkert.',
-        ],
-      }
-    }
-    if (resolution === 'sch') {
-      return {
-        scenario: 'utilts_e66_sch_values',
-        messageFamily: family,
-        messageCode: code ?? 'E66',
-        direction: 'inbound',
-        requiresPrivateDecryption: false,
-        expectedResponses: ['CONTRL', 'APERAK'],
-        businessEffect: 'import_meter_values',
-        manualReviewRequired: false,
-        uiLabel: 'UTILTS E66 - SCH/månadsavlästa mätvärden',
-        notes: [
-          'UTILTS E66 SCH ska hanteras av samma produktionsmotor som UE2-testet.',
-          'Funktionsfel enligt UTILTS-regler kan kräva UTILTS_ERR i stället för APERAK.',
-        ],
-      }
-    }
-    notes.push('UTILTS E66 hittades men upplösningen kunde inte klassificeras säkert.')
   }
 
   return {
     scenario: 'unknown',
-    messageFamily: family || 'UNKNOWN',
+    messageFamily: family,
     messageCode: code,
     direction: 'inbound',
     requiresPrivateDecryption: family === 'PRODAT',
@@ -176,5 +207,7 @@ export function classifyProductionInboundDecision(input: ProductionInboundDecisi
     notes: notes.length
       ? notes
       : ['Lägg i unresolved/dead-letter tills meddelandetyp, mottagare och affärsobjekt kan matchas säkert.'],
+    ruleProfileId: classification.ruleProfileId,
+    classification: summarizeRuleProfile(classification),
   }
 }

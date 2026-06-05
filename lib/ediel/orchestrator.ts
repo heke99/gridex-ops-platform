@@ -226,6 +226,25 @@ export async function sendQueuedEdielMessage(params: {
     throw new Error(`Meddelande ${message.id} är inte outbound.`)
   }
 
+  const alreadyFinalStatus = ['sent', 'acknowledged', 'validated'].includes(
+    String(message.status ?? '').toLowerCase()
+  )
+  if (alreadyFinalStatus) {
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'manual_note',
+      eventStatus: 'success',
+      message: 'Meddelandet är redan slutligt skickat/kvitterat. Ingen omsändning gjordes.',
+      payload: {
+        idempotency: 'already_sent_success',
+        status: message.status,
+        phase: 'send_queued_ediel_message',
+      },
+    }).catch(() => null)
+    return message
+  }
+
   const preflight = preflightEdielMessageRow(message, 'send')
   await createEdielMessageEvent({
     actorUserId,

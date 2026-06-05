@@ -78,6 +78,12 @@ import {
 } from "@/lib/ediel/systemTestPackages";
 import { formatErrorMessage } from "@/lib/errors";
 
+import {
+  compareEngineDecisionWithExpected,
+  selectRuleProfile,
+} from "@/lib/ediel/rulebook/ruleProfileSelector";
+import { resolveAndStoreProdatAperakErrors } from "@/lib/ediel/core/aperakErrorRuleRegistry";
+
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -1170,7 +1176,8 @@ export async function saveSimpleSystemTestCompanySetupAction(
           effectiveCertificateId,
         },
       })
-      .then(({ error }) => {
+      .then((result: { error?: { code?: string } | null }) => {
+        const error = result.error ?? null;
         if (error && !["42P01", "42703", "PGRST204"].includes(error.code ?? ""))
           throw error;
       });
@@ -1392,20 +1399,29 @@ function messageHasGenericErc40(rawPayload?: string | null): boolean {
   return raw.includes("ERC+40") || raw.includes("FTX+AAO++40");
 }
 
-function isAgtEscoPositivePermissionAckCase(params: {
-  testCaseCode?: string | null;
-  sourceMessage: EdielMessageRow;
-}): boolean {
-  const testCaseCode = normalizeCode(params.testCaseCode);
-  if (!["E5", "E6", "E7"].includes(testCaseCode)) return false;
-  if (String(params.sourceMessage.message_family ?? "").toUpperCase() !== "PRODAT") return false;
+const FINAL_SYSTEM_TEST_ACK_STATUSES = new Set(["sent", "acknowledged", "validated"]);
 
-  const messageCode = String(params.sourceMessage.message_code ?? "").toUpperCase();
-  const raw = String(params.sourceMessage.raw_payload ?? "").toUpperCase();
-  if (testCaseCode === "E5") return messageCode === "Z14" && !raw.includes("Z14N");
-  if (testCaseCode === "E6") return messageCode === "Z14" && raw.includes("Z14N");
-  if (testCaseCode === "E7") return messageCode === "Z15";
-  return false;
+function isFinalSystemTestAck(ack: { status?: string | null }): boolean {
+  return FINAL_SYSTEM_TEST_ACK_STATUSES.has(String(ack.status ?? "").toLowerCase());
+}
+
+function ackOutcomeOf(ack: { ack_outcome?: string | null }): AckOutcome | null {
+  const outcome = String(ack.ack_outcome ?? "").toLowerCase();
+  return outcome === "positive" || outcome === "negative" ? outcome : null;
+}
+
+function prodatPermissionLooksApplicationValid(sourceMessage: EdielMessageRow): boolean {
+  const classification = selectRuleProfile({
+    message: sourceMessage,
+    testKind: "AGT",
+  });
+
+  return (
+    classification.family === "PRODAT" &&
+    classification.ruleProfileId.startsWith("prodat_permission") &&
+    classification.applicationValidity === "valid" &&
+    classification.confidence !== "low"
+  );
 }
 
 function buildApplicationErrorSummary(
@@ -1419,7 +1435,6 @@ function buildApplicationErrorSummary(
     )
     .join(" | ");
 }
-
 
 function expectedSystemTestAckOutcome(params: {
   testCaseCode?: string | null;
@@ -1444,28 +1459,34 @@ function expectedSystemTestAckOutcome(params: {
   return (step?.outcome as AckOutcome | undefined) ?? null;
 }
 
-function resolveSystemTestAckDecision(params: {
+async function resolveSystemTestAckDecision(params: {
   sourceMessage: Awaited<ReturnType<typeof getEdielMessageById>>;
   ackFamily: AckFamily;
   requestedOutcome: AckOutcome;
   messageText: string | null;
   testCaseCode?: string | null;
-}): SystemTestAckDecision {
+}): Promise<SystemTestAckDecision> {
   const expectedOutcome = expectedSystemTestAckOutcome({
     testCaseCode: params.testCaseCode ?? null,
     ackFamily: params.ackFamily,
   });
-  const fallbackOutcome = expectedOutcome ?? params.requestedOutcome;
+  const fallbackOutcome = params.ackFamily === "CONTRL"
+    ? expectedOutcome ?? params.requestedOutcome
+    : params.requestedOutcome;
   const fallback: SystemTestAckDecision = {
     outcome: fallbackOutcome,
     messageText: params.messageText,
     applicationErrors: null,
     ackScope: null,
     relatedTransactionReference: null,
-    reason: expectedOutcome
-      ? "Systemtest decision follows the expected outbound ACK step, not a manual UI outcome."
-      : null,
-    ruleKeys: expectedOutcome ? ["SYSTEM_TEST_EXPECTED_ACK_OUTCOME"] : [],
+    reason:
+      params.ackFamily === "CONTRL" && expectedOutcome
+        ? "Systemtest expected outcome is used only for technical CONTRL. APERAK/UTILTS decisions come from the backend engine."
+        : null,
+    ruleKeys:
+      params.ackFamily === "CONTRL" && expectedOutcome
+        ? ["SYSTEM_TEST_EXPECTED_CONTRL_OUTCOME"]
+        : [],
   };
 
   const sourceMessage = params.sourceMessage;
@@ -1551,22 +1572,89 @@ function resolveSystemTestAckDecision(params: {
     }
   }
 
-  if (params.ackFamily !== "APERAK") return fallback;
+  if (
+    params.ackFamily === "APERAK" &&
+    String(sourceMessage.message_family ?? "").toUpperCase() === "PRODAT"
+  ) {
+    const classification = selectRuleProfile({
+      message: sourceMessage,
+      testKind: isAgtSystemTestCase({
+        testCaseCode: params.testCaseCode ?? null,
+        suite: sourceMessage.message_family ?? null,
+        roleCode: "esco",
+      })
+        ? "AGT"
+        : "TGT",
+    });
+    const resolvedErrors = await resolveAndStoreProdatAperakErrors({
+      message: sourceMessage,
+      testData: null,
+    });
+    const enginePositive =
+      resolvedErrors.errors.length === 0 &&
+      (classification.applicationValidity === "valid" || classification.confidence !== "low");
+    const expectedCompare = compareEngineDecisionWithExpected({
+      actualFamily: "APERAK",
+      actualOutcome: enginePositive ? "positive" : "negative",
+      expectedFamily: "APERAK",
+      expectedOutcome,
+    });
 
-  if (isAgtEscoPositivePermissionAckCase({
-    testCaseCode: params.testCaseCode ?? null,
-    sourceMessage,
-  })) {
+    if (resolvedErrors.errors.length > 0) {
+      return {
+        outcome: "negative",
+        messageText:
+          buildApplicationErrorSummary(resolvedErrors.errors) ??
+          params.messageText ??
+          "PRODAT applikations-/affärsvalidering gav fel.",
+        applicationErrors: resolvedErrors.errors,
+        ackScope: firstErrorTransactionReference(resolvedErrors.errors)
+          ? "transaction"
+          : "message",
+        relatedTransactionReference: firstErrorTransactionReference(resolvedErrors.errors),
+        reason: `PRODAT backend validation selected ${classification.ruleProfileId}. ${expectedCompare.reason}`,
+        ruleKeys: resolvedErrors.matchedRuleKeys.length > 0
+          ? resolvedErrors.matchedRuleKeys
+          : [classification.ruleProfileId],
+      };
+    }
+
+    if (enginePositive || prodatPermissionLooksApplicationValid(sourceMessage)) {
+      return {
+        outcome: "positive",
+        messageText:
+          params.messageText ??
+          (classification.variant === "Z14N"
+            ? "Z14N är ett korrekt affärsbesked om nekad tillgång och ska kvitteras med positiv APERAK när payload/process är giltig."
+            : null),
+        applicationErrors: null,
+        ackScope: null,
+        relatedTransactionReference: null,
+        reason: `PRODAT backend engine selected ${classification.ruleProfileId}. ${expectedCompare.reason}`,
+        ruleKeys: [classification.ruleProfileId],
+      };
+    }
+
     return {
-      outcome: "positive",
+      outcome: "negative",
       messageText:
         params.messageText ??
-        "AGT E5/E6/E7 portal→aktör är ett korrekt inbound permission-svar och ska ge positiv APERAK när payloaden är syntaktiskt godkänd.",
-      applicationErrors: null,
-      ackScope: null,
+        classification.manualReviewReason ??
+        "PRODAT kunde inte klassificeras säkert för positiv APERAK.",
+      applicationErrors: [
+        {
+          ercCode: "40",
+          fieldCode: "105",
+          text: "The object could not be identified",
+          referenceQualifier: null,
+          referenceNumber: null,
+          lineItemReference: sourceMessage.transaction_reference ?? null,
+        },
+      ],
+      ackScope: "message",
       relatedTransactionReference: null,
-      reason: "AGT DGI/Energitjänsteföretag inbound permission response expects positive APERAK for a valid Z14/Z15 payload.",
-      ruleKeys: ["AGT_DGI_PERMISSION_RESPONSE_POSITIVE_APERAK"],
+      reason: `PRODAT backend engine required manual review/profile ${classification.ruleProfileId}. ${expectedCompare.reason}`,
+      ruleKeys: ["manual_review_required", classification.ruleProfileId],
     };
   }
 
@@ -1651,7 +1739,7 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
     testCaseCode,
     sourceMessageId,
   });
-  const backendDecision = resolveSystemTestAckDecision({
+  const backendDecision = await resolveSystemTestAckDecision({
     sourceMessage,
     ackFamily,
     requestedOutcome: outcome,
@@ -1664,6 +1752,99 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
     ackFamily,
     companyId: sourceMessage.company_id ?? null,
   }).catch(() => []);
+  const finalSameAck = allExistingAcks.find((ack) => {
+    if (!isFinalSystemTestAck(ack)) return false;
+    if (ackFamily === "UTILTS_ERR") return true;
+    return ackOutcomeOf(ack) === backendDecision.outcome;
+  });
+  const finalConflictingAck = allExistingAcks.find((ack) => {
+    if (!isFinalSystemTestAck(ack)) return false;
+    if (ackFamily === "UTILTS_ERR") return false;
+    const existingOutcome = ackOutcomeOf(ack);
+    return Boolean(existingOutcome && existingOutcome !== backendDecision.outcome);
+  });
+
+  if (finalConflictingAck) {
+    await auditSystemTestMaintenance({
+      actorUserId: context.userId,
+      action: "ediel.system_test.ack_blocked_final_conflict",
+      testRunId,
+      edielMessageId: finalConflictingAck.id,
+      reason: `Final ${ackFamily} finns redan med outcome ${ackOutcomeOf(finalConflictingAck)}. Nytt outcome ${backendDecision.outcome} blockeras.`,
+      payload: {
+        sourceMessageId,
+        ackFamily,
+        existingAckMessageId: finalConflictingAck.id,
+        existingOutcome: ackOutcomeOf(finalConflictingAck),
+        attemptedOutcome: backendDecision.outcome,
+        testCaseCode: testCaseCode ?? null,
+        blockReason: "blocked_final_ack_exists",
+      },
+    });
+    await createEdielMessageEvent({
+      actorUserId: context.userId,
+      edielMessageId: sourceMessageId,
+      eventType: "manual_note",
+      eventStatus: "error",
+      message: `${ackFamily} blockeras: final kvittens med motsatt outcome finns redan. Kräver manuell teknisk granskning.`,
+      payload: {
+        sourceMessageId,
+        ackFamily,
+        existingAckMessageId: finalConflictingAck.id,
+        existingOutcome: ackOutcomeOf(finalConflictingAck),
+        attemptedOutcome: backendDecision.outcome,
+        blockReason: "blocked_final_ack_exists",
+      },
+    }).catch(() => undefined);
+    revalidateSystemTests(testCaseCode);
+    redirectToSystemTestAckResult({
+      testCaseCode,
+      companyId: sourceMessage.company_id ?? null,
+      ackStatus: "failed",
+      ackFamily,
+      ackMessageId: finalConflictingAck.id,
+      message: `${ackFamily} blockeras: final kvittens med motsatt outcome finns redan.`,
+    });
+    return;
+  }
+
+  if (finalSameAck) {
+    await auditSystemTestMaintenance({
+      actorUserId: context.userId,
+      action: "ediel.system_test.ack_already_sent",
+      testRunId,
+      edielMessageId: finalSameAck.id,
+      reason: `Rätt ${ackFamily} finns redan skickad. Ingen omsändning gjordes.`,
+      payload: {
+        sourceMessageId,
+        ackFamily,
+        outcome: backendDecision.outcome,
+        existingAckMessageId: finalSameAck.id,
+        testCaseCode: testCaseCode ?? null,
+        idempotency: "already_sent_success",
+      },
+    });
+    if (testRunId) {
+      await attachEdielMessageToTestRun({
+        testRunId,
+        edielMessageId: finalSameAck.id,
+        stepNo,
+        expectedDirection: "outbound",
+        expectedFamily: ackFamily,
+        expectedCode: ackFamily,
+      }).catch(() => undefined);
+    }
+    revalidateSystemTests(testCaseCode);
+    redirectToSystemTestAckResult({
+      testCaseCode,
+      companyId: sourceMessage.company_id ?? null,
+      ackStatus: "sent",
+      ackFamily,
+      ackMessageId: finalSameAck.id,
+      message: `Rätt ${ackFamily} var redan skickad. Ingen omsändning gjordes.`,
+    });
+    return;
+  }
   const existingAcks = allExistingAcks.filter((ack) => {
     if (ackFamily === "UTILTS_ERR") return true;
     return String(ack.ack_outcome ?? "").toLowerCase() === backendDecision.outcome;
