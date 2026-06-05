@@ -31,6 +31,7 @@ import {
   deleteSystemTestArtifactAction,
   deleteSystemTestRunAction,
   pollAndSyncTgtSystemTestMailboxAction,
+  sendSystemTestOutboundMessageAction,
   softDeleteSystemTestMessageAction,
   unlinkSystemTestMessageAction,
   validateSystemTestPayloadAction,
@@ -314,6 +315,37 @@ function SoftDeleteMessageForm({
         className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
       >
         Soft delete
+      </button>
+    </form>
+  );
+}
+
+function SendSystemTestOutboundForm({
+  testRunId,
+  testCaseCode,
+  edielMessageId,
+  stepNo,
+  messageFamily,
+  messageCode,
+}: {
+  testRunId: string;
+  testCaseCode: string;
+  edielMessageId: string;
+  stepNo?: number | null;
+  messageFamily?: string | null;
+  messageCode?: string | null;
+}) {
+  return (
+    <form action={sendSystemTestOutboundMessageAction}>
+      <input type="hidden" name="testRunId" value={testRunId} />
+      <input type="hidden" name="testCaseCode" value={testCaseCode} />
+      <input type="hidden" name="edielMessageId" value={edielMessageId} />
+      {stepNo ? <input type="hidden" name="stepNo" value={String(stepNo)} /> : null}
+      <button
+        type="submit"
+        className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+      >
+        Skicka från Systemtest{messageFamily ? ` · ${messageFamily} ${messageCode ?? ""}` : ""}
       </button>
     </form>
   );
@@ -708,6 +740,13 @@ export default async function SystemTestCasePage({
   const imapStatus = String(query.imapStatus ?? "").trim();
   const hasImapSyncResult = Boolean(imapStatus);
   const testCase = findDefinition(testCaseCode);
+  const runtimeSuiteForCase = testCase && isAgtSystemTestCase({
+    testCaseCode: testCase.testCaseCode,
+    roleCode: testCase.roleCode,
+    suite: testCase.suite,
+  })
+    ? "AGT"
+    : "TGT";
 
   if (!testCase) {
     return (
@@ -735,7 +774,7 @@ export default async function SystemTestCasePage({
 
   const systemTestRuntime = await getEdielSystemTestRuntimeContext({
     companyId: selectedCompanyId,
-    testSuite: "TGT",
+    testSuite: runtimeSuiteForCase,
     actorRole: testCase.roleCode,
   }).catch(() => null);
 
@@ -811,6 +850,9 @@ export default async function SystemTestCasePage({
     });
   });
   const latest = evaluations[0] ?? null;
+  const firstStep = testCase.expectedSteps[0] ?? null;
+  const startsWithGridexOutbound =
+    firstStep?.actor === "gridex" && firstStep.direction === "outbound";
 
   return (
     <div className="space-y-6">
@@ -932,6 +974,11 @@ export default async function SystemTestCasePage({
         <h2 className="text-base font-semibold text-slate-950">
           Så kör du testet
         </h2>
+        {startsWithGridexOutbound ? (
+          <div className="mt-3 rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-950">
+            Detta är ett aktör→portal-test. Starta körningen här, låt Gridex skapa outbound-utkastet och använd sedan knappen <strong>Skicka från Systemtest</strong> på det kopplade meddelandet. Skicka inte från en separat outbound-sida.
+          </div>
+        ) : null}
         <ol className="mt-3 list-decimal space-y-1 pl-5">
           <li>
             Klicka <strong>Starta ny testkörning</strong> i Gridex. Kör bara ett
@@ -1246,6 +1293,17 @@ export default async function SystemTestCasePage({
                                   >
                                     Öppna
                                   </Link>
+                                ) : null}
+                                {message?.direction === "outbound" &&
+                                !["sent", "acknowledged", "validated", "cancelled"].includes(String(message.status ?? "").toLowerCase()) ? (
+                                  <SendSystemTestOutboundForm
+                                    testRunId={evaluation.testRun.id}
+                                    testCaseCode={testCase.testCaseCode}
+                                    edielMessageId={message.id}
+                                    stepNo={link.step_no}
+                                    messageFamily={message.message_family}
+                                    messageCode={String(message.message_code ?? "")}
+                                  />
                                 ) : null}
                                 {message ? (
                                   <UnlinkMessageForm

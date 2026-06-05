@@ -1937,9 +1937,17 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     );
   }
   await requireCompanyOperationalForWrites(companyId);
+  const runtimeSuite = isAgtSystemTestCase({
+    testCaseCode,
+    roleCode,
+    suite: testSuite,
+  })
+    ? "AGT"
+    : "TGT";
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
     companyId,
-    testSuite: "TGT",
+    testSuite: runtimeSuite,
+    actorRole: roleCode,
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(

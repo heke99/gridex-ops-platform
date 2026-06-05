@@ -2162,6 +2162,121 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
   });
 }
 
+export async function sendSystemTestOutboundMessageAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess();
+  const edielMessageId = formString(formData.get("edielMessageId"));
+  const testRunId = formString(formData.get("testRunId"));
+  const testCaseCode = formString(formData.get("testCaseCode"));
+  const stepNo = formNumber(formData.get("stepNo"));
+
+  if (!edielMessageId) throw new Error("edielMessageId saknas");
+
+  const message = await getEdielMessageById(edielMessageId);
+  if (!message) throw new Error("Outbound-meddelandet hittades inte");
+  if (message.direction !== "outbound") {
+    throw new Error("Systemtest kan bara skicka outbound-meddelanden från detta flöde.");
+  }
+  if (
+    message.message_family === "CONTRL" ||
+    message.message_family === "APERAK" ||
+    message.message_family === "UTILTS_ERR"
+  ) {
+    throw new Error(
+      "Kvittenser skickas via rekommenderad ACK-action. Denna knapp gäller första outbound-affärsmeddelandet i Systemtest.",
+    );
+  }
+
+  if (testRunId) {
+    await attachEdielMessageToTestRun({
+      testRunId,
+      edielMessageId,
+      stepNo,
+      expectedDirection: "outbound",
+      expectedFamily: message.message_family,
+      expectedCode: String(message.message_code ?? ""),
+    }).catch(() => undefined);
+  }
+
+  await updateEdielMessageStatus({
+    actorUserId: context.userId,
+    edielMessageId,
+    status: message.status,
+    validationReport: {
+      ...(message.validation_report ?? {}),
+      systemTestOutboundSend: {
+        enabled: true,
+        source: "system_test_outbound_action",
+        testRunId: testRunId ?? null,
+        testCaseCode: testCaseCode ?? null,
+        stepNo,
+        messageFamily: message.message_family,
+        messageCode: message.message_code,
+        routeLocked: Boolean(message.communication_route_id),
+        createdAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  const redirectParams = new URLSearchParams();
+  if (message.company_id) redirectParams.set("companyId", message.company_id);
+  redirectParams.set("ackFamily", String(message.message_family ?? "PRODAT"));
+
+  try {
+    const sentMessage = await sendQueuedEdielMessage({
+      actorUserId: context.userId,
+      edielMessageId,
+    });
+
+    await auditSystemTestMaintenance({
+      actorUserId: context.userId,
+      action: "ediel.system_test.outbound_sent",
+      testRunId,
+      edielMessageId: sentMessage.id,
+      reason: `${sentMessage.message_family} ${sentMessage.message_code} skickades från Systemtest.`,
+      payload: {
+        testCaseCode: testCaseCode ?? null,
+        stepNo,
+        status: sentMessage.status,
+        messageFamily: sentMessage.message_family,
+        messageCode: sentMessage.message_code,
+      },
+    });
+
+    revalidateSystemTests(testCaseCode);
+    redirectParams.set("ackStatus", "sent");
+    redirectParams.set("ackMessageId", sentMessage.id);
+    redirectParams.set(
+      "message",
+      `${sentMessage.message_family} ${sentMessage.message_code} skickades från Systemtest. Hämta sedan portalens CONTRL/APERAK via IMAP.`,
+    );
+  } catch (error) {
+    const sendFailure = errorMessage(error);
+    await auditSystemTestMaintenance({
+      actorUserId: context.userId,
+      action: "ediel.system_test.outbound_send_failed",
+      testRunId,
+      edielMessageId,
+      reason: `Systemtest kunde inte skicka outbound-meddelandet: ${sendFailure}`,
+      payload: {
+        testCaseCode: testCaseCode ?? null,
+        stepNo,
+        error: sendFailure,
+      },
+    });
+    revalidateSystemTests(testCaseCode);
+    redirectParams.set("ackStatus", "failed");
+    redirectParams.set("ackMessageId", edielMessageId);
+    redirectParams.set(
+      "message",
+      `Systemtest kunde inte skicka outbound-meddelandet: ${sendFailure}`,
+    );
+  }
+
+  redirect(
+    `/admin/ediel/system-tests/cases/${encodeURIComponent(testCaseCode ?? String(message.message_code ?? ""))}?${redirectParams.toString()}`,
+  );
+}
+
 export async function unlinkSystemTestMessageAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess();
   const testRunId = formString(formData.get("testRunId"));

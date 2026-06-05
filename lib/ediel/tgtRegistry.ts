@@ -777,7 +777,9 @@ function prodatAgtEscoOutboundCase(params: {
   outboundVariant: string;
   purpose: string;
   testDataHint: string;
+  portalAperakOutcome?: "positive" | "negative";
 }): EdielTgtTestCaseDefinition {
+  const portalAperakOutcome = params.portalAperakOutcome ?? "negative";
   return {
     suite: "PRODAT",
     roleCode: "esco",
@@ -819,15 +821,19 @@ function prodatAgtEscoOutboundCase(params: {
         actor: "portal",
         family: "APERAK",
         code: "APERAK",
-        outcome: "positive",
+        outcome: portalAperakOutcome,
         required: true,
-        title: `Ta emot positiv APERAK på ${params.outboundVariant}`,
-        description: "Edielportalen applikationskvitterar outbound PRODAT.",
+        title: `Ta emot ${portalAperakOutcome === "negative" ? "negativ" : "positiv"} APERAK på ${params.outboundVariant}`,
+        description:
+          portalAperakOutcome === "negative"
+            ? "Edielportalen avvisar innehållet i AGT eftersom testdata inte finns i portalens produktionsapplikation. Det är förväntat för aktör→portal-testet."
+            : "Edielportalen applikationskvitterar outbound PRODAT.",
       },
     ],
     notes: [
-      "AGT E3/E4/E8 är aktör→portal. Gridex ska skapa och skicka första PRODAT-filen.",
+      "AGT E3/E4/E8 är aktör→portal. Gridex ska skapa och skicka första PRODAT-filen från Systemtest och sedan vänta på portalens CONTRL/APERAK.",
       "Outbound PRODAT i AGT ska vara S/MIME-krypterad till Edielportalens publika produktionscertifikat och skickas via Ediel/Strato SMTP.",
+      "Portalens negativa APERAK i dessa aktör→portal-test är förväntat när innehållet är okänt i testsystemets produktionsapplikation.",
     ],
   };
 }
@@ -945,18 +951,19 @@ function utiltsAgtEscoInboundPositiveCase(params: {
         stepNo: 3,
         direction: "outbound",
         actor: "gridex",
-        family: "APERAK",
-        code: "APERAK",
-        outcome: "positive",
+        family: "UTILTS_ERR",
+        code: "UTILTS_ERR",
+        outcome: "negative",
         required: true,
-        title: `Skicka positiv APERAK på E66-${params.subtype}`,
+        title: `Skicka negativ UTILTS_ERR på E66-${params.subtype}`,
         description:
-          "Mätvärdesmeddelandet accepteras och ska inte ge UTILTS_ERR i korrekt AGT UE-test.",
+          "AGT UE-flödet ska svara med negativ UTILTS/UTILTS_ERR när testmeddelandet innehåller uppgifter som aktörens produktionsapplikation inte kan processa.",
       },
     ],
     notes: [
       "AGT UE1/UE2 är portal→aktör och ska inte blandas ihop med TGT U3.",
       "UTILTS kräver normalt inte S/MIME i detta flöde.",
+      "Systemtest ska skapa positiv CONTRL och negativ UTILTS_ERR från samma backend-engine, inte negativ APERAK.",
     ],
   };
 }
@@ -1025,9 +1032,12 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       inboundCode: "Z15",
       inboundVariant: "Z15V",
       purpose:
-        "AGT DGI/Energitjänsteföretag: portalen/nätägaren skickar Z15V om upphörande av tillstånd till aktören.",
+        "AGT DGI/Energitjänsteföretag: portalen/nätägaren skickar Z15V om upphörande av tillstånd till aktören. Gridex ska svara med positiv CONTRL och backendstyrd negativ APERAK när permission/process inte kan identifieras.",
       testDataHint:
-        "E7 är portal → aktör. Starta testet i Edielportalen; Gridex ska vänta på inbound PRODAT Z15V och sedan skicka korrekt CONTRL + APERAK.",
+        "E7 är portal → aktör. Starta testet i Edielportalen; Gridex ska vänta på inbound PRODAT Z15V och sedan skicka positiv CONTRL + negativ APERAK.",
+      aperakOutcome: "negative",
+      aperakDescription:
+        "Backend-kärnan ska välja negativ APERAK när Z15V inte kan kopplas till säker permission/process i AGT: ERC/FTX styrs av decision engine, inte av testfallskod.",
     }),
     prodatAgtEscoOutboundCase({
       testCaseCode: "E8",
@@ -1046,7 +1056,7 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       purpose:
         "AGT DGI/Energitjänsteföretag: portalen skickar UTILTS E66 med kvartsvärden till aktören.",
       testDataHint:
-        "UE1 är portal → aktör. Starta i Edielportalen och låt Gridex hämta inbound UTILTS via IMAP, därefter positiv CONTRL + positiv APERAK.",
+        "UE1 är portal → aktör. Starta i Edielportalen och låt Gridex hämta inbound UTILTS via IMAP, därefter positiv CONTRL + negativ UTILTS_ERR enligt AGT-facit.",
     }),
     utiltsAgtEscoInboundPositiveCase({
       testCaseCode: "UE2",
@@ -1055,7 +1065,7 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       purpose:
         "AGT DGI/Energitjänsteföretag: portalen skickar UTILTS E66-SCH till aktören.",
       testDataHint:
-        "UE2 är portal → aktör. Starta i Edielportalen och låt Gridex hämta inbound UTILTS via IMAP, därefter positiv CONTRL + positiv APERAK.",
+        "UE2 är portal → aktör. Starta i Edielportalen och låt Gridex hämta inbound UTILTS via IMAP, därefter positiv CONTRL + negativ UTILTS_ERR enligt AGT-facit.",
     }),
 
     legacyEscoRegressionCase(

@@ -26,6 +26,7 @@ import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
   resolveEdielTgtProdatApplicationReference,
 } from "@/lib/ediel/fileEngine";
+import { isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages";
 import type {
   CreateEdielMessageInput,
   EdielMessageFamily,
@@ -80,6 +81,21 @@ function versionForFamily(family: EdielMessageFamily): string | null {
   if (family === "CONTRL") return "D96A";
   if (family === "UTILTS" || family === "UTILTS_ERR") return "E5SE5A";
   return null;
+}
+
+function runtimeSuiteForRun(testRun: EdielTestRunRow): "AGT" | "TGT" {
+  return isAgtSystemTestCase({
+    runtimeTestSuite: String((testRun as unknown as { environment_type?: unknown }).environment_type ?? "")
+      .toLowerCase()
+      .includes("agt")
+      ? "AGT"
+      : null,
+    testCaseCode: testRun.test_case_code,
+    roleCode: testRun.role_code,
+    suite: testRun.test_suite,
+  })
+    ? "AGT"
+    : "TGT";
 }
 
 function buildUnb(params: {
@@ -352,9 +368,11 @@ async function createDraftForStep(params: {
 }): Promise<EdielMessageRow> {
   if (!params.evaluation.definition) throw new Error("TGT-definition saknas");
 
+  const runtimeSuite = runtimeSuiteForRun(params.evaluation.testRun);
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
     companyId: params.evaluation.testRun.company_id ?? null,
-    testSuite: "TGT",
+    testSuite: runtimeSuite,
+    actorRole: params.evaluation.definition.roleCode,
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(
@@ -539,9 +557,11 @@ export async function createMockPortalMessageForNextStep(params: {
     };
   }
 
+  const runtimeSuite = runtimeSuiteForRun(evaluation.testRun);
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
     companyId: evaluation.testRun.company_id ?? null,
-    testSuite: "TGT",
+    testSuite: runtimeSuite,
+    actorRole: evaluation.definition.roleCode,
   });
 
   const message = await createEdielMessage(

@@ -519,3 +519,44 @@ Batch 4 is complete only when:
 - incoming APERAK/CONTRL links to original message/process.
 - uncertain production cases go to manual_review.
 - unsupported gas/NBS/ECP is blocked/manual_review.
+
+## Batch 4 follow-up — all certification sends must go through Systemtest
+
+All AGT/TGT certification traffic must be initiated, sent, linked and verified through `/admin/ediel/system-tests` or `/admin/ediel/system-tests/cases/[id]`.
+
+Do not send certification PRODAT from a generic outbound page, customer card action or raw EDIFACT editor unless that flow explicitly attaches the message to the active `ediel_test_run` and uses the same Systemtest send action.
+
+Required behavior:
+
+- Actor → portal tests such as L1, L7, E3, E4 and E8 create the first outbound PRODAT from the Systemtest run.
+- Systemtest shows the generated outbound message in the run and exposes the button `Skicka från Systemtest`.
+- The send action locks the message to `testRunId`, `testCaseCode`, selected route profile, selected encryption mode and the expected step before calling SMTP send.
+- Portal → actor tests such as L2-L5, E5-E7, UL/UE start the run and wait for inbound IMAP from the portal.
+- IMAP sync must keep `tgtTestCaseCode`/`testCaseCode` so inbound messages attach to the correct active run.
+
+E8 specifically:
+
+- E8 is actor → portal.
+- Systemtest must create `PRODAT Z18V` as step 1.
+- Receiver must be Edielportalen `91100:ZZ:PRODAT`, SMTP `91100@ediel.se`.
+- Application Reference must be `23-DGI-PRODAT`.
+- The test-run encryption choice must follow draft → send → SMTP → audit.
+- Portal response is expected as positive CONTRL and negative APERAK for AGT, because the content is not known in the portal/test production application.
+
+E7 follow-up:
+
+- E7 is portal → actor.
+- The approved live behavior was positive CONTRL + backend-driven negative APERAK.
+- Systemtest expected/facit must therefore show E7 APERAK as negative, not positive.
+- Field Matrix must not forbid `NAD+UD` for Z15; if negative APERAK is required it must be due to object/permission/process not identified, not because Z15 structure falsely blocks allowed segments.
+
+UE1/UE2 follow-up:
+
+- UE1/UE2 are portal → actor UTILTS E66 tests.
+- Systemtest should create positive CONTRL and negative UTILTS/UTILTS_ERR where AGT expects a negative UTILTS response.
+- Do not respond to UE1/UE2 with negative APERAK when UTILTS_ERR is required.
+
+Runtime-suite rule:
+
+- When a test run is AGT, `runTgtAutopilotForRun` must resolve runtime settings using `testSuite = AGT`, not hardcoded `TGT`.
+- This is required so actor Ediel ID, route profile, PRODAT subaddress, certificate environment and SMTP environment are the AGT settings.

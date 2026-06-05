@@ -6,8 +6,12 @@ const registryPath = path.join(root, 'lib/ediel/rulebook/testCaseRuleRegistry.ts
 const migrationPath = path.join(root, 'supabase/migrations/20260605183000_batch4_canonical_edifact_rulebook.sql')
 const pagePath = path.join(root, 'app/admin/ediel/certification/page.tsx')
 const decisionPath = path.join(root, 'lib/ediel/decisionEngine.ts')
+const tgtRegistryPath = path.join(root, 'lib/ediel/tgtRegistry.ts')
+const systemTestPagePath = path.join(root, 'app/admin/ediel/system-tests/cases/[id]/page.tsx')
+const systemTestActionsPath = path.join(root, 'app/admin/ediel/system-tests/actions.ts')
+const tgtAutopilotPath = path.join(root, 'lib/ediel/tgtAutopilot.ts')
 
-const required = [registryPath, migrationPath, pagePath, decisionPath]
+const required = [registryPath, migrationPath, pagePath, decisionPath, tgtRegistryPath, systemTestPagePath, systemTestActionsPath, tgtAutopilotPath]
 const failures = []
 for (const file of required) {
   if (!fs.existsSync(file)) failures.push(`Missing file: ${path.relative(root, file)}`)
@@ -16,6 +20,10 @@ for (const file of required) {
 const registry = fs.existsSync(registryPath) ? fs.readFileSync(registryPath, 'utf8') : ''
 const migration = fs.existsSync(migrationPath) ? fs.readFileSync(migrationPath, 'utf8') : ''
 const decision = fs.existsSync(decisionPath) ? fs.readFileSync(decisionPath, 'utf8') : ''
+const tgtRegistry = fs.existsSync(tgtRegistryPath) ? fs.readFileSync(tgtRegistryPath, 'utf8') : ''
+const systemTestPage = fs.existsSync(systemTestPagePath) ? fs.readFileSync(systemTestPagePath, 'utf8') : ''
+const systemTestActions = fs.existsSync(systemTestActionsPath) ? fs.readFileSync(systemTestActionsPath, 'utf8') : ''
+const tgtAutopilot = fs.existsSync(tgtAutopilotPath) ? fs.readFileSync(tgtAutopilotPath, 'utf8') : ''
 
 const requiredCases = [
   'L1','L2','L3','L4','L5','L7',
@@ -36,6 +44,13 @@ for (const id of approvedIds) {
 if (!registry.includes('389303') || !registry.includes('failed')) failures.push('E7 389303 must be failed active target')
 if (!decision.includes('findCertificationCase')) failures.push('decisionEngine must use certification registry rather than hardcoded UE-only logic')
 if (decision.includes("['UE1', 'UE2'].includes(testCase)")) failures.push('decisionEngine still contains direct UE1/UE2 decision hardcode')
+if (!tgtRegistry.includes('portalAperakOutcome ?? "negative"')) failures.push('AGT E3/E4/E8 outbound cases must expect negative APERAK by default')
+if (!tgtRegistry.includes('aperakOutcome: "negative"')) failures.push('E7 must be modeled as backend-driven negative APERAK in Systemtest')
+if (!tgtRegistry.includes('family: "UTILTS_ERR"')) failures.push('UE1/UE2 must expect UTILTS_ERR, not positive APERAK')
+if (!systemTestPage.includes('sendSystemTestOutboundMessageAction')) failures.push('Systemtest case page must expose outbound send action')
+if (!systemTestPage.includes('Skicka från Systemtest')) failures.push('Systemtest outbound UI must send from the test-run page')
+if (!systemTestActions.includes('sendSystemTestOutboundMessageAction')) failures.push('Systemtest outbound send server action missing')
+if (!tgtAutopilot.includes('runtimeSuiteForRun')) failures.push('Autopilot must resolve AGT/TGT runtime suite from the test run')
 
 if (failures.length > 0) {
   console.error('Certification regression failed:')
