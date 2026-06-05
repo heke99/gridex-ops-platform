@@ -28,6 +28,7 @@ import { createEdielTgtRunFromTemplateAction } from "@/app/admin/ediel/actions";
 import { isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages";
 import {
   createAndSendSystemTestAckAction,
+  createAndSendSystemTestOutboundForRunAction,
   deleteSystemTestArtifactAction,
   deleteSystemTestRunAction,
   pollAndSyncTgtSystemTestMailboxAction,
@@ -346,6 +347,31 @@ function SendSystemTestOutboundForm({
         className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
       >
         Skicka från Systemtest{messageFamily ? ` · ${messageFamily} ${messageCode ?? ""}` : ""}
+      </button>
+    </form>
+  );
+}
+
+
+function CreateAndSendSystemTestOutboundForRunForm({
+  testRunId,
+  testCaseCode,
+  messageId,
+}: {
+  testRunId: string;
+  testCaseCode: string;
+  messageId?: string | null;
+}) {
+  return (
+    <form action={createAndSendSystemTestOutboundForRunAction}>
+      <input type="hidden" name="testRunId" value={testRunId} />
+      <input type="hidden" name="testCaseCode" value={testCaseCode} />
+      {messageId ? <input type="hidden" name="edielMessageId" value={messageId} /> : null}
+      <button
+        type="submit"
+        className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-black text-white hover:bg-emerald-800"
+      >
+        Skapa och skicka PRODAT från Systemtest
       </button>
     </form>
   );
@@ -853,6 +879,16 @@ export default async function SystemTestCasePage({
   const firstStep = testCase.expectedSteps[0] ?? null;
   const startsWithGridexOutbound =
     firstStep?.actor === "gridex" && firstStep.direction === "outbound";
+  const latestSendableOutbound = latest
+    ? latest.matches
+        .map((match) => match.message)
+        .find(
+          (message) =>
+            message?.direction === "outbound" &&
+            !["CONTRL", "APERAK", "UTILTS_ERR"].includes(String(message.message_family ?? "").toUpperCase()) &&
+            !["sent", "acknowledged", "validated", "cancelled"].includes(String(message.status ?? "").toLowerCase()),
+        ) ?? null
+    : null;
 
   return (
     <div className="space-y-6">
@@ -969,6 +1005,33 @@ export default async function SystemTestCasePage({
           </div>
         </div>
       </section>
+
+      {startsWithGridexOutbound && latest ? (
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-black text-slate-950">Skicka aktör→portal från Systemtest</h2>
+              <p className="mt-1 text-sm leading-6 text-emerald-950">
+                Den här knappen skapar saknat PRODAT-utkast via autopilot och skickar det kopplat till denna testkörning. Använd den för E8/E4/E3/L1/L7 i stället för separat outbound-sida.
+              </p>
+            </div>
+            <CreateAndSendSystemTestOutboundForRunForm
+              testRunId={latest.testRun.id}
+              testCaseCode={testCase.testCaseCode}
+              messageId={latestSendableOutbound?.id ?? null}
+            />
+          </div>
+          {latestSendableOutbound ? (
+            <div className="mt-3 text-xs font-semibold text-emerald-900">
+              Skickbart utkast hittat: {latestSendableOutbound.message_family} {latestSendableOutbound.message_code} · status {latestSendableOutbound.status}.
+            </div>
+          ) : (
+            <div className="mt-3 text-xs font-semibold text-emerald-900">
+              Inget skickbart utkast syns ännu. Knappen kör autopilot först och skickar därefter PRODAT från testkörningen.
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-900">
         <h2 className="text-base font-semibold text-slate-950">

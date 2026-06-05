@@ -1747,8 +1747,18 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
   revalidatePath(
     `/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`,
   );
+  const redirectParams = new URLSearchParams();
+  redirectParams.set("companyId", companyId);
+  if (autopilotResult) {
+    redirectParams.set(
+      "message",
+      autopilotResult.action === "created_gridex_draft"
+        ? "Systemtestkörning startad och outbound-utkast skapades. Skicka PRODAT från Systemtest på testfallssidan."
+        : autopilotResult.description,
+    );
+  }
   redirect(
-    `/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`,
+    `/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}?${redirectParams.toString()}`,
   );
 }
 

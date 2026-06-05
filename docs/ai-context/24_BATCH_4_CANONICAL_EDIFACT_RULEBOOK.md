@@ -560,3 +560,18 @@ Runtime-suite rule:
 
 - When a test run is AGT, `runTgtAutopilotForRun` must resolve runtime settings using `testSuite = AGT`, not hardcoded `TGT`.
 - This is required so actor Ediel ID, route profile, PRODAT subaddress, certificate environment and SMTP environment are the AGT settings.
+
+## Batch 4 follow-up fix — create and send outbound PRODAT directly from the test run
+
+Problem found after E7/E8 work: actor → portal tests could still be hard to execute from the Systemtest page when no linked outbound draft was visible. Showing only `Skicka från Systemtest` on an already-linked outbound message was not enough, because the operator could start E8 and still have no obvious Systemtest-owned send button.
+
+Required behavior added:
+
+- `/admin/ediel/system-tests/cases/[id]` must show a simple actor → portal panel for tests whose first step is `gridex/outbound`.
+- The panel exposes one primary action: `Skapa och skicka PRODAT från Systemtest`.
+- The action first looks for an existing linked outbound business message on the current `ediel_test_run`.
+- If no sendable outbound exists, it runs `runTgtAutopilotForRun` to create the missing PRODAT draft for the current test run.
+- It then sends the message through the normal Ediel send pipeline, preserving `testRunId`, `testCaseCode`, company, route, encryption metadata and audit trace.
+- Starting a new Systemtest run must keep `companyId` in the redirect, so the created run/draft remains visible after redirect.
+
+This fix is specifically important for E8 (`PRODAT Z18V`) but also applies to L1, L7, E3 and E4. Certification PRODAT must not be sent from a detached generic outbound page.

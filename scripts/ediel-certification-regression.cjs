@@ -50,6 +50,10 @@ if (!tgtRegistry.includes('family: "UTILTS_ERR"')) failures.push('UE1/UE2 must e
 if (!systemTestPage.includes('sendSystemTestOutboundMessageAction')) failures.push('Systemtest case page must expose outbound send action')
 if (!systemTestPage.includes('Skicka från Systemtest')) failures.push('Systemtest outbound UI must send from the test-run page')
 if (!systemTestActions.includes('sendSystemTestOutboundMessageAction')) failures.push('Systemtest outbound send server action missing')
+if (!systemTestPage.includes('CreateAndSendSystemTestOutboundForRunForm')) failures.push('Systemtest case page must expose create-and-send outbound form when no draft is visible')
+if (!systemTestPage.includes('Skapa och skicka PRODAT från Systemtest')) failures.push('Systemtest actor-to-portal UI must create and send PRODAT from the test page')
+if (!systemTestActions.includes('createAndSendSystemTestOutboundForRunAction')) failures.push('Systemtest create-and-send outbound action missing')
+if (!systemTestActions.includes('runTgtAutopilotForRun')) failures.push('Systemtest create-and-send action must create missing draft through autopilot')
 if (!tgtAutopilot.includes('runtimeSuiteForRun')) failures.push('Autopilot must resolve AGT/TGT runtime suite from the test run')
 
 if (failures.length > 0) {
