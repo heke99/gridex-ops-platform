@@ -6,21 +6,24 @@ Completed.
 
 ## Goal
 
-Create the initial AI context/project memory documentation structure for future Cursor work.
+Update file ownership map with actual repo paths.
 
 ## Scope
 
-Documentation-only setup under docs/ai-context plus root CURSOR.md.
+Documentation-only update under `docs/ai-context`.
 
 ## Relevant files
 
-- CURSOR.md
-- docs/ai-context/*.md
+- `docs/ai-context/15_FILE_OWNERSHIP_MAP.md`
+- `docs/ai-context/10_CHANGELOG.md`
+- `docs/ai-context/11_CURRENT_TASK.md`
+- `docs/ai-context/00_PROJECT_SNAPSHOT.md`
 
 ## Do not touch
 
 - Application code
-- Database schema/migrations beyond documentation
+- Database schema/migrations
+- Existing legacy docs
 - Billing, BRP/eSett import or platform pricing implementation
 
 ## Rules to preserve
@@ -28,18 +31,21 @@ Documentation-only setup under docs/ai-context plus root CURSOR.md.
 - Do not scan or rewrite the full repository by default.
 - Do not modify application code in this step.
 - Keep Gridex multi-tenant and production-safe.
-- Keep customer billing underlay separate from platform tenant billing.
-- Production runs on Vercel; do not rely on local-only binaries for production-critical flows.
+- Preserve approved Ediel flows.
+- Return only changed or added files.
 
 ## Expected result
 
-All requested AI context Markdown files and CURSOR.md exist with the requested guidance for future work.
+`15_FILE_OWNERSHIP_MAP.md` contains actual repo paths for Ediel, ACK, PRODAT, UTILTS, transport, inbound mail, system tests, customer operations, billing/import, platform usage, RBAC and database areas.
 
 ## Validation steps
 
-- Confirm created file list.
-- Confirm git diff only contains documentation/context files.
+- Confirm only documentation/context files changed.
+- Do not run app build because this is documentation-only.
 
 ## Result
 
-Created the requested AI context documentation structure and root Cursor rules. Existing root/docs Ediel documentation remains unchanged and can be reviewed for consolidation later.
+Actual file/module map added. Existing legacy docs identified for later consolidation:
+
+- `docs/ediel-elbolag-live-runbook.md`
+- `docs/ediel-operations-test-flow.md`

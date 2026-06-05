@@ -132,6 +132,20 @@ For crypto, S/MIME, CMS, parsing, polling, routing and scheduled jobs:
 - document required environment variables
 - make failures visible in admin diagnostics
 
+## Legacy docs to consolidate later
+
+The following existing docs overlap with the new ai-context documentation and should be consolidated later. Do not delete them now:
+
+- `docs/ediel-elbolag-live-runbook.md`
+- `docs/ediel-operations-test-flow.md`
+
+When consolidating, move relevant rules/checklists into:
+
+- `docs/ai-context/04_EDIEL_CORE_RULES.md`
+- `docs/ai-context/14_VALIDATION_CHECKLIST.md`
+- `docs/ai-context/18_SEND_READINESS_AND_ENVIRONMENTS.md`
+- `docs/ai-context/20_DEBUGGING_PLAYBOOK.md`
+
 ## Current major risk areas
 
 - ACK family mismatch between generated CONTRL/APERAK and selected test suite/message family

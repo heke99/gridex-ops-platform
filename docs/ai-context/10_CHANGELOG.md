@@ -82,3 +82,37 @@ Template:
 ### Follow-up
 
 - Existing Ediel docs may be reviewed later for overlap and merged into the ai-context where useful.
+
+## 2026-06-05 — Update AI context file ownership map
+
+### Changed files
+
+- docs/ai-context/15_FILE_OWNERSHIP_MAP.md
+- docs/ai-context/10_CHANGELOG.md
+- docs/ai-context/11_CURRENT_TASK.md
+- docs/ai-context/00_PROJECT_SNAPSHOT.md
+
+### What changed
+
+- Replaced the generic file ownership map with a repo-specific map of actual Ediel, PRODAT, UTILTS, routing, inbound mail, billing/import, platform, RBAC and database areas.
+- Added legacy Ediel docs that should be consolidated later without deleting the originals.
+- Added known large files that must be handled carefully and not refactored casually.
+
+### Why
+
+- Future Cursor work should start from targeted file areas instead of scanning the whole repository.
+- The repo contains large operational files and sensitive Ediel flows; narrow task scoping reduces regression risk.
+
+### Validation
+
+- Documentation-only update.
+- No application code or migrations should be changed.
+- App build is not required for this documentation-only change.
+
+### Regression risks
+
+- None expected; documentation-only.
+
+### Follow-up
+
+- Later consolidate `docs/ediel-elbolag-live-runbook.md` and `docs/ediel-operations-test-flow.md` into the relevant ai-context files.
