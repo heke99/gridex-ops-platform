@@ -101,3 +101,15 @@ Flow:
 - no APERAK on CONTRL
 - no CONTRL on CONTRL
 - CONTRL on APERAK is allowed when required by the flow
+
+## 2026-06-05 — UI follows backend outcome
+
+Systemtest UI must not decide positive/negative ACK outcome.
+
+Rules:
+
+- The button text should not hardcode “positiv” or “negativ” unless it is rendering a backend preview.
+- Form/requested outcome is only a hint for comparison, not authority.
+- `systemTestAckSend.effectiveOutcome` / backend decision outcome is the expected actual outcome for sent Gridex ACK rows.
+- Draft/prepared/queued ACKs are not passed; Gridex outbound steps pass only after final SMTP/send status.
+- Sent ACK with backend outcome equal to actual payload outcome should pass even if an older static expected definition disagrees.

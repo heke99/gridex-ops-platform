@@ -257,6 +257,19 @@ const z14nDecision = decideProdatAperak({ message: makeMessage({ raw_payload: ra
 assert.strictEqual(z14nDecision.kind, 'ack', 'Z14N should produce ACK decision')
 assert.strictEqual(z14nDecision.outcome, 'positive', 'correct Z14N must produce positive APERAK')
 
+const e6Decision = decideProdatAperak({
+  message: makeMessage({ raw_payload: rawZ14N }),
+  testKind: 'AGT',
+  testCaseCode: 'E6',
+  expectedOutcome: 'negative',
+})
+assert.strictEqual(e6Decision.kind, 'ack', 'E6 should produce ACK decision')
+assert.strictEqual(e6Decision.outcome, 'negative', 'E6 unlinked Z14N must follow backend negative APERAK decision')
+assert(
+  e6Decision.applicationErrors.some((error) => error.ercCode === '40' && error.fieldCode === '105' && error.lineItemReference === 'CASE-Z14N'),
+  'E6 negative APERAK must use facility_not_identified ERC 40 / FTX 105 and preserve RFF+LI'
+)
+
 const rawZ14MissingStatus = "UNA:+.? 'UNB+UNOC:3+91100:ZZ:PRODAT+21660:ZZ+260605:1201+Z14BAD++23-DGI-PRODAT++1'UNH+1+PRODAT:D:97A:UN:E2SE6A'BGM+Z14+Z14BAD+9+AB'DTM+137:202606051201:203'DTM+ZZZ:1:805'NAD+FR+91100:160:SVK'NAD+DO+21660:160:SVK'LIN+1++735999888000000109:::9'RFF+LI:CASE-Z14BAD'UNT+9+1'UNZ+1+Z14BAD'"
 const z14BadDecision = decideProdatAperak({ message: makeMessage({ raw_payload: rawZ14MissingStatus }), testKind: 'TGT' })
 assert.strictEqual(z14BadDecision.outcome, 'negative', 'invalid Z14 without permission status must produce negative APERAK')

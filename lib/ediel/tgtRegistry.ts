@@ -839,7 +839,10 @@ function prodatAgtEscoInboundPositiveCase(params: {
   inboundVariant: string;
   purpose: string;
   testDataHint: string;
+  aperakOutcome?: "positive" | "negative";
+  aperakDescription?: string;
 }): EdielTgtTestCaseDefinition {
+  const aperakOutcome = params.aperakOutcome ?? "positive";
   return {
     suite: "PRODAT",
     roleCode: "esco",
@@ -881,10 +884,11 @@ function prodatAgtEscoInboundPositiveCase(params: {
         actor: "gridex",
         family: "APERAK",
         code: "APERAK",
-        outcome: "positive",
+        outcome: aperakOutcome,
         required: true,
-        title: `Skicka positiv APERAK på ${params.inboundVariant}`,
+        title: `Skicka ${aperakOutcome === "negative" ? "negativ" : "positiv"} APERAK på ${params.inboundVariant}`,
         description:
+          params.aperakDescription ??
           "Meddelandet är korrekt behandlat. Z14N kan vara ett affärsmässigt nekande men ska fortfarande kvitteras tekniskt korrekt om payloaden är giltig.",
       },
     ],
@@ -1008,9 +1012,12 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       inboundCode: "Z14",
       inboundVariant: "Z14N",
       purpose:
-        "AGT DGI/Energitjänsteföretag: portalen/nätägaren skickar Z14N till aktören. Gridex ska ta emot, registrera nekandet och svara tekniskt korrekt.",
+        "AGT DGI/Energitjänsteföretag: portalen/nätägaren skickar Z14N till aktören. Gridex ska ta emot, registrera nekandet och svara med backendstyrd negativ APERAK när anläggning/process inte kan identifieras.",
       testDataHint:
-        "E6 är portal → aktör. Z14N är ett affärsmässigt nekande men ett korrekt meddelande ska fortfarande ge positiv CONTRL + positiv APERAK.",
+        "E6 är portal → aktör. Facit från godkänt AGT-test: positiv CONTRL + negativ APERAK med ERC 40 / FTX 105 när backendregel facility_not_identified gäller.",
+      aperakOutcome: "negative",
+      aperakDescription:
+        "Backend-kärnan ska välja negativ APERAK när Z14N inte kan kopplas till säker anläggning/process: ERC+40::260 och FTX+AAO++105::260+The object could not be identified.",
     }),
     prodatAgtEscoInboundPositiveCase({
       testCaseCode: "E7",
@@ -2643,6 +2650,55 @@ function pickBestStepCandidate(
   })[0] ?? null;
 }
 
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function readOutcome(value: unknown): "positive" | "negative" | null {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return normalized === "positive" || normalized === "negative"
+    ? normalized
+    : null;
+}
+
+export function backendSystemTestAckOutcomeFromMessage(
+  message: EdielMessageRow | null | undefined,
+): "positive" | "negative" | null {
+  if (!message) return null;
+
+  const validationReport = readRecord(message.validation_report);
+  const parsedPayload = readRecord(message.parsed_payload);
+  const systemTestAckSend = readRecord(validationReport?.systemTestAckSend);
+
+  return (
+    readOutcome(systemTestAckSend?.outcome) ??
+    readOutcome(validationReport?.effectiveOutcome) ??
+    readOutcome(validationReport?.backendOutcome) ??
+    readOutcome(validationReport?.engineOutcome) ??
+    readOutcome(parsedPayload?.ackOutcome) ??
+    readOutcome(message.ack_outcome)
+  );
+}
+
+function expectedOutcomeForMessage(
+  message: EdielMessageRow,
+  step: EdielTgtExpectedStep,
+): "positive" | "negative" | null {
+  if (
+    step.actor === "gridex" &&
+    step.direction === "outbound" &&
+    (step.family === "APERAK" || step.family === "CONTRL")
+  ) {
+    return backendSystemTestAckOutcomeFromMessage(message) ?? step.outcome ?? null;
+  }
+
+  return step.outcome ?? null;
+}
+
 function matchesExpectedStep(
   message: EdielMessageRow,
   step: EdielTgtExpectedStep,
@@ -2651,7 +2707,8 @@ function matchesExpectedStep(
   if (normalizeCode(message.message_family) !== step.family) return false;
   if (normalizeCode(String(message.message_code)) !== normalizeCode(step.code))
     return false;
-  if (step.outcome && messageOutcome(message) !== step.outcome) return false;
+  const expectedOutcome = expectedOutcomeForMessage(message, step);
+  if (expectedOutcome && messageOutcome(message) !== expectedOutcome) return false;
   if (!isSentGridexOutboundStep(message, step)) return false;
   return true;
 }
@@ -2668,7 +2725,8 @@ function stepIssues(
     issues.push(`Fel familj: ${message.message_family}`);
   if (normalizeCode(String(message.message_code)) !== normalizeCode(step.code))
     issues.push(`Fel kod: ${message.message_code}`);
-  if (step.outcome && messageOutcome(message) !== step.outcome) {
+  const expectedOutcome = expectedOutcomeForMessage(message, step);
+  if (expectedOutcome && messageOutcome(message) !== expectedOutcome) {
     issues.push(`Fel outcome: ${messageOutcome(message) ?? "saknas"}`);
   }
   if (!isSentGridexOutboundStep(message, step)) {

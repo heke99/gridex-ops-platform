@@ -192,3 +192,15 @@ Primary functions:
 - Opposite final ACK/outcome exists => blocked final ACK exists.
 - Replaceable ACK exists => supersede/replace.
 - No ACK exists => create new.
+
+## E6 / non-production negative permission scenario
+
+E6 is a regression proving that UI expected outcome is not authority.
+
+Rules:
+
+- The backend can choose negative APERAK for unlinked/non-identifiable permission response scenarios in AGT/TGT when the selected test path is negative.
+- This is not a production shortcut.
+- Production Z14/Z15/Z18 without safe permission/process/facility link must be manual review unless the engine has deterministic validation evidence for a negative APERAK.
+- The canonical error for facility not identified is `ERC+40::260` and `FTX+AAO++105::260+The object could not be identified`.
+- `RFF+LI` must be preserved from raw inbound payload where available.

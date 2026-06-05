@@ -190,3 +190,22 @@ Correct flow:
 5. Map issues through selected profile to positive APERAK, negative APERAK or manual review.
 
 Global rules like `Z14 missing NAD UD/IT => negative APERAK` are unsafe. Field requirements must be profile/scenario-based.
+
+## 2026-06-05 — E6 / Z14N backend-driven AGT facit
+
+E6 AGT DGI inbound PRODAT Z14N was approved when Gridex sent:
+
+- positive CONTRL
+- negative APERAK
+- `BGM+++34`
+- `ERC+40::260`
+- `FTX+AAO++105::260+The object could not be identified`
+- `RFF+ACW` to the inbound Z14 BGM/reference
+- `RFF+LI` to the inbound related line/reference
+
+Important rule split:
+
+- Correct linked Z14N can still be positive APERAK.
+- E6 negative APERAK must come from backend rule `facility_not_identified` / no safe facility-process link in the AGT negative scenario.
+- Do not implement production logic as `if testCaseCode === E6`.
+- Production unlinked Z14/Z15/Z18 should go to manual review unless a deterministic business validation rule can safely choose a negative APERAK.

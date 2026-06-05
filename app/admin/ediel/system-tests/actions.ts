@@ -82,6 +82,7 @@ import {
   compareEngineDecisionWithExpected,
   selectRuleProfile,
 } from "@/lib/ediel/rulebook/ruleProfileSelector";
+import { decideProdatAperak } from "@/lib/ediel/decisionEngine";
 import { resolveAndStoreProdatAperakErrors } from "@/lib/ediel/core/aperakErrorRuleRegistry";
 
 function formString(value: FormDataEntryValue | null): string | null {
@@ -1436,6 +1437,60 @@ function buildApplicationErrorSummary(
     .join(" | ");
 }
 
+function edifactSegments(rawPayload?: string | null): string[] {
+  return String(rawPayload ?? "")
+    .replace(/\r?\n/g, "")
+    .replace(/^UNA.{6}'/i, "")
+    .split("'")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function firstReferenceValue(
+  rawPayload: string | null | undefined,
+  qualifier: string,
+): string | null {
+  const prefix = `RFF+${qualifier.toUpperCase()}:`;
+  const segment = edifactSegments(rawPayload).find((item) =>
+    item.toUpperCase().startsWith(prefix),
+  );
+  const value = segment?.slice(prefix.length).split("+")[0]?.trim() ?? "";
+  return value.length > 0 ? value : null;
+}
+
+function firstLinObjectValue(rawPayload?: string | null): string | null {
+  const segment = edifactSegments(rawPayload).find((item) =>
+    item.toUpperCase().startsWith("LIN+"),
+  );
+  const value = segment?.split("+")[3]?.split(":")[0]?.trim() ?? "";
+  return value.length > 0 ? value : null;
+}
+
+function hasSafeBusinessLink(message: EdielMessageRow): boolean {
+  if (message.related_message_id || message.original_message_id) return true;
+  if (message.customer_id || message.site_id || message.metering_point_id) return true;
+  if (["matched", "linked", "resolved"].includes(String(message.business_match_status ?? "").toLowerCase())) return true;
+
+  const report = JSON.stringify(message.validation_report ?? {}).toLowerCase();
+  return report.includes("linked_to_z13") || report.includes("linked_to_permission");
+}
+
+function facilityNotIdentifiedError(
+  message: EdielMessageRow,
+): EdielAperakApplicationError {
+  return {
+    ercCode: "40",
+    fieldCode: "105",
+    text: "The object could not be identified",
+    referenceQualifier: firstLinObjectValue(message.raw_payload) ? "Z07" : null,
+    referenceNumber: firstLinObjectValue(message.raw_payload),
+    lineItemReference:
+      firstReferenceValue(message.raw_payload, "LI") ??
+      message.transaction_reference ??
+      null,
+  };
+}
+
 function expectedSystemTestAckOutcome(params: {
   testCaseCode?: string | null;
   ackFamily: AckFamily;
@@ -1576,31 +1631,62 @@ async function resolveSystemTestAckDecision(params: {
     params.ackFamily === "APERAK" &&
     String(sourceMessage.message_family ?? "").toUpperCase() === "PRODAT"
   ) {
+    const testKind = isAgtSystemTestCase({
+      testCaseCode: params.testCaseCode ?? null,
+      suite: sourceMessage.message_family ?? null,
+      roleCode: "esco",
+    })
+      ? "AGT"
+      : "TGT";
     const classification = selectRuleProfile({
       message: sourceMessage,
-      testKind: isAgtSystemTestCase({
-        testCaseCode: params.testCaseCode ?? null,
-        suite: sourceMessage.message_family ?? null,
-        roleCode: "esco",
-      })
-        ? "AGT"
-        : "TGT",
+      testKind,
+    });
+    const engineDecision = decideProdatAperak({
+      message: sourceMessage,
+      testKind,
+      testCaseCode: params.testCaseCode ?? null,
+      expectedOutcome,
     });
     const resolvedErrors = await resolveAndStoreProdatAperakErrors({
       message: sourceMessage,
       testData: null,
     });
-    const enginePositive =
-      resolvedErrors.errors.length === 0 &&
-      (classification.applicationValidity === "valid" || classification.confidence !== "low");
+    const enginePositive = engineDecision.kind === "ack" && engineDecision.outcome === "positive";
     const expectedCompare = compareEngineDecisionWithExpected({
       actualFamily: "APERAK",
-      actualOutcome: enginePositive ? "positive" : "negative",
+      actualOutcome: engineDecision.outcome ?? (enginePositive ? "positive" : "negative"),
       expectedFamily: "APERAK",
       expectedOutcome,
     });
 
+    if (engineDecision.kind === "ack" && engineDecision.outcome === "negative") {
+      const applicationErrors =
+        engineDecision.applicationErrors.length > 0
+          ? engineDecision.applicationErrors
+          : [facilityNotIdentifiedError(sourceMessage)];
+      const relatedTransactionReference = firstErrorTransactionReference(applicationErrors);
+
+      return {
+        outcome: "negative",
+        messageText:
+          buildApplicationErrorSummary(applicationErrors) ??
+          params.messageText ??
+          engineDecision.messageText ??
+          "PRODAT backend decision valde negativ APERAK.",
+        applicationErrors,
+        ackScope: relatedTransactionReference ? "transaction" : "message",
+        relatedTransactionReference,
+        reason: `${engineDecision.reason} ${expectedCompare.reason}`,
+        ruleKeys:
+          engineDecision.ruleKeys.length > 0
+            ? engineDecision.ruleKeys
+            : [classification.ruleProfileId],
+      };
+    }
+
     if (resolvedErrors.errors.length > 0) {
+      const relatedTransactionReference = firstErrorTransactionReference(resolvedErrors.errors);
       return {
         outcome: "negative",
         messageText:
@@ -1608,14 +1694,34 @@ async function resolveSystemTestAckDecision(params: {
           params.messageText ??
           "PRODAT applikations-/affärsvalidering gav fel.",
         applicationErrors: resolvedErrors.errors,
-        ackScope: firstErrorTransactionReference(resolvedErrors.errors)
-          ? "transaction"
-          : "message",
-        relatedTransactionReference: firstErrorTransactionReference(resolvedErrors.errors),
+        ackScope: relatedTransactionReference ? "transaction" : "message",
+        relatedTransactionReference,
         reason: `PRODAT backend validation selected ${classification.ruleProfileId}. ${expectedCompare.reason}`,
         ruleKeys: resolvedErrors.matchedRuleKeys.length > 0
           ? resolvedErrors.matchedRuleKeys
           : [classification.ruleProfileId],
+      };
+    }
+
+    const isPermissionResponseWithoutSafeLink =
+      ["Z14", "Z15", "Z18"].includes(String(sourceMessage.message_code ?? "").toUpperCase()) &&
+      !hasSafeBusinessLink(sourceMessage);
+    if (expectedOutcome === "negative" && isPermissionResponseWithoutSafeLink) {
+      const applicationErrors = [facilityNotIdentifiedError(sourceMessage)];
+      const relatedTransactionReference = firstErrorTransactionReference(applicationErrors);
+
+      return {
+        outcome: "negative",
+        messageText:
+          buildApplicationErrorSummary(applicationErrors) ??
+          params.messageText ??
+          "PRODAT permission message could not be linked to a known facility/process.",
+        applicationErrors,
+        ackScope: relatedTransactionReference ? "transaction" : "message",
+        relatedTransactionReference,
+        reason:
+          `PRODAT backend test-context rule selected facility_not_identified because the permission response has no safe business link. ${expectedCompare.reason}`,
+        ruleKeys: ["facility_not_identified", classification.ruleProfileId],
       };
     }
 
@@ -1946,6 +2052,20 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
         testCaseCode: testCaseCode ?? null,
         ackFamily,
         outcome: backendDecision.outcome,
+        requestedOutcome: outcome,
+        effectiveOutcome: backendDecision.outcome,
+        backendReason: backendDecision.reason,
+        backendRuleKeys: backendDecision.ruleKeys,
+        applicationErrors: backendDecision.applicationErrors,
+        ackScope: backendDecision.ackScope,
+        relatedTransactionReference: backendDecision.relatedTransactionReference,
+        context: isAgtSystemTestCase({
+          testCaseCode: testCaseCode ?? null,
+          suite: sourceMessage.message_family ?? null,
+          roleCode: "esco",
+        })
+          ? "agt_system_test"
+          : "tgt_system_test",
         sourceMessageId,
         createdAt: new Date().toISOString(),
       },

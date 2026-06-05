@@ -19,6 +19,7 @@ import {
   evaluateEdielTgtRun,
   getEdielTgtTestCaseByCode,
   getEdielTgtTestCases,
+  backendSystemTestAckOutcomeFromMessage,
   type EdielTgtExpectedStep,
   type EdielTgtRunEvaluation,
   type EdielTgtTestCaseDefinition,
@@ -411,8 +412,14 @@ function ackActionTone(step: EdielTgtExpectedStep): Tone {
 
 function ackActionLabel(step: EdielTgtExpectedStep): string {
   if (step.family === "UTILTS_ERR") return "Skapa & skicka rekommenderad UTILTS_ERR";
-  const outcomeText = step.outcome === "negative" ? "negativ" : "positiv";
-  return `Skapa & skicka rekommenderad ${outcomeText} ${step.family}`;
+  return `Skapa & skicka rekommenderad ${step.family}`;
+}
+
+function ackActionBackendHint(step: EdielTgtExpectedStep): string {
+  if (step.family === "UTILTS_ERR") {
+    return "Backend avgör att UTILTS_ERR är rätt svar; UI skickar inte fri APERAK-outcome.";
+  }
+  return "Outcome är backendstyrt. Testdefinitionens outcome skickas bara som hint och får inte tvinga kvittensen.";
 }
 
 function splitEdifactSegments(rawPayload: string | null | undefined): string[] {
@@ -565,6 +572,14 @@ function ExpectedActualPanel({
                   <div className="mt-1">
                     {match.step.outcome ?? "outcome enligt meddelande"}
                   </div>
+                  {match.message ? (() => {
+                    const backendOutcome = backendSystemTestAckOutcomeFromMessage(match.message);
+                    return backendOutcome && backendOutcome !== match.step.outcome ? (
+                      <div className="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">
+                        Backendbeslut användes: {backendOutcome}
+                      </div>
+                    ) : null;
+                  })() : null}
                   <div className="mt-1">
                     {match.step.required ? "Obligatoriskt" : "Valfritt"}
                   </div>
@@ -1254,24 +1269,28 @@ export default async function SystemTestCasePage({
                               <div className="mt-3 space-y-2">
                                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-900">
                                   Systemet visar bara kvittenserna som testfallet förväntar sig.
-                                  Positiv/negativ väljs av backend utifrån testkedjan, inte som fritt manuellt val.
+                                  Positiv/negativ väljs av backend utifrån payload, route, matchning och regelprofil, inte som fritt manuellt val i UI.
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                   {expectedAckActionsForInboundMessage(
                                     testCase,
                                     message.message_family,
                                   ).map((step) => (
-                                    <AckActionForm
-                                      key={`${message.id}-${step.stepNo}-${step.family}`}
-                                      sourceMessageId={message.id}
-                                      testRunId={evaluation.testRun.id}
-                                      testCase={testCase}
-                                      ackFamily={step.family as "CONTRL" | "APERAK" | "UTILTS_ERR"}
-                                      outcome={(step.outcome ?? "positive") as "positive" | "negative"}
-                                      stepNo={step.stepNo}
-                                      label={ackActionLabel(step)}
-                                      tone={ackActionTone(step)}
-                                    />
+                                    <div key={`${message.id}-${step.stepNo}-${step.family}`} className="space-y-1">
+                                      <AckActionForm
+                                        sourceMessageId={message.id}
+                                        testRunId={evaluation.testRun.id}
+                                        testCase={testCase}
+                                        ackFamily={step.family as "CONTRL" | "APERAK" | "UTILTS_ERR"}
+                                        outcome={(step.outcome ?? "positive") as "positive" | "negative"}
+                                        stepNo={step.stepNo}
+                                        label={ackActionLabel(step)}
+                                        tone={ackActionTone(step)}
+                                      />
+                                      <div className="max-w-60 text-[11px] leading-4 text-slate-500">
+                                        {ackActionBackendHint(step)}
+                                      </div>
+                                    </div>
                                   ))}
                                 </div>
                               </div>

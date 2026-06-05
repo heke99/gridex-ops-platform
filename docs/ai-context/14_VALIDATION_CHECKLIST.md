@@ -218,3 +218,16 @@ After applying this patch, validate these exact cases:
 - `ensureExpectedAckSent()` returns `blocked_final_ack_exists` for opposite final ACK.
 - `ensureExpectedAckSent()` returns `supersede_replaceable` only for draft/prepared/queued/failed/cancelled ACK.
 - `decideUtiltsResponse()` keeps AGT UE1/UE2 separate from TGT U3 and selects UTILTS_ERR where applicable.
+
+## E6 / backend-driven ACK validation
+
+Check:
+
+- E6 inbound PRODAT Z14N can produce positive CONTRL + negative APERAK.
+- Negative APERAK contains `BGM+++34`, `ERC+40::260`, `FTX+AAO++105::260+The object could not be identified`.
+- APERAK preserves `RFF+ACW` to inbound BGM/document reference.
+- APERAK preserves `RFF+LI` from inbound line/reference.
+- Systemtest UI shows the backend/effective outcome, not stale static expected positive.
+- Button text does not offer a manual positive/negative choice.
+- Sent opposite final ACK is blocked.
+- Wrong draft/prepared/queued ACK is superseded.

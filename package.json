@@ -12,7 +12,8 @@
     "ediel:rule-regression": "node scripts/ediel-rule-regression.cjs",
     "ediel:production-readiness-regression": "node scripts/ediel-production-readiness-regression.cjs",
     "ediel:routing-security-regression": "node scripts/ediel-routing-security-regression.cjs",
-    "ediel:inbound-tenant-resolution-regression": "node scripts/ediel-inbound-tenant-resolution-regression.cjs"
+    "ediel:inbound-tenant-resolution-regression": "node scripts/ediel-inbound-tenant-resolution-regression.cjs",
+    "ediel:regression": "npm run ediel:rule-regression && npm run ediel:production-readiness-regression && npm run ediel:routing-security-regression && npm run ediel:inbound-tenant-resolution-regression"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

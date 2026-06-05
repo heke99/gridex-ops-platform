@@ -343,6 +343,42 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
     }
   }
 
+  const isNonProductionPermissionNegativeScenario =
+    input.expectedOutcome === 'negative' &&
+    input.testKind &&
+    input.testKind !== 'production' &&
+    ['Z14', 'Z15', 'Z18'].includes(normalize(classification.messageCode)) &&
+    !hasProductionPermissionLink(input.message)
+
+  if (isNonProductionPermissionNegativeScenario) {
+    const facilityError = errorForCode({
+      ercCode: '40',
+      fieldCode: '105',
+      text: 'The object could not be identified',
+      rawPayload,
+      referenceQualifier: null,
+    })
+    const comparison = compareEngineDecisionWithExpected({
+      actualFamily: 'APERAK',
+      actualOutcome: 'negative',
+      expectedFamily: 'APERAK',
+      expectedOutcome: input.expectedOutcome,
+    })
+
+    return {
+      kind: 'ack',
+      ackFamily: 'APERAK',
+      outcome: 'negative',
+      messageText: facilityError.text,
+      applicationErrors: [facilityError],
+      reason: `PRODAT backend decision selected negative APERAK because the permission message has no safe facility/process link in ${input.testKind} negative scenario.`,
+      ruleKeys: ['facility_not_identified', classification.ruleProfileId],
+      classification: summarizeRuleProfile(classification),
+      portalFeedback,
+      expectedComparison: comparison,
+    }
+  }
+
   if (shouldRequireProductionPermissionLink({ message: input.message, classification, testKind: input.testKind ?? null }) && !hasProductionPermissionLink(input.message)) {
     return {
       kind: 'manual_review',

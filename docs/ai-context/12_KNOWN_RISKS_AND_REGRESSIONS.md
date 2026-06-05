@@ -153,3 +153,16 @@ Tenant admins should not get technical Ediel override controls. Technical overri
 - Portal feedback parser supports common A902 expected/actual structures and text, but exact portal report import still needs a proper parser when report files are available.
 - The legacy `decideProdatAperakOutcome()` API cannot express manual review, so it maps manual review to a safe negative object/process error. New callers should use `decideProdatAperak()` directly.
 - Regression script needs installed project dependencies because existing imported Ediel modules transitively require Supabase/Next-related packages.
+
+## E6 UI expected positive but backend negative
+
+Risk:
+
+- Systemtest UI or old test definition marks E6 as failed because it expected positive APERAK while backend correctly sent negative APERAK.
+
+Correct approach:
+
+- use backend/effective ACK outcome as comparison source for sent ACK rows
+- keep E6 regression: negative APERAK with ERC 40 / FTX 105 and preserved RFF+LI is passing when backend selected `facility_not_identified`
+- do not change production into an E6-specific rule
+- production unlinked Z14/Z15/Z18 should remain manual review unless deterministic rule validation can choose negative APERAK safely

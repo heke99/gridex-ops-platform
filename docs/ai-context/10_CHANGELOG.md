@@ -324,3 +324,54 @@ Template:
   - `npm run build`
 - Import the official PRODAT Excel field matrix once available.
 - Build full UI display for decision trace/manual review queue if not already complete in the target branch.
+
+## 2026-06-05 — E6 backend-driven APERAK/UI alignment
+
+### Changed files
+
+- `app/admin/ediel/system-tests/actions.ts`
+- `app/admin/ediel/system-tests/cases/[id]/page.tsx`
+- `lib/ediel/tgtRegistry.ts`
+- `lib/ediel/decisionEngine.ts`
+- `lib/ediel/ack.ts`
+- `scripts/ediel-rule-regression.cjs`
+- `package.json`
+- `docs/ai-context/05_PRODAT_RULES.md`
+- `docs/ai-context/07_ACK_CONTRL_APERAK_UTILTS_ERR_RULES.md`
+- `docs/ai-context/10_CHANGELOG.md`
+- `docs/ai-context/11_CURRENT_TASK.md`
+- `docs/ai-context/12_KNOWN_RISKS_AND_REGRESSIONS.md`
+- `docs/ai-context/14_VALIDATION_CHECKLIST.md`
+- `docs/ai-context/19_DECISION_ENGINE_RULES.md`
+
+### What changed
+
+- Updated E6 AGT PRODAT Z14N test definition to expect backend-driven negative APERAK when `facility_not_identified` applies.
+- Removed hardcoded positive/negative ACK wording from the Systemtest send button.
+- Made Systemtest evaluation read backend/effective ACK outcome from the outbound ACK row before marking outcome mismatch.
+- Added backend decision trace fields to `systemTestAckSend` validation report.
+- Added generic non-production permission negative scenario handling for unlinked Z14/Z15/Z18 when expected negative and no safe business link exists.
+- Fixed APERAK RFF+LI reference preference so raw inbound `RFF+LI` is preserved before falling back to row `transaction_reference`.
+- Added `npm run ediel:regression` composite command.
+- Added regression coverage for E6 negative APERAK with ERC 40 / FTX 105 and preserved RFF+LI.
+
+### Why
+
+- E6 was approved by Edielportalen with negative APERAK, while UI still showed positive expected outcome.
+- UI must follow backend decisions and not drive APERAK outcome.
+- Production safety requires opposite final ACK blocking and backend rule trace, not manual outcome buttons.
+
+### Validation
+
+- Run locally: `npm run typecheck`
+- Run locally: `npm run ediel:regression`
+- Run locally: `npm run build`
+
+### Regression risks
+
+- Existing UI may still show static test-step text for old runs until ACK rows contain `systemTestAckSend` decision metadata.
+- Production unlinked Z14/Z15/Z18 remains manual review; do not auto-send negative APERAK in production without deterministic process validation.
+
+### Follow-up
+
+- Build full backend orchestrator/outbox tables and portal feedback import page from the master spec.
