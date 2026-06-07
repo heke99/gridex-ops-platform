@@ -47,6 +47,7 @@ export type ResolveInboundTenantInput = {
   messageCode?: string | null
   mailboxId?: string | null
   mailbox?: string | null
+  referenceCandidates?: string[]
 }
 
 function clean(value: unknown): string | null {
@@ -120,6 +121,7 @@ function normalizeInput(input: ResolveInboundTenantInput) {
     messageCode: clean(input.messageCode),
     mailboxId: clean(input.mailboxId),
     mailbox: clean(input.mailbox),
+    referenceCandidates: unique(input.referenceCandidates ?? []),
   }
 }
 

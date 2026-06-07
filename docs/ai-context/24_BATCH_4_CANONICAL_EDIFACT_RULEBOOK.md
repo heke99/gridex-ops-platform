@@ -616,3 +616,21 @@ Production and Systemtest Z18 rules now follow the canonical DGI Z18 model:
 Systemtest E8 keeps deterministic AGT fallback values only for certification, so Edielportalen can validate the same structure without requiring imported TGT testdata. Production must not use certification fallback values; missing end user, permission id, end reason or report end timestamp is a blocking production condition/manual-review trigger.
 
 Send preflight now blocks outbound PRODAT Z18 if it contains `NAD+IT`, lacks `NAD+UD`, lacks `DTM+693`, lacks `DTM+164`, or lacks `RFF+Z09`.
+
+## 2026-06-07 General inbound ACK/UTILTS persistence and tenant-resolution fix
+
+Live E8 revealed a production-grade inbound issue after Z18 was structurally accepted by the Ediel portal: inbound CONTRL could be parsed from IMAP, but `ediel_messages.message_code` was saved as `null`, violating the NOT NULL constraint and aborting the IMAP sync. This was not an E8/Z18 payload issue. It was a general inbound persistence and correlation issue.
+
+Required behavior going forward:
+
+- Inbound EDIFACT parsing must never leave `message_code` null when an `ediel_messages` row is created.
+- `UNH=CONTRL` must normalize to `message_family=CONTRL`, `message_code=CONTRL` for every origin message, not only Z18/E8.
+- `UNH=APERAK` must normalize to a non-null APERAK code; BGM code is kept when present, otherwise fallback to `APERAK`.
+- `UTILTS_ERR` / `BGM+ERR` must normalize to `message_code=ERR`.
+- PRODAT/UTILTS with missing BGM code must still be persisted with a non-null diagnostic code (`PRODAT_UNKNOWN`/`UTILTS_UNKNOWN`) so syntax/business errors can be reviewed instead of crashing the mailbox job.
+- CONTRL references (`UCI`, `UCM`) and APERAK references (`RFF+ACW`, `RFF+TN`, `RFF+LI`, `DOC`) must be parsed and used for outbound correlation.
+- Tenant resolution for inbound ACKs must first try to inherit `company_id` from the matched outbound Ediel message via references; if no outbound is found, it falls back to receiver Ediel ID + environment + Application Reference + optional subaddress.
+- Shared mailbox must never decide tenant by itself. Empty/null tenant subaddress must match inbound `21660:ZZ` when the tenant is configured without an inbound subaddress.
+- Unresolved inbound mail must be saved as manual review/dead-letter, not throw. IMAP polling must continue if one mail/diagnostic row fails.
+- ACKs matched directly to outbound `ediel_messages` must be linked via `related_message_id`; `outbound_request_id` may only be set when the match is actually an outbound request.
+- This behavior applies to all CONTRL, APERAK, UTILTS and UTILTS_ERR flows across TGT, AGT and production.

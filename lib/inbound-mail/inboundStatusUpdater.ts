@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
+import { normalizeEdifactMessageCode } from '@/lib/inbound-mail/edielEmailParser'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
 import { classifyProductionInboundDecision } from '@/lib/ediel/inbound/productionInboundDecisionEngine'
@@ -7,6 +8,10 @@ import { tenantResolutionForStorage, type InboundTenantResolution } from '@/lib/
 
 function nowIso(): string {
   return new Date().toISOString()
+}
+
+function parsedMessageCode(parsed: ParsedEdifactEnvelope): string {
+  return normalizeEdifactMessageCode(parsed.messageFamily, parsed.messageCode)
 }
 
 function postgresErrorCode(error: unknown): string | null {
@@ -168,7 +173,7 @@ function payloadForInbound(input: {
     inboundEmailMessageId: input.inboundEmailMessageId ?? null,
     parseResultId: input.parseResultId ?? null,
     inboundFamily: input.parsed.messageFamily,
-    inboundCode: input.parsed.messageCode,
+    inboundCode: parsedMessageCode(input.parsed),
     interchangeReference: input.parsed.interchangeReference,
     transactionReference: input.parsed.transactionReference,
     bgmReference: input.parsed.bgmReference,
@@ -287,7 +292,7 @@ export async function createParseResult(input: {
       company_id: input.companyId ?? null,
       inbound_email_message_id: input.inboundEmailMessageId,
       message_family: input.parsed.messageFamily,
-      message_code: input.parsed.messageCode,
+      message_code: parsedMessageCode(input.parsed),
       interchange_reference: input.parsed.interchangeReference,
       transaction_reference: input.parsed.transactionReference,
       sender_ediel_id: input.parsed.senderEdielId,
@@ -317,6 +322,16 @@ export async function createInboundEdielMessage(input: {
   tenantResolution?: InboundTenantResolution | null
 }): Promise<string | null> {
   const matchedOutboundId = input.outboundMatch?.status === 'matched' ? input.outboundMatch.entityId : null
+  const matchedOutboundRequestId =
+    input.outboundMatch?.status === 'matched' && input.outboundMatch.entityType === 'outbound_request'
+      ? input.outboundMatch.entityId
+      : typeof input.outboundMatch?.candidates?.[0]?.outbound_request_id === 'string'
+        ? input.outboundMatch.candidates[0].outbound_request_id as string
+        : null
+  const matchedOutboundEdielMessageId =
+    input.outboundMatch?.status === 'matched' && input.outboundMatch.entityType === 'ediel_message'
+      ? input.outboundMatch.entityId
+      : null
   const matchedMeteringPointId = input.meteringPointMatch?.status === 'matched' ? input.meteringPointMatch.entityId : null
   const matchedOutbound = input.outboundMatch?.candidates?.[0] ?? {}
 
@@ -333,7 +348,7 @@ export async function createInboundEdielMessage(input: {
     direction: 'inbound',
     message_standard: 'edifact',
     message_family: input.parsed.messageFamily,
-    message_code: input.parsed.messageCode,
+    message_code: parsedMessageCode(input.parsed),
     status: statusForInboundEdielMessage(input.parsed),
     sender_ediel_id: input.parsed.senderEdielId,
     sender_sub_address: input.parsed.senderSubAddress,
@@ -359,7 +374,8 @@ export async function createInboundEdielMessage(input: {
           : 'business_unresolved',
     processing_status: input.outboundMatch?.status === 'matched' ? statusForInboundEdielMessage(input.parsed) : 'manual_review',
     inbound_email_message_id: input.inboundEmailMessageId,
-    outbound_request_id: matchedOutboundId,
+    related_message_id: matchedOutboundEdielMessageId,
+    outbound_request_id: matchedOutboundRequestId,
     metering_point_id: matchedMeteringPointId,
     customer_id: typeof matchedOutbound.customer_id === 'string' ? matchedOutbound.customer_id : null,
     site_id: typeof matchedOutbound.site_id === 'string' ? matchedOutbound.site_id : null,
@@ -456,7 +472,7 @@ export async function createUnresolvedInboundEdielMessage(input: {
     direction: 'inbound',
     message_standard: 'edifact',
     message_family: input.parsed.messageFamily,
-    message_code: input.parsed.messageCode,
+    message_code: parsedMessageCode(input.parsed),
     status: 'received',
     sender_ediel_id: input.parsed.senderEdielId,
     sender_sub_address: input.parsed.senderSubAddress,
@@ -515,7 +531,7 @@ export async function createUnresolvedInboundEdielMessage(input: {
     parsed_receiver_ediel_id: input.parsed.receiverEdielId,
     parsed_subaddress: input.parsed.receiverSubAddress,
     message_family: input.parsed.messageFamily,
-    message_code: input.parsed.messageCode,
+    message_code: parsedMessageCode(input.parsed),
     reason: input.reasons.join(' ') || 'Tenant kunde inte lösas säkert från UNB receiver.',
     issue_type: resolutionStatus,
     severity: input.tenantStatus === 'ambiguous' ? 'critical' : 'warning',
@@ -623,7 +639,7 @@ async function createAckProblemTask(input: {
       ...input.responsePayload,
       sourceId: input.outboundMatch.entityId ?? input.responsePayload.inboundEmailMessageId ?? input.parsed.interchangeReference ?? input.parsed.transactionReference ?? input.taskType,
       messageFamily: input.parsed.messageFamily,
-      messageCode: input.parsed.messageCode,
+      messageCode: parsedMessageCode(input.parsed),
       errorCodes: input.parsed.errorCodes,
       errorText: input.parsed.freeText,
       gridOwnerId: context.gridOwnerId,
@@ -946,21 +962,23 @@ export async function applySafeInboundStatusUpdate(input: {
 
   if (input.parsed.messageFamily === 'CONTRL') {
     const isNegative = isNegativeContrL(input.parsed)
-    await supabaseService
-      .from('outbound_requests')
-      .update({
-        status: isNegative ? 'syntax_rejected' : 'syntax_accepted',
-        response_payload: responsePayload,
-        failure_reason: isNegative ? 'Negativ CONTRL mottagen via inbound mail engine.' : null,
-        acknowledged_at: isNegative ? null : nowIso(),
-        failed_at: isNegative ? nowIso() : null,
-        updated_at: nowIso(),
-      })
-      .eq('id', input.outboundMatch.entityId)
-      .eq('company_id', input.companyId)
+    if (input.outboundMatch.entityType === 'outbound_request') {
+      await supabaseService
+        .from('outbound_requests')
+        .update({
+          status: isNegative ? 'syntax_rejected' : 'syntax_accepted',
+          response_payload: responsePayload,
+          failure_reason: isNegative ? 'Negativ CONTRL mottagen via inbound mail engine.' : null,
+          acknowledged_at: isNegative ? null : nowIso(),
+          failed_at: isNegative ? nowIso() : null,
+          updated_at: nowIso(),
+        })
+        .eq('id', input.outboundMatch.entityId)
+        .eq('company_id', input.companyId)
 
-    await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
-    await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
+      await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
+      await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
+    }
 
     if (isNegative) {
       await createAckProblemTask({
@@ -981,21 +999,23 @@ export async function applySafeInboundStatusUpdate(input: {
 
   if (input.parsed.messageFamily === 'APERAK') {
     const isNegative = isNegativeAperak(input.parsed)
-    await supabaseService
-      .from('outbound_requests')
-      .update({
-        status: isNegative ? 'application_rejected' : 'application_accepted',
-        response_payload: responsePayload,
-        failure_reason: isNegative ? 'Negativ APERAK mottagen via inbound mail engine.' : null,
-        acknowledged_at: isNegative ? null : nowIso(),
-        failed_at: isNegative ? nowIso() : null,
-        updated_at: nowIso(),
-      })
-      .eq('id', input.outboundMatch.entityId)
-      .eq('company_id', input.companyId)
+    if (input.outboundMatch.entityType === 'outbound_request') {
+      await supabaseService
+        .from('outbound_requests')
+        .update({
+          status: isNegative ? 'application_rejected' : 'application_accepted',
+          response_payload: responsePayload,
+          failure_reason: isNegative ? 'Negativ APERAK mottagen via inbound mail engine.' : null,
+          acknowledged_at: isNegative ? null : nowIso(),
+          failed_at: isNegative ? nowIso() : null,
+          updated_at: nowIso(),
+        })
+        .eq('id', input.outboundMatch.entityId)
+        .eq('company_id', input.companyId)
 
-    await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
-    await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
+      await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
+      await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
+    }
 
     if (isNegative) {
       await createAckProblemTask({
@@ -1015,20 +1035,22 @@ export async function applySafeInboundStatusUpdate(input: {
   }
 
   if (input.parsed.messageFamily === 'UTILTS_ERR') {
-    await supabaseService
-      .from('outbound_requests')
-      .update({
-        status: 'functional_rejected',
-        response_payload: responsePayload,
-        failure_reason: 'UTILTS_ERR mottagen via inbound mail engine.',
-        failed_at: nowIso(),
-        updated_at: nowIso(),
-      })
-      .eq('id', input.outboundMatch.entityId)
-      .eq('company_id', input.companyId)
+    if (input.outboundMatch.entityType === 'outbound_request') {
+      await supabaseService
+        .from('outbound_requests')
+        .update({
+          status: 'functional_rejected',
+          response_payload: responsePayload,
+          failure_reason: 'UTILTS_ERR mottagen via inbound mail engine.',
+          failed_at: nowIso(),
+          updated_at: nowIso(),
+        })
+        .eq('id', input.outboundMatch.entityId)
+        .eq('company_id', input.companyId)
 
-    await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
-    await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
+      await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
+      await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
+    }
     await createAckProblemTask({
       companyId: input.companyId,
       parsed: input.parsed,

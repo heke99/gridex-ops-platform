@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import {
   extractEdifactPayload,
   parseEdifactPayload,
+  normalizeEdifactMessageCode,
 } from "@/lib/inbound-mail/edielEmailParser";
 import { processInboundEmailMessage } from "@/lib/inbound-mail/edielInboundProcessor";
 import { createInboundOverdueTasks } from "@/lib/inbound-mail/inboundOverdueMonitor";
@@ -451,6 +452,14 @@ function parseInboundDedupeFacts(rawPayload: string | null | undefined): {
       messageCode: null,
     };
   }
+}
+
+
+function diagnosticMessageCode(messageFamily: unknown, messageCode: unknown): string {
+  return normalizeEdifactMessageCode(
+    typeof messageFamily === 'string' ? messageFamily : null,
+    typeof messageCode === 'string' ? messageCode : null,
+  )
 }
 
 export function resolveMailboxPasswordFromSecretReference(
@@ -1353,10 +1362,18 @@ export async function pollEdielMailbox(input: {
         if (bucket === "unseen") result.unseenFetched += 1;
         if (bucket === "seenRecent") result.seenRecentFetched += 1;
 
-        const stored = await storeMailboxFetchMessage({
-          mailbox: input.mailbox,
-          message: message as unknown as Record<string, unknown>,
-        });
+        let stored: { id: string; deduped: boolean } | null = null;
+        try {
+          stored = await storeMailboxFetchMessage({
+            mailbox: input.mailbox,
+            message: message as unknown as Record<string, unknown>,
+          });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error ?? 'Okänt fel vid IMAP-lagring.');
+          result.errors.push(errorMessage);
+          return true;
+        }
+
         if (stored.deduped) {
           result.deduped += 1;
           result.dedupedInboundEmailMessageIds.push(stored.id);
@@ -1616,7 +1633,7 @@ async function ensureDiagnosticEdielMessagesForInboundEmails(
       direction: "inbound",
       message_standard: "edifact",
       message_family: row.message_family ?? "OTHER",
-      message_code: row.message_code ?? null,
+      message_code: diagnosticMessageCode(row.message_family, row.message_code),
       environment: row.environment ?? "test",
       status: "received",
       transport_type: "email",
@@ -1710,7 +1727,7 @@ async function ensureDiagnosticEdielMessagesForInboundEmails(
         direction: "inbound",
         message_standard: "email",
         message_family: row.message_family ?? "OTHER",
-        message_code: row.message_code ?? null,
+        message_code: diagnosticMessageCode(row.message_family, row.message_code),
         environment: row.environment ?? "test",
         status: "failed",
         transport_type: "email",
@@ -1754,10 +1771,8 @@ async function ensureDiagnosticEdielMessagesForInboundEmails(
     .select(selectColumns);
 
   if (insertError) {
-    if (!isPostgresUniqueViolation(insertError)) throw insertError;
-
     console.warn(
-      "[inbound-mail] Bulk-diagnostik för inbound ediel_messages träffade unique constraint; försöker rad-för-rad så IMAP-synk inte stoppas.",
+      "[inbound-mail] Bulk-diagnostik för inbound ediel_messages kunde inte köras; försöker rad-för-rad så IMAP-synk inte stoppas.",
       insertError,
     );
 
@@ -1785,7 +1800,11 @@ async function ensureDiagnosticEdielMessagesForInboundEmails(
           continue;
         }
 
-        throw singleInsertError;
+        console.warn(
+          "[inbound-mail] Diagnostikrad kunde inte sparas; hoppar över raden och fortsätter IMAP-synk.",
+          singleInsertError,
+        );
+        continue;
       }
 
       if (singleInserted) insertedRows.push(singleInserted as Record<string, unknown>);
@@ -1809,7 +1828,7 @@ async function ensureDiagnosticEdielMessagesForInboundEmails(
       environment: row.environment ?? null,
       raw_message_type: row.message_family ?? "EMAIL",
       message_family: row.message_family ?? "OTHER",
-      message_code: row.message_code ?? null,
+      message_code: diagnosticMessageCode(row.message_family, row.message_code),
       reason:
         typeof row.failure_reason === "string" && row.failure_reason.trim()
           ? row.failure_reason

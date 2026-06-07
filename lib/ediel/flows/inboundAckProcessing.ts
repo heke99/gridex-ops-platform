@@ -96,6 +96,23 @@ function payloadString(message: EdielMessageRow, ...keys: string[]): string[] {
   return uniqueStrings(keys.map((key) => stringOrNull(payload[key])));
 }
 
+function nestedPayloadReferenceValues(message: EdielMessageRow): string[] {
+  const payload = message.parsed_payload ?? {};
+  const references = payload.references;
+  if (!references || typeof references !== "object" || Array.isArray(references)) return [];
+
+  const values: Array<string | null | undefined> = [];
+  for (const key of ["UCI", "UCM", "ACW", "TN", "LI", "Z09", "Z07", "DOC_PRODAT", "DOC_UTILTS", "DOC_APERAK", "DOC"]) {
+    const candidate = (references as Record<string, unknown>)[key];
+    if (Array.isArray(candidate)) {
+      values.push(...candidate.map((value) => stringOrNull(value)));
+    } else {
+      values.push(stringOrNull(candidate));
+    }
+  }
+  return uniqueStrings(values);
+}
+
 function hasPayloadErrorSignal(message: EdielMessageRow): boolean {
   const payload = message.parsed_payload ?? {};
   const report = message.validation_report ?? {};
@@ -263,6 +280,7 @@ function readReferenceCandidates(message: EdielMessageRow): string[] {
       "bgmReference",
       "messageReference",
     ),
+    ...nestedPayloadReferenceValues(message),
   ]);
 }
 

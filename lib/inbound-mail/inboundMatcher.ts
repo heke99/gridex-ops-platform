@@ -53,8 +53,9 @@ export async function matchOutboundRequestForInbound(input: {
 }): Promise<InboundEntityMatch> {
   const references = [
     input.parsed.interchangeReference,
-    firstReference(input.parsed, ['ACW', 'TN', 'LI', 'Z07']),
+    firstReference(input.parsed, ['UCI', 'UCM', 'ACW', 'TN', 'LI', 'Z09', 'Z07', 'DOC_PRODAT', 'DOC_UTILTS', 'DOC_APERAK', 'DOC']),
     input.parsed.bgmReference,
+    input.parsed.transactionReference,
   ].filter((value): value is string => Boolean(value))
 
   if (references.length === 0) {
@@ -90,10 +91,10 @@ export async function matchOutboundRequestForInbound(input: {
 
   const { data: edielData, error: edielError } = await supabaseService
     .from('ediel_messages')
-    .select('outbound_request_id')
+    .select('id,company_id,outbound_request_id,customer_id,site_id,metering_point_id,grid_owner_id,message_family,message_code,external_reference,interchange_reference,transaction_reference,correlation_reference,original_message_id')
     .eq('company_id', input.companyId)
     .eq('direction', 'outbound')
-    .not('outbound_request_id', 'is', null)
+    .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
     .or(references.flatMap((reference) => [
       `interchange_reference.eq.${reference}`,
       `transaction_reference.eq.${reference}`,
@@ -105,13 +106,20 @@ export async function matchOutboundRequestForInbound(input: {
 
   if (edielError) throw edielError
 
+  const edielRows = (edielData ?? []) as Array<Record<string, unknown>>
   const outboundIds = Array.from(new Set(
-    ((edielData ?? []) as Array<Record<string, unknown>>)
+    edielRows
       .map((row) => (typeof row.outbound_request_id === 'string' ? row.outbound_request_id : null))
       .filter((value): value is string => Boolean(value))
   ))
 
   if (outboundIds.length === 0) {
+    if (edielRows.length > 0) {
+      const match = singleOrAmbiguous('ediel_message', edielRows, [`Referenser testade mot outbound ediel_messages: ${references.join(', ')}`])
+      await insertAttempt({ ...input, matchType: 'outbound_ediel_message', match })
+      return match
+    }
+
     const match = singleOrAmbiguous('outbound_request', [], [`Referenser testade mot outbound_requests/ediel_messages: ${references.join(', ')}`])
     await insertAttempt({ ...input, matchType: 'outbound_request', match })
     return match

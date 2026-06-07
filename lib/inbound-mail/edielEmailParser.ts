@@ -25,6 +25,22 @@ function cleanText(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
+export function normalizeEdifactMessageCode(
+  messageFamily: ParsedEdifactEnvelope['messageFamily'] | string | null | undefined,
+  messageCode: string | null | undefined,
+): string {
+  const code = cleanText(messageCode)
+  if (code) return code
+
+  const family = String(messageFamily ?? '').trim().toUpperCase()
+  if (family === 'CONTRL') return 'CONTRL'
+  if (family === 'APERAK') return 'APERAK'
+  if (family === 'UTILTS_ERR') return 'ERR'
+  if (family === 'PRODAT') return 'PRODAT_UNKNOWN'
+  if (family === 'UTILTS') return 'UTILTS_UNKNOWN'
+  return 'OTHER'
+}
+
 function splitParty(value: string | null): { edielId: string | null; subAddress: string | null } {
   if (!value) return { edielId: null, subAddress: null }
   const first = value.split('+')[0] ?? value
@@ -148,6 +164,29 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
       pushRecord(references, cleanText(qualifier), cleanText(value))
     }
 
+    if (tag === 'DOC') {
+      const qualifier = cleanText(String(elements[1] ?? '').split(':')[0] ?? null)
+      const value = cleanText(String(elements[2] ?? '').split(':')[0] ?? null)
+      pushRecord(references, qualifier ? `DOC_${qualifier}` : 'DOC', value)
+    }
+
+    if (tag === 'UCI') {
+      pushRecord(references, 'UCI', cleanText(elements[1]))
+      const actionCode = cleanText(elements[4])
+      if (actionCode) pushRecord(references, 'UCI_ACTION', actionCode)
+    }
+
+    if (tag === 'UCM') {
+      pushRecord(references, 'UCM', cleanText(elements[1]))
+      const actionCode = cleanText(elements[4])
+      if (actionCode) pushRecord(references, 'UCM_ACTION', actionCode)
+    }
+
+    if (tag === 'UCS') {
+      const code = cleanText(elements[2] ?? elements[1] ?? null)
+      if (code) errorCodes.push(code)
+    }
+
     if (tag === 'DTM') {
       const [qualifier, value] = String(elements[1] ?? '').split(':')
       pushRecord(dates, cleanText(qualifier), cleanText(value))
@@ -184,7 +223,7 @@ export function parseEdifactPayload(rawPayload: string): ParsedEdifactEnvelope {
   return {
     rawPayload,
     messageFamily,
-    messageCode,
+    messageCode: normalizeEdifactMessageCode(messageFamily, messageCode),
     interchangeReference,
     transactionReference,
     senderEdielId,
