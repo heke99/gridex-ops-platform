@@ -1416,15 +1416,50 @@ function withEscoPermissionAgtFallbacks(
   );
   const fallbackGridAreaId = fallbackEscoPermissionGridAreaId(params, step);
 
-  if (!fallbackMeteringPointId && !fallbackGridAreaId) return portalData;
+  const isAgtZ18 = params.testCaseCode === "E8" && step.code === "Z18";
+
+  if (!fallbackMeteringPointId && !fallbackGridAreaId && !isAgtZ18)
+    return portalData;
+
+  const meteringPointId =
+    sanitizeCode(portalData.meteringPointId, "", 35) || fallbackMeteringPointId;
+  const agreementStartDateTime =
+    sanitizeCode(portalData.agreementStartDateTime, "", 12) ||
+    defaultAgreementStartDateTime();
 
   return {
     ...portalData,
-    meteringPointId:
-      sanitizeCode(portalData.meteringPointId, "", 35) ||
-      fallbackMeteringPointId,
+    meteringPointId,
     gridAreaId:
       sanitizeCode(portalData.gridAreaId, "", 12) || fallbackGridAreaId,
+    agreementStartDateTime,
+    agreementEndDateTime: isAgtZ18
+      ? sanitizeCode(portalData.agreementEndDateTime, "", 12) ||
+        agreementStartDateTime
+      : portalData.agreementEndDateTime,
+    permissionTimestamp: isAgtZ18
+      ? sanitizeCode(portalData.permissionTimestamp, "", 12) ||
+        agreementStartDateTime
+      : portalData.permissionTimestamp,
+    permissionId: isAgtZ18
+      ? sanitizeCode(portalData.permissionId, "", 35) ||
+        defaultPermissionId(params)
+      : portalData.permissionId,
+    permissionEndReason: isAgtZ18
+      ? sanitizeCode(portalData.permissionEndReason, "", 12) || "B80"
+      : portalData.permissionEndReason,
+    customerId: isAgtZ18
+      ? sanitizeCode(portalData.customerId, "", 35) || "196805029268"
+      : portalData.customerId,
+    customerIdCodeListQualifier: isAgtZ18
+      ? sanitizeCode(portalData.customerIdCodeListQualifier, "SE2", 8)
+      : portalData.customerIdCodeListQualifier,
+    customerName: isAgtZ18
+      ? sanitize(portalData.customerName, "GRIDEX TESTKUND", 70)
+      : portalData.customerName,
+    customerCountry: isAgtZ18
+      ? sanitizeCode(portalData.customerCountry, "SE", 3)
+      : portalData.customerCountry,
   };
 }
 
@@ -1924,7 +1959,18 @@ function buildProdatPermissionLineSegments(params: {
 
   const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`];
 
-  if (step.code === "Z15" || step.code === "Z18") {
+  if (step.code === "Z18") {
+    const permissionCreatedAt = date203FromPortalDate(
+      portalData.permissionTimestamp ?? portalData.agreementStartDateTime,
+      refs.createdLongDate,
+    );
+    const reportingEndDate = date203FromPortalDate(
+      portalData.agreementEndDateTime ?? portalData.agreementStartDateTime,
+      refs.createdLongDate,
+    );
+    segments.push(`DTM+693:${permissionCreatedAt}:203`);
+    segments.push(`DTM+164:${reportingEndDate}:203`);
+  } else if (step.code === "Z15") {
     segments.push(`DTM+93:${endDate ?? startDate}:203`);
   } else {
     segments.push(`DTM+92:${startDate}:203`);
@@ -1947,7 +1993,9 @@ function buildProdatPermissionLineSegments(params: {
   if (powerOfAttorneyReference && step.code === "Z13")
     segments.push(`RFF+ANJ:${powerOfAttorneyReference}`);
   if (gridAreaId) segments.push(`RFF+Z05:${gridAreaId}`);
-  if (permissionId && step.code !== "Z13")
+  if (permissionId && step.code === "Z18")
+    segments.push(`RFF+Z09:${permissionId}`);
+  else if (permissionId && step.code !== "Z13")
     segments.push(`RFF+Z07:${permissionId}`);
   if (permissionTimestamp && (step.code === "Z14" || step.code === "Z15"))
     segments.push(`DTM+265:${permissionTimestamp}:203`);
@@ -1977,7 +2025,7 @@ function buildProdatPermissionLineSegments(params: {
     );
   }
 
-  if (meteringPointId && step.code !== "Z13") {
+  if (meteringPointId && step.code !== "Z13" && step.code !== "Z18") {
     const hasSitePostalDetails = Boolean(
       siteAddressPlain || siteCityPlain || sitePostalCode,
     );
@@ -2891,6 +2939,28 @@ export function validateEdielTgtDraft(
       "Saknar Application Reference",
       `PRODAT TGT ska använda ${expectedApplicationReference}.`,
     );
+  }
+
+  if (step.family === "PRODAT" && step.code === "Z18") {
+    if (!normalized.includes("NAD+UD+")) {
+      pushIssue(
+        issues,
+        "error",
+        "z18_missing_end_user_ud",
+        "Z18 saknar slutkund",
+        "PRODAT Z18 ska innehålla SG17 NAD+UD. NAD+IT är inte rätt segmentgrupp för Z18.",
+      );
+    }
+
+    if (normalized.includes("NAD+IT+")) {
+      pushIssue(
+        issues,
+        "error",
+        "z18_installation_party_not_allowed",
+        "Z18 får inte skicka NAD+IT",
+        "Edielportalen kräver SG17[UD] för Z18 och markerar SG17[IT] som används inte.",
+      );
+    }
   }
 
   if (

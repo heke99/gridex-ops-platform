@@ -45,5 +45,48 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
       description: 'PRODAT engine kräver RFF+LI för PRODAT-ärendet.',
     })
   }
+
+  if (context.code === 'Z18') {
+    const hasEndUserIdentity = Boolean(sanitizeProdatText(context.customerId) || sanitizeProdatText(context.customerName))
+    const hasPermissionId = Boolean(sanitizeProdatText(context.permissionId) || sanitizeProdatText(context.powerOfAttorneyReference))
+    const hasEndReason = Boolean(sanitizeProdatText(context.permissionEndReason))
+    const hasEndDate = Boolean(sanitizeProdatText(context.permissionEndDate) || sanitizeProdatText(context.startDate))
+
+    if (!hasEndUserIdentity) {
+      issues.push({
+        severity: 'error',
+        code: 'prodat_z18_end_user_missing',
+        title: 'Slutkund saknas för Z18',
+        description: 'PRODAT Z18 ska innehålla SG17 NAD+UD. I produktion måste slutkund kopplas från aktivt tillstånd/kund innan avslutsbegäran skickas.',
+      })
+    }
+
+    if (!hasPermissionId) {
+      issues.push({
+        severity: 'error',
+        code: 'prodat_z18_permission_id_missing',
+        title: 'Tillståndets id saknas för Z18',
+        description: 'PRODAT Z18 ska innehålla RFF+Z09 med tillståndets id. Systemet ska inte gissa detta i produktion.',
+      })
+    }
+
+    if (!hasEndReason) {
+      issues.push({
+        severity: 'error',
+        code: 'prodat_z18_end_reason_missing',
+        title: 'Avslutsorsak saknas för Z18',
+        description: 'PRODAT Z18 ska innehålla CCI++Z25/CAV med orsak till att tillståndet upphör.',
+      })
+    }
+
+    if (!hasEndDate) {
+      issues.push({
+        severity: 'error',
+        code: 'prodat_z18_end_date_missing',
+        title: 'Sluttid saknas för Z18',
+        description: 'PRODAT Z18 ska innehålla DTM+164 med tidpunkt då tjänsten/rapporteringen upphör.',
+      })
+    }
+  }
   return issues
 }

@@ -15,6 +15,7 @@ import {
 } from '@/lib/ediel/prodat/render/segments'
 import {
   prodatDate102,
+  prodatDate203,
   prodatDate203AtStartOfDay,
   prodatNowDate203,
 } from '@/lib/ediel/prodat/render/dates'
@@ -70,7 +71,7 @@ function defaultPermissionReasonForCode(code: string): string | null {
   // transaktionstyp i CCI++Z13/CAV. Om kundspecifik data inte skickar ett
   // explicit värde används standarden för korrekt Z13V. Övriga
   // tillståndsflöden får inte ärva leverantörsbytes-defaulten Z22.
-  if (code === 'Z13') return 'S17'
+  if (code === 'Z13' || code === 'Z18') return 'S17'
   return null
 }
 
@@ -182,7 +183,20 @@ export function buildGenericProdatSegments(input: {
   ]
 
   const startDate203 = prodatDate203AtStartOfDay(startDate)
-  if (startDate203) {
+  if (context.code === 'Z18') {
+    const permissionCreatedAt =
+      prodatDate203(portalString(portalData, 'permissionTimestamp') ?? context.permissionTimestamp ?? startDate) ??
+      prodatNowDate203(input.generatedAt)
+    const reportingEndDate =
+      prodatDate203(
+        portalString(portalData, 'permissionEndDate') ??
+        portalString(portalData, 'agreementEndDateTime') ??
+        context.permissionEndDate ??
+        context.startDate,
+      ) ?? permissionCreatedAt
+    segments.push(`DTM+693:${permissionCreatedAt}:203`)
+    segments.push(`DTM+164:${reportingEndDate}:203`)
+  } else if (startDate203) {
     // Z09 uses validity date (field 216) in SG8/DTM qualifier 157.
     // Supplier AGT L7 failed when this was rendered as DTM+92.
     segments.push(`DTM+${isSupplierZ09 ? '157' : '92'}:${startDate203}:203`)
@@ -232,8 +246,12 @@ export function buildGenericProdatSegments(input: {
     segments.push(`RFF+Z05:${sanitizeProdatText(gridAreaId)}`)
   }
 
+  const permissionId = portalString(portalData, 'permissionId') ?? context.permissionId ?? null
   const powerOfAttorneyReference = portalString(portalData, 'powerOfAttorneyReference') ?? context.powerOfAttorneyReference
-  if (!isSupplierZ09 && powerOfAttorneyReference) {
+  if (context.code === 'Z18') {
+    const z18PermissionId = sanitizeProdatText(permissionId ?? powerOfAttorneyReference ?? '')
+    if (z18PermissionId) segments.push(`RFF+Z09:${z18PermissionId}`)
+  } else if (!isSupplierZ09 && powerOfAttorneyReference) {
     segments.push(`RFF+ANJ:${sanitizeProdatText(powerOfAttorneyReference)}`)
   }
 
@@ -249,7 +267,7 @@ export function buildGenericProdatSegments(input: {
     }))
   }
 
-  if (!isSupplierZ09 && context.code !== 'Z03') {
+  if (!isSupplierZ09 && context.code !== 'Z03' && context.code !== 'Z18') {
     segments.push(prodatInstallationNadSegment({
       meterPointId,
       address: portalString(portalData, 'siteAddress') ?? context.siteAddress ?? null,

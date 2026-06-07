@@ -404,6 +404,56 @@ function validateEdifactPayload(params: {
     issues,
   })
 
+  if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z18') {
+    const hasEndUser = rawSegments.some((segment) => segment.toUpperCase().startsWith('NAD+UD+'))
+    const installationParty = rawSegments.find((segment) => segment.toUpperCase().startsWith('NAD+IT+')) ?? null
+    const hasReportEnd = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+164:'))
+    const hasPermissionCreatedAt = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+693:'))
+    const hasPermissionId = rawSegments.some((segment) => segment.toUpperCase().startsWith('RFF+Z09:'))
+
+    if (!hasEndUser) {
+      issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PRODAT_Z18_NAD_UD_MISSING',
+        title: 'Z18 saknar slutkund',
+        description: 'PRODAT Z18 ska innehålla SG17 NAD+UD. SG17 NAD+IT ersätter inte slutkundsgruppen.',
+      }))
+    }
+    if (installationParty) {
+      issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PRODAT_Z18_NAD_IT_FORBIDDEN',
+        title: 'Z18 får inte innehålla NAD+IT',
+        description: 'PRODAT Z18 ska använda SG17 NAD+UD. Edielportalen markerar SG17[IT] som används inte för Z18.',
+        segment: installationParty,
+      }))
+    }
+    if (!hasReportEnd) {
+      issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PRODAT_Z18_DTM_164_MISSING',
+        title: 'Z18 saknar DTM+164',
+        description: 'PRODAT Z18 ska ange när tjänsten/rapporteringen upphör i DTM+164.',
+      }))
+    }
+    if (!hasPermissionCreatedAt) {
+      issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PRODAT_Z18_DTM_693_MISSING',
+        title: 'Z18 saknar DTM+693',
+        description: 'PRODAT Z18 ska ange tillståndets skapandetid i DTM+693.',
+      }))
+    }
+    if (!hasPermissionId) {
+      issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PRODAT_Z18_RFF_Z09_MISSING',
+        title: 'Z18 saknar RFF+Z09',
+        description: 'PRODAT Z18 ska innehålla tillståndets id i RFF+Z09.',
+      }))
+    }
+  }
+
   const rulebookValidation = validateRulebookMessage({
     family: String(canonical.family),
     code: canonical.messageCode,

@@ -594,3 +594,25 @@ Required behavior:
 - If AGT outbound is blocked, the error should point to AGT runtime/route/certificate/subaddress readiness, not tell the user to import TGT portal testdata.
 
 This does not create a separate test engine. It only ensures the shared Systemtest outbound builder uses AGT runtime context correctly for actor → portal certification cases.
+
+## 2026-06-05 E8 / PRODAT Z18 production-grade payload correction
+
+Portal validation for AGT E8 confirmed that routing and SMTP were correct, but the Z18 payload was wrong when SG17 was rendered as `NAD+IT` instead of required end-user group `NAD+UD`.
+
+Production and Systemtest Z18 rules now follow the canonical DGI Z18 model:
+
+- `BGM+Z18`
+- `LIN` for the metering point / facility id
+- `DTM+693` for permission creation timestamp
+- `DTM+164` for service/reporting end timestamp
+- `CCI++Z13` / `CAV+S17`
+- `CCI++Z25` / permission end reason
+- `RFF+Z05` grid area
+- `RFF+LI` case reference
+- `RFF+Z09` permission id
+- `NAD+UD` end user
+- no `NAD+IT` for Z18
+
+Systemtest E8 keeps deterministic AGT fallback values only for certification, so Edielportalen can validate the same structure without requiring imported TGT testdata. Production must not use certification fallback values; missing end user, permission id, end reason or report end timestamp is a blocking production condition/manual-review trigger.
+
+Send preflight now blocks outbound PRODAT Z18 if it contains `NAD+IT`, lacks `NAD+UD`, lacks `DTM+693`, lacks `DTM+164`, or lacks `RFF+Z09`.

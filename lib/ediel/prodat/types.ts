@@ -71,6 +71,9 @@ export type ProdatEngineProductionContext = {
   permissionStatus?: string | null
   permissionPurpose?: string | null
   permissionEndReason?: string | null
+  permissionId?: string | null
+  permissionTimestamp?: string | null
+  permissionEndDate?: string | null
   energyProductId?: string | null
   powerOfAttorneyReference?: string | null
   balanceResponsibleId?: string | null

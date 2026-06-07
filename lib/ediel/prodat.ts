@@ -590,6 +590,15 @@ function renderProdatSegments(params: {
       siteCountry: portalString(portalData, 'siteCountry') ?? 'SE',
       reasonForTransaction: portalString(portalData, 'reasonForTransaction'),
       meteringMethod: resolveProdatMeteringMethod(portalData),
+      permissionStatus: portalString(portalData, 'permissionStatus'),
+      permissionPurpose: portalString(portalData, 'permissionPurpose'),
+      permissionEndReason: portalString(portalData, 'permissionEndReason'),
+      permissionId: portalString(portalData, 'permissionId'),
+      permissionTimestamp: portalString(portalData, 'permissionTimestamp'),
+      permissionEndDate:
+        portalString(portalData, 'permissionEndDate') ??
+        portalString(portalData, 'agreementEndDateTime'),
+      energyProductId: portalString(portalData, 'energyProductId'),
       powerOfAttorneyReference: portalString(portalData, 'powerOfAttorneyReference'),
       balanceResponsibleId: portalString(portalData, 'balanceResponsibleId'),
     },
