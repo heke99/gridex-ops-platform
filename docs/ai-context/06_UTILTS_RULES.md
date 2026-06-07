@@ -167,12 +167,11 @@ Rules:
 
 `QTY+136:NULL` can be valid when paired with the correct quality/status code, such as missing-value quality status. Do not treat all NULL meter values as errors without checking the rule profile and quality code.
 
-## UTILTS automation foundation
 
-UTILTS ska fortsatt separeras från PRODAT:
-- syntaxfel => CONTRL.
-- anvisnings-/applikationsfel => negativ APERAK.
-- process-/funktionsfel => UTILTS_ERR.
-- korrekt UTILTS => positiv APERAK.
+## UTILTS_ERR reason-code policy for AGT UE1/UE2
 
-Batch 2/3 foundation gör att UTILTS-beslut sparas i decision traces och kan kopplas till outbox/SLA utan att UI styr APERAK/UTILTS_ERR manuellt.
+UE1/UE2 AGT uses the same backend decision engine as production, but the reason code must be constrained by the AGT test context. The Ediel portal can reject `E87` in UE1 when rule 531 expects one of `E10|E14|E49|E55|E61`.
+
+Do not remove `E87` globally. In live production, `E87` remains valid when the real fault is period/resolution/observation-count mismatch. For AGT UE1/UE2, if inbound E66 cannot be processed because the actor's production application does not have the object/test data, use the best allowed code: unknown/non-processable metering point => `E10`, unknown grid area => `E49`, otherwise `E14` as generic allowed reason.
+
+The engine must apply context-aware policy: live production uses actual fault; TGT follows TGT facit; AGT UE1/UE2 uses actual fault constrained to `E10|E14|E49|E55|E61`.

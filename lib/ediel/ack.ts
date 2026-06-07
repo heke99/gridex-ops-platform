@@ -243,8 +243,8 @@ function parseEdifactRefs(sourceMessage: EdielMessageRow): ParsedEdifactRefs {
   const liSegment = rffs.find((segment) => segment.startsWith('RFF+LI:'))
   const lineItemReference =
     sanitizeEdifactToken(String(parsed.lineItemReference ?? parsed.line_item_reference ?? '')) ??
-    sanitizeEdifactToken(liSegment?.replace(/^RFF\+LI:/, '') ?? null) ??
-    sanitizeEdifactToken(sourceMessage.transaction_reference)
+    sanitizeEdifactToken(sourceMessage.transaction_reference) ??
+    sanitizeEdifactToken(liSegment?.replace(/^RFF\+LI:/, '') ?? null)
 
   return { messageReference, documentReference, interchangeReference, lineItemReference, meteringPointId }
 }
@@ -732,6 +732,7 @@ function buildUtiltsErrSegments(params: {
   const rawCodes = sanitizeSegmentText(params.messageText) || 'E14'
   const codes = rawCodes
     .split(/[|,;\s]+/)
+    .map((token) => token.split('@')[0])
     .map((code) => sanitizeEdifactToken(code.toUpperCase(), 8))
     .filter((code): code is string => Boolean(code && /^E[0-9A-Z]+$/.test(code)))
 

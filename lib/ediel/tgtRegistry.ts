@@ -777,9 +777,7 @@ function prodatAgtEscoOutboundCase(params: {
   outboundVariant: string;
   purpose: string;
   testDataHint: string;
-  portalAperakOutcome?: "positive" | "negative";
 }): EdielTgtTestCaseDefinition {
-  const portalAperakOutcome = params.portalAperakOutcome ?? "negative";
   return {
     suite: "PRODAT",
     roleCode: "esco",
@@ -821,19 +819,15 @@ function prodatAgtEscoOutboundCase(params: {
         actor: "portal",
         family: "APERAK",
         code: "APERAK",
-        outcome: portalAperakOutcome,
+        outcome: "positive",
         required: true,
-        title: `Ta emot ${portalAperakOutcome === "negative" ? "negativ" : "positiv"} APERAK på ${params.outboundVariant}`,
-        description:
-          portalAperakOutcome === "negative"
-            ? "Edielportalen avvisar innehållet i AGT eftersom testdata inte finns i portalens produktionsapplikation. Det är förväntat för aktör→portal-testet."
-            : "Edielportalen applikationskvitterar outbound PRODAT.",
+        title: `Ta emot positiv APERAK på ${params.outboundVariant}`,
+        description: "Edielportalen applikationskvitterar outbound PRODAT.",
       },
     ],
     notes: [
-      "AGT E3/E4/E8 är aktör→portal. Gridex ska skapa och skicka första PRODAT-filen från Systemtest och sedan vänta på portalens CONTRL/APERAK.",
+      "AGT E3/E4/E8 är aktör→portal. Gridex ska skapa och skicka första PRODAT-filen.",
       "Outbound PRODAT i AGT ska vara S/MIME-krypterad till Edielportalens publika produktionscertifikat och skickas via Ediel/Strato SMTP.",
-      "Portalens negativa APERAK i dessa aktör→portal-test är förväntat när innehållet är okänt i testsystemets produktionsapplikation.",
     ],
   };
 }
@@ -845,10 +839,7 @@ function prodatAgtEscoInboundPositiveCase(params: {
   inboundVariant: string;
   purpose: string;
   testDataHint: string;
-  aperakOutcome?: "positive" | "negative";
-  aperakDescription?: string;
 }): EdielTgtTestCaseDefinition {
-  const aperakOutcome = params.aperakOutcome ?? "positive";
   return {
     suite: "PRODAT",
     roleCode: "esco",
@@ -890,11 +881,10 @@ function prodatAgtEscoInboundPositiveCase(params: {
         actor: "gridex",
         family: "APERAK",
         code: "APERAK",
-        outcome: aperakOutcome,
+        outcome: "positive",
         required: true,
-        title: `Skicka ${aperakOutcome === "negative" ? "negativ" : "positiv"} APERAK på ${params.inboundVariant}`,
+        title: `Skicka positiv APERAK på ${params.inboundVariant}`,
         description:
-          params.aperakDescription ??
           "Meddelandet är korrekt behandlat. Z14N kan vara ett affärsmässigt nekande men ska fortfarande kvitteras tekniskt korrekt om payloaden är giltig.",
       },
     ],
@@ -905,7 +895,7 @@ function prodatAgtEscoInboundPositiveCase(params: {
   };
 }
 
-function utiltsAgtEscoInboundPositiveCase(params: {
+function utiltsAgtEscoInboundUtiltsErrCase(params: {
   testCaseCode: "UE1" | "UE2";
   title: string;
   subtype: "KVART" | "SCH";
@@ -963,7 +953,7 @@ function utiltsAgtEscoInboundPositiveCase(params: {
     notes: [
       "AGT UE1/UE2 är portal→aktör och ska inte blandas ihop med TGT U3.",
       "UTILTS kräver normalt inte S/MIME i detta flöde.",
-      "Systemtest ska skapa positiv CONTRL och negativ UTILTS_ERR från samma backend-engine, inte negativ APERAK.",
+      "Systemtest ska skapa positiv CONTRL och negativ UTILTS_ERR från samma backend-engine, inte positiv APERAK.",
     ],
   };
 }
@@ -1019,12 +1009,9 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       inboundCode: "Z14",
       inboundVariant: "Z14N",
       purpose:
-        "AGT DGI/Energitjänsteföretag: portalen/nätägaren skickar Z14N till aktören. Gridex ska ta emot, registrera nekandet och svara med backendstyrd negativ APERAK när anläggning/process inte kan identifieras.",
+        "AGT DGI/Energitjänsteföretag: portalen/nätägaren skickar Z14N till aktören. Gridex ska ta emot, registrera nekandet och svara tekniskt korrekt.",
       testDataHint:
-        "E6 är portal → aktör. Facit från godkänt AGT-test: positiv CONTRL + negativ APERAK med ERC 40 / FTX 105 när backendregel facility_not_identified gäller.",
-      aperakOutcome: "negative",
-      aperakDescription:
-        "Backend-kärnan ska välja negativ APERAK när Z14N inte kan kopplas till säker anläggning/process: ERC+40::260 och FTX+AAO++105::260+The object could not be identified.",
+        "E6 är portal → aktör. Z14N är ett affärsmässigt nekande men ett korrekt meddelande ska fortfarande ge positiv CONTRL + positiv APERAK.",
     }),
     prodatAgtEscoInboundPositiveCase({
       testCaseCode: "E7",
@@ -1032,12 +1019,9 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       inboundCode: "Z15",
       inboundVariant: "Z15V",
       purpose:
-        "AGT DGI/Energitjänsteföretag: portalen/nätägaren skickar Z15V om upphörande av tillstånd till aktören. Gridex ska svara med positiv CONTRL och backendstyrd negativ APERAK när permission/process inte kan identifieras.",
+        "AGT DGI/Energitjänsteföretag: portalen/nätägaren skickar Z15V om upphörande av tillstånd till aktören.",
       testDataHint:
-        "E7 är portal → aktör. Starta testet i Edielportalen; Gridex ska vänta på inbound PRODAT Z15V och sedan skicka positiv CONTRL + negativ APERAK.",
-      aperakOutcome: "negative",
-      aperakDescription:
-        "Backend-kärnan ska välja negativ APERAK när Z15V inte kan kopplas till säker permission/process i AGT: ERC/FTX styrs av decision engine, inte av testfallskod.",
+        "E7 är portal → aktör. Starta testet i Edielportalen; Gridex ska vänta på inbound PRODAT Z15V och sedan skicka korrekt CONTRL + APERAK.",
     }),
     prodatAgtEscoOutboundCase({
       testCaseCode: "E8",
@@ -1049,7 +1033,7 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       testDataHint:
         "E8 är aktör → portal. Gridex ska skapa och skicka PRODAT Z18V krypterat till 91100:ZZ:PRODAT.",
     }),
-    utiltsAgtEscoInboundPositiveCase({
+    utiltsAgtEscoInboundUtiltsErrCase({
       testCaseCode: "UE1",
       title: "UTILTS E66-KVART",
       subtype: "KVART",
@@ -1058,7 +1042,7 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       testDataHint:
         "UE1 är portal → aktör. Starta i Edielportalen och låt Gridex hämta inbound UTILTS via IMAP, därefter positiv CONTRL + negativ UTILTS_ERR enligt AGT-facit.",
     }),
-    utiltsAgtEscoInboundPositiveCase({
+    utiltsAgtEscoInboundUtiltsErrCase({
       testCaseCode: "UE2",
       title: "UTILTS E66-SCH",
       subtype: "SCH",
@@ -2660,55 +2644,6 @@ function pickBestStepCandidate(
   })[0] ?? null;
 }
 
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object"
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function readOutcome(value: unknown): "positive" | "negative" | null {
-  const normalized = String(value ?? "")
-    .trim()
-    .toLowerCase();
-  return normalized === "positive" || normalized === "negative"
-    ? normalized
-    : null;
-}
-
-export function backendSystemTestAckOutcomeFromMessage(
-  message: EdielMessageRow | null | undefined,
-): "positive" | "negative" | null {
-  if (!message) return null;
-
-  const validationReport = readRecord(message.validation_report);
-  const parsedPayload = readRecord(message.parsed_payload);
-  const systemTestAckSend = readRecord(validationReport?.systemTestAckSend);
-
-  return (
-    readOutcome(systemTestAckSend?.outcome) ??
-    readOutcome(validationReport?.effectiveOutcome) ??
-    readOutcome(validationReport?.backendOutcome) ??
-    readOutcome(validationReport?.engineOutcome) ??
-    readOutcome(parsedPayload?.ackOutcome) ??
-    readOutcome(message.ack_outcome)
-  );
-}
-
-function expectedOutcomeForMessage(
-  message: EdielMessageRow,
-  step: EdielTgtExpectedStep,
-): "positive" | "negative" | null {
-  if (
-    step.actor === "gridex" &&
-    step.direction === "outbound" &&
-    (step.family === "APERAK" || step.family === "CONTRL")
-  ) {
-    return backendSystemTestAckOutcomeFromMessage(message) ?? step.outcome ?? null;
-  }
-
-  return step.outcome ?? null;
-}
-
 function matchesExpectedStep(
   message: EdielMessageRow,
   step: EdielTgtExpectedStep,
@@ -2717,8 +2652,7 @@ function matchesExpectedStep(
   if (normalizeCode(message.message_family) !== step.family) return false;
   if (normalizeCode(String(message.message_code)) !== normalizeCode(step.code))
     return false;
-  const expectedOutcome = expectedOutcomeForMessage(message, step);
-  if (expectedOutcome && messageOutcome(message) !== expectedOutcome) return false;
+  if (step.outcome && messageOutcome(message) !== step.outcome) return false;
   if (!isSentGridexOutboundStep(message, step)) return false;
   return true;
 }
@@ -2735,8 +2669,7 @@ function stepIssues(
     issues.push(`Fel familj: ${message.message_family}`);
   if (normalizeCode(String(message.message_code)) !== normalizeCode(step.code))
     issues.push(`Fel kod: ${message.message_code}`);
-  const expectedOutcome = expectedOutcomeForMessage(message, step);
-  if (expectedOutcome && messageOutcome(message) !== expectedOutcome) {
+  if (step.outcome && messageOutcome(message) !== step.outcome) {
     issues.push(`Fel outcome: ${messageOutcome(message) ?? "saknas"}`);
   }
   if (!isSentGridexOutboundStep(message, step)) {

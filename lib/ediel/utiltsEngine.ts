@@ -5,7 +5,7 @@ import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts
 import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
 import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
 
-export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-05-production-utilts-runtime-v3-e31-sch-functional-err'
+export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v4-context-aware-agt-reason-codes'
 
 export type UtiltsRuntimeMessageCode =
   | 'S01'
@@ -142,6 +142,123 @@ const KNOWN_UTILTS_CODES = new Set<UtiltsRuntimeMessageCode>([
 
 const CURRENT_UTILTS_VERSION = 'E5SE5A'
 const PREVIOUS_ACCEPTED_UTILTS_VERSIONS = new Set(['E5SE1B', 'E5SE9B'])
+
+const AGT_UE_UTILTS_ERR_ALLOWED_CODES = ['E10', 'E14', 'E49', 'E55', 'E61'] as const
+
+type UtiltsAgtContextCode = 'UE1' | 'UE2'
+
+type UtiltsErrCodeSelection = {
+  code: string
+  reason: string
+}
+
+function normalizeUtiltsTestContext(value: string | null | undefined): string | null {
+  const normalized = String(value ?? '').trim().toUpperCase()
+  return normalized.length > 0 ? normalized : null
+}
+
+function isAgtUeUtiltsContext(testCaseCode: string | null | undefined): testCaseCode is UtiltsAgtContextCode {
+  const normalized = normalizeUtiltsTestContext(testCaseCode)
+  return normalized === 'UE1' || normalized === 'UE2'
+}
+
+function allowedAgtUeUtiltsErrCodes(): string[] {
+  return [...AGT_UE_UTILTS_ERR_ALLOWED_CODES]
+}
+
+function issueCodeText(issues: readonly UtiltsValidationIssue[]): string {
+  return issues.map((issue) => `${issue.code} ${issue.title} ${issue.description} ${issue.utiltsErrCode ?? ''}`).join(' ').toUpperCase()
+}
+
+function selectAgtUeUtiltsErrCode(params: {
+  runtime: UtiltsRuntimeResult
+  testCaseCode: UtiltsAgtContextCode
+}): UtiltsErrCodeSelection {
+  const allowed = new Set(allowedAgtUeUtiltsErrCodes())
+  const existing = params.runtime.ackPlan.utiltsErrCodes.find((code) => allowed.has(String(code).toUpperCase()))
+  if (existing) {
+    return {
+      code: existing,
+      reason: `${params.testCaseCode}: befintlig UTILTS_ERR-kod ${existing} är tillåten enligt AGT UE1/UE2-matrisen.`,
+    }
+  }
+
+  const text = issueCodeText(params.runtime.validation.issues)
+  const hasUnknownGridArea = text.includes('UNKNOWN_GRID_AREA') || text.includes('OKANT NATOMRADE') || text.includes('OKÄNT NÄTOMRÅDE')
+  if (hasUnknownGridArea) {
+    return {
+      code: 'E49',
+      reason: `${params.testCaseCode}: okänt nätområde ska mappas till E49 när AGT tillåter E49.`,
+    }
+  }
+
+  const hasUnknownOrUnprocessableMeteringPoint =
+    text.includes('UNKNOWN_METERING_POINT') ||
+    text.includes('OKAND ANLAGGNING') ||
+    text.includes('OKÄND ANLÄGGNING') ||
+    Boolean(params.runtime.facts.meterPointId)
+
+  if (hasUnknownOrUnprocessableMeteringPoint) {
+    return {
+      code: 'E10',
+      reason: `${params.testCaseCode}: Edielportalen skickar E66 med uppgifter som aktörens produktionsapplikation inte kan processa; okänd/ej processbar mätpunkt mappas till E10 i AGT UE1/UE2.`,
+    }
+  }
+
+  return {
+    code: 'E14',
+    reason: `${params.testCaseCode}: AGT UE1/UE2 kräver negativ UTILTS_ERR men runtime-felet matchade ingen mer specifik tillåten kod; E14 används som säker övrig orsak.`,
+  }
+}
+
+function remapUtiltsErrDetailsForAgtUe(params: {
+  runtime: UtiltsRuntimeResult
+  testCaseCode: UtiltsAgtContextCode
+}): { details: UtiltsRuntimeUtiltsErrDetail[]; codes: string[]; reason: string } {
+  const selection = selectAgtUeUtiltsErrCode(params)
+  const allowed = new Set(allowedAgtUeUtiltsErrCodes())
+  const sourceDetails = params.runtime.ackPlan.utiltsErrDetails.length > 0
+    ? params.runtime.ackPlan.utiltsErrDetails
+    : functionalUtiltsErrDetailsFromIssues(params.runtime.validation.issues)
+
+  const fallbackReference = firstUtiltsTgtAckReference(params.runtime.facts)
+  const references = sourceDetails.length > 0
+    ? sourceDetails
+    : [{ code: selection.code, referenceQualifier: 'TN', referenceNumber: fallbackReference, lineItemReference: fallbackReference }]
+
+  const seen = new Set<string>()
+  const details = references.map((detail) => {
+    const incoming = sanitizeRuntimeToken(String(detail.code ?? '').toUpperCase(), 8)
+    const code = incoming && allowed.has(incoming) ? incoming : selection.code
+    const referenceNumber = sanitizeRuntimeToken(detail.referenceNumber ?? detail.lineItemReference ?? fallbackReference, 35)
+    const lineItemReference = sanitizeRuntimeToken(detail.lineItemReference ?? detail.referenceNumber ?? referenceNumber, 35)
+    return {
+      code,
+      referenceQualifier: sanitizeRuntimeToken(detail.referenceQualifier ?? 'TN', 12) ?? 'TN',
+      referenceNumber,
+      lineItemReference,
+    }
+  }).filter((detail) => {
+    const key = `${detail.code}|${detail.referenceNumber ?? ''}|${detail.lineItemReference ?? ''}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
+  const finalDetails = details.length > 0 ? details : [{
+    code: selection.code,
+    referenceQualifier: 'TN',
+    referenceNumber: fallbackReference,
+    lineItemReference: fallbackReference,
+  }]
+
+  return {
+    details: finalDetails,
+    codes: Array.from(new Set(finalDetails.map((detail) => detail.code))).filter(Boolean),
+    reason: `${selection.reason} Tillåtna AGT-koder: ${allowedAgtUeUtiltsErrCodes().join('|')}. Produktion behåller E87 när faktisk period/upplösning/antal observationer är felet.`,
+  }
+}
+
 
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
@@ -1352,6 +1469,26 @@ export function applyUtiltsTgtAckPlanOverride(params: {
 }): UtiltsRuntimeAckPlan {
   const testCaseCode = normalizeUtiltsTgtCaseCode(params.testCaseCode)
   const base = params.runtime.ackPlan
+
+  if (isAgtUeUtiltsContext(testCaseCode)) {
+    const mapped = remapUtiltsErrDetailsForAgtUe({
+      runtime: params.runtime,
+      testCaseCode,
+    })
+
+    return {
+      ...base,
+      shouldSendContrl: true,
+      contrlOutcome: 'positive',
+      shouldSendAperak: false,
+      aperakOutcome: null,
+      shouldSendUtiltsErr: true,
+      utiltsErrDetails: mapped.details,
+      utiltsErrCodes: mapped.codes.length > 0 ? mapped.codes : ['E14'],
+      aperakApplicationErrors: [],
+      reason: mapped.reason,
+    }
+  }
 
   if (testCaseCode === 'U3.1.1' || testCaseCode === 'U3.1.2') {
     return {

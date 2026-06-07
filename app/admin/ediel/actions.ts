@@ -56,6 +56,7 @@ import {
 import { runEdielSelfTest } from "@/lib/ediel/selftest";
 import { buildInboundUtiltsMessageInput } from "@/lib/ediel/utilts";
 import {
+  applyUtiltsTgtAckPlanOverride,
   runUtiltsRuntimeForMessage,
   serializeUtiltsRuntimeUtiltsErrMessageText,
 } from "@/lib/ediel/utiltsEngine";
@@ -1747,18 +1748,8 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
   revalidatePath(
     `/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`,
   );
-  const redirectParams = new URLSearchParams();
-  redirectParams.set("companyId", companyId);
-  if (autopilotResult) {
-    redirectParams.set(
-      "message",
-      autopilotResult.action === "created_gridex_draft"
-        ? "Systemtestkörning startad och outbound-utkast skapades. Skicka PRODAT från Systemtest på testfallssidan."
-        : autopilotResult.description,
-    );
-  }
   redirect(
-    `/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}?${redirectParams.toString()}`,
+    `/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}`,
   );
 }
 
@@ -1947,17 +1938,9 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     );
   }
   await requireCompanyOperationalForWrites(companyId);
-  const runtimeSuite = isAgtSystemTestCase({
-    testCaseCode,
-    roleCode,
-    suite: testSuite,
-  })
-    ? "AGT"
-    : "TGT";
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
     companyId,
-    testSuite: runtimeSuite,
-    actorRole: roleCode,
+    testSuite: "TGT",
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(
@@ -2353,11 +2336,12 @@ async function resolveUtiltsErrMessageTextForAckAction(
   }
 
   const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
-  if (
-    runtime.ackPlan.shouldSendUtiltsErr &&
-    runtime.ackPlan.utiltsErrCodes.length > 0
-  ) {
-    return serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan);
+  const ackPlan = applyUtiltsTgtAckPlanOverride({
+    runtime,
+    testCaseCode: params.testCaseCode ?? null,
+  });
+  if (ackPlan.shouldSendUtiltsErr && ackPlan.utiltsErrCodes.length > 0) {
+    return serializeUtiltsRuntimeUtiltsErrMessageText(ackPlan);
   }
 
   const tgtResolution = await resolveTgtTestDataForAckAction({
@@ -2490,10 +2474,14 @@ async function resolveBackendAperakDecision(params: {
 
   if (params.sourceMessage.message_family === "UTILTS") {
     const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
+    const ackPlan = applyUtiltsTgtAckPlanOverride({
+      runtime,
+      testCaseCode: params.testCaseCode ?? null,
+    });
 
-    if (runtime.ackPlan.shouldSendUtiltsErr) {
+    if (ackPlan.shouldSendUtiltsErr) {
       const codes =
-        serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan) ||
+        serializeUtiltsRuntimeUtiltsErrMessageText(ackPlan) ||
         "UTILTS_ERR";
 
       await createEdielMessageEvent({
@@ -2505,8 +2493,8 @@ async function resolveBackendAperakDecision(params: {
           "APERAK blockerad: UTILTS-runtime kräver UTILTS-ERR för funktions-/processfel.",
         payload: {
           selectedFamily: "UTILTS_ERR",
-          utiltsErrCodes: runtime.ackPlan.utiltsErrCodes,
-          utiltsErrDetails: runtime.ackPlan.utiltsErrDetails,
+          utiltsErrCodes: ackPlan.utiltsErrCodes,
+          utiltsErrDetails: ackPlan.utiltsErrDetails,
           runtimeClassification: runtime.validation.classification,
           validationIssues: runtime.validation.issues.map((issue) => ({
             code: issue.code,
@@ -2561,12 +2549,12 @@ async function resolveBackendAperakDecision(params: {
     }
 
     if (
-      runtime.ackPlan.shouldSendAperak &&
-      runtime.ackPlan.aperakOutcome === "negative"
+      ackPlan.shouldSendAperak &&
+      ackPlan.aperakOutcome === "negative"
     ) {
       return {
         outcome: "negative",
-        applicationErrors: runtime.ackPlan.aperakApplicationErrors.map(
+        applicationErrors: ackPlan.aperakApplicationErrors.map(
           (error) => ({
             ercCode: error.ercCode,
             fieldCode: error.fieldCode ?? null,
@@ -2589,8 +2577,8 @@ async function resolveBackendAperakDecision(params: {
     }
 
     if (
-      runtime.ackPlan.shouldSendAperak &&
-      runtime.ackPlan.aperakOutcome === "positive"
+      ackPlan.shouldSendAperak &&
+      ackPlan.aperakOutcome === "positive"
     ) {
       return {
         outcome: "positive",
@@ -3614,15 +3602,17 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
     edielMessageId,
     context,
   );
+  const testCaseCode = formString(formData.get("testCaseCode"));
   const runtime =
     sourceMessage.message_family === "UTILTS"
       ? runUtiltsRuntimeForMessage(sourceMessage)
       : null;
+  const ackPlan = runtime
+    ? applyUtiltsTgtAckPlanOverride({ runtime, testCaseCode })
+    : null;
   const resolvedMessageText =
     messageText ??
-    (runtime
-      ? serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan)
-      : null);
+    (ackPlan ? serializeUtiltsRuntimeUtiltsErrMessageText(ackPlan) : null);
 
   if (!resolvedMessageText) {
     await createEdielMessageEvent({
@@ -3635,7 +3625,7 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
       payload: {
         phase: "utilts_err_create_preflight",
         runtimeClassification: runtime?.validation.classification ?? null,
-        utiltsErrCodes: runtime?.ackPlan.utiltsErrCodes ?? [],
+        utiltsErrCodes: ackPlan?.utiltsErrCodes ?? [],
       },
     });
 

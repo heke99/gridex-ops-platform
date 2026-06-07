@@ -38,8 +38,6 @@ import {
   createEdielTestRun,
   getEdielMessageById,
   listAckMessagesForSource,
-  listEdielMessagesByIds,
-  listEdielTestRunMessages,
   listEdielTestRuns,
   updateEdielMessageStatus,
   updateEdielTestRunStatus,
@@ -52,6 +50,7 @@ import {
 import {
   applyUtiltsTgtAckPlanOverride,
   runUtiltsRuntimeForMessage,
+  serializeUtiltsRuntimeUtiltsErrMessageText,
 } from "@/lib/ediel/utiltsEngine";
 import type {
   EdielAperakApplicationError,
@@ -84,7 +83,6 @@ import {
   compareEngineDecisionWithExpected,
   selectRuleProfile,
 } from "@/lib/ediel/rulebook/ruleProfileSelector";
-import { decideProdatAperak } from "@/lib/ediel/decisionEngine";
 import { resolveAndStoreProdatAperakErrors } from "@/lib/ediel/core/aperakErrorRuleRegistry";
 
 function formString(value: FormDataEntryValue | null): string | null {
@@ -1439,60 +1437,6 @@ function buildApplicationErrorSummary(
     .join(" | ");
 }
 
-function edifactSegments(rawPayload?: string | null): string[] {
-  return String(rawPayload ?? "")
-    .replace(/\r?\n/g, "")
-    .replace(/^UNA.{6}'/i, "")
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-}
-
-function firstReferenceValue(
-  rawPayload: string | null | undefined,
-  qualifier: string,
-): string | null {
-  const prefix = `RFF+${qualifier.toUpperCase()}:`;
-  const segment = edifactSegments(rawPayload).find((item) =>
-    item.toUpperCase().startsWith(prefix),
-  );
-  const value = segment?.slice(prefix.length).split("+")[0]?.trim() ?? "";
-  return value.length > 0 ? value : null;
-}
-
-function firstLinObjectValue(rawPayload?: string | null): string | null {
-  const segment = edifactSegments(rawPayload).find((item) =>
-    item.toUpperCase().startsWith("LIN+"),
-  );
-  const value = segment?.split("+")[3]?.split(":")[0]?.trim() ?? "";
-  return value.length > 0 ? value : null;
-}
-
-function hasSafeBusinessLink(message: EdielMessageRow): boolean {
-  if (message.related_message_id || message.original_message_id) return true;
-  if (message.customer_id || message.site_id || message.metering_point_id) return true;
-  if (["matched", "linked", "resolved"].includes(String(message.business_match_status ?? "").toLowerCase())) return true;
-
-  const report = JSON.stringify(message.validation_report ?? {}).toLowerCase();
-  return report.includes("linked_to_z13") || report.includes("linked_to_permission");
-}
-
-function facilityNotIdentifiedError(
-  message: EdielMessageRow,
-): EdielAperakApplicationError {
-  return {
-    ercCode: "40",
-    fieldCode: "105",
-    text: "The object could not be identified",
-    referenceQualifier: firstLinObjectValue(message.raw_payload) ? "Z07" : null,
-    referenceNumber: firstLinObjectValue(message.raw_payload),
-    lineItemReference:
-      firstReferenceValue(message.raw_payload, "LI") ??
-      message.transaction_reference ??
-      null,
-  };
-}
-
 function expectedSystemTestAckOutcome(params: {
   testCaseCode?: string | null;
   ackFamily: AckFamily;
@@ -1594,11 +1538,10 @@ async function resolveSystemTestAckDecision(params: {
     }
 
     if (params.ackFamily === "UTILTS_ERR" && ackPlan.shouldSendUtiltsErr) {
-      const codes =
-        ackPlan.utiltsErrCodes.length > 0 ? ackPlan.utiltsErrCodes : ["E14"];
+      const messageText = serializeUtiltsRuntimeUtiltsErrMessageText(ackPlan);
       return {
         outcome: "negative",
-        messageText: params.messageText ?? codes.join("|"),
+        messageText: messageText || params.messageText || "E14",
         applicationErrors: null,
         ackScope: null,
         relatedTransactionReference: null,
@@ -1633,62 +1576,31 @@ async function resolveSystemTestAckDecision(params: {
     params.ackFamily === "APERAK" &&
     String(sourceMessage.message_family ?? "").toUpperCase() === "PRODAT"
   ) {
-    const testKind = isAgtSystemTestCase({
-      testCaseCode: params.testCaseCode ?? null,
-      suite: sourceMessage.message_family ?? null,
-      roleCode: "esco",
-    })
-      ? "AGT"
-      : "TGT";
     const classification = selectRuleProfile({
       message: sourceMessage,
-      testKind,
-    });
-    const engineDecision = decideProdatAperak({
-      message: sourceMessage,
-      testKind,
-      testCaseCode: params.testCaseCode ?? null,
-      expectedOutcome,
+      testKind: isAgtSystemTestCase({
+        testCaseCode: params.testCaseCode ?? null,
+        suite: sourceMessage.message_family ?? null,
+        roleCode: "esco",
+      })
+        ? "AGT"
+        : "TGT",
     });
     const resolvedErrors = await resolveAndStoreProdatAperakErrors({
       message: sourceMessage,
       testData: null,
     });
-    const enginePositive = engineDecision.kind === "ack" && engineDecision.outcome === "positive";
+    const enginePositive =
+      resolvedErrors.errors.length === 0 &&
+      (classification.applicationValidity === "valid" || classification.confidence !== "low");
     const expectedCompare = compareEngineDecisionWithExpected({
       actualFamily: "APERAK",
-      actualOutcome: engineDecision.outcome ?? (enginePositive ? "positive" : "negative"),
+      actualOutcome: enginePositive ? "positive" : "negative",
       expectedFamily: "APERAK",
       expectedOutcome,
     });
 
-    if (engineDecision.kind === "ack" && engineDecision.outcome === "negative") {
-      const applicationErrors =
-        engineDecision.applicationErrors.length > 0
-          ? engineDecision.applicationErrors
-          : [facilityNotIdentifiedError(sourceMessage)];
-      const relatedTransactionReference = firstErrorTransactionReference(applicationErrors);
-
-      return {
-        outcome: "negative",
-        messageText:
-          buildApplicationErrorSummary(applicationErrors) ??
-          params.messageText ??
-          engineDecision.messageText ??
-          "PRODAT backend decision valde negativ APERAK.",
-        applicationErrors,
-        ackScope: relatedTransactionReference ? "transaction" : "message",
-        relatedTransactionReference,
-        reason: `${engineDecision.reason} ${expectedCompare.reason}`,
-        ruleKeys:
-          engineDecision.ruleKeys.length > 0
-            ? engineDecision.ruleKeys
-            : [classification.ruleProfileId],
-      };
-    }
-
     if (resolvedErrors.errors.length > 0) {
-      const relatedTransactionReference = firstErrorTransactionReference(resolvedErrors.errors);
       return {
         outcome: "negative",
         messageText:
@@ -1696,34 +1608,14 @@ async function resolveSystemTestAckDecision(params: {
           params.messageText ??
           "PRODAT applikations-/affärsvalidering gav fel.",
         applicationErrors: resolvedErrors.errors,
-        ackScope: relatedTransactionReference ? "transaction" : "message",
-        relatedTransactionReference,
+        ackScope: firstErrorTransactionReference(resolvedErrors.errors)
+          ? "transaction"
+          : "message",
+        relatedTransactionReference: firstErrorTransactionReference(resolvedErrors.errors),
         reason: `PRODAT backend validation selected ${classification.ruleProfileId}. ${expectedCompare.reason}`,
         ruleKeys: resolvedErrors.matchedRuleKeys.length > 0
           ? resolvedErrors.matchedRuleKeys
           : [classification.ruleProfileId],
-      };
-    }
-
-    const isPermissionResponseWithoutSafeLink =
-      ["Z14", "Z15", "Z18"].includes(String(sourceMessage.message_code ?? "").toUpperCase()) &&
-      !hasSafeBusinessLink(sourceMessage);
-    if (expectedOutcome === "negative" && isPermissionResponseWithoutSafeLink) {
-      const applicationErrors = [facilityNotIdentifiedError(sourceMessage)];
-      const relatedTransactionReference = firstErrorTransactionReference(applicationErrors);
-
-      return {
-        outcome: "negative",
-        messageText:
-          buildApplicationErrorSummary(applicationErrors) ??
-          params.messageText ??
-          "PRODAT permission message could not be linked to a known facility/process.",
-        applicationErrors,
-        ackScope: relatedTransactionReference ? "transaction" : "message",
-        relatedTransactionReference,
-        reason:
-          `PRODAT backend test-context rule selected facility_not_identified because the permission response has no safe business link. ${expectedCompare.reason}`,
-        ruleKeys: ["facility_not_identified", classification.ruleProfileId],
       };
     }
 
@@ -2054,20 +1946,6 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
         testCaseCode: testCaseCode ?? null,
         ackFamily,
         outcome: backendDecision.outcome,
-        requestedOutcome: outcome,
-        effectiveOutcome: backendDecision.outcome,
-        backendReason: backendDecision.reason,
-        backendRuleKeys: backendDecision.ruleKeys,
-        applicationErrors: backendDecision.applicationErrors,
-        ackScope: backendDecision.ackScope,
-        relatedTransactionReference: backendDecision.relatedTransactionReference,
-        context: isAgtSystemTestCase({
-          testCaseCode: testCaseCode ?? null,
-          suite: sourceMessage.message_family ?? null,
-          roleCode: "esco",
-        })
-          ? "agt_system_test"
-          : "tgt_system_test",
         sourceMessageId,
         createdAt: new Date().toISOString(),
       },
@@ -2162,185 +2040,6 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
       ? `${ackFamily} skickades via SMTP. Kontrollera Edielportalens logg och meddelandets eventrad.`
       : `${ackFamily} skapades som utkast.`,
   });
-}
-
-
-function isOutboundBusinessMessageSendable(message: EdielMessageRow | null | undefined): boolean {
-  if (!message) return false;
-  if (message.direction !== "outbound") return false;
-  if (["CONTRL", "APERAK", "UTILTS_ERR"].includes(String(message.message_family ?? "").toUpperCase())) return false;
-  const status = String(message.status ?? "").toLowerCase();
-  return !["sent", "acknowledged", "validated", "cancelled"].includes(status);
-}
-
-async function findLinkedSystemTestOutboundBusinessMessage(params: {
-  testRunId: string;
-  preferredMessageId?: string | null;
-}): Promise<EdielMessageRow | null> {
-  if (params.preferredMessageId) {
-    const preferred = await getEdielMessageById(params.preferredMessageId).catch(() => null);
-    if (isOutboundBusinessMessageSendable(preferred)) return preferred;
-  }
-
-  const links = await listEdielTestRunMessages({ testRunId: params.testRunId }).catch(() => []);
-  const linkedMessages = await listEdielMessagesByIds(
-    links.map((link) => link.ediel_message_id),
-  ).catch(() => []);
-  const stepByMessageId = new Map(
-    links.map((link) => [link.ediel_message_id, link.step_no ?? 9999]),
-  );
-  const statusRank = (status: string | null | undefined) => {
-    const normalized = String(status ?? "").toLowerCase();
-    if (normalized === "prepared" || normalized === "queued") return 4;
-    if (normalized === "draft") return 3;
-    if (normalized === "failed") return 2;
-    return 1;
-  };
-
-  return (
-    linkedMessages
-      .filter((message) => isOutboundBusinessMessageSendable(message))
-      .sort((a, b) => {
-        const stepDiff = (stepByMessageId.get(a.id) ?? 9999) - (stepByMessageId.get(b.id) ?? 9999);
-        if (stepDiff !== 0) return stepDiff;
-        const rankDiff = statusRank(b.status) - statusRank(a.status);
-        if (rankDiff !== 0) return rankDiff;
-        return String(b.created_at ?? "").localeCompare(String(a.created_at ?? ""));
-      })[0] ?? null
-  );
-}
-
-async function markSystemTestOutboundSendIntent(params: {
-  actorUserId: string;
-  message: EdielMessageRow;
-  testRunId: string | null;
-  testCaseCode: string | null;
-  stepNo?: number | null;
-  source: string;
-}) {
-  await updateEdielMessageStatus({
-    actorUserId: params.actorUserId,
-    edielMessageId: params.message.id,
-    status: params.message.status,
-    validationReport: {
-      ...(params.message.validation_report ?? {}),
-      systemTestOutboundSend: {
-        enabled: true,
-        source: params.source,
-        testRunId: params.testRunId ?? null,
-        testCaseCode: params.testCaseCode ?? null,
-        stepNo: params.stepNo ?? null,
-        messageFamily: params.message.message_family,
-        messageCode: params.message.message_code,
-        routeLocked: Boolean(params.message.communication_route_id),
-        createdAt: new Date().toISOString(),
-      },
-    },
-  });
-}
-
-export async function sendSystemTestOutboundMessageAction(formData: FormData) {
-  const context = await requirePlatformAdminActionAccess();
-  const edielMessageId = formString(formData.get("edielMessageId"));
-  const testRunId = formString(formData.get("testRunId"));
-  const testCaseCode = formString(formData.get("testCaseCode"));
-  const stepNo = formNumber(formData.get("stepNo"));
-
-  if (!edielMessageId) throw new Error("edielMessageId saknas");
-
-  const message = await getEdielMessageById(edielMessageId);
-  if (!message) throw new Error("Outbound-meddelandet hittades inte");
-  if (message.direction !== "outbound") {
-    throw new Error("Systemtest kan bara skicka outbound-meddelanden från detta flöde.");
-  }
-  if (
-    message.message_family === "CONTRL" ||
-    message.message_family === "APERAK" ||
-    message.message_family === "UTILTS_ERR"
-  ) {
-    throw new Error(
-      "Kvittenser skickas via rekommenderad ACK-action. Denna knapp gäller första outbound-affärsmeddelandet i Systemtest.",
-    );
-  }
-
-  if (testRunId) {
-    await attachEdielMessageToTestRun({
-      testRunId,
-      edielMessageId,
-      stepNo,
-      expectedDirection: "outbound",
-      expectedFamily: message.message_family,
-      expectedCode: String(message.message_code ?? ""),
-    }).catch(() => undefined);
-  }
-
-  await markSystemTestOutboundSendIntent({
-    actorUserId: context.userId,
-    message,
-    testRunId,
-    testCaseCode,
-    stepNo,
-    source: "system_test_outbound_action",
-  });
-
-  const redirectParams = new URLSearchParams();
-  if (message.company_id) redirectParams.set("companyId", message.company_id);
-  redirectParams.set("ackFamily", String(message.message_family ?? "PRODAT"));
-
-  try {
-    const sentMessage = await sendQueuedEdielMessage({
-      actorUserId: context.userId,
-      edielMessageId,
-    });
-
-    await auditSystemTestMaintenance({
-      actorUserId: context.userId,
-      action: "ediel.system_test.outbound_sent",
-      testRunId,
-      edielMessageId: sentMessage.id,
-      reason: `${sentMessage.message_family} ${sentMessage.message_code} skickades från Systemtest.`,
-      payload: {
-        testCaseCode: testCaseCode ?? null,
-        stepNo,
-        status: sentMessage.status,
-        messageFamily: sentMessage.message_family,
-        messageCode: sentMessage.message_code,
-      },
-    });
-
-    revalidateSystemTests(testCaseCode);
-    redirectParams.set("ackStatus", "sent");
-    redirectParams.set("ackMessageId", sentMessage.id);
-    redirectParams.set(
-      "message",
-      `${sentMessage.message_family} ${sentMessage.message_code} skickades från Systemtest. Hämta sedan portalens CONTRL/APERAK via IMAP.`,
-    );
-  } catch (error) {
-    const sendFailure = errorMessage(error);
-    await auditSystemTestMaintenance({
-      actorUserId: context.userId,
-      action: "ediel.system_test.outbound_send_failed",
-      testRunId,
-      edielMessageId,
-      reason: `Systemtest kunde inte skicka outbound-meddelandet: ${sendFailure}`,
-      payload: {
-        testCaseCode: testCaseCode ?? null,
-        stepNo,
-        error: sendFailure,
-      },
-    });
-    revalidateSystemTests(testCaseCode);
-    redirectParams.set("ackStatus", "failed");
-    redirectParams.set("ackMessageId", edielMessageId);
-    redirectParams.set(
-      "message",
-      `Systemtest kunde inte skicka outbound-meddelandet: ${sendFailure}`,
-    );
-  }
-
-  redirect(
-    `/admin/ediel/system-tests/cases/${encodeURIComponent(testCaseCode ?? String(message.message_code ?? ""))}?${redirectParams.toString()}`,
-  );
 }
 
 export async function unlinkSystemTestMessageAction(formData: FormData) {
@@ -3066,131 +2765,6 @@ export async function activateRuleVersionAction(formData: FormData) {
   revalidateSystemTests();
 }
 
-
-export async function createAndSendSystemTestOutboundForRunAction(formData: FormData) {
-  const context = await requirePlatformAdminActionAccess();
-  const testRunId = formString(formData.get("testRunId"));
-  const testCaseCode = formString(formData.get("testCaseCode"));
-  const preferredMessageId = formString(formData.get("edielMessageId"));
-
-  if (!testRunId) throw new Error("testRunId saknas");
-
-  const redirectParams = new URLSearchParams();
-  const { data: runRow, error: runError } = await supabaseService
-    .from("ediel_test_runs")
-    .select("id,company_id,test_case_code")
-    .eq("id", testRunId)
-    .maybeSingle();
-  if (runError) throw runError;
-  if (!runRow) throw new Error("Testkörningen hittades inte");
-  const runCompanyId = typeof runRow.company_id === "string" ? runRow.company_id : null;
-  if (runCompanyId) redirectParams.set("companyId", runCompanyId);
-
-  const effectiveTestCaseCode = testCaseCode ?? String(runRow.test_case_code ?? "");
-
-  let message = await findLinkedSystemTestOutboundBusinessMessage({
-    testRunId,
-    preferredMessageId,
-  });
-
-  let autopilotDescription: string | null = null;
-  if (!message) {
-    const autopilot = await runTgtAutopilotForRun({
-      actorUserId: context.userId,
-      testRunId,
-    });
-    autopilotDescription = autopilot.description;
-    if (autopilot.messageId) {
-      message = await getEdielMessageById(autopilot.messageId);
-    }
-    if (!message) {
-      message = await findLinkedSystemTestOutboundBusinessMessage({ testRunId });
-    }
-  }
-
-  if (!message || !isOutboundBusinessMessageSendable(message)) {
-    redirectParams.set("ackStatus", "failed");
-    redirectParams.set(
-      "message",
-      autopilotDescription
-        ? `Systemtest kunde inte skapa/skicka outbound-meddelande: ${autopilotDescription}`
-        : "Systemtest hittade inget skickbart outbound-affärsmeddelande för denna körning. Starta om testkörningen eller kontrollera autopilot/route.",
-    );
-    revalidateSystemTests(effectiveTestCaseCode);
-    redirect(
-      `/admin/ediel/system-tests/cases/${encodeURIComponent(effectiveTestCaseCode)}?${redirectParams.toString()}`,
-    );
-  }
-
-  await attachEdielMessageToTestRun({
-    testRunId,
-    edielMessageId: message.id,
-    stepNo: null,
-    expectedDirection: "outbound",
-    expectedFamily: message.message_family,
-    expectedCode: String(message.message_code ?? ""),
-  }).catch(() => undefined);
-
-  await markSystemTestOutboundSendIntent({
-    actorUserId: context.userId,
-    message,
-    testRunId,
-    testCaseCode: effectiveTestCaseCode,
-    stepNo: null,
-    source: "system_test_create_and_send_outbound_action",
-  });
-
-  try {
-    const sentMessage = await sendQueuedEdielMessage({
-      actorUserId: context.userId,
-      edielMessageId: message.id,
-    });
-
-    await auditSystemTestMaintenance({
-      actorUserId: context.userId,
-      action: "ediel.system_test.outbound_created_and_sent",
-      testRunId,
-      edielMessageId: sentMessage.id,
-      reason: `${sentMessage.message_family} ${sentMessage.message_code} skapades/skickades från Systemtest.`,
-      payload: {
-        testCaseCode: effectiveTestCaseCode,
-        status: sentMessage.status,
-        messageFamily: sentMessage.message_family,
-        messageCode: sentMessage.message_code,
-      },
-    });
-
-    revalidateSystemTests(effectiveTestCaseCode);
-    redirectParams.set("ackStatus", "sent");
-    redirectParams.set("ackMessageId", sentMessage.id);
-    redirectParams.set(
-      "message",
-      `${sentMessage.message_family} ${sentMessage.message_code} skickades från Systemtest. Hämta sedan portalens CONTRL/APERAK via IMAP.`,
-    );
-  } catch (error) {
-    const sendFailure = errorMessage(error);
-    await auditSystemTestMaintenance({
-      actorUserId: context.userId,
-      action: "ediel.system_test.outbound_create_and_send_failed",
-      testRunId,
-      edielMessageId: message.id,
-      reason: `Systemtest kunde inte skapa/skicka outbound-meddelandet: ${sendFailure}`,
-      payload: {
-        testCaseCode: effectiveTestCaseCode,
-        error: sendFailure,
-      },
-    });
-    revalidateSystemTests(effectiveTestCaseCode);
-    redirectParams.set("ackStatus", "failed");
-    redirectParams.set("ackMessageId", message.id);
-    redirectParams.set("message", `Systemtest kunde inte skapa/skicka outbound-meddelandet: ${sendFailure}`);
-  }
-
-  redirect(
-    `/admin/ediel/system-tests/cases/${encodeURIComponent(effectiveTestCaseCode)}?${redirectParams.toString()}`,
-  );
-}
-
 export async function parseAndValidateRulebookPayloadAction(
   formData: FormData,
 ) {
@@ -3538,4 +3112,331 @@ export async function executeRulebookTestCaseAction(formData: FormData) {
   });
 
   revalidateSystemTests();
+}
+
+function isSystemTestOutboundBusinessMessageSendable(
+  message: EdielMessageRow | null | undefined,
+): boolean {
+  if (!message) return false;
+  if (message.direction !== "outbound") return false;
+  const family = String(message.message_family ?? "").toUpperCase();
+  if (["CONTRL", "APERAK", "UTILTS_ERR"].includes(family)) return false;
+  const status = String(message.status ?? "").toLowerCase();
+  return !["sent", "acknowledged", "validated", "cancelled"].includes(status);
+}
+
+async function findLinkedSystemTestOutboundBusinessMessage(params: {
+  testRunId: string;
+  preferredMessageId?: string | null;
+}): Promise<EdielMessageRow | null> {
+  if (params.preferredMessageId) {
+    const preferred = await getEdielMessageById(params.preferredMessageId).catch(() => null);
+    if (isSystemTestOutboundBusinessMessageSendable(preferred)) return preferred;
+  }
+
+  const { data: links, error: linkError } = await supabaseService
+    .from("ediel_test_run_messages")
+    .select("ediel_message_id, step_no, created_at")
+    .eq("test_run_id", params.testRunId)
+    .order("step_no", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
+  if (linkError) throw linkError;
+
+  const messageIds = Array.from(
+    new Set(
+      (links ?? [])
+        .map((link) => String(link.ediel_message_id ?? "").trim())
+        .filter(Boolean),
+    ),
+  );
+  if (messageIds.length === 0) return null;
+
+  const { data: messages, error: messageError } = await supabaseService
+    .from("ediel_messages")
+    .select("*")
+    .in("id", messageIds);
+  if (messageError) throw messageError;
+
+  const stepByMessageId = new Map(
+    (links ?? []).map((link) => [
+      String(link.ediel_message_id ?? ""),
+      typeof link.step_no === "number" ? link.step_no : 9999,
+    ]),
+  );
+  const statusRank = (status: string | null | undefined) => {
+    const normalized = String(status ?? "").toLowerCase();
+    if (normalized === "prepared" || normalized === "queued") return 4;
+    if (normalized === "draft") return 3;
+    if (normalized === "failed") return 2;
+    return 1;
+  };
+
+  return (
+    ((messages ?? []) as EdielMessageRow[])
+      .filter((message) => isSystemTestOutboundBusinessMessageSendable(message))
+      .sort((a, b) => {
+        const stepDiff =
+          (stepByMessageId.get(a.id) ?? 9999) -
+          (stepByMessageId.get(b.id) ?? 9999);
+        if (stepDiff !== 0) return stepDiff;
+        const rankDiff = statusRank(b.status) - statusRank(a.status);
+        if (rankDiff !== 0) return rankDiff;
+        return String(b.created_at ?? "").localeCompare(String(a.created_at ?? ""));
+      })[0] ?? null
+  );
+}
+
+async function markSystemTestOutboundSendIntent(params: {
+  actorUserId: string;
+  message: EdielMessageRow;
+  testRunId: string | null;
+  testCaseCode: string | null;
+  stepNo?: number | null;
+  source: string;
+}) {
+  await updateEdielMessageStatus({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.message.id,
+    status: params.message.status,
+    validationReport: {
+      ...(params.message.validation_report ?? {}),
+      systemTestOutboundSend: {
+        enabled: true,
+        source: params.source,
+        testRunId: params.testRunId ?? null,
+        testCaseCode: params.testCaseCode ?? null,
+        stepNo: params.stepNo ?? null,
+        messageFamily: params.message.message_family,
+        messageCode: params.message.message_code,
+        routeLocked: Boolean(params.message.communication_route_id),
+        createdAt: new Date().toISOString(),
+      },
+    },
+  });
+}
+
+export async function sendSystemTestOutboundMessageAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess();
+  const edielMessageId = formString(formData.get("edielMessageId"));
+  const testRunId = formString(formData.get("testRunId"));
+  const testCaseCode = formString(formData.get("testCaseCode"));
+  const stepNo = formNumber(formData.get("stepNo"));
+
+  if (!edielMessageId) throw new Error("edielMessageId saknas");
+
+  const message = await getEdielMessageById(edielMessageId);
+  if (!message) throw new Error("Outbound-meddelandet hittades inte");
+  if (!isSystemTestOutboundBusinessMessageSendable(message)) {
+    throw new Error(
+      "Systemtest kan bara skicka ett oskickat outbound-affärsmeddelande från denna knapp. Kvittenser skickas via ACK-action.",
+    );
+  }
+
+  if (testRunId) {
+    await attachEdielMessageToTestRun({
+      testRunId,
+      edielMessageId,
+      stepNo,
+      expectedDirection: "outbound",
+      expectedFamily: message.message_family,
+      expectedCode: String(message.message_code ?? ""),
+    }).catch(() => undefined);
+  }
+
+  await markSystemTestOutboundSendIntent({
+    actorUserId: context.userId,
+    message,
+    testRunId,
+    testCaseCode,
+    stepNo,
+    source: "system_test_outbound_action",
+  });
+
+  const redirectParams = new URLSearchParams();
+  if (message.company_id) redirectParams.set("companyId", message.company_id);
+  redirectParams.set("ackFamily", String(message.message_family ?? "PRODAT"));
+
+  try {
+    const sentMessage = await sendQueuedEdielMessage({
+      actorUserId: context.userId,
+      edielMessageId,
+    });
+
+    await auditSystemTestMaintenance({
+      actorUserId: context.userId,
+      action: "ediel.system_test.outbound_sent",
+      testRunId,
+      edielMessageId: sentMessage.id,
+      reason: `${sentMessage.message_family} ${sentMessage.message_code} skickades från Systemtest.`,
+      payload: {
+        testCaseCode: testCaseCode ?? null,
+        stepNo,
+        status: sentMessage.status,
+        messageFamily: sentMessage.message_family,
+        messageCode: sentMessage.message_code,
+      },
+    });
+
+    revalidateSystemTests(testCaseCode);
+    redirectParams.set("ackStatus", "sent");
+    redirectParams.set("ackMessageId", sentMessage.id);
+    redirectParams.set(
+      "message",
+      `${sentMessage.message_family} ${sentMessage.message_code} skickades från Systemtest. Hämta sedan portalens CONTRL/APERAK via IMAP.`,
+    );
+  } catch (error) {
+    const sendFailure = errorMessage(error);
+    await auditSystemTestMaintenance({
+      actorUserId: context.userId,
+      action: "ediel.system_test.outbound_send_failed",
+      testRunId,
+      edielMessageId,
+      reason: sendFailure,
+      payload: {
+        testCaseCode: testCaseCode ?? null,
+        stepNo,
+        messageFamily: message.message_family,
+        messageCode: message.message_code,
+      },
+    });
+    revalidateSystemTests(testCaseCode);
+    redirectParams.set("ackStatus", "failed");
+    redirectParams.set("ackMessageId", edielMessageId);
+    redirectParams.set("message", `Systemtest kunde inte skicka outbound-meddelandet: ${sendFailure}`);
+  }
+
+  redirect(
+    `/admin/ediel/system-tests/cases/${encodeURIComponent(testCaseCode ?? "")}?${redirectParams.toString()}`,
+  );
+}
+
+export async function createAndSendSystemTestOutboundForRunAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess();
+  const testRunId = formString(formData.get("testRunId"));
+  const testCaseCode = formString(formData.get("testCaseCode"));
+  const preferredMessageId = formString(formData.get("edielMessageId"));
+
+  if (!testRunId) throw new Error("testRunId saknas");
+
+  const redirectParams = new URLSearchParams();
+  const { data: runRow, error: runError } = await supabaseService
+    .from("ediel_test_runs")
+    .select("id, company_id, test_case_code")
+    .eq("id", testRunId)
+    .maybeSingle();
+  if (runError) throw runError;
+  if (!runRow) throw new Error("Testkörningen hittades inte");
+
+  const runCompanyId = typeof runRow.company_id === "string" ? runRow.company_id : null;
+  if (runCompanyId) redirectParams.set("companyId", runCompanyId);
+  const effectiveTestCaseCode = testCaseCode ?? String(runRow.test_case_code ?? "");
+
+  let message = await findLinkedSystemTestOutboundBusinessMessage({
+    testRunId,
+    preferredMessageId,
+  });
+
+  let autopilotDescription: string | null = null;
+  if (!message) {
+    const autopilot = await runTgtAutopilotForRun({
+      actorUserId: context.userId,
+      testRunId,
+    });
+    autopilotDescription = autopilot.description ?? null;
+    if (autopilot.messageId) {
+      message = await getEdielMessageById(autopilot.messageId);
+    }
+    if (!message) {
+      message = await findLinkedSystemTestOutboundBusinessMessage({ testRunId });
+    }
+  }
+
+  if (!message || !isSystemTestOutboundBusinessMessageSendable(message)) {
+    redirectParams.set("ackStatus", "failed");
+    redirectParams.set(
+      "message",
+      autopilotDescription
+        ? `Systemtest kunde inte skapa/skicka outbound-meddelande: ${autopilotDescription}`
+        : "Systemtest hittade inget skickbart outbound-affärsmeddelande för denna körning. Starta om testkörningen eller kontrollera autopilot/route.",
+    );
+    revalidateSystemTests(effectiveTestCaseCode);
+    redirect(
+      `/admin/ediel/system-tests/cases/${encodeURIComponent(effectiveTestCaseCode)}?${redirectParams.toString()}`,
+    );
+  }
+
+  await attachEdielMessageToTestRun({
+    testRunId,
+    edielMessageId: message.id,
+    stepNo: null,
+    expectedDirection: "outbound",
+    expectedFamily: message.message_family,
+    expectedCode: String(message.message_code ?? ""),
+  }).catch(() => undefined);
+
+  await markSystemTestOutboundSendIntent({
+    actorUserId: context.userId,
+    message,
+    testRunId,
+    testCaseCode: effectiveTestCaseCode,
+    stepNo: null,
+    source: "system_test_create_and_send_outbound_action",
+  });
+
+  try {
+    const sentMessage = await sendQueuedEdielMessage({
+      actorUserId: context.userId,
+      edielMessageId: message.id,
+    });
+
+    await auditSystemTestMaintenance({
+      actorUserId: context.userId,
+      action: "ediel.system_test.outbound_sent_after_create",
+      testRunId,
+      edielMessageId: sentMessage.id,
+      reason: `${sentMessage.message_family} ${sentMessage.message_code} skapades/kopplades och skickades från Systemtest.`,
+      payload: {
+        testCaseCode: effectiveTestCaseCode,
+        status: sentMessage.status,
+        messageFamily: sentMessage.message_family,
+        messageCode: sentMessage.message_code,
+        autopilotDescription,
+      },
+    });
+
+    redirectParams.set("ackStatus", "sent");
+    redirectParams.set("ackFamily", String(sentMessage.message_family ?? "PRODAT"));
+    redirectParams.set("ackMessageId", sentMessage.id);
+    redirectParams.set(
+      "message",
+      `${sentMessage.message_family} ${sentMessage.message_code} skapades/kopplades och skickades från Systemtest. Hämta sedan portalens CONTRL/APERAK via IMAP.`,
+    );
+  } catch (error) {
+    const sendFailure = errorMessage(error);
+    await auditSystemTestMaintenance({
+      actorUserId: context.userId,
+      action: "ediel.system_test.outbound_create_send_failed",
+      testRunId,
+      edielMessageId: message.id,
+      reason: sendFailure,
+      payload: {
+        testCaseCode: effectiveTestCaseCode,
+        messageFamily: message.message_family,
+        messageCode: message.message_code,
+        autopilotDescription,
+      },
+    });
+    redirectParams.set("ackStatus", "failed");
+    redirectParams.set("ackFamily", String(message.message_family ?? "PRODAT"));
+    redirectParams.set("ackMessageId", message.id);
+    redirectParams.set(
+      "message",
+      `Systemtest kunde inte skapa/skicka outbound-meddelandet: ${sendFailure}`,
+    );
+  }
+
+  revalidateSystemTests(effectiveTestCaseCode);
+  redirect(
+    `/admin/ediel/system-tests/cases/${encodeURIComponent(effectiveTestCaseCode)}?${redirectParams.toString()}`,
+  );
 }

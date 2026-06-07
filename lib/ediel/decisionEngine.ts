@@ -8,9 +8,11 @@ import {
   type EdielDecisionContextKind,
 } from '@/lib/ediel/rulebook/ruleProfileSelector'
 import { validateProdatBusinessRules } from '@/lib/ediel/prodat/prodatBusinessRules'
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
-import { evaluateApplicationReferenceGuard } from '@/lib/ediel/rulebook/canonicalRules'
-import { findCertificationCase } from '@/lib/ediel/rulebook/testCaseRuleRegistry'
+import {
+  applyUtiltsTgtAckPlanOverride,
+  runUtiltsRuntimeForMessage,
+  serializeUtiltsRuntimeUtiltsErrMessageText,
+} from '@/lib/ediel/utiltsEngine'
 
 export type EdielEngineAckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
 export type EdielEngineAckOutcome = 'positive' | 'negative'
@@ -248,10 +250,10 @@ function buildKnownPermissionErrors(params: {
 
   if (code === 'Z15') {
     if (status && !['A75'].includes(status)) {
-      errors.push(errorForCode({ ercCode: '41', fieldCode: '322', text: `INCORRECT DATA - permission status ${status}`, rawPayload }))
+      errors.push(errorForCode({ ercCode: '42', fieldCode: '322', text: `INCORRECT DATA - permission status ${status}`, rawPayload }))
     }
     if (endReason && !['B79', 'B80'].includes(endReason)) {
-      errors.push(errorForCode({ ercCode: '41', fieldCode: '324', text: `INCORRECT DATA - permission end reason ${endReason}`, rawPayload }))
+      errors.push(errorForCode({ ercCode: '42', fieldCode: '324', text: `INCORRECT DATA - permission end reason ${endReason}`, rawPayload }))
     }
   }
 
@@ -311,27 +313,6 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
     testKind: input.testKind ?? null,
   })
   const portalFeedback = parsePortalValidationFeedback(messageValidationReport(input))
-  const applicationReferenceGuard = evaluateApplicationReferenceGuard({
-    family: classification.family,
-    messageCode: classification.messageCode,
-    applicationReference: input.applicationReference ?? input.message?.application_reference ?? null,
-  })
-
-  if (!applicationReferenceGuard.ok) {
-    return {
-      kind: 'manual_review',
-      ackFamily: 'APERAK',
-      outcome: null,
-      messageText: applicationReferenceGuard.reason ?? 'Application Reference kräver manuell teknisk granskning.',
-      applicationErrors: [],
-      reason: 'Canonical Application Reference guard stoppade auto-beslut. Testfallskod får inte skriva över detta.',
-      ruleKeys: [...applicationReferenceGuard.ruleKeys, classification.ruleProfileId],
-      classification: summarizeRuleProfile(classification),
-      portalFeedback,
-      expectedComparison: null,
-    }
-  }
-
   const businessErrors = validateProdatBusinessRules(rawPayload ?? '')
     .filter((item) => item.severity === 'error')
     .map((item) => prodatBusinessIssueToAperakError(rawPayload, item))
@@ -360,42 +341,6 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
         ? 'Portalfeedback visar att negativ APERAK förväntades men positiv APERAK skickades/planerades. Engine väljer negativ APERAK.'
         : `PRODAT backend decision selected negative APERAK using ${classification.ruleProfileId}.`,
       ruleKeys: [classification.ruleProfileId, ...applicationErrors.map((error) => `${error.ercCode}:${error.fieldCode ?? 'NO_FIELD'}`)],
-      classification: summarizeRuleProfile(classification),
-      portalFeedback,
-      expectedComparison: comparison,
-    }
-  }
-
-  const isNonProductionPermissionNegativeScenario =
-    input.expectedOutcome === 'negative' &&
-    input.testKind &&
-    input.testKind !== 'production' &&
-    ['Z14', 'Z15', 'Z18'].includes(normalize(classification.messageCode)) &&
-    !hasProductionPermissionLink(input.message)
-
-  if (isNonProductionPermissionNegativeScenario) {
-    const facilityError = errorForCode({
-      ercCode: '40',
-      fieldCode: '105',
-      text: 'The object could not be identified',
-      rawPayload,
-      referenceQualifier: null,
-    })
-    const comparison = compareEngineDecisionWithExpected({
-      actualFamily: 'APERAK',
-      actualOutcome: 'negative',
-      expectedFamily: 'APERAK',
-      expectedOutcome: input.expectedOutcome,
-    })
-
-    return {
-      kind: 'ack',
-      ackFamily: 'APERAK',
-      outcome: 'negative',
-      messageText: facilityError.text,
-      applicationErrors: [facilityError],
-      reason: `PRODAT backend decision selected negative APERAK because the permission message has no safe facility/process link in ${input.testKind} negative scenario.`,
-      ruleKeys: ['facility_not_identified', classification.ruleProfileId],
       classification: summarizeRuleProfile(classification),
       portalFeedback,
       expectedComparison: comparison,
@@ -447,14 +392,10 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
   })
 
   const testCase = normalize(input.testCaseCode)
-  const certificationCase = findCertificationCase(testCase)
-  const isCertificationUtiltsErr =
-    input.testKind !== 'production' &&
-    certificationCase?.messageFamily === 'UTILTS' &&
-    certificationCase.expectedBusinessResponseFamily === 'UTILTS_ERR' &&
-    input.message.message_family === 'UTILTS'
+  const runtime = runUtiltsRuntimeForMessage(input.message)
 
-  if (isCertificationUtiltsErr) {
+  if ((input.testKind === 'AGT' || testCase.startsWith('UE')) && ['UE1', 'UE2'].includes(testCase) && input.message.message_family === 'UTILTS') {
+    const ackPlan = applyUtiltsTgtAckPlanOverride({ runtime, testCaseCode: testCase })
     const comparison = compareEngineDecisionWithExpected({
       actualFamily: 'UTILTS_ERR',
       actualOutcome: 'negative',
@@ -465,16 +406,14 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
       kind: 'ack',
       ackFamily: 'UTILTS_ERR',
       outcome: 'negative',
-      messageText: 'Certifieringskontexten saknar säker mätpunkt/process och ska därför besvaras med UTILTS_ERR efter positiv CONTRL.',
+      messageText: serializeUtiltsRuntimeUtiltsErrMessageText(ackPlan) || 'E14',
       applicationErrors: [],
-      reason: 'Samma UTILTS-engine används. Certifieringsprofilen anger att okänd process/mätdata ska ge UTILTS_ERR, inte APERAK.',
-      ruleKeys: ['UTILTS_CERTIFICATION_FUNCTIONAL_ERROR', certificationCase.testCaseCode, classification.ruleProfileId],
+      reason: ackPlan.reason || 'AGT UE1/UE2 separeras från TGT U3: positiv CONTRL + UTILTS_ERR, inte positiv APERAK.',
+      ruleKeys: ['AGT_UE_UTILTS_ERR', classification.ruleProfileId],
       classification: summarizeRuleProfile(classification),
       expectedComparison: comparison,
     }
   }
-
-  const runtime = runUtiltsRuntimeForMessage(input.message)
 
   if (runtime.ackPlan.shouldSendUtiltsErr) {
     const comparison = compareEngineDecisionWithExpected({

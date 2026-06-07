@@ -19,7 +19,6 @@ import {
   evaluateEdielTgtRun,
   getEdielTgtTestCaseByCode,
   getEdielTgtTestCases,
-  backendSystemTestAckOutcomeFromMessage,
   type EdielTgtExpectedStep,
   type EdielTgtRunEvaluation,
   type EdielTgtTestCaseDefinition,
@@ -27,6 +26,8 @@ import {
 import { createEdielTgtRunFromTemplateAction } from "@/app/admin/ediel/actions";
 import { isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages";
 import {
+
+
   createAndSendSystemTestAckAction,
   createAndSendSystemTestOutboundForRunAction,
   deleteSystemTestArtifactAction,
@@ -37,6 +38,34 @@ import {
   unlinkSystemTestMessageAction,
   validateSystemTestPayloadAction,
 } from "@/app/admin/ediel/system-tests/actions";
+
+function readOutcomeRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function readAckOutcome(value: unknown): "positive" | "negative" | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized === "positive" || normalized === "negative" ? normalized : null;
+}
+
+function systemTestAckOutcomeFromMessage(
+  message: EdielMessageRow | null | undefined,
+): "positive" | "negative" | null {
+  if (!message) return null;
+
+  const validationReport = readOutcomeRecord(message.validation_report);
+  const parsedPayload = readOutcomeRecord(message.parsed_payload);
+  const systemTestAckSend = readOutcomeRecord(validationReport?.systemTestAckSend);
+
+  return (
+    readAckOutcome(systemTestAckSend?.outcome) ??
+    readAckOutcome(validationReport?.effectiveOutcome) ??
+    readAckOutcome(validationReport?.backendOutcome) ??
+    readAckOutcome(validationReport?.engineOutcome) ??
+    readAckOutcome(parsedPayload?.ackOutcome) ??
+    readAckOutcome(message.ack_outcome)
+  );
+}
 
 export const dynamic = "force-dynamic";
 
@@ -631,7 +660,7 @@ function ExpectedActualPanel({
                     {match.step.outcome ?? "outcome enligt meddelande"}
                   </div>
                   {match.message ? (() => {
-                    const backendOutcome = backendSystemTestAckOutcomeFromMessage(match.message);
+                    const backendOutcome = systemTestAckOutcomeFromMessage(match.message);
                     return backendOutcome && backendOutcome !== match.step.outcome ? (
                       <div className="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">
                         Backendbeslut användes: {backendOutcome}
