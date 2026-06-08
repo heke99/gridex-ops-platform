@@ -203,7 +203,7 @@ async function persistPricingRun(companyId: string, result: PricingPreviewResult
   await supabaseService
     .from('billing_underlays')
     .update({
-      status: result.status === 'success' ? 'price_preview_ready' : 'pricing_failed',
+      status: result.status === 'success' ? 'validated' : 'failed',
       readiness_status: result.status === 'success' ? 'ready' : 'blocked',
       readiness_issues: result.errors.map((message) => ({ code: 'pricing_failed', message })),
       calculated_total_sek_ex_vat: result.totalExVat,
@@ -406,7 +406,7 @@ export async function lockPricingPreview(input: { companyId: string; pricingRunI
   if (stringValue(row.billing_underlay_id)) {
     await supabaseService
       .from('billing_underlays')
-      .update({ status: 'locked', updated_at: new Date().toISOString() })
+      .update({ readiness_status: 'ready', updated_at: new Date().toISOString() })
       .eq('company_id', input.companyId)
       .eq('id', stringValue(row.billing_underlay_id))
   }

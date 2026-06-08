@@ -21,9 +21,9 @@ export default async function BillingUnderlaysPage() {
       <main className="space-y-6 p-8">
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Underlag</div><div className="mt-2 text-3xl font-semibold">{underlays.length}</div></div>
-          <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Redo för pris</div><div className="mt-2 text-3xl font-semibold">{underlays.filter((row) => row.status === 'ready_for_pricing').length}</div></div>
-          <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Prispreview</div><div className="mt-2 text-3xl font-semibold">{underlays.filter((row) => row.status === 'price_preview_ready').length}</div></div>
-          <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Behöver kontroll</div><div className="mt-2 text-3xl font-semibold">{underlays.filter((row) => ['needs_review','pricing_failed'].includes(String(row.status))).length}</div></div>
+          <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Redo för pris</div><div className="mt-2 text-3xl font-semibold">{underlays.filter((row) => row.status === 'validated' && row.readiness_status === 'ready').length}</div></div>
+          <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Prispreview</div><div className="mt-2 text-3xl font-semibold">{underlays.filter((row) => row.calculated_total_sek_inc_vat !== null && row.calculated_total_sek_inc_vat !== undefined).length}</div></div>
+          <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Behöver kontroll</div><div className="mt-2 text-3xl font-semibold">{underlays.filter((row) => row.readiness_status === 'blocked' || row.status === 'failed').length}</div></div>
         </section>
 
         <section className="rounded-3xl border bg-white shadow-sm">
@@ -44,7 +44,7 @@ export default async function BillingUnderlaysPage() {
                     <td className="px-6 py-4 font-mono text-xs">{fmt(row.metering_point_id)}</td>
                     <td className="px-6 py-4">{fmt(row.price_area)}</td>
                     <td className="px-6 py-4">{fmt(row.total_kwh)}</td>
-                    <td className="px-6 py-4"><span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>{fmt(row.status)}</span></td>
+                    <td className="px-6 py-4"><span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>{fmt(row.status)} / {fmt(row.readiness_status)}</span></td>
                     <td className="px-6 py-4">{fmt(row.calculated_total_sek_inc_vat)}</td>
                     <td className="px-6 py-4 text-right"><Link className="font-semibold text-emerald-700" href={`/admin/billing/underlays/${row.id}`}>Öppna</Link></td>
                   </tr>

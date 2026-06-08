@@ -17,7 +17,8 @@
     "ediel:z13vh-regression": "node scripts/ediel-z13vh-production-regression.cjs",
     "ediel:parsing-tenant-hardening-regression": "node scripts/ediel-parsing-tenant-hardening-regression.cjs",
     "pricing:billing-regression": "node scripts/pricing-billing-regression.cjs",
-    "pricing:spot-auto-import-regression": "node scripts/pricing-spot-auto-import-regression.cjs"
+    "pricing:spot-auto-import-regression": "node scripts/pricing-spot-auto-import-regression.cjs",
+    "pricing:billing-source-regression": "node scripts/pricing-billing-source-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

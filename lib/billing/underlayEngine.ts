@@ -15,7 +15,7 @@ function monthBounds(billingMonth: string) {
   const month = Number(monthRaw)
   const start = `${billingMonth}-01T00:00:00.000Z`
   const end = new Date(Date.UTC(year, month, 1)).toISOString()
-  return { year, month, start, end, startDate: `${billingMonth}-01` }
+  return { year, month, start, end, startDate: `${billingMonth}-01`, endDate: end.slice(0, 10) }
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -224,9 +224,11 @@ export async function generateBillingUnderlaysForMonth(input: {
     })
     if (contract && !snapshot) warnings.push('Prissnapshot saknas för avtalet och perioden.')
 
-    const status = warnings.length > 0 ? 'needs_review' : 'ready_for_pricing'
+    const resultStatus: 'ready_for_pricing' | 'needs_review' = warnings.length > 0 ? 'needs_review' : 'ready_for_pricing'
+    const underlayStatus: 'pending' | 'validated' = warnings.length > 0 ? 'pending' : 'validated'
     const readinessStatus = warnings.length > 0 ? 'blocked' : 'ready'
     const readinessIssues = buildReadinessIssues(warnings)
+    const now = new Date().toISOString()
     const pricePlanVersionId = stringValue(snapshot?.price_plan_version_id)
 
     const { data: underlay, error: upsertError } = await supabaseService
@@ -244,9 +246,9 @@ export async function generateBillingUnderlaysForMonth(input: {
         price_area: priceArea,
         underlay_month: bounds.month,
         underlay_year: bounds.year,
-        billing_period_start: bounds.start,
-        billing_period_end: bounds.end,
-        status,
+        billing_period_start: bounds.startDate,
+        billing_period_end: bounds.endDate,
+        status: underlayStatus,
         readiness_status: readinessStatus,
         readiness_issues: readinessIssues,
         total_kwh: totalKwh,
@@ -264,8 +266,9 @@ export async function generateBillingUnderlaysForMonth(input: {
           generated_from: source.sourceTable,
         },
         pricing_snapshot: snapshotPayload(snapshot),
-        received_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        received_at: now,
+        validated_at: warnings.length > 0 ? null : now,
+        updated_at: now,
         created_by: input.createdBy ?? null,
         updated_by: input.createdBy ?? null,
       }, { onConflict: 'company_id,customer_id,metering_point_id,underlay_year,underlay_month' })
@@ -309,14 +312,14 @@ export async function generateBillingUnderlaysForMonth(input: {
       register_code: stringValue(row.register_code),
       quality_code: stringValue(row.quality_code) ?? stringValue(row.quality_status) ?? stringValue(row.quality),
       resolution: stringValue(row.resolution) ?? stringValue(row.measurement_resolution),
-      status: warnings.length > 0 ? 'needs_review' : 'ready_for_pricing',
+      status: resultStatus,
       warnings: readinessIssues,
       metadata: {
         source_table: source.sourceTable,
         source_row_id: stringValue(row.id),
         raw_payload: isObject(row.raw_payload) ? row.raw_payload : {},
       },
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     }))
 
     if (itemRows.length > 0) {
@@ -335,7 +338,7 @@ export async function generateBillingUnderlaysForMonth(input: {
       created_by: input.createdBy ?? null,
     })
 
-    results.push({ underlayId, status, sourceTable: source.sourceTable, sourceRows: groupRows.length, warnings })
+    results.push({ underlayId, status: resultStatus, sourceTable: source.sourceTable, sourceRows: groupRows.length, warnings })
   }
 
   return {
