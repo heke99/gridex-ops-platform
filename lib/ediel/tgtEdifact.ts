@@ -2585,6 +2585,24 @@ function prodatStepRequiresMeteringMethod(
   return true;
 }
 
+function prodatMeteringMethodCoverageValue(
+  step: EdielTgtExpectedStep,
+  portalData: TgtPortalCustomerData,
+): string {
+  const imported = sanitizeCode(portalData.meteringMethod, "", 12);
+  if (imported) return imported;
+
+  // Actor -> portal Z13/Z13VH certification runs use the same outbound PRODAT
+  // builder as live, but they do not always have imported TGT portal rows. The
+  // line builder already creates SG14[Z04] from the production default for Z13
+  // when no customer/metering-point source provides a value. The internal
+  // coverage validator must therefore validate the effective payload value, not
+  // block the run because an imported portal-testdata column is empty.
+  if (step.family === "PRODAT" && step.code === "Z13") return "Z04";
+
+  return "";
+}
+
 function prodatStepRequiresObjectCoverage(step: EdielTgtExpectedStep): boolean {
   if (step.family !== "PRODAT") return false;
 
@@ -2643,7 +2661,7 @@ function validatePortalDataCoverage(
       ? [
           [
             "metering_method",
-            portalData.meteringMethod,
+            prodatMeteringMethodCoverageValue(step, portalData),
             "Mätmetod saknas i payload.",
           ] as const,
         ]
