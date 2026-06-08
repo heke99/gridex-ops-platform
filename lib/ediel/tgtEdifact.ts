@@ -1455,13 +1455,11 @@ function withEscoPermissionAgtFallbacks(
   const meteringPointId =
     sanitizeCode(portalData.meteringPointId, "", 35) || fallbackMeteringPointId;
   const agreementStartDateTime = isAgtZ13Vh
-    ? sanitizeCode(portalData.agreementStartDateTime, "", 12) ||
-      historicalReportStartDateTime()
+    ? historicalReportStartDateTime()
     : sanitizeCode(portalData.agreementStartDateTime, "", 12) ||
       defaultAgreementStartDateTime();
   const agreementEndDateTime = isAgtZ13Vh
-    ? sanitizeCode(portalData.agreementEndDateTime, "", 12) ||
-      historicalReportEndDateTime()
+    ? historicalReportEndDateTime()
     : isAgtZ18
       ? sanitizeCode(portalData.agreementEndDateTime, "", 12) ||
         agreementStartDateTime
@@ -1497,6 +1495,12 @@ function withEscoPermissionAgtFallbacks(
     customerCountry: isAgtActorToPortalPermission
       ? sanitizeCode(portalData.customerCountry, "SE", 3)
       : portalData.customerCountry,
+    reasonForTransaction: isAgtZ13Vh
+      ? "S18"
+      : portalData.reasonForTransaction,
+    permissionPurpose: isAgtZ13Vh
+      ? "B72"
+      : portalData.permissionPurpose,
   };
 }
 
@@ -1938,11 +1942,13 @@ function buildProdatPermissionLineSegments(params: {
         refs.createdLongDate,
       )
     : null;
-  const reasonForTransaction = sanitizeCode(
-    portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType),
-    reasonForProdatSubtype(transactionType),
-    12,
-  );
+  const reasonForTransaction = isHistoricalPermissionTransaction(transactionType)
+    ? "S18"
+    : sanitizeCode(
+        portalData.reasonForTransaction ?? reasonForProdatSubtype(transactionType),
+        reasonForProdatSubtype(transactionType),
+        12,
+      );
   const meteringMethod = sanitizeCode(
     portalData.meteringMethod,
     step.code === "Z13" ? "Z04" : "",
@@ -2013,16 +2019,10 @@ function buildProdatPermissionLineSegments(params: {
     // Fält 302/321 i PRODAT 26.A: permission-flöden använder
     // rapportstart/rapportslut. De får inte renderas som avtalets DTM+92.
     const reportStartDate = isHistoricalPermissionTransaction(transactionType)
-      ? date203FromPortalDate(
-          portalData.agreementStartDateTime,
-          historicalReportStartDateTime().slice(0, 8),
-        )
+      ? historicalReportStartDateTime()
       : startDate;
     const reportEndDate = isHistoricalPermissionTransaction(transactionType)
-      ? date203FromPortalDate(
-          portalData.agreementEndDateTime,
-          historicalReportEndDateTime().slice(0, 8),
-        )
+      ? historicalReportEndDateTime()
       : endDate;
 
     segments.push(`DTM+90:${reportStartDate}:203`);
@@ -3034,6 +3034,21 @@ export function validateEdielTgtDraft(
         "Edielportalen kräver SG17[UD] för Z18 och markerar SG17[IT] som används inte.",
       );
     }
+  }
+
+  if (
+    step.family === "PRODAT" &&
+    step.code === "Z13" &&
+    normalized.includes("DTM+91:") &&
+    normalized.includes("CAV+S17")
+  ) {
+    pushIssue(
+      issues,
+      "error",
+      "z13vh_reason_for_transaction_mismatch",
+      "Z13VH skickas som Z13V",
+      "Historisk Z13-begäran med DTM+91 ska använda fält 223/CAV+S18. CAV+S17 hör till Z13V och blockeras före sändning.",
+    );
   }
 
   if (

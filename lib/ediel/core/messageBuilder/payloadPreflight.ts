@@ -406,12 +406,22 @@ function validateEdifactPayload(params: {
 
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z13') {
     const hasHistoricalSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S18')
+    const hasZ13vSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S17')
     const endUserSegment = rawSegments.find((segment) => segment.toUpperCase().startsWith('NAD+UD+')) ?? null
     const hasEndUser = Boolean(endUserSegment)
     const hasEndUserId = Boolean(element(endUserSegment, 2))
     const hasReportStart = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+90:'))
     const hasReportEnd = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+91:'))
     const contractStart = rawSegments.find((segment) => segment.toUpperCase().startsWith('DTM+92:')) ?? null
+
+    if (hasReportEnd && hasZ13vSubtype) {
+      issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PRODAT_Z13VH_REASON_FOR_TRANSACTION_MISMATCH',
+        title: 'Z13VH skickas som Z13V',
+        description: 'PRODAT Z13 med DTM+91/rapportslut ska använda fält 223/CAV+S18. CAV+S17 hör till Z13V och får inte skickas för historiska mätvärden.',
+      }))
+    }
 
     if (hasHistoricalSubtype) {
       if (!hasReportStart) {

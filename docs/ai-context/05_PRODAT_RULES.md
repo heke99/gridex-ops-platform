@@ -219,3 +219,19 @@ PRODAT Z13/Z14/Z15/Z18 ska behandlas som permission lifecycle, inte isolerade te
 - Z15 = tillstånd upphör.
 
 Batch 2/3 foundation lägger business match och permission-matchning via `RFF+Z09`, `LIN`, `RFF+Z05`, `RFF+LI`, `NAD+UD`, sender/receiver Ediel ID och application reference. Osäker produktionskoppling ska bli manual review, inte gissad positiv/negativ APERAK.
+
+
+## Z13VH production correctness
+
+Z13VH must be implemented as the production variant for historical metering-data access requests, not as an E4-only test patch.
+
+Production rule:
+
+- `Z13V` uses field 223 / `CAV+S17` for ordinary ongoing or future metering-data access.
+- `Z13VH` uses field 223 / `CAV+S18` for historical metering data.
+- `Z13VH` must use `DTM+90` for historical report start and `DTM+91` for historical report end.
+- `Z13VH` must not use `DTM+92` as a substitute for report period.
+- `Z13` must include `SG17/NAD+UD` with end-user/customer identity when the profile requires the end user.
+- If a payload contains `DTM+91` but still has `CAV+S17`, it is internally inconsistent and must be blocked before SMTP/send.
+
+This applies equally to AGT E4 and live production messages to real grid owners.

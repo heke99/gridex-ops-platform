@@ -160,10 +160,13 @@ export function buildGenericProdatSegments(input: {
   const lineItemReference = compactProdatReference(context.transactionReference || context.bgmReference, 35)
   const isPermissionMessage = isPermissionMessageCode(context.code)
   const isSupplierZ09 = context.code === 'Z09'
-  const explicitReasonForTransaction = portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? input.variant ?? null
+  const explicitReasonForTransaction = isHistoricalPermissionReason(input.variant ?? context.reasonForTransaction ?? null)
+    ? 'S18'
+    : portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? input.variant ?? null
   const reasonForTransaction = isPermissionMessage
     ? resolvePermissionReasonForCode(context.code, explicitReasonForTransaction)
     : normalizeReasonForTransaction(explicitReasonForTransaction, 'Z22')
+  const isHistoricalPermission = isHistoricalPermissionReason(reasonForTransaction ?? input.variant ?? null)
   const meteringMethod = resolveMeteringMethod(portalData, context.meteringMethod)
   const installationDirection = isPermissionMessage
     ? resolvePermissionInstallationDirection(context.code, portalString(portalData, 'installationDirection') ?? context.installationDirection ?? null)
@@ -177,19 +180,19 @@ export function buildGenericProdatSegments(input: {
     (sanitizeProdatText(context.meterPointId) || 'UNKNOWN')
 
   const gridAreaId = portalString(portalData, 'gridAreaId') ?? sanitizeProdatText(context.gridAreaId)
-  const startDate =
-    portalDate102(portalData, 'reportStartDateTime') ??
-    portalDate102(portalData, 'agreementStartDateTime') ??
-    prodatDate102(context.startDate)
+  const startDate = isHistoricalPermission
+    ? portalDate102(portalData, 'reportStartDateTime') ?? prodatDate102(context.startDate)
+    : portalDate102(portalData, 'reportStartDateTime') ??
+      portalDate102(portalData, 'agreementStartDateTime') ??
+      prodatDate102(context.startDate)
   const reportEndDate203 =
     prodatDate203(
       portalString(portalData, 'reportEndDateTime') ??
-      portalString(portalData, 'agreementEndDateTime') ??
       portalString(portalData, 'permissionEndDate') ??
       context.permissionEndDate ??
+      (isHistoricalPermission ? null : portalString(portalData, 'agreementEndDateTime')) ??
       null,
     )
-  const isHistoricalPermission = isHistoricalPermissionReason(reasonForTransaction ?? input.variant ?? null)
 
   const segments: string[] = [
     `BGM+${context.code}+${bgmReference}+9+AB`,
