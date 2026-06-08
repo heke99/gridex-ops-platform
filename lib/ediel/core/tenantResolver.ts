@@ -171,6 +171,13 @@ function chooseCompany(evidence: TenantEvidence[]): {
   return { status: 'tenant_ambiguous', companyId: null }
 }
 
+
+function isReferenceRoutableAckFamily(snapshot: CanonicalPartySnapshot): boolean {
+  const family = String(snapshot.messageFamily ?? '').trim().toUpperCase()
+  const code = String(snapshot.messageCode ?? '').trim().toUpperCase()
+  return family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR' || code === 'ERR'
+}
+
 function evidenceFromSharedResolution(resolution: InboundTenantResolution): TenantEvidence[] {
   return resolution.evidence.map((item) => ({
     companyId: item.companyId,
@@ -354,7 +361,8 @@ export async function resolveInboundTenantForMessage(params: {
     }
   }
 
-  const referenceEvidence = await evidenceFromOriginalReferences(snapshot)
+  const referenceFallbackAllowed = isReferenceRoutableAckFamily(snapshot)
+  const referenceEvidence = referenceFallbackAllowed ? await evidenceFromOriginalReferences(snapshot) : []
   const evidence = compactEvidence([
     ...evidenceFromSharedResolution(sharedResolution),
     ...referenceEvidence,
@@ -381,11 +389,12 @@ export async function resolveInboundTenantForMessage(params: {
       edielMessageId: params.message.id,
       eventType: 'linked',
       eventStatus: 'success',
-      message: 'Inbound Ediel tenant resolved through saved business references.',
+      message: 'Inbound Ediel ACK tenant resolved through saved business references.',
       payload: {
         companyId: choice.companyId,
         tenantResolution: tenantResolutionForStorage(referenceResolution),
         evidence,
+        referenceFallbackAllowed,
       },
     })
 
@@ -423,6 +432,8 @@ export async function resolveInboundTenantForMessage(params: {
       issueType,
       evidence,
       snapshot,
+      referenceFallbackAllowed,
+      referenceFallbackRule: 'Business-reference fallback is only allowed for ACK/response messages (CONTRL, APERAK, UTILTS_ERR). New inbound PRODAT/UTILTS must resolve through EDIFACT route/actor evidence first.',
       tenantResolution: tenantResolutionForStorage(sharedResolution),
     },
   })

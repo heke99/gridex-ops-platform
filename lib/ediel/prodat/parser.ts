@@ -21,6 +21,11 @@ export type ParsedProdatLineItem = {
   permissionTimestamp: string | null
   contractStartDate: string | null
   contractEndDate: string | null
+  reportStartDate: string | null
+  reportEndDate: string | null
+  historicalReportStartDate: string | null
+  historicalReportEndDate: string | null
+  isHistoricalMeteringRequest: boolean
   reasonForTransaction: string | null
   measuringMethod: string | null
   timeSeriesProduct: string | null
@@ -120,6 +125,11 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       permissionTimestamp: lineDateTimeValue(line.segments, ['265', '324', '597']),
       contractStartDate: lineDateTimeValue(line.segments, ['92', '157']),
       contractEndDate: lineDateTimeValue(line.segments, ['93', '157']),
+      reportStartDate: lineDateTimeValue(line.segments, ['90']),
+      reportEndDate: lineDateTimeValue(line.segments, ['91']),
+      historicalReportStartDate: lineDateTimeValue(line.segments, ['90']),
+      historicalReportEndDate: lineDateTimeValue(line.segments, ['91']),
+      isHistoricalMeteringRequest: cciCavValue(line.segments, 'Z13') === 'S18' || Boolean(lineDateTimeValue(line.segments, ['90']) || lineDateTimeValue(line.segments, ['91'])),
       reasonForTransaction: cciCavValue(line.segments, 'Z13'),
       measuringMethod: cciCavValue(line.segments, 'Z04'),
       timeSeriesProduct: cciCavValue(line.segments, 'Z05'),

@@ -24,7 +24,7 @@ function parsedText(message: EdielMessageRow, ...keys: string[]): string[] {
   return uniqueStrings(keys.map((key) => stringOrNull(payload[key])))
 }
 
-async function matchMeteringPointByIdentifier(params: {
+export async function matchMeteringPointIdByIdentifier(params: {
   companyId: string
   identifiers: string[]
 }): Promise<string | null> {
@@ -81,7 +81,7 @@ export async function matchMeteringPointForEdielMessage(
     stringOrNull(message.transaction_reference),
   ])
 
-  return matchMeteringPointByIdentifier({ companyId, identifiers })
+  return matchMeteringPointIdByIdentifier({ companyId, identifiers })
 }
 
 export async function matchSiteAndCustomerForMeteringPoint(params: {

@@ -14,6 +14,8 @@ export type ExpectedProdatObject = {
   expectedBalanceResponsibleId: string | null
   expectedContractStartDate: string | null
   expectedContractEndDate: string | null
+  expectedReportStartDate: string | null
+  expectedReportEndDate: string | null
   expectedReasonForTransaction: string | null
   expectedMeasuringMethod: string | null
   expectedTimeSeriesProduct: string | null
@@ -84,6 +86,8 @@ function fieldsByColumn(testData: EdielTgtCaseTestData): ExpectedProdatObject[] 
         expectedBalanceResponsibleId: value(fields, ['262']),
         expectedContractStartDate: value(fields, ['210']),
         expectedContractEndDate: value(fields, ['211']),
+        expectedReportStartDate: value(fields, ['302']),
+        expectedReportEndDate: value(fields, ['321']),
         expectedReasonForTransaction: value(fields, ['223']),
         expectedMeasuringMethod: value(fields, ['217']),
         expectedTimeSeriesProduct: value(fields, ['222']),

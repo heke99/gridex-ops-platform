@@ -288,6 +288,59 @@ function messageHasResolvedObjectContext(message?: EdielMessageRow | null): bool
   )
 }
 
+
+type UtiltsTransactionMatchSnapshot = {
+  transactionReference: string | null
+  externalMeteringPointId: string | null
+  externalGridAreaId: string | null
+  meteringPointId: string | null
+  gridOwnerId: string | null
+  matchStatus: string | null
+}
+
+function transactionMatchesFromMessage(message?: EdielMessageRow | null): UtiltsTransactionMatchSnapshot[] {
+  const payload = message?.parsed_payload
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return []
+  const value = (payload as Record<string, unknown>).utiltsTransactionMatches
+  if (!Array.isArray(value)) return []
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return []
+    const row = item as Record<string, unknown>
+    return [{
+      transactionReference: normalizedOptionalId(row.transactionReference),
+      externalMeteringPointId: normalizedOptionalId(row.externalMeteringPointId),
+      externalGridAreaId: normalizedOptionalId(row.externalGridAreaId),
+      meteringPointId: normalizedOptionalId(row.meteringPointId),
+      gridOwnerId: normalizedOptionalId(row.gridOwnerId),
+      matchStatus: normalizedOptionalId(row.matchStatus),
+    }]
+  })
+}
+
+function matchSnapshotForUtiltsGroup(params: {
+  matches: readonly UtiltsTransactionMatchSnapshot[]
+  transactionReference: string | null
+  externalMeteringPointId: string | null
+  externalGridAreaId: string | null
+}): UtiltsTransactionMatchSnapshot | null {
+  if (params.matches.length === 0) return null
+  const byTransaction = params.transactionReference
+    ? params.matches.find((item) => item.transactionReference === params.transactionReference)
+    : null
+  if (byTransaction) return byTransaction
+
+  const byMeteringPoint = params.externalMeteringPointId
+    ? params.matches.find((item) => item.externalMeteringPointId === params.externalMeteringPointId)
+    : null
+  if (byMeteringPoint) return byMeteringPoint
+
+  const byGridArea = params.externalGridAreaId
+    ? params.matches.find((item) => item.externalGridAreaId === params.externalGridAreaId)
+    : null
+  return byGridArea ?? null
+}
+
 function groupHasExternalMeteringPointId(group: UtiltsTransactionGroup): boolean {
   return Boolean(parseLocValueFromGroup(group, 'LOC+172'))
 }
@@ -323,36 +376,54 @@ function addObjectProcessabilityIssues(params: {
   if (groups.length === 0) return
 
   const resolvedObject = messageHasResolvedObjectContext(params.message)
+  const transactionMatches = transactionMatchesFromMessage(params.message)
 
   for (const group of groups) {
     const transactionReference = transactionIssueReference(group, params.facts.transactionId)
+    const externalMeteringPointId = parseLocValueFromGroup(group, 'LOC+172')
+    const externalGridAreaId = parseLocValueFromGroup(group, 'LOC+239')
+    const transactionMatch = matchSnapshotForUtiltsGroup({
+      matches: transactionMatches,
+      transactionReference,
+      externalMeteringPointId,
+      externalGridAreaId,
+    })
+    const hasTransactionMatchSnapshot = transactionMatches.length > 0
+    const transactionMeteringPointResolved = Boolean(transactionMatch?.meteringPointId)
+    const transactionGridAreaResolved = Boolean(transactionMatch?.gridOwnerId)
 
-    if (['E30', 'E66'].includes(code) && groupHasExternalMeteringPointId(group) && !resolvedObject) {
-      params.issues.push(buildIssue({
-        severity: 'error',
-        kind: 'functional',
-        code: `UTILTS_${code}_UNKNOWN_METERING_POINT`,
-        title: 'Okänd anläggning',
-        description: 'Anläggningsid kunde inte identifieras i tenantens produktionsdata. Objektfel går före period-/observationskontroll.',
-        utiltsErrCode: 'E10',
-        referenceQualifier: 'TN',
-        referenceNumber: transactionReference,
-        lineItemReference: transactionReference,
-      }))
+    if (['E30', 'E66'].includes(code) && groupHasExternalMeteringPointId(group)) {
+      const isResolved = hasTransactionMatchSnapshot ? transactionMeteringPointResolved : resolvedObject
+      if (!isResolved) {
+        params.issues.push(buildIssue({
+          severity: 'error',
+          kind: 'functional',
+          code: `UTILTS_${code}_UNKNOWN_METERING_POINT`,
+          title: 'Okänd anläggning',
+          description: 'Anläggningsid kunde inte identifieras i tenantens produktionsdata. Objektfel går före period-/observationskontroll.',
+          utiltsErrCode: 'E10',
+          referenceQualifier: 'TN',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
     }
 
-    if (['S03', 'E31'].includes(code) && groupHasExternalGridAreaId(group) && !normalizedOptionalId(params.message?.grid_owner_id)) {
-      params.issues.push(buildIssue({
-        severity: 'error',
-        kind: 'functional',
-        code: `UTILTS_${code}_UNKNOWN_GRID_AREA`,
-        title: 'Okänt nätområde',
-        description: 'Nätområdesid kunde inte identifieras i tenantens produktionsdata. Nätområdesfel går före tidsserieinnehåll.',
-        utiltsErrCode: 'E49',
-        referenceQualifier: 'TN',
-        referenceNumber: transactionReference,
-        lineItemReference: transactionReference,
-      }))
+    if (['S03', 'E31'].includes(code) && groupHasExternalGridAreaId(group)) {
+      const isResolved = hasTransactionMatchSnapshot ? transactionGridAreaResolved : Boolean(normalizedOptionalId(params.message?.grid_owner_id))
+      if (!isResolved) {
+        params.issues.push(buildIssue({
+          severity: 'error',
+          kind: 'functional',
+          code: `UTILTS_${code}_UNKNOWN_GRID_AREA`,
+          title: 'Okänt nätområde',
+          description: 'Nätområdesid kunde inte identifieras i tenantens produktionsdata. Nätområdesfel går före tidsserieinnehåll.',
+          utiltsErrCode: 'E49',
+          referenceQualifier: 'TN',
+          referenceNumber: transactionReference,
+          lineItemReference: transactionReference,
+        }))
+      }
     }
   }
 }

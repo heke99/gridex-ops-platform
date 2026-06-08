@@ -41,6 +41,7 @@ import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/i
 import {
   findMatchingGridOwnerDataRequest,
   matchMeteringPointForEdielMessage,
+  matchMeteringPointIdByIdentifier,
   matchSiteAndCustomerForMeteringPoint,
 } from '@/lib/ediel/matching'
 import {
@@ -152,7 +153,21 @@ type UtiltsMeteringSeriesItem = {
   periodEnd: string | null
   readingType: unknown
   qualityCode: string | null
+  transactionReference: string | null
+  externalMeteringPointId: string | null
+  externalGridAreaId: string | null
   rawItem: Record<string, unknown>
+}
+
+type UtiltsTransactionMatch = {
+  transactionReference: string | null
+  externalMeteringPointId: string | null
+  externalGridAreaId: string | null
+  meteringPointId: string | null
+  customerId: string | null
+  siteId: string | null
+  gridOwnerId: string | null
+  matchStatus: 'matched' | 'unmatched' | 'not_applicable'
 }
 
 function arrayFromCandidate(value: unknown): unknown[] {
@@ -245,14 +260,145 @@ function itemToUtiltsSeriesItem(params: {
       stringOrNull(rawItem.qualityCode) ??
       stringOrNull(rawItem.quality_code) ??
       stringOrNull(params.fallback.qualityCode),
+    transactionReference: transactionReferenceFromObject(rawItem) ?? transactionReferenceFromObject(params.fallback),
+    externalMeteringPointId: externalMeteringPointFromObject(rawItem) ?? externalMeteringPointFromObject(params.fallback),
+    externalGridAreaId: externalGridAreaFromObject(rawItem) ?? externalGridAreaFromObject(params.fallback),
     rawItem,
   }
+}
+
+
+function dateAddMinutes(value: string | null, minutes: number): string | null {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Date(date.getTime() + minutes * 60000).toISOString()
+}
+
+function resolutionMinutes(value: unknown): number | null {
+  const raw = typeof value === 'string' ? value.trim().toUpperCase() : ''
+  if (raw === 'PT15M') return 15
+  if (raw === 'PT60M') return 60
+  const parsed = numberOrNull(value)
+  return parsed && parsed > 0 ? parsed : null
+}
+
+function transactionReferenceFromObject(value: Record<string, unknown>): string | null {
+  return (
+    stringOrNull(value.transactionReference) ??
+    stringOrNull(value.transaction_reference) ??
+    stringOrNull(value.transactionId) ??
+    stringOrNull(value.transaction_id)
+  )
+}
+
+function externalMeteringPointFromObject(value: Record<string, unknown>): string | null {
+  return (
+    stringOrNull(value.meterPointId) ??
+    stringOrNull(value.meteringPointId) ??
+    stringOrNull(value.externalMeteringPointId) ??
+    stringOrNull(value.external_metering_point_id)
+  )
+}
+
+function externalGridAreaFromObject(value: Record<string, unknown>): string | null {
+  return (
+    stringOrNull(value.gridAreaId) ??
+    stringOrNull(value.externalGridAreaId) ??
+    stringOrNull(value.external_grid_area_id)
+  )
+}
+
+function readTransactionMatches(payload: Record<string, unknown>): UtiltsTransactionMatch[] {
+  const value = payload.utiltsTransactionMatches
+  if (!Array.isArray(value)) return []
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return []
+    const row = item as Record<string, unknown>
+    const status = stringOrNull(row.matchStatus)
+    return [{
+      transactionReference: transactionReferenceFromObject(row),
+      externalMeteringPointId: externalMeteringPointFromObject(row),
+      externalGridAreaId: externalGridAreaFromObject(row),
+      meteringPointId: stringOrNull(row.meteringPointId),
+      customerId: stringOrNull(row.customerId),
+      siteId: stringOrNull(row.siteId),
+      gridOwnerId: stringOrNull(row.gridOwnerId),
+      matchStatus: status === 'matched' || status === 'not_applicable' ? status : 'unmatched',
+    }]
+  })
+}
+
+function matchForSeriesItem(item: UtiltsMeteringSeriesItem, matches: readonly UtiltsTransactionMatch[]): UtiltsTransactionMatch | null {
+  if (matches.length === 0) return null
+  if (item.transactionReference) {
+    const byTransaction = matches.find((match) => match.transactionReference === item.transactionReference)
+    if (byTransaction) return byTransaction
+  }
+  if (item.externalMeteringPointId) {
+    const byMeteringPoint = matches.find((match) => match.externalMeteringPointId === item.externalMeteringPointId)
+    if (byMeteringPoint) return byMeteringPoint
+  }
+  return null
+}
+
+function flattenUtiltsTransactionSeries(payload: Record<string, unknown>, message: EdielMessageRow): UtiltsMeteringSeriesItem[] {
+  const transactions = arrayFromCandidate(payload.transactions)
+  if (transactions.length === 0) return []
+
+  const items: UtiltsMeteringSeriesItem[] = []
+  for (const [transactionIndex, transaction] of transactions.entries()) {
+    if (!transaction || typeof transaction !== 'object' || Array.isArray(transaction)) continue
+    const rawTransaction = transaction as Record<string, unknown>
+    const quantities = arrayFromCandidate(rawTransaction.quantities)
+    const transactionReference = transactionReferenceFromObject(rawTransaction)
+    const externalMeteringPointId = externalMeteringPointFromObject(rawTransaction)
+    const externalGridAreaId = externalGridAreaFromObject(rawTransaction)
+    const start = normalizedIso(stringOrNull(rawTransaction.deliveryPeriodStart) ?? stringOrNull(rawTransaction.periodStart)) ?? stringOrNull(payload.periodStart)
+    const end = normalizedIso(stringOrNull(rawTransaction.deliveryPeriodEnd) ?? stringOrNull(rawTransaction.periodEnd)) ?? stringOrNull(payload.periodEnd)
+    const minutes = resolutionMinutes(rawTransaction.resolution ?? payload.resolution)
+
+    for (const [quantityIndex, quantityCandidate] of quantities.entries()) {
+      if (!quantityCandidate || typeof quantityCandidate !== 'object' || Array.isArray(quantityCandidate)) continue
+      const rawQuantity = quantityCandidate as Record<string, unknown>
+      const quantity = readSeriesQuantity(rawQuantity)
+      if (quantity === null) continue
+
+      const periodStart = minutes && start ? dateAddMinutes(start, quantityIndex * minutes) : start
+      const periodEnd = minutes && periodStart ? dateAddMinutes(periodStart, minutes) : end
+      const readAt = periodEnd ?? normalizedIso(stringOrNull(rawTransaction.registrationTime)) ?? stringOrNull(payload.readAt) ?? message.message_received_at ?? message.created_at
+      if (!readAt) continue
+
+      items.push({
+        sourceOrder: transactionIndex * 10000 + quantityIndex,
+        quantity,
+        readAt,
+        periodStart,
+        periodEnd,
+        readingType: rawTransaction.readingType ?? payload.readingType,
+        qualityCode: stringOrNull(rawQuantity.qualifier) ?? stringOrNull(rawTransaction.qualityCode) ?? stringOrNull(payload.qualityCode),
+        transactionReference,
+        externalMeteringPointId,
+        externalGridAreaId,
+        rawItem: {
+          transaction: rawTransaction,
+          quantity: rawQuantity,
+        },
+      })
+    }
+  }
+
+  return items.sort((a, b) => a.sourceOrder - b.sourceOrder)
 }
 
 function extractUtiltsMeteringSeries(
   normalizedPayload: Record<string, unknown>,
   message: EdielMessageRow
 ): UtiltsMeteringSeriesItem[] {
+  const transactionSeries = flattenUtiltsTransactionSeries(normalizedPayload, message)
+  if (transactionSeries.length > 0) return transactionSeries
+
   const candidates = extractSeriesCandidates(normalizedPayload)
   const series = candidates
     .map((item, index) => itemToUtiltsSeriesItem({ item, index, fallback: normalizedPayload, message }))
@@ -274,6 +420,9 @@ function extractUtiltsMeteringSeries(
       periodEnd: stringOrNull(normalizedPayload.periodEnd),
       readingType: normalizedPayload.readingType,
       qualityCode: stringOrNull(normalizedPayload.qualityCode),
+      transactionReference: stringOrNull(normalizedPayload.transactionReference),
+      externalMeteringPointId: stringOrNull(normalizedPayload.meterPointId) ?? stringOrNull(normalizedPayload.meteringPointId),
+      externalGridAreaId: stringOrNull(normalizedPayload.gridAreaId),
       rawItem: normalizedPayload,
     },
   ]
@@ -372,21 +521,69 @@ async function maybeIngestMeteringValue(params: {
   normalizedPayload: Record<string, unknown>
 }): Promise<MeteringValueRow[]> {
   if (!shouldIngestMeteringValue(params.message)) return []
-  if (!params.customerId || !params.meteringPointId) return []
+
+  const companyId = stringOrNull(params.message.company_id)
+  if (!companyId) return []
 
   const series = extractUtiltsMeteringSeries(params.normalizedPayload, params.message)
   if (series.length === 0) return []
 
+  const transactionMatches = readTransactionMatches(params.normalizedPayload)
   const rows: MeteringValueRow[] = []
+  const skipped: Array<Record<string, unknown>> = []
 
   for (const item of series) {
+    const transactionMatch = matchForSeriesItem(item, transactionMatches)
+    const matchedMeteringPointId = transactionMatch?.meteringPointId ?? null
+    let meteringPointId = matchedMeteringPointId ?? params.meteringPointId
+
+    if (item.externalMeteringPointId && !matchedMeteringPointId) {
+      meteringPointId = await matchMeteringPointIdByIdentifier({
+        companyId,
+        identifiers: [item.externalMeteringPointId],
+      })
+    }
+
+    if (!meteringPointId) {
+      skipped.push({
+        reason: 'metering_point_not_matched_within_tenant',
+        transactionReference: item.transactionReference,
+        externalMeteringPointId: item.externalMeteringPointId,
+        sourceOrder: item.sourceOrder,
+      })
+      continue
+    }
+
+    const siteAndCustomer = transactionMatch?.customerId
+      ? {
+          customerId: transactionMatch.customerId,
+          siteId: transactionMatch.siteId,
+          gridOwnerId: transactionMatch.gridOwnerId,
+        }
+      : await matchSiteAndCustomerForMeteringPoint({
+          meteringPointId,
+          companyId,
+        })
+
+    const customerId = siteAndCustomer?.customerId ?? params.customerId
+    if (!customerId) {
+      skipped.push({
+        reason: 'customer_not_matched_for_metering_point',
+        transactionReference: item.transactionReference,
+        externalMeteringPointId: item.externalMeteringPointId,
+        meteringPointId,
+        sourceOrder: item.sourceOrder,
+      })
+      continue
+    }
+
     const row = await ingestMeteringValue({
       actorUserId: params.actorUserId,
-      customerId: params.customerId,
-      siteId: params.siteId,
-      meteringPointId: params.meteringPointId,
+      customerId,
+      siteId: siteAndCustomer?.siteId ?? params.siteId,
+      meteringPointId,
       sourceRequestId: params.dataRequestId,
-      gridOwnerId: params.gridOwnerId,
+      gridOwnerId: siteAndCustomer?.gridOwnerId ?? params.gridOwnerId,
       readingType: toMeteringReadingType(item.readingType),
       valueKwh: item.quantity,
       qualityCode: item.qualityCode,
@@ -398,6 +595,9 @@ async function maybeIngestMeteringValue(params: {
         edielMessageId: params.message.id,
         messageCode: params.message.message_code,
         sourceOrder: item.sourceOrder,
+        transactionReference: item.transactionReference,
+        externalMeteringPointId: item.externalMeteringPointId,
+        externalGridAreaId: item.externalGridAreaId,
         seriesItem: item.rawItem,
         normalizedPayload: params.normalizedPayload,
         parsedPayload: params.message.parsed_payload ?? {},
@@ -408,6 +608,21 @@ async function maybeIngestMeteringValue(params: {
       sourceMessageId: params.message.id,
     })
     rows.push(row)
+  }
+
+  if (skipped.length > 0) {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.message.id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: 'Vissa UTILTS-mätvärden sparades inte eftersom de inte kunde kopplas säkert inom tenant.',
+      payload: {
+        skipped,
+        ingestedCount: rows.length,
+        companyId,
+      },
+    })
   }
 
   return rows
@@ -723,11 +938,61 @@ async function createUtiltsRuntimeAcks(params: {
   return createdIds
 }
 
+
+async function matchUtiltsTransactionsForTenant(params: {
+  message: EdielMessageRow
+  facts: ReturnType<typeof runUtiltsRuntimeForMessage>['facts']
+}): Promise<UtiltsTransactionMatch[]> {
+  const companyId = stringOrNull(params.message.company_id)
+  if (!companyId) return []
+
+  const transactions = params.facts.transactions.length > 0
+    ? params.facts.transactions
+    : [{
+        transactionId: params.facts.transactionId,
+        meterPointId: params.facts.meterPointId,
+        gridAreaId: params.facts.gridAreaId,
+      }]
+
+  const matches: UtiltsTransactionMatch[] = []
+  for (const transaction of transactions) {
+    const transactionReference = stringOrNull(transaction.transactionId)
+    const externalMeteringPointId = stringOrNull(transaction.meterPointId)
+    const externalGridAreaId = stringOrNull(transaction.gridAreaId)
+    const meteringPointId = externalMeteringPointId
+      ? await matchMeteringPointIdByIdentifier({ companyId, identifiers: [externalMeteringPointId] })
+      : (transactions.length === 1 ? stringOrNull(params.message.metering_point_id) : null)
+    const siteAndCustomer = meteringPointId
+      ? await matchSiteAndCustomerForMeteringPoint({ meteringPointId, companyId })
+      : null
+
+    matches.push({
+      transactionReference,
+      externalMeteringPointId,
+      externalGridAreaId,
+      meteringPointId,
+      customerId: siteAndCustomer?.customerId ?? null,
+      siteId: siteAndCustomer?.siteId ?? null,
+      gridOwnerId: siteAndCustomer?.gridOwnerId ?? null,
+      matchStatus: externalMeteringPointId ? (meteringPointId ? 'matched' : 'unmatched') : 'not_applicable',
+    })
+  }
+
+  return matches
+}
+
+function allUtiltsTransactionMeteringPointsMatched(matches: readonly UtiltsTransactionMatch[]): boolean {
+  const relevant = matches.filter((match) => Boolean(match.externalMeteringPointId))
+  return relevant.length > 0 && relevant.every((match) => Boolean(match.meteringPointId))
+}
+
 async function linkInboundUtiltsMessageCanonically(params: {
   actorUserId: string
   message: EdielMessageRow
+  transactionMatches?: readonly UtiltsTransactionMatch[]
 }) {
-  const meteringPointId = await matchMeteringPointForEdielMessage(params.message)
+  const transactionMeteringPointId = params.transactionMatches?.find((match) => match.meteringPointId)?.meteringPointId ?? null
+  const meteringPointId = await matchMeteringPointForEdielMessage(params.message) ?? transactionMeteringPointId
   const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({
     meteringPointId,
     companyId: params.message.company_id ?? null,
@@ -1080,10 +1345,18 @@ export async function processInboundUtiltsMessage(params: {
   // business matching, because live/test must use the same production rule: object
   // identity/processability is validated before period/observation-count checks.
   const provisionalRuntime = runUtiltsRuntimeForMessage(message)
-  const provisionalNormalizedPayload = provisionalRuntime.normalizedPayload
+  const transactionMatches = await matchUtiltsTransactionsForTenant({
+    message,
+    facts: provisionalRuntime.facts,
+  })
+  const provisionalNormalizedPayload = {
+    ...provisionalRuntime.normalizedPayload,
+    utiltsTransactionMatches: transactionMatches,
+  }
   const canonicalLinks = await linkInboundUtiltsMessageCanonically({
     actorUserId,
     message,
+    transactionMatches,
   })
 
   const permissionProbeMessage: EdielMessageRow = {
@@ -1098,6 +1371,7 @@ export async function processInboundUtiltsMessage(params: {
       normalizedMeteringPayload: provisionalNormalizedPayload,
       utiltsRuntimeFacts: provisionalRuntime.facts,
       utiltsRuntimeTestCaseCode: runtimeTestCaseCode,
+      utiltsTransactionMatches: transactionMatches,
     },
   }
 
@@ -1112,7 +1386,7 @@ export async function processInboundUtiltsMessage(params: {
     metering_point_id: permissionProbeMessage.metering_point_id ?? matchedPermission?.metering_point_id ?? null,
     grid_owner_id: permissionProbeMessage.grid_owner_id ?? matchedPermission?.grid_owner_id ?? null,
     business_match_status:
-      permissionProbeMessage.metering_point_id || canonicalLinks.matchedDataRequest || matchedPermission
+      permissionProbeMessage.metering_point_id || canonicalLinks.matchedDataRequest || matchedPermission || allUtiltsTransactionMeteringPointsMatched(transactionMatches)
         ? 'matched'
         : permissionProbeMessage.business_match_status,
   }
@@ -1122,7 +1396,10 @@ export async function processInboundUtiltsMessage(params: {
     runtime,
     testCaseCode: runtimeTestCaseCode,
   })
-  const normalizedPayload = runtime.normalizedPayload
+  const normalizedPayload = {
+    ...runtime.normalizedPayload,
+    utiltsTransactionMatches: transactionMatches,
+  }
   const forcedPositiveTgtAckPlan =
     runtimeTestCaseCode === 'U3.1.1' || runtimeTestCaseCode === 'U3.1.2'
   const shouldRejectByAckPlan =
@@ -1270,6 +1547,75 @@ export async function processInboundUtiltsMessage(params: {
         message: 'Inbound UTILTS matchades mot aktivt mätvärdestillstånd och mätvärden sparades utan att kräva separat data request.',
         payload: {
           matchedMeteringPermissionId: matchedPermission.id,
+          ingestedMeterValueIds,
+          normalizedMeteringPayload: normalizedPayload,
+          validation: runtime.validation,
+          ackPlan: ackPlan,
+          testCaseCode: runtimeTestCaseCode,
+        },
+      })
+
+      return {
+        message,
+        matchedDataRequest: null,
+        ackIds,
+        outboundRequestId: null,
+        ingestedMeterValueId: ingestedMeterValueIds[0] ?? null,
+        ingestedMeterValueIds,
+        billingUnderlayId: null,
+      }
+    }
+
+    if (allUtiltsTransactionMeteringPointsMatched(transactionMatches)) {
+      const ingestedMeterValues = await maybeIngestMeteringValue({
+        actorUserId,
+        customerId: canonicalLinks.siteAndCustomer?.customerId ?? null,
+        siteId: canonicalLinks.siteAndCustomer?.siteId ?? null,
+        meteringPointId: canonicalLinks.meteringPointId ?? null,
+        gridOwnerId: canonicalLinks.siteAndCustomer?.gridOwnerId ?? null,
+        dataRequestId: null,
+        message,
+        normalizedPayload,
+      })
+
+      const ingestedMeterValueIds = ingestedMeterValues.map((row) => row.id)
+      const ackIds = await createUtiltsRuntimeAcks({
+        actorUserId,
+        sourceMessage: runtimeSourceMessage,
+        ackPlan: ackPlan,
+        testCaseCode: runtimeTestCaseCode,
+      })
+
+      await updateEdielMessageStatus({
+        actorUserId,
+        edielMessageId: message.id,
+        status: 'validated',
+        parsedPayload: {
+          ...(message.parsed_payload ?? {}),
+          normalizedMeteringPayload: normalizedPayload,
+          utiltsRuntimeFacts: runtime.facts,
+          utiltsTransactionMatches: transactionMatches,
+          ingestedMeterValueId: ingestedMeterValueIds[0] ?? null,
+          ingestedMeterValueIds,
+        },
+        validationReport: {
+          ...(message.validation_report ?? {}),
+          utiltsRuntime: {
+            validation: runtime.validation,
+            ackPlan: ackPlan,
+            createdAckMessageIds: ackIds,
+          },
+        },
+      })
+
+      await createEdielMessageEvent({
+        actorUserId,
+        edielMessageId: message.id,
+        eventType: 'validated',
+        eventStatus: 'success',
+        message: 'Inbound UTILTS matchades per tidsserie/anläggning inom tenant och mätvärden sparades automatiskt utan separat data request.',
+        payload: {
+          utiltsTransactionMatches: transactionMatches,
           ingestedMeterValueIds,
           normalizedMeteringPayload: normalizedPayload,
           validation: runtime.validation,

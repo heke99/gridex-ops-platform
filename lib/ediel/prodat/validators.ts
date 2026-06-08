@@ -12,6 +12,8 @@ export type ProdatValidationIssueType =
   | 'balance_responsible_invalid'
   | 'agreement_start_date_invalid'
   | 'agreement_end_date_invalid'
+  | 'report_start_date_invalid'
+  | 'report_end_date_invalid'
   | 'transaction_type_invalid'
   | 'measuring_method_invalid'
   | 'time_series_product_invalid'
@@ -155,6 +157,8 @@ export function validateParsedProdatAgainstExpected(params: {
     compareField({ issues, type: 'balance_responsible_invalid', fieldCode: '262', fieldName: 'Balansansvarig', actual: line.balanceResponsibleId, expected: object.expectedBalanceResponsibleId, line, sourceOrder: sourceOrder++, message: 'Felaktig balansansvarig' })
     compareField({ issues, type: 'agreement_start_date_invalid', fieldCode: '210', fieldName: 'Avtal startdatum', actual: line.contractStartDate, expected: object.expectedContractStartDate, line, sourceOrder: sourceOrder++, message: 'Felaktigt startdatum' })
     compareField({ issues, type: 'agreement_end_date_invalid', fieldCode: '211', fieldName: 'Avtal slutdatum', actual: line.contractEndDate, expected: object.expectedContractEndDate, line, sourceOrder: sourceOrder++, message: 'Felaktigt slutdatum' })
+    compareField({ issues, type: 'report_start_date_invalid', fieldCode: '302', fieldName: 'Rapportstartdatum', actual: line.reportStartDate, expected: object.expectedReportStartDate, line, sourceOrder: sourceOrder++, message: 'Felaktigt rapportstartdatum' })
+    compareField({ issues, type: 'report_end_date_invalid', fieldCode: '321', fieldName: 'Rapportslutdatum', actual: line.reportEndDate, expected: object.expectedReportEndDate, line, sourceOrder: sourceOrder++, message: 'Felaktigt rapportslutdatum' })
     compareField({ issues, type: 'transaction_type_invalid', fieldCode: '223', fieldName: 'Transaktionstyp', actual: line.reasonForTransaction, expected: object.expectedReasonForTransaction, line, sourceOrder: sourceOrder++, message: 'Felaktig transaktionstyp' })
     compareField({ issues, type: 'measuring_method_invalid', fieldCode: '217', fieldName: 'Mätmetod', actual: line.measuringMethod, expected: object.expectedMeasuringMethod, line, sourceOrder: sourceOrder++, message: 'Felaktig mätmetod' })
     compareField({ issues, type: 'time_series_product_invalid', fieldCode: '222', fieldName: 'Tidsserieprodukt', actual: line.timeSeriesProduct, expected: object.expectedTimeSeriesProduct, line, sourceOrder: sourceOrder++, message: 'Felaktig tidsserieprodukt' })
