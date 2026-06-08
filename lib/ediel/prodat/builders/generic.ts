@@ -33,6 +33,11 @@ function prodatCavValue1(value: string | null | undefined, maxLength = 35): stri
   return code ? `CAV+:::${code}` : ''
 }
 
+function prodatCavValue2(value: string | null | undefined, maxLength = 35): string {
+  const code = sanitizeProdatToken(value ?? null, maxLength)
+  return code ? `CAV+::::${code}` : ''
+}
+
 function objectValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -246,7 +251,7 @@ export function buildGenericProdatSegments(input: {
   if (isPermissionMessage && energyProductId) {
     // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7111,
     // med GS1 som kodlisteansvarig. Det ska inte renderas som PIA i permission-flöden.
-    segments.push('CCI++Z14', prodatCavValue1(energyProductId, 35))
+    segments.push('CCI++Z14', prodatCavValue2(energyProductId, 35))
   }
 
   if (isPermissionMessage && installationDirection) {

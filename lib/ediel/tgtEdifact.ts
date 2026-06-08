@@ -2036,7 +2036,7 @@ function buildProdatPermissionLineSegments(params: {
   if (meteringMethod) segments.push("CCI++Z04", `CAV+${meteringMethod}`);
   if (reportingFrequency)
     segments.push("CCI++Z12", `CAV+:::${reportingFrequency}`);
-  if (energyProductId) segments.push("CCI++Z14", `CAV+:::${energyProductId}`);
+  if (energyProductId) segments.push("CCI++Z14", `CAV+::::${energyProductId}`);
   if (installationDirection)
     segments.push("CCI++Z22", `CAV+${installationDirection}`);
   if (permissionStatus) segments.push("CCI++Z23", `CAV+${permissionStatus}`);
@@ -3012,6 +3012,24 @@ export function validateEdielTgtDraft(
       "Saknar Application Reference",
       `PRODAT TGT ska använda ${expectedApplicationReference}.`,
     );
+  }
+
+  if (step.family === "PRODAT") {
+    for (let index = 0; index < parsed.segments.length; index += 1) {
+      const segment = parsed.segments[index]?.toUpperCase() ?? "";
+      if (!segment.startsWith("CCI++Z14")) continue;
+      const cav = parsed.segments[index + 1] ?? "";
+      const normalizedCav = cav.toUpperCase();
+      if (normalizedCav.startsWith("CAV+:::") && !normalizedCav.startsWith("CAV+::::")) {
+        pushIssue(
+          issues,
+          "error",
+          "energy_product_cav_component_mismatch",
+          "Energiprodukt ligger i fel CAV-komponent",
+          "PRODAT fält 506 Energiprodukt i CCI++Z14 ska skickas som CAV+::::<produkt-id>. CAV+:::<värde> placeras som produktkod/fält 242 och valideras fel av Edielportalen.",
+        );
+      }
+    }
   }
 
   if (step.family === "PRODAT" && step.code === "Z18") {

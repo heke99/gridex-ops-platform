@@ -235,3 +235,12 @@ Production rule:
 - If a payload contains `DTM+91` but still has `CAV+S17`, it is internally inconsistent and must be blocked before SMTP/send.
 
 This applies equally to AGT E4 and live production messages to real grid owners.
+
+### Field 506 / energy product CAV component
+
+For permission PRODAT payloads that carry energy product as `CCI++Z14`, field 506 must be rendered in the correct CAV value component:
+
+- Correct: `CCI++Z14` followed by `CAV+::::8716867000030`
+- Incorrect: `CCI++Z14` followed by `CAV+:::8716867000030`
+
+The incorrect three-colon form places the value in the product-code/component used by Edielportalen as field 242 and causes warnings such as `Invalid product code` or `Value not in use`. This must be blocked in both the TGT/Systemtest draft validator and the final outbound payload preflight before SMTP/send.

@@ -21,6 +21,11 @@ if (!genericBuilder.includes("isHistoricalPermissionReason(input.variant ?? cont
 if (!genericBuilder.includes("? 'S18'")) failures.push('Production builder must resolve historical variant to S18')
 if (!genericBuilder.includes("portalDate102(portalData, 'reportStartDateTime') ?? prodatDate102(context.startDate)")) failures.push('Production Z13VH must use reportStartDateTime/context.startDate, not agreementStartDateTime')
 if (!payloadPreflight.includes('PRODAT_Z13VH_REASON_FOR_TRANSACTION_MISMATCH')) failures.push('Final payload preflight must block Z13VH/S17 mismatch before send')
+if (!tgtEdifact.includes('CAV+::::${energyProductId}')) failures.push('Systemtest builder must render field 506 energy product as CAV+::::<id>, not CAV+:::<id>')
+if (!tgtEdifact.includes('energy_product_cav_component_mismatch')) failures.push('Systemtest validation must block field 506 rendered in the wrong CAV component')
+if (!genericBuilder.includes('function prodatCavValue2')) failures.push('Production builder must have a dedicated helper for CAV value component 2')
+if (!genericBuilder.includes('prodatCavValue2(energyProductId, 35)')) failures.push('Production builder must render field 506 energy product as CAV+::::<id>')
+if (!payloadPreflight.includes('PRODAT_ENERGY_PRODUCT_CAV_COMPONENT_MISMATCH')) failures.push('Final payload preflight must block field 506 rendered as CAV+:::<id> before send')
 if (!docs.includes('Z13VH production correctness')) failures.push('PRODAT AI context must document Z13VH production correctness')
 
 if (failures.length > 0) {

@@ -404,6 +404,24 @@ function validateEdifactPayload(params: {
     issues,
   })
 
+  if (String(canonical.family).toUpperCase() === 'PRODAT') {
+    for (let index = 0; index < rawSegments.length; index += 1) {
+      const segment = rawSegments[index]?.toUpperCase() ?? ''
+      if (!segment.startsWith('CCI++Z14')) continue
+      const cav = rawSegments[index + 1] ?? null
+      const normalizedCav = cav?.toUpperCase() ?? ''
+      if (normalizedCav.startsWith('CAV+:::') && !normalizedCav.startsWith('CAV+::::')) {
+        issues.push(issue({
+          severity: params.mode === 'send' ? 'error' : 'warning',
+          code: 'PRODAT_ENERGY_PRODUCT_CAV_COMPONENT_MISMATCH',
+          title: 'Energiprodukt ligger i fel CAV-komponent',
+          description: 'PRODAT fält 506 Energiprodukt i CCI++Z14 ska renderas som CAV+::::<produkt-id>. CAV+:::<värde> placerar värdet som produktkod/fält 242 och valideras fel av Edielportalen.',
+          segment: cav,
+        }))
+      }
+    }
+  }
+
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z13') {
     const hasHistoricalSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S18')
     const hasZ13vSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S17')
