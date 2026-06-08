@@ -123,6 +123,7 @@ export type BillingUnderlayInput = {
   periodEnd: string
   activeFrom?: string | null
   activeTo?: string | null
+  pricingSnapshot?: Record<string, unknown> | null
 }
 
 export type BasePriceSourceValues = {

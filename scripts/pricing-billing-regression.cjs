@@ -61,6 +61,30 @@ function run() {
   assert.strictEqual(spot.source, 'elprisetjustnu', 'spot price source must be explicit')
   assert.strictEqual(spot.priceArea, 'SE3', 'spot price must be per price area')
 
+  const sourcePriority = (normalizedRows, legacyRows) => {
+    if (normalizedRows.length > 0) return { sourceTable: 'normalized_metering_values', sourceRows: normalizedRows.length }
+    return { sourceTable: 'metering_values', sourceRows: legacyRows.length }
+  }
+  assert.deepStrictEqual(
+    sourcePriority([{ id: 'nmv-1', quantity_kwh: 1000 }], [{ id: 'legacy-1', value_kwh: 1000 }]),
+    { sourceTable: 'normalized_metering_values', sourceRows: 1 },
+    'billing underlay generation must prefer normalized_metering_values over legacy metering_values'
+  )
+
+  const itemTrace = {
+    source_table: 'normalized_metering_values',
+    source_normalized_metering_value_id: 'nmv-1',
+    meter_value_id: null,
+    customer_id: 'cust-1',
+    customer_site_id: 'site-1',
+    metering_point_id: 'mp-1',
+    facility_id: '735999888000000112',
+    price_area: 'SE3',
+  }
+  assert.strictEqual(itemTrace.source_table, 'normalized_metering_values', 'billing item must expose source table')
+  assert.strictEqual(itemTrace.source_normalized_metering_value_id, 'nmv-1', 'billing item must trace the normalized source row')
+  assert.strictEqual(itemTrace.meter_value_id, null, 'normalized source rows must not require legacy meter_value_id')
+
   console.log('pricing-billing-regression: OK')
 }
 

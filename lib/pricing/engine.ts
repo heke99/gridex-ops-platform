@@ -19,6 +19,10 @@ function stringValue(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
 function dateFromUnderlayMonth(year: unknown, month: unknown): { start: string; end: string; billingMonth: string } | null {
   const y = numberValue(year)
   const m = numberValue(month)
@@ -73,7 +77,59 @@ async function loadContract(companyId: string, underlay: Record<string, unknown>
   return (data as Record<string, unknown> | null) ?? null
 }
 
-function underlayToInput(companyId: string, underlay: Record<string, unknown>, contract: Record<string, unknown> | null): BillingUnderlayInput {
+
+async function loadContractPriceSnapshot(companyId: string, underlay: Record<string, unknown>, contract: Record<string, unknown> | null): Promise<Record<string, unknown> | null> {
+  const snapshotId = stringValue(underlay.pricing_snapshot_id)
+  if (snapshotId) {
+    const { data, error } = await supabaseService
+      .from('contract_price_snapshots')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('id', snapshotId)
+      .maybeSingle()
+    if (error && error.code !== 'PGRST116') throw error
+    if (data) return data as Record<string, unknown>
+  }
+
+  const contractId = stringValue(contract?.id) ?? stringValue(underlay.contract_id)
+  const periodStart = stringValue(underlay.billing_period_start)?.slice(0, 10) ?? dateFromUnderlayMonth(underlay.underlay_year, underlay.underlay_month)?.start
+  if (!contractId || !periodStart) return null
+
+  const { data, error } = await supabaseService
+    .from('contract_price_snapshots')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('contract_id', contractId)
+    .lte('valid_from', periodStart)
+    .or(`valid_to.is.null,valid_to.gte.${periodStart}`)
+    .order('valid_from', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error && error.code !== 'PGRST116') throw error
+  return (data as Record<string, unknown> | null) ?? null
+}
+
+function normalizePricingSnapshot(underlay: Record<string, unknown>, snapshot: Record<string, unknown> | null): Record<string, unknown> | null {
+  const underlaySnapshot = isObject(underlay.pricing_snapshot) ? underlay.pricing_snapshot : {}
+  if (snapshot) {
+    const snapshotJson = isObject(snapshot.snapshot_json) ? snapshot.snapshot_json : {}
+    return {
+      ...underlaySnapshot,
+      ...snapshotJson,
+      contract_price_snapshot_id: stringValue(snapshot.id),
+      pricing_model: stringValue(snapshot.pricing_model) ?? stringValue(snapshotJson.pricing_model),
+      base_price_components: Array.isArray(snapshot.base_price_components_snapshot) ? snapshot.base_price_components_snapshot : [],
+      price_components: Array.isArray(snapshot.price_components_snapshot) ? snapshot.price_components_snapshot : [],
+      vat_rate: numberValue(snapshotJson.vat_rate) ?? numberValue(underlaySnapshot.vat_rate),
+    }
+  }
+
+  if (Object.keys(underlaySnapshot).length === 0) return null
+  return underlaySnapshot
+}
+
+function underlayToInput(companyId: string, underlay: Record<string, unknown>, contract: Record<string, unknown> | null, snapshot: Record<string, unknown> | null): BillingUnderlayInput {
   const period = dateFromUnderlayMonth(underlay.underlay_year, underlay.underlay_month)
   const payload = underlay.payload && typeof underlay.payload === 'object' && !Array.isArray(underlay.payload)
     ? underlay.payload as Record<string, unknown>
@@ -98,6 +154,7 @@ function underlayToInput(companyId: string, underlay: Record<string, unknown>, c
     periodEnd: period.end,
     activeFrom: stringValue(contract?.starts_at) ?? stringValue(contract?.actual_start_at),
     activeTo: stringValue(contract?.ends_at),
+    pricingSnapshot: normalizePricingSnapshot(underlay, snapshot),
   }
 }
 
@@ -153,9 +210,10 @@ async function persistPricingRun(companyId: string, result: PricingPreviewResult
       calculated_vat_sek: result.vatAmount,
       calculated_total_sek_inc_vat: result.totalIncVat,
       pricing_snapshot: {
-        pricing_run_id: runId,
-        warnings: result.warnings,
-        errors: result.errors,
+        ...(underlay.pricingSnapshot ?? {}),
+        latest_pricing_run_id: runId,
+        latest_pricing_warnings: result.warnings,
+        latest_pricing_errors: result.errors,
       },
       updated_at: new Date().toISOString(),
     })
@@ -172,7 +230,8 @@ export async function calculatePricingPreviewForUnderlay(input: {
 }): Promise<PricingPreviewResult & { pricingRunId?: string | null }> {
   const underlayRow = await loadBillingUnderlay(input.companyId, input.billingUnderlayId)
   const contract = await loadContract(input.companyId, underlayRow)
-  const underlay = underlayToInput(input.companyId, underlayRow, contract)
+  const snapshot = await loadContractPriceSnapshot(input.companyId, underlayRow, contract)
+  const underlay = underlayToInput(input.companyId, underlayRow, contract, snapshot)
   const errors: string[] = []
   const warnings: string[] = []
 
@@ -181,6 +240,8 @@ export async function calculatePricingPreviewForUnderlay(input: {
   if (!underlay.priceArea) errors.push('Elområde saknas på fakturaunderlaget.')
   if (!contract) errors.push('Aktivt kundavtal saknas för fakturaperioden.')
   if (underlay.quantityKwh === null) errors.push('Mätförbrukning saknas på fakturaunderlaget.')
+  if (underlay.quantityKwh !== null && underlay.quantityKwh <= 0) errors.push('Mätförbrukning är noll för fakturaperioden.')
+  if (!underlay.pricingSnapshot) warnings.push('Prissnapshot saknas på fakturaunderlaget. Systemet använder avtalsfält som fallback.')
 
   if (errors.length > 0 || !underlay.priceArea) {
     const failed = finalizePricingPreview({ billingUnderlayId: input.billingUnderlayId, lines: [], warnings, errors })
@@ -234,6 +295,83 @@ export async function calculatePricingPreviewForUnderlay(input: {
 
   const pricingRunId = input.persist ? await persistPricingRun(input.companyId, result, underlay) : null
   return { ...result, pricingRunId }
+}
+
+
+export async function calculatePricingPreviewForBillingMonth(input: {
+  companyId: string
+  billingMonth: string
+  persist?: boolean
+}): Promise<{
+  billingMonth: string
+  underlays: number
+  priced: number
+  failed: number
+  results: Array<{ billingUnderlayId: string; status: string; totalExVat: number; totalIncVat: number; pricingRunId?: string | null; errors: string[]; warnings: string[] }>
+  errors: string[]
+}> {
+  const billingMonth = normalizeBillingMonth(input.billingMonth)
+  const [yearRaw, monthRaw] = billingMonth.split('-')
+  const underlayYear = Number(yearRaw)
+  const underlayMonth = Number(monthRaw)
+
+  const { data, error } = await supabaseService
+    .from('billing_underlays')
+    .select('id,status,readiness_status,total_kwh')
+    .eq('company_id', input.companyId)
+    .eq('underlay_year', underlayYear)
+    .eq('underlay_month', underlayMonth)
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  const underlays = (data ?? []) as Record<string, unknown>[]
+  if (underlays.length === 0) {
+    return {
+      billingMonth,
+      underlays: 0,
+      priced: 0,
+      failed: 0,
+      results: [],
+      errors: ['Inget faktureringsunderlag finns för perioden. Skapa billing underlay innan prispreview körs.'],
+    }
+  }
+
+  const results = []
+  for (const row of underlays) {
+    const billingUnderlayId = stringValue(row.id)
+    if (!billingUnderlayId) continue
+    try {
+      const result = await calculatePricingPreviewForUnderlay({ companyId: input.companyId, billingUnderlayId, persist: input.persist })
+      results.push({
+        billingUnderlayId,
+        status: result.status,
+        totalExVat: result.totalExVat,
+        totalIncVat: result.totalIncVat,
+        pricingRunId: result.pricingRunId ?? null,
+        errors: result.errors,
+        warnings: result.warnings,
+      })
+    } catch (error) {
+      results.push({
+        billingUnderlayId,
+        status: 'failed',
+        totalExVat: 0,
+        totalIncVat: 0,
+        pricingRunId: null,
+        errors: [error instanceof Error ? error.message : 'Prispreview misslyckades.'],
+        warnings: [],
+      })
+    }
+  }
+
+  return {
+    billingMonth,
+    underlays: underlays.length,
+    priced: results.filter((row) => row.status === 'success').length,
+    failed: results.filter((row) => row.status !== 'success').length,
+    results,
+    errors: results.flatMap((row) => row.errors),
+  }
 }
 
 export async function lockPricingPreview(input: { companyId: string; pricingRunId: string; actorUserId?: string | null }) {

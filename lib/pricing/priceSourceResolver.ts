@@ -99,9 +99,19 @@ export async function resolvePricingConfiguration(input: {
   contract?: Record<string, unknown> | null
 }): Promise<{ baseComponents: BasePriceComponent[]; priceComponents: PriceComponent[]; vatRate: number; warnings: string[] }> {
   const warnings: string[] = []
-  const snapshot = isObject(input.contract?.price_snapshot) ? input.contract?.price_snapshot as Record<string, unknown> : {}
-  const snapshotBase = Array.isArray(snapshot.base_price_components) ? snapshot.base_price_components : []
-  const snapshotComponents = Array.isArray(snapshot.price_components) ? snapshot.price_components : []
+  const contractSnapshot = isObject(input.contract?.price_snapshot) ? input.contract?.price_snapshot as Record<string, unknown> : {}
+  const underlaySnapshot = isObject(input.underlay.pricingSnapshot) ? input.underlay.pricingSnapshot : {}
+  const snapshot = Object.keys(underlaySnapshot).length > 0 ? underlaySnapshot : contractSnapshot
+  const snapshotBase = Array.isArray(snapshot.base_price_components_snapshot)
+    ? snapshot.base_price_components_snapshot
+    : Array.isArray(snapshot.base_price_components)
+      ? snapshot.base_price_components
+      : []
+  const snapshotComponents = Array.isArray(snapshot.price_components_snapshot)
+    ? snapshot.price_components_snapshot
+    : Array.isArray(snapshot.price_components)
+      ? snapshot.price_components
+      : []
 
   const baseComponents = snapshotBase
     .map((row) => (isObject(row) ? normalizeBaseComponent(row) : null))
@@ -110,6 +120,7 @@ export async function resolvePricingConfiguration(input: {
   const priceComponents = snapshotComponents
     .map((row) => (isObject(row) ? normalizePriceComponent(row) : null))
     .filter((row): row is PriceComponent => Boolean(row))
+  const hasFrozenPriceSnapshot = baseComponents.length > 0 || priceComponents.length > 0
 
   if (baseComponents.length === 0) {
     const contractType = stringValue(input.contract?.contract_type)
@@ -135,6 +146,15 @@ export async function resolvePricingConfiguration(input: {
   if (monthlyFee !== null) contractPriceComponents.push({ componentType: 'fixed_monthly_fee', name: 'Fast månadsavgift enligt avtal', calculationType: 'fixed_monthly', amount: monthlyFee, unit: 'kr/mån', vatApplicable: true, periodizationMode: 'active_days', priority: 200 })
   if (greenFeeValue !== null && greenFeeMode === 'ore_per_kwh') contractPriceComponents.push({ componentType: 'green_energy_fee', name: 'Grön el enligt avtal', calculationType: 'ore_per_kwh', amount: greenFeeValue, unit: 'öre/kWh', vatApplicable: true, periodizationMode: 'none', priority: 300 })
   if (greenFeeValue !== null && greenFeeMode === 'sek_month') contractPriceComponents.push({ componentType: 'green_energy_fee', name: 'Grön el enligt avtal', calculationType: 'fixed_monthly', amount: greenFeeValue, unit: 'kr/mån', vatApplicable: true, periodizationMode: 'active_days', priority: 300 })
+
+  if (hasFrozenPriceSnapshot) {
+    return {
+      baseComponents,
+      priceComponents,
+      vatRate: numberValue(snapshot.vat_rate) ?? numberValue(input.contract?.vat_rate) ?? 0.25,
+      warnings,
+    }
+  }
 
   const { data: componentRows, error } = await supabaseService
     .from('price_components')

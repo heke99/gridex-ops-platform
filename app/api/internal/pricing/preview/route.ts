@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
-import { calculatePricingPreviewForUnderlay } from '@/lib/pricing/engine'
+import { calculatePricingPreviewForBillingMonth, calculatePricingPreviewForUnderlay } from '@/lib/pricing/engine'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,11 +14,21 @@ export async function POST(request: Request) {
     const companyId = await requireOperationalCompanyId(access.guard.userId)
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const billingUnderlayId = typeof body.billing_underlay_id === 'string' ? body.billing_underlay_id : typeof body.billingUnderlayId === 'string' ? body.billingUnderlayId : ''
+    const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
     const persist = body.persist !== false
-    if (!billingUnderlayId) return NextResponse.json({ error: 'billing_underlay_id krävs.' }, { status: 400 })
 
-    const result = await calculatePricingPreviewForUnderlay({ companyId, billingUnderlayId, persist })
-    return NextResponse.json({ data: result })
+    if (billingUnderlayId) {
+      const result = await calculatePricingPreviewForUnderlay({ companyId, billingUnderlayId, persist })
+      return NextResponse.json({ data: result })
+    }
+
+    if (/^\d{4}-\d{2}$/.test(billingMonth)) {
+      const result = await calculatePricingPreviewForBillingMonth({ companyId, billingMonth, persist })
+      if (result.underlays === 0) return NextResponse.json({ error: result.errors[0], data: result }, { status: 400 })
+      return NextResponse.json({ data: result })
+    }
+
+    return NextResponse.json({ error: 'billing_underlay_id eller billing_month måste anges.' }, { status: 400 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Kunde inte skapa prispreview.'
     return NextResponse.json({ error: message }, { status: 500 })
