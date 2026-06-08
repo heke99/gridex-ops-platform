@@ -46,6 +46,39 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
     })
   }
 
+  if (context.code === 'Z13') {
+    const reason = sanitizeProdatText(context.reasonForTransaction).toUpperCase()
+    const isHistoricalRequest = reason === 'S18' || reason === 'VH' || reason === 'Z13VH'
+    const hasEndUserIdentity = Boolean(sanitizeProdatText(context.customerId) && sanitizeProdatText(context.customerName))
+
+    if (!hasEndUserIdentity) {
+      issues.push({
+        severity: 'error',
+        code: 'prodat_z13_end_user_missing',
+        title: 'Slutkund saknas för Z13',
+        description: 'PRODAT Z13 ska innehålla SG17 NAD+UD med både kund-id och namn. Systemet ska inte skicka historisk eller löpande mätvärdesbegäran utan identifierbar kund.',
+      })
+    }
+
+    if (isHistoricalRequest && !sanitizeProdatText(context.startDate)) {
+      issues.push({
+        severity: 'error',
+        code: 'prodat_z13vh_report_start_missing',
+        title: 'Rapportstart saknas för Z13VH',
+        description: 'PRODAT Z13VH ska innehålla DTM+90 med historiskt rapportstartdatum.',
+      })
+    }
+
+    if (isHistoricalRequest && !sanitizeProdatText(context.permissionEndDate)) {
+      issues.push({
+        severity: 'error',
+        code: 'prodat_z13vh_report_end_missing',
+        title: 'Rapportslut saknas för Z13VH',
+        description: 'PRODAT Z13VH ska innehålla DTM+91 med historiskt rapportslutdatum.',
+      })
+    }
+  }
+
   if (context.code === 'Z18') {
     const hasEndUserIdentity = Boolean(sanitizeProdatText(context.customerId) || sanitizeProdatText(context.customerName))
     const hasPermissionId = Boolean(sanitizeProdatText(context.permissionId) || sanitizeProdatText(context.powerOfAttorneyReference))

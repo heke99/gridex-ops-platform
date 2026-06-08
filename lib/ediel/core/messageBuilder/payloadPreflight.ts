@@ -404,6 +404,61 @@ function validateEdifactPayload(params: {
     issues,
   })
 
+  if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z13') {
+    const hasHistoricalSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S18')
+    const endUserSegment = rawSegments.find((segment) => segment.toUpperCase().startsWith('NAD+UD+')) ?? null
+    const hasEndUser = Boolean(endUserSegment)
+    const hasEndUserId = Boolean(element(endUserSegment, 2))
+    const hasReportStart = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+90:'))
+    const hasReportEnd = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+91:'))
+    const contractStart = rawSegments.find((segment) => segment.toUpperCase().startsWith('DTM+92:')) ?? null
+
+    if (hasHistoricalSubtype) {
+      if (!hasReportStart) {
+        issues.push(issue({
+          severity: params.mode === 'send' ? 'error' : 'warning',
+          code: 'PRODAT_Z13VH_DTM_90_MISSING',
+          title: 'Z13VH saknar DTM+90',
+          description: 'PRODAT Z13VH ska ange historiskt rapportstartdatum i DTM+90.',
+        }))
+      }
+      if (!hasReportEnd) {
+        issues.push(issue({
+          severity: params.mode === 'send' ? 'error' : 'warning',
+          code: 'PRODAT_Z13VH_DTM_91_MISSING',
+          title: 'Z13VH saknar DTM+91',
+          description: 'PRODAT Z13VH ska ange historiskt rapportslutdatum i DTM+91.',
+        }))
+      }
+      if (contractStart) {
+        issues.push(issue({
+          severity: params.mode === 'send' ? 'error' : 'warning',
+          code: 'PRODAT_Z13VH_DTM_92_FORBIDDEN',
+          title: 'Z13VH får inte använda DTM+92',
+          description: 'Historiska mätvärden ska använda rapportperioden DTM+90/DTM+91, inte avtalstart DTM+92.',
+          segment: contractStart,
+        }))
+      }
+    }
+
+    if (!hasEndUser) {
+      issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PRODAT_Z13_NAD_UD_MISSING',
+        title: 'Z13 saknar slutkund',
+        description: 'PRODAT Z13 ska innehålla SG17 NAD+UD med elanvändaren/slutkunden.',
+      }))
+    } else if (!hasEndUserId) {
+      issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PRODAT_Z13_NAD_UD_ID_MISSING',
+        title: 'Z13 saknar kund-id i NAD+UD',
+        description: 'PRODAT Z13 ska innehålla kund-id i SG17 NAD+UD/C082.',
+        segment: endUserSegment,
+      }))
+    }
+  }
+
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z18') {
     const hasEndUser = rawSegments.some((segment) => segment.toUpperCase().startsWith('NAD+UD+'))
     const installationParty = rawSegments.find((segment) => segment.toUpperCase().startsWith('NAD+IT+')) ?? null

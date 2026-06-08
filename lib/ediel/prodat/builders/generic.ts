@@ -66,6 +66,11 @@ function isPermissionMessageCode(code: string): boolean {
   return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
 }
 
+function isHistoricalPermissionReason(value?: string | null): boolean {
+  const normalized = sanitizeProdatToken(value ?? null, 12)
+  return normalized === 'S18' || normalized === 'VH' || normalized === 'Z13VH' || normalized === 'Z14VH'
+}
+
 function defaultPermissionReasonForCode(code: string): string | null {
   // Production/SaaS-regel: Z13 är en tillståndsbegäran och måste bära
   // transaktionstyp i CCI++Z13/CAV. Om kundspecifik data inte skickar ett
@@ -76,6 +81,9 @@ function defaultPermissionReasonForCode(code: string): string | null {
 }
 
 function resolvePermissionReasonForCode(code: string, explicitValue?: string | null): string | null {
+  const normalized = sanitizeProdatToken(explicitValue ?? null, 12)
+  if (normalized === 'VH' || normalized === 'Z13VH' || normalized === 'Z14VH') return 'S18'
+  if (normalized === 'V' || normalized === 'Z13V' || normalized === 'Z14V' || normalized === 'Z18V') return 'S17'
   return normalizeReasonForTransaction(explicitValue, defaultPermissionReasonForCode(code))
 }
 
@@ -152,7 +160,7 @@ export function buildGenericProdatSegments(input: {
   const lineItemReference = compactProdatReference(context.transactionReference || context.bgmReference, 35)
   const isPermissionMessage = isPermissionMessageCode(context.code)
   const isSupplierZ09 = context.code === 'Z09'
-  const explicitReasonForTransaction = portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? null
+  const explicitReasonForTransaction = portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? input.variant ?? null
   const reasonForTransaction = isPermissionMessage
     ? resolvePermissionReasonForCode(context.code, explicitReasonForTransaction)
     : normalizeReasonForTransaction(explicitReasonForTransaction, 'Z22')
@@ -170,8 +178,18 @@ export function buildGenericProdatSegments(input: {
 
   const gridAreaId = portalString(portalData, 'gridAreaId') ?? sanitizeProdatText(context.gridAreaId)
   const startDate =
+    portalDate102(portalData, 'reportStartDateTime') ??
     portalDate102(portalData, 'agreementStartDateTime') ??
     prodatDate102(context.startDate)
+  const reportEndDate203 =
+    prodatDate203(
+      portalString(portalData, 'reportEndDateTime') ??
+      portalString(portalData, 'agreementEndDateTime') ??
+      portalString(portalData, 'permissionEndDate') ??
+      context.permissionEndDate ??
+      null,
+    )
+  const isHistoricalPermission = isHistoricalPermissionReason(reasonForTransaction ?? input.variant ?? null)
 
   const segments: string[] = [
     `BGM+${context.code}+${bgmReference}+9+AB`,
@@ -196,6 +214,12 @@ export function buildGenericProdatSegments(input: {
       ) ?? permissionCreatedAt
     segments.push(`DTM+693:${permissionCreatedAt}:203`)
     segments.push(`DTM+164:${reportingEndDate}:203`)
+  } else if ((context.code === 'Z13' || context.code === 'Z14') && startDate203) {
+    // PRODAT 26.A fält 302/321: tillståndsflöden använder rapportstart
+    // och, för historiska mätvärden, rapportslut. De ska inte renderas som
+    // DTM+92 avtalstart.
+    segments.push(`DTM+90:${startDate203}:203`)
+    if (isHistoricalPermission && reportEndDate203) segments.push(`DTM+91:${reportEndDate203}:203`)
   } else if (startDate203) {
     // Z09 uses validity date (field 216) in SG8/DTM qualifier 157.
     // Supplier AGT L7 failed when this was rendered as DTM+92.

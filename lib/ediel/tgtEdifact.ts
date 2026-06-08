@@ -764,6 +764,21 @@ function firstDaySameMonthPreviousYearDateTime(): string {
   );
 }
 
+function historicalReportStartDateTime(): string {
+  return firstDaySameMonthPreviousYearDateTime();
+}
+
+function historicalReportEndDateTime(): string {
+  return firstDayPreviousMonthDateTime();
+}
+
+function isHistoricalPermissionTransaction(
+  transactionType: string | null | undefined,
+): boolean {
+  const normalized = normalizeTgtCode(transactionType);
+  return normalized === "Z13VH" || normalized === "Z14VH" || normalized === "S18";
+}
+
 function currentDayDateTime(): string {
   const now = new Date();
   return formatUtcDateTime(
@@ -1007,7 +1022,15 @@ function getPortalData(
     return { fieldCode: "", fieldName: "", value };
   };
 
-  const startDateRaw = valueFor(["210 avtal", "startdatum", "leveransstart"]);
+  const startDateRaw = valueFor([
+    "302 rapportstartdatum",
+    "302 report start date",
+    "rapportstartdatum",
+    "report start date",
+    "210 avtal",
+    "startdatum",
+    "leveransstart",
+  ]);
   const validityDateRaw = valueFor([
     "216 giltighetsdatum",
     "216 validity",
@@ -1416,16 +1439,33 @@ function withEscoPermissionAgtFallbacks(
   );
   const fallbackGridAreaId = fallbackEscoPermissionGridAreaId(params, step);
 
+  const isAgtActorToPortalPermission = ["E3", "E4", "E8"].includes(
+    params.testCaseCode,
+  );
+  const isAgtZ13Vh = params.testCaseCode === "E4" && step.code === "Z13";
   const isAgtZ18 = params.testCaseCode === "E8" && step.code === "Z18";
 
-  if (!fallbackMeteringPointId && !fallbackGridAreaId && !isAgtZ18)
+  if (
+    !fallbackMeteringPointId &&
+    !fallbackGridAreaId &&
+    !isAgtActorToPortalPermission
+  )
     return portalData;
 
   const meteringPointId =
     sanitizeCode(portalData.meteringPointId, "", 35) || fallbackMeteringPointId;
-  const agreementStartDateTime =
-    sanitizeCode(portalData.agreementStartDateTime, "", 12) ||
-    defaultAgreementStartDateTime();
+  const agreementStartDateTime = isAgtZ13Vh
+    ? sanitizeCode(portalData.agreementStartDateTime, "", 12) ||
+      historicalReportStartDateTime()
+    : sanitizeCode(portalData.agreementStartDateTime, "", 12) ||
+      defaultAgreementStartDateTime();
+  const agreementEndDateTime = isAgtZ13Vh
+    ? sanitizeCode(portalData.agreementEndDateTime, "", 12) ||
+      historicalReportEndDateTime()
+    : isAgtZ18
+      ? sanitizeCode(portalData.agreementEndDateTime, "", 12) ||
+        agreementStartDateTime
+      : portalData.agreementEndDateTime;
 
   return {
     ...portalData,
@@ -1433,10 +1473,7 @@ function withEscoPermissionAgtFallbacks(
     gridAreaId:
       sanitizeCode(portalData.gridAreaId, "", 12) || fallbackGridAreaId,
     agreementStartDateTime,
-    agreementEndDateTime: isAgtZ18
-      ? sanitizeCode(portalData.agreementEndDateTime, "", 12) ||
-        agreementStartDateTime
-      : portalData.agreementEndDateTime,
+    agreementEndDateTime,
     permissionTimestamp: isAgtZ18
       ? sanitizeCode(portalData.permissionTimestamp, "", 12) ||
         agreementStartDateTime
@@ -1448,16 +1485,16 @@ function withEscoPermissionAgtFallbacks(
     permissionEndReason: isAgtZ18
       ? sanitizeCode(portalData.permissionEndReason, "", 12) || "B80"
       : portalData.permissionEndReason,
-    customerId: isAgtZ18
+    customerId: isAgtActorToPortalPermission
       ? sanitizeCode(portalData.customerId, "", 35) || "196805029268"
       : portalData.customerId,
-    customerIdCodeListQualifier: isAgtZ18
+    customerIdCodeListQualifier: isAgtActorToPortalPermission
       ? sanitizeCode(portalData.customerIdCodeListQualifier, "SE2", 8)
       : portalData.customerIdCodeListQualifier,
-    customerName: isAgtZ18
+    customerName: isAgtActorToPortalPermission
       ? sanitize(portalData.customerName, "GRIDEX TESTKUND", 70)
       : portalData.customerName,
-    customerCountry: isAgtZ18
+    customerCountry: isAgtActorToPortalPermission
       ? sanitizeCode(portalData.customerCountry, "SE", 3)
       : portalData.customerCountry,
   };
@@ -1972,6 +2009,24 @@ function buildProdatPermissionLineSegments(params: {
     segments.push(`DTM+164:${reportingEndDate}:203`);
   } else if (step.code === "Z15") {
     segments.push(`DTM+93:${endDate ?? startDate}:203`);
+  } else if (step.code === "Z13" || step.code === "Z14") {
+    // Fält 302/321 i PRODAT 26.A: permission-flöden använder
+    // rapportstart/rapportslut. De får inte renderas som avtalets DTM+92.
+    const reportStartDate = isHistoricalPermissionTransaction(transactionType)
+      ? date203FromPortalDate(
+          portalData.agreementStartDateTime,
+          historicalReportStartDateTime().slice(0, 8),
+        )
+      : startDate;
+    const reportEndDate = isHistoricalPermissionTransaction(transactionType)
+      ? date203FromPortalDate(
+          portalData.agreementEndDateTime,
+          historicalReportEndDateTime().slice(0, 8),
+        )
+      : endDate;
+
+    segments.push(`DTM+90:${reportStartDate}:203`);
+    if (reportEndDate) segments.push(`DTM+91:${reportEndDate}:203`);
   } else {
     segments.push(`DTM+92:${startDate}:203`);
   }
@@ -2977,6 +3032,49 @@ export function validateEdielTgtDraft(
         "z18_installation_party_not_allowed",
         "Z18 får inte skicka NAD+IT",
         "Edielportalen kräver SG17[UD] för Z18 och markerar SG17[IT] som används inte.",
+      );
+    }
+  }
+
+  if (
+    step.family === "PRODAT" &&
+    step.code === "Z13" &&
+    normalized.includes("CAV+S18")
+  ) {
+    if (!normalized.includes("DTM+90:")) {
+      pushIssue(
+        issues,
+        "error",
+        "z13vh_missing_report_start",
+        "Z13VH saknar rapportstartdatum",
+        "PRODAT Z13VH ska använda fält 302 som DTM+90, inte avtalets DTM+92.",
+      );
+    }
+    if (!normalized.includes("DTM+91:")) {
+      pushIssue(
+        issues,
+        "error",
+        "z13vh_missing_report_end",
+        "Z13VH saknar rapportslutdatum",
+        "PRODAT Z13VH ska använda fält 321 som DTM+91 för historiska mätvärden.",
+      );
+    }
+    if (normalized.includes("DTM+92:")) {
+      pushIssue(
+        issues,
+        "error",
+        "z13vh_contract_start_not_allowed",
+        "Z13VH får inte byggas som avtalstart",
+        "Historisk mätvärdesbegäran ska använda DTM+90/DTM+91. DTM+92 hör till avtalsstart och får inte ersätta rapportperioden.",
+      );
+    }
+    if (!normalized.includes("NAD+UD+")) {
+      pushIssue(
+        issues,
+        "error",
+        "z13vh_missing_end_user_ud",
+        "Z13VH saknar slutkund",
+        "PRODAT Z13 ska innehålla SG17 NAD+UD med elanvändaren/slutkunden.",
       );
     }
   }
