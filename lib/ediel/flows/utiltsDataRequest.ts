@@ -1075,7 +1075,49 @@ export async function processInboundUtiltsMessage(params: {
     explicitTestCaseCode: params.testCaseCode ?? null,
   })
 
-  const runtime = runUtiltsRuntimeForMessage(message)
+  // First build a parse-only runtime snapshot so matching/permission logic can use
+  // normalized UTILTS facts. The final ACK decision is run again after canonical
+  // business matching, because live/test must use the same production rule: object
+  // identity/processability is validated before period/observation-count checks.
+  const provisionalRuntime = runUtiltsRuntimeForMessage(message)
+  const provisionalNormalizedPayload = provisionalRuntime.normalizedPayload
+  const canonicalLinks = await linkInboundUtiltsMessageCanonically({
+    actorUserId,
+    message,
+  })
+
+  const permissionProbeMessage: EdielMessageRow = {
+    ...message,
+    customer_id: canonicalLinks.siteAndCustomer?.customerId ?? canonicalLinks.matchedDataRequest?.customer_id ?? message.customer_id,
+    site_id: canonicalLinks.siteAndCustomer?.siteId ?? canonicalLinks.matchedDataRequest?.site_id ?? message.site_id,
+    metering_point_id: canonicalLinks.meteringPointId ?? canonicalLinks.matchedDataRequest?.metering_point_id ?? message.metering_point_id,
+    grid_owner_id: canonicalLinks.siteAndCustomer?.gridOwnerId ?? canonicalLinks.matchedDataRequest?.grid_owner_id ?? message.grid_owner_id,
+    grid_owner_data_request_id: canonicalLinks.matchedDataRequest?.id ?? message.grid_owner_data_request_id,
+    parsed_payload: {
+      ...(message.parsed_payload ?? {}),
+      normalizedMeteringPayload: provisionalNormalizedPayload,
+      utiltsRuntimeFacts: provisionalRuntime.facts,
+      utiltsRuntimeTestCaseCode: runtimeTestCaseCode,
+    },
+  }
+
+  const matchedPermission = !canonicalLinks.matchedDataRequest
+    ? await findActiveMeteringPermissionForUtiltsMessage(permissionProbeMessage)
+    : null
+
+  const runtimeSourceMessage: EdielMessageRow = {
+    ...permissionProbeMessage,
+    customer_id: permissionProbeMessage.customer_id ?? matchedPermission?.customer_id ?? null,
+    site_id: permissionProbeMessage.site_id ?? matchedPermission?.site_id ?? null,
+    metering_point_id: permissionProbeMessage.metering_point_id ?? matchedPermission?.metering_point_id ?? null,
+    grid_owner_id: permissionProbeMessage.grid_owner_id ?? matchedPermission?.grid_owner_id ?? null,
+    business_match_status:
+      permissionProbeMessage.metering_point_id || canonicalLinks.matchedDataRequest || matchedPermission
+        ? 'matched'
+        : permissionProbeMessage.business_match_status,
+  }
+
+  const runtime = runUtiltsRuntimeForMessage(runtimeSourceMessage)
   const ackPlan = applyUtiltsTgtAckPlanOverride({
     runtime,
     testCaseCode: runtimeTestCaseCode,
@@ -1087,10 +1129,6 @@ export async function processInboundUtiltsMessage(params: {
     ackPlan.contrlOutcome === 'negative' ||
     ackPlan.shouldSendUtiltsErr ||
     (ackPlan.shouldSendAperak && ackPlan.aperakOutcome === 'negative')
-  const canonicalLinks = await linkInboundUtiltsMessageCanonically({
-    actorUserId,
-    message,
-  })
 
   await updateEdielMessageStatus({
     actorUserId,
@@ -1115,7 +1153,7 @@ export async function processInboundUtiltsMessage(params: {
   if ((!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
     const ackIds = await createUtiltsRuntimeAcks({
       actorUserId,
-      sourceMessage: message,
+      sourceMessage: runtimeSourceMessage,
       ackPlan: ackPlan,
       testCaseCode: runtimeTestCaseCode,
     })
@@ -1167,14 +1205,6 @@ export async function processInboundUtiltsMessage(params: {
   }
 
   if (!canonicalLinks.matchedDataRequest) {
-    const matchedPermission = await findActiveMeteringPermissionForUtiltsMessage({
-      ...message,
-      parsed_payload: {
-        ...(message.parsed_payload ?? {}),
-        normalizedMeteringPayload: normalizedPayload,
-      },
-    })
-
     if (matchedPermission) {
       const permissionCustomerId = canonicalLinks.siteAndCustomer?.customerId ?? matchedPermission.customer_id ?? null
       const permissionSiteId = canonicalLinks.siteAndCustomer?.siteId ?? matchedPermission.site_id ?? null
@@ -1205,7 +1235,7 @@ export async function processInboundUtiltsMessage(params: {
       const ingestedMeterValueIds = ingestedMeterValues.map((row) => row.id)
       const ackIds = await createUtiltsRuntimeAcks({
         actorUserId,
-        sourceMessage: message,
+        sourceMessage: runtimeSourceMessage,
         ackPlan: ackPlan,
         testCaseCode: runtimeTestCaseCode,
       })
@@ -1261,7 +1291,7 @@ export async function processInboundUtiltsMessage(params: {
 
     const ackIds = await createUtiltsRuntimeAcks({
       actorUserId,
-      sourceMessage: message,
+      sourceMessage: runtimeSourceMessage,
       ackPlan: ackPlan,
       testCaseCode: runtimeTestCaseCode,
     })
@@ -1364,7 +1394,7 @@ export async function processInboundUtiltsMessage(params: {
 
   const ackIds = await createUtiltsRuntimeAcks({
     actorUserId,
-    sourceMessage: message,
+    sourceMessage: runtimeSourceMessage,
     ackPlan: ackPlan,
     testCaseCode: runtimeTestCaseCode,
   })

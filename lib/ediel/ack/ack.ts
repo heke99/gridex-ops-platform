@@ -674,6 +674,38 @@ function shouldUseS02FunctionalTgtFallback(sourceMessage: EdielMessageRow, codes
   )
 }
 
+function hasResolvedUtiltsObjectContext(sourceMessage: EdielMessageRow): boolean {
+  return Boolean(
+    sourceMessage.metering_point_id ||
+    sourceMessage.grid_owner_data_request_id ||
+    sourceMessage.outbound_request_id ||
+    sourceMessage.related_message_id ||
+    ['matched', 'linked', 'resolved'].includes(String(sourceMessage.business_match_status ?? '').trim().toLowerCase()),
+  )
+}
+
+function normalizeUtiltsErrCodeForSourceGroup(params: {
+  sourceMessage: EdielMessageRow
+  code: string
+  group: UtiltsErrSourceGroup | null
+  allCodes: readonly string[]
+}): string {
+  const code = sanitizeEdifactToken(params.code.toUpperCase(), 8) ?? 'E14'
+  if (code !== 'E87') return code
+
+  // Do not change explicit TGT U1.2.2/S02 b-case handling where E87 and E10 are
+  // expected as separate production-like functional reasons. Outside that scoped
+  // fallback, object identity/processability must win over generic interval/count
+  // rejection. This is the same live rule: unknown object => E10, unknown grid area
+  // => E49, and only then period/resolution/count mismatch => E87.
+  if (shouldUseS02FunctionalTgtFallback(params.sourceMessage, params.allCodes)) return code
+  if (hasResolvedUtiltsObjectContext(params.sourceMessage)) return code
+
+  if (params.group?.meterPointId) return 'E10'
+  if (params.group?.gridAreaId) return 'E49'
+  return code
+}
+
 
 const AGT_UE_ALLOWED_UTILTS_ERR_CODES = new Set(['E10', 'E14', 'E49', 'E55', 'E61'])
 
@@ -805,14 +837,20 @@ function buildUtiltsErrSegments(params: {
 
   const usedMeterPointIds = new Set<string>()
 
-  uniqueCodes.forEach((code, index) => {
+  uniqueCodes.forEach((rawCode, index) => {
     const group = resolveUtiltsErrSourceGroup({
       sourceMessage: params.sourceMessage,
-      code,
+      code: rawCode,
       allCodes: uniqueCodes,
       index,
       groups: sourceGroups,
       usedMeterPointIds,
+    })
+    const code = normalizeUtiltsErrCodeForSourceGroup({
+      sourceMessage: params.sourceMessage,
+      code: rawCode,
+      group,
+      allCodes: uniqueCodes,
     })
 
     const outboundTransactionId = utiltsErrTransactionId({

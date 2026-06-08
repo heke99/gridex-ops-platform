@@ -426,7 +426,7 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
       kind: 'ack',
       ackFamily: 'UTILTS_ERR',
       outcome: 'negative',
-      messageText: runtime.ackPlan.reason || 'UTILTS process-/funktionsfel ska besvaras med UTILTS_ERR.',
+      messageText: serializeUtiltsRuntimeUtiltsErrMessageText(runtime.ackPlan) || 'E14',
       applicationErrors: [],
       reason: runtime.ackPlan.reason || 'UTILTS runtime selected UTILTS_ERR.',
       ruleKeys: ['UTILTS_FUNCTIONAL_ERROR', classification.ruleProfileId],

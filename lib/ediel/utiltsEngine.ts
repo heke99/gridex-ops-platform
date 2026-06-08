@@ -5,7 +5,7 @@ import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts
 import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
 import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
 
-export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v4-context-aware-agt-reason-codes'
+export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v5-object-first-reason-codes'
 
 export type UtiltsRuntimeMessageCode =
   | 'S01'
@@ -271,6 +271,90 @@ function numberOrNull(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null
   }
   return null
+}
+
+function normalizedOptionalId(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function messageHasResolvedObjectContext(message?: EdielMessageRow | null): boolean {
+  if (!message) return false
+  return Boolean(
+    normalizedOptionalId(message.metering_point_id) ||
+    normalizedOptionalId(message.grid_owner_data_request_id) ||
+    normalizedOptionalId(message.outbound_request_id) ||
+    normalizedOptionalId(message.related_message_id) ||
+    ['matched', 'linked', 'resolved'].includes(String(message.business_match_status ?? '').trim().toLowerCase()),
+  )
+}
+
+function groupHasExternalMeteringPointId(group: UtiltsTransactionGroup): boolean {
+  return Boolean(parseLocValueFromGroup(group, 'LOC+172'))
+}
+
+function groupHasExternalGridAreaId(group: UtiltsTransactionGroup): boolean {
+  return Boolean(parseLocValueFromGroup(group, 'LOC+239'))
+}
+
+function hasMoreSpecificFunctionalIssueForReference(params: {
+  issues: readonly UtiltsValidationIssue[]
+  referenceNumber: string | null
+  ignoredCode: string
+}): boolean {
+  const reference = sanitizeRuntimeToken(params.referenceNumber, 35)
+  if (!reference) return false
+  return params.issues.some((issue) => {
+    if (issue.severity !== 'error' || issue.kind !== 'functional') return false
+    const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
+    if (!code || code === params.ignoredCode) return false
+    const issueReference = sanitizeRuntimeToken(issue.referenceNumber ?? issue.lineItemReference ?? null, 35)
+    return issueReference === reference
+  })
+}
+
+function addObjectProcessabilityIssues(params: {
+  issues: UtiltsValidationIssue[]
+  message?: EdielMessageRow | null
+  facts: UtiltsRuntimeFacts
+  code: string
+}) {
+  const code = String(params.code ?? '').toUpperCase()
+  const groups = splitTransactionGroups(params.facts.rawSegments)
+  if (groups.length === 0) return
+
+  const resolvedObject = messageHasResolvedObjectContext(params.message)
+
+  for (const group of groups) {
+    const transactionReference = transactionIssueReference(group, params.facts.transactionId)
+
+    if (['E30', 'E66'].includes(code) && groupHasExternalMeteringPointId(group) && !resolvedObject) {
+      params.issues.push(buildIssue({
+        severity: 'error',
+        kind: 'functional',
+        code: `UTILTS_${code}_UNKNOWN_METERING_POINT`,
+        title: 'Okänd anläggning',
+        description: 'Anläggningsid kunde inte identifieras i tenantens produktionsdata. Objektfel går före period-/observationskontroll.',
+        utiltsErrCode: 'E10',
+        referenceQualifier: 'TN',
+        referenceNumber: transactionReference,
+        lineItemReference: transactionReference,
+      }))
+    }
+
+    if (['S03', 'E31'].includes(code) && groupHasExternalGridAreaId(group) && !normalizedOptionalId(params.message?.grid_owner_id)) {
+      params.issues.push(buildIssue({
+        severity: 'error',
+        kind: 'functional',
+        code: `UTILTS_${code}_UNKNOWN_GRID_AREA`,
+        title: 'Okänt nätområde',
+        description: 'Nätområdesid kunde inte identifieras i tenantens produktionsdata. Nätområdesfel går före tidsserieinnehåll.',
+        utiltsErrCode: 'E49',
+        referenceQualifier: 'TN',
+        referenceNumber: transactionReference,
+        lineItemReference: transactionReference,
+      }))
+    }
+  }
 }
 
 function firstComponent(value: string | null | undefined): string | null {
@@ -976,7 +1060,7 @@ function applyUtiltsTgtU2ValidationOverride(params: {
   return promoteE66SchMissingReadingToFunctionalIssues(params)
 }
 
-function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation {
+function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRow | null): UtiltsRuntimeValidation {
   const issues: UtiltsValidationIssue[] = []
   const code = String(facts.messageCode ?? '').toUpperCase()
 
@@ -1076,6 +1160,8 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
     }))
   }
 
+  addObjectProcessabilityIssues({ issues, message, facts, code })
+
   if (['S02', 'S03'].includes(code) && !hasSegment(facts.rawSegments, 'STS+7')) {
     issues.push(buildIssue({
       severity: 'error',
@@ -1147,7 +1233,12 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
       const groupPeriod = parsePeriodFromGroup(group)
       const expectedMonths = monthsBetweenPeriod(groupPeriod.start, groupPeriod.end)
       const actualQuantities = parseQuantitiesFromGroup(group).length
-      if (expectedMonths !== null && actualQuantities > 0 && actualQuantities !== expectedMonths) {
+      if (
+        expectedMonths !== null &&
+        actualQuantities > 0 &&
+        actualQuantities !== expectedMonths &&
+        !hasMoreSpecificFunctionalIssueForReference({ issues, referenceNumber: transactionReference, ignoredCode: 'E87' })
+      ) {
         issues.push(buildIssue({
           severity: 'error',
           kind: 'functional',
@@ -1291,7 +1382,8 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts): UtiltsRuntimeValidation
         isIntervalValueSeries &&
         expectedCount !== null &&
         groupQuantities.length > 0 &&
-        groupQuantities.length !== expectedCount
+        groupQuantities.length !== expectedCount &&
+        !hasMoreSpecificFunctionalIssueForReference({ issues, referenceNumber: transactionReference, ignoredCode: 'E87' })
       ) {
         issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_OBSERVATION_COUNT_MISMATCH', title: 'Fel antal observationer', description: `Antal observationer (${groupQuantities.length}) matchar inte period/upplösning (${expectedCount}).`, utiltsErrCode: 'E87', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
@@ -1728,7 +1820,7 @@ export function runUtiltsRuntimeForMessage(message: EdielMessageRow): UtiltsRunt
   const rawPayload = message.raw_payload ?? ''
   const facts = parseUtiltsRuntimeFacts(rawPayload)
   const normalizedPayload = normalizeUtiltsRuntimePayload(facts, message)
-  const baseValidation = validateUtiltsFacts(facts)
+  const baseValidation = validateUtiltsFacts(facts, message)
   const validation = applyUtiltsTgtU2ValidationOverride({ message, validation: baseValidation })
   const ackPlan = decideUtiltsRuntimeAckPlan({ message, facts, validation })
 
