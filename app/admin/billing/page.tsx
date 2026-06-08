@@ -1,4 +1,5 @@
 // app/admin/billing/page.tsx
+import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
@@ -83,6 +84,11 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
  />
 
  <div className="space-y-6 p-8">
+        <section className="grid gap-3 md:grid-cols-3">
+          <Link href="/admin/billing/underlays" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-emerald-200 hover:text-emerald-800">Faktureringsunderlag</Link>
+          <Link href="/admin/pricing" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-emerald-200 hover:text-emerald-800">Prismotor</Link>
+          <Link href="/admin/billing/export-center" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-emerald-200 hover:text-emerald-800">Exportcenter</Link>
+        </section>
  <BillingFilterBar query={query} status={status} />
 
  <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_420px]">

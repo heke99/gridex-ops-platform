@@ -11,6 +11,10 @@
     {
       "path": "/api/ediel/outbox/process",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/pricing/spot-prices",
+      "schedule": "15 3 * * *"
     }
   ]
 }

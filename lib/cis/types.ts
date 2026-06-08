@@ -56,6 +56,7 @@ export type MeteringValueRow = {
   company_id?: string | null
   customer_id: string
   site_id: string | null
+  customer_site_id?: string | null
   metering_point_id: string
   source_request_id: string | null
   grid_owner_id: string | null
@@ -67,6 +68,10 @@ export type MeteringValueRow = {
   period_end: string | null
   source_system: string
   raw_payload: Record<string, unknown>
+  price_area?: string | null
+  resolution?: string | null
+  source_transaction_reference?: string | null
+  source_line_reference?: string | null
   source_ediel_message_id?: string | null
   canonical_dedupe_key?: string | null
   is_current?: boolean | null
@@ -85,6 +90,15 @@ export type BillingUnderlayStatus =
   | 'validated'
   | 'exported'
   | 'failed'
+  | 'missing_metering_data'
+  | 'metering_received'
+  | 'ready_for_pricing'
+  | 'pricing_failed'
+  | 'price_preview_ready'
+  | 'needs_review'
+  | 'reprice_required'
+  | 'locked'
+  | 'export_ready'
 
 export type BillingUnderlayRow = {
   id: string
@@ -93,6 +107,17 @@ export type BillingUnderlayRow = {
   site_id: string | null
   metering_point_id: string | null
   source_request_id: string | null
+  contract_id?: string | null
+  price_plan_id?: string | null
+  campaign_id?: string | null
+  customer_site_id?: string | null
+  price_area?: string | null
+  billing_period_start?: string | null
+  billing_period_end?: string | null
+  calculated_total_sek_ex_vat?: number | null
+  calculated_vat_sek?: number | null
+  calculated_total_sek_inc_vat?: number | null
+  pricing_snapshot?: Record<string, unknown> | null
   grid_owner_id: string | null
   underlay_month: number | null
   underlay_year: number | null

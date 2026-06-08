@@ -15,7 +15,9 @@
     "ediel:inbound-tenant-resolution-regression": "node scripts/ediel-inbound-tenant-resolution-regression.cjs",
     "ediel:utilts-reason-regression": "node scripts/ediel-utilts-reason-regression.cjs",
     "ediel:z13vh-regression": "node scripts/ediel-z13vh-production-regression.cjs",
-    "ediel:parsing-tenant-hardening-regression": "node scripts/ediel-parsing-tenant-hardening-regression.cjs"
+    "ediel:parsing-tenant-hardening-regression": "node scripts/ediel-parsing-tenant-hardening-regression.cjs",
+    "pricing:billing-regression": "node scripts/pricing-billing-regression.cjs",
+    "pricing:spot-auto-import-regression": "node scripts/pricing-spot-auto-import-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

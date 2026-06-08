@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
@@ -41,6 +42,18 @@ export default async function PricingPage() {
       />
 
       <div className="space-y-6 p-8">
+        <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {[
+            ['Spotpriser', '/admin/pricing/spot-prices'],
+            ['Portföljpriser', '/admin/pricing/portfolio-prices'],
+            ['Prisplaner', '/admin/pricing/price-plans'],
+            ['Kampanjer', '/admin/pricing/campaigns'],
+            ['Komponenter', '/admin/pricing/components'],
+            ['Prislåsning', '/admin/pricing/period-locks'],
+          ].map(([label, href]) => (
+            <Link key={href} href={href} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-emerald-200 hover:text-emerald-800">{label}</Link>
+          ))}
+        </section>
         <section className="grid gap-4 lg:grid-cols-4">
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="text-sm font-medium text-slate-700">Avtalsmallar</div>
@@ -97,6 +110,9 @@ export default async function PricingPage() {
                 <option value="green_electricity_fee">Grön el-avgift</option>
                 <option value="el_certificate">Elcertifikat</option>
                 <option value="custom_addon">Kundanpassad tilläggsavgift</option>
+                <option value="invoice_fee">Fakturaavgift</option>
+                <option value="portfolio_price">Portföljpris</option>
+                <option value="mixed_price">Mixpris</option>
                 <option value="campaign_discount">Kampanjrabatt</option>
                 <option value="start_fee">Startavgift</option>
                 <option value="admin_fee">Administrativ avgift</option>
@@ -108,6 +124,8 @@ export default async function PricingPage() {
                   <option value="sek_month">kr/mån</option>
                   <option value="ore_per_kwh">öre/kWh</option>
                   <option value="percent_of_spot">% av spot</option>
+                  <option value="per_kwh">kr/kWh</option>
+                  <option value="fixed_monthly">kr/månad</option>
                   <option value="sek_once">engångsbelopp</option>
                 </select>
               </div>
