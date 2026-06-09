@@ -209,3 +209,54 @@ export async function setIntegrationApiClientStatusAction(formData: FormData) {
 
   revalidatePath('/admin/platform/api-clients')
 }
+
+export async function deleteIntegrationApiClientAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const clientId = text(formData, 'clientId')
+
+  if (!clientId) throw new Error('API-klient saknas.')
+
+  const { data: current, error: currentError } = await supabaseService
+    .from('integration_api_clients')
+    .select('id,company_id,name,status,key_prefix,scopes,allowed_origins,allowed_ips,rate_limit_per_minute,last_used_at,expires_at,created_at,metadata')
+    .eq('id', clientId)
+    .maybeSingle()
+
+  if (currentError) throw currentError
+  if (!current) throw new Error('API-klienten hittades inte.')
+  if (current.status === 'active') {
+    throw new Error('Aktiva API-nycklar måste återkallas innan de kan raderas.')
+  }
+
+  await auditApiClient({
+    action: 'api_client.deleted',
+    actorUserId: context.userId,
+    companyId: current.company_id,
+    clientId,
+    metadata: {
+      deleted_client: {
+        name: current.name,
+        status: current.status,
+        key_prefix: current.key_prefix,
+        scopes: current.scopes,
+        allowed_origins: current.allowed_origins,
+        allowed_ips: current.allowed_ips,
+        rate_limit_per_minute: current.rate_limit_per_minute,
+        last_used_at: current.last_used_at,
+        expires_at: current.expires_at,
+        created_at: current.created_at,
+        metadata: current.metadata,
+      },
+      deletion_mode: 'superadmin_old_api_key_cleanup',
+    },
+  })
+
+  const { error } = await supabaseService
+    .from('integration_api_clients')
+    .delete()
+    .eq('id', clientId)
+
+  if (error) throw error
+
+  revalidatePath('/admin/platform/api-clients')
+}

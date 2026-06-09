@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import CreateApiClientForm from './CreateApiClientForm'
-import { setIntegrationApiClientStatusAction } from './actions'
+import { deleteIntegrationApiClientAction, setIntegrationApiClientStatusAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,9 +116,14 @@ export default async function PlatformApiClientsPage() {
               Här skapar superadmin API-klienter för Gridex hemsidan och andra tenant-frontends. Token används server-side, sparas bara som hash och styrs med scopes, origins, IP-filter och rate limits.
             </p>
           </div>
-          <Link href="/admin/platform/security" className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            Visa security guardrails
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/developers/customer-portal-api" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">
+              API-dokumentation
+            </Link>
+            <Link href="/admin/platform/security" className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Visa security guardrails
+            </Link>
+          </div>
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -171,7 +176,7 @@ export default async function PlatformApiClientsPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Befintliga API-klienter</h2>
-            <p className="mt-1 text-sm text-slate-600">Token visas aldrig igen. Skapa en ny klient om en token har tappats bort.</p>
+            <p className="mt-1 text-sm text-slate-600">Token visas aldrig igen. Gamla nycklar ska först återkallas och kan därefter raderas från listan.</p>
           </div>
         </div>
 
@@ -234,6 +239,12 @@ export default async function PlatformApiClientsPage() {
                             <input type="hidden" name="status" value="revoked" />
                             <input type="hidden" name="reason" value="Återkallad från superadmin UI" />
                             <button className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">Återkalla</button>
+                          </form>
+                        ) : null}
+                        {client.status === 'revoked' || client.status === 'expired' ? (
+                          <form action={deleteIntegrationApiClientAction}>
+                            <input type="hidden" name="clientId" value={client.id} />
+                            <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Radera gammal nyckel</button>
                           </form>
                         ) : null}
                       </div>

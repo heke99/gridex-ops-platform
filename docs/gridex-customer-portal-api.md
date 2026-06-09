@@ -97,6 +97,22 @@ GET /api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001&fa
 
 Responsen returnerar normaliserade fält som `quantity_kwh`, `period_start`, `period_end`, `price_area`, `quality_status`, `source_type` och `status`.
 
+## Public developer documentation
+
+External websites and partner portals should use the public developer page:
+
+```text
+https://app.gridex.se/developers/customer-portal-api
+```
+
+The repo version of that guide is kept in:
+
+```text
+docs/external-website-api-integration-guide.md
+```
+
+This page is intentionally written for external frontend/backend developers. It explains server-side token handling, `external_customer_id`, endpoint usage, error codes, examples and go-live checks.
+
 ## Security rules
 
 - Hemsidan får aldrig skicka `company_id` som source of truth.
@@ -104,6 +120,7 @@ Responsen returnerar normaliserade fält som `quantity_kwh`, `period_start`, `pe
 - Customer endpoints använder endast länkad `customer_portal_identities`.
 - Email ensam ger aldrig faktura-/avtalsåtkomst.
 - Token ska aldrig exponeras i browsern.
+- Gamla eller exponerade API-nycklar ska återkallas och kan därefter raderas i superadmin-UI:t.
 
 ## Audit och cache
 

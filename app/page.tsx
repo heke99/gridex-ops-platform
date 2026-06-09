@@ -74,6 +74,9 @@ export default function LandingPage() {
             <a href="#saas" className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-white/70 hover:text-slate-950">
               SaaS
             </a>
+            <Link href="/developers" className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-white/70 hover:text-slate-950">
+              Developers
+            </Link>
           </nav>
 
           <Link
@@ -111,6 +114,12 @@ export default function LandingPage() {
               >
                 Se funktionerna
               </a>
+              <Link
+                href="/developers/customer-portal-api"
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
+              >
+                API-dokumentation
+              </Link>
             </div>
 
             <div className="mt-9 grid gap-3 sm:grid-cols-2">

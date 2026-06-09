@@ -17,6 +17,8 @@ assertContains('app/admin/platform/api-clients/page.tsx', [
   'API-klienter för Mina sidor',
   'Gridex hemsida',
   'POST /api/v1/customer-portal/sync',
+  '/developers/customer-portal-api',
+  'Radera gammal nyckel',
 ])
 
 assertContains('app/admin/platform/api-clients/actions.ts', [
@@ -25,6 +27,8 @@ assertContains('app/admin/platform/api-clients/actions.ts', [
   'allowed_origins',
   'token_display',
   'api_client.created',
+  'deleteIntegrationApiClientAction',
+  'api_client.deleted',
 ])
 
 assertContains('lib/integrations/apiAuth.ts', [
@@ -88,6 +92,31 @@ assertContains('docs/gridex-customer-portal-api.md', [
   'Cache-Control: no-store',
   'route,',
   "metadata ->> 'result_count'",
+  'https://app.gridex.se/developers/customer-portal-api',
+])
+
+assertContains('docs/external-website-api-integration-guide.md', [
+  'https://app.gridex.se/developers/customer-portal-api',
+  'External website frontend',
+  'GRIDEX_OPS_API_TOKEN',
+  'external_customer_id',
+  'Cache-Control: no-store',
+  'Old API keys can be revoked and deleted',
+])
+
+assertContains('app/developers/customer-portal-api/page.tsx', [
+  'Koppla en extern hemsida till Gridex Customer Portal API',
+  'https://app.gridex.se',
+  'Frontend → egen backend/server route',
+  'Authorization: Bearer YOUR_GRIDEX_API_TOKEN',
+  'återkallas eller raderas',
+])
+
+assertContains('scripts/customer-portal-live-test.sh', [
+  'OPS_API_BASE_URL',
+  'EXTERNAL_CUSTOMER_ID',
+  '/developers/customer-portal-api',
+  '/api/v1/customer/metering-values',
 ])
 
 console.log('Gridex Batch 6 API-client/customer-portal regression passed.')
