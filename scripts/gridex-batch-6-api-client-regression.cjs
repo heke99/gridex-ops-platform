@@ -61,6 +61,19 @@ for (const path of [
   assertContains(path, ['requireCustomerPortalApiContext'])
 }
 
+assertContains('app/api/v1/customer/metering-values/route.ts', [
+  "from('normalized_metering_values')",
+  ".eq('company_id', context.client.company_id)",
+  ".eq('customer_id', context.identity.customer_id)",
+  "optionalParam(request, 'from')",
+  "optionalParam(request, 'to')",
+  "optionalParam(request, 'facility_id')",
+  "source_table: 'normalized_metering_values'",
+  'quantity_kwh',
+  'quality_status',
+  'source_type',
+])
+
 assertContains('supabase/migrations/20260609143000_batch_6_api_clients_customer_portal.sql', [
   'customer_portal_identities',
   'customer_portal_api_access_logs',

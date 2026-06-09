@@ -75,6 +75,28 @@ Endpoints:
 - `POST /api/v1/customer/move-out`
 - `POST /api/v1/customer/support-case`
 
+### Mätvärden
+
+`GET /api/v1/customer/metering-values` läser alltid från `normalized_metering_values`, inte äldre tabeller som `metering_values`, `meter_values` eller `billing_underlay_items`.
+
+Matchningskedjan är:
+
+```text
+API-token → integration_api_clients.company_id → external_customer_id → customer_portal_identities.customer_id → normalized_metering_values
+```
+
+Frågan måste alltid filtrera på både `company_id` och `customer_id`. Frontend eller hemsida får aldrig skicka `company_id` som tenant-val.
+
+Stödda filter:
+
+```http
+GET /api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001
+GET /api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001&from=2026-05-01&to=2026-06-01
+GET /api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001&facility_id=735999888000000112
+```
+
+Responsen returnerar normaliserade fält som `quantity_kwh`, `period_start`, `period_end`, `price_area`, `quality_status`, `source_type` och `status`.
+
 ## Security rules
 
 - Hemsidan får aldrig skicka `company_id` som source of truth.

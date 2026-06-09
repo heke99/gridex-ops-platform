@@ -1,4 +1,4 @@
-import type { CapwayConnectionConfig, CapwayFinancingMode, CapwayPutInvoice } from '@/lib/integrations/billing/capway/types'
+import type { CapwayConnectionConfig, CapwayFinancingMode, CapwayInvoiceDebtRow, CapwayPutInvoice } from '@/lib/integrations/billing/capway/types'
 import { purchasableValue } from '@/lib/integrations/billing/capway/statusMapper'
 
 function roundMoney(value: number): number {
@@ -40,10 +40,51 @@ function customerName(customer: Record<string, unknown>): string | null {
 }
 
 function vatCodeForRate(rate: number): string {
-  if (rate === 0.25) return 'SE25'
-  if (rate === 0.12) return 'SE12'
-  if (rate === 0.06) return 'SE6'
+  const normalizedRate = rate > 1 ? rate / 100 : rate
+  const percent = Math.round(normalizedRate * 100)
+  if (percent === 25) return 'SE25'
+  if (percent === 12) return 'SE12'
+  if (percent === 6) return 'SE6'
   return 'SE0'
+}
+
+function assertCapwayDebtRowsAreExVat(input: {
+  rows: CapwayInvoiceDebtRow[]
+  pricingLines: Record<string, unknown>[]
+}) {
+  input.rows.forEach((row, index) => {
+    const line = input.pricingLines[index] ?? {}
+    const description = stringValue(row.description) ?? `rad ${index + 1}`
+    const amountExVat = roundMoney(numberValue(line.amount_ex_vat))
+    const amountIncVat = roundMoney(numberValue(line.amount_inc_vat))
+    const vatAmount = roundMoney(numberValue(line.vat_amount))
+    const rowPrincipal = roundMoney(numberValue(row.rowPrincipalAmount))
+    const rowNet = roundMoney(numberValue(row.itemNetAmount))
+
+    if (!row.vatCode) {
+      throw new Error(`Capway-export blockerad: debtRow ${description} saknar vatCode.`)
+    }
+
+    if (row.includingVAT !== false) {
+      throw new Error(`Capway-export blockerad: debtRow ${description} måste skickas exkl. moms.`)
+    }
+
+    if (rowPrincipal !== rowNet) {
+      throw new Error(`Capway-export blockerad: debtRow ${description} har olika net amount och principal amount.`)
+    }
+
+    if (Math.abs(rowPrincipal - amountExVat) > 0.01) {
+      throw new Error(`Capway-export blockerad: debtRow ${description} matchar inte amount_ex_vat.`)
+    }
+
+    if (vatAmount !== 0 && amountIncVat !== 0 && Math.abs(amountExVat - amountIncVat) <= 0.01) {
+      throw new Error(`Capway-export blockerad: fakturarad ${description} verkar sakna separat exkl./inkl. moms.`)
+    }
+
+    if (vatAmount !== 0 && amountIncVat !== 0 && Math.abs(rowPrincipal - amountIncVat) <= 0.01) {
+      throw new Error(`Capway-export blockerad: debtRow ${description} verkar innehålla belopp inkl. moms.`)
+    }
+  })
 }
 
 export function buildCapwayInvoicePayload(input: {
@@ -87,6 +128,8 @@ export function buildCapwayInvoicePayload(input: {
         ],
       }
     })
+
+  assertCapwayDebtRowsAreExVat({ rows: rowLines, pricingLines: input.pricingLines })
 
   const principal = roundMoney(input.pricingLines.reduce((sum, line) => sum + numberValue(line.amount_ex_vat), 0))
   const vat = roundMoney(input.pricingLines.reduce((sum, line) => sum + numberValue(line.vat_amount), 0))

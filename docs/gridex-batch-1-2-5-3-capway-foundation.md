@@ -54,6 +54,25 @@ CAPWAY_APTIC_PROD_CLIENT_ID
 CAPWAY_APTIC_PROD_CLIENT_SECRET
 ```
 
+## Capway debtRow momsregel
+
+Capway/Aptic ska få radbelopp exklusive moms i varje `debtRow`. Varje rad måste också ha aktuell `vatCode`. Svensk 25 procent moms skickas som `SE25`.
+
+Exempel för svensk 25 procent moms:
+
+```json
+{
+  "description": "Fast månadsavgift",
+  "itemNetAmount": 49,
+  "rowPrincipalAmount": 49,
+  "includingVAT": false,
+  "vatAmount": 12.25,
+  "vatCode": "SE25"
+}
+```
+
+Skicka inte belopp inklusive moms i `debtRows`. Export ska blockeras om `vatCode` saknas, om `includingVAT` inte är `false`, eller om radbeloppet verkar vara inklusive moms. Moms ska styras från pricing line VAT rate: 25 procent → `SE25`, 12 procent → `SE12`, 6 procent → `SE6`, 0 procent → `SE0`.
+
 ## Viktiga blockerare innan skarp produktion
 
 - Provider-koder från Capway: `service`, `paymentCode`, `printCode`, `formCode`, `paymentProductCode`, `preferredChannel`, `vatCode`, `debtGroup`, `accountChartCode`.
