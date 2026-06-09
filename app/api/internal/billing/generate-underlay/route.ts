@@ -6,6 +6,10 @@ import { generateBillingUnderlaysForMonth } from '@/lib/billing/underlayEngine'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+function isBillingPeriodLockError(message: string): boolean {
+  return /Fakturaperioden .* (är locked|är exported|är closed|är låst|låst för)/i.test(message)
+}
+
 export async function POST(request: Request) {
   const access = await requireAdminApiAccess(['billing.write'])
   if (access.response) return access.response
@@ -20,6 +24,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: result })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Kunde inte skapa fakturaunderlag.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: isBillingPeriodLockError(message) ? 409 : 500 })
   }
 }

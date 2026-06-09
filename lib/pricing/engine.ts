@@ -207,6 +207,8 @@ async function persistPricingRun(companyId: string, result: PricingPreviewResult
       status: result.status === 'success' ? 'validated' : 'failed',
       readiness_status: result.status === 'success' ? 'ready' : 'blocked',
       readiness_issues: result.errors.map((message) => ({ code: 'pricing_failed', message })),
+      invoice_readiness_status: result.status === 'success' ? 'ready_for_invoice' : 'blocked',
+      invoice_readiness_issues: result.status === 'success' ? [] : result.errors.map((message) => ({ code: 'pricing_failed', message, severity: 'blocked' })),
       calculated_total_sek_ex_vat: result.totalExVat,
       calculated_vat_sek: result.vatAmount,
       calculated_total_sek_inc_vat: result.totalIncVat,

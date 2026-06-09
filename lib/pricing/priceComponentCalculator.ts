@@ -71,9 +71,15 @@ export function calculatePriceComponents(input: {
       amountExVat = quantityKwh * sekPerKwh
       unit = 'kWh'
     } else if (type === 'fixed_monthly') {
-      const factor = periodizationFactor(input.underlay, component)
+      // Monthly fees are charged once per billing period by default.
+      // Proration must be an explicit contract/campaign choice; legacy active_days rows
+      // must not turn a normal monthly fee into quantity 0 when dates are incomplete/misaligned.
+      const factor = component.periodizationMode === 'prorated_by_days'
+        ? Math.max(periodizationFactor(input.underlay, component), 0)
+        : 1
       quantity = factor
       unit = 'månad'
+      unitPriceExVat = component.amount
       amountExVat = component.amount * factor
     } else if (type === 'fixed_once') {
       amountExVat = component.amount
