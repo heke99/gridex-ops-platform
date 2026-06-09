@@ -21,6 +21,10 @@ assert(migration.includes('verified_for_customer_flow'), 'Batch 3 verified actor
 const fixMigration = read('supabase/migrations/20260609124500_batch_2_3_4_6_test_fix.sql')
 assert(fixMigration.includes('invoice_readiness_status'), 'Verification fix must backfill invoice readiness')
 assert(fixMigration.includes('superseded_by_fix'), 'Verification fix must tag zero monthly fee preview rows')
+const fixV2Migration = read('supabase/migrations/20260609133000_batch_2_3_verification_fix_v2.sql')
+assert(fixV2Migration.includes("periodization_mode = 'full_month'"), 'Verification fix v2 must normalize monthly fees to full_month')
+assert(fixV2Migration.includes("unit = 'sek_month'"), 'Verification fix v2 must normalize monthly fee units to sek_month')
+assert(fixV2Migration.includes("onboarding_status = 'active'"), 'Verification fix v2 must backfill active onboarding status')
 
 const invoiceReadiness = read('lib/billing/invoiceReadiness.ts')
 assert(invoiceReadiness.includes('assertBillingPeriodOpen'), 'Batch 2 period assert helper missing')
@@ -33,8 +37,9 @@ assert(unitConversion.includes("return 'kr/månad'"), 'Monthly fee display must 
 
 const pricingCalculator = read('lib/pricing/priceComponentCalculator.ts')
 assert(pricingCalculator.includes('normalizePricingUnitForComponent'), 'Price component calculator must use component-aware unit normalization')
-assert(pricingCalculator.includes("component.periodizationMode === 'prorated_by_days'"), 'Monthly fees must only be prorated when explicitly requested')
-assert(pricingCalculator.includes('amountExVat = component.amount * factor'), 'Monthly fee amount calculation must charge one period by default')
+assert(pricingCalculator.includes('explicitMonthlyProrationEnabled'), 'Monthly fee proration must require explicit metadata')
+assert(pricingCalculator.includes('if (!explicitMonthlyProrationEnabled(component)) return 1'), 'Monthly fees must default to quantity 1')
+assert(pricingCalculator.includes('amountExVat = component.amount * monthlyQuantity'), 'Monthly fee amount calculation must charge one period by default')
 
 const inbound = read('lib/ediel/inboundRequestAutomation.ts')
 assert(inbound.includes('tenant först') || inbound.includes('Tenant måste lösas'), 'Batch 4 tenant-first guard missing')

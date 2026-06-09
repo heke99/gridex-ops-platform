@@ -21,6 +21,39 @@ function periodizationFactor(underlay: BillingUnderlayInput, component: PriceCom
   return activeDays / totalDays
 }
 
+function metadataString(metadata: Record<string, unknown> | undefined, key: string): string | null {
+  const value = metadata?.[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function metadataBoolean(metadata: Record<string, unknown> | undefined, key: string): boolean {
+  return metadata?.[key] === true
+}
+
+function explicitMonthlyProrationEnabled(component: PriceComponent): boolean {
+  // A monthly fee is a full-period customer fee by default. Legacy rows can contain
+  // periodization_mode = prorated_by_days/active_days even when the business rule is
+  // still full month. Only prorate when the price component explicitly carries a
+  // proration policy in metadata, so normal monthly fees never become quantity 0.
+  if (component.periodizationMode !== 'prorated_by_days') return false
+
+  const policy =
+    metadataString(component.metadata, 'billing_policy') ??
+    metadataString(component.metadata, 'proration_policy') ??
+    metadataString(component.metadata, 'monthly_fee_policy')
+
+  return (
+    policy === 'prorated_by_days' ||
+    metadataBoolean(component.metadata, 'proration_enabled') ||
+    metadataBoolean(component.metadata, 'explicit_proration')
+  )
+}
+
+function fixedMonthlyQuantity(underlay: BillingUnderlayInput, component: PriceComponent): number {
+  if (!explicitMonthlyProrationEnabled(component)) return 1
+  return Math.max(periodizationFactor(underlay, component), 0)
+}
+
 function normalizedCalculationType(component: PriceComponent): string {
   const unit = normalizePricingUnitForComponent({
     unit: component.unit,
@@ -71,16 +104,14 @@ export function calculatePriceComponents(input: {
       amountExVat = quantityKwh * sekPerKwh
       unit = 'kWh'
     } else if (type === 'fixed_monthly') {
-      // Monthly fees are charged once per billing period by default.
-      // Proration must be an explicit contract/campaign choice; legacy active_days rows
-      // must not turn a normal monthly fee into quantity 0 when dates are incomplete/misaligned.
-      const factor = component.periodizationMode === 'prorated_by_days'
-        ? Math.max(periodizationFactor(input.underlay, component), 0)
-        : 1
-      quantity = factor
+      // Fixed monthly fees are charged once per billing period by default. The unit
+      // conversion layer may normalize legacy `sek` rows to `sek_month`, but the
+      // monetary rule is still: one monthly charge per invoice period.
+      const monthlyQuantity = fixedMonthlyQuantity(input.underlay, component)
+      quantity = monthlyQuantity
       unit = 'månad'
       unitPriceExVat = component.amount
-      amountExVat = component.amount * factor
+      amountExVat = component.amount * monthlyQuantity
     } else if (type === 'fixed_once') {
       amountExVat = component.amount
       unit = 'st'
