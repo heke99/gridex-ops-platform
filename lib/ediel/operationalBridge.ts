@@ -5,6 +5,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
+import { recordInboundBusinessDecision } from '@/lib/ediel/inboundBusinessDecision'
 
 type SimpleSwitchLike = {
   id: string
@@ -124,6 +125,19 @@ export async function processEdielOperationalMessage(params: {
 }): Promise<EdielOperationalProcessResult> {
   const message = await getEdielMessageById(params.edielMessageId)
   if (!message) throw new Error('Ediel-meddelandet hittades inte')
+
+  if (message.direction === 'inbound') {
+    await recordInboundBusinessDecision(message).catch(async (error) => {
+      await createEdielMessageEvent({
+        actorUserId: params.actorUserId,
+        edielMessageId: message.id,
+        eventType: 'manual_note',
+        eventStatus: 'warning',
+        message: 'Inbound business decision kunde inte loggas.',
+        payload: { error: error instanceof Error ? error.message : String(error) },
+      }).catch(() => null)
+    })
+  }
 
   if (message.direction !== 'inbound') {
     await createEdielMessageEvent({

@@ -1,4 +1,5 @@
 import type { BillingUnderlayInput, PriceComponent, PricingPreviewLine } from '@/lib/pricing/types'
+import { displayPricingUnit, normalizePricingUnit, sekPerKwhFromComponent } from '@/lib/pricing/unitConversion'
 
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100
@@ -12,7 +13,7 @@ function daysBetween(start: string, end: string): number {
 }
 
 function periodizationFactor(underlay: BillingUnderlayInput, component: PriceComponent): number {
-  if (component.periodizationMode !== 'active_days') return 1
+  if (component.periodizationMode !== 'active_days' && component.periodizationMode !== 'prorated_by_days') return 1
   const totalDays = Math.max(daysBetween(underlay.periodStart, underlay.periodEnd), 1)
   const activeStart = underlay.activeFrom && underlay.activeFrom > underlay.periodStart ? underlay.activeFrom : underlay.periodStart
   const activeEnd = underlay.activeTo && underlay.activeTo < underlay.periodEnd ? underlay.activeTo : underlay.periodEnd
@@ -57,9 +58,10 @@ export function calculatePriceComponents(input: {
       }
       quantity = quantityKwh
       unit = 'kWh'
-      const sekPerKwh = type === 'per_kwh_ore' ? component.amount / 100 : component.amount
+      const sekPerKwh = type === 'per_kwh_ore' ? component.amount / 100 : sekPerKwhFromComponent(component)
       unitPriceExVat = sekPerKwh
       amountExVat = quantityKwh * sekPerKwh
+      unit = 'kWh'
     } else if (type === 'fixed_monthly') {
       const factor = periodizationFactor(input.underlay, component)
       quantity = factor
@@ -78,7 +80,8 @@ export function calculatePriceComponents(input: {
       }
       quantity = quantityKwh
       unit = 'kWh'
-      unitPriceExVat = -(Math.abs(component.amount) / 100)
+      const sekPerKwh = Math.abs(sekPerKwhFromComponent(component))
+      unitPriceExVat = -sekPerKwh
       amountExVat = quantityKwh * unitPriceExVat
     } else if (type === 'discount_fixed') {
       unitPriceExVat = -Math.abs(component.amount)
@@ -111,7 +114,13 @@ export function calculatePriceComponents(input: {
       vatAmount,
       amountIncVat: roundMoney(roundedExVat + vatAmount),
       sortOrder,
-      metadata: component.metadata ?? {},
+      metadata: {
+        ...(component.metadata ?? {}),
+        input_amount: component.amount,
+        input_unit: component.unit ?? component.calculationType ?? null,
+        normalized_pricing_unit: normalizePricingUnit({ unit: component.unit, calculationType: component.calculationType, componentType: component.componentType }),
+        display_pricing_unit: displayPricingUnit(normalizePricingUnit({ unit: component.unit, calculationType: component.calculationType, componentType: component.componentType })),
+      },
     })
     sortOrder += 10
   }

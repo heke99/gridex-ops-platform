@@ -141,11 +141,12 @@ export async function resolvePricingConfiguration(input: {
   const greenFeeMode = stringValue(input.contract?.green_fee_mode)
   const greenFeeValue = numberValue(input.contract?.green_fee_value)
 
-  if (spotMarkup !== null) contractPriceComponents.push({ componentType: 'markup_ore_per_kwh', name: 'Spotpåslag enligt avtal', calculationType: 'ore_per_kwh', amount: spotMarkup, unit: 'öre/kWh', vatApplicable: true, periodizationMode: 'none', priority: 100 })
-  if (variableFee !== null) contractPriceComponents.push({ componentType: 'variable_fee', name: 'Rörlig avgift enligt avtal', calculationType: 'ore_per_kwh', amount: variableFee, unit: 'öre/kWh', vatApplicable: true, periodizationMode: 'none', priority: 110 })
-  if (monthlyFee !== null) contractPriceComponents.push({ componentType: 'fixed_monthly_fee', name: 'Fast månadsavgift enligt avtal', calculationType: 'fixed_monthly', amount: monthlyFee, unit: 'kr/mån', vatApplicable: true, periodizationMode: 'active_days', priority: 200 })
-  if (greenFeeValue !== null && greenFeeMode === 'ore_per_kwh') contractPriceComponents.push({ componentType: 'green_energy_fee', name: 'Grön el enligt avtal', calculationType: 'ore_per_kwh', amount: greenFeeValue, unit: 'öre/kWh', vatApplicable: true, periodizationMode: 'none', priority: 300 })
-  if (greenFeeValue !== null && greenFeeMode === 'sek_month') contractPriceComponents.push({ componentType: 'green_energy_fee', name: 'Grön el enligt avtal', calculationType: 'fixed_monthly', amount: greenFeeValue, unit: 'kr/mån', vatApplicable: true, periodizationMode: 'active_days', priority: 300 })
+  if (spotMarkup !== null) contractPriceComponents.push({ componentType: 'markup_ore_per_kwh', name: 'Spotpåslag enligt avtal', calculationType: 'ore_per_kwh', amount: spotMarkup, unit: 'ore_per_kwh', vatApplicable: true, periodizationMode: 'none', priority: 100 })
+  if (variableFee !== null) contractPriceComponents.push({ componentType: 'variable_fee', name: 'Rörlig avgift enligt avtal', calculationType: 'ore_per_kwh', amount: variableFee, unit: 'ore_per_kwh', vatApplicable: true, periodizationMode: 'none', priority: 110 })
+  if (monthlyFee !== null) contractPriceComponents.push({ componentType: 'fixed_monthly_fee', name: 'Fast månadsavgift enligt avtal', calculationType: 'fixed_monthly', amount: monthlyFee, unit: 'sek_month', vatApplicable: true, periodizationMode: 'active_days', priority: 200 })
+  if (greenFeeValue !== null && greenFeeMode === 'ore_per_kwh') contractPriceComponents.push({ componentType: 'green_energy_fee', name: 'Grön el enligt avtal', calculationType: 'ore_per_kwh', amount: greenFeeValue, unit: 'ore_per_kwh', vatApplicable: true, periodizationMode: 'none', priority: 300 })
+  if (greenFeeValue !== null && greenFeeMode === 'sek_per_kwh') contractPriceComponents.push({ componentType: 'green_energy_fee', name: 'Grön el enligt avtal', calculationType: 'per_kwh', amount: greenFeeValue, unit: 'sek_per_kwh', vatApplicable: true, periodizationMode: 'none', priority: 300 })
+  if (greenFeeValue !== null && greenFeeMode === 'sek_month') contractPriceComponents.push({ componentType: 'green_energy_fee', name: 'Grön el enligt avtal', calculationType: 'fixed_monthly', amount: greenFeeValue, unit: 'sek_month', vatApplicable: true, periodizationMode: 'active_days', priority: 300 })
 
   if (hasFrozenPriceSnapshot) {
     return {

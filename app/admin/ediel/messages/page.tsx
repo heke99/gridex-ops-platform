@@ -6,6 +6,7 @@ import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import { listAckMessagesForSources, listEdielMessages } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
+ deleteAllEdielMessagesAction,
  deleteEdielMessageAction,
  pollMailboxAction,
  processEdielOperationalMessageAction,
@@ -236,6 +237,30 @@ export default async function AdminEdielMessagesPage({
  <Link href="/admin/ediel/messages?family=APERAK" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">APERAK</Link>
  </div>
  </section>
+
+
+ {isPlatformAdmin ? (
+ <section className="rounded-3xl border border-red-200 bg-red-50 p-6">
+ <h2 className="text-lg font-semibold text-red-950">Rensa Ediel-testdata</h2>
+ <p className="mt-2 max-w-3xl text-sm leading-6 text-red-900">
+ Rensning är begränsad till test-/certifieringsmeddelanden. Produktion ska arkiveras via retention, inte hårdraderas. Kör alltid torrkörning först.
+ </p>
+ <form action={deleteAllEdielMessagesAction} className="mt-4 flex flex-wrap items-end gap-3">
+ <input type="hidden" name="cleanupScope" value="test_only" />
+ <label className="grid gap-1 text-sm font-semibold text-red-950">
+ Bekräftelse
+ <input name="confirmation" placeholder="RADERA TESTDATA" className="w-64 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm text-slate-900" />
+ </label>
+ <label className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-950">
+ <input type="checkbox" name="dryRun" defaultChecked />
+ Torrkörning
+ </label>
+ <button type="submit" className="rounded-2xl bg-red-700 px-4 py-2 text-sm font-bold text-white hover:bg-red-800">
+ Rensa testdata
+ </button>
+ </form>
+ </section>
+ ) : null}
 
  <section className="space-y-3">
  {rows.length === 0 ? (

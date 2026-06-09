@@ -1226,20 +1226,69 @@ export async function deleteEdielMessageAction(formData: FormData) {
   revalidateEdiel(edielMessageId);
 }
 
-export async function deleteAllEdielMessagesAction(_formData?: FormData) {
+export async function deleteAllEdielMessagesAction(formData?: FormData) {
   const context = await requirePlatformAdminActionAccess();
+  const confirmation = formString(formData?.get("confirmation") ?? null);
+  const cleanupScope = formString(formData?.get("cleanupScope") ?? null) ?? "test_only";
+  const dryRun = formData?.get("dryRun") === "on";
+
+  if (confirmation !== "RADERA TESTDATA") {
+    throw new Error("Skriv RADERA TESTDATA för att bekräfta rensning av Ediel-testdata.");
+  }
+
+  if (!dryRun && cleanupScope !== "test_only") {
+    throw new Error("Hårdradering är bara tillåten för testdata från den här vyn. Använd retention/arkivering för produktion.");
+  }
 
   const { data: rows, error: rowsError } = await supabaseService
     .from("ediel_messages")
-    .select("id");
+    .select("id,environment,test_flag,receiver_ediel_id,receiver_email,application_reference,mailbox")
+    .limit(5000);
 
   if (rowsError) throw rowsError;
 
-  await deleteEdielMessagesByIds({
-    actorUserId: context.userId,
-    messageIds: (rows ?? []).map((row) => String(row.id)),
-    reason: "Alla Ediel-meddelanden raderades från /admin/ediel/messages.",
+  const testRows = (rows ?? []).filter((row) => {
+    const applicationReference = String(row.application_reference ?? "").toUpperCase();
+    const receiverEmail = String(row.receiver_email ?? "").toLowerCase();
+    const mailbox = String(row.mailbox ?? "").toLowerCase();
+    return (
+      row.environment !== "production" ||
+      row.test_flag === 1 ||
+      row.receiver_ediel_id === "91100" ||
+      receiverEmail.endsWith("@ediel.se") ||
+      applicationReference.includes("AGT") ||
+      applicationReference.includes("TGT") ||
+      mailbox.includes("test") ||
+      mailbox.includes("agt") ||
+      mailbox.includes("tgt")
+    );
   });
+
+  const cleanupRun = {
+    company_id: null,
+    environment: null,
+    scope: cleanupScope,
+    dry_run: dryRun,
+    status: dryRun ? "dry_run" : "completed",
+    filter: { source: "/admin/ediel/messages", cleanupScope, test_only: true },
+    affected_count: testRows.length,
+    actor_user_id: context.userId,
+    reason: "Kontrollerad rensning av Ediel-testdata från meddelandevyn.",
+    started_at: new Date().toISOString(),
+    finished_at: new Date().toISOString(),
+  };
+
+  await supabaseService.from("ediel_cleanup_runs").insert(cleanupRun).then(({ error }) => {
+    if (error && error.code !== "42P01" && error.code !== "PGRST205") throw error;
+  });
+
+  if (!dryRun) {
+    await deleteEdielMessagesByIds({
+      actorUserId: context.userId,
+      messageIds: testRows.map((row) => String(row.id)),
+      reason: "Ediel-testdata rensades från /admin/ediel/messages.",
+    });
+  }
 
   revalidateEdiel();
 }
