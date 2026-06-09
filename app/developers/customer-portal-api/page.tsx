@@ -75,7 +75,8 @@ const errorCodes = [
   ['401', 'API-token saknas eller är ogiltig.'],
   ['403', 'Token är spärrad, saknar scope, domän/IP är inte tillåten eller kunden är inte länkad.'],
   ['429', 'API-klientens rate limit är uppnådd.'],
-  ['500/503', 'Tillfälligt server- eller databasfel.'],
+  ['409', 'Samma Idempotency-Key har tidigare misslyckats. Svaret blir idempotent_failed, inte en falsk 200-success.'],
+  ['500/503', 'Tillfälligt server- eller databasfel. Svaret innehåller error_stage när felet kan spåras.'],
 ]
 
 const onboardingCurl = `curl -X POST "${baseUrl}/api/v1/website/customer-applications" \\
@@ -360,6 +361,26 @@ Capway invoice_id       = extern fakturareferens`}</CodeBlock>
 }`}</CodeBlock>
           </Section>
 
+          <Section id="live-schema" label="03B" title="Live-schema och idempotency">
+            <p>Website onboarding använder live-tabellerna i Ops. Hemsidan skickar external_customer_id, men Gridex skapar customer_number, customer_sites och public.metering_points.</p>
+            <CodeBlock>{`Core-regler:
+external_customer_id krävs
+customer_number kommer från Ops
+site/facility_id används för customer_sites
+mätpunkt skapas i public.metering_points
+failed idempotency ger 409 idempotent_failed
+mail/webhook kan ge warnings utan att stoppa core onboarding
+
+Mätpunkt default:
+reading_frequency = monthly
+measurement_type = consumption
+is_settlement_relevant = true
+data_quality_status = incomplete
+verification_status = pending
+onboarding_status = application_received`}</CodeBlock>
+          </Section>
+
+
           <Section id="customer-data" label="04" title="Endpoints för att läsa kunddata">
             <div className="overflow-hidden rounded-3xl border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
@@ -424,8 +445,13 @@ Ops skickar och loggar bekräftelse/ångerrätt/statusmail.
 Tenant använder egen avsändare/mallar.
 Extern hemsida får webhook-event och visar status.
 
-Viktiga loggar:
-communication_logs
+Viktiga loggar och live-kolumner:
+communication_logs.event_key
+communication_logs.template_key
+communication_logs.recipient_email
+communication_logs.sender_email
+communication_logs.reply_to_email
+communication_logs.error_message
 communication_log_events
 domain_events
 webhook_deliveries`}</CodeBlock>

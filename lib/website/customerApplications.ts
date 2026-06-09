@@ -562,41 +562,99 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
   const meteringPointId = clean(metering?.metering_point_id) ?? clean(metering?.meter_point_id) ?? site?.facility_id ?? null
   if (!meteringPointId || !site?.id) return null
 
+  const matchExpression = [
+    `metering_point_id.eq.${meteringPointId}`,
+    `meter_point_id.eq.${meteringPointId}`,
+    `ediel_metering_point_id.eq.${meteringPointId}`,
+  ].join(',')
+
   const { data: existing, error: existingError } = await supabaseService
     .from('metering_points')
-    .select('id,metering_point_id')
+    .select('id,metering_point_id,meter_point_id,ediel_metering_point_id')
     .eq('company_id', companyId)
     .eq('customer_id', customerId)
-    .eq('site_id', site.id)
-    .or(`metering_point_id.eq.${meteringPointId},meter_point_id.eq.${meteringPointId}`)
+    .or(`site_id.eq.${site.id},customer_site_id.eq.${site.id}`)
+    .or(matchExpression)
+    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  if (existingError) throw existingError
-  if (existing?.id) return existing as { id: string; metering_point_id: string | null }
+
+  if (existingError && !missingSchema(existingError)) throw existingError
+  if (existing?.id) {
+    return {
+      id: String(existing.id),
+      metering_point_id: clean(existing.metering_point_id) ?? clean(existing.meter_point_id) ?? clean(existing.ediel_metering_point_id),
+    }
+  }
+
+  if (existingError && missingSchema(existingError)) {
+    const fallbackExisting = await supabaseService
+      .from('metering_points')
+      .select('id,metering_point_id,meter_point_id')
+      .eq('company_id', companyId)
+      .eq('customer_id', customerId)
+      .eq('site_id', site.id)
+      .or(`metering_point_id.eq.${meteringPointId},meter_point_id.eq.${meteringPointId}`)
+      .limit(1)
+      .maybeSingle()
+    if (fallbackExisting.error) throw fallbackExisting.error
+    if (fallbackExisting.data?.id) {
+      return {
+        id: String(fallbackExisting.data.id),
+        metering_point_id: clean(fallbackExisting.data.metering_point_id) ?? clean(fallbackExisting.data.meter_point_id),
+      }
+    }
+  }
+
+  const readingFrequency = clean(metering?.reading_frequency) ?? 'monthly'
+  const measurementType = clean(metering?.measurement_type) ?? 'consumption'
+  const startDate = clean(metering?.start_date) ?? clean(input.site?.move_in_date)
+  const annualConsumption = input.site?.annual_consumption_kwh ?? null
+  const priceAreaCode = clean(metering?.price_area_code) ?? clean(input.site?.price_area_code)
+  const metadata = {
+    source: 'website_customer_applications',
+    source_metadata: input.metadata ?? {},
+  }
 
   const fullPayload = {
     company_id: companyId,
     customer_id: customerId,
     site_id: site.id,
+    customer_site_id: site.id,
     meter_point_id: meteringPointId,
     metering_point_id: meteringPointId,
+    ediel_metering_point_id: meteringPointId,
+    anlage_id: site.facility_id ?? meteringPointId,
     site_facility_id: site.facility_id,
     status: 'active',
-    measurement_type: clean(metering?.measurement_type) ?? 'consumption',
-    reading_frequency: clean(metering?.reading_frequency) ?? 'monthly',
-    price_area_code: clean(metering?.price_area_code) ?? clean(input.site?.price_area_code),
-    start_date: clean(metering?.start_date) ?? clean(input.site?.move_in_date),
-    metadata: { source: 'website_customer_applications' },
+    metering_type: 'consumption',
+    measurement_type: measurementType,
+    reading_frequency: readingFrequency,
+    price_area_code: priceAreaCode,
+    start_date: startDate,
+    installation_date: startDate,
+    is_settlement_relevant: true,
+    data_quality_status: 'incomplete',
+    verification_status: 'pending',
+    onboarding_status: 'application_received',
+    estimated_annual_consumption_kwh: annualConsumption,
+    metadata,
+    updated_at: new Date().toISOString(),
   }
 
   const { data, error } = await supabaseService
     .from('metering_points')
     .insert(fullPayload)
-    .select('id,metering_point_id')
+    .select('id,metering_point_id,meter_point_id,ediel_metering_point_id')
     .single()
 
   if (error && !missingSchema(error)) throw error
-  if (data) return data as { id: string; metering_point_id: string | null }
+  if (data) {
+    return {
+      id: String(data.id),
+      metering_point_id: clean(data.metering_point_id) ?? clean(data.meter_point_id) ?? clean(data.ediel_metering_point_id),
+    }
+  }
 
   const fallback = await supabaseService
     .from('metering_points')
@@ -604,13 +662,25 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
       company_id: companyId,
       customer_id: customerId,
       site_id: site.id,
+      customer_site_id: site.id,
       metering_point_id: meteringPointId,
+      meter_point_id: meteringPointId,
       status: 'active',
+      measurement_type: measurementType,
+      reading_frequency: readingFrequency,
+      is_settlement_relevant: true,
+      site_facility_id: site.facility_id,
+      price_area_code: priceAreaCode,
+      start_date: startDate,
+      metadata,
     })
-    .select('id,metering_point_id')
+    .select('id,metering_point_id,meter_point_id')
     .single()
   if (fallback.error) throw fallback.error
-  return fallback.data as { id: string; metering_point_id: string | null }
+  return {
+    id: String(fallback.data.id),
+    metering_point_id: clean(fallback.data.metering_point_id) ?? clean(fallback.data.meter_point_id),
+  }
 }
 
 async function createContract(companyId: string, customerId: string, siteId: string | null, meteringPointId: string | null, input: ApplicationInput) {
@@ -750,13 +820,59 @@ async function loadIdempotentApplication(companyId: string, idempotencyKey: stri
   if (!idempotencyKey) return null
   const { data, error } = await supabaseService
     .from('website_customer_applications')
-    .select('id,response_payload,status,customer_id,customer_number,external_customer_id')
+    .select('id,response_payload,status,customer_id,customer_number,external_customer_id,error_stage,error_code,error_message')
     .eq('company_id', companyId)
     .eq('idempotency_key', idempotencyKey)
     .maybeSingle()
 
   if (error) throw error
-  return data as { id: string; response_payload: Record<string, unknown>; status: string; customer_id: string | null; customer_number: string | null; external_customer_id: string | null } | null
+  return data as {
+    id: string
+    response_payload: Record<string, unknown> | null
+    status: string
+    customer_id: string | null
+    customer_number: string | null
+    external_customer_id: string | null
+    error_stage?: string | null
+    error_code?: string | null
+    error_message?: string | null
+  } | null
+}
+
+function idempotentFailure(existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>, externalCustomerId: string) {
+  const response = existing.response_payload ?? {}
+  const errorStage = existing.error_stage ?? clean(response.error_stage) ?? 'idempotency'
+  const errorCode = existing.error_code ?? clean(response.code) ?? 'internal_error'
+  const errorMessage = existing.error_message ?? clean(response.error) ?? 'Tidigare idempotent request misslyckades.'
+
+  return failureResponse(new WebsiteApplicationError({
+    message: 'Tidigare idempotent request misslyckades.',
+    status: 409,
+    code: 'idempotent_failed',
+    stage: 'idempotency',
+    hint: 'Använd ny Idempotency-Key efter att felet är åtgärdat, eller kör retry via admin.',
+    details: {
+      application_id: existing.id,
+      external_customer_id: existing.external_customer_id ?? externalCustomerId,
+      previous_status: existing.status,
+      previous_error_stage: errorStage,
+      previous_error_code: errorCode,
+      previous_error_message: errorMessage,
+    },
+  }))
+}
+
+function isFailedIdempotentApplication(existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>) {
+  const response = existing.response_payload ?? {}
+  const responseCode = clean(response.code)
+  const hasSuccessIdentity = Boolean(existing.customer_id && (existing.customer_number ?? clean(response.customer_number)))
+
+  return (
+    existing.status === 'failed' ||
+    Boolean(existing.error_stage || existing.error_code || existing.error_message) ||
+    responseCode === 'internal_error' ||
+    (!hasSuccessIdentity && ['failed', 'rejected', 'cancelled'].includes(existing.status))
+  )
 }
 
 function successResponse(data: Record<string, unknown>, warnings: string[] = []) {
@@ -824,6 +940,10 @@ export async function processWebsiteCustomerApplication(input: {
   try {
     const existingIdempotent = await stage('idempotency', () => loadIdempotentApplication(input.client.company_id, input.idempotencyKey ?? null))
     if (existingIdempotent) {
+      if (isFailedIdempotentApplication(existingIdempotent)) {
+        return idempotentFailure(existingIdempotent, externalCustomerId)
+      }
+
       return successResponse({
         ...(existingIdempotent.response_payload ?? {}),
         idempotent: true,
@@ -944,8 +1064,13 @@ export async function processWebsiteCustomerApplication(input: {
             variables,
           }).catch((error) => [{ ok: false, error: errorMessage(error) }]),
         ])
+
+        const flattenedResults = communicationResults.flatMap((item) => Array.isArray(item) ? item : [item]) as Array<{ ok?: boolean; error?: unknown }>
+        if (flattenedResults.some((result) => result?.ok === false)) {
+          warnings.push('confirmation_email_pending')
+        }
       } catch (error) {
-        warnings.push('communication_failed')
+        warnings.push('confirmation_email_pending')
         communicationResults = [{ ok: false, error: errorMessage(error), stage: 'communication_trigger' }]
       }
     }
@@ -986,13 +1111,21 @@ export async function processWebsiteCustomerApplication(input: {
         })
       }
     } catch (error) {
-      warnings.push('webhook_delivery_pending')
+      warnings.push('domain_event_pending')
       await supabaseService
         .from('website_customer_applications')
         .update({ warnings, updated_at: new Date().toISOString() })
         .eq('id', application.id)
         .then(() => null)
       console.warn('[website-applications] domain event/webhook enqueue failed', error)
+    }
+
+    if (warnings.length > 0) {
+      await supabaseService
+        .from('website_customer_applications')
+        .update({ warnings, updated_at: new Date().toISOString() })
+        .eq('id', application.id)
+        .then(() => null)
     }
 
     return successResponse({

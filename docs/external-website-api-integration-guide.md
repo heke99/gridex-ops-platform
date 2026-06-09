@@ -357,4 +357,53 @@ contract.cooling_off_sent
 invoice.disputed
 ```
 
-Tenant sender domains must be verified before they are used as the real From-domain. If the domain is not verified, the tenant can use fallback sender mode if allowed; the communication log records `sender_mode`, `from_email`, `reply_to`, template version and delivery status.
+Tenant sender domains must be verified before they are used as the real From-domain. If the domain is not verified, the tenant can use fallback sender mode if allowed; the communication log records `sender_mode`, `sender_email`, `reply_to_email`, template version and delivery status.
+
+
+## Batch 8.1 live-schema alignment
+
+`POST /api/v1/website/customer-applications` writes to the live schema, not historical draft tables. Important rules:
+
+```text
+external_customer_id krävs
+customer_number skapas av Ops
+site/facility_id används för customer_sites
+mätpunkt skapas i public.metering_points
+Idempotency-Key ska skickas av hemsidans backend
+failed idempotency ger 409 idempotent_failed, inte falsk success
+mail/webhook-problem returneras som warnings när core onboarding lyckas
+```
+
+Mätpunkter skapas med live-obligatoriska värden:
+
+```text
+site_id
+customer_site_id
+metering_point_id / meter_point_id / ediel_metering_point_id
+reading_frequency = monthly om inget skickas
+measurement_type = consumption om inget skickas
+is_settlement_relevant = true
+data_quality_status = incomplete
+verification_status = pending
+onboarding_status = application_received
+```
+
+Error examples:
+
+```json
+{
+  "error": "external_customer_id krävs.",
+  "code": "validation_error",
+  "field": "external_customer_id",
+  "error_stage": "validation"
+}
+```
+
+```json
+{
+  "error": "Tidigare idempotent request misslyckades.",
+  "code": "idempotent_failed",
+  "error_stage": "idempotency",
+  "hint": "Använd ny Idempotency-Key efter att felet är åtgärdat, eller kör retry via admin."
+}
+```
