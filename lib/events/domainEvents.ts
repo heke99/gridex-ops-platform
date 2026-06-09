@@ -34,7 +34,7 @@ export type DomainEventRow = {
 function isMissingReadinessSchema(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code ?? ''
   const message = (error as { message?: string } | null)?.message ?? ''
-  return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist/i.test(message)
+  return ['42P01', '42703', 'PGRST205', '42P10'].includes(code) || /schema cache|does not exist|column .* does not exist|no unique or exclusion constraint/i.test(message)
 }
 
 export async function emitDomainEvent(input: DomainEventInput): Promise<DomainEventRow | null> {
@@ -77,18 +77,23 @@ export async function emitDomainEvent(input: DomainEventInput): Promise<DomainEv
     console.warn('[domain-events] webhook enqueue failed', webhookError)
   })
 
-  await supabaseService
-    .from('event_outbox')
-    .upsert({
-      company_id: input.companyId,
-      domain_event_id: event.id,
-      destination_type: 'webhook',
-      destination_key: 'all_active_webhooks',
-      payload: { event_id: event.id, event_type: event.event_type },
-    }, { onConflict: 'domain_event_id,destination_type,destination_key' })
-    .then(({ error: outboxError }) => {
-      if (outboxError && !isMissingReadinessSchema(outboxError)) throw outboxError
-    })
+  try {
+    const { error: outboxError } = await supabaseService
+      .from('event_outbox')
+      .upsert({
+        company_id: input.companyId,
+        domain_event_id: event.id,
+        destination_type: 'webhook',
+        destination_key: 'all_active_webhooks',
+        payload: { event_id: event.id, event_type: event.event_type },
+      }, { onConflict: 'domain_event_id,destination_type,destination_key' })
+
+    if (outboxError) {
+      console.warn('[domain-events] event outbox enqueue skipped', outboxError)
+    }
+  } catch (outboxError) {
+    console.warn('[domain-events] event outbox enqueue failed', outboxError)
+  }
 
   return event
 }

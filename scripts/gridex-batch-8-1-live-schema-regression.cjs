@@ -67,8 +67,20 @@ assertContains('lib/website/customerApplications.ts', [
   "verification_status: 'pending'",
   "onboarding_status: 'application_received'",
   'idempotent_failed',
+  'incomplete_application',
   'confirmation_email_pending',
   'domain_event_pending',
+  'simple_payload_normalized',
+  'estimated_annual_consumption_kwh',
+])
+
+assertContains('lib/website/customerApplications.ts', [
+  'facility_id: firstDefined',
+  'metering_point_id: firstDefined',
+  'ediel_metering_point_id: firstDefined',
+  'site_facility_id: firstDefined',
+  'expectsSiteOrMetering',
+  'hasCompleteSiteAndMetering',
 ])
 
 assertContains('lib/website/customerApplications.ts', [
@@ -101,6 +113,17 @@ assertContains('lib/email/companyEmailSettings.ts', [
   'dkim_status',
   'spf_status',
   'dmarc_status',
+])
+
+assertContains('lib/events/domainEvents.ts', [
+  'event_type',
+  'event_outbox',
+  'event outbox enqueue skipped',
+])
+
+assertContains('lib/integrations/webhooks.ts', [
+  'webhook delivery enqueue skipped because live schema is incomplete',
+  'idempotency_key',
 ])
 
 assertContains('lib/email/emailTemplates.ts', [

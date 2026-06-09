@@ -115,7 +115,15 @@ export async function enqueueWebhookDeliveriesForEvent(event: DomainEventRow): P
     .from('webhook_deliveries')
     .upsert(rows, { onConflict: 'idempotency_key', ignoreDuplicates: true })
 
-  if (insertError) throw insertError
+  if (insertError) {
+    const code = insertError.code ?? ''
+    const message = insertError.message ?? ''
+    if (['42P01', '42703', 'PGRST205', '42P10'].includes(code) || /schema cache|does not exist|column .* does not exist|no unique or exclusion constraint/i.test(message)) {
+      console.warn('[webhooks] webhook delivery enqueue skipped because live schema is incomplete', insertError)
+      return 0
+    }
+    throw insertError
+  }
   return rows.length
 }
 

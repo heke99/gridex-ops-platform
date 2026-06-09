@@ -44,10 +44,15 @@ const SiteSchema = z.object({
 const MeteringPointSchema = z.object({
   metering_point_id: OPTIONAL_TEXT,
   meter_point_id: OPTIONAL_TEXT,
+  ediel_metering_point_id: OPTIONAL_TEXT,
+  anlage_id: OPTIONAL_TEXT,
+  site_facility_id: OPTIONAL_TEXT,
   reading_frequency: OPTIONAL_TEXT,
   measurement_type: OPTIONAL_TEXT,
   price_area_code: OPTIONAL_TEXT,
   start_date: OPTIONAL_TEXT,
+  installation_date: OPTIONAL_TEXT,
+  estimated_annual_consumption_kwh: z.coerce.number().optional(),
 }).optional()
 
 const ContractSchema = z.object({
@@ -190,13 +195,32 @@ async function stage<T>(stageName: ErrorStage, fn: () => Promise<T>): Promise<T>
   }
 }
 
+function firstClean(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    const cleaned = clean(value)
+    if (cleaned) return cleaned
+  }
+  return undefined
+}
+
+function firstDefined<T>(...values: Array<T | undefined | null>): T | undefined {
+  for (const value of values) {
+    if (value !== undefined && value !== null) return value
+  }
+  return undefined
+}
+
+function hasAnyCleanValue(record: Record<string, unknown>, keys: string[]): boolean {
+  return keys.some((key) => clean(record[key]))
+}
+
 function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
   const raw = isObject(rawBody) ? { ...rawBody } : {}
   const rawCustomer = isObject(raw.customer) ? { ...raw.customer } : {}
   const rawAddress = isObject(raw.address) ? raw.address : {}
   const rawSource = raw.source
-  const rawSite = isObject(raw.site) ? { ...raw.site } : undefined
-  const rawMeteringPoint = isObject(raw.metering_point) ? { ...raw.metering_point } : undefined
+  const nestedSite = isObject(raw.site) ? { ...raw.site } : null
+  const nestedMeteringPoint = isObject(raw.metering_point) ? { ...raw.metering_point } : null
 
   const customer = {
     customer_type: raw.customer_type ?? rawCustomer.customer_type ?? 'private',
@@ -215,17 +239,97 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     billing_country: raw.billing_country ?? rawCustomer.billing_country ?? rawAddress.country,
   }
 
-  const site = rawSite
+  const topLevelMeteringPointId = firstClean(
+    raw.metering_point_id,
+    raw.meter_point_id,
+    raw.ediel_metering_point_id,
+    raw.anlage_id
+  )
+  const topLevelFacilityId = firstClean(
+    raw.facility_id,
+    raw.site_facility_id,
+    raw.anlage_id,
+    raw.customer_site_id,
+    topLevelMeteringPointId
+  )
+  const hasTopLevelSite = Boolean(
+    nestedSite ||
+    topLevelFacilityId ||
+    hasAnyCleanValue(raw, [
+      'site_name',
+      'site_type',
+      'street',
+      'address_line1',
+      'address',
+      'street_address',
+      'postal_code',
+      'zip',
+      'city',
+      'country',
+      'price_area_code',
+      'price_area',
+      'move_in_date',
+    ]) ||
+    firstDefined(raw.annual_consumption_kwh, raw.estimated_annual_consumption_kwh) !== undefined
+  )
+
+  const site = hasTopLevelSite
     ? {
-        ...rawSite,
-        price_area_code: rawSite.price_area_code ?? rawSite.price_area,
+        ...(nestedSite ?? {}),
+        facility_id: firstDefined(nestedSite?.facility_id, raw.facility_id, raw.site_facility_id, raw.anlage_id, topLevelFacilityId),
+        site_name: firstDefined(nestedSite?.site_name, raw.site_name),
+        site_type: firstDefined(nestedSite?.site_type, raw.site_type),
+        street: firstDefined(nestedSite?.street, raw.street, raw.address_line1, raw.address, raw.street_address, rawAddress.street),
+        postal_code: firstDefined(nestedSite?.postal_code, raw.postal_code, raw.zip, rawAddress.postal_code),
+        city: firstDefined(nestedSite?.city, raw.city, rawAddress.city),
+        country: firstDefined(nestedSite?.country, raw.country, rawAddress.country),
+        price_area_code: firstDefined(nestedSite?.price_area_code, nestedSite?.price_area, raw.price_area_code, raw.price_area),
+        move_in_date: firstDefined(nestedSite?.move_in_date, raw.move_in_date, raw.start_date),
+        annual_consumption_kwh: firstDefined(
+          nestedSite?.annual_consumption_kwh,
+          raw.annual_consumption_kwh,
+          raw.estimated_annual_consumption_kwh
+        ),
       }
     : undefined
 
-  const meteringPoint = rawMeteringPoint
+  const hasTopLevelMeteringPoint = Boolean(
+    nestedMeteringPoint ||
+    topLevelMeteringPointId ||
+    hasAnyCleanValue(raw, [
+      'reading_frequency',
+      'measurement_type',
+      'start_date',
+      'installation_date',
+    ]) ||
+    firstDefined(raw.estimated_annual_consumption_kwh, raw.annual_consumption_kwh) !== undefined
+  )
+
+  const meteringPoint = hasTopLevelMeteringPoint
     ? {
-        ...rawMeteringPoint,
-        price_area_code: rawMeteringPoint.price_area_code ?? rawMeteringPoint.price_area ?? site?.price_area_code,
+        ...(nestedMeteringPoint ?? {}),
+        metering_point_id: firstDefined(nestedMeteringPoint?.metering_point_id, raw.metering_point_id, topLevelMeteringPointId),
+        meter_point_id: firstDefined(nestedMeteringPoint?.meter_point_id, raw.meter_point_id, topLevelMeteringPointId),
+        ediel_metering_point_id: firstDefined(nestedMeteringPoint?.ediel_metering_point_id, raw.ediel_metering_point_id, topLevelMeteringPointId),
+        anlage_id: firstDefined(nestedMeteringPoint?.anlage_id, raw.anlage_id, site?.facility_id, topLevelFacilityId),
+        site_facility_id: firstDefined(nestedMeteringPoint?.site_facility_id, raw.site_facility_id, site?.facility_id, topLevelFacilityId),
+        reading_frequency: firstDefined(nestedMeteringPoint?.reading_frequency, raw.reading_frequency),
+        measurement_type: firstDefined(nestedMeteringPoint?.measurement_type, raw.measurement_type),
+        price_area_code: firstDefined(
+          nestedMeteringPoint?.price_area_code,
+          nestedMeteringPoint?.price_area,
+          raw.price_area_code,
+          raw.price_area,
+          site?.price_area_code
+        ),
+        start_date: firstDefined(nestedMeteringPoint?.start_date, raw.start_date, site?.move_in_date),
+        installation_date: firstDefined(nestedMeteringPoint?.installation_date, raw.installation_date, raw.start_date, site?.move_in_date),
+        estimated_annual_consumption_kwh: firstDefined(
+          nestedMeteringPoint?.estimated_annual_consumption_kwh,
+          raw.estimated_annual_consumption_kwh,
+          raw.annual_consumption_kwh,
+          site?.annual_consumption_kwh
+        ),
       }
     : undefined
 
@@ -245,7 +349,8 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     metering_point: meteringPoint,
     metadata: {
       ...(isObject(raw.metadata) ? raw.metadata : {}),
-      original_payload_shape: isObject(raw.customer) ? 'nested' : 'simplified',
+      original_payload_shape: isObject(raw.customer) || nestedSite || nestedMeteringPoint ? 'nested' : 'simplified',
+      simple_payload_normalized: Boolean(!nestedSite && site) || Boolean(!nestedMeteringPoint && meteringPoint),
       raw_source: isObject(rawSource) ? rawSource : undefined,
     },
   }
@@ -559,7 +664,12 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
 
 async function upsertMeteringPoint(companyId: string, customerId: string, site: { id: string; facility_id: string | null } | null, input: ApplicationInput) {
   const metering = input.metering_point
-  const meteringPointId = clean(metering?.metering_point_id) ?? clean(metering?.meter_point_id) ?? site?.facility_id ?? null
+  const meteringPointId = clean(metering?.metering_point_id)
+    ?? clean(metering?.meter_point_id)
+    ?? clean(metering?.ediel_metering_point_id)
+    ?? clean(metering?.anlage_id)
+    ?? site?.facility_id
+    ?? null
   if (!meteringPointId || !site?.id) return null
 
   const matchExpression = [
@@ -608,9 +718,11 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
 
   const readingFrequency = clean(metering?.reading_frequency) ?? 'monthly'
   const measurementType = clean(metering?.measurement_type) ?? 'consumption'
-  const startDate = clean(metering?.start_date) ?? clean(input.site?.move_in_date)
-  const annualConsumption = input.site?.annual_consumption_kwh ?? null
+  const startDate = clean(metering?.start_date) ?? clean(metering?.installation_date) ?? clean(input.site?.move_in_date)
+  const installationDate = clean(metering?.installation_date) ?? startDate
+  const annualConsumption = metering?.estimated_annual_consumption_kwh ?? input.site?.annual_consumption_kwh ?? null
   const priceAreaCode = clean(metering?.price_area_code) ?? clean(input.site?.price_area_code)
+  const siteFacilityId = clean(metering?.site_facility_id) ?? clean(metering?.anlage_id) ?? site.facility_id ?? meteringPointId
   const metadata = {
     source: 'website_customer_applications',
     source_metadata: input.metadata ?? {},
@@ -624,15 +736,15 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
     meter_point_id: meteringPointId,
     metering_point_id: meteringPointId,
     ediel_metering_point_id: meteringPointId,
-    anlage_id: site.facility_id ?? meteringPointId,
-    site_facility_id: site.facility_id,
+    anlage_id: clean(metering?.anlage_id) ?? siteFacilityId,
+    site_facility_id: siteFacilityId,
     status: 'active',
     metering_type: 'consumption',
     measurement_type: measurementType,
     reading_frequency: readingFrequency,
     price_area_code: priceAreaCode,
     start_date: startDate,
-    installation_date: startDate,
+    installation_date: installationDate,
     is_settlement_relevant: true,
     data_quality_status: 'incomplete',
     verification_status: 'pending',
@@ -669,7 +781,7 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
       measurement_type: measurementType,
       reading_frequency: readingFrequency,
       is_settlement_relevant: true,
-      site_facility_id: site.facility_id,
+      site_facility_id: siteFacilityId,
       price_area_code: priceAreaCode,
       start_date: startDate,
       metadata,
@@ -693,14 +805,11 @@ async function createContract(companyId: string, customerId: string, siteId: str
     company_id: companyId,
     customer_id: customerId,
     site_id: siteId,
-    customer_site_id: siteId,
-    metering_point_id: meteringPointId,
     source_type: 'website_application',
     status: 'application_received',
     contract_name: contractName,
     contract_type: clean(contract.contract_type) ?? 'variable_monthly',
     starts_at: startsAt,
-    expected_start_at: clean(contract.expected_start_at) ?? startsAt,
     signed_at: clean(contract.signed_at) ?? new Date().toISOString(),
     monthly_fee_sek: contract.monthly_fee_sek ?? null,
     spot_markup_ore_per_kwh: contract.spot_markup_ore_per_kwh ?? null,
@@ -710,14 +819,15 @@ async function createContract(companyId: string, customerId: string, siteId: str
     green_fee_value: contract.green_fee_value ?? null,
     binding_months: contract.binding_months ?? null,
     notice_months: contract.notice_months ?? null,
-    campaign_code: clean(contract.campaign_code),
-    price_version: clean(contract.price_version),
-    terms_version: clean(contract.terms_version),
-    metadata: {
-      source: 'website_customer_applications',
-      consents: input.consents ?? {},
-      source_metadata: input.metadata ?? {},
-    },
+    optional_fee_lines: [
+      {
+        source: 'website_customer_applications',
+        metering_point_id: meteringPointId,
+        consents: input.consents ?? {},
+        source_metadata: input.metadata ?? {},
+      },
+    ],
+    agreement_channel: 'external_website',
   }
 
   const { data, error } = await supabaseService
@@ -734,10 +844,14 @@ async function createContract(companyId: string, customerId: string, siteId: str
     .insert({
       company_id: companyId,
       customer_id: customerId,
+      site_id: siteId,
+      source_type: 'website_application',
       status: 'draft',
       contract_name: contractName,
       contract_type: clean(contract.contract_type) ?? 'variable_monthly',
       starts_at: startsAt,
+      green_fee_mode: clean(contract.green_fee_mode) ?? 'none',
+      agreement_channel: 'external_website',
     })
     .select('id,contract_name,starts_at,status')
     .single()
@@ -820,7 +934,7 @@ async function loadIdempotentApplication(companyId: string, idempotencyKey: stri
   if (!idempotencyKey) return null
   const { data, error } = await supabaseService
     .from('website_customer_applications')
-    .select('id,response_payload,status,customer_id,customer_number,external_customer_id,error_stage,error_code,error_message')
+    .select('id,response_payload,payload,status,customer_id,customer_number,external_customer_id,customer_site_id,metering_point_id,error_stage,error_code,error_message')
     .eq('company_id', companyId)
     .eq('idempotency_key', idempotencyKey)
     .maybeSingle()
@@ -829,21 +943,57 @@ async function loadIdempotentApplication(companyId: string, idempotencyKey: stri
   return data as {
     id: string
     response_payload: Record<string, unknown> | null
+    payload?: Record<string, unknown> | null
     status: string
     customer_id: string | null
     customer_number: string | null
     external_customer_id: string | null
+    customer_site_id?: string | null
+    metering_point_id?: string | null
     error_stage?: string | null
     error_code?: string | null
     error_message?: string | null
   } | null
 }
 
-function idempotentFailure(existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>, externalCustomerId: string) {
+function expectsSiteOrMetering(input: ApplicationInput | Record<string, unknown> | null | undefined): boolean {
+  if (!input || typeof input !== 'object') return false
+  const record = input as Record<string, unknown>
+  const site = isObject(record.site) ? record.site : null
+  const metering = isObject(record.metering_point) ? record.metering_point : null
+
+  return Boolean(
+    clean(site?.facility_id) ||
+    clean(site?.street) ||
+    clean(site?.city) ||
+    clean(metering?.metering_point_id) ||
+    clean(metering?.meter_point_id) ||
+    clean(metering?.ediel_metering_point_id) ||
+    clean(metering?.anlage_id) ||
+    clean(record.facility_id) ||
+    clean(record.site_facility_id) ||
+    clean(record.metering_point_id) ||
+    clean(record.meter_point_id) ||
+    clean(record.ediel_metering_point_id) ||
+    clean(record.anlage_id)
+  )
+}
+
+function hasCompleteSiteAndMetering(existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>) {
+  const response = existing.response_payload ?? {}
+  return Boolean(
+    (existing.customer_site_id ?? clean(response.customer_site_id)) &&
+    (existing.metering_point_id ?? clean(response.metering_point_id))
+  )
+}
+
+function idempotentFailure(existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>, externalCustomerId: string, reason?: string) {
   const response = existing.response_payload ?? {}
   const errorStage = existing.error_stage ?? clean(response.error_stage) ?? 'idempotency'
-  const errorCode = existing.error_code ?? clean(response.code) ?? 'internal_error'
-  const errorMessage = existing.error_message ?? clean(response.error) ?? 'Tidigare idempotent request misslyckades.'
+  const errorCode = reason ?? existing.error_code ?? clean(response.code) ?? 'internal_error'
+  const errorMessage = existing.error_message ?? clean(response.error) ?? (reason === 'incomplete_application'
+    ? 'Tidigare idempotent request blev ofullständig.'
+    : 'Tidigare idempotent request misslyckades.')
 
   return failureResponse(new WebsiteApplicationError({
     message: 'Tidigare idempotent request misslyckades.',
@@ -862,15 +1012,20 @@ function idempotentFailure(existing: NonNullable<Awaited<ReturnType<typeof loadI
   }))
 }
 
-function isFailedIdempotentApplication(existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>) {
+function isFailedIdempotentApplication(
+  existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>,
+  currentInput?: ApplicationInput
+) {
   const response = existing.response_payload ?? {}
   const responseCode = clean(response.code)
   const hasSuccessIdentity = Boolean(existing.customer_id && (existing.customer_number ?? clean(response.customer_number)))
+  const requiresSiteAndMetering = expectsSiteOrMetering(currentInput) || expectsSiteOrMetering(existing.payload)
 
   return (
     existing.status === 'failed' ||
     Boolean(existing.error_stage || existing.error_code || existing.error_message) ||
     responseCode === 'internal_error' ||
+    (requiresSiteAndMetering && !hasCompleteSiteAndMetering(existing)) ||
     (!hasSuccessIdentity && ['failed', 'rejected', 'cancelled'].includes(existing.status))
   )
 }
@@ -940,8 +1095,9 @@ export async function processWebsiteCustomerApplication(input: {
   try {
     const existingIdempotent = await stage('idempotency', () => loadIdempotentApplication(input.client.company_id, input.idempotencyKey ?? null))
     if (existingIdempotent) {
-      if (isFailedIdempotentApplication(existingIdempotent)) {
-        return idempotentFailure(existingIdempotent, externalCustomerId)
+      if (isFailedIdempotentApplication(existingIdempotent, body)) {
+        const incomplete = expectsSiteOrMetering(body) && !hasCompleteSiteAndMetering(existingIdempotent)
+        return idempotentFailure(existingIdempotent, externalCustomerId, incomplete ? 'incomplete_application' : undefined)
       }
 
       return successResponse({
@@ -1002,6 +1158,12 @@ export async function processWebsiteCustomerApplication(input: {
       email: normalizedEmail(body.customer.email),
     }))
 
+    const applicationStatus = contract
+      ? 'application_received'
+      : site?.id && meteringPoint?.id
+        ? 'application_received'
+        : 'customer_created'
+
     const responsePayload = {
       customer_id: customerResult.customer.id,
       customer_number: customerNumber,
@@ -1010,7 +1172,7 @@ export async function processWebsiteCustomerApplication(input: {
       customer_site_id: site?.id ?? null,
       metering_point_id: meteringPoint?.id ?? null,
       contract_id: contract?.id ?? null,
-      status: contract ? 'application_received' : 'customer_created',
+      status: applicationStatus,
       created_customer: customerResult.created,
     }
 
@@ -1026,7 +1188,7 @@ export async function processWebsiteCustomerApplication(input: {
       rawPayload: input.rawBody,
       responsePayload,
       idempotencyKey: input.idempotencyKey ?? null,
-      status: contract ? 'application_received' : 'linked_existing_customer',
+      status: applicationStatus,
     }))
 
     const warnings: string[] = []
