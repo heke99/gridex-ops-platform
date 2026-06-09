@@ -1,3 +1,4 @@
+//app/api/v1/customer-portal/sync/route.ts
 import { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import {
