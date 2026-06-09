@@ -11,6 +11,8 @@ export type IntegrationApiClient = {
   secret_hash: string
   scopes: string[]
   allowed_ips: string[]
+  allowed_origins?: string[] | null
+  metadata?: Record<string, unknown> | null
   rate_limit_per_minute: number
   expires_at: string | null
 }
@@ -62,10 +64,14 @@ function requestOrigin(request: NextRequest): string | null {
 }
 
 function originAllowed(client: IntegrationApiClient, origin: string | null): boolean {
-  const metadata = (client as unknown as { metadata?: Record<string, unknown> }).metadata ?? {}
-  const allowedOrigins = Array.isArray(metadata.allowed_origins)
+  const metadata = client.metadata ?? {}
+  const columnOrigins = Array.isArray(client.allowed_origins)
+    ? client.allowed_origins.map((item) => String(item).trim()).filter(Boolean)
+    : []
+  const metadataOrigins = Array.isArray(metadata.allowed_origins)
     ? metadata.allowed_origins.map((item) => String(item).trim()).filter(Boolean)
     : []
+  const allowedOrigins = columnOrigins.length > 0 ? columnOrigins : metadataOrigins
 
   if (allowedOrigins.length === 0 || !origin) return true
   return allowedOrigins.includes(origin)

@@ -19,6 +19,7 @@ type ApiClientRow = {
   status: string
   key_prefix: string
   scopes: string[] | null
+  allowed_origins: string[] | null
   allowed_ips: string[] | null
   rate_limit_per_minute: number | null
   last_used_at: string | null
@@ -74,7 +75,7 @@ async function loadCompanies(): Promise<CompanyOption[]> {
 async function loadClients(): Promise<ApiClientRow[]> {
   const { data, error } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,name,status,key_prefix,scopes,allowed_ips,rate_limit_per_minute,last_used_at,expires_at,created_at,metadata,companies(name)')
+    .select('id,company_id,name,status,key_prefix,scopes,allowed_origins,allowed_ips,rate_limit_per_minute,last_used_at,expires_at,created_at,metadata,companies(name)')
     .order('created_at', { ascending: false })
     .limit(100)
 
@@ -190,7 +191,7 @@ export default async function PlatformApiClientsPage() {
             <tbody className="divide-y divide-slate-100 bg-white">
               {clients.map((client) => {
                 const metadata = client.metadata ?? {}
-                const origins = valueList(metadata.allowed_origins)
+                const origins = valueList(client.allowed_origins).length ? valueList(client.allowed_origins) : valueList(metadata.allowed_origins)
                 return (
                   <tr key={client.id}>
                     <td className="px-4 py-4 align-top">

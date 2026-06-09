@@ -60,7 +60,7 @@ export async function resolveLinkedPortalIdentity(
     .select('id,company_id,customer_id,external_customer_id,email,status,match_strength,match_method')
     .eq('company_id', client.company_id)
     .eq('external_customer_id', externalCustomerId)
-    .eq('status', 'linked')
+    .eq('status', 'active')
     .not('customer_id', 'is', null)
     .maybeSingle()
 

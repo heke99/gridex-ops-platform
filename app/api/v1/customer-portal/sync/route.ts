@@ -36,6 +36,25 @@ type CustomerCandidate = {
   org_number: string | null
 }
 
+type PortalIdentityDbStatus = 'active' | 'pending_review' | 'rejected' | 'disabled'
+type PortalIdentityApiStatus = 'linked' | 'pending_review' | 'rejected'
+type PortalIdentityMatchStrength = 'strong' | 'weak' | 'manual'
+
+function serializePortalSyncError(error: unknown): Record<string, unknown> {
+  if (!error || typeof error !== 'object') {
+    return { message: String(error ?? 'Okänt fel') }
+  }
+
+  const record = error as Record<string, unknown>
+  return {
+    name: error instanceof Error ? error.name : undefined,
+    message: error instanceof Error ? error.message : record.message,
+    code: record.code,
+    details: record.details,
+    hint: record.hint,
+  }
+}
+
 function strongMatch(input: {
   emailMatched: boolean
   customerNumberMatched: boolean
@@ -133,8 +152,9 @@ async function upsertIdentity(input: {
   externalCustomerId: string
   externalAccountId: string | null
   email: string | null
-  status: 'linked' | 'pending_review' | 'rejected'
-  matchStrength: 'strong' | 'weak' | 'none' | 'rejected'
+  status: PortalIdentityApiStatus
+  dbStatus: PortalIdentityDbStatus
+  matchStrength: PortalIdentityMatchStrength
   matchMethod: string
   metadata: Record<string, unknown>
 }) {
@@ -146,7 +166,7 @@ async function upsertIdentity(input: {
     external_customer_id: input.externalCustomerId,
     external_account_id: input.externalAccountId,
     email: input.email,
-    status: input.status,
+    status: input.dbStatus,
     match_strength: input.matchStrength,
     match_method: input.matchMethod,
     linked_at: input.status === 'linked' ? now : null,
@@ -196,7 +216,8 @@ export async function POST(request: NextRequest) {
         externalAccountId,
         email: email || null,
         status: 'rejected',
-        matchStrength: 'rejected',
+        dbStatus: 'rejected',
+        matchStrength: 'manual',
         matchMethod: 'insufficient_identity_factors',
         metadata: {
           reason: 'E-post eller en ensam uppgift räcker inte för åtkomst.',
@@ -243,6 +264,7 @@ export async function POST(request: NextRequest) {
         externalAccountId,
         email: email || best.customer.email,
         status: 'linked',
+        dbStatus: 'active',
         matchStrength: 'strong',
         matchMethod: Object.entries(best.flags).filter(([, ok]) => ok).map(([key]) => key).join('+'),
         metadata: {
@@ -262,7 +284,8 @@ export async function POST(request: NextRequest) {
       externalAccountId,
       email: email || best?.customer.email || null,
       status: 'pending_review',
-      matchStrength: best ? 'weak' : 'none',
+      dbStatus: 'pending_review',
+      matchStrength: best ? 'weak' : 'manual',
       matchMethod: best ? 'partial_match' : 'no_match',
       metadata: {
         candidate_customer_id: best?.customer.id ?? null,
@@ -275,8 +298,15 @@ export async function POST(request: NextRequest) {
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome, identity_id: identity.id } })
     return NextResponse.json({ data: { outcome, status: 'pending_review', access_granted: false, identity_id: identity.id } })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kundlänkning kunde inte behandlas.'
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: message })
-    return NextResponse.json({ error: message }, { status: 500 })
+    const errorMetadata = serializePortalSyncError(error)
+    await logIntegrationApiRequest({
+      client: auth.client,
+      request,
+      statusCode: 500,
+      startedAt,
+      errorCode: 'Kundlänkning kunde inte behandlas.',
+      metadata: { portal_sync_error: errorMetadata },
+    })
+    return NextResponse.json({ error: 'Kundlänkning kunde inte behandlas.' }, { status: 500 })
   }
 }

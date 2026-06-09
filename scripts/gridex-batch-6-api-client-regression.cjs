@@ -22,6 +22,7 @@ assertContains('app/admin/platform/api-clients/page.tsx', [
 assertContains('app/admin/platform/api-clients/actions.ts', [
   'generateIntegrationApiToken',
   'secret_hash',
+  'allowed_origins',
   'token_display',
   'api_client.created',
 ])
@@ -29,6 +30,7 @@ assertContains('app/admin/platform/api-clients/actions.ts', [
 assertContains('lib/integrations/apiAuth.ts', [
   "request.headers.get('x-api-key')",
   'originAllowed',
+  'client.allowed_origins',
   'rateLimitAllowed',
 ])
 
@@ -36,7 +38,13 @@ assertContains('app/api/v1/customer-portal/sync/route.ts', [
   'customer_portal.write',
   'insufficient_identity_factors',
   'E-post eller en ensam uppgift räcker inte',
-  'status: \'linked\'',
+  "dbStatus: 'active'",
+  "matchStrength: 'manual'",
+])
+
+
+assertContains('lib/customer-portal/externalApi.ts', [
+  ".eq('status', 'active')",
 ])
 
 for (const path of [

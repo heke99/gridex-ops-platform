@@ -110,6 +110,7 @@ export async function createIntegrationApiClientAction(
           key_prefix: tokenData.keyPrefix,
           secret_hash: tokenData.secretHash,
           scopes,
+          allowed_origins: allowedOrigins,
           allowed_ips: allowedIps,
           rate_limit_per_minute: rateLimit,
           expires_at: expiresAt,
