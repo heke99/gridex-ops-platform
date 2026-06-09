@@ -79,6 +79,7 @@ import {
 import { getCustomerAnalytics } from '@/lib/analytics/db'
 import { formatMwh } from '@/lib/analytics/utils'
 import { getCustomerCommunicationLogs, type CommunicationLog } from '@/lib/email/communicationLogs'
+import { listBillingPartnerCustomersForCustomer, listWebsiteApplicationsForCustomer, type BillingPartnerCustomerSummary, type WebsiteApplicationAdminRow } from '@/lib/admin/websiteIntegrationOps'
 import { resendCustomerEmailAction } from './email-actions'
 
 export const dynamic = 'force-dynamic'
@@ -1340,6 +1341,53 @@ function AuditSection({
  )
 }
 
+
+function CustomerWebsiteTraceabilityCard({
+ customer,
+ applications,
+ billingPartners,
+}: {
+ customer: CustomerRow
+ applications: WebsiteApplicationAdminRow[]
+ billingPartners: BillingPartnerCustomerSummary[]
+}) {
+ const latestApplication = applications[0] ?? null
+ const latestBillingPartner = billingPartners[0] ?? null
+ const origin = latestApplication?.source ?? customer.source ?? 'manual'
+ const externalCustomerId = latestApplication?.external_customer_id ?? '—'
+ const latestStatus = latestApplication?.status ?? '—'
+ const capwayReference = latestBillingPartner?.provider_debtor_id ?? latestBillingPartner?.provider_customer_id ?? '—'
+ return (
+ <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-6 shadow-sm ">
+ <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+ <div>
+ <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800 ">Kundnummer och externa kopplingar</p>
+ <h2 className="mt-2 text-xl font-semibold text-slate-950 ">Ops är master för kundrelationen</h2>
+ <p className="mt-2 max-w-4xl text-sm leading-6 text-emerald-900 ">
+ Kundnumret används som huvudreferens för support, faktura, Capway, webhooks och bestridan. Externa kund-ID:n och Capway-ID:n är bara partnerreferenser.
+ </p>
+ </div>
+ <Link href={`/admin/customers/${customer.id}?tab=communication`} className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 ">
+ Visa kommunikation
+ </Link>
+ </div>
+ <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+ <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Kundnummer</div><div className="mt-1 font-mono text-sm font-semibold text-slate-950">{customer.customer_number ?? '—'}</div></div>
+ <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Källa</div><div className="mt-1 text-sm font-semibold text-slate-950">{origin}</div></div>
+ <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">External ID</div><div className="mt-1 font-mono text-xs font-semibold text-slate-950">{externalCustomerId}</div></div>
+ <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Website status</div><div className="mt-1 text-sm font-semibold text-slate-950">{latestStatus}</div></div>
+ <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Capway/debtor</div><div className="mt-1 font-mono text-xs font-semibold text-slate-950">{capwayReference}</div></div>
+ <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Senaste application</div><div className="mt-1 text-sm font-semibold text-slate-950">{formatDateTime(latestApplication?.created_at)}</div></div>
+ </div>
+ {latestApplication?.error_stage ? (
+ <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 ">
+ Senaste website application har fel: {latestApplication.error_stage} · {latestApplication.error_message ?? latestApplication.error_code ?? 'okänt fel'}.
+ </div>
+ ) : null}
+ </section>
+ )
+}
+
 function CustomerCommunicationSection({ logs }: { logs: CommunicationLog[] }) {
  return (
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
@@ -1351,16 +1399,17 @@ function CustomerCommunicationSection({ logs }: { logs: CommunicationLog[] }) {
  <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 ">
  <table className="min-w-full text-sm">
  <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600 ">
- <tr><th className="px-4 py-3">Datum</th><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Mottagare</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Åtgärder</th></tr>
+ <tr><th className="px-4 py-3">Datum</th><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Från/till</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Spårning</th><th className="px-4 py-3">Åtgärder</th></tr>
  </thead>
  <tbody className="divide-y divide-slate-100">
- {logs.length === 0 ? <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-600">Ingen kommunikation loggad ännu.</td></tr> : null}
+ {logs.length === 0 ? <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-600">Ingen kommunikation loggad ännu.</td></tr> : null}
  {logs.map((log) => (
  <tr key={log.id}>
  <td className="px-4 py-3 text-slate-700 ">{formatDateTime(log.created_at)}</td>
- <td className="px-4 py-3 text-slate-700 ">{log.event_key ?? log.template_key ?? 'E-post'}</td>
- <td className="px-4 py-3 text-slate-700 ">{log.recipient_email}</td>
- <td className="px-4 py-3 text-slate-700 ">{log.status}</td>
+ <td className="px-4 py-3 text-slate-700 ">{log.event_key ?? log.template_key ?? 'E-post'}<div className="text-xs text-slate-500">Mall: {log.template_key ?? '—'} · v{log.template_version ?? '—'}</div></td>
+ <td className="px-4 py-3 text-slate-700 "><div>Från: {log.sender_email ?? '—'}</div><div>Till: {log.recipient_email}</div><div className="text-xs text-slate-500">Reply-to: {log.reply_to_email ?? '—'}</div></td>
+ <td className="px-4 py-3 text-slate-700 ">{log.status}<div className="text-xs text-slate-500">{log.sender_mode ?? 'sender okänd'}</div>{log.error_message ? <div className="text-xs text-red-700">{log.error_message}</div> : null}</td>
+ <td className="px-4 py-3 text-xs text-slate-700 "><div>{log.provider_message_id ?? 'provider-id saknas'}</div><div>Kundnr: {log.customer_number ?? '—'}</div><div>External: {log.external_customer_id ?? '—'}</div></td>
  <td className="px-4 py-3"><div className="flex flex-wrap gap-2">
  <form action={resendCustomerEmailAction}><input type="hidden" name="customer_id" value={log.customer_id ?? ''} /><input type="hidden" name="log_id" value={log.id} /><button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Skicka om</button></form>
  <details className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"><summary className="cursor-pointer">Visa innehåll</summary><p className="mt-2 max-w-sm text-slate-600">Ämne: {log.subject ?? '—'}</p></details>
@@ -1498,6 +1547,8 @@ const needsCommunicationLogs = activeTab === 'communication'
  customerCases,
  customerBlockers,
 communicationLogs,
+websiteApplications,
+billingPartnerCustomers,
  ] = await Promise.all([
  needsGridOwners ? listGridOwners(supabase) : Promise.resolve([]),
  needsPriceAreas ? listPriceAreas(supabase) : Promise.resolve([]),
@@ -1531,6 +1582,8 @@ communicationLogs,
  activeTab === 'cases' ? listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 }) : Promise.resolve([]),
  listCustomerBlockersByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
 needsCommunicationLogs && customerCompanyId ? getCustomerCommunicationLogs(customerCompanyId, id) : Promise.resolve([]),
+customerCompanyId ? listWebsiteApplicationsForCustomer(customerCompanyId, id) : Promise.resolve([]),
+customerCompanyId ? listBillingPartnerCustomersForCustomer(customerCompanyId, id) : Promise.resolve([]),
  ])
 
  if (contactsResponse.error) throw contactsResponse.error
@@ -1969,6 +2022,12 @@ const analytics = needsAnalyticsData && customerCompanyId
  ))}
  </div>
  </section>
+
+ <CustomerWebsiteTraceabilityCard
+ customer={customer}
+ applications={websiteApplications as WebsiteApplicationAdminRow[]}
+ billingPartners={billingPartnerCustomers as BillingPartnerCustomerSummary[]}
+ />
 
  <CustomerWorkspaceTabNav customerId={id} activeTab={activeTab} isPlatformAdmin={isPlatformAdmin} />
 

@@ -308,3 +308,53 @@ External website frontend -> own server route -> Gridex Ops API
 Cache-Control: no-store
 Old API keys can be revoked and deleted
 ```
+
+## Batch 8 hardening for onboarding API
+
+`POST /api/v1/website/customer-applications` accepts both nested payloads and simplified website form payloads. If the body is invalid, Gridex returns `422 validation_error` with `field`, `hint` and `error_stage` instead of a generic 500.
+
+Simplified payload example:
+
+```json
+{
+  "external_customer_id": "CUSTOMER-12345",
+  "source": "example.se",
+  "name": "Anna Andersson",
+  "email": "anna@example.se",
+  "phone": "+46701234567",
+  "address": {
+    "street": "Testgatan 1",
+    "postal_code": "11122",
+    "city": "Stockholm",
+    "country": "SE"
+  },
+  "site": {
+    "facility_id": "735999888000000112",
+    "price_area": "SE3",
+    "move_in_date": "2026-07-01"
+  },
+  "contract": {
+    "contract_name": "Rörligt elpris",
+    "contract_type": "variable_monthly",
+    "starts_at": "2026-07-01"
+  }
+}
+```
+
+Email/webhook delivery problems must not fail the whole customer application. If customer and contract are created but a notification cannot be sent immediately, the API returns success with `warnings`, and the issue appears in admin under website applications, communication logs and webhook deliveries.
+
+Idempotency responses must return the same main references again: `application_id`, `customer_id`, `customer_number`, `external_customer_id` and `status`.
+
+## Mail and legal communication responsibility
+
+Ops sends legally important customer communication by default, including contract confirmation and cooling-off/ångerrätt information. Websites receive events and can show status, but should not send duplicate legal confirmation emails unless that is explicitly agreed with Gridex/the tenant.
+
+Important events:
+
+```text
+contract.confirmation_sent
+contract.cooling_off_sent
+invoice.disputed
+```
+
+Tenant sender domains must be verified before they are used as the real From-domain. If the domain is not verified, the tenant can use fallback sender mode if allowed; the communication log records `sender_mode`, `from_email`, `reply_to`, template version and delivery status.

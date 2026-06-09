@@ -15,6 +15,15 @@ export type CompanyEmailSettings = {
   verification_status: CompanyEmailVerificationStatus
   verified_at: string | null
   is_active: boolean
+  sender_mode?: 'verified_domain' | 'fallback_platform_sender' | 'disabled' | null
+  fallback_allowed?: boolean | null
+  block_legal_mail_when_unverified?: boolean | null
+  dkim_status?: string | null
+  spf_status?: string | null
+  dmarc_status?: string | null
+  last_verification_checked_at?: string | null
+  readiness_status?: string | null
+  readiness_notes?: unknown
   created_at: string
   updated_at: string
 }
@@ -24,6 +33,8 @@ export type EffectiveSender = {
   replyTo: string | undefined
   mode: 'verified_domain' | 'fallback'
   senderEmail: string
+  fromName?: string
+  domainVerifiedAt?: string | null
 }
 
 type CompanyEmailSettingsInput = {
@@ -157,6 +168,8 @@ export async function getEffectiveSender(companyId: string): Promise<EffectiveSe
       replyTo: settings.reply_to_email ?? settings.support_email ?? undefined,
       mode: 'verified_domain',
       senderEmail: settings.sender_email,
+      fromName: settings.sender_name,
+      domainVerifiedAt: settings.verified_at,
     }
   }
 
@@ -173,5 +186,7 @@ export async function getEffectiveSender(companyId: string): Promise<EffectiveSe
     replyTo: replyTo ?? undefined,
     mode: 'fallback',
     senderEmail: DEFAULT_FROM_EMAIL,
+    fromName: fallbackName,
+    domainVerifiedAt: null,
   }
 }

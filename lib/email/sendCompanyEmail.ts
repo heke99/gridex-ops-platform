@@ -58,6 +58,9 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       senderEmail: sender.senderEmail,
       replyToEmail: sender.replyTo ?? null,
       subject: null,
+      senderMode: sender.mode,
+      fromName: sender.fromName ?? null,
+      domainVerifiedAt: sender.domainVerifiedAt ?? null,
       status: 'cancelled',
       provider: 'resend',
       createdBy: input.createdBy ?? null,
@@ -81,6 +84,10 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
     senderEmail: sender.senderEmail,
     replyToEmail: sender.replyTo ?? null,
     subject: rendered.subject,
+    senderMode: sender.mode,
+      fromName: sender.fromName ?? null,
+      domainVerifiedAt: sender.domainVerifiedAt ?? null,
+    templateVersion: String(template.updated_at ?? template.created_at ?? ''),
     status: 'queued',
     provider: 'resend',
     createdBy: input.createdBy ?? null,
@@ -100,6 +107,8 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   } catch (error) {
     console.warn('[email] sendCompanyEmail failed', error)
     const failedLog = await markCommunicationFailed(log.id, CLEAN_FAILURE)
-    return { ok: false, log: failedLog, senderMode: sender.mode, error: CLEAN_FAILURE }
+    return { ok: false, log: failedLog, senderMode: sender.mode,
+      fromName: sender.fromName ?? null,
+      domainVerifiedAt: sender.domainVerifiedAt ?? null, error: CLEAN_FAILURE }
   }
 }

@@ -17,6 +17,7 @@ import { getCompanyDnsRecords, type CompanyEmailDnsRecord } from '@/lib/email/dn
 import { getEmailEventRules, type EmailEventRule } from '@/lib/email/emailEvents'
 import { DEFAULT_EMAIL_TEMPLATES, EMAIL_TEMPLATE_VARIABLES, getCompanyEmailTemplates, type CompanyEmailTemplate } from '@/lib/email/emailTemplates'
 import { getCompanyCommunicationLogs, type CommunicationLog } from '@/lib/email/communicationLogs'
+import { computeTenantReadiness, listWebhookSubscriptions } from '@/lib/admin/websiteIntegrationOps'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
 import {
   checkCompanyDomainVerificationAction,
@@ -140,6 +141,29 @@ async function getCompanyOperationalStats(companyId: string): Promise<CompanyOpe
   ])
 
   return { newCustomersThisMonth, closedCustomersThisMonth, openWithdrawals, queuedEmails, failedEmails, sentEmailsThisMonth }
+}
+
+
+async function getCompanyApiClients(companyId: string): Promise<Array<{ id: string; name: string; status: string; scopes: string[] | null }>> {
+  const { data, error } = await supabaseService
+    .from('integration_api_clients')
+    .select('id,name,status,scopes')
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error) return []
+  return (data ?? []) as Array<{ id: string; name: string; status: string; scopes: string[] | null }>
+}
+
+async function getCompanyBillingPartnerCount(companyId: string): Promise<number> {
+  const { count, error } = await supabaseService
+    .from('billing_partner_customers')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', companyId)
+
+  if (error) return 0
+  return count ?? 0
 }
 
 function ActionBanner({ success, error }: { success?: string; error?: string }) {
@@ -338,8 +362,14 @@ function CompanyEmailSection({
         <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-900">E-post</p>
         <h2 className="mt-2 text-2xl font-black text-slate-950">E-postinställningar för elbolag</h2>
         <p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">
-          Aktiv avsändare: {effectiveSender.from}. Reply-to: {effectiveSender.replyTo ?? 'saknas'}.
+          Aktiv avsändare: {effectiveSender.from}. Reply-to: {effectiveSender.replyTo ?? 'saknas'}. Sender mode: {effectiveSender.mode === 'verified_domain' ? 'Verifierad domän' : 'Fallback via Gridex'}.
         </p>
+        <div className="mt-4 grid gap-3 text-sm font-semibold md:grid-cols-4">
+          <ActionLine label="From-email" value={settings?.sender_email ?? effectiveSender.senderEmail} tone={effectiveSender.mode === 'verified_domain' ? 'emerald' : 'amber'} />
+          <ActionLine label="Domänstatus" value={VERIFICATION_STATUS_LABELS[settingStatus] ?? settingStatus} tone={settingStatus === 'verified' ? 'emerald' : 'amber'} />
+          <ActionLine label="DKIM" value={settings?.dkim_status ?? 'ej kontrollerad'} tone={settings?.dkim_status === 'verified' ? 'emerald' : 'slate'} />
+          <ActionLine label="SPF/DMARC" value={`${settings?.spf_status ?? 'SPF saknas'} / ${settings?.dmarc_status ?? 'DMARC saknas'}`} tone={settings?.spf_status === 'verified' && settings?.dmarc_status === 'verified' ? 'emerald' : 'slate'} />
+        </div>
         <nav className="mt-5 flex flex-wrap gap-2 text-sm font-black">
           {['Avsändare', 'Domänverifiering', 'DNS-poster', 'Testmail', 'Automatiska utskick', 'Mailmallar', 'Senaste utskick'].map((label) => (
             <a key={label} href={`#email-${label.toLowerCase().replaceAll(' ', '-')}`} className="rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-emerald-900 hover:bg-emerald-100">{label}</a>
@@ -369,8 +399,11 @@ function CompanyEmailSection({
         </div>
         <p className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
           {settingStatus === 'verified'
-            ? 'Domänen är verifierad. Utskick skickas från bolagets egen avsändare.'
-            : 'Domänen är inte verifierad ännu. Utskick skickas via Gridex standardavsändare med bolagets reply-to.'}
+            ? 'Domänen är verifierad. Juridiskt viktiga utskick skickas från bolagets egen avsändare.'
+            : 'Domänen är inte verifierad ännu. Systemet använder fallback-avsändare om bolaget tillåter det, och loggar sender_mode på varje utskick.'}
+        </p>
+        <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
+          Bekräftelsemail och ångerrätt ska skickas av Ops som standard. Extern hemsida får webhook-event och ska inte skicka dubbla juridiska bekräftelser om inget annat är avtalat.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <form action={startCompanyDomainVerificationAction}><input type="hidden" name="company_id" value={company.id} /><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Starta verifiering</button></form>
@@ -505,6 +538,9 @@ export default async function CompanyDetailPage({
     companyEmailTemplates,
     companyCommunicationLogs,
     effectiveSender,
+    companyApiClients,
+    companyWebhookSubscriptions,
+    billingPartnerCount,
   ] = await Promise.all([
     getCompanyGovernanceSummary(row),
     getActorTestingSummary(row.id),
@@ -516,9 +552,22 @@ export default async function CompanyDetailPage({
     getCompanyEmailTemplates(row.id),
     getCompanyCommunicationLogs(row.id, { limit: 12 }),
     getEffectiveSender(row.id),
+    getCompanyApiClients(row.id),
+    listWebhookSubscriptions({ companyId: row.id, limit: 50 }),
+    getCompanyBillingPartnerCount(row.id),
   ])
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
+  const tenantReadiness = computeTenantReadiness({
+    apiClients: companyApiClients,
+    webhooks: companyWebhookSubscriptions,
+    emailSettings: companyEmailSettings,
+    dnsRecords: companyDnsRecords,
+    templates: companyEmailTemplates,
+    eventRules: companyEmailEventRules,
+    effectiveSender,
+    billingPartnerCount,
+  })
 
   return (
     <div className="min-h-screen">
@@ -611,6 +660,35 @@ export default async function CompanyDetailPage({
         </section>
 
         <CompanyEdielConfiguration company={company} config={edielConfig} />
+
+        <section id="tenant-website-readiness" className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Website readiness</p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">Redo för hemsidekunder, webhooks och juridiska mail</h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-emerald-900">
+            Kontrollera att bolagets API-client, webhook, avsändardomän, mailmallar och billing-mapping är redo innan extern hemsida kopplas på.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ReadinessPill ok={tenantReadiness.websiteApi} label="Website API" />
+            <ReadinessPill ok={tenantReadiness.apiClient} label="API-client" />
+            <ReadinessPill ok={tenantReadiness.webhook} label="Webhook" />
+            <ReadinessPill ok={tenantReadiness.emailSender} label="Email sender" />
+            <ReadinessPill ok={tenantReadiness.domainVerification} label="Domänverifiering" />
+            <ReadinessPill ok={tenantReadiness.templates} label="Mallar" />
+            <ReadinessPill ok={tenantReadiness.billingMapping} label="Capway/billing" />
+          </div>
+          {tenantReadiness.notes.length > 0 ? (
+            <ul className="mt-4 grid gap-2 text-sm font-semibold text-emerald-950 md:grid-cols-2">
+              {tenantReadiness.notes.map((note) => <li key={note} className="rounded-2xl border border-emerald-200 bg-white/70 px-4 py-3">{note}</li>)}
+            </ul>
+          ) : (
+            <p className="mt-4 rounded-2xl border border-emerald-200 bg-white/70 px-4 py-3 text-sm font-semibold text-emerald-900">Bolaget ser redo ut för website onboarding.</p>
+          )}
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/admin/platform/api-clients" className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-800 hover:bg-emerald-100">API-clients och webhooks</Link>
+            <Link href="/admin/website-applications" className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-800 hover:bg-emerald-100">Website applications</Link>
+            <Link href="/admin/webhooks/deliveries" className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-800 hover:bg-emerald-100">Webhook-loggar</Link>
+          </div>
+        </section>
 
         <CompanyEmailSection
           company={company}

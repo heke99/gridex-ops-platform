@@ -198,3 +198,21 @@ Authorization: Bearer <GRIDEX_CRON_SECRET or CRON_SECRET>
 ```
 
 Webhook payloads use top-level `event_id`, `event_type`, `created_at`, `company_id`, `customer_id`, `customer_number`, `external_customer_id` and `data`.
+
+## Batch 8 operational hardening
+
+Batch 8 adds admin operations UI and hardening for external website onboarding:
+
+- `/admin/website-applications` for received/failed website customer applications.
+- `/admin/webhooks/deliveries` for webhook delivery logs, resend and ignored deliveries.
+- `POST /api/v1/website/customer-applications` accepts nested and simplified payloads.
+- Invalid payloads return `422 validation_error` with `field`, `hint` and `error_stage`.
+- Email and webhook delivery issues must return warnings rather than failing a created customer application.
+- Company pages show tenant email readiness, verified-domain/fallback sender mode, DNS status and template readiness.
+- Customer cards show `customer_number`, `external_customer_id`, source website, communication logs and Capway/billing references.
+
+Public documentation:
+
+```text
+https://app.gridex.se/developers/customer-portal-api
+```

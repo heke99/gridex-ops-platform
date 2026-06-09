@@ -70,7 +70,8 @@ const webhookEvents = [
 ]
 
 const errorCodes = [
-  ['400', 'Obligatorisk parameter eller body-fält saknas, till exempel external_customer_id eller customer.email.'],
+  ['400', 'Query/body saknas eller requesten är felaktig.'],
+  ['422', 'Payloaden är validerbar JSON men saknar obligatoriska fält, till exempel external_customer_id eller customer.email. Svaret innehåller field, hint och error_stage.'],
   ['401', 'API-token saknas eller är ogiltig.'],
   ['403', 'Token är spärrad, saknar scope, domän/IP är inte tillåten eller kunden är inte länkad.'],
   ['429', 'API-klientens rate limit är uppnådd.'],
@@ -111,6 +112,35 @@ const onboardingCurl = `curl -X POST "${baseUrl}/api/v1/website/customer-applica
     "consents": {
       "terms_accepted_at": "2026-06-09T14:00:00Z",
       "withdrawal_information_accepted": true
+    }
+  }'`
+
+
+const simplifiedOnboardingCurl = `curl -X POST "${baseUrl}/api/v1/website/customer-applications" \
+  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: simplified-order-12345" \
+  -d '{
+    "external_customer_id": "CUSTOMER-12345",
+    "source": "example.se",
+    "name": "Anna Andersson",
+    "email": "anna@example.se",
+    "phone": "+46701234567",
+    "address": {
+      "street": "Testgatan 1",
+      "postal_code": "11122",
+      "city": "Stockholm",
+      "country": "SE"
+    },
+    "site": {
+      "facility_id": "735999888000000112",
+      "price_area": "SE3",
+      "move_in_date": "2026-07-01"
+    },
+    "contract": {
+      "contract_name": "Rörligt elpris",
+      "contract_type": "variable_monthly",
+      "starts_at": "2026-07-01"
     }
   }'`
 
@@ -186,6 +216,8 @@ const checklist = [
   'Sites, contracts, invoices och metering-values är testade.',
   'Audit-loggen visar company_id, api_client_id, route, status_code och result_count.',
   'Gamla eller exponerade API-nycklar är återkallade eller raderade.',
+  'Hemsidan skickar inte dubbla juridiska bekräftelse-/ångerrättsmail utan separat överenskommelse.',
+  'Webhook-events contract.confirmation_sent, contract.cooling_off_sent och invoice.disputed hanteras idempotent.',
 ]
 
 function CodeBlock({ children }: { children: string }) {
@@ -239,7 +271,7 @@ export default function CustomerPortalApiDocsPage() {
               Koppla en extern hemsida till Gridex Customer Portal API och Gridex Ops API.
             </h1>
             <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-              Den här sidan beskriver hur externa hemsidor skickar kundansökningar, hämtar kunddata och tar emot webhooks från Gridex Ops Platform. Gridex/Ops är master för kundnummer, avtal, faktura och kommunikation.
+              Den här sidan beskriver hur externa hemsidor skickar kundansökningar, hämtar kunddata och tar emot webhooks från Gridex Ops Platform. Gridex/Ops är master för kundnummer, avtal, faktura och kommunikation. Do not send duplicate legal confirmation emails unless explicitly agreed; Ops sends and logs legally important confirmation and cooling-off communication by default.
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
@@ -308,6 +340,11 @@ Capway invoice_id       = extern fakturareferens`}</CodeBlock>
           <Section id="onboarding" label="03" title="Skapa kund och elavtalsansökan från hemsida">
             <p>POST /api/v1/website/customer-applications skapar eller matchar kund i Ops, reserverar kundnummer, skapar portal identity, anläggning, mätpunkt och avtalsansökan. Ops kan även trigga bekräftelsemail och ångerrätt enligt tenantens mallar.</p>
             <CodeBlock>{onboardingCurl}</CodeBlock>
+            <p className="font-semibold text-slate-800">Förenklad payload accepteras också för enklare hemsideformulär:</p>
+            <CodeBlock>{simplifiedOnboardingCurl}</CodeBlock>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+              Vid valideringsfel returnerar API:t 422 med <code>field</code>, <code>hint</code> och <code>error_stage</code>. E-post- eller webhookfel ska inte krascha ansökan; de returneras som warnings.
+            </div>
             <p>Exempel på response:</p>
             <CodeBlock>{`{
   "data": {

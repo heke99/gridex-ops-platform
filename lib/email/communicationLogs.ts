@@ -13,6 +13,10 @@ export type CommunicationLog = {
   sender_email: string | null
   reply_to_email: string | null
   subject: string | null
+  sender_mode?: string | null
+  from_name?: string | null
+  domain_verified_at?: string | null
+  template_version?: string | null
   status: 'queued' | 'sent' | 'delivered' | 'bounced' | 'failed' | 'cancelled'
   provider: string | null
   provider_message_id: string | null
@@ -26,6 +30,9 @@ export type CommunicationLog = {
   external_customer_id?: string | null
   contract_id?: string | null
   metadata?: Record<string, unknown> | null
+  handled_at?: string | null
+  handled_by?: string | null
+  handled_note?: string | null
   created_at: string
 }
 
@@ -40,6 +47,10 @@ type CreateCommunicationLogInput = {
   senderEmail?: string | null
   replyToEmail?: string | null
   subject?: string | null
+  senderMode?: string | null
+  fromName?: string | null
+  domainVerifiedAt?: string | null
+  templateVersion?: string | null
   status?: CommunicationLog['status']
   provider?: string | null
   createdBy?: string | null
@@ -65,6 +76,10 @@ export async function createCommunicationLog(input: CreateCommunicationLogInput)
       sender_email: input.senderEmail ?? null,
       reply_to_email: input.replyToEmail ?? null,
       subject: input.subject ?? null,
+      sender_mode: input.senderMode ?? null,
+      from_name: input.fromName ?? null,
+      domain_verified_at: input.domainVerifiedAt ?? null,
+      template_version: input.templateVersion ?? null,
       status: input.status ?? 'queued',
       provider: input.provider ?? 'resend',
       created_by: input.createdBy ?? null,

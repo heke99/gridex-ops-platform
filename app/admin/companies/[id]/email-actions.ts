@@ -153,6 +153,9 @@ export async function sendCompanyTestEmailAction(formData: FormData) {
       senderEmail: sender.senderEmail,
       replyToEmail: sender.replyTo ?? null,
       subject,
+      senderMode: sender.mode,
+      fromName: sender.fromName ?? null,
+      domainVerifiedAt: sender.domainVerifiedAt ?? null,
       provider: 'resend',
       createdBy: admin.userId,
     })

@@ -92,6 +92,49 @@ type CustomerRow = {
   company_name: string | null
 }
 
+type ErrorStage =
+  | 'validation'
+  | 'idempotency'
+  | 'customer_lookup'
+  | 'customer_create'
+  | 'customer_number_create'
+  | 'portal_identity_create'
+  | 'site_create'
+  | 'metering_point_create'
+  | 'contract_create'
+  | 'application_record_create'
+  | 'communication_trigger'
+  | 'domain_event_create'
+  | 'webhook_queue'
+
+class WebsiteApplicationError extends Error {
+  status: number
+  code: string
+  field?: string
+  hint?: string
+  stage: ErrorStage
+  details?: unknown
+
+  constructor(input: {
+    message: string
+    status?: number
+    code?: string
+    field?: string
+    hint?: string
+    stage?: ErrorStage
+    details?: unknown
+  }) {
+    super(input.message)
+    this.name = 'WebsiteApplicationError'
+    this.status = input.status ?? 500
+    this.code = input.code ?? 'website_application_error'
+    this.field = input.field
+    this.hint = input.hint
+    this.stage = input.stage ?? 'validation'
+    this.details = input.details
+  }
+}
+
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
@@ -103,6 +146,109 @@ function normalizedEmail(value: unknown): string | null {
 function digits(value: unknown): string | null {
   const output = clean(value)?.replace(/\D/g, '') ?? ''
   return output || null
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  return 'Kundansökan kunde inte behandlas.'
+}
+
+function missingSchema(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+}
+
+function validationError(message: string, field: string, hint?: string) {
+  return new WebsiteApplicationError({
+    message,
+    status: 422,
+    code: 'validation_error',
+    field,
+    hint,
+    stage: 'validation',
+  })
+}
+
+async function stage<T>(stageName: ErrorStage, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn()
+  } catch (error) {
+    if (error instanceof WebsiteApplicationError) throw error
+    throw new WebsiteApplicationError({
+      message: errorMessage(error),
+      status: 500,
+      code: 'internal_error',
+      stage: stageName,
+      details: { raw_error: errorMessage(error) },
+    })
+  }
+}
+
+function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
+  const raw = isObject(rawBody) ? { ...rawBody } : {}
+  const rawCustomer = isObject(raw.customer) ? { ...raw.customer } : {}
+  const rawAddress = isObject(raw.address) ? raw.address : {}
+  const rawSource = raw.source
+  const rawSite = isObject(raw.site) ? { ...raw.site } : undefined
+  const rawMeteringPoint = isObject(raw.metering_point) ? { ...raw.metering_point } : undefined
+
+  const customer = {
+    customer_type: raw.customer_type ?? rawCustomer.customer_type ?? 'private',
+    first_name: raw.first_name ?? rawCustomer.first_name,
+    last_name: raw.last_name ?? rawCustomer.last_name,
+    full_name: raw.name ?? raw.full_name ?? rawCustomer.full_name ?? rawCustomer.name,
+    company_name: raw.company_name ?? rawCustomer.company_name,
+    personal_number: raw.personal_number ?? rawCustomer.personal_number,
+    org_number: raw.org_number ?? rawCustomer.org_number,
+    email: raw.email ?? rawCustomer.email,
+    phone: raw.phone ?? rawCustomer.phone,
+    invoice_email: raw.invoice_email ?? rawCustomer.invoice_email,
+    billing_street: raw.billing_street ?? rawCustomer.billing_street ?? rawAddress.street,
+    billing_postal_code: raw.billing_postal_code ?? rawCustomer.billing_postal_code ?? rawAddress.postal_code,
+    billing_city: raw.billing_city ?? rawCustomer.billing_city ?? rawAddress.city,
+    billing_country: raw.billing_country ?? rawCustomer.billing_country ?? rawAddress.country,
+  }
+
+  const site = rawSite
+    ? {
+        ...rawSite,
+        price_area_code: rawSite.price_area_code ?? rawSite.price_area,
+      }
+    : undefined
+
+  const meteringPoint = rawMeteringPoint
+    ? {
+        ...rawMeteringPoint,
+        price_area_code: rawMeteringPoint.price_area_code ?? rawMeteringPoint.price_area ?? site?.price_area_code,
+      }
+    : undefined
+
+  const source = typeof rawSource === 'string'
+    ? rawSource
+    : isObject(rawSource)
+      ? clean(rawSource.website) ?? clean(rawSource.channel) ?? 'external_website'
+      : clean(raw.website) ?? clean(raw.channel) ?? 'external_website'
+
+  return {
+    ...raw,
+    source,
+    external_customer_id: raw.external_customer_id ?? raw.customer_external_id ?? raw.externalCustomerId,
+    customer_external_id: raw.customer_external_id ?? raw.external_customer_id ?? raw.externalCustomerId,
+    customer,
+    site,
+    metering_point: meteringPoint,
+    metadata: {
+      ...(isObject(raw.metadata) ? raw.metadata : {}),
+      original_payload_shape: isObject(raw.customer) ? 'nested' : 'simplified',
+      raw_source: isObject(rawSource) ? rawSource : undefined,
+    },
+  }
 }
 
 function fullName(customer: ApplicationInput['customer']): string | null {
@@ -172,8 +318,20 @@ async function findExistingCustomer(companyId: string, input: ApplicationInput):
       .or(`personal_number.eq.${customerId},org_number.eq.${customerId},normalized_personal_number.eq.${customerId},normalized_org_number.eq.${customerId}`)
       .limit(1)
       .maybeSingle()
-    if (error) throw error
+    if (error && !missingSchema(error)) throw error
     if (data) return data as CustomerRow
+
+    if (error && missingSchema(error)) {
+      const fallback = await supabaseService
+        .from('customers')
+        .select('id,customer_number,email,full_name,company_name')
+        .eq('company_id', companyId)
+        .or(`personal_number.eq.${customerId},org_number.eq.${customerId}`)
+        .limit(1)
+        .maybeSingle()
+      if (fallback.error) throw fallback.error
+      if (fallback.data) return fallback.data as CustomerRow
+    }
   }
 
   if (email) {
@@ -184,8 +342,20 @@ async function findExistingCustomer(companyId: string, input: ApplicationInput):
       .eq('normalized_email', email)
       .limit(1)
       .maybeSingle()
-    if (error) throw error
+    if (error && !missingSchema(error)) throw error
     if (data) return data as CustomerRow
+
+    if (error && missingSchema(error)) {
+      const fallback = await supabaseService
+        .from('customers')
+        .select('id,customer_number,email,full_name,company_name')
+        .eq('company_id', companyId)
+        .eq('email', email)
+        .limit(1)
+        .maybeSingle()
+      if (fallback.error) throw fallback.error
+      if (fallback.data) return fallback.data as CustomerRow
+    }
   }
 
   return null
@@ -200,27 +370,29 @@ async function upsertPortalIdentity(input: {
   applicationId?: string | null
 }) {
   const now = new Date().toISOString()
+  const payload = {
+    company_id: input.client.company_id,
+    customer_id: input.customerId,
+    api_client_id: input.client.id,
+    provider: 'external_website',
+    external_customer_id: input.externalCustomerId,
+    external_account_id: input.externalAccountId ?? null,
+    email: input.email ?? null,
+    status: 'active',
+    match_strength: 'strong',
+    match_method: 'website_application',
+    linked_at: now,
+    metadata: {
+      source: 'website_customer_applications',
+      api_client_id: input.client.id,
+      application_id: input.applicationId ?? null,
+    },
+    updated_at: now,
+  }
+
   const { data, error } = await supabaseService
     .from('customer_portal_identities')
-    .upsert({
-      company_id: input.client.company_id,
-      customer_id: input.customerId,
-      api_client_id: input.client.id,
-      provider: 'external_website',
-      external_customer_id: input.externalCustomerId,
-      external_account_id: input.externalAccountId ?? null,
-      email: input.email ?? null,
-      status: 'active',
-      match_strength: 'strong',
-      match_method: 'website_application',
-      linked_at: now,
-      metadata: {
-        source: 'website_customer_applications',
-        api_client_id: input.client.id,
-        application_id: input.applicationId ?? null,
-      },
-      updated_at: now,
-    }, { onConflict: 'company_id,provider,external_customer_id' })
+    .upsert(payload, { onConflict: 'company_id,provider,external_customer_id' })
     .select('id')
     .single()
 
@@ -237,59 +409,90 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
   const now = new Date().toISOString()
 
   if (existing) {
+    const updatePayload = {
+      customer_number: customerNumber,
+      email: email ?? existing.email,
+      phone: clean(customer.phone),
+      full_name: name ?? existing.full_name,
+      company_name: clean(customer.company_name) ?? existing.company_name,
+      invoice_email: normalizedEmail(customer.invoice_email) ?? email ?? undefined,
+      billing_street: clean(customer.billing_street) ?? undefined,
+      billing_postal_code: clean(customer.billing_postal_code) ?? undefined,
+      billing_city: clean(customer.billing_city) ?? undefined,
+      billing_country: clean(customer.billing_country) ?? 'SE',
+      source: 'external_website',
+      updated_at: now,
+      metadata: { source: 'website_customer_applications', api_client_id: client.id },
+    }
+
     const { data, error } = await supabaseService
       .from('customers')
-      .update({
-        customer_number: customerNumber,
-        email: email ?? existing.email,
-        phone: clean(customer.phone),
-        full_name: name ?? existing.full_name,
-        company_name: clean(customer.company_name) ?? existing.company_name,
-        invoice_email: normalizedEmail(customer.invoice_email) ?? email ?? undefined,
-        billing_street: clean(customer.billing_street) ?? undefined,
-        billing_postal_code: clean(customer.billing_postal_code) ?? undefined,
-        billing_city: clean(customer.billing_city) ?? undefined,
-        billing_country: clean(customer.billing_country) ?? 'SE',
-        source: 'external_website',
-        updated_at: now,
-        metadata: { source: 'website_customer_applications', api_client_id: client.id },
-      })
+      .update(updatePayload)
       .eq('company_id', client.company_id)
       .eq('id', existing.id)
       .select('id,customer_number,email,full_name,company_name')
       .single()
-    if (error) throw error
-    return { customer: data as CustomerRow, created: false }
+    if (error && !missingSchema(error)) throw error
+    if (data) return { customer: data as CustomerRow, created: false }
+
+    const fallback = await supabaseService
+      .from('customers')
+      .update({ customer_number: customerNumber, email: email ?? existing.email, full_name: name ?? existing.full_name, updated_at: now })
+      .eq('company_id', client.company_id)
+      .eq('id', existing.id)
+      .select('id,customer_number,email,full_name,company_name')
+      .single()
+    if (fallback.error) throw fallback.error
+    return { customer: fallback.data as CustomerRow, created: false }
+  }
+
+  const insertPayload = {
+    company_id: client.company_id,
+    customer_type: customer.customer_type,
+    status: 'active',
+    first_name: clean(customer.first_name),
+    last_name: clean(customer.last_name),
+    full_name: name,
+    company_name: clean(customer.company_name),
+    personal_number: digits(customer.personal_number),
+    org_number: digits(customer.org_number),
+    email,
+    phone: clean(customer.phone),
+    customer_number: customerNumber,
+    invoice_email: normalizedEmail(customer.invoice_email) ?? email,
+    billing_street: clean(customer.billing_street),
+    billing_postal_code: clean(customer.billing_postal_code),
+    billing_city: clean(customer.billing_city),
+    billing_country: clean(customer.billing_country) ?? 'SE',
+    source: 'external_website',
+    metadata: { source: 'website_customer_applications', api_client_id: client.id },
   }
 
   const { data, error } = await supabaseService
+    .from('customers')
+    .insert(insertPayload)
+    .select('id,customer_number,email,full_name,company_name')
+    .single()
+
+  if (error && !missingSchema(error)) throw error
+  if (data) return { customer: data as CustomerRow, created: true }
+
+  const fallback = await supabaseService
     .from('customers')
     .insert({
       company_id: client.company_id,
       customer_type: customer.customer_type,
       status: 'active',
-      first_name: clean(customer.first_name),
-      last_name: clean(customer.last_name),
       full_name: name,
-      company_name: clean(customer.company_name),
-      personal_number: digits(customer.personal_number),
-      org_number: digits(customer.org_number),
       email,
       phone: clean(customer.phone),
       customer_number: customerNumber,
-      invoice_email: normalizedEmail(customer.invoice_email) ?? email,
-      billing_street: clean(customer.billing_street),
-      billing_postal_code: clean(customer.billing_postal_code),
-      billing_city: clean(customer.billing_city),
-      billing_country: clean(customer.billing_country) ?? 'SE',
-      source: 'external_website',
-      metadata: { source: 'website_customer_applications', api_client_id: client.id },
     })
     .select('id,customer_number,email,full_name,company_name')
     .single()
 
-  if (error) throw error
-  return { customer: data as CustomerRow, created: true }
+  if (fallback.error) throw fallback.error
+  return { customer: fallback.data as CustomerRow, created: true }
 }
 
 async function upsertSite(companyId: string, customerId: string, input: ApplicationInput): Promise<{ id: string; facility_id: string | null } | null> {
@@ -313,29 +516,45 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
   const hasSiteData = Boolean(facilityId || clean(site.street) || clean(site.city))
   if (!hasSiteData) return null
 
+  const fullPayload = {
+    company_id: companyId,
+    customer_id: customerId,
+    site_name: clean(site.site_name) ?? 'Anläggning',
+    facility_id: facilityId,
+    site_type: clean(site.site_type) ?? 'consumption',
+    status: 'active',
+    price_area_code: clean(site.price_area_code),
+    move_in_date: clean(site.move_in_date),
+    annual_consumption_kwh: site.annual_consumption_kwh ?? null,
+    street: clean(site.street),
+    postal_code: clean(site.postal_code),
+    city: clean(site.city),
+    country: clean(site.country) ?? 'SE',
+    metadata: { source: 'website_customer_applications' },
+  }
+
   const { data, error } = await supabaseService
+    .from('customer_sites')
+    .insert(fullPayload)
+    .select('id,facility_id')
+    .single()
+
+  if (error && !missingSchema(error)) throw error
+  if (data) return data as { id: string; facility_id: string | null }
+
+  const fallback = await supabaseService
     .from('customer_sites')
     .insert({
       company_id: companyId,
       customer_id: customerId,
       site_name: clean(site.site_name) ?? 'Anläggning',
       facility_id: facilityId,
-      site_type: clean(site.site_type) ?? 'consumption',
       status: 'active',
-      price_area_code: clean(site.price_area_code),
-      move_in_date: clean(site.move_in_date),
-      annual_consumption_kwh: site.annual_consumption_kwh ?? null,
-      street: clean(site.street),
-      postal_code: clean(site.postal_code),
-      city: clean(site.city),
-      country: clean(site.country) ?? 'SE',
-      metadata: { source: 'website_customer_applications' },
     })
     .select('id,facility_id')
     .single()
-
-  if (error) throw error
-  return data as { id: string; facility_id: string | null }
+  if (fallback.error) throw fallback.error
+  return fallback.data as { id: string; facility_id: string | null }
 }
 
 async function upsertMeteringPoint(companyId: string, customerId: string, site: { id: string; facility_id: string | null } | null, input: ApplicationInput) {
@@ -355,27 +574,43 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
   if (existingError) throw existingError
   if (existing?.id) return existing as { id: string; metering_point_id: string | null }
 
+  const fullPayload = {
+    company_id: companyId,
+    customer_id: customerId,
+    site_id: site.id,
+    meter_point_id: meteringPointId,
+    metering_point_id: meteringPointId,
+    site_facility_id: site.facility_id,
+    status: 'active',
+    measurement_type: clean(metering?.measurement_type) ?? 'consumption',
+    reading_frequency: clean(metering?.reading_frequency) ?? 'monthly',
+    price_area_code: clean(metering?.price_area_code) ?? clean(input.site?.price_area_code),
+    start_date: clean(metering?.start_date) ?? clean(input.site?.move_in_date),
+    metadata: { source: 'website_customer_applications' },
+  }
+
   const { data, error } = await supabaseService
+    .from('metering_points')
+    .insert(fullPayload)
+    .select('id,metering_point_id')
+    .single()
+
+  if (error && !missingSchema(error)) throw error
+  if (data) return data as { id: string; metering_point_id: string | null }
+
+  const fallback = await supabaseService
     .from('metering_points')
     .insert({
       company_id: companyId,
       customer_id: customerId,
       site_id: site.id,
-      meter_point_id: meteringPointId,
       metering_point_id: meteringPointId,
-      site_facility_id: site.facility_id,
       status: 'active',
-      measurement_type: clean(metering?.measurement_type) ?? 'consumption',
-      reading_frequency: clean(metering?.reading_frequency) ?? 'monthly',
-      price_area_code: clean(metering?.price_area_code) ?? clean(input.site?.price_area_code),
-      start_date: clean(metering?.start_date) ?? clean(input.site?.move_in_date),
-      metadata: { source: 'website_customer_applications' },
     })
     .select('id,metering_point_id')
     .single()
-
-  if (error) throw error
-  return data as { id: string; metering_point_id: string | null }
+  if (fallback.error) throw fallback.error
+  return fallback.data as { id: string; metering_point_id: string | null }
 }
 
 async function createContract(companyId: string, customerId: string, siteId: string | null, meteringPointId: string | null, input: ApplicationInput) {
@@ -384,94 +619,172 @@ async function createContract(companyId: string, customerId: string, siteId: str
   const contractName = clean(contract.contract_name) ?? 'Elavtal'
   const startsAt = clean(contract.starts_at) ?? clean(contract.expected_start_at) ?? clean(input.site?.move_in_date)
 
+  const fullPayload = {
+    company_id: companyId,
+    customer_id: customerId,
+    site_id: siteId,
+    customer_site_id: siteId,
+    metering_point_id: meteringPointId,
+    source_type: 'website_application',
+    status: 'application_received',
+    contract_name: contractName,
+    contract_type: clean(contract.contract_type) ?? 'variable_monthly',
+    starts_at: startsAt,
+    expected_start_at: clean(contract.expected_start_at) ?? startsAt,
+    signed_at: clean(contract.signed_at) ?? new Date().toISOString(),
+    monthly_fee_sek: contract.monthly_fee_sek ?? null,
+    spot_markup_ore_per_kwh: contract.spot_markup_ore_per_kwh ?? null,
+    variable_fee_ore_per_kwh: contract.variable_fee_ore_per_kwh ?? null,
+    fixed_price_ore_per_kwh: contract.fixed_price_ore_per_kwh ?? null,
+    green_fee_mode: clean(contract.green_fee_mode) ?? 'none',
+    green_fee_value: contract.green_fee_value ?? null,
+    binding_months: contract.binding_months ?? null,
+    notice_months: contract.notice_months ?? null,
+    campaign_code: clean(contract.campaign_code),
+    price_version: clean(contract.price_version),
+    terms_version: clean(contract.terms_version),
+    metadata: {
+      source: 'website_customer_applications',
+      consents: input.consents ?? {},
+      source_metadata: input.metadata ?? {},
+    },
+  }
+
   const { data, error } = await supabaseService
+    .from('customer_contracts')
+    .insert(fullPayload)
+    .select('id,contract_name,starts_at,status')
+    .single()
+
+  if (error && !missingSchema(error)) throw error
+  if (data) return data as { id: string; contract_name: string | null; starts_at: string | null; status: string }
+
+  const fallback = await supabaseService
     .from('customer_contracts')
     .insert({
       company_id: companyId,
       customer_id: customerId,
-      site_id: siteId,
-      customer_site_id: siteId,
-      metering_point_id: meteringPointId,
-      source_type: 'website_application',
-      status: 'application_received',
+      status: 'draft',
       contract_name: contractName,
       contract_type: clean(contract.contract_type) ?? 'variable_monthly',
       starts_at: startsAt,
-      expected_start_at: clean(contract.expected_start_at) ?? startsAt,
-      signed_at: clean(contract.signed_at) ?? new Date().toISOString(),
-      monthly_fee_sek: contract.monthly_fee_sek ?? null,
-      spot_markup_ore_per_kwh: contract.spot_markup_ore_per_kwh ?? null,
-      variable_fee_ore_per_kwh: contract.variable_fee_ore_per_kwh ?? null,
-      fixed_price_ore_per_kwh: contract.fixed_price_ore_per_kwh ?? null,
-      green_fee_mode: clean(contract.green_fee_mode) ?? 'none',
-      green_fee_value: contract.green_fee_value ?? null,
-      binding_months: contract.binding_months ?? null,
-      notice_months: contract.notice_months ?? null,
-      campaign_code: clean(contract.campaign_code),
-      price_version: clean(contract.price_version),
-      terms_version: clean(contract.terms_version),
-      metadata: {
-        source: 'website_customer_applications',
-        consents: input.consents ?? {},
-        source_metadata: input.metadata ?? {},
-      },
     })
     .select('id,contract_name,starts_at,status')
     .single()
-
-  if (error) throw error
-  return data as { id: string; contract_name: string | null; starts_at: string | null; status: string }
+  if (fallback.error) throw fallback.error
+  return fallback.data as { id: string; contract_name: string | null; starts_at: string | null; status: string }
 }
 
 async function createApplicationRow(input: {
   client: IntegrationApiClient
   externalCustomerId: string
   externalAccountId?: string | null
-  customer: CustomerRow
+  customer?: CustomerRow | null
   customerSiteId?: string | null
   meteringPointId?: string | null
   contractId?: string | null
-  payload: ApplicationInput
+  payload: ApplicationInput | Record<string, unknown>
+  rawPayload?: unknown
   responsePayload: Record<string, unknown>
   idempotencyKey?: string | null
   status: string
+  warnings?: unknown[]
+  errorStage?: string | null
+  errorCode?: string | null
+  errorMessage?: string | null
 }) {
+  const row = {
+    company_id: input.client.company_id,
+    api_client_id: input.client.id,
+    customer_id: input.customer?.id ?? null,
+    customer_site_id: input.customerSiteId ?? null,
+    metering_point_id: input.meteringPointId ?? null,
+    contract_id: input.contractId ?? null,
+    external_customer_id: input.externalCustomerId,
+    external_account_id: input.externalAccountId ?? null,
+    customer_number: input.customer?.customer_number ?? null,
+    source: clean((input.payload as { source?: unknown }).source) ?? 'external_website',
+    status: input.status,
+    idempotency_key: input.idempotencyKey ?? null,
+    payload: input.payload,
+    raw_payload: input.rawPayload ?? input.payload,
+    response_payload: input.responsePayload,
+    warnings: input.warnings ?? [],
+    error_stage: input.errorStage ?? null,
+    error_code: input.errorCode ?? null,
+    error_message: input.errorMessage ?? null,
+    processed_at: input.status === 'failed' ? null : new Date().toISOString(),
+  }
+
   const { data, error } = await supabaseService
+    .from('website_customer_applications')
+    .insert(row)
+    .select('id')
+    .single()
+
+  if (error && !missingSchema(error)) throw error
+  if (data) return data as { id: string }
+
+  const fallback = await supabaseService
     .from('website_customer_applications')
     .insert({
       company_id: input.client.company_id,
       api_client_id: input.client.id,
-      customer_id: input.customer.id,
-      customer_site_id: input.customerSiteId ?? null,
-      metering_point_id: input.meteringPointId ?? null,
-      contract_id: input.contractId ?? null,
+      customer_id: input.customer?.id ?? null,
       external_customer_id: input.externalCustomerId,
-      external_account_id: input.externalAccountId ?? null,
-      customer_number: input.customer.customer_number,
-      source: clean(input.payload.source) ?? 'external_website',
+      customer_number: input.customer?.customer_number ?? null,
+      source: clean((input.payload as { source?: unknown }).source) ?? 'external_website',
       status: input.status,
       idempotency_key: input.idempotencyKey ?? null,
       payload: input.payload,
       response_payload: input.responsePayload,
+      warnings: input.warnings ?? [],
     })
     .select('id')
     .single()
-
-  if (error) throw error
-  return data as { id: string }
+  if (fallback.error) throw fallback.error
+  return fallback.data as { id: string }
 }
 
 async function loadIdempotentApplication(companyId: string, idempotencyKey: string | null) {
   if (!idempotencyKey) return null
   const { data, error } = await supabaseService
     .from('website_customer_applications')
-    .select('id,response_payload,status')
+    .select('id,response_payload,status,customer_id,customer_number,external_customer_id')
     .eq('company_id', companyId)
     .eq('idempotency_key', idempotencyKey)
     .maybeSingle()
 
   if (error) throw error
-  return data as { id: string; response_payload: Record<string, unknown>; status: string } | null
+  return data as { id: string; response_payload: Record<string, unknown>; status: string; customer_id: string | null; customer_number: string | null; external_customer_id: string | null } | null
+}
+
+function successResponse(data: Record<string, unknown>, warnings: string[] = []) {
+  return {
+    ok: true as const,
+    status: 200,
+    body: {
+      data: {
+        ...data,
+        warnings,
+      },
+    },
+  }
+}
+
+function failureResponse(error: WebsiteApplicationError) {
+  return {
+    ok: false as const,
+    status: error.status,
+    body: {
+      error: error.message,
+      code: error.code,
+      field: error.field ?? null,
+      hint: error.hint ?? null,
+      error_stage: error.stage,
+      details: error.details ?? null,
+    },
+  }
 }
 
 export async function processWebsiteCustomerApplication(input: {
@@ -479,195 +792,243 @@ export async function processWebsiteCustomerApplication(input: {
   rawBody: unknown
   idempotencyKey?: string | null
 }) {
-  const parsed = ApplicationSchema.safeParse(input.rawBody)
+  const normalizedRaw = normalizeRawApplication(input.rawBody)
+  const parsed = ApplicationSchema.safeParse(normalizedRaw)
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400,
-      body: {
-        error: 'Ogiltig kundansökan.',
-        details: parsed.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
-      },
-    }
+    return failureResponse(new WebsiteApplicationError({
+      message: 'Ogiltig kundansökan.',
+      status: 422,
+      code: 'validation_error',
+      stage: 'validation',
+      details: parsed.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
+    }))
   }
 
   const body = parsed.data
   const externalCustomerId = clean(body.external_customer_id) ?? clean(body.customer_external_id)
   if (!externalCustomerId) {
-    return { ok: false as const, status: 400, body: { error: 'external_customer_id krävs.' } }
+    return failureResponse(validationError(
+      'external_customer_id krävs.',
+      'external_customer_id',
+      'Skicka ett stabilt kund-ID från hemsidan som external_customer_id.'
+    ))
   }
   if (!normalizedEmail(body.customer.email)) {
-    return { ok: false as const, status: 400, body: { error: 'customer.email krävs.' } }
+    return failureResponse(validationError(
+      'customer.email krävs.',
+      'customer.email',
+      'Skicka email under customer.email eller som top-level email.'
+    ))
   }
 
-  const existingIdempotent = await loadIdempotentApplication(input.client.company_id, input.idempotencyKey ?? null)
-  if (existingIdempotent) {
-    return {
-      ok: true as const,
-      status: 200,
-      body: {
-        data: {
-          ...(existingIdempotent.response_payload ?? {}),
-          idempotent: true,
-          application_id: existingIdempotent.id,
-        },
-      },
+  try {
+    const existingIdempotent = await stage('idempotency', () => loadIdempotentApplication(input.client.company_id, input.idempotencyKey ?? null))
+    if (existingIdempotent) {
+      return successResponse({
+        ...(existingIdempotent.response_payload ?? {}),
+        idempotent: true,
+        application_id: existingIdempotent.id,
+        customer_id: existingIdempotent.customer_id ?? (existingIdempotent.response_payload?.customer_id as string | undefined) ?? null,
+        customer_number: existingIdempotent.customer_number ?? (existingIdempotent.response_payload?.customer_number as string | undefined) ?? null,
+        external_customer_id: existingIdempotent.external_customer_id ?? externalCustomerId,
+        status: existingIdempotent.status,
+      })
     }
-  }
 
-  const existingIdentity = await loadExistingIdentity(input.client.company_id, externalCustomerId)
-  let customerResult: { customer: CustomerRow; created: boolean }
+    const existingIdentity = await stage('customer_lookup', () => loadExistingIdentity(input.client.company_id, externalCustomerId))
+    let customerResult: { customer: CustomerRow; created: boolean }
 
-  if (existingIdentity?.customer_id) {
-    const { data, error } = await supabaseService
-      .from('customers')
-      .select('id,customer_number,email,full_name,company_name')
-      .eq('company_id', input.client.company_id)
-      .eq('id', existingIdentity.customer_id)
-      .maybeSingle()
-    if (error) throw error
-    if (!data) throw new Error('Befintlig portal identity saknar giltig kund.')
-    const customerNumber = await ensureCustomerNumber({
+    if (existingIdentity?.customer_id) {
+      customerResult = await stage('customer_lookup', async () => {
+        const { data, error } = await supabaseService
+          .from('customers')
+          .select('id,customer_number,email,full_name,company_name')
+          .eq('company_id', input.client.company_id)
+          .eq('id', existingIdentity.customer_id)
+          .maybeSingle()
+        if (error) throw error
+        if (!data) throw new Error('Befintlig portal identity saknar giltig kund.')
+        const customerNumber = await ensureCustomerNumber({
+          companyId: input.client.company_id,
+          customerId: String(data.id),
+          existingCustomerNumber: clean(data.customer_number),
+        })
+        return { customer: { ...(data as CustomerRow), customer_number: customerNumber }, created: false }
+      })
+    } else {
+      customerResult = await stage('customer_create', () => createOrUpdateCustomer(input.client, body))
+    }
+
+    const customerNumber = customerResult.customer.customer_number ?? await stage('customer_number_create', () => ensureCustomerNumber({
       companyId: input.client.company_id,
-      customerId: String(data.id),
-      existingCustomerNumber: clean(data.customer_number),
-    })
-    customerResult = { customer: { ...(data as CustomerRow), customer_number: customerNumber }, created: false }
-  } else {
-    customerResult = await createOrUpdateCustomer(input.client, body)
-  }
+      customerId: customerResult.customer.id,
+    }))
+    customerResult.customer.customer_number = customerNumber
 
-  const customerNumber = customerResult.customer.customer_number ?? await ensureCustomerNumber({
-    companyId: input.client.company_id,
-    customerId: customerResult.customer.id,
-  })
-  customerResult.customer.customer_number = customerNumber
+    const site = await stage('site_create', () => upsertSite(input.client.company_id, customerResult.customer.id, body))
+    const meteringPoint = await stage('metering_point_create', () => upsertMeteringPoint(input.client.company_id, customerResult.customer.id, site, body))
+    const contract = await stage('contract_create', () => createContract(
+      input.client.company_id,
+      customerResult.customer.id,
+      site?.id ?? null,
+      meteringPoint?.id ?? null,
+      body
+    ))
+    const identity = await stage('portal_identity_create', () => upsertPortalIdentity({
+      client: input.client,
+      customerId: customerResult.customer.id,
+      externalCustomerId,
+      externalAccountId: clean(body.external_account_id),
+      email: normalizedEmail(body.customer.email),
+    }))
 
-  const site = await upsertSite(input.client.company_id, customerResult.customer.id, body)
-  const meteringPoint = await upsertMeteringPoint(input.client.company_id, customerResult.customer.id, site, body)
-  const contract = await createContract(
-    input.client.company_id,
-    customerResult.customer.id,
-    site?.id ?? null,
-    meteringPoint?.id ?? null,
-    body
-  )
-  const identity = await upsertPortalIdentity({
-    client: input.client,
-    customerId: customerResult.customer.id,
-    externalCustomerId,
-    externalAccountId: clean(body.external_account_id),
-    email: normalizedEmail(body.customer.email),
-  })
-
-  const responsePayload = {
-    customer_id: customerResult.customer.id,
-    customer_number: customerNumber,
-    external_customer_id: externalCustomerId,
-    portal_identity_id: identity.id,
-    customer_site_id: site?.id ?? null,
-    metering_point_id: meteringPoint?.id ?? null,
-    contract_id: contract?.id ?? null,
-    status: contract ? 'application_received' : 'customer_created',
-    created_customer: customerResult.created,
-  }
-
-  const application = await createApplicationRow({
-    client: input.client,
-    externalCustomerId,
-    externalAccountId: clean(body.external_account_id),
-    customer: customerResult.customer,
-    customerSiteId: site?.id ?? null,
-    meteringPointId: meteringPoint?.id ?? null,
-    contractId: contract?.id ?? null,
-    payload: body,
-    responsePayload,
-    idempotencyKey: input.idempotencyKey ?? null,
-    status: contract ? 'application_received' : 'linked_existing_customer',
-  })
-
-  const company = await companyName(input.client.company_id)
-  const variables = eventVariables({
-    companyName: company,
-    customer: customerResult.customer,
-    customerNumber,
-    siteId: site?.id ?? null,
-    facilityId: site?.facility_id ?? clean(body.site?.facility_id),
-    meteringPointId: meteringPoint?.metering_point_id ?? clean(body.metering_point?.metering_point_id),
-    contractName: contract?.contract_name ?? clean(body.contract?.contract_name),
-    startDate: contract?.starts_at ?? clean(body.contract?.starts_at) ?? clean(body.site?.move_in_date),
-  })
-
-  await seedDefaultEmailTemplates(input.client.company_id).catch(() => null)
-  await seedDefaultEmailEventRules(input.client.company_id).catch(() => null)
-
-  const email = normalizedEmail(body.customer.email)
-  const communicationResults = email
-    ? await Promise.all([
-        triggerEmailEvent({
-          companyId: input.client.company_id,
-          customerId: customerResult.customer.id,
-          eventKey: 'contract.application_received',
-          to: email,
-          variables,
-        }).catch((error) => [{ ok: false, error: error instanceof Error ? error.message : String(error) }]),
-        triggerEmailEvent({
-          companyId: input.client.company_id,
-          customerId: customerResult.customer.id,
-          eventKey: 'contract.cooling_off_sent',
-          to: email,
-          variables,
-        }).catch((error) => [{ ok: false, error: error instanceof Error ? error.message : String(error) }]),
-      ])
-    : []
-
-  await emitDomainEvent({
-    companyId: input.client.company_id,
-    eventType: customerResult.created ? 'customer.created' : 'customer.updated',
-    aggregateType: 'customer',
-    aggregateId: customerResult.customer.id,
-    subjectCustomerId: customerResult.customer.id,
-    source: 'website_customer_applications',
-    idempotencyKey: input.idempotencyKey ? `website-customer:${input.client.company_id}:${input.idempotencyKey}:customer` : null,
-    payload: {
+    const responsePayload = {
+      customer_id: customerResult.customer.id,
       customer_number: customerNumber,
       external_customer_id: externalCustomerId,
-      application_id: application.id,
-      api_client_id: input.client.id,
-    },
-  })
+      portal_identity_id: identity.id,
+      customer_site_id: site?.id ?? null,
+      metering_point_id: meteringPoint?.id ?? null,
+      contract_id: contract?.id ?? null,
+      status: contract ? 'application_received' : 'customer_created',
+      created_customer: customerResult.created,
+    }
 
-  if (contract?.id) {
-    await emitDomainEvent({
-      companyId: input.client.company_id,
-      eventType: 'contract.application_received',
-      aggregateType: 'customer_contract',
-      aggregateId: contract.id,
-      subjectCustomerId: customerResult.customer.id,
-      source: 'website_customer_applications',
-      idempotencyKey: input.idempotencyKey ? `website-contract:${input.client.company_id}:${input.idempotencyKey}` : null,
-      payload: {
-        customer_number: customerNumber,
-        external_customer_id: externalCustomerId,
-        contract_id: contract.id,
-        application_id: application.id,
-        communication_results: communicationResults,
-      },
-    })
-  }
+    const application = await stage('application_record_create', () => createApplicationRow({
+      client: input.client,
+      externalCustomerId,
+      externalAccountId: clean(body.external_account_id),
+      customer: customerResult.customer,
+      customerSiteId: site?.id ?? null,
+      meteringPointId: meteringPoint?.id ?? null,
+      contractId: contract?.id ?? null,
+      payload: body,
+      rawPayload: input.rawBody,
+      responsePayload,
+      idempotencyKey: input.idempotencyKey ?? null,
+      status: contract ? 'application_received' : 'linked_existing_customer',
+    }))
 
-  return {
-    ok: true as const,
-    status: 200,
-    body: {
-      data: {
-        ...responsePayload,
-        application_id: application.id,
-        communication: {
-          triggered: email ? ['contract.application_received', 'contract.cooling_off_sent'] : [],
-          results: communicationResults,
+    const warnings: string[] = []
+    let communicationResults: unknown[] = []
+
+    const email = normalizedEmail(body.customer.email)
+    if (email) {
+      try {
+        const company = await companyName(input.client.company_id)
+        const variables = eventVariables({
+          companyName: company,
+          customer: customerResult.customer,
+          customerNumber,
+          siteId: site?.id ?? null,
+          facilityId: site?.facility_id ?? clean(body.site?.facility_id),
+          meteringPointId: meteringPoint?.metering_point_id ?? clean(body.metering_point?.metering_point_id),
+          contractName: contract?.contract_name ?? clean(body.contract?.contract_name),
+          startDate: contract?.starts_at ?? clean(body.contract?.starts_at) ?? clean(body.site?.move_in_date),
+        })
+        await seedDefaultEmailTemplates(input.client.company_id).catch(() => null)
+        await seedDefaultEmailEventRules(input.client.company_id).catch(() => null)
+        communicationResults = await Promise.all([
+          triggerEmailEvent({
+            companyId: input.client.company_id,
+            customerId: customerResult.customer.id,
+            eventKey: 'contract.application_received',
+            to: email,
+            variables,
+          }).catch((error) => [{ ok: false, error: errorMessage(error) }]),
+          triggerEmailEvent({
+            companyId: input.client.company_id,
+            customerId: customerResult.customer.id,
+            eventKey: 'contract.cooling_off_sent',
+            to: email,
+            variables,
+          }).catch((error) => [{ ok: false, error: errorMessage(error) }]),
+        ])
+      } catch (error) {
+        warnings.push('communication_failed')
+        communicationResults = [{ ok: false, error: errorMessage(error), stage: 'communication_trigger' }]
+      }
+    }
+
+    try {
+      await emitDomainEvent({
+        companyId: input.client.company_id,
+        eventType: customerResult.created ? 'customer.created' : 'customer.updated',
+        aggregateType: 'customer',
+        aggregateId: customerResult.customer.id,
+        subjectCustomerId: customerResult.customer.id,
+        source: 'website_customer_applications',
+        idempotencyKey: input.idempotencyKey ? `website-customer:${input.client.company_id}:${input.idempotencyKey}:customer` : null,
+        payload: {
+          customer_number: customerNumber,
+          external_customer_id: externalCustomerId,
+          application_id: application.id,
+          api_client_id: input.client.id,
         },
+      })
+
+      if (contract?.id) {
+        await emitDomainEvent({
+          companyId: input.client.company_id,
+          eventType: 'contract.application_received',
+          aggregateType: 'customer_contract',
+          aggregateId: contract.id,
+          subjectCustomerId: customerResult.customer.id,
+          source: 'website_customer_applications',
+          idempotencyKey: input.idempotencyKey ? `website-contract:${input.client.company_id}:${input.idempotencyKey}` : null,
+          payload: {
+            customer_number: customerNumber,
+            external_customer_id: externalCustomerId,
+            contract_id: contract.id,
+            application_id: application.id,
+            communication_results: communicationResults,
+          },
+        })
+      }
+    } catch (error) {
+      warnings.push('webhook_delivery_pending')
+      await supabaseService
+        .from('website_customer_applications')
+        .update({ warnings, updated_at: new Date().toISOString() })
+        .eq('id', application.id)
+        .then(() => null)
+      console.warn('[website-applications] domain event/webhook enqueue failed', error)
+    }
+
+    return successResponse({
+      ...responsePayload,
+      application_id: application.id,
+      communication: {
+        triggered: email ? ['contract.application_received', 'contract.cooling_off_sent'] : [],
+        results: communicationResults,
       },
-    },
+    }, warnings)
+  } catch (error) {
+    const appError = error instanceof WebsiteApplicationError
+      ? error
+      : new WebsiteApplicationError({ message: errorMessage(error), status: 500, code: 'internal_error', stage: 'application_record_create' })
+
+    await createApplicationRow({
+      client: input.client,
+      externalCustomerId,
+      externalAccountId: clean(body.external_account_id),
+      payload: body,
+      rawPayload: input.rawBody,
+      responsePayload: {
+        error: appError.message,
+        code: appError.code,
+        error_stage: appError.stage,
+      },
+      idempotencyKey: input.idempotencyKey ?? null,
+      status: 'failed',
+      errorStage: appError.stage,
+      errorCode: appError.code,
+      errorMessage: appError.message,
+      warnings: [],
+    }).catch((failedInsertError) => {
+      console.warn('[website-applications] failed to log failed application', failedInsertError)
+    })
+
+    return failureResponse(appError)
   }
 }
