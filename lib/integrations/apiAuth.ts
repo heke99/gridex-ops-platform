@@ -1,6 +1,6 @@
-import { createHash } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
+import { hashIntegrationApiSecret } from '@/lib/integrations/apiClientSecrets'
 
 export type IntegrationApiClient = {
   id: string
@@ -19,15 +19,15 @@ export type IntegrationApiAuthResult =
   | { ok: true; client: IntegrationApiClient }
   | { ok: false; status: number; error: string }
 
-export function hashIntegrationApiSecret(secret: string): string {
-  return createHash('sha256').update(secret).digest('hex')
-}
-
 function bearerToken(request: NextRequest): string | null {
   const authorization = request.headers.get('authorization') ?? ''
-  if (!authorization.startsWith('Bearer ')) return null
-  const token = authorization.slice('Bearer '.length).trim()
-  return token || null
+  if (authorization.startsWith('Bearer ')) {
+    const token = authorization.slice('Bearer '.length).trim()
+    if (token) return token
+  }
+
+  const apiKey = request.headers.get('x-api-key')?.trim()
+  return apiKey || null
 }
 
 function hasRequiredScopes(clientScopes: string[], requiredScopes: string[]): boolean {
@@ -46,6 +46,44 @@ function requestIp(request: NextRequest): string | null {
 function ipAllowed(client: IntegrationApiClient, ip: string | null): boolean {
   if (client.allowed_ips.length === 0) return true
   return Boolean(ip && client.allowed_ips.includes(ip))
+}
+
+function requestOrigin(request: NextRequest): string | null {
+  const origin = request.headers.get('origin')?.trim()
+  if (origin) return origin
+
+  const referer = request.headers.get('referer')?.trim()
+  if (!referer) return null
+  try {
+    return new URL(referer).origin
+  } catch {
+    return null
+  }
+}
+
+function originAllowed(client: IntegrationApiClient, origin: string | null): boolean {
+  const metadata = (client as unknown as { metadata?: Record<string, unknown> }).metadata ?? {}
+  const allowedOrigins = Array.isArray(metadata.allowed_origins)
+    ? metadata.allowed_origins.map((item) => String(item).trim()).filter(Boolean)
+    : []
+
+  if (allowedOrigins.length === 0 || !origin) return true
+  return allowedOrigins.includes(origin)
+}
+
+async function rateLimitAllowed(client: IntegrationApiClient): Promise<boolean> {
+  const limit = Number(client.rate_limit_per_minute ?? 0)
+  if (!Number.isFinite(limit) || limit <= 0) return true
+
+  const since = new Date(Date.now() - 60_000).toISOString()
+  const { count, error } = await supabaseService
+    .from('integration_api_requests')
+    .select('id', { count: 'exact', head: true })
+    .eq('api_client_id', client.id)
+    .gte('created_at', since)
+
+  if (error) return true
+  return Number(count ?? 0) < limit
 }
 
 export async function requireIntegrationApiAccess(
@@ -78,6 +116,12 @@ export async function requireIntegrationApiAccess(
   }
   if (!ipAllowed(client, requestIp(request))) {
     return { ok: false, status: 403, error: 'IP-adressen är inte tillåten.' }
+  }
+  if (!originAllowed(client, requestOrigin(request))) {
+    return { ok: false, status: 403, error: 'Domänen är inte tillåten för API-klienten.' }
+  }
+  if (!(await rateLimitAllowed(client))) {
+    return { ok: false, status: 429, error: 'API-klientens rate limit är uppnådd.' }
   }
 
   await supabaseService

@@ -1,26 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
-import { createPortalRequest, externalCustomerIdFromRequest, resolvePortalCustomerContext } from '@/lib/customer-portal/apiData'
+import { supabaseService } from '@/lib/supabase/service'
+import {
+  handleCustomerPortalRouteError,
+  logCustomerPortalSuccess,
+  requireCustomerPortalApiContext,
+} from '@/lib/customer-portal/externalApi'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
-  const startedAt = Date.now()
-  const auth = await requireIntegrationApiAccess(request, ['customer_portal.write'])
-  if (!auth.ok) {
-    await logIntegrationApiRequest({ request, statusCode: auth.status, startedAt, errorCode: auth.error })
-    return NextResponse.json({ error: auth.error }, { status: auth.status })
-  }
+  const context = await requireCustomerPortalApiContext(request, ['customer_portal.write'])
+  if (!context.ok) return context.response
+
   try {
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
-    const context = await resolvePortalCustomerContext({ client: auth.client, externalCustomerId: externalCustomerIdFromRequest(request) ?? (typeof body.externalCustomerId === 'string' ? body.externalCustomerId : null) })
-    const data = await createPortalRequest(context, { type: 'support_case', payload: body, route: request.nextUrl.pathname })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { customer_id: context.customerId, request_type: 'support_case' } })
+    const payload = await request.json().catch(() => ({})) as Record<string, unknown>
+    const title = String(payload.title ?? payload.subject ?? 'Kundärende från Mina sidor').trim()
+    const description = String(payload.description ?? payload.message ?? '').trim()
+
+    const { data, error } = await supabaseService
+      .from('customer_cases')
+      .insert({
+        company_id: context.client.company_id,
+        customer_id: context.identity.customer_id,
+        site_id: typeof payload.site_id === 'string' ? payload.site_id : null,
+        metering_point_id: typeof payload.metering_point_id === 'string' ? payload.metering_point_id : null,
+        case_type: 'other',
+        status: 'open',
+        priority: 'normal',
+        title: title || 'Kundärende från Mina sidor',
+        description,
+        source: 'customer_portal_api',
+        metadata: {
+          external_customer_id: context.identity.external_customer_id,
+          payload,
+        },
+      })
+      .select('id,status,created_at')
+      .single()
+
+    if (error) throw error
+    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { case_id: data.id } })
     return NextResponse.json({ data })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Mina sidor-ärendet kunde inte skapas.'
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: message.includes('länkat') ? 403 : 500, startedAt, errorCode: message })
-    return NextResponse.json({ error: message }, { status: message.includes('länkat') ? 403 : 500 })
+    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
 }

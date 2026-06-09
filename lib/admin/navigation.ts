@@ -174,6 +174,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     items: [
       { key: 'roles', label: 'RBAC', href: '/admin/roles', description: 'Roller och behörigheter', pageKey: 'roles.catalog', platformOnly: true },
       { key: 'audit', label: 'Audit logs', href: '/admin/audit', description: 'Revision och spårbarhet', pageKey: 'audit.log' },
+      { key: 'api_clients', label: 'API-klienter', href: '/admin/platform/api-clients', description: 'Tokens och scopes för Gridex hemsida och externa portaler', pageKey: 'platform.security', platformOnly: true },
       { key: 'security', label: 'Production guards', href: '/admin/platform/security', description: 'Tenant-isolering och systemdiagnostik', pageKey: 'platform.security', platformOnly: true },
       { key: 'auth_diag', label: 'Systemdiagnostik', href: '/admin/system/auth-diagnostics', description: 'Auth och accessdiagnostik', platformOnly: true },
     ],

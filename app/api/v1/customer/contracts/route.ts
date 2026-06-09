@@ -1,25 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
-import { externalCustomerIdFromRequest, resolvePortalCustomerContext, listPortalContracts } from '@/lib/customer-portal/apiData'
+import { supabaseService } from '@/lib/supabase/service'
+import {
+  handleCustomerPortalRouteError,
+  logCustomerPortalSuccess,
+  requireCustomerPortalApiContext,
+} from '@/lib/customer-portal/externalApi'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  const startedAt = Date.now()
-  const auth = await requireIntegrationApiAccess(request, ['customer_portal.read'])
-  if (!auth.ok) {
-    await logIntegrationApiRequest({ request, statusCode: auth.status, startedAt, errorCode: auth.error })
-    return NextResponse.json({ error: auth.error }, { status: auth.status })
-  }
+  const context = await requireCustomerPortalApiContext(request, ['customer_portal.read'])
+  if (!context.ok) return context.response
+
   try {
-    const context = await resolvePortalCustomerContext({ client: auth.client, externalCustomerId: externalCustomerIdFromRequest(request) })
-    const data = await listPortalContracts(context, request.nextUrl.pathname)
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { customer_id: context.customerId } })
-    return NextResponse.json({ data })
+    const { data, error } = await supabaseService
+      .from('customer_contracts')
+      .select('id,customer_id,site_id,metering_point_id,status,contract_name,contract_type,starts_at,ends_at,signed_at,monthly_fee_sek,spot_markup_ore_per_kwh,variable_fee_ore_per_kwh,fixed_price_ore_per_kwh,green_fee_mode,green_fee_value,binding_months,notice_months,created_at')
+      .eq('company_id', context.client.company_id)
+      .eq('customer_id', context.identity.customer_id)
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (error) throw error
+    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: data?.length ?? 0 })
+    return NextResponse.json({ data: data ?? [] })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Mina sidor-data kunde inte hämtas.'
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: message.includes('länkat') ? 403 : 500, startedAt, errorCode: message })
-    return NextResponse.json({ error: message }, { status: message.includes('länkat') ? 403 : 500 })
+    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
 }

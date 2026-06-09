@@ -15,14 +15,7 @@
     "ediel:inbound-tenant-resolution-regression": "node scripts/ediel-inbound-tenant-resolution-regression.cjs",
     "ediel:utilts-reason-regression": "node scripts/ediel-utilts-reason-regression.cjs",
     "ediel:z13vh-regression": "node scripts/ediel-z13vh-production-regression.cjs",
-    "ediel:parsing-tenant-hardening-regression": "node scripts/ediel-parsing-tenant-hardening-regression.cjs",
-    "pricing:billing-regression": "node scripts/pricing-billing-regression.cjs",
-    "pricing:spot-auto-import-regression": "node scripts/pricing-spot-auto-import-regression.cjs",
-    "pricing:billing-source-regression": "node scripts/pricing-billing-source-regression.cjs",
-    "pricing:unit-conversion-regression": "node scripts/pricing-unit-conversion-regression.cjs",
-    "gridex:batch-1-9-regression": "node scripts/gridex-batch-1-9-regression.cjs",
-    "gridex:batch-1-2-5-3-regression": "node scripts/gridex-batch-1-2-5-3-regression.cjs",
-    "gridex:batch-2-3-4-6-regression": "node scripts/gridex-batch-2-3-4-6-regression.cjs"
+    "gridex:batch-6-api-client-regression": "node scripts/gridex-batch-6-api-client-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
