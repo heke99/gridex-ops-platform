@@ -20,7 +20,8 @@
     "pricing:spot-auto-import-regression": "node scripts/pricing-spot-auto-import-regression.cjs",
     "pricing:billing-source-regression": "node scripts/pricing-billing-source-regression.cjs",
     "pricing:unit-conversion-regression": "node scripts/pricing-unit-conversion-regression.cjs",
-    "gridex:batch-1-9-regression": "node scripts/gridex-batch-1-9-regression.cjs"
+    "gridex:batch-1-9-regression": "node scripts/gridex-batch-1-9-regression.cjs",
+    "gridex:batch-1-2-5-3-regression": "node scripts/gridex-batch-1-2-5-3-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

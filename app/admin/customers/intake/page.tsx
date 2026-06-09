@@ -130,6 +130,26 @@ export default async function CustomerIntakePage() {
           </section>
         ) : null}
 
+        <section className="grid gap-4 md:grid-cols-4">
+          {[
+            ['1', 'Kund', 'Privat/företag, identitet, kontakt och fakturaadress.'],
+            ['2', 'Anläggning', 'Anläggnings-id, nätägare, elområde och startdatum.'],
+            ['3', 'Avtal', 'Prisplan, kampanj, fullmakt och startvillkor.'],
+            ['4', 'Automatik', 'Backend skapar rätt Ediel-, mätvärdes- och faktureringsflöde.'],
+          ].map(([step, title, body]) => (
+            <div key={step} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white">{step}</div>
+              <h2 className="mt-4 text-base font-semibold text-slate-950">{title}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">{body}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="rounded-3xl border border-sky-200 bg-sky-50 p-6 text-sm leading-6 text-sky-950 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-950">Verifierade aktörer används i kundflödet</h2>
+          <p className="mt-2">Vanliga elbolagsadmin väljer nätägare och tidigare leverantör från centralt verifierad masterdata. Ediel-id, subadresser, certifikat, SMTP/IMAP och route-profiler hanteras av platform/teknisk admin så att kundintag inte kan skapa osäkra Ediel-rutter.</p>
+        </section>
+
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <CustomerIntakeForm
             gridOwners={gridOwners.map((owner) => ({

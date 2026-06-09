@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { createPricingComponentRule } from '@/lib/billing/pricingEngine'
+import { calculationTypeForPricingUnit, displayPricingUnit, normalizePricingUnit } from '@/lib/pricing/unitConversion'
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
@@ -40,6 +41,8 @@ export async function createPricingComponentRuleAction(formData: FormData) {
 
   const companyId = await requireOperationalCompanyId(user.id)
 
+  const selectedUnit = text(formData, 'calculation_unit') || 'ore_per_kwh'
+  const normalizedUnit = normalizePricingUnit({ unit: selectedUnit })
   const createdRule = await createPricingComponentRule({
     companyId,
     actorUserId: user.id,
@@ -47,7 +50,7 @@ export async function createPricingComponentRuleAction(formData: FormData) {
     componentCode: text(formData, 'component_code'),
     componentLabel: text(formData, 'component_label'),
     componentType: text(formData, 'component_type') || 'variable_fee',
-    calculationUnit: text(formData, 'calculation_unit') || 'ore_per_kwh',
+    calculationUnit: selectedUnit,
     valueAmount: nullableNumber(formData, 'value_amount'),
     currency: text(formData, 'currency') || 'SEK',
     appliesTo: text(formData, 'applies_to') || 'contract',
@@ -57,6 +60,11 @@ export async function createPricingComponentRuleAction(formData: FormData) {
     isActive: formData.get('is_active') !== 'off',
     metadata: {
       note: nullableText(formData, 'note'),
+      selected_unit: selectedUnit,
+      normalized_pricing_unit: normalizedUnit,
+      unit_display_label: displayPricingUnit(normalizedUnit),
+      calculation_type_for_engine: calculationTypeForPricingUnit(selectedUnit),
+      invoice_line_unit_source: 'admin_selected_unit',
     },
   })
 

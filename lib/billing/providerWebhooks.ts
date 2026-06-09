@@ -77,6 +77,64 @@ function inferCompanyId(payload: Record<string, unknown>, headers: Headers): str
   )
 }
 
+function inferInvoiceGuid(payload: Record<string, unknown>): string | null {
+  return (
+    stringValue(payload.invoiceGuid) ??
+    stringValue(payload.invoice_guid) ??
+    stringValue(payload.provider_invoice_guid) ??
+    stringValue(isObject(payload.invoice) ? payload.invoice.invoiceGuid : null) ??
+    null
+  )
+}
+
+async function recordInvoiceProviderEvent(input: {
+  provider: string
+  companyId: string | null
+  eventType: string
+  eventId: string | null
+  idempotencyKey: string | null
+  payload: Record<string, unknown>
+}) {
+  const invoiceGuid = inferInvoiceGuid(input.payload)
+  let matchedItemId: string | null = null
+
+  if (invoiceGuid) {
+    const query = supabaseService
+      .from('invoice_export_items')
+      .select('id,company_id')
+      .eq('provider', input.provider)
+      .eq('provider_invoice_guid', invoiceGuid)
+      .limit(1)
+
+    const { data, error } = input.companyId
+      ? await query.eq('company_id', input.companyId)
+      : await query
+
+    if (!error && Array.isArray(data) && data[0]?.id) {
+      matchedItemId = String(data[0].id)
+    }
+  }
+
+  const idempotencyHash = input.idempotencyKey ?? (input.eventId ? `${input.provider}:${input.eventId}` : invoiceGuid ? `${input.provider}:${invoiceGuid}:${input.eventType}` : null)
+
+  const { error } = await supabaseService
+    .from('invoice_provider_events')
+    .upsert({
+      company_id: input.companyId,
+      provider: input.provider,
+      provider_event_id: input.eventId,
+      provider_invoice_guid: invoiceGuid,
+      event_type: input.eventType,
+      status: matchedItemId || !invoiceGuid ? 'received' : 'needs_review',
+      payload: input.payload,
+      matched_invoice_export_item_id: matchedItemId,
+      idempotency_hash: idempotencyHash,
+      received_at: new Date().toISOString(),
+    }, { onConflict: 'provider,idempotency_hash' })
+
+  if (error && error.code !== '42P01' && error.code !== 'PGRST205') throw error
+}
+
 export async function receiveBillingProviderWebhook(input: {
   provider: string
   body: string
@@ -128,6 +186,10 @@ export async function receiveBillingProviderWebhook(input: {
   const { data, error } = await mutation.select('id').maybeSingle()
 
   if (error && error.code !== '42P01' && error.code !== 'PGRST205') throw error
+
+  if (status !== 'rejected') {
+    await recordInvoiceProviderEvent({ provider, companyId, eventType, eventId, idempotencyKey, payload })
+  }
 
   if (companyId && status !== 'rejected') {
     await emitDomainEvent({

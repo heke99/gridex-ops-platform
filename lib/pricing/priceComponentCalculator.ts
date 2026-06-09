@@ -22,11 +22,19 @@ function periodizationFactor(underlay: BillingUnderlayInput, component: PriceCom
 }
 
 function normalizedCalculationType(component: PriceComponent): string {
-  if (component.calculationType === 'ore_per_kwh') return 'per_kwh_ore'
-  if (component.calculationType === 'sek_month') return 'fixed_monthly'
-  if (component.calculationType === 'sek_once') return 'fixed_once'
+  const unit = normalizePricingUnit({
+    unit: component.unit,
+    calculationType: component.calculationType,
+    componentType: component.componentType,
+  })
+
   if (component.calculationType === 'discount_per_kwh') return 'discount_per_kwh'
   if (component.calculationType === 'discount_fixed') return 'discount_fixed'
+  if (component.calculationType === 'rounding') return 'rounding'
+  if (unit === 'ore_per_kwh' || unit === 'sek_per_kwh') return 'per_kwh'
+  if (unit === 'sek_month') return 'fixed_monthly'
+  if (unit === 'sek_invoice' || unit === 'sek_once') return 'fixed_once'
+  if (unit === 'percentage') return 'percentage'
   return component.calculationType
 }
 

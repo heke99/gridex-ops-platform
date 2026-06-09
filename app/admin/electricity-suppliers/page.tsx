@@ -87,6 +87,11 @@ export default async function ElectricitySuppliersPage({
  </div>
  </section>
 
+ <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-950 shadow-sm">
+ <h2 className="text-lg font-semibold text-slate-950">Endast platform/teknisk admin ändrar elleverantörer</h2>
+ <p className="mt-2">Tenant-admins ska välja verifierade aktörer i kundflöden. Tekniska fält som Ediel-id, subadress, certifikat, transportkanal och produktions-/testmiljö ska hanteras centralt så att ett elbolag inte råkar skapa felaktig route eller osäker mottagare.</p>
+ </section>
+
  <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
  <ElectricitySupplierForm supplier={editingSupplier} />
  <ElectricitySuppliersTable suppliers={suppliers} />

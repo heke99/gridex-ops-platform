@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { isPriceArea } from '@/lib/pricing/types'
+import { assertBillingPeriodOpen } from '@/lib/billing/invoiceReadiness'
 
 type BillingSourceTable = 'normalized_metering_values' | 'metering_values'
 
@@ -175,6 +176,7 @@ export async function generateBillingUnderlaysForMonth(input: {
   billingMonth: string
   createdBy?: string | null
 }) {
+  await assertBillingPeriodOpen({ companyId: input.companyId, billingMonth: input.billingMonth })
   const bounds = monthBounds(input.billingMonth)
   const source = await loadBillingSourceRows({ companyId: input.companyId, start: bounds.start, end: bounds.end })
   const rows = source.rows

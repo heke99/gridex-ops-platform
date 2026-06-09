@@ -9,6 +9,8 @@ import {
   listPricingComponentRules,
 } from '@/lib/billing/pricingEngine'
 import { createPricingComponentRuleAction } from './actions'
+import { PRICE_UNIT_OPTIONS } from '@/lib/pricing/unitOptions'
+import { displayPricingUnit, normalizePricingUnit } from '@/lib/pricing/unitConversion'
 
 export const dynamic = 'force-dynamic'
 
@@ -120,13 +122,10 @@ export default async function PricingPage() {
               </select>
               <div className="grid gap-3 md:grid-cols-2">
                 <input name="value_amount" placeholder="Värde" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
-                <select name="calculation_unit" defaultValue="sek_month" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
-                  <option value="sek_month">kr/mån</option>
-                  <option value="ore_per_kwh">öre/kWh</option>
-                  <option value="percent_of_spot">% av spot</option>
-                  <option value="per_kwh">kr/kWh</option>
-                  <option value="fixed_monthly">kr/månad</option>
-                  <option value="sek_once">engångsbelopp</option>
+                <select name="calculation_unit" defaultValue="ore_per_kwh" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm" aria-label="Enhet för priskomponent">
+                  {PRICE_UNIT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </select>
               </div>
               <select name="applies_to" defaultValue="contract" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
@@ -140,6 +139,10 @@ export default async function PricingPage() {
                 <input name="valid_to" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
               </div>
               <input name="priority" placeholder="Prioritet, t.ex. 100" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-xs leading-5 text-emerald-900">
+                <div className="font-semibold">Enheten styr beräkningen</div>
+                <p className="mt-1">8 öre/kWh räknas som 0,08 kr/kWh. 0,08 kr/kWh används direkt. Fasta avgifter i kr/mån eller kr/faktura delas inte med 100.</p>
+              </div>
               <textarea name="note" rows={3} placeholder="Intern notering" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
               <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800">Spara komponent</button>
             </div>
@@ -162,7 +165,7 @@ export default async function PricingPage() {
                   <h3 className="mt-3 text-sm font-semibold text-slate-950">{rule.component_label}</h3>
                   <div className="mt-2 grid gap-1 text-xs text-slate-600">
                     <div>Kod: <span className="font-medium text-slate-900">{rule.component_code}</span></div>
-                    <div>Värde: <span className="font-medium text-slate-900">{rule.value_amount ?? '—'} {rule.calculation_unit}</span></div>
+                    <div>Värde: <span className="font-medium text-slate-900">{rule.value_amount ?? '—'} {displayPricingUnit(normalizePricingUnit({ unit: rule.calculation_unit, componentType: rule.component_type }))}</span></div>
                     <div>Gäller: <span className="font-medium text-slate-900">{rule.applies_to}</span></div>
                     <div>Giltig: <span className="font-medium text-slate-900">{rule.valid_from ?? 'nu'} → {rule.valid_to ?? 'tills vidare'}</span></div>
                   </div>

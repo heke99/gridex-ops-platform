@@ -88,6 +88,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
           <Link href="/admin/billing/underlays" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-emerald-200 hover:text-emerald-800">Faktureringsunderlag</Link>
           <Link href="/admin/pricing" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-emerald-200 hover:text-emerald-800">Prismotor</Link>
           <Link href="/admin/billing/export-center" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-emerald-200 hover:text-emerald-800">Exportcenter</Link>
+          <Link href="/admin/billing/integrations" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-emerald-200 hover:text-emerald-800">Fakturaintegrationer</Link>
         </section>
  <BillingFilterBar query={query} status={status} />
 
