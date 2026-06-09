@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  customerPortalJson,
   handleCustomerPortalRouteError,
   logCustomerPortalSuccess,
   normalizeFacility,
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ data: data ?? [] })
+    return customerPortalJson({ data: data ?? [] })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

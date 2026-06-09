@@ -45,6 +45,8 @@ assertContains('app/api/v1/customer-portal/sync/route.ts', [
 
 assertContains('lib/customer-portal/externalApi.ts', [
   ".eq('status', 'active')",
+  'customerPortalJson',
+  "Cache-Control', 'no-store",
 ])
 
 for (const path of [
@@ -58,7 +60,7 @@ for (const path of [
   'app/api/v1/customer/move-out/route.ts',
   'app/api/v1/customer/support-case/route.ts',
 ]) {
-  assertContains(path, ['requireCustomerPortalApiContext'])
+  assertContains(path, ['requireCustomerPortalApiContext', 'customerPortalJson'])
 }
 
 assertContains('app/api/v1/customer/metering-values/route.ts', [
@@ -83,6 +85,9 @@ assertContains('supabase/migrations/20260609143000_batch_6_api_clients_customer_
 assertContains('docs/gridex-customer-portal-api.md', [
   'Gridex Ops Platform är source of truth',
   'Email ensam ger aldrig',
+  'Cache-Control: no-store',
+  'route,',
+  "metadata ->> 'result_count'",
 ])
 
 console.log('Gridex Batch 6 API-client/customer-portal regression passed.')

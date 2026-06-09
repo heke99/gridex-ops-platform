@@ -104,3 +104,34 @@ Responsen returnerar normaliserade fält som `quantity_kwh`, `period_start`, `pe
 - Customer endpoints använder endast länkad `customer_portal_identities`.
 - Email ensam ger aldrig faktura-/avtalsåtkomst.
 - Token ska aldrig exponeras i browsern.
+
+## Audit och cache
+
+Customer Portal API ska aldrig returnera kunddata med publik cache. Alla customer- och customer-portal-svar ska sätta:
+
+```http
+Cache-Control: no-store
+```
+
+Audit-loggen skrivs till `integration_api_requests`. Tabellen använder kolumnen `route`, inte `path`.
+
+Exempel på kontroll efter live-test:
+
+```sql
+select
+  created_at,
+  company_id,
+  api_client_id,
+  method,
+  route,
+  status_code,
+  metadata ->> 'result_count' as result_count,
+  duration_ms,
+  error_code
+from integration_api_requests
+where created_at > now() - interval '30 minutes'
+order by created_at desc
+limit 50;
+```
+
+För ett lyckat mätvärdesanrop ska `route = '/api/v1/customer/metering-values'`, `status_code = 200`, `result_count = 1` och både `company_id` samt `api_client_id` vara satta.

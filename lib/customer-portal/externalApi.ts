@@ -21,8 +21,14 @@ export type CustomerPortalApiContext = {
   identity: LinkedPortalIdentity
 }
 
+export function customerPortalJson<T>(body: T, init: ResponseInit = {}) {
+  const headers = new Headers(init.headers)
+  headers.set('Cache-Control', 'no-store')
+  return NextResponse.json(body, { ...init, headers })
+}
+
 export function jsonError(error: string, status: number) {
-  return NextResponse.json({ error }, { status })
+  return customerPortalJson({ error }, { status })
 }
 
 export function normalizeEmail(value: unknown): string {

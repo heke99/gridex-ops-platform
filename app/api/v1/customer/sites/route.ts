@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  customerPortalJson,
   handleCustomerPortalRouteError,
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     if (pointError) throw pointError
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: sites?.length ?? 0 })
-    return NextResponse.json({ data: { sites: sites ?? [], metering_points: points ?? [] } })
+    return customerPortalJson({ data: { sites: sites ?? [], metering_points: points ?? [] } })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

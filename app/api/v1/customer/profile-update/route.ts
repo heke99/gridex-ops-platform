@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  customerPortalJson,
   handleCustomerPortalRouteError,
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { completion_id: data.id } })
-    return NextResponse.json({ data })
+    return customerPortalJson({ data })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

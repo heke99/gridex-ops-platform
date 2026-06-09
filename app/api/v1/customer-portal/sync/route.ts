@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   logIntegrationApiRequest,
   requireIntegrationApiAccess,
 } from '@/lib/integrations/apiAuth'
 import {
+  customerPortalJson,
   normalizeDigits,
   normalizeEmail,
   normalizeFacility,
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
 
   if (!auth.ok) {
     await logIntegrationApiRequest({ request, statusCode: auth.status, startedAt, errorCode: auth.error })
-    return NextResponse.json({ error: auth.error }, { status: auth.status })
+    return customerPortalJson({ error: auth.error }, { status: auth.status })
   }
 
   try {
@@ -204,7 +205,7 @@ export async function POST(request: NextRequest) {
 
     if (!externalCustomerId) {
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: 400, startedAt, errorCode: 'external_customer_id saknas' })
-      return NextResponse.json({ error: 'external_customer_id krävs.' }, { status: 400 })
+      return customerPortalJson({ error: 'external_customer_id krävs.' }, { status: 400 })
     }
 
     const identityFactors = [email, customerNumber, identifier, facilityId].filter(Boolean).length
@@ -226,7 +227,7 @@ export async function POST(request: NextRequest) {
         },
       })
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'rejected', identity_id: identity.id } })
-      return NextResponse.json({ data: { outcome: 'rejected', status: 'rejected', access_granted: false, reason: 'insufficient_identity_factors' } })
+      return customerPortalJson({ data: { outcome: 'rejected', status: 'rejected', access_granted: false, reason: 'insufficient_identity_factors' } })
     }
 
     const candidates = await loadCandidates(auth.client.company_id, {
@@ -274,7 +275,7 @@ export async function POST(request: NextRequest) {
         },
       })
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'linked', identity_id: identity.id, customer_id: best.customer.id } })
-      return NextResponse.json({ data: { outcome: 'linked', status: 'linked', access_granted: true, customer_id: best.customer.id, external_customer_id: externalCustomerId } })
+      return customerPortalJson({ data: { outcome: 'linked', status: 'linked', access_granted: true, customer_id: best.customer.id, external_customer_id: externalCustomerId } })
     }
 
     const identity = await upsertIdentity({
@@ -296,7 +297,7 @@ export async function POST(request: NextRequest) {
 
     const outcome = best ? 'pending_review' : 'lead_created'
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome, identity_id: identity.id } })
-    return NextResponse.json({ data: { outcome, status: 'pending_review', access_granted: false, identity_id: identity.id } })
+    return customerPortalJson({ data: { outcome, status: 'pending_review', access_granted: false, identity_id: identity.id } })
   } catch (error) {
     const errorMetadata = serializePortalSyncError(error)
     await logIntegrationApiRequest({
@@ -307,6 +308,6 @@ export async function POST(request: NextRequest) {
       errorCode: 'Kundlänkning kunde inte behandlas.',
       metadata: { portal_sync_error: errorMetadata },
     })
-    return NextResponse.json({ error: 'Kundlänkning kunde inte behandlas.' }, { status: 500 })
+    return customerPortalJson({ error: 'Kundlänkning kunde inte behandlas.' }, { status: 500 })
   }
 }

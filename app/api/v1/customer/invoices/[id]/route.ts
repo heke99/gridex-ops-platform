@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  customerPortalJson,
   handleCustomerPortalRouteError,
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
     if (invoiceError) throw invoiceError
     if (!invoice) {
       await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 0, metadata: { invoice_id: id, found: false } })
-      return NextResponse.json({ error: 'Fakturan hittades inte.' }, { status: 404 })
+      return customerPortalJson({ error: 'Fakturan hittades inte.' }, { status: 404 })
     }
 
     const { data: lines, error: lineError } = await supabaseService
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
     if (documentError) throw documentError
 
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { invoice_id: id } })
-    return NextResponse.json({ data: { invoice, lines: lines ?? [], documents: documents ?? [] } })
+    return customerPortalJson({ data: { invoice, lines: lines ?? [], documents: documents ?? [] } })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
