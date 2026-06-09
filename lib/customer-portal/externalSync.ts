@@ -170,6 +170,7 @@ export async function syncExternalCustomerPortalIdentity(input: {
 
   if (match) {
     const externalCustomerId = normalizedText(input.body.externalCustomerId)
+    const now = new Date().toISOString()
     const linkRow = {
       company_id: input.client.company_id,
       customer_id: match.customerId,
@@ -178,7 +179,7 @@ export async function syncExternalCustomerPortalIdentity(input: {
       external_account_id: normalizedText(input.body.externalAccountId),
       status: 'active',
       match_method: match.method,
-      verified_at: new Date().toISOString(),
+      verified_at: now,
       metadata: { sync_request_id: data?.id ?? null },
     }
 
@@ -192,6 +193,33 @@ export async function syncExternalCustomerPortalIdentity(input: {
 
     await linkMutation.then(({ error: linkError }) => {
       if (linkError && linkError.code !== '42P01' && linkError.code !== 'PGRST205') throw linkError
+    })
+
+    const identityRow = {
+      company_id: input.client.company_id,
+      customer_id: match.customerId,
+      provider,
+      external_customer_id: externalCustomerId,
+      external_account_id: normalizedText(input.body.externalAccountId),
+      email: normalizedEmail(input.body.email),
+      status: 'active',
+      match_strength: 'strong',
+      match_method: match.method,
+      linked_at: now,
+      reviewed_at: now,
+      metadata: { sync_request_id: data?.id ?? null },
+    }
+
+    const identityMutation = externalCustomerId
+      ? supabaseService
+          .from('customer_portal_identities')
+          .upsert(identityRow, { onConflict: 'company_id,provider,external_customer_id' })
+      : supabaseService
+          .from('customer_portal_identities')
+          .insert(identityRow)
+
+    await identityMutation.then(({ error: identityError }) => {
+      if (identityError && identityError.code !== '42P01' && identityError.code !== 'PGRST205') throw identityError
     })
 
     await emitDomainEvent({

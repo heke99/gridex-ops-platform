@@ -133,6 +133,12 @@ export async function listGridOwners(
   const rows = (data ?? []) as GridOwnerRow[];
   if (!options.customerFlowOnly) return rows;
 
+  const verifiedRows = rows.filter((row) => {
+    const record = row as GridOwnerRow & { verified_for_customer_flow?: boolean | null; actor_registry_status?: string | null };
+    return row.is_active && row.lifecycle_status !== "blocked" && record.verified_for_customer_flow === true && record.actor_registry_status === "verified";
+  });
+  if (verifiedRows.length > 0) return verifiedRows;
+
   const edielIds = rows.map((row) => row.ediel_id).filter((value): value is string => Boolean(value));
   if (edielIds.length === 0) return rows.filter((row) => row.is_active && row.lifecycle_status !== "blocked");
 
@@ -233,6 +239,7 @@ export async function listElectricitySuppliers(
   supabase: SupabaseClient,
   options: {
     activeOnly?: boolean;
+    customerFlowOnly?: boolean;
   } = {},
 ): Promise<ElectricitySupplierRow[]> {
   let query = supabase
@@ -248,7 +255,14 @@ export async function listElectricitySuppliers(
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data ?? []) as ElectricitySupplierRow[];
+  const rows = (data ?? []) as ElectricitySupplierRow[];
+  if (!options.customerFlowOnly) return rows;
+
+  const verifiedRows = rows.filter((row) => {
+    const record = row as ElectricitySupplierRow & { verified_for_customer_flow?: boolean | null; actor_registry_status?: string | null };
+    return record.verified_for_customer_flow === true && record.actor_registry_status === "verified";
+  });
+  return verifiedRows.length > 0 ? verifiedRows : rows.filter((row) => row.is_active);
 }
 
 export async function getElectricitySupplierById(

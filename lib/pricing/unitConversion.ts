@@ -125,8 +125,30 @@ export function normalizePricingUnit(input: {
   )
 }
 
+export function normalizePricingUnitForComponent(input: {
+  unit?: string | null
+  calculationType?: string | null
+  componentType?: string | null
+}): NormalizedPricingUnit {
+  const unit = normalizePricingUnit(input)
+  const componentType = normalizeText(input.componentType)
+  const calculationType = normalizeText(input.calculationType)
+
+  // Legacy rows often stored fixed monthly fees as plain SEK. For billing and customer-facing
+  // copy, fixed monthly components must be interpreted as SEK per billing month.
+  if (unit === 'sek_once' && (componentType.includes('monthly') || calculationType === 'fixed_monthly')) {
+    return 'sek_month'
+  }
+
+  if (unit === 'sek_once' && (componentType.includes('invoice') || calculationType === 'fixed_invoice')) {
+    return 'sek_invoice'
+  }
+
+  return unit
+}
+
 export function sekPerKwhFromComponent(component: PriceComponent): number {
-  const unit = normalizePricingUnit({
+  const unit = normalizePricingUnitForComponent({
     unit: component.unit,
     calculationType: component.calculationType,
     componentType: component.componentType,
@@ -139,7 +161,7 @@ export function sekPerKwhFromComponent(component: PriceComponent): number {
 export function displayPricingUnit(unit: NormalizedPricingUnit): string {
   if (unit === 'ore_per_kwh') return 'öre/kWh'
   if (unit === 'sek_per_kwh') return 'kr/kWh'
-  if (unit === 'sek_month') return 'kr/mån'
+  if (unit === 'sek_month') return 'kr/månad'
   if (unit === 'sek_invoice') return 'kr/faktura'
   if (unit === 'sek_once') return 'kr'
   if (unit === 'percentage') return '%'

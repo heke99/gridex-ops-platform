@@ -1,5 +1,5 @@
 import type { BillingUnderlayInput, PriceComponent, PricingPreviewLine } from '@/lib/pricing/types'
-import { displayPricingUnit, normalizePricingUnit, sekPerKwhFromComponent } from '@/lib/pricing/unitConversion'
+import { displayPricingUnit, normalizePricingUnitForComponent, sekPerKwhFromComponent } from '@/lib/pricing/unitConversion'
 
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100
@@ -22,7 +22,7 @@ function periodizationFactor(underlay: BillingUnderlayInput, component: PriceCom
 }
 
 function normalizedCalculationType(component: PriceComponent): string {
-  const unit = normalizePricingUnit({
+  const unit = normalizePricingUnitForComponent({
     unit: component.unit,
     calculationType: component.calculationType,
     componentType: component.componentType,
@@ -126,8 +126,8 @@ export function calculatePriceComponents(input: {
         ...(component.metadata ?? {}),
         input_amount: component.amount,
         input_unit: component.unit ?? component.calculationType ?? null,
-        normalized_pricing_unit: normalizePricingUnit({ unit: component.unit, calculationType: component.calculationType, componentType: component.componentType }),
-        display_pricing_unit: displayPricingUnit(normalizePricingUnit({ unit: component.unit, calculationType: component.calculationType, componentType: component.componentType })),
+        normalized_pricing_unit: normalizePricingUnitForComponent({ unit: component.unit, calculationType: component.calculationType, componentType: component.componentType }),
+        display_pricing_unit: displayPricingUnit(normalizePricingUnitForComponent({ unit: component.unit, calculationType: component.calculationType, componentType: component.componentType })),
       },
     })
     sortOrder += 10

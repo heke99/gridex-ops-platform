@@ -1,11 +1,24 @@
 import { supabaseService } from '@/lib/supabase/service'
 
 export type InvoiceReadinessStatus = 'ready' | 'blocked'
+export type BillingPeriodLockStatus = 'open' | 'locked' | 'exported' | 'closed' | 'reopened'
 
 export type InvoiceReadinessIssue = {
   code: string
   message: string
   severity: 'blocked' | 'warning'
+}
+
+type BillingPeriodLockRow = {
+  id?: string
+  company_id?: string | null
+  billing_year?: number | null
+  billing_month?: number | string | null
+  status?: string | null
+  locked_at?: string | null
+  lock_reason?: string | null
+  reason?: string | null
+  metadata?: Record<string, unknown> | null
 }
 
 function isMissingRelationError(error: unknown): boolean {
@@ -14,8 +27,9 @@ function isMissingRelationError(error: unknown): boolean {
     maybe &&
       (maybe.code === '42P01' ||
         maybe.code === '42703' ||
+        maybe.code === 'PGRST204' ||
         maybe.code === 'PGRST205' ||
-        /does not exist|schema cache|relation .* does not exist/i.test(maybe.message ?? ''))
+        /does not exist|schema cache|relation .* does not exist|column .* does not exist/i.test(maybe.message ?? ''))
   )
 }
 
@@ -25,27 +39,147 @@ function normalizeBillingMonth(value: string): string {
   return trimmed
 }
 
-export async function assertBillingPeriodOpen(input: { companyId: string; billingMonth: string; scope?: string }) {
-  const billingMonth = normalizeBillingMonth(input.billingMonth)
+function monthParts(billingMonth: string): { billingMonth: string; year: number; month: number } {
+  const normalized = normalizeBillingMonth(billingMonth)
+  const [year, month] = normalized.split('-').map(Number)
+  return { billingMonth: normalized, year, month }
+}
+
+function isBlockingPeriodStatus(status: unknown): boolean {
+  return ['locked', 'exported', 'closed'].includes(String(status ?? '').trim().toLowerCase())
+}
+
+async function getLegacyPricePeriodLock(input: { companyId: string; billingMonth: string; scope?: string | null }) {
   const lockScopes = input.scope ? [input.scope] : ['invoice_export', 'billing_period']
   const { data, error } = await supabaseService
     .from('price_period_locks')
     .select('id,billing_month,lock_scope,status,locked_at,reason')
     .eq('company_id', input.companyId)
-    .eq('billing_month', billingMonth)
+    .eq('billing_month', input.billingMonth)
     .in('lock_scope', lockScopes)
     .eq('status', 'locked')
     .limit(1)
 
   if (error) {
-    if (isMissingRelationError(error)) return
+    if (isMissingRelationError(error)) return null
     throw error
   }
 
-  const lock = (data ?? [])[0] as Record<string, unknown> | undefined
-  if (lock) {
-    throw new Error(`Fakturaperioden ${billingMonth} är låst för ${lock.lock_scope ?? 'fakturering'}. Skapa kredit/omräkning i stället för att ändra perioden.`)
+  const row = (data ?? [])[0] as Record<string, unknown> | undefined
+  return row ?? null
+}
+
+export async function getBillingPeriodLock(input: {
+  companyId: string
+  billingMonth: string
+}): Promise<BillingPeriodLockRow | null> {
+  const { billingMonth, year, month } = monthParts(input.billingMonth)
+
+  const { data, error } = await supabaseService
+    .from('billing_period_locks')
+    .select('*')
+    .eq('company_id', input.companyId)
+    .eq('billing_year', year)
+    .eq('billing_month', month)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    if (!isMissingRelationError(error)) throw error
+    const legacy = await getLegacyPricePeriodLock({ companyId: input.companyId, billingMonth })
+    return legacy ? { ...legacy, billing_month: billingMonth, status: 'locked' } as BillingPeriodLockRow : null
   }
+
+  return (data as BillingPeriodLockRow | null) ?? null
+}
+
+export async function assertBillingPeriodOpen(input: { companyId: string; billingMonth: string; scope?: string }) {
+  const { billingMonth } = monthParts(input.billingMonth)
+  const lock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth })
+  if (lock && isBlockingPeriodStatus(lock.status)) {
+    throw new Error(`Fakturaperioden ${billingMonth} är ${lock.status}. Skapa kredit/omräkning eller lås upp perioden innan du ändrar underlag.`)
+  }
+
+  // Compatibility with older price_period_locks used by early pricing batches.
+  const legacy = await getLegacyPricePeriodLock({ companyId: input.companyId, billingMonth, scope: input.scope })
+  if (legacy) {
+    throw new Error(`Fakturaperioden ${billingMonth} är låst för ${legacy.lock_scope ?? 'fakturering'}. Skapa kredit/omräkning i stället för att ändra perioden.`)
+  }
+}
+
+export async function lockBillingPeriod(input: {
+  companyId: string
+  billingMonth: string
+  status?: Exclude<BillingPeriodLockStatus, 'open' | 'reopened'>
+  actorUserId?: string | null
+  reason?: string | null
+  metadata?: Record<string, unknown>
+}) {
+  const { billingMonth, year, month } = monthParts(input.billingMonth)
+  const status = input.status ?? 'locked'
+  const now = new Date().toISOString()
+
+  const { data, error } = await supabaseService.from('billing_period_locks').upsert({
+    company_id: input.companyId,
+    billing_year: year,
+    billing_month: month,
+    status,
+    locked_by: input.actorUserId ?? null,
+    locked_at: now,
+    unlocked_by: null,
+    unlocked_at: null,
+    lock_reason: input.reason ?? 'Fakturaperioden är låst.',
+    metadata: input.metadata ?? {},
+    updated_at: now,
+  }, { onConflict: 'company_id,billing_year,billing_month' }).select('*').maybeSingle()
+
+  if (error && !isMissingRelationError(error)) throw error
+
+  await supabaseService.from('price_period_locks').upsert({
+    company_id: input.companyId,
+    billing_month: billingMonth,
+    lock_scope: 'billing_period',
+    status: 'locked',
+    locked_by: input.actorUserId ?? null,
+    locked_at: now,
+    reason: input.reason ?? 'Fakturaperioden är låst.',
+    metadata: input.metadata ?? {},
+  }, { onConflict: 'company_id,billing_month,lock_scope' }).then(() => null)
+
+  return data
+}
+
+export async function unlockBillingPeriod(input: {
+  companyId: string
+  billingMonth: string
+  actorUserId?: string | null
+  reason?: string | null
+}) {
+  const { billingMonth, year, month } = monthParts(input.billingMonth)
+  const now = new Date().toISOString()
+
+  const { data, error } = await supabaseService.from('billing_period_locks').upsert({
+    company_id: input.companyId,
+    billing_year: year,
+    billing_month: month,
+    status: 'reopened',
+    unlocked_by: input.actorUserId ?? null,
+    unlocked_at: now,
+    lock_reason: input.reason ?? 'Fakturaperioden har låsts upp.',
+    updated_at: now,
+  }, { onConflict: 'company_id,billing_year,billing_month' }).select('*').maybeSingle()
+
+  if (error && !isMissingRelationError(error)) throw error
+
+  await supabaseService
+    .from('price_period_locks')
+    .update({ status: 'unlocked', unlocked_by: input.actorUserId ?? null, unlocked_at: now, updated_at: now })
+    .eq('company_id', input.companyId)
+    .eq('billing_month', billingMonth)
+    .in('lock_scope', ['billing_period', 'invoice_export'])
+    .then(() => null)
+
+  return data
 }
 
 export async function lockBillingPeriodForInvoiceExport(input: {
@@ -55,43 +189,29 @@ export async function lockBillingPeriodForInvoiceExport(input: {
   exportRunId?: string | null
   reason?: string | null
 }) {
-  const billingMonth = normalizeBillingMonth(input.billingMonth)
-  const { error } = await supabaseService.from('price_period_locks').upsert({
-    company_id: input.companyId,
-    billing_month: billingMonth,
-    lock_scope: 'invoice_export',
-    status: 'locked',
-    locked_by: input.actorUserId ?? null,
-    locked_at: new Date().toISOString(),
+  return lockBillingPeriod({
+    companyId: input.companyId,
+    billingMonth: input.billingMonth,
+    status: 'exported',
+    actorUserId: input.actorUserId,
     reason: input.reason ?? 'Fakturaperiod låst efter export till fakturapartner.',
     metadata: {
       export_run_id: input.exportRunId ?? null,
       locked_by_flow: 'invoice_export',
     },
-  }, { onConflict: 'company_id,billing_month,lock_scope' })
-  if (error) throw error
+  })
 }
 
 export async function evaluateBillingMonthInvoiceReadiness(input: {
   companyId: string
   billingMonth: string
 }) {
-  const billingMonth = normalizeBillingMonth(input.billingMonth)
-  const [year, month] = billingMonth.split('-').map(Number)
+  const { billingMonth, year, month } = monthParts(input.billingMonth)
   const issues: InvoiceReadinessIssue[] = []
 
-  const periodLock = await supabaseService
-    .from('price_period_locks')
-    .select('id,lock_scope,status')
-    .eq('company_id', input.companyId)
-    .eq('billing_month', billingMonth)
-    .eq('status', 'locked')
-    .in('lock_scope', ['invoice_export', 'billing_period'])
-    .limit(1)
-
-  if (periodLock.error && !isMissingRelationError(periodLock.error)) throw periodLock.error
-  if ((periodLock.data ?? []).length > 0) {
-    issues.push({ code: 'period_locked', message: 'Fakturaperioden är redan låst.', severity: 'blocked' })
+  const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth })
+  if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
+    issues.push({ code: 'period_locked', message: `Fakturaperioden är ${periodLock.status}.`, severity: 'blocked' })
   }
 
   const underlayResult = await supabaseService
@@ -130,9 +250,25 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     return sum + (Number.isFinite(value) ? value : 0)
   }, 0)
 
+  const status: InvoiceReadinessStatus = issues.some((issue) => issue.severity === 'blocked') ? 'blocked' : 'ready'
+
+  if (underlays.length > 0) {
+    await supabaseService
+      .from('billing_underlays')
+      .update({
+        invoice_readiness_status: status === 'ready' ? 'ready_for_invoice' : 'blocked',
+        invoice_readiness_issues: issues,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('company_id', input.companyId)
+      .eq('underlay_year', year)
+      .eq('underlay_month', month)
+      .then(() => null)
+  }
+
   return {
     billingMonth,
-    status: issues.some((issue) => issue.severity === 'blocked') ? 'blocked' as InvoiceReadinessStatus : 'ready' as InvoiceReadinessStatus,
+    status,
     underlayCount: underlays.length,
     readyUnderlayCount: underlays.length - blockedUnderlays.length,
     pricedUnderlayCount: underlays.length - missingPricing.length,

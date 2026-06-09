@@ -38,7 +38,7 @@ export default async function CustomerIntakePage() {
 
   const [gridOwnersResult, electricitySuppliersResult, priceAreasResult, contractOffersResult] = await Promise.all([
     safeLoad("Nätägare", () => listGridOwners(supabase, { customerFlowOnly: true })),
-    safeLoad("Elhandlare", () => listElectricitySuppliers(supabase, { activeOnly: true })),
+    safeLoad("Elhandlare", () => listElectricitySuppliers(supabase, { activeOnly: true, customerFlowOnly: true })),
     safeLoad("Prisområden", () => listPriceAreas(supabase)),
     safeLoad("Avtalserbjudanden", () =>
       companyScope.companyId
@@ -130,12 +130,13 @@ export default async function CustomerIntakePage() {
           </section>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-5">
           {[
             ['1', 'Kund', 'Privat/företag, identitet, kontakt och fakturaadress.'],
             ['2', 'Anläggning', 'Anläggnings-id, nätägare, elområde och startdatum.'],
             ['3', 'Avtal', 'Prisplan, kampanj, fullmakt och startvillkor.'],
-            ['4', 'Automatik', 'Backend skapar rätt Ediel-, mätvärdes- och faktureringsflöde.'],
+            ['4', 'Fullmakt/Ediel', 'Systemet avgör fullmakt, leverantörsbyte, inflytt, uppsägning och mätdataflöde.'],
+            ['5', 'Sammanfattning', 'Visa blockerare, nästa steg och om kunden är redo för fakturering.'],
           ].map(([step, title, body]) => (
             <div key={step} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white">{step}</div>

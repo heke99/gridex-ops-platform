@@ -5,6 +5,7 @@ import { calculatePriceComponents } from '@/lib/pricing/priceComponentCalculator
 import { finalizePricingPreview } from '@/lib/pricing/pricePreviewBuilder'
 import { resolveBasePriceSourceValues, resolvePricingConfiguration } from '@/lib/pricing/priceSourceResolver'
 import { ensureSpotPricesForBillingMonth } from '@/lib/pricing/spot/spotImportScheduler'
+import { assertBillingPeriodOpen } from '@/lib/billing/invoiceReadiness'
 
 function numberValue(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -229,6 +230,10 @@ export async function calculatePricingPreviewForUnderlay(input: {
   persist?: boolean
 }): Promise<PricingPreviewResult & { pricingRunId?: string | null }> {
   const underlayRow = await loadBillingUnderlay(input.companyId, input.billingUnderlayId)
+  const underlayPeriod = dateFromUnderlayMonth(underlayRow.underlay_year, underlayRow.underlay_month)
+  if (input.persist !== false && underlayPeriod?.billingMonth) {
+    await assertBillingPeriodOpen({ companyId: input.companyId, billingMonth: underlayPeriod.billingMonth })
+  }
   const contract = await loadContract(input.companyId, underlayRow)
   const snapshot = await loadContractPriceSnapshot(input.companyId, underlayRow, contract)
   const underlay = underlayToInput(input.companyId, underlayRow, contract, snapshot)
@@ -311,6 +316,9 @@ export async function calculatePricingPreviewForBillingMonth(input: {
   errors: string[]
 }> {
   const billingMonth = normalizeBillingMonth(input.billingMonth)
+  if (input.persist !== false) {
+    await assertBillingPeriodOpen({ companyId: input.companyId, billingMonth })
+  }
   const [yearRaw, monthRaw] = billingMonth.split('-')
   const underlayYear = Number(yearRaw)
   const underlayMonth = Number(monthRaw)
