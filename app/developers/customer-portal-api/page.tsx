@@ -2,9 +2,9 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Customer Portal API | Gridex Developers',
+  title: 'Website API & Webhooks | Gridex Developers',
   description:
-    'Publik integrationsguide för hemsidor och kundportaler som ska koppla mot Gridex Customer Portal API.',
+    'Publik integrationsguide för hemsidor och kundportaler som kopplar mot Gridex Ops API med onboarding, kunddata och webhooks.',
 }
 
 export const revalidate = 3600
@@ -12,6 +12,12 @@ export const revalidate = 3600
 const baseUrl = 'https://app.gridex.se'
 
 const endpoints = [
+  {
+    method: 'POST',
+    path: '/api/v1/website/customer-applications',
+    scope: 'website_applications.write',
+    description: 'Skapar eller matchar kund, kundnummer, portal identity, anläggning, mätpunkt och avtalsansökan från extern hemsida.',
+  },
   {
     method: 'POST',
     path: '/api/v1/customer-portal/sync',
@@ -34,7 +40,7 @@ const endpoints = [
     method: 'GET',
     path: '/api/v1/customer/invoices',
     scope: 'customer_portal.read',
-    description: 'Hämtar kundens fakturor när fakturaexport/fakturavisning är kopplad.',
+    description: 'Hämtar kundens fakturor/fakturaexporter när fakturavisning är kopplad.',
   },
   {
     method: 'GET',
@@ -44,14 +50,69 @@ const endpoints = [
   },
 ]
 
+const webhookEvents = [
+  'customer.created',
+  'customer.updated',
+  'customer_number.assigned',
+  'contract.application_received',
+  'contract.confirmation_sent',
+  'contract.cooling_off_sent',
+  'contract.activated',
+  'supplier_switch.started',
+  'supplier_switch.completed',
+  'invoice.created',
+  'invoice.sent',
+  'invoice.paid',
+  'invoice.disputed',
+  'metering_values.updated',
+  'case.created',
+  'case.updated',
+]
+
 const errorCodes = [
-  ['400', 'Obligatorisk parameter saknas, till exempel external_customer_id.'],
+  ['400', 'Obligatorisk parameter eller body-fält saknas, till exempel external_customer_id eller customer.email.'],
   ['401', 'API-token saknas eller är ogiltig.'],
   ['403', 'Token är spärrad, saknar scope, domän/IP är inte tillåten eller kunden är inte länkad.'],
   ['429', 'API-klientens rate limit är uppnådd.'],
   ['500/503', 'Tillfälligt server- eller databasfel.'],
 ]
 
+const onboardingCurl = `curl -X POST "${baseUrl}/api/v1/website/customer-applications" \\
+  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: website-order-12345" \\
+  -d '{
+    "external_customer_id": "CUSTOMER-12345",
+    "source": "example.se",
+    "customer": {
+      "customer_type": "private",
+      "first_name": "Anna",
+      "last_name": "Andersson",
+      "email": "anna@example.se",
+      "phone": "+46701234567"
+    },
+    "site": {
+      "facility_id": "735999888000000112",
+      "street": "Testgatan 1",
+      "postal_code": "11122",
+      "city": "Stockholm",
+      "price_area_code": "SE3",
+      "move_in_date": "2026-07-01"
+    },
+    "contract": {
+      "contract_name": "Rörligt elpris",
+      "contract_type": "variable_monthly",
+      "starts_at": "2026-07-01",
+      "monthly_fee_sek": 49,
+      "spot_markup_ore_per_kwh": 8,
+      "green_fee_mode": "ore_per_kwh",
+      "green_fee_value": 2
+    },
+    "consents": {
+      "terms_accepted_at": "2026-06-09T14:00:00Z",
+      "withdrawal_information_accepted": true
+    }
+  }'`
 
 const nextJsRouteExample = [
   '// app/api/gridex/metering-values/route.ts',
@@ -83,14 +144,45 @@ const nextJsRouteExample = [
   '}',
 ].join('\n')
 
+
+const webhookReceiverExample = [
+  '// app/api/gridex/webhook/route.ts',
+  "import { createHmac, timingSafeEqual } from 'node:crypto'",
+  "import { NextRequest, NextResponse } from 'next/server'",
+  '',
+  'function verifySignature(rawBody: string, timestamp: string | null, signature: string | null) {',
+  '  if (!timestamp || !signature) return false',
+  '  const secret = process.env.GRIDEX_WEBHOOK_SIGNING_SECRET',
+  '  if (!secret) return false',
+  "  const expected = 'sha256=' + createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex')",
+  '  return timingSafeEqual(Buffer.from(signature), Buffer.from(expected))',
+  '}',
+  '',
+  'export async function POST(request: NextRequest) {',
+  '  const rawBody = await request.text()',
+  "  const timestamp = request.headers.get('x-gridex-webhook-timestamp')",
+  "  const signature = request.headers.get('x-gridex-webhook-signature')",
+  '',
+  '  if (!verifySignature(rawBody, timestamp, signature)) {',
+  "    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })",
+  '  }',
+  '',
+  '  const event = JSON.parse(rawBody)',
+  '  // Spara event.event_id idempotent och uppdatera egen portal/status.',
+  '  return NextResponse.json({ received: true })',
+  '}',
+].join('\n')
+
+
 const checklist = [
   'API-klient är skapad i Gridex Ops Platform.',
   'Token ligger endast server-side på hemsidan eller partnerportalen.',
   'Token ligger aldrig i NEXT_PUBLIC_ eller browserkod.',
   'Allowed origins är satta för hemsidans domäner.',
-  'Scopes är minimerade till customer_portal.read och/eller customer_portal.write.',
+  'Scopes är minimerade till customer_portal.read, customer_portal.write och/eller website_applications.write.',
   'external_customer_id är stabilt och unikt per kund i den externa portalen.',
-  'Kundlänkning via sync är testad.',
+  'Webhook URL är HTTPS och signatur verifieras.',
+  'Kundansökan returnerar customer_number.',
   'Sites, contracts, invoices och metering-values är testade.',
   'Audit-loggen visar company_id, api_client_id, route, status_code och result_count.',
   'Gamla eller exponerade API-nycklar är återkallade eller raderade.',
@@ -128,8 +220,8 @@ export default function CustomerPortalApiDocsPage() {
           </Link>
           <nav className="hidden items-center gap-2 md:flex">
             <a href="#architecture" className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-slate-950">Arkitektur</a>
-            <a href="#endpoints" className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-slate-950">Endpoints</a>
-            <a href="#examples" className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-slate-950">Kodexempel</a>
+            <a href="#onboarding" className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-slate-950">Onboarding</a>
+            <a href="#webhooks" className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-slate-950">Webhooks</a>
           </nav>
           <Link href="/login" className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">
             Logga in
@@ -137,17 +229,17 @@ export default function CustomerPortalApiDocsPage() {
         </div>
       </header>
 
-      <section className="border-b border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-[#f7fbf8]">
+      <section className="relative overflow-hidden border-b border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-slate-50">
         <div className="mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:py-20">
           <div className="max-w-4xl">
-            <div className="inline-flex rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 shadow-sm">
-              Public API guide for websites and customer portals
+            <div className="inline-flex rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
+              Public API guide for websites, customer portals and partners
             </div>
             <h1 className="mt-7 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-6xl">
-              Koppla en extern hemsida till Gridex Customer Portal API.
+              Koppla en extern hemsida till Gridex Customer Portal API och Gridex Ops API.
             </h1>
             <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-              Den här sidan är för utvecklare som ska bygga Mina sidor, kundportal eller partnerportal mot Gridex Ops Platform. Guiden beskriver hur API-token, external_customer_id, endpoints och server-side proxy ska användas utan att exponera känsliga nycklar i browsern.
+              Den här sidan beskriver hur externa hemsidor skickar kundansökningar, hämtar kunddata och tar emot webhooks från Gridex Ops Platform. Gridex/Ops är master för kundnummer, avtal, faktura och kommunikation.
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
@@ -173,10 +265,11 @@ export default function CustomerPortalApiDocsPage() {
             <p className="font-semibold text-slate-950">På sidan</p>
             <div className="mt-4 grid gap-2 text-slate-600">
               <a href="#architecture" className="hover:text-emerald-800">Arkitektur</a>
-              <a href="#auth" className="hover:text-emerald-800">Autentisering</a>
-              <a href="#customer-id" className="hover:text-emerald-800">external_customer_id</a>
-              <a href="#endpoints" className="hover:text-emerald-800">Endpoints</a>
-              <a href="#examples" className="hover:text-emerald-800">Kodexempel</a>
+              <a href="#identity" className="hover:text-emerald-800">Kund-ID:n</a>
+              <a href="#onboarding" className="hover:text-emerald-800">Onboarding</a>
+              <a href="#customer-data" className="hover:text-emerald-800">Kunddata</a>
+              <a href="#webhooks" className="hover:text-emerald-800">Webhooks</a>
+              <a href="#billing" className="hover:text-emerald-800">Faktura/Capway</a>
               <a href="#security" className="hover:text-emerald-800">Säkerhet</a>
               <a href="#go-live" className="hover:text-emerald-800">Go-live</a>
             </div>
@@ -185,9 +278,7 @@ export default function CustomerPortalApiDocsPage() {
 
         <div className="space-y-8">
           <Section id="architecture" label="01" title="Arkitektur: hemsidan ska anropa Gridex server-side">
-            <p>
-              En extern hemsida får aldrig lägga Gridex API-token i frontend. Hemsidan ska i stället skapa egna server routes som kontrollerar kundens inloggning och sedan anropar Gridex Ops API server-side.
-            </p>
+            <p>Authorization: Bearer YOUR_GRIDEX_API_TOKEN används bara server-side. En extern hemsida får aldrig lägga Gridex API-token i frontend. Hemsidan ska skapa egna server routes som kontrollerar kundens inloggning och sedan anropar Gridex Ops API server-side.</p>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
                 <p className="font-semibold text-emerald-950">Rätt flöde</p>
@@ -205,32 +296,34 @@ export default function CustomerPortalApiDocsPage() {
   → response filtered by API-client company_id + external_customer_id`}</CodeBlock>
           </Section>
 
-          <Section id="auth" label="02" title="Autentisering och API-klienter">
-            <p>
-              API-token utfärdas i Gridex Ops Platform av behörig admin. Token visas bara en gång vid skapande och sparas i Gridex som hash, inte i klartext.
-            </p>
-            <CodeBlock>{`Authorization: Bearer YOUR_GRIDEX_API_TOKEN`}</CodeBlock>
-            <p>
-              En API-klient kopplas till ett bolag/tenant via integration_api_clients.company_id. Externa hemsidor ska därför aldrig skicka company_id själva. Tenant väljs av backend genom token.
-            </p>
-            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
-              <p className="font-semibold">Tokenhantering</p>
-              <p className="mt-2">Lägg token som server secret, till exempel GRIDEX_OPS_API_TOKEN. Använd aldrig NEXT_PUBLIC_GRIDEX_OPS_API_TOKEN eller annan publik env-variabel.</p>
-            </div>
+          <Section id="identity" label="02" title="Tre identiteter: customer_id, customer_number och externa ID:n">
+            <p><strong>customer_id</strong> är Gridex tekniska UUID i databasen. <strong>customer_number</strong> är den affärsmässiga kundreferensen, exempelvis GDX-100001, som ska användas i kundportal, support, faktura, Capway-referenser och bestridanden. <strong>external_customer_id</strong> är kundens ID i den externa hemsidan.</p>
+            <CodeBlock>{`Gridex customer_id      = intern teknisk master
+Gridex customer_number  = affärsreferens/master för kund
+external_customer_id    = hemsidans/partnerns kund-ID
+Capway debtor_id        = extern faktura-/betalpartnerreferens
+Capway invoice_id       = extern fakturareferens`}</CodeBlock>
           </Section>
 
-          <Section id="customer-id" label="03" title="external_customer_id identifierar kunden i den externa portalen">
-            <p>
-              external_customer_id är kundens stabila ID i den externa hemsidan eller kundportalen. Gridex använder detta ID tillsammans med API-klientens company_id för att hitta rätt customer_portal_identity och rätt customer_id.
-            </p>
-            <CodeBlock>{`GET /api/v1/customer/sites?external_customer_id=CUSTOMER-12345
-x-gridex-external-customer-id: CUSTOMER-12345`}</CodeBlock>
-            <p>
-              Alla kundendpoints kräver external_customer_id. Detta är medvetet: en API-token kan tillhöra en hemsida med många kunder, och varje anrop måste därför ange vilken kund i portalen som avses.
-            </p>
+          <Section id="onboarding" label="03" title="Skapa kund och elavtalsansökan från hemsida">
+            <p>POST /api/v1/website/customer-applications skapar eller matchar kund i Ops, reserverar kundnummer, skapar portal identity, anläggning, mätpunkt och avtalsansökan. Ops kan även trigga bekräftelsemail och ångerrätt enligt tenantens mallar.</p>
+            <CodeBlock>{onboardingCurl}</CodeBlock>
+            <p>Exempel på response:</p>
+            <CodeBlock>{`{
+  "data": {
+    "customer_id": "93749529-aae5-43dc-8099-9729ecb8ca17",
+    "customer_number": "GDX-100001",
+    "external_customer_id": "CUSTOMER-12345",
+    "portal_identity_id": "...",
+    "customer_site_id": "...",
+    "metering_point_id": "...",
+    "contract_id": "...",
+    "status": "application_received"
+  }
+}`}</CodeBlock>
           </Section>
 
-          <Section id="endpoints" label="04" title="Endpoints">
+          <Section id="customer-data" label="04" title="Endpoints för att läsa kunddata">
             <div className="overflow-hidden rounded-3xl border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
@@ -253,21 +346,67 @@ x-gridex-external-customer-id: CUSTOMER-12345`}</CodeBlock>
                 </tbody>
               </table>
             </div>
-            <p>
-              Customer endpoints returnerar kunddata med Cache-Control: no-store och audit-loggas i integration_api_requests med route, status_code, api_client_id, company_id och result_count där det är relevant.
-            </p>
-          </Section>
-
-          <Section id="examples" label="05" title="Curl och Next.js-exempel">
-            <p>Snabbt live-test mot mätvärden:</p>
-            <CodeBlock>{`curl "${baseUrl}/api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001" \\
-  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
-  -H "Accept: application/json"`}</CodeBlock>
-            <p>Exempel på server route i en extern Next.js-hemsida:</p>
+            <p>Customer endpoints kräver external_customer_id och returnerar kunddata med Cache-Control: no-store.</p>
             <CodeBlock>{nextJsRouteExample}</CodeBlock>
           </Section>
 
-          <Section id="errors" label="06" title="Felkoder">
+          <Section id="webhooks" label="05" title="Webhooks från Ops till externa hemsidor">
+            <p>Gridex kan skicka events till en extern HTTPS endpoint när kund, avtal, faktura, mätvärden eller ärende ändras. Webhook-mottagaren ska verifiera HMAC-signaturen och behandla event_id idempotent.</p>
+            <div className="grid gap-2 md:grid-cols-2">
+              {webhookEvents.map((event) => (
+                <div key={event} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-700">{event}</div>
+              ))}
+            </div>
+            <p>Headers:</p>
+            <CodeBlock>{`x-gridex-webhook-timestamp: 1781013600
+x-gridex-webhook-signature: sha256=<hmac>`}</CodeBlock>
+            <p>Payload:</p>
+            <CodeBlock>{`{
+  "event_id": "evt_123",
+  "event_type": "invoice.sent",
+  "created_at": "2026-06-09T14:00:00Z",
+  "company_id": "b3ad1bf6-fa45-41a6-8054-2e0862e82aca",
+  "customer_id": "93749529-aae5-43dc-8099-9729ecb8ca17",
+  "customer_number": "GDX-100001",
+  "external_customer_id": "CUSTOMER-12345",
+  "data": {
+    "invoice_id": "inv_123",
+    "amount_ex_vat": 919.19,
+    "vat_amount": 229.80,
+    "amount_inc_vat": 1148.99,
+    "status": "sent"
+  }
+}`}</CodeBlock>
+            <CodeBlock>{webhookReceiverExample}</CodeBlock>
+          </Section>
+
+          <Section id="communication" label="06" title="Bekräftelsemail och ångerrätt">
+            <p>Gridex Ops ska kunna skicka juridiskt viktiga mail och logga dem, oavsett om kunden kommer via hemsida/API eller skapas manuellt av admin. Tenant/elbolag kan ha egen avsändare och egna mallar, men Ops ska vara system of record för vad som skickades.</p>
+            <CodeBlock>{`Default:
+Ops skickar och loggar bekräftelse/ångerrätt/statusmail.
+Tenant använder egen avsändare/mallar.
+Extern hemsida får webhook-event och visar status.
+
+Viktiga loggar:
+communication_logs
+communication_log_events
+domain_events
+webhook_deliveries`}</CodeBlock>
+          </Section>
+
+          <Section id="billing" label="07" title="Fakturor, Capway och bestridan">
+            <p>Gridex customer_number är master-referens. Capway kan ge debtor_id/customer id och invoice id, men dessa lagras som externa referenser och ersätter inte Gridex kundnummer.</p>
+            <CodeBlock>{`Capway debtRow-regel:
+amount = belopp exkl. moms
+vatCode = SE25 vid svensk 25% moms
+
+Vid bestridan ska Ops kunna visa:
+kundnummer, avtal, signering, ångerrättsmail, anläggnings-ID,
+mätvärden, fakturarader exkl. moms, vatCode, Capway debtor id,
+Capway invoice id, communication log, eventlogg och audit log.`}</CodeBlock>
+          </Section>
+
+          <Section id="errors" label="08" title="Felkoder">
             <div className="grid gap-3">
               {errorCodes.map(([code, description]) => (
                 <div key={code} className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-[90px_minmax(0,1fr)]">
@@ -278,17 +417,18 @@ x-gridex-external-customer-id: CUSTOMER-12345`}</CodeBlock>
             </div>
           </Section>
 
-          <Section id="security" label="07" title="Säkerhetskrav">
+          <Section id="security" label="09" title="Säkerhetskrav">
             <ul className="grid gap-3">
               <li className="rounded-2xl border border-slate-200 bg-slate-50 p-4">API-token ska bara ligga server-side.</li>
               <li className="rounded-2xl border border-slate-200 bg-slate-50 p-4">Frontend får aldrig skicka company_id som tenant-val.</li>
               <li className="rounded-2xl border border-slate-200 bg-slate-50 p-4">Allowed origins och scopes ska begränsas per hemsida.</li>
+              <li className="rounded-2xl border border-slate-200 bg-slate-50 p-4">Webhook-signatur ska verifieras innan event accepteras.</li>
               <li className="rounded-2xl border border-slate-200 bg-slate-50 p-4">Gamla eller läckta API-nycklar ska återkallas eller raderas i Gridex Ops Platform.</li>
               <li className="rounded-2xl border border-slate-200 bg-slate-50 p-4">Kunddata ska aldrig cacheas publikt. Använd Cache-Control: no-store.</li>
             </ul>
           </Section>
 
-          <Section id="go-live" label="08" title="Go-live checklista">
+          <Section id="go-live" label="10" title="Go-live checklista">
             <div className="grid gap-3 md:grid-cols-2">
               {checklist.map((item) => (
                 <div key={item} className="flex gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-emerald-950">

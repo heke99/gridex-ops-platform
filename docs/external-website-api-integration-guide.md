@@ -1,255 +1,310 @@
 # Gridex External Website API Integration Guide
 
-Public developer page:
+Publik dokumentationssida efter deploy:
 
 ```text
 https://app.gridex.se/developers/customer-portal-api
 ```
 
-This guide is for external websites, customer portals, white-label portals and partner frontends that need to connect to Gridex Ops Platform to fetch customer-specific electricity data.
+Den här guiden är för externa hemsidor, kundportaler, white-label-portaler och partners som ska koppla mot Gridex Ops API.
 
-The API is designed for this flow:
-
-```text
-External website frontend
-→ external website backend/server route
-→ Gridex Ops API
-→ customer data returned to the frontend
-```
-
-The API is **not** designed for this unsafe flow:
+## Grundprincip
 
 ```text
-Browser JavaScript
-→ Gridex Ops API directly with API-token
+Ops = master för kund, kundnummer, avtal, anläggning, mätpunkt, faktura, kommunikation och audit.
+Extern hemsida = kanal där kunden tecknar, loggar in eller ser sin data.
+Capway = faktura-/betalpartner, inte master för kunden.
 ```
 
-## Production base URL
+Bygg inte så här:
 
 ```text
-https://app.gridex.se
+Extern hemsida skapar lite kunddata
+Capway skapar kundnummer
+Ops försöker matcha i efterhand
 ```
 
-## Authentication
+Bygg så här:
 
-Use a Gridex API-client token issued in Gridex Ops Platform.
+```text
+Extern hemsida skickar ansökan/order till Ops
+Ops skapar/matchar kund
+Ops skapar customer_number
+Ops skapar avtal/process
+Ops skickar bekräftelse/ångerrätt/status
+Ops skickar webhooks tillbaka till hemsidan
+Capway får fakturaunderlag med Gridex kundnummer och externa referenser
+```
+
+## Identiteter
+
+Gridex använder tre separata identiteter:
+
+```text
+customer_id             Intern teknisk UUID i Gridex/Ops.
+customer_number         Gridex affärsreferens, t.ex. GDX-100001. Master för support/faktura/bestridan.
+external_customer_id    Hemsidans/partnerns kund-ID.
+```
+
+Externa fakturapartner-ID:n lagras separat:
+
+```text
+Capway debtor/customer id
+Capway invoice id
+annan partnerreferens
+```
+
+Capway får alltså gärna ge egna ID:n, men de ersätter inte Gridex `customer_number`.
+
+## Autentisering
+
+Alla anrop görs server-side från hemsidan:
 
 ```http
 Authorization: Bearer YOUR_GRIDEX_API_TOKEN
 ```
 
-The token must be stored server-side only, for example:
+API-token ska ligga i servermiljön, exempelvis:
 
 ```env
 GRIDEX_OPS_API_BASE_URL=https://app.gridex.se
 GRIDEX_OPS_API_TOKEN=...
 ```
 
-Never store the token in a public frontend variable such as:
+Använd aldrig:
 
 ```env
 NEXT_PUBLIC_GRIDEX_OPS_API_TOKEN=...
 ```
 
-## Tenant resolution
+Frontend får aldrig skicka `company_id`. Tenant löses alltid från API-token via `integration_api_clients.company_id`.
 
-External websites must never send `company_id` to choose tenant.
-
-Gridex resolves tenant through:
-
-```text
-API-token
-→ integration_api_clients.company_id
-→ customer_portal_identities.external_customer_id
-→ customer_id
-→ customer-specific data
-```
-
-This is required so one website/API-client cannot read another tenant's customer data.
-
-## external_customer_id
-
-All customer endpoints require `external_customer_id`.
-
-Send it either as query string:
+## Skapa kund och elavtalsansökan
 
 ```http
-GET /api/v1/customer/sites?external_customer_id=CUSTOMER-12345
+POST /api/v1/website/customer-applications
 ```
 
-or as header:
-
-```http
-x-gridex-external-customer-id: CUSTOMER-12345
-```
-
-The external customer ID must be stable and unique in the external website/customer portal.
-
-## Endpoints
-
-| Method | Endpoint | Scope | Description |
-|---|---|---|---|
-| POST | `/api/v1/customer-portal/sync` | `customer_portal.write` | Link or update an external customer identity. |
-| GET | `/api/v1/customer/sites` | `customer_portal.read` | Get the customer's sites and metering points. |
-| GET | `/api/v1/customer/contracts` | `customer_portal.read` | Get the customer's contracts. |
-| GET | `/api/v1/customer/invoices` | `customer_portal.read` | Get the customer's invoices when billing export/display is connected. |
-| GET | `/api/v1/customer/metering-values` | `customer_portal.read` | Get normalized metering values from `normalized_metering_values`. |
-
-## Metering values
-
-The metering-values endpoint reads from:
+Scope:
 
 ```text
-normalized_metering_values
+website_applications.write
 ```
 
-It must not read from older or unrelated tables such as:
+Exempel:
 
-```text
-metering_values
-meter_values
-billing_underlay_items
+```bash
+curl -X POST "https://app.gridex.se/api/v1/website/customer-applications" \
+  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: website-order-12345" \
+  -d '{
+    "external_customer_id": "CUSTOMER-12345",
+    "source": "example.se",
+    "customer": {
+      "customer_type": "private",
+      "first_name": "Anna",
+      "last_name": "Andersson",
+      "email": "anna@example.se",
+      "phone": "+46701234567"
+    },
+    "site": {
+      "facility_id": "735999888000000112",
+      "street": "Testgatan 1",
+      "postal_code": "11122",
+      "city": "Stockholm",
+      "price_area_code": "SE3",
+      "move_in_date": "2026-07-01"
+    },
+    "contract": {
+      "contract_name": "Rörligt elpris",
+      "contract_type": "variable_monthly",
+      "starts_at": "2026-07-01",
+      "monthly_fee_sek": 49,
+      "spot_markup_ore_per_kwh": 8,
+      "green_fee_mode": "ore_per_kwh",
+      "green_fee_value": 2
+    },
+    "consents": {
+      "terms_accepted_at": "2026-06-09T14:00:00Z",
+      "withdrawal_information_accepted": true
+    }
+  }'
 ```
 
-Supported calls:
-
-```http
-GET /api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001
-GET /api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001&from=2026-05-01&to=2026-06-01
-GET /api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001&facility_id=735999888000000112
-```
-
-Example response:
+Response:
 
 ```json
 {
-  "data": [
-    {
-      "id": "46835aeb-c59f-43dc-941c-641ec3ecb16b",
-      "customer_id": "93749529-aae5-43dc-8099-9729ecb8ca17",
-      "customer_site_id": "6f407d3c-3291-4aee-88ef-4beadf2144b2",
-      "site_id": "6f407d3c-3291-4aee-88ef-4beadf2144b2",
-      "metering_point_id": "74f9f70e-6076-471f-867e-1af752fca471",
-      "facility_id": "735999888000000112",
-      "price_area": "SE3",
-      "period_start": "2026-05-01T00:00:00+00:00",
-      "period_end": "2026-06-01T00:00:00+00:00",
-      "resolution": "monthly",
-      "quantity_kwh": 1000,
-      "quality_status": "verified",
-      "source_type": "manual_verification",
-      "status": "stored"
-    }
-  ]
-}
-```
-
-## Next.js server route example
-
-Example route in the external website:
-
-```ts
-// app/api/gridex/metering-values/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-
-const GRIDEX_OPS_API_BASE_URL = process.env.GRIDEX_OPS_API_BASE_URL ?? 'https://app.gridex.se'
-
-export async function GET(request: NextRequest) {
-  const externalCustomerId = request.nextUrl.searchParams.get('external_customer_id')
-
-  if (!externalCustomerId) {
-    return NextResponse.json({ error: 'external_customer_id saknas.' }, { status: 400 })
+  "data": {
+    "customer_id": "93749529-aae5-43dc-8099-9729ecb8ca17",
+    "customer_number": "GDX-100001",
+    "external_customer_id": "CUSTOMER-12345",
+    "portal_identity_id": "...",
+    "customer_site_id": "...",
+    "metering_point_id": "...",
+    "contract_id": "...",
+    "status": "application_received"
   }
-
-  // Important: verify that the logged-in website user is allowed to use this external_customer_id.
-
-  const response = await fetch(
-    `${GRIDEX_OPS_API_BASE_URL}/api/v1/customer/metering-values?external_customer_id=${encodeURIComponent(externalCustomerId)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.GRIDEX_OPS_API_TOKEN}`,
-        Accept: 'application/json',
-      },
-      cache: 'no-store',
-    }
-  )
-
-  const body = await response.json()
-
-  return NextResponse.json(body, {
-    status: response.status,
-    headers: { 'Cache-Control': 'no-store' },
-  })
 }
 ```
 
-## Security requirements
+## Läsa kunddata
 
-1. API-token must only be stored server-side.
-2. Never expose the token in browser code.
-3. Never use `NEXT_PUBLIC_` for the Gridex API-token.
-4. The external frontend must not send `company_id`.
-5. Tenant is resolved by API-token in Gridex.
-6. Customer is resolved by `external_customer_id` in `customer_portal_identities`.
-7. Allowed origins and scopes should be limited per website.
-8. All customer data responses must use `Cache-Control: no-store`.
-9. Rotate/revoke exposed tokens immediately.
-10. Old API keys can be revoked and deleted from the Gridex superadmin API-client UI.
+Alla kundendpoints kräver `external_customer_id`.
 
-## Error codes
-
-| Status | Meaning |
-|---|---|
-| 400 | Required input missing, usually `external_customer_id`. |
-| 401 | API-token missing or invalid. |
-| 403 | Client inactive, missing scope, origin/IP denied, or customer identity not linked. |
-| 429 | Rate limit reached. |
-| 500/503 | Internal or temporary service error. |
-
-## Audit check
-
-Gridex logs API requests in `integration_api_requests`. The table uses `route`, not `path`.
-
-```sql
-select
-  created_at,
-  company_id,
-  api_client_id,
-  method,
-  route,
-  status_code,
-  metadata ->> 'result_count' as result_count,
-  duration_ms,
-  error_code
-from integration_api_requests
-where created_at > now() - interval '30 minutes'
-order by created_at desc
-limit 50;
+```http
+GET /api/v1/customer/sites?external_customer_id=CUSTOMER-12345
+GET /api/v1/customer/contracts?external_customer_id=CUSTOMER-12345
+GET /api/v1/customer/invoices?external_customer_id=CUSTOMER-12345
+GET /api/v1/customer/metering-values?external_customer_id=CUSTOMER-12345
 ```
 
-Expected for a successful metering-values call:
+Scope:
 
 ```text
-route = /api/v1/customer/metering-values
-status_code = 200
-result_count = 1
-company_id is set
-api_client_id is set
+customer_portal.read
 ```
 
-## Go-live checklist
+## Webhooks
 
-- [ ] API-client created in Gridex Ops Platform.
-- [ ] API-token copied once and stored server-side.
-- [ ] Token is not visible in browser bundle, HTML, logs or public env.
-- [ ] Allowed origins are configured.
-- [ ] Scopes are limited to required access.
-- [ ] `external_customer_id` is stable and unique per customer.
-- [ ] Sync endpoint tested.
-- [ ] Sites endpoint tested.
-- [ ] Contracts endpoint tested.
-- [ ] Invoices endpoint tested.
-- [ ] Metering-values endpoint tested.
-- [ ] `Cache-Control: no-store` verified.
-- [ ] Audit logs verified.
-- [ ] Old test tokens revoked or deleted.
+Externa hemsidor kan ha en HTTPS endpoint som tar emot events från Ops:
+
+```text
+https://example.se/api/gridex/webhook
+```
+
+Exempel på events:
+
+```text
+customer.created
+customer.updated
+customer_number.assigned
+contract.application_received
+contract.confirmation_sent
+contract.cooling_off_sent
+contract.activated
+supplier_switch.started
+supplier_switch.completed
+invoice.created
+invoice.sent
+invoice.paid
+invoice.disputed
+metering_values.updated
+case.created
+case.updated
+```
+
+Headers:
+
+```http
+x-gridex-webhook-timestamp: 1781013600
+x-gridex-webhook-signature: sha256=<hmac>
+```
+
+Payload:
+
+```json
+{
+  "event_id": "evt_123",
+  "event_type": "invoice.sent",
+  "created_at": "2026-06-09T14:00:00Z",
+  "company_id": "b3ad1bf6-fa45-41a6-8054-2e0862e82aca",
+  "customer_id": "93749529-aae5-43dc-8099-9729ecb8ca17",
+  "customer_number": "GDX-100001",
+  "external_customer_id": "CUSTOMER-12345",
+  "data": {
+    "invoice_id": "inv_123",
+    "amount_ex_vat": 919.19,
+    "vat_amount": 229.80,
+    "amount_inc_vat": 1148.99,
+    "status": "sent"
+  }
+}
+```
+
+Mottagaren måste verifiera HMAC-signaturen och behandla `event_id` idempotent.
+
+## Bekräftelsemail och ångerrätt
+
+Default-modellen är:
+
+```text
+Ops skickar och loggar juridiskt viktiga mail.
+Tenant/elbolag använder egen avsändare och egna mallar.
+Extern hemsida får webhook-event och visar status.
+```
+
+Ops ska kunna logga:
+
+```text
+vilket avtal kunden accepterade
+vilken prisinformation som gällde
+när bekräftelse skickades
+när ångerrättsinformation skickades
+vilken mallversion som användes
+om mailet levererades/studsade
+vilken kund och vilket kundnummer det gäller
+```
+
+## Capway och faktura
+
+Capway-regel:
+
+```text
+debtRow amount = belopp exkl. moms
+vatCode = SE25 vid svensk 25% moms
+```
+
+Gridex ska alltid skicka med/spåra:
+
+```text
+customer_number
+customer_id
+Capway debtor id
+Capway invoice id
+fakturarader exkl. moms
+vatCode
+```
+
+Vid bestridan ska Ops kunna visa:
+
+```text
+kundnummer
+kundens avtal
+signering/godkännande
+anläggnings-ID
+mätvärden/förbrukning
+prisrad/fakturarad
+Capway debtor id
+Capway invoice id
+kommunikationslogg
+eventlogg
+audit log
+```
+
+## Go-live checklista
+
+```text
+API-client skapad i Gridex Ops
+Token ligger server-side
+Allowed origins korrekt
+Scopes korrekt
+Webhook URL konfigurerad om events ska tas emot
+Webhook-signatur verifieras
+external_customer_id är stabilt och unikt
+customer-applications endpoint testad
+customer_number returneras
+sites/contracts/invoices/metering-values testade
+audit loggar korrekt
+gamla API-nycklar återkallade/raderade
+```
+
+
+## Legacy summary keywords for internal regression
+
+```text
+External website frontend -> own server route -> Gridex Ops API
+Cache-Control: no-store
+Old API keys can be revoked and deleted
+```

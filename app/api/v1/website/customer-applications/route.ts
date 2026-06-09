@@ -1,0 +1,70 @@
+import { NextRequest } from 'next/server'
+import {
+  customerPortalJson,
+} from '@/lib/customer-portal/externalApi'
+import {
+  logIntegrationApiRequest,
+  requireIntegrationApiAccess,
+} from '@/lib/integrations/apiAuth'
+import { processWebsiteCustomerApplication } from '@/lib/website/customerApplications'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+
+function readStringField(value: unknown, field: string): string | null {
+  if (!value || typeof value !== 'object') return null
+  const record = value as Record<string, unknown>
+  return typeof record[field] === 'string' && record[field].trim() ? record[field] : null
+}
+
+function safeError(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  return 'Kundansökan kunde inte behandlas.'
+}
+
+export async function POST(request: NextRequest) {
+  const startedAt = Date.now()
+  const auth = await requireIntegrationApiAccess(request, ['website_applications.write'])
+
+  if (!auth.ok) {
+    await logIntegrationApiRequest({ request, statusCode: auth.status, startedAt, errorCode: auth.error })
+    return customerPortalJson({ error: auth.error }, { status: auth.status })
+  }
+
+  try {
+    const body = await request.json().catch(() => ({}))
+    const result = await processWebsiteCustomerApplication({
+      client: auth.client,
+      rawBody: body,
+      idempotencyKey: request.headers.get('idempotency-key')?.trim() || null,
+    })
+
+    await logIntegrationApiRequest({
+      client: auth.client,
+      request,
+      statusCode: result.status,
+      startedAt,
+      errorCode: result.ok ? null : String(result.body.error ?? 'website_application_error'),
+      metadata: {
+        result_count: result.ok ? 1 : 0,
+        external_customer_id: typeof body?.external_customer_id === 'string' ? body.external_customer_id : body?.customer_external_id,
+        customer_number: readStringField(result.ok ? result.body.data : null, 'customer_number'),
+        application_id: readStringField(result.ok ? result.body.data : null, 'application_id'),
+      },
+    })
+
+    return customerPortalJson(result.body, { status: result.status })
+  } catch (error) {
+    const message = safeError(error)
+    await logIntegrationApiRequest({
+      client: auth.client,
+      request,
+      statusCode: 500,
+      startedAt,
+      errorCode: message,
+    })
+    return customerPortalJson({ error: message }, { status: 500 })
+  }
+}

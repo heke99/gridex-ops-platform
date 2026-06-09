@@ -1,6 +1,7 @@
 export const CUSTOMER_PORTAL_SCOPES = [
   'customer_portal.read',
   'customer_portal.write',
+  'website_applications.write',
 ] as const
 
 export const INTEGRATION_API_SCOPE_OPTIONS = [
@@ -13,6 +14,11 @@ export const INTEGRATION_API_SCOPE_OPTIONS = [
     value: 'customer_portal.write',
     label: 'Mina sidor · skriva kundärenden',
     description: 'Kundlänkning, profiluppdatering, flytt/uppsägning och supportärenden.',
+  },
+  {
+    value: 'website_applications.write',
+    label: 'Hemsida · skapa kundansökan',
+    description: 'Skapa eller matcha kund, kundnummer, portal identity, anläggning, mätpunkt och avtalsansökan från extern hemsida.',
   },
   {
     value: 'events.read',

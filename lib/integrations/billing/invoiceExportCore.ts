@@ -69,22 +69,42 @@ export async function createInvoiceExportRun(input: {
     .limit(10_000)
   if (pricingError) throw pricingError
 
-  const itemRows = ((pricingRuns ?? []) as Record<string, unknown>[]).map((pricingRun) => ({
-    company_id: input.companyId,
-    export_run_id: runId,
-    customer_id: stringValue(pricingRun.customer_id),
-    billing_underlay_id: stringValue(pricingRun.billing_underlay_id),
-    pricing_run_id: stringValue(pricingRun.id),
-    provider,
-    environment,
-    status: 'pending',
-    financing_mode: input.financingMode ?? 'invoice_service',
-    amount_ex_vat: numberValue(pricingRun.total_ex_vat),
-    vat_amount: numberValue(pricingRun.vat_amount),
-    amount_inc_vat: numberValue(pricingRun.total_inc_vat),
-    idempotency_key: `${provider}:${input.companyId}:${input.billingMonth}:${stringValue(pricingRun.id)}`,
-    metadata: { billing_month: input.billingMonth },
-  }))
+  const customerIds = Array.from(new Set(((pricingRuns ?? []) as Record<string, unknown>[]).map((pricingRun) => stringValue(pricingRun.customer_id)).filter(Boolean))) as string[]
+  const customerNumbers = new Map<string, string>()
+  if (customerIds.length > 0) {
+    const { data: customerRows, error: customerNumberError } = await supabaseService
+      .from('customers')
+      .select('id,customer_number')
+      .eq('company_id', input.companyId)
+      .in('id', customerIds)
+    if (customerNumberError && !missingRelation(customerNumberError)) throw customerNumberError
+    for (const row of (customerRows ?? []) as Record<string, unknown>[]) {
+      const id = stringValue(row.id)
+      const number = stringValue(row.customer_number)
+      if (id && number) customerNumbers.set(id, number)
+    }
+  }
+
+  const itemRows = ((pricingRuns ?? []) as Record<string, unknown>[]).map((pricingRun) => {
+    const customerId = stringValue(pricingRun.customer_id)
+    return {
+      company_id: input.companyId,
+      export_run_id: runId,
+      customer_id: customerId,
+      customer_number: customerId ? customerNumbers.get(customerId) ?? null : null,
+      billing_underlay_id: stringValue(pricingRun.billing_underlay_id),
+      pricing_run_id: stringValue(pricingRun.id),
+      provider,
+      environment,
+      status: 'pending',
+      financing_mode: input.financingMode ?? 'invoice_service',
+      amount_ex_vat: numberValue(pricingRun.total_ex_vat),
+      vat_amount: numberValue(pricingRun.vat_amount),
+      amount_inc_vat: numberValue(pricingRun.total_inc_vat),
+      idempotency_key: `${provider}:${input.companyId}:${input.billingMonth}:${stringValue(pricingRun.id)}`,
+      metadata: { billing_month: input.billingMonth, customer_number: customerId ? customerNumbers.get(customerId) ?? null : null },
+    }
+  })
 
   if (itemRows.length > 0) {
     const { error: itemError } = await supabaseService
@@ -196,6 +216,9 @@ export async function sendInvoiceExportRun(input: {
 
       await supabaseService.from('invoice_export_items').update({
         status: 'sent',
+        customer_number: stringValue(context.customer.customer_number),
+        provider_customer_id: stringValue(payload.customer.customerReference),
+        provider_debtor_id: stringValue(payload.customer.customerReference),
         provider_invoice_guid: invoiceGuid,
         provider_imp_stock_id: response.impStockId ?? null,
         request_payload: payload,

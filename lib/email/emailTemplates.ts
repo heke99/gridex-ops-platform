@@ -25,6 +25,7 @@ type TemplateInput = {
 
 export const EMAIL_TEMPLATE_VARIABLES = [
   'customer_name',
+  'customer_number',
   'company_name',
   'contract_name',
   'start_date',
@@ -40,14 +41,14 @@ export const DEFAULT_EMAIL_TEMPLATES = [
     template_key: 'contract_confirmation',
     name: 'Avtalsbekräftelse',
     subject: 'Avtalsbekräftelse från {{company_name}}',
-    body_html: '<p>Hej {{customer_name}},</p><p>Tack för att du har tecknat avtal med {{company_name}}. Ditt avtal {{contract_name}} är mottaget och hanteras nu av oss.</p><p>Planerad start: {{start_date}}.</p><p>Kontakta oss på {{support_email}} om du har frågor.</p>',
-    body_text: 'Hej {{customer_name}}, tack för att du har tecknat avtal med {{company_name}}. Ditt avtal {{contract_name}} är mottaget. Planerad start: {{start_date}}.',
+    body_html: '<p>Hej {{customer_name}},</p><p>Tack för att du har tecknat avtal med {{company_name}}. Kundnummer {{customer_number}}. Ditt avtal {{contract_name}} är mottaget och hanteras nu av oss.</p><p>Planerad start: {{start_date}}.</p><p>Kontakta oss på {{support_email}} om du har frågor.</p>',
+    body_text: 'Hej {{customer_name}}, tack för att du har tecknat avtal med {{company_name}}. Kundnummer {{customer_number}}. Ditt avtal {{contract_name}} är mottaget. Planerad start: {{start_date}}.',
   },
   {
     template_key: 'welcome_email',
     name: 'Välkomstmail',
     subject: 'Välkommen till {{company_name}}',
-    body_html: '<p>Hej {{customer_name}},</p><p>Välkommen som kund hos {{company_name}}. Vi återkommer när nästa steg i ditt kundärende är klart.</p><p>Du kan nå oss på {{support_email}}.</p>',
+    body_html: '<p>Hej {{customer_name}},</p><p>Välkommen som kund hos {{company_name}}. Ditt kundnummer är {{customer_number}}. Vi återkommer när nästa steg i ditt kundärende är klart.</p><p>Du kan nå oss på {{support_email}}.</p>',
     body_text: 'Hej {{customer_name}}, välkommen som kund hos {{company_name}}. Vi återkommer när nästa steg är klart.',
   },
   {

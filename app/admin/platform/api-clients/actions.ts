@@ -35,6 +35,23 @@ function nullableDate(formData: FormData, key: string): string | null {
   return date.toISOString()
 }
 
+
+function normalizedWebhookRef(value: string): string | null {
+  const cleaned = value.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_').replace(/_+/g, '_')
+  return cleaned || null
+}
+
+function validWebhookUrl(value: string): string | null {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'https:') return null
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
   if (typeof error === 'string') return error
@@ -89,6 +106,14 @@ export async function createIntegrationApiClientAction(
     const notes = text(formData, 'notes')
     const rateLimit = intValue(formData, 'rateLimitPerMinute', 120)
     const expiresAt = nullableDate(formData, 'expiresAt')
+    const webhookUrlInput = text(formData, 'webhookUrl')
+    const webhookUrl = validWebhookUrl(webhookUrlInput)
+    const webhookEventTypes = parseMultiValueText(formData.get('webhookEventTypes'))
+    const webhookSigningSecretRef = normalizedWebhookRef(text(formData, 'webhookSigningSecretRef'))
+
+    if (webhookUrlInput && !webhookUrl) {
+      return { ok: false, message: 'Webhook URL måste börja med https://.' }
+    }
 
     const { data: company, error: companyError } = await supabaseService
       .from('companies')
@@ -140,6 +165,37 @@ export async function createIntegrationApiClientAction(
         clientId: data.id,
         metadata: { scopes, allowedOrigins, frontendApp, intendedUse },
       })
+
+      if (webhookUrl) {
+        const { error: webhookError } = await supabaseService
+          .from('webhook_subscriptions')
+          .insert({
+            company_id: companyId,
+            api_client_id: data.id,
+            name: `${name} · webhook`,
+            endpoint_url: webhookUrl,
+            event_types: webhookEventTypes.length > 0 ? webhookEventTypes : ['customer.created', 'contract.application_received', 'invoice.sent'],
+            status: 'active',
+            signing_secret_ref: webhookSigningSecretRef,
+            description: `Webhook skapad tillsammans med API-klienten ${name}.`,
+            created_by: context.userId,
+            updated_by: context.userId,
+            metadata: {
+              created_from: 'superadmin_api_client_ui',
+              api_client_id: data.id,
+              signing_secret_ref: webhookSigningSecretRef,
+            },
+          })
+
+        if (webhookError) throw webhookError
+        await auditApiClient({
+          action: 'api_client.webhook_created',
+          actorUserId: context.userId,
+          companyId,
+          clientId: data.id,
+          metadata: { webhookUrl, webhookEventTypes, webhookSigningSecretRef },
+        })
+      }
 
       revalidatePath('/admin/platform/api-clients')
       return {

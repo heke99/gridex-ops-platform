@@ -152,3 +152,49 @@ limit 50;
 ```
 
 För ett lyckat mätvärdesanrop ska `route = '/api/v1/customer/metering-values'`, `status_code = 200`, `result_count = 1` och både `company_id` samt `api_client_id` vara satta.
+
+## Batch 7 website integration foundation
+
+External websites should use the public developer guide:
+
+```text
+https://app.gridex.se/developers/customer-portal-api
+```
+
+Batch 7 adds the foundation for:
+
+```text
+customer_number as Ops-owned customer master reference
+POST /api/v1/website/customer-applications
+webhook_subscriptions and webhook_deliveries
+confirmation/cooling-off communication events
+Capway/customer_number/debtor/invoice reference mapping
+billing dispute traceability
+```
+
+Key principles:
+
+```text
+Ops is master.
+Websites are channels.
+Capway is a billing/payment partner.
+customer_number belongs to Ops and is the business reference used for support, invoices, disputes and partner mapping.
+```
+
+Customer application endpoint:
+
+```text
+POST /api/v1/website/customer-applications
+Scope: website_applications.write
+```
+
+The endpoint creates or matches customer, reserves `customer_number`, upserts `customer_portal_identities`, optionally creates site/metering point/contract application, triggers customer communication rules and emits domain events for webhook delivery.
+
+Webhook dispatch:
+
+```text
+POST /api/internal/webhooks/dispatch
+Authorization: Bearer <GRIDEX_CRON_SECRET or CRON_SECRET>
+```
+
+Webhook payloads use top-level `event_id`, `event_type`, `created_at`, `company_id`, `customer_id`, `customer_number`, `external_customer_id` and `data`.

@@ -136,7 +136,8 @@ export function buildCapwayInvoicePayload(input: {
   const totalIncVat = roundMoney(numberValue(input.pricingRun.total_inc_vat) || principal + vat)
   const rounding = roundMoney(totalIncVat - principal - vat)
   const externalReference = stringValue(input.pricingRun.id) ?? `GRIDEX-${Date.now()}`
-  const customerRef = stringValue(input.customer.customer_number) ?? stringValue(input.customer.external_customer_id) ?? stringValue(input.customer.id)
+  const customerNumber = stringValue(input.customer.customer_number)
+  const customerRef = customerNumber ?? stringValue(input.customer.external_customer_id) ?? stringValue(input.customer.id)
   const address = stringValue(input.customer.full_address) ?? stringValue(input.customer.address_line_1) ?? stringValue(input.customer.street)
   const metadata = isObject(input.underlay?.payload) ? input.underlay?.payload as Record<string, unknown> : {}
 
@@ -177,6 +178,7 @@ export function buildCapwayInvoicePayload(input: {
       invoiceChannel: input.config.defaultPreferredChannel ?? 'Email',
       extraFields: [
         { name: 'gridex_customer_id', value: [stringValue(input.customer.id) ?? ''] },
+        { name: 'gridex_customer_number', value: [customerNumber ?? ''] },
       ],
     },
     debts: [
@@ -210,6 +212,7 @@ export function buildCapwayInvoicePayload(input: {
     extraFields: [
       { name: 'gridex_pricing_run_id', unique: true, value: [externalReference] },
       { name: 'gridex_company_id', value: [input.config.companyId] },
+      { name: 'gridex_customer_number', value: [customerNumber ?? ''] },
       { name: 'gridex_financing_mode', value: [financingMode] },
     ],
     note: [

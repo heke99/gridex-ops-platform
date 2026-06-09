@@ -29,6 +29,17 @@ type ApiClientRow = {
   companies?: { name?: string | null } | null
 }
 
+type WebhookSubscriptionRow = {
+  id: string
+  api_client_id: string | null
+  endpoint_url: string
+  event_types: string[] | null
+  status: string
+  signing_secret_ref: string | null
+  last_success_at: string | null
+  last_failure_at: string | null
+}
+
 type ApiRequestRow = {
   id: string
   company_id: string | null
@@ -54,6 +65,7 @@ function formatDate(value: string | null | undefined) {
 function statusTone(status: string) {
   if (status === 'active') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
   if (status === 'paused') return 'border-amber-200 bg-amber-50 text-amber-800'
+  if (status === 'revoked' || status === 'disabled') return 'border-red-200 bg-red-50 text-red-800'
   return 'border-slate-200 bg-slate-100 text-slate-700'
 }
 
@@ -83,6 +95,17 @@ async function loadClients(): Promise<ApiClientRow[]> {
   return (data ?? []) as ApiClientRow[]
 }
 
+async function loadWebhooks(): Promise<WebhookSubscriptionRow[]> {
+  const { data, error } = await supabaseService
+    .from('webhook_subscriptions')
+    .select('id,api_client_id,endpoint_url,event_types,status,signing_secret_ref,last_success_at,last_failure_at')
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  if (error) return []
+  return (data ?? []) as WebhookSubscriptionRow[]
+}
+
 async function loadRecentRequests(): Promise<ApiRequestRow[]> {
   const { data, error } = await supabaseService
     .from('integration_api_requests')
@@ -96,14 +119,25 @@ async function loadRecentRequests(): Promise<ApiRequestRow[]> {
 
 export default async function PlatformApiClientsPage() {
   await requirePlatformAdminAccess()
-  const [companies, clients, requests] = await Promise.all([
+  const [companies, clients, webhooks, requests] = await Promise.all([
     loadCompanies(),
     loadClients(),
+    loadWebhooks(),
     loadRecentRequests(),
   ])
 
+  const webhooksByClient = new Map<string, WebhookSubscriptionRow[]>()
+  for (const webhook of webhooks) {
+    if (!webhook.api_client_id) continue
+    webhooksByClient.set(webhook.api_client_id, [
+      ...(webhooksByClient.get(webhook.api_client_id) ?? []),
+      webhook,
+    ])
+  }
+
   const activeClients = clients.filter((client) => client.status === 'active').length
-  const portalClients = clients.filter((client) => valueList(client.scopes).some((scope) => scope.startsWith('customer_portal.'))).length
+  const portalClients = clients.filter((client) => valueList(client.scopes).some((scope) => scope.startsWith('customer_portal.') || scope === 'website_applications.write')).length
+  const activeWebhooks = webhooks.filter((webhook) => webhook.status === 'active').length
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -111,9 +145,9 @@ export default async function PlatformApiClientsPage() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Platform · API</p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">API-klienter för Mina sidor</h1>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">API-klienter för Mina sidor och webhooks</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              Här skapar superadmin API-klienter för Gridex hemsidan och andra tenant-frontends. Token används server-side, sparas bara som hash och styrs med scopes, origins, IP-filter och rate limits.
+              Skapa server-side API-klienter för Gridex hemsida, externa hemsidor, kundportaler och partners. Här styrs tenant, scopes, origins, rate limits, webhook endpoints och nyckelrotation.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -126,14 +160,18 @@ export default async function PlatformApiClientsPage() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-4">
           <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
             <p className="text-sm font-medium text-emerald-900">Aktiva API-klienter</p>
             <p className="mt-2 text-3xl font-semibold text-slate-950">{activeClients}</p>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm font-medium text-slate-700">Mina sidor-klienter</p>
+            <p className="text-sm font-medium text-slate-700">Website/Mina sidor</p>
             <p className="mt-2 text-3xl font-semibold text-slate-950">{portalClients}</p>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm font-medium text-slate-700">Aktiva webhooks</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-950">{activeWebhooks}</p>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm font-medium text-slate-700">Senaste API-anrop</p>
@@ -147,26 +185,23 @@ export default async function PlatformApiClientsPage() {
 
         <aside className="space-y-5">
           <div className="rounded-[32px] border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-950">
-            <h2 className="text-lg font-semibold text-slate-950">Viktigt för Gridex hemsidan</h2>
-            <p className="mt-3">Token ska ligga i hemsidans servermiljö, aldrig i browsern. Använd server route/API proxy på hemsidan som anropar Ops Platform.</p>
+            <h2 className="text-lg font-semibold text-slate-950">Viktigt för externa hemsidor</h2>
+            <p className="mt-3">API-token ska ligga i hemsidans servermiljö, aldrig i browsern. Tenant väljs via API-token och kunden väljs via external_customer_id.</p>
             <code className="mt-4 block rounded-2xl bg-slate-950 p-4 text-xs text-amber-100">
               Authorization: Bearer {'<GRIDEX_OPS_API_TOKEN>'}
             </code>
           </div>
 
           <div className="rounded-[32px] border border-slate-200 bg-white p-6 text-sm leading-6 text-slate-700">
-            <h2 className="text-lg font-semibold text-slate-950">Endpoints för hemsidan</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Website endpoints</h2>
             <div className="mt-4 space-y-2 font-mono text-xs">
+              <div>POST /api/v1/website/customer-applications</div>
               <div>POST /api/v1/customer-portal/sync</div>
               <div>GET /api/v1/customer/contracts</div>
               <div>GET /api/v1/customer/invoices</div>
-              <div>GET /api/v1/customer/invoices/[id]</div>
               <div>GET /api/v1/customer/sites</div>
               <div>GET /api/v1/customer/metering-values</div>
-              <div>GET /api/v1/customer/documents</div>
-              <div>POST /api/v1/customer/profile-update</div>
-              <div>POST /api/v1/customer/move-out</div>
-              <div>POST /api/v1/customer/support-case</div>
+              <div>POST /api/internal/webhooks/dispatch</div>
             </div>
           </div>
         </aside>
@@ -187,7 +222,7 @@ export default async function PlatformApiClientsPage() {
                 <th className="px-4 py-3">Klient</th>
                 <th className="px-4 py-3">Bolag</th>
                 <th className="px-4 py-3">Scopes</th>
-                <th className="px-4 py-3">Origins</th>
+                <th className="px-4 py-3">Origins/Webhooks</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Senast använd</th>
                 <th className="px-4 py-3">Åtgärd</th>
@@ -197,6 +232,7 @@ export default async function PlatformApiClientsPage() {
               {clients.map((client) => {
                 const metadata = client.metadata ?? {}
                 const origins = valueList(client.allowed_origins).length ? valueList(client.allowed_origins) : valueList(metadata.allowed_origins)
+                const clientWebhooks = webhooksByClient.get(client.id) ?? []
                 return (
                   <tr key={client.id}>
                     <td className="px-4 py-4 align-top">
@@ -212,7 +248,16 @@ export default async function PlatformApiClientsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-4 align-top text-xs text-slate-600">
-                      {origins.length ? origins.map((origin) => <div key={origin}>{origin}</div>) : 'Server-to-server'}
+                      <div className="space-y-1">
+                        {origins.length ? origins.map((origin) => <div key={origin}>{origin}</div>) : <div>Server-to-server</div>}
+                        {clientWebhooks.map((webhook) => (
+                          <div key={webhook.id} className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50 px-2 py-1 text-emerald-900">
+                            Webhook: {webhook.endpoint_url}<br />
+                            Events: {(webhook.event_types ?? []).slice(0, 4).join(', ') || '—'}{(webhook.event_types ?? []).length > 4 ? '…' : ''}<br />
+                            Secret ref: {webhook.signing_secret_ref ?? 'fallback'}
+                          </div>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-4 py-4 align-top">
                       <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(client.status)}`}>{client.status}</span>
@@ -271,7 +316,7 @@ export default async function PlatformApiClientsPage() {
               <div className="truncate font-mono text-xs text-slate-600">{request.route}</div>
               <div className="text-slate-700">{request.status_code ?? '—'}</div>
               <div className="text-slate-500">{formatDate(request.created_at)}</div>
-              {request.error_code ? <div className="md:col-span-4 text-xs text-red-700">{request.error_code}</div> : null}
+              {request.error_code ? <div className="text-xs text-red-700 md:col-span-4">{request.error_code}</div> : null}
             </div>
           ))}
           {requests.length === 0 ? (

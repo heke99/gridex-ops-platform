@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { enqueueWebhookDeliveriesForEvent } from '@/lib/integrations/webhooks'
 
 export type DomainEventPayload = Record<string, unknown>
 
@@ -72,6 +73,10 @@ export async function emitDomainEvent(input: DomainEventInput): Promise<DomainEv
   }
 
   const event = data as DomainEventRow
+  await enqueueWebhookDeliveriesForEvent(event).catch((webhookError) => {
+    console.warn('[domain-events] webhook enqueue failed', webhookError)
+  })
+
   await supabaseService
     .from('event_outbox')
     .upsert({

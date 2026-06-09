@@ -81,7 +81,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
                   type="checkbox"
                   name="scopes"
                   value={scope.value}
-                  defaultChecked={scope.value === 'customer_portal.read' || scope.value === 'customer_portal.write'}
+                  defaultChecked={scope.value === 'customer_portal.read' || scope.value === 'customer_portal.write' || scope.value === 'website_applications.write'}
                   className="mt-1"
                 />
                 <span>
@@ -111,6 +111,44 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
             <span className="text-xs text-slate-500">Valfritt. Använd endast om Gridex hemsidan har stabil outbound-IP.</span>
           </label>
         </div>
+
+
+        <fieldset className="rounded-3xl border border-slate-200 p-4">
+          <legend className="px-2 text-sm font-semibold text-slate-800">Webhook till extern hemsida</legend>
+          <div className="mt-2 grid gap-5">
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-800">Webhook URL</span>
+              <input
+                name="webhookUrl"
+                type="url"
+                placeholder="https://example.se/api/gridex/webhook"
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+              />
+              <span className="text-xs text-slate-500">Valfritt. Används när Ops ska skicka events tillbaka till hemsidan.</span>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-800">Events att prenumerera på</span>
+              <textarea
+                name="webhookEventTypes"
+                rows={6}
+                defaultValue={'customer.created\ncustomer.updated\ncustomer_number.assigned\ncontract.application_received\ncontract.confirmation_sent\ncontract.cooling_off_sent\ninvoice.created\ninvoice.sent\ninvoice.disputed\nmetering_values.updated'}
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-mono"
+              />
+              <span className="text-xs text-slate-500">En eventtyp per rad. Använd * endast för intern testmiljö.</span>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-800">Signing secret reference</span>
+              <input
+                name="webhookSigningSecretRef"
+                placeholder="GRIDEX_WEBSITE"
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+              />
+              <span className="text-xs text-slate-500">Valfritt. Om satt signeras webhooks med WEBHOOK_SIGNING_SECRET_&lt;REF&gt; i servermiljön. Annars används platform fallback om den finns.</span>
+            </label>
+          </div>
+        </fieldset>
 
         <div className="grid gap-5 lg:grid-cols-2">
           <label className="grid gap-2">

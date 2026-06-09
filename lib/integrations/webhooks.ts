@@ -85,26 +85,31 @@ export async function enqueueWebhookDeliveriesForEvent(event: DomainEventRow): P
 
   if (subscriptions.length === 0) return 0
 
-  const rows = subscriptions.map((subscription) => ({
-    company_id: event.company_id,
-    webhook_subscription_id: subscription.id,
-    domain_event_id: event.id,
-    event_type: event.event_type,
-    max_attempts: subscription.max_attempts,
-    idempotency_key: `webhook:${subscription.id}:${event.id}`,
-    payload: {
-      id: event.id,
-      type: event.event_type,
-      occurred_at: event.occurred_at,
+  const rows = subscriptions.map((subscription) => {
+    const payload = event.payload ?? {}
+    return {
       company_id: event.company_id,
-      aggregate: {
-        type: event.aggregate_type,
-        id: event.aggregate_id,
+      webhook_subscription_id: subscription.id,
+      domain_event_id: event.id,
+      event_type: event.event_type,
+      max_attempts: subscription.max_attempts,
+      idempotency_key: `webhook:${subscription.id}:${event.id}`,
+      payload: {
+        event_id: event.id,
+        event_type: event.event_type,
+        created_at: event.occurred_at,
+        company_id: event.company_id,
+        customer_id: event.subject_customer_id,
+        customer_number: typeof payload.customer_number === 'string' ? payload.customer_number : null,
+        external_customer_id: typeof payload.external_customer_id === 'string' ? payload.external_customer_id : null,
+        aggregate: {
+          type: event.aggregate_type,
+          id: event.aggregate_id,
+        },
+        data: payload,
       },
-      customer_id: event.subject_customer_id,
-      payload: event.payload,
-    },
-  }))
+    }
+  })
 
   const { error: insertError } = await supabaseService
     .from('webhook_deliveries')

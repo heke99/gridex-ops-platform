@@ -15,6 +15,11 @@ export type EmailEventRule = {
 }
 
 export const DEFAULT_EMAIL_EVENT_RULES = [
+  { event_key: 'contract.application_received', template_key: 'contract_confirmation' },
+  { event_key: 'contract.confirmation_sent', template_key: 'contract_confirmation' },
+  { event_key: 'contract.cooling_off_sent', template_key: 'cancellation_right' },
+  { event_key: 'customer.created', template_key: 'welcome_email' },
+  { event_key: 'invoice.disputed', template_key: 'missing_information' },
   { event_key: 'contract_signed', template_key: 'contract_confirmation' },
   { event_key: 'customer_created', template_key: 'welcome_email' },
   { event_key: 'cancellation_right_started', template_key: 'cancellation_right' },

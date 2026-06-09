@@ -15,7 +15,8 @@
     "ediel:inbound-tenant-resolution-regression": "node scripts/ediel-inbound-tenant-resolution-regression.cjs",
     "ediel:utilts-reason-regression": "node scripts/ediel-utilts-reason-regression.cjs",
     "ediel:z13vh-regression": "node scripts/ediel-z13vh-production-regression.cjs",
-    "gridex:batch-6-api-client-regression": "node scripts/gridex-batch-6-api-client-regression.cjs"
+    "gridex:batch-6-api-client-regression": "node scripts/gridex-batch-6-api-client-regression.cjs",
+    "gridex:batch-7-website-foundation-regression": "node scripts/gridex-batch-7-website-foundation-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

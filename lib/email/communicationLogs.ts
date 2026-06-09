@@ -22,6 +22,10 @@ export type CommunicationLog = {
   failed_at: string | null
   error_message: string | null
   created_by: string | null
+  customer_number?: string | null
+  external_customer_id?: string | null
+  contract_id?: string | null
+  metadata?: Record<string, unknown> | null
   created_at: string
 }
 
@@ -40,6 +44,10 @@ type CreateCommunicationLogInput = {
   provider?: string | null
   createdBy?: string | null
   errorMessage?: string | null
+  customerNumber?: string | null
+  externalCustomerId?: string | null
+  contractId?: string | null
+  metadata?: Record<string, unknown>
 }
 
 export async function createCommunicationLog(input: CreateCommunicationLogInput) {
@@ -61,6 +69,10 @@ export async function createCommunicationLog(input: CreateCommunicationLogInput)
       provider: input.provider ?? 'resend',
       created_by: input.createdBy ?? null,
       error_message: input.errorMessage ?? null,
+      customer_number: input.customerNumber ?? null,
+      external_customer_id: input.externalCustomerId ?? null,
+      contract_id: input.contractId ?? null,
+      metadata: input.metadata ?? {},
       failed_at: input.status === 'failed' ? new Date().toISOString() : null,
     })
     .select('*')
