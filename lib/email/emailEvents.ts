@@ -23,6 +23,14 @@ export const DEFAULT_EMAIL_EVENT_RULES = [
   { event_key: 'customer.welcome_active', template_key: 'customer.welcome_active' },
 ]
 
+const DEFAULT_TEMPLATE_BY_EVENT = new Map(DEFAULT_EMAIL_EVENT_RULES.map((rule) => [rule.event_key, rule.template_key]))
+
+const LEGACY_TEMPLATE_KEYS = new Set([
+  'contract_confirmation',
+  'cancellation_right',
+  'cancellation_right_started',
+])
+
 const EVENT_ALIASES: Record<string, string> = {
   contract_signed: 'contract.application_received',
   'contract.confirmation_sent': 'contract.application_received',
@@ -39,6 +47,12 @@ const EVENT_ALIASES: Record<string, string> = {
 
 export function normalizeEmailEventKey(eventKey: string) {
   return EVENT_ALIASES[eventKey] ?? eventKey
+}
+
+function isAllowedRuleForEvent(rule: EmailEventRule, normalizedEventKey: string) {
+  const expectedTemplateKey = DEFAULT_TEMPLATE_BY_EVENT.get(normalizedEventKey)
+  if (!expectedTemplateKey) return false
+  return rule.template_key === expectedTemplateKey && !LEGACY_TEMPLATE_KEYS.has(rule.template_key)
 }
 
 export async function getEmailEventRules(companyId: string): Promise<EmailEventRule[]> {
@@ -85,6 +99,7 @@ export async function updateEmailEventRule(
 }
 
 export async function seedDefaultEmailEventRules(companyId: string) {
+  const now = new Date().toISOString()
   const { error } = await supabaseService
     .from('email_event_rules')
     .upsert(DEFAULT_EMAIL_EVENT_RULES.map((rule) => ({
@@ -95,15 +110,26 @@ export async function seedDefaultEmailEventRules(companyId: string) {
       delay_minutes: 0,
       send_to_customer: true,
       send_to_admin: false,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })), { onConflict: 'company_id,event_key,template_key', ignoreDuplicates: true })
 
   if (error) throw error
+
+  await supabaseService
+    .from('email_event_rules')
+    .update({ enabled: false, updated_at: now })
+    .eq('company_id', companyId)
+    .in('template_key', Array.from(LEGACY_TEMPLATE_KEYS))
+    .then(({ error: legacyError }) => {
+      if (legacyError && !['42P01', '42703', 'PGRST205'].includes(legacyError.code ?? '')) throw legacyError
+    })
 }
 
 export async function triggerEmailEvent(input: {
   companyId: string
   customerId?: string | null
+  siteId?: string | null
+  meteringPointId?: string | null
   eventKey: string
   to: string
   variables?: Record<string, string | number | null | undefined>
@@ -111,15 +137,23 @@ export async function triggerEmailEvent(input: {
   idempotencyKey?: string | null
   metadata?: Record<string, unknown>
 }) {
+  const normalizedEventKey = normalizeEmailEventKey(input.eventKey)
   const rules = (await getEmailEventRules(input.companyId))
-    .filter((rule) => rule.event_key === normalizeEmailEventKey(input.eventKey) && rule.enabled && rule.send_to_customer)
+    .filter((rule) =>
+      rule.event_key === normalizedEventKey &&
+      rule.enabled &&
+      rule.send_to_customer &&
+      isAllowedRuleForEvent(rule, normalizedEventKey)
+    )
 
   const results = []
   for (const rule of rules) {
     results.push(await sendCompanyEmail({
       companyId: input.companyId,
       customerId: input.customerId ?? null,
-      eventKey: normalizeEmailEventKey(input.eventKey),
+      siteId: input.siteId ?? null,
+      meteringPointId: input.meteringPointId ?? null,
+      eventKey: normalizedEventKey,
       templateKey: rule.template_key,
       to: input.to,
       variables: input.variables ?? {},

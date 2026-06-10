@@ -2,6 +2,10 @@ import type { CompanyEmailTemplate } from './emailTemplates'
 
 const SUPPORTED_VARIABLES = new Set([
   'customer_name',
+  'first_name',
+  'last_name',
+  'customer_email',
+  'customer_phone',
   'customer_number',
   'company_name',
   'contract_name',

@@ -158,8 +158,14 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  if (typeof error === 'string') return error
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === 'string' && error.trim()) return error
+  if (error && typeof error === 'object') {
+    const record = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown }
+    const parts = [record.message, record.details, record.hint, record.code]
+      .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+    if (parts.length > 0) return parts.join(' · ')
+  }
   return 'Kundansökan kunde inte behandlas.'
 }
 
@@ -392,6 +398,7 @@ function fullName(customer: ApplicationInput['customer']): string | null {
 function eventVariables(input: {
   companyName: string
   customer: CustomerRow
+  rawCustomer?: ApplicationInput['customer'] | null
   customerNumber: string
   siteId?: string | null
   facilityId?: string | null
@@ -401,8 +408,21 @@ function eventVariables(input: {
   supportEmail?: string | null
 }) {
   const cancellationDeadline = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10)
+  const rawFirstName = clean(input.rawCustomer?.first_name)
+  const rawLastName = clean(input.rawCustomer?.last_name)
+  const rawFullName = input.rawCustomer ? fullName(input.rawCustomer) : null
+  const customerName = input.customer.full_name
+    ?? input.customer.company_name
+    ?? rawFullName
+    ?? input.customer.email
+    ?? input.customerNumber
+
   return {
-    customer_name: input.customer.full_name ?? input.customer.company_name ?? input.customer.email ?? input.customerNumber,
+    customer_name: customerName,
+    first_name: rawFirstName ?? customerName,
+    last_name: rawLastName ?? '',
+    customer_email: input.customer.email ?? clean(input.rawCustomer?.email) ?? '',
+    customer_phone: clean(input.rawCustomer?.phone) ?? '',
     customer_number: input.customerNumber,
     company_name: input.companyName,
     contract_name: input.contractName ?? 'Elavtal',
@@ -425,16 +445,16 @@ async function companyEmailContext(companyId: string): Promise<{ name: string; s
 
   const settingsResult = await supabaseService
     .from('company_email_settings')
-    .select('support_email,reply_to_email')
+    .select('sender_name,support_email,reply_to_email')
     .eq('company_id', companyId)
     .maybeSingle()
 
   const settings = settingsResult.error
     ? null
-    : settingsResult.data as { support_email?: string | null; reply_to_email?: string | null } | null
+    : settingsResult.data as { sender_name?: string | null; support_email?: string | null; reply_to_email?: string | null } | null
 
   return {
-    name: clean(data?.name) ?? 'Gridex',
+    name: clean(settings?.sender_name) ?? clean(data?.name) ?? 'Gridex',
     supportEmail: clean(settings?.support_email) ?? clean(settings?.reply_to_email) ?? clean(data?.support_email) ?? clean(data?.primary_contact_email),
   }
 }
@@ -843,17 +863,21 @@ async function createContract(companyId: string, customerId: string, siteId: str
   if (!contract) return null
   const contractName = clean(contract.contract_name) ?? 'Elavtal'
   const startsAt = clean(contract.starts_at) ?? clean(contract.expected_start_at) ?? clean(input.site?.move_in_date)
+  const now = new Date().toISOString()
 
   const fullPayload = {
     company_id: companyId,
     customer_id: customerId,
     site_id: siteId,
+    customer_site_id: siteId,
+    metering_point_id: meteringPointId,
     source_type: 'website_application',
     status: 'application_received',
     contract_name: contractName,
     contract_type: clean(contract.contract_type) ?? 'variable_monthly',
     starts_at: startsAt,
-    signed_at: clean(contract.signed_at) ?? new Date().toISOString(),
+    expected_start_at: startsAt,
+    signed_at: clean(contract.signed_at) ?? now,
     monthly_fee_sek: contract.monthly_fee_sek ?? null,
     spot_markup_ore_per_kwh: contract.spot_markup_ore_per_kwh ?? null,
     variable_fee_ore_per_kwh: contract.variable_fee_ore_per_kwh ?? null,
@@ -862,6 +886,9 @@ async function createContract(companyId: string, customerId: string, siteId: str
     green_fee_value: contract.green_fee_value ?? null,
     binding_months: contract.binding_months ?? null,
     notice_months: contract.notice_months ?? null,
+    campaign_code: clean(contract.campaign_code) ?? null,
+    price_version: clean(contract.price_version) ?? null,
+    terms_version: clean(contract.terms_version) ?? null,
     optional_fee_lines: [
       {
         source: 'website_customer_applications',
@@ -871,6 +898,12 @@ async function createContract(companyId: string, customerId: string, siteId: str
       },
     ],
     agreement_channel: 'external_website',
+    metadata: {
+      source: 'website_customer_applications',
+      metering_point_id: meteringPointId,
+      source_metadata: input.metadata ?? {},
+    },
+    updated_at: now,
   }
 
   const { data, error } = await supabaseService
@@ -879,12 +912,29 @@ async function createContract(companyId: string, customerId: string, siteId: str
     .select('id,contract_name,starts_at,status')
     .single()
 
-  if (error && !missingSchema(error)) throw error
-  if (data) return data as { id: string; contract_name: string | null; starts_at: string | null; status: string }
+  if (!error && data) return data as { id: string; contract_name: string | null; starts_at: string | null; status: string }
 
-  const fallback = await supabaseService
-    .from('customer_contracts')
-    .insert({
+  const fullErrorMessage = error ? errorMessage(error) : null
+  console.warn('[website-applications] full customer_contracts insert failed; trying safe fallback', fullErrorMessage)
+
+  const fallbackPayloads = [
+    {
+      company_id: companyId,
+      customer_id: customerId,
+      site_id: siteId,
+      customer_site_id: siteId,
+      metering_point_id: meteringPointId,
+      source_type: 'website_application',
+      status: 'application_received',
+      contract_name: contractName,
+      contract_type: clean(contract.contract_type) ?? 'variable_monthly',
+      starts_at: startsAt,
+      green_fee_mode: clean(contract.green_fee_mode) ?? 'none',
+      agreement_channel: 'external_website',
+      metadata: { source: 'website_customer_applications', fallback_reason: fullErrorMessage },
+      updated_at: now,
+    },
+    {
       company_id: companyId,
       customer_id: customerId,
       site_id: siteId,
@@ -894,12 +944,32 @@ async function createContract(companyId: string, customerId: string, siteId: str
       contract_type: clean(contract.contract_type) ?? 'variable_monthly',
       starts_at: startsAt,
       green_fee_mode: clean(contract.green_fee_mode) ?? 'none',
-      agreement_channel: 'external_website',
-    })
-    .select('id,contract_name,starts_at,status')
-    .single()
-  if (fallback.error) throw fallback.error
-  return fallback.data as { id: string; contract_name: string | null; starts_at: string | null; status: string }
+      metadata: { source: 'website_customer_applications', fallback_reason: fullErrorMessage },
+      updated_at: now,
+    },
+  ]
+
+  let lastError: unknown = error
+  for (const payload of fallbackPayloads) {
+    const fallback = await supabaseService
+      .from('customer_contracts')
+      .insert(payload)
+      .select('id,contract_name,starts_at,status')
+      .single()
+
+    if (!fallback.error && fallback.data) {
+      return fallback.data as { id: string; contract_name: string | null; starts_at: string | null; status: string }
+    }
+    lastError = fallback.error
+  }
+
+  throw new WebsiteApplicationError({
+    message: `Kundavtal kunde inte skapas: ${errorMessage(lastError)}`,
+    status: 500,
+    code: 'contract_create_failed',
+    stage: 'contract_create',
+    details: { full_error: fullErrorMessage, fallback_error: errorMessage(lastError) },
+  })
 }
 
 async function createApplicationRow(input: {
@@ -1022,6 +1092,36 @@ function expectsSiteOrMetering(input: ApplicationInput | Record<string, unknown>
   )
 }
 
+function requestedMeteringIdentifier(input: ApplicationInput | Record<string, unknown> | null | undefined): string | null {
+  if (!input || typeof input !== 'object') return null
+  const record = input as Record<string, unknown>
+  const site = isObject(record.site) ? record.site : null
+  const metering = isObject(record.metering_point) ? record.metering_point : null
+  return firstClean(
+    metering?.metering_point_id,
+    metering?.meter_point_id,
+    metering?.ediel_metering_point_id,
+    metering?.anlage_id,
+    site?.facility_id,
+    record.metering_point_id,
+    record.meter_point_id,
+    record.ediel_metering_point_id,
+    record.anlage_id,
+    record.facility_id,
+    record.site_facility_id
+  ) ?? null
+}
+
+function hasAddressOnlySiteWithoutMetering(input: ApplicationInput | Record<string, unknown> | null | undefined): boolean {
+  if (!input || typeof input !== 'object') return false
+  const record = input as Record<string, unknown>
+  const site = isObject(record.site) ? record.site : null
+  return Boolean(
+    !requestedMeteringIdentifier(input) &&
+    (clean(site?.street) || clean(site?.city) || clean(record.address) || clean(record.street) || clean(record.postal_code) || clean(record.city))
+  )
+}
+
 function hasCompleteSiteAndMetering(existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>) {
   const response = existing.response_payload ?? {}
   return Boolean(
@@ -1132,6 +1232,13 @@ export async function processWebsiteCustomerApplication(input: {
       'customer.email krävs.',
       'customer.email',
       'Skicka email under customer.email eller som top-level email.'
+    ))
+  }
+  if (hasAddressOnlySiteWithoutMetering(body)) {
+    return failureResponse(validationError(
+      'metering_point_id krävs när ansökan innehåller anläggningsadress.',
+      'metering_point_id',
+      'Skicka metering_point_id/facility_id för elansökningar så systemet kan skapa både anläggning och mätpunkt.'
     ))
   }
 
@@ -1260,6 +1367,7 @@ export async function processWebsiteCustomerApplication(input: {
         const variables = eventVariables({
           companyName: company.name,
           customer: customerResult.customer,
+          rawCustomer: body.customer,
           customerNumber,
           siteId: site?.id ?? null,
           facilityId: site?.facility_id ?? clean(body.site?.facility_id),
@@ -1274,6 +1382,8 @@ export async function processWebsiteCustomerApplication(input: {
           triggerEmailEvent({
             companyId: input.client.company_id,
             customerId: customerResult.customer.id,
+            siteId: site?.id ?? null,
+            meteringPointId: meteringPoint?.id ?? null,
             eventKey: 'contract.application_received',
             to: email,
             variables,

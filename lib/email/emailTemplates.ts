@@ -25,6 +25,10 @@ type TemplateInput = {
 
 export const EMAIL_TEMPLATE_VARIABLES = [
   'customer_name',
+  'first_name',
+  'last_name',
+  'customer_email',
+  'customer_phone',
   'customer_number',
   'company_name',
   'contract_name',
