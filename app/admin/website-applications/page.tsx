@@ -44,6 +44,21 @@ function firstPayloadValue(payload: JsonRecord | null | undefined, paths: string
   return null
 }
 
+
+function safeOperationalMessage(value: string | null | undefined) {
+  const message = value?.trim()
+  if (!message) return null
+  if (/customers_intake_status_check/i.test(message)) return 'Databasens kundstatus-regel behöver senaste migrationen.'
+  if (/customer_contracts.*metadata|metadata.*customer_contracts|PGRST204/i.test(message)) return 'Kundavtalets schema behöver senaste migration/schema-cache.'
+  if (/Failing row contains/i.test(message)) return 'Databasen stoppade raden. Kontrollera teknisk detalj i logg och kör rätt migration.'
+  if (message.length > 180) return `${message.slice(0, 180)}…`
+  return message
+}
+
+function isFailedApplication(item: WebsiteApplicationAdminRow) {
+  return ['failed', 'rejected', 'cancelled', 'switch_rejected'].includes(item.status)
+}
+
 function stringList(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((item) => String(item)).filter(Boolean)
   if (typeof value === 'string' && value.trim()) return [value]
@@ -63,7 +78,20 @@ function reviewIssues(item: WebsiteApplicationAdminRow): Array<{ field: string; 
     : []
 
   if (fromColumn.length > 0) return fromColumn
-  return stringList(item.missing_fields).map((field) => ({ field, label: field, action: item.next_step ?? 'Komplettera uppgiften.' }))
+
+  const fromMissingFields = stringList(item.missing_fields).map((field) => ({ field, label: field, action: item.next_step ?? 'Komplettera uppgiften.' }))
+  if (fromMissingFields.length > 0) return fromMissingFields
+
+  if (isFailedApplication(item)) {
+    return [{
+      field: 'system',
+      label: 'Tekniskt fel kräver åtgärd',
+      action: safeOperationalMessage(item.error_message ?? item.error_code) ?? 'Kontrollera logg, kör senaste migration och kör redo-kontroll igen.',
+      severity: 'blocking',
+    }]
+  }
+
+  return []
 }
 
 function timelineRows(item: WebsiteApplicationAdminRow) {
@@ -123,7 +151,7 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
         </label>
         <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
           Nätägare / verifierad aktör
-          <input name="grid_owner_id" defaultValue={firstPayloadValue(payload, ['grid_owner_id', 'network_owner_id', 'site.grid_owner_id']) ?? ''} placeholder="Välj/klistra in verifierat aktörs-ID" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
+          <input name="grid_owner_id" defaultValue={firstPayloadValue(payload, ['grid_owner_id', 'network_owner_id', 'site.grid_owner_id']) ?? ''} placeholder="Välj verifierad aktör eller klistra in verifierat UUID" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
         </label>
         <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 md:col-span-2">
           Anläggningsadress
@@ -285,7 +313,7 @@ export default async function WebsiteApplicationsAdminPage({ searchParams }: { s
                   <tr key={item.id} className="align-top">
                     <td className="px-4 py-3 text-slate-700"><div className="font-semibold text-slate-950">{customerName(item)}</div><div className="font-mono text-xs text-slate-500">{item.customer_number ?? item.external_customer_id}</div>{isPlatformAdmin ? <div className="text-xs text-slate-500">{item.companies?.name ?? item.company_id}</div> : null}</td>
                     <td className="px-4 py-3 text-slate-700"><div>{customerEmail(item)}</div><div className="text-xs text-slate-500">{customerPhone(item)}</div></td>
-                    <td className="px-4 py-3"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}>{item.status}</span>{item.error_stage ? <div className="mt-1 text-xs text-red-700">{item.error_stage}: {item.error_message ?? item.error_code}</div> : null}</td>
+                    <td className="px-4 py-3"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}>{item.status}</span>{item.error_stage ? <div className="mt-1 text-xs text-red-700">{item.error_stage}: {safeOperationalMessage(item.error_message ?? item.error_code) ?? 'Tekniskt fel'}</div> : null}</td>
                     <td className="px-4 py-3 text-slate-700">{issues.length === 0 ? <span className="text-emerald-700">Inget blockerar</span> : <div className="space-y-1">{issues.slice(0, 4).map((issue) => <div key={`${item.id}-${issue.field}`} className="text-xs text-amber-900">• {issue.label}</div>)}</div>}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatDate(item.created_at)}</td>
                     <td className="px-4 py-3 text-slate-700">{item.source ?? 'external_website'}<div className="text-xs text-slate-500">{item.integration_api_clients?.name ?? '—'}</div></td>

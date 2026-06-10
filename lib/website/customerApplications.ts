@@ -5,7 +5,7 @@ import { ensureCustomerNumber, reserveCustomerNumber } from '@/lib/customer-numb
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { seedDefaultEmailEventRules, triggerEmailEvent } from '@/lib/email/emailEvents'
 import { seedDefaultEmailTemplates } from '@/lib/email/emailTemplates'
-import { assessWebsiteApplicationReadiness, type WebsiteApplicationReadiness } from '@/lib/website/applicationReview'
+import { assessWebsiteApplicationReadiness, customerIntakeStatusForReadiness, type WebsiteApplicationReadiness } from '@/lib/website/applicationReview'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -125,6 +125,7 @@ type ErrorStage =
   | 'communication_trigger'
   | 'domain_event_create'
   | 'webhook_queue'
+  | 'customer_intake_update'
   | 'manual_review'
 
 class WebsiteApplicationError extends Error {
@@ -219,7 +220,7 @@ async function updateCustomerIntakeStatus(companyId: string, customerId: string,
   const { error } = await supabaseService
     .from('customers')
     .update({
-      intake_status: readiness.status === 'needs_information' ? 'missing_fields' : readiness.status,
+      intake_status: customerIntakeStatusForReadiness(readiness),
       intake_missing_fields: readiness.missingFields,
       intake_quality_score: readiness.qualityScore,
       intake_warnings: readiness.warnings,
@@ -229,6 +230,35 @@ async function updateCustomerIntakeStatus(companyId: string, customerId: string,
     .eq('id', customerId)
 
   if (error && !missingSchema(error)) throw error
+}
+
+
+function operationalErrorMessage(error: unknown): string {
+  const message = error instanceof WebsiteApplicationError ? error.message : errorMessage(error)
+  if (/customers_intake_status_check/i.test(message)) {
+    return 'Kundens intagsstatus stöds inte av databasen. Kör senaste kundansökningsmigration och försök igen.'
+  }
+  if (/customer_contracts.*metadata|metadata.*customer_contracts|PGRST204/i.test(message)) {
+    return 'Kundavtalets schema saknar en kolumn som koden behöver. Kör senaste migration och uppdatera schema cache.'
+  }
+  if (/metering_point_create/i.test(message)) {
+    return 'Mätpunktsflödet stoppades. Ansökan behöver ligga kvar i arbetskön tills anläggningsuppgifter är kompletta.'
+  }
+  if (/violates check constraint/i.test(message)) {
+    return 'Databasen stoppade åtgärden på grund av en constraint. Kör senaste migration eller kontakta teknisk admin.'
+  }
+  if (message.length > 360) return `${message.slice(0, 360)}…`
+  return message
+}
+
+function technicalBlockingReason(error: WebsiteApplicationError) {
+  return {
+    field: 'system',
+    label: 'Tekniskt fel kräver åtgärd',
+    severity: 'blocking' as const,
+    message: operationalErrorMessage(error),
+    action: 'Kör senaste migration/schema-fix och kontrollera ansökan igen.',
+  }
 }
 
 function validationError(message: string, field: string, hint?: string) {
@@ -1248,7 +1278,7 @@ function failureResponse(error: WebsiteApplicationError) {
     ok: false as const,
     status: error.status,
     body: {
-      error: error.message,
+      error: operationalErrorMessage(error),
       code: error.code,
       field: error.field ?? null,
       hint: error.hint ?? null,
@@ -1293,6 +1323,10 @@ export async function processWebsiteCustomerApplication(input: {
   }
 
   const readiness = assessWebsiteApplicationReadiness(body)
+  let customerResult: { customer: CustomerRow; created: boolean } | null = null
+  let site: { id: string; facility_id: string | null } | null = null
+  let meteringPoint: { id: string; metering_point_id: string | null } | null = null
+  let contract: { id: string; contract_name: string | null; starts_at: string | null; status: string } | null = null
 
   try {
     const existingIdempotent = await stage('idempotency', () => loadIdempotentApplication(input.client.company_id, input.idempotencyKey ?? null))
@@ -1314,8 +1348,6 @@ export async function processWebsiteCustomerApplication(input: {
     }
 
     const existingIdentity = await stage('customer_lookup', () => loadExistingIdentity(input.client.company_id, externalCustomerId))
-    let customerResult: { customer: CustomerRow; created: boolean }
-
     if (existingIdentity?.customer_id) {
       customerResult = await stage('customer_lookup', async () => {
         const { data, error } = await supabaseService
@@ -1337,24 +1369,34 @@ export async function processWebsiteCustomerApplication(input: {
       customerResult = await stage('customer_create', () => createOrUpdateCustomer(input.client, body))
     }
 
-    const customerNumber = customerResult.customer.customer_number ?? await stage('customer_number_create', () => ensureCustomerNumber({
+    if (!customerResult) {
+      throw new WebsiteApplicationError({
+        message: 'Kund kunde inte skapas eller matchas.',
+        status: 500,
+        code: 'customer_create_failed',
+        stage: 'customer_create',
+      })
+    }
+
+    const resolvedCustomerResult = customerResult
+    const customerNumber = resolvedCustomerResult.customer.customer_number ?? await stage('customer_number_create', () => ensureCustomerNumber({
       companyId: input.client.company_id,
-      customerId: customerResult.customer.id,
+      customerId: resolvedCustomerResult.customer.id,
     }))
-    customerResult.customer.customer_number = customerNumber
+    resolvedCustomerResult.customer.customer_number = customerNumber
 
-    const site = readiness.canCreateSite
-      ? await stage('site_create', () => upsertSite(input.client.company_id, customerResult.customer.id, body))
+    site = readiness.canCreateSite
+      ? await stage('site_create', () => upsertSite(input.client.company_id, resolvedCustomerResult.customer.id, body))
       : null
-    const meteringPoint = readiness.canCreateMeteringPoint
-      ? await stage('metering_point_create', () => upsertMeteringPoint(input.client.company_id, customerResult.customer.id, site, body))
+    meteringPoint = readiness.canCreateMeteringPoint
+      ? await stage('metering_point_create', () => upsertMeteringPoint(input.client.company_id, resolvedCustomerResult.customer.id, site, body))
       : null
 
-    await stage('manual_review', () => updateCustomerIntakeStatus(input.client.company_id, customerResult.customer.id, readiness))
+    await stage('customer_intake_update', () => updateCustomerIntakeStatus(input.client.company_id, resolvedCustomerResult.customer.id, readiness))
 
-    const contract = await stage('contract_create', () => createContract(
+    contract = await stage('contract_create', () => createContract(
       input.client.company_id,
-      customerResult.customer.id,
+      resolvedCustomerResult.customer.id,
       site?.id ?? null,
       meteringPoint?.id ?? null,
       body,
@@ -1362,7 +1404,7 @@ export async function processWebsiteCustomerApplication(input: {
     ))
     const identity = await stage('portal_identity_create', () => upsertPortalIdentity({
       client: input.client,
-      customerId: customerResult.customer.id,
+      customerId: resolvedCustomerResult.customer.id,
       externalCustomerId,
       externalAccountId: clean(body.external_account_id),
       email: normalizedEmail(body.customer.email),
@@ -1371,7 +1413,7 @@ export async function processWebsiteCustomerApplication(input: {
     const applicationStatus = readiness.status
 
     const responsePayload = {
-      customer_id: customerResult.customer.id,
+      customer_id: resolvedCustomerResult.customer.id,
       customer_number: customerNumber,
       external_customer_id: externalCustomerId,
       portal_identity_id: identity.id,
@@ -1379,7 +1421,7 @@ export async function processWebsiteCustomerApplication(input: {
       metering_point_id: meteringPoint?.id ?? null,
       contract_id: contract?.id ?? null,
       status: applicationStatus,
-      created_customer: customerResult.created,
+      created_customer: resolvedCustomerResult.created,
       missing_fields: readiness.missingFields,
       blocking_reasons: readiness.blockingReasons,
       next_step: readiness.nextStep,
@@ -1405,7 +1447,7 @@ export async function processWebsiteCustomerApplication(input: {
       client: input.client,
       externalCustomerId,
       externalAccountId: clean(body.external_account_id),
-      customer: customerResult.customer,
+      customer: resolvedCustomerResult.customer,
       customerSiteId: site?.id ?? null,
       meteringPointId: meteringPoint?.id ?? null,
       contractId: contract?.id ?? null,
@@ -1434,7 +1476,7 @@ export async function processWebsiteCustomerApplication(input: {
         const company = await companyEmailContext(input.client.company_id)
         const variables = eventVariables({
           companyName: company.name,
-          customer: customerResult.customer,
+          customer: resolvedCustomerResult.customer,
           rawCustomer: body.customer,
           customerNumber,
           siteId: site?.id ?? null,
@@ -1449,7 +1491,7 @@ export async function processWebsiteCustomerApplication(input: {
         communicationResults = await Promise.all([
           triggerEmailEvent({
             companyId: input.client.company_id,
-            customerId: customerResult.customer.id,
+            customerId: resolvedCustomerResult.customer.id,
             siteId: site?.id ?? null,
             meteringPointId: meteringPoint?.id ?? null,
             eventKey: 'contract.application_received',
@@ -1478,10 +1520,10 @@ export async function processWebsiteCustomerApplication(input: {
     try {
       await emitDomainEvent({
         companyId: input.client.company_id,
-        eventType: customerResult.created ? 'customer.created' : 'customer.updated',
+        eventType: resolvedCustomerResult.created ? 'customer.created' : 'customer.updated',
         aggregateType: 'customer',
-        aggregateId: customerResult.customer.id,
-        subjectCustomerId: customerResult.customer.id,
+        aggregateId: resolvedCustomerResult.customer.id,
+        subjectCustomerId: resolvedCustomerResult.customer.id,
         source: 'website_customer_applications',
         idempotencyKey: input.idempotencyKey ? `website-customer:${input.client.company_id}:${input.idempotencyKey}:customer` : null,
         payload: {
@@ -1501,7 +1543,7 @@ export async function processWebsiteCustomerApplication(input: {
           eventType: 'contract.application_received',
           aggregateType: 'customer_contract',
           aggregateId: contract.id,
-          subjectCustomerId: customerResult.customer.id,
+          subjectCustomerId: resolvedCustomerResult.customer.id,
           source: 'website_customer_applications',
           idempotencyKey: input.idempotencyKey ? `website-contract:${input.client.company_id}:${input.idempotencyKey}` : null,
           payload: {
@@ -1547,23 +1589,60 @@ export async function processWebsiteCustomerApplication(input: {
       ? error
       : new WebsiteApplicationError({ message: errorMessage(error), status: 500, code: 'internal_error', stage: 'application_record_create' })
 
+    const safeErrorMessage = operationalErrorMessage(appError)
+    const failedBlockingReasons = [
+      ...readiness.blockingReasons,
+      technicalBlockingReason(appError),
+    ]
     await createApplicationRow({
       client: input.client,
       externalCustomerId,
       externalAccountId: clean(body.external_account_id),
+      customer: customerResult?.customer ?? null,
+      customerSiteId: site?.id ?? null,
+      meteringPointId: meteringPoint?.id ?? null,
+      contractId: contract?.id ?? null,
       payload: body,
       rawPayload: input.rawBody,
       responsePayload: {
-        error: appError.message,
+        error: safeErrorMessage,
         code: appError.code,
         error_stage: appError.stage,
+        status: 'failed',
+        missing_fields: readiness.missingFields,
+        blocking_reasons: failedBlockingReasons,
+        next_step: 'Tekniskt fel kräver åtgärd innan ansökan kan fortsätta.',
+        requested_start_date: readiness.requestedStartDate,
+        confirmed_start_date: readiness.confirmedStartDate,
+        actual_start_date: readiness.actualStartDate,
+        can_start_switch: false,
+        can_send_agreement_confirmation: false,
+        can_activate_customer: false,
       },
       idempotencyKey: input.idempotencyKey ?? null,
       status: 'failed',
       errorStage: appError.stage,
       errorCode: appError.code,
-      errorMessage: appError.message,
-      warnings: [],
+      errorMessage: safeErrorMessage,
+      missingFields: readiness.missingFields,
+      blockingReasons: failedBlockingReasons,
+      nextStep: 'Tekniskt fel kräver åtgärd innan ansökan kan fortsätta.',
+      requestedStartDate: readiness.requestedStartDate,
+      confirmedStartDate: readiness.confirmedStartDate,
+      actualStartDate: readiness.actualStartDate,
+      timeline: [
+        timelineEvent('application_received', 'Ansökan mottagen från extern hemsida', {
+          source: clean(body.source) ?? 'external_website',
+          external_customer_id: externalCustomerId,
+        }),
+        timelineEvent('failed', safeErrorMessage, { error_stage: appError.stage, error_code: appError.code }),
+      ],
+      auditLog: [reviewAuditEvent('application_failed', null, {
+        error_stage: appError.stage,
+        error_code: appError.code,
+        error_message: safeErrorMessage,
+      })],
+      warnings: readiness.warnings,
     }).catch((failedInsertError) => {
       console.warn('[website-applications] failed to log failed application', failedInsertError)
     })

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdminAccess, requireCompanyScopedActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { assessWebsiteApplicationReadiness, cleanReviewText } from '@/lib/website/applicationReview'
+import { assessWebsiteApplicationReadiness, cleanReviewText, customerIntakeStatusForReadiness } from '@/lib/website/applicationReview'
 
 const WRITE_PERMISSIONS = { anyOf: ['customers.write', 'switching.write', 'metering.write', 'poa.write'] }
 
@@ -36,6 +36,10 @@ function checkbox(formData: FormData, key: string): boolean | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function isUuid(value: string | null): boolean {
+  return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
 }
 
 function missingSchema(error: unknown): boolean {
@@ -158,7 +162,7 @@ async function updateCustomerReviewState(application: ApplicationRecord, readine
   const { error } = await supabaseService
     .from('customers')
     .update({
-      intake_status: readiness.status === 'needs_information' ? 'missing_fields' : readiness.status,
+      intake_status: customerIntakeStatusForReadiness(readiness),
       intake_missing_fields: readiness.missingFields,
       intake_quality_score: readiness.qualityScore,
       intake_warnings: readiness.warnings,
@@ -177,7 +181,8 @@ async function upsertApplicationSite(application: ApplicationRecord, payload: Re
   const street = cleanReviewText(site.street)
   const city = cleanReviewText(site.city)
   const postalCode = cleanReviewText(site.postal_code)
-  const gridOwnerId = cleanReviewText(site.grid_owner_id) ?? cleanReviewText(payload.grid_owner_id)
+  const gridOwnerInput = cleanReviewText(site.grid_owner_id) ?? cleanReviewText(payload.grid_owner_id)
+  const gridOwnerId = isUuid(gridOwnerInput) ? gridOwnerInput : null
   const moveInDate = cleanReviewText(site.move_in_date) ?? cleanReviewText(payload.requested_start_date)
 
   if (!facilityId && !street && !city) return application.customer_site_id

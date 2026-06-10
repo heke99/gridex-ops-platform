@@ -12,6 +12,38 @@ export type WebsiteApplicationStatus =
   | 'failed'
   | 'cancelled'
 
+
+export type CustomerIntakeStatus =
+  | 'draft'
+  | 'incomplete'
+  | 'needs_completion'
+  | 'pending_information'
+  | 'pending_power_of_attorney'
+  | 'pending_duplicate_review'
+  | 'blocked'
+  | 'ready_for_contract'
+  | 'ready_for_operations'
+
+export function customerIntakeStatusForReadiness(readiness: Pick<WebsiteApplicationReadiness, 'status' | 'missingFields' | 'blockingReasons' | 'canStartSwitch'>): CustomerIntakeStatus {
+  if (readiness.status === 'failed') return 'blocked'
+  if (readiness.status === 'cancelled') return 'blocked'
+  if (readiness.status === 'ready_for_switch' || readiness.status === 'switch_requested' || readiness.status === 'switch_confirmed' || readiness.status === 'active') {
+    return 'ready_for_operations'
+  }
+  if (readiness.status === 'pending_validation') return 'ready_for_contract'
+
+  const missing = new Set(readiness.missingFields)
+  const blockingFields = readiness.blockingReasons
+    .filter((issue) => issue.severity === 'blocking')
+    .map((issue) => issue.field)
+
+  if (blockingFields.length === 0 && readiness.canStartSwitch) return 'ready_for_operations'
+  if (blockingFields.length === 1 && missing.has('power_of_attorney')) return 'pending_power_of_attorney'
+  if (missing.has('grid_owner') || missing.has('metering_point_id') || missing.has('site')) return 'pending_information'
+  if (missing.size > 0 || blockingFields.length > 0) return 'needs_completion'
+  return 'draft'
+}
+
 export type ReviewIssue = {
   field: string
   label: string
@@ -73,6 +105,14 @@ function firstText(input: unknown, paths: string[]): string | null {
 
 function firstBoolean(input: unknown, paths: string[]): boolean {
   return paths.some((path) => asBoolean(readPath(input, path)))
+}
+
+function isUuid(value: string | null): boolean {
+  return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
+}
+
+function isEdielId(value: string | null): boolean {
+  return Boolean(value && /^\d{5,18}$/.test(value))
 }
 
 function addIssue(issues: ReviewIssue[], input: Omit<ReviewIssue, 'severity'> & { severity?: ReviewIssue['severity'] }) {
@@ -158,7 +198,7 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
     'ediel_metering_point_id',
     'anlage_id',
   ])
-  const gridOwner = firstText(input, [
+  const gridOwnerId = firstText(input, [
     'grid_owner_id',
     'gridOwnerId',
     'network_owner_id',
@@ -166,16 +206,21 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
     'site.grid_owner_id',
     'site.gridOwnerId',
     'metadata.grid_owner_id',
-    'metadata.grid_owner_ediel_id',
     'metadata.network_owner_id',
+  ])
+  const gridOwnerEdielId = firstText(input, [
+    'metadata.grid_owner_ediel_id',
     'grid_owner_ediel_id',
     'network_owner_ediel_id',
   ])
-  const pricePlan = firstText(input, [
+  const hasVerifiedGridOwner = isUuid(gridOwnerId) || isEdielId(gridOwnerEdielId)
+  const pricePlanId = firstText(input, [
     'price_plan_id',
     'pricePlanId',
     'contract.price_plan_id',
     'contract.pricePlanId',
+  ])
+  const pricePlanDefinition = firstText(input, [
     'contract.contract_name',
     'contract.contractName',
     'contract.contract_type',
@@ -183,6 +228,7 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
     'contract.campaign_code',
     'campaign_code',
   ])
+  const hasValidPricePlan = Boolean(isUuid(pricePlanId) || pricePlanDefinition)
   const requestedStartDate = readRequestedStartDate(input)
   const confirmedStartDate = firstText(input, ['confirmed_start_date', 'confirmedStartDate', 'contract.confirmed_start_date', 'contract.confirmedStartDate'])
   const actualStartDate = firstText(input, ['actual_start_date', 'actualStartDate', 'contract.actual_start_date', 'contract.actualStartDate'])
@@ -254,7 +300,7 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
     })
   }
 
-  if (!gridOwner) {
+  if (!hasVerifiedGridOwner) {
     missingFields.push('grid_owner')
     addIssue(blockingReasons, {
       field: 'grid_owner',
@@ -264,7 +310,7 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
     })
   }
 
-  if (!pricePlan) {
+  if (!hasValidPricePlan) {
     missingFields.push('price_plan')
     addIssue(blockingReasons, {
       field: 'price_plan',
@@ -296,13 +342,15 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
 
   if (!requestedStartDate) warnings.push('requested_start_date_missing')
   if (facilityId && !meteringPointId) warnings.push('facility_without_metering_point')
-  if (siteAddress && !gridOwner) warnings.push('address_without_grid_owner')
+  if (siteAddress && !hasVerifiedGridOwner) warnings.push('address_without_grid_owner')
+  if (gridOwnerId && !isUuid(gridOwnerId)) warnings.push('grid_owner_id_not_verified_uuid')
+  if (pricePlanId && !isUuid(pricePlanId) && !pricePlanDefinition) warnings.push('price_plan_id_not_verified_uuid')
 
   const blocking = blockingReasons.filter((issue) => issue.severity === 'blocking')
   const canCreateSite = Boolean(facilityId || siteAddress)
   const canCreateMeteringPoint = Boolean(meteringPointId && canCreateSite)
-  const canCreateContract = Boolean(pricePlan || firstText(input, ['contract.contract_name', 'contract.contract_type']))
-  const canStartSwitch = blocking.length === 0 && Boolean(meteringPointId && gridOwner && powerOfAttorneyAccepted && pricePlan)
+  const canCreateContract = Boolean(hasValidPricePlan)
+  const canStartSwitch = blocking.length === 0 && Boolean(meteringPointId && hasVerifiedGridOwner && powerOfAttorneyAccepted && hasValidPricePlan)
   const canSendAgreementConfirmation = Boolean(canStartSwitch && confirmedStartDate)
   const canActivateCustomer = Boolean(canStartSwitch && confirmedStartDate && actualStartDate)
 
