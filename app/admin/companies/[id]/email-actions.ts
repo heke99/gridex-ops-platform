@@ -78,6 +78,17 @@ export async function saveCompanyEmailSettingsAction(formData: FormData) {
       supportEmail,
       domain,
       isActive: true,
+      providerDomainId: null,
+      verificationStatus: 'not_started',
+      verifiedAt: null,
+      senderMode: 'fallback_platform_sender',
+      dkimStatus: null,
+      spfStatus: null,
+      dmarcStatus: null,
+      readinessStatus: 'not_ready',
+      readinessNotes: ['Domänen behöver verifieras innan bolagets avsändare används.'],
+      lastVerificationCheckedAt: null,
+      blockLegalMailWhenUnverified: false,
     })
 
     await supabaseService.from('audit_logs').insert({
@@ -118,10 +129,10 @@ export async function checkCompanyDomainVerificationAction(formData: FormData) {
     if (!companyId) throw new Error('Bolag saknas.')
     await checkDomainVerification(companyId)
     revalidatePath(`/admin/companies/${companyId}`)
-    redirectBack(companyId, { success: 'DNS-status kontrollerades.' })
+    redirectBack(companyId, { success: 'DNS-status kontrollerades. Om Resend visar sändning som verifierad används bolagets avsändare automatiskt.' })
   } catch (error) {
     if (isRedirectError(error)) throw error
-    redirectBack(companyId || 'unknown', { error: 'Domänen kunde inte verifieras ännu. Kontrollera att DNS-posterna är korrekt inlagda.' })
+    redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Domänen kunde inte verifieras ännu. Kontrollera att DNS-posterna är korrekt inlagda.' })
   }
 }
 

@@ -165,4 +165,29 @@ assertContains('docs/external-website-api-integration-guide.md', [
   'vatCode = SE25',
 ])
 
+
+
+assertContains('lib/email/domainVerification.ts', [
+  'getOrCreateProviderDomain',
+  'findDomainByName',
+  'settingsPatchFromProviderResult',
+  "senderMode: status === 'verified' ? 'verified_domain'",
+  'blockLegalMailWhenUnverified',
+])
+
+assertContains('lib/email/providers/resendProvider.ts', [
+  'partially_verified',
+  'sendReady',
+  'findDomainByName',
+  'resend.domains.list',
+  'Resend API-nyckel saknas',
+])
+
+assertContains('app/admin/companies/[id]/email-actions.ts', [
+  "providerDomainId: null",
+  "verificationStatus: 'not_started'",
+  "senderMode: 'fallback_platform_sender'",
+  'error instanceof Error ? error.message',
+])
+
 console.log('Gridex Batch 8.1 live schema regression passed.')

@@ -6,6 +6,7 @@ import {
 } from './companyEmailSettings'
 import { replaceCompanyDnsRecords, updateDnsRecordStatuses } from './dnsRecords'
 import { getEmailProvider } from './providers'
+import type { CreateDomainResult, VerifyDomainResult } from './providers/types'
 
 function normalizeDomain(value: string | null | undefined) {
   return String(value ?? '')
@@ -34,40 +35,73 @@ function assertDomainSetup(domain: string | null | undefined, senderEmail: strin
   return normalizedDomain
 }
 
+function dmarcStatusForReadyDomain(existingStatus: string | null | undefined) {
+  return existingStatus === 'verified' || existingStatus === 'configured' ? existingStatus : 'configured'
+}
+
+function settingsPatchFromProviderResult(
+  result: CreateDomainResult | VerifyDomainResult,
+  existingDmarcStatus?: string | null
+) {
+  const status: CompanyEmailVerificationStatus = result.status
+  const now = new Date().toISOString()
+  return {
+    providerDomainId: result.providerDomainId,
+    verificationStatus: status,
+    verifiedAt: status === 'verified' ? now : null,
+    senderMode: status === 'verified' ? 'verified_domain' as const : 'fallback_platform_sender' as const,
+    dkimStatus: result.dkimStatus ?? (status === 'verified' ? 'verified' : null),
+    spfStatus: result.spfStatus ?? (status === 'verified' ? 'verified' : null),
+    dmarcStatus: status === 'verified' ? dmarcStatusForReadyDomain(existingDmarcStatus) : existingDmarcStatus ?? null,
+    readinessStatus: result.readinessStatus ?? (status === 'verified' ? 'ready' : 'pending_dns'),
+    readinessNotes: result.readinessNotes ?? [],
+    lastVerificationCheckedAt: now,
+    blockLegalMailWhenUnverified: status === 'verified',
+  }
+}
+
+async function getOrCreateProviderDomain(domain: string) {
+  const provider = getEmailProvider()
+  const existing = await provider.findDomainByName(domain)
+  if (existing) return existing
+  return provider.createDomain(domain)
+}
+
 export async function startDomainVerification(companyId: string) {
   const settings = await getCompanyEmailSettings(companyId)
   if (!settings) throw new Error('E-postinställningar saknas. Spara avsändare först.')
 
   const domain = assertDomainSetup(settings.domain, settings.sender_email)
-  const provider = getEmailProvider()
-  const result = await provider.createDomain(domain)
+  const result = await getOrCreateProviderDomain(domain)
 
-  const updated = await upsertCompanyEmailSettings(companyId, {
-    providerDomainId: result.providerDomainId,
-    verificationStatus: result.status,
-    verifiedAt: result.status === 'verified' ? new Date().toISOString() : null,
-  })
+  const updated = await upsertCompanyEmailSettings(
+    companyId,
+    settingsPatchFromProviderResult(result, settings.dmarc_status)
+  )
 
   const records = await replaceCompanyDnsRecords(companyId, updated.id, result.records)
-  return { status: result.status, records }
+  return { status: result.status, records, sendReady: result.sendReady, readinessNotes: result.readinessNotes }
 }
 
 export async function checkDomainVerification(companyId: string) {
   const settings = await getCompanyEmailSettings(companyId)
-  if (!settings?.provider_domain_id) {
-    throw new Error('Domänverifiering är inte startad ännu.')
-  }
+  if (!settings) throw new Error('E-postinställningar saknas. Spara avsändare först.')
 
+  const domain = assertDomainSetup(settings.domain, settings.sender_email)
   const provider = getEmailProvider()
-  const result = await provider.verifyDomain(settings.provider_domain_id)
-  const status: CompanyEmailVerificationStatus = result.status
+  const result = settings.provider_domain_id
+    ? await provider.verifyDomain(settings.provider_domain_id)
+    : await getOrCreateProviderDomain(domain)
 
-  await upsertCompanyEmailSettings(companyId, {
-    verificationStatus: status,
-    verifiedAt: status === 'verified' ? new Date().toISOString() : settings.verified_at,
-  })
+  const updated = await upsertCompanyEmailSettings(
+    companyId,
+    settingsPatchFromProviderResult(result, settings.dmarc_status)
+  )
 
-  const records = await updateDnsRecordStatuses(companyId, result.records)
+  const existingRecords = await updateDnsRecordStatuses(companyId, result.records)
+  const records = existingRecords.length > 0
+    ? existingRecords
+    : await replaceCompanyDnsRecords(companyId, updated.id, result.records)
 
   await supabaseService
     .from('company_email_dns_records')
@@ -75,5 +109,5 @@ export async function checkDomainVerification(companyId: string) {
     .eq('company_id', companyId)
     .then(() => null)
 
-  return { status, records }
+  return { status: result.status, records, sendReady: result.sendReady, readinessNotes: result.readinessNotes }
 }

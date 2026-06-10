@@ -4,19 +4,31 @@ export type EmailProviderDomainRecord = {
   value: string
   priority?: number | null
   status?: 'pending' | 'verified' | 'failed'
+  purpose?: string | null
+}
+
+export type EmailProviderDomainReadiness = {
+  sendReady: boolean
+  dkimStatus?: string | null
+  spfStatus?: string | null
+  mxStatus?: string | null
+  readinessStatus?: string | null
+  readinessNotes?: string[]
 }
 
 export type CreateDomainResult = {
   providerDomainId: string
+  domain?: string | null
   records: EmailProviderDomainRecord[]
   status: 'pending_dns' | 'verified' | 'failed'
-}
+} & EmailProviderDomainReadiness
 
 export type VerifyDomainResult = {
   providerDomainId: string
+  domain?: string | null
   records: EmailProviderDomainRecord[]
   status: 'pending_dns' | 'verified' | 'failed'
-}
+} & EmailProviderDomainReadiness
 
 export type SendEmailInput = {
   from: string
@@ -34,6 +46,7 @@ export type SendEmailResult = {
 
 export interface EmailProvider {
   createDomain(domain: string): Promise<CreateDomainResult>
+  findDomainByName(domain: string): Promise<VerifyDomainResult | null>
   verifyDomain(providerDomainId: string): Promise<VerifyDomainResult>
   sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 }

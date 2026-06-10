@@ -307,7 +307,16 @@ const VERIFICATION_STATUS_LABELS: Record<string, string> = {
 const DNS_STATUS_LABELS: Record<string, string> = {
   pending: 'Väntar',
   verified: 'Verifierad',
+  configured: 'Konfigurerad',
   failed: 'Fel',
+}
+
+function isReadyStatus(value: string | null | undefined) {
+  return value === 'verified' || value === 'configured' || value === 'ready'
+}
+
+function readinessNotes(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : []
 }
 
 const IMPORTANT_EVENT_LABELS: Array<{ eventKey: string; label: string }> = [
@@ -355,6 +364,7 @@ function CompanyEmailSection({
   const templatesByKey = new Map(templates.map((template) => [template.template_key, template]))
   const latestDnsCheck = dnsRecords.map((record) => record.last_checked_at).filter(Boolean).sort().at(-1)
   const settingStatus = settings?.verification_status ?? 'not_started'
+  const notes = readinessNotes(settings?.readiness_notes)
 
   return (
     <section id="email" className="space-y-5">
@@ -367,8 +377,8 @@ function CompanyEmailSection({
         <div className="mt-4 grid gap-3 text-sm font-semibold md:grid-cols-4">
           <ActionLine label="From-email" value={settings?.sender_email ?? effectiveSender.senderEmail} tone={effectiveSender.mode === 'verified_domain' ? 'emerald' : 'amber'} />
           <ActionLine label="Domänstatus" value={VERIFICATION_STATUS_LABELS[settingStatus] ?? settingStatus} tone={settingStatus === 'verified' ? 'emerald' : 'amber'} />
-          <ActionLine label="DKIM" value={settings?.dkim_status ?? 'ej kontrollerad'} tone={settings?.dkim_status === 'verified' ? 'emerald' : 'slate'} />
-          <ActionLine label="SPF/DMARC" value={`${settings?.spf_status ?? 'SPF saknas'} / ${settings?.dmarc_status ?? 'DMARC saknas'}`} tone={settings?.spf_status === 'verified' && settings?.dmarc_status === 'verified' ? 'emerald' : 'slate'} />
+          <ActionLine label="DKIM" value={settings?.dkim_status ?? 'ej kontrollerad'} tone={isReadyStatus(settings?.dkim_status) ? 'emerald' : 'slate'} />
+          <ActionLine label="SPF/DMARC" value={`${settings?.spf_status ?? 'SPF saknas'} / ${settings?.dmarc_status ?? 'DMARC saknas'}`} tone={isReadyStatus(settings?.spf_status) && isReadyStatus(settings?.dmarc_status) ? 'emerald' : 'slate'} />
         </div>
         <nav className="mt-5 flex flex-wrap gap-2 text-sm font-black">
           {['Avsändare', 'Domänverifiering', 'DNS-poster', 'Testmail', 'Automatiska utskick', 'Mailmallar', 'Senaste utskick'].map((label) => (
@@ -395,13 +405,21 @@ function CompanyEmailSection({
         <div className="mt-4 grid gap-3 text-sm font-semibold text-slate-700 md:grid-cols-3">
           <ActionLine label="Provider" value="Resend" />
           <div className={`rounded-2xl border px-4 py-3 ${statusTone(settingStatus)}`}>Status: {VERIFICATION_STATUS_LABELS[settingStatus] ?? settingStatus}</div>
-          <ActionLine label="Senast kontrollerad" value={formatDate(latestDnsCheck)} />
+          <ActionLine label="Senast kontrollerad" value={formatDate(settings?.last_verification_checked_at ?? latestDnsCheck)} />
         </div>
         <p className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
           {settingStatus === 'verified'
-            ? 'Domänen är verifierad. Juridiskt viktiga utskick skickas från bolagets egen avsändare.'
-            : 'Domänen är inte verifierad ännu. Systemet använder fallback-avsändare om bolaget tillåter det, och loggar sender_mode på varje utskick.'}
+            ? 'Domänen är verifierad för sändning. Juridiskt viktiga utskick skickas från bolagets egen avsändare.'
+            : 'Domänen är inte verifierad för sändning ännu. Systemet använder fallback-avsändare om bolaget tillåter det, och loggar sender_mode på varje utskick.'}
         </p>
+        {notes.length > 0 ? (
+          <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
+            <p className="font-black">Verifieringsnoteringar</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {notes.map((note) => <li key={note}>{note}</li>)}
+            </ul>
+          </div>
+        ) : null}
         <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
           Bekräftelsemail och ångerrätt ska skickas av Ops som standard. Extern hemsida får webhook-event och ska inte skicka dubbla juridiska bekräftelser om inget annat är avtalat.
         </p>

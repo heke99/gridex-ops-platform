@@ -47,6 +47,15 @@ type CompanyEmailSettingsInput = {
   verificationStatus?: CompanyEmailVerificationStatus
   verifiedAt?: string | null
   isActive?: boolean
+  senderMode?: 'verified_domain' | 'fallback_platform_sender' | 'disabled' | null
+  fallbackAllowed?: boolean | null
+  blockLegalMailWhenUnverified?: boolean | null
+  dkimStatus?: string | null
+  spfStatus?: string | null
+  dmarcStatus?: string | null
+  lastVerificationCheckedAt?: string | null
+  readinessStatus?: string | null
+  readinessNotes?: unknown
 }
 
 type CompanyRow = {
@@ -117,6 +126,15 @@ export async function upsertCompanyEmailSettings(companyId: string, input: Compa
   if ('verificationStatus' in input && input.verificationStatus) payload.verification_status = input.verificationStatus
   if ('verifiedAt' in input) payload.verified_at = input.verifiedAt ?? null
   if ('isActive' in input && typeof input.isActive === 'boolean') payload.is_active = input.isActive
+  if ('senderMode' in input) payload.sender_mode = input.senderMode ?? 'fallback_platform_sender'
+  if ('fallbackAllowed' in input && typeof input.fallbackAllowed === 'boolean') payload.fallback_allowed = input.fallbackAllowed
+  if ('blockLegalMailWhenUnverified' in input && typeof input.blockLegalMailWhenUnverified === 'boolean') payload.block_legal_mail_when_unverified = input.blockLegalMailWhenUnverified
+  if ('dkimStatus' in input) payload.dkim_status = input.dkimStatus ?? null
+  if ('spfStatus' in input) payload.spf_status = input.spfStatus ?? null
+  if ('dmarcStatus' in input) payload.dmarc_status = input.dmarcStatus ?? null
+  if ('lastVerificationCheckedAt' in input) payload.last_verification_checked_at = input.lastVerificationCheckedAt ?? null
+  if ('readinessStatus' in input) payload.readiness_status = input.readinessStatus ?? null
+  if ('readinessNotes' in input) payload.readiness_notes = input.readinessNotes ?? []
 
   const { data, error } = await supabaseService
     .from('company_email_settings')
@@ -160,6 +178,7 @@ export async function getEffectiveSender(companyId: string): Promise<EffectiveSe
   if (
     settings?.verification_status === 'verified' &&
     settings.is_active &&
+    settings.sender_mode !== 'disabled' &&
     settings.sender_email &&
     settings.sender_name
   ) {
