@@ -5,6 +5,7 @@ import {
   markCommunicationDelivered,
   markCommunicationComplained,
   markCommunicationFailed,
+  markCommunicationSent,
   type CommunicationLog,
 } from './communicationLogs'
 
@@ -125,6 +126,7 @@ async function applyCommunicationStatus(event: WebhookEventPayload, log: Communi
   const eventType = String(event.type)
 
   if (eventType === 'email.sent') {
+    if (log.provider_message_id) await markCommunicationSent(log.id, log.provider_message_id)
     return
   }
 

@@ -1,0 +1,500 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { requireAdminAccess, requireCompanyScopedActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
+import { supabaseService } from '@/lib/supabase/service'
+import { assessWebsiteApplicationReadiness, cleanReviewText } from '@/lib/website/applicationReview'
+
+const WRITE_PERMISSIONS = { anyOf: ['customers.write', 'switching.write', 'metering.write', 'poa.write'] }
+
+type ApplicationRecord = {
+  id: string
+  company_id: string
+  customer_id: string | null
+  customer_site_id: string | null
+  metering_point_id: string | null
+  contract_id: string | null
+  status: string
+  payload: Record<string, unknown> | null
+  raw_payload: Record<string, unknown> | null
+  response_payload: Record<string, unknown> | null
+  timeline: unknown[] | null
+  audit_log: unknown[] | null
+}
+
+function text(formData: FormData, key: string): string | null {
+  const value = String(formData.get(key) ?? '').trim()
+  return value.length > 0 ? value : null
+}
+
+function checkbox(formData: FormData, key: string): boolean | null {
+  if (!formData.has(key)) return null
+  const value = String(formData.get(key) ?? '').trim().toLowerCase()
+  return ['on', 'true', '1', 'yes', 'ja', 'accepted'].includes(value)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function missingSchema(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+}
+
+function timelineEvent(type: string, label: string, metadata: Record<string, unknown> = {}) {
+  return {
+    type,
+    label,
+    metadata,
+    occurred_at: new Date().toISOString(),
+  }
+}
+
+function auditEvent(action: string, actorUserId: string, oldValues: Record<string, unknown>, newValues: Record<string, unknown>) {
+  return {
+    action,
+    actor_user_id: actorUserId,
+    old_values: oldValues,
+    new_values: newValues,
+    created_at: new Date().toISOString(),
+  }
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+async function authorizeForCompany(companyId: string) {
+  const admin = await requireAdminAccess()
+  if (isPlatformAdminContext(admin)) return admin
+  return requireCompanyScopedActionAccess(companyId, WRITE_PERMISSIONS)
+}
+
+async function loadApplication(applicationId: string): Promise<ApplicationRecord> {
+  const { data, error } = await supabaseService
+    .from('website_customer_applications')
+    .select('id,company_id,customer_id,customer_site_id,metering_point_id,contract_id,status,payload,raw_payload,response_payload,timeline,audit_log')
+    .eq('id', applicationId)
+    .single()
+
+  if (error) throw error
+  return data as ApplicationRecord
+}
+
+function mergePayload(current: Record<string, unknown> | null, formData: FormData) {
+  const base: Record<string, unknown> = isRecord(current) ? { ...current } : {}
+  const customer = isRecord(base.customer) ? { ...base.customer } : {}
+  const site = isRecord(base.site) ? { ...base.site } : {}
+  const meteringPoint = isRecord(base.metering_point) ? { ...base.metering_point } : {}
+  const contract = isRecord(base.contract) ? { ...base.contract } : {}
+  const consents = isRecord(base.consents) ? { ...base.consents } : {}
+
+  const assignments: Array<[Record<string, unknown>, string, string | null]> = [
+    [customer, 'full_name', text(formData, 'customer_full_name')],
+    [customer, 'email', text(formData, 'customer_email')],
+    [customer, 'phone', text(formData, 'customer_phone')],
+    [site, 'facility_id', text(formData, 'facility_id')],
+    [site, 'street', text(formData, 'site_street')],
+    [site, 'postal_code', text(formData, 'site_postal_code')],
+    [site, 'city', text(formData, 'site_city')],
+    [site, 'move_in_date', text(formData, 'requested_start_date')],
+    [meteringPoint, 'metering_point_id', text(formData, 'metering_point_id')],
+    [meteringPoint, 'site_facility_id', text(formData, 'facility_id')],
+    [contract, 'price_plan_id', text(formData, 'price_plan_id')],
+    [contract, 'contract_name', text(formData, 'contract_name')],
+    [contract, 'requested_start_date', text(formData, 'requested_start_date')],
+    [contract, 'confirmed_start_date', text(formData, 'confirmed_start_date')],
+    [contract, 'actual_start_date', text(formData, 'actual_start_date')],
+  ]
+
+  for (const [target, key, value] of assignments) {
+    if (value !== null) target[key] = value
+  }
+
+  const gridOwnerId = text(formData, 'grid_owner_id')
+  const networkOwnerId = text(formData, 'network_owner_id')
+  const electricitySupplierId = text(formData, 'electricity_supplier_id')
+  const pricePlanId = text(formData, 'price_plan_id')
+  const requestedStartDate = text(formData, 'requested_start_date')
+  const confirmedStartDate = text(formData, 'confirmed_start_date')
+  const actualStartDate = text(formData, 'actual_start_date')
+  const powerOfAttorney = checkbox(formData, 'power_of_attorney_accepted')
+  const termsAccepted = checkbox(formData, 'terms_accepted')
+
+  if (gridOwnerId) {
+    base.grid_owner_id = gridOwnerId
+    site.grid_owner_id = gridOwnerId
+  }
+  if (networkOwnerId) base.network_owner_id = networkOwnerId
+  if (electricitySupplierId) base.electricity_supplier_id = electricitySupplierId
+  if (pricePlanId) base.price_plan_id = pricePlanId
+  if (requestedStartDate) base.requested_start_date = requestedStartDate
+  if (confirmedStartDate) base.confirmed_start_date = confirmedStartDate
+  if (actualStartDate) base.actual_start_date = actualStartDate
+  if (powerOfAttorney !== null) {
+    consents.power_of_attorney = powerOfAttorney
+    consents.fullmakt_accepted = powerOfAttorney
+  }
+  if (termsAccepted !== null) {
+    consents.terms_accepted = termsAccepted
+    consents.terms = termsAccepted
+  }
+
+  base.customer = customer
+  base.site = site
+  base.metering_point = meteringPoint
+  base.contract = contract
+  base.consents = consents
+
+  return base
+}
+
+async function updateCustomerReviewState(application: ApplicationRecord, readiness: ReturnType<typeof assessWebsiteApplicationReadiness>) {
+  if (!application.customer_id) return
+
+  const { error } = await supabaseService
+    .from('customers')
+    .update({
+      intake_status: readiness.status === 'needs_information' ? 'missing_fields' : readiness.status,
+      intake_missing_fields: readiness.missingFields,
+      intake_quality_score: readiness.qualityScore,
+      intake_warnings: readiness.warnings,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('company_id', application.company_id)
+    .eq('id', application.customer_id)
+
+  if (error && !missingSchema(error)) throw error
+}
+
+async function upsertApplicationSite(application: ApplicationRecord, payload: Record<string, unknown>) {
+  if (!application.customer_id) return application.customer_site_id
+  const site = isRecord(payload.site) ? payload.site : {}
+  const facilityId = cleanReviewText(site.facility_id)
+  const street = cleanReviewText(site.street)
+  const city = cleanReviewText(site.city)
+  const postalCode = cleanReviewText(site.postal_code)
+  const gridOwnerId = cleanReviewText(site.grid_owner_id) ?? cleanReviewText(payload.grid_owner_id)
+  const moveInDate = cleanReviewText(site.move_in_date) ?? cleanReviewText(payload.requested_start_date)
+
+  if (!facilityId && !street && !city) return application.customer_site_id
+
+  if (application.customer_site_id) {
+    const { error } = await supabaseService
+      .from('customer_sites')
+      .update({
+        facility_id: facilityId,
+        street,
+        postal_code: postalCode,
+        city,
+        grid_owner_id: gridOwnerId,
+        move_in_date: moveInDate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('company_id', application.company_id)
+      .eq('id', application.customer_site_id)
+
+    if (error && !missingSchema(error)) throw error
+    return application.customer_site_id
+  }
+
+  const insertPayload = {
+    company_id: application.company_id,
+    customer_id: application.customer_id,
+    site_name: facilityId ?? street ?? 'Anläggning',
+    site_type: 'consumption',
+    status: 'active',
+    facility_id: facilityId,
+    street,
+    postal_code: postalCode,
+    city,
+    grid_owner_id: gridOwnerId,
+    move_in_date: moveInDate,
+    country: 'SE',
+    metadata: { source: 'website_application_review' },
+  }
+
+  const { data, error } = await supabaseService
+    .from('customer_sites')
+    .insert(insertPayload)
+    .select('id')
+    .single()
+
+  if (error && !missingSchema(error)) throw error
+  if (data?.id) return String(data.id)
+
+  const fallback = await supabaseService
+    .from('customer_sites')
+    .insert({
+      company_id: application.company_id,
+      customer_id: application.customer_id,
+      site_name: facilityId ?? street ?? 'Anläggning',
+      status: 'active',
+      facility_id: facilityId,
+    })
+    .select('id')
+    .single()
+  if (fallback.error) throw fallback.error
+  return String(fallback.data.id)
+}
+
+async function upsertApplicationMeteringPoint(application: ApplicationRecord, siteId: string | null, payload: Record<string, unknown>) {
+  if (!application.customer_id || !siteId) return application.metering_point_id
+  const metering = isRecord(payload.metering_point) ? payload.metering_point : {}
+  const site = isRecord(payload.site) ? payload.site : {}
+  const meteringPointId = cleanReviewText(metering.metering_point_id)
+    ?? cleanReviewText(metering.meter_point_id)
+    ?? cleanReviewText(metering.ediel_metering_point_id)
+    ?? cleanReviewText(metering.anlage_id)
+    ?? null
+  if (!meteringPointId) return application.metering_point_id
+
+  if (application.metering_point_id) {
+    const { error } = await supabaseService
+      .from('metering_points')
+      .update({
+        metering_point_id: meteringPointId,
+        meter_point_id: meteringPointId,
+        ediel_metering_point_id: meteringPointId,
+        anlage_id: cleanReviewText(metering.anlage_id) ?? cleanReviewText(site.facility_id) ?? meteringPointId,
+        site_facility_id: cleanReviewText(site.facility_id) ?? meteringPointId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('company_id', application.company_id)
+      .eq('id', application.metering_point_id)
+
+    if (error && !missingSchema(error)) throw error
+    return application.metering_point_id
+  }
+
+  const insertPayload = {
+    company_id: application.company_id,
+    customer_id: application.customer_id,
+    site_id: siteId,
+    customer_site_id: siteId,
+    metering_point_id: meteringPointId,
+    meter_point_id: meteringPointId,
+    ediel_metering_point_id: meteringPointId,
+    anlage_id: cleanReviewText(metering.anlage_id) ?? cleanReviewText(site.facility_id) ?? meteringPointId,
+    site_facility_id: cleanReviewText(site.facility_id) ?? meteringPointId,
+    measurement_type: cleanReviewText(metering.measurement_type) ?? 'consumption',
+    reading_frequency: cleanReviewText(metering.reading_frequency) ?? 'monthly',
+    price_area_code: cleanReviewText(metering.price_area_code) ?? cleanReviewText(site.price_area_code),
+    start_date: cleanReviewText(metering.start_date) ?? cleanReviewText(payload.requested_start_date),
+    status: 'active',
+    verification_status: 'pending',
+    onboarding_status: 'application_received',
+    data_quality_status: 'manual_review',
+    is_settlement_relevant: true,
+    metadata: { source: 'website_application_review' },
+  }
+
+  const { data, error } = await supabaseService
+    .from('metering_points')
+    .insert(insertPayload)
+    .select('id')
+    .single()
+
+  if (error && !missingSchema(error)) throw error
+  if (data?.id) return String(data.id)
+
+  const fallback = await supabaseService
+    .from('metering_points')
+    .insert({
+      company_id: application.company_id,
+      customer_id: application.customer_id,
+      site_id: siteId,
+      customer_site_id: siteId,
+      metering_point_id: meteringPointId,
+      meter_point_id: meteringPointId,
+      status: 'active',
+    })
+    .select('id')
+    .single()
+  if (fallback.error) throw fallback.error
+  return String(fallback.data.id)
+}
+
+async function upsertApplicationContract(application: ApplicationRecord, siteId: string | null, meteringPointId: string | null, payload: Record<string, unknown>, readiness: ReturnType<typeof assessWebsiteApplicationReadiness>) {
+  if (!application.customer_id || application.contract_id || !readiness.canCreateContract) return application.contract_id
+  const contract = isRecord(payload.contract) ? payload.contract : {}
+  const contractName = cleanReviewText(contract.contract_name) ?? 'Elavtal'
+  const requestedStartDate = readiness.requestedStartDate ?? cleanReviewText(payload.requested_start_date) ?? cleanReviewText(contract.requested_start_date)
+  const insertPayload = {
+    company_id: application.company_id,
+    customer_id: application.customer_id,
+    site_id: siteId,
+    customer_site_id: siteId,
+    metering_point_id: meteringPointId,
+    source_type: 'website_application_review',
+    status: readiness.canStartSwitch ? 'pending' : 'draft',
+    contract_name: contractName,
+    contract_type: cleanReviewText(contract.contract_type) ?? 'variable_monthly',
+    starts_at: requestedStartDate,
+    expected_start_at: requestedStartDate,
+    requested_start_date: requestedStartDate,
+    confirmed_start_date: readiness.confirmedStartDate,
+    actual_start_date: readiness.actualStartDate,
+    metadata: {
+      source: 'website_application_review',
+      application_id: application.id,
+      missing_fields: readiness.missingFields,
+    },
+    updated_at: new Date().toISOString(),
+  }
+
+  const { data, error } = await supabaseService
+    .from('customer_contracts')
+    .insert(insertPayload)
+    .select('id')
+    .single()
+
+  if (error && !missingSchema(error)) throw error
+  if (data?.id) return String(data.id)
+
+  const fallback = await supabaseService
+    .from('customer_contracts')
+    .insert({
+      company_id: application.company_id,
+      customer_id: application.customer_id,
+      site_id: siteId,
+      source_type: 'website_application_review',
+      status: readiness.canStartSwitch ? 'pending' : 'draft',
+      contract_name: contractName,
+      contract_type: cleanReviewText(contract.contract_type) ?? 'variable_monthly',
+      starts_at: requestedStartDate,
+      updated_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  if (fallback.error) throw fallback.error
+  return String(fallback.data.id)
+}
+
+async function saveApplicationReview(input: { applicationId: string; formData: FormData; action: 'review.updated' | 'review.checked' }) {
+  if (!input.applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(input.applicationId)
+  const admin = await authorizeForCompany(application.company_id)
+  const payload = mergePayload(application.payload, input.formData)
+  const readiness = assessWebsiteApplicationReadiness(payload)
+  const siteId = await upsertApplicationSite(application, payload)
+  const meteringPointId = await upsertApplicationMeteringPoint(application, siteId, payload)
+  const contractId = await upsertApplicationContract(application, siteId, meteringPointId, payload, readiness)
+  const note = text(input.formData, 'admin_note')
+  const previousValues = {
+    status: application.status,
+    customer_site_id: application.customer_site_id,
+    metering_point_id: application.metering_point_id,
+    contract_id: application.contract_id,
+  }
+  const newValues = {
+    status: readiness.status,
+    missing_fields: readiness.missingFields,
+    blocking_reasons: readiness.blockingReasons,
+    next_step: readiness.nextStep,
+    customer_site_id: siteId,
+    metering_point_id: meteringPointId,
+    contract_id: contractId,
+    note,
+  }
+  const timeline = [
+    ...asArray(application.timeline),
+    timelineEvent(input.action, input.action === 'review.checked' ? 'Redo-kontroll kördes' : 'Ansökan kompletterades', {
+      missing_fields: readiness.missingFields,
+      next_step: readiness.nextStep,
+      note,
+    }),
+  ]
+  const auditLog = [
+    ...asArray(application.audit_log),
+    auditEvent(input.action, admin.userId, previousValues, newValues),
+  ]
+
+  const responsePayload = isRecord(application.response_payload) ? { ...application.response_payload } : {}
+  responsePayload.status = readiness.status
+  responsePayload.missing_fields = readiness.missingFields
+  responsePayload.blocking_reasons = readiness.blockingReasons
+  responsePayload.next_step = readiness.nextStep
+  responsePayload.customer_site_id = siteId
+  responsePayload.metering_point_id = meteringPointId
+  responsePayload.contract_id = contractId
+  responsePayload.can_start_switch = readiness.canStartSwitch
+  responsePayload.can_send_agreement_confirmation = readiness.canSendAgreementConfirmation
+  responsePayload.can_activate_customer = readiness.canActivateCustomer
+
+  const { error } = await supabaseService
+    .from('website_customer_applications')
+    .update({
+      status: readiness.status,
+      payload,
+      response_payload: responsePayload,
+      customer_site_id: siteId,
+      metering_point_id: meteringPointId,
+      contract_id: contractId,
+      missing_fields: readiness.missingFields,
+      blocking_reasons: readiness.blockingReasons,
+      next_step: readiness.nextStep,
+      requested_start_date: readiness.requestedStartDate,
+      confirmed_start_date: readiness.confirmedStartDate,
+      actual_start_date: readiness.actualStartDate,
+      warnings: readiness.warnings,
+      timeline,
+      audit_log: auditLog,
+      assigned_to: admin.userId,
+      admin_note: note,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('company_id', application.company_id)
+    .eq('id', application.id)
+
+  if (error && !missingSchema(error)) throw error
+
+  if (error && missingSchema(error)) {
+    const fallback = await supabaseService
+      .from('website_customer_applications')
+      .update({
+        status: readiness.status,
+        payload,
+        response_payload: responsePayload,
+        customer_site_id: siteId,
+        metering_point_id: meteringPointId,
+        contract_id: contractId,
+        warnings: readiness.warnings,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('company_id', application.company_id)
+      .eq('id', application.id)
+    if (fallback.error) throw fallback.error
+  }
+
+  await updateCustomerReviewState(application, readiness)
+
+  await supabaseService.from('audit_logs').insert({
+    company_id: application.company_id,
+    actor_user_id: admin.userId,
+    action: input.action,
+    entity_type: 'website_customer_application',
+    entity_id: application.id,
+    old_values: previousValues,
+    new_values: newValues,
+  }).then(() => null)
+
+  revalidatePath('/admin/website-applications')
+  revalidatePath('/admin/customer-applications')
+  if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
+}
+
+export async function updateWebsiteApplicationReviewAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  await saveApplicationReview({ applicationId, formData, action: 'review.updated' })
+  redirect('/admin/website-applications?status=needs_information')
+}
+
+export async function checkWebsiteApplicationReadinessAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  await saveApplicationReview({ applicationId, formData, action: 'review.checked' })
+  redirect('/admin/website-applications')
+}

@@ -51,6 +51,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kund, intag och avtal',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
+      { key: 'customer_applications', label: 'Kundansökningar', href: '/admin/website-applications', description: 'Nya kunder från hemsida och ofullständiga ansökningar', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, avtal och anläggning', pageKey: 'customers.intake' },
       { key: 'contracts', label: 'Avtal & fullmakter', href: '/admin/contracts', description: 'Avtal, kampanjer och fullmaktsunderlag', pageKey: 'contracts.catalog' },
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Kund-/anläggningsuppgifter och kompletteringar', pageKey: 'customer.info_requests' },
@@ -110,6 +111,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kundregister, intag och prisvillkor',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
+      { key: 'customer_applications', label: 'Kundansökningar', href: '/admin/website-applications', description: 'Nya kunder från hemsida, blockerare och redo-kontroll', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, anläggning och fullmakt', pageKey: 'customers.intake' },
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog och kampanjer', pageKey: 'contracts.catalog' },
       { key: 'pricing', label: 'Prismotor', href: '/admin/pricing', description: 'Påslag, avgifter och komponentregler', pageKey: 'pricing.engine' },

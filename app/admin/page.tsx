@@ -219,6 +219,7 @@ export default async function AdminDashboardPage() {
  customersActionRequired,
  latestMeteringValues,
  upcomingTerminations,
+ pendingCustomerApplications,
  companies,
  networkOwners,
  suppliers,
@@ -243,6 +244,7 @@ export default async function AdminDashboardPage() {
  safeCount(supabase, 'customer_operation_tasks', companyId, [{ column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] }]),
  safeCount(supabase, 'metering_values', companyId, [{ column: 'created_at', op: 'gte', value: latestMeteringSince }]),
  safeCount(supabase, 'customer_contracts', companyId, [{ column: 'ends_at', op: 'gte', value: today }, { column: 'ends_at', op: 'lte', value: inThirtyDays }]),
+ safeCount(supabase, 'website_customer_applications', companyId, [{ column: 'status', op: 'in', value: ['needs_information', 'manual_review', 'pending_review', 'pending_validation'] }]),
  isPlatformAdmin ? safeCount(supabase, 'companies') : Promise.resolve(0),
  isPlatformAdmin ? safeCount(supabase, 'grid_owners') : Promise.resolve(0),
  isPlatformAdmin ? safeCount(supabase, 'electricity_suppliers') : Promise.resolve(0),
@@ -298,7 +300,7 @@ export default async function AdminDashboardPage() {
  <MetricCard label="Anläggningar" value={sites} hint="Kopplade uttagspunkter" href="/admin/customers" />
  <MetricCard label="Mätpunkter" value={meteringPoints} hint="Fakturagrundande mätpunkter" href="/admin/metering" />
 <MetricCard label={isPlatformAdmin ? 'Edielärenden' : 'Tekniska kvittenser'} value={ediel.ackPendingMessages} hint={isPlatformAdmin ? `${ediel.ackOverdueMessages} försenade kvittenser` : 'Visas som åtgärder när något behöver hanteras'} href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
- <MetricCard label="Uppgifter" value={pendingTasks} hint="Öppna operationsuppgifter" href="/admin/work-queue" tone={pendingTasks > 0 ? 'amber' : 'emerald'} />
+ <MetricCard label="Kundansökningar" value={pendingCustomerApplications} hint="Nya/ofullständiga från hemsida" href="/admin/website-applications" tone={pendingCustomerApplications > 0 ? 'amber' : 'emerald'} />
  </section>
 
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -346,6 +348,7 @@ text="Här ser bolagsanvändaren praktiska uppgifter: kunder som saknar data, ne
 href="/admin/work-queue"
 cta="Öppna åtgärder"
 >
+<ActionLine label="Nya kundansökningar" value={pendingCustomerApplications} tone={pendingCustomerApplications > 0 ? 'amber' : 'emerald'} />
 <ActionLine label="Åtgärder" value={pendingTasks} tone={pendingTasks > 0 ? 'amber' : 'emerald'} />
 <ActionLine label="Negativa kvittenser" value={negativeAcknowledgements} tone={negativeAcknowledgements > 0 ? 'red' : 'emerald'} />
 <ActionLine label="Mätvärden saknas" value={missingMeteringValues} tone={missingMeteringValues > 0 ? 'red' : 'emerald'} />
@@ -360,6 +363,7 @@ cta="Öppna åtgärder"
  cta="Öppna kundregister"
  >
  <ActionLine label="Kunder" value={customers} tone="emerald" />
+ <ActionLine label="Kundansökningar behöver kontroll" value={pendingCustomerApplications} tone={pendingCustomerApplications > 0 ? 'amber' : 'emerald'} />
  <ActionLine label="Avtal" value={contracts} tone={contracts > 0 ? 'emerald' : 'amber'} />
  <ActionLine label="Mätpunkter" value={meteringPoints} tone={meteringPoints > 0 ? 'emerald' : 'amber'} />
  </WorkAreaCard>

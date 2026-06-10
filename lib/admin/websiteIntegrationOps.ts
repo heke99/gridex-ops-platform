@@ -30,6 +30,16 @@ export type WebsiteApplicationAdminRow = {
   raw_payload?: Record<string, unknown> | null
   response_payload: Record<string, unknown> | null
   warnings: unknown[] | null
+  missing_fields?: unknown[] | null
+  blocking_reasons?: unknown[] | null
+  next_step?: string | null
+  requested_start_date?: string | null
+  confirmed_start_date?: string | null
+  actual_start_date?: string | null
+  timeline?: unknown[] | null
+  audit_log?: unknown[] | null
+  assigned_to?: string | null
+  admin_note?: string | null
   error_stage?: string | null
   error_code?: string | null
   error_message?: string | null
