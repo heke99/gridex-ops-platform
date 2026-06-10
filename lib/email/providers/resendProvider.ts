@@ -164,6 +164,15 @@ function providerError(context: string, error: unknown): EmailProviderSafeError 
   if (error instanceof Error && error.message) {
     return new EmailProviderSafeError(`Resend-fel: ${error.message}`)
   }
+
+  if (error && typeof error === 'object') {
+    const message = (error as { message?: unknown; name?: unknown }).message
+    const name = (error as { message?: unknown; name?: unknown }).name
+    if (typeof message === 'string' && message.trim()) {
+      return new EmailProviderSafeError(`Resend-fel${typeof name === 'string' ? ` (${name})` : ''}: ${message}`)
+    }
+  }
+
   return new EmailProviderSafeError('Resend kunde inte slutföra åtgärden. Kontrollera e-postinställningarna och försök igen.')
 }
 

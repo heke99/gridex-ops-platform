@@ -2,6 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { getEffectiveSender } from './companyEmailSettings'
 import {
   createCommunicationLog,
+  findCommunicationLogByIdempotencyKey,
   markCommunicationFailed,
   markCommunicationSent,
 } from './communicationLogs'
@@ -19,9 +20,29 @@ type SendCompanyEmailInput = {
   to: string
   variables?: EmailTemplateVariables
   createdBy?: string | null
+  idempotencyKey?: string | null
+  legalOrCritical?: boolean
+  metadata?: Record<string, unknown>
 }
 
-const CLEAN_FAILURE = 'Utskicket kunde inte skickas. Kontrollera e-postinställningarna och försök igen.'
+function cleanError(error: unknown) {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === 'string' && error.trim()) return error
+  return 'Utskicket kunde inte skickas. Kontrollera e-postinställningarna och försök igen.'
+}
+
+function defaultEmailIdempotencyKey(input: SendCompanyEmailInput) {
+  const subject = input.customerId ?? input.to.toLowerCase()
+  return [input.companyId, input.eventKey ?? 'manual_email', input.templateKey, subject, input.idempotencyKey ?? 'default']
+    .map((part) => String(part).replace(/[:\s]+/g, '_'))
+    .join(':')
+}
+
+function isLegalOrCritical(input: SendCompanyEmailInput) {
+  if (input.legalOrCritical) return true
+  return ['contract.application_received', 'switch.started', 'switch.confirmed', 'switch.action_required', 'customer.welcome_active']
+    .includes(input.eventKey ?? input.templateKey)
+}
 
 async function isEventRuleEnabled(companyId: string, eventKey: string | null | undefined, templateKey: string) {
   if (!eventKey || eventKey === 'test_email') return true
@@ -43,8 +64,15 @@ async function isEventRuleEnabled(companyId: string, eventKey: string | null | u
 }
 
 export async function sendCompanyEmail(input: SendCompanyEmailInput) {
-  const sender = await getEffectiveSender(input.companyId)
+  const legalOrCritical = isLegalOrCritical(input)
+  const sender = await getEffectiveSender(input.companyId, { legalOrCritical })
   const allowed = await isEventRuleEnabled(input.companyId, input.eventKey, input.templateKey)
+  const idempotencyKey = defaultEmailIdempotencyKey(input)
+  const existingLog = await findCommunicationLogByIdempotencyKey(input.companyId, idempotencyKey)
+
+  if (existingLog && ['queued', 'sent', 'delivered'].includes(existingLog.status)) {
+    return { ok: true, duplicate: true, log: existingLog, senderMode: sender.mode }
+  }
 
   if (!allowed) {
     const log = await createCommunicationLog({
@@ -65,14 +93,30 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       provider: 'resend',
       createdBy: input.createdBy ?? null,
       errorMessage: 'Automatiskt utskick är avstängt.',
+      idempotencyKey,
+      metadata: {
+        ...(input.metadata ?? {}),
+        blocked_reason: 'email_event_rule_disabled',
+      },
     })
     return { ok: false, skipped: true, log, senderMode: sender.mode }
   }
 
   const template = await getCompanyEmailTemplate(input.companyId, input.templateKey)
-  if (!template) throw new Error('E-postmallen hittades inte eller är inaktiv.')
+  if (!template) throw new Error(`E-postmallen ${input.templateKey} hittades inte eller är inaktiv.`)
 
   const rendered = renderEmailTemplate(template, input.variables ?? {})
+  const templateSnapshot = {
+    template_id: template.id,
+    template_key: template.template_key,
+    template_name: template.name,
+    subject: template.subject,
+    body_html: template.body_html,
+    body_text: template.body_text,
+    language: template.language,
+    updated_at: template.updated_at,
+  }
+
   const log = await createCommunicationLog({
     companyId: input.companyId,
     customerId: input.customerId ?? null,
@@ -85,12 +129,30 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
     replyToEmail: sender.replyTo ?? null,
     subject: rendered.subject,
     senderMode: sender.mode,
-      fromName: sender.fromName ?? null,
-      domainVerifiedAt: sender.domainVerifiedAt ?? null,
+    fromName: sender.fromName ?? null,
+    domainVerifiedAt: sender.domainVerifiedAt ?? null,
     templateVersion: String(template.updated_at ?? template.created_at ?? ''),
     status: 'queued',
     provider: 'resend',
     createdBy: input.createdBy ?? null,
+    idempotencyKey,
+    metadata: {
+      ...(input.metadata ?? {}),
+      idempotency_key: idempotencyKey,
+      sender_snapshot: {
+        from: sender.from,
+        sender_email: sender.senderEmail,
+        reply_to: sender.replyTo ?? null,
+        mode: sender.mode,
+        domain_verified_at: sender.domainVerifiedAt ?? null,
+      },
+      template_snapshot: templateSnapshot,
+      rendered_snapshot: {
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+      },
+    },
   })
 
   try {
@@ -106,9 +168,8 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
     return { ok: true, log: sentLog, senderMode: sender.mode }
   } catch (error) {
     console.warn('[email] sendCompanyEmail failed', error)
-    const failedLog = await markCommunicationFailed(log.id, CLEAN_FAILURE)
-    return { ok: false, log: failedLog, senderMode: sender.mode,
-      fromName: sender.fromName ?? null,
-      domainVerifiedAt: sender.domainVerifiedAt ?? null, error: CLEAN_FAILURE }
+    const message = cleanError(error)
+    const failedLog = await markCommunicationFailed(log.id, message)
+    return { ok: false, log: failedLog, senderMode: sender.mode, error: message }
   }
 }

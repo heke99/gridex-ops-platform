@@ -210,7 +210,7 @@ export function computeTenantReadiness(input: {
   const webhook = input.webhooks.some((webhook) => webhook.status === 'active')
   const domainVerification = input.emailSettings?.verification_status === 'verified'
   const emailSender = domainVerification || input.effectiveSender.mode === 'fallback'
-  const requiredTemplates = ['contract_confirmation', 'cancellation_right', 'welcome_email']
+  const requiredTemplates = ['contract.application_received', 'support.case_message', 'switch.started', 'switch.confirmed', 'switch.action_required', 'customer.welcome_active']
   const templateKeys = new Set(input.templates.filter((template) => template.is_active).map((template) => template.template_key))
   const templates = requiredTemplates.every((key) => templateKeys.has(key)) && input.eventRules.some((rule) => rule.event_key === 'contract.application_received' && rule.enabled)
   const billingMapping = Number(input.billingPartnerCount ?? 0) > 0
@@ -218,7 +218,7 @@ export function computeTenantReadiness(input: {
   if (!apiClient) notes.push('Saknar aktiv API-client med website_applications.write.')
   if (!webhook) notes.push('Saknar aktiv webhook subscription.')
   if (!domainVerification && input.effectiveSender.mode === 'fallback') notes.push('E-post skickas via fallback eftersom domänen inte är verifierad.')
-  if (!templates) notes.push('Standardmallar eller event rules saknas för bekräftelse/ångerrätt.')
+  if (!templates) notes.push('Standardmallar eller event rules saknas för kundmail/switch-flöde.')
   if (!billingMapping) notes.push('Capway/billing partner mapping saknas ännu.')
   if (input.emailSettings?.verification_status === 'disabled' || input.emailSettings?.sender_mode === 'disabled') notes.push('E-postavsändaren är avstängd.')
   if (input.dnsRecords.some((record) => record.status === 'failed')) notes.push('Minst en DNS-post har felstatus.')

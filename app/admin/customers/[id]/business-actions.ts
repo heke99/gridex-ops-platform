@@ -107,7 +107,7 @@ export async function sendCustomerConfirmationBusinessAction(
 ): Promise<void> {
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
   const customerId = formValue(formData, "customer_id");
-  const event = formValue(formData, "event") ?? "supplier_switch_started";
+  const event = formValue(formData, "event") ?? "switch.started";
 
   if (!customerId) throw new Error("Kund saknas.");
 

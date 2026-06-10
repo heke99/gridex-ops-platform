@@ -34,78 +34,52 @@ export const EMAIL_TEMPLATE_VARIABLES = [
   'support_email',
   'cancellation_deadline',
   'portal_url',
+  'case_subject',
+  'case_message',
 ]
 
 export const DEFAULT_EMAIL_TEMPLATES = [
   {
-    template_key: 'contract_confirmation',
-    name: 'Avtalsbekräftelse',
-    subject: 'Avtalsbekräftelse från {{company_name}}',
-    body_html: '<p>Hej {{customer_name}},</p><p>Tack för att du har tecknat avtal med {{company_name}}. Kundnummer {{customer_number}}. Ditt avtal {{contract_name}} är mottaget och hanteras nu av oss.</p><p>Planerad start: {{start_date}}.</p><p>Kontakta oss på {{support_email}} om du har frågor.</p>',
-    body_text: 'Hej {{customer_name}}, tack för att du har tecknat avtal med {{company_name}}. Kundnummer {{customer_number}}. Ditt avtal {{contract_name}} är mottaget. Planerad start: {{start_date}}.',
+    template_key: 'contract.application_received',
+    name: 'Ansökan mottagen',
+    subject: 'Vi har tagit emot din ansökan hos {{company_name}}',
+    body_html: '<p>Hej {{customer_name}},</p><p>Vi har tagit emot din ansökan om elavtal hos {{company_name}}.</p><p>Kundnummer: {{customer_number}}.</p><p>Vi kontrollerar uppgifterna och återkommer om något behöver kompletteras.</p><p>Har du frågor når du oss på {{support_email}}.</p>',
+    body_text: 'Hej {{customer_name}}, vi har tagit emot din ansökan om elavtal hos {{company_name}}. Kundnummer: {{customer_number}}. Vi återkommer om något behöver kompletteras.',
   },
   {
-    template_key: 'welcome_email',
-    name: 'Välkomstmail',
-    subject: 'Välkommen till {{company_name}}',
-    body_html: '<p>Hej {{customer_name}},</p><p>Välkommen som kund hos {{company_name}}. Ditt kundnummer är {{customer_number}}. Vi återkommer när nästa steg i ditt kundärende är klart.</p><p>Du kan nå oss på {{support_email}}.</p>',
-    body_text: 'Hej {{customer_name}}, välkommen som kund hos {{company_name}}. Vi återkommer när nästa steg är klart.',
+    template_key: 'support.case_message',
+    name: 'Supportmeddelande',
+    subject: '{{company_name}}: {{case_subject}}',
+    body_html: '<p>Hej {{customer_name}},</p><p>{{case_message}}</p><p>Du kan svara på detta mail eller kontakta oss på {{support_email}}.</p>',
+    body_text: 'Hej {{customer_name}}, {{case_message}} Du kan svara på detta mail eller kontakta oss på {{support_email}}.',
   },
   {
-    template_key: 'cancellation_right',
-    name: 'Ångerrätt',
-    subject: 'Information om ångerrätt',
-    body_html: '<p>Hej {{customer_name}},</p><p>Du har rätt att ångra ditt avtal enligt gällande villkor. Sista dag för ånger är {{cancellation_deadline}}.</p><p>Kontakta {{support_email}} om du vill använda ångerrätten.</p>',
-    body_text: 'Hej {{customer_name}}, du har rätt att ångra ditt avtal. Sista dag för ånger är {{cancellation_deadline}}.',
+    template_key: 'switch.started',
+    name: 'Leverantörsbyte startat',
+    subject: 'Ditt leverantörsbyte är startat',
+    body_html: '<p>Hej {{customer_name}},</p><p>Vi har startat leverantörsbytet till {{company_name}}.</p><p>Anläggning: {{facility_id}}. Mätpunkt: {{metering_point_id}}.</p><p>Vi kontaktar dig om någon uppgift behöver kompletteras.</p>',
+    body_text: 'Hej {{customer_name}}, vi har startat leverantörsbytet till {{company_name}}. Vi kontaktar dig om någon uppgift behöver kompletteras.',
   },
   {
-    template_key: 'delivery_start_confirmed',
-    name: 'Leveransstart bekräftad',
-    subject: 'Din leveransstart är bekräftad',
-    body_html: '<p>Hej {{customer_name}},</p><p>Leveransstart hos {{company_name}} är bekräftad från {{start_date}}.</p><p>Anläggning: {{facility_id}}. Mätpunkt: {{metering_point_id}}.</p>',
-    body_text: 'Hej {{customer_name}}, leveransstart hos {{company_name}} är bekräftad från {{start_date}}.',
+    template_key: 'switch.confirmed',
+    name: 'Leverantörsbyte bekräftat',
+    subject: 'Ditt leverantörsbyte är bekräftat',
+    body_html: '<p>Hej {{customer_name}},</p><p>Leverantörsbytet är bekräftat och {{company_name}} startar leveransen {{start_date}}.</p><p>Anläggning: {{facility_id}}. Mätpunkt: {{metering_point_id}}.</p>',
+    body_text: 'Hej {{customer_name}}, leverantörsbytet är bekräftat och {{company_name}} startar leveransen {{start_date}}.',
   },
   {
-    template_key: 'switch_started',
-    name: 'Leverantörsbyte påbörjat',
-    subject: 'Ditt leverantörsbyte är påbörjat',
-    body_html: '<p>Hej {{customer_name}},</p><p>Vi har påbörjat leverantörsbytet till {{company_name}}. Vi kontaktar dig om någon uppgift behöver kompletteras.</p>',
-    body_text: 'Hej {{customer_name}}, vi har påbörjat leverantörsbytet till {{company_name}}.',
+    template_key: 'switch.action_required',
+    name: 'Leverantörsbyte kräver åtgärd',
+    subject: 'Vi behöver komplettera ditt leverantörsbyte',
+    body_html: '<p>Hej {{customer_name}},</p><p>Leverantörsbytet kunde inte slutföras automatiskt. Vi behöver kontrollera eller komplettera uppgifter innan bytet kan fortsätta.</p><p>Kontakta oss på {{support_email}} om du har frågor.</p>',
+    body_text: 'Hej {{customer_name}}, leverantörsbytet kunde inte slutföras automatiskt. Vi behöver kontrollera eller komplettera uppgifter innan bytet kan fortsätta.',
   },
   {
-    template_key: 'switch_confirmed',
-    name: 'Leverantörsbyte klart',
-    subject: 'Ditt leverantörsbyte är klart',
-    body_html: '<p>Hej {{customer_name}},</p><p>Leverantörsbytet är bekräftat. {{company_name}} startar leveransen {{start_date}}.</p>',
-    body_text: 'Hej {{customer_name}}, leverantörsbytet är bekräftat. {{company_name}} startar leveransen {{start_date}}.',
-  },
-  {
-    template_key: 'switch_failed',
-    name: 'Leverantörsbyte misslyckades',
-    subject: 'Vi behöver kontrollera ditt leverantörsbyte',
-    body_html: '<p>Hej {{customer_name}},</p><p>Leverantörsbytet kunde inte slutföras automatiskt. Vi granskar ärendet och kontaktar dig om vi behöver mer information.</p>',
-    body_text: 'Hej {{customer_name}}, leverantörsbytet kunde inte slutföras automatiskt. Vi granskar ärendet.',
-  },
-  {
-    template_key: 'missing_information',
-    name: 'Saknade uppgifter',
-    subject: 'Vi behöver kompletterande uppgifter',
-    body_html: '<p>Hej {{customer_name}},</p><p>Vi behöver kompletterande uppgifter för att kunna hantera ditt ärende hos {{company_name}}.</p><p>Öppna {{portal_url}} eller kontakta {{support_email}}.</p>',
-    body_text: 'Hej {{customer_name}}, vi behöver kompletterande uppgifter. Öppna {{portal_url}} eller kontakta {{support_email}}.',
-  },
-  {
-    template_key: 'power_of_attorney_confirmation',
-    name: 'Fullmaktsbekräftelse',
-    subject: 'Fullmakt mottagen',
-    body_html: '<p>Hej {{customer_name}},</p><p>Vi har tagit emot din fullmakt. Den används endast för att hantera ditt ärende hos {{company_name}}.</p>',
-    body_text: 'Hej {{customer_name}}, vi har tagit emot din fullmakt för ärendet hos {{company_name}}.',
-  },
-  {
-    template_key: 'customer_ended',
-    name: 'Kund avslutad',
-    subject: 'Bekräftelse på avslut',
-    body_html: '<p>Hej {{customer_name}},</p><p>Vi bekräftar att kundrelationen hos {{company_name}} är avslutad. Historik sparas enligt gällande regler.</p>',
-    body_text: 'Hej {{customer_name}}, vi bekräftar att kundrelationen hos {{company_name}} är avslutad.',
+    template_key: 'customer.welcome_active',
+    name: 'Välkommen som aktiv kund',
+    subject: 'Välkommen som kund hos {{company_name}}',
+    body_html: '<p>Hej {{customer_name}},</p><p>Välkommen som aktiv kund hos {{company_name}}.</p><p>Ditt kundnummer är {{customer_number}}.</p><p>Du kan nå oss på {{support_email}}.</p>',
+    body_text: 'Hej {{customer_name}}, välkommen som aktiv kund hos {{company_name}}. Ditt kundnummer är {{customer_number}}.',
   },
 ]
 
@@ -137,7 +111,24 @@ export async function getCompanyEmailTemplate(companyId: string, templateKey: st
     .maybeSingle()
 
   if (error && !['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) throw error
-  return data as CompanyEmailTemplate | null
+  if (data) return data as CompanyEmailTemplate
+
+  const fallback = DEFAULT_BY_KEY.get(templateKey)
+  if (!fallback) return null
+
+  return {
+    id: `system-default:${templateKey}:${language}`,
+    company_id: companyId,
+    template_key: fallback.template_key,
+    name: fallback.name,
+    subject: fallback.subject,
+    body_html: fallback.body_html,
+    body_text: fallback.body_text,
+    language,
+    is_active: true,
+    created_at: 'system-default',
+    updated_at: 'system-default',
+  } as CompanyEmailTemplate
 }
 
 export async function upsertCompanyEmailTemplate(companyId: string, templateKey: string, input: TemplateInput) {

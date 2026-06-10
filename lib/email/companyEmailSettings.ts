@@ -169,11 +169,23 @@ export async function seedDefaultCompanyEmailSettings(companyId: string) {
   })
 }
 
-export async function getEffectiveSender(companyId: string): Promise<EffectiveSender> {
+export async function getEffectiveSender(companyId: string, options: { legalOrCritical?: boolean } = {}): Promise<EffectiveSender> {
   const [company, settings] = await Promise.all([
     getCompany(companyId),
     getCompanyEmailSettings(companyId),
   ])
+
+  if (settings && (!settings.is_active || settings.sender_mode === 'disabled')) {
+    throw new Error('E-postavsändaren är avstängd för bolaget. Aktivera avsändaren på bolagskortet innan utskick.')
+  }
+
+  if (settings?.sender_mode === 'fallback_platform_sender' && settings.fallback_allowed === false) {
+    throw new Error('Fallback-avsändare är avstängd för bolaget. Verifiera domänen innan utskick.')
+  }
+
+  if (options.legalOrCritical && settings?.block_legal_mail_when_unverified && settings.verification_status !== 'verified') {
+    throw new Error('Bolagets domän måste vara verifierad innan juridiska eller kritiska kundmail skickas.')
+  }
 
   if (
     settings?.verification_status === 'verified' &&

@@ -3,6 +3,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import {
   markCommunicationBounced,
   markCommunicationDelivered,
+  markCommunicationComplained,
   markCommunicationFailed,
   type CommunicationLog,
 } from './communicationLogs'
@@ -36,22 +37,34 @@ export function verifyResendWebhook(payload: string, headers: ResendWebhookHeade
 }
 
 function emailIdFromEvent(event: WebhookEventPayload): string | null {
-  if (!event.type.startsWith('email.')) return null
+  const eventType = String(event.type)
+  if (!eventType.startsWith('email.')) return null
   const data = event.data as { email_id?: unknown }
   return typeof data.email_id === 'string' && data.email_id.trim() ? data.email_id : null
 }
 
 function eventErrorMessage(event: WebhookEventPayload) {
-  if (event.type === 'email.bounced') {
-    return event.data.bounce?.message || 'E-post studsade hos mottagaren.'
+  const eventType = String(event.type)
+  const data = event.data as {
+    bounce?: { message?: string | null }
+    failed?: { reason?: string | null }
+    suppressed?: { message?: string | null }
   }
 
-  if (event.type === 'email.failed') {
-    return event.data.failed?.reason || 'Resend kunde inte leverera e-post.'
+  if (eventType === 'email.bounced') {
+    return data.bounce?.message || 'E-post studsade hos mottagaren.'
   }
 
-  if (event.type === 'email.suppressed') {
-    return event.data.suppressed?.message || 'Mottagaren är spärrad hos leverantören.'
+  if (eventType === 'email.failed') {
+    return data.failed?.reason || 'Resend kunde inte leverera e-post.'
+  }
+
+  if (eventType === 'email.suppressed') {
+    return data.suppressed?.message || 'Mottagaren är spärrad hos leverantören.'
+  }
+
+  if (eventType === 'email.complained') {
+    return 'Mottagaren markerade e-postmeddelandet som skräppost/klagomål.'
   }
 
   return null
@@ -109,18 +122,28 @@ async function applyCommunicationStatus(event: WebhookEventPayload, log: Communi
   if (!log) return
 
   const occurredAt = event.created_at
+  const eventType = String(event.type)
 
-  if (event.type === 'email.delivered') {
+  if (eventType === 'email.sent') {
+    return
+  }
+
+  if (eventType === 'email.delivered') {
     await markCommunicationDelivered(log.id, occurredAt)
     return
   }
 
-  if (event.type === 'email.bounced') {
+  if (eventType === 'email.bounced') {
     await markCommunicationBounced(log.id, eventErrorMessage(event) ?? 'E-post studsade hos mottagaren.', occurredAt)
     return
   }
 
-  if (event.type === 'email.failed' || event.type === 'email.suppressed') {
+  if (eventType === 'email.complained') {
+    await markCommunicationComplained(log.id, eventErrorMessage(event) ?? 'Mottagaren markerade e-postmeddelandet som klagomål.', occurredAt)
+    return
+  }
+
+  if (eventType === 'email.failed' || eventType === 'email.suppressed') {
     await markCommunicationFailed(log.id, eventErrorMessage(event) ?? 'Resend kunde inte leverera e-post.')
   }
 }
@@ -137,7 +160,7 @@ export async function processResendWebhookEvent(
 
   return {
     ok: true,
-    eventType: event.type,
+    eventType: String(event.type),
     providerMessageId,
     matchedLogId: log?.id ?? null,
     tracked: Boolean(log),

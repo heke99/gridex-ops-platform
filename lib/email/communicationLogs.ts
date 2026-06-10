@@ -17,7 +17,7 @@ export type CommunicationLog = {
   from_name?: string | null
   domain_verified_at?: string | null
   template_version?: string | null
-  status: 'queued' | 'sent' | 'delivered' | 'bounced' | 'failed' | 'cancelled'
+  status: 'queued' | 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'cancelled'
   provider: string | null
   provider_message_id: string | null
   sent_at: string | null
@@ -33,6 +33,7 @@ export type CommunicationLog = {
   handled_at?: string | null
   handled_by?: string | null
   handled_note?: string | null
+  idempotency_key?: string | null
   created_at: string
 }
 
@@ -59,6 +60,7 @@ type CreateCommunicationLogInput = {
   externalCustomerId?: string | null
   contractId?: string | null
   metadata?: Record<string, unknown>
+  idempotencyKey?: string | null
 }
 
 export async function createCommunicationLog(input: CreateCommunicationLogInput) {
@@ -88,6 +90,7 @@ export async function createCommunicationLog(input: CreateCommunicationLogInput)
       external_customer_id: input.externalCustomerId ?? null,
       contract_id: input.contractId ?? null,
       metadata: input.metadata ?? {},
+      idempotency_key: input.idempotencyKey ?? null,
       failed_at: input.status === 'failed' ? new Date().toISOString() : null,
     })
     .select('*')
@@ -95,6 +98,24 @@ export async function createCommunicationLog(input: CreateCommunicationLogInput)
 
   if (error) throw error
   return data as CommunicationLog
+}
+
+export async function findCommunicationLogByIdempotencyKey(companyId: string, idempotencyKey: string): Promise<CommunicationLog | null> {
+  const { data, error } = await supabaseService
+    .from('communication_logs')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('idempotency_key', idempotencyKey)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    if (['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) return null
+    throw error
+  }
+
+  return data as CommunicationLog | null
 }
 
 export async function markCommunicationSent(logId: string, providerMessageId: string) {
@@ -151,6 +172,22 @@ export async function markCommunicationBounced(logId: string, errorMessage: stri
     .from('communication_logs')
     .update({
       status: 'bounced',
+      error_message: errorMessage,
+      bounced_at: occurredAt,
+    })
+    .eq('id', logId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as CommunicationLog
+}
+
+export async function markCommunicationComplained(logId: string, errorMessage: string, occurredAt: string) {
+  const { data, error } = await supabaseService
+    .from('communication_logs')
+    .update({
+      status: 'complained',
       error_message: errorMessage,
       bounced_at: occurredAt,
     })

@@ -39,6 +39,12 @@ function isRedirectError(error: unknown) {
   )
 }
 
+function actionErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === 'string' && error.trim()) return error
+  return fallback
+}
+
 function isValidDomain(value: string) {
   return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(value)
 }
@@ -88,7 +94,7 @@ export async function saveCompanyEmailSettingsAction(formData: FormData) {
       readinessStatus: 'not_ready',
       readinessNotes: ['Domänen behöver verifieras innan bolagets avsändare används.'],
       lastVerificationCheckedAt: null,
-      blockLegalMailWhenUnverified: false,
+      blockLegalMailWhenUnverified: true,
     })
 
     await supabaseService.from('audit_logs').insert({
@@ -183,8 +189,9 @@ export async function sendCompanyTestEmailAction(formData: FormData) {
       await markCommunicationSent(log.id, result.providerMessageId)
     } catch (error) {
       console.warn('[email] test email failed', error)
-      await markCommunicationFailed(log.id, 'Utskicket kunde inte skickas. Kontrollera e-postinställningarna och försök igen.')
-      throw new Error('Utskicket kunde inte skickas. Kontrollera e-postinställningarna och försök igen.')
+      const message = actionErrorMessage(error, 'Utskicket kunde inte skickas. Kontrollera e-postinställningarna och försök igen.')
+      await markCommunicationFailed(log.id, message)
+      throw new Error(message)
     }
 
     revalidatePath(`/admin/companies/${companyId}`)

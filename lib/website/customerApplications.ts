@@ -210,6 +210,12 @@ function firstDefined<T>(...values: Array<T | undefined | null>): T | undefined 
   return undefined
 }
 
+function normalizedSiteType(value: unknown): 'consumption' | 'production' | 'combined' | undefined {
+  const cleaned = clean(value)?.toLowerCase()
+  if (cleaned === 'consumption' || cleaned === 'production' || cleaned === 'combined') return cleaned
+  return undefined
+}
+
 function hasAnyCleanValue(record: Record<string, unknown>, keys: string[]): boolean {
   return keys.some((key) => clean(record[key]))
 }
@@ -224,31 +230,39 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
 
   const customer = {
     customer_type: raw.customer_type ?? rawCustomer.customer_type ?? 'private',
-    first_name: raw.first_name ?? rawCustomer.first_name,
-    last_name: raw.last_name ?? rawCustomer.last_name,
-    full_name: raw.name ?? raw.full_name ?? rawCustomer.full_name ?? rawCustomer.name,
-    company_name: raw.company_name ?? rawCustomer.company_name,
-    personal_number: raw.personal_number ?? rawCustomer.personal_number,
-    org_number: raw.org_number ?? rawCustomer.org_number,
+    first_name: raw.first_name ?? raw.firstName ?? rawCustomer.first_name ?? rawCustomer.firstName,
+    last_name: raw.last_name ?? raw.lastName ?? rawCustomer.last_name ?? rawCustomer.lastName,
+    full_name: raw.name ?? raw.full_name ?? raw.fullName ?? rawCustomer.full_name ?? rawCustomer.fullName ?? rawCustomer.name,
+    company_name: raw.company_name ?? raw.companyName ?? rawCustomer.company_name ?? rawCustomer.companyName,
+    personal_number: raw.personal_number ?? raw.personalNumber ?? rawCustomer.personal_number ?? rawCustomer.personalNumber,
+    org_number: raw.org_number ?? raw.orgNumber ?? rawCustomer.org_number ?? rawCustomer.orgNumber,
     email: raw.email ?? rawCustomer.email,
     phone: raw.phone ?? rawCustomer.phone,
-    invoice_email: raw.invoice_email ?? rawCustomer.invoice_email,
-    billing_street: raw.billing_street ?? rawCustomer.billing_street ?? rawAddress.street,
-    billing_postal_code: raw.billing_postal_code ?? rawCustomer.billing_postal_code ?? rawAddress.postal_code,
-    billing_city: raw.billing_city ?? rawCustomer.billing_city ?? rawAddress.city,
-    billing_country: raw.billing_country ?? rawCustomer.billing_country ?? rawAddress.country,
+    invoice_email: raw.invoice_email ?? raw.invoiceEmail ?? rawCustomer.invoice_email ?? rawCustomer.invoiceEmail,
+    billing_street: raw.billing_street ?? raw.billingStreet ?? rawCustomer.billing_street ?? rawCustomer.billingStreet ?? rawAddress.street,
+    billing_postal_code: raw.billing_postal_code ?? raw.billingPostalCode ?? rawCustomer.billing_postal_code ?? rawCustomer.billingPostalCode ?? rawAddress.postal_code,
+    billing_city: raw.billing_city ?? raw.billingCity ?? rawCustomer.billing_city ?? rawCustomer.billingCity ?? rawAddress.city,
+    billing_country: raw.billing_country ?? raw.billingCountry ?? rawCustomer.billing_country ?? rawCustomer.billingCountry ?? rawAddress.country,
   }
 
   const topLevelMeteringPointId = firstClean(
     raw.metering_point_id,
+    raw.meteringPointId,
     raw.meter_point_id,
+    raw.meterPointId,
     raw.ediel_metering_point_id,
-    raw.anlage_id
+    raw.edielMeteringPointId,
+    raw.anlage_id,
+    raw.anlaggningId,
+    raw.facility_metering_point_id
   )
   const topLevelFacilityId = firstClean(
     raw.facility_id,
+    raw.facilityId,
     raw.site_facility_id,
+    raw.siteFacilityId,
     raw.anlage_id,
+    raw.anlaggningId,
     raw.customer_site_id,
     topLevelMeteringPointId
   )
@@ -260,35 +274,44 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
       'site_type',
       'street',
       'address_line1',
+      'addressLine1',
       'address',
       'street_address',
+      'streetAddress',
       'postal_code',
+      'postalCode',
       'zip',
       'city',
       'country',
       'price_area_code',
+      'priceAreaCode',
       'price_area',
+      'priceArea',
       'move_in_date',
+      'moveInDate',
     ]) ||
-    firstDefined(raw.annual_consumption_kwh, raw.estimated_annual_consumption_kwh) !== undefined
+    firstDefined(raw.annual_consumption_kwh, raw.annualConsumptionKwh, raw.estimated_annual_consumption_kwh, raw.estimatedAnnualConsumptionKwh) !== undefined
   )
 
   const site = hasTopLevelSite
     ? {
         ...(nestedSite ?? {}),
-        facility_id: firstDefined(nestedSite?.facility_id, raw.facility_id, raw.site_facility_id, raw.anlage_id, topLevelFacilityId),
-        site_name: firstDefined(nestedSite?.site_name, raw.site_name),
-        site_type: firstDefined(nestedSite?.site_type, raw.site_type),
-        street: firstDefined(nestedSite?.street, raw.street, raw.address_line1, raw.address, raw.street_address, rawAddress.street),
-        postal_code: firstDefined(nestedSite?.postal_code, raw.postal_code, raw.zip, rawAddress.postal_code),
+        facility_id: firstDefined(nestedSite?.facility_id, nestedSite?.facilityId, raw.facility_id, raw.facilityId, raw.site_facility_id, raw.siteFacilityId, raw.anlage_id, raw.anlaggningId, topLevelFacilityId),
+        site_name: firstDefined(nestedSite?.site_name, nestedSite?.siteName, raw.site_name, raw.siteName),
+        site_type: normalizedSiteType(firstDefined(nestedSite?.site_type, nestedSite?.siteType, raw.site_type, raw.siteType)),
+        street: firstDefined(nestedSite?.street, nestedSite?.address, raw.street, raw.address_line1, raw.addressLine1, raw.address, raw.street_address, raw.streetAddress, rawAddress.street),
+        postal_code: firstDefined(nestedSite?.postal_code, nestedSite?.postalCode, raw.postal_code, raw.postalCode, raw.zip, rawAddress.postal_code),
         city: firstDefined(nestedSite?.city, raw.city, rawAddress.city),
         country: firstDefined(nestedSite?.country, raw.country, rawAddress.country),
-        price_area_code: firstDefined(nestedSite?.price_area_code, nestedSite?.price_area, raw.price_area_code, raw.price_area),
-        move_in_date: firstDefined(nestedSite?.move_in_date, raw.move_in_date, raw.start_date),
+        price_area_code: firstDefined(nestedSite?.price_area_code, nestedSite?.priceAreaCode, nestedSite?.price_area, nestedSite?.priceArea, raw.price_area_code, raw.priceAreaCode, raw.price_area, raw.priceArea),
+        move_in_date: firstDefined(nestedSite?.move_in_date, nestedSite?.moveInDate, raw.move_in_date, raw.moveInDate, raw.start_date, raw.startDate),
         annual_consumption_kwh: firstDefined(
           nestedSite?.annual_consumption_kwh,
+          nestedSite?.annualConsumptionKwh,
           raw.annual_consumption_kwh,
-          raw.estimated_annual_consumption_kwh
+          raw.annualConsumptionKwh,
+          raw.estimated_annual_consumption_kwh,
+          raw.estimatedAnnualConsumptionKwh
         ),
       }
     : undefined
@@ -300,19 +323,21 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
       'reading_frequency',
       'measurement_type',
       'start_date',
+      'startDate',
       'installation_date',
+      'installationDate',
     ]) ||
-    firstDefined(raw.estimated_annual_consumption_kwh, raw.annual_consumption_kwh) !== undefined
+    firstDefined(raw.estimated_annual_consumption_kwh, raw.estimatedAnnualConsumptionKwh, raw.annual_consumption_kwh, raw.annualConsumptionKwh) !== undefined
   )
 
   const meteringPoint = hasTopLevelMeteringPoint
     ? {
         ...(nestedMeteringPoint ?? {}),
-        metering_point_id: firstDefined(nestedMeteringPoint?.metering_point_id, raw.metering_point_id, topLevelMeteringPointId),
-        meter_point_id: firstDefined(nestedMeteringPoint?.meter_point_id, raw.meter_point_id, topLevelMeteringPointId),
-        ediel_metering_point_id: firstDefined(nestedMeteringPoint?.ediel_metering_point_id, raw.ediel_metering_point_id, topLevelMeteringPointId),
-        anlage_id: firstDefined(nestedMeteringPoint?.anlage_id, raw.anlage_id, site?.facility_id, topLevelFacilityId),
-        site_facility_id: firstDefined(nestedMeteringPoint?.site_facility_id, raw.site_facility_id, site?.facility_id, topLevelFacilityId),
+        metering_point_id: firstDefined(nestedMeteringPoint?.metering_point_id, nestedMeteringPoint?.meteringPointId, raw.metering_point_id, raw.meteringPointId, topLevelMeteringPointId),
+        meter_point_id: firstDefined(nestedMeteringPoint?.meter_point_id, nestedMeteringPoint?.meterPointId, raw.meter_point_id, raw.meterPointId, topLevelMeteringPointId),
+        ediel_metering_point_id: firstDefined(nestedMeteringPoint?.ediel_metering_point_id, nestedMeteringPoint?.edielMeteringPointId, raw.ediel_metering_point_id, raw.edielMeteringPointId, topLevelMeteringPointId),
+        anlage_id: firstDefined(nestedMeteringPoint?.anlage_id, nestedMeteringPoint?.anlaggningId, raw.anlage_id, raw.anlaggningId, site?.facility_id, topLevelFacilityId),
+        site_facility_id: firstDefined(nestedMeteringPoint?.site_facility_id, nestedMeteringPoint?.siteFacilityId, raw.site_facility_id, raw.siteFacilityId, site?.facility_id, topLevelFacilityId),
         reading_frequency: firstDefined(nestedMeteringPoint?.reading_frequency, raw.reading_frequency),
         measurement_type: firstDefined(nestedMeteringPoint?.measurement_type, raw.measurement_type),
         price_area_code: firstDefined(
@@ -322,12 +347,15 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
           raw.price_area,
           site?.price_area_code
         ),
-        start_date: firstDefined(nestedMeteringPoint?.start_date, raw.start_date, site?.move_in_date),
-        installation_date: firstDefined(nestedMeteringPoint?.installation_date, raw.installation_date, raw.start_date, site?.move_in_date),
+        start_date: firstDefined(nestedMeteringPoint?.start_date, nestedMeteringPoint?.startDate, raw.start_date, raw.startDate, site?.move_in_date),
+        installation_date: firstDefined(nestedMeteringPoint?.installation_date, nestedMeteringPoint?.installationDate, raw.installation_date, raw.installationDate, raw.start_date, raw.startDate, site?.move_in_date),
         estimated_annual_consumption_kwh: firstDefined(
           nestedMeteringPoint?.estimated_annual_consumption_kwh,
+          nestedMeteringPoint?.estimatedAnnualConsumptionKwh,
           raw.estimated_annual_consumption_kwh,
+          raw.estimatedAnnualConsumptionKwh,
           raw.annual_consumption_kwh,
+          raw.annualConsumptionKwh,
           site?.annual_consumption_kwh
         ),
       }
@@ -370,6 +398,7 @@ function eventVariables(input: {
   meteringPointId?: string | null
   contractName?: string | null
   startDate?: string | null
+  supportEmail?: string | null
 }) {
   const cancellationDeadline = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10)
   return {
@@ -380,20 +409,34 @@ function eventVariables(input: {
     start_date: input.startDate ?? '',
     facility_id: input.facilityId ?? '',
     metering_point_id: input.meteringPointId ?? '',
-    support_email: 'kundservice@gridex.se',
+    support_email: input.supportEmail ?? 'kundservice@gridex.se',
     cancellation_deadline: cancellationDeadline,
     portal_url: 'https://app.gridex.se/login',
   }
 }
 
-async function companyName(companyId: string): Promise<string> {
+async function companyEmailContext(companyId: string): Promise<{ name: string; supportEmail: string | null }> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('name')
+    .select('name,support_email,primary_contact_email')
     .eq('id', companyId)
     .maybeSingle()
   if (error) throw error
-  return clean(data?.name) ?? 'Gridex'
+
+  const settingsResult = await supabaseService
+    .from('company_email_settings')
+    .select('support_email,reply_to_email')
+    .eq('company_id', companyId)
+    .maybeSingle()
+
+  const settings = settingsResult.error
+    ? null
+    : settingsResult.data as { support_email?: string | null; reply_to_email?: string | null } | null
+
+  return {
+    name: clean(data?.name) ?? 'Gridex',
+    supportEmail: clean(settings?.support_email) ?? clean(settings?.reply_to_email) ?? clean(data?.support_email) ?? clean(data?.primary_contact_email),
+  }
 }
 
 async function loadExistingIdentity(companyId: string, externalCustomerId: string) {
@@ -1143,6 +1186,22 @@ export async function processWebsiteCustomerApplication(input: {
 
     const site = await stage('site_create', () => upsertSite(input.client.company_id, customerResult.customer.id, body))
     const meteringPoint = await stage('metering_point_create', () => upsertMeteringPoint(input.client.company_id, customerResult.customer.id, site, body))
+
+    if (expectsSiteOrMetering(body) && (!site?.id || !meteringPoint?.id)) {
+      throw new WebsiteApplicationError({
+        message: 'Kundansökan är ofullständig: anläggning och mätpunkt måste skapas när payload innehåller anläggnings- eller mätpunktsdata.',
+        status: 500,
+        code: 'incomplete_application',
+        stage: !site?.id ? 'site_create' : 'metering_point_create',
+        details: {
+          customer_id: customerResult.customer.id,
+          customer_number: customerNumber,
+          site_created: Boolean(site?.id),
+          metering_point_created: Boolean(meteringPoint?.id),
+        },
+      })
+    }
+
     const contract = await stage('contract_create', () => createContract(
       input.client.company_id,
       customerResult.customer.id,
@@ -1197,9 +1256,9 @@ export async function processWebsiteCustomerApplication(input: {
     const email = normalizedEmail(body.customer.email)
     if (email) {
       try {
-        const company = await companyName(input.client.company_id)
+        const company = await companyEmailContext(input.client.company_id)
         const variables = eventVariables({
-          companyName: company,
+          companyName: company.name,
           customer: customerResult.customer,
           customerNumber,
           siteId: site?.id ?? null,
@@ -1207,6 +1266,7 @@ export async function processWebsiteCustomerApplication(input: {
           meteringPointId: meteringPoint?.metering_point_id ?? clean(body.metering_point?.metering_point_id),
           contractName: contract?.contract_name ?? clean(body.contract?.contract_name),
           startDate: contract?.starts_at ?? clean(body.contract?.starts_at) ?? clean(body.site?.move_in_date),
+          supportEmail: company.supportEmail,
         })
         await seedDefaultEmailTemplates(input.client.company_id).catch(() => null)
         await seedDefaultEmailEventRules(input.client.company_id).catch(() => null)
@@ -1217,13 +1277,13 @@ export async function processWebsiteCustomerApplication(input: {
             eventKey: 'contract.application_received',
             to: email,
             variables,
-          }).catch((error) => [{ ok: false, error: errorMessage(error) }]),
-          triggerEmailEvent({
-            companyId: input.client.company_id,
-            customerId: customerResult.customer.id,
-            eventKey: 'contract.cooling_off_sent',
-            to: email,
-            variables,
+            idempotencyKey: `website_application:${application.id}:contract.application_received`,
+            metadata: {
+              application_id: application.id,
+              external_customer_id: externalCustomerId,
+              customer_number: customerNumber,
+              source: 'website_customer_applications',
+            },
           }).catch((error) => [{ ok: false, error: errorMessage(error) }]),
         ])
 
@@ -1231,7 +1291,7 @@ export async function processWebsiteCustomerApplication(input: {
         if (flattenedResults.some((result) => result?.ok === false)) {
           warnings.push('confirmation_email_pending')
         }
-      } catch (error) {
+      } catch (error: unknown) {
         warnings.push('confirmation_email_pending')
         communicationResults = [{ ok: false, error: errorMessage(error), stage: 'communication_trigger' }]
       }
@@ -1294,7 +1354,7 @@ export async function processWebsiteCustomerApplication(input: {
       ...responsePayload,
       application_id: application.id,
       communication: {
-        triggered: email ? ['contract.application_received', 'contract.cooling_off_sent'] : [],
+        triggered: email ? ['contract.application_received'] : [],
         results: communicationResults,
       },
     }, warnings)

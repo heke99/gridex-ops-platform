@@ -241,8 +241,8 @@ export default function CustomerBusinessActionsCard({
         <ActionShell title="Skicka bekräftelsemail" text="Köar kundkommunikation via bolagets mall och avsändarprofil. Marknadsmeddelanden påverkas inte av kundmail.">
           <form action={sendCustomerConfirmationBusinessAction} className="mt-4">
             <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="event" value="supplier_switch_started" />
-            <input type="hidden" name="idempotency_key" value={`send_customer_confirmation:${businessActionId}:supplier_switch_started`} />
+            <input type="hidden" name="event" value="switch.started" />
+            <input type="hidden" name="idempotency_key" value={`send_customer_confirmation:${businessActionId}:switch.started`} />
             <SubmitButton idleLabel="Skicka bekräftelse" pendingLabel="Köar…" />
           </form>
         </ActionShell>

@@ -6,7 +6,7 @@ import {
 } from './companyEmailSettings'
 import { replaceCompanyDnsRecords, updateDnsRecordStatuses } from './dnsRecords'
 import { getEmailProvider } from './providers'
-import type { CreateDomainResult, VerifyDomainResult } from './providers/types'
+import type { CreateDomainResult, EmailProviderDomainRecord, VerifyDomainResult } from './providers/types'
 
 function normalizeDomain(value: string | null | undefined) {
   return String(value ?? '')
@@ -35,6 +35,36 @@ function assertDomainSetup(domain: string | null | undefined, senderEmail: strin
   return normalizedDomain
 }
 
+
+function withGridexRequiredDnsRecords(domain: string, records: EmailProviderDomainRecord[]): EmailProviderDomainRecord[] {
+  const normalized = normalizeDomain(domain)
+  const byKey = new Map(records.map((record) => [`${record.type}:${record.name}:${record.value}`, record]))
+
+  const required: EmailProviderDomainRecord[] = [
+    {
+      type: 'TXT',
+      name: normalized,
+      value: 'v=spf1 include:amazonses.com ~all',
+      status: records.some((record) => record.type === 'TXT' && record.name === normalized && record.value.toLowerCase().includes('amazonses.com')) ? 'verified' : 'pending',
+      purpose: 'root_spf_sending_policy',
+    },
+    {
+      type: 'TXT',
+      name: `_dmarc.${normalized}`,
+      value: 'v=DMARC1; p=none; rua=mailto:dmarc@' + normalized,
+      status: 'pending',
+      purpose: 'dmarc_policy',
+    },
+  ]
+
+  for (const record of required) {
+    const key = `${record.type}:${record.name}:${record.value}`
+    if (!byKey.has(key)) byKey.set(key, record)
+  }
+
+  return Array.from(byKey.values())
+}
+
 function dmarcStatusForReadyDomain(existingStatus: string | null | undefined) {
   return existingStatus === 'verified' || existingStatus === 'configured' ? existingStatus : 'configured'
 }
@@ -56,7 +86,7 @@ function settingsPatchFromProviderResult(
     readinessStatus: result.readinessStatus ?? (status === 'verified' ? 'ready' : 'pending_dns'),
     readinessNotes: result.readinessNotes ?? [],
     lastVerificationCheckedAt: now,
-    blockLegalMailWhenUnverified: status === 'verified',
+    blockLegalMailWhenUnverified: status !== 'verified',
   }
 }
 
@@ -79,7 +109,8 @@ export async function startDomainVerification(companyId: string) {
     settingsPatchFromProviderResult(result, settings.dmarc_status)
   )
 
-  const records = await replaceCompanyDnsRecords(companyId, updated.id, result.records)
+  const providerRecords = withGridexRequiredDnsRecords(domain, result.records)
+  const records = await replaceCompanyDnsRecords(companyId, updated.id, providerRecords)
   return { status: result.status, records, sendReady: result.sendReady, readinessNotes: result.readinessNotes }
 }
 
@@ -89,19 +120,30 @@ export async function checkDomainVerification(companyId: string) {
 
   const domain = assertDomainSetup(settings.domain, settings.sender_email)
   const provider = getEmailProvider()
-  const result = settings.provider_domain_id
-    ? await provider.verifyDomain(settings.provider_domain_id)
-    : await getOrCreateProviderDomain(domain)
+  let result: VerifyDomainResult | CreateDomainResult
+  if (settings.provider_domain_id) {
+    try {
+      result = await provider.verifyDomain(settings.provider_domain_id)
+    } catch (error) {
+      console.warn('[email] provider_domain_id verification failed, falling back to domain lookup', error)
+      const found = await provider.findDomainByName(domain)
+      if (!found) throw error
+      result = found
+    }
+  } else {
+    result = await getOrCreateProviderDomain(domain)
+  }
 
   const updated = await upsertCompanyEmailSettings(
     companyId,
     settingsPatchFromProviderResult(result, settings.dmarc_status)
   )
 
-  const existingRecords = await updateDnsRecordStatuses(companyId, result.records)
+  const providerRecords = withGridexRequiredDnsRecords(domain, result.records)
+  const existingRecords = await updateDnsRecordStatuses(companyId, providerRecords)
   const records = existingRecords.length > 0
     ? existingRecords
-    : await replaceCompanyDnsRecords(companyId, updated.id, result.records)
+    : await replaceCompanyDnsRecords(companyId, updated.id, providerRecords)
 
   await supabaseService
     .from('company_email_dns_records')
