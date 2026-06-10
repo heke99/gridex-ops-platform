@@ -48,6 +48,68 @@ function missingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
 }
 
+const WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE = 'website_application'
+const LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE = 'website_application_review'
+const WEBSITE_APPLICATION_CONTRACT_CHANNEL = 'external_website'
+const WEBSITE_CONTRACT_SOURCE_TYPES = [
+  WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+  LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE,
+]
+
+type WebsiteContractRow = {
+  id: string
+  contract_name: string | null
+  starts_at: string | null
+  status: string | null
+  site_id?: string | null
+  customer_site_id?: string | null
+  metering_point_id?: string | null
+  requested_start_date?: string | null
+}
+
+function matchesExpectedValue(actual: string | null | undefined, expected: string | null | undefined): boolean {
+  if (!expected) return true
+  return actual === expected
+}
+
+function matchesExpectedDate(actual: string | null | undefined, expected: string | null | undefined): boolean {
+  if (!expected) return true
+  return Boolean(actual && String(actual).slice(0, 10) === String(expected).slice(0, 10))
+}
+
+async function findExistingApplicationContract(input: {
+  companyId: string
+  customerId: string
+  siteId?: string | null
+  meteringPointId?: string | null
+  requestedStartDate?: string | null
+  contractName?: string | null
+}): Promise<WebsiteContractRow | null> {
+  const { data, error } = await supabaseService
+    .from('customer_contracts')
+    .select('id,contract_name,starts_at,status,site_id,customer_site_id,metering_point_id,requested_start_date')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .in('source_type', WEBSITE_CONTRACT_SOURCE_TYPES)
+    .order('created_at', { ascending: false })
+    .limit(25)
+
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+
+  const rows = (data ?? []) as WebsiteContractRow[]
+  return rows.find((row) => {
+    const rowSiteId = row.customer_site_id ?? row.site_id ?? null
+    const siteMatches = matchesExpectedValue(rowSiteId, input.siteId ?? null)
+    const meterMatches = matchesExpectedValue(row.metering_point_id ?? null, input.meteringPointId ?? null)
+    const dateMatches = matchesExpectedDate(row.requested_start_date ?? row.starts_at ?? null, input.requestedStartDate ?? null)
+    const nameMatches = !input.contractName || !row.contract_name || row.contract_name === input.contractName
+    return siteMatches && meterMatches && dateMatches && nameMatches
+  }) ?? null
+}
+
 function timelineEvent(type: string, label: string, metadata: Record<string, unknown> = {}) {
   return {
     type,
@@ -324,17 +386,30 @@ async function upsertApplicationMeteringPoint(application: ApplicationRecord, si
 }
 
 async function upsertApplicationContract(application: ApplicationRecord, siteId: string | null, meteringPointId: string | null, payload: Record<string, unknown>, readiness: ReturnType<typeof assessWebsiteApplicationReadiness>) {
-  if (!application.customer_id || application.contract_id || !readiness.canCreateContract) return application.contract_id
+  if (!application.customer_id || !readiness.canCreateContract) return application.contract_id
+  if (application.contract_id) return application.contract_id
+
   const contract = isRecord(payload.contract) ? payload.contract : {}
   const contractName = cleanReviewText(contract.contract_name) ?? 'Elavtal'
   const requestedStartDate = readiness.requestedStartDate ?? cleanReviewText(payload.requested_start_date) ?? cleanReviewText(contract.requested_start_date)
+  const existingContract = await findExistingApplicationContract({
+    companyId: application.company_id,
+    customerId: application.customer_id,
+    siteId,
+    meteringPointId,
+    requestedStartDate,
+    contractName,
+  })
+  if (existingContract?.id) return String(existingContract.id)
+
+  const now = new Date().toISOString()
   const insertPayload = {
     company_id: application.company_id,
     customer_id: application.customer_id,
     site_id: siteId,
     customer_site_id: siteId,
     metering_point_id: meteringPointId,
-    source_type: 'website_application_review',
+    source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
     status: readiness.canStartSwitch ? 'pending' : 'draft',
     contract_name: contractName,
     contract_type: cleanReviewText(contract.contract_type) ?? 'variable_monthly',
@@ -343,12 +418,16 @@ async function upsertApplicationContract(application: ApplicationRecord, siteId:
     requested_start_date: requestedStartDate,
     confirmed_start_date: readiness.confirmedStartDate,
     actual_start_date: readiness.actualStartDate,
+    agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
     metadata: {
       source: 'website_application_review',
+      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+      agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
       application_id: application.id,
       missing_fields: readiness.missingFields,
+      blocking_reasons: readiness.blockingReasons,
     },
-    updated_at: new Date().toISOString(),
+    updated_at: now,
   }
 
   const { data, error } = await supabaseService
@@ -366,12 +445,14 @@ async function upsertApplicationContract(application: ApplicationRecord, siteId:
       company_id: application.company_id,
       customer_id: application.customer_id,
       site_id: siteId,
-      source_type: 'website_application_review',
+      customer_site_id: siteId,
+      metering_point_id: meteringPointId,
+      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
       status: readiness.canStartSwitch ? 'pending' : 'draft',
       contract_name: contractName,
       contract_type: cleanReviewText(contract.contract_type) ?? 'variable_monthly',
       starts_at: requestedStartDate,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })
     .select('id')
     .single()

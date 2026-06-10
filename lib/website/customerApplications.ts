@@ -197,6 +197,70 @@ function omitKeys<T extends Record<string, unknown>>(payload: T, keys: string[])
   return copy
 }
 
+const WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE = 'website_application'
+const LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE = 'website_application_review'
+const WEBSITE_APPLICATION_CONTRACT_CHANNEL = 'external_website'
+const WEBSITE_CONTRACT_SOURCE_TYPES = [
+  WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+  LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE,
+]
+
+type WebsiteContractRow = {
+  id: string
+  contract_name: string | null
+  starts_at: string | null
+  status: string | null
+  site_id?: string | null
+  customer_site_id?: string | null
+  metering_point_id?: string | null
+  requested_start_date?: string | null
+  confirmed_start_date?: string | null
+  actual_start_date?: string | null
+}
+
+function matchesExpectedValue(actual: string | null | undefined, expected: string | null | undefined): boolean {
+  if (!expected) return true
+  return actual === expected
+}
+
+function matchesExpectedDate(actual: string | null | undefined, expected: string | null | undefined): boolean {
+  if (!expected) return true
+  return Boolean(actual && String(actual).slice(0, 10) === String(expected).slice(0, 10))
+}
+
+async function findExistingWebsiteApplicationContract(input: {
+  companyId: string
+  customerId: string
+  siteId?: string | null
+  meteringPointId?: string | null
+  requestedStartDate?: string | null
+  contractName?: string | null
+}): Promise<WebsiteContractRow | null> {
+  const { data, error } = await supabaseService
+    .from('customer_contracts')
+    .select('id,contract_name,starts_at,status,site_id,customer_site_id,metering_point_id,requested_start_date,confirmed_start_date,actual_start_date')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .in('source_type', WEBSITE_CONTRACT_SOURCE_TYPES)
+    .order('created_at', { ascending: false })
+    .limit(25)
+
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+
+  const rows = (data ?? []) as WebsiteContractRow[]
+  return rows.find((row) => {
+    const rowSiteId = row.customer_site_id ?? row.site_id ?? null
+    const siteMatches = matchesExpectedValue(rowSiteId, input.siteId ?? null)
+    const meterMatches = matchesExpectedValue(row.metering_point_id ?? null, input.meteringPointId ?? null)
+    const dateMatches = matchesExpectedDate(row.requested_start_date ?? row.starts_at ?? null, input.requestedStartDate ?? null)
+    const nameMatches = !input.contractName || !row.contract_name || row.contract_name === input.contractName
+    return siteMatches && meterMatches && dateMatches && nameMatches
+  }) ?? null
+}
+
 function timelineEvent(type: string, label: string, metadata: Record<string, unknown> = {}) {
   return {
     type,
@@ -237,6 +301,9 @@ function operationalErrorMessage(error: unknown): string {
   const message = error instanceof WebsiteApplicationError ? error.message : errorMessage(error)
   if (/customers_intake_status_check/i.test(message)) {
     return 'Kundens intagsstatus stöds inte av databasen. Kör senaste kundansökningsmigration och försök igen.'
+  }
+  if (/customer_contracts_source_type_check|customer_contracts.*source_type|source_type.*customer_contracts/i.test(message)) {
+    return 'Avtal kunde inte skapas eftersom kundavtalets source_type inte stöds av databasen. Kör senaste avtalsmigration och kontrollera ansökan igen.'
   }
   if (/customer_contracts.*metadata|metadata.*customer_contracts|PGRST204/i.test(message)) {
     return 'Kundavtalets schema saknar en kolumn som koden behöver. Kör senaste migration och uppdatera schema cache.'
@@ -966,13 +1033,30 @@ async function createContract(
   const now = new Date().toISOString()
   const contractStatus = readiness.canStartSwitch ? 'pending' : 'draft'
 
+  const existingContract = await findExistingWebsiteApplicationContract({
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId,
+    requestedStartDate,
+    contractName,
+  })
+  if (existingContract) {
+    return {
+      id: existingContract.id,
+      contract_name: existingContract.contract_name,
+      starts_at: existingContract.starts_at,
+      status: existingContract.status ?? contractStatus,
+    }
+  }
+
   const fullPayload = {
     company_id: companyId,
     customer_id: customerId,
     site_id: siteId,
     customer_site_id: siteId,
     metering_point_id: meteringPointId,
-    source_type: 'website_application',
+    source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
     status: contractStatus,
     contract_name: contractName,
     contract_type: clean(contract?.contract_type) ?? 'variable_monthly',
@@ -1001,9 +1085,11 @@ async function createContract(
         source_metadata: input.metadata ?? {},
       },
     ],
-    agreement_channel: 'external_website',
+    agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
     metadata: {
       source: 'website_customer_applications',
+      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+      agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
       metering_point_id: meteringPointId,
       requested_start_date: requestedStartDate,
       confirmed_start_date: confirmedStartDate,
@@ -1033,7 +1119,9 @@ async function createContract(
       company_id: companyId,
       customer_id: customerId,
       site_id: siteId,
-      source_type: 'website_application',
+      customer_site_id: siteId,
+      metering_point_id: meteringPointId,
+      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
       status: contractStatus,
       contract_name: contractName,
       contract_type: clean(contract?.contract_type) ?? 'variable_monthly',
