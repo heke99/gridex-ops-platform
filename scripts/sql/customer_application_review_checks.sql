@@ -55,7 +55,15 @@ from pg_constraint
 where conrelid = 'public.customer_contracts'::regclass
   and conname = 'customer_contracts_source_type_check';
 
--- 5) Latest website-created customer contracts.
+-- 5) Contract status constraint must accept pending_signature and not require legacy pending.
+select
+  conname,
+  pg_get_constraintdef(oid) as definition
+from pg_constraint
+where conrelid = 'public.customer_contracts'::regclass
+  and conname = 'customer_contracts_status_check';
+
+-- 6) Latest website-created customer contracts.
 select
   id,
   company_id,
@@ -78,7 +86,7 @@ where source_type in ('website_application','website_application_review')
 order by created_at desc
 limit 20;
 
--- 6) Customer intake flags.
+-- 7) Customer intake flags.
 select
   id,
   customer_number,
@@ -91,7 +99,7 @@ from public.customers
 order by updated_at desc nulls last
 limit 20;
 
--- 7) Verified grid owners to use in payload tests.
+-- 8) Verified grid owners to use in payload tests.
 select
   id,
   name,
@@ -102,7 +110,7 @@ from public.grid_owners
 order by name
 limit 20;
 
--- 8) Active price plans to use in payload tests.
+-- 9) Active price plans to use in payload tests.
 select
   id,
   name,

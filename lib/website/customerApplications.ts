@@ -200,6 +200,8 @@ function omitKeys<T extends Record<string, unknown>>(payload: T, keys: string[])
 const WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE = 'website_application'
 const LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE = 'website_application_review'
 const WEBSITE_APPLICATION_CONTRACT_CHANNEL = 'external_website'
+const WEBSITE_APPLICATION_READY_CONTRACT_STATUS = 'pending_signature'
+const WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS = 'draft'
 const WEBSITE_CONTRACT_SOURCE_TYPES = [
   WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
   LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE,
@@ -302,7 +304,10 @@ function operationalErrorMessage(error: unknown): string {
   if (/customers_intake_status_check/i.test(message)) {
     return 'Kundens intagsstatus stöds inte av databasen. Kör senaste kundansökningsmigration och försök igen.'
   }
-  if (/customer_contracts_source_type_check|customer_contracts.*source_type|source_type.*customer_contracts/i.test(message)) {
+  if (/customer_contracts_status_check/i.test(message)) {
+    return 'Avtal kunde inte skapas eftersom kundavtalets status inte stöds av databasen. Koden ska använda draft/pending_signature och senaste avtalsmigration måste vara körd.'
+  }
+  if (/customer_contracts_source_type_check/i.test(message)) {
     return 'Avtal kunde inte skapas eftersom kundavtalets source_type inte stöds av databasen. Kör senaste avtalsmigration och kontrollera ansökan igen.'
   }
   if (/customer_contracts.*metadata|metadata.*customer_contracts|PGRST204/i.test(message)) {
@@ -1031,7 +1036,7 @@ async function createContract(
   const confirmedStartDate = readiness.confirmedStartDate ?? clean(contract?.confirmed_start_date) ?? clean(contract?.confirmedStartDate)
   const actualStartDate = readiness.actualStartDate ?? clean(contract?.actual_start_date) ?? clean(contract?.actualStartDate)
   const now = new Date().toISOString()
-  const contractStatus = readiness.canStartSwitch ? 'pending' : 'draft'
+  const contractStatus = readiness.canStartSwitch ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS
 
   const existingContract = await findExistingWebsiteApplicationContract({
     companyId,

@@ -51,6 +51,8 @@ function missingSchema(error: unknown): boolean {
 const WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE = 'website_application'
 const LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE = 'website_application_review'
 const WEBSITE_APPLICATION_CONTRACT_CHANNEL = 'external_website'
+const WEBSITE_APPLICATION_READY_CONTRACT_STATUS = 'pending_signature'
+const WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS = 'draft'
 const WEBSITE_CONTRACT_SOURCE_TYPES = [
   WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
   LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE,
@@ -410,7 +412,7 @@ async function upsertApplicationContract(application: ApplicationRecord, siteId:
     customer_site_id: siteId,
     metering_point_id: meteringPointId,
     source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
-    status: readiness.canStartSwitch ? 'pending' : 'draft',
+    status: readiness.canStartSwitch ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS,
     contract_name: contractName,
     contract_type: cleanReviewText(contract.contract_type) ?? 'variable_monthly',
     starts_at: requestedStartDate,
@@ -448,7 +450,7 @@ async function upsertApplicationContract(application: ApplicationRecord, siteId:
       customer_site_id: siteId,
       metering_point_id: meteringPointId,
       source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
-      status: readiness.canStartSwitch ? 'pending' : 'draft',
+      status: readiness.canStartSwitch ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS,
       contract_name: contractName,
       contract_type: cleanReviewText(contract.contract_type) ?? 'variable_monthly',
       starts_at: requestedStartDate,

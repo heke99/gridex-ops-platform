@@ -49,7 +49,8 @@ function safeOperationalMessage(value: string | null | undefined) {
   const message = value?.trim()
   if (!message) return null
   if (/customers_intake_status_check/i.test(message)) return 'Databasens kundstatus-regel behöver senaste migrationen.'
-  if (/customer_contracts_source_type_check|customer_contracts.*source_type|source_type.*customer_contracts/i.test(message)) return 'Avtal kunde inte skapas eftersom kundavtalets source_type inte stöds av databasen. Kör senaste avtalsmigration och kontrollera ansökan igen.'
+  if (/customer_contracts_status_check/i.test(message)) return 'Avtal kunde inte skapas eftersom kundavtalets status inte stöds av databasen. Koden ska använda draft/pending_signature och senaste avtalsmigration måste vara körd.'
+  if (/customer_contracts_source_type_check/i.test(message)) return 'Avtal kunde inte skapas eftersom kundavtalets source_type inte stöds av databasen. Kör senaste avtalsmigration och kontrollera ansökan igen.'
   if (/customer_contracts.*metadata|metadata.*customer_contracts|PGRST204/i.test(message)) return 'Kundavtalets schema behöver senaste migration/schema-cache.'
   if (/Failing row contains/i.test(message)) return 'Databasen stoppade raden. Kontrollera teknisk detalj i logg och kör rätt migration.'
   if (message.length > 180) return `${message.slice(0, 180)}…`
