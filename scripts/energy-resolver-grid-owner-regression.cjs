@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
+// This script checks that the energy resolver grid owner migration and related code changes are present in the codebase.
 const fs = require('fs')
 
 const checks = [
