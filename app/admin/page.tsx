@@ -244,7 +244,7 @@ export default async function AdminDashboardPage() {
  safeCount(supabase, 'customer_operation_tasks', companyId, [{ column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] }]),
  safeCount(supabase, 'metering_values', companyId, [{ column: 'created_at', op: 'gte', value: latestMeteringSince }]),
  safeCount(supabase, 'customer_contracts', companyId, [{ column: 'ends_at', op: 'gte', value: today }, { column: 'ends_at', op: 'lte', value: inThirtyDays }]),
- safeCount(supabase, 'website_customer_applications', companyId, [{ column: 'status', op: 'in', value: ['needs_information', 'manual_review', 'pending_review', 'pending_validation'] }]),
+ safeCount(supabase, 'external_contract_intakes', companyId, [{ column: 'status', op: 'in', value: ['needs_review', 'partially_created', 'failed'] }]),
  isPlatformAdmin ? safeCount(supabase, 'companies') : Promise.resolve(0),
  isPlatformAdmin ? safeCount(supabase, 'grid_owners') : Promise.resolve(0),
  isPlatformAdmin ? safeCount(supabase, 'electricity_suppliers') : Promise.resolve(0),

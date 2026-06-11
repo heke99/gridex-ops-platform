@@ -3,7 +3,9 @@ import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { isMissingSchemaError, routeReadinessLabel, routeReadinessNextStep, type RouteReadinessStatus } from '@/lib/launch/readiness'
 import {
+  bulkRouteReadinessByStatusAction,
   createRouteManualReviewAction,
+  importSupplierContactsCsvAction,
   markContactOnlySupplierAction,
   markRouteNotRelevantAction,
   saveSupplierContactAction,
@@ -151,13 +153,41 @@ export default async function EdielRouteReadinessPage() {
         ))}
       </section>
 
+      <section className="grid gap-4 lg:grid-cols-2">
+        <form action={bulkRouteReadinessByStatusAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-950">Bulkhantera route-readiness</h2>
+          <p className="mt-1 text-sm text-slate-600">Kör samma åtgärd på upp till 500 rader med vald status. Bulk-verifiering sätter aldrig autosändning till på.</p>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <select name="readinessStatus" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              {ORDER.map((status) => <option key={status} value={status}>{routeReadinessLabel(status)}</option>)}
+            </select>
+            <select name="bulkAction" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="create_review">Skapa manual review</option>
+              <option value="verify_manual_send">Verifiera route för manuell sändning</option>
+              <option value="mark_not_relevant">Markera ej relevant</option>
+              <option value="contact_only_supplier">Markera suppliers contact-only</option>
+            </select>
+            <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">Kör bulkåtgärd</button>
+          </div>
+        </form>
+
+        <form action={importSupplierContactsCsvAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-950">Importera supplier contacts CSV</h2>
+          <p className="mt-1 text-sm text-slate-600">Kolumner: actor_name, org_number, ediel_id, actor_role, contact_type, contact_email, contact_phone, contact_name, channel, source, is_verified, notes. Verifierad data skrivs inte över utan import issue.</p>
+          <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
+            <input name="contactsCsv" type="file" accept=".csv,text/csv" className="text-sm text-slate-700" />
+            <button className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Importera kontakter</button>
+          </div>
+        </form>
+      </section>
+
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-950">Saknade och verifierade routes</h2>
             <p className="text-sm text-slate-600">Nätägare kräver PRODAT för kritiska marknadsflöden. UTILTS är rekommenderad för mätvärden. Suppliers kan vara contact-only.</p>
           </div>
-          <a href="/api/admin/ediel/route-readiness/export" className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Exportera CSV</a>
+          <div className="flex flex-wrap gap-2"><a href="/api/admin/ediel/route-readiness/export" className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Exportera route CSV</a><a href="/api/admin/ediel/supplier-contacts/export" className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Exportera kontakter CSV</a></div>
         </div>
 
         <div className="overflow-x-auto">

@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireIntegrationApiAccess(request, ['customer_portal.write'])
 
   if (!auth.ok) {
-    await logIntegrationApiRequest({ request, statusCode: auth.status, startedAt, errorCode: auth.error })
+    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return customerPortalJson({ error: auth.error }, { status: auth.status })
   }
 

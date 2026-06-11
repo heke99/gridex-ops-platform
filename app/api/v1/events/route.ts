@@ -20,10 +20,11 @@ export async function GET(request: NextRequest) {
 
   if (!auth.ok) {
     await logIntegrationApiRequest({
+      client: auth.client ?? null,
       request,
       statusCode: auth.status,
       startedAt,
-      errorCode: auth.error,
+      errorCode: auth.errorCode,
     })
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }

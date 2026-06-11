@@ -86,7 +86,7 @@ export async function requireCustomerPortalApiContext(
   const startedAt = Date.now()
   const auth = await requireIntegrationApiAccess(request, scopes)
   if (!auth.ok) {
-    await logIntegrationApiRequest({ request, statusCode: auth.status, startedAt, errorCode: auth.error })
+    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return { ok: false, response: jsonError(auth.error, auth.status), startedAt }
   }
 

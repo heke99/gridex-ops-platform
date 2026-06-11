@@ -66,11 +66,13 @@ export default async function SystemHealthPage() {
     missingRoutes,
     importIssues,
     emailFailures,
+    dbSecurityWarnings,
+    failedJobs,
     errors,
   ] = await Promise.all([
-    safeCount('integration_api_requests', companyId, [{ column: 'status_code', operator: 'in', value: ['400', '401', '403', '404', '409', '422', '429', '500'] }]).catch(() => 0),
-    safeCount('webhook_deliveries', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'dead', 'retrying'] }]).catch(() => 0),
-    safeCount('integration_api_requests', companyId, [{ column: 'error_code', operator: 'eq', value: 'rate_limited' }]).catch(() => 0),
+    safeCount('integration_api_requests', companyId, [{ column: 'status_code', operator: 'in', value: [400, 401, 403, 404, 409, 422, 429, 500] }]).catch(() => 0),
+    safeCount('webhook_deliveries', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'dead_letter'] }]).catch(() => 0),
+    safeCount('integration_api_rate_limit_events', companyId).catch(() => safeCount('integration_api_requests', companyId, [{ column: 'error_code', operator: 'eq', value: 'rate_limited' }]).catch(() => 0)),
     safeCount('ediel_messages', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'blocked'] }]).catch(() => 0),
     safeCount('ediel_messages', companyId, [{ column: 'status', operator: 'eq', value: 'unresolved' }]).catch(() => 0),
     safeCount('ediel_messages', companyId, [{ column: 'direction', operator: 'eq', value: 'outbound' }, { column: 'status', operator: 'in', value: ['blocked', 'failed'] }]).catch(() => 0),
@@ -78,6 +80,8 @@ export default async function SystemHealthPage() {
     safeCount('gridex_route_readiness_v', null, [{ column: 'readiness_status', operator: 'in', value: ['critical_missing_route', 'recommended_missing_route', 'not_sendable', 'needs_review'] }]).catch(() => 0),
     safeCount('platform_actor_import_issues', null, [{ column: 'status', operator: 'eq', value: 'open' }]).catch(() => 0),
     safeCount('communication_logs', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'bounced'] }]).catch(() => 0),
+    safeCount('gridex_launch_db_security_warnings_v', null, [{ column: 'severity', operator: 'in', value: ['critical', 'warning'] }]).catch(() => 0),
+    safeCount('event_outbox', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'dead_letter', 'blocked'] }]).catch(() => 0),
     loadErrors(companyId, isPlatformAdmin),
   ])
 
@@ -102,6 +106,8 @@ export default async function SystemHealthPage() {
         <Card label="Route blockers" value={missingRoutes} hint="Actor routes saknas/verifieras" danger />
         <Card label="Import issues" value={importIssues} hint="Actor/masterdata-konflikter" danger />
         <Card label="Mailfel" value={emailFailures} hint="Kundmail/support/switch-notiser" danger />
+        <Card label="DB-varningar" value={dbSecurityWarnings} hint="RLS, anon grants och security-definer" danger />
+        <Card label="Failed jobs" value={failedJobs} hint="Outbox/jobb som behöver retry eller manuell åtgärd" danger />
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

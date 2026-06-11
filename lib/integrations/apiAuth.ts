@@ -19,7 +19,7 @@ export type IntegrationApiClient = {
 
 export type IntegrationApiAuthResult =
   | { ok: true; client: IntegrationApiClient }
-  | { ok: false; status: number; error: string }
+  | { ok: false; status: number; error: string; errorCode: string; client?: IntegrationApiClient | null }
 
 function bearerToken(request: NextRequest): string | null {
   const authorization = request.headers.get('authorization') ?? ''
@@ -77,7 +77,67 @@ function originAllowed(client: IntegrationApiClient, origin: string | null): boo
   return allowedOrigins.includes(origin)
 }
 
-async function rateLimitAllowed(client: IntegrationApiClient): Promise<boolean> {
+function missingSchema(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+}
+
+function publicError(input: { status: number; message: string; code: string; client?: IntegrationApiClient | null }): IntegrationApiAuthResult {
+  return {
+    ok: false,
+    status: input.status,
+    error: input.message,
+    errorCode: input.code,
+    client: input.client ?? null,
+  }
+}
+
+async function recordRateLimitEvent(client: IntegrationApiClient, request: NextRequest, requestCount: number) {
+  const cooldownUntil = new Date(Date.now() + 60_000).toISOString()
+  const metadata = {
+    route: request.nextUrl.pathname,
+    ip_address: requestIp(request),
+    user_agent: request.headers.get('user-agent'),
+    origin: requestOrigin(request),
+    rate_limit_per_minute: client.rate_limit_per_minute,
+    observed_requests_last_minute: requestCount,
+    cooldown_until: cooldownUntil,
+  }
+
+  const event = await supabaseService
+    .from('integration_api_rate_limit_events')
+    .insert({
+      company_id: client.company_id,
+      api_client_id: client.id,
+      route: request.nextUrl.pathname,
+      ip_address: requestIp(request),
+      user_agent: request.headers.get('user-agent'),
+      request_count: requestCount,
+      limit_per_minute: client.rate_limit_per_minute,
+      cooldown_until: cooldownUntil,
+      metadata,
+    })
+
+  if (event.error && !missingSchema(event.error)) throw event.error
+
+  await supabaseService
+    .from('integration_api_clients')
+    .update({
+      rate_limited_until: cooldownUntil,
+      updated_at: new Date().toISOString(),
+      metadata: {
+        ...(client.metadata ?? {}),
+        last_rate_limit: metadata,
+      },
+    })
+    .eq('id', client.id)
+    .then((result) => {
+      if (result.error && !missingSchema(result.error)) throw result.error
+    })
+}
+
+async function rateLimitAllowed(client: IntegrationApiClient, request: NextRequest): Promise<boolean> {
   const limit = Number(client.rate_limit_per_minute ?? 0)
   if (!Number.isFinite(limit) || limit <= 0) return true
 
@@ -89,7 +149,13 @@ async function rateLimitAllowed(client: IntegrationApiClient): Promise<boolean> 
     .gte('created_at', since)
 
   if (error) return true
-  return Number(count ?? 0) < limit
+  const requestCount = Number(count ?? 0)
+  if (requestCount < limit) return true
+
+  await recordRateLimitEvent(client, request, requestCount).catch((recordError) => {
+    console.warn('[integration-api] rate limit event logging skipped', recordError)
+  })
+  return false
 }
 
 export async function requireIntegrationApiAccess(
@@ -97,7 +163,7 @@ export async function requireIntegrationApiAccess(
   requiredScopes: string[]
 ): Promise<IntegrationApiAuthResult> {
   const token = bearerToken(request)
-  if (!token) return { ok: false, status: 401, error: 'API-token saknas.' }
+  if (!token) return publicError({ status: 401, code: 'missing_api_token', message: 'API-token saknas.' })
 
   const keyPrefix = token.slice(0, 12)
   const secretHash = hashIntegrationApiSecret(token)
@@ -109,25 +175,30 @@ export async function requireIntegrationApiAccess(
     .eq('secret_hash', secretHash)
     .maybeSingle()
 
-  if (error) return { ok: false, status: 503, error: 'API-åtkomst kunde inte verifieras.' }
-  if (!data) return { ok: false, status: 401, error: 'API-token är ogiltig.' }
+  if (error) return publicError({ status: 503, code: 'api_auth_unavailable', message: 'API-åtkomst kunde inte verifieras.' })
+  if (!data) return publicError({ status: 401, code: 'invalid_api_token', message: 'API-token är ogiltig.' })
 
   const client = data as IntegrationApiClient
-  if (client.status !== 'active') return { ok: false, status: 403, error: 'API-klienten är inte aktiv.' }
+  if (client.status !== 'active') return publicError({ status: 403, code: 'api_client_inactive', message: 'API-klienten är inte aktiv.', client })
   if (client.expires_at && new Date(client.expires_at).getTime() <= Date.now()) {
-    return { ok: false, status: 403, error: 'API-token har gått ut.' }
+    return publicError({ status: 403, code: 'api_token_expired', message: 'API-token har gått ut.', client })
   }
   if (!hasRequiredScopes(client.scopes ?? [], requiredScopes)) {
-    return { ok: false, status: 403, error: 'API-klienten saknar scope.' }
+    return publicError({ status: 403, code: 'api_scope_missing', message: 'API-klienten saknar scope.', client })
   }
   if (!ipAllowed(client, requestIp(request))) {
-    return { ok: false, status: 403, error: 'IP-adressen är inte tillåten.' }
+    return publicError({ status: 403, code: 'api_ip_not_allowed', message: 'IP-adressen är inte tillåten.', client })
   }
   if (!originAllowed(client, requestOrigin(request))) {
-    return { ok: false, status: 403, error: 'Domänen är inte tillåten för API-klienten.' }
+    return publicError({ status: 403, code: 'api_origin_not_allowed', message: 'Domänen är inte tillåten för API-klienten.', client })
   }
-  if (!(await rateLimitAllowed(client))) {
-    return { ok: false, status: 429, error: 'API-klientens rate limit är uppnådd.' }
+  if (!(await rateLimitAllowed(client, request))) {
+    return publicError({
+      status: 429,
+      code: 'rate_limited',
+      message: 'Tjänsten svarar långsamt just nu. Försök igen senare eller hantera ärendet manuellt.',
+      client,
+    })
   }
 
   await supabaseService

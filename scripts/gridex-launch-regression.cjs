@@ -51,6 +51,8 @@ const requiredFiles = [
   'app/api/admin/ediel/route-readiness/export/route.ts',
   'app/admin/system-health/page.tsx',
   'supabase/migrations/20260611150000_launch_readiness_security_routes_stats.sql',
+  'supabase/migrations/20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql',
+  'app/api/admin/ediel/supplier-contacts/export/route.ts',
 ]
 requiredFiles.forEach(exists)
 
@@ -77,6 +79,9 @@ if (fs.existsSync(path.join(root, 'app/admin/ediel/route-readiness/page.tsx'))) 
   if (!page.includes("from('gridex_route_readiness_v')")) fail('Route-readiness page is not backed by gridex_route_readiness_v')
   if (!page.includes('ready_verified_manual_send')) fail('Route-readiness page misses manual-send ready state')
   if (!page.includes('ready_auto_send_allowed')) fail('Route-readiness page misses auto-send ready state')
+  if (!page.includes('bulkRouteReadinessByStatusAction')) fail('Route-readiness page misses bulk actions')
+  if (!page.includes('importSupplierContactsCsvAction')) fail('Route-readiness page misses supplier contact CSV import')
+  if (!page.includes('/api/admin/ediel/supplier-contacts/export')) fail('Route-readiness page misses supplier contact CSV export')
 }
 
 if (fs.existsSync(path.join(root, 'lib/admin/websiteIntegrationOps.ts'))) {
@@ -112,6 +117,32 @@ if (fs.existsSync(path.join(root, 'supabase/migrations/20260611150000_launch_rea
     if (!migration.includes(needle)) fail(`Launch migration missing: ${needle}`)
   }
   if (/auto_send_allowed\s*=\s*true/i.test(migration)) fail('Migration must not enable auto_send_allowed automatically')
+}
+
+if (fs.existsSync(path.join(root, 'supabase/migrations/20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql'))) {
+  const completionMigration = read('supabase/migrations/20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql')
+  const requiredCompletionSql = [
+    'integration_api_rate_limit_events',
+    'platform_actor_contact_import_runs',
+    'gridex_launch_db_security_warnings_v',
+    'gridex_company_launch_blocker_reasons_v',
+    'gridex_billing_launch_readiness_v',
+    'gridex_data_retention_policies',
+    'gridex_run_launch_retention_cleanup',
+    'revoke all on function',
+    'revoke all on table',
+  ]
+  for (const needle of requiredCompletionSql) {
+    if (!completionMigration.includes(needle)) fail(`Launch completion migration missing: ${needle}`)
+  }
+  if (/auto_send_allowed\s*=\s*true/i.test(completionMigration)) fail('Launch completion migration must not enable auto_send_allowed automatically')
+}
+
+if (fs.existsSync(path.join(root, 'lib/integrations/apiAuth.ts'))) {
+  const apiAuth = read('lib/integrations/apiAuth.ts')
+  if (!apiAuth.includes('rate_limited')) fail('API auth does not normalize rate limit errors')
+  if (!apiAuth.includes('integration_api_rate_limit_events')) fail('API auth does not log rate limit events')
+  if (!apiAuth.includes('Tjänsten svarar långsamt just nu')) fail('API auth still lacks human rate-limit text')
 }
 
 const packageJson = JSON.parse(read('package.json'))
