@@ -150,6 +150,7 @@ type CreateCustomerGraphParams = {
   intakeCreateMode: IntakeCreateMode;
   signedAgreementFile: File | null;
   signedPowerOfAttorneyFile: File | null;
+  gridInvoiceFile: File | null;
   postCreateAction: PostCreateAction;
   postCreateRequestTarget: PostCreateRequestTarget;
 };
@@ -400,7 +401,7 @@ function sanitizeFileName(value: string): string {
 function buildCustomerDocumentPath(params: {
   customerId: string;
   siteId: string | null;
-  documentType: "power_of_attorney" | "complete_agreement";
+  documentType: "power_of_attorney" | "complete_agreement" | "grid_invoice_suggested";
   fileName: string;
 }): string {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -494,66 +495,71 @@ async function resolveOrCreateGridOwnerForIntake(params: {
   selectedGridOwnerId: string | null;
 }): Promise<{ gridOwnerId: string | null; warnings: string[] }> {
   const selectedGridOwnerId = normalizeInlineCreateChoice(params.selectedGridOwnerId);
-  const newName = normalizeOptionalString(getString(params.formData, "newGridOwnerName"));
-  const newOrgNumber = normalizeOptionalString(getString(params.formData, "newGridOwnerOrgNumber"));
-  const newEdielId = normalizeOptionalString(getString(params.formData, "newGridOwnerEdielId"));
-  const newEmail = normalizeOptionalString(getString(params.formData, "newGridOwnerEmail"));
-  const newPhone = normalizeOptionalString(getString(params.formData, "newGridOwnerPhone"));
+  const blockedFreeText = [
+    "newGridOwnerName",
+    "newGridOwnerOrgNumber",
+    "newGridOwnerEdielId",
+    "newGridOwnerEmail",
+    "newGridOwnerPhone",
+  ]
+    .map((field) => normalizeOptionalString(getString(params.formData, field)))
+    .filter(Boolean);
 
-  if (selectedGridOwnerId || !newName) {
-    return { gridOwnerId: selectedGridOwnerId, warnings: [] };
+  const warnings: string[] = [];
+  if (blockedFreeText.length > 0 || params.selectedGridOwnerId === "__new__") {
+    warnings.push(
+      "Nätägare kan inte skapas från kundintaget. Välj verifierad nätägare från registret eller skicka ärendet till superadmin/importflödet.",
+    );
   }
 
-  const { data: rows, error } = await supabaseService
+  if (!selectedGridOwnerId) {
+    return { gridOwnerId: null, warnings };
+  }
+
+  const { data, error } = await supabaseService
     .from("grid_owners")
-    .select("id,name,org_number,ediel_id")
-    .or(`company_id.is.null,company_id.eq.${params.companyId}`)
-    .limit(500);
+    .select("id,name,is_active,lifecycle_status,verified_for_customer_flow,actor_registry_status,ediel_id")
+    .eq("id", selectedGridOwnerId)
+    .maybeSingle();
 
   if (error) throw error;
-
-  const nameKey = normalizeComparable(newName);
-  const orgKey = normalizeComparable(newOrgNumber);
-  const edielKey = normalizeComparable(newEdielId);
-  const matches = ((rows ?? []) as Array<Record<string, unknown>>).filter((row) => {
-    const rowName = normalizeComparable(String(row.name ?? ""));
-    const rowOrg = normalizeComparable(String(row.org_number ?? ""));
-    const rowEdiel = normalizeComparable(String(row.ediel_id ?? ""));
-    return Boolean(
-      (edielKey && rowEdiel === edielKey) ||
-        (orgKey && rowOrg === orgKey) ||
-        (nameKey && rowName === nameKey),
-    );
-  });
-
-  if (matches[0]?.id) {
+  if (!data?.id) {
     return {
-      gridOwnerId: String(matches[0].id),
-      warnings: [`Möjlig dubblett på nätägare hittades. Befintlig nätägare används: ${String(matches[0].name ?? matches[0].id)}.`],
+      gridOwnerId: null,
+      warnings: [
+        ...warnings,
+        "Vald nätägare kunde inte hittas i verifierad masterdata. Kund sparas utan nätägare och leverantörsbyte blockeras.",
+      ],
     };
   }
 
-  const { data: created, error: insertError } = await supabaseService
-    .from("grid_owners")
-    .insert({
-      company_id: params.companyId,
-      name: newName,
-      owner_code: newEdielId ?? newOrgNumber ?? newName.slice(0, 24),
-      ediel_id: newEdielId,
-      org_number: newOrgNumber,
-      email: newEmail,
-      phone: newPhone,
-      country: "SE",
-      notes: "Skapad direkt från kundintag. Kontrollera route och nätägaravtal innan Ediel-utskick.",
-      is_active: true,
-      created_by: params.actorUserId,
-      updated_by: params.actorUserId,
-    })
-    .select("id")
-    .single();
+  const row = data as {
+    id: string;
+    name?: string | null;
+    is_active?: boolean | null;
+    lifecycle_status?: string | null;
+    verified_for_customer_flow?: boolean | null;
+    actor_registry_status?: string | null;
+    ediel_id?: string | null;
+  };
+  const verified =
+    row.is_active === true &&
+    row.lifecycle_status !== "blocked" &&
+    row.verified_for_customer_flow === true &&
+    row.actor_registry_status === "verified" &&
+    Boolean(row.ediel_id);
 
-  if (insertError) throw insertError;
-  return { gridOwnerId: String(created.id), warnings: [`Ny nätägare skapades från kundintag: ${newName}.`] };
+  if (!verified) {
+    return {
+      gridOwnerId: null,
+      warnings: [
+        ...warnings,
+        `Nätägaren ${row.name ?? selectedGridOwnerId} är inte verifierad för kundflödet. Superadmin måste verifiera aktör, Ediel-ID och route innan den får användas.`,
+      ],
+    };
+  }
+
+  return { gridOwnerId: row.id, warnings };
 }
 
 async function resolveOrCreateCurrentSupplierForIntake(params: {
@@ -565,98 +571,102 @@ async function resolveOrCreateCurrentSupplierForIntake(params: {
   currentSupplierOrgNumber: string | null;
   unknown: boolean;
 }): Promise<{ supplierId: string | null; name: string | null; orgNumber: string | null; warnings: string[] }> {
-  if (params.unknown) {
+  if (params.unknown || params.selectedSupplierId === "__unknown__") {
     return {
       supplierId: null,
       name: "Okänd nuvarande leverantör",
       orgNumber: null,
-      warnings: ["Nuvarande leverantör markerades som okänd. Kommersiella uppgifter behöver kontrolleras innan säkert byte."],
+      warnings: [
+        "Nuvarande leverantör är okänd. Kund kan sparas, men byte och uppsägning får inte autoskickas innan uppgiften är verifierad.",
+      ],
     };
   }
 
   const selectedSupplierId = normalizeInlineCreateChoice(params.selectedSupplierId);
-  if (selectedSupplierId) {
-    const { data, error } = await supabaseService
-      .from("electricity_suppliers")
-      .select("id,name,org_number")
-      .eq("id", selectedSupplierId)
-      .maybeSingle();
-    if (error) throw error;
-    if (data) {
-      return {
-        supplierId: String(data.id),
-        name: String(data.name ?? params.currentSupplierName ?? ""),
-        orgNumber: typeof data.org_number === "string" ? data.org_number : params.currentSupplierOrgNumber,
-        warnings: [],
-      };
-    }
-  }
+  const blockedFreeText = [
+    "newCurrentSupplierName",
+    "newCurrentSupplierOrgNumber",
+    "newCurrentSupplierEdielId",
+    "newCurrentSupplierSwitchingEmail",
+    "newCurrentSupplierContractEmail",
+    "newCurrentSupplierCustomerServiceEmail",
+    "newCurrentSupplierPhone",
+  ]
+    .map((field) => normalizeOptionalString(getString(params.formData, field)))
+    .filter(Boolean);
 
-  const newName = normalizeOptionalString(getString(params.formData, "newCurrentSupplierName")) ?? params.currentSupplierName;
-  const newOrgNumber = normalizeOptionalString(getString(params.formData, "newCurrentSupplierOrgNumber")) ?? params.currentSupplierOrgNumber;
-  const newEdielId = normalizeOptionalString(getString(params.formData, "newCurrentSupplierEdielId"));
-  const switchingEmail = normalizeOptionalString(getString(params.formData, "newCurrentSupplierSwitchingEmail"));
-  const contractEmail = normalizeOptionalString(getString(params.formData, "newCurrentSupplierContractEmail"));
-  const customerServiceEmail = normalizeOptionalString(getString(params.formData, "newCurrentSupplierCustomerServiceEmail"));
-  const newPhone = normalizeOptionalString(getString(params.formData, "newCurrentSupplierPhone"));
-
-  if (!newName) {
-    return { supplierId: null, name: params.currentSupplierName, orgNumber: params.currentSupplierOrgNumber, warnings: [] };
-  }
-
-  const { data: rows, error } = await supabaseService
-    .from("electricity_suppliers")
-    .select("id,name,org_number,ediel_id")
-    .or(`company_id.is.null,company_id.eq.${params.companyId}`)
-    .limit(500);
-  if (error) throw error;
-
-  const nameKey = normalizeComparable(newName);
-  const orgKey = normalizeComparable(newOrgNumber);
-  const edielKey = normalizeComparable(newEdielId);
-  const matches = ((rows ?? []) as Array<Record<string, unknown>>).filter((row) => {
-    const rowName = normalizeComparable(String(row.name ?? ""));
-    const rowOrg = normalizeComparable(String(row.org_number ?? ""));
-    const rowEdiel = normalizeComparable(String(row.ediel_id ?? ""));
-    return Boolean(
-      (edielKey && rowEdiel === edielKey) ||
-        (orgKey && rowOrg === orgKey) ||
-        (nameKey && rowName === nameKey),
+  const warnings: string[] = [];
+  if (blockedFreeText.length > 0 || params.selectedSupplierId === "__new__") {
+    warnings.push(
+      "Elleverantör kan inte skapas från kundintaget. Fritext sparas bara som kundens uppgift och superadmin måste verifiera aktören i registret.",
     );
-  });
+  }
 
-  if (matches[0]?.id) {
+  if (!selectedSupplierId) {
     return {
-      supplierId: String(matches[0].id),
-      name: String(matches[0].name ?? newName),
-      orgNumber: typeof matches[0].org_number === "string" ? String(matches[0].org_number) : newOrgNumber,
-      warnings: [`Möjlig dubblett på leverantör hittades. Befintlig leverantör används: ${String(matches[0].name ?? matches[0].id)}.`],
+      supplierId: null,
+      name: params.currentSupplierName,
+      orgNumber: params.currentSupplierOrgNumber,
+      warnings: params.currentSupplierName
+        ? [
+            ...warnings,
+            "Nuvarande leverantör är angiven som fritext och används inte som verifierad marknadsaktör.",
+          ]
+        : warnings,
     };
   }
 
-  const email = switchingEmail ?? contractEmail ?? customerServiceEmail;
-  const { data: created, error: insertError } = await supabaseService
+  const { data, error } = await supabaseService
     .from("electricity_suppliers")
-    .insert({
-      company_id: params.companyId,
-      name: newName,
-      org_number: newOrgNumber,
-      ediel_id: newEdielId,
-      email,
-      switching_email: switchingEmail,
-      contract_email: contractEmail,
-      customer_service_email: customerServiceEmail,
-      phone: newPhone,
-      notes: "Skapad direkt från kundintag. Mail till nuvarande leverantör får endast användas för informationshämtning, inte för att starta byte.",
-      is_active: true,
-      created_by: params.actorUserId,
-      updated_by: params.actorUserId,
-    })
-    .select("id")
-    .single();
-  if (insertError) throw insertError;
+    .select("id,name,org_number,is_active,verified_for_customer_flow,actor_registry_status,ediel_id")
+    .eq("id", selectedSupplierId)
+    .maybeSingle();
 
-  return { supplierId: String(created.id), name: newName, orgNumber: newOrgNumber, warnings: [`Ny nuvarande leverantör skapades från kundintag: ${newName}.`] };
+  if (error) throw error;
+  if (!data?.id) {
+    return {
+      supplierId: null,
+      name: params.currentSupplierName,
+      orgNumber: params.currentSupplierOrgNumber,
+      warnings: [
+        ...warnings,
+        "Vald elleverantör kunde inte hittas i verifierad masterdata. Kund sparas utan verifierad nuvarande leverantör.",
+      ],
+    };
+  }
+
+  const row = data as {
+    id: string;
+    name?: string | null;
+    org_number?: string | null;
+    is_active?: boolean | null;
+    verified_for_customer_flow?: boolean | null;
+    actor_registry_status?: string | null;
+    ediel_id?: string | null;
+  };
+  const verified =
+    row.is_active === true &&
+    row.verified_for_customer_flow === true &&
+    row.actor_registry_status === "verified";
+
+  if (!verified) {
+    return {
+      supplierId: null,
+      name: row.name ?? params.currentSupplierName,
+      orgNumber: row.org_number ?? params.currentSupplierOrgNumber,
+      warnings: [
+        ...warnings,
+        `Elleverantören ${row.name ?? selectedSupplierId} är inte verifierad för kundflödet. Uppgiften sparas som kundinformation men används inte som Ediel-/marknadsidentitet.`,
+      ],
+    };
+  }
+
+  return {
+    supplierId: row.id,
+    name: row.name ?? params.currentSupplierName,
+    orgNumber: row.org_number ?? params.currentSupplierOrgNumber,
+    warnings,
+  };
 }
 
 function isIsoDate(value: string | null | undefined): boolean {
@@ -949,6 +959,7 @@ function buildCreateCustomerParams(
       formData,
       "signedPowerOfAttorneyFile",
     ),
+    gridInvoiceFile: getFileValue(formData, "gridInvoiceFile"),
     postCreateAction: normalizePostCreateAction(
       getNullableString(formData, "postCreateActionOverride") ??
         getNullableString(formData, "postCreateAction"),
@@ -1437,6 +1448,7 @@ async function uploadCustomerIntakeDocuments(params: {
   contractId: string | null;
   signedAgreementFile: File | null;
   signedPowerOfAttorneyFile: File | null;
+  gridInvoiceFile: File | null;
   authorizationValidFrom: string | null;
   authorizationValidTo: string | null;
 }): Promise<IntakeDocumentUploadResult> {
@@ -1446,7 +1458,7 @@ async function uploadCustomerIntakeDocuments(params: {
     uploadedLabels: [],
   };
 
-  if (!params.signedAgreementFile && !params.signedPowerOfAttorneyFile) {
+  if (!params.signedAgreementFile && !params.signedPowerOfAttorneyFile && !params.gridInvoiceFile) {
     return result;
   }
 
@@ -1455,7 +1467,7 @@ async function uploadCustomerIntakeDocuments(params: {
 
   async function uploadFile(
     file: File,
-    documentType: "power_of_attorney" | "complete_agreement",
+    documentType: "power_of_attorney" | "complete_agreement" | "grid_invoice_suggested",
   ) {
     const filePath = buildCustomerDocumentPath({
       customerId: params.customerId,
@@ -1594,6 +1606,75 @@ async function uploadCustomerIntakeDocuments(params: {
         meteringPointId: params.meteringPointId,
         contractId: params.contractId,
         documentType: "complete_agreement",
+      },
+    });
+  }
+
+  if (params.gridInvoiceFile) {
+    const uploaded = await uploadFile(
+      params.gridInvoiceFile,
+      "grid_invoice_suggested",
+    );
+
+    const document = await saveCustomerAuthorizationDocument(supabase, {
+      companyId: params.companyId,
+      customer_id: params.customerId,
+      site_id: params.siteId,
+      metering_point_id: params.meteringPointId,
+      customer_contract_id: params.contractId,
+      document_type: "grid_invoice_suggested",
+      status: "suggested",
+      title: "Elnätsfaktura från kundintag",
+      file_name: params.gridInvoiceFile.name || null,
+      mime_type: params.gridInvoiceFile.type || null,
+      file_size_bytes: params.gridInvoiceFile.size || null,
+      storage_bucket: bucket,
+      file_path: uploaded.filePath,
+      file_checksum: uploaded.checksum,
+      reference: params.siteId ? `SITE-${params.siteId.slice(0, 8)}` : null,
+      notes: "Uppladdad som föreslagen anläggningsdata. Uppgifterna får inte behandlas som verifierad sanning innan Ediel/nätägare/adminbekräftelse.",
+      metadata: {
+        source: "customer_intake",
+        documentRole: "grid_invoice_suggested",
+        verificationLevel: "suggested",
+      },
+    });
+
+    result.uploadedDocumentIds.push(document.id);
+    result.uploadedLabels.push("elnätsfaktura som suggested data");
+
+    await supabaseService.from("facility_data_quality_issues").insert({
+      company_id: params.companyId,
+      customer_id: params.customerId,
+      customer_site_id: params.siteId,
+      metering_point_id: params.meteringPointId,
+      issue_type: "grid_invoice_uploaded_suggested_data",
+      severity: "info",
+      status: "open",
+      source: "customer_intake",
+      source_actor_id: params.actorUserId,
+      source_error_text: "Elnätsfaktura är uppladdad och ska granskas. Den kan föreslå anläggnings-ID, områdes-ID, nätägare och adress men verifierar inte leverantörsbyte.",
+      recommended_action: "Granska fakturan, fyll i saknade uppgifter och kör ny readiness-check innan leverantörsbyte.",
+      metadata: {
+        documentId: document.id,
+        fileName: params.gridInvoiceFile.name || null,
+        verificationLevel: "suggested",
+      },
+    }).then((result) => { if (result.error && !databaseObjectMissing(result.error)) throw result.error; });
+
+    await insertAuditLog({
+      actorUserId: params.actorUserId,
+      companyId: params.companyId,
+      entityType: "customer_authorization_document",
+      entityId: document.id,
+      action: "customer_intake_grid_invoice_uploaded_as_suggested_data",
+      newValues: document as unknown as Record<string, unknown>,
+      metadata: {
+        customerId: params.customerId,
+        siteId: params.siteId,
+        meteringPointId: params.meteringPointId,
+        documentType: "grid_invoice_suggested",
+        verificationLevel: "suggested",
       },
     });
   }
@@ -3181,6 +3262,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
       contractId: creationContext.contractId,
       signedAgreementFile: params.signedAgreementFile,
       signedPowerOfAttorneyFile: params.signedPowerOfAttorneyFile,
+      gridInvoiceFile: params.gridInvoiceFile,
       authorizationValidFrom: normalizedAuthorizationValidFrom,
       authorizationValidTo: normalizedAuthorizationValidTo,
     });
@@ -3804,6 +3886,7 @@ async function buildCustomerParamsFromImportRow(params: {
     intakeCreateMode: "create",
     signedAgreementFile: null,
     signedPowerOfAttorneyFile: null,
+    gridInvoiceFile: null,
     postCreateAction: "open_customer",
     postCreateRequestTarget: "both",
   };

@@ -1,5 +1,5 @@
 export type FullmaktAutomationPolicyInput = {
-  documentType: 'power_of_attorney' | 'complete_agreement'
+  documentType: 'power_of_attorney' | 'complete_agreement' | 'grid_invoice_suggested'
   markAsSigned: boolean
   savedPowerOfAttorneyId: string | null
   autoCreateGridOwnerRequests: boolean
@@ -112,7 +112,7 @@ export function resolveFullmaktAutomationPolicy(
 
 export function describeFullmaktAutomationTrigger(params: {
   markAsSigned: boolean
-  documentType: 'power_of_attorney' | 'complete_agreement'
+  documentType: 'power_of_attorney' | 'complete_agreement' | 'grid_invoice_suggested'
 }): string {
   if (params.documentType !== 'power_of_attorney') {
     return 'Komplett avtal kan kopplas till operationsflödet när det samtidigt finns eller skapas en giltig fullmakt.'

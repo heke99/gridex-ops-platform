@@ -65,7 +65,7 @@ const EMPTY_UUID = "00000000-0000-0000-0000-000000000000";
 export function buildDocumentUploadIdempotencyKey(params: {
   customerId: string;
   siteId?: string | null;
-  documentType: "power_of_attorney" | "complete_agreement";
+  documentType: "power_of_attorney" | "complete_agreement" | "grid_invoice_suggested";
   fileChecksum: string;
 }): string {
   return `cust:${params.customerId}|site:${params.siteId ?? EMPTY_UUID}|type:${params.documentType}|sha:${params.fileChecksum}`;
@@ -103,7 +103,7 @@ export async function findExistingCustomerAuthorizationDocumentByFingerprint(
   params: {
     customerId: string;
     siteId?: string | null;
-    documentType: "power_of_attorney" | "complete_agreement";
+    documentType: "power_of_attorney" | "complete_agreement" | "grid_invoice_suggested";
     fileChecksum: string;
   },
 ): Promise<CustomerAuthorizationDocumentRow | null> {
@@ -661,7 +661,7 @@ export async function listActiveCustomerAuthorizationDocumentsByScope(
   params: {
     customerId: string;
     siteId?: string | null;
-    documentType: "power_of_attorney" | "complete_agreement";
+    documentType: "power_of_attorney" | "complete_agreement" | "grid_invoice_suggested";
     excludeDocumentId?: string | null;
   },
 ): Promise<CustomerAuthorizationDocumentRow[]> {
@@ -698,8 +698,8 @@ export async function saveCustomerAuthorizationDocument(
     metering_point_id?: string | null;
     customer_contract_id?: string | null;
     power_of_attorney_id?: string | null;
-    document_type: "power_of_attorney" | "complete_agreement";
-    status?: "uploaded" | "active" | "archived";
+    document_type: "power_of_attorney" | "complete_agreement" | "grid_invoice_suggested";
+    status?: "uploaded" | "active" | "archived" | "suggested";
     title?: string | null;
     file_name?: string | null;
     mime_type?: string | null;

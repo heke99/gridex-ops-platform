@@ -135,35 +135,9 @@ export async function listGridOwners(
 
   const verifiedRows = rows.filter((row) => {
     const record = row as GridOwnerRow & { verified_for_customer_flow?: boolean | null; actor_registry_status?: string | null };
-    return row.is_active && row.lifecycle_status !== "blocked" && record.verified_for_customer_flow === true && record.actor_registry_status === "verified";
+    return row.is_active && row.lifecycle_status !== "blocked" && record.verified_for_customer_flow === true && record.actor_registry_status === "verified" && Boolean(row.ediel_id);
   });
-  if (verifiedRows.length > 0) return verifiedRows;
-
-  const edielIds = rows.map((row) => row.ediel_id).filter((value): value is string => Boolean(value));
-  if (edielIds.length === 0) return rows.filter((row) => row.is_active && row.lifecycle_status !== "blocked");
-
-  const parties = await supabase
-    .from("ediel_parties")
-    .select("ediel_id,roles,status,visible_to_customer_flow")
-    .in("ediel_id", edielIds)
-    .eq("visible_to_customer_flow", true)
-    .eq("status", "verified");
-
-  if (parties.error) {
-    if (["42P01", "42703", "PGRST204", "PGRST205"].includes(parties.error.code ?? "")) {
-      return rows.filter((row) => row.is_active && row.lifecycle_status !== "blocked");
-    }
-    throw parties.error;
-  }
-
-  const visibleEdielIds = new Set(
-    ((parties.data ?? []) as Array<{ ediel_id?: string | null; roles?: string[] | null }>)
-      .filter((party) => Array.isArray(party.roles) && party.roles.includes("grid_owner"))
-      .map((party) => party.ediel_id)
-      .filter((value): value is string => Boolean(value)),
-  );
-
-  return rows.filter((row) => row.is_active && row.ediel_id && visibleEdielIds.has(row.ediel_id));
+  return verifiedRows;
 }
 
 export async function getGridOwnerById(
@@ -260,9 +234,9 @@ export async function listElectricitySuppliers(
 
   const verifiedRows = rows.filter((row) => {
     const record = row as ElectricitySupplierRow & { verified_for_customer_flow?: boolean | null; actor_registry_status?: string | null };
-    return record.verified_for_customer_flow === true && record.actor_registry_status === "verified";
+    return row.is_active && record.verified_for_customer_flow === true && record.actor_registry_status === "verified";
   });
-  return verifiedRows.length > 0 ? verifiedRows : rows.filter((row) => row.is_active);
+  return verifiedRows;
 }
 
 export async function getElectricitySupplierById(

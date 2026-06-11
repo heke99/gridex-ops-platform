@@ -1,7 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { refreshExpisoftReceiverCertificateAction, saveEdielPartyRegistryEntryAction } from '@/app/admin/ediel/actors/actions'
+import { importPlatformActorsAction, refreshExpisoftReceiverCertificateAction, resolvePlatformActorImportIssueAction, saveEdielPartyRegistryEntryAction, verifyPlatformActorForCustomerFlowAction } from '@/app/admin/ediel/actors/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,6 +66,22 @@ export default async function EdielActorsPage() {
     existing.push(address)
     addressesByParty.set(address.party_id, existing)
   }
+  const rolesByActor = new Map<string, string[]>()
+  for (const role of actorRoles) {
+    const actorId = String(role.actor_id ?? '')
+    if (!actorId) continue
+    const existing = rolesByActor.get(actorId) ?? []
+    existing.push(String(role.actor_role ?? 'other'))
+    rolesByActor.set(actorId, existing)
+  }
+  const routesByActor = new Map<string, typeof actorRoutes>()
+  for (const route of actorRoutes) {
+    const actorId = String(route.actor_id ?? '')
+    if (!actorId) continue
+    const existing = routesByActor.get(actorId) ?? []
+    existing.push(route)
+    routesByActor.set(actorId, existing)
+  }
 
   const verifiedGridOwners = parties.filter((party) => Array.isArray(party.roles) && party.roles.includes('grid_owner') && party.status === 'verified').length
   const verifiedSuppliers = parties.filter((party) => Array.isArray(party.roles) && (party.roles.includes('electricity_supplier') || party.roles.includes('supplier')) && party.status === 'verified').length
@@ -113,10 +129,20 @@ export default async function EdielActorsPage() {
                 Denna vy visar det globala registret som används av Energy Resolver, route resolver och kundintaget. Tenant-admins ska välja verifierade aktörer; superadmin importerar och godkänner Ediel-ID, subadresser, PRODAT/UTILTS-routes och osäkra matchningar.
               </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-700">
-              <div className="font-black text-slate-950">Import</div>
-              <div>Kör scriptet <span className="font-mono">scripts/import-companies-xml.mjs</span> och granska importdiff innan produktionsdata markeras verified.</div>
-            </div>
+            <form action={importPlatformActorsAction} encType="multipart/form-data" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-700">
+              <div className="font-black text-slate-950">Importera aktörsdata</div>
+              <p className="mt-1">Ladda upp companies.xml eller kompletterande CSV. Importen skapar bara needs_review/strong_suggestion; autosändning är alltid av tills superadmin verifierar.</p>
+              <div className="mt-3 grid gap-2">
+                <input type="file" name="actorImportFile" accept=".xml,.csv,text/xml,text/csv" required className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
+                <select name="format" defaultValue="auto" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+                  <option value="auto">Auto</option>
+                  <option value="xml">companies.xml</option>
+                  <option value="csv">CSV</option>
+                </select>
+                <input type="hidden" name="source" value="actor_registry_ui" />
+                <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Importera till granskningskö</button>
+              </div>
+            </form>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">Aktörer</p><div className="mt-2 text-2xl font-black text-slate-950">{marketActors.length}</div></div>
@@ -134,11 +160,61 @@ export default async function EdielActorsPage() {
                   <div key={issue.id} className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-amber-950">
                     <div className="font-black">{issue.issue_type} · {issue.actor_id ?? 'okänd aktör'}</div>
                     <div>{issue.message}</div>
+                    <form action={resolvePlatformActorImportIssueAction} className="mt-2 flex flex-wrap gap-2">
+                      <input type="hidden" name="issueId" value={issue.id} />
+                      <button name="status" value="acknowledged" className="rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 font-semibold text-amber-900">Markera granskad</button>
+                      <button name="status" value="resolved" className="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 font-semibold text-emerald-900">Lös</button>
+                    </form>
                   </div>
                 ))}
               </div>
             </div>
           ) : null}
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Importdiff och verifiering</p>
+              <h2 className="mt-2 text-2xl font-black text-slate-950">Godkänn aktörer innan de syns i kundintag</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Nätägare och elleverantörer från import blir inte automatiskt kundval. Superadmin måste verifiera aktören. Routes markeras verifierade men auto-send förblir av tills separat route-readiness är grön.</p>
+            </div>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {marketActors.slice(0, 24).map((actor) => {
+              const roles = rolesByActor.get(actor.id) ?? []
+              const routes = routesByActor.get(actor.id) ?? []
+              const canBeCustomerActor = roles.some((role) => ['grid_owner', 'electricity_supplier'].includes(role))
+              return (
+                <div key={actor.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-black text-slate-950">{actor.name}</div>
+                      <div className="mt-1 text-xs text-slate-600">{actor.org_number ?? 'org.nr saknas'} · {actor.source ?? 'källa saknas'}</div>
+                    </div>
+                    <span className={`rounded-full px-2 py-1 text-[11px] font-black ${actor.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{actor.status}</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1 text-xs">
+                    {roles.length ? roles.map((role) => <span key={role} className="rounded-full bg-white px-2 py-1 font-semibold text-slate-700">{role}</span>) : <span className="text-slate-500">Roll saknas</span>}
+                  </div>
+                  <div className="mt-3 space-y-1 text-xs text-slate-700">
+                    {routes.slice(0, 3).map((route) => (
+                      <div key={route.id} className="rounded-xl border border-slate-200 bg-white px-2 py-1">
+                        {route.message_family} · {route.environment} · {route.subaddress ?? 'ingen subadress'} · {route.is_verified ? 'verified' : route.status}
+                      </div>
+                    ))}
+                    {routes.length === 0 ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900">Route saknas</div> : null}
+                  </div>
+                  <form action={verifyPlatformActorForCustomerFlowAction} className="mt-4">
+                    <input type="hidden" name="actorId" value={actor.id} />
+                    <button disabled={!canBeCustomerActor} className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
+                      Verifiera för kundflöde
+                    </button>
+                  </form>
+                </div>
+              )
+            })}
+          </div>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

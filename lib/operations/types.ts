@@ -56,9 +56,10 @@ export type PowerOfAttorneyRow = {
 
 export type AuthorizationDocumentType =
   | "power_of_attorney"
-  | "complete_agreement";
+  | "complete_agreement"
+  | "grid_invoice_suggested";
 
-export type AuthorizationDocumentStatus = "uploaded" | "active" | "archived";
+export type AuthorizationDocumentStatus = "uploaded" | "active" | "archived" | "suggested";
 
 export type CustomerAuthorizationDocumentRow = {
   id: string;

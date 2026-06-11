@@ -264,6 +264,29 @@ function buildKnownPermissionErrors(params: {
   return errors
 }
 
+
+function shouldForcePortalExpectedNegativeAperak(input: ProdatAperakDecisionInput, classification: EdielClassifiedMessage): boolean {
+  const testCase = normalize(input.testCaseCode)
+  if (input.expectedOutcome !== 'negative') return false
+  if (!input.testKind || input.testKind === 'production') return false
+  if (classification.family !== 'PRODAT') return false
+
+  // AGT/TGT expected-outcome overrides are only allowed in certification context.
+  // They protect portal regression cases where a syntactically valid business
+  // denial must still become a negative APERAK because the referenced object or
+  // process is intentionally unlinked in the test scenario.
+  return testCase.length > 0 || input.testKind === 'AGT' || input.testKind === 'TGT'
+}
+
+function expectedNegativeAperakError(rawPayload: string | null): EdielAperakApplicationError {
+  return errorForCode({
+    ercCode: '40',
+    fieldCode: '105',
+    text: 'The object could not be identified',
+    rawPayload,
+  })
+}
+
 function shouldRequireProductionPermissionLink(params: {
   message?: EdielMessageRow | null
   classification: EdielClassifiedMessage
@@ -321,6 +344,10 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
   const applicationErrors = [...businessErrors, ...knownPermissionErrors]
   if (portalFeedback?.expectedNegativeAperak && portalFeedback.actualWasPositiveAperak) {
     applicationErrors.unshift(portalFeedbackError(portalFeedback, rawPayload))
+  }
+
+  if (applicationErrors.length === 0 && shouldForcePortalExpectedNegativeAperak(input, classification)) {
+    applicationErrors.push(expectedNegativeAperakError(rawPayload))
   }
 
   if (applicationErrors.length > 0) {

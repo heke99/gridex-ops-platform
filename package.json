@@ -19,7 +19,8 @@
     "gridex:batch-7-website-foundation-regression": "node scripts/gridex-batch-7-website-foundation-regression.cjs",
     "gridex:batch-8-1-live-schema-regression": "node scripts/gridex-batch-8-1-live-schema-regression.cjs",
     "gridex:customer-application-review-regression": "node scripts/gridex-customer-application-review-regression.cjs",
-    "gridex:energy-resolver-regression": "node scripts/energy-resolver-grid-owner-regression.cjs"
+    "gridex:energy-resolver-regression": "node scripts/energy-resolver-grid-owner-regression.cjs",
+    "gridex:actor-registry-intake-hardening-regression": "node scripts/gridex-actor-registry-intake-hardening-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

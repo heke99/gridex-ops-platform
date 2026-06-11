@@ -110,7 +110,7 @@ function sanitizeFileName(value: string): string {
 function buildCustomerDocumentPath(params: {
   customerId: string
   siteId: string | null
-  documentType: 'power_of_attorney' | 'complete_agreement'
+  documentType: 'power_of_attorney' | 'complete_agreement' | 'grid_invoice_suggested'
   fileName: string
 }): string {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-')
@@ -746,7 +746,7 @@ async function resolveUploadAutomationDecision(params: {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
   customerId: string
   siteId: string | null
-  documentType: 'power_of_attorney' | 'complete_agreement'
+  documentType: 'power_of_attorney' | 'complete_agreement' | 'grid_invoice_suggested'
   markAsSigned: boolean
   savedPowerOfAttorneyId: string | null
   autoCreateGridOwnerRequests: boolean
