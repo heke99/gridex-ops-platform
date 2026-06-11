@@ -51,7 +51,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kund, intag och avtal',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
-      { key: 'customer_applications', label: 'Kundansökningar', href: '/admin/website-applications', description: 'Nya kunder från hemsida och ofullständiga ansökningar', pageKey: 'customers.list' },
+      { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/external-contract-intakes', description: 'Externa kundansökningar från hemsida/API', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, avtal och anläggning', pageKey: 'customers.intake' },
       { key: 'contracts', label: 'Avtal & fullmakter', href: '/admin/contracts', description: 'Avtal, kampanjer och fullmaktsunderlag', pageKey: 'contracts.catalog' },
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Kund-/anläggningsuppgifter och kompletteringar', pageKey: 'customer.info_requests' },
@@ -111,7 +111,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kundregister, intag och prisvillkor',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
-      { key: 'customer_applications', label: 'Kundansökningar', href: '/admin/website-applications', description: 'Nya kunder från hemsida, blockerare och redo-kontroll', pageKey: 'customers.list' },
+      { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/external-contract-intakes', description: 'Externa kundansökningar från hemsida/API, blockerare och redo-kontroll', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, anläggning och fullmakt', pageKey: 'customers.intake' },
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog och kampanjer', pageKey: 'contracts.catalog' },
       { key: 'pricing', label: 'Prismotor', href: '/admin/pricing', description: 'Påslag, avgifter och komponentregler', pageKey: 'pricing.engine' },
@@ -153,6 +153,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     items: [
       { key: 'communication_routes', label: 'Communication routes', href: '/admin/ediel/routes', description: 'Routes och Ediel route profiles', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'ediel.actors', label: 'Aktörer', href: '/admin/ediel/actors', description: 'Ediel-ID, roller, subadresser och miljö', pageKey: 'ediel.routes', platformOnly: true },
+      { key: 'ediel.route_readiness', label: 'Route-readiness', href: '/admin/ediel/route-readiness', description: 'Saknade routes, contact-only suppliers och launch-spärrar', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'ediel.certificates', label: 'Certifikat', href: '/admin/ediel/certificates', description: 'S/MIME-certifikatmetadata och status', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'grid_owner_agreements', label: 'Nätägaravtal', href: '/admin/agreements/grid-owners', description: 'Avtal och referenskrav per nätägare', platformOnly: true },
       { key: 'ediel_settings', label: 'Application Reference', href: '/admin/ediel/settings', description: 'Aktörsidentitet, subadresser och regler', pageKey: 'ediel.routes', platformOnly: true },
@@ -178,6 +179,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'audit', label: 'Audit logs', href: '/admin/audit', description: 'Revision och spårbarhet', pageKey: 'audit.log' },
       { key: 'api_clients', label: 'API-klienter', href: '/admin/platform/api-clients', description: 'Tokens och scopes för Gridex hemsida och externa portaler', pageKey: 'platform.security', platformOnly: true },
       { key: 'security', label: 'Production guards', href: '/admin/platform/security', description: 'Tenant-isolering och systemdiagnostik', pageKey: 'platform.security', platformOnly: true },
+      { key: 'system_health', label: 'System Health', href: '/admin/system-health', description: 'Launch-blockers för API, Ediel, webhooks, routes och billing', pageKey: 'platform.security', platformOnly: true },
       { key: 'auth_diag', label: 'Systemdiagnostik', href: '/admin/system/auth-diagnostics', description: 'Auth och accessdiagnostik', platformOnly: true },
     ],
   },

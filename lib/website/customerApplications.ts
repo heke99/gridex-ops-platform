@@ -1363,7 +1363,7 @@ async function createContract(
   })
 }
 
-async function createApplicationRow(input: {
+type CreateApplicationRowInput = {
   client: IntegrationApiClient
   externalCustomerId: string
   externalAccountId?: string | null
@@ -1397,7 +1397,80 @@ async function createApplicationRow(input: {
   resolutionConfidence?: number | null
   timeline?: unknown[]
   auditLog?: unknown[]
-}) {
+}
+
+function externalIntakeStatusFromWebsiteStatus(status: string): 'received' | 'processing' | 'needs_review' | 'created' | 'partially_created' | 'failed' | 'duplicate_ignored' | 'cancelled' {
+  if (['failed', 'rejected', 'switch_rejected'].includes(status)) return 'failed'
+  if (status === 'cancelled') return 'cancelled'
+  if (['needs_information', 'pending_review', 'manual_review', 'pending_validation', 'needs_facility_data', 'information_request_ready', 'information_request_sent', 'waiting_grid_owner_response'].includes(status)) return 'needs_review'
+  if (['ready_for_switch', 'customer_created', 'customer_matched', 'contract_created', 'confirmation_pending', 'confirmation_sent', 'completed', 'active', 'switch_confirmed'].includes(status)) return 'created'
+  return 'received'
+}
+
+async function syncExternalContractIntakeRow(input: CreateApplicationRowInput & { applicationId: string }) {
+  const payload = input.payload as ApplicationInput & Record<string, unknown>
+  const customer = isObject(payload.customer) ? payload.customer : {}
+  const site = isObject(payload.site) ? payload.site : {}
+  const meteringPoint = isObject(payload.metering_point) ? payload.metering_point : {}
+  const contract = isObject(payload.contract) ? payload.contract : {}
+  const issues = [
+    ...(input.missingFields ?? []).map((field) => `Saknad uppgift: ${field}`),
+    ...(input.blockingReasons ?? []).map((reason) => typeof reason === 'string' ? reason : JSON.stringify(reason)),
+    ...(input.errorMessage ? [input.errorMessage] : []),
+  ].filter(Boolean)
+
+  const externalStatus = externalIntakeStatusFromWebsiteStatus(input.status)
+  const intakePayload = {
+    company_id: input.client.company_id,
+    status: externalStatus,
+    source_channel: 'external_website_api',
+    idempotency_key: input.idempotencyKey ?? `website-application:${input.applicationId}`,
+    customer_type: clean(customer.customer_type) ?? clean(payload.customer_type) ?? 'private',
+    first_name: clean(customer.first_name),
+    last_name: clean(customer.last_name),
+    company_name: clean(customer.company_name),
+    email: normalizedEmail(customer.email),
+    phone: clean(customer.phone),
+    personal_number: digits(customer.personal_number),
+    org_number: digits(customer.org_number),
+    facility_id: clean(site.facility_id) ?? clean(payload.facility_id),
+    meter_point_id: clean(meteringPoint.metering_point_id) ?? clean(meteringPoint.meter_point_id) ?? clean(payload.metering_point_id),
+    street: clean(site.street),
+    postal_code: clean(site.postal_code),
+    city: clean(site.city),
+    move_in_date: clean(site.move_in_date) ?? null,
+    price_area_code: input.priceAreaCode ?? clean(site.price_area_code) ?? clean(payload.price_area_code),
+    contract_offer_id: clean(payload.contract_offer_id),
+    requested_start_date: input.requestedStartDate ?? clean(contract.requested_start_date) ?? clean(payload.requested_start_date),
+    created_customer_id: input.customer?.id ?? null,
+    created_site_id: input.customerSiteId ?? null,
+    created_metering_point_id: input.meteringPointId ?? null,
+    created_contract_id: input.contractId ?? null,
+    created_info_request_id: input.gridOwnerInformationRequestId ?? null,
+    payload: {
+      ...payload,
+      source_table: 'website_customer_applications',
+      website_application_id: input.applicationId,
+      external_customer_id: input.externalCustomerId,
+      external_account_id: input.externalAccountId ?? null,
+      response_payload: input.responsePayload,
+    },
+    issues,
+    updated_at: new Date().toISOString(),
+  }
+
+  const result = await supabaseService
+    .from('external_contract_intakes')
+    .upsert(intakePayload, { onConflict: 'company_id,idempotency_key' })
+    .select('id')
+    .maybeSingle()
+
+  if (result.error && !missingSchema(result.error)) {
+    throw result.error
+  }
+}
+
+async function createApplicationRow(input: CreateApplicationRowInput) {
   const row = {
     company_id: input.client.company_id,
     api_client_id: input.client.id,
@@ -1445,7 +1518,11 @@ async function createApplicationRow(input: {
     .single()
 
   if (error && !missingSchema(error)) throw error
-  if (data) return data as { id: string }
+  if (data) {
+    const created = data as { id: string }
+    await syncExternalContractIntakeRow({ ...input, applicationId: created.id })
+    return created
+  }
 
   const fallback = await supabaseService
     .from('website_customer_applications')
@@ -1465,7 +1542,9 @@ async function createApplicationRow(input: {
     .select('id')
     .single()
   if (fallback.error) throw fallback.error
-  return fallback.data as { id: string }
+  const created = fallback.data as { id: string }
+  await syncExternalContractIntakeRow({ ...input, applicationId: created.id })
+  return created
 }
 
 async function loadIdempotentApplication(companyId: string, idempotencyKey: string | null) {

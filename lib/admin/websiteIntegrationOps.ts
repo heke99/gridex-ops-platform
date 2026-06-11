@@ -126,7 +126,122 @@ export type TenantReadiness = {
   notes: string[]
 }
 
-export async function listWebsiteApplications(input: {
+function normalizeExternalIntakeStatus(status: string | null | undefined): string {
+  if (status === 'created') return 'customer_created'
+  if (status === 'partially_created') return 'pending_review'
+  if (status === 'duplicate_ignored') return 'duplicate_facility_id'
+  return status ?? 'received'
+}
+
+function mapExternalContractIntakeRow(row: Record<string, unknown>): WebsiteApplicationAdminRow {
+  const issues = Array.isArray(row.issues) ? row.issues : []
+  const payload = (row.payload && typeof row.payload === 'object' ? row.payload : {}) as Record<string, unknown>
+  const fullName = [row.first_name, row.last_name].filter(Boolean).join(' ').trim()
+  return {
+    id: String(row.id),
+    company_id: String(row.company_id),
+    api_client_id: null,
+    customer_id: (row.created_customer_id as string | null) ?? null,
+    customer_site_id: (row.created_site_id as string | null) ?? null,
+    metering_point_id: (row.created_metering_point_id as string | null) ?? null,
+    contract_id: (row.created_contract_id as string | null) ?? null,
+    external_customer_id: String(row.external_customer_id ?? row.idempotency_key ?? row.id),
+    external_account_id: null,
+    customer_number: (row.customer_number as string | null) ?? null,
+    source: String(row.source_channel ?? 'external_contract_intake'),
+    status: normalizeExternalIntakeStatus(String(row.status ?? 'received')),
+    idempotency_key: (row.idempotency_key as string | null) ?? null,
+    payload: {
+      ...payload,
+      customer: {
+        full_name: fullName || row.company_name || row.email || null,
+        company_name: row.company_name ?? null,
+        email: row.email ?? null,
+        phone: row.phone ?? null,
+      },
+      site: {
+        facility_id: row.facility_id ?? null,
+        street: row.street ?? null,
+        postal_code: row.postal_code ?? null,
+        city: row.city ?? null,
+        price_area_code: row.price_area_code ?? null,
+      },
+      metering_point: {
+        metering_point_id: row.meter_point_id ?? null,
+      },
+    },
+    raw_payload: payload,
+    response_payload: {
+      source_table: 'external_contract_intakes',
+      created_customer_id: row.created_customer_id ?? null,
+      created_site_id: row.created_site_id ?? null,
+      created_metering_point_id: row.created_metering_point_id ?? null,
+      created_contract_id: row.created_contract_id ?? null,
+      created_case_id: row.created_case_id ?? null,
+      created_info_request_id: row.created_info_request_id ?? null,
+      issues,
+    },
+    warnings: issues,
+    missing_fields: issues,
+    blocking_reasons: issues.map((issue) => ({ field: 'intake', label: String(issue), action: 'Granska och komplettera webbansökan.' })),
+    next_step: issues.length > 0 ? 'Granska och komplettera webbansökan innan switch eller fakturering.' : 'Granska skapad kundkedja och starta nästa operativa steg.',
+    requested_start_date: (row.requested_start_date as string | null) ?? null,
+    confirmed_start_date: null,
+    actual_start_date: null,
+    requested_start_mode: 'earliest_possible',
+    calculated_earliest_start_date: null,
+    resolution_id: null,
+    grid_owner_information_request_id: (row.created_info_request_id as string | null) ?? null,
+    grid_area_code: null,
+    grid_owner_id: null,
+    price_area_code: (row.price_area_code as string | null) ?? null,
+    resolution_status: null,
+    resolution_confidence: null,
+    facility_data_verified_at: null,
+    timeline: [],
+    audit_log: [],
+    assigned_to: null,
+    admin_note: null,
+    error_stage: row.status === 'failed' ? 'external_contract_intake' : null,
+    error_code: row.status === 'failed' ? 'intake_failed' : null,
+    error_message: issues.length > 0 ? issues.map(String).join(' · ') : null,
+    processed_at: row.updated_at as string | null,
+    created_at: String(row.created_at),
+    updated_at: (row.updated_at as string | null) ?? null,
+    companies: row.companies as { name?: string | null } | null | undefined,
+    customers: {
+      full_name: fullName || null,
+      company_name: (row.company_name as string | null) ?? null,
+      email: (row.email as string | null) ?? null,
+      phone: (row.phone as string | null) ?? null,
+    },
+    integration_api_clients: null,
+  }
+}
+
+async function listExternalContractIntakes(input: {
+  companyId?: string | null
+  status?: string | null
+  limit?: number
+} = {}): QueryResult<WebsiteApplicationAdminRow> {
+  let query = supabaseService
+    .from('external_contract_intakes')
+    .select('*,companies(name)')
+    .order('created_at', { ascending: false })
+    .limit(Math.min(Math.max(input.limit ?? 100, 1), 200))
+
+  if (input.companyId) query = query.eq('company_id', input.companyId)
+  if (input.status) query = query.eq('status', input.status)
+
+  const { data, error } = await query
+  if (error) {
+    if (missingSchema(error)) return []
+    throw error
+  }
+  return ((data ?? []) as Array<Record<string, unknown>>).map(mapExternalContractIntakeRow)
+}
+
+async function listLegacyWebsiteApplications(input: {
   companyId?: string | null
   status?: string | null
   limit?: number
@@ -148,8 +263,35 @@ export async function listWebsiteApplications(input: {
   return (data ?? []) as WebsiteApplicationAdminRow[]
 }
 
+export async function listWebsiteApplications(input: {
+  companyId?: string | null
+  status?: string | null
+  limit?: number
+} = {}): QueryResult<WebsiteApplicationAdminRow> {
+  const [external, legacy] = await Promise.all([
+    listExternalContractIntakes(input),
+    listLegacyWebsiteApplications(input),
+  ])
+  const byKey = new Map<string, WebsiteApplicationAdminRow>()
+  for (const row of [...external, ...legacy]) {
+    const key = row.idempotency_key ? `${row.company_id}:${row.idempotency_key}` : `${row.company_id}:${row.id}`
+    if (!byKey.has(key)) byKey.set(key, row)
+  }
+  return [...byKey.values()]
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    .slice(0, Math.min(Math.max(input.limit ?? 100, 1), 200))
+}
+
 export async function listWebsiteApplicationsForCustomer(companyId: string, customerId: string): QueryResult<WebsiteApplicationAdminRow> {
-  const { data, error } = await supabaseService
+  const external = await supabaseService
+    .from('external_contract_intakes')
+    .select('*,companies(name)')
+    .eq('company_id', companyId)
+    .eq('created_customer_id', customerId)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  const legacy = await supabaseService
     .from('website_customer_applications')
     .select('*,integration_api_clients(name,key_prefix)')
     .eq('company_id', companyId)
@@ -157,11 +299,12 @@ export async function listWebsiteApplicationsForCustomer(companyId: string, cust
     .order('created_at', { ascending: false })
     .limit(10)
 
-  if (error) {
-    if (missingSchema(error)) return []
-    throw error
-  }
-  return (data ?? []) as WebsiteApplicationAdminRow[]
+  if (external.error && !missingSchema(external.error)) throw external.error
+  if (legacy.error && !missingSchema(legacy.error)) throw legacy.error
+
+  const externalRows = external.error ? [] : ((external.data ?? []) as Array<Record<string, unknown>>).map(mapExternalContractIntakeRow)
+  const legacyRows = legacy.error ? [] : (legacy.data ?? []) as WebsiteApplicationAdminRow[]
+  return [...externalRows, ...legacyRows].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 10)
 }
 
 export async function listWebhookSubscriptions(input: { companyId?: string | null; limit?: number } = {}): QueryResult<WebhookSubscriptionAdminRow> {

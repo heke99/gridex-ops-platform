@@ -1,0 +1,135 @@
+import AdminHeader from '@/components/admin/AdminHeader'
+import { isPlatformAdminContext, requireAdminPageAccess } from '@/lib/admin/guards'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { humanizeLaunchError, safeCount } from '@/lib/launch/readiness'
+import { supabaseService } from '@/lib/supabase/service'
+
+export const dynamic = 'force-dynamic'
+
+type ErrorRow = {
+  company_id: string | null
+  id: string
+  source_table: string
+  error_key: string
+  status: string
+  severity: string
+  recommended_action: string | null
+  created_at: string
+}
+
+function tone(severity: string) {
+  if (['critical', 'blocking', 'error'].includes(severity)) return 'border-red-200 bg-red-50 text-red-800'
+  if (['warning', 'warn'].includes(severity)) return 'border-amber-200 bg-amber-50 text-amber-900'
+  return 'border-slate-200 bg-slate-50 text-slate-700'
+}
+
+function Card({ label, value, hint, danger = false }: { label: string; value: number; hint: string; danger?: boolean }) {
+  return (
+    <div className={`rounded-2xl border p-4 ${danger && value > 0 ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-white'}`}>
+      <div className="text-sm font-medium text-slate-600">{label}</div>
+      <div className="mt-2 text-3xl font-semibold text-slate-950">{value}</div>
+      <div className="mt-1 text-xs text-slate-500">{hint}</div>
+    </div>
+  )
+}
+
+async function loadErrors(companyId: string | null, isPlatformAdmin: boolean) {
+  let query = supabaseService
+    .from('gridex_launch_error_summary_v')
+    .select('company_id,id,source_table,error_key,status,severity,recommended_action,created_at')
+    .neq('status', 'resolved')
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (!isPlatformAdmin && companyId) query = query.eq('company_id', companyId)
+
+  const { data, error } = await query
+  if (error && ['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) return [] as ErrorRow[]
+  if (error) throw error
+  return (data ?? []) as ErrorRow[]
+}
+
+export default async function SystemHealthPage() {
+  const context = await requireAdminPageAccess(['admin.dashboard.read'])
+  const isPlatformAdmin = isPlatformAdminContext(context)
+  const scope = await getOperationalCompanyScope(context.userId)
+  const companyId = isPlatformAdmin ? null : scope.companyId
+
+  const [
+    apiErrors,
+    webhookFailures,
+    rateLimitEvents,
+    edielFailures,
+    unresolvedInbound,
+    blockedOutbound,
+    billingBlocked,
+    missingRoutes,
+    importIssues,
+    emailFailures,
+    errors,
+  ] = await Promise.all([
+    safeCount('integration_api_requests', companyId, [{ column: 'status_code', operator: 'in', value: ['400', '401', '403', '404', '409', '422', '429', '500'] }]).catch(() => 0),
+    safeCount('webhook_deliveries', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'dead', 'retrying'] }]).catch(() => 0),
+    safeCount('integration_api_requests', companyId, [{ column: 'error_code', operator: 'eq', value: 'rate_limited' }]).catch(() => 0),
+    safeCount('ediel_messages', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'blocked'] }]).catch(() => 0),
+    safeCount('ediel_messages', companyId, [{ column: 'status', operator: 'eq', value: 'unresolved' }]).catch(() => 0),
+    safeCount('ediel_messages', companyId, [{ column: 'direction', operator: 'eq', value: 'outbound' }, { column: 'status', operator: 'in', value: ['blocked', 'failed'] }]).catch(() => 0),
+    safeCount('billing_underlays', companyId, [{ column: 'readiness_status', operator: 'in', value: ['blocked', 'failed', 'needs_review'] }]).catch(() => 0),
+    safeCount('gridex_route_readiness_v', null, [{ column: 'readiness_status', operator: 'in', value: ['critical_missing_route', 'recommended_missing_route', 'not_sendable', 'needs_review'] }]).catch(() => 0),
+    safeCount('platform_actor_import_issues', null, [{ column: 'status', operator: 'eq', value: 'open' }]).catch(() => 0),
+    safeCount('communication_logs', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'bounced'] }]).catch(() => 0),
+    loadErrors(companyId, isPlatformAdmin),
+  ])
+
+  return (
+    <main className="space-y-6">
+      <AdminHeader
+        title="System Health"
+        subtitle="Launch-kontroll för API, webhooks, Ediel, mail, route-readiness, billing och datakvalitet."
+        userEmail={context.email}
+        workspaceName={isPlatformAdmin ? 'Gridex Platform' : scope.companyName}
+        workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
+      />
+
+      <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <Card label="API-fel" value={apiErrors} hint="Externa API-anrop med felstatus" danger />
+        <Card label="Webhook-fel" value={webhookFailures} hint="Retries/failure i webhook deliveries" danger />
+        <Card label="Rate limit" value={rateLimitEvents} hint="Ska hanteras med backoff/cooldown" danger />
+        <Card label="Ediel-fel" value={edielFailures} hint="Blockerade eller misslyckade meddelanden" danger />
+        <Card label="Unresolved inbound" value={unresolvedInbound} hint="Kräver tenant/route-matchning" danger />
+        <Card label="Blocked outbound" value={blockedOutbound} hint="Ska inte skickas före readiness" danger />
+        <Card label="Billing blockers" value={billingBlocked} hint="Fakturering får inte gå på overifierad data" danger />
+        <Card label="Route blockers" value={missingRoutes} hint="Actor routes saknas/verifieras" danger />
+        <Card label="Import issues" value={importIssues} hint="Actor/masterdata-konflikter" danger />
+        <Card label="Mailfel" value={emailFailures} hint="Kundmail/support/switch-notiser" danger />
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">Senaste öppna fel</h2>
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-3 py-3">Allvar</th>
+                <th className="px-3 py-3">Källa</th>
+                <th className="px-3 py-3">Fel</th>
+                <th className="px-3 py-3">Nästa åtgärd</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {errors.map((row) => (
+                <tr key={`${row.source_table}-${row.id}`}>
+                  <td className="px-3 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-medium ${tone(row.severity)}`}>{row.severity}</span></td>
+                  <td className="px-3 py-3 text-slate-700">{row.source_table}</td>
+                  <td className="px-3 py-3 font-medium text-slate-900">{humanizeLaunchError(row.error_key)}</td>
+                  <td className="px-3 py-3 text-slate-700">{row.recommended_action ?? humanizeLaunchError(row.error_key)}</td>
+                </tr>
+              ))}
+              {errors.length === 0 ? <tr><td colSpan={4} className="px-3 py-8 text-center text-slate-500">Inga öppna launch-fel hittades.</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  )
+}

@@ -20,7 +20,21 @@
     "gridex:batch-8-1-live-schema-regression": "node scripts/gridex-batch-8-1-live-schema-regression.cjs",
     "gridex:customer-application-review-regression": "node scripts/gridex-customer-application-review-regression.cjs",
     "gridex:energy-resolver-regression": "node scripts/energy-resolver-grid-owner-regression.cjs",
-    "gridex:actor-registry-intake-hardening-regression": "node scripts/gridex-actor-registry-intake-hardening-regression.cjs"
+    "gridex:actor-registry-intake-hardening-regression": "node scripts/gridex-actor-registry-intake-hardening-regression.cjs",
+    "gridex:launch-security-regression": "node scripts/gridex-launch-regression.cjs launch-security-regression",
+    "gridex:db-ui-compatibility-regression": "node scripts/gridex-launch-regression.cjs db-ui-compatibility-regression",
+    "gridex:website-api-webhook-regression": "node scripts/gridex-launch-regression.cjs website-api-webhook-regression",
+    "gridex:external-contract-intake-regression": "node scripts/gridex-launch-regression.cjs external-contract-intake-regression",
+    "gridex:company-statistics-regression": "node scripts/gridex-launch-regression.cjs company-statistics-regression",
+    "gridex:pricing-flow-regression": "node scripts/gridex-launch-regression.cjs pricing-flow-regression",
+    "gridex:billing-readiness-regression": "node scripts/gridex-launch-regression.cjs billing-readiness-regression",
+    "gridex:route-readiness-regression": "node scripts/gridex-launch-regression.cjs route-readiness-regression",
+    "gridex:supplier-contact-regression": "node scripts/gridex-launch-regression.cjs supplier-contact-regression",
+    "gridex:customer-intake-regression": "node scripts/gridex-launch-regression.cjs customer-intake-regression",
+    "gridex:ui-db-mismatch-regression": "node scripts/gridex-launch-regression.cjs ui-db-mismatch-regression",
+    "gridex:rate-limit-regression": "node scripts/gridex-launch-regression.cjs rate-limit-regression",
+    "gridex:system-health-regression": "node scripts/gridex-launch-regression.cjs system-health-regression",
+    "gridex:launch-smoke": "node scripts/gridex-launch-regression.cjs launch-smoke"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
