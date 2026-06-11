@@ -2,7 +2,13 @@ import Link from 'next/link'
 import { requireAdminPageAccess, isPlatformAdminContext } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listWebsiteApplications, type WebsiteApplicationAdminRow } from '@/lib/admin/websiteIntegrationOps'
-import { checkWebsiteApplicationReadinessAction, updateWebsiteApplicationReviewAction } from './actions'
+import {
+  checkWebsiteApplicationReadinessAction,
+  markWebsiteApplicationFacilityDataReceivedAction,
+  requestWebsiteApplicationGridOwnerInfoAction,
+  resolveWebsiteApplicationEnergyAction,
+  updateWebsiteApplicationReviewAction,
+} from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,9 +22,9 @@ function formatDate(value: string | null | undefined) {
 }
 
 function statusTone(status: string) {
-  if (['ready_for_switch', 'switch_confirmed', 'active', 'completed', 'linked_existing_customer', 'customer_created', 'customer_matched'].includes(status)) return 'border-emerald-200 bg-emerald-50 text-emerald-800'
-  if (['application_received', 'pending_validation', 'switch_requested'].includes(status)) return 'border-sky-200 bg-sky-50 text-sky-800'
-  if (['needs_information', 'manual_review', 'pending_review', 'confirmation_pending', 'webhook_pending'].includes(status)) return 'border-amber-200 bg-amber-50 text-amber-900'
+  if (['ready_for_switch', 'switch_confirmed', 'active', 'completed', 'linked_existing_customer', 'customer_created', 'customer_matched', 'facility_data_received'].includes(status)) return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (['application_received', 'received', 'pending_validation', 'switch_requested', 'address_resolved', 'grid_area_resolved'].includes(status)) return 'border-sky-200 bg-sky-50 text-sky-800'
+  if (['needs_information', 'needs_address_resolution', 'needs_facility_data', 'information_request_ready', 'information_request_sent', 'waiting_grid_owner_response', 'manual_review', 'pending_review', 'confirmation_pending', 'webhook_pending'].includes(status)) return 'border-amber-200 bg-amber-50 text-amber-900'
   if (['failed', 'rejected', 'cancelled', 'switch_rejected'].includes(status)) return 'border-red-200 bg-red-50 text-red-800'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
@@ -44,6 +50,20 @@ function firstPayloadValue(payload: JsonRecord | null | undefined, paths: string
   return null
 }
 
+
+
+function energyValue(item: WebsiteApplicationAdminRow, key: string, fallbackPaths: string[] = []) {
+  const response = item.response_payload ?? {}
+  const fromResponse = nestedValue(response, `energy_resolution.${key}`) ?? nestedValue(response, key)
+  if (fromResponse) return fromResponse
+  const direct = (item as unknown as Record<string, unknown>)[key]
+  if (typeof direct === 'string' && direct.trim()) return direct
+  return firstPayloadValue(item.payload, fallbackPaths)
+}
+
+function canShowStartSwitch(item: WebsiteApplicationAdminRow) {
+  return item.status === 'ready_for_switch'
+}
 
 function safeOperationalMessage(value: string | null | undefined) {
   const message = value?.trim()
@@ -155,6 +175,18 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
           Nätägare / verifierad aktör
           <input name="grid_owner_id" defaultValue={firstPayloadValue(payload, ['grid_owner_id', 'network_owner_id', 'site.grid_owner_id']) ?? ''} placeholder="Välj verifierad aktör eller klistra in verifierat UUID" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
         </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Nätområdeskod
+          <input name="grid_area_code" defaultValue={item.grid_area_code ?? firstPayloadValue(payload, ['grid_area_code', 'site.grid_area_code']) ?? ''} placeholder="Ex. STH, MMO, SE4-kod" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Elområde
+          <input name="price_area_code" defaultValue={item.price_area_code ?? firstPayloadValue(payload, ['price_area_code', 'price_area', 'site.price_area_code']) ?? ''} placeholder="SE1-SE4" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Resolver-status
+          <input name="resolution_status" defaultValue={item.resolution_status ?? firstPayloadValue(payload, ['resolution_status']) ?? ''} placeholder="grid_area_master_validated" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
+        </label>
         <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 md:col-span-2">
           Anläggningsadress
           <input name="site_street" defaultValue={firstPayloadValue(payload, ['site.street', 'address', 'street']) ?? ''} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
@@ -176,8 +208,19 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
           <input name="contract_name" defaultValue={firstPayloadValue(payload, ['contract.contract_name']) ?? ''} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
         </label>
         <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Startläge
+          <select name="requested_start_mode" defaultValue={item.requested_start_mode ?? firstPayloadValue(payload, ['requested_start_mode', 'contract.requested_start_mode']) ?? 'earliest_possible'} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900">
+            <option value="earliest_possible">Snarast möjligt</option>
+            <option value="specific_date">Specifikt datum</option>
+          </select>
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
           Önskat startdatum
           <input type="date" name="requested_start_date" defaultValue={item.requested_start_date ?? firstPayloadValue(payload, ['requested_start_date', 'contract.requested_start_date', 'contract.starts_at']) ?? ''} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Beräknad tidigaste start
+          <input type="date" name="calculated_earliest_start_date" defaultValue={item.calculated_earliest_start_date ?? firstPayloadValue(payload, ['calculated_earliest_start_date', 'contract.calculated_earliest_start_date']) ?? ''} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
         </label>
         <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
           Bekräftat startdatum
@@ -197,6 +240,10 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
           <input type="checkbox" name="terms_accepted" defaultChecked={defaultChecked(payload, ['consents.terms_accepted', 'consents.terms', 'terms_accepted'])} />
           Villkor accepterade
         </label>
+        <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+          <input type="checkbox" name="facility_data_verified" defaultChecked={Boolean(item.facility_data_verified_at) || defaultChecked(payload, ['facility_data_verified'])} />
+          Anläggningsuppgifter mottagna/verifierade
+        </label>
         <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
           Intern anteckning
           <input name="admin_note" defaultValue={item.admin_note ?? ''} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
@@ -204,6 +251,9 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
       </div>
       <div className="flex flex-wrap gap-3">
         <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Spara komplettering</button>
+        <button formAction={resolveWebsiteApplicationEnergyAction} className="rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50">Kör adressmatchning</button>
+        <button formAction={requestWebsiteApplicationGridOwnerInfoAction} className="rounded-2xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50">Begär uppgifter från nätägare</button>
+        <button formAction={markWebsiteApplicationFacilityDataReceivedAction} className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">Markera uppgifter mottagna</button>
         <button formAction={checkWebsiteApplicationReadinessAction} className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Kontrollera om redo</button>
       </div>
     </form>
@@ -222,6 +272,13 @@ function ApplicationDetails({ item }: { item: WebsiteApplicationAdminRow }) {
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-slate-600">Startdatum</p><p className="mt-1 font-semibold text-slate-950">Önskat: {item.requested_start_date ?? '—'} · Bekräftat: {item.confirmed_start_date ?? '—'}</p></div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-slate-600">Länkar</p><p className="mt-1">Site: {item.customer_site_id ?? '—'} · Mätpunkt: {item.metering_point_id ?? '—'} · Avtal: {item.contract_id ?? '—'}</p></div>
         </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-sky-700">Nätområde</p><p className="mt-1 font-semibold text-sky-950">{energyValue(item, 'gridAreaCode', ['grid_area_code', 'site.grid_area_code']) ?? '—'}</p></div>
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-sky-700">Elområde</p><p className="mt-1 font-semibold text-sky-950">{energyValue(item, 'priceArea', ['price_area_code', 'site.price_area_code']) ?? '—'}</p></div>
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-sky-700">Resolver</p><p className="mt-1 font-semibold text-sky-950">{energyValue(item, 'resolutionStatus', ['resolution_status']) ?? item.resolution_status ?? '—'}</p></div>
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-sky-700">Nätägare</p><p className="mt-1 font-semibold text-sky-950">{energyValue(item, 'gridOwnerName', []) ?? item.grid_owner_id ?? '—'}</p></div>
+        </div>
+        {!canShowStartSwitch(item) ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><strong>Leverantörsbyte är blockerat.</strong> Nästa säkra steg är adressmatchning eller begäran om anläggningsuppgifter från nätägare tills anläggning/mätpunkt är verifierad.</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">Ansökan är redo för leverantörsbyte. Starta switch i operationsflödet.</div>}
         {issues.length > 0 ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <p className="font-semibold text-amber-950">Saknas/blockerar</p>
@@ -256,8 +313,8 @@ export default async function WebsiteApplicationsAdminPage({ searchParams }: { s
   const status = typeof resolved.status === 'string' ? resolved.status : null
   const applications = await listWebsiteApplications({ companyId: tenantScope.isPlatformAdmin ? null : tenantScope.companyId, status, limit: 150 })
   const failed = applications.filter((item) => item.status === 'failed').length
-  const manualReview = applications.filter((item) => ['needs_information', 'manual_review', 'pending_review'].includes(item.status)).length
-  const ready = applications.filter((item) => ['ready_for_switch', 'pending_validation'].includes(item.status)).length
+  const manualReview = applications.filter((item) => ['needs_information', 'needs_address_resolution', 'needs_facility_data', 'information_request_ready', 'waiting_grid_owner_response', 'manual_review', 'pending_review'].includes(item.status)).length
+  const ready = applications.filter((item) => ['ready_for_switch', 'facility_data_received', 'pending_validation'].includes(item.status)).length
   const completed = applications.filter((item) => ['switch_confirmed', 'active', 'completed', 'linked_existing_customer'].includes(item.status)).length
   const isPlatformAdmin = isPlatformAdminContext(access)
 
@@ -290,6 +347,7 @@ export default async function WebsiteApplicationsAdminPage({ searchParams }: { s
         <div className="mb-4 flex flex-wrap items-center gap-2 text-sm font-semibold">
           <Link href="/admin/website-applications" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700">Alla</Link>
           <Link href="/admin/website-applications?status=needs_information" className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-900">Saknar uppgifter</Link>
+          <Link href="/admin/website-applications?status=needs_facility_data" className="rounded-full border border-amber-200 bg-white px-3 py-1 text-amber-900">Begär nätägare</Link>
           <Link href="/admin/website-applications?status=ready_for_switch" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">Redo för switch</Link>
           <Link href="/admin/website-applications?status=failed" className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-red-800">Fel</Link>
         </div>

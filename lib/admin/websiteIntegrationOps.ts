@@ -36,6 +36,16 @@ export type WebsiteApplicationAdminRow = {
   requested_start_date?: string | null
   confirmed_start_date?: string | null
   actual_start_date?: string | null
+  requested_start_mode?: string | null
+  calculated_earliest_start_date?: string | null
+  resolution_id?: string | null
+  grid_owner_information_request_id?: string | null
+  grid_area_code?: string | null
+  grid_owner_id?: string | null
+  price_area_code?: string | null
+  resolution_status?: string | null
+  resolution_confidence?: number | null
+  facility_data_verified_at?: string | null
   timeline?: unknown[] | null
   audit_log?: unknown[] | null
   assigned_to?: string | null

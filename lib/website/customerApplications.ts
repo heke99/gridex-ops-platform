@@ -6,6 +6,9 @@ import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { seedDefaultEmailEventRules, triggerEmailEvent } from '@/lib/email/emailEvents'
 import { seedDefaultEmailTemplates } from '@/lib/email/emailTemplates'
 import { assessWebsiteApplicationReadiness, customerIntakeStatusForReadiness, type WebsiteApplicationReadiness } from '@/lib/website/applicationReview'
+import { resolveEnergyContext } from '@/lib/energy/resolver'
+import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
+import type { EnergyResolverResult } from '@/lib/energy/types'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -38,6 +41,15 @@ const SiteSchema = z.object({
   city: OPTIONAL_TEXT,
   country: OPTIONAL_TEXT,
   price_area_code: OPTIONAL_TEXT,
+  price_area: OPTIONAL_TEXT,
+  grid_area_code: OPTIONAL_TEXT,
+  gridAreaCode: OPTIONAL_TEXT,
+  grid_owner_id: OPTIONAL_TEXT,
+  gridOwnerId: OPTIONAL_TEXT,
+  latitude: z.coerce.number().optional(),
+  longitude: z.coerce.number().optional(),
+  sweref99_x: z.coerce.number().optional(),
+  sweref99_y: z.coerce.number().optional(),
   move_in_date: OPTIONAL_TEXT,
   annual_consumption_kwh: z.coerce.number().optional(),
 }).optional()
@@ -51,6 +63,9 @@ const MeteringPointSchema = z.object({
   reading_frequency: OPTIONAL_TEXT,
   measurement_type: OPTIONAL_TEXT,
   price_area_code: OPTIONAL_TEXT,
+  price_area: OPTIONAL_TEXT,
+  grid_area_code: OPTIONAL_TEXT,
+  gridAreaCode: OPTIONAL_TEXT,
   start_date: OPTIONAL_TEXT,
   installation_date: OPTIONAL_TEXT,
   estimated_annual_consumption_kwh: z.coerce.number().optional(),
@@ -67,6 +82,10 @@ const ContractSchema = z.object({
   confirmedStartDate: OPTIONAL_TEXT,
   actual_start_date: OPTIONAL_TEXT,
   actualStartDate: OPTIONAL_TEXT,
+  requested_start_mode: OPTIONAL_TEXT,
+  requestedStartMode: OPTIONAL_TEXT,
+  calculated_earliest_start_date: OPTIONAL_TEXT,
+  calculatedEarliestStartDate: OPTIONAL_TEXT,
   signed_at: OPTIONAL_TEXT,
   monthly_fee_sek: z.coerce.number().optional(),
   spot_markup_ore_per_kwh: z.coerce.number().optional(),
@@ -93,6 +112,16 @@ const ApplicationSchema = z.object({
   requested_start_date: OPTIONAL_TEXT,
   confirmed_start_date: OPTIONAL_TEXT,
   actual_start_date: OPTIONAL_TEXT,
+  requested_start_mode: OPTIONAL_TEXT,
+  requestedStartMode: OPTIONAL_TEXT,
+  calculated_earliest_start_date: OPTIONAL_TEXT,
+  calculatedEarliestStartDate: OPTIONAL_TEXT,
+  grid_area_code: OPTIONAL_TEXT,
+  gridAreaCode: OPTIONAL_TEXT,
+  price_area_code: OPTIONAL_TEXT,
+  priceAreaCode: OPTIONAL_TEXT,
+  resolution_status: OPTIONAL_TEXT,
+  resolutionStatus: OPTIONAL_TEXT,
   customer: CustomerSchema,
   site: SiteSchema,
   metering_point: MeteringPointSchema,
@@ -126,6 +155,8 @@ type ErrorStage =
   | 'domain_event_create'
   | 'webhook_queue'
   | 'customer_intake_update'
+  | 'energy_resolution'
+  | 'grid_owner_information_request'
   | 'manual_review'
 
 class WebsiteApplicationError extends Error {
@@ -296,6 +327,95 @@ async function updateCustomerIntakeStatus(companyId: string, customerId: string,
     .eq('id', customerId)
 
   if (error && !missingSchema(error)) throw error
+}
+
+
+function addBusinessDays(date: Date, days: number): Date {
+  const output = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  let remaining = days
+  while (remaining > 0) {
+    output.setUTCDate(output.getUTCDate() + 1)
+    const day = output.getUTCDay()
+    if (day !== 0 && day !== 6) remaining -= 1
+  }
+  return output
+}
+
+function calculatedEarliestStartDate(): string {
+  // MVP-policy: produktion räknar datum server-side, inte i UI. Detta kan senare ersättas med tenant-/nätägarregler.
+  return addBusinessDays(new Date(), 14).toISOString().slice(0, 10)
+}
+
+function requestedStartModeFromInput(input: ApplicationInput): 'earliest_possible' | 'specific_date' {
+  const raw = clean(input.requested_start_mode) ?? clean(input.requestedStartMode) ?? clean(input.contract?.requested_start_mode) ?? clean(input.contract?.requestedStartMode)
+  return raw === 'specific_date' ? 'specific_date' : 'earliest_possible'
+}
+
+function enrichApplicationWithEnergyResolution(input: ApplicationInput, resolution: EnergyResolverResult): ApplicationInput {
+  const requestedStartMode = requestedStartModeFromInput(input)
+  const calculatedStart = requestedStartMode === 'earliest_possible'
+    ? clean(input.calculated_earliest_start_date) ?? clean(input.calculatedEarliestStartDate) ?? clean(input.contract?.calculated_earliest_start_date) ?? clean(input.contract?.calculatedEarliestStartDate) ?? calculatedEarliestStartDate()
+    : undefined
+  return {
+    ...input,
+    grid_owner_id: resolution.gridOwnerId ?? input.grid_owner_id ?? input.network_owner_id,
+    grid_area_code: resolution.gridAreaCode ?? input.grid_area_code ?? input.gridAreaCode,
+    price_area_code: resolution.priceArea ?? input.price_area_code ?? input.priceAreaCode,
+    resolution_status: resolution.resolutionStatus,
+    requested_start_mode: requestedStartMode,
+    calculated_earliest_start_date: calculatedStart,
+    site: input.site ? {
+      ...input.site,
+      grid_area_code: resolution.gridAreaCode ?? input.site.grid_area_code ?? input.site.gridAreaCode,
+      grid_owner_id: resolution.gridOwnerId ?? input.site.grid_owner_id ?? input.site.gridOwnerId,
+      price_area_code: resolution.priceArea ?? input.site.price_area_code ?? input.site.price_area,
+      latitude: resolution.coordinates?.latitude ?? input.site.latitude,
+      longitude: resolution.coordinates?.longitude ?? input.site.longitude,
+      sweref99_x: resolution.coordinates?.sweref99X ?? input.site.sweref99_x,
+      sweref99_y: resolution.coordinates?.sweref99Y ?? input.site.sweref99_y,
+    } : input.site,
+    metering_point: input.metering_point ? {
+      ...input.metering_point,
+      grid_area_code: resolution.gridAreaCode ?? input.metering_point.grid_area_code ?? input.metering_point.gridAreaCode,
+      price_area_code: resolution.priceArea ?? input.metering_point.price_area_code ?? input.metering_point.price_area,
+    } : input.metering_point,
+    contract: input.contract ? {
+      ...input.contract,
+      requested_start_mode: requestedStartMode,
+      calculated_earliest_start_date: calculatedStart,
+    } : input.contract,
+    metadata: {
+      ...(input.metadata ?? {}),
+      energy_resolution: resolution,
+    },
+  }
+}
+
+async function runEnergyResolution(input: {
+  companyId: string
+  customerId: string
+  customerSiteId?: string | null
+  customerApplicationId?: string | null
+  body: ApplicationInput
+}): Promise<{ body: ApplicationInput; resolution: EnergyResolverResult }> {
+  const body = input.body
+  const resolution = await resolveEnergyContext({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    customerSiteId: input.customerSiteId,
+    customerApplicationId: input.customerApplicationId,
+    street: clean(body.site?.street) ?? clean(body.customer.billing_street),
+    postalCode: clean(body.site?.postal_code) ?? clean(body.customer.billing_postal_code),
+    city: clean(body.site?.city) ?? clean(body.customer.billing_city),
+    country: clean(body.site?.country) ?? clean(body.customer.billing_country) ?? 'SE',
+    gridAreaCode: clean(body.grid_area_code) ?? clean(body.gridAreaCode) ?? clean(body.site?.grid_area_code) ?? clean(body.site?.gridAreaCode),
+    facilityId: clean(body.site?.facility_id),
+    meteringPointId: clean(body.metering_point?.metering_point_id) ?? clean(body.metering_point?.meter_point_id) ?? clean(body.metering_point?.ediel_metering_point_id) ?? clean(body.metering_point?.anlage_id),
+    requestedStartMode: requestedStartModeFromInput(body),
+    requestedStartDate: clean(body.requested_start_date) ?? clean(body.contract?.requested_start_date) ?? clean(body.contract?.starts_at),
+    metadata: body.metadata ?? {},
+  })
+  return { body: enrichApplicationWithEnergyResolution(body, resolution), resolution }
 }
 
 
@@ -1068,6 +1188,11 @@ async function createContract(
     starts_at: requestedStartDate,
     expected_start_at: requestedStartDate,
     requested_start_date: requestedStartDate,
+    requested_start_mode: readiness.requestedStartMode,
+    calculated_earliest_start_date: readiness.calculatedEarliestStartDate,
+    price_area_used: readiness.priceArea,
+    grid_area_code_used: readiness.gridAreaCode,
+    resolution_status: readiness.resolutionStatus,
     confirmed_start_date: confirmedStartDate,
     actual_start_date: actualStartDate,
     signed_at: clean(contract?.signed_at) ?? null,
@@ -1097,6 +1222,11 @@ async function createContract(
       agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
       metering_point_id: meteringPointId,
       requested_start_date: requestedStartDate,
+      requested_start_mode: readiness.requestedStartMode,
+      calculated_earliest_start_date: readiness.calculatedEarliestStartDate,
+      price_area_used: readiness.priceArea,
+      grid_area_code_used: readiness.gridAreaCode,
+      resolution_status: readiness.resolutionStatus,
       confirmed_start_date: confirmedStartDate,
       actual_start_date: actualStartDate,
       missing_fields: readiness.missingFields,
@@ -1186,6 +1316,15 @@ async function createApplicationRow(input: {
   requestedStartDate?: string | null
   confirmedStartDate?: string | null
   actualStartDate?: string | null
+  requestedStartMode?: string | null
+  calculatedEarliestStartDate?: string | null
+  resolutionId?: string | null
+  gridOwnerInformationRequestId?: string | null
+  gridAreaCode?: string | null
+  gridOwnerId?: string | null
+  priceAreaCode?: string | null
+  resolutionStatus?: string | null
+  resolutionConfidence?: number | null
   timeline?: unknown[]
   auditLog?: unknown[]
 }) {
@@ -1215,6 +1354,15 @@ async function createApplicationRow(input: {
     requested_start_date: input.requestedStartDate ?? null,
     confirmed_start_date: input.confirmedStartDate ?? null,
     actual_start_date: input.actualStartDate ?? null,
+    requested_start_mode: input.requestedStartMode ?? 'earliest_possible',
+    calculated_earliest_start_date: input.calculatedEarliestStartDate ?? null,
+    resolution_id: input.resolutionId ?? null,
+    grid_owner_information_request_id: input.gridOwnerInformationRequestId ?? null,
+    grid_area_code: input.gridAreaCode ?? null,
+    grid_owner_id: input.gridOwnerId ?? null,
+    price_area_code: input.priceAreaCode ?? null,
+    resolution_status: input.resolutionStatus ?? null,
+    resolution_confidence: input.resolutionConfidence ?? null,
     timeline: input.timeline ?? [],
     audit_log: input.auditLog ?? [],
     processed_at: input.status === 'failed' ? null : new Date().toISOString(),
@@ -1398,7 +1546,7 @@ export async function processWebsiteCustomerApplication(input: {
     }))
   }
 
-  const body = parsed.data
+  let body = parsed.data
   const externalCustomerId = clean(body.external_customer_id) ?? clean(body.customer_external_id)
   if (!externalCustomerId) {
     return failureResponse(validationError(
@@ -1415,7 +1563,7 @@ export async function processWebsiteCustomerApplication(input: {
     ))
   }
 
-  const readiness = assessWebsiteApplicationReadiness(body)
+  let readiness = assessWebsiteApplicationReadiness(body)
   let customerResult: { customer: CustomerRow; created: boolean } | null = null
   let site: { id: string; facility_id: string | null } | null = null
   let meteringPoint: { id: string; metering_point_id: string | null } | null = null
@@ -1481,6 +1629,16 @@ export async function processWebsiteCustomerApplication(input: {
     site = readiness.canCreateSite
       ? await stage('site_create', () => upsertSite(input.client.company_id, resolvedCustomerResult.customer.id, body))
       : null
+
+    const energyResolution = await stage('energy_resolution', () => runEnergyResolution({
+      companyId: input.client.company_id,
+      customerId: resolvedCustomerResult.customer.id,
+      customerSiteId: site?.id ?? null,
+      body,
+    }))
+    body = energyResolution.body
+    readiness = assessWebsiteApplicationReadiness(body)
+
     meteringPoint = readiness.canCreateMeteringPoint
       ? await stage('metering_point_create', () => upsertMeteringPoint(input.client.company_id, resolvedCustomerResult.customer.id, site, body))
       : null
@@ -1521,6 +1679,15 @@ export async function processWebsiteCustomerApplication(input: {
       requested_start_date: readiness.requestedStartDate,
       confirmed_start_date: readiness.confirmedStartDate,
       actual_start_date: readiness.actualStartDate,
+      requested_start_mode: readiness.requestedStartMode,
+      calculated_earliest_start_date: readiness.calculatedEarliestStartDate,
+      grid_area_code: readiness.gridAreaCode,
+      price_area_code: readiness.priceArea,
+      resolution_id: energyResolution.resolution.resolutionId ?? null,
+      resolution_status: energyResolution.resolution.resolutionStatus,
+      resolution_confidence: energyResolution.resolution.confidence,
+      energy_resolution: energyResolution.resolution,
+      can_request_grid_owner_information: readiness.canRequestGridOwnerInformation,
       can_start_switch: readiness.canStartSwitch,
       can_send_agreement_confirmation: readiness.canSendAgreementConfirmation,
       can_activate_customer: readiness.canActivateCustomer,
@@ -1556,11 +1723,51 @@ export async function processWebsiteCustomerApplication(input: {
       requestedStartDate: readiness.requestedStartDate,
       confirmedStartDate: readiness.confirmedStartDate,
       actualStartDate: readiness.actualStartDate,
+      requestedStartMode: readiness.requestedStartMode,
+      calculatedEarliestStartDate: readiness.calculatedEarliestStartDate,
+      resolutionId: energyResolution.resolution.resolutionId ?? null,
+      gridAreaCode: readiness.gridAreaCode,
+      gridOwnerId: energyResolution.resolution.gridOwnerId ?? null,
+      priceAreaCode: readiness.priceArea,
+      resolutionStatus: energyResolution.resolution.resolutionStatus,
+      resolutionConfidence: energyResolution.resolution.confidence,
       timeline: initialTimeline,
       auditLog: [reviewAuditEvent('application_received', null, responsePayload)],
     }))
 
-    const warnings: string[] = [...readiness.warnings]
+    const gridOwnerRequest = readiness.canRequestGridOwnerInformation
+      ? await stage('grid_owner_information_request', () => ensureGridOwnerInformationRequest({
+          companyId: input.client.company_id,
+          customerId: resolvedCustomerResult.customer.id,
+          customerSiteId: site?.id ?? null,
+          customerApplicationId: application.id,
+          resolutionId: energyResolution.resolution.resolutionId ?? null,
+          gridOwnerId: energyResolution.resolution.gridOwnerId ?? null,
+          gridAreaCode: readiness.gridAreaCode,
+          priceArea: readiness.priceArea,
+        }))
+      : null
+
+    if (gridOwnerRequest?.requestId) {
+      await supabaseService
+        .from('website_customer_applications')
+        .update({
+          grid_owner_information_request_id: gridOwnerRequest.requestId,
+          status: gridOwnerRequest.status === 'ready_to_send' ? 'information_request_ready' : applicationStatus,
+          response_payload: {
+            ...responsePayload,
+            grid_owner_information_request_id: gridOwnerRequest.requestId,
+            grid_owner_information_request_status: gridOwnerRequest.status,
+            grid_owner_information_request_channel: gridOwnerRequest.channel,
+          },
+          next_step: gridOwnerRequest.nextStep,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', application.id)
+        .eq('company_id', input.client.company_id)
+    }
+
+    const warnings: string[] = [...readiness.warnings, ...(gridOwnerRequest?.warnings ?? [])]
     let communicationResults: unknown[] = []
 
     const email = normalizedEmail(body.customer.email)

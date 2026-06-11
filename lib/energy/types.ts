@@ -1,0 +1,79 @@
+export type PriceArea = 'SE1' | 'SE2' | 'SE3' | 'SE4'
+
+export type RequestedStartMode = 'earliest_possible' | 'specific_date'
+
+export type EnergyResolutionStatus =
+  | 'postal_suggested'
+  | 'address_resolved'
+  | 'grid_area_resolved'
+  | 'grid_area_master_validated'
+  | 'facility_data_requested'
+  | 'facility_data_received'
+  | 'facility_verified'
+  | 'needs_review'
+  | 'failed'
+
+export type EnergyResolverCoordinates = {
+  latitude?: number | null
+  longitude?: number | null
+  sweref99X?: number | null
+  sweref99Y?: number | null
+}
+
+export type EnergyResolverInput = {
+  companyId?: string | null
+  customerId?: string | null
+  customerSiteId?: string | null
+  customerApplicationId?: string | null
+  street?: string | null
+  streetNumber?: string | null
+  postalCode?: string | null
+  city?: string | null
+  country?: string | null
+  gridAreaCode?: string | null
+  facilityId?: string | null
+  meteringPointId?: string | null
+  requestedStartMode?: RequestedStartMode | string | null
+  requestedStartDate?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+export type EnergyResolverResult = {
+  resolutionId?: string | null
+  gridAreaCode: string | null
+  gridAreaName: string | null
+  gridOwnerId: string | null
+  gridOwnerName: string | null
+  priceArea: PriceArea | null
+  resolutionStatus: EnergyResolutionStatus
+  confidence: number
+  sourceChain: string[]
+  automationAllowed: boolean
+  nextRequiredAction: string
+  lookupKey: string
+  coordinates?: EnergyResolverCoordinates | null
+  warnings: string[]
+  raw?: Record<string, unknown>
+}
+
+export type GridOwnerInformationRequestInput = {
+  companyId: string
+  customerId?: string | null
+  customerSiteId?: string | null
+  customerApplicationId?: string | null
+  resolutionId?: string | null
+  gridOwnerId?: string | null
+  gridAreaCode?: string | null
+  priceArea?: PriceArea | string | null
+  createdBy?: string | null
+  requestType?: 'facility_lookup' | 'metering_point_lookup' | 'grid_area_confirmation' | 'metering_values_request' | 'switch_prerequisite_check'
+}
+
+export type GridOwnerInformationRequestResult = {
+  requestId: string | null
+  status: 'draft' | 'ready_to_send' | 'sent' | 'waiting_response' | 'received' | 'completed' | 'failed' | 'needs_review' | 'skipped'
+  channel: 'email' | 'ediel' | 'portal' | 'manual' | null
+  nextStep: string
+  routeId?: string | null
+  warnings: string[]
+}
