@@ -1409,10 +1409,10 @@ function externalIntakeStatusFromWebsiteStatus(status: string): 'received' | 'pr
 
 async function syncExternalContractIntakeRow(input: CreateApplicationRowInput & { applicationId: string }) {
   const payload = input.payload as ApplicationInput & Record<string, unknown>
-  const customer = isObject(payload.customer) ? payload.customer : {}
-  const site = isObject(payload.site) ? payload.site : {}
-  const meteringPoint = isObject(payload.metering_point) ? payload.metering_point : {}
-  const contract = isObject(payload.contract) ? payload.contract : {}
+  const customer: Record<string, unknown> = isObject(payload.customer) ? payload.customer : {}
+  const site: Record<string, unknown> = isObject(payload.site) ? payload.site : {}
+  const meteringPoint: Record<string, unknown> = isObject(payload.metering_point) ? payload.metering_point : {}
+  const contract: Record<string, unknown> = isObject(payload.contract) ? payload.contract : {}
   const issues = [
     ...(input.missingFields ?? []).map((field) => `Saknad uppgift: ${field}`),
     ...(input.blockingReasons ?? []).map((reason) => typeof reason === 'string' ? reason : JSON.stringify(reason)),
