@@ -11,6 +11,14 @@ export type EnergyResolutionStatus =
   | 'facility_data_received'
   | 'facility_verified'
   | 'needs_review'
+  | 'facility_data_invalid'
+  | 'customer_information_mismatch'
+  | 'grid_owner_rejected_request'
+  | 'negative_aperak_received'
+  | 'z02_rejected'
+  | 'needs_customer_correction'
+  | 'needs_grid_owner_followup'
+  | 'protected_identity'
   | 'failed'
 
 export type EnergyResolverCoordinates = {
@@ -71,7 +79,7 @@ export type GridOwnerInformationRequestInput = {
 
 export type GridOwnerInformationRequestResult = {
   requestId: string | null
-  status: 'draft' | 'ready_to_send' | 'sent' | 'waiting_response' | 'received' | 'completed' | 'failed' | 'needs_review' | 'skipped'
+  status: 'draft' | 'ready_to_send' | 'sent' | 'waiting_response' | 'received' | 'completed' | 'failed' | 'needs_review' | 'facility_data_invalid' | 'customer_information_mismatch' | 'grid_owner_rejected_request' | 'negative_aperak_received' | 'z02_rejected' | 'needs_customer_correction' | 'needs_grid_owner_followup' | 'timeout' | 'retry_blocked' | 'skipped'
   channel: 'email' | 'ediel' | 'portal' | 'manual' | null
   nextStep: string
   routeId?: string | null

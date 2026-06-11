@@ -21,9 +21,65 @@ function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'short', timeStyle: 'short' }).format(date)
 }
 
+const CONTROLLED_FACILITY_STATUSES = new Set([
+  'facility_data_invalid',
+  'customer_information_mismatch',
+  'grid_owner_rejected_request',
+  'negative_aperak_received',
+  'z02_rejected',
+  'needs_customer_correction',
+  'needs_grid_owner_followup',
+  'duplicate_facility_id',
+  'cross_tenant_facility_conflict',
+  'protected_identity',
+])
+
+const HARD_BLOCK_STATUSES = new Set([
+  'negative_aperak_received',
+  'z02_rejected',
+  'grid_owner_rejected_request',
+  'cross_tenant_facility_conflict',
+  'protected_identity',
+])
+
+function isControlledFacilityStatus(status: string | null | undefined) {
+  return Boolean(status && CONTROLLED_FACILITY_STATUSES.has(status))
+}
+
+function facilityCorrectionCopy(status: string | null | undefined) {
+  if (status === 'cross_tenant_facility_conflict') {
+    return {
+      title: 'Anläggnings-ID finns i annan tenant',
+      message: 'Leverantörsbyte är stoppat. Systemet visar inte kunddata från annan tenant och skapar säker manuell granskning.',
+      steps: ['Verifiera uppgiften med kunden.', 'Kontakta nätägaren om uppgiften fortfarande verkar rätt.', 'Kör ny readiness-check efter manuell granskning.'],
+    }
+  }
+  if (status === 'protected_identity') {
+    return {
+      title: 'Skyddad identitet kräver manuell process',
+      message: 'Automatiska utskick och känslig datadelning är stoppade.',
+      steps: ['Flytta ärendet till behörig handläggare.', 'Skicka inte känsliga uppgifter via vanlig e-post.', 'Kör ny kontroll först när processen är säkert hanterad.'],
+    }
+  }
+  if (status === 'duplicate_facility_id') {
+    return {
+      title: 'Anläggnings-ID finns redan',
+      message: 'Systemet skapar inte en dubblett för samma bolag.',
+      steps: ['Öppna befintlig kund/anläggning.', 'Länka eller rätta uppgiften.', 'Kör ny readiness-check innan switch.'],
+    }
+  }
+  return {
+    title: 'Anläggningsuppgifter behöver rättas',
+    message: 'Leverantörsbyte är stoppat tills anläggnings-ID, mätpunkt, kundidentitet och nätägare är verifierade.',
+    steps: ['Kontrollera anläggnings-ID och mätpunkt med kunden.', 'Begär rätt uppgifter från nätägaren eller ladda upp elnätsfaktura.', 'Kör ny readiness-check innan någon switch skickas.'],
+  }
+}
+
 function statusTone(status: string) {
   if (['ready_for_switch', 'switch_confirmed', 'active', 'completed', 'linked_existing_customer', 'customer_created', 'customer_matched', 'facility_data_received'].includes(status)) return 'border-emerald-200 bg-emerald-50 text-emerald-800'
   if (['application_received', 'received', 'pending_validation', 'switch_requested', 'address_resolved', 'grid_area_resolved'].includes(status)) return 'border-sky-200 bg-sky-50 text-sky-800'
+  if (HARD_BLOCK_STATUSES.has(status)) return 'border-red-200 bg-red-50 text-red-800'
+  if (isControlledFacilityStatus(status)) return 'border-amber-200 bg-amber-50 text-amber-900'
   if (['needs_information', 'needs_address_resolution', 'needs_facility_data', 'information_request_ready', 'information_request_sent', 'waiting_grid_owner_response', 'manual_review', 'pending_review', 'confirmation_pending', 'webhook_pending'].includes(status)) return 'border-amber-200 bg-amber-50 text-amber-900'
   if (['failed', 'rejected', 'cancelled', 'switch_rejected'].includes(status)) return 'border-red-200 bg-red-50 text-red-800'
   return 'border-slate-200 bg-slate-50 text-slate-700'
@@ -81,6 +137,21 @@ function isFailedApplication(item: WebsiteApplicationAdminRow) {
   return ['failed', 'rejected', 'cancelled', 'switch_rejected'].includes(item.status)
 }
 
+function hasControlledFacilityIssue(item: WebsiteApplicationAdminRow) {
+  return isControlledFacilityStatus(item.status)
+    || isControlledFacilityStatus(nestedValue(item.response_payload, 'status'))
+    || isControlledFacilityStatus(nestedValue(item.response_payload, 'facility_data_status'))
+}
+
+function controlledFacilityStatus(item: WebsiteApplicationAdminRow) {
+  if (isControlledFacilityStatus(item.status)) return item.status
+  const responseStatus = nestedValue(item.response_payload, 'status')
+  if (isControlledFacilityStatus(responseStatus)) return responseStatus
+  const facilityStatus = nestedValue(item.response_payload, 'facility_data_status')
+  if (isControlledFacilityStatus(facilityStatus)) return facilityStatus
+  return null
+}
+
 function stringList(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((item) => String(item)).filter(Boolean)
   if (typeof value === 'string' && value.trim()) return [value]
@@ -103,6 +174,17 @@ function reviewIssues(item: WebsiteApplicationAdminRow): Array<{ field: string; 
 
   const fromMissingFields = stringList(item.missing_fields).map((field) => ({ field, label: field, action: item.next_step ?? 'Komplettera uppgiften.' }))
   if (fromMissingFields.length > 0) return fromMissingFields
+
+  const controlledStatus = controlledFacilityStatus(item)
+  if (controlledStatus) {
+    const copy = facilityCorrectionCopy(controlledStatus)
+    return [{
+      field: controlledStatus,
+      label: copy.title,
+      action: item.next_step ?? copy.steps[0],
+      severity: 'blocking',
+    }]
+  }
 
   if (isFailedApplication(item)) {
     return [{
@@ -279,6 +361,19 @@ function ApplicationDetails({ item }: { item: WebsiteApplicationAdminRow }) {
           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-sky-700">Nätägare</p><p className="mt-1 font-semibold text-sky-950">{energyValue(item, 'gridOwnerName', []) ?? item.grid_owner_id ?? '—'}</p></div>
         </div>
         {!canShowStartSwitch(item) ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><strong>Leverantörsbyte är blockerat.</strong> Nästa säkra steg är adressmatchning eller begäran om anläggningsuppgifter från nätägare tills anläggning/mätpunkt är verifierad.</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">Ansökan är redo för leverantörsbyte. Starta switch i operationsflödet.</div>}
+        {hasControlledFacilityIssue(item) ? (() => {
+          const copy = facilityCorrectionCopy(controlledFacilityStatus(item))
+          return (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-950">
+              <p className="font-semibold">{copy.title}</p>
+              <p className="mt-1">{copy.message}</p>
+              <ol className="mt-3 list-decimal space-y-1 pl-5 text-xs">
+                {copy.steps.map((step) => <li key={step}>{step}</li>)}
+              </ol>
+              <p className="mt-3 text-xs font-semibold">Tekniska detaljer finns endast i payload/logg. Fortsätt inte automatiskt efter rättning utan ny readiness-check.</p>
+            </div>
+          )
+        })() : null}
         {issues.length > 0 ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <p className="font-semibold text-amber-950">Saknas/blockerar</p>
@@ -313,7 +408,8 @@ export default async function WebsiteApplicationsAdminPage({ searchParams }: { s
   const status = typeof resolved.status === 'string' ? resolved.status : null
   const applications = await listWebsiteApplications({ companyId: tenantScope.isPlatformAdmin ? null : tenantScope.companyId, status, limit: 150 })
   const failed = applications.filter((item) => item.status === 'failed').length
-  const manualReview = applications.filter((item) => ['needs_information', 'needs_address_resolution', 'needs_facility_data', 'information_request_ready', 'waiting_grid_owner_response', 'manual_review', 'pending_review'].includes(item.status)).length
+  const facilityErrors = applications.filter((item) => hasControlledFacilityIssue(item)).length
+  const manualReview = applications.filter((item) => ['needs_information', 'needs_address_resolution', 'needs_facility_data', 'information_request_ready', 'waiting_grid_owner_response', 'manual_review', 'pending_review'].includes(item.status) || hasControlledFacilityIssue(item)).length
   const ready = applications.filter((item) => ['ready_for_switch', 'facility_data_received', 'pending_validation'].includes(item.status)).length
   const completed = applications.filter((item) => ['switch_confirmed', 'active', 'completed', 'linked_existing_customer'].includes(item.status)).length
   const isPlatformAdmin = isPlatformAdminContext(access)
@@ -339,7 +435,7 @@ export default async function WebsiteApplicationsAdminPage({ searchParams }: { s
           <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5"><p className="text-sm text-amber-900">Behöver kompletteras</p><p className="mt-2 text-3xl font-semibold text-amber-950">{manualReview}</p></div>
           <div className="rounded-3xl border border-sky-200 bg-sky-50 p-5"><p className="text-sm text-sky-800">Redo/kontroll</p><p className="mt-2 text-3xl font-semibold text-sky-950">{ready}</p></div>
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5"><p className="text-sm text-emerald-800">Bekräftade/aktiva</p><p className="mt-2 text-3xl font-semibold text-emerald-950">{completed}</p></div>
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-5"><p className="text-sm text-red-800">Misslyckade</p><p className="mt-2 text-3xl font-semibold text-red-950">{failed}</p></div>
+          <div className="rounded-3xl border border-red-200 bg-red-50 p-5"><p className="text-sm text-red-800">Stoppade fel</p><p className="mt-2 text-3xl font-semibold text-red-950">{failed + facilityErrors}</p><p className="mt-1 text-xs text-red-700">varav {facilityErrors} anläggnings-/nätägarfel</p></div>
         </div>
       </section>
 
@@ -349,7 +445,8 @@ export default async function WebsiteApplicationsAdminPage({ searchParams }: { s
           <Link href="/admin/website-applications?status=needs_information" className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-900">Saknar uppgifter</Link>
           <Link href="/admin/website-applications?status=needs_facility_data" className="rounded-full border border-amber-200 bg-white px-3 py-1 text-amber-900">Begär nätägare</Link>
           <Link href="/admin/website-applications?status=ready_for_switch" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">Redo för switch</Link>
-          <Link href="/admin/website-applications?status=failed" className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-red-800">Fel</Link>
+          <Link href="/admin/website-applications?status=facility_data_invalid" className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-red-800">Anläggningsfel</Link>
+          <Link href="/admin/website-applications?status=failed" className="rounded-full border border-red-200 bg-white px-3 py-1 text-red-800">Tekniska fel</Link>
         </div>
         <div className="overflow-x-auto rounded-2xl border border-slate-200">
           <table className="min-w-full text-sm">

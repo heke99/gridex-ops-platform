@@ -18,6 +18,16 @@ export type WebsiteApplicationStatus =
   | 'active'
   | 'manual_review'
   | 'pending_review'
+  | 'facility_data_invalid'
+  | 'customer_information_mismatch'
+  | 'grid_owner_rejected_request'
+  | 'negative_aperak_received'
+  | 'z02_rejected'
+  | 'needs_customer_correction'
+  | 'needs_grid_owner_followup'
+  | 'duplicate_facility_id'
+  | 'cross_tenant_facility_conflict'
+  | 'protected_identity'
   | 'failed'
   | 'cancelled'
 
@@ -32,9 +42,101 @@ export type CustomerIntakeStatus =
   | 'ready_for_contract'
   | 'ready_for_operations'
 
+export type ControlledFacilityStatus =
+  | 'facility_data_invalid'
+  | 'customer_information_mismatch'
+  | 'grid_owner_rejected_request'
+  | 'negative_aperak_received'
+  | 'z02_rejected'
+  | 'needs_customer_correction'
+  | 'needs_grid_owner_followup'
+  | 'duplicate_facility_id'
+  | 'cross_tenant_facility_conflict'
+  | 'protected_identity'
+
+const CONTROLLED_FACILITY_STATUSES = new Set<string>([
+  'facility_data_invalid',
+  'customer_information_mismatch',
+  'grid_owner_rejected_request',
+  'negative_aperak_received',
+  'z02_rejected',
+  'needs_customer_correction',
+  'needs_grid_owner_followup',
+  'duplicate_facility_id',
+  'cross_tenant_facility_conflict',
+  'protected_identity',
+])
+
+const CUSTOMER_CORRECTION_STATUSES = new Set<string>([
+  'facility_data_invalid',
+  'customer_information_mismatch',
+  'z02_rejected',
+  'needs_customer_correction',
+  'duplicate_facility_id',
+])
+
+const GRID_OWNER_FOLLOWUP_STATUSES = new Set<string>([
+  'grid_owner_rejected_request',
+  'negative_aperak_received',
+  'needs_grid_owner_followup',
+])
+
+function isControlledFacilityStatus(value: string | null): value is ControlledFacilityStatus {
+  return Boolean(value && CONTROLLED_FACILITY_STATUSES.has(value))
+}
+
+function humanFacilityIssue(status: ControlledFacilityStatus): ReviewIssue {
+  if (status === 'cross_tenant_facility_conflict') {
+    return {
+      field: 'cross_tenant_facility_conflict',
+      label: 'Anläggnings-ID finns i annan tenant',
+      severity: 'blocking',
+      message: 'Samma anläggnings-ID verkar redan finnas i ett annat bolag. Kunddata från annan tenant visas inte och automation stoppas.',
+      action: 'Skapa säker manuell granskning. Bekräfta uppgifterna med kunden och nätägaren innan ny readiness-check.',
+    }
+  }
+  if (status === 'duplicate_facility_id') {
+    return {
+      field: 'duplicate_facility_id',
+      label: 'Anläggnings-ID finns redan',
+      severity: 'blocking',
+      message: 'Anläggnings-ID finns redan hos samma bolag. Systemet skapar inte en dubblett.',
+      action: 'Granska befintlig kund/anläggning och länka eller rätta uppgiften innan ny readiness-check.',
+    }
+  }
+  if (status === 'protected_identity') {
+    return {
+      field: 'protected_identity',
+      label: 'Skyddad identitet kräver manuell hantering',
+      severity: 'blocking',
+      message: 'Automatiska utskick och känslig databehandling är spärrade.',
+      action: 'Flytta ärendet till behörig handläggare och följ skyddad-identitet-processen.',
+    }
+  }
+  if (GRID_OWNER_FOLLOWUP_STATUSES.has(status)) {
+    return {
+      field: status,
+      label: 'Nätägaren har stoppat eller avvisat uppgifterna',
+      severity: 'blocking',
+      message: 'Nätägarens svar måste tolkas affärsmässigt. Leverantörsbyte får inte fortsätta automatiskt.',
+      action: 'Kontrollera nätägarens svar, begär rätt uppgifter vid behov och kör ny readiness-check efter korrigering.',
+    }
+  }
+  return {
+    field: status,
+    label: 'Anläggningsuppgifter behöver rättas',
+    severity: 'blocking',
+    message: 'Anläggnings-ID, mätpunkt, kundidentitet eller nätområde kunde inte verifieras säkert.',
+    action: 'Kontrollera uppgifterna med kunden, begär rätt uppgifter från nätägare eller ladda upp elnätsfaktura. Kör ny readiness-check efter rättning.',
+  }
+}
+
 export function customerIntakeStatusForReadiness(readiness: Pick<WebsiteApplicationReadiness, 'status' | 'missingFields' | 'blockingReasons' | 'canStartSwitch'>): CustomerIntakeStatus {
   if (readiness.status === 'failed') return 'blocked'
   if (readiness.status === 'cancelled') return 'blocked'
+  if (['protected_identity', 'cross_tenant_facility_conflict', 'negative_aperak_received', 'z02_rejected', 'grid_owner_rejected_request'].includes(readiness.status)) return 'blocked'
+  if (readiness.status === 'duplicate_facility_id') return 'pending_duplicate_review'
+  if (['facility_data_invalid', 'customer_information_mismatch', 'needs_customer_correction', 'needs_grid_owner_followup'].includes(readiness.status)) return 'pending_information'
   if (['ready_for_switch', 'switch_requested', 'switch_confirmed', 'active'].includes(readiness.status)) return 'ready_for_operations'
   if (['pending_validation', 'facility_data_received'].includes(readiness.status)) return 'ready_for_contract'
 
@@ -201,16 +303,28 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
   const gridAreaCode = normaliseGridAreaCode(firstText(input, ['grid_area_code', 'gridAreaCode', 'site.grid_area_code', 'site.gridAreaCode', 'metadata.grid_area_code', 'energy_resolution.gridAreaCode']))
   const priceArea = normalisePriceArea(firstText(input, ['price_area_code', 'priceAreaCode', 'price_area', 'priceArea', 'site.price_area_code', 'site.priceAreaCode', 'metering_point.price_area_code', 'energy_resolution.priceArea']))
   const resolutionStatus = firstText(input, ['resolution_status', 'resolutionStatus', 'site.resolution_status', 'energy_resolution.resolutionStatus'])
+  const facilityDataStatus = firstText(input, [
+    'facility_data_status',
+    'facilityDataStatus',
+    'site.facility_data_status',
+    'site.facilityDataStatus',
+    'metering_point.facility_data_status',
+    'metadata.facility_data_status',
+    'response_payload.status',
+    'response_payload.facility_data_status',
+    'status',
+  ])
   const informationRequestId = firstText(input, ['grid_owner_information_request_id', 'gridOwnerInformationRequestId', 'metadata.grid_owner_information_request_id'])
   const informationRequestStatus = firstText(input, ['grid_owner_information_request_status', 'gridOwnerInformationRequestStatus', 'metadata.grid_owner_information_request_status'])
   const hasVerifiedGridOwner = isUuid(gridOwnerId) || isEdielId(gridOwnerEdielId) || Boolean(gridAreaCode && priceArea && ['grid_area_master_validated', 'facility_data_requested', 'facility_data_received', 'facility_verified'].includes(resolutionStatus ?? ''))
-  const facilityVerified = firstBoolean(input, [
+  const facilityHasControlledError = isControlledFacilityStatus(facilityDataStatus)
+  const facilityVerified = !facilityHasControlledError && (firstBoolean(input, [
     'facility_data_verified',
     'facilityDataVerified',
     'facility_data_verified_at',
     'site.facility_data_verified_at',
     'metering_point.facility_data_verified_at',
-  ]) || resolutionStatus === 'facility_verified' || Boolean(facilityId && meteringPointId && gridAreaCode && priceArea)
+  ]) || resolutionStatus === 'facility_verified' || Boolean(facilityId && meteringPointId && gridAreaCode && priceArea))
 
   const pricePlanId = firstText(input, ['price_plan_id', 'pricePlanId', 'contract.price_plan_id', 'contract.pricePlanId'])
   const pricePlanDefinition = firstText(input, ['contract.contract_name', 'contract.contractName', 'contract.contract_type', 'contract.contractType', 'contract.campaign_code', 'campaign_code'])
@@ -279,6 +393,13 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
     missingFields.push('requested_start_date')
     addIssue(blockingReasons, { field: 'requested_start_date', label: 'Startdatum saknas', message: 'Kunden har valt specifikt startdatum men datum saknas.', action: 'Ange önskat startdatum eller ändra till snarast möjligt.' })
   }
+  if (facilityHasControlledError && facilityDataStatus) {
+    missingFields.push(facilityDataStatus)
+    addIssue(blockingReasons, humanFacilityIssue(facilityDataStatus))
+    warnings.push('requires_new_readiness_check')
+    if (CUSTOMER_CORRECTION_STATUSES.has(facilityDataStatus)) warnings.push('customer_correction_required')
+    if (GRID_OWNER_FOLLOWUP_STATUSES.has(facilityDataStatus)) warnings.push('grid_owner_followup_required')
+  }
   if (requestedStartMode === 'earliest_possible' && !calculatedEarliestStartDate) warnings.push('calculated_earliest_start_date_pending')
   if (siteAddress && !gridAreaCode) warnings.push('address_without_grid_area')
   if (gridAreaCode && !priceArea) warnings.push('grid_area_without_price_area')
@@ -300,7 +421,8 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
   const canActivateCustomer = Boolean(canStartSwitch && confirmedStartDate && actualStartDate)
 
   let status: WebsiteApplicationStatus
-  if (canStartSwitch) status = 'ready_for_switch'
+  if (facilityHasControlledError && facilityDataStatus) status = facilityDataStatus
+  else if (canStartSwitch) status = 'ready_for_switch'
   else if (resolutionStatus === 'needs_review') status = 'manual_review'
   else if (!siteAddress && !facilityId) status = 'needs_address_resolution'
   else if (!gridAreaCode || !priceArea) status = 'needs_address_resolution'
@@ -309,11 +431,13 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
   else if (facilityVerified) status = 'facility_data_received'
   else status = blocking.length > 0 ? 'needs_information' : 'pending_validation'
 
-  const nextStep = canStartSwitch
-    ? 'Starta leverantörsbyte.'
-    : canRequestGridOwnerInformation
-      ? 'Begär anläggningsuppgifter från nätägare innan switch kan startas.'
-      : blocking[0]?.action ?? 'Kontrollera ansökan innan nästa statussteg.'
+  const nextStep = facilityHasControlledError && facilityDataStatus
+    ? humanFacilityIssue(facilityDataStatus).action
+    : canStartSwitch
+      ? 'Starta leverantörsbyte.'
+      : canRequestGridOwnerInformation
+        ? 'Begär anläggningsuppgifter från nätägare innan switch kan startas.'
+        : blocking[0]?.action ?? 'Kontrollera ansökan innan nästa statussteg.'
 
   const qualityScore = Math.max(0, Math.min(100, 100 - (blocking.length * 12) - ((blockingReasons.length - blocking.length) * 5) - (warnings.length * 3)))
 

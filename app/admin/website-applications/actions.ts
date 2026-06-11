@@ -7,6 +7,13 @@ import { supabaseService } from '@/lib/supabase/service'
 import { assessWebsiteApplicationReadiness, cleanReviewText, customerIntakeStatusForReadiness } from '@/lib/website/applicationReview'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { ensureGridOwnerInformationRequest, markFacilityDataReceived } from '@/lib/energy/gridOwnerRequests'
+import {
+  findFacilityConflicts,
+  mapFacilityBusinessError,
+  normalizeFacilityId,
+  recordFacilityDataIssue,
+  type FacilityBusinessErrorCode,
+} from '@/lib/energy/facilityDataErrors'
 
 const WRITE_PERMISSIONS = { anyOf: ['customers.write', 'switching.write', 'metering.write', 'poa.write'] }
 
@@ -257,6 +264,63 @@ function mergePayload(current: Record<string, unknown> | null, formData: FormDat
   return base
 }
 
+async function applyFacilityConflictStatus(application: ApplicationRecord, payload: Record<string, unknown>): Promise<FacilityBusinessErrorCode | null> {
+  if (!application.customer_id) return null
+  const site = isRecord(payload.site) ? payload.site : {}
+  const facilityId = normalizeFacilityId(cleanReviewText(site.facility_id))
+  if (!facilityId) return null
+
+  const conflicts = await findFacilityConflicts({
+    companyId: application.company_id,
+    customerId: application.customer_id,
+    facilityId,
+  })
+
+  const businessCode: FacilityBusinessErrorCode | null = conflicts.crossTenantExists
+    ? 'cross_tenant_facility_conflict'
+    : conflicts.sameTenant.length > 0
+      ? 'duplicate_facility_id'
+      : null
+
+  if (!businessCode) {
+    if (payload.facility_data_status === 'duplicate_facility_id' || payload.facility_data_status === 'cross_tenant_facility_conflict') {
+      delete payload.facility_data_status
+      delete site.facility_data_status
+      payload.site = site
+    }
+    return null
+  }
+
+  const mapped = mapFacilityBusinessError(businessCode)
+  payload.facility_data_status = mapped.status
+  payload.facility_data_error = {
+    code: businessCode,
+    facility_id: facilityId,
+    existing_site_id: conflicts.sameTenant[0]?.id ?? null,
+  }
+  site.facility_id = facilityId
+  site.facility_data_status = mapped.status
+  payload.site = site
+
+  await recordFacilityDataIssue({
+    companyId: application.company_id,
+    customerId: application.customer_id,
+    customerSiteId: application.customer_site_id,
+    meteringPointRowId: application.metering_point_id,
+    customerApplicationId: application.id,
+    facilityId,
+    source: 'website_application_review',
+    sourceErrorCode: businessCode,
+    sourceErrorText: mapped.message,
+    error: mapped,
+    metadata: { existing_site_id: conflicts.sameTenant[0]?.id ?? null },
+  }).catch((error) => {
+    console.warn('[website-applications] failed to record facility conflict issue', error)
+  })
+
+  return businessCode
+}
+
 async function updateCustomerReviewState(application: ApplicationRecord, readiness: ReturnType<typeof assessWebsiteApplicationReadiness>) {
   if (!application.customer_id) return
 
@@ -278,7 +342,7 @@ async function updateCustomerReviewState(application: ApplicationRecord, readine
 async function upsertApplicationSite(application: ApplicationRecord, payload: Record<string, unknown>) {
   if (!application.customer_id) return application.customer_site_id
   const site = isRecord(payload.site) ? payload.site : {}
-  const facilityId = cleanReviewText(site.facility_id)
+  const facilityId = normalizeFacilityId(cleanReviewText(site.facility_id))
   const street = cleanReviewText(site.street)
   const city = cleanReviewText(site.city)
   const postalCode = cleanReviewText(site.postal_code)
@@ -522,10 +586,11 @@ async function saveApplicationReview(input: { applicationId: string; formData: F
   const application = await loadApplication(input.applicationId)
   const admin = await authorizeForCompany(application.company_id)
   const payload = mergePayload(application.payload, input.formData)
+  const facilityConflictStatus = await applyFacilityConflictStatus(application, payload)
   const readiness = assessWebsiteApplicationReadiness(payload)
-  const siteId = await upsertApplicationSite(application, payload)
-  const meteringPointId = await upsertApplicationMeteringPoint(application, siteId, payload)
-  const contractId = await upsertApplicationContract(application, siteId, meteringPointId, payload, readiness)
+  const siteId = facilityConflictStatus ? application.customer_site_id : await upsertApplicationSite(application, payload)
+  const meteringPointId = facilityConflictStatus ? application.metering_point_id : await upsertApplicationMeteringPoint(application, siteId, payload)
+  const contractId = facilityConflictStatus ? application.contract_id : await upsertApplicationContract(application, siteId, meteringPointId, payload, readiness)
   const note = text(input.formData, 'admin_note')
   const previousValues = {
     status: application.status,

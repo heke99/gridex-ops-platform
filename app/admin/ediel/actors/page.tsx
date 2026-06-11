@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function EdielActorsPage() {
   const context = await requirePlatformAdminAccess()
-  const [actorsResult, partiesResult, addressesResult] = await Promise.all([
+  const [actorsResult, partiesResult, addressesResult, marketActorsResult, actorRolesResult, actorRoutesResult, importIssuesResult, semanticsResult, errorMappingsResult] = await Promise.all([
     supabaseService
     .from('ediel_actor_settings')
     .select('id, company_id, ediel_id, actor_ediel_id, actor_role, role, sub_role, environment, is_active, status, updated_at')
@@ -23,10 +23,43 @@ export default async function EdielActorsPage() {
       .select('*')
       .order('updated_at', { ascending: false })
       .limit(200),
+    supabaseService
+      .from('platform_market_actors')
+      .select('id,name,org_number,status,source,updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(100),
+    supabaseService
+      .from('platform_actor_roles')
+      .select('actor_id,actor_role,is_active'),
+    supabaseService
+      .from('platform_actor_routes')
+      .select('id,actor_id,message_family,subaddress,communication_address,environment,is_verified,status')
+      .limit(300),
+    supabaseService
+      .from('platform_actor_import_issues')
+      .select('id,actor_id,issue_type,severity,status,message,created_at')
+      .order('created_at', { ascending: false })
+      .limit(50),
+    supabaseService
+      .from('ediel_message_semantics')
+      .select('message_family,message_code,subtype,business_process,request_type,is_active')
+      .eq('is_active', true)
+      .limit(100),
+    supabaseService
+      .from('ediel_error_code_mappings')
+      .select('business_error,recommended_action,retry_allowed,requires_customer_contact,requires_grid_owner_contact,requires_superadmin_review')
+      .eq('is_active', true)
+      .limit(100),
   ])
   const actors = actorsResult.data ?? []
   const parties = partiesResult.error ? [] : partiesResult.data ?? []
   const addresses = addressesResult.error ? [] : addressesResult.data ?? []
+  const marketActors = marketActorsResult.error ? [] : marketActorsResult.data ?? []
+  const actorRoles = actorRolesResult.error ? [] : actorRolesResult.data ?? []
+  const actorRoutes = actorRoutesResult.error ? [] : actorRoutesResult.data ?? []
+  const importIssues = importIssuesResult.error ? [] : importIssuesResult.data ?? []
+  const messageSemantics = semanticsResult.error ? [] : semanticsResult.data ?? []
+  const errorMappings = errorMappingsResult.error ? [] : errorMappingsResult.data ?? []
   const addressesByParty = new Map<string, typeof addresses>()
   for (const address of addresses) {
     const existing = addressesByParty.get(address.party_id) ?? []
@@ -38,6 +71,10 @@ export default async function EdielActorsPage() {
   const verifiedSuppliers = parties.filter((party) => Array.isArray(party.roles) && (party.roles.includes('electricity_supplier') || party.roles.includes('supplier')) && party.status === 'verified').length
   const missingCertificates = addresses.filter((address) => String(address.message_family ?? '').toUpperCase() === 'PRODAT' && !address.receiver_certificate_id).length
   const hiddenOrTestParties = parties.filter((party) => !party.visible_to_customer_flow || (Array.isArray(party.roles) && (party.roles.includes('ediel_portal') || party.roles.includes('test_counterparty')))).length
+  const registryGridOwners = new Set(actorRoles.filter((role) => ['netowner', 'grid_owner', 'network_owner'].includes(String(role.actor_role ?? '').toLowerCase())).map((role) => role.actor_id)).size
+  const registrySuppliers = new Set(actorRoles.filter((role) => ['powersupplier', 'electricity_supplier', 'supplier'].includes(String(role.actor_role ?? '').toLowerCase())).map((role) => role.actor_id)).size
+  const verifiedRegistryRoutes = actorRoutes.filter((route) => route.is_verified || route.status === 'verified' || route.status === 'active').length
+  const openImportIssues = importIssues.filter((issue) => issue.status !== 'resolved').length
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -65,6 +102,43 @@ export default async function EdielActorsPage() {
             <div className="mt-2 text-3xl font-black text-slate-950">{hiddenOrTestParties}</div>
             <p className="mt-2 text-xs leading-5 text-slate-700">Edielportalen och testmotparter ska inte visas i normala kundflöden.</p>
           </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Companies.xml och marknadsregister</p>
+              <h2 className="mt-2 text-2xl font-black text-slate-950">Aktörsregister, routes och message semantics</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+                Denna vy visar det globala registret som används av Energy Resolver, route resolver och kundintaget. Tenant-admins ska välja verifierade aktörer; superadmin importerar och godkänner Ediel-ID, subadresser, PRODAT/UTILTS-routes och osäkra matchningar.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-700">
+              <div className="font-black text-slate-950">Import</div>
+              <div>Kör scriptet <span className="font-mono">scripts/import-companies-xml.mjs</span> och granska importdiff innan produktionsdata markeras verified.</div>
+            </div>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">Aktörer</p><div className="mt-2 text-2xl font-black text-slate-950">{marketActors.length}</div></div>
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Nätägare</p><div className="mt-2 text-2xl font-black text-emerald-950">{registryGridOwners}</div></div>
+            <div className="rounded-3xl border border-blue-200 bg-blue-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Elleverantörer</p><div className="mt-2 text-2xl font-black text-blue-950">{registrySuppliers}</div></div>
+            <div className="rounded-3xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-sky-700">Verifierade routes</p><div className="mt-2 text-2xl font-black text-sky-950">{verifiedRegistryRoutes}</div></div>
+            <div className="rounded-3xl border border-violet-200 bg-violet-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">Semantics</p><div className="mt-2 text-2xl font-black text-violet-950">{messageSemantics.length}</div></div>
+            <div className="rounded-3xl border border-red-200 bg-red-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Importfrågor</p><div className="mt-2 text-2xl font-black text-red-950">{openImportIssues}</div></div>
+          </div>
+          {importIssues.length > 0 ? (
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <p className="font-black text-amber-950">Senaste importfrågor</p>
+              <div className="mt-3 grid gap-2 md:grid-cols-2">
+                {importIssues.slice(0, 6).map((issue) => (
+                  <div key={issue.id} className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-amber-950">
+                    <div className="font-black">{issue.issue_type} · {issue.actor_id ?? 'okänd aktör'}</div>
+                    <div>{issue.message}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

@@ -9,6 +9,13 @@ import { assessWebsiteApplicationReadiness, customerIntakeStatusForReadiness, ty
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
 import type { EnergyResolverResult } from '@/lib/energy/types'
+import {
+  findFacilityConflicts,
+  mapFacilityBusinessError,
+  normalizeFacilityId,
+  recordFacilityDataIssue,
+  type FacilityBusinessErrorCode,
+} from '@/lib/energy/facilityDataErrors'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -450,6 +457,48 @@ function technicalBlockingReason(error: WebsiteApplicationError) {
     severity: 'blocking' as const,
     message: operationalErrorMessage(error),
     action: 'Kör senaste migration/schema-fix och kontrollera ansökan igen.',
+  }
+}
+
+const CONTROLLED_BUSINESS_ERROR_CODES = new Set<string>([
+  'facility_data_invalid',
+  'customer_information_mismatch',
+  'grid_owner_rejected_request',
+  'negative_aperak_received',
+  'z02_rejected',
+  'needs_customer_correction',
+  'needs_grid_owner_followup',
+  'duplicate_facility_id',
+  'cross_tenant_facility_conflict',
+  'protected_identity',
+  'timeout',
+])
+
+function isControlledBusinessError(error: WebsiteApplicationError): boolean {
+  return CONTROLLED_BUSINESS_ERROR_CODES.has(error.code)
+}
+
+function controlledBusinessErrorCode(error: WebsiteApplicationError): FacilityBusinessErrorCode {
+  if (CONTROLLED_BUSINESS_ERROR_CODES.has(error.code)) return error.code as FacilityBusinessErrorCode
+  return 'needs_customer_correction'
+}
+
+function controlledBusinessStatus(error: WebsiteApplicationError): string {
+  return mapFacilityBusinessError(controlledBusinessErrorCode(error)).status
+}
+
+function controlledBusinessNextStep(error: WebsiteApplicationError): string {
+  return mapFacilityBusinessError(controlledBusinessErrorCode(error)).recommendedAction
+}
+
+function controlledBusinessBlockingReason(error: WebsiteApplicationError) {
+  const mapped = mapFacilityBusinessError(controlledBusinessErrorCode(error), { message: operationalErrorMessage(error) })
+  return {
+    field: mapped.issueType,
+    label: mapped.title,
+    severity: 'blocking' as const,
+    message: mapped.message,
+    action: mapped.recommendedAction,
   }
 }
 
@@ -944,9 +993,30 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
 async function upsertSite(companyId: string, customerId: string, input: ApplicationInput): Promise<{ id: string; facility_id: string | null } | null> {
   const site = input.site
   if (!site) return null
-  const facilityId = clean(site.facility_id)
+  const facilityId = normalizeFacilityId(site.facility_id)
 
   if (facilityId) {
+    const conflicts = await findFacilityConflicts({ companyId, customerId, facilityId })
+    if (conflicts.crossTenantExists) {
+      throw new WebsiteApplicationError({
+        message: 'Anläggnings-ID finns i annan tenant. Systemet blockerar automation och visar inte annan tenants kunddata.',
+        status: 409,
+        code: 'cross_tenant_facility_conflict',
+        stage: 'site_create',
+        details: { facility_id: facilityId },
+      })
+    }
+    const sameTenantConflict = conflicts.sameTenant[0]
+    if (sameTenantConflict) {
+      throw new WebsiteApplicationError({
+        message: 'Anläggnings-ID finns redan hos en annan kund i samma bolag. Skapa inte dubblett; länka eller granska befintlig anläggning.',
+        status: 409,
+        code: 'duplicate_facility_id',
+        stage: 'site_create',
+        details: { facility_id: facilityId, existing_site_id: sameTenantConflict.id },
+      })
+    }
+
     const { data: existing, error: existingError } = await supabaseService
       .from('customer_sites')
       .select('id,facility_id')
@@ -1890,11 +1960,14 @@ export async function processWebsiteCustomerApplication(input: {
       : new WebsiteApplicationError({ message: errorMessage(error), status: 500, code: 'internal_error', stage: 'application_record_create' })
 
     const safeErrorMessage = operationalErrorMessage(appError)
+    const controlledBusinessError = isControlledBusinessError(appError)
+    const businessStatus = controlledBusinessError ? controlledBusinessStatus(appError) : 'failed'
+    const businessNextStep = controlledBusinessError ? controlledBusinessNextStep(appError) : 'Tekniskt fel kräver åtgärd innan ansökan kan fortsätta.'
     const failedBlockingReasons = [
       ...readiness.blockingReasons,
-      technicalBlockingReason(appError),
+      controlledBusinessError ? controlledBusinessBlockingReason(appError) : technicalBlockingReason(appError),
     ]
-    await createApplicationRow({
+    const failedApplication = await createApplicationRow({
       client: input.client,
       externalCustomerId,
       externalAccountId: clean(body.external_account_id),
@@ -1908,10 +1981,10 @@ export async function processWebsiteCustomerApplication(input: {
         error: safeErrorMessage,
         code: appError.code,
         error_stage: appError.stage,
-        status: 'failed',
+        status: businessStatus,
         missing_fields: readiness.missingFields,
         blocking_reasons: failedBlockingReasons,
-        next_step: 'Tekniskt fel kräver åtgärd innan ansökan kan fortsätta.',
+        next_step: businessNextStep,
         requested_start_date: readiness.requestedStartDate,
         confirmed_start_date: readiness.confirmedStartDate,
         actual_start_date: readiness.actualStartDate,
@@ -1920,13 +1993,13 @@ export async function processWebsiteCustomerApplication(input: {
         can_activate_customer: false,
       },
       idempotencyKey: input.idempotencyKey ?? null,
-      status: 'failed',
+      status: businessStatus,
       errorStage: appError.stage,
       errorCode: appError.code,
       errorMessage: safeErrorMessage,
       missingFields: readiness.missingFields,
       blockingReasons: failedBlockingReasons,
-      nextStep: 'Tekniskt fel kräver åtgärd innan ansökan kan fortsätta.',
+      nextStep: businessNextStep,
       requestedStartDate: readiness.requestedStartDate,
       confirmedStartDate: readiness.confirmedStartDate,
       actualStartDate: readiness.actualStartDate,
@@ -1935,7 +2008,7 @@ export async function processWebsiteCustomerApplication(input: {
           source: clean(body.source) ?? 'external_website',
           external_customer_id: externalCustomerId,
         }),
-        timelineEvent('failed', safeErrorMessage, { error_stage: appError.stage, error_code: appError.code }),
+        timelineEvent(controlledBusinessError ? businessStatus : 'failed', safeErrorMessage, { error_stage: appError.stage, error_code: appError.code, next_step: businessNextStep }),
       ],
       auditLog: [reviewAuditEvent('application_failed', null, {
         error_stage: appError.stage,
@@ -1945,7 +2018,45 @@ export async function processWebsiteCustomerApplication(input: {
       warnings: readiness.warnings,
     }).catch((failedInsertError) => {
       console.warn('[website-applications] failed to log failed application', failedInsertError)
+      return null
     })
+
+    if (controlledBusinessError && failedApplication?.id) {
+      const mapped = mapFacilityBusinessError(controlledBusinessErrorCode(appError), { message: safeErrorMessage })
+      await recordFacilityDataIssue({
+        companyId: input.client.company_id,
+        customerId: customerResult?.customer?.id ?? null,
+        customerSiteId: site?.id ?? null,
+        meteringPointRowId: meteringPoint?.id ?? null,
+        customerApplicationId: failedApplication.id,
+        facilityId: site?.facility_id ?? clean(body.site?.facility_id),
+        meteringPointId: meteringPoint?.metering_point_id ?? clean(body.metering_point?.metering_point_id),
+        gridAreaCode: readiness.gridAreaCode,
+        priceArea: readiness.priceArea,
+        source: 'website_customer_application',
+        sourceErrorCode: appError.code,
+        sourceErrorText: safeErrorMessage,
+        error: mapped,
+        metadata: {
+          external_customer_id: externalCustomerId,
+          error_stage: appError.stage,
+          details: appError.details ?? null,
+        },
+      }).catch((issueError) => {
+        console.warn('[website-applications] failed to record facility data issue', issueError)
+      })
+
+      return successResponse({
+        application_id: failedApplication.id,
+        status: businessStatus,
+        error: safeErrorMessage,
+        code: appError.code,
+        error_stage: appError.stage,
+        next_step: businessNextStep,
+        can_start_switch: false,
+        requires_new_readiness_check: true,
+      }, [...readiness.warnings, appError.code])
+    }
 
     return failureResponse(appError)
   }

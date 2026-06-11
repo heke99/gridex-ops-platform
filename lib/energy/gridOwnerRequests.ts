@@ -42,6 +42,55 @@ async function findContactRoute(input: GridOwnerInformationRequestInput) {
   }) ?? rows[0] ?? null
 }
 
+async function findActorRoute(input: GridOwnerInformationRequestInput) {
+  if (!input.gridOwnerId) return null
+
+  const owner = await supabaseService
+    .from('platform_grid_owners')
+    .select('id,name,ediel_id')
+    .eq('id', input.gridOwnerId)
+    .maybeSingle()
+
+  if (owner.error) {
+    if (missingSchema(owner.error)) return null
+    throw owner.error
+  }
+
+  const edielId = clean(owner.data?.ediel_id)
+  if (!edielId) return null
+
+  const identifier = await supabaseService
+    .from('platform_actor_identifiers')
+    .select('actor_id')
+    .eq('identifier_type', 'EdielId')
+    .eq('identifier_value', edielId)
+    .maybeSingle()
+
+  if (identifier.error) {
+    if (missingSchema(identifier.error)) return null
+    throw identifier.error
+  }
+  if (!identifier.data?.actor_id) return null
+
+  const route = await supabaseService
+    .from('platform_actor_routes')
+    .select('id,message_family,subaddress,communication_address,status,is_verified,auto_send_allowed,requires_poa')
+    .eq('actor_id', identifier.data.actor_id)
+    .eq('message_family', 'PRODAT')
+    .eq('environment', 'production')
+    .order('is_verified', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (route.error) {
+    if (missingSchema(route.error)) return null
+    throw route.error
+  }
+
+  return route.data ?? null
+}
+
+
 async function existingOpenRequest(input: GridOwnerInformationRequestInput) {
   if (!input.customerSiteId) return null
   const { data, error } = await supabaseService
@@ -91,11 +140,14 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
     }
   }
 
-  const route = await findContactRoute(input)
-  if (!route) warnings.push('grid_owner_contact_route_missing')
+  const contactRoute = await findContactRoute(input)
+  const actorRoute = contactRoute ? null : await findActorRoute(input)
+  if (!contactRoute && !actorRoute) warnings.push('grid_owner_contact_route_missing')
+  if (actorRoute && (!actorRoute.is_verified || actorRoute.status !== 'active')) warnings.push('actor_route_needs_verification')
 
-  const channel = (route?.channel ?? 'manual') as 'email' | 'ediel' | 'portal' | 'manual'
-  const status = route && channel !== 'manual' ? 'ready_to_send' : 'draft'
+  const channel = (contactRoute?.channel ?? (actorRoute ? 'ediel' : 'manual')) as 'email' | 'ediel' | 'portal' | 'manual'
+  const routeIsSendReady = Boolean(contactRoute && channel !== 'manual') || Boolean(actorRoute?.is_verified && actorRoute.status === 'active')
+  const status = routeIsSendReady ? 'ready_to_send' : actorRoute ? 'needs_review' : 'draft'
   const now = new Date().toISOString()
 
   const { data, error } = await supabaseService
@@ -112,18 +164,20 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
       request_type: input.requestType ?? 'facility_lookup',
       status,
       channel,
-      template_id: clean(route?.template_id) ?? 'facility_lookup.default',
-      contact_route_id: clean(route?.id),
-      requires_poa: route?.requires_poa ?? true,
+      template_id: clean(contactRoute?.template_id) ?? (actorRoute ? 'facility_lookup.prodat_z01' : 'facility_lookup.default'),
+      contact_route_id: clean(contactRoute?.id),
+      actor_route_id: clean(actorRoute?.id),
+      requires_poa: contactRoute?.requires_poa ?? actorRoute?.requires_poa ?? true,
       created_by: clean(input.createdBy),
       metadata: {
         created_from: 'energy_resolver',
-        auto_send_allowed: Boolean(route?.auto_send_allowed),
+        auto_send_allowed: Boolean(contactRoute?.auto_send_allowed ?? actorRoute?.auto_send_allowed),
         production_guard: 'switch_blocked_until_facility_verified',
+        route_source: contactRoute ? 'grid_owner_contact_routes' : actorRoute ? 'platform_actor_routes' : 'manual',
       },
       updated_at: now,
     })
-    .select('id,status,channel,contact_route_id')
+    .select('id,status,channel,contact_route_id,actor_route_id')
     .single()
 
   if (error) {
@@ -165,10 +219,12 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
     requestId: data.id as string,
     status: data.status,
     channel: data.channel,
-    routeId: data.contact_route_id ?? null,
+    routeId: data.contact_route_id ?? data.actor_route_id ?? null,
     nextStep: status === 'ready_to_send'
       ? 'Granska begäran och skicka den till nätägaren. Leverantörsbyte är blockerat tills anläggningsuppgifter är mottagna.'
-      : 'Komplettera kontaktväg eller hantera nätägarbegäran manuellt. Leverantörsbyte är blockerat tills anläggningsuppgifter är mottagna.',
+      : actorRoute
+        ? 'Verifiera importerad Ediel-route/subadress innan sändning. Leverantörsbyte är blockerat tills route och anläggningsuppgifter är gröna.'
+        : 'Komplettera kontaktväg eller hantera nätägarbegäran manuellt. Leverantörsbyte är blockerat tills anläggningsuppgifter är mottagna.',
     warnings,
   }
 }
