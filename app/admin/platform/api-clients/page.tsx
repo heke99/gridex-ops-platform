@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import CreateApiClientForm from './CreateApiClientForm'
-import { deleteIntegrationApiClientAction, setIntegrationApiClientStatusAction } from './actions'
+import { deleteIntegrationApiClientAction, setIntegrationApiClientStatusAction, updateIntegrationApiClientPermissionsAction } from './actions'
+import { INTEGRATION_API_PERMISSION_GROUPS, permissionGroupLabelsForScopes } from '@/lib/integrations/apiClientScopes'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +20,7 @@ type ApiClientRow = {
   status: string
   key_prefix: string
   scopes: string[] | null
+  permission_groups?: string[] | null
   allowed_origins: string[] | null
   allowed_ips: string[] | null
   rate_limit_per_minute: number | null
@@ -87,7 +89,7 @@ async function loadCompanies(): Promise<CompanyOption[]> {
 async function loadClients(): Promise<ApiClientRow[]> {
   const { data, error } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,name,status,key_prefix,scopes,allowed_origins,allowed_ips,rate_limit_per_minute,last_used_at,expires_at,created_at,metadata,companies(name)')
+    .select('id,company_id,name,status,key_prefix,scopes,permission_groups,allowed_origins,allowed_ips,rate_limit_per_minute,last_used_at,expires_at,created_at,metadata,companies(name)')
     .order('created_at', { ascending: false })
     .limit(100)
 
@@ -221,7 +223,7 @@ export default async function PlatformApiClientsPage() {
               <tr>
                 <th className="px-4 py-3">Klient</th>
                 <th className="px-4 py-3">Bolag</th>
-                <th className="px-4 py-3">Scopes</th>
+                <th className="px-4 py-3">Behörigheter</th>
                 <th className="px-4 py-3">Origins/Webhooks</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Senast använd</th>
@@ -241,10 +243,38 @@ export default async function PlatformApiClientsPage() {
                     </td>
                     <td className="px-4 py-4 align-top text-slate-700">{client.companies?.name ?? client.company_id}</td>
                     <td className="px-4 py-4 align-top">
-                      <div className="flex flex-wrap gap-1.5">
-                        {valueList(client.scopes).map((scope) => (
-                          <span key={scope} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700">{scope}</span>
-                        ))}
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-1.5">
+                          {permissionGroupLabelsForScopes(valueList(client.scopes)).map((label) => (
+                            <span key={label} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800">{label}</span>
+                          ))}
+                          {valueList(client.scopes).length === 0 ? <span className="text-xs text-red-700">Saknar behörigheter</span> : null}
+                        </div>
+                        <details className="text-xs text-slate-500">
+                          <summary className="cursor-pointer font-semibold text-slate-600">Visa tekniska detaljer</summary>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {valueList(client.scopes).map((scope) => (
+                              <span key={scope} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-700">{scope}</span>
+                            ))}
+                          </div>
+                        </details>
+                        <details className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                          <summary className="cursor-pointer text-xs font-black text-slate-700">Ändra behörigheter</summary>
+                          <form action={updateIntegrationApiClientPermissionsAction} className="mt-3 grid gap-3">
+                            <input type="hidden" name="clientId" value={client.id} />
+                            {INTEGRATION_API_PERMISSION_GROUPS.map((group) => {
+                              const active = group.scopes.some((scope) => valueList(client.scopes).includes(scope))
+                              return (
+                                <label key={group.groupKey} className="flex gap-2 text-xs text-slate-700">
+                                  <input type="checkbox" name="permissionGroups" value={group.groupKey} defaultChecked={active} />
+                                  <span><strong>{group.label}</strong><br /><span className="text-slate-500">{group.description}</span></span>
+                                </label>
+                              )
+                            })}
+                            <textarea name="allowedOrigins" rows={3} defaultValue={origins.join('\n')} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs" />
+                            <button className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-emerald-800">Spara behörigheter</button>
+                          </form>
+                        </details>
                       </div>
                     </td>
                     <td className="px-4 py-4 align-top text-xs text-slate-600">

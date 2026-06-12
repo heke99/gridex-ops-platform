@@ -7,6 +7,7 @@ export type PublicContractOffer = {
   price_plan_id: string | null
   price_plan_version_id: string | null
   campaign_version_id: string | null
+  offer_code?: string | null
   product_code: string
   public_name: string
   public_description: string | null
@@ -22,6 +23,14 @@ export type PublicContractOffer = {
   green_fee_mode: string | null
   green_fee_value: number | null
   terms_version: string | null
+  terms_url?: string | null
+  public_price_text?: string | null
+  binding_months?: number | null
+  notice_months?: number | null
+  website_cta_enabled?: boolean
+  spot_weight_percent?: number | null
+  portfolio_weight_percent?: number | null
+  fixed_weight_percent?: number | null
   valid_from: string | null
   valid_to: string | null
   sort_order: number
@@ -102,6 +111,7 @@ function offerFromSnapshot(row: PricePlanVersionRow): PublicContractOffer | null
   const pricingModel = clean(snapshot.pricing_model) ?? clean(snapshot.contract_type) ?? clean(plan.pricing_model) ?? 'spot'
   const offer: PublicContractOffer = {
     id: `${row.id}`,
+    offer_code: clean(snapshot.offer_code),
     company_id: row.company_id,
     price_plan_id: row.price_plan_id,
     price_plan_version_id: row.id,
@@ -121,6 +131,14 @@ function offerFromSnapshot(row: PricePlanVersionRow): PublicContractOffer | null
     green_fee_mode: clean(snapshot.green_fee_mode),
     green_fee_value: numberOrNull(snapshot.green_fee_value),
     terms_version: clean(snapshot.terms_version) ?? clean(row.version_label),
+    terms_url: clean(snapshot.terms_url),
+    public_price_text: clean(snapshot.public_price_text),
+    binding_months: numberOrNull(snapshot.binding_months),
+    notice_months: numberOrNull(snapshot.notice_months),
+    website_cta_enabled: bool(snapshot.website_cta_enabled) || snapshot.website_cta_enabled === undefined,
+    spot_weight_percent: numberOrNull(snapshot.spot_weight_percent),
+    portfolio_weight_percent: numberOrNull(snapshot.portfolio_weight_percent),
+    fixed_weight_percent: numberOrNull(snapshot.fixed_weight_percent),
     valid_from: row.valid_from,
     valid_to: row.valid_to,
     sort_order: numberOrNull(snapshot.sort_order) ?? 100,
@@ -138,6 +156,7 @@ function offerFromSnapshot(row: PricePlanVersionRow): PublicContractOffer | null
 function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
   return {
     id: String(row.id),
+    offer_code: clean(row.offer_code),
     company_id: String(row.company_id),
     price_plan_id: clean(row.price_plan_id),
     price_plan_version_id: clean(row.price_plan_version_id),
@@ -157,6 +176,14 @@ function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
     green_fee_mode: clean(row.green_fee_mode),
     green_fee_value: numberOrNull(row.green_fee_value),
     terms_version: clean(row.terms_version),
+    terms_url: clean(row.terms_url),
+    public_price_text: clean(row.public_price_text),
+    binding_months: numberOrNull(row.binding_months),
+    notice_months: numberOrNull(row.notice_months),
+    website_cta_enabled: row.website_cta_enabled !== false,
+    spot_weight_percent: numberOrNull(row.spot_weight_percent),
+    portfolio_weight_percent: numberOrNull(row.portfolio_weight_percent),
+    fixed_weight_percent: numberOrNull(row.fixed_weight_percent),
     valid_from: clean(row.valid_from),
     valid_to: clean(row.valid_to),
     sort_order: numberOrNull(row.sort_order) ?? 100,
@@ -174,6 +201,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
   return {
     id: offer.id,
     contract_offer_id: offer.id,
+    offer_code: offer.offer_code ?? null,
     price_plan_id: offer.price_plan_id,
     price_plan_version_id: offer.price_plan_version_id,
     campaign_version_id: offer.campaign_version_id,
@@ -195,6 +223,16 @@ export function publicContractResponse(offer: PublicContractOffer) {
     green_fee_mode: offer.green_fee_mode,
     green_fee_value: offer.green_fee_value,
     terms_version: offer.terms_version,
+    terms_url: offer.terms_url ?? null,
+    public_price_text: offer.public_price_text ?? null,
+    binding_months: offer.binding_months ?? null,
+    notice_months: offer.notice_months ?? null,
+    website_cta_enabled: offer.website_cta_enabled !== false,
+    mix: {
+      spot_weight_percent: offer.spot_weight_percent ?? null,
+      portfolio_weight_percent: offer.portfolio_weight_percent ?? null,
+      fixed_weight_percent: offer.fixed_weight_percent ?? null,
+    },
     withdrawal_version: withdrawalVersion,
     valid_from: offer.valid_from,
     valid_to: offer.valid_to,

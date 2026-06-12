@@ -17,6 +17,7 @@ import { getCompanyDnsRecords, type CompanyEmailDnsRecord } from '@/lib/email/dn
 import { getEmailEventRules, type EmailEventRule } from '@/lib/email/emailEvents'
 import { DEFAULT_EMAIL_TEMPLATES, EMAIL_TEMPLATE_VARIABLES, getCompanyEmailTemplates, type CompanyEmailTemplate } from '@/lib/email/emailTemplates'
 import { getCompanyCommunicationLogs, type CommunicationLog } from '@/lib/email/communicationLogs'
+import TenantPlatformControls from './TenantPlatformControls'
 import { computeTenantReadiness, listWebhookSubscriptions } from '@/lib/admin/websiteIntegrationOps'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
 import {
@@ -677,6 +678,8 @@ export default async function CompanyDetailPage({
         </section>
 
         <CompanyEdielConfiguration company={company} config={edielConfig} />
+
+        <TenantPlatformControls companyId={company.id} companyName={company.name} />
 
         <section id="tenant-website-readiness" className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Website readiness</p>

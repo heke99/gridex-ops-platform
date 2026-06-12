@@ -5,7 +5,7 @@ import {
   createIntegrationApiClientAction,
   type CreateApiClientState,
 } from './actions'
-import { INTEGRATION_API_SCOPE_OPTIONS } from '@/lib/integrations/apiClientScopes'
+import { INTEGRATION_API_PERMISSION_GROUPS, recommendedPermissionGroups } from '@/lib/integrations/apiClientScopes'
 
 type CompanyOption = {
   id: string
@@ -18,6 +18,8 @@ const INITIAL_STATE: CreateApiClientState = {
   message: '',
 }
 
+const DEFAULT_PERMISSION_GROUPS = new Set(recommendedPermissionGroups())
+
 export default function CreateApiClientForm({ companies }: { companies: CompanyOption[] }) {
   const [state, formAction, pending] = useActionState(createIntegrationApiClientAction, INITIAL_STATE)
 
@@ -25,9 +27,9 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
     <div className="rounded-[32px] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Ny API-klient</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Koppla Gridex hemsida</h2>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Koppla hemsida och Mina sidor</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Skapa en token som Gridex hemsida använder server-side. Token visas bara en gång och sparas aldrig i klartext.
+          Skapa en token som hemsidan använder server-side. Från start får klienten standardpaketet med alla behörigheter som normalt behövs, och du kan ta bort grupper som inte ska användas.
         </p>
       </div>
 
@@ -73,20 +75,24 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
         <input type="hidden" name="intendedUse" value="gridex_customer_portal" />
 
         <fieldset className="rounded-3xl border border-slate-200 p-4">
-          <legend className="px-2 text-sm font-semibold text-slate-800">Scopes</legend>
-          <div className="mt-2 grid gap-3">
-            {INTEGRATION_API_SCOPE_OPTIONS.map((scope) => (
-              <label key={scope.value} className="flex gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+          <legend className="px-2 text-sm font-semibold text-slate-800">Behörigheter i vanliga ord</legend>
+          <p className="mt-1 text-xs leading-5 text-slate-600">
+            Standardpaketet är förvalt. Ta bort grupper som hemsidan inte ska använda. Tekniska scopes visas under varje grupp för felsökning.
+          </p>
+          <div className="mt-3 grid gap-3">
+            {INTEGRATION_API_PERMISSION_GROUPS.map((group) => (
+              <label key={group.groupKey} className="flex gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
                 <input
                   type="checkbox"
-                  name="scopes"
-                  value={scope.value}
-                  defaultChecked={scope.value === 'customer_portal.read' || scope.value === 'customer_portal.write' || scope.value === 'website_applications.write'}
+                  name="permissionGroups"
+                  value={group.groupKey}
+                  defaultChecked={DEFAULT_PERMISSION_GROUPS.has(group.groupKey)}
                   className="mt-1"
                 />
                 <span>
-                  <span className="block text-sm font-semibold text-slate-900">{scope.label}</span>
-                  <span className="block text-xs leading-5 text-slate-600">{scope.description}</span>
+                  <span className="block text-sm font-semibold text-slate-900">{group.label}</span>
+                  <span className="block text-xs leading-5 text-slate-600">{group.description}</span>
+                  <span className="mt-1 block text-[11px] font-mono text-slate-500">{group.scopes.join(', ')}</span>
                 </span>
               </label>
             ))}

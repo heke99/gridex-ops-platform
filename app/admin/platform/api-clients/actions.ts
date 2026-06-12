@@ -8,6 +8,7 @@ import {
   normalizeIntegrationApiScopes,
   parseMultiValueText,
 } from '@/lib/integrations/apiClientSecrets'
+import { recommendedPermissionGroups, scopesForPermissionGroups } from '@/lib/integrations/apiClientScopes'
 
 export type CreateApiClientState = {
   ok: boolean
@@ -96,8 +97,13 @@ export async function createIntegrationApiClientAction(
     if (!companyId) return { ok: false, message: 'Välj tenant/bolag.' }
     if (!name) return { ok: false, message: 'Ange namn på API-klienten.' }
 
-    const scopes = normalizeIntegrationApiScopes(formData.getAll('scopes'))
-    if (scopes.length === 0) return { ok: false, message: 'Välj minst ett scope.' }
+    const permissionGroups = formData.getAll('permissionGroups').length > 0
+      ? formData.getAll('permissionGroups').map((value) => String(value))
+      : recommendedPermissionGroups()
+    const groupedScopes = scopesForPermissionGroups(permissionGroups)
+    const directScopes = normalizeIntegrationApiScopes(formData.getAll('scopes'))
+    const scopes = Array.from(new Set([...groupedScopes, ...directScopes]))
+    if (scopes.length === 0) return { ok: false, message: 'Välj minst en behörighetsgrupp.' }
 
     const allowedOrigins = parseMultiValueText(formData.get('allowedOrigins'))
     const allowedIps = parseMultiValueText(formData.get('allowedIps'))
@@ -135,6 +141,8 @@ export async function createIntegrationApiClientAction(
           key_prefix: tokenData.keyPrefix,
           secret_hash: tokenData.secretHash,
           scopes,
+          permission_groups: permissionGroups,
+          purpose_label: frontendApp,
           allowed_origins: allowedOrigins,
           allowed_ips: allowedIps,
           rate_limit_per_minute: rateLimit,
@@ -145,6 +153,7 @@ export async function createIntegrationApiClientAction(
             intended_use: intendedUse,
             allowed_origins: allowedOrigins,
             notes,
+            permission_groups: permissionGroups,
             token_display: 'shown_once_on_create',
             created_from: 'superadmin_api_client_ui',
             recommended_header: 'Authorization: Bearer <token>',
@@ -163,7 +172,7 @@ export async function createIntegrationApiClientAction(
         actorUserId: context.userId,
         companyId,
         clientId: data.id,
-        metadata: { scopes, allowedOrigins, frontendApp, intendedUse },
+        metadata: { scopes, permissionGroups, allowedOrigins, frontendApp, intendedUse },
       })
 
       if (webhookUrl) {
@@ -264,6 +273,98 @@ export async function setIntegrationApiClientStatusAction(formData: FormData) {
   })
 
   revalidatePath('/admin/platform/api-clients')
+}
+
+
+export async function updateIntegrationApiClientPermissionsAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const clientId = text(formData, 'clientId')
+  if (!clientId) throw new Error('API-klient saknas.')
+
+  const permissionGroups = formData.getAll('permissionGroups').map((value) => String(value))
+  const groupedScopes = scopesForPermissionGroups(permissionGroups)
+  const directScopes = normalizeIntegrationApiScopes(formData.getAll('scopes'))
+  const scopes = Array.from(new Set([...groupedScopes, ...directScopes]))
+  const allowedOrigins = parseMultiValueText(formData.get('allowedOrigins'))
+
+  if (scopes.length === 0) throw new Error('Välj minst en behörighetsgrupp.')
+
+  const { data: current, error: currentError } = await supabaseService
+    .from('integration_api_clients')
+    .select('id,company_id,scopes,permission_groups,allowed_origins,metadata')
+    .eq('id', clientId)
+    .maybeSingle()
+
+  if (currentError) throw currentError
+  if (!current) throw new Error('API-klienten hittades inte.')
+
+  const metadata = current.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
+    ? current.metadata as Record<string, unknown>
+    : {}
+
+  const { error } = await supabaseService
+    .from('integration_api_clients')
+    .update({
+      scopes,
+      permission_groups: permissionGroups,
+      allowed_origins: allowedOrigins,
+      metadata: { ...metadata, permission_groups: permissionGroups, allowed_origins: allowedOrigins, updated_from: 'superadmin_api_permission_ui' },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', clientId)
+
+  if (error) throw error
+
+  await auditApiClient({
+    action: 'api_client.permissions_updated',
+    actorUserId: context.userId,
+    companyId: current.company_id,
+    clientId,
+    metadata: { previous_scopes: current.scopes, previous_permission_groups: current.permission_groups, scopes, permissionGroups, allowedOrigins },
+  })
+
+  revalidatePath('/admin/platform/api-clients')
+  revalidatePath(`/admin/companies/${current.company_id}`)
+}
+
+export async function rotateIntegrationApiClientTokenAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const clientId = text(formData, 'clientId')
+  if (!clientId) throw new Error('API-klient saknas.')
+
+  const { data: current, error: currentError } = await supabaseService
+    .from('integration_api_clients')
+    .select('id,company_id,name,status,key_prefix')
+    .eq('id', clientId)
+    .maybeSingle()
+
+  if (currentError) throw currentError
+  if (!current) throw new Error('API-klienten hittades inte.')
+  if (current.status !== 'active' && current.status !== 'paused') throw new Error('Endast aktiva eller pausade API-klienter kan roteras.')
+
+  const tokenData = generateIntegrationApiToken()
+  const { error } = await supabaseService
+    .from('integration_api_clients')
+    .update({
+      key_prefix: tokenData.keyPrefix,
+      secret_hash: tokenData.secretHash,
+      updated_at: new Date().toISOString(),
+      metadata: { rotated_from_prefix: current.key_prefix, token_display: 'shown_once_on_rotate' },
+    })
+    .eq('id', clientId)
+
+  if (error) throw error
+
+  await auditApiClient({
+    action: 'api_client.key_rotated',
+    actorUserId: context.userId,
+    companyId: current.company_id,
+    clientId,
+    metadata: { previous_key_prefix: current.key_prefix, new_key_prefix: tokenData.keyPrefix },
+  })
+
+  revalidatePath('/admin/platform/api-clients')
+  revalidatePath(`/admin/companies/${current.company_id}`)
 }
 
 export async function deleteIntegrationApiClientAction(formData: FormData) {

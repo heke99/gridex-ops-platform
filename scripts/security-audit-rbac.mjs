@@ -183,6 +183,8 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/companies/[id]/email-actions.ts",
   "app/admin/companies/[id]/email-template-actions.ts",
   "app/admin/companies/[id]/page.tsx",
+  "app/admin/companies/[id]/TenantPlatformControls.tsx",
+  "app/admin/companies/[id]/tenant-platform-actions.ts",
   "app/admin/company-settings/actions.ts",
   "app/admin/contracts/actions.ts",
   "app/admin/customers/[id]/actions.ts",

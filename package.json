@@ -35,7 +35,8 @@
     "gridex:rate-limit-regression": "node scripts/gridex-launch-regression.cjs rate-limit-regression",
     "gridex:system-health-regression": "node scripts/gridex-launch-regression.cjs system-health-regression",
     "gridex:launch-smoke": "node scripts/gridex-launch-regression.cjs launch-smoke",
-    "gridex:ops-points-1-8-regression": "node scripts/gridex-ops-points-1-to-8-regression.cjs"
+    "gridex:ops-points-1-8-regression": "node scripts/gridex-ops-points-1-to-8-regression.cjs",
+    "gridex:platform-tenant-contracts-api-mail-regression": "node scripts/gridex-platform-tenant-contracts-api-mail-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
