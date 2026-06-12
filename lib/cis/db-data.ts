@@ -78,7 +78,7 @@ export async function listAllGridOwnerDataRequests(options: {
     requestQuery = requestQuery.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await requestQuery.limit(options.limit ?? 1000)
+  const { data, error } = await requestQuery.limit(options.limit ?? 200)
   if (error) throw error
 
   const rows = (data ?? []) as GridOwnerDataRequestRow[]
@@ -127,12 +127,13 @@ export async function listMeteringValuesByCustomerId(
 export async function listAllMeteringValues(options: {
   query?: string | null
   companyId?: string | null
+  limit?: number
 } = {}): Promise<MeteringValueRow[]> {
   let queryBuilder = supabaseService
     .from('metering_values')
     .select('*')
     .order('read_at', { ascending: false })
-    .limit(250)
+    .limit(options.limit ?? 200)
 
   if (options.companyId) {
     queryBuilder = queryBuilder.eq('company_id', options.companyId)
@@ -368,7 +369,7 @@ export async function listAllBillingUnderlays(options: {
     queryBuilder = queryBuilder.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await queryBuilder.limit(options.limit ?? 1000)
+  const { data, error } = await queryBuilder.limit(options.limit ?? 200)
   if (error) throw error
 
   const rows = (data ?? []) as BillingUnderlayRow[]
@@ -415,7 +416,7 @@ export async function listAllPartnerExports(options: {
     queryBuilder = queryBuilder.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await queryBuilder.limit(options.limit ?? 1000)
+  const { data, error } = await queryBuilder.limit(options.limit ?? 200)
   if (error) throw error
 
   const rows = (data ?? []) as PartnerExportRow[]

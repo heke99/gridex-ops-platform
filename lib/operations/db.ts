@@ -203,7 +203,7 @@ export async function listPowersOfAttorneyByCustomerIds(
 
   const { data, error } = await query
     .order("created_at", { ascending: false })
-    .limit(options.limit ?? 1000);
+    .limit(options.limit ?? 200);
 
   if (error) throw error;
   return (data ?? []) as PowerOfAttorneyRow[];
@@ -977,7 +977,7 @@ export async function listAllOperationTasks(
     taskQuery = taskQuery.eq("company_id", options.companyId);
   }
 
-  const { data, error } = await taskQuery.limit(options.limit ?? 1000);
+  const { data, error } = await taskQuery.limit(options.limit ?? 200);
 
   if (error) throw error;
 
@@ -1073,7 +1073,7 @@ export async function listAllSupplierSwitchRequests(
     requestQuery = requestQuery.eq("company_id", options.companyId);
   }
 
-  const { data, error } = await requestQuery.limit(options.limit ?? 1000);
+  const { data, error } = await requestQuery.limit(options.limit ?? 200);
 
   if (error) throw error;
 

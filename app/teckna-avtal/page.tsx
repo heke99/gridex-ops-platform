@@ -1,6 +1,5 @@
 import { submitExternalContractAction } from './actions'
 
-export const dynamic = 'force-dynamic'
 
 export default async function PublicContractIntakePage({ searchParams }: { searchParams?: Promise<{ bolag?: string; status?: string; message?: string }> }) {
   const params = searchParams ? await searchParams : {}

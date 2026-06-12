@@ -210,7 +210,6 @@ export async function updateCompanyResponsibleUserAction(
     revalidatePath('/admin/company-settings')
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
-    revalidatePath('/admin')
 
     return { ok: true, message: 'Bolagsansvarig/användaruppgifter uppdaterades.' }
   } catch (error) {

@@ -1,7 +1,7 @@
 'use server'
 
-import { refresh } from 'next/cache'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { requireAdminAccess } from '@/lib/admin/guards'
 import {
   ADMIN_NAVIGATION_MODE_COOKIE,
@@ -52,5 +52,22 @@ export async function updateAdminNavigationPreference(formData: FormData) {
     cookieStore.set(ADMIN_SELECTED_COMPANY_COOKIE, '', ADMIN_CLEAR_COOKIE_OPTIONS)
   }
 
-  refresh()
+
+  const headerStore = await headers()
+  const referer = headerStore.get('referer')
+  let returnTo = '/admin'
+
+  if (referer) {
+    try {
+      const url = new URL(referer)
+      if (url.pathname.startsWith('/admin')) {
+        returnTo = `${url.pathname}${url.search}`
+      }
+    } catch {
+      returnTo = '/admin'
+    }
+  }
+
+  redirect(returnTo)
 }
+

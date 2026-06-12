@@ -388,21 +388,20 @@ export default async function AdminOperationsPage() {
 
  let sitesQueryBuilder = supabase
  .from('customer_sites')
- .select('*')
+ .select('id, company_id, customer_id, site_name, facility_id, status, grid_owner_id, grid_area_code, price_area_code, street, postal_code, city, created_at, updated_at')
 
  if (companyId) {
  sitesQueryBuilder = sitesQueryBuilder.eq('company_id', companyId)
  }
 
- const sitesQuery = await sitesQueryBuilder.order('created_at', { ascending: false })
+ const sitesQuery = await sitesQueryBuilder.order('created_at', { ascending: false }).limit(200)
 
  if (sitesQuery.error) throw sitesQuery.error
- const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
+ const sites = (sitesQuery.data ?? []) as unknown as CustomerSiteRow[]
 
  const [
  tasks,
  switchRequests,
- _eventsPlaceholder,
  outboundRequests,
  underlays,
  dataRequests,
@@ -411,20 +410,20 @@ export default async function AdminOperationsPage() {
  meteringPoints,
  edielSummary,
  ] = await Promise.all([
- listAllOperationTasks(supabase, { companyId }),
- listAllSupplierSwitchRequests(supabase, { companyId }),
- Promise.resolve([]),
+ listAllOperationTasks(supabase, { companyId, limit: 200 }),
+ listAllSupplierSwitchRequests(supabase, { companyId, limit: 200 }),
  listOutboundRequests({
  status: 'all',
  requestType: 'all',
  channelType: 'all',
  query: '',
  companyId,
+ limit: 200,
  }),
- listAllBillingUnderlays({ status: 'all', query: '', companyId }),
- listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '', companyId }),
- listAllMeteringValues({ query: '', companyId }),
- listAllPartnerExports({ status: 'all', exportKind: 'all', query: '', companyId }),
+ listAllBillingUnderlays({ status: 'all', query: '', companyId, limit: 200 }),
+ listAllGridOwnerDataRequests({ status: 'all', scope: 'all', query: '', companyId, limit: 200 }),
+ listAllMeteringValues({ query: '', companyId, limit: 200 }),
+ listAllPartnerExports({ status: 'all', exportKind: 'all', query: '', companyId, limit: 200 }),
  listMeteringPointsBySiteIds(
  supabase,
  sites.map((site) => site.id),

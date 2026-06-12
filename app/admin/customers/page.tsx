@@ -78,8 +78,8 @@ type ContractFilterKey =
 
 const PAGE_SIZE = 100
 
-type QueryLikeResult<T> = {
- data: T[] | null
+type QueryLikeResult = {
+ data: unknown[] | null
  error: unknown
 }
 
@@ -88,11 +88,11 @@ function isNonBlockingRuntimeDbError(error: unknown): boolean {
  return isMissingRelationError(error) || ['42703', '42P01', 'PGRST204', 'PGRST205'].includes(code)
 }
 
-async function safeQueryRows<T>(queryFactory: () => PromiseLike<QueryLikeResult<T>>): Promise<T[]> {
+async function safeQueryRows<T>(queryFactory: () => PromiseLike<QueryLikeResult>): Promise<T[]> {
  try {
  const { data, error } = await queryFactory()
  if (error) throw error
- return data ?? []
+ return (data ?? []) as T[]
  } catch (error) {
  if (isNonBlockingRuntimeDbError(error)) return []
  throw error
@@ -936,27 +936,27 @@ export default async function AdminCustomersPage({
  safeQueryRows<CustomerSiteRow>(() => {
  let query = supabaseService
  .from('customer_sites')
- .select('*')
+ .select('id, company_id, customer_id, site_name, facility_id, status, grid_owner_id, grid_area_code, price_area_code, created_at, updated_at')
  .in('customer_id', customerIds)
  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
- return query
+ return query.order('created_at', { ascending: false }).limit(150)
  }),
  safeQueryRows<SupplierSwitchRequestRow>(() => {
  let query = supabaseService
  .from('supplier_switch_requests')
- .select('*')
+ .select('id, company_id, customer_id, site_id, metering_point_id, request_type, status, external_reference, failure_reason, submitted_at, completed_at, failed_at, lifecycle_blocked, lifecycle_block_source, lifecycle_block_id, created_at, updated_at')
  .in('customer_id', customerIds)
  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
- return query
+ return query.order('created_at', { ascending: false }).limit(150)
  }),
  safeQueryRows<OutboundRequestRow>(() => {
  let query = supabaseService
  .from('outbound_requests')
- .select('*')
+ .select('id, company_id, customer_id, site_id, metering_point_id, request_type, source_type, source_id, status, channel_type, external_reference, failure_reason, queued_at, prepared_at, sent_at, acknowledged_at, failed_at, created_at, updated_at')
  .eq('request_type', 'supplier_switch')
  .in('customer_id', customerIds)
  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
- return query
+ return query.order('created_at', { ascending: false }).limit(150)
  }),
  safeLatestContractsByCustomerIds(customerIds, scopedCompanyId),
  ])

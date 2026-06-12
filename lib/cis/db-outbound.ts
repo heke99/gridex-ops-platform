@@ -429,7 +429,7 @@ export async function listOutboundRequests(options: {
     requestQuery = requestQuery.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await requestQuery.limit(options.limit ?? 1000)
+  const { data, error } = await requestQuery.limit(options.limit ?? 200)
   if (error) throw error
 
   const rows = (data ?? []) as OutboundRequestRow[]

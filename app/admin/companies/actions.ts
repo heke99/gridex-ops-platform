@@ -479,7 +479,6 @@ export async function inviteCompanyUserAction(
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
     revalidatePath('/admin/company-settings')
-    revalidatePath('/admin')
 
     return {
       ok: true,
@@ -627,7 +626,6 @@ export async function removeUserFromCompanyAction(
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
     revalidatePath('/admin/company-settings')
-    revalidatePath('/admin')
 
     return { ok: true, message: 'Användaren togs bort från bolaget utan att historik raderades.' }
   } catch (error) {
