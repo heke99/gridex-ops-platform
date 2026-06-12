@@ -19,6 +19,7 @@ import { DEFAULT_EMAIL_TEMPLATES, EMAIL_TEMPLATE_VARIABLES, getCompanyEmailTempl
 import { getCompanyCommunicationLogs, type CommunicationLog } from '@/lib/email/communicationLogs'
 import TenantPlatformControls from './TenantPlatformControls'
 import { computeTenantReadiness, listWebhookSubscriptions } from '@/lib/admin/websiteIntegrationOps'
+import { getTenantWebsiteReadiness, listCompanyLegalTextVersions, REQUIRED_LEGAL_TEXT_TYPES, type LegalTextVersion, type TenantWebsiteReadiness } from '@/lib/opsMaster/readiness'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
 import {
   checkCompanyDomainVerificationAction,
@@ -30,6 +31,7 @@ import {
   updateEmailEventRuleAction,
   updateEmailTemplateAction,
 } from './email-actions'
+import { archiveLegalTextVersionAction, createLegalTextVersionAction, publishLegalTextVersionAction } from './legal-actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -195,6 +197,137 @@ function ConfigTable({ title, rows, columns }: { title: string; rows: EdielConfi
             {rows.slice(0, 10).map((row) => (
               <tr key={row.id}>
                 {columns.map((column) => <td key={column.key} className="px-4 py-3 text-slate-700">{String(row[column.key] ?? '–')}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+
+const LEGAL_TYPE_LABELS: Record<string, string> = {
+  terms: 'Allmänna villkor',
+  privacy_policy: 'Integritetspolicy',
+  withdrawal: 'Ångerrätt',
+  power_of_attorney: 'Fullmakt',
+  price_terms: 'Prisvillkor',
+}
+
+const LEGAL_STATUS_LABELS: Record<string, string> = {
+  draft: 'Utkast',
+  published: 'Publicerad',
+  archived: 'Arkiverad',
+}
+
+function LegalStatusBadge({ status }: { status: string }) {
+  const tone = status === 'published'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+    : status === 'archived'
+      ? 'border-slate-200 bg-slate-50 text-slate-700'
+      : 'border-amber-200 bg-amber-50 text-amber-900'
+  return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${tone}`}>{LEGAL_STATUS_LABELS[status] ?? status}</span>
+}
+
+function CompanyLegalMasterSection({
+  company,
+  versions,
+  websiteReadiness,
+}: {
+  company: GovernanceCompany
+  versions: LegalTextVersion[]
+  websiteReadiness: TenantWebsiteReadiness | null
+}) {
+  const missingItems = websiteReadiness?.missing_items ?? []
+  const publishedTypes = new Set(versions.filter((row) => row.status === 'published').map((row) => row.type))
+  const missingLegalTypes = REQUIRED_LEGAL_TEXT_TYPES.filter((type) => !publishedTypes.has(type))
+
+  return (
+    <section id="legal-master" className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">OPS master</p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">Juridiska texter, fullmakt och hemside-readiness</h2>
+          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
+            Platform admin publicerar juridiska versioner per bolag. Publicerade versioner används av hemsidan, kundansökan, Mina sidor och kundkortets godkännanden. Gamla publicerade versioner ska inte ändras bakåt.
+          </p>
+        </div>
+        <div className={`rounded-2xl border px-4 py-3 text-sm font-black ${missingItems.length === 0 && missingLegalTypes.length === 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+          {missingItems.length === 0 && missingLegalTypes.length === 0 ? 'Hemsidan är juridiskt redo' : 'Hemsidan är inte juridiskt redo'}
+        </div>
+      </div>
+
+      {missingItems.length > 0 || missingLegalTypes.length > 0 ? (
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+          <p className="text-sm font-black text-amber-950">Åtgärder innan hemsidan ska visa/ta emot avtal</p>
+          <ul className="mt-3 grid gap-2 text-sm font-semibold leading-6 text-amber-950">
+            {missingItems.map((item) => <li key={item}>• {item}</li>)}
+            {missingLegalTypes.map((type) => <li key={type}>• Publicera {LEGAL_TYPE_LABELS[type]}</li>)}
+          </ul>
+        </div>
+      ) : null}
+
+      <form action={createLegalTextVersionAction} className="grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 md:grid-cols-2">
+        <input type="hidden" name="company_id" value={company.id} />
+        <label className="grid gap-1 text-sm font-bold text-slate-800">
+          Typ
+          <select name="type" className="rounded-2xl border border-slate-300 bg-white px-4 py-3" required>
+            {REQUIRED_LEGAL_TEXT_TYPES.map((type) => <option key={type} value={type}>{LEGAL_TYPE_LABELS[type]}</option>)}
+          </select>
+        </label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">
+          Version
+          <input name="version" placeholder="Ex. 2026-06" className="rounded-2xl border border-slate-300 bg-white px-4 py-3" required />
+        </label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800 md:col-span-2">
+          Rubrik
+          <input name="title" placeholder="Ex. Allmänna villkor för elavtal" className="rounded-2xl border border-slate-300 bg-white px-4 py-3" required />
+        </label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800 md:col-span-2">
+          Text
+          <textarea name="body" rows={8} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" required />
+        </label>
+        <label className="flex items-center gap-2 text-sm font-bold text-slate-800">
+          <input type="checkbox" name="publish_now" /> Publicera direkt
+        </label>
+        <div className="md:col-span-2">
+          <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">Skapa juridisk version</button>
+        </div>
+      </form>
+
+      <div className="overflow-x-auto rounded-3xl border border-slate-200">
+        <table className="min-w-full text-sm">
+          <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-500">
+            <tr><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Version</th><th className="px-4 py-3">Rubrik</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Publicerad</th><th className="px-4 py-3">Åtgärd</th></tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {versions.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center font-semibold text-slate-600">Inga juridiska versioner finns ännu.</td></tr> : null}
+            {versions.map((version) => (
+              <tr key={version.id}>
+                <td className="px-4 py-3 font-bold text-slate-900">{LEGAL_TYPE_LABELS[version.type] ?? version.type}</td>
+                <td className="px-4 py-3 text-slate-700">{version.version}</td>
+                <td className="px-4 py-3 text-slate-700">{version.title}</td>
+                <td className="px-4 py-3"><LegalStatusBadge status={version.status} /></td>
+                <td className="px-4 py-3 text-slate-700">{formatDate(version.published_at)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-2">
+                    {version.status !== 'published' ? (
+                      <form action={publishLegalTextVersionAction}>
+                        <input type="hidden" name="company_id" value={company.id} />
+                        <input type="hidden" name="id" value={version.id} />
+                        <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-100">Publicera</button>
+                      </form>
+                    ) : null}
+                    {version.status !== 'archived' ? (
+                      <form action={archiveLegalTextVersionAction}>
+                        <input type="hidden" name="company_id" value={company.id} />
+                        <input type="hidden" name="id" value={version.id} />
+                        <button className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-100">Arkivera</button>
+                      </form>
+                    ) : null}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -559,6 +692,8 @@ export default async function CompanyDetailPage({
     companyApiClients,
     companyWebhookSubscriptions,
     billingPartnerCount,
+    legalTextVersions,
+    tenantWebsiteReadiness,
   ] = await Promise.all([
     getCompanyGovernanceSummary(row),
     getActorTestingSummary(row.id),
@@ -573,6 +708,8 @@ export default async function CompanyDetailPage({
     getCompanyApiClients(row.id),
     listWebhookSubscriptions({ companyId: row.id, limit: 50 }),
     getCompanyBillingPartnerCount(row.id),
+    listCompanyLegalTextVersions(row.id),
+    getTenantWebsiteReadiness(row.id),
   ])
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
@@ -680,6 +817,8 @@ export default async function CompanyDetailPage({
         <CompanyEdielConfiguration company={company} config={edielConfig} />
 
         <TenantPlatformControls companyId={company.id} companyName={company.name} />
+
+        <CompanyLegalMasterSection company={company} versions={legalTextVersions} websiteReadiness={tenantWebsiteReadiness} />
 
         <section id="tenant-website-readiness" className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Website readiness</p>

@@ -49,6 +49,7 @@ import CustomerProfileCard from '@/components/admin/customers/CustomerProfileCar
 import CustomerGridOwnerFileImportCard from '@/components/admin/customers/CustomerGridOwnerFileImportCard'
 import CustomerContractOfferEligibilityCard from '@/components/admin/customers/CustomerContractOfferEligibilityCard'
 import CustomerOperationsReadinessStrip from '@/components/admin/customers/CustomerOperationsReadinessStrip'
+import CustomerLegalReadinessCard from '@/components/admin/customers/CustomerLegalReadinessCard'
 import CustomerFacilityWorkflowCard from '@/components/admin/customers/CustomerFacilityWorkflowCard'
 import CustomerBusinessActionsCard from '@/components/admin/customers/CustomerBusinessActionsCard'
 import CustomerAuthorizationDocumentsCard from '@/components/admin/customers/CustomerAuthorizationDocumentsCard'
@@ -82,6 +83,7 @@ import { getCustomerCommunicationLogs, type CommunicationLog } from '@/lib/email
 import { listBillingPartnerCustomersForCustomer, listWebsiteApplicationsForCustomer, type BillingPartnerCustomerSummary, type WebsiteApplicationAdminRow } from '@/lib/admin/websiteIntegrationOps'
 import { resendCustomerEmailAction } from './email-actions'
 import { customerStatusLabel, intakeStatusLabel as applicationIntakeStatusLabel, missingFieldLabel, sourceLabel } from '@/lib/customers/statusLabels'
+import { evaluateCustomerOpsMasterReadiness, listCustomerDocuments, listCustomerLegalAcceptances, listCustomerOpsTimeline } from '@/lib/opsMaster/readiness'
 
 export const dynamic = 'force-dynamic'
 
@@ -390,6 +392,7 @@ type CustomerWorkspaceTab =
  | 'grid-owner-import'
  | 'data-requests'
  | 'authorization-documents'
+ | 'legal-readiness'
  | 'switch-operations'
  | 'ediel-operations'
  | 'billing-metering'
@@ -410,6 +413,7 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
  group: 'Start' | 'Drift' | 'Kunddata' | 'Historik'
 }> = [
  { id: 'overview', label: 'Översikt', description: 'Status, readiness och rekommenderad nästa åtgärd.', group: 'Start' },
+ { id: 'legal-readiness', label: 'Juridik & godkännanden', description: 'Villkor, fullmakt, snapshots, dokument och blockerare.', group: 'Start' },
  { id: 'authorization-documents', label: 'Fullmakt / avtal', description: 'Dokument, signerad fullmakt och scope.', group: 'Drift' },
  { id: 'switch-operations', label: 'Leverantörsbyte', description: 'Starta och följ switchärenden.', group: 'Drift' },
  { id: 'ediel-operations', label: 'Ediel', description: 'Skapa, validera och följ Ediel-meddelanden.', group: 'Drift' },
@@ -1433,7 +1437,8 @@ const needsAnalyticsData = activeTab === 'overview' || activeTab === 'analytics'
  const needsSwitchEvents = activeTab === 'switch-operations'
  const needsAuditLogs = activeTab === 'audit'
  const needsPowerScopes = activeTab === 'authorization-documents'
-const needsCommunicationLogs = activeTab === 'communication'
+const needsOpsMasterData = ['overview', 'legal-readiness'].includes(activeTab)
+const needsCommunicationLogs = activeTab === 'communication' || needsOpsMasterData
  const emptyEdielData: CustomerEdielDataBundle = {
  communicationRoutes: [],
  routeProfiles: [],
@@ -1463,6 +1468,9 @@ const needsCommunicationLogs = activeTab === 'communication'
 communicationLogs,
 websiteApplications,
 billingPartnerCustomers,
+customerLegalAcceptances,
+customerDocuments,
+customerOpsTimeline,
  ] = await Promise.all([
  needsGridOwners ? listGridOwners(supabase) : Promise.resolve([]),
  needsPriceAreas ? listPriceAreas(supabase) : Promise.resolve([]),
@@ -1497,6 +1505,9 @@ billingPartnerCustomers,
 needsCommunicationLogs && customerCompanyId ? getCustomerCommunicationLogs(customerCompanyId, id) : Promise.resolve([]),
 customerCompanyId ? listWebsiteApplicationsForCustomer(customerCompanyId, id) : Promise.resolve([]),
 customerCompanyId ? listBillingPartnerCustomersForCustomer(customerCompanyId, id) : Promise.resolve([]),
+needsOpsMasterData && customerCompanyId ? listCustomerLegalAcceptances(customerCompanyId, id) : Promise.resolve([]),
+needsOpsMasterData && customerCompanyId ? listCustomerDocuments(customerCompanyId, id) : Promise.resolve([]),
+needsOpsMasterData && customerCompanyId ? listCustomerOpsTimeline(customerCompanyId, id) : Promise.resolve([]),
  ])
 
  if (contactsResponse.error) throw contactsResponse.error
@@ -1598,12 +1609,20 @@ const analytics = needsAnalyticsData && customerCompanyId
  )
  })
 
- const hasUsablePowerOfAttorney = poaRows.some(
- (row) =>
- row.scope === 'supplier_switch' &&
- row.status === 'signed' &&
- Boolean(row.document_path?.trim())
- )
+ const opsMasterReadiness = evaluateCustomerOpsMasterReadiness({
+ customerId: id,
+ customerStatus: customer.status,
+ contracts: customerContracts as Array<Record<string, unknown>>,
+ powersOfAttorney: poaRows as Array<Record<string, unknown>>,
+ sites: sites as Array<Record<string, unknown>>,
+ meteringPoints: meteringPoints as Array<Record<string, unknown>>,
+ legalAcceptances: customerLegalAcceptances,
+ documents: customerDocuments,
+ communicationLogs: communicationLogs as Array<Record<string, unknown>>,
+ hasReadyEdielRoute,
+ })
+
+ const hasUsablePowerOfAttorney = opsMasterReadiness.hasActivePowerOfAttorney
 
  const hasSwitchData = sites.some((site) => {
  const siteMeteringPoints = meteringPoints.filter((point) => point.site_id === site.id)
@@ -1624,19 +1643,26 @@ const analytics = needsAnalyticsData && customerCompanyId
 
  const readinessItems = [
  {
+ label: 'Villkor',
+ ok: opsMasterReadiness.hasTerms && opsMasterReadiness.hasPrivacy && opsMasterReadiness.hasWithdrawal,
+ detail: opsMasterReadiness.hasTerms && opsMasterReadiness.hasPrivacy && opsMasterReadiness.hasWithdrawal
+ ? 'Villkor, integritet och ångerrätt sparade'
+ : 'Juridiska godkännanden saknas',
+ },
+ {
  label: 'Avtal',
- ok: customerContracts.length > 0,
+ ok: customerContracts.length > 0 && opsMasterReadiness.hasContractSnapshot,
  detail:
  customerContracts.length > 0
- ? `${customerContracts.length} registrerade`
+ ? opsMasterReadiness.hasContractSnapshot ? `${customerContracts.length} registrerade med snapshot` : 'Avtal finns men snapshot saknas'
  : 'Saknar kundavtal',
  },
  {
  label: 'Fullmakt',
  ok: hasUsablePowerOfAttorney,
  detail: hasUsablePowerOfAttorney
- ? 'Signerad fullmakt med dokument finns'
- : 'Saknar signerad fullmakt med fil',
+ ? 'Aktiv fullmakt med rätt scope finns'
+ : 'Aktiv fullmakt saknas',
  },
  {
  label: 'Anläggning',
@@ -1713,8 +1739,8 @@ const analytics = needsAnalyticsData && customerCompanyId
  String(request.status ?? '').toLowerCase()
  )
  )
- const nextCustomerStep = !hasUsablePowerOfAttorney
- ? { label: 'Ladda upp fullmakt', href: customerTabHref(id, 'authorization-documents') }
+ const nextCustomerStep = opsMasterReadiness.blockers.length > 0
+ ? { label: opsMasterReadiness.nextAction.label, href: customerTabHref(id, opsMasterReadiness.nextAction.hrefTab) }
  : pendingCustomerInfoRequests.length === 0
  ? { label: 'Begär uppgifter', href: customerTabHref(id, 'data-requests') }
  : !activeCustomerContract
@@ -2059,6 +2085,7 @@ contracts={customerContracts as CustomerContractRow[]}
 
  <div className="space-y-6">
  <CustomerOperationsReadinessStrip items={readinessItems} />
+ <CustomerLegalReadinessCard customerId={id} readiness={opsMasterReadiness} acceptances={customerLegalAcceptances} documents={customerDocuments} timeline={customerOpsTimeline} />
 
  <div className="grid gap-3 sm:grid-cols-2">
  <Link href="/admin/operations/switches?stage=queued_for_outbound" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 ">
@@ -2080,6 +2107,12 @@ contracts={customerContracts as CustomerContractRow[]}
  </div>
  </div>
  </div>
+ </SectionAnchor>
+ ) : null}
+
+ {activeTab === 'legal-readiness' ? (
+ <SectionAnchor id="legal-readiness" title="Juridik och godkännanden" description="Villkor, fullmakt, avtalssnapshot, dokument och blockerare i vanliga ord.">
+ <CustomerLegalReadinessCard customerId={id} readiness={opsMasterReadiness} acceptances={customerLegalAcceptances} documents={customerDocuments} timeline={customerOpsTimeline} />
  </SectionAnchor>
  ) : null}
 

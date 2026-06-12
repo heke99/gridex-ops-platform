@@ -150,6 +150,139 @@ const ApplicationSchema = z.object({
 
 type ApplicationInput = z.infer<typeof ApplicationSchema>
 
+
+type WebsiteLegalAcceptanceVersion = {
+  id: string
+  type: string
+  version: string
+  title: string
+  body: string | null
+  published_at: string | null
+}
+
+const REQUIRED_WEBSITE_LEGAL_ACCEPTANCES: Array<{
+  legalType: string
+  acceptanceType: string
+  field: string
+  aliases: string[]
+  label: string
+}> = [
+  { legalType: 'terms', acceptanceType: 'terms', field: 'consents.terms', aliases: ['terms', 'terms_accepted', 'accept_terms', 'accepted_terms'], label: 'allmänna villkor' },
+  { legalType: 'privacy_policy', acceptanceType: 'privacy_policy', field: 'consents.privacy_policy', aliases: ['privacy_policy', 'privacy_policy_accepted', 'privacy_accepted', 'gdpr_accepted'], label: 'integritetspolicy' },
+  { legalType: 'withdrawal', acceptanceType: 'withdrawal_info', field: 'consents.withdrawal', aliases: ['withdrawal', 'withdrawal_info', 'withdrawal_accepted', 'cooling_off_accepted'], label: 'ångerrättsinformation' },
+  { legalType: 'power_of_attorney', acceptanceType: 'power_of_attorney', field: 'consents.power_of_attorney', aliases: ['power_of_attorney', 'poa_accepted', 'power_of_attorney_accepted'], label: 'fullmakt' },
+  { legalType: 'price_terms', acceptanceType: 'price_snapshot', field: 'consents.price_terms', aliases: ['price_terms', 'price_snapshot', 'price_terms_accepted', 'price_snapshot_accepted'], label: 'prisvillkor/prisbild' },
+]
+
+function consentAccepted(consents: Record<string, unknown> | undefined, aliases: string[]): boolean {
+  if (!consents) return false
+  return aliases.some((alias) => {
+    const value = consents[alias]
+    return value === true || value === 'true' || value === 1 || value === '1' || value === 'yes' || value === 'accepted'
+  })
+}
+
+async function listPublishedWebsiteLegalVersions(companyId: string): Promise<WebsiteLegalAcceptanceVersion[] | null> {
+  const { data, error } = await supabaseService
+    .from('legal_text_versions')
+    .select('id,type,version,title,body,published_at')
+    .eq('company_id', companyId)
+    .eq('status', 'published')
+    .in('type', REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.map((item) => item.legalType))
+
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+
+  return (data ?? []) as WebsiteLegalAcceptanceVersion[]
+}
+
+async function assertWebsiteLegalAcceptances(input: {
+  companyId: string
+  consents?: Record<string, unknown>
+  publicOffer: PublicContractOffer
+}): Promise<WebsiteLegalAcceptanceVersion[]> {
+  const versions = await listPublishedWebsiteLegalVersions(input.companyId)
+  if (versions === null) return []
+
+  const byType = new Map(versions.map((row) => [row.type, row]))
+  const missingVersions = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.filter((item) => !byType.has(item.legalType))
+  if (missingVersions.length > 0) {
+    throw new WebsiteApplicationError({
+      message: `Hemsidan kan inte ta emot avtal eftersom OPS saknar publicerad juridisk version för: ${missingVersions.map((item) => item.label).join(', ')}.`,
+      status: 422,
+      code: 'legal_versions_missing',
+      field: 'legal_text_versions',
+      stage: 'legal_acceptance',
+      hint: 'Publicera allmänna villkor, integritetspolicy, ångerrätt, fullmakt och prisvillkor i tenantens bolagskort i OPS.',
+    })
+  }
+
+  const missingConsents = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.filter((item) => !consentAccepted(input.consents, item.aliases))
+  if (missingConsents.length > 0) {
+    throw new WebsiteApplicationError({
+      message: `Kunden måste godkänna ${missingConsents.map((item) => item.label).join(', ')} innan ansökan kan skickas.`,
+      status: 422,
+      code: 'legal_acceptance_missing',
+      field: missingConsents[0]?.field ?? 'consents',
+      stage: 'legal_acceptance',
+      hint: 'Skicka separata consent-flaggor för villkor, integritet, ångerrätt, fullmakt och prisvillkor.',
+    })
+  }
+
+  return REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.map((item) => byType.get(item.legalType)).filter((row): row is WebsiteLegalAcceptanceVersion => Boolean(row))
+}
+
+async function persistCustomerLegalAcceptances(input: {
+  companyId: string
+  customerId: string
+  contractId: string | null
+  applicationId: string
+  publicOffer: PublicContractOffer | null
+  legalVersions: WebsiteLegalAcceptanceVersion[]
+  consents?: Record<string, unknown>
+  rawPayload: unknown
+}) {
+  if (input.legalVersions.length === 0) return
+  const now = new Date().toISOString()
+  const rows = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.map((definition) => {
+    const legal = input.legalVersions.find((row) => row.type === definition.legalType)
+    if (!legal) return null
+    return {
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      contract_id: input.contractId,
+      contract_application_id: input.applicationId,
+      acceptance_type: definition.acceptanceType,
+      legal_text_version_id: legal.id,
+      accepted_at: now,
+      source: 'website',
+      snapshot: {
+        legal_text: {
+          id: legal.id,
+          type: legal.type,
+          version: legal.version,
+          title: legal.title,
+          body: legal.body,
+          published_at: legal.published_at,
+        },
+        public_offer: input.publicOffer,
+        consent_key: definition.field,
+        consents: input.consents ?? {},
+      },
+      metadata: {
+        source: 'website_customer_applications',
+        application_id: input.applicationId,
+        raw_payload: input.rawPayload,
+      },
+    }
+  }).filter(Boolean)
+
+  const { error } = await supabaseService.from('customer_legal_acceptances').insert(rows)
+  if (error && !missingSchema(error)) throw error
+}
+
 type CustomerRow = {
   id: string
   customer_number: string | null
@@ -170,6 +303,7 @@ type ErrorStage =
   | 'contract_create'
   | 'contract_snapshot_create'
   | 'public_contract_lookup'
+  | 'legal_acceptance'
   | 'application_record_create'
   | 'communication_trigger'
   | 'domain_event_create'
@@ -1944,6 +2078,7 @@ export async function processWebsiteCustomerApplication(input: {
   let meteringPoint: { id: string; metering_point_id: string | null } | null = null
   let contract: WebsiteContractCreateResult | null = null
   let publicOffer: PublicContractOffer | null = null
+  let legalAcceptanceVersions: WebsiteLegalAcceptanceVersion[] = []
   let applicationNumber: string | null = null
 
   try {
@@ -2039,6 +2174,15 @@ export async function processWebsiteCustomerApplication(input: {
         stage: 'public_contract_lookup',
         hint: 'Hemsidan ska hämta avtal via GET /api/v1/website/public-contracts och skicka price_plan_version_id från svaret.',
       })
+    }
+
+    if (publicOffer) {
+      const selectedPublicOffer = publicOffer
+      legalAcceptanceVersions = await stage('legal_acceptance', () => assertWebsiteLegalAcceptances({
+        companyId: input.client.company_id,
+        consents: body.consents,
+        publicOffer: selectedPublicOffer,
+      }))
     }
 
     applicationNumber = await stage('application_record_create', () => reserveApplicationNumber(input.client.company_id))
@@ -2162,6 +2306,17 @@ export async function processWebsiteCustomerApplication(input: {
       resolutionConfidence: energyResolution.resolution.confidence,
       timeline: initialTimeline,
       auditLog: [reviewAuditEvent('application_received', null, responsePayload)],
+    }))
+
+    await stage('legal_acceptance', () => persistCustomerLegalAcceptances({
+      companyId: input.client.company_id,
+      customerId: resolvedCustomerResult.customer.id,
+      contractId: contract?.id ?? null,
+      applicationId: application.id,
+      publicOffer,
+      legalVersions: legalAcceptanceVersions,
+      consents: body.consents,
+      rawPayload: input.rawBody,
     }))
 
     const gridOwnerRequest = readiness.canRequestGridOwnerInformation

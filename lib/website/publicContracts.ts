@@ -1,6 +1,14 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 
+export type PublicLegalTextVersion = {
+  id: string
+  type: string
+  version: string
+  title: string
+  published_at: string | null
+}
+
 export type PublicContractOffer = {
   id: string
   company_id: string
@@ -34,6 +42,7 @@ export type PublicContractOffer = {
   valid_from: string | null
   valid_to: string | null
   sort_order: number
+  legal_versions?: PublicLegalTextVersion[]
   metadata: Record<string, unknown>
 }
 
@@ -234,6 +243,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
       fixed_weight_percent: offer.fixed_weight_percent ?? null,
     },
     withdrawal_version: withdrawalVersion,
+    legal_versions: offer.legal_versions ?? [],
     valid_from: offer.valid_from,
     valid_to: offer.valid_to,
     is_public: true,
@@ -242,10 +252,44 @@ export function publicContractResponse(offer: PublicContractOffer) {
   }
 }
 
+
+async function listPublishedLegalVersions(companyId: string): Promise<PublicLegalTextVersion[] | null> {
+  const { data, error } = await supabaseService
+    .from('legal_text_versions')
+    .select('id,type,version,title,published_at')
+    .eq('company_id', companyId)
+    .eq('status', 'published')
+    .in('type', ['terms', 'privacy_policy', 'withdrawal', 'power_of_attorney', 'price_terms'])
+    .order('type', { ascending: true })
+
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+
+  return (data ?? []) as PublicLegalTextVersion[]
+}
+
+function offerWithLegalVersions(offer: PublicContractOffer, legalVersions: PublicLegalTextVersion[] | null): PublicContractOffer | null {
+  if (legalVersions === null) return offer
+  const required = new Set(['terms', 'privacy_policy', 'withdrawal', 'power_of_attorney', 'price_terms'])
+  for (const row of legalVersions) required.delete(row.type)
+  if (required.size > 0) return null
+  return {
+    ...offer,
+    legal_versions: legalVersions,
+    metadata: {
+      ...offer.metadata,
+      legal_versions: legalVersions,
+    },
+  }
+}
+
 export async function listPublicContractOffers(input: {
   client: IntegrationApiClient
   customerType?: string | null
 }): Promise<PublicContractOffer[]> {
+  const legalVersions = await listPublishedLegalVersions(input.client.company_id)
   const primary = await supabaseService
     .from('public_contract_offers')
     .select('*')
@@ -258,7 +302,8 @@ export async function listPublicContractOffers(input: {
   if (!primary.error) {
     return ((primary.data ?? []) as Array<Record<string, unknown>>)
       .map(mapOfferRow)
-      .filter((offer) => isCurrentlyValid(offer) && customerTypeAllowed(offer, input.customerType))
+      .map((offer) => offerWithLegalVersions(offer, legalVersions))
+      .filter((offer): offer is PublicContractOffer => Boolean(offer && isCurrentlyValid(offer) && customerTypeAllowed(offer, input.customerType)))
   }
 
   if (!missingSchema(primary.error)) throw primary.error
@@ -278,6 +323,8 @@ export async function listPublicContractOffers(input: {
   return ((fallback.data ?? []) as PricePlanVersionRow[])
     .map(offerFromSnapshot)
     .filter((offer): offer is PublicContractOffer => Boolean(offer && customerTypeAllowed(offer, input.customerType)))
+    .map((offer) => offerWithLegalVersions(offer, legalVersions))
+    .filter((offer): offer is PublicContractOffer => Boolean(offer))
     .sort((a, b) => a.sort_order - b.sort_order || a.public_name.localeCompare(b.public_name, 'sv'))
 }
 
