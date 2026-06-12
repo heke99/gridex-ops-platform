@@ -407,3 +407,13 @@ Error examples:
   "hint": "Använd ny Idempotency-Key efter att felet är åtgärdat, eller kör retry via admin."
 }
 ```
+
+## OPS facility/customer-card workflow
+
+For the full tenant website contract, customer application payloads, customer events and the facility work queue used by OPS-E/OPS-F, see:
+
+```txt
+docs/ops-api-customer-intake-facility.md
+```
+
+Important rule for external websites: the website may submit address, postal code, chosen contract and customer consent, but it must not let a tenant or customer manually choose arbitrary grid owners. OPS resolves tenant from the API client and resolves/requests facility data in the backend.

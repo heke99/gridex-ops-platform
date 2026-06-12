@@ -49,6 +49,7 @@ import CustomerProfileCard from '@/components/admin/customers/CustomerProfileCar
 import CustomerGridOwnerFileImportCard from '@/components/admin/customers/CustomerGridOwnerFileImportCard'
 import CustomerContractOfferEligibilityCard from '@/components/admin/customers/CustomerContractOfferEligibilityCard'
 import CustomerOperationsReadinessStrip from '@/components/admin/customers/CustomerOperationsReadinessStrip'
+import CustomerFacilityWorkflowCard from '@/components/admin/customers/CustomerFacilityWorkflowCard'
 import CustomerBusinessActionsCard from '@/components/admin/customers/CustomerBusinessActionsCard'
 import CustomerAuthorizationDocumentsCard from '@/components/admin/customers/CustomerAuthorizationDocumentsCard'
 import CustomerDataRequestsCard from '@/components/admin/customers/CustomerDataRequestsCard'
@@ -2032,6 +2033,15 @@ const analytics = needsAnalyticsData && customerCompanyId
  ))}
  </div>
  </section>
+
+ <CustomerFacilityWorkflowCard
+ customerId={id}
+ sites={sites}
+ meteringPoints={meteringPoints}
+ infoRequests={customerInfoRequests}
+ powersOfAttorney={poaRows}
+ gridOwners={gridOwners}
+ />
 
  <CustomerWebsiteTraceabilityCard
  customer={customer}

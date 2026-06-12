@@ -55,6 +55,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, avtal och anläggning', pageKey: 'customers.intake' },
       { key: 'contracts', label: 'Avtal & fullmakter', href: '/admin/contracts', description: 'Avtal, kampanjer och fullmaktsunderlag', pageKey: 'contracts.catalog' },
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Kund-/anläggningsuppgifter och kompletteringar', pageKey: 'customer.info_requests' },
+      { key: 'facility_requests', label: 'Anläggningsuppgifter', href: '/admin/facility-requests', description: 'Saknade anläggnings-ID, mätpunkter och nätägaruppgifter', pageKey: 'operations.tasks' },
       { key: 'cases', label: 'Kundärenden', href: '/admin/customer-cases', description: 'Ånger, nekade kunder och blockers', pageKey: 'customer.cases' },
     ],
   },
@@ -124,6 +125,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     items: [
       { key: 'switches', label: 'Leverantörsbyten', href: '/admin/operations/switches', description: 'Z03/Z04-flöden i affärsvy', pageKey: 'operations.switches' },
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Z01/Z02 och kompletteringar', pageKey: 'customer.info_requests' },
+      { key: 'facility_requests', label: 'Anläggningsuppgifter', href: '/admin/facility-requests', description: 'Saknade anläggnings-ID, mätpunkter och nätägaruppgifter', pageKey: 'operations.tasks' },
       { key: 'metering', label: 'Mätvärdesåtkomst', href: '/admin/metering', description: 'Mätvärden och tillstånd', pageKey: 'metering.workspace' },
       { key: 'analytics', label: 'Analytics', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag och exportberedskap', pageKey: 'billing.workspace' },

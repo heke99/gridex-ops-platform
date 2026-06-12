@@ -406,3 +406,11 @@ Template:
 ### Kvarstående risker
 - Full automatisk send-policy ska aktiveras stegvis efter att migrationen är körd och verkliga route/certifikat/tenant-data är verifierad.
 - Field matrix import och full UI för decision traces/outbox är foundation-ready men inte komplett byggt i denna batch.
+
+## 2026-06-12 — OPS-E/F facility queue and customer card
+
+- Added `/admin/facility-requests` as a tenant-safe facility work queue for missing facility ID, metering point, verified grid owner, price area and fullmakt blockers.
+- Added `CustomerFacilityWorkflowCard` to the customer card so operators see missing facility data and next action without reading technical rows.
+- Added `lib/facility/workQueue.ts` with RPC-backed read model and safe fallback reads.
+- Added migration `20260612183000_ops_e_f_facility_work_queue_customer_cards.sql` for `gridex_facility_work_queue_v` and `gridex_get_facility_work_queue`.
+- Added API and AI context documentation for website intake, public contracts, customer events and facility workflow.
