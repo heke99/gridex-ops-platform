@@ -24,7 +24,6 @@ import {
   buildBillingPartnerPayloadRow,
 } from "@/lib/billing/partnerAdapter";
 import type { CustomerContractRow } from "@/lib/customer-contracts/types";
-import { createCustomerCase } from "@/lib/customer-cases/db";
 
 export type BillingExportRunRow = {
   id: string;
@@ -271,36 +270,44 @@ async function createBlockedBillingCasesForItems(params: {
     );
 
     try {
-      const customerCase = await createCustomerCase({
-        companyId: params.companyId,
-        customerId: item.customer_id,
-        siteId: item.site_id,
-        meteringPointId: item.metering_point_id,
-        customerContractId: item.contract_id ?? null,
-        caseType: "technical_blocker",
-        priority: "high",
-        title,
-        description,
-        reasonCategory: "billing_export_blocker",
-        nextAction:
-          "Granska blockerad faktureringsrad, komplettera saknade mätvärden/avtal och öppna därefter exporten för retry.",
-        source: "billing_export_blocker",
-        actorUserId: params.actorUserId,
-        metadata: {
-          exportRunId: params.exportRunId,
-          exportRunItemId: item.id,
-          billingUnderlayId: item.billing_underlay_id,
-          blockerReasons: issues,
-        },
-      });
+      const { data: task, error: taskError } = await supabaseService
+        .from("customer_operation_tasks")
+        .insert({
+          company_id: params.companyId,
+          customer_id: item.customer_id,
+          site_id: item.site_id,
+          metering_point_id: item.metering_point_id,
+          task_type: "billing_export_blocker",
+          status: "open",
+          priority: "high",
+          title,
+          description,
+          metadata: {
+            reasonCategory: "billing_export_blocker",
+            nextAction:
+              "Granska blockerad faktureringsrad, komplettera saknade mätvärden/avtal och öppna därefter exporten för ny körning.",
+            source: "billing_export_blocker",
+            contractId: item.contract_id ?? null,
+            exportRunId: params.exportRunId,
+            exportRunItemId: item.id,
+            billingUnderlayId: item.billing_underlay_id,
+            blockerReasons: issues,
+          },
+          created_by: params.actorUserId,
+          updated_by: params.actorUserId,
+        })
+        .select("id")
+        .single();
+
+      if (taskError) throw taskError;
 
       await supabaseService
         .from("billing_export_run_items")
-        .update({ blocker_case_id: customerCase.id, updated_at: new Date().toISOString() })
+        .update({ blocker_case_id: task?.id ?? null, updated_at: new Date().toISOString() })
         .eq("company_id", params.companyId)
         .eq("id", item.id);
     } catch (error) {
-      console.warn("Billing blocker case could not be created", error);
+      console.warn("Billing blocker task could not be created", error);
     }
   }
 }

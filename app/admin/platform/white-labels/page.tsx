@@ -66,7 +66,7 @@ export default async function PlatformWhiteLabelsPage() {
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">{row.status ?? 'active'}</span>
                 </div>
                 <div className="mt-5 grid gap-3 md:grid-cols-2">
-                  <Info label="Supportmail" value={row.support_email} />
+                  <Info label="Kontaktmail" value={row.support_email} />
                   <Info label="Bolag" value={String(tenantCount)} />
                 </div>
               </article>

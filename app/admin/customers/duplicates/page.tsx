@@ -62,7 +62,7 @@ export default async function CustomerDuplicatesPage() {
                 </div>
                 <form action={mergeCustomersAction} className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
                   <div className="font-semibold">Merge-arbetsyta</div>
-                  <p className="mt-1">Välj en huvudkund och markera vilka kunder som ska slås ihop. Systemet blockerar merge mellan olika bolag och loggar före/efter med flyttade anläggningar, mätpunkter, avtal, fullmakter och ärenden.</p>
+                  <p className="mt-1">Välj en huvudkund och markera vilka kunder som ska slås ihop. Systemet blockerar merge mellan olika bolag och loggar före/efter med flyttade anläggningar, mätpunkter, avtal, fullmakter och driftuppgifter.</p>
                   <div className="mt-3 space-y-2">
                     {group.candidates.map((candidate, index) => (
                       <label key={`${group.groupKey}:merge:${candidate.id}`} className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-slate-800">

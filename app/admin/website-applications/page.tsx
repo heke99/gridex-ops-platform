@@ -9,6 +9,7 @@ import {
   resolveWebsiteApplicationEnergyAction,
   updateWebsiteApplicationReviewAction,
 } from './actions'
+import { intakeStatusLabel, missingFieldLabel, sourceLabel, gridOwnerVerificationLabel } from '@/lib/customers/statusLabels'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,8 +50,8 @@ function isControlledFacilityStatus(status: string | null | undefined) {
 function facilityCorrectionCopy(status: string | null | undefined) {
   if (status === 'cross_tenant_facility_conflict') {
     return {
-      title: 'Anläggnings-ID finns i annan tenant',
-      message: 'Leverantörsbyte är stoppat. Systemet visar inte kunddata från annan tenant och skapar säker manuell granskning.',
+      title: 'Anläggnings-ID finns i annat bolag',
+      message: 'Leverantörsbyte är stoppat. Plattformen visar inte kunddata från annat bolag och skapar säker manuell granskning.',
       steps: ['Verifiera uppgiften med kunden.', 'Kontakta nätägaren om uppgiften fortfarande verkar rätt.', 'Kör ny readiness-check efter manuell granskning.'],
     }
   }
@@ -64,7 +65,7 @@ function facilityCorrectionCopy(status: string | null | undefined) {
   if (status === 'duplicate_facility_id') {
     return {
       title: 'Anläggnings-ID finns redan',
-      message: 'Systemet skapar inte en dubblett för samma bolag.',
+      message: 'Plattformen skapar inte en dubblett för samma bolag.',
       steps: ['Öppna befintlig kund/anläggning.', 'Länka eller rätta uppgiften.', 'Kör ny readiness-check innan switch.'],
     }
   }
@@ -124,11 +125,11 @@ function canShowStartSwitch(item: WebsiteApplicationAdminRow) {
 function safeOperationalMessage(value: string | null | undefined) {
   const message = value?.trim()
   if (!message) return null
-  if (/customers_intake_status_check/i.test(message)) return 'Databasens kundstatus-regel behöver senaste migrationen.'
-  if (/customer_contracts_status_check/i.test(message)) return 'Avtal kunde inte skapas eftersom kundavtalets status inte stöds av databasen. Koden ska använda draft/pending_signature och senaste avtalsmigration måste vara körd.'
-  if (/customer_contracts_source_type_check/i.test(message)) return 'Avtal kunde inte skapas eftersom kundavtalets source_type inte stöds av databasen. Kör senaste avtalsmigration och kontrollera ansökan igen.'
-  if (/customer_contracts.*metadata|metadata.*customer_contracts|PGRST204/i.test(message)) return 'Kundavtalets schema behöver senaste migration/schema-cache.'
-  if (/Failing row contains/i.test(message)) return 'Databasen stoppade raden. Kontrollera teknisk detalj i logg och kör rätt migration.'
+  if (/customers_intake_status_check/i.test(message)) return 'Kundstatus behöver uppdateras i databasen innan ansökan kan fortsätta.'
+  if (/customer_contracts_status_check/i.test(message)) return 'Avtal kunde inte skapas eftersom avtalsstatus behöver uppdateras i databasen.'
+  if (/customer_contracts_source_type_check/i.test(message)) return 'Avtal kunde inte skapas eftersom avtalets källa behöver uppdateras i databasen.'
+  if (/customer_contracts.*metadata|metadata.*customer_contracts|PGRST204/i.test(message)) return 'Kundavtalets databasstruktur behöver uppdateras innan ansökan kan fortsätta.'
+  if (/Failing row contains/i.test(message)) return 'Databasen stoppade ansökan. Kontrollera loggen och uppdatera databasen innan du kör igen.'
   if (message.length > 180) return `${message.slice(0, 180)}…`
   return message
 }
@@ -164,7 +165,7 @@ function reviewIssues(item: WebsiteApplicationAdminRow): Array<{ field: string; 
         .filter(isRecord)
         .map((issue) => ({
           field: String(issue.field ?? 'unknown'),
-          label: String(issue.label ?? issue.field ?? 'Saknad uppgift'),
+          label: String(issue.label ?? missingFieldLabel(String(issue.field ?? 'application')) ?? 'Saknad uppgift'),
           action: String(issue.action ?? item.next_step ?? 'Komplettera uppgiften.'),
           severity: typeof issue.severity === 'string' ? issue.severity : undefined,
         }))
@@ -172,7 +173,7 @@ function reviewIssues(item: WebsiteApplicationAdminRow): Array<{ field: string; 
 
   if (fromColumn.length > 0) return fromColumn
 
-  const fromMissingFields = stringList(item.missing_fields).map((field) => ({ field, label: field, action: item.next_step ?? 'Komplettera uppgiften.' }))
+  const fromMissingFields = stringList(item.missing_fields).map((field) => ({ field, label: missingFieldLabel(field), action: item.next_step ?? 'Komplettera uppgiften.' }))
   if (fromMissingFields.length > 0) return fromMissingFields
 
   const controlledStatus = controlledFacilityStatus(item)
@@ -188,8 +189,8 @@ function reviewIssues(item: WebsiteApplicationAdminRow): Array<{ field: string; 
 
   if (isFailedApplication(item)) {
     return [{
-      field: 'system',
-      label: 'Tekniskt fel kräver åtgärd',
+      field: 'application',
+      label: 'Ansökan kräver åtgärd',
       action: safeOperationalMessage(item.error_message ?? item.error_code) ?? 'Kontrollera logg, kör senaste migration och kör redo-kontroll igen.',
       severity: 'blocking',
     }]
@@ -357,10 +358,10 @@ function ApplicationDetails({ item }: { item: WebsiteApplicationAdminRow }) {
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-sky-700">Nätområde</p><p className="mt-1 font-semibold text-sky-950">{energyValue(item, 'gridAreaCode', ['grid_area_code', 'site.grid_area_code']) ?? '—'}</p></div>
           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-sky-700">Elområde</p><p className="mt-1 font-semibold text-sky-950">{energyValue(item, 'priceArea', ['price_area_code', 'site.price_area_code']) ?? '—'}</p></div>
-          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-sky-700">Resolver</p><p className="mt-1 font-semibold text-sky-950">{energyValue(item, 'resolutionStatus', ['resolution_status']) ?? item.resolution_status ?? '—'}</p></div>
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-sky-700">Matchning</p><p className="mt-1 font-semibold text-sky-950">{gridOwnerVerificationLabel(energyValue(item, 'resolutionStatus', ['resolution_status']) ?? item.resolution_status)}</p></div>
           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs uppercase tracking-[0.14em] text-sky-700">Nätägare</p><p className="mt-1 font-semibold text-sky-950">{energyValue(item, 'gridOwnerName', []) ?? item.grid_owner_id ?? '—'}</p></div>
         </div>
-        {!canShowStartSwitch(item) ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><strong>Leverantörsbyte är blockerat.</strong> Nästa säkra steg är adressmatchning eller begäran om anläggningsuppgifter från nätägare tills anläggning/mätpunkt är verifierad.</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">Ansökan är redo för leverantörsbyte. Starta switch i operationsflödet.</div>}
+        {!canShowStartSwitch(item) ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><strong>Leverantörsbyte är blockerat.</strong> Nästa säkra steg är adressmatchning eller begäran om anläggningsuppgifter från nätägare tills anläggning/mätpunkt är verifierad.</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">Ansökan är redo för leverantörsbyte. Starta switch i arbetsflödet.</div>}
         {hasControlledFacilityIssue(item) ? (() => {
           const copy = facilityCorrectionCopy(controlledFacilityStatus(item))
           return (
@@ -370,7 +371,7 @@ function ApplicationDetails({ item }: { item: WebsiteApplicationAdminRow }) {
               <ol className="mt-3 list-decimal space-y-1 pl-5 text-xs">
                 {copy.steps.map((step) => <li key={step}>{step}</li>)}
               </ol>
-              <p className="mt-3 text-xs font-semibold">Tekniska detaljer finns endast i payload/logg. Fortsätt inte automatiskt efter rättning utan ny readiness-check.</p>
+              <p className="mt-3 text-xs font-semibold">Detaljer finns i granskningsloggen. Fortsätt inte automatiskt efter rättning utan ny redo-kontroll.</p>
             </div>
           )
         })() : null}
@@ -385,14 +386,14 @@ function ApplicationDetails({ item }: { item: WebsiteApplicationAdminRow }) {
         <ReviewForm item={item} />
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="font-semibold text-slate-950">Ärendehistorik</p>
+            <p className="font-semibold text-slate-950">Ansökningshistorik</p>
             <div className="mt-2 space-y-2">
-              {rows.length === 0 ? <p className="text-xs text-slate-600">Ingen timeline finns ännu.</p> : null}
+              {rows.length === 0 ? <p className="text-xs text-slate-600">Ingen historik finns ännu.</p> : null}
               {rows.map((row, index) => <div key={index} className="rounded-xl bg-white px-3 py-2 text-xs"><div className="font-semibold text-slate-900">{String(row.label ?? row.type ?? 'Händelse')}</div><div className="text-slate-500">{formatDate(String(row.occurred_at ?? ''))}</div></div>)}
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="font-semibold text-slate-950">Payload</p>
+            <p className="font-semibold text-slate-950">Ansökningsdetaljer</p>
             <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded-xl bg-white p-3 text-[11px] text-slate-600">{JSON.stringify(item.raw_payload ?? item.payload, null, 2)}</pre>
           </div>
         </div>
@@ -444,9 +445,9 @@ export default async function WebsiteApplicationsAdminPage({ searchParams }: { s
           <Link href="/admin/website-applications" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700">Alla</Link>
           <Link href="/admin/website-applications?status=needs_information" className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-900">Saknar uppgifter</Link>
           <Link href="/admin/website-applications?status=needs_facility_data" className="rounded-full border border-amber-200 bg-white px-3 py-1 text-amber-900">Begär nätägare</Link>
-          <Link href="/admin/website-applications?status=ready_for_switch" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">Redo för switch</Link>
+          <Link href="/admin/website-applications?status=ready_for_switch" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">Redo för byte</Link>
           <Link href="/admin/website-applications?status=facility_data_invalid" className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-red-800">Anläggningsfel</Link>
-          <Link href="/admin/website-applications?status=failed" className="rounded-full border border-red-200 bg-white px-3 py-1 text-red-800">Tekniska fel</Link>
+          <Link href="/admin/website-applications?status=failed" className="rounded-full border border-red-200 bg-white px-3 py-1 text-red-800">Fel kräver åtgärd</Link>
         </div>
         <div className="overflow-x-auto rounded-2xl border border-slate-200">
           <table className="min-w-full text-sm">
@@ -470,10 +471,10 @@ export default async function WebsiteApplicationsAdminPage({ searchParams }: { s
                   <tr key={item.id} className="align-top">
                     <td className="px-4 py-3 text-slate-700"><div className="font-semibold text-slate-950">{customerName(item)}</div><div className="font-mono text-xs text-slate-500">{item.customer_number ?? item.external_customer_id}</div>{isPlatformAdmin ? <div className="text-xs text-slate-500">{item.companies?.name ?? item.company_id}</div> : null}</td>
                     <td className="px-4 py-3 text-slate-700"><div>{customerEmail(item)}</div><div className="text-xs text-slate-500">{customerPhone(item)}</div></td>
-                    <td className="px-4 py-3"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}>{item.status}</span>{item.error_stage ? <div className="mt-1 text-xs text-red-700">{item.error_stage}: {safeOperationalMessage(item.error_message ?? item.error_code) ?? 'Tekniskt fel'}</div> : null}</td>
+                    <td className="px-4 py-3"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}>{intakeStatusLabel(item.status)}</span>{item.error_stage ? <div className="mt-1 text-xs text-red-700">{safeOperationalMessage(item.error_message ?? item.error_code) ?? 'Fel kräver åtgärd'}</div> : null}</td>
                     <td className="px-4 py-3 text-slate-700">{issues.length === 0 ? <span className="text-emerald-700">Inget blockerar</span> : <div className="space-y-1">{issues.slice(0, 4).map((issue) => <div key={`${item.id}-${issue.field}`} className="text-xs text-amber-900">• {issue.label}</div>)}</div>}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatDate(item.created_at)}</td>
-                    <td className="px-4 py-3 text-slate-700">{item.source ?? 'external_website'}<div className="text-xs text-slate-500">{item.integration_api_clients?.name ?? '—'}</div></td>
+                    <td className="px-4 py-3 text-slate-700">{sourceLabel(item.source ?? 'external_contract_intake')}<div className="text-xs text-slate-500">{item.integration_api_clients?.name ?? '—'}</div></td>
                     <td className="px-4 py-3 text-slate-700">{item.next_step ?? 'Kontrollera ansökan.'}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">

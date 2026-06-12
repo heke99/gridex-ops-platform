@@ -194,7 +194,7 @@ export default function MeteringPointForm({
             <option value="Z04">Z04 — Kvartsmätt/15 minuter</option>
           </select>
           <p className="text-xs leading-5 text-slate-700 ">
-            Detta ändrar Ediel-fält 217 i öppna switch/testärenden för denna
+            Detta ändrar Ediel-fält 217 i öppna switch- och kontrollflöden för denna
             mätpunkt. För TGT 1.2.2 Z03LK kräver portalen normalt Z04. Skapa
             nytt PRODAT-utkast efter att du sparat.
           </p>

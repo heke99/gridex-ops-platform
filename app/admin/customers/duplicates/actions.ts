@@ -242,7 +242,7 @@ export async function mergeCustomersAction(formData: FormData) {
 
   if (!primaryCustomerId) throw new Error('Välj huvudkund innan merge körs.')
   if (sourceCustomerIds.length === 0) throw new Error('Välj minst en kund som ska slås ihop till huvudkunden.')
-  if (!reason) throw new Error('Ange orsak. Merge påverkar avtal, anläggningar, fullmakter, ärenden och fakturering.')
+  if (!reason) throw new Error('Ange orsak. Merge påverkar avtal, anläggningar, fullmakter, driftuppgifter och fakturering.')
 
   const primary = await loadCustomer(primaryCustomerId)
   if (!primary.company_id) throw new Error('Huvudkunden saknar bolagskoppling och kan inte användas för säker merge.')

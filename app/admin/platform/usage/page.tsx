@@ -72,7 +72,7 @@ export default async function PlatformUsagePage() {
     <div className="min-h-screen">
       <AdminHeader
         title="Usage & plattformsfakturering"
-        subtitle="Tenant-statistik för SaaS-billing, support och drift: kunder, anläggningar, fullmakter, Ediel, mätvärden, export och blockerare."
+        subtitle="Bolagsstatistik för SaaS-fakturering och drift: kunder, anläggningar, fullmakter, Ediel, mätvärden, export och blockerare."
         userEmail={admin.email}
         workspaceMode="platform"
       />
@@ -84,7 +84,7 @@ export default async function PlatformUsagePage() {
               <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-900">Plattform</p>
               <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Usage som kan ligga till grund för SaaS-fakturering</h1>
               <p className="mt-3 max-w-4xl text-sm font-bold leading-6 text-slate-700">
-                Den här sidan räknar per company_id och används för kontroll av volymer, supportärenden och framtida plattformsfakturering. Vanliga tenants ska inte se andra bolags statistik.
+                Den här sidan räknar per bolag och används för kontroll av volymer, driftuppgifter och framtida plattformsfakturering. Vanliga bolag ska inte se andra bolags statistik.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -156,7 +156,7 @@ export default async function PlatformUsagePage() {
                     <td className="px-6 py-4">{row.billingUnderlays}<div className="text-xs font-semibold text-slate-500">{row.billingExportRuns} exporter · {row.partnerExports} partner</div></td>
                     <td className="px-6 py-4">
                       <div>{row.customerBlockers} blockerare</div>
-                      <div className="text-xs font-semibold text-slate-500">{row.openCustomerCases} ärenden · {row.blockedBillingRows} fakturarader</div>
+                      <div className="text-xs font-semibold text-slate-500">{row.openCustomerCases} driftuppgifter · {row.blockedBillingRows} fakturarader</div>
                     </td>
                     <td className="px-6 py-4">{row.adminUsageEvents}<div className="text-xs font-semibold text-slate-500">{row.billableUsageEvents} faktureringsbara</div></td>
                     <td className="px-6 py-4 text-slate-700">{formatDate(row.lastActivityAt)}</td>
@@ -174,7 +174,7 @@ export default async function PlatformUsagePage() {
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-700">Alla volymer filtreras per company_id.</div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-700">Saknade tabeller ger 0 i stället för att krascha usage-sidan.</div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-700">Fullmakter och fullmaktsscope visas separat så siffror inte blandas ihop.</div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-700">Blockerare och väntande uppgifter används som support-/billing-risk.</div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-700">Blockerare och väntande uppgifter används som drift- och faktureringsrisk.</div>
           </div>
         </section>
       </div>

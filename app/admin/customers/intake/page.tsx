@@ -135,7 +135,7 @@ export default async function CustomerIntakePage() {
             ['1', 'Kund', 'Privat/företag, identitet, kontakt och fakturaadress.'],
             ['2', 'Anläggning', 'Anläggnings-id, nätägare, elområde och startdatum.'],
             ['3', 'Avtal', 'Prisplan, kampanj, fullmakt och startvillkor.'],
-            ['4', 'Fullmakt/Ediel', 'Systemet avgör fullmakt, leverantörsbyte, inflytt, uppsägning och mätdataflöde.'],
+            ['4', 'Fullmakt/Ediel', 'Plattformen avgör fullmakt, leverantörsbyte, inflytt, uppsägning och mätdataflöde.'],
             ['5', 'Sammanfattning', 'Visa blockerare, nästa steg och om kunden är redo för fakturering.'],
           ].map(([step, title, body]) => (
             <div key={step} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">

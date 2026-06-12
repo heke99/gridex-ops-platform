@@ -138,15 +138,15 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
     recentCases,
     queueRows,
   ] = await Promise.all([
-    safeCount('customer_cases', companyId, [{ column: 'status', op: 'in', value: ['open', 'action_required', 'manual_follow_up', 'billing_blocked'] }]),
-    safeCount('customer_cases', companyId, [{ column: 'priority', op: 'in', value: ['high', 'critical'] }]),
+    safeCount('customer_operation_tasks', companyId, [{ column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] }]),
+    safeCount('customer_operation_tasks', companyId, [{ column: 'priority', op: 'in', value: ['high', 'critical'] }]),
     safeCount('supplier_switch_requests', companyId, [{ column: 'status', op: 'in', value: ['blocked', 'rejected', 'cancelled'] }]),
     safeCount('supplier_switch_requests', companyId, [{ column: 'status', op: 'in', value: ['draft', 'ready', 'queued', 'submitted', 'accepted', 'pending'] }]),
     safeCount('outbound_requests', companyId, [{ column: 'status', value: 'failed' }]),
     safeCount('outbound_requests', companyId, [{ column: 'channel_type', value: 'unresolved' }]),
     safeCount('metering_value_gaps', companyId, [{ column: 'status', op: 'in', value: ['open', 'missing', 'pending'] }]),
     safeCount('billing_underlays', companyId, [{ column: 'readiness_status', op: 'in', value: ['warning', 'blocked', 'requires_correction'] }]),
-    safeRows<RecentCaseRow>('customer_cases', companyId, 'id, title, status, priority, created_at, customer_id', [], 8),
+    safeRows<RecentCaseRow>('customer_operation_tasks', companyId, 'id, title, status, priority, created_at, customer_id', [], 8),
     safeRows<QueueRow>('batch2c_drift_queue', companyId, 'queue_type, source_id, title, severity, status, created_at', [{ column: 'status', op: 'in', value: ['open', 'new', 'pending', 'action_required'] }], 8),
   ])
 
@@ -158,7 +158,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title="System Control Tower"
-        subtitle="Överblick över kundärenden, leverantörsbyten, outbound, mätvärden och faktureringsblockeringar."
+        subtitle="Överblick över driftuppgifter, leverantörsbyten, outbound, mätvärden och faktureringsblockeringar."
         userEmail={context.email}
         workspaceName={workspaceName}
         workspaceMode={tenantScope.isPlatformAdmin ? 'platform' : 'tenant'}
@@ -181,8 +181,8 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
         ) : null}
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Öppna kundärenden" value={openCases} href="/admin/customer-cases" tone={openCases > 0 ? 'warning' : 'success'} />
-          <StatCard label="Hög prioritet" value={highCases} href="/admin/customer-cases" tone={highCases > 0 ? 'danger' : 'success'} />
+          <StatCard label="Öppna driftuppgifter" value={openCases} href="/admin/operations/tasks" tone={openCases > 0 ? 'warning' : 'success'} />
+          <StatCard label="Hög prioritet" value={highCases} href="/admin/operations/tasks" tone={highCases > 0 ? 'danger' : 'success'} />
           <StatCard label="Blockerade switchar" value={switchBlocked} href="/admin/operations/switches" tone={switchBlocked > 0 ? 'danger' : 'success'} />
           <StatCard label="Aktiva switchar" value={switchOpen} href="/admin/operations/switches" tone={switchOpen > 0 ? 'warning' : 'success'} />
           <StatCard label="Outbound fel" value={outboundFailed} href="/admin/outbound" tone={outboundFailed > 0 ? 'danger' : 'success'} />
@@ -196,9 +196,9 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-slate-950">Senaste problem</h2>
-                <p className="mt-1 text-sm text-slate-600">Kundärenden och driftköer som kräver uppföljning.</p>
+                <p className="mt-1 text-sm text-slate-600">Driftuppgifter och arbetsköer som kräver uppföljning.</p>
               </div>
-              <Link href="/admin/customer-cases" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Öppna ärenden</Link>
+              <Link href="/admin/operations/tasks" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Öppna driftkö</Link>
             </div>
 
             <div className="mt-5 space-y-3">
@@ -207,7 +207,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
               ) : null}
 
               {recentCases.map((row) => (
-                <Link key={row.id} href={`/admin/customer-cases`} className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">
+                <Link key={row.id} href={`/admin/operations/tasks`} className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="font-semibold text-slate-950">{row.title ?? 'Kundärende'}</p>
                     <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{row.priority ?? 'normal'} · {row.status ?? 'open'}</span>
@@ -236,7 +236,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
             <h2 className="text-lg font-semibold text-slate-950">Snabbåtgärder</h2>
             <form action={runControlTowerPeriodMotorAction} className="rounded-2xl border border-slate-200 p-4">
               <p className="text-sm font-semibold text-slate-900">Kör periodmotor</p>
-              <p className="mt-1 text-xs text-slate-600">Skapar saknade mätvärdesluckor, outbound och ärenden där underlag saknas.</p>
+              <p className="mt-1 text-xs text-slate-600">Skapar saknade mätvärdesluckor, outbound och driftuppgifter där underlag saknas.</p>
               <div className="mt-3 grid gap-2">
                 <input name="start_month" placeholder="Startmånad, t.ex. 2026-01" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
                 <input name="end_month" placeholder="Slutmånad, t.ex. 2026-05" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
@@ -245,9 +245,9 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
             </form>
 
             <form action={createControlTowerCasesAction} className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-900">Skapa ärenden från köer</p>
-              <p className="mt-1 text-xs text-slate-600">Återanvänder befintliga ärenden och skapar bara där det saknas.</p>
-              <button className="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Skapa/uppdatera ärenden</button>
+              <p className="text-sm font-semibold text-slate-900">Skapa driftuppgifter från köer</p>
+              <p className="mt-1 text-xs text-slate-600">Återanvänder befintliga driftuppgifter och skapar bara där det saknas.</p>
+              <button className="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Skapa/uppdatera driftuppgifter</button>
             </form>
           </aside>
         </section>

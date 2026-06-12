@@ -71,7 +71,7 @@ export async function saveCompanyEmailSettingsAction(formData: FormData) {
     if (!senderName) throw new Error('Avsändarnamn krävs.')
     if (senderEmail && !isValidEmail(senderEmail)) throw new Error('Avsändarmail har ogiltigt format.')
     if (replyToEmail && !isValidEmail(replyToEmail)) throw new Error('Reply-to har ogiltigt format.')
-    if (supportEmail && !isValidEmail(supportEmail)) throw new Error('Supportmail har ogiltigt format.')
+    if (supportEmail && !isValidEmail(supportEmail)) throw new Error('Kontaktmail har ogiltigt format.')
     if (domain && !isValidDomain(domain)) throw new Error('Domänen har ogiltigt format.')
     if (senderEmail && domain && !senderEmail.endsWith(`@${domain}`)) {
       throw new Error('Avsändarmail måste ligga på samma domän som domänverifieringen.')

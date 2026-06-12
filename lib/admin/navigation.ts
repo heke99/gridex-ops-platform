@@ -42,7 +42,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Daglig drift och blockerare',
     items: [
       { key: 'dashboard', label: 'Översikt', href: '/admin', description: 'Status, arbetskö och nästa åtgärd', pageKey: 'dashboard' },
-      { key: 'work_queue', label: 'Arbetskö', href: '/admin/work-queue', description: 'Kunder och ärenden som kräver åtgärd', pageKey: 'operations.tasks' },
+      { key: 'work_queue', label: 'Arbetskö', href: '/admin/work-queue', description: 'Kunder och driftuppgifter som kräver åtgärd', pageKey: 'operations.tasks' },
     ],
   },
   {
@@ -55,7 +55,6 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, avtal och anläggning', pageKey: 'customers.intake' },
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Kund-/anläggningsuppgifter och kompletteringar', pageKey: 'customer.info_requests' },
       { key: 'facility_requests', label: 'Anläggningsuppgifter', href: '/admin/facility-requests', description: 'Saknade anläggnings-ID, mätpunkter och nätägaruppgifter', pageKey: 'operations.tasks' },
-      { key: 'cases', label: 'Kundärenden', href: '/admin/customer-cases', description: 'Ånger, nekade kunder och blockers', pageKey: 'customer.cases' },
     ],
   },
   {

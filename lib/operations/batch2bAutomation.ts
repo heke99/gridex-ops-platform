@@ -209,7 +209,7 @@ async function ensureOutboundRequest(input: {
   return true
 }
 
-async function createCustomerCaseForBlocker(input: {
+async function createOperationTaskForBlocker(input: {
   actorUserId: string
   companyId: string
   customerId: string
@@ -221,34 +221,36 @@ async function createCustomerCaseForBlocker(input: {
   metadata: Record<string, unknown>
 }): Promise<boolean> {
   const { data: existing, error: existingError } = await supabaseService
-    .from('customer_cases')
+    .from('customer_operation_tasks')
     .select('id')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
-    .eq('case_type', 'technical_blocker')
-    .eq('status', 'billing_blocked')
+    .eq('task_type', 'billing_export_blocker')
+    .eq('status', 'open')
     .contains('metadata', { automationKey: input.metadata.automationKey })
     .limit(1)
 
   if (existingError && !isMissingRelationError(existingError)) throw existingError
   if ((existing ?? []).length > 0) return false
 
-  const { error } = await supabaseService.from('customer_cases').insert({
+  const { error } = await supabaseService.from('customer_operation_tasks').insert({
     company_id: input.companyId,
     customer_id: input.customerId,
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,
-    case_type: 'technical_blocker',
-    status: 'billing_blocked',
+    task_type: 'billing_export_blocker',
+    status: 'open',
     priority: 'high',
     title: input.title,
     description: input.description,
-    reason_category: input.reasonCategory,
-    billing_blocked: true,
-    billing_manual_review: true,
-    next_action: 'Granska blockeraren, komplettera saknad data och kör exporten igen för endast berörd rad.',
-    source: 'batch_2b_operations',
-    metadata: input.metadata,
+    metadata: {
+      reasonCategory: input.reasonCategory,
+      billingBlocked: true,
+      billingManualReview: true,
+      nextAction: 'Granska blockeraren, komplettera saknad data och kör exporten igen för endast berörd rad.',
+      source: 'batch_2b_operations',
+      ...input.metadata,
+    },
     created_by: input.actorUserId,
     updated_by: input.actorUserId,
   })
@@ -395,7 +397,7 @@ export async function runBatch2BAutomation(input: {
   for (const item of (blockedItems ?? []) as Array<{ id: string; customer_id: string | null; site_id: string | null; metering_point_id: string | null; billing_underlay_id: string | null; blocker_reasons?: unknown }>) {
     if (!item.customer_id) continue
     blockersFound += 1
-    const created = await createCustomerCaseForBlocker({
+    const created = await createOperationTaskForBlocker({
       actorUserId: input.actorUserId,
       companyId: input.companyId,
       customerId: item.customer_id,
@@ -415,7 +417,7 @@ export async function runBatch2BAutomation(input: {
   }
 
   if (requestsCreated === 0 && casesCreated === 0) {
-    notes.push('Inga nya automationsrader skapades. Befintliga requests/cases eller komplett data kan redan finnas.')
+    notes.push('Inga nya automationsrader skapades. Befintliga befintliga requests/uppgifter eller komplett data kan redan finnas.')
   }
 
   const result: Batch2BRunResult = {

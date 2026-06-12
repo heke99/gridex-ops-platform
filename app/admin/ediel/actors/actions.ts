@@ -5,6 +5,7 @@ import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expisoftCertificateDirectory'
+import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
 
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key)
@@ -403,7 +404,7 @@ export async function importPlatformActorsAction(formData: FormData) {
     }
   }
 
-  const status = errors.length > 0 ? 'completed_with_warnings' : 'completed_with_warnings'
+  const status = errors.length > 0 ? 'completed_with_warnings' : 'completed'
   const update = await supabaseService
     .from('platform_actor_import_runs')
     .update({
@@ -416,6 +417,18 @@ export async function importPlatformActorsAction(formData: FormData) {
     })
     .eq('id', run.data.id)
   if (update.error) throw update.error
+
+  await logAdminActionAndUsage({
+    companyId: null,
+    actorUserId: context.userId,
+    entityType: 'platform_actor_import_run',
+    entityId: String(run.data.id),
+    action: 'actor_import.completed',
+    label: errors.length > 0 ? 'Aktörsimport slutförd med granskningspunkter' : 'Aktörsimport slutförd',
+    billable: true,
+    billingUnit: 'actor_import',
+    metadata: { source, fileName, parsed: parsed.length, upserted, failed: errors.length, status },
+  })
 
   revalidatePath('/admin/ediel/actors')
   revalidatePath('/admin/customers/intake')
@@ -522,6 +535,40 @@ export async function verifyPlatformActorForCustomerFlowAction(formData: FormDat
   if (routeUpdate.error) throw routeUpdate.error
 
   await syncVerifiedActorToCustomerMasterdata(actorId, context.userId)
+
+  const verifiedRolesResult = await supabaseService
+    .from('platform_actor_roles')
+    .select('actor_role')
+    .eq('actor_id', actorId)
+    .eq('is_active', true)
+  if (verifiedRolesResult.error) throw verifiedRolesResult.error
+  const verifiedRoles = (verifiedRolesResult.data ?? []).map((row) => String(row.actor_role))
+
+  await logAdminActionAndUsage({
+    companyId: null,
+    actorUserId: context.userId,
+    entityType: 'platform_market_actor',
+    entityId: actorId,
+    action: 'actor_verified',
+    label: 'Aktör verifierad för kundflöde',
+    billable: true,
+    billingUnit: 'actor_verification',
+    metadata: { actorId, roles: verifiedRoles, autoSendAllowed: false },
+  })
+  if (verifiedRoles.includes('grid_owner')) {
+    await logUsageEvent({
+      companyId: null,
+      actorUserId: context.userId,
+      entityType: 'platform_market_actor',
+      entityId: actorId,
+      eventKey: 'grid_owner_verified',
+      actionLabel: 'Nätägare verifierad',
+      source: 'actor_registry',
+      billable: true,
+      billingUnit: 'actor_verification',
+      metadata: { actorId, roles: verifiedRoles },
+    })
+  }
 
   await supabaseService
     .from('platform_actor_import_issues')
@@ -690,20 +737,42 @@ export async function saveEdielPartyRegistryEntryAction(formData: FormData) {
     if (addressResult.error) throw addressResult.error
   }
 
+  await logAdminActionAndUsage({
+    companyId: null,
+    actorUserId: context.userId,
+    entityType: 'ediel_party',
+    entityId: String(partyResult.data.id),
+    action: roles.includes('grid_owner') ? 'grid_owner_verified' : 'actor_verified',
+    label: roles.includes('grid_owner') ? 'Nätägare verifierad eller uppdaterad' : 'Ediel-aktör verifierad eller uppdaterad',
+    billable: status === 'verified',
+    billingUnit: 'actor_verification',
+    metadata: { edielId, roles, partyType, visibleToCustomerFlow, source, messageFamily, environment, subaddress },
+  })
+
   revalidatePath('/admin/ediel/actors')
   revalidatePath('/admin/ediel/routes')
 }
 
 export async function refreshExpisoftReceiverCertificateAction(formData: FormData) {
-  await requirePlatformAdminActionAccess()
+  const context = await requirePlatformAdminActionAccess()
   const smtpEmail = value(formData, 'smtpEmail')
   if (!smtpEmail) throw new Error('SMTP address krävs för Expisoft lookup.')
-  await fetchReceiverCertificatesFromExpisoft({
+  const lookup = await fetchReceiverCertificatesFromExpisoft({
     smtpEmail,
     edielId: value(formData, 'edielId'),
     subaddress: value(formData, 'subaddress'),
     partyId: value(formData, 'partyId'),
     forceRefresh: boolValue(formData, 'forceRefresh'),
+  })
+  await logAdminActionAndUsage({
+    companyId: null,
+    actorUserId: context.userId,
+    entityType: 'ediel_party_address',
+    entityId: value(formData, 'partyId') ?? smtpEmail,
+    action: 'actor_certificate_checked',
+    label: 'Mottagarcertifikat kontrollerat',
+    billable: false,
+    metadata: { smtpEmail, edielId: value(formData, 'edielId'), subaddress: value(formData, 'subaddress'), certificatesFound: lookup.certificatesFound },
   })
   revalidatePath('/admin/ediel/actors')
   revalidatePath('/admin/ediel/certificates')

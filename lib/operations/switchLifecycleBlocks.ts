@@ -3,7 +3,7 @@ import type { CustomerCaseRow, CustomerCaseType } from '@/lib/customer-cases/typ
 import type { SupplierSwitchRequestRow, SupplierSwitchRequestStatus } from '@/lib/operations/types'
 
 export type SwitchLifecycleBlock = {
-  source: 'customer_lifecycle_decision' | 'customer_case'
+  source: 'customer_lifecycle_decision' | 'customer_operation_task' | 'customer_case'
   id: string
   companyId: string | null
   customerId: string
@@ -27,6 +27,24 @@ const BLOCKING_CASE_TYPES = new Set<CustomerCaseType>([
   'credit_risk',
   'technical_blocker',
 ])
+
+
+const BLOCKING_TASK_TYPES = new Set<string>([
+  'customer_withdrawal_followup',
+  'customer_rejected_followup',
+  'supplier_switch_aborted',
+  'missing_authorization',
+  'customer_intake_missing_data',
+  'duplicate_review',
+  'billing_export_blocker',
+  'external_contract_intake_review',
+])
+
+function lifecycleDecisionTypeForTask(taskType: string | null | undefined): 'withdrawal' | 'rejected' | null {
+  if (taskType === 'customer_withdrawal_followup') return 'withdrawal'
+  if (BLOCKING_TASK_TYPES.has(String(taskType ?? ''))) return 'rejected'
+  return null
+}
 
 export const OPEN_SUPPLIER_SWITCH_STATUSES: SupplierSwitchRequestStatus[] = [
   'draft',
@@ -203,37 +221,41 @@ export async function findActiveSwitchLifecycleBlock(
   }
 
   try {
-    let caseQuery = supabase
-      .from('customer_cases')
-      .select('id, company_id, customer_id, site_id, metering_point_id, case_type, title, reason_category, description, created_at')
+    let taskQuery = supabase
+      .from('customer_operation_tasks')
+      .select('id, company_id, customer_id, site_id, metering_point_id, task_type, title, description, metadata, created_at')
       .eq('customer_id', params.customerId)
-      .in('case_type', Array.from(BLOCKING_CASE_TYPES))
-      .not('status', 'in', '(resolved,cancelled,closed)')
+      .in('task_type', Array.from(BLOCKING_TASK_TYPES))
+      .in('status', ['open', 'in_progress', 'blocked'])
       .order('created_at', { ascending: false })
       .limit(20)
 
-    if (params.companyId) caseQuery = caseQuery.eq('company_id', params.companyId)
+    if (params.companyId) taskQuery = taskQuery.eq('company_id', params.companyId)
 
-    const { data: cases, error } = await caseQuery
+    const { data: tasks, error } = await taskQuery
     if (error) {
       if (!databaseShapeMissing(error)) throw error
       return null
     }
 
-    for (const row of cases ?? []) {
+    for (const row of tasks ?? []) {
+      const metadata = (row.metadata ?? {}) as Record<string, unknown>
+      const decisionType = lifecycleDecisionTypeForTask(row.task_type)
+      if (!decisionType) continue
+
       const block: SwitchLifecycleBlock = {
-        source: 'customer_case',
+        source: 'customer_operation_task',
         id: String(row.id),
         companyId: row.company_id ? String(row.company_id) : null,
         customerId: String(row.customer_id),
         siteId: row.site_id ? String(row.site_id) : null,
         meteringPointId: row.metering_point_id ? String(row.metering_point_id) : null,
-        decisionType: row.case_type === 'withdrawal' ? 'withdrawal' : 'rejected',
-        title: String(row.title ?? 'Kundärende blockerar leverantörsbyte'),
+        decisionType,
+        title: String(row.title ?? 'Driftuppgift blockerar leverantörsbyte'),
         reason:
-          String(row.reason_category ?? '').trim() ||
+          String(metadata.reasonCategory ?? '').trim() ||
           String(row.description ?? '').trim() ||
-          'Öppet kundärende blockerar leverantörsbyte.',
+          'Öppen driftuppgift blockerar leverantörsbyte.',
         createdAt: row.created_at ? String(row.created_at) : null,
       }
 
@@ -347,7 +369,7 @@ export async function pauseOpenSupplierSwitchesForLifecycleBlock(
           : 'Leverantörsbytet är stoppat innan fortsatt handläggning.',
       payload: {
         lifecycleBlock: params.block,
-        customerCaseId: params.customerCaseId ?? null,
+        customerTaskId: params.customerCaseId ?? null,
         previousStatus: request.status,
         nextStatus,
       },

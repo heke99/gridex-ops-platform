@@ -5,6 +5,57 @@ import { importPlatformActorsAction, refreshExpisoftReceiverCertificateAction, r
 
 export const dynamic = 'force-dynamic'
 
+function actorStatusLabel(value: string | null | undefined) {
+  switch (String(value ?? '').toLowerCase()) {
+    case 'active': return 'Aktiv'
+    case 'verified': return 'Verifierad'
+    case 'needs_review': return 'Kräver granskning'
+    case 'needs_verification': return 'Kräver verifiering'
+    case 'strong_suggestion': return 'Stark matchning'
+    case 'draft': return 'Utkast'
+    case 'inactive': return 'Inaktiv'
+    case 'blocked': return 'Blockerad'
+    case 'resolved': return 'Löst'
+    case 'acknowledged': return 'Granskad'
+    default: return value ?? '—'
+  }
+}
+
+function actorRoleLabel(value: string | null | undefined) {
+  switch (String(value ?? '').toLowerCase()) {
+    case 'grid_owner':
+    case 'network_owner':
+    case 'netowner': return 'Nätägare'
+    case 'electricity_supplier':
+    case 'supplier':
+    case 'powersupplier': return 'Elleverantör'
+    case 'energy_service_company': return 'Energitjänsteföretag'
+    case 'balance_responsible_party':
+    case 'brp': return 'Balansansvarig'
+    case 'ediel_portal': return 'Edielportalen'
+    case 'test_counterparty': return 'Kontrollmotpart'
+    case 'system_supplier': return 'Systemleverantör'
+    case 'grid_owner_in_agt_context': return 'Nätägare i aktörstest'
+    case 'other': return 'Annan roll'
+    default: return value ?? '—'
+  }
+}
+
+function routeStatusLabel(value: string | null | undefined, verified?: boolean | null) {
+  if (verified) return 'Verifierad'
+  switch (String(value ?? '').toLowerCase()) {
+    case 'active': return 'Aktiv'
+    case 'verified': return 'Verifierad'
+    case 'needs_review': return 'Kräver granskning'
+    case 'needs_verification': return 'Kräver verifiering'
+    case 'inactive': return 'Inaktiv'
+    case 'required_encrypted': return 'Kryptering krävs'
+    case 'encrypted': return 'Krypterad'
+    case 'unencrypted': return 'Okrypterad'
+    default: return value ?? '—'
+  }
+}
+
 export default async function EdielActorsPage() {
   const context = await requirePlatformAdminAccess()
   const [actorsResult, partiesResult, addressesResult, marketActorsResult, actorRolesResult, actorRoutesResult, importIssuesResult, semanticsResult] = await Promise.all([
@@ -53,7 +104,7 @@ export default async function EdielActorsPage() {
   const actorRoles = actorRolesResult.error ? [] : actorRolesResult.data ?? []
   const actorRoutes = actorRoutesResult.error ? [] : actorRoutesResult.data ?? []
   const importIssues = importIssuesResult.error ? [] : importIssuesResult.data ?? []
-  const messageSemantics = semanticsResult.error ? [] : semanticsResult.data ?? []
+  const messageRegler = semanticsResult.error ? [] : semanticsResult.data ?? []
   const addressesByParty = new Map<string, typeof addresses>()
   for (const address of addresses) {
     const existing = addressesByParty.get(address.party_id) ?? []
@@ -88,7 +139,7 @@ export default async function EdielActorsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <AdminHeader title="Ediel Party Registry" subtitle="Superadmin-register för Ediel-parter, PRODAT-subadresser, SMTP och transport security." userEmail={context.email} workspaceName="Platform" workspaceMode="platform" />
+      <AdminHeader title="Ediel-aktörsregister" subtitle="Superadmin-register för nätägare, elleverantörer, Ediel-ID, subadresser, SMTP och transportskydd." userEmail={context.email} workspaceName="Plattform" workspaceMode="platform" />
       <main className="space-y-8 p-8">
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -103,14 +154,14 @@ export default async function EdielActorsPage() {
             <p className="mt-2 text-xs leading-5 text-blue-900">Globala motparter och leverantörer som kan användas i marknadsflöden.</p>
           </div>
           <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Saknar PRODAT-certifikat</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Saknar mottagarcertifikat</p>
             <div className="mt-2 text-3xl font-black text-amber-950">{missingCertificates}</div>
-            <p className="mt-2 text-xs leading-5 text-amber-900">PRODAT-adresser utan kopplat mottagarcertifikat ska inte vara send-ready.</p>
+            <p className="mt-2 text-xs leading-5 text-amber-900">PRODAT-adresser utan kopplat mottagarcertifikat ska inte markeras som sändningsklara.</p>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Dolda/testparter</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Dolda portalparter</p>
             <div className="mt-2 text-3xl font-black text-slate-950">{hiddenOrTestParties}</div>
-            <p className="mt-2 text-xs leading-5 text-slate-700">Edielportalen och testmotparter ska inte visas i normala kundflöden.</p>
+            <p className="mt-2 text-xs leading-5 text-slate-700">Edielportalen och kontrollmotparter ska inte visas i normala kundflöden.</p>
           </div>
         </section>
 
@@ -118,14 +169,14 @@ export default async function EdielActorsPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Companies.xml och marknadsregister</p>
-              <h2 className="mt-2 text-2xl font-black text-slate-950">Aktörsregister, routes och message semantics</h2>
+              <h2 className="mt-2 text-2xl font-black text-slate-950">Aktörsregister, routes och meddelanderegler</h2>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-                Denna vy visar det globala registret som används av Energy Resolver, route resolver och kundintaget. Tenant-admins ska välja verifierade aktörer; superadmin importerar och godkänner Ediel-ID, subadresser, PRODAT/UTILTS-routes och osäkra matchningar.
+                Denna vy visar det globala registret som används av adressmatchning, route-resolver och kundintaget. Bolagsadmin ska bara kunna välja verifierade aktörer. Superadmin importerar och godkänner Ediel-ID, subadresser, PRODAT-/UTILTS-routes och osäkra matchningar.
               </p>
             </div>
             <form action={importPlatformActorsAction} encType="multipart/form-data" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-700">
               <div className="font-black text-slate-950">Importera aktörsdata</div>
-              <p className="mt-1">Ladda upp companies.xml eller kompletterande CSV. Importen skapar bara needs_review/strong_suggestion; autosändning är alltid av tills superadmin verifierar.</p>
+              <p className="mt-1">Ladda upp companies.xml eller kompletterande CSV. Importen lägger nya och ändrade aktörer i granskning. Automatisk sändning är alltid av tills superadmin verifierar aktör och route.</p>
               <div className="mt-3 grid gap-2">
                 <input type="file" name="actorImportFile" accept=".xml,.csv,text/xml,text/csv" required className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
                 <select name="format" defaultValue="auto" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
@@ -143,12 +194,12 @@ export default async function EdielActorsPage() {
             <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Nätägare</p><div className="mt-2 text-2xl font-black text-emerald-950">{registryGridOwners}</div></div>
             <div className="rounded-3xl border border-blue-200 bg-blue-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Elleverantörer</p><div className="mt-2 text-2xl font-black text-blue-950">{registrySuppliers}</div></div>
             <div className="rounded-3xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-sky-700">Verifierade routes</p><div className="mt-2 text-2xl font-black text-sky-950">{verifiedRegistryRoutes}</div></div>
-            <div className="rounded-3xl border border-violet-200 bg-violet-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">Semantics</p><div className="mt-2 text-2xl font-black text-violet-950">{messageSemantics.length}</div></div>
-            <div className="rounded-3xl border border-red-200 bg-red-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Importfrågor</p><div className="mt-2 text-2xl font-black text-red-950">{openImportIssues}</div></div>
+            <div className="rounded-3xl border border-violet-200 bg-violet-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">Regler</p><div className="mt-2 text-2xl font-black text-violet-950">{messageRegler.length}</div></div>
+            <div className="rounded-3xl border border-red-200 bg-red-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Granskningspunkter</p><div className="mt-2 text-2xl font-black text-red-950">{openImportIssues}</div></div>
           </div>
           {importIssues.length > 0 ? (
             <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <p className="font-black text-amber-950">Senaste importfrågor</p>
+              <p className="font-black text-amber-950">Senaste granskningspunkter från import</p>
               <div className="mt-3 grid gap-2 md:grid-cols-2">
                 {importIssues.slice(0, 6).map((issue) => (
                   <div key={issue.id} className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-amber-950">
@@ -171,7 +222,7 @@ export default async function EdielActorsPage() {
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Importdiff och verifiering</p>
               <h2 className="mt-2 text-2xl font-black text-slate-950">Godkänn aktörer innan de syns i kundintag</h2>
-              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Nätägare och elleverantörer från import blir inte automatiskt kundval. Superadmin måste verifiera aktören. Routes markeras verifierade men auto-send förblir av tills separat route-readiness är grön.</p>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Nätägare och elleverantörer från import blir inte automatiskt valbara i kundintaget. Superadmin måste verifiera aktören. Routes kan verifieras, men automatisk sändning förblir av tills separat route-readiness är grön.</p>
             </div>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -186,15 +237,15 @@ export default async function EdielActorsPage() {
                       <div className="font-black text-slate-950">{actor.name}</div>
                       <div className="mt-1 text-xs text-slate-600">{actor.org_number ?? 'org.nr saknas'} · {actor.source ?? 'källa saknas'}</div>
                     </div>
-                    <span className={`rounded-full px-2 py-1 text-[11px] font-black ${actor.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{actor.status}</span>
+                    <span className={`rounded-full px-2 py-1 text-[11px] font-black ${actor.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{actorStatusLabel(actor.status)}</span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1 text-xs">
-                    {roles.length ? roles.map((role) => <span key={role} className="rounded-full bg-white px-2 py-1 font-semibold text-slate-700">{role}</span>) : <span className="text-slate-500">Roll saknas</span>}
+                    {roles.length ? roles.map((role) => <span key={role} className="rounded-full bg-white px-2 py-1 font-semibold text-slate-700">{actorRoleLabel(role)}</span>) : <span className="text-slate-500">Roll saknas</span>}
                   </div>
                   <div className="mt-3 space-y-1 text-xs text-slate-700">
                     {routes.slice(0, 3).map((route) => (
                       <div key={route.id} className="rounded-xl border border-slate-200 bg-white px-2 py-1">
-                        {route.message_family} · {route.environment} · {route.subaddress ?? 'ingen subadress'} · {route.is_verified ? 'verified' : route.status}
+                        {route.message_family} · {route.environment} · {route.subaddress ?? 'ingen subadress'} · {routeStatusLabel(route.status, route.is_verified)}
                       </div>
                     ))}
                     {routes.length === 0 ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900">Route saknas</div> : null}
@@ -217,14 +268,14 @@ export default async function EdielActorsPage() {
               <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Produktionsflöde</p>
               <h1 className="mt-2 text-2xl font-black text-slate-950">Registrera nätägare och elleverantörer</h1>
               <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-700">
-                Superadmin registrerar marknadsparter globalt. Systemet söker publika mottagarcertifikat i Expisoft via SMTP-adressen och sparar certifikatet globalt så alla tenants kan återanvända samma verifierade part. Vanliga bolagsadmin ska bara välja verifierade aktörer, inte skapa egna Ediel-routes eller certifikat.
+                Superadmin registrerar marknadsparter globalt. Plattformen söker publika mottagarcertifikat i Expisoft via SMTP-adressen och sparar certifikatet globalt så alla bolag kan återanvända samma verifierade part. Vanliga bolagsadmin ska bara välja verifierade aktörer, inte skapa egna Ediel-routes eller certifikat.
               </p>
             </div>
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs leading-5 text-blue-900">
               <div className="font-black text-blue-950">Certifikatprincip</div>
               <div>Expisoft = publika mottagarcertifikat för outbound PRODAT.</div>
-              <div>Privat PFX = vår/tenantens inbound-dekryptering.</div>
-              <div>Mailboxen avgör aldrig tenant; CMS + UNB + Ediel-ID gör det.</div>
+              <div>Privat PFX = bolagets inkommande dekryptering.</div>
+              <div>Mailboxen avgör aldrig bolag; CMS + UNB + Ediel-ID gör det.</div>
             </div>
           </div>
 
@@ -247,7 +298,7 @@ export default async function EdielActorsPage() {
                 <input name="name" placeholder="Namn, t.ex. TVLAB" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" required />
                 <input name="organizationNumber" placeholder="Org.nr, valfritt" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
                 <input name="edielId" placeholder="Ediel ID, t.ex. 11900" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" required />
-                <input name="qualifier" defaultValue="ZZ" placeholder="Qualifier" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+                <input name="qualifier" defaultValue="ZZ" placeholder="Kvalificerare" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
                 <input name="subaddress" placeholder="PRODAT-subadress, t.ex. PRODAT-SE" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" required />
                 <input name="smtpAddress" placeholder="SMTP, t.ex. 11900@tvlab.se" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" required />
                 <textarea name="notes" rows={3} placeholder="Verifieringskälla, kontaktperson eller Ediel-registeranteckning" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm md:col-span-2" />
@@ -272,74 +323,74 @@ export default async function EdielActorsPage() {
               <input type="hidden" name="visibleToCustomerFlow" value="true" />
               <input type="hidden" name="requiresSubaddress" value="true" />
               <div className="text-sm font-black text-blue-950">Lägg till elleverantör</div>
-              <p className="mt-2 text-xs leading-5 text-blue-900">För externa elleverantörer eller marknadsmotparter. Tenant-elbolag ska dessutom få eget bolagskort med Ediel-ID, route-profiler och privat PFX för inbound.</p>
+              <p className="mt-2 text-xs leading-5 text-blue-900">För externa elleverantörer eller marknadsmotparter. Elhandelsbolag ska dessutom ha eget bolagskort med Ediel-ID, route-profiler och privat PFX för inkommande krypterad trafik.</p>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <input name="name" placeholder="Namn" className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" required />
                 <input name="organizationNumber" placeholder="Org.nr, valfritt" className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
                 <input name="edielId" placeholder="Ediel ID" className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" required />
-                <input name="qualifier" defaultValue="ZZ" placeholder="Qualifier" className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
+                <input name="qualifier" defaultValue="ZZ" placeholder="Kvalificerare" className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" />
                 <input name="subaddress" placeholder="PRODAT-subadress" className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" required />
                 <input name="smtpAddress" placeholder="SMTP-adress" className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm" required />
                 <textarea name="notes" rows={3} placeholder="Roll: extern leverantör, tidigare leverantör, ny leverantör, testpart etc." className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm md:col-span-2" />
               </div>
               <div className="mt-4 rounded-2xl border border-blue-200 bg-white p-3 text-xs leading-5 text-blue-900">
-                Sparas som global motpart. Publikt certifikat återanvänds av alla tenants, men varje tenant skickar fortsatt med sin egen Ediel-identitet.
+                Sparas som global motpart. Publikt certifikat återanvänds av alla bolag, men varje bolag skickar fortsatt med sin egen Ediel-identitet.
               </div>
               <button className="mt-4 rounded-xl bg-blue-700 px-4 py-2 text-sm font-bold text-white">Spara elleverantör och sök certifikat</button>
             </form>
           </div>
         </section>
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-xl font-black text-slate-950">Skapa eller uppdatera Ediel-part</h1>
+          <h1 className="text-xl font-black text-slate-950">Skapa eller uppdatera Ediel-aktör</h1>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-            Real grid owners kan markeras synliga i kundflödet. Edielportalen/testsystem ska inte vara synlig för normal kundskapning. PRODAT-rader med tom business code gäller hela familjen och kan överskuggas av en exakt Z13/Z14/etc-rad.
+            Riktiga nätägare kan markeras synliga i kundflödet. Edielportalen och kontrollmotparter ska inte vara synliga vid normal kundskapning. PRODAT-rader med tom affärskod gäller hela familjen och kan ersättas av en exakt Z13-/Z14-rad.
           </p>
           <form action={saveEdielPartyRegistryEntryAction} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <input name="name" placeholder="Namn" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <input name="organizationNumber" placeholder="Org.nr (valfritt)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <input name="edielId" placeholder="Ediel ID, t.ex. 11900" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <select name="status" defaultValue="needs_verification" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-              <option value="verified">verified</option>
-              <option value="needs_verification">needs_verification</option>
-              <option value="draft">draft</option>
-              <option value="inactive">inactive</option>
-              <option value="blocked">blocked</option>
+              <option value="verified">Verifierad</option>
+              <option value="needs_verification">Kräver verifiering</option>
+              <option value="draft">Utkast</option>
+              <option value="inactive">Inaktiv</option>
+              <option value="blocked">Blockerad</option>
             </select>
             <select name="source" defaultValue="grid_owner_confirmation" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-              <option value="grid_owner_confirmation">grid_owner_confirmation</option>
-              <option value="manual_verified">manual_verified</option>
-              <option value="ediel_registry">ediel_registry</option>
-              <option value="ediel_catalog">ediel_catalog</option>
-              <option value="manual">manual</option>
-              <option value="import">import</option>
+              <option value="grid_owner_confirmation">Nätägare bekräftad</option>
+              <option value="manual_verified">Manuellt verifierad</option>
+              <option value="ediel_registry">Ediel-registret</option>
+              <option value="ediel_catalog">Ediel-katalog</option>
+              <option value="manual">Manuell</option>
+              <option value="import">Import</option>
             </select>
             <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm">
               <input type="checkbox" name="visibleToCustomerFlow" value="true" />
-              Synlig som grid owner i kundflöde
+              Synlig som nätägare i kundflöde
             </label>
             <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 p-3 text-xs">
               {['grid_owner', 'electricity_supplier', 'energy_service_company', 'brp', 'ediel_portal', 'test_counterparty', 'grid_owner_in_agt_context', 'system_supplier', 'other'].map((role) => (
                 <label key={role} className="inline-flex items-center gap-1">
                   <input type="checkbox" name="roles" value={role} />
-                  {role}
+                  {actorRoleLabel(role)}
                 </label>
               ))}
             </div>
-            <input name="messageFamily" defaultValue="PRODAT" placeholder="Message family" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <input name="businessCode" placeholder="Business code, tomt/* = familjeroute" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="messageFamily" defaultValue="PRODAT" placeholder="Meddelandefamilj" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="businessCode" placeholder="Affärskod, tomt/* = familjeroute" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <select name="environment" defaultValue="test" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
               <option value="test">test</option>
               <option value="production">production</option>
               <option value="agt">agt</option>
             </select>
-            <input name="qualifier" defaultValue="ZZ" placeholder="Qualifier" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="qualifier" defaultValue="ZZ" placeholder="Kvalificerare" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <input name="subaddress" placeholder="PRODAT subadress, t.ex. PRODAT-SE" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <input name="smtpAddress" placeholder="SMTP, t.ex. 11900@tvlab.se" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <select name="transportSecurityMode" defaultValue="required_encrypted" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-              <option value="required_encrypted">required_encrypted</option>
-              <option value="encrypted">encrypted</option>
-              <option value="unencrypted">unencrypted</option>
-              <option value="needs_verification">needs_verification</option>
+              <option value="required_encrypted">Kryptering krävs</option>
+              <option value="encrypted">Krypterad</option>
+              <option value="unencrypted">Okrypterad</option>
+              <option value="needs_verification">Kräver verifiering</option>
             </select>
             <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm">
               <input type="checkbox" name="requiresSubaddress" value="true" />
@@ -349,12 +400,12 @@ export default async function EdielActorsPage() {
               <input type="checkbox" name="certificateRequired" value="true" defaultChecked />
               Mottagarcertifikat krävs
             </label>
-            <input name="receiverCertificateId" placeholder="Receiver public certificate id" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="receiverCertificateId" placeholder="Mottagarcertifikatets ID" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <select name="addressStatus" defaultValue="needs_verification" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-              <option value="active">active</option>
-              <option value="needs_verification">needs_verification</option>
-              <option value="inactive">inactive</option>
-              <option value="expired">expired</option>
+              <option value="active">Aktiv</option>
+              <option value="needs_verification">Kräver verifiering</option>
+              <option value="inactive">Inaktiv</option>
+              <option value="expired">Utgången</option>
             </select>
             <input name="lastVerifiedAt" type="datetime-local" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <textarea name="notes" rows={3} placeholder="Anteckningar / verifieringskälla" className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2 xl:col-span-4" />
@@ -365,13 +416,13 @@ export default async function EdielActorsPage() {
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {parties.map((party) => (
           <section key={party.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">{party.status}</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">{actorStatusLabel(party.status)}</p>
             <h2 className="mt-2 text-xl font-black text-slate-950">{party.name}</h2>
             <div className="mt-1 font-mono text-sm text-slate-700">{party.ediel_id}</div>
             <dl className="mt-4 space-y-2 text-sm">
-              <div><dt className="font-bold text-slate-500">Roller</dt><dd>{Array.isArray(party.roles) ? party.roles.join(', ') || '—' : String(party.roles ?? '—')}</dd></div>
+              <div><dt className="font-bold text-slate-500">Roller</dt><dd>{Array.isArray(party.roles) ? party.roles.map((role) => actorRoleLabel(String(role))).join(', ') || '—' : actorRoleLabel(String(party.roles ?? ''))}</dd></div>
               <div><dt className="font-bold text-slate-500">Kundflöde</dt><dd>{party.visible_to_customer_flow ? 'synlig' : 'dold'}</dd></div>
-              <div><dt className="font-bold text-slate-500">Källa</dt><dd>{party.source ?? '—'}</dd></div>
+              <div><dt className="font-bold text-slate-500">Källa</dt><dd>{party.source === 'manual_verified' ? 'Manuellt verifierad' : party.source ?? '—'}</dd></div>
             </dl>
             <div className="mt-4 space-y-2">
               {(addressesByParty.get(party.id) ?? []).map((address) => (
@@ -380,7 +431,7 @@ export default async function EdielActorsPage() {
                     {address.ediel_id}:{address.qualifier}{address.subaddress ? `:${address.subaddress}` : ''}
                   </div>
                   <div className="mt-1 text-slate-700">{address.environment} · {address.message_family} {address.business_code ?? '*'} · {address.smtp_address}</div>
-                  <div className="mt-1 font-semibold text-slate-800">{address.transport_security_mode} · cert {address.receiver_certificate_id ?? 'saknas'}</div>
+                  <div className="mt-1 font-semibold text-slate-800">{routeStatusLabel(address.transport_security_mode)} · certifikat {address.receiver_certificate_id ?? 'saknas'}</div>
                   <form action={refreshExpisoftReceiverCertificateAction} className="mt-3 flex flex-wrap items-center gap-2">
                     <input type="hidden" name="partyId" value={party.id} />
                     <input type="hidden" name="edielId" value={address.ediel_id} />
@@ -388,7 +439,7 @@ export default async function EdielActorsPage() {
                     <input type="hidden" name="smtpEmail" value={address.smtp_address} />
                     <input type="hidden" name="forceRefresh" value="true" />
                     <button className="rounded-lg border border-emerald-300 bg-white px-3 py-1 font-semibold text-emerald-800">
-                      Fetch receiver certificate from Expisoft
+                      Hämta mottagarcertifikat från Expisoft
                     </button>
                     <span className="font-mono text-slate-600">mail={address.smtp_address}</span>
                   </form>
@@ -408,9 +459,9 @@ export default async function EdielActorsPage() {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">{row.environment ?? 'miljö saknas'}</p>
             <h2 className="mt-2 text-xl font-black text-slate-950">{row.ediel_id ?? row.actor_ediel_id ?? 'Ediel-id saknas'}</h2>
             <dl className="mt-4 space-y-2 text-sm">
-              <div><dt className="font-bold text-slate-500">Bolag</dt><dd>{row.company_id ?? 'Platform'}</dd></div>
-              <div><dt className="font-bold text-slate-500">Roll</dt><dd>{row.actor_role ?? row.role ?? '—'} / {row.sub_role ?? '—'}</dd></div>
-              <div><dt className="font-bold text-slate-500">Status</dt><dd>{row.status ?? (row.is_active ? 'active' : 'inactive')}</dd></div>
+              <div><dt className="font-bold text-slate-500">Bolag</dt><dd>{row.company_id ?? 'Plattform'}</dd></div>
+              <div><dt className="font-bold text-slate-500">Roll</dt><dd>{actorRoleLabel(row.actor_role ?? row.role)} / {actorRoleLabel(row.sub_role)}</dd></div>
+              <div><dt className="font-bold text-slate-500">Status</dt><dd>{actorStatusLabel(row.status ?? (row.is_active ? 'active' : 'inactive'))}</dd></div>
             </dl>
           </section>
         ))}

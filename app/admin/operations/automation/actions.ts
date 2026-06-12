@@ -22,7 +22,7 @@ function revalidate() {
   revalidatePath('/admin/operations/automation')
   revalidatePath('/admin/operations/perioder')
   revalidatePath('/admin/controltower')
-  revalidatePath('/admin/customer-cases')
+  revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/customer-info-requests')
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/billing/export-center')
@@ -33,13 +33,13 @@ function done(status: 'success' | 'error', message: string): never {
   redirect(`/admin/operations/automation?${params.toString()}`)
 }
 
-export async function runBatch2BAutomationAction(_formData: FormData): Promise<void> {
+export async function runBatch2BAutomationAction(): Promise<void> {
   try {
     const admin = await requireAdminActionAccess({ anyOf: ['customers.write', 'metering.write', 'billing_underlay.export', 'cases.write'] })
     const companyId = await resolveCompanyId(admin.userId)
     const result = await runBatch2BAutomation({ companyId, actorUserId: admin.userId })
     revalidate()
-    done('success', `Automation körd. ${result.requestsCreated} requests, ${result.casesCreated} ärenden och ${result.blockersFound} blockerare hanterades.`)
+    done('success', `Automation körd. ${result.requestsCreated} requests, ${result.casesCreated} driftuppgifter och ${result.blockersFound} blockerare hanterades.`)
   } catch (error) {
     done('error', error instanceof Error ? error.message : 'Automation kunde inte köras.')
   }
@@ -56,32 +56,32 @@ export async function runBatch2CPeriodMotorAction(formData: FormData): Promise<v
       endMonth: text(formData, 'end_month'),
     })
     revalidate()
-    done('success', `Periodmotor körd för ${result.periodsChecked.length} perioder. ${result.gapsCreated} luckor, ${result.outboundRequestsCreated} requests och ${result.casesCreated} ärenden hanterades.`)
+    done('success', `Periodmotor körd för ${result.periodsChecked.length} perioder. ${result.gapsCreated} luckor, ${result.outboundRequestsCreated} requests och ${result.casesCreated} driftuppgifter hanterades.`)
   } catch (error) {
     done('error', error instanceof Error ? error.message : 'Periodmotorn kunde inte köras.')
   }
 }
 
-export async function createBillingBlockerCasesAction(_formData: FormData): Promise<void> {
+export async function createBillingBlockerCasesAction(): Promise<void> {
   try {
     const admin = await requireAdminActionAccess({ anyOf: ['cases.write', 'billing_underlay.export'] })
     const companyId = await resolveCompanyId(admin.userId)
     const result = await createBillingBlockerCasesForCompany({ companyId, actorUserId: admin.userId })
     revalidate()
-    done('success', `${result.casesCreated} ärenden skapades för ${result.blockersFound} blockerade export-/underlagsrader.`)
+    done('success', `${result.casesCreated} driftuppgifter skapades för ${result.blockersFound} blockerade export-/underlagsrader.`)
   } catch (error) {
-    done('error', error instanceof Error ? error.message : 'Ärenden kunde inte skapas.')
+    done('error', error instanceof Error ? error.message : 'Driftuppgifter kunde inte skapas.')
   }
 }
 
-export async function createBatch2CQueueCasesAction(_formData: FormData): Promise<void> {
+export async function createBatch2CQueueCasesAction(): Promise<void> {
   try {
     const admin = await requireAdminActionAccess({ anyOf: ['cases.write', 'billing_underlay.export', 'metering.write'] })
     const companyId = await resolveCompanyId(admin.userId)
     const result = await createCasesForBatch2CQueues({ companyId, actorUserId: admin.userId })
     revalidate()
-    done('success', `${result.casesCreated} ärenden skapades/återanvändes från ${result.queuesScanned} driftköer.`)
+    done('success', `${result.casesCreated} driftuppgifter skapades/återanvändes från ${result.queuesScanned} driftköer.`)
   } catch (error) {
-    done('error', error instanceof Error ? error.message : 'Driftköer kunde inte kopplas till ärenden.')
+    done('error', error instanceof Error ? error.message : 'Driftköer kunde inte kopplas till driftuppgifter.')
   }
 }

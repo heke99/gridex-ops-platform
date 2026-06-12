@@ -71,7 +71,6 @@ import {
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
 import { getCustomerEdielDataBundle, type CustomerEdielDataBundle } from '@/lib/ediel/customerData'
 import CustomerPortalAccessCard from '@/components/admin/customers/CustomerPortalAccessCard'
-import { customerCaseStatusLabel, customerCaseTypeLabel, listCustomerCases } from '@/lib/customer-cases/db'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import {
  listCustomerPortalAccountsByCustomerId,
@@ -82,6 +81,7 @@ import { formatMwh } from '@/lib/analytics/utils'
 import { getCustomerCommunicationLogs, type CommunicationLog } from '@/lib/email/communicationLogs'
 import { listBillingPartnerCustomersForCustomer, listWebsiteApplicationsForCustomer, type BillingPartnerCustomerSummary, type WebsiteApplicationAdminRow } from '@/lib/admin/websiteIntegrationOps'
 import { resendCustomerEmailAction } from './email-actions'
+import { customerStatusLabel, intakeStatusLabel as applicationIntakeStatusLabel, missingFieldLabel, sourceLabel } from '@/lib/customers/statusLabels'
 
 export const dynamic = 'force-dynamic'
 
@@ -401,7 +401,6 @@ type CustomerWorkspaceTab =
  | 'notes'
 | 'communication'
  | 'lifecycle-decisions'
- | 'cases'
  | 'audit'
 
 const CUSTOMER_WORKSPACE_TABS: Array<{
@@ -427,7 +426,6 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
  { id: 'notes', label: 'Anteckningar', description: 'Interna anteckningar.', group: 'Historik' },
 { id: 'communication', label: 'Kommunikation', description: 'Kundens e-posthistorik.', group: 'Historik' },
  { id: 'lifecycle-decisions', label: 'Ånger / avvisning', description: 'Stoppa flöden utan att radera historik.', group: 'Historik' },
- { id: 'cases', label: 'Ärenden', description: 'Kundärenden och supportproblem.', group: 'Historik' },
  { id: 'audit', label: 'Audit', description: 'Senaste ändringar och spårbarhet.', group: 'Historik' },
 ]
 
@@ -739,10 +737,10 @@ function buildCustomerLifecycleSummary(params: {
  failed,
  completed,
  activeOpen,
- primaryLabel: 'Väntar på dispatch',
+ primaryLabel: 'Väntar på sändning',
  primaryHref: '/admin/operations/switches?stage=awaiting_dispatch',
  primaryDescription:
- 'Outbound finns men dispatchen är inte helt igenom ännu. Kontrollera outbound-läget.',
+ 'Meddelande finns men sändningen är inte slutförd. Kontrollera sändningskön.',
  }
  }
 
@@ -756,10 +754,10 @@ function buildCustomerLifecycleSummary(params: {
  failed,
  completed,
  activeOpen,
- primaryLabel: 'Saknar outbound',
+ primaryLabel: 'Saknar utskick',
  primaryHref: '/admin/operations/switches?stage=queued_for_outbound',
  primaryDescription:
- 'Det finns switchar som saknar dispatchpost och behöver köas eller felsökas.',
+ 'Det finns leverantörsbyten som saknar sändning och behöver köas eller kontrolleras.',
  }
  }
 
@@ -1077,95 +1075,6 @@ function PowerOfAttorneyScopesSection({
  )
 }
 
-function CustomerCasesSection({
- customerId,
- cases,
-}: {
- customerId: string
- cases: Array<{
- id: string
- company_id: string
- title: string
- case_type: string
- status: string
- created_at: string
- withdrawal_deadline_at: string | null
- withdrawal_scenario: string | null
- cancellation_status: string | null
- cancellation_ediel_message_id: string | null
- billing_blocked: boolean
- break_fee_flagged: boolean
- next_action: string | null
- }>
-}) {
- const activeCases = cases.filter((item) => !['resolved', 'closed', 'cancelled'].includes(item.status))
- const blockedBilling = cases.filter((item) => item.billing_blocked).length
-
- return (
- <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
- <div className="flex flex-wrap items-start justify-between gap-3">
- <div>
- <h2 className="text-lg font-semibold text-slate-900 ">Kundärenden</h2>
- <p className="mt-1 text-sm text-slate-700 ">
- Ånger, nekade kunder och avbrutna flöden ligger kvar som historik. Kunden eller avtalet raderas inte; ärendet stoppar rätt flöden och blockerar fakturering när det behövs.
- </p>
- </div>
- <Link href={`/admin/customer-cases?customer=${customerId}`} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 ">
- Öppna ärendeytan
- </Link>
- </div>
-
- <div className="mt-5 grid gap-4 md:grid-cols-3">
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
- <div className="text-sm text-slate-700 ">Aktiva ärenden</div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">{activeCases.length}</div>
- </div>
- <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
- <div className="text-sm text-red-800 ">Fakturering blockerad</div>
- <div className="mt-1 text-2xl font-semibold text-red-950 ">{blockedBilling}</div>
- </div>
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
- <div className="text-sm text-slate-700 ">Totalt historik</div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">{cases.length}</div>
- </div>
- </div>
-
- {cases.length === 0 ? (
- <div className="mt-5 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-700 ">
- Inga ärenden finns på kunden ännu. Skapa ärende när kunden ångrar sig, nekas, har fel uppgifter eller när onboarding behöver stoppas utan att historiken tas bort.
- </div>
- ) : (
- <div className="mt-5 grid gap-3">
- {cases.slice(0, 6).map((item) => (
- <article key={item.id} className="rounded-2xl border border-slate-200 p-4">
- <div className="flex flex-wrap items-start justify-between gap-3">
- <div>
- <div className="font-semibold text-slate-950 ">{item.title}</div>
- <div className="mt-1 text-xs text-slate-700 ">{customerCaseTypeLabel(item.case_type)} · {formatDateTime(item.created_at)}</div>
- </div>
- <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
- {customerCaseStatusLabel(item.status)}
- </span>
- </div>
- <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-3">
- <div>Ångerfrist: {formatDateTime(item.withdrawal_deadline_at)}</div>
- <div>Annullering: {item.cancellation_status ?? '—'}</div>
- <div>{item.billing_blocked ? 'Fakturering blockerad' : 'Ingen faktureringsblockerare'}</div>
- </div>
- {item.next_action ? <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700 ">{item.next_action}</div> : null}
- {item.cancellation_ediel_message_id ? (
- <Link href={`/admin/ediel/messages/${item.cancellation_ediel_message_id}`} className="mt-3 inline-flex text-sm font-semibold text-emerald-800 hover:underline">
- Öppna annulleringsutkast
- </Link>
- ) : null}
- </article>
- ))}
- </div>
- )}
- </section>
- )
-}
-
 function NotesSection({
  customerId,
  notes,
@@ -1184,7 +1093,7 @@ function NotesSection({
  Intern anteckning
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Logga support- och driftinformation som inte hör hemma i kundens avtal eller adressfält.
+ Logga intern drift- och handläggningsinformation som inte hör hemma i kundens avtal eller adressfält.
  </p>
  </div>
 
@@ -1198,7 +1107,7 @@ function NotesSection({
  name="body"
  rows={8}
  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 "
- placeholder="Skriv intern notering för support, drift eller handläggning..."
+ placeholder="Skriv intern notering för drift eller handläggning..."
  />
  </label>
 
@@ -1358,11 +1267,11 @@ function CustomerWebsiteTraceabilityCard({
 }) {
  const latestApplication = applications[0] ?? null
  const latestBillingPartner = billingPartners[0] ?? null
- const origin = latestApplication?.source ?? customer.source ?? 'manual'
+ const origin = sourceLabel(latestApplication?.source ?? customer.source ?? 'manual')
  const externalCustomerId = latestApplication?.external_customer_id ?? '—'
- const latestStatus = latestApplication?.status ?? '—'
+ const latestStatus = applicationIntakeStatusLabel(latestApplication?.status ?? null)
  const capwayReference = latestBillingPartner?.provider_debtor_id ?? latestBillingPartner?.provider_customer_id ?? '—'
- const missingFields = Array.isArray(latestApplication?.missing_fields) ? latestApplication?.missing_fields.map((item) => String(item)).filter(Boolean) : []
+ const missingFields = Array.isArray(latestApplication?.missing_fields) ? latestApplication?.missing_fields.map((item) => missingFieldLabel(String(item))).filter(Boolean) : []
  const nextStep = latestApplication?.next_step ?? (missingFields.length > 0 ? 'Komplettera kundansökan.' : 'Kontrollera kundens nästa steg.')
  return (
  <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-6 shadow-sm ">
@@ -1371,7 +1280,7 @@ function CustomerWebsiteTraceabilityCard({
  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800 ">Kundnummer och externa kopplingar</p>
  <h2 className="mt-2 text-xl font-semibold text-slate-950 ">Ops är master för kundrelationen</h2>
  <p className="mt-2 max-w-4xl text-sm leading-6 text-emerald-900 ">
- Kundnumret används som huvudreferens för support, faktura, Capway, webhooks och bestridan. Externa kund-ID:n och Capway-ID:n är bara partnerreferenser.
+ Kundnumret används som huvudreferens för faktura, Capway, webhooks och bestridan. Externa kund-ID:n och Capway-ID:n är bara partnerreferenser.
  </p>
  </div>
  <Link href={`/admin/customers/${customer.id}?tab=communication`} className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 ">
@@ -1381,12 +1290,12 @@ function CustomerWebsiteTraceabilityCard({
  <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-8">
  <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Kundnummer</div><div className="mt-1 font-mono text-sm font-semibold text-slate-950">{customer.customer_number ?? '—'}</div></div>
  <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Källa</div><div className="mt-1 text-sm font-semibold text-slate-950">{origin}</div></div>
- <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">External ID</div><div className="mt-1 font-mono text-xs font-semibold text-slate-950">{externalCustomerId}</div></div>
- <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Website status</div><div className="mt-1 text-sm font-semibold text-slate-950">{latestStatus}</div></div>
+ <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Extern referens</div><div className="mt-1 font-mono text-xs font-semibold text-slate-950">{externalCustomerId}</div></div>
+ <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Ansökningsstatus</div><div className="mt-1 text-sm font-semibold text-slate-950">{latestStatus}</div></div>
  <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Nästa steg</div><div className="mt-1 text-xs font-semibold text-slate-950">{nextStep}</div></div>
  <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Saknas</div><div className="mt-1 text-xs font-semibold text-slate-950">{missingFields.length > 0 ? missingFields.slice(0, 3).join(', ') : 'Inget blockerar'}</div></div>
  <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Capway/debtor</div><div className="mt-1 font-mono text-xs font-semibold text-slate-950">{capwayReference}</div></div>
- <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Senaste application</div><div className="mt-1 text-sm font-semibold text-slate-950">{formatDateTime(latestApplication?.created_at)}</div></div>
+ <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Senaste ansökan</div><div className="mt-1 text-sm font-semibold text-slate-950">{formatDateTime(latestApplication?.created_at)}</div></div>
  </div>
 
  {latestApplication && missingFields.length > 0 ? (
@@ -1396,7 +1305,7 @@ function CustomerWebsiteTraceabilityCard({
  ) : null}
  {latestApplication?.error_stage ? (
  <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 ">
- Senaste website application har fel: {latestApplication.error_stage} · {latestApplication.error_message ?? latestApplication.error_code ?? 'okänt fel'}.
+ Senaste ansökan från hemsida har fel: {latestApplication.error_stage} · {latestApplication.error_message ?? latestApplication.error_code ?? 'okänt fel'}.
  </div>
  ) : null}
  </section>
@@ -1424,7 +1333,7 @@ function CustomerCommunicationSection({ logs }: { logs: CommunicationLog[] }) {
  <td className="px-4 py-3 text-slate-700 ">{log.event_key ?? log.template_key ?? 'E-post'}<div className="text-xs text-slate-500">Mall: {log.template_key ?? '—'} · v{log.template_version ?? '—'}</div></td>
  <td className="px-4 py-3 text-slate-700 "><div>Från: {log.sender_email ?? '—'}</div><div>Till: {log.recipient_email}</div><div className="text-xs text-slate-500">Reply-to: {log.reply_to_email ?? '—'}</div></td>
  <td className="px-4 py-3 text-slate-700 ">{log.status}<div className="text-xs text-slate-500">{log.sender_mode ?? 'sender okänd'}</div>{log.error_message ? <div className="text-xs text-red-700">{log.error_message}</div> : null}</td>
- <td className="px-4 py-3 text-xs text-slate-700 "><div>{log.provider_message_id ?? 'provider-id saknas'}</div><div>Kundnr: {log.customer_number ?? '—'}</div><div>External: {log.external_customer_id ?? '—'}</div></td>
+ <td className="px-4 py-3 text-xs text-slate-700 "><div>{log.provider_message_id ?? 'leverantörs-id saknas'}</div><div>Kundnr: {log.customer_number ?? '—'}</div><div>External: {log.external_customer_id ?? '—'}</div></td>
  <td className="px-4 py-3"><div className="flex flex-wrap gap-2">
  <form action={resendCustomerEmailAction}><input type="hidden" name="customer_id" value={log.customer_id ?? ''} /><input type="hidden" name="log_id" value={log.id} /><button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Skicka om</button></form>
  <details className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"><summary className="cursor-pointer">Visa innehåll</summary><p className="mt-2 max-w-sm text-slate-600">Ämne: {log.subject ?? '—'}</p></details>
@@ -1476,7 +1385,7 @@ export default async function CustomerAdminDetailPage({
  return (
  <CustomerLookupProblem
  title="Kunden finns inte i kundregistret"
- description="Det här id:t finns inte som canonical kund i public.customers. Om raden fortfarande syns i kundlistan kommer den från gammal cache, annan miljö eller Ediel-testdata som inte ska öppnas som riktigt kundkort."
+ description="Kunden hittades inte i det aktiva kundregistret. Kontrollera att du är i rätt bolag och att kunden inte har flyttats eller rensats från denna miljö."
  lookupId={id}
  />
  )
@@ -1485,28 +1394,19 @@ export default async function CustomerAdminDetailPage({
  if (!customer.company_id) {
  return (
  <CustomerLookupProblem
- title="Kunden saknar tenant-koppling"
- description="Den här raden saknar company_id och är därför inte ett giltigt SaaS-kundkort. Arkivera eller koppla raden via kontrollerad backfill innan den används."
+ title="Kunden saknar bolagskoppling"
+ description="Kunden saknar bolagskoppling och kan därför inte användas i kundflödet. Koppla kunden till rätt bolag eller arkivera raden innan den används."
  lookupId={id}
  />
  )
  }
 
- if (customer.status === 'archived') {
- return (
- <CustomerLookupProblem
- title="Kunden är arkiverad"
- description="Den här kunden har arkiverats och visas därför inte i det aktiva kundregistret."
- lookupId={id}
- />
- )
- }
 
  if (customer.source === 'ediel_portal_test') {
  return (
  <CustomerLookupProblem
- title="Ediel-testkund visas inte som vanlig kund"
- description="Den här raden är skapad från Edielportalens testdata. Testkunder ska hanteras från Ediel/testflödet och ska inte ligga kvar i det vanliga kundregistret."
+ title="Edielportalens kontrollkund visas inte som vanlig kund"
+ description="Den här raden är skapad från Edielportalens kontrollflöde. Den ska hanteras från Ediel-arbetsytan och inte ligga kvar i det vanliga kundregistret."
  lookupId={id}
  />
  )
@@ -1559,7 +1459,6 @@ const needsCommunicationLogs = activeTab === 'communication'
  powersOfAttorney,
  authorizationDocuments,
  customerInfoRequests,
- customerCases,
  customerBlockers,
 communicationLogs,
 websiteApplications,
@@ -1594,7 +1493,6 @@ billingPartnerCustomers,
  listPowersOfAttorneyByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
  listCustomerAuthorizationDocumentsByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
  customerCompanyId ? listCustomerInfoRequestsByCustomerId({ companyId: customerCompanyId, customerId: id }) : Promise.resolve([]),
- activeTab === 'cases' ? listCustomerCases({ companyId: customerCompanyId, customerId: id, limit: 20 }) : Promise.resolve([]),
  listCustomerBlockersByCustomerId(supabase, id, { companyId: customerCompanyId, limit: 50 }),
 needsCommunicationLogs && customerCompanyId ? getCustomerCommunicationLogs(customerCompanyId, id) : Promise.resolve([]),
 customerCompanyId ? listWebsiteApplicationsForCustomer(customerCompanyId, id) : Promise.resolve([]),
@@ -1849,7 +1747,7 @@ const analytics = needsAnalyticsData && customerCompanyId
  customer.status
  )}`}
  >
- {customer.status ?? 'okänd'}
+ {customerStatusLabel(customer.status)}
  </span>
  </div>
 
@@ -2001,7 +1899,7 @@ const analytics = needsAnalyticsData && customerCompanyId
  {partnerExports.length}
  </div>
  <div className="mt-1 text-xs text-slate-700 ">
- queued / sent / ack
+ köad / skickad / kvitterad
  </div>
  </div>
  </div>
@@ -2010,6 +1908,18 @@ const analytics = needsAnalyticsData && customerCompanyId
  </section>
 
  <CustomerBlockersBanner blockers={customerBlockers as CustomerBlockerRow[]} />
+
+ {customer.status === 'archived' ? (
+ <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+ <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+ <div>
+ <p className="text-sm font-semibold text-amber-900">Kunden är arkiverad</p>
+ <p className="mt-1 text-sm leading-6 text-amber-900">Historik, avtal, audit, kommunikation och fakturaunderlag finns kvar för spårbarhet. Kunden visas inte som aktiv och ska inte gå vidare till leverantörsbyte eller fakturering.</p>
+ </div>
+ <span className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-900">{customer.archive_reason ?? 'Arkiverad'}</span>
+ </div>
+ </section>
+ ) : null}
 
  <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -2152,11 +2062,11 @@ contracts={customerContracts as CustomerContractRow[]}
 
  <div className="grid gap-3 sm:grid-cols-2">
  <Link href="/admin/operations/switches?stage=queued_for_outbound" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 ">
- <div className="text-sm text-slate-700 ">Saknar outbound</div>
+ <div className="text-sm text-slate-700 ">Saknar utskick</div>
  <div className="mt-1 text-2xl font-semibold text-slate-950 ">{lifecycleSummary.queuedForOutbound}</div>
  </Link>
  <Link href="/admin/operations/switches?stage=awaiting_dispatch" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 ">
- <div className="text-sm text-slate-700 ">Väntar dispatch</div>
+ <div className="text-sm text-slate-700 ">Väntar på sändning</div>
  <div className="mt-1 text-2xl font-semibold text-slate-950 ">{lifecycleSummary.awaitingDispatch}</div>
  </Link>
  <Link href="/admin/operations/switches?stage=failed" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 ">
@@ -2195,7 +2105,7 @@ contracts={customerContracts as CustomerContractRow[]}
  ) : null}
 
  {activeTab === 'data-requests' ? (
- <SectionAnchor id="data-requests" title="Uppgiftsbegäran" description="Begär uppgifter från nätägare eller nuvarande leverantör med enkla handläggarord. Systemet sköter tekniken i bakgrunden.">
+ <SectionAnchor id="data-requests" title="Uppgiftsbegäran" description="Begär uppgifter från nätägare eller nuvarande leverantör med enkla handläggarord. Plattformen sköter tekniken i bakgrunden.">
  <CustomerDataRequestsCard customerId={id} sites={sites} meteringPoints={meteringPoints} gridOwners={gridOwners} infoRequests={customerInfoRequests} powersOfAttorney={poaRows} documents={documentRows} />
  </SectionAnchor>
  ) : null}
@@ -2294,7 +2204,7 @@ contracts={customerContracts as CustomerContractRow[]}
  ) : null}
 
  {activeTab === 'notes' ? (
- <SectionAnchor id="notes" title="Anteckningar" description="Intern support- och driftlogg för kunden.">
+ <SectionAnchor id="notes" title="Anteckningar" description="Intern drift- och kundhistorik.">
  <NotesSection customerId={id} notes={notes} />
  </SectionAnchor>
  ) : null}
@@ -2308,12 +2218,6 @@ contracts={customerContracts as CustomerContractRow[]}
  {activeTab === 'lifecycle-decisions' ? (
  <SectionAnchor id="lifecycle-decisions" title="Ånger och avvisning" description="Stoppa leverantörsbyte och fakturering på kund-, avtals-, anläggnings- eller mätpunktsnivå.">
  <LifecycleDecisionSection customerId={id} sites={sites} meteringPoints={meteringPoints} contracts={customerContracts as CustomerContractRow[]} />
- </SectionAnchor>
- ) : null}
-
- {activeTab === 'cases' ? (
- <SectionAnchor id="cases" title="Ärenden" description="Ånger, nekade kunder och manuell uppföljning kopplas till kundens drift- och avtalsarbete.">
- <CustomerCasesSection customerId={id} cases={customerCases} />
  </SectionAnchor>
  ) : null}
 

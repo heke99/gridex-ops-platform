@@ -16,7 +16,7 @@ export const COMPANY_MEMBERSHIP_ROLE_OPTIONS: CompanyMembershipRoleOption[] = [
   { value: 'admin', label: 'Admin', description: 'Bred bolagsadministration.' },
   { value: 'company_admin', label: 'Bolagsansvarig', description: 'Ansvarig användare hos elhandelsbolaget.' },
   { value: 'operations', label: 'Operations', description: 'Daglig drift och handläggning.' },
-  { value: 'support', label: 'Kundservice', description: 'Support och kundnära arbete.' },
+  { value: 'support', label: 'Kundnära drift', description: 'Kundnära operativt arbete.' },
   { value: 'member', label: 'Medlem', description: 'Standardkoppling inom bolaget.' },
   { value: 'viewer', label: 'Läsroll', description: 'Läsbehörighet utan operativ ändring.' },
 ]
@@ -49,13 +49,13 @@ export const COMPANY_USER_ROLE_OPTIONS: CompanyUserRoleOption[] = [
   {
     value: 'customer_service_manager',
     label: 'Kundtjänstansvarig',
-    description: 'Kan leda kundtjänst och hantera kundnära ärenden.',
+    description: 'Kan leda kundnära drift och hantera kundnära uppgifter.',
     recommendedMembershipRole: 'support',
   },
   {
     value: 'customer_service_agent',
     label: 'Kundtjänst',
-    description: 'Kan hantera kundärenden och läsa kundbilden.',
+    description: 'Kan hantera kundnära driftuppgifter och läsa kundbilden.',
     recommendedMembershipRole: 'support',
   },
   {

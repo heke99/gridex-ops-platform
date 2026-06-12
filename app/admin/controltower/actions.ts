@@ -19,7 +19,7 @@ function text(formData: FormData, key: string): string {
 function revalidate() {
   revalidatePath('/admin/controltower')
   revalidatePath('/admin/operations/automation')
-  revalidatePath('/admin/customer-cases')
+  revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/billing/export-center')
 }
@@ -40,21 +40,21 @@ export async function runControlTowerPeriodMotorAction(formData: FormData): Prom
       endMonth: text(formData, 'end_month') || null,
     })
     revalidate()
-    done('success', `Periodmotor körd. ${result.gapsCreated} luckor, ${result.outboundRequestsCreated} requests och ${result.casesCreated} ärenden hanterades.`)
+    done('success', `Periodmotor körd. ${result.gapsCreated} luckor, ${result.outboundRequestsCreated} requests och ${result.casesCreated} driftuppgifter hanterades.`)
   } catch (error) {
     done('error', error instanceof Error ? error.message : 'Periodmotorn kunde inte köras.')
   }
 }
 
-export async function createControlTowerCasesAction(_formData: FormData): Promise<void> {
+export async function createControlTowerCasesAction(): Promise<void> {
   try {
     const admin = await requireAdminActionAccess({ anyOf: ['cases.write', 'metering.write', 'billing_underlay.export'] })
     const companyId = await resolveCompanyId(admin.userId)
     const result = await createCasesForBatch2CQueues({ companyId, actorUserId: admin.userId })
     revalidate()
-    done('success', `${result.casesCreated} ärenden skapades/återanvändes från ${result.queuesScanned} driftköer.`)
+    done('success', `${result.casesCreated} driftuppgifter skapades/återanvändes från ${result.queuesScanned} driftköer.`)
   } catch (error) {
-    done('error', error instanceof Error ? error.message : 'Ärenden kunde inte skapas från driftköer.')
+    done('error', error instanceof Error ? error.message : 'Driftuppgifter kunde inte skapas från driftköer.')
   }
 }
 

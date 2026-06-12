@@ -291,7 +291,7 @@ export default async function AdminDashboardPage() {
  ) : (
  <Pill tone={tenantReady ? 'emerald' : 'red'}>{tenantReady ? 'Tenantprofil aktiv' : 'Tenantprofil behöver åtgärd'}</Pill>
  )}
- <Pill tone={liveWarnings > 0 ? 'amber' : 'emerald'}>{liveWarnings > 0 ? `${liveWarnings} driftärenden` : 'Inga akuta blockeringar'}</Pill>
+ <Pill tone={liveWarnings > 0 ? 'amber' : 'emerald'}>{liveWarnings > 0 ? `${liveWarnings} driftuppgifter` : 'Inga akuta blockeringar'}</Pill>
  </div>
  </div>
  </section>
@@ -301,7 +301,7 @@ export default async function AdminDashboardPage() {
  <MetricCard label="Avtal" value={contracts} hint="Aktiva och historiska avtal" href="/admin/contracts" />
  <MetricCard label="Anläggningar" value={sites} hint="Kopplade uttagspunkter" href="/admin/customers" />
  <MetricCard label="Mätpunkter" value={meteringPoints} hint="Fakturagrundande mätpunkter" href="/admin/metering" />
-<MetricCard label={isPlatformAdmin ? 'Edielärenden' : 'Tekniska kvittenser'} value={ediel.ackPendingMessages} hint={isPlatformAdmin ? `${ediel.ackOverdueMessages} försenade kvittenser` : 'Visas som åtgärder när något behöver hanteras'} href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
+<MetricCard label={isPlatformAdmin ? 'Ediel-kvittenser' : 'Tekniska kvittenser'} value={ediel.ackPendingMessages} hint={isPlatformAdmin ? `${ediel.ackOverdueMessages} försenade kvittenser` : 'Visas som åtgärder när något behöver hanteras'} href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
  <MetricCard label="Kundansökningar" value={pendingCustomerApplications} hint="Nya/ofullständiga från hemsida" href="/admin/website-applications" tone={pendingCustomerApplications > 0 ? 'amber' : 'emerald'} />
  </section>
 
@@ -322,7 +322,7 @@ export default async function AdminDashboardPage() {
  <MetricCard label="Pågående leverantörsbyten" value={ongoingSupplierSwitches} hint="Startade eller väntande byten" href="/admin/operations/switches" tone={ongoingSupplierSwitches > 0 ? 'amber' : 'emerald'} />
  <MetricCard label="Väntar på nätägare" value={waitingForGridOwner} hint="Begäran skickad, svar saknas" href="/admin/customer-info-requests" tone={waitingForGridOwner > 0 ? 'amber' : 'emerald'} />
  <MetricCard label="Negativa kvittenser" value={negativeAcknowledgements} hint="Avvisat - åtgärd krävs" href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={negativeAcknowledgements > 0 ? 'red' : 'emerald'} />
- <MetricCard label="Mätvärden saknas" value={missingMeteringValues} hint="Öppna datakvalitetsärenden" href="/admin/outbound/missing-meter-values" tone={missingMeteringValues > 0 ? 'red' : 'emerald'} />
+ <MetricCard label="Mätvärden saknas" value={missingMeteringValues} hint="Öppna datakvalitetsuppgifter" href="/admin/outbound/missing-meter-values" tone={missingMeteringValues > 0 ? 'red' : 'emerald'} />
  <MetricCard label="Kunder med åtgärd krävs" value={customersActionRequired} hint="Öppna eller blockerade uppgifter" href="/admin/work-queue" tone={customersActionRequired > 0 ? 'amber' : 'emerald'} />
  <MetricCard label="Senaste mottagna mätvärden" value={latestMeteringValues} hint="Mottagna senaste 7 dagarna" href="/admin/metering" tone={latestMeteringValues > 0 ? 'emerald' : 'amber'} />
  <MetricCard label="Kommande avslut" value={upcomingTerminations} hint="Avtal som slutar inom 30 dagar" href="/admin/contracts" tone={upcomingTerminations > 0 ? 'amber' : 'emerald'} />
@@ -387,7 +387,7 @@ cta="Öppna åtgärder"
  <WorkAreaCard
  eyebrow="Operations"
  title="Switchar, utskick och åtgärder"
- text="Här följer du leverantörsbyten, outboundköer, ej matchade meddelanden och ärenden som är redo att köras."
+ text="Här följer du leverantörsbyten, outboundköer, ej matchade meddelanden och driftuppgifter som är redo att köras."
  href="/admin/operations"
  cta="Öppna operations"
  >

@@ -33,7 +33,7 @@ export default async function LoginPage({
 
             <div className="mt-10 max-w-xl">
               <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-                Ett internt system för kundservice, operations och elhandelsdrift
+                Ett internt system för operations och elhandelsdrift
               </h1>
               <p className="mt-5 text-lg leading-8 text-slate-600">
                 Logga in för att hantera kunder, anläggningar, mätpunkter,
@@ -46,14 +46,14 @@ export default async function LoginPage({
             <div className="rounded-2xl border bg-white p-4 shadow-sm">
               <p className="text-sm font-medium text-slate-900">Kundservice</p>
               <p className="mt-2 text-sm text-slate-600">
-                Kundkort, kontaktlogg och supportflöden.
+                Kundkort, kontaktlogg och driftflöden.
               </p>
             </div>
 
             <div className="rounded-2xl border bg-white p-4 shadow-sm">
               <p className="text-sm font-medium text-slate-900">Operations</p>
               <p className="mt-2 text-sm text-slate-600">
-                Fullmakter, readiness, tasks och switchärenden.
+                Fullmakter, readiness, driftuppgifter och leverantörsbyten.
               </p>
             </div>
 

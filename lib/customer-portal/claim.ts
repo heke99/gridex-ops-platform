@@ -47,7 +47,7 @@ export type PortalClaimActionState = {
   message: string
 }
 
-const DEFAULT_ERROR = 'Kundkopplingen kunde inte verifieras. Kontrollera uppgifterna eller kontakta kundservice.'
+const DEFAULT_ERROR = 'Kundkopplingen kunde inte verifieras. Kontrollera uppgifterna eller kontakta kundansvarig.'
 
 function text(value: FormDataEntryValue | null): string {
   return typeof value === 'string' ? value.trim() : ''

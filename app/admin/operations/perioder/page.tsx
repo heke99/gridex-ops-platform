@@ -55,7 +55,7 @@ export default async function OperationsPeriodsPage() {
             <p className="mt-2 text-sm text-slate-700">{gaps.length} luckor kräver komplettering eller inväntan på nätägare.</p>
             <div className="mt-5 grid gap-3 md:grid-cols-3">
               <Link href="/admin/outbound/missing-meter-values" className="rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Saknade mätvärden</Link>
-              <Link href="/admin/customer-cases" className="rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Kundärenden</Link>
+              <Link href="/admin/operations/tasks" className="rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Driftuppgifter</Link>
               <Link href="/admin/controltower" className="rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Control Tower</Link>
             </div>
           </section>

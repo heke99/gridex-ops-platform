@@ -344,7 +344,7 @@ export function ActorProfileGuide({ summary }: { summary: ActorTestingSummary })
           <TextInput label="Teknisk kontakt email" name="technical_contact_email" value={c.technical_contact_email ?? c.primary_contact_email} />
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <TextInput label="Supportmail" name="support_email" value={c.support_email} />
+          <TextInput label="Kontaktmail" name="support_email" value={c.support_email} />
           <TextInput label="Fakturamail" name="billing_contact_email" value={c.billing_contact_email} />
         </div>
         <button className="w-fit rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">Spara aktörsprofil</button>

@@ -341,34 +341,37 @@ export async function createExternalContractIntake(
       .maybeSingle();
     infoRequestId = (infoRequest as { id?: string } | null)?.id ?? null;
 
-    const { data: customerCase } = await supabaseService
-      .from("customer_cases")
+    const { data: operationTask } = await supabaseService
+      .from("customer_operation_tasks")
       .insert({
         company_id: companyId,
         customer_id: customerId,
         site_id: siteId,
         metering_point_id: meteringPointId,
-        customer_contract_id: contractId,
-        case_type: "technical_blocker",
-        status: issues.length > 0 ? "manual_follow_up" : "action_required",
+        task_type: "external_contract_intake_review",
+        status: "open",
         priority: issues.length > 0 ? "high" : "normal",
-        title: "Externt avtal mottaget",
+        title: "Ansökan från hemsida mottagen",
         description:
           issues.length > 0
-            ? `Avtalet behöver kompletteras: ${issues.join(" ")}`
-            : "Avtalet är mottaget från extern ingång och ska granskas innan operativt flöde fortsätter.",
-        reason_category: "external_contract_intake",
-        next_action:
-          "Granska kund, anläggning, mätpunkt, avtal och fullmakt. Starta därefter onboarding/Ediel-flöde.",
-        source: "external_contract_intake",
-        blocker_source_table: "external_contract_intakes",
-        blocker_source_id: intakeId,
-        linked_external_intake_id: intakeId,
-        metadata: { issues, intakeId },
+            ? `Ansökan behöver kompletteras: ${issues.join(" ")}`
+            : "Ansökan är mottagen från hemsida/API och ska granskas innan operativt flöde fortsätter.",
+        metadata: {
+          contractId,
+          reasonCategory: "external_contract_intake",
+          nextAction:
+            "Granska kund, anläggning, mätpunkt, avtal och fullmakt. Starta därefter onboarding/Ediel-flöde.",
+          source: "external_contract_intake",
+          blockerSourceTable: "external_contract_intakes",
+          blockerSourceId: intakeId,
+          linkedExternalIntakeId: intakeId,
+          issues,
+          intakeId,
+        },
       })
       .select("id")
       .maybeSingle();
-    caseId = (customerCase as { id?: string } | null)?.id ?? null;
+    caseId = (operationTask as { id?: string } | null)?.id ?? null;
 
     await supabaseService
       .from("external_contract_intakes")

@@ -23,13 +23,13 @@ type Batch4CRoleActionRow = Batch3RoleActionRow
 const ROLE_TESTS = [
  {
  role: 'Superadmin',
- mustAllow: ['Se Bolag A och Bolag B', 'Skapa/pausa bolag', 'Felsöka imports, kunder, ärenden och fakturering över alla tenants'],
+ mustAllow: ['Se Bolag A och Bolag B', 'Skapa/pausa bolag', 'Felsöka imports, kunder, driftuppgifter och fakturering över alla tenants'],
  mustBlock: ['Oavsiktlig ändring utan audit log'],
  },
  {
  role: 'Bolagsadmin A',
  mustAllow: ['Skapa kunder i Bolag A', 'Importera kunder till Bolag A', 'Skapa avtal/kampanj i Bolag A', 'Bjuda in användare till Bolag A'],
- mustBlock: ['Läsa Bolag B', 'Skapa kunder i Bolag B via manipulerad company_id', 'Se Bolag B:s importkö eller kundärenden'],
+ mustBlock: ['Läsa Bolag B', 'Skapa kunder i Bolag B via manipulerad company_id', 'Se Bolag B:s importkö eller driftuppgifter'],
  },
  {
  role: 'Bolagsadmin B',

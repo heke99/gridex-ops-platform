@@ -118,7 +118,7 @@ export function renderTenantEmailLayout(input: {
       <div style="font-size:15px;line-height:1.7;color:#334155;">${htmlBody}</div>
       ${cta}
       <hr style="border:none;border-top:1px solid #e2e8f0;margin:28px 0;" />
-      <p style="font-size:12px;line-height:1.5;color:#64748b;margin:0;">Detta meddelande skickades av ${escapeHtml(input.branding.displayName)}. Support: ${escapeHtml(input.branding.supportEmail ?? 'kontakta bolaget')}</p>
+      <p style="font-size:12px;line-height:1.5;color:#64748b;margin:0;">Detta meddelande skickades av ${escapeHtml(input.branding.displayName)}. Kontakt: ${escapeHtml(input.branding.supportEmail ?? 'kontakta bolaget')}</p>
     </div>
   </div>
   </body></html>`

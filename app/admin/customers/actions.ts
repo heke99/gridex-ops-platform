@@ -483,10 +483,6 @@ function normalizeInlineCreateChoice(value: string | null | undefined): string |
   return normalized;
 }
 
-function normalizeComparable(value: string | null | undefined): string | null {
-  const normalized = normalizeOptionalString(value);
-  return normalized ? normalized.toLowerCase().replace(/\s+/g, " ") : null;
-}
 
 async function resolveOrCreateGridOwnerForIntake(params: {
   formData: FormData;
@@ -1256,31 +1252,33 @@ async function createDuplicateReviewCase(params: {
   ).join("\n");
 
   try {
-    await supabaseService.from("customer_cases").insert({
+    await supabaseService.from("customer_operation_tasks").insert({
       company_id: params.companyId,
       customer_id: params.customerId,
       site_id: params.siteId,
       metering_point_id: params.meteringPointId,
-      case_type: "technical_blocker",
-      status: "action_required",
+      task_type: "duplicate_review",
+      status: "open",
       priority: critical ? "high" : "normal",
       title: critical
         ? "Kritisk dubblettkontroll krävs"
         : "Möjlig dubblett behöver granskas",
       description,
-      reason_category: "possible_duplicate",
-      billing_blocked: critical,
-      billing_manual_review: true,
-      source: "customer_intake_duplicate_check",
-      next_action:
-        "Granska matchningen och välj om kunden ska kopplas till befintlig kund, behållas separat eller kompletteras med ny anläggning/avtal.",
-      metadata: { duplicateMatches: params.duplicateMatches },
+      metadata: {
+        reasonCategory: "possible_duplicate",
+        billingBlocked: critical,
+        billingManualReview: true,
+        source: "customer_intake_duplicate_check",
+        nextAction:
+          "Granska matchningen och välj om kunden ska kopplas till befintlig kund, behållas separat eller kompletteras med ny anläggning/avtal.",
+        duplicateMatches: params.duplicateMatches,
+      },
       created_by: params.actorUserId,
       updated_by: params.actorUserId,
     });
   } catch (error) {
     if (!databaseObjectMissing(error)) {
-      console.warn("Duplicate review case could not be created", error);
+      console.warn("Duplicate review task could not be created", error);
     }
   }
 }
@@ -2423,20 +2421,17 @@ async function createIntakeFollowUps(params: {
   }
 
   try {
-    const { data: createdCase, error: caseError } = await supabaseService
-      .from("customer_cases")
+    const { error: taskError } = await supabaseService
+      .from("customer_operation_tasks")
       .insert({
         company_id: params.companyId,
         customer_id: params.customerId,
         site_id: params.siteId,
         metering_point_id: params.meteringPointId,
-        customer_contract_id: params.contractId,
-        case_type: params.missingData.some((value) =>
-          value.includes("fullmakt"),
-        )
+        task_type: params.missingData.some((value) => value.includes("fullmakt"))
           ? "missing_authorization"
-          : "technical_blocker",
-        status: "action_required",
+          : "customer_intake_missing_data",
+        status: "open",
         priority: params.missingData.some(
           (value) => value.includes("fullmakt") || value.includes("mätpunkt"),
         )
@@ -2444,56 +2439,30 @@ async function createIntakeFollowUps(params: {
           : "normal",
         title: "Kundintag kräver komplettering",
         description: blockerReason,
-        reason_category: "customer_intake_missing_data",
-        billing_blocked: params.missingData.some(
-          (value) => value.includes("mätpunkt") || value.includes("startdatum"),
-        ),
-        billing_manual_review: true,
-        source: "customer_intake",
-        next_action:
-          "Komplettera saknade uppgifter innan leverantörsbyte eller fakturering går vidare.",
         metadata: {
+          contractId: params.contractId,
+          reasonCategory: "customer_intake_missing_data",
+          billingBlocked: params.missingData.some(
+            (value) => value.includes("mätpunkt") || value.includes("startdatum"),
+          ),
+          billingManualReview: true,
+          source: "customer_intake",
+          nextAction:
+            "Komplettera saknade uppgifter innan leverantörsbyte eller fakturering går vidare.",
           missingData: params.missingData,
           addressWarnings: warnings,
           createdFrom: "createCustomerAction",
         },
         created_by: params.actorUserId,
         updated_by: params.actorUserId,
-      })
-      .select("id")
-      .maybeSingle();
+      });
 
-    if (caseError) {
-      if (!databaseObjectMissing(caseError)) {
-        console.warn("Customer intake case could not be created", caseError);
-      }
-      return;
-    }
-
-    if (createdCase?.id) {
-      const { error: eventError } = await supabaseService
-        .from("customer_case_events")
-        .insert({
-          company_id: params.companyId,
-          customer_case_id: createdCase.id,
-          customer_id: params.customerId,
-          event_type: "created_from_customer_intake",
-          event_status: "warning",
-          message: blockerReason,
-          payload: { missingData: params.missingData },
-          created_by: params.actorUserId,
-        });
-
-      if (eventError && !databaseObjectMissing(eventError)) {
-        console.warn(
-          "Customer intake case event could not be created",
-          eventError,
-        );
-      }
+    if (taskError && !databaseObjectMissing(taskError)) {
+      console.warn("Customer intake task could not be created", taskError);
     }
   } catch (error) {
     if (!databaseObjectMissing(error)) {
-      console.warn("Customer intake case could not be created", error);
+      console.warn("Customer intake task could not be created", error);
     }
   }
 }

@@ -105,7 +105,7 @@ export default async function SystemHealthPage() {
         <Card label="Billing blockers" value={billingBlocked} hint="Fakturering får inte gå på overifierad data" danger />
         <Card label="Route blockers" value={missingRoutes} hint="Actor routes saknas/verifieras" danger />
         <Card label="Import issues" value={importIssues} hint="Actor/masterdata-konflikter" danger />
-        <Card label="Mailfel" value={emailFailures} hint="Kundmail/support/switch-notiser" danger />
+        <Card label="Mailfel" value={emailFailures} hint="Kundmail och switch-notiser" danger />
         <Card label="DB-varningar" value={dbSecurityWarnings} hint="RLS, anon grants och security-definer" danger />
         <Card label="Failed jobs" value={failedJobs} hint="Outbox/jobb som behöver retry eller manuell åtgärd" danger />
       </section>

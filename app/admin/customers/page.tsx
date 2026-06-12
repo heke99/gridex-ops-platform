@@ -383,7 +383,7 @@ function buildCustomerOperationsSummary(params: {
  primaryHref: '/admin/operations/switches?stage=failed',
  primaryTone: lifecycleTone('failed'),
  primaryDescription:
- 'Det finns ärenden som brutit flödet och kräver manuell bedömning.',
+ 'Det finns driftuppgifter som brutit flödet och kräver manuell bedömning.',
  priorityRank: 6,
  priorityLabel: 'Kräver beslut',
  }
@@ -694,7 +694,7 @@ function filterLabel(filter: OperationsFilterKey): string {
  case 'queued_for_outbound':
  return 'kunder som saknar utskick'
  case 'failed':
- return 'kunder med ärenden som kräver åtgärd'
+ return 'kunder med driftuppgifter som kräver åtgärd'
  case 'active_open':
  return 'kunder med aktiv operationssignal'
  case 'no_signal':
@@ -761,6 +761,12 @@ function customerFlagFilterLabel(value: CustomerFlagFilter): string {
  return 'saknar nätägare'
  case 'ready_for_switch':
  return 'redo för leverantörsbyte'
+ case 'billing_ready':
+ return 'faktureringsklara'
+ case 'test_customers':
+ return 'testkunder'
+ case 'archived':
+ return 'arkiverade kunder'
  case 'cancelled':
  return 'ångrade kunder'
  case 'rejected':
@@ -791,6 +797,8 @@ function customerStatusLabel(value: string | null): string {
  return 'Ångrad'
  case 'rejected':
  return 'Nekad'
+ case 'archived':
+ return 'Arkiverad'
  default:
  return value ?? 'Okänd'
  }
@@ -1207,6 +1215,9 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  <option value="moved">Flyttad</option>
  <option value="terminated">Avslutad</option>
  <option value="blocked">Blockerad</option>
+ <option value="cancelled">Ångrad</option>
+ <option value="rejected">Nekad</option>
+ <option value="archived">Arkiverad</option>
  </select>
  <select
  name="customerType"
@@ -1321,6 +1332,26 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  })}
  active={statusFilter === 'blocked'}
  tone="danger"
+ />
+ <FilterChip
+ label="Ångrade"
+ count={pageResult.counts.cancelled}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: 'cancelled', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
+ active={statusFilter === 'cancelled'}
+ tone="danger"
+ />
+ <FilterChip
+ label="Nekade"
+ count={pageResult.counts.rejected}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: 'rejected', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
+ active={statusFilter === 'rejected'}
+ tone="warning"
+ />
+ <FilterChip
+ label="Arkiverade"
+ count={pageResult.counts.archived}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: 'archived', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
+ active={statusFilter === 'archived'}
  />
  </div>
 
@@ -1476,6 +1507,26 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'ready_for_switch', page: 1 })}
  active={flagFilter === 'ready_for_switch'}
  tone="success"
+ />
+ <FilterChip
+ label="Faktureringsklara"
+ count={sortedCustomers.filter((customer) => customer.site_count > 0 && customer.metering_point_count > 0 && customer.contract_count > 0 && !customer.has_missing_grid_owner).length}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'billing_ready', page: 1 })}
+ active={flagFilter === 'billing_ready'}
+ tone="success"
+ />
+ <FilterChip
+ label="Testkunder"
+ count={sortedCustomers.filter((customer) => customer.is_test_data === true || String(customer.source ?? '').toLowerCase().includes('test')).length}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'test_customers', page: 1 })}
+ active={flagFilter === 'test_customers'}
+ tone="warning"
+ />
+ <FilterChip
+ label="Arkiverade"
+ count={sortedCustomers.filter((customer) => customer.status === 'archived').length}
+ href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'archived', page: 1 })}
+ active={flagFilter === 'archived'}
  />
  <FilterChip
  label="Ångrade"

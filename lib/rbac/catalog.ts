@@ -67,20 +67,20 @@ export const ROLE_CATALOG: RoleCatalogItem[] = [
   },
   {
     key: 'customer_service_manager',
-    label: 'Kundtjänst manager',
+    label: 'Kundnära drift manager',
     description:
-      'Leder kundtjänst och behöver läsa kundbild, kommunikation och avtal.',
+      'Leder kundnära drift och behöver läsa kundbild, kommunikation och avtal.',
     audience: 'internal',
-    recommendedFor: 'Supportchef eller team lead.',
+    recommendedFor: 'Kundnära driftledare.',
     loginAllowed: true,
   },
   {
     key: 'customer_service_agent',
-    label: 'Kundtjänst',
+    label: 'Kundnära drift',
     description:
-      'Supportroll för kundärenden, kommunikation och läsning av centrala kundflöden.',
+      'Roll för kundnära drift, kommunikation och läsning av centrala kundflöden.',
     audience: 'internal',
-    recommendedFor: 'Support eller kundservice.',
+    recommendedFor: 'Kundnära drift.',
     loginAllowed: true,
   },
   {
@@ -274,16 +274,16 @@ const PERMISSION_CATALOG: BehörighetCatalogItem[] = [
   },
   {
     key: 'cases.read',
-    label: 'Läsa ärenden',
-    description: 'Kan läsa supportärenden.',
-    area: 'Support',
+    label: 'Läsa driftuppgifter',
+    description: 'Kan läsa driftuppgifter kopplade till kund.',
+    area: 'Drift',
     risk: 'low',
   },
   {
     key: 'cases.write',
-    label: 'Ändra ärenden',
-    description: 'Kan skapa eller ändra supportärenden.',
-    area: 'Support',
+    label: 'Ändra driftuppgifter',
+    description: 'Kan skapa eller ändra driftuppgifter kopplade till kund.',
+    area: 'Drift',
     risk: 'high',
   },
   {

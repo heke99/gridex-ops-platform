@@ -375,14 +375,14 @@ export default async function AdminWorkQueuePage() {
   const staleHint = dbQueueRows.length > 0
     ? `Arbetskön laddas via sammanställd databasvy. ${visibleCustomerCount} kunder har aktiva åtgärder i kön.`
     : visibleCustomerCount === 0
-      ? 'Arbetskön visar bara ärenden kopplade till synliga kunder. Gamla testkunder, arkiverade kunder och orphans filtreras bort.'
+      ? 'Arbetskön visar bara driftuppgifter kopplade till synliga kunder. Gamla testkunder, arkiverade kunder och poster utan kund filtreras bort.'
       : `${visibleCustomerCount} synliga kunder används som grund för kön.`
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title="Arbetskö"
-        subtitle="Kunder och ärenden som kräver nästa åtgärd. Kön filtrerar bort gamla testkunder och ärenden utan synlig kund."
+        subtitle="Kunder och driftuppgifter som kräver nästa åtgärd. Kön filtrerar bort gamla testkunder och poster utan synlig kund."
         userEmail={context.email}
         workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
         workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
@@ -408,9 +408,9 @@ export default async function AdminWorkQueuePage() {
 
           {sortedItems.length === 0 ? (
             <div className="px-6 py-12 text-center">
-              <h3 className="text-lg font-bold text-slate-950">Inga aktiva ärenden hittades</h3>
+              <h3 className="text-lg font-bold text-slate-950">Inga aktiva driftuppgifter hittades</h3>
               <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Det betyder att det inte finns öppna blockerare, uppgiftsbegäran eller switchärenden kopplade till synliga kunder.
+                Det betyder att det inte finns öppna blockerare, uppgiftsbegäran eller leverantörsbyten kopplade till synliga kunder.
                 Gamla testdata och orphans visas inte här.
               </p>
               <div className="mt-6 flex justify-center gap-3">

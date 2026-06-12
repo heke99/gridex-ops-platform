@@ -165,7 +165,7 @@ export default async function CompanySettingsPage() {
 
                 <div className="lg:col-span-2 mt-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                   <h3 className="text-sm font-semibold text-slate-950">
-                    Fakturering och support
+                    Fakturering och kundkommunikation
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-slate-700">
                     Kontaktuppgifter som används för plattformsadministration,
@@ -185,7 +185,7 @@ export default async function CompanySettingsPage() {
                     </label>
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">
-                        Supportmail
+                        Kontaktmail för kundkommunikation
                       </span>
                       <input
                         name="support_email"

@@ -59,7 +59,7 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">Operativt bolag</p>
           <h2 className="mt-2 text-xl font-semibold text-slate-950">{scope.companyName ?? 'Bolagskoppling saknas'}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-            Automation körs tenant-säkert mot ett bolag. Batch 2C skannar valfria perioder, skapar mätvärdesluckor, köar requests och kopplar alla blockerare till kundärenden.
+            Automation körs tenant-säkert mot ett bolag. Batch 2C skannar valfria perioder, skapar mätvärdesluckor, köar requests och kopplar alla blockerare till driftuppgifter.
           </p>
           {scope.message ? <p className="mt-3 text-sm font-semibold text-amber-800">{scope.message}</p> : null}
         </section>
@@ -88,7 +88,7 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">Batch 2B</p>
             <h2 className="mt-2 text-lg font-semibold text-slate-950">Kör grundautomation</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              Skannar avtal/kunder, skapar uppgiftsbegäran, köar saknade mätvärden för standardperioden och skapar kundärenden för blockerade faktureringsrader.
+              Skannar avtal/kunder, skapar uppgiftsbegäran, köar saknade mätvärden för standardperioden och skapar driftuppgifter för blockerade faktureringsrader.
             </p>
             <button className="mt-5 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50" disabled={!scope.companyId}>
               Kör grundautomation
@@ -117,21 +117,21 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
           </form>
 
           <form action={createBillingBlockerCasesAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-800">Blockers till ärenden</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-950">Skapa ärenden för blockerade exportrader</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-800">Blockerare till driftuppgifter</p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-950">Skapa driftuppgifter för blockerade exportrader</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              Läser blockerade export-/underlagsrader och skapar kundärenden som ekonomi/kundservice kan följa upp utan att övriga kunder blockeras.
+              Läser blockerade export-/underlagsrader och skapar driftuppgifter som ekonomi och driftansvariga kan följa upp utan att övriga kunder blockeras.
             </p>
             <button className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50" disabled={!scope.companyId}>
-              Skapa blockerärenden
+              Skapa driftuppgifter
             </button>
           </form>
 
           <form action={createBatch2CQueueCasesAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-800">Driftköer</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-950">Koppla alla driftköer till ärenden</h2>
+            <h2 className="mt-2 text-lg font-semibold text-slate-950">Koppla alla driftköer till driftuppgifter</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              Skapar eller återanvänder kundärenden för mätvärdesluckor, partnerexportfel, externa avtalsintag och övriga blockerare i Batch 2C Control Tower.
+              Skapar eller återanvänder driftuppgifter för mätvärdesluckor, partnerexportfel, externa avtalsintag och övriga blockerare i Batch 2C Control Tower.
             </p>
             <button className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-900 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50" disabled={!scope.companyId}>
               Koppla driftköer
@@ -145,13 +145,13 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
             <Link href="/admin/controltower" className="rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Control Tower</Link>
             <Link href="/admin/operations/perioder" className="rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Periodluckor</Link>
             <Link href="/admin/billing/export-center" className="rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Exportcenter</Link>
-            <Link href="/admin/customer-cases" className="rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Kundärenden</Link>
+            <Link href="/admin/operations/tasks" className="rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Driftuppgifter</Link>
           </div>
         </section>
 
         {row ? (
           <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-700">
-            Äldre Batch 2B-status: {numberValue(row.open_outbound_count)} öppna outbound, {numberValue(row.open_case_count)} öppna ärenden, {numberValue(row.failed_import_rows)} importfel.
+            Äldre Batch 2B-status: {numberValue(row.open_outbound_count)} öppna outbound, {numberValue(row.open_case_count)} öppna driftuppgifter, {numberValue(row.failed_import_rows)} importfel.
           </section>
         ) : null}
       </div>

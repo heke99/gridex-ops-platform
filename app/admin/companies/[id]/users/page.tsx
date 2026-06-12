@@ -199,7 +199,7 @@ export default async function CompanyUsersPage({
               <option value="owner">Ägare</option>
               <option value="admin">Admin</option>
               <option value="operations">Operations</option>
-              <option value="support">Support</option>
+              <option value="support">Kundnära drift</option>
               <option value="viewer">Viewer</option>
             </select>
             <select name="role_key" defaultValue="company_admin" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
@@ -277,7 +277,7 @@ export default async function CompanyUsersPage({
                             <option value="owner">Ägare</option>
                             <option value="admin">Admin</option>
                             <option value="operations">Operations</option>
-                            <option value="support">Support</option>
+                            <option value="support">Kundnära drift</option>
                             <option value="viewer">Viewer</option>
                           </select>
                           <select name="role_key" defaultValue={user.roleKey ?? 'company_admin'} className="min-w-[150px] rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs">

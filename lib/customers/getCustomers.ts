@@ -31,6 +31,7 @@ export type CustomerListRow = {
   active_metering_point_count: number
   contract_count: number
   source: string | null
+  is_test_data?: boolean | null
 }
 
 type RawCustomerRow = Record<string, unknown> & { id?: string }
@@ -44,6 +45,9 @@ const STATUS_COUNT_KEYS: Exclude<CustomerStatusFilter, 'all'>[] = [
   'moved',
   'terminated',
   'blocked',
+  'cancelled',
+  'rejected',
+  'archived',
 ]
 const CUSTOMER_LIST_SELECT = [
   'id',
@@ -66,6 +70,7 @@ const CUSTOMER_LIST_SELECT = [
   'customer_number',
   'apartment_number',
   'source',
+  'is_test_data',
   'created_at',
   'company_id',
 ].join(',')
@@ -94,6 +99,9 @@ export type CustomerFlagFilter =
   | 'missing_authorization'
   | 'missing_grid_owner'
   | 'ready_for_switch'
+  | 'billing_ready'
+  | 'test_customers'
+  | 'archived'
   | 'cancelled'
   | 'rejected'
 
@@ -127,6 +135,9 @@ export type CustomerStatusFilter =
   | 'moved'
   | 'terminated'
   | 'blocked'
+  | 'cancelled'
+  | 'rejected'
+  | 'archived'
 
 export type CustomerStatusCounts = {
   all: number
@@ -137,6 +148,9 @@ export type CustomerStatusCounts = {
   moved: number
   terminated: number
   blocked: number
+  cancelled: number
+  rejected: number
+  archived: number
 }
 
 export type CustomerListPageResult = {
@@ -185,6 +199,7 @@ function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
     customer_number: stringOrNull(row.customer_number),
     apartment_number: stringOrNull(row.apartment_number),
     source: stringOrNull(row.source),
+    is_test_data: booleanOrFalse(row.is_test_data),
     created_at: stringOrNull(row.created_at) ?? new Date(0).toISOString(),
     site_count: 0,
     active_site_count: 0,
@@ -239,6 +254,11 @@ function matchesFlag(row: CustomerListRow, flag: CustomerFlagFilter): boolean {
   if (flag === 'ready_for_switch') {
     return row.site_count > 0 && row.metering_point_count > 0 && Boolean(row.has_signed_power_of_attorney) && !row.has_missing_grid_owner
   }
+  if (flag === 'billing_ready') {
+    return row.site_count > 0 && row.metering_point_count > 0 && row.contract_count > 0 && !row.has_missing_grid_owner
+  }
+  if (flag === 'test_customers') return row.is_test_data === true || String(row.source ?? '').toLowerCase().includes('test')
+  if (flag === 'archived') return row.status === 'archived'
   if (flag === 'cancelled') return row.status === 'cancelled'
   if (flag === 'rejected') return row.status === 'rejected'
   return true
@@ -252,16 +272,20 @@ function canUsePagedCustomerQuery(params: {
   return params.query.length === 0 && params.contractFilter === 'all' && params.flag === 'all'
 }
 
-function applyBaseCustomerFilters(query: CustomerQuery, companyId: string | null): CustomerQuery {
+function applyBaseCustomerFilters(query: CustomerQuery, companyId: string | null, includeHidden = false): CustomerQuery {
   let scopedQuery = query
     .not('company_id', 'is', null)
     .or('source.is.null,source.neq.ediel_portal_test')
-    .or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
+
+  if (!includeHidden) {
+    scopedQuery = scopedQuery.or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
+  }
 
   if (companyId) scopedQuery = scopedQuery.eq('company_id', companyId)
 
   return scopedQuery
 }
+
 
 function applyCustomerTypeQueryFilter(
   query: CustomerQuery,
@@ -288,7 +312,8 @@ async function countCustomersByStatus(params: {
       applyCustomerTypeQueryFilter(
         applyBaseCustomerFilters(
           supabaseService.from('customers').select('id', { count: 'exact', head: true }) as unknown as CustomerQuery,
-          params.companyId
+          params.companyId,
+          status === 'archived'
         ),
         params.customerType
       ),
@@ -314,6 +339,9 @@ async function countCustomersByStatus(params: {
     moved: statusCounts[4] ?? 0,
     terminated: statusCounts[5] ?? 0,
     blocked: statusCounts[6] ?? 0,
+    cancelled: statusCounts[7] ?? 0,
+    rejected: statusCounts[8] ?? 0,
+    archived: statusCounts[9] ?? 0,
   }
 }
 
@@ -331,7 +359,8 @@ async function loadPagedCustomerRows(params: {
     applyCustomerTypeQueryFilter(
       applyBaseCustomerFilters(
         supabaseService.from('customers').select(CUSTOMER_LIST_SELECT, { count: 'exact' }) as unknown as CustomerQuery,
-        params.companyId
+        params.companyId,
+        params.status === 'archived'
       ),
       params.customerType
     ),
@@ -361,18 +390,22 @@ async function loadPagedCustomerRows(params: {
   }
 }
 
-async function loadCustomerRows(companyId: string | null): Promise<CustomerListRow[]> {
+async function loadCustomerRows(
+  companyId: string | null,
+  status: CustomerStatusFilter,
+  includeHidden = false
+): Promise<CustomerListRow[]> {
   try {
     let query = supabaseService
       .from('customers')
       .select(CUSTOMER_LIST_SELECT)
       .not('company_id', 'is', null)
       .or('source.is.null,source.neq.ediel_portal_test')
-      .or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
       .order('created_at', { ascending: false })
       .limit(1000)
 
     if (companyId) query = query.eq('company_id', companyId)
+    if (!includeHidden) query = query.or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
 
     const { data, error } = await query
     if (error) throw error
@@ -488,6 +521,9 @@ function emptyCounts(): CustomerStatusCounts {
     moved: 0,
     terminated: 0,
     blocked: 0,
+    cancelled: 0,
+    rejected: 0,
+    archived: 0,
   }
 }
 
@@ -502,6 +538,9 @@ function buildCounts(rows: CustomerListRow[]): CustomerStatusCounts {
     if (row.status === 'moved') counts.moved += 1
     if (row.status === 'terminated') counts.terminated += 1
     if (row.status === 'blocked') counts.blocked += 1
+    if (row.status === 'cancelled') counts.cancelled += 1
+    if (row.status === 'rejected') counts.rejected += 1
+    if (row.status === 'archived') counts.archived += 1
   }
   return counts
 }
@@ -545,7 +584,8 @@ export async function listCustomersPage(options: {
     }
   }
 
-  const allRows = await hydrateDerivedCustomerData(await loadCustomerRows(companyId), companyId)
+  const includeHiddenRows = status === 'archived' || flag === 'archived'
+  const allRows = await hydrateDerivedCustomerData(await loadCustomerRows(companyId, status, includeHiddenRows), companyId)
   const searchedRows = allRows.filter((row) => matchesText(row, query))
   const counts = buildCounts(searchedRows.filter((row) => matchesCustomerType(row, customerType) && matchesFlag(row, flag)))
   const filteredRows = searchedRows.filter(

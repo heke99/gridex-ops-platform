@@ -95,7 +95,7 @@ export default function CustomerBusinessActionsCard({
 
   const missingSwitchRequestNotice = activeSwitchRequest ? null : (
     <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-      Starta eller välj ett affärsärende först så backend kan koppla åtgärden tenant-säkert.
+      Starta eller välj ett affärsärende först så plattformen kan koppla åtgärden till rätt bolag.
     </p>
   )
 
@@ -106,7 +106,7 @@ export default function CustomerBusinessActionsCard({
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Affärsåtgärder</p>
           <h2 className="mt-2 text-lg font-semibold text-slate-950">Starta rätt flöde utan tekniska val</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-            Knapparna använder kundens anläggning, mätpunkt, nätägare och behörigheter i bakgrunden. Handläggaren väljer affärsåtgärd; backend väljer rätt marknadsprocess.
+            Knapparna använder kundens anläggning, mätpunkt, nätägare och behörigheter i bakgrunden. Handläggaren väljer affärsåtgärd; plattformen väljer rätt marknadsprocess.
           </p>
         </div>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
@@ -116,7 +116,7 @@ export default function CustomerBusinessActionsCard({
 
       <div className="mt-5 grid gap-3 md:grid-cols-4">
         <div className="rounded-2xl border border-emerald-100 bg-white p-4 text-sm shadow-sm md:col-span-4">
-          <div className="font-semibold text-slate-950">Snabb preflight</div>
+          <div className="font-semibold text-slate-950">Redo-kontroll</div>
           <div className="mt-3 grid gap-2 md:grid-cols-4">
             <div className={`rounded-xl px-3 py-2 ${primarySite ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>{primarySite ? 'Anläggning vald' : 'Saknar anläggning'}</div>
             <div className={`rounded-xl px-3 py-2 ${primaryPoint ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>{primaryPoint ? 'Mätpunkt vald' : 'Saknar mätpunkt'}</div>
@@ -126,19 +126,19 @@ export default function CustomerBusinessActionsCard({
           {missingBusinessData.length > 0 ? (
             <pre className="mt-3 whitespace-pre-wrap rounded-2xl border border-red-200 bg-red-50 p-3 text-xs font-semibold leading-5 text-red-900">{missingBusinessDataMessage(missingBusinessData)}</pre>
           ) : (
-            <p className="mt-3 text-xs leading-5 text-slate-600">Preflighten avgör om systemet kan starta åtgärden direkt, behöver komplettera kunddata eller ska skapa en uppföljningsuppgift.</p>
+            <p className="mt-3 text-xs leading-5 text-slate-600">Kontrollen avgör om plattformen kan starta åtgärden direkt, behöver komplettera kunddata eller ska skapa en uppföljningsuppgift.</p>
           )}
         </div>
 
-        <ActionShell title="Starta automatisk onboarding" text="Systemet samlar in saknade uppgifter först och startar leverantörsbyte när kunden är redo.">
+        <ActionShell title="Starta kundflöde" text="Plattformen samlar in saknade uppgifter först och startar leverantörsbyte när kunden är redo.">
           <form action={startAutomaticOnboardingAction} className="mt-4">
             <input type="hidden" name="customer_id" value={customerId} />
             <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
-            <SubmitButton idleLabel="Starta onboarding" pendingLabel="Startar…" />
+            <SubmitButton idleLabel="Starta kundflöde" pendingLabel="Startar…" />
           </form>
         </ActionShell>
 
-        <ActionShell title="Starta leverantörsbyte" text="Startar leverantörsbyte. Backend sköter marknadsmeddelande, kö och kvittenser.">
+        <ActionShell title="Starta leverantörsbyte" text="Startar leverantörsbyte. Plattformen sköter marknadsmeddelande, kö och kvittenser.">
           <form action={createSupplierSwitchRequestAction} className="mt-4">
             <input type="hidden" name="customer_id" value={customerId} />
             <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
@@ -148,7 +148,7 @@ export default function CustomerBusinessActionsCard({
           </form>
         </ActionShell>
 
-        <ActionShell title="Registrera ånger" text="Stoppar kundflödet internt och låter backend avgöra om avslut eller manuell uppgift behövs.">
+        <ActionShell title="Registrera ånger" text="Stoppar kundflödet internt och låter plattformen avgöra om avslut eller manuell uppgift behövs.">
           <form action={registerCancellationBusinessAction} className="mt-4">
             {renderBusinessActionHiddenFields('register_cancellation')}
             <input type="hidden" name="reason" value="Kunden har registrerat ånger från kundkortets affärsåtgärder." />
@@ -157,7 +157,7 @@ export default function CustomerBusinessActionsCard({
           </form>
         </ActionShell>
 
-        <ActionShell title="Avsluta avtal" text="Påbörjar avslut och loggar händelsen på kundkortet. Backend avgör om marknadsmeddelande behövs.">
+        <ActionShell title="Avsluta avtal" text="Påbörjar avslut och loggar händelsen på kundkortet. Plattformen avgör om marknadsmeddelande behövs.">
           <form action={endAgreementBusinessAction} className="mt-4">
             {renderBusinessActionHiddenFields(`end_agreement:${activeContract?.id ?? 'customer'}`)}
             <input type="hidden" name="reason" value="Avslut av avtal påbörjat från kundkortets affärsåtgärder." />

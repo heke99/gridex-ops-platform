@@ -802,7 +802,7 @@ function eventVariables(input: {
     start_date: input.startDate ?? '',
     facility_id: input.facilityId ?? '',
     metering_point_id: input.meteringPointId ?? '',
-    support_email: input.supportEmail ?? 'kundservice@gridex.se',
+    support_email: input.supportEmail ?? 'kontakt@gridex.se',
     cancellation_deadline: cancellationDeadline,
     portal_url: 'https://app.gridex.se/login',
   }

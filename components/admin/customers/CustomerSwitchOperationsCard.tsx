@@ -435,7 +435,7 @@ export default function CustomerSwitchOperationsCard({
 
  <SwitchRequestSection
  title="Vad gör att switchar fastnar?"
- description="Kort förklaring per aktivt ärende så support snabbt ser nästa arbetsyta."
+ description="Kort förklaring per aktivt ärende så ansvarig snabbt ser nästa arbetsyta."
  >
  <div className="space-y-3">
  {openSwitches.length === 0 ? (

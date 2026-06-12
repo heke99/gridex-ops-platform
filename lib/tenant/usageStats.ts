@@ -178,7 +178,7 @@ async function listTenantUsageStatsUncached(): Promise<TenantUsageStatsRow[]> {
         safeCount('authorization_scopes', [{ column: 'company_id', value: companyId }]),
         safeCount('powers_of_attorney', [{ column: 'company_id', value: companyId }]),
         safeCount('customer_blockers', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'open' }]),
-        safeCount('customer_cases', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'open' }]),
+        safeCount('customer_operation_tasks', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'open' }]),
         safeCount('customer_info_requests', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'waiting_response' }]),
         safeCount('supplier_switch_requests', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'waiting_response' }]),
         safeCount('billing_export_run_items', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'blocked' }]),

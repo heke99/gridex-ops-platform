@@ -128,9 +128,9 @@ async function getCompanyOperationalStats(companyId: string): Promise<CompanyOpe
       { column: 'updated_at', op: 'gte', value: from },
       { column: 'status', op: 'in', value: ['terminated', 'moved', 'closed', 'inactive'] },
     ]),
-    safeCompanyCount('customer_cases', companyId, [
-      { column: 'case_type', value: 'withdrawal' },
-      { column: 'status', op: 'in', value: ['open', 'action_required', 'billing_blocked', 'manual_follow_up'] },
+    safeCompanyCount('customer_operation_tasks', companyId, [
+      { column: 'task_type', value: 'customer_withdrawal_followup' },
+      { column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] },
     ]),
     safeCompanyCount('tenant_email_outbox', companyId, [{ column: 'status', value: 'queued' }]),
     safeCompanyCount('tenant_email_outbox', companyId, [{ column: 'status', value: 'failed' }]),
@@ -391,9 +391,9 @@ function CompanyEmailSection({
         <form action={saveCompanyEmailSettingsAction} className="mt-5 grid gap-4 md:grid-cols-2">
           <input type="hidden" name="company_id" value={company.id} />
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Avsändarnamn</span><input name="sender_name" defaultValue={settings?.sender_name ?? company.name} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Avsändarmail</span><input name="sender_email" type="email" defaultValue={settings?.sender_email ?? ''} placeholder="kundservice@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Reply-to</span><input name="reply_to_email" type="email" defaultValue={settings?.reply_to_email ?? ''} placeholder="support@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Supportmail</span><input name="support_email" type="email" defaultValue={settings?.support_email ?? company.primary_contact_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Avsändarmail</span><input name="sender_email" type="email" defaultValue={settings?.sender_email ?? ''} placeholder="kontakt@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Reply-to</span><input name="reply_to_email" type="email" defaultValue={settings?.reply_to_email ?? ''} placeholder="kontakt@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Kontaktmail för kundkommunikation</span><input name="support_email" type="email" defaultValue={settings?.support_email ?? company.primary_contact_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
           <label className="grid gap-1 md:col-span-2"><span className="text-xs font-bold text-slate-700">Domän</span><input name="domain" defaultValue={settings?.domain ?? ''} placeholder="bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
           <div className="md:col-span-2"><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Spara</button></div>
         </form>
@@ -420,7 +420,7 @@ function CompanyEmailSection({
           </div>
         ) : null}
         <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
-          Kundmail för elhandel hanteras här: ansökan mottagen, leverantörsbyte och välkomstmail. Supportärenden ligger utanför Ops scope och hanteras av elbolaget i egna kanaler.
+          Kundmail för elhandel hanteras här: ansökan mottagen, leverantörsbyte och välkomstmail. Kundsupport ligger utanför Ops scope och hanteras av elbolaget i egna kanaler.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <form action={startCompanyDomainVerificationAction}><input type="hidden" name="company_id" value={company.id} /><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Starta verifiering</button></form>
@@ -665,7 +665,7 @@ export default async function CompanyDetailPage({
 
         <section id="company-statistics" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Statistik</p>
-          <h2 className="mt-2 text-xl font-black text-slate-950">Kunder, ärenden och utskick denna månad</h2>
+          <h2 className="mt-2 text-xl font-black text-slate-950">Kunder, driftuppgifter och utskick denna månad</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <StatCard label="Nya kunder" value={operationalStats.newCustomersThisMonth} />
             <StatCard label="Lämnat/avslutade" value={operationalStats.closedCustomersThisMonth} />

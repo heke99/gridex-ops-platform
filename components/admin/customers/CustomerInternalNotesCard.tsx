@@ -40,7 +40,7 @@ export default function CustomerInternalNotesCard({
  Interna anteckningar
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Intern historik för support, drift och kundspecifik information.
+ Intern historik för drift och kundspecifik information.
  </p>
  </div>
 

@@ -30,7 +30,7 @@ export default async function PortalContractsPage() {
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
           Här ser du elavtal som är kopplade till ditt kundkonto. Statusen
-          speglar Gridex driftdata och kan användas av kundservice vid frågor.
+          speglar Gridex driftdata och kan användas av kundansvarig vid frågor.
         </p>
       </section>
 

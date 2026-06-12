@@ -11,9 +11,8 @@ import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { addCustomerContractEvent } from "@/lib/customer-contracts/db";
-import { createCustomerCase } from "@/lib/customer-cases/db";
 import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates";
-import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
+import { logAdminActionAndUsage, logUsageEvent } from "@/lib/audit/actionLogger";
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -380,7 +379,7 @@ export async function closeCustomerLifecycleAction(
     reason,
     source: "admin_customer_card",
     legalHandling:
-      "Soft close only. Customer records are retained for Ediel, metering, billing, audit and support traceability.",
+      "Soft close only. Customer records are retained for Ediel, metering, billing and audit traceability.",
   };
 
   const { data: customerAfter, error: updateCustomerError } =
@@ -495,32 +494,44 @@ export async function closeCustomerLifecycleAction(
 
     if (switchUpdateError) throw switchUpdateError;
 
-    await createCustomerCase({
-      companyId,
-      customerId,
-      siteId: siteIds[0] ?? null,
-      supplierSwitchRequestId: activeSwitchIds[0] ?? null,
-      caseType: "supplier_switch_aborted",
+    await supabaseService.from("customer_operation_tasks").insert({
+      company_id: companyId,
+      customer_id: customerId,
+      site_id: siteIds[0] ?? null,
+      metering_point_id: null,
+      task_type: "supplier_switch_stopped_followup",
+      status: "open",
       priority: "high",
       title:
         mode === "terminate"
-          ? "Aktivt leverantörsbyte stoppades vid avslut"
-          : "Aktivt leverantörsbyte stoppades vid flytt",
+          ? "Följ upp stoppat leverantörsbyte vid avslut"
+          : "Följ upp stoppat leverantörsbyte vid flytt",
       description:
         reason ??
         (mode === "terminate"
-          ? "Kunden avslutades innan switchen slutfördes."
-          : "Kunden flyttade innan switchen slutfördes."),
-      reasonCategory: mode,
-      withdrawalRequestedAt: nowIso,
-      deliveryStartAt: moveOutDate,
-      source: "customer_lifecycle_close",
-      metadata: {
-        lifecycleMetadata,
-        activeSwitchIds,
-      },
+          ? "Kunden avslutades innan leverantörsbytet slutfördes."
+          : "Kunden flyttade innan leverantörsbytet slutfördes."),
+      metadata: { lifecycleMetadata, activeSwitchIds },
+      created_by: actorUserId,
+      updated_by: actorUserId,
+    }).then(({ error }) => {
+      if (error) throw error;
+    });
+
+    await logUsageEvent({
+      companyId,
       actorUserId,
-    }).catch(() => null);
+      customerId,
+      entityType: "supplier_switch_request",
+      entityId: customerId,
+      eventKey: "switch.cancelled",
+      actionLabel: "Leverantörsbyte stoppat vid kundavslut",
+      source: "customer_lifecycle_close",
+      billable: true,
+      billableQuantity: activeSwitchIds.length,
+      billingUnit: "switch_request",
+      metadata: { lifecycleMetadata, activeSwitchIds },
+    });
   }
 
   const customerEmail =
@@ -1043,6 +1054,70 @@ export async function archiveCustomerAction(
     if (pointsError) throw pointsError;
   }
 
+  const { data: contractsToClose, error: contractsLookupError } = await supabaseService
+    .from("customer_contracts")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("customer_id", customerId)
+    .in("status", ["draft", "pending_signature", "signed", "active"]);
+  if (contractsLookupError) throw contractsLookupError;
+  const contractIds = (contractsToClose ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+  if (contractIds.length > 0) {
+    const { error: contractsUpdateError } = await supabaseService
+      .from("customer_contracts")
+      .update({
+        status: "cancelled",
+        ends_at: nowIso,
+        termination_reason: "other",
+        rejected_reason: archiveReason,
+        updated_by: actorUserId,
+      })
+      .eq("company_id", companyId)
+      .eq("customer_id", customerId)
+      .in("id", contractIds);
+    if (contractsUpdateError) throw contractsUpdateError;
+  }
+
+  const { data: switchRows, error: switchLookupError } = await supabaseService
+    .from("supplier_switch_requests")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("customer_id", customerId)
+    .in("status", ["draft", "queued", "submitted", "accepted", "cancellation_requested", "cancellation_sent", "manual_followup_required"]);
+  if (switchLookupError) throw switchLookupError;
+  const switchIds = (switchRows ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+  if (switchIds.length > 0) {
+    const { error: switchUpdateError } = await supabaseService
+      .from("supplier_switch_requests")
+      .update({
+        status: "failed",
+        failed_at: nowIso,
+        failure_reason: archiveReason,
+        updated_by: actorUserId,
+      })
+      .eq("company_id", companyId)
+      .eq("customer_id", customerId)
+      .in("id", switchIds);
+    if (switchUpdateError) throw switchUpdateError;
+  }
+
+  if (switchIds.length > 0) {
+    await logUsageEvent({
+      companyId,
+      actorUserId,
+      customerId,
+      entityType: "supplier_switch_request",
+      entityId: customerId,
+      eventKey: "switch.cancelled",
+      actionLabel: "Leverantörsbyte stoppat vid arkivering",
+      source: "customer_archive",
+      billable: true,
+      billableQuantity: switchIds.length,
+      billingUnit: "switch_request",
+      metadata: { reason: archiveReason, switchIds },
+    });
+  }
+
   await insertAuditLog({
     actorUserId,
     entityType: "customer",
@@ -1110,13 +1185,14 @@ export async function deleteCustomerForRecreateAction(
     actorUserId,
     entityType: "customer",
     entityId: customerId,
-    action: "customer.test_data_hard_delete_started",
-    label: "Påbörjade permanent radering av testkund",
+    action: "customer.deleted_test",
+    label: "Raderade testkund säkert",
     companyId,
     oldValues: graph.customer,
+    billable: true,
     metadata: {
       companyId,
-      warning: "Permanent hard delete requested from customer card.",
+      warning: "Safe test-customer delete requested from customer card before deletion.",
       deleteGraph: {
         sites: graph.siteIds.length,
         meteringPoints: graph.meteringPointIds.length,
