@@ -420,7 +420,7 @@ export default async function WebsiteApplicationsAdminPage({ searchParams }: { s
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Nya kunder</p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">Nya webbansökningar</h1>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">Kundansökningar från hemsida</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
               Här hamnar hemsideansökningar innan de blir aktiva kunder. Ofullständiga uppgifter ska kompletteras här innan switch, avtalsbekräftelse eller aktiv kundstatus kan fortsätta.
             </p>

@@ -1,11 +1,11 @@
 import { supabaseService } from '@/lib/supabase/service'
 
-function missingCustomerNumberSchema(error: unknown): boolean {
+function missingNumberSchema(error: unknown): boolean {
   const maybe = error as { code?: string; message?: string } | null
   return Boolean(
     maybe &&
       (['42883', '42P01', '42703', 'PGRST202', 'PGRST204', 'PGRST205'].includes(maybe.code ?? '') ||
-        /gridex_next_customer_number|does not exist|schema cache|function .* not found/i.test(maybe.message ?? ''))
+        /gridex_next_customer_number|gridex_next_contract_number|gridex_next_application_number|does not exist|schema cache|function .* not found/i.test(maybe.message ?? ''))
   )
 }
 
@@ -15,7 +15,7 @@ export async function reserveCustomerNumber(companyId: string): Promise<string> 
   })
 
   if (error) {
-    if (missingCustomerNumberSchema(error)) {
+    if (missingNumberSchema(error)) {
       throw new Error('Kundnummer-funktionen saknas. Kör Batch 7A-migrationen innan website onboarding används.')
     }
     throw error
@@ -45,4 +45,44 @@ export async function ensureCustomerNumber(input: {
 
   if (error) throw error
   return String(data?.customer_number ?? customerNumber)
+}
+
+export async function reserveContractNumber(input: {
+  companyId: string
+  customerNumber?: string | null
+}): Promise<string> {
+  const { data, error } = await supabaseService.rpc('gridex_next_contract_number', {
+    p_company_id: input.companyId,
+    p_customer_number: input.customerNumber ?? null,
+  })
+
+  if (error) {
+    if (missingNumberSchema(error)) {
+      const suffix = Date.now().toString().slice(-8)
+      const base = input.customerNumber?.trim() || 'KUND'
+      return `AVT-${base}-${suffix}`
+    }
+    throw error
+  }
+
+  const contractNumber = typeof data === 'string' ? data.trim() : ''
+  if (!contractNumber) throw new Error('Avtalsnummer kunde inte reserveras.')
+  return contractNumber
+}
+
+export async function reserveApplicationNumber(companyId: string): Promise<string> {
+  const { data, error } = await supabaseService.rpc('gridex_next_application_number', {
+    p_company_id: companyId,
+  })
+
+  if (error) {
+    if (missingNumberSchema(error)) {
+      return `APP-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${Date.now().toString().slice(-6)}`
+    }
+    throw error
+  }
+
+  const applicationNumber = typeof data === 'string' ? data.trim() : ''
+  if (!applicationNumber) throw new Error('Ansökningsnummer kunde inte reserveras.')
+  return applicationNumber
 }

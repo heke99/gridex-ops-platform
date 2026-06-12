@@ -1,13 +1,14 @@
 import { z } from 'zod'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
-import { ensureCustomerNumber, reserveCustomerNumber } from '@/lib/customer-numbers/customerNumbers'
+import { ensureCustomerNumber, reserveApplicationNumber, reserveContractNumber, reserveCustomerNumber } from '@/lib/customer-numbers/customerNumbers'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { seedDefaultEmailEventRules, triggerEmailEvent } from '@/lib/email/emailEvents'
 import { seedDefaultEmailTemplates } from '@/lib/email/emailTemplates'
 import { assessWebsiteApplicationReadiness, customerIntakeStatusForReadiness, type WebsiteApplicationReadiness } from '@/lib/website/applicationReview'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
+import { resolvePublicContractOffer, type PublicContractOffer } from '@/lib/website/publicContracts'
 import type { EnergyResolverResult } from '@/lib/energy/types'
 import {
   findFacilityConflicts,
@@ -81,6 +82,11 @@ const MeteringPointSchema = z.object({
 const ContractSchema = z.object({
   contract_name: OPTIONAL_TEXT,
   contract_type: OPTIONAL_TEXT,
+  contract_number: OPTIONAL_TEXT,
+  price_plan_id: OPTIONAL_TEXT,
+  price_plan_version_id: OPTIONAL_TEXT,
+  contract_offer_id: OPTIONAL_TEXT,
+  product_code: OPTIONAL_TEXT,
   starts_at: OPTIONAL_TEXT,
   expected_start_at: OPTIONAL_TEXT,
   requested_start_date: OPTIONAL_TEXT,
@@ -95,6 +101,8 @@ const ContractSchema = z.object({
   calculatedEarliestStartDate: OPTIONAL_TEXT,
   signed_at: OPTIONAL_TEXT,
   monthly_fee_sek: z.coerce.number().optional(),
+  invoice_fee_sek: z.coerce.number().optional(),
+  markup_ore_per_kwh: z.coerce.number().optional(),
   spot_markup_ore_per_kwh: z.coerce.number().optional(),
   variable_fee_ore_per_kwh: z.coerce.number().optional(),
   fixed_price_ore_per_kwh: z.coerce.number().optional(),
@@ -116,6 +124,9 @@ const ApplicationSchema = z.object({
   network_owner_id: OPTIONAL_TEXT,
   electricity_supplier_id: OPTIONAL_TEXT,
   price_plan_id: OPTIONAL_TEXT,
+  price_plan_version_id: OPTIONAL_TEXT,
+  contract_offer_id: OPTIONAL_TEXT,
+  product_code: OPTIONAL_TEXT,
   requested_start_date: OPTIONAL_TEXT,
   confirmed_start_date: OPTIONAL_TEXT,
   actual_start_date: OPTIONAL_TEXT,
@@ -157,6 +168,8 @@ type ErrorStage =
   | 'site_create'
   | 'metering_point_create'
   | 'contract_create'
+  | 'contract_snapshot_create'
+  | 'public_contract_lookup'
   | 'application_record_create'
   | 'communication_trigger'
   | 'domain_event_create'
@@ -254,6 +267,9 @@ type WebsiteContractRow = {
   customer_site_id?: string | null
   metering_point_id?: string | null
   requested_start_date?: string | null
+  contract_number?: string | null
+  price_plan_id?: string | null
+  price_plan_version_id?: string | null
   confirmed_start_date?: string | null
   actual_start_date?: string | null
 }
@@ -278,7 +294,7 @@ async function findExistingWebsiteApplicationContract(input: {
 }): Promise<WebsiteContractRow | null> {
   const { data, error } = await supabaseService
     .from('customer_contracts')
-    .select('id,contract_name,starts_at,status,site_id,customer_site_id,metering_point_id,requested_start_date,confirmed_start_date,actual_start_date')
+    .select('id,contract_name,starts_at,status,site_id,customer_site_id,metering_point_id,requested_start_date,contract_number,price_plan_id,price_plan_version_id,confirmed_start_date,actual_start_date')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .in('source_type', WEBSITE_CONTRACT_SOURCE_TYPES)
@@ -560,6 +576,7 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
   const rawSource = raw.source
   const nestedSite = isObject(raw.site) ? { ...raw.site } : null
   const nestedMeteringPoint = isObject(raw.metering_point) ? { ...raw.metering_point } : null
+  const nestedContract = isObject(raw.contract) ? { ...raw.contract } : null
 
   const customer = {
     customer_type: raw.customer_type ?? rawCustomer.customer_type ?? 'private',
@@ -694,6 +711,34 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
       }
     : undefined
 
+
+  const contract = {
+    ...(nestedContract ?? {}),
+    contract_name: firstDefined(nestedContract?.contract_name, nestedContract?.contractName, raw.contract_name, raw.contractName, raw.product_name, raw.productName),
+    contract_type: firstDefined(nestedContract?.contract_type, nestedContract?.contractType, raw.contract_type, raw.contractType),
+    contract_number: firstDefined(nestedContract?.contract_number, nestedContract?.contractNumber, raw.contract_number, raw.contractNumber),
+    price_plan_id: firstDefined(nestedContract?.price_plan_id, nestedContract?.pricePlanId, raw.price_plan_id, raw.pricePlanId),
+    price_plan_version_id: firstDefined(nestedContract?.price_plan_version_id, nestedContract?.pricePlanVersionId, raw.price_plan_version_id, raw.pricePlanVersionId),
+    contract_offer_id: firstDefined(nestedContract?.contract_offer_id, nestedContract?.contractOfferId, raw.contract_offer_id, raw.contractOfferId),
+    product_code: firstDefined(nestedContract?.product_code, nestedContract?.productCode, raw.product_code, raw.productCode),
+    starts_at: firstDefined(nestedContract?.starts_at, nestedContract?.startsAt, raw.starts_at, raw.startsAt, raw.start_date, raw.startDate),
+    requested_start_date: firstDefined(nestedContract?.requested_start_date, nestedContract?.requestedStartDate, raw.requested_start_date, raw.requestedStartDate, raw.start_date, raw.startDate),
+    requested_start_mode: firstDefined(nestedContract?.requested_start_mode, nestedContract?.requestedStartMode, raw.requested_start_mode, raw.requestedStartMode),
+    calculated_earliest_start_date: firstDefined(nestedContract?.calculated_earliest_start_date, nestedContract?.calculatedEarliestStartDate, raw.calculated_earliest_start_date, raw.calculatedEarliestStartDate),
+    monthly_fee_sek: firstDefined(nestedContract?.monthly_fee_sek, nestedContract?.monthlyFeeSek, raw.monthly_fee_sek, raw.monthlyFeeSek),
+    invoice_fee_sek: firstDefined(nestedContract?.invoice_fee_sek, nestedContract?.invoiceFeeSek, raw.invoice_fee_sek, raw.invoiceFeeSek),
+    markup_ore_per_kwh: firstDefined(nestedContract?.markup_ore_per_kwh, nestedContract?.markupOrePerKwh, raw.markup_ore_per_kwh, raw.markupOrePerKwh),
+    spot_markup_ore_per_kwh: firstDefined(nestedContract?.spot_markup_ore_per_kwh, nestedContract?.spotMarkupOrePerKwh, raw.spot_markup_ore_per_kwh, raw.spotMarkupOrePerKwh),
+    variable_fee_ore_per_kwh: firstDefined(nestedContract?.variable_fee_ore_per_kwh, nestedContract?.variableFeeOrePerKwh, raw.variable_fee_ore_per_kwh, raw.variableFeeOrePerKwh),
+    fixed_price_ore_per_kwh: firstDefined(nestedContract?.fixed_price_ore_per_kwh, nestedContract?.fixedPriceOrePerKwh, raw.fixed_price_ore_per_kwh, raw.fixedPriceOrePerKwh),
+    green_fee_mode: firstDefined(nestedContract?.green_fee_mode, nestedContract?.greenFeeMode, raw.green_fee_mode, raw.greenFeeMode),
+    green_fee_value: firstDefined(nestedContract?.green_fee_value, nestedContract?.greenFeeValue, raw.green_fee_value, raw.greenFeeValue),
+    binding_months: firstDefined(nestedContract?.binding_months, nestedContract?.bindingMonths, raw.binding_months, raw.bindingMonths),
+    notice_months: firstDefined(nestedContract?.notice_months, nestedContract?.noticeMonths, raw.notice_months, raw.noticeMonths),
+    campaign_code: firstDefined(nestedContract?.campaign_code, nestedContract?.campaignCode, raw.campaign_code, raw.campaignCode),
+    terms_version: firstDefined(nestedContract?.terms_version, nestedContract?.termsVersion, raw.terms_version, raw.termsVersion),
+  }
+
   const source = typeof rawSource === 'string'
     ? rawSource
     : isObject(rawSource)
@@ -708,9 +753,10 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     customer,
     site,
     metering_point: meteringPoint,
+    contract,
     metadata: {
       ...(isObject(raw.metadata) ? raw.metadata : {}),
-      original_payload_shape: isObject(raw.customer) || nestedSite || nestedMeteringPoint ? 'nested' : 'simplified',
+      original_payload_shape: isObject(raw.customer) || nestedSite || nestedMeteringPoint || nestedContract ? 'nested' : 'simplified',
       simple_payload_normalized: Boolean(!nestedSite && site) || Boolean(!nestedMeteringPoint && meteringPoint),
       raw_source: isObject(rawSource) ? rawSource : undefined,
     },
@@ -1206,17 +1252,137 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
   }
 }
 
+type WebsiteContractCreateResult = {
+  id: string
+  contract_name: string | null
+  starts_at: string | null
+  status: string
+  contract_number: string | null
+  price_plan_id: string | null
+  price_plan_version_id: string | null
+  contract_price_snapshot_id?: string | null
+}
+
+function selectedOfferFields(offer: PublicContractOffer | null, contract: ApplicationInput['contract']) {
+  return {
+    pricePlanId: offer?.price_plan_id ?? clean(contract?.price_plan_id),
+    pricePlanVersionId: offer?.price_plan_version_id ?? clean(contract?.price_plan_version_id),
+    contractOfferId: offer?.id ?? clean(contract?.contract_offer_id),
+    campaignVersionId: offer?.campaign_version_id ?? null,
+    contractName: offer?.public_name ?? clean(contract?.contract_name) ?? 'Elavtal',
+    contractType: offer?.contract_type ?? clean(contract?.contract_type) ?? 'variable_monthly',
+    monthlyFeeSek: offer?.monthly_fee_sek ?? contract?.monthly_fee_sek ?? null,
+    invoiceFeeSek: offer?.invoice_fee_sek ?? contract?.invoice_fee_sek ?? null,
+    markupOrePerKwh: offer?.markup_ore_per_kwh ?? contract?.markup_ore_per_kwh ?? null,
+    spotMarkupOrePerKwh: offer?.spot_markup_ore_per_kwh ?? contract?.spot_markup_ore_per_kwh ?? contract?.markup_ore_per_kwh ?? null,
+    variableFeeOrePerKwh: offer?.variable_fee_ore_per_kwh ?? contract?.variable_fee_ore_per_kwh ?? null,
+    fixedPriceOrePerKwh: offer?.fixed_price_ore_per_kwh ?? contract?.fixed_price_ore_per_kwh ?? null,
+    greenFeeMode: offer?.green_fee_mode ?? clean(contract?.green_fee_mode) ?? 'none',
+    greenFeeValue: offer?.green_fee_value ?? contract?.green_fee_value ?? null,
+    termsVersion: offer?.terms_version ?? clean(contract?.terms_version) ?? null,
+    productCode: offer?.product_code ?? clean(contract?.product_code) ?? null,
+    billingModel: offer?.billing_model ?? null,
+  }
+}
+
+async function createContractPriceSnapshot(input: {
+  companyId: string
+  customerId: string
+  contractId: string
+  offer: PublicContractOffer | null
+  contract: ApplicationInput['contract']
+  contractNumber: string | null
+  customerNumber: string | null
+  readiness: WebsiteApplicationReadiness
+  consents?: Record<string, unknown>
+  metadata?: Record<string, unknown>
+}) {
+  const selected = selectedOfferFields(input.offer, input.contract)
+  const baseSnapshot = input.offer ? [
+    {
+      source: 'public_contract_offer',
+      product_code: input.offer.product_code,
+      billing_model: input.offer.billing_model,
+      contract_type: input.offer.contract_type,
+      valid_from: input.offer.valid_from,
+      valid_to: input.offer.valid_to,
+    },
+  ] : []
+  const feeSnapshot = [
+    { code: 'monthly_fee', label: 'Månadsavgift', amount: selected.monthlyFeeSek, unit: 'SEK/month' },
+    { code: 'invoice_fee', label: 'Fakturaavgift', amount: selected.invoiceFeeSek, unit: 'SEK/invoice' },
+    { code: 'spot_markup', label: 'Påslag', amount: selected.spotMarkupOrePerKwh ?? selected.markupOrePerKwh, unit: 'ore/kWh' },
+    { code: 'variable_fee', label: 'Rörlig avgift', amount: selected.variableFeeOrePerKwh, unit: 'ore/kWh' },
+    { code: 'fixed_price', label: 'Fastpris', amount: selected.fixedPriceOrePerKwh, unit: 'ore/kWh' },
+    { code: 'green_fee', label: 'Grön el', amount: selected.greenFeeValue, unit: selected.greenFeeMode ?? 'none' },
+  ].filter((item) => item.amount !== null && item.amount !== undefined)
+
+  const snapshotJson = {
+    source: 'website_customer_applications',
+    legal_snapshot_type: 'website_contract_acceptance',
+    customer_number: input.customerNumber,
+    contract_number: input.contractNumber,
+    contract_name: selected.contractName,
+    contract_type: selected.contractType,
+    product_code: selected.productCode,
+    billing_model: selected.billingModel,
+    price_plan_id: selected.pricePlanId,
+    price_plan_version_id: selected.pricePlanVersionId,
+    contract_offer_id: selected.contractOfferId,
+    campaign_version_id: selected.campaignVersionId,
+    terms_version: selected.termsVersion,
+    requested_start_date: input.readiness.requestedStartDate,
+    requested_start_mode: input.readiness.requestedStartMode,
+    calculated_earliest_start_date: input.readiness.calculatedEarliestStartDate,
+    missing_fields: input.readiness.missingFields,
+    blocking_reasons: input.readiness.blockingReasons,
+    consents: input.consents ?? {},
+    public_offer: input.offer ?? null,
+    source_metadata: input.metadata ?? {},
+  }
+
+  const { data, error } = await supabaseService
+    .from('contract_price_snapshots')
+    .insert({
+      company_id: input.companyId,
+      contract_id: input.contractId,
+      customer_id: input.customerId,
+      contract_number: input.contractNumber,
+      customer_number: input.customerNumber,
+      source: 'website_customer_applications',
+      price_plan_version_id: selected.pricePlanVersionId,
+      campaign_version_id: selected.campaignVersionId,
+      pricing_model: selected.billingModel ?? selected.contractType ?? 'spot',
+      base_price_components_snapshot: baseSnapshot,
+      price_components_snapshot: feeSnapshot,
+      snapshot_json: snapshotJson,
+      valid_from: input.readiness.requestedStartDate ?? null,
+      valid_to: input.offer?.valid_to ?? null,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+
+  return String(data.id)
+}
+
 async function createContract(
   companyId: string,
   customerId: string,
   siteId: string | null,
   meteringPointId: string | null,
   input: ApplicationInput,
-  readiness: WebsiteApplicationReadiness
-) {
+  readiness: WebsiteApplicationReadiness,
+  customerNumber: string,
+  publicOffer: PublicContractOffer | null
+): Promise<WebsiteContractCreateResult | null> {
   const contract = input.contract
-  if (!contract && !readiness.canCreateContract) return null
-  const contractName = clean(contract?.contract_name) ?? 'Elavtal'
+  if (!contract && !publicOffer && !readiness.canCreateContract) return null
+  const selected = selectedOfferFields(publicOffer, contract)
   const requestedStartDate = readiness.requestedStartDate
     ?? clean(contract?.requested_start_date)
     ?? clean(contract?.requestedStartDate)
@@ -1234,7 +1400,7 @@ async function createContract(
     siteId,
     meteringPointId,
     requestedStartDate,
-    contractName,
+    contractName: selected.contractName,
   })
   if (existingContract) {
     return {
@@ -1242,8 +1408,22 @@ async function createContract(
       contract_name: existingContract.contract_name,
       starts_at: existingContract.starts_at,
       status: existingContract.status ?? contractStatus,
+      contract_number: existingContract.contract_number ?? null,
+      price_plan_id: existingContract.price_plan_id ?? selected.pricePlanId,
+      price_plan_version_id: existingContract.price_plan_version_id ?? selected.pricePlanVersionId,
     }
   }
+
+  const contractNumber = clean(contract?.contract_number) ?? await reserveContractNumber({ companyId, customerNumber })
+  const feeLines = [
+    {
+      source: 'website_customer_applications',
+      metering_point_id: meteringPointId,
+      consents: input.consents ?? {},
+      source_metadata: input.metadata ?? {},
+      public_offer: publicOffer,
+    },
+  ]
 
   const fullPayload = {
     company_id: companyId,
@@ -1253,8 +1433,11 @@ async function createContract(
     metering_point_id: meteringPointId,
     source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
     status: contractStatus,
-    contract_name: contractName,
-    contract_type: clean(contract?.contract_type) ?? 'variable_monthly',
+    contract_number: contractNumber,
+    contract_name: selected.contractName,
+    contract_type: selected.contractType,
+    price_plan_id: selected.pricePlanId,
+    price_plan_version_id: selected.pricePlanVersionId,
     starts_at: requestedStartDate,
     expected_start_at: requestedStartDate,
     requested_start_date: requestedStartDate,
@@ -1266,30 +1449,30 @@ async function createContract(
     confirmed_start_date: confirmedStartDate,
     actual_start_date: actualStartDate,
     signed_at: clean(contract?.signed_at) ?? null,
-    monthly_fee_sek: contract?.monthly_fee_sek ?? null,
-    spot_markup_ore_per_kwh: contract?.spot_markup_ore_per_kwh ?? null,
-    variable_fee_ore_per_kwh: contract?.variable_fee_ore_per_kwh ?? null,
-    fixed_price_ore_per_kwh: contract?.fixed_price_ore_per_kwh ?? null,
-    green_fee_mode: clean(contract?.green_fee_mode) ?? 'none',
-    green_fee_value: contract?.green_fee_value ?? null,
+    monthly_fee_sek: selected.monthlyFeeSek,
+    invoice_fee_sek: selected.invoiceFeeSek,
+    markup_ore_per_kwh: selected.markupOrePerKwh,
+    spot_markup_ore_per_kwh: selected.spotMarkupOrePerKwh,
+    variable_fee_ore_per_kwh: selected.variableFeeOrePerKwh,
+    fixed_price_ore_per_kwh: selected.fixedPriceOrePerKwh,
+    green_fee_mode: selected.greenFeeMode,
+    green_fee_value: selected.greenFeeValue,
     binding_months: contract?.binding_months ?? null,
     notice_months: contract?.notice_months ?? null,
     campaign_code: clean(contract?.campaign_code) ?? null,
-    price_version: clean(contract?.price_version) ?? null,
-    terms_version: clean(contract?.terms_version) ?? null,
-    optional_fee_lines: [
-      {
-        source: 'website_customer_applications',
-        metering_point_id: meteringPointId,
-        consents: input.consents ?? {},
-        source_metadata: input.metadata ?? {},
-      },
-    ],
+    price_version: selected.pricePlanVersionId ?? clean(contract?.price_version) ?? null,
+    terms_version: selected.termsVersion,
+    optional_fee_lines: feeLines,
     agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
     metadata: {
       source: 'website_customer_applications',
       source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
       agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
+      contract_number: contractNumber,
+      price_plan_id: selected.pricePlanId,
+      price_plan_version_id: selected.pricePlanVersionId,
+      contract_offer_id: selected.contractOfferId,
+      public_offer: publicOffer,
       metering_point_id: meteringPointId,
       requested_start_date: requestedStartDate,
       requested_start_mode: readiness.requestedStartMode,
@@ -1319,6 +1502,10 @@ async function createContract(
       'campaign_code',
       'price_version',
       'terms_version',
+      'invoice_fee_sek',
+      'markup_ore_per_kwh',
+      'price_plan_id',
+      'price_plan_version_id',
     ]),
     {
       company_id: companyId,
@@ -1328,8 +1515,9 @@ async function createContract(
       metering_point_id: meteringPointId,
       source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
       status: contractStatus,
-      contract_name: contractName,
-      contract_type: clean(contract?.contract_type) ?? 'variable_monthly',
+      contract_number: contractNumber,
+      contract_name: selected.contractName,
+      contract_type: selected.contractType,
       starts_at: requestedStartDate,
       updated_at: now,
     },
@@ -1341,11 +1529,24 @@ async function createContract(
     const fallback = await supabaseService
       .from('customer_contracts')
       .insert(payload)
-      .select('id,contract_name,starts_at,status')
+      .select('id,contract_name,starts_at,status,contract_number,price_plan_id,price_plan_version_id')
       .single()
 
     if (!fallback.error && fallback.data) {
-      return fallback.data as { id: string; contract_name: string | null; starts_at: string | null; status: string }
+      const created = fallback.data as WebsiteContractCreateResult
+      created.contract_price_snapshot_id = await createContractPriceSnapshot({
+        companyId,
+        customerId,
+        contractId: created.id,
+        offer: publicOffer,
+        contract,
+        contractNumber: clean(created.contract_number) ?? contractNumber,
+        customerNumber,
+        readiness,
+        consents: input.consents,
+        metadata: input.metadata,
+      })
+      return created
     }
 
     firstError = firstError ?? fallback.error
@@ -1371,6 +1572,11 @@ type CreateApplicationRowInput = {
   customerSiteId?: string | null
   meteringPointId?: string | null
   contractId?: string | null
+  contractNumber?: string | null
+  applicationNumber?: string | null
+  pricePlanId?: string | null
+  pricePlanVersionId?: string | null
+  contractPriceSnapshotId?: string | null
   payload: ApplicationInput | Record<string, unknown>
   rawPayload?: unknown
   responsePayload: Record<string, unknown>
@@ -1440,12 +1646,14 @@ async function syncExternalContractIntakeRow(input: CreateApplicationRowInput & 
     city: clean(site.city),
     move_in_date: clean(site.move_in_date) ?? null,
     price_area_code: input.priceAreaCode ?? clean(site.price_area_code) ?? clean(payload.price_area_code),
-    contract_offer_id: clean(payload.contract_offer_id),
+    contract_offer_id: input.pricePlanVersionId ?? clean(payload.contract_offer_id) ?? clean(contract.price_plan_version_id) ?? clean(payload.price_plan_version_id),
     requested_start_date: input.requestedStartDate ?? clean(contract.requested_start_date) ?? clean(payload.requested_start_date),
     created_customer_id: input.customer?.id ?? null,
     created_site_id: input.customerSiteId ?? null,
     created_metering_point_id: input.meteringPointId ?? null,
     created_contract_id: input.contractId ?? null,
+    contract_number: input.contractNumber ?? null,
+    application_number: input.applicationNumber ?? null,
     created_info_request_id: input.gridOwnerInformationRequestId ?? null,
     payload: {
       ...payload,
@@ -1478,6 +1686,11 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     customer_site_id: input.customerSiteId ?? null,
     metering_point_id: input.meteringPointId ?? null,
     contract_id: input.contractId ?? null,
+    contract_number: input.contractNumber ?? null,
+    application_number: input.applicationNumber ?? null,
+    price_plan_id: input.pricePlanId ?? null,
+    price_plan_version_id: input.pricePlanVersionId ?? null,
+    contract_price_snapshot_id: input.contractPriceSnapshotId ?? null,
     external_customer_id: input.externalCustomerId,
     external_account_id: input.externalAccountId ?? null,
     customer_number: input.customer?.customer_number ?? null,
@@ -1691,7 +1904,7 @@ export async function processWebsiteCustomerApplication(input: {
       status: 422,
       code: 'validation_error',
       stage: 'validation',
-      details: parsed.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
+      details: parsed.error.issues.map((issue: { path: Array<string | number>; message: string }) => ({ path: issue.path.join('.'), message: issue.message })),
     }))
   }
 
@@ -1716,7 +1929,9 @@ export async function processWebsiteCustomerApplication(input: {
   let customerResult: { customer: CustomerRow; created: boolean } | null = null
   let site: { id: string; facility_id: string | null } | null = null
   let meteringPoint: { id: string; metering_point_id: string | null } | null = null
-  let contract: { id: string; contract_name: string | null; starts_at: string | null; status: string } | null = null
+  let contract: WebsiteContractCreateResult | null = null
+  let publicOffer: PublicContractOffer | null = null
+  let applicationNumber: string | null = null
 
   try {
     const existingIdempotent = await stage('idempotency', () => loadIdempotentApplication(input.client.company_id, input.idempotencyKey ?? null))
@@ -1775,6 +1990,35 @@ export async function processWebsiteCustomerApplication(input: {
     }))
     resolvedCustomerResult.customer.customer_number = customerNumber
 
+    const selectedPricePlanVersionId = clean(body.price_plan_version_id) ?? clean(body.contract?.price_plan_version_id)
+    const selectedPricePlanId = clean(body.price_plan_id) ?? clean(body.contract?.price_plan_id)
+    const selectedContractOfferId = clean(body.contract_offer_id) ?? clean(body.contract?.contract_offer_id)
+    const selectedProductCode = clean(body.product_code) ?? clean(body.contract?.product_code)
+    const hasSelectedPublicContract = Boolean(selectedPricePlanVersionId || selectedPricePlanId || selectedContractOfferId || selectedProductCode)
+    publicOffer = hasSelectedPublicContract
+      ? await stage('public_contract_lookup', () => resolvePublicContractOffer({
+          client: input.client,
+          pricePlanVersionId: selectedPricePlanVersionId,
+          pricePlanId: selectedPricePlanId,
+          contractOfferId: selectedContractOfferId,
+          productCode: selectedProductCode,
+          customerType: body.customer.customer_type,
+        }))
+      : null
+
+    if (hasSelectedPublicContract && !publicOffer) {
+      throw new WebsiteApplicationError({
+        message: 'Valt avtal är inte publicerat eller tillhör inte denna tenant.',
+        status: 422,
+        code: 'public_contract_not_available',
+        field: 'price_plan_version_id',
+        stage: 'public_contract_lookup',
+        hint: 'Hemsidan ska hämta avtal via GET /api/v1/website/public-contracts och skicka price_plan_version_id från svaret.',
+      })
+    }
+
+    applicationNumber = await stage('application_record_create', () => reserveApplicationNumber(input.client.company_id))
+
     site = readiness.canCreateSite
       ? await stage('site_create', () => upsertSite(input.client.company_id, resolvedCustomerResult.customer.id, body))
       : null
@@ -1800,7 +2044,9 @@ export async function processWebsiteCustomerApplication(input: {
       site?.id ?? null,
       meteringPoint?.id ?? null,
       body,
-      readiness
+      readiness,
+      customerNumber,
+      publicOffer
     ))
     const identity = await stage('portal_identity_create', () => upsertPortalIdentity({
       client: input.client,
@@ -1815,11 +2061,16 @@ export async function processWebsiteCustomerApplication(input: {
     const responsePayload = {
       customer_id: resolvedCustomerResult.customer.id,
       customer_number: customerNumber,
+      application_number: applicationNumber,
       external_customer_id: externalCustomerId,
       portal_identity_id: identity.id,
       customer_site_id: site?.id ?? null,
       metering_point_id: meteringPoint?.id ?? null,
       contract_id: contract?.id ?? null,
+      contract_number: contract?.contract_number ?? null,
+      price_plan_id: contract?.price_plan_id ?? publicOffer?.price_plan_id ?? clean(body.price_plan_id) ?? clean(body.contract?.price_plan_id) ?? null,
+      price_plan_version_id: contract?.price_plan_version_id ?? publicOffer?.price_plan_version_id ?? clean(body.price_plan_version_id) ?? clean(body.contract?.price_plan_version_id) ?? null,
+      contract_price_snapshot_id: contract?.contract_price_snapshot_id ?? null,
       status: applicationStatus,
       created_customer: resolvedCustomerResult.created,
       missing_fields: readiness.missingFields,
@@ -1860,6 +2111,11 @@ export async function processWebsiteCustomerApplication(input: {
       customerSiteId: site?.id ?? null,
       meteringPointId: meteringPoint?.id ?? null,
       contractId: contract?.id ?? null,
+      contractNumber: contract?.contract_number ?? null,
+      applicationNumber,
+      pricePlanId: contract?.price_plan_id ?? publicOffer?.price_plan_id ?? clean(body.price_plan_id) ?? clean(body.contract?.price_plan_id) ?? null,
+      pricePlanVersionId: contract?.price_plan_version_id ?? publicOffer?.price_plan_version_id ?? clean(body.price_plan_version_id) ?? clean(body.contract?.price_plan_version_id) ?? null,
+      contractPriceSnapshotId: contract?.contract_price_snapshot_id ?? null,
       payload: body,
       rawPayload: input.rawBody,
       responsePayload,
@@ -1937,6 +2193,8 @@ export async function processWebsiteCustomerApplication(input: {
         })
         await seedDefaultEmailTemplates(input.client.company_id).catch(() => null)
         await seedDefaultEmailEventRules(input.client.company_id).catch(() => null)
+        // Legacy webhook/event names such as contract.cooling_off_sent remain supported by outbox/docs,
+        // but website intake sends only the canonical contract.application_received customer email.
         communicationResults = await Promise.all([
           triggerEmailEvent({
             companyId: input.client.company_id,
@@ -2054,6 +2312,11 @@ export async function processWebsiteCustomerApplication(input: {
       customerSiteId: site?.id ?? null,
       meteringPointId: meteringPoint?.id ?? null,
       contractId: contract?.id ?? null,
+      contractNumber: contract?.contract_number ?? null,
+      applicationNumber,
+      pricePlanId: contract?.price_plan_id ?? publicOffer?.price_plan_id ?? clean(body.price_plan_id) ?? clean(body.contract?.price_plan_id) ?? null,
+      pricePlanVersionId: contract?.price_plan_version_id ?? publicOffer?.price_plan_version_id ?? clean(body.price_plan_version_id) ?? clean(body.contract?.price_plan_version_id) ?? null,
+      contractPriceSnapshotId: contract?.contract_price_snapshot_id ?? null,
       payload: body,
       rawPayload: input.rawBody,
       responsePayload: {
