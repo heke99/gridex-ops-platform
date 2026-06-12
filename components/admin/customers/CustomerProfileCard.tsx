@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import {
+ archiveCustomerAction,
  closeCustomerLifecycleAction,
  deleteCustomerForRecreateAction,
+ markCustomerAsTestDataAction,
  saveCustomerProfileAction,
 } from '@/app/admin/customers/[id]/profile-actions'
 
@@ -22,6 +24,10 @@ type CustomerProfile = {
  moved_out_at?: string | null
  lifecycle_closed_at?: string | null
  lifecycle_status_reason?: string | null
+ is_test_data?: boolean | null
+ archived_at?: string | null
+ archive_reason?: string | null
+ data_retention_note?: string | null
 }
 
 function inputClassName() {
@@ -64,6 +70,13 @@ export default function CustomerProfileCard({
  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 ">
  {helperText}
  </div>
+
+ {(customer.is_test_data || customer.archived_at) ? (
+ <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
+ {customer.is_test_data ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">Testdata – exkludera från drift</span> : null}
+ {customer.archived_at ? <span className="rounded-full border border-slate-300 bg-slate-100 px-3 py-1 text-slate-700">Arkiverad {customer.archived_at.slice(0, 10)}</span> : null}
+ </div>
+ ) : null}
 
  <form action={saveCustomerProfileAction} className="mt-6 grid gap-4 md:grid-cols-2">
  <input type="hidden" name="customer_id" value={customer.id} />
@@ -290,17 +303,78 @@ export default function CustomerProfileCard({
  </form>
  </div>
 
- <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 ">
+ <div className="mt-6 grid gap-4 xl:grid-cols-2">
+ <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 ">
+ <h3 className="text-sm font-semibold text-amber-950 ">Testdata och driftstatus</h3>
+ <p className="mt-1 text-sm leading-6 text-amber-900/80 ">
+ Markera bara felaktiga testposter som testdata. Testkunder och testanläggningar ska döljas från ordinarie drift, fakturering och leverantörsbytesköer.
+ </p>
+ <form action={markCustomerAsTestDataAction} className="mt-4 grid gap-3">
+ <input type="hidden" name="customer_id" value={customer.id} />
+ <label className="grid gap-1 text-sm">
+ <span className="text-amber-950 ">Intern orsak</span>
+ <input
+ name="reason"
+ defaultValue={customer.data_retention_note ?? 'Testkund/felregistrering – ska inte användas i produktion.'}
+ className="h-11 rounded-2xl border border-amber-200 bg-white px-4 text-slate-950 "
+ />
+ </label>
+ <button className="inline-flex h-11 items-center justify-center rounded-2xl bg-amber-600 px-4 text-sm font-semibold text-white hover:bg-amber-700">
+ Markera som testdata
+ </button>
+ </form>
+ </div>
+
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 ">
+ <h3 className="text-sm font-semibold text-slate-950 ">Arkivera kund</h3>
+ <p className="mt-1 text-sm leading-6 text-slate-700 ">
+ Använd arkivering för kunder som inte ska visas i ordinarie listor men där historik, avtal, fullmakter, mätvärden eller fakturaunderlag måste sparas.
+ </p>
+ <form
+ action={archiveCustomerAction}
+ onSubmit={(event) => {
+ if (!window.confirm('Arkivera kunden? Kunden raderas inte och historiken sparas.')) {
+ event.preventDefault()
+ }
+ }}
+ className="mt-4 grid gap-3"
+ >
+ <input type="hidden" name="customer_id" value={customer.id} />
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Orsak</span>
+ <input
+ name="archive_reason"
+ defaultValue={customer.archive_reason ?? ''}
+ placeholder="Exempel: Testansökan avslutad eller kundrelation avslutad."
+ className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-slate-950 "
+ />
+ </label>
+ <label className="grid gap-1 text-sm">
+ <span className="text-slate-700 ">Skriv ARKIVERA för att bekräfta</span>
+ <input
+ name="confirm_archive"
+ placeholder="ARKIVERA"
+ className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-slate-950 "
+ />
+ </label>
+ <button className="inline-flex h-11 items-center justify-center rounded-2xl bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-950">
+ Arkivera kund
+ </button>
+ </form>
+ </div>
+ </div>
+
+ <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 ">
  <h3 className="text-sm font-semibold text-red-800 ">
- Permanent radering – endast test/felregistrering
+ Permanent radering – endast testdata utan skyddad historik
  </h3>
  <p className="mt-1 text-sm leading-6 text-red-700 ">
- Använd inte detta för verkliga kunder som flyttar. Permanent radering är endast för felaktiga testposter eller felregistrering innan kunden hunnit användas i drift. Vid flytt ska du använda mjukt avslut ovan.
+ Permanent radering är endast tillåten för testdata/felregistreringar som saknar avtal, fakturor, Ediel-meddelanden, partnerexport och leverantörsbyten. Verkliga kunder ska arkiveras eller anonymiseras enligt retention/GDPR-process.
  </p>
  <form
  action={deleteCustomerForRecreateAction}
  onSubmit={(event) => {
- if (!window.confirm('Radera kunden permanent? Detta kan inte ångras.')) {
+ if (!window.confirm('Radera testkunden permanent? Detta kan inte ångras.')) {
  event.preventDefault()
  }
  }}
@@ -317,7 +391,7 @@ export default function CustomerProfileCard({
  </label>
  <div className="flex items-end">
  <button className="inline-flex h-11 items-center rounded-2xl bg-red-700 px-4 text-sm font-semibold text-white hover:bg-red-800">
- Radera kund
+ Radera testkund
  </button>
  </div>
  </form>

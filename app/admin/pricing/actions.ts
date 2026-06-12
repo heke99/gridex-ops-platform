@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { createPricingComponentRule } from '@/lib/billing/pricingEngine'
 import { calculationTypeForPricingUnit, displayPricingUnit, normalizePricingUnit } from '@/lib/pricing/unitConversion'
@@ -31,7 +31,7 @@ function nullableInteger(formData: FormData, key: string): number | null {
 }
 
 export async function createPricingComponentRuleAction(formData: FormData) {
-  await requireAdminActionAccess(['pricing.write'])
+  await requirePlatformAdminActionAccess()
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -75,7 +75,7 @@ export async function createPricingComponentRuleAction(formData: FormData) {
       actor_user_id: user.id,
       entity_type: 'pricing_component_rule',
       entity_id: createdRule.id,
-      action: 'pricing_component_rule_created',
+      action: 'pricing_component_rule_created_platform_admin_only',
       new_values: createdRule,
       metadata: {
         component_type: createdRule.component_type,

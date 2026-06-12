@@ -7,6 +7,7 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { supabaseService } from '@/lib/supabase/service'
+import { logUsageEvent } from '@/lib/audit/actionLogger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -121,12 +122,26 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    const eventMetadata = { event_id: event?.id ?? null, customer_event_id: customerEventId, event_type: parsed.data.event_type, customer_id: customerId }
     await logIntegrationApiRequest({
       client: auth.client,
       request,
       statusCode: 200,
       startedAt,
-      metadata: { event_id: event?.id ?? null, customer_event_id: customerEventId, event_type: parsed.data.event_type, customer_id: customerId },
+      metadata: eventMetadata,
+    })
+    await logUsageEvent({
+      companyId: auth.client.company_id,
+      apiClientId: auth.client.id,
+      customerId,
+      entityType: 'customer_event',
+      entityId: typeof customerEventId === 'string' ? customerEventId : null,
+      eventKey: 'api.customer_event.received',
+      actionLabel: 'Tog emot kundevent från hemsida',
+      source: 'website_api',
+      billable: true,
+      billingUnit: 'customer_event',
+      metadata: eventMetadata,
     })
 
     return customerPortalJson({

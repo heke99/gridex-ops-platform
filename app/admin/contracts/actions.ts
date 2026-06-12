@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { saveContractOffer } from '@/lib/customer-contracts/db'
 import type { ContractType, GreenFeeMode } from '@/lib/customer-contracts/types'
 import { supabaseService } from '@/lib/supabase/service'
@@ -70,7 +70,7 @@ function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
 }
 
 export async function saveContractOfferAction(formData: FormData) {
-  await requireAdminActionAccess(['pricing.write'])
+  await requirePlatformAdminActionAccess()
 
   const supabase = await createSupabaseServerClient()
   const {
@@ -142,7 +142,7 @@ export async function saveContractOfferAction(formData: FormData) {
     entity_type: 'contract_offer',
     entity_id: saved.id,
     company_id: companyId,
-    action: id ? 'contract_offer_updated' : 'contract_offer_created',
+    action: id ? 'contract_offer_updated_platform_admin_only' : 'contract_offer_created_platform_admin_only',
     old_values: previous,
     new_values: saved,
     metadata: {

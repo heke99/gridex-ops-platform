@@ -414,3 +414,11 @@ Template:
 - Added `lib/facility/workQueue.ts` with RPC-backed read model and safe fallback reads.
 - Added migration `20260612183000_ops_e_f_facility_work_queue_customer_cards.sql` for `gridex_facility_work_queue_v` and `gridex_get_facility_work_queue`.
 - Added API and AI context documentation for website intake, public contracts, customer events and facility workflow.
+
+## 2026-06-12 — OPS-J..N governance, audit, cleanup and documentation
+
+- Pricing/admin agreement governance is platform-admin-only.
+- Added platform usage events for action/statistics billing.
+- Added safer customer-card actions for testdata marking, archiving and protected hard delete.
+- Added platform data cleanup workflow for test customers.
+- Updated developer documentation to use public-contracts and contract offer/version identifiers.

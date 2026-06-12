@@ -13,10 +13,28 @@ const baseUrl = 'https://app.gridex.se'
 
 const endpoints = [
   {
+    method: 'GET',
+    path: '/api/v1/website/public-contracts',
+    scope: 'website_contracts.read',
+    description: 'Hämtar publicerade avtal för tenant kopplad till API-klienten. Hemsidan ska visa dessa avtal och skicka valt contract_offer_id eller price_plan_version_id tillbaka till Ops.',
+  },
+  {
     method: 'POST',
     path: '/api/v1/website/customer-applications',
     scope: 'website_applications.write',
-    description: 'Skapar eller matchar kund, kundnummer, portal identity, anläggning, mätpunkt och avtalsansökan från extern hemsida.',
+    description: 'Skapar eller matchar kund, kundnummer, portal identity, anläggning, mätpunkt, avtal, avtalsnummer och avtalssnapshot från extern hemsida.',
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/website/customer-events',
+    scope: 'website_events.write',
+    description: 'Tar emot kundhändelser från hemsida eller Mina sidor, till exempel öppnad faktura, supportmeddelande eller accepterad fullmakt.',
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/customer/me',
+    scope: 'customer_portal.read',
+    description: 'Hämtar inloggad/länkad kundprofil via portal identity. Frontend ska inte skicka valfri customer_id.',
   },
   {
     method: 'POST',
@@ -79,40 +97,38 @@ const errorCodes = [
   ['500/503', 'Tillfälligt server- eller databasfel. Svaret innehåller error_stage när felet kan spåras.'],
 ]
 
-const onboardingCurl = `curl -X POST "${baseUrl}/api/v1/website/customer-applications" \\
-  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -H "Idempotency-Key: website-order-12345" \\
+const onboardingCurl = `curl -X POST "${baseUrl}/api/v1/website/customer-applications" \
+  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: website-order-12345" \
   -d '{
     "external_customer_id": "CUSTOMER-12345",
-    "source": "example.se",
+    "source": "elbolagets-hemsida.se",
     "customer": {
       "customer_type": "private",
       "first_name": "Anna",
       "last_name": "Andersson",
-      "email": "anna@example.se",
+      "email": "anna.andersson@example.com",
       "phone": "+46701234567"
     },
     "site": {
       "facility_id": "735999888000000112",
-      "street": "Testgatan 1",
+      "street": "Exempelvägen 12",
       "postal_code": "11122",
       "city": "Stockholm",
       "price_area_code": "SE3",
       "move_in_date": "2026-07-01"
     },
     "contract": {
-      "contract_name": "Rörligt elpris",
-      "contract_type": "variable_monthly",
-      "starts_at": "2026-07-01",
-      "monthly_fee_sek": 49,
-      "spot_markup_ore_per_kwh": 8,
-      "green_fee_mode": "ore_per_kwh",
-      "green_fee_value": 2
+      "contract_offer_id": "offer_...",
+      "price_plan_id": "plan_...",
+      "price_plan_version_id": "version_...",
+      "requested_start_date": "asap"
     },
     "consents": {
       "terms_accepted_at": "2026-06-09T14:00:00Z",
-      "withdrawal_information_accepted": true
+      "withdrawal_information_accepted": true,
+      "power_of_attorney_accepted": true
     }
   }'`
 
@@ -123,12 +139,12 @@ const simplifiedOnboardingCurl = `curl -X POST "${baseUrl}/api/v1/website/custom
   -H "Idempotency-Key: simplified-order-12345" \
   -d '{
     "external_customer_id": "CUSTOMER-12345",
-    "source": "example.se",
+    "source": "elbolagets-hemsida.se",
     "name": "Anna Andersson",
-    "email": "anna@example.se",
+    "email": "anna.andersson@example.com",
     "phone": "+46701234567",
     "address": {
-      "street": "Testgatan 1",
+      "street": "Exempelvägen 12",
       "postal_code": "11122",
       "city": "Stockholm",
       "country": "SE"
@@ -139,9 +155,9 @@ const simplifiedOnboardingCurl = `curl -X POST "${baseUrl}/api/v1/website/custom
       "move_in_date": "2026-07-01"
     },
     "contract": {
-      "contract_name": "Rörligt elpris",
-      "contract_type": "variable_monthly",
-      "starts_at": "2026-07-01"
+      "contract_offer_id": "offer_...",
+      "price_plan_version_id": "version_...",
+      "requested_start_date": "asap"
     }
   }'`
 
@@ -210,14 +226,14 @@ const checklist = [
   'Token ligger endast server-side på hemsidan eller partnerportalen.',
   'Token ligger aldrig i NEXT_PUBLIC_ eller browserkod.',
   'Allowed origins är satta för hemsidans domäner.',
-  'Scopes är minimerade till customer_portal.read, customer_portal.write och/eller website_applications.write.',
+  'Scopes är minimerade till website_contracts.read, website_applications.write, website_events.write och/eller customer_portal.read.',
   'external_customer_id är stabilt och unikt per kund i den externa portalen.',
   'Webhook URL är HTTPS och signatur verifieras.',
   'Kundansökan returnerar customer_number.',
   'Sites, contracts, invoices och metering-values är testade.',
   'Audit-loggen visar company_id, api_client_id, route, status_code och result_count.',
   'Gamla eller exponerade API-nycklar är återkallade eller raderade.',
-  'Hemsidan skickar inte dubbla juridiska bekräftelse-/ångerrättsmail utan separat överenskommelse.',
+  'Hemsidan skickar inte juridiska bekräftelse-/ångerrättsmail om inte detta uttryckligen är avtalat. Ops skickar och loggar dessa som standard.',
   'Webhook-events contract.confirmation_sent, contract.cooling_off_sent och invoice.disputed hanteras idempotent.',
 ]
 
@@ -266,13 +282,13 @@ export default function CustomerPortalApiDocsPage() {
         <div className="mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:py-20">
           <div className="max-w-4xl">
             <div className="inline-flex rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
-              Public API guide for websites, customer portals and partners
+              API-guide för hemsidor, kundportaler och partners
             </div>
             <h1 className="mt-7 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-6xl">
               Koppla en extern hemsida till Gridex Customer Portal API och Gridex Ops API.
             </h1>
             <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-              Den här sidan beskriver hur externa hemsidor skickar kundansökningar, hämtar kunddata och tar emot webhooks från Gridex Ops Platform. Gridex/Ops är master för kundnummer, avtal, faktura och kommunikation. Do not send duplicate legal confirmation emails unless explicitly agreed; Ops sends and logs legally important confirmation and cooling-off communication by default.
+              Den här sidan beskriver hur externa hemsidor hämtar publicerade avtal, skickar kundansökningar, hämtar kunddata och tar emot webhooks från Gridex Ops Platform. Ops är master för kundnummer, avtalsnummer, prisversioner, avtalssnapshot, fakturor och juridiskt viktig kommunikation.
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
@@ -339,7 +355,7 @@ Capway invoice_id       = extern fakturareferens`}</CodeBlock>
           </Section>
 
           <Section id="onboarding" label="03" title="Skapa kund och elavtalsansökan från hemsida">
-            <p>POST /api/v1/website/customer-applications skapar eller matchar kund i Ops, reserverar kundnummer, skapar portal identity, anläggning, mätpunkt och avtalsansökan. Ops kan även trigga bekräftelsemail och ångerrätt enligt tenantens mallar.</p>
+            <p>Hemsidan hämtar först publicerade avtal från GET /api/v1/website/public-contracts. Kunden väljer ett av dessa avtal. POST /api/v1/website/customer-applications skapar eller matchar kund i Ops, reserverar kundnummer, skapar anläggning, mätpunkt, avtal, avtalsnummer och ett låst avtalssnapshot. Ops triggar bekräftelsemail och ångerrätt enligt tenantens mallar.</p>
             <CodeBlock>{onboardingCurl}</CodeBlock>
             <p className="font-semibold text-slate-800">Förenklad payload accepteras också för enklare hemsideformulär:</p>
             <CodeBlock>{simplifiedOnboardingCurl}</CodeBlock>

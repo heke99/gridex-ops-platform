@@ -13,6 +13,7 @@ import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { addCustomerContractEvent } from "@/lib/customer-contracts/db";
 import { createCustomerCase } from "@/lib/customer-cases/db";
 import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates";
+import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -68,19 +69,24 @@ async function insertAuditLog(params: {
   oldValues?: unknown;
   newValues?: unknown;
   metadata?: unknown;
+  label?: string | null;
+  billable?: boolean;
 }) {
-  const { error } = await supabaseService.from("audit_logs").insert({
-    actor_user_id: params.actorUserId,
-    company_id: params.companyId ?? null,
-    entity_type: params.entityType,
-    entity_id: params.entityId,
+  await logAdminActionAndUsage({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId ?? null,
+    entityType: params.entityType,
+    entityId: params.entityId,
+    customerId: params.entityType === "customer" ? params.entityId : null,
     action: params.action,
-    old_values: params.oldValues ?? null,
-    new_values: params.newValues ?? null,
-    metadata: params.metadata ?? null,
+    label: params.label ?? null,
+    oldValues: params.oldValues,
+    newValues: params.newValues,
+    metadata: typeof params.metadata === "object" && params.metadata !== null ? (params.metadata as Record<string, unknown>) : { value: params.metadata ?? null },
+    billable: params.billable ?? false,
+    billingUnit: params.billable ? "admin_action" : "audit_only",
+    source: "customer_card",
   });
-
-  if (error) throw error;
 }
 
 export async function saveCustomerProfileAction(
@@ -871,6 +877,204 @@ async function collectCustomerDeleteGraph(customerId: string) {
   };
 }
 
+
+export async function markCustomerAsTestDataAction(
+  formData: FormData,
+): Promise<void> {
+  const actorUserId = await getActorUserId();
+  const customerId = getString(formData, "customer_id");
+  const reason = getNullableString(formData, "reason") ?? "Markerad som testdata från kundkortet.";
+
+  if (!customerId) throw new Error("customer_id saknas");
+
+  const { data: customerBefore, error: customerError } = await supabaseService
+    .from("customers")
+    .select("*")
+    .eq("id", customerId)
+    .single();
+
+  if (customerError) throw customerError;
+
+  const companyId = await assertUserCanOperateCompany(
+    actorUserId,
+    typeof customerBefore.company_id === "string" ? customerBefore.company_id : null,
+  );
+
+  const nowIso = new Date().toISOString();
+  const { data: customerAfter, error: updateError } = await supabaseService
+    .from("customers")
+    .update({
+      is_test_data: true,
+      data_retention_note: reason,
+      updated_at: nowIso,
+    })
+    .eq("id", customerId)
+    .eq("company_id", companyId)
+    .select("*")
+    .single();
+
+  if (updateError) throw updateError;
+
+  const { error: sitesError } = await supabaseService
+    .from("customer_sites")
+    .update({ is_test_data: true, updated_by: actorUserId })
+    .eq("company_id", companyId)
+    .eq("customer_id", customerId);
+
+  if (sitesError) throw sitesError;
+
+  const { data: siteRows, error: siteLookupError } = await supabaseService
+    .from("customer_sites")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("customer_id", customerId);
+
+  if (siteLookupError) throw siteLookupError;
+  const siteIds = (siteRows ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+
+  if (siteIds.length > 0) {
+    const { error: pointsError } = await supabaseService
+      .from("metering_points")
+      .update({ is_test_data: true, updated_by: actorUserId })
+      .eq("company_id", companyId)
+      .in("site_id", siteIds);
+
+    if (pointsError) throw pointsError;
+  }
+
+  await insertAuditLog({
+    actorUserId,
+    entityType: "customer",
+    entityId: customerId,
+    action: "customer.marked_as_test_data",
+    label: "Markerade kund som testdata",
+    companyId,
+    oldValues: customerBefore,
+    newValues: customerAfter,
+    metadata: { reason, cascadedToSitesAndMeteringPoints: true },
+  });
+
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/platform/data-cleanup");
+}
+
+export async function archiveCustomerAction(
+  formData: FormData,
+): Promise<void> {
+  const actorUserId = await getActorUserId();
+  const customerId = getString(formData, "customer_id");
+  const reason = getNullableString(formData, "archive_reason");
+  const confirmText = getString(formData, "confirm_archive");
+
+  if (!customerId) throw new Error("customer_id saknas");
+  if (confirmText !== "ARKIVERA") {
+    throw new Error("Skriv ARKIVERA för att bekräfta arkivering.");
+  }
+
+  const { data: customerBefore, error: customerError } = await supabaseService
+    .from("customers")
+    .select("*")
+    .eq("id", customerId)
+    .single();
+
+  if (customerError) throw customerError;
+
+  const companyId = await assertUserCanOperateCompany(
+    actorUserId,
+    typeof customerBefore.company_id === "string" ? customerBefore.company_id : null,
+  );
+
+  const nowIso = new Date().toISOString();
+  const archiveReason = reason ?? "Arkiverad via kundkort.";
+
+  const { data: customerAfter, error: updateError } = await supabaseService
+    .from("customers")
+    .update({
+      status: "archived",
+      archived_at: nowIso,
+      archived_by: actorUserId,
+      archive_reason: archiveReason,
+      updated_at: nowIso,
+    })
+    .eq("id", customerId)
+    .eq("company_id", companyId)
+    .select("*")
+    .single();
+
+  if (updateError) throw updateError;
+
+  const { error: sitesError } = await supabaseService
+    .from("customer_sites")
+    .update({
+      status: "archived",
+      archived_at: nowIso,
+      archived_by: actorUserId,
+      archive_reason: archiveReason,
+      updated_by: actorUserId,
+    })
+    .eq("company_id", companyId)
+    .eq("customer_id", customerId);
+
+  if (sitesError) throw sitesError;
+
+  const { data: siteRows, error: siteLookupError } = await supabaseService
+    .from("customer_sites")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("customer_id", customerId);
+
+  if (siteLookupError) throw siteLookupError;
+  const siteIds = (siteRows ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+
+  if (siteIds.length > 0) {
+    const { error: pointsError } = await supabaseService
+      .from("metering_points")
+      .update({
+        status: "archived",
+        archived_at: nowIso,
+        archived_by: actorUserId,
+        archive_reason: archiveReason,
+        updated_by: actorUserId,
+      })
+      .eq("company_id", companyId)
+      .in("site_id", siteIds);
+
+    if (pointsError) throw pointsError;
+  }
+
+  await insertAuditLog({
+    actorUserId,
+    entityType: "customer",
+    entityId: customerId,
+    action: "customer.archived",
+    label: "Arkiverade kund",
+    companyId,
+    oldValues: customerBefore,
+    newValues: customerAfter,
+    metadata: {
+      reason: archiveReason,
+      retainedData: true,
+      hardDelete: false,
+      cascadedToSitesAndMeteringPoints: true,
+    },
+  });
+
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/platform/data-cleanup");
+}
+
+function hasProtectedDeleteData(graph: Awaited<ReturnType<typeof collectCustomerDeleteGraph>>): boolean {
+  return (
+    graph.contractIds.length > 0 ||
+    graph.invoiceIds.length > 0 ||
+    graph.switchRequestIds.length > 0 ||
+    graph.edielMessageIds.length > 0 ||
+    graph.partnerExportIds.length > 0
+  );
+}
+
 export async function deleteCustomerForRecreateAction(
   formData: FormData,
 ): Promise<void> {
@@ -891,13 +1095,23 @@ export async function deleteCustomerForRecreateAction(
     typeof graph.customer.company_id === "string"
       ? graph.customer.company_id
       : null;
+
+  if (graph.customer.is_test_data !== true && String(graph.customer.source ?? "").toLowerCase().includes("test") === false) {
+    throw new Error("Permanent radering är endast tillåten för markerad testdata. Arkivera verkliga kunder i stället.");
+  }
+
+  if (hasProtectedDeleteData(graph)) {
+    throw new Error("Kunden har avtal, fakturor, Ediel-meddelanden, partnerexport eller leverantörsbyte. Arkivera kunden i stället för att radera.");
+  }
+
   const storageSummary = await deleteStorageObjectsForCustomer(customerId);
 
   await insertAuditLog({
     actorUserId,
     entityType: "customer",
     entityId: customerId,
-    action: "customer_hard_delete_started",
+    action: "customer.test_data_hard_delete_started",
+    label: "Påbörjade permanent radering av testkund",
     companyId,
     oldValues: graph.customer,
     metadata: {
@@ -997,5 +1211,8 @@ export async function deleteCustomerForRecreateAction(
   revalidatePath("/admin/customers/segments");
   revalidatePath("/admin/operations");
   revalidatePath("/admin/outbound");
-  redirect("/admin/customers");
+  revalidatePath("/admin/platform/data-cleanup");
+
+  const returnTo = getNullableString(formData, "return_to");
+  redirect(returnTo?.startsWith("/admin/") ? returnTo : "/admin/customers");
 }

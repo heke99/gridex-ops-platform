@@ -228,3 +228,54 @@ components/admin/customers/CustomerFacilityWorkflowCard.tsx
 lib/facility/workQueue.ts
 supabase/migrations/20260612183000_ops_e_f_facility_work_queue_customer_cards.sql
 ```
+
+## OPS-J..N: governance, audit and cleanup rules
+
+### Agreement ownership
+
+Only platform admin may create, edit or publish price plans, price plan versions, pricing components, public contract offers and legal terms. Tenant admins may view and operate customers using already-published offers, but may not create their own commercial/legal truth.
+
+### Website contract flow
+
+External websites must first call:
+
+```http
+GET /api/v1/website/public-contracts
+```
+
+The selected offer/version is then submitted to:
+
+```http
+POST /api/v1/website/customer-applications
+```
+
+Recommended contract payload:
+
+```json
+{
+  "contract": {
+    "contract_offer_id": "...",
+    "price_plan_id": "...",
+    "price_plan_version_id": "...",
+    "requested_start_date": "asap"
+  }
+}
+```
+
+Do not let a website submit monthly fee, markup or legal terms as the source of truth. OPS creates the locked customer contract snapshot.
+
+### Customer actions
+
+State-changing customer-card actions must log both:
+
+- `audit_logs` for revision/legal traceability.
+- `platform_usage_events` for tenant-scoped SaaS statistics and future billing.
+
+### Testdata and archive
+
+Use these rules:
+
+- Mark fake/test customers as testdata.
+- Archive real customers instead of deleting them.
+- Hard-delete only test customers that have no contract, invoice, Ediel message, supplier switch, billing underlay or partner export.
+- Archive test sites and metering points when they should no longer appear in operations.

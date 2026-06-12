@@ -32,6 +32,8 @@ export type TenantUsageStatsRow = {
   blockedBillingRows: number
   users: number
   activeUsers: number
+  adminUsageEvents: number
+  billableUsageEvents: number
   lastActivityAt: string | null
 }
 
@@ -147,6 +149,9 @@ async function listTenantUsageStatsUncached(): Promise<TenantUsageStatsRow[]> {
         blockedBillingRows,
         users,
         activeUsers,
+        adminUsageEvents,
+        billableUsageEvents,
+        latestUsageAt,
         latestCustomerAt,
         latestContractAt,
         latestEdielAt,
@@ -179,6 +184,9 @@ async function listTenantUsageStatsUncached(): Promise<TenantUsageStatsRow[]> {
         safeCount('billing_export_run_items', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'blocked' }]),
         safeCount('company_memberships', [{ column: 'company_id', value: companyId }]),
         safeCount('company_memberships', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'active' }]),
+        safeCount('platform_usage_events', [{ column: 'company_id', value: companyId }]),
+        safeCount('platform_usage_events', [{ column: 'company_id', value: companyId }, { column: 'is_billable', value: true }]),
+        safeLatestTimestamp('platform_usage_events', companyId, 'occurred_at'),
         safeLatestTimestamp('customers', companyId),
         safeLatestTimestamp('customer_contracts', companyId),
         safeLatestTimestamp('ediel_messages', companyId),
@@ -216,7 +224,9 @@ async function listTenantUsageStatsUncached(): Promise<TenantUsageStatsRow[]> {
         blockedBillingRows,
         users,
         activeUsers,
-        lastActivityAt: latestTimestamp([latestCustomerAt, latestContractAt, latestEdielAt, latestExportAt]),
+        adminUsageEvents,
+        billableUsageEvents,
+        lastActivityAt: latestTimestamp([latestUsageAt, latestCustomerAt, latestContractAt, latestEdielAt, latestExportAt]),
       }
     })
   )

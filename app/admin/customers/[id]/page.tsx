@@ -109,6 +109,10 @@ type CustomerRow = {
  intake_missing_fields: unknown
  intake_quality_score: number | null
  intake_warnings?: unknown
+ is_test_data?: boolean | null
+ archived_at?: string | null
+ archive_reason?: string | null
+ data_retention_note?: string | null
 }
 
 
@@ -544,7 +548,7 @@ async function getCustomer(
  const { data, error } = await supabase
  .from('customers')
  .select(
- 'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, source, apartment_number, created_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, intake_status, intake_missing_fields, intake_quality_score, intake_warnings'
+ 'id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, source, apartment_number, created_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, intake_status, intake_missing_fields, intake_quality_score, intake_warnings, is_test_data, archived_at, archive_reason, data_retention_note'
  )
  .eq('id', id)
  .maybeSingle()

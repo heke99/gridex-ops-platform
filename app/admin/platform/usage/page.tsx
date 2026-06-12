@@ -64,6 +64,8 @@ export default async function PlatformUsagePage() {
     customerBlockers: total(rows, 'customerBlockers'),
     blockedBillingRows: total(rows, 'blockedBillingRows'),
     activeUsers: total(rows, 'activeUsers'),
+    adminUsageEvents: total(rows, 'adminUsageEvents'),
+    billableUsageEvents: total(rows, 'billableUsageEvents'),
   }
 
   return (
@@ -99,6 +101,7 @@ export default async function PlatformUsagePage() {
           <MetricCard label="Fullmakter" value={totals.powerOfAttorneys} hint="Signerade/registrerade fullmakter där tabellen finns" />
           <MetricCard label="Ediel" value={totals.edielMessages} hint="PRODAT, UTILTS, CONTRL och APERAK" />
           <MetricCard label="Aktiva användare" value={totals.activeUsers || total(rows, 'users')} hint="Medlemmar per tenant" />
+          <MetricCard label="Usage events" value={totals.adminUsageEvents} hint={`${totals.billableUsageEvents} faktureringsbara`} href="/admin/platform/data-cleanup" />
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -130,6 +133,7 @@ export default async function PlatformUsagePage() {
                   <th className="px-6 py-4">Ediel</th>
                   <th className="px-6 py-4">Fakturering</th>
                   <th className="px-6 py-4">Risk</th>
+                  <th className="px-6 py-4">Usage</th>
                   <th className="px-6 py-4">Senast aktivitet</th>
                 </tr>
               </thead>
@@ -154,10 +158,11 @@ export default async function PlatformUsagePage() {
                       <div>{row.customerBlockers} blockerare</div>
                       <div className="text-xs font-semibold text-slate-500">{row.openCustomerCases} ärenden · {row.blockedBillingRows} fakturarader</div>
                     </td>
+                    <td className="px-6 py-4">{row.adminUsageEvents}<div className="text-xs font-semibold text-slate-500">{row.billableUsageEvents} faktureringsbara</div></td>
                     <td className="px-6 py-4 text-slate-700">{formatDate(row.lastActivityAt)}</td>
                   </tr>
                 ))}
-                {rows.length === 0 ? <tr><td colSpan={11} className="px-6 py-10 text-center text-slate-600">Inga tenants hittades.</td></tr> : null}
+                {rows.length === 0 ? <tr><td colSpan={12} className="px-6 py-10 text-center text-slate-600">Inga tenants hittades.</td></tr> : null}
               </tbody>
             </table>
           </div>

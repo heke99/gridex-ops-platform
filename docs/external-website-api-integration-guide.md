@@ -417,3 +417,15 @@ docs/ops-api-customer-intake-facility.md
 ```
 
 Important rule for external websites: the website may submit address, postal code, chosen contract and customer consent, but it must not let a tenant or customer manually choose arbitrary grid owners. OPS resolves tenant from the API client and resolves/requests facility data in the backend.
+
+## Current OPS contract model
+
+External websites must not own contract/pricing truth. The correct flow is:
+
+1. The website backend calls `GET /api/v1/website/public-contracts` using a tenant-bound API client.
+2. The website shows only the returned published offers.
+3. The website sends the selected `contract_offer_id`, `price_plan_id` and/or `price_plan_version_id` to `POST /api/v1/website/customer-applications`.
+4. OPS creates the customer number, agreement number and locked contract snapshot.
+5. OPS sends and logs legally important confirmation/cooling-off communication unless explicitly configured otherwise.
+
+Tenant admins do not create their own public offers. Platform admin publishes the offers a tenant may sell.

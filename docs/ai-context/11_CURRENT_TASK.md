@@ -22,3 +22,7 @@ docs/ai-context/10_CHANGELOG.md
 docs/ai-context/11_CURRENT_TASK.md
 supabase/migrations/20260612183000_ops_e_f_facility_work_queue_customer_cards.sql
 ```
+
+## Current status — OPS-J..N
+
+Remaining governance batch has been implemented at code level: platform admin owns pricing/agreement changes, customer-card lifecycle/testdata actions are audit/usage logged, platform cleanup page previews testdata candidates, and API docs are updated away from website-owned contract terms. Run SQL migration `20260612193000_ops_j_to_n_governance_audit_cleanup_docs.sql`, then build/regressions.

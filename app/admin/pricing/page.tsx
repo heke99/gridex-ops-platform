@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
   evaluatePricingReadiness,
@@ -22,7 +22,7 @@ function componentTone(type: string) {
 }
 
 export default async function PricingPage() {
-  const admin = await requireAdminPageKeyAccess('pricing.engine')
+  const admin = await requirePlatformAdminAccess()
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -38,8 +38,8 @@ export default async function PricingPage() {
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Prismotor"
-        subtitle="Styr fasta avgifter, påslag, elcertifikat, grön el och kund-/avtalsspecifika komponenter som ska användas i faktureringsunderlaget."
+        title="Prismotor – platformstyrd"
+        subtitle="Endast platform admin får skapa, ändra och publicera pris- och avtalslogik. Styr fasta avgifter, påslag, elcertifikat, grön el och kund-/avtalsspecifika komponenter som ska användas i faktureringsunderlaget."
         userEmail={admin.email}
       />
 

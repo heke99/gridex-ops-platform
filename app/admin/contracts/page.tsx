@@ -1,6 +1,6 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { listContractOffers } from '@/lib/customer-contracts/db'
 import { saveContractOfferAction } from './actions'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
@@ -47,7 +47,7 @@ function statusTone(status: string, isActive: boolean): string {
 }
 
 export default async function AdminContractsPage() {
- await requireAdminPageAccess({ anyOf: ['contracts.write', 'pricing.write'] })
+ const admin = await requirePlatformAdminAccess()
 
  const supabase = await createSupabaseServerClient()
  const { data: authResult } = await supabase.auth.getUser()
@@ -58,9 +58,9 @@ export default async function AdminContractsPage() {
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Avtal och kampanjer"
- subtitle="Avtal och kampanjer för det operativa elhandelsbolaget. Kundavtal sparar egna prisvärden så historik inte ändras retroaktivt."
- userEmail={user?.email ?? null}
+ title="Avtal och kampanjer – platformstyrda"
+ subtitle="Endast platform admin får skapa, ändra och publicera avtalsmallar, kampanjer och prisvillkor. Elbolagsadmin arbetar med kunder och publicerade avtal men äger inte pris-/avtalslogiken."
+ userEmail={admin.email}
  />
 
  <div className="grid gap-6 p-8 xl:grid-cols-[460px_minmax(0,1fr)]">
@@ -68,13 +68,13 @@ export default async function AdminContractsPage() {
  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 ">Operativt bolag</p>
  <h2 className="mt-2 text-xl font-semibold text-slate-950 ">{scope.companyName ?? 'Bolagskoppling saknas'}</h2>
  <p className="mt-2 text-sm leading-6 text-slate-700 ">
- Avtal och kampanjer skapas bara i ditt aktiva elhandelsbolag. Skapa nya elhandelsbolag under Elhandelsbolag, inte här.
+ Avtal och kampanjer publiceras av platform admin för valt operativt bolag. Tenant-admin ska inte skapa egna avtalsmallar från sin driftvy.
  </p>
  {scope.message ? <p className="mt-3 text-sm font-semibold text-amber-700 ">{scope.message}</p> : null}
  </section>
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <h2 className="text-lg font-semibold text-slate-950 ">
- Skapa eller uppdatera avtalsmall
+ Skapa eller uppdatera avtalsmall (platform admin)
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
 Dessa värden används som standard i kundintaget men kan justeras per kund vid behov.
