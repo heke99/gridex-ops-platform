@@ -38,8 +38,6 @@ export const EMAIL_TEMPLATE_VARIABLES = [
   'support_email',
   'cancellation_deadline',
   'portal_url',
-  'case_subject',
-  'case_message',
 ]
 
 export const DEFAULT_EMAIL_TEMPLATES = [
@@ -49,13 +47,6 @@ export const DEFAULT_EMAIL_TEMPLATES = [
     subject: 'Vi har tagit emot din ansökan hos {{company_name}}',
     body_html: '<p>Hej {{customer_name}},</p><p>Vi har tagit emot din ansökan om elavtal hos {{company_name}}.</p><p>Kundnummer: {{customer_number}}.</p><p>Vi kontrollerar uppgifterna och återkommer om något behöver kompletteras.</p><p>Har du frågor når du oss på {{support_email}}.</p>',
     body_text: 'Hej {{customer_name}}, vi har tagit emot din ansökan om elavtal hos {{company_name}}. Kundnummer: {{customer_number}}. Vi återkommer om något behöver kompletteras.',
-  },
-  {
-    template_key: 'support.case_message',
-    name: 'Supportmeddelande',
-    subject: '{{company_name}}: {{case_subject}}',
-    body_html: '<p>Hej {{customer_name}},</p><p>{{case_message}}</p><p>Du kan svara på detta mail eller kontakta oss på {{support_email}}.</p>',
-    body_text: 'Hej {{customer_name}}, {{case_message}} Du kan svara på detta mail eller kontakta oss på {{support_email}}.',
   },
   {
     template_key: 'switch.started',

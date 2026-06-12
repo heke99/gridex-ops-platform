@@ -37,6 +37,7 @@ Response:
   "data": [
     {
       "id": "offer-id",
+      "contract_offer_id": "offer-id",
       "price_plan_id": "price-plan-id",
       "price_plan_version_id": "price-plan-version-id",
       "campaign_version_id": null,
@@ -45,6 +46,7 @@ Response:
       "public_name": "Rörligt elpris",
       "description": "Elpris med rörligt spotpris och påslag.",
       "contract_type": "variable_spot",
+      "type": "variable_spot",
       "billing_model": "spot",
       "customer_type": "both",
       "monthly_fee_sek": 59,
@@ -56,9 +58,11 @@ Response:
       "green_fee_mode": "none",
       "green_fee_value": null,
       "terms_version": "2026-06",
+      "withdrawal_version": "2026-06",
       "valid_from": "2026-06-01",
       "valid_to": null,
       "is_public": true,
+      "is_active": true,
       "sort_order": 10
     }
   ],
@@ -153,7 +157,7 @@ Processing rules:
 POST /api/v1/website/customer-events
 ```
 
-Allowed event names follow `customer.<event_name>`.
+Allowed event names follow `customer.<event_name>`, but support/case events are outside Ops scope and must not be sent. `customer.support_*` and `customer.case_*` are rejected with `422 support_out_of_scope`.
 
 Example:
 
@@ -171,7 +175,7 @@ Example:
 }
 ```
 
-OPS stores the event in `customer_events`, emits a `domain_events` row and lets the event outbox/webhook layer deliver it to configured tenant destinations.
+OPS stores allowed operational customer events in `customer_events`, emits a `domain_events` row and lets the event outbox/webhook layer deliver it to configured tenant destinations. OPS does not create, route or log support cases.
 
 ## Facility workflow / work queue
 

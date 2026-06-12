@@ -66,6 +66,15 @@ export async function POST(request: NextRequest) {
       return customerPortalJson({ error: 'Ogiltigt kundevent.', details: parsed.error.issues }, { status: 422 })
     }
 
+    if (/^customer\.(support|case)_/i.test(parsed.data.event_type)) {
+      await logIntegrationApiRequest({ client: auth.client, request, statusCode: 422, startedAt, errorCode: 'support_out_of_scope' })
+      return customerPortalJson({
+        error: 'Supporthantering ligger utanför Gridex Ops API.',
+        code: 'support_out_of_scope',
+        hint: 'Elbolaget hanterar support i sina egna kanaler. Skicka inte support- eller case-events till Ops.',
+      }, { status: 422 })
+    }
+
     const identity = await resolveCustomerIdentity(auth.client.company_id, parsed.data)
     const customerId = identity.customerId
     const aggregateId = parsed.data.aggregate_id ?? customerId ?? parsed.data.external_customer_id ?? auth.client.id

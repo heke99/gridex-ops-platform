@@ -62,7 +62,6 @@ for (const path of [
   'app/api/v1/customer/documents/route.ts',
   'app/api/v1/customer/profile-update/route.ts',
   'app/api/v1/customer/move-out/route.ts',
-  'app/api/v1/customer/support-case/route.ts',
 ]) {
   assertContains(path, ['requireCustomerPortalApiContext', 'customerPortalJson'])
 }
@@ -88,6 +87,7 @@ assertContains('supabase/migrations/20260609143000_batch_6_api_clients_customer_
 
 assertContains('docs/gridex-customer-portal-api.md', [
   'Gridex Ops Platform är source of truth',
+  'Support ligger utanför Gridex Ops API',
   'Email ensam ger aldrig',
   'Cache-Control: no-store',
   'route,',
@@ -102,6 +102,7 @@ assertContains('docs/external-website-api-integration-guide.md', [
   'external_customer_id',
   'Cache-Control: no-store',
   'Old API keys can be revoked and deleted',
+  'Support/case-flöden är inte en del av Ops API',
 ])
 
 assertContains('app/developers/customer-portal-api/page.tsx', [

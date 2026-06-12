@@ -215,7 +215,7 @@ export async function listPortalDocuments(context: PortalCustomerContext, route 
 }
 
 export async function createPortalRequest(context: PortalCustomerContext, input: {
-  type: 'profile_update' | 'move_out' | 'support_case'
+  type: 'profile_update' | 'move_out'
   payload: Record<string, unknown>
   route: string
 }) {

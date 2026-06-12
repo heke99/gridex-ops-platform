@@ -13,7 +13,6 @@
 
 1. Endast de sex scoped kundmailen ska vara aktiva nu:
    - `contract.application_received`
-   - `support.case_message`
    - `switch.started`
    - `switch.confirmed`
    - `switch.action_required`

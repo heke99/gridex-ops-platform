@@ -1,23 +1,28 @@
 # Gridex Customer Portal API
 
-Batch 6 kopplar Gridex Ops Platform till Gridex hemsida/Mina sidor.
+Batch 6 kopplar Gridex Ops Platform till externa hemsidor och Mina sidor.
 
 ## Source of truth
 
-Gridex Ops Platform är source of truth för kund, avtal, anläggningar, mätvärden, fakturor och behörighet. Gridex hemsida ska bara vara frontend och ska anropa Ops Platform server-side.
+Gridex Ops Platform är source of truth för kund, kundnummer, avtal, avtalsnummer, prisversion, avtalssnapshot, anläggningar, mätvärden, fakturor, juridiskt viktig kommunikation och behörighet. Externa hemsidor ska bara vara frontend och ska anropa Ops Platform server-side.
+
+Support ligger utanför Gridex Ops API. Ops ska inte skapa, routa, logga eller exponera supportärenden åt elbolag. Varje elbolag hanterar support i sina egna kanaler.
 
 ## Superadmin setup
 
 1. Gå till `/admin/platform/api-clients`.
 2. Välj tenant/bolag.
-3. Skapa API-klient med scopes:
-   - `customer_portal.read`
-   - `customer_portal.write`
+3. Skapa API-klient med minsta möjliga scopes:
+   - `website_contracts.read`
+   - `website_applications.write`
+   - `website_events.write` vid behov
+   - `customer_portal.read` vid behov
+   - `customer_portal.write` vid behov
 4. Lägg allowed origins, t.ex.
    - `https://gridex.se`
    - `https://www.gridex.se`
 5. Kopiera token direkt. Den visas bara en gång.
-6. Lägg token som server secret på Gridex hemsidan, exempelvis `GRIDEX_OPS_API_TOKEN`.
+6. Lägg token som server secret på hemsidan, exempelvis `GRIDEX_OPS_API_TOKEN`.
 
 ## Header
 
@@ -26,6 +31,43 @@ Authorization: Bearer <GRIDEX_OPS_API_TOKEN>
 ```
 
 `x-api-key` stöds också för enklare server-to-server-test, men rekommenderad header är `Authorization: Bearer`.
+
+## Public contracts
+
+```http
+GET /api/v1/website/public-contracts
+```
+
+Hemsidan ska hämta publicerade avtal från Ops och skicka tillbaka valt `contract_offer_id`, `price_plan_id` och/eller `price_plan_version_id` när kunden ansöker. Hemsidan får inte skicka egna priser eller fritextavtal som juridisk sanning.
+
+## Website customer applications
+
+```http
+POST /api/v1/website/customer-applications
+```
+
+Endpointen skapar eller matchar kund, reserverar kundnummer, skapar portal identity, anläggning, mätpunkt, kundavtal, avtalsnummer och låst avtalssnapshot. Response ska returnera:
+
+```text
+application_id
+application_number
+customer_id
+customer_number
+external_customer_id
+portal_identity_id
+customer_site_id
+metering_point_id
+contract_id
+contract_number
+contract_price_snapshot_id
+price_plan_id
+price_plan_version_id
+status
+missing_fields
+blocking_reasons
+next_step
+warnings
+```
 
 ## Länkning
 
@@ -49,9 +91,15 @@ Möjliga utfall:
 
 ## Customer endpoints
 
-Alla customer endpoints kräver länkad `external_customer_id` och scope `customer_portal.read` eller `customer_portal.write`.
+Rekommenderad endpoint för inloggad/länkad kund:
 
-Skicka external id som query eller header:
+```http
+GET /api/v1/customer/me
+```
+
+`/customer/me` ska användas när kunden är inloggad/länkad och frontend inte ska skicka valfri `customer_id`.
+
+Övriga customer endpoints kan använda länkad `external_customer_id`, men bara från hemsidans server route efter att den egna sessionen kontrollerats. Skicka external id som query eller header:
 
 ```http
 x-gridex-external-customer-id: <external_customer_id>
@@ -65,6 +113,7 @@ GET /api/v1/customer/contracts?external_customer_id=<external_customer_id>
 
 Endpoints:
 
+- `GET /api/v1/customer/me`
 - `GET /api/v1/customer/contracts`
 - `GET /api/v1/customer/invoices`
 - `GET /api/v1/customer/invoices/[id]`
@@ -73,9 +122,18 @@ Endpoints:
 - `GET /api/v1/customer/documents`
 - `POST /api/v1/customer/profile-update`
 - `POST /api/v1/customer/move-out`
-- `POST /api/v1/customer/support-case`
 
-### Mätvärden
+## Customer events
+
+```http
+POST /api/v1/website/customer-events
+```
+
+Tillåtna kundevents är exempelvis öppnat avtal, nedladdad faktura, accepterad fullmakt eller visad switchstatus.
+
+Support/case-events är inte tillåtna och ska returnera `422 support_out_of_scope`.
+
+## Mätvärden
 
 `GET /api/v1/customer/metering-values` läser alltid från `normalized_metering_values`, inte äldre tabeller som `metering_values`, `meter_values` eller `billing_underlay_items`.
 
@@ -111,7 +169,7 @@ The repo version of that guide is kept in:
 docs/external-website-api-integration-guide.md
 ```
 
-This page is intentionally written for external frontend/backend developers. It explains server-side token handling, `external_customer_id`, endpoint usage, error codes, examples and go-live checks.
+This page is intentionally written for external frontend/backend developers. It explains server-side token handling, public contracts, `external_customer_id`, endpoint usage, error codes, examples and go-live checks.
 
 ## Security rules
 
@@ -120,6 +178,7 @@ This page is intentionally written for external frontend/backend developers. It 
 - Customer endpoints använder endast länkad `customer_portal_identities`.
 - Email ensam ger aldrig faktura-/avtalsåtkomst.
 - Token ska aldrig exponeras i browsern.
+- Frontend får aldrig fritt välja `customer_id` eller `external_customer_id`.
 - Gamla eller exponerade API-nycklar ska återkallas och kan därefter raderas i superadmin-UI:t.
 
 ## Audit och cache
@@ -165,6 +224,9 @@ Batch 7 adds the foundation for:
 
 ```text
 customer_number as Ops-owned customer master reference
+contract_number as Ops-owned agreement reference
+contract_price_snapshot_id as legal/pricing snapshot reference
+GET /api/v1/website/public-contracts
 POST /api/v1/website/customer-applications
 webhook_subscriptions and webhook_deliveries
 confirmation/cooling-off communication events
@@ -178,17 +240,8 @@ Key principles:
 Ops is master.
 Websites are channels.
 Capway is a billing/payment partner.
-customer_number belongs to Ops and is the business reference used for support, invoices, disputes and partner mapping.
+customer_number belongs to Ops and is the business reference used for invoices, disputes and partner mapping.
 ```
-
-Customer application endpoint:
-
-```text
-POST /api/v1/website/customer-applications
-Scope: website_applications.write
-```
-
-The endpoint creates or matches customer, reserves `customer_number`, upserts `customer_portal_identities`, optionally creates site/metering point/contract application, triggers customer communication rules and emits domain events for webhook delivery.
 
 Webhook dispatch:
 
@@ -205,11 +258,11 @@ Batch 8 adds admin operations UI and hardening for external website onboarding:
 
 - `/admin/website-applications` for received/failed website customer applications.
 - `/admin/webhooks/deliveries` for webhook delivery logs, resend and ignored deliveries.
-- `POST /api/v1/website/customer-applications` accepts nested and simplified payloads.
+- `POST /api/v1/website/customer-applications` accepts nested and simplified payloads, but contract/pricing truth must still come from public offers/version IDs.
 - Invalid payloads return `422 validation_error` with `field`, `hint` and `error_stage`.
 - Email and webhook delivery issues must return warnings rather than failing a created customer application.
 - Company pages show tenant email readiness, verified-domain/fallback sender mode, DNS status and template readiness.
-- Customer cards show `customer_number`, `external_customer_id`, source website, communication logs and Capway/billing references.
+- Customer cards show `customer_number`, `contract_number`, `external_customer_id`, source website, communication logs and Capway/billing references.
 
 Public documentation:
 

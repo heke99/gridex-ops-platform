@@ -165,8 +165,15 @@ function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
 }
 
 export function publicContractResponse(offer: PublicContractOffer) {
+  const withdrawalVersion = typeof offer.metadata?.withdrawal_version === 'string'
+    ? offer.metadata.withdrawal_version
+    : typeof offer.metadata?.withdrawal_terms_version === 'string'
+      ? offer.metadata.withdrawal_terms_version
+      : offer.terms_version
+
   return {
     id: offer.id,
+    contract_offer_id: offer.id,
     price_plan_id: offer.price_plan_id,
     price_plan_version_id: offer.price_plan_version_id,
     campaign_version_id: offer.campaign_version_id,
@@ -176,6 +183,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
     description: offer.public_description,
     public_description: offer.public_description,
     contract_type: offer.contract_type,
+    type: offer.contract_type,
     billing_model: offer.billing_model,
     customer_type: offer.customer_type,
     monthly_fee_sek: offer.monthly_fee_sek,
@@ -187,9 +195,11 @@ export function publicContractResponse(offer: PublicContractOffer) {
     green_fee_mode: offer.green_fee_mode,
     green_fee_value: offer.green_fee_value,
     terms_version: offer.terms_version,
+    withdrawal_version: withdrawalVersion,
     valid_from: offer.valid_from,
     valid_to: offer.valid_to,
     is_public: true,
+    is_active: true,
     sort_order: offer.sort_order,
   }
 }

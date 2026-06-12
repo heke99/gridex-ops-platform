@@ -321,7 +321,6 @@ function readinessNotes(value: unknown): string[] {
 
 const IMPORTANT_EVENT_LABELS: Array<{ eventKey: string; label: string }> = [
   { eventKey: 'contract.application_received', label: 'Ansökan mottagen' },
-  { eventKey: 'support.case_message', label: 'Support/ärendemeddelande' },
   { eventKey: 'switch.started', label: 'Leverantörsbyte startat' },
   { eventKey: 'switch.confirmed', label: 'Leverantörsbyte bekräftat' },
   { eventKey: 'switch.action_required', label: 'Leverantörsbyte kräver åtgärd' },
@@ -330,7 +329,6 @@ const IMPORTANT_EVENT_LABELS: Array<{ eventKey: string; label: string }> = [
 
 const TEMPLATE_UI_KEYS = [
   'contract.application_received',
-  'support.case_message',
   'switch.started',
   'switch.confirmed',
   'switch.action_required',
@@ -422,7 +420,7 @@ function CompanyEmailSection({
           </div>
         ) : null}
         <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
-          Kundmail för elhandel hanteras här: ansökan mottagen, support/ärenden, leverantörsbyte och välkomstmail. Marknadsföring, nyhetsbrev och fakturamail ligger utanför detta scope.
+          Kundmail för elhandel hanteras här: ansökan mottagen, leverantörsbyte och välkomstmail. Supportärenden ligger utanför Ops scope och hanteras av elbolaget i egna kanaler.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <form action={startCompanyDomainVerificationAction}><input type="hidden" name="company_id" value={company.id} /><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Starta verifiering</button></form>

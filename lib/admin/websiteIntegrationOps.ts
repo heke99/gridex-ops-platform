@@ -373,7 +373,7 @@ export function computeTenantReadiness(input: {
   const webhook = input.webhooks.some((webhook) => webhook.status === 'active')
   const domainVerification = input.emailSettings?.verification_status === 'verified'
   const emailSender = domainVerification || input.effectiveSender.mode === 'fallback'
-  const requiredTemplates = ['contract.application_received', 'support.case_message', 'switch.started', 'switch.confirmed', 'switch.action_required', 'customer.welcome_active']
+  const requiredTemplates = ['contract.application_received', 'switch.started', 'switch.confirmed', 'switch.action_required', 'customer.welcome_active']
   const templateKeys = new Set(input.templates.filter((template) => template.is_active).map((template) => template.template_key))
   const templates = requiredTemplates.every((key) => templateKeys.has(key)) && input.eventRules.some((rule) => rule.event_key === 'contract.application_received' && rule.enabled)
   const billingMapping = Number(input.billingPartnerCount ?? 0) > 0

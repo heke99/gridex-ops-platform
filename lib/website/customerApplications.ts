@@ -1995,6 +1995,17 @@ export async function processWebsiteCustomerApplication(input: {
     const selectedContractOfferId = clean(body.contract_offer_id) ?? clean(body.contract?.contract_offer_id)
     const selectedProductCode = clean(body.product_code) ?? clean(body.contract?.product_code)
     const hasSelectedPublicContract = Boolean(selectedPricePlanVersionId || selectedPricePlanId || selectedContractOfferId || selectedProductCode)
+    if (!hasSelectedPublicContract) {
+      throw new WebsiteApplicationError({
+        message: 'Kundansökan måste referera till ett publicerat avtal från Ops.',
+        status: 422,
+        code: 'public_contract_required',
+        field: 'contract.price_plan_version_id',
+        stage: 'public_contract_lookup',
+        hint: 'Hämta avtal via GET /api/v1/website/public-contracts och skicka contract_offer_id eller price_plan_version_id. Skicka inte egna priser eller fritextavtal som juridisk sanning.',
+      })
+    }
+
     publicOffer = hasSelectedPublicContract
       ? await stage('public_contract_lookup', () => resolvePublicContractOffer({
           client: input.client,

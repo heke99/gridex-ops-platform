@@ -31,7 +31,6 @@ Systemet hade äldre mallnycklar som `contract.confirmation_sent`, `contract.coo
 **Fix:** standardmallarna är nu begränsade till exakt sex nycklar:
 
 - `contract.application_received`
-- `support.case_message`
 - `switch.started`
 - `switch.confirmed`
 - `switch.action_required`

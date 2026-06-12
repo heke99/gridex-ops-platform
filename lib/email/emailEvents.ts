@@ -16,7 +16,6 @@ export type EmailEventRule = {
 
 export const DEFAULT_EMAIL_EVENT_RULES = [
   { event_key: 'contract.application_received', template_key: 'contract.application_received' },
-  { event_key: 'support.case_message', template_key: 'support.case_message' },
   { event_key: 'switch.started', template_key: 'switch.started' },
   { event_key: 'switch.confirmed', template_key: 'switch.confirmed' },
   { event_key: 'switch.action_required', template_key: 'switch.action_required' },
