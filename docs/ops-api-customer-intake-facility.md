@@ -157,7 +157,7 @@ Processing rules:
 POST /api/v1/website/customer-events
 ```
 
-Allowed event names follow `customer.<event_name>`, but support/case events are outside Ops scope and must not be sent. `customer.support_*` and `customer.case_*` are rejected with `422 support_out_of_scope`.
+Allowed event names follow `customer.<event_name>`, but support/case events are outside Ops scope and must not be sent. `customer.support`, `customer.support_*`, `customer.case` and `customer.case_*` are rejected with `422 support_out_of_scope`.
 
 Example:
 

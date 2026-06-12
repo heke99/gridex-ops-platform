@@ -308,7 +308,7 @@ customer.completed_facility_data
 customer.viewed_switch_status
 ```
 
-Support- och case-events är inte tillåtna. Skicka inte `customer.support_*` eller `customer.case_*` till Ops.
+Support- och case-events är inte tillåtna. Skicka inte `customer.support`, `customer.support_*`, `customer.case` eller `customer.case_*` till Ops.
 
 ## Webhooks
 

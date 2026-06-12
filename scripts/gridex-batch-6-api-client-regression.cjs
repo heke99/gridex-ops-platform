@@ -105,6 +105,12 @@ assertContains('docs/external-website-api-integration-guide.md', [
   'Support/case-flöden är inte en del av Ops API',
 ])
 
+
+assertContains('app/api/v1/website/customer-events/route.ts', [
+  "support_out_of_scope",
+  "^customer\\.(support|case)(?:_|$)",
+])
+
 assertContains('app/developers/customer-portal-api/page.tsx', [
   'Koppla en extern hemsida till Gridex Customer Portal API',
   'https://app.gridex.se',
