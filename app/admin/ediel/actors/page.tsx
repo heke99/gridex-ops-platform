@@ -41,6 +41,22 @@ function actorRoleLabel(value: string | null | undefined) {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function previewValue(metadata: unknown, key: string): number | string {
+  if (!isRecord(metadata) || !isRecord(metadata.preview)) return '—'
+  const value = metadata.preview[key]
+  return typeof value === 'number' || typeof value === 'string' ? value : '—'
+}
+
+function importModeLabel(metadata: unknown, status: string | null | undefined) {
+  if (isRecord(metadata) && metadata.mode === 'preview') return 'Förhandsgranskning klar'
+  if (isRecord(metadata) && metadata.mode === 'apply') return status === 'completed' ? 'Importerad' : 'Importerad med granskning'
+  return actorStatusLabel(status)
+}
+
 function routeStatusLabel(value: string | null | undefined, verified?: boolean | null) {
   if (verified) return 'Verifierad'
   switch (String(value ?? '').toLowerCase()) {
@@ -58,7 +74,7 @@ function routeStatusLabel(value: string | null | undefined, verified?: boolean |
 
 export default async function EdielActorsPage() {
   const context = await requirePlatformAdminAccess()
-  const [actorsResult, partiesResult, addressesResult, marketActorsResult, actorRolesResult, actorRoutesResult, importIssuesResult, semanticsResult] = await Promise.all([
+  const [actorsResult, partiesResult, addressesResult, marketActorsResult, actorRolesResult, actorRoutesResult, importIssuesResult, semanticsResult, importRunsResult] = await Promise.all([
     supabaseService
     .from('ediel_actor_settings')
     .select('id, company_id, ediel_id, actor_ediel_id, actor_role, role, sub_role, environment, is_active, status, updated_at')
@@ -96,6 +112,11 @@ export default async function EdielActorsPage() {
       .select('message_family,message_code,subtype,business_process,request_type,is_active')
       .eq('is_active', true)
       .limit(100),
+    supabaseService
+      .from('platform_actor_import_runs')
+      .select('id,source,import_type,status,records_seen,records_upserted,records_failed,metadata,started_at,completed_at')
+      .order('started_at', { ascending: false })
+      .limit(6),
   ])
   const actors = actorsResult.data ?? []
   const parties = partiesResult.error ? [] : partiesResult.data ?? []
@@ -105,6 +126,7 @@ export default async function EdielActorsPage() {
   const actorRoutes = actorRoutesResult.error ? [] : actorRoutesResult.data ?? []
   const importIssues = importIssuesResult.error ? [] : importIssuesResult.data ?? []
   const messageRegler = semanticsResult.error ? [] : semanticsResult.data ?? []
+  const importRuns = importRunsResult.error ? [] : importRunsResult.data ?? []
   const addressesByParty = new Map<string, typeof addresses>()
   for (const address of addresses) {
     const existing = addressesByParty.get(address.party_id) ?? []
@@ -185,8 +207,11 @@ export default async function EdielActorsPage() {
                   <option value="csv">CSV</option>
                 </select>
                 <input type="hidden" name="source" value="actor_registry_ui" />
-                <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Importera till granskningskö</button>
+                <button name="importMode" value="preview" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50">Förhandsgranska diff</button>
+                <input name="confirmApply" placeholder="Skriv IMPORTERA för att godkänna" className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs" />
+                <button name="importMode" value="apply" className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Godkänn och importera</button>
               </div>
+              <p className="mt-2 text-[11px] text-slate-600">Förhandsgranskning uppdaterar inte masterdata. Godkänd import uppdaterar bara säkra fält; verifieringsstatus, auto-sändning och certifikat skyddas och kräver separat verifiering.</p>
             </form>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
@@ -197,6 +222,28 @@ export default async function EdielActorsPage() {
             <div className="rounded-3xl border border-violet-200 bg-violet-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">Regler</p><div className="mt-2 text-2xl font-black text-violet-950">{messageRegler.length}</div></div>
             <div className="rounded-3xl border border-red-200 bg-red-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Granskningspunkter</p><div className="mt-2 text-2xl font-black text-red-950">{openImportIssues}</div></div>
           </div>
+          {importRuns.length > 0 ? (
+            <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 p-4">
+              <p className="font-black text-sky-950">Senaste importkörningar och förhandsgranskningar</p>
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {importRuns.map((run) => (
+                  <div key={run.id} className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs text-sky-950">
+                    <div className="font-black">{importModeLabel(run.metadata, run.status)}</div>
+                    <div className="mt-1 font-mono text-sky-700">{run.source} · {run.import_type}</div>
+                    <div className="mt-2 grid grid-cols-2 gap-1 text-[11px]">
+                      <span>Rader: {run.records_seen}</span>
+                      <span>Uppdaterade: {run.records_upserted}</span>
+                      <span>Nya: {previewValue(run.metadata, 'newActors')}</span>
+                      <span>Konflikter: {previewValue(run.metadata, 'conflicts')}</span>
+                      <span>Nätägare: {previewValue(run.metadata, 'gridOwners')}</span>
+                      <span>Routes: {previewValue(run.metadata, 'routesSeen')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {importIssues.length > 0 ? (
             <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
               <p className="font-black text-amber-950">Senaste granskningspunkter från import</p>

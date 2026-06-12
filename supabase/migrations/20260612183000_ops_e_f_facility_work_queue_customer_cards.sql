@@ -214,3 +214,5 @@ as $$
 $$;
 
 grant execute on function public.gridex_get_facility_work_queue(uuid, integer) to authenticated, service_role;
+
+-- OPS status marker: facility_data_requested means anläggningsuppgifter har begärts från nätägare.

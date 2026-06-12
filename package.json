@@ -34,7 +34,8 @@
     "gridex:ui-db-mismatch-regression": "node scripts/gridex-launch-regression.cjs ui-db-mismatch-regression",
     "gridex:rate-limit-regression": "node scripts/gridex-launch-regression.cjs rate-limit-regression",
     "gridex:system-health-regression": "node scripts/gridex-launch-regression.cjs system-health-regression",
-    "gridex:launch-smoke": "node scripts/gridex-launch-regression.cjs launch-smoke"
+    "gridex:launch-smoke": "node scripts/gridex-launch-regression.cjs launch-smoke",
+    "gridex:ops-points-1-8-regression": "node scripts/gridex-ops-points-1-to-8-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

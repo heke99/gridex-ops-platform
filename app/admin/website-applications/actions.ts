@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdminAccess, requireCompanyScopedActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
 import { assessWebsiteApplicationReadiness, cleanReviewText, customerIntakeStatusForReadiness } from '@/lib/website/applicationReview'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { ensureGridOwnerInformationRequest, markFacilityDataReceived } from '@/lib/energy/gridOwnerRequests'
@@ -693,15 +694,41 @@ async function saveApplicationReview(input: { applicationId: string; formData: F
 
   await updateCustomerReviewState(application, readiness)
 
-  await supabaseService.from('audit_logs').insert({
-    company_id: application.company_id,
-    actor_user_id: admin.userId,
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId: application.customer_id,
+    entityType: 'website_customer_application',
+    entityId: application.id,
     action: input.action,
-    entity_type: 'website_customer_application',
-    entity_id: application.id,
-    old_values: previousValues,
-    new_values: newValues,
-  }).then(() => null)
+    label: input.action === 'review.checked' ? 'Redo-kontroll kördes för webbansökan' : 'Webbansökan kompletterades',
+    oldValues: previousValues,
+    newValues,
+    billable: false,
+    source: 'website_application_review',
+    metadata: {
+      can_start_switch: readiness.canStartSwitch,
+      can_create_contract: readiness.canCreateContract,
+      missing_fields: readiness.missingFields,
+      blocking_reasons: readiness.blockingReasons,
+    },
+  })
+
+  if (!application.contract_id && contractId) {
+    await logUsageEvent({
+      companyId: application.company_id,
+      actorUserId: admin.userId,
+      customerId: application.customer_id,
+      entityType: 'customer_contract',
+      entityId: contractId,
+      eventKey: 'contract.created',
+      actionLabel: 'Avtal skapades från webbansökan',
+      source: 'website_application_review',
+      billable: true,
+      billingUnit: 'contract',
+      metadata: { application_id: application.id, readiness_status: readiness.status },
+    })
+  }
 
   revalidatePath('/admin/website-applications')
   revalidatePath('/admin/customer-applications')
@@ -794,6 +821,24 @@ export async function resolveWebsiteApplicationEnergyAction(formData: FormData) 
   if (error && !missingSchema(error)) throw error
 
   await updateCustomerReviewState(application, readiness)
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId: application.customer_id,
+    entityType: 'website_customer_application',
+    entityId: application.id,
+    action: 'energy_resolution.completed',
+    label: 'Adress- och nätområdesmatchning kördes',
+    source: 'website_application_review',
+    billable: false,
+    metadata: {
+      grid_area_code: resolution.gridAreaCode,
+      price_area_code: resolution.priceArea,
+      grid_owner_id: resolution.gridOwnerId,
+      resolution_status: resolution.resolutionStatus,
+      confidence: resolution.confidence,
+    },
+  })
   revalidatePath('/admin/website-applications')
   if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
   redirect('/admin/website-applications')
@@ -837,6 +882,35 @@ export async function requestWebsiteApplicationGridOwnerInfoAction(formData: For
     .eq('company_id', application.company_id)
     .eq('id', application.id)
     .throwOnError()
+
+  if (request.requestId) {
+    await logAdminActionAndUsage({
+      companyId: application.company_id,
+      actorUserId: admin.userId,
+      customerId: application.customer_id,
+      entityType: 'grid_owner_data_request',
+      entityId: request.requestId,
+      action: 'facility_data_requested',
+      label: 'Anläggningsuppgifter begärda från nätägare',
+      source: 'website_application_review',
+      billable: true,
+      billingUnit: 'facility_data_request',
+      metadata: { application_id: application.id, request_status: request.status, channel: request.channel, next_step: request.nextStep },
+    })
+  } else {
+    await logAdminActionAndUsage({
+      companyId: application.company_id,
+      actorUserId: admin.userId,
+      customerId: application.customer_id,
+      entityType: 'website_customer_application',
+      entityId: application.id,
+      action: 'facility_data_request.skipped',
+      label: 'Begäran om anläggningsuppgifter kunde inte skapas',
+      source: 'website_application_review',
+      billable: false,
+      metadata: { request_status: request.status, channel: request.channel, next_step: request.nextStep, warnings: request.warnings },
+    })
+  }
 
   revalidatePath('/admin/website-applications')
   if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
@@ -890,6 +964,18 @@ export async function markWebsiteApplicationFacilityDataReceivedAction(formData:
     .throwOnError()
 
   await updateCustomerReviewState(application, readiness)
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId: application.customer_id,
+    entityType: 'website_customer_application',
+    entityId: application.id,
+    action: 'facility_data_received',
+    label: 'Anläggningsuppgifter mottagna och verifierade',
+    source: 'website_application_review',
+    billable: false,
+    metadata: { facility_id: facilityId, metering_point_id: meteringPointId, readiness_status: readiness.status },
+  })
   revalidatePath('/admin/website-applications')
   if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
   redirect('/admin/website-applications')

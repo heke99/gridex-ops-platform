@@ -220,6 +220,197 @@ function actorIsTenantVisible(roles: string[]): boolean {
   return roles.some((role) => ['grid_owner', 'electricity_supplier'].includes(role))
 }
 
+
+type ActorImportPreviewIssue = {
+  recordName: string
+  issueType: string
+  severity: 'info' | 'warning' | 'blocking'
+  message: string
+  metadata?: Record<string, unknown>
+}
+
+type ActorImportPreviewSummary = {
+  recordsSeen: number
+  newActors: number
+  existingActors: number
+  changedActors: number
+  gridOwners: number
+  electricitySuppliers: number
+  routesSeen: number
+  prodatRoutes: number
+  utiltsRoutes: number
+  missingEdielId: number
+  missingRoutes: number
+  conflicts: number
+  safeAutoUpdateFields: string[]
+  protectedManualFields: string[]
+  issues: ActorImportPreviewIssue[]
+}
+
+async function buildActorImportPreview(records: ActorImportRecord[]): Promise<ActorImportPreviewSummary> {
+  const summary: ActorImportPreviewSummary = {
+    recordsSeen: records.length,
+    newActors: 0,
+    existingActors: 0,
+    changedActors: 0,
+    gridOwners: 0,
+    electricitySuppliers: 0,
+    routesSeen: 0,
+    prodatRoutes: 0,
+    utiltsRoutes: 0,
+    missingEdielId: 0,
+    missingRoutes: 0,
+    conflicts: 0,
+    safeAutoUpdateFields: ['namn', 'org.nr', 'identifierare', 'importkälla', 'nya ej verifierade routes'],
+    protectedManualFields: ['verifieringsstatus', 'auto_send_allowed', 'manuellt verifierade routes', 'mottagarcertifikat', 'kundflödes-synlighet'],
+    issues: [],
+  }
+
+  for (const record of records) {
+    const normalizedName = normalizeActorName(record.name)
+    const roles = new Set(record.roles)
+    if (roles.has('grid_owner')) summary.gridOwners += 1
+    if (roles.has('electricity_supplier')) summary.electricitySuppliers += 1
+    summary.routesSeen += record.routes.length
+    summary.prodatRoutes += record.routes.filter((route) => route.messageFamily === 'PRODAT').length
+    summary.utiltsRoutes += record.routes.filter((route) => route.messageFamily === 'UTILTS').length
+
+    const byName = await supabaseService
+      .from('platform_market_actors')
+      .select('id,match_status,metadata')
+      .eq('normalized_name', normalizedName)
+      .maybeSingle()
+    if (byName.error && byName.error.code !== 'PGRST116') throw byName.error
+
+    let byEdiel: { actor_id?: string | null } | null = null
+    if (record.edielId) {
+      const edielMatch = await supabaseService
+        .from('platform_actor_identifiers')
+        .select('actor_id')
+        .eq('identifier_type', 'EdielId')
+        .eq('identifier_value', record.edielId)
+        .limit(1)
+        .maybeSingle()
+      if (edielMatch.error && edielMatch.error.code !== 'PGRST116') throw edielMatch.error
+      byEdiel = edielMatch.data as { actor_id?: string | null } | null
+    }
+
+    const existsByName = Boolean(byName.data?.id)
+    const existsByEdiel = Boolean(byEdiel?.actor_id)
+    if (existsByName || existsByEdiel) summary.existingActors += 1
+    else summary.newActors += 1
+    if (existsByName && record.routes.length > 0) summary.changedActors += 1
+
+    if (existsByName && existsByEdiel && byEdiel?.actor_id && byEdiel.actor_id !== byName.data?.id) {
+      summary.conflicts += 1
+      summary.issues.push({
+        recordName: record.name,
+        issueType: 'identifier_conflict',
+        severity: 'blocking',
+        message: `Ediel-ID ${record.edielId} matchar annan aktör än namnet. Importen kräver manuell granskning innan masterdata ändras.`,
+        metadata: { edielId: record.edielId, actorByName: byName.data?.id, actorByEdiel: byEdiel.actor_id },
+      })
+    }
+
+    if (!record.edielId) {
+      summary.missingEdielId += 1
+      summary.issues.push({
+        recordName: record.name,
+        issueType: 'missing_identifier',
+        severity: 'blocking',
+        message: 'Aktören saknar Ediel-ID och får inte bli sändningsklar.',
+      })
+    }
+
+    if (record.routes.length === 0) {
+      summary.missingRoutes += 1
+      summary.issues.push({
+        recordName: record.name,
+        issueType: 'missing_route',
+        severity: roles.has('grid_owner') ? 'blocking' : 'warning',
+        message: roles.has('grid_owner')
+          ? 'Nätägaren saknar route. Kundintag kan visa aktören, men automatisk PRODAT/UTILTS måste blockeras tills route finns.'
+          : 'Aktören saknar route och behöver kompletteras innan sändning.',
+        metadata: { roles: record.roles, edielId: record.edielId },
+      })
+    }
+
+    const missingContactRoute = record.routes.find((route) => !route.communicationAddress)
+    if (missingContactRoute) {
+      summary.issues.push({
+        recordName: record.name,
+        issueType: 'missing_contact',
+        severity: 'warning',
+        message: `${missingContactRoute.messageFamily} saknar SMTP/kontaktadress. Läggs i granskning innan sändning.`,
+        metadata: { messageFamily: missingContactRoute.messageFamily, edielId: record.edielId },
+      })
+    }
+  }
+
+  return summary
+}
+
+async function createActorImportPreviewRun(input: {
+  fileName: string
+  source: string
+  importType: string
+  parsed: ActorImportRecord[]
+  userId: string
+}) {
+  const preview = await buildActorImportPreview(input.parsed)
+  const run = await supabaseService
+    .from('platform_actor_import_runs')
+    .insert({
+      source: input.fileName,
+      import_type: input.importType,
+      status: preview.conflicts > 0 ? 'completed_with_warnings' : 'completed',
+      records_seen: preview.recordsSeen,
+      records_upserted: 0,
+      records_failed: preview.issues.filter((issue) => issue.severity === 'blocking').length,
+      safe: preview.conflicts === 0,
+      completed_at: new Date().toISOString(),
+      created_by: input.userId,
+      metadata: {
+        mode: 'preview',
+        source: input.source,
+        fileName: input.fileName,
+        preview,
+        nextStep: 'Granska diffen. Kör därefter importen igen med bekräftelsetext IMPORTERA för att uppdatera masterdata.',
+      },
+      error_log: preview.issues,
+    })
+    .select('id')
+    .single()
+  if (run.error) throw run.error
+
+  for (const issue of preview.issues.slice(0, 200)) {
+    const result = await supabaseService.from('platform_actor_import_issues').insert({
+      import_run_id: run.data.id,
+      actor_id: null,
+      issue_type: issue.issueType,
+      severity: issue.severity,
+      status: 'open',
+      message: issue.message,
+      metadata: { ...(issue.metadata ?? {}), recordName: issue.recordName, previewOnly: true },
+    })
+    if (result.error) throw result.error
+  }
+
+  await logAdminActionAndUsage({
+    companyId: null,
+    actorUserId: input.userId,
+    entityType: 'platform_actor_import_run',
+    entityId: String(run.data.id),
+    action: 'actor_import.previewed',
+    label: 'Aktörsimport förhandsgranskad',
+    billable: false,
+    billingUnit: 'actor_import_preview',
+    metadata: { source: input.source, fileName: input.fileName, preview },
+  })
+
+  return run.data.id
+}
+
 async function upsertImportedActor(record: ActorImportRecord, importRunId: string, source: string, userId: string) {
   const normalizedName = normalizeActorName(record.name)
   const existing = await supabaseService
@@ -368,26 +559,52 @@ export async function importPlatformActorsAction(formData: FormData) {
   const file = formData.get('actorImportFile')
   const source = value(formData, 'source') ?? 'ui_import'
   const format = value(formData, 'format') ?? 'auto'
+  const mode = value(formData, 'importMode') ?? 'preview'
+  const confirmApply = value(formData, 'confirmApply')
   if (!(file instanceof File) || file.size <= 0) throw new Error('Välj companies.xml eller CSV-fil att importera.')
 
   const textContent = await file.text()
   const fileName = file.name || 'actor-import'
+  const importType = fileName.toLowerCase().endsWith('.xml') ? 'companies_xml' : 'csv'
   const parsed = format === 'csv' || fileName.toLowerCase().endsWith('.csv')
     ? parseActorCsv(textContent)
     : parseCompaniesXml(textContent)
   if (parsed.length === 0) throw new Error('Importfilen innehöll inga aktörer som kunde läsas.')
 
+  if (mode !== 'apply') {
+    await createActorImportPreviewRun({
+      fileName,
+      source,
+      importType,
+      parsed,
+      userId: context.userId,
+    })
+    revalidatePath('/admin/ediel/actors')
+    revalidatePath('/admin/customers/intake')
+    return
+  }
+
+  if (confirmApply !== 'IMPORTERA') {
+    throw new Error('Skriv IMPORTERA för att godkänna att säkra fält uppdateras och osäkra ändringar läggs i granskning.')
+  }
+
+  const preview = await buildActorImportPreview(parsed)
+  if (preview.conflicts > 0) {
+    await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId })
+    throw new Error('Importen stoppades eftersom förhandsgranskningen hittade konflikt i Ediel-ID/aktörsmatchning. Lös granskningspunkterna innan importen godkänns.')
+  }
+
   const run = await supabaseService
     .from('platform_actor_import_runs')
     .insert({
       source: fileName,
-      import_type: fileName.toLowerCase().endsWith('.xml') ? 'companies_xml' : 'csv',
+      import_type: importType,
       status: 'running',
       records_seen: parsed.length,
       records_upserted: 0,
       safe: true,
       created_by: context.userId,
-      metadata: { source, importedFromUi: true },
+      metadata: { source, importedFromUi: true, mode: 'apply', preview },
     })
     .select('id')
     .single()
@@ -413,7 +630,7 @@ export async function importPlatformActorsAction(formData: FormData) {
       records_failed: errors.length,
       completed_at: new Date().toISOString(),
       error_log: errors,
-      metadata: { source, importedFromUi: true, fileName, parsed: parsed.length },
+      metadata: { source, importedFromUi: true, mode: 'apply', fileName, parsed: parsed.length, preview },
     })
     .eq('id', run.data.id)
   if (update.error) throw update.error
@@ -427,7 +644,7 @@ export async function importPlatformActorsAction(formData: FormData) {
     label: errors.length > 0 ? 'Aktörsimport slutförd med granskningspunkter' : 'Aktörsimport slutförd',
     billable: true,
     billingUnit: 'actor_import',
-    metadata: { source, fileName, parsed: parsed.length, upserted, failed: errors.length, status },
+    metadata: { source, fileName, parsed: parsed.length, upserted, failed: errors.length, status, preview },
   })
 
   revalidatePath('/admin/ediel/actors')

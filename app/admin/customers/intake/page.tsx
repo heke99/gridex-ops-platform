@@ -149,6 +149,7 @@ export default async function CustomerIntakePage() {
         <section className="rounded-3xl border border-sky-200 bg-sky-50 p-6 text-sm leading-6 text-sky-950 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Verifierade aktörer används i kundflödet</h2>
           <p className="mt-2">Vanliga elbolagsadmin väljer nätägare och tidigare leverantör från centralt verifierad masterdata. Ediel-id, subadresser, certifikat, SMTP/IMAP och route-profiler hanteras av platform/teknisk admin så att kundintag inte kan skapa osäkra Ediel-rutter.</p>
+          <p className="mt-2">Nästa åtgärd ska alltid vara tydlig: begär anläggningsuppgifter, verifiera nätägare, komplettera fullmakt eller starta leverantörsbyte först när verifierad nätägare, nätområdeskod och anläggningsdata finns.</p>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
