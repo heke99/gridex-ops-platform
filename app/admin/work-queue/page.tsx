@@ -3,6 +3,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { listCompanyWorkQueue } from '@/lib/performance/companySummaries'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
@@ -198,11 +199,28 @@ export default async function AdminWorkQueuePage() {
   const isPlatformAdmin = isPlatformAdminContext(context)
   const supabase = await createSupabaseServerClient()
   const companyId = isPlatformAdmin ? null : companyScope.companyId
-  const activeCustomers = await loadActiveCustomers(supabase, companyId, isPlatformAdmin)
-  const customerIds = activeCustomers.map((customer) => customer.id)
-  const customersById = new Map(activeCustomers.map((customer) => [customer.id, customer]))
+  const dbQueueRows = await listCompanyWorkQueue(supabase, companyId, { limit: 250 })
+  let activeCustomers: ActiveCustomer[] = []
+  const items: QueueItem[] = dbQueueRows.map((row) => ({
+    id: row.id,
+    source: row.source,
+    customerId: row.customerId,
+    customerLabel: row.customerLabel,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    priority: row.priority,
+    createdAt: row.createdAt,
+    href: row.href,
+    actionLabel: row.actionLabel,
+  }))
 
-  const [blockers, infoRequests, gridOwnerRequests, operationTasks, switchRequests] = await Promise.all([
+  if (items.length === 0) {
+    activeCustomers = await loadActiveCustomers(supabase, companyId, isPlatformAdmin)
+    const customerIds = activeCustomers.map((customer) => customer.id)
+    const customersById = new Map(activeCustomers.map((customer) => [customer.id, customer]))
+
+    const [blockers, infoRequests, gridOwnerRequests, operationTasks, switchRequests] = await Promise.all([
     safeRows<Record<string, unknown>>(
       supabase,
       'customer_blockers',
@@ -250,7 +268,6 @@ export default async function AdminWorkQueuePage() {
     ),
   ])
 
-  const items: QueueItem[] = []
 
   for (const row of blockers) {
     const customer = customersById.get(String(row.customer_id ?? ''))
@@ -343,6 +360,8 @@ export default async function AdminWorkQueuePage() {
     })
   }
 
+  }
+
   const sortedItems = items.sort((a, b) => {
     const priorityRank = { critical: 4, high: 3, normal: 2, low: 1 }
     const byPriority = priorityRank[b.priority] - priorityRank[a.priority]
@@ -350,10 +369,14 @@ export default async function AdminWorkQueuePage() {
     return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
   })
 
-  const visibleCustomerCount = activeCustomers.length
-  const staleHint = visibleCustomerCount === 0
-    ? 'Arbetskön visar bara ärenden kopplade till synliga kunder. Gamla testkunder, arkiverade kunder och orphans filtreras bort.'
-    : `${visibleCustomerCount} synliga kunder används som grund för kön.`
+  const visibleCustomerCount = dbQueueRows.length > 0
+    ? new Set(dbQueueRows.map((row) => row.customerId).filter(Boolean)).size
+    : activeCustomers.length
+  const staleHint = dbQueueRows.length > 0
+    ? `Arbetskön laddas via sammanställd databasvy. ${visibleCustomerCount} kunder har aktiva åtgärder i kön.`
+    : visibleCustomerCount === 0
+      ? 'Arbetskön visar bara ärenden kopplade till synliga kunder. Gamla testkunder, arkiverade kunder och orphans filtreras bort.'
+      : `${visibleCustomerCount} synliga kunder används som grund för kön.`
 
   return (
     <div className="min-h-screen bg-slate-50">

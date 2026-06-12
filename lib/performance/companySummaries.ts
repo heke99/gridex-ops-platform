@@ -80,6 +80,17 @@ export type CustomerListSummaryRow = {
 
 type RawRow = Record<string, unknown>
 
+function firstRpcRow(data: unknown): RawRow | null {
+  if (Array.isArray(data)) return (data[0] as RawRow | undefined) ?? null
+  if (data && typeof data === 'object') return data as RawRow
+  return null
+}
+
+function rpcRows(data: unknown): RawRow[] {
+  if (!Array.isArray(data)) return []
+  return data.filter((item): item is RawRow => Boolean(item) && typeof item === 'object')
+}
+
 export async function getCompanyDashboardSummary(
   supabase: SupabaseClient,
   companyId: string | null | undefined
@@ -87,14 +98,19 @@ export async function getCompanyDashboardSummary(
   if (!companyId) return null
 
   try {
-    const { data, error } = await supabase
-      .from('company_dashboard_summary_v')
-      .select('*')
-      .eq('company_id', companyId)
-      .maybeSingle()
+    const rpcResult = await supabase.rpc('gridex_admin_dashboard_summary', { p_company_id: companyId })
+    let row = firstRpcRow(rpcResult.data)
 
-    if (error || !data) return null
-    const row = data as RawRow
+    if (rpcResult.error || !row) {
+      const { data, error } = await supabase
+        .from('company_dashboard_summary_v')
+        .select('*')
+        .eq('company_id', companyId)
+        .maybeSingle()
+
+      if (error || !data) return null
+      row = data as RawRow
+    }
 
     return {
       companyId,
@@ -136,16 +152,23 @@ export async function listCompanyCustomerIntakeQueue(
   if (!companyId) return []
 
   try {
-    const { data, error } = await supabase
-      .from('company_customer_intake_queue_v')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false })
-      .limit(options.limit ?? 50)
+    const limit = options.limit ?? 50
+    const rpcResult = await supabase.rpc('gridex_customer_intake_queue', { p_company_id: companyId, p_limit: limit })
+    let rows = rpcRows(rpcResult.data)
 
-    if (error) return []
+    if (rpcResult.error || rows.length === 0) {
+      const { data, error } = await supabase
+        .from('company_customer_intake_queue_v')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(limit)
 
-    return ((data ?? []) as RawRow[]).map((row) => ({
+      if (error) return []
+      rows = ((data ?? []) as RawRow[])
+    }
+
+    return rows.map((row) => ({
       intakeId: String(row.intake_id),
       companyId: String(row.company_id),
       customerId: typeof row.customer_id === 'string' ? row.customer_id : null,
@@ -177,16 +200,23 @@ export async function listCompanyCustomerListSummary(
   if (!companyId) return []
 
   try {
-    const { data, error } = await supabase
-      .from('company_customer_list_summary_v')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('latest_activity_at', { ascending: false, nullsFirst: false })
-      .limit(options.limit ?? 100)
+    const limit = options.limit ?? 100
+    const rpcResult = await supabase.rpc('gridex_customer_list_summary', { p_company_id: companyId, p_limit: limit })
+    let rows = rpcRows(rpcResult.data)
 
-    if (error) return []
+    if (rpcResult.error || rows.length === 0) {
+      const { data, error } = await supabase
+        .from('company_customer_list_summary_v')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('latest_activity_at', { ascending: false, nullsFirst: false })
+        .limit(limit)
 
-    return ((data ?? []) as RawRow[]).map((row) => ({
+      if (error) return []
+      rows = ((data ?? []) as RawRow[])
+    }
+
+    return rows.map((row) => ({
       customerId: String(row.customer_id),
       companyId: String(row.company_id),
       customerNumber: typeof row.customer_number === 'string' ? row.customer_number : null,
@@ -200,6 +230,60 @@ export async function listCompanyCustomerListSummary(
       activeContractStatus: typeof row.active_contract_status === 'string' ? row.active_contract_status : null,
       latestActivityAt: typeof row.latest_activity_at === 'string' ? row.latest_activity_at : null,
       blockingReasonCount: toNumber(row.blocking_reason_count),
+    }))
+  } catch {
+    return []
+  }
+}
+
+
+export type CompanyWorkQueueRow = {
+  id: string
+  companyId: string
+  customerId: string
+  source: string
+  customerNumber: string | null
+  customerLabel: string
+  title: string
+  description: string
+  status: string
+  priority: 'low' | 'normal' | 'high' | 'critical'
+  createdAt: string | null
+  href: string
+  actionLabel: string
+}
+
+function normalizeWorkQueuePriority(value: unknown): CompanyWorkQueueRow['priority'] {
+  const normalized = String(value ?? '').toLowerCase()
+  if (normalized === 'critical' || normalized === 'high' || normalized === 'low') return normalized
+  return 'normal'
+}
+
+export async function listCompanyWorkQueue(
+  supabase: SupabaseClient,
+  companyId: string | null | undefined,
+  options: { limit?: number } = {}
+): Promise<CompanyWorkQueueRow[]> {
+  try {
+    const limit = options.limit ?? 200
+    const rpcResult = await supabase.rpc('gridex_get_work_queue', { p_company_id: companyId ?? null, p_limit: limit })
+    const rows = rpcRows(rpcResult.data)
+    if (rpcResult.error) return []
+
+    return rows.map((row) => ({
+      id: String(row.id),
+      companyId: String(row.company_id),
+      customerId: String(row.customer_id),
+      source: typeof row.source === 'string' ? row.source : 'Ärende',
+      customerNumber: typeof row.customer_number === 'string' ? row.customer_number : null,
+      customerLabel: typeof row.customer_label === 'string' ? row.customer_label : 'Kund utan namn',
+      title: typeof row.title === 'string' ? row.title : 'Åtgärd krävs',
+      description: typeof row.description === 'string' ? row.description : '',
+      status: typeof row.status === 'string' ? row.status : 'open',
+      priority: normalizeWorkQueuePriority(row.priority),
+      createdAt: typeof row.created_at === 'string' ? row.created_at : null,
+      href: typeof row.href === 'string' ? row.href : `/admin/customers/${String(row.customer_id)}`,
+      actionLabel: typeof row.action_label === 'string' ? row.action_label : 'Öppna',
     }))
   } catch {
     return []
