@@ -42,6 +42,7 @@ export type GovernanceCompany = {
   name: string
   slug: string | null
   org_number: string | null
+  customer_number_prefix: string | null
   status: CompanyOperationalStatus
   status_reason: string | null
   primary_contact_email: string | null
@@ -97,6 +98,7 @@ type CompanyRow = {
   name: string
   slug?: string | null
   org_number?: string | null
+  customer_number_prefix?: string | null
   status?: string | null
   status_reason?: string | null
   primary_contact_email?: string | null
@@ -255,8 +257,8 @@ async function latestTimestamp(table: string, companyId: string, column = 'creat
   }
 }
 
-const COMPANY_FULL_SELECT = 'id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at'
-const COMPANY_SAFE_SELECT = 'id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, created_at, updated_at'
+const COMPANY_FULL_SELECT = 'id, name, slug, org_number, customer_number_prefix, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at'
+const COMPANY_SAFE_SELECT = 'id, name, slug, org_number, customer_number_prefix, status, status_reason, primary_contact_email, primary_contact_name, phone, website, created_at, updated_at'
 const COMPANY_MINIMAL_SELECT = 'id, name, status'
 
 async function selectCompanyById(companyId: string, select: string) {
@@ -342,6 +344,7 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
     name: company.name,
     slug: company.slug ?? null,
     org_number: company.org_number ?? null,
+    customer_number_prefix: company.customer_number_prefix ?? null,
     status: normalizeCompanyStatus(company.status),
     status_reason: company.status_reason ?? null,
     primary_contact_email: company.primary_contact_email ?? null,
@@ -371,7 +374,7 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
 export async function listCompanyGovernanceSummaries(): Promise<GovernanceCompany[]> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('id, name, slug, org_number, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at')
+    .select('id, name, slug, org_number, customer_number_prefix, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at')
     .neq('status', 'deleted_test_only')
     .order('created_at', { ascending: false })
 

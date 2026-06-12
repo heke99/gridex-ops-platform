@@ -46,9 +46,9 @@ Gridex använder separata identiteter:
 
 ```text
 customer_id              Intern teknisk UUID i Gridex/Ops.
-customer_number          Gridex affärsreferens, t.ex. GDX-100001. Master för kundportal, faktura, Capway och bestridan.
+customer_number          Ops affärsreferens per bolag, t.ex. DX-100001. Master för kundportal, faktura, Capway och bestridan.
 contract_id              Intern teknisk UUID för avtalet.
-contract_number          Kundvänligt avtalsnummer, t.ex. AVT-100001-01.
+contract_number          Kundvänligt avtalsnummer, t.ex. AVT-DX-100001-001.
 application_id           Intern teknisk UUID för ansökan.
 application_number       Kund-/adminvänligt ansökningsnummer.
 external_customer_id     Hemsidans/partnerns kund-ID.
@@ -62,7 +62,7 @@ Capway invoice id
 annan partnerreferens
 ```
 
-Capway får alltså gärna ge egna ID:n, men de ersätter inte Gridex `customer_number`.
+Capway får alltså gärna ge egna ID:n, men de ersätter inte Ops `customer_number`.
 
 ## Autentisering
 
@@ -208,7 +208,7 @@ Response:
 {
   "data": {
     "customer_id": "93749529-aae5-43dc-941c-641ec3ecb16b",
-    "customer_number": "GDX-100001",
+    "customer_number": "DX-100001",
     "application_id": "...",
     "application_number": "APP-20260612-0001",
     "external_customer_id": "CUSTOMER-12345",
@@ -216,7 +216,7 @@ Response:
     "customer_site_id": "...",
     "metering_point_id": "...",
     "contract_id": "...",
-    "contract_number": "AVT-100001-01",
+    "contract_number": "AVT-DX-100001-001",
     "contract_price_snapshot_id": "...",
     "price_plan_id": "plan_...",
     "price_plan_version_id": "version_...",
@@ -353,7 +353,7 @@ Payload:
   "created_at": "2026-06-09T14:00:00Z",
   "company_id": "b3ad1bf6-fa45-41a6-8054-2e0862e82aca",
   "customer_id": "93749529-aae5-43dc-8099-9729ecb8ca17",
-  "customer_number": "GDX-100001",
+  "customer_number": "DX-100001",
   "external_customer_id": "CUSTOMER-12345",
   "data": {
     "invoice_id": "inv_123",

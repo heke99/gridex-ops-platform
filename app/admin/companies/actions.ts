@@ -134,6 +134,15 @@ function slugify(value: string): string {
     .slice(0, 120)
 }
 
+function normalizeCustomerNumberPrefix(value: FormDataEntryValue | null): string | null {
+  const prefix = normalizeText(value).toUpperCase().replace(/[^A-Z0-9]/g, '')
+  if (!prefix) return null
+  if (!/^[A-Z0-9]{2,12}$/.test(prefix)) {
+    throw new Error('Kundnummerprefix måste vara 2–12 tecken och bara innehålla A–Z eller 0–9.')
+  }
+  return prefix
+}
+
 async function getCurrentUserId(): Promise<string> {
   const supabase = await createSupabaseServerClient()
   const {
@@ -300,6 +309,7 @@ export async function createCompanyAction(
 
     const name = normalizeText(formData.get('name'))
     const orgNumber = normalizeText(formData.get('org_number')) || null
+    const customerNumberPrefix = normalizeCustomerNumberPrefix(formData.get('customer_number_prefix'))
     const primaryContactEmail = normalizeEmail(formData.get('primary_contact_email')) || null
     const primaryContactName = normalizeText(formData.get('primary_contact_name')) || null
     const phone = normalizeText(formData.get('phone')) || null
@@ -321,6 +331,7 @@ export async function createCompanyAction(
         name,
         slug,
         org_number: orgNumber,
+        customer_number_prefix: customerNumberPrefix,
         status: 'onboarding',
         primary_contact_email: primaryContactEmail,
         primary_contact_name: primaryContactName,
@@ -372,6 +383,7 @@ export async function createCompanyAction(
       metadata: {
         name,
         orgNumber,
+        customerNumberPrefix,
         accountFlow: initialAdminEmail ? 'direct_temporary_password' : 'company_without_initial_admin',
       },
     })

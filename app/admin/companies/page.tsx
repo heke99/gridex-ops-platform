@@ -195,6 +195,12 @@ export default async function CompaniesPage({
               </div>
 
               <label className="grid gap-2 text-sm">
+                <span className="font-medium text-slate-700">Kundnummerprefix</span>
+                <input name="customer_number_prefix" className="min-w-0 rounded-2xl border border-slate-300 px-4 py-3 uppercase" placeholder="Ex. DX, GDX eller NIB" />
+                <span className="text-xs leading-5 text-slate-500">Valfritt. Används för kundnummer som DX-100001 per bolag. Om fältet lämnas tomt skapas prefix från bolagets namn.</span>
+              </label>
+
+              <label className="grid gap-2 text-sm">
                 <span className="font-medium text-slate-700">Kontaktperson</span>
                 <input name="primary_contact_name" className="min-w-0 rounded-2xl border border-slate-300 px-4 py-3" />
               </label>
@@ -250,7 +256,7 @@ export default async function CompaniesPage({
                         </div>
 
                         <p className="break-words text-sm text-slate-700">
-                          {company.org_number ?? 'Organisationsnummer saknas'} · {company.slug ?? 'Kortnamn saknas'}
+                          {company.org_number ?? 'Organisationsnummer saknas'} · {company.slug ?? 'Kortnamn saknas'} · Kundnummerprefix {company.customer_number_prefix ?? 'auto'}
                         </p>
                         <p className="break-all rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">ID: {company.id}</p>
                         <p className="text-sm leading-6 text-slate-700">{copy.description}</p>

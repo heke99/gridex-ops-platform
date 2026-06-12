@@ -384,9 +384,9 @@ export default function CustomerPortalApiDocsPage() {
           </Section>
 
           <Section id="identity" label="02" title="Tre identiteter: customer_id, customer_number och externa ID:n">
-            <p><strong>customer_id</strong> är Gridex tekniska UUID i databasen. <strong>customer_number</strong> är den affärsmässiga kundreferensen, exempelvis GDX-100001, som ska användas i kundportal, faktura, Capway-referenser och bestridanden. <strong>external_customer_id</strong> är kundens ID i den externa hemsidan.</p>
+            <p><strong>customer_id</strong> är Gridex tekniska UUID i databasen. <strong>customer_number</strong> är den affärsmässiga kundreferensen, exempelvis DX-100001 eller NIB-100001 beroende på bolagets kundnummerprefix, som ska användas i kundportal, faktura, Capway-referenser och bestridanden. <strong>external_customer_id</strong> är kundens ID i den externa hemsidan.</p>
             <CodeBlock>{`Gridex customer_id      = intern teknisk master
-Gridex customer_number  = affärsreferens/master för kund
+Ops customer_number     = affärsreferens/master per bolag
 external_customer_id    = hemsidans/partnerns kund-ID
 Capway debtor_id        = extern faktura-/betalpartnerreferens
 Capway invoice_id       = extern fakturareferens`}</CodeBlock>
@@ -414,7 +414,7 @@ Capway invoice_id       = extern fakturareferens`}</CodeBlock>
             <CodeBlock>{`{
   "data": {
     "customer_id": "93749529-aae5-43dc-941c-641ec3ecb16b",
-    "customer_number": "GDX-100001",
+    "customer_number": "DX-100001",
     "application_id": "...",
     "application_number": "APP-20260612-0001",
     "external_customer_id": "CUSTOMER-12345",
@@ -422,7 +422,7 @@ Capway invoice_id       = extern fakturareferens`}</CodeBlock>
     "customer_site_id": "...",
     "metering_point_id": "...",
     "contract_id": "...",
-    "contract_number": "AVT-100001-01",
+    "contract_number": "AVT-DX-100001-001",
     "contract_price_snapshot_id": "...",
     "price_plan_id": "plan_...",
     "price_plan_version_id": "version_...",
@@ -436,10 +436,10 @@ Capway invoice_id       = extern fakturareferens`}</CodeBlock>
           </Section>
 
           <Section id="live-schema" label="04B" title="Live-schema och idempotency">
-            <p>Website onboarding använder live-tabellerna i Ops. Hemsidan skickar external_customer_id, men Gridex skapar customer_number, customer_sites och public.metering_points.</p>
+            <p>Website onboarding använder live-tabellerna i Ops. Hemsidan skickar external_customer_id, men Ops skapar customer_number, customer_sites och public.metering_points.</p>
             <CodeBlock>{`Core-regler:
 external_customer_id krävs
-customer_number kommer från Ops
+customer_number kommer från Ops och använder bolagets customer_number_prefix, t.ex. DX-100001 eller NIB-100001
 site/facility_id används för customer_sites
 mätpunkt skapas i public.metering_points
 failed idempotency ger 409 idempotent_failed
@@ -499,7 +499,7 @@ x-gridex-webhook-signature: sha256=<hmac>`}</CodeBlock>
   "created_at": "2026-06-09T14:00:00Z",
   "company_id": "b3ad1bf6-fa45-41a6-8054-2e0862e82aca",
   "customer_id": "93749529-aae5-43dc-8099-9729ecb8ca17",
-  "customer_number": "GDX-100001",
+  "customer_number": "DX-100001",
   "external_customer_id": "CUSTOMER-12345",
   "data": {
     "invoice_id": "inv_123",
@@ -532,7 +532,7 @@ webhook_deliveries`}</CodeBlock>
           </Section>
 
           <Section id="billing" label="08" title="Fakturor, Capway och bestridan">
-            <p>Gridex customer_number är master-referens. Capway kan ge debtor_id/customer id och invoice id, men dessa lagras som externa referenser och ersätter inte Gridex kundnummer.</p>
+            <p>Ops customer_number är master-referens per bolag. Capway kan ge debtor_id/customer id och invoice id, men dessa lagras som externa referenser och ersätter inte Ops kundnummer.</p>
             <CodeBlock>{`Capway debtRow-regel:
 amount = belopp exkl. moms
 vatCode = SE25 vid svensk 25% moms

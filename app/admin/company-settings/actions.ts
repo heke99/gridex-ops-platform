@@ -28,6 +28,15 @@ function normalizeUpper(value: FormDataEntryValue | null) {
   return text ? text.toUpperCase() : null
 }
 
+function normalizeCustomerNumberPrefix(value: FormDataEntryValue | null): string | null {
+  const prefix = normalizeText(value).toUpperCase().replace(/[^A-Z0-9]/g, '')
+  if (!prefix) return null
+  if (!/^[A-Z0-9]{2,12}$/.test(prefix)) {
+    throw new Error('Kundnummerprefix måste vara 2–12 tecken och bara innehålla A–Z eller 0–9.')
+  }
+  return prefix
+}
+
 function normalizeEnvironment(value: FormDataEntryValue | null) {
   const text = normalizeText(value)
   return text === 'production' ? 'production' : 'test'
@@ -57,6 +66,7 @@ export async function updateCompanySettingsAction(
 
     const name = normalizeText(formData.get('name'))
     const orgNumber = normalizeText(formData.get('org_number')) || null
+    const customerNumberPrefix = normalizeCustomerNumberPrefix(formData.get('customer_number_prefix'))
     const primaryContactName = normalizeText(formData.get('primary_contact_name')) || null
     const primaryContactEmail = normalizeEmail(formData.get('primary_contact_email')) || null
     const phone = normalizeText(formData.get('phone')) || null
@@ -94,11 +104,26 @@ export async function updateCompanySettingsAction(
 
     if (!name) return { ok: false, message: 'Bolagsnamn krävs.' }
 
+    const currentPrefix = currentCompany.customer_number_prefix ?? null
+    if (customerNumberPrefix !== currentPrefix) {
+      const { count, error: customerCountError } = await supabaseService
+        .from('customers')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .not('customer_number', 'is', null)
+
+      if (customerCountError) throw customerCountError
+      if ((count ?? 0) > 0) {
+        return { ok: false, message: 'Kundnummerprefix kan inte ändras efter att bolaget har fått kundnummer. Skapa ett nytt prefix bara innan första kunden.' }
+      }
+    }
+
     const { error } = await supabaseService
       .from('companies')
       .update({
         name,
         org_number: orgNumber,
+        customer_number_prefix: customerNumberPrefix,
         primary_contact_name: primaryContactName,
         primary_contact_email: primaryContactEmail,
         phone,

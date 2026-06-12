@@ -113,6 +113,20 @@ export default async function CompanySettingsPage() {
                 </label>
                 <label className="grid gap-2 text-sm">
                   <span className="font-medium text-slate-700">
+                    Kundnummerprefix
+                  </span>
+                  <input
+                    name="customer_number_prefix"
+                    defaultValue={company.customer_number_prefix ?? ""}
+                    className="rounded-2xl border border-slate-300 px-4 py-3 uppercase"
+                    placeholder="Ex. DX eller GDX"
+                  />
+                  <span className="text-xs leading-5 text-slate-500">
+                    Används för nya kundnummer, exempelvis DX-100001. Kan bara ändras innan första kunden har fått kundnummer.
+                  </span>
+                </label>
+                <label className="grid gap-2 text-sm">
+                  <span className="font-medium text-slate-700">
                     Kontaktperson
                   </span>
                   <input
