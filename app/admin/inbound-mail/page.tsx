@@ -129,22 +129,22 @@ export default async function InboundMailPage() {
   ] = await Promise.all([
     supabaseService
       .from("ediel_mailboxes")
-      .select("*")
+      .select("id, mailbox_name, company_id, email_address, environment, is_active, imap_host, imap_port, smtp_host, smtp_port, smtp_from, smtp_to, username, secret_reference, poll_interval_minutes, last_polled_at, last_successful_poll_at, locked_at, metadata, last_error, updated_at")
       .order("updated_at", { ascending: false })
       .limit(50),
     supabaseService
       .from("inbound_email_messages")
-      .select("*")
+      .select("id, company_id, mailbox_id, from_address, subject, received_at, processing_status, match_status, message_family, message_code, created_at")
       .order("created_at", { ascending: false })
       .limit(25),
     supabaseService
       .from("inbound_ediel_parse_results")
-      .select("*")
+      .select("id, inbound_email_message_id, message_family, message_code, parse_status, interchange_reference, transaction_reference, created_at")
       .order("created_at", { ascending: false })
       .limit(25),
     supabaseService
       .from("ediel_inbound_poll_runs")
-      .select("*")
+      .select("id, environment, status, configured_mailboxes, due_mailboxes, skipped_locked, skipped_not_due, fetched_messages, stored_emails, deduped_emails, processed_jobs, failed_jobs, started_at, finished_at, errors_by_mailbox, metadata")
       .order("started_at", { ascending: false })
       .limit(10),
     safeCount("inbound_email_messages"),

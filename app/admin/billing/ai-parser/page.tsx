@@ -44,7 +44,7 @@ export default async function BillingAiParserPage() {
   const { data, error } = companyId
     ? await supabase
         .from('document_ai_extractions')
-        .select('*')
+        .select('id, customer_id, source_file_name, status, extracted_fields, field_confidence, detected_signatures, detected_authorizations, detected_sites, detected_invoice_address, review_notes, created_at')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .limit(40)

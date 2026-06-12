@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function EdielActorsPage() {
   const context = await requirePlatformAdminAccess()
-  const [actorsResult, partiesResult, addressesResult, marketActorsResult, actorRolesResult, actorRoutesResult, importIssuesResult, semanticsResult, errorMappingsResult] = await Promise.all([
+  const [actorsResult, partiesResult, addressesResult, marketActorsResult, actorRolesResult, actorRoutesResult, importIssuesResult, semanticsResult] = await Promise.all([
     supabaseService
     .from('ediel_actor_settings')
     .select('id, company_id, ediel_id, actor_ediel_id, actor_role, role, sub_role, environment, is_active, status, updated_at')
@@ -15,12 +15,12 @@ export default async function EdielActorsPage() {
       .limit(100),
     supabaseService
       .from('ediel_parties')
-      .select('*')
+      .select('id, name, ediel_id, roles, status, visible_to_customer_flow, source, updated_at')
       .order('updated_at', { ascending: false })
       .limit(100),
     supabaseService
       .from('ediel_party_addresses')
-      .select('*')
+      .select('id, party_id, ediel_id, qualifier, subaddress, business_code, environment, message_family, smtp_address, receiver_certificate_id, transport_security_mode, updated_at')
       .order('updated_at', { ascending: false })
       .limit(200),
     supabaseService
@@ -45,11 +45,6 @@ export default async function EdielActorsPage() {
       .select('message_family,message_code,subtype,business_process,request_type,is_active')
       .eq('is_active', true)
       .limit(100),
-    supabaseService
-      .from('ediel_error_code_mappings')
-      .select('business_error,recommended_action,retry_allowed,requires_customer_contact,requires_grid_owner_contact,requires_superadmin_review')
-      .eq('is_active', true)
-      .limit(100),
   ])
   const actors = actorsResult.data ?? []
   const parties = partiesResult.error ? [] : partiesResult.data ?? []
@@ -59,7 +54,6 @@ export default async function EdielActorsPage() {
   const actorRoutes = actorRoutesResult.error ? [] : actorRoutesResult.data ?? []
   const importIssues = importIssuesResult.error ? [] : importIssuesResult.data ?? []
   const messageSemantics = semanticsResult.error ? [] : semanticsResult.data ?? []
-  const errorMappings = errorMappingsResult.error ? [] : errorMappingsResult.data ?? []
   const addressesByParty = new Map<string, typeof addresses>()
   for (const address of addresses) {
     const existing = addressesByParty.get(address.party_id) ?? []

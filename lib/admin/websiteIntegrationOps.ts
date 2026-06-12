@@ -310,7 +310,7 @@ export async function listWebsiteApplicationsForCustomer(companyId: string, cust
 export async function listWebhookSubscriptions(input: { companyId?: string | null; limit?: number } = {}): QueryResult<WebhookSubscriptionAdminRow> {
   let query = supabaseService
     .from('webhook_subscriptions')
-    .select('*,companies(name),integration_api_clients(name,key_prefix)')
+    .select('id, company_id, api_client_id, name, endpoint_url, event_types, status, signing_secret_ref, last_success_at, last_failure_at, failure_count, created_at, updated_at, companies(name), integration_api_clients(name,key_prefix)')
     .order('created_at', { ascending: false })
     .limit(Math.min(Math.max(input.limit ?? 100, 1), 200))
 
@@ -327,7 +327,7 @@ export async function listWebhookSubscriptions(input: { companyId?: string | nul
 export async function listWebhookDeliveries(input: { companyId?: string | null; status?: string | null; limit?: number } = {}): QueryResult<WebhookDeliveryAdminRow> {
   let query = supabaseService
     .from('webhook_deliveries')
-    .select('*,webhook_subscriptions(name,endpoint_url,api_client_id)')
+    .select('id, company_id, webhook_subscription_id, domain_event_id, event_type, status, attempts, max_attempts, next_attempt_at, last_attempt_at, delivered_at, failed_at, response_status, response_body, failure_reason, payload, created_at, webhook_subscriptions(name,endpoint_url,api_client_id)')
     .order('created_at', { ascending: false })
     .limit(Math.min(Math.max(input.limit ?? 100, 1), 200))
 
@@ -345,7 +345,7 @@ export async function listWebhookDeliveries(input: { companyId?: string | null; 
 export async function listBillingPartnerCustomersForCustomer(companyId: string, customerId: string): QueryResult<BillingPartnerCustomerSummary> {
   const { data, error } = await supabaseService
     .from('billing_partner_customers')
-    .select('*')
+    .select('id, company_id, customer_id, customer_number, provider, provider_customer_id, provider_debtor_id, provider_status, dispute_count, last_synced_at, created_at, updated_at')
     .eq('company_id', companyId)
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false })

@@ -18,7 +18,7 @@ export default async function BillingImportPage({ searchParams }: { searchParams
   const { data: batches } = companyId
     ? await supabaseService
         .from('billing_import_batches')
-        .select('*')
+        .select('id, file_name, status, rows_total, rows_imported, rows_failed, created_at')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .limit(20)

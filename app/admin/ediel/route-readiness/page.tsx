@@ -87,7 +87,7 @@ function summary(rows: RouteReadinessRow[]) {
 async function loadRouteReadiness() {
   const result = await supabaseService
     .from('gridex_route_readiness_v')
-    .select('*')
+    .select('actor_id, actor_name, legal_name, org_number, actor_status, match_status, visible_to_tenants, actor_role, message_family, requirement_level, route_id, application_reference, environment, subaddress, communication_type, communication_address, edi_charset, edi_syntax, party_id, interchange_party_id, requires_poa, is_verified, auto_send_allowed, route_status, route_source, route_updated_at, readiness_status, next_step')
     .order('readiness_status', { ascending: true })
     .order('actor_name', { ascending: true })
     .limit(500)
