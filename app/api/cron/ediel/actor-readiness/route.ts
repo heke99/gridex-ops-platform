@@ -1,3 +1,4 @@
+// This cron route is used to trigger the actor readiness process, which checks if actors are ready to send messages based on their certificates and other criteria.
 import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
