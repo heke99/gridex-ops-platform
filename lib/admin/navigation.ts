@@ -154,6 +154,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'communication_routes', label: 'Kommunikationsvägar', href: '/admin/ediel/routes', description: 'Routes och Ediel route profiles', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'ediel.actors', label: 'Aktörer', href: '/admin/ediel/actors', description: 'Ediel-ID, roller, subadresser och miljö', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'ediel.route_readiness', label: 'Routeberedskap', href: '/admin/ediel/route-readiness', description: 'Saknade routes, contact-only suppliers och launch-spärrar', pageKey: 'ediel.routes', platformOnly: true },
+      { key: 'ediel.auto_readiness', label: 'Aktörsberedskap', href: '/admin/ediel/auto-readiness', description: 'Backfill, certifikatkontroll och säker auto-send per aktör', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'ediel.certificates', label: 'Certifikat', href: '/admin/ediel/certificates', description: 'S/MIME-certifikatmetadata och status', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'grid_owner_agreements', label: 'Nätägaravtal', href: '/admin/agreements/grid-owners', description: 'Avtal och referenskrav per nätägare', platformOnly: true },
       { key: 'ediel_settings', label: 'Application Reference', href: '/admin/ediel/settings', description: 'Aktörsidentitet, subadresser och regler', pageKey: 'ediel.routes', platformOnly: true },

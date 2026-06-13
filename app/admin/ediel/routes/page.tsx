@@ -113,7 +113,8 @@ export default async function AdminEdielRoutesPage() {
             <p className="text-sm text-slate-600">Verifiera route utan att slå på autosändning. Använd separat readiness innan auto_send_allowed sätts.</p>
           </div>
           <div className="flex gap-2">
-            <Link href="/admin/ediel/route-readiness" className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white">Öppna route-readiness</Link>
+            <Link href="/admin/ediel/auto-readiness" className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white">Aktörsberedskap</Link>
+            <Link href="/admin/ediel/route-readiness" className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Öppna route-readiness</Link>
             <Link href="/admin/ediel/routes/legacy" className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Legacy route profiles</Link>
           </div>
         </div>

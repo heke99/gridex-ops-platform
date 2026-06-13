@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/pricing/spot-prices",
       "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/cron/ediel/actor-readiness?mode=full",
+      "schedule": "25 2 * * *"
     }
   ]
 }
