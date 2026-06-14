@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { assessPublicOfferReadiness } from '@/lib/website/publicOfferReadiness'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 
 export type PublicLegalTextVersion = {
@@ -15,6 +16,8 @@ export type PublicContractOffer = {
   price_plan_id: string | null
   price_plan_version_id: string | null
   campaign_version_id: string | null
+  legal_bundle_id?: string | null
+  price_book_id?: string | null
   offer_code?: string | null
   product_code: string
   public_name: string
@@ -125,6 +128,8 @@ function offerFromSnapshot(row: PricePlanVersionRow): PublicContractOffer | null
     price_plan_id: row.price_plan_id,
     price_plan_version_id: row.id,
     campaign_version_id: clean(snapshot.campaign_version_id),
+    legal_bundle_id: clean(snapshot.legal_bundle_id),
+    price_book_id: clean(snapshot.price_book_id),
     product_code: clean(snapshot.product_code) ?? pricingModel,
     public_name: clean(snapshot.public_name) ?? clean(snapshot.name) ?? plan.name,
     public_description: clean(snapshot.public_description) ?? clean(snapshot.description) ?? plan.description,
@@ -170,6 +175,8 @@ function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
     price_plan_id: clean(row.price_plan_id),
     price_plan_version_id: clean(row.price_plan_version_id),
     campaign_version_id: clean(row.campaign_version_id),
+    legal_bundle_id: clean(row.legal_bundle_id),
+    price_book_id: clean(row.price_book_id),
     product_code: clean(row.product_code) ?? 'electricity',
     public_name: clean(row.public_name) ?? clean(row.name) ?? 'Elavtal',
     public_description: clean(row.public_description) ?? clean(row.description),
@@ -300,10 +307,28 @@ export async function listPublicContractOffers(input: {
     .order('public_name', { ascending: true })
 
   if (!primary.error) {
-    return ((primary.data ?? []) as Array<Record<string, unknown>>)
+    const mapped = ((primary.data ?? []) as Array<Record<string, unknown>>)
       .map(mapOfferRow)
       .map((offer) => offerWithLegalVersions(offer, legalVersions))
       .filter((offer): offer is PublicContractOffer => Boolean(offer && isCurrentlyValid(offer) && customerTypeAllowed(offer, input.customerType)))
+    // Assess readiness for each offer. If the readiness table does not exist yet
+    // (e.g. before migrations run) the function will report a blocker instead
+    // of throwing. Offers that are not ready will not be returned.
+    const result: PublicContractOffer[] = []
+    for (const offer of mapped) {
+      const readiness = await assessPublicOfferReadiness({
+        companyId: input.client.company_id,
+        offer: offer as unknown as { legal_bundle_id?: string | null; price_book_id?: string | null },
+      })
+      if (readiness.isReady) {
+        // attach readiness info to metadata for debugging/admin UI
+        offer.metadata = { ...offer.metadata, readiness_status: 'ready', readiness_blockers: [] }
+        result.push(offer)
+      } else {
+        continue
+      }
+    }
+    return result
   }
 
   if (!missingSchema(primary.error)) throw primary.error
@@ -320,12 +345,23 @@ export async function listPublicContractOffers(input: {
     throw fallback.error
   }
 
-  return ((fallback.data ?? []) as PricePlanVersionRow[])
+  const offers = ((fallback.data ?? []) as PricePlanVersionRow[])
     .map(offerFromSnapshot)
     .filter((offer): offer is PublicContractOffer => Boolean(offer && customerTypeAllowed(offer, input.customerType)))
     .map((offer) => offerWithLegalVersions(offer, legalVersions))
     .filter((offer): offer is PublicContractOffer => Boolean(offer))
-    .sort((a, b) => a.sort_order - b.sort_order || a.public_name.localeCompare(b.public_name, 'sv'))
+  const result: PublicContractOffer[] = []
+  for (const offer of offers) {
+    const readiness = await assessPublicOfferReadiness({
+      companyId: input.client.company_id,
+      offer: offer as unknown as { legal_bundle_id?: string | null; price_book_id?: string | null },
+    })
+    if (readiness.isReady) {
+      offer.metadata = { ...offer.metadata, readiness_status: 'ready', readiness_blockers: [] }
+      result.push(offer)
+    }
+  }
+  return result.sort((a, b) => a.sort_order - b.sort_order || a.public_name.localeCompare(b.public_name, 'sv'))
 }
 
 export async function resolvePublicContractOffer(input: {

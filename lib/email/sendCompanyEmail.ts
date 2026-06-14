@@ -8,6 +8,7 @@ import {
 } from './communicationLogs'
 import { getCompanyEmailTemplate } from './emailTemplates'
 import { sendApplicationEmail } from './sendApplicationEmail'
+import { enqueueTenantEmail } from './emailOutbox'
 import { renderEmailTemplate, type EmailTemplateVariables } from './templateRenderer'
 
 type SendCompanyEmailInput = {
@@ -154,20 +155,29 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       },
     },
   })
-
+  // Queue the email for asynchronous delivery. This ensures that the
+  // customer intake does not fail if the mail provider is unavailable. The
+  // communication log remains in status `queued` until a background worker
+  // updates it. Any errors encountered when enqueuing should cause the
+  // function to fail so that the caller can handle them accordingly.
   try {
-    const result = await sendApplicationEmail({
-      from: sender.from,
+    await enqueueTenantEmail({
+      companyId: input.companyId,
       to: input.to,
-      replyTo: sender.replyTo,
       subject: rendered.subject,
-      html: rendered.html,
-      text: rendered.text,
+      templateKey: input.templateKey,
+      payload: {
+        html: rendered.html,
+        text: rendered.text,
+        variables: input.variables ?? {},
+      },
+      requestId: null,
+      traceId: null,
     })
-    const sentLog = await markCommunicationSent(log.id, result.providerMessageId)
-    return { ok: true, log: sentLog, senderMode: sender.mode }
+    // In this model we do not mark the communication as sent immediately.
+    return { ok: true, log, senderMode: sender.mode }
   } catch (error) {
-    console.warn('[email] sendCompanyEmail failed', error)
+    console.warn('[email] enqueueTenantEmail failed', error)
     const message = cleanError(error)
     const failedLog = await markCommunicationFailed(log.id, message)
     return { ok: false, log: failedLog, senderMode: sender.mode, error: message }

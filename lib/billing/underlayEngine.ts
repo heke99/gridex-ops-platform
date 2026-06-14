@@ -231,6 +231,12 @@ export async function generateBillingUnderlaysForMonth(input: {
     const readinessStatus = warnings.length > 0 ? 'blocked' : 'ready'
     const readinessIssues = buildReadinessIssues(warnings)
     const now = new Date().toISOString()
+    // Determine both price plan and price plan version. Previously the engine
+    // incorrectly stored the version identifier in price_plan_id which makes
+    // it impossible to link invoices back to the canonical plan. The plan
+    // identifier is taken primarily from the contract row if available, with
+    // a fallback to the snapshot if that is populated.
+    const pricePlanId = stringValue((contract as any)?.price_plan_id) ?? stringValue(snapshot?.price_plan_id)
     const pricePlanVersionId = stringValue(snapshot?.price_plan_version_id)
 
     const { data: underlay, error: upsertError } = await supabaseService
@@ -243,7 +249,14 @@ export async function generateBillingUnderlaysForMonth(input: {
         metering_point_id: meteringPointId,
         contract_id: stringValue(contract?.id),
         pricing_snapshot_id: stringValue(snapshot?.id),
-        price_plan_id: pricePlanVersionId,
+        // Store both the canonical price plan identifier and the version. A new
+        // column price_plan_version_id is introduced via migration. price_plan_id
+        // now always refers to the plan (not its version).
+        price_plan_id: pricePlanId,
+        price_plan_version_id: pricePlanVersionId,
+        price_book_id: stringValue(snapshot?.price_book_id),
+        contract_price_snapshot_id: stringValue(snapshot?.id),
+        billing_block_reason: warnings.length > 0 ? warnings.join('; ') : null,
         campaign_id: stringValue(snapshot?.campaign_version_id),
         price_area: priceArea,
         underlay_month: bounds.month,
@@ -287,7 +300,7 @@ export async function generateBillingUnderlaysForMonth(input: {
       .eq('billing_underlay_id', underlayId)
     if (deleteItemsError) throw deleteItemsError
 
-    const itemRows = groupRows.map((row) => ({
+      const itemRows = groupRows.map((row) => ({
       company_id: input.companyId,
       billing_underlay_id: underlayId,
       meter_value_id: source.sourceTable === 'metering_values' ? stringValue(row.id) : null,
@@ -297,7 +310,12 @@ export async function generateBillingUnderlaysForMonth(input: {
       site_id: siteId,
       metering_point_id: meteringPointId,
       contract_id: stringValue(contract?.id),
-      price_plan_id: pricePlanVersionId,
+        price_plan_id: pricePlanId,
+        price_plan_version_id: pricePlanVersionId,
+        price_book_id: stringValue(snapshot?.price_book_id),
+        price_book_line_id: null,
+        snapshot_line_hash: null,
+        legal_snapshot_ref: null,
       campaign_id: stringValue(snapshot?.campaign_version_id),
       facility_id: pickFacilityId(row) ?? facilityId,
       price_area: pickPriceArea(row) ?? priceArea,

@@ -112,10 +112,9 @@ export function scopesForPermissionGroups(groupKeys: unknown[]): string[] {
 }
 
 export function recommendedPermissionGroups(): string[] {
-  return INTEGRATION_API_PERMISSION_GROUPS
-    .filter((group) => group.recommendedDefault)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((group) => group.groupKey)
+  // Do not provide default permission groups. Administrators must explicitly
+  // select appropriate groups or use a profile when creating an API client.
+  return []
 }
 
 export function permissionGroupLabelsForScopes(scopes: string[] | null | undefined): string[] {

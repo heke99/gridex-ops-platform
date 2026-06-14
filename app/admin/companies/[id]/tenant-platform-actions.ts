@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { assessPublicOfferReadiness } from '@/lib/website/publicOfferReadiness'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { supabaseService } from '@/lib/supabase/service'
@@ -117,6 +118,8 @@ export async function saveTenantPublicContractOfferAction(formData: FormData) {
   const spotWeight = numberValue(formData, 'spot_weight_percent', type === 'mixed' ? 50 : type === 'portfolio' ? 0 : 100) ?? 100
   const portfolioWeight = numberValue(formData, 'portfolio_weight_percent', type === 'mixed' ? 50 : type === 'portfolio' ? 100 : 0) ?? 0
   const fixedWeight = numberValue(formData, 'fixed_weight_percent', 0) ?? 0
+  const submittedLegalBundleId = text(formData, 'legal_bundle_id') || null
+  const submittedPriceBookId = text(formData, 'price_book_id') || null
 
   if (!companyId) throw new Error('Bolag saknas.')
   if (!publicName) throw new Error('Avtalsnamn krävs.')
@@ -133,6 +136,8 @@ export async function saveTenantPublicContractOfferAction(formData: FormData) {
   await assertSameTenantReference('price_plans', pricePlanId, companyId, 'Prisplan')
   await assertSameTenantReference('price_plan_versions', pricePlanVersionId, companyId, 'Prisversion')
   await assertVersionBelongsToPlan(pricePlanId, pricePlanVersionId)
+  await assertSameTenantReference('legal_bundles', submittedLegalBundleId, companyId, 'Juridiskt paket')
+  await assertSameTenantReference('price_books', submittedPriceBookId, companyId, 'Prislista')
 
   const issues = publicationIssues({
     publicationStatus,
@@ -165,6 +170,26 @@ export async function saveTenantPublicContractOfferAction(formData: FormData) {
     previous = data as Record<string, unknown>
   }
 
+  // Preserve existing canonical references when the current UI does not submit them.
+  const legalBundleId = submittedLegalBundleId ?? ((previous as any)?.legal_bundle_id ?? null)
+  const priceBookId = submittedPriceBookId ?? ((previous as any)?.price_book_id ?? null)
+
+  let readinessStatus: string | null = null
+  let readinessBlockers: string[] = []
+
+  // Perform readiness check against tenant launch state and required references.
+  if (publicationStatus === 'published') {
+    const readiness = await assessPublicOfferReadiness({
+      companyId,
+      offer: { legal_bundle_id: legalBundleId, price_book_id: priceBookId },
+    })
+    readinessStatus = readiness.isReady ? 'ready' : 'blocked'
+    readinessBlockers = readiness.blockers
+    if (!readiness.isReady) {
+      throw new Error(`Avtalet kan inte publiceras: ${readiness.blockers.join(', ')}.`)
+    }
+  }
+
   const isArchived = publicationStatus === 'archived'
   const isPublic = publicationStatus === 'published' && websiteEnabled && issues.length === 0
   const payload = {
@@ -179,6 +204,8 @@ export async function saveTenantPublicContractOfferAction(formData: FormData) {
     price_plan_id: pricePlanId,
     price_plan_version_id: pricePlanVersionId,
     campaign_version_id: text(formData, 'campaign_version_id') || null,
+    legal_bundle_id: legalBundleId,
+    price_book_id: priceBookId,
     monthly_fee_sek: numberValue(formData, 'monthly_fee_sek'),
     invoice_fee_sek: numberValue(formData, 'invoice_fee_sek'),
     markup_ore_per_kwh: numberValue(formData, 'markup_ore_per_kwh'),
@@ -201,6 +228,8 @@ export async function saveTenantPublicContractOfferAction(formData: FormData) {
     website_cta_enabled: websiteCtaEnabled,
     is_public: isPublic,
     is_archived: isArchived,
+    readiness_status: readinessStatus,
+    readiness_blockers: readinessBlockers,
     sort_order: intValue(formData, 'sort_order', 100) ?? 100,
     readiness_issues: issues,
     publication_notes: text(formData, 'publication_notes') || null,
@@ -242,7 +271,7 @@ export async function saveTenantPublicContractOfferAction(formData: FormData) {
     newValues: saved,
     source: 'company_card_contracts_tab',
     billable: false,
-    metadata: { publicationStatus, websiteEnabled, issues, pricePlanId, pricePlanVersionId },
+    metadata: { publicationStatus, websiteEnabled, issues, readinessStatus, readinessBlockers, pricePlanId, pricePlanVersionId, legalBundleId, priceBookId },
   })
 
   revalidatePath(`/admin/companies/${companyId}`)
