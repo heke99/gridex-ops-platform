@@ -221,6 +221,68 @@ function actorIsTenantVisible(roles: string[]): boolean {
 }
 
 
+function routeValue(value: string | null | undefined): string | null {
+  const trimmed = String(value ?? '').trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+async function findExistingActorId(record: ActorImportRecord, normalizedName: string): Promise<{ actorId: string | null; matchMethod: string }> {
+  const identifiers = [
+    ['EdielId', record.edielId],
+    ['EIC', record.eic],
+    ['SvKId', record.svkId],
+    ['OrgNo', record.orgNumber],
+  ] as Array<[string, string | null]>
+
+  for (const [identifierType, identifierValue] of identifiers) {
+    if (!identifierValue) continue
+    const match = await supabaseService
+      .from('platform_actor_identifiers')
+      .select('actor_id')
+      .eq('identifier_type', identifierType)
+      .eq('identifier_value', identifierValue)
+      .limit(1)
+      .maybeSingle()
+    if (match.error && match.error.code !== 'PGRST116') throw match.error
+    if (match.data?.actor_id) return { actorId: String(match.data.actor_id), matchMethod: identifierType }
+  }
+
+  const byName = await supabaseService
+    .from('platform_market_actors')
+    .select('id')
+    .eq('normalized_name', normalizedName)
+    .limit(1)
+    .maybeSingle()
+  if (byName.error && byName.error.code !== 'PGRST116') throw byName.error
+  return { actorId: byName.data?.id ? String(byName.data.id) : null, matchMethod: byName.data?.id ? 'normalized_name' : 'new_actor' }
+}
+
+function applyRouteNullSafeFilter<T extends { eq: (column: string, value: string) => T; is: (column: string, value: null) => T }>(query: T, column: string, value: string | null): T {
+  return value === null ? query.is(column, null) : query.eq(column, value)
+}
+
+async function findExistingRouteId(actorId: string, route: ActorImportRecord['routes'][number]): Promise<string | null> {
+  let query = supabaseService
+    .from('platform_actor_routes')
+    .select('id')
+    .eq('actor_id', actorId)
+    .eq('message_family', route.messageFamily)
+    .eq('environment', 'production')
+    .limit(1)
+
+  query = applyRouteNullSafeFilter(query, 'communication_type', routeValue(route.communicationType) ?? 'SMTP')
+  query = applyRouteNullSafeFilter(query, 'communication_address', routeValue(route.communicationAddress))
+  query = applyRouteNullSafeFilter(query, 'party_id', routeValue(route.partyId))
+  query = applyRouteNullSafeFilter(query, 'interchange_party_id', routeValue(route.interchangePartyId))
+  query = applyRouteNullSafeFilter(query, 'subaddress', routeValue(route.subaddress))
+  query = applyRouteNullSafeFilter(query, 'application_reference', routeValue(route.applicationReference))
+
+  const existing = await query.maybeSingle()
+  if (existing.error && existing.error.code !== 'PGRST116') throw existing.error
+  return existing.data?.id ? String(existing.data.id) : null
+}
+
+
 type ActorImportPreviewIssue = {
   recordName: string
   issueType: string
@@ -413,20 +475,33 @@ async function createActorImportPreviewRun(input: {
 
 async function upsertImportedActor(record: ActorImportRecord, importRunId: string, source: string, userId: string) {
   const normalizedName = normalizeActorName(record.name)
-  const existing = await supabaseService
-    .from('platform_market_actors')
-    .select('id,match_status')
-    .eq('normalized_name', normalizedName)
-    .maybeSingle()
+  const existingActor = await findExistingActorId(record, normalizedName)
+
+  const existing = existingActor.actorId
+    ? await supabaseService
+        .from('platform_market_actors')
+        .select('id,match_status,metadata')
+        .eq('id', existingActor.actorId)
+        .maybeSingle()
+    : await supabaseService
+        .from('platform_market_actors')
+        .select('id,match_status,metadata')
+        .eq('normalized_name', normalizedName)
+        .maybeSingle()
   if (existing.error && existing.error.code !== 'PGRST116') throw existing.error
 
+  const previousMetadata = (existing.data?.metadata ?? {}) as Record<string, unknown>
   const metadata = {
+    ...previousMetadata,
     importedBy: userId,
     source,
     edielId: record.edielId,
     svkId: record.svkId,
     eic: record.eic,
     roles: record.roles,
+    importRunId,
+    matchMethod: existingActor.matchMethod,
+    upsertPolicy: 'identifier_first_no_duplicate',
   }
   const payload = {
     name: record.name,
@@ -457,7 +532,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
     if (!identifierValue) continue
     const existingIdentifier = await supabaseService
       .from('platform_actor_identifiers')
-      .select('id')
+      .select('id,actor_id,metadata')
       .eq('identifier_type', type)
       .eq('identifier_value', identifierValue)
       .maybeSingle()
@@ -468,7 +543,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
       identifier_value: identifierValue,
       source,
       is_verified: true,
-      metadata: { importRunId },
+      metadata: { ...(existingIdentifier.data?.metadata as Record<string, unknown> | null ?? {}), importRunId, upsertPolicy: 'identifier_first_no_duplicate' },
       updated_at: new Date().toISOString(),
     }
     const result = existingIdentifier.data?.id
@@ -490,40 +565,49 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
     .then((result) => { if (result.error) throw result.error })
 
   for (const route of record.routes) {
-    const existingRoute = await supabaseService
-      .from('platform_actor_routes')
-      .select('id')
-      .eq('actor_id', actorId)
-      .eq('message_family', route.messageFamily)
-      .eq('environment', 'production')
-      .eq('subaddress', route.subaddress ?? '')
-      .eq('communication_address', route.communicationAddress ?? '')
-      .maybeSingle()
+    const existingRouteId = await findExistingRouteId(actorId, route)
+    const existingRoute = existingRouteId
+      ? await supabaseService
+          .from('platform_actor_routes')
+          .select('id,status,is_verified,auto_send_allowed,metadata')
+          .eq('id', existingRouteId)
+          .maybeSingle()
+      : { data: null, error: null }
+    if (existingRoute.error && existingRoute.error.code !== 'PGRST116') throw existingRoute.error
+
+    const existingRouteData = existingRoute.data as { id?: string; status?: string | null; is_verified?: boolean | null; auto_send_allowed?: boolean | null; metadata?: Record<string, unknown> | null } | null
+    const existingRouteMetadata = existingRouteData?.metadata ?? {}
     const routePayload = {
       actor_id: actorId,
       message_family: route.messageFamily,
-      application_reference: route.applicationReference ?? null,
+      application_reference: routeValue(route.applicationReference),
       environment: 'production',
-      subaddress: route.subaddress,
-      communication_type: route.communicationType,
-      communication_address: route.communicationAddress,
-      edi_charset: route.ediCharset,
-      edi_syntax: route.ediSyntax,
-      party_id: route.partyId,
-      party_id_qualifier: route.partyIdQualifier,
-      party_id_responsible: route.partyIdResponsible,
-      interchange_party_id: route.interchangePartyId,
-      interchange_id_qualifier: route.interchangeIdQualifier,
+      subaddress: routeValue(route.subaddress),
+      communication_type: routeValue(route.communicationType) ?? 'SMTP',
+      communication_address: routeValue(route.communicationAddress),
+      edi_charset: routeValue(route.ediCharset),
+      edi_syntax: routeValue(route.ediSyntax),
+      party_id: routeValue(route.partyId),
+      party_id_qualifier: routeValue(route.partyIdQualifier),
+      party_id_responsible: routeValue(route.partyIdResponsible),
+      interchange_party_id: routeValue(route.interchangePartyId),
+      interchange_id_qualifier: routeValue(route.interchangeIdQualifier),
       requires_poa: true,
-      is_verified: false,
-      auto_send_allowed: false,
-      status: 'needs_review',
+      is_verified: existingRouteData?.is_verified ?? false,
+      auto_send_allowed: existingRouteData?.auto_send_allowed ?? false,
+      status: existingRouteData?.status && existingRouteData.status !== 'blocked' ? existingRouteData.status : 'needs_review',
       source,
-      metadata: { importRunId, importedFromUi: true },
+      metadata: {
+        ...existingRouteMetadata,
+        importRunId,
+        importedFromUi: true,
+        lastXmlUpsertAt: new Date().toISOString(),
+        upsertPolicy: 'route_identity_with_subaddress_application_reference',
+      },
       updated_at: new Date().toISOString(),
     }
-    const result = existingRoute.data?.id
-      ? await supabaseService.from('platform_actor_routes').update(routePayload).eq('id', existingRoute.data.id)
+    const result = existingRouteId
+      ? await supabaseService.from('platform_actor_routes').update(routePayload).eq('id', existingRouteId)
       : await supabaseService.from('platform_actor_routes').insert(routePayload)
     if (result.error) throw result.error
   }

@@ -6,6 +6,10 @@ import { applyActorAutoSendReadinessAction, refreshActorCertificatesAction, runA
 
 export const dynamic = 'force-dynamic'
 
+type PageProps = {
+  searchParams?: Promise<{ role?: string; family?: string; status?: string; q?: string }>
+}
+
 type RunRow = {
   id: string
   run_type: string
@@ -34,6 +38,16 @@ type CertRow = {
   valid_to: string | null
   last_checked_at: string | null
   next_check_at: string | null
+}
+
+
+function actorMatchesRoleFilter(roles: string[] | null | undefined, filter: string) {
+  const normalized = (roles ?? []).map((role) => String(role).toLowerCase())
+  if (!filter || filter === 'all') return true
+  if (filter === 'grid_owner') return normalized.some((role) => ['grid_owner', 'network_owner', 'netowner'].includes(role))
+  if (filter === 'electricity_supplier') return normalized.some((role) => ['electricity_supplier', 'supplier', 'powersupplier'].includes(role))
+  if (filter === 'balance_responsible_party') return normalized.some((role) => ['balance_responsible_party', 'brp'].includes(role))
+  return normalized.includes(filter)
 }
 
 function field(value: string | number | boolean | null | undefined) {
@@ -96,10 +110,28 @@ async function loadCertificates(): Promise<CertRow[]> {
   return (result.data ?? []) as CertRow[]
 }
 
-export default async function EdielAutoReadinessPage() {
+export default async function EdielAutoReadinessPage({ searchParams }: PageProps) {
   await requirePlatformAdminAccess()
-  const [rows, runs, certificates] = await Promise.all([listActorSendReadiness(500), loadRuns(), loadCertificates()])
-  const sortedRows = [...rows].sort((a, b) => {
+  const params = searchParams ? await searchParams : {}
+  const roleFilter = params.role ?? 'all'
+  const familyFilter = params.family ?? 'electricity'
+  const statusFilter = params.status ?? 'all'
+  const queryFilter = String(params.q ?? '').trim().toLowerCase()
+  const [rows, runs, certificates] = await Promise.all([listActorSendReadiness(1000), loadRuns(), loadCertificates()])
+  const filteredRows = rows.filter((row) => {
+    const family = String(row.message_family ?? '').toUpperCase()
+    const subaddress = String(row.subaddress ?? '').toUpperCase()
+    const matchesFamily = familyFilter === 'all'
+      || (familyFilter === 'electricity' && ['PRODAT', 'UTILTS'].includes(family) && subaddress !== 'GAS')
+      || family === familyFilter.toUpperCase()
+    const matchesRole = actorMatchesRoleFilter(row.actor_roles, roleFilter)
+    const matchesStatus = statusFilter === 'all' || String(row.readiness_status ?? '') === statusFilter
+    const matchesQuery = !queryFilter || [row.actor_name, row.ediel_id, row.communication_address, row.message_family, row.subaddress]
+      .filter(Boolean)
+      .some((item) => String(item).toLowerCase().includes(queryFilter))
+    return matchesFamily && matchesRole && matchesStatus && matchesQuery
+  })
+  const sortedRows = [...filteredRows].sort((a, b) => {
     const byStatus = field(a.readiness_status).localeCompare(field(b.readiness_status), 'sv')
     if (byStatus !== 0) return byStatus
     return field(a.actor_name).localeCompare(field(b.actor_name), 'sv')
@@ -113,13 +145,13 @@ export default async function EdielAutoReadinessPage() {
       />
 
       <section className="grid gap-3 md:grid-cols-4">
-        {summarize(rows).map(([status, count]) => (
+        {summarize(filteredRows).map(([status, count]) => (
           <div key={status} className={`rounded-2xl border p-4 ${tone(status)}`}>
             <div className="text-2xl font-semibold">{count}</div>
             <div className="mt-1 text-sm font-medium">{statusLabel(status)}</div>
           </div>
         ))}
-        {rows.length === 0 ? (
+        {filteredRows.length === 0 ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 md:col-span-4">
             Readiness-vyn saknas eller har inga rader. Kör migrationen och importera actor registry först.
           </div>
@@ -143,6 +175,46 @@ export default async function EdielAutoReadinessPage() {
           <button className="mt-4 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Aktivera där säkert</button>
         </form>
       </section>
+
+      <form className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" action="/admin/ediel/auto-readiness">
+        <div className="grid gap-3 md:grid-cols-5">
+          <label className="text-xs font-bold text-slate-700">Roll
+            <select name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
+              <option value="all">Alla roller</option>
+              <option value="grid_owner">Nätägare</option>
+              <option value="electricity_supplier">Elleverantörer</option>
+              <option value="energy_service_company">Energitjänsteföretag</option>
+              <option value="balance_responsible_party">Balansansvariga</option>
+            </select>
+          </label>
+          <label className="text-xs font-bold text-slate-700">Route-scope
+            <select name="family" defaultValue={familyFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
+              <option value="electricity">Elhandel: PRODAT/UTILTS utan GAS</option>
+              <option value="PRODAT">PRODAT</option>
+              <option value="UTILTS">UTILTS</option>
+              <option value="DELFOR">DELFOR</option>
+              <option value="all">Alla route-typer</option>
+            </select>
+          </label>
+          <label className="text-xs font-bold text-slate-700">Readiness
+            <select name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
+              <option value="all">Alla statusar</option>
+              <option value="ready_for_auto_send">Redo för auto-send</option>
+              <option value="missing_certificate">Saknar certifikat</option>
+              <option value="route_not_verified">Route ej verifierad</option>
+              <option value="needs_manual_review">Behöver granskning</option>
+            </select>
+          </label>
+          <label className="text-xs font-bold text-slate-700">Sök
+            <input name="q" defaultValue={params.q ?? ''} placeholder="Aktör, Ediel-ID, SMTP..." className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs" />
+          </label>
+          <div className="flex items-end gap-2">
+            <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Filtrera</button>
+            <a href="/admin/ediel/auto-readiness" className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700">Rensa</a>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">Visar {filteredRows.length} av {rows.length} routes. Standardläget visar elhandel-routes och döljer GAS/övriga route-typer så de inte blockerar elhandel.</p>
+      </form>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">

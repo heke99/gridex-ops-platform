@@ -5,6 +5,10 @@ import { importPlatformActorsAction, refreshExpisoftReceiverCertificateAction, r
 
 export const dynamic = 'force-dynamic'
 
+type PageProps = {
+  searchParams?: Promise<{ role?: string; status?: string; q?: string }>
+}
+
 function actorStatusLabel(value: string | null | undefined) {
   switch (String(value ?? '').toLowerCase()) {
     case 'active': return 'Aktiv'
@@ -41,6 +45,26 @@ function actorRoleLabel(value: string | null | undefined) {
   }
 }
 
+
+function roleFilterLabel(value: string) {
+  switch (value) {
+    case 'grid_owner': return 'Nätägare'
+    case 'electricity_supplier': return 'Elleverantörer'
+    case 'energy_service_company': return 'Energitjänsteföretag'
+    case 'balance_responsible_party': return 'Balansansvariga'
+    case 'system_supplier': return 'Systemleverantörer'
+    default: return 'Alla roller'
+  }
+}
+
+function actorMatchesRoleFilter(roles: string[], filter: string) {
+  if (!filter || filter === 'all') return true
+  if (filter === 'electricity_supplier') return roles.some((role) => ['electricity_supplier', 'supplier', 'powersupplier'].includes(String(role).toLowerCase()))
+  if (filter === 'grid_owner') return roles.some((role) => ['grid_owner', 'network_owner', 'netowner'].includes(String(role).toLowerCase()))
+  if (filter === 'balance_responsible_party') return roles.some((role) => ['balance_responsible_party', 'brp'].includes(String(role).toLowerCase()))
+  return roles.some((role) => String(role).toLowerCase() === filter)
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
@@ -72,8 +96,12 @@ function routeStatusLabel(value: string | null | undefined, verified?: boolean |
   }
 }
 
-export default async function EdielActorsPage() {
+export default async function EdielActorsPage({ searchParams }: PageProps) {
   const context = await requirePlatformAdminAccess()
+  const params = searchParams ? await searchParams : {}
+  const roleFilter = params.role ?? 'all'
+  const statusFilter = params.status ?? 'all'
+  const queryFilter = String(params.q ?? '').trim().toLowerCase()
   const [actorsResult, partiesResult, addressesResult, marketActorsResult, actorRolesResult, actorRoutesResult, importIssuesResult, semanticsResult, importRunsResult] = await Promise.all([
     supabaseService
     .from('ediel_actor_settings')
@@ -94,7 +122,7 @@ export default async function EdielActorsPage() {
       .from('platform_market_actors')
       .select('id,name,org_number,status,source,updated_at')
       .order('updated_at', { ascending: false })
-      .limit(100),
+      .limit(500),
     supabaseService
       .from('platform_actor_roles')
       .select('actor_id,actor_role,is_active'),
@@ -149,6 +177,17 @@ export default async function EdielActorsPage() {
     existing.push(route)
     routesByActor.set(actorId, existing)
   }
+
+  const filteredMarketActors = marketActors.filter((actor) => {
+    const roles = rolesByActor.get(actor.id) ?? []
+    const routeCount = routesByActor.get(actor.id)?.length ?? 0
+    const matchesRole = actorMatchesRoleFilter(roles, roleFilter)
+    const matchesStatus = statusFilter === 'all' || String(actor.status ?? '').toLowerCase() === statusFilter
+    const matchesQuery = !queryFilter || [actor.name, actor.org_number, actor.source, String(routeCount)]
+      .filter(Boolean)
+      .some((item) => String(item).toLowerCase().includes(queryFilter))
+    return matchesRole && matchesStatus && matchesQuery
+  })
 
   const verifiedGridOwners = parties.filter((party) => Array.isArray(party.roles) && party.roles.includes('grid_owner') && party.status === 'verified').length
   const verifiedSuppliers = parties.filter((party) => Array.isArray(party.roles) && (party.roles.includes('electricity_supplier') || party.roles.includes('supplier')) && party.status === 'verified').length
@@ -215,7 +254,7 @@ export default async function EdielActorsPage() {
             </form>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">Aktörer</p><div className="mt-2 text-2xl font-black text-slate-950">{marketActors.length}</div></div>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">Aktörer</p><div className="mt-2 text-2xl font-black text-slate-950">{filteredMarketActors.length}</div><p className="mt-1 text-[11px] text-slate-500">av {marketActors.length} totalt</p></div>
             <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Nätägare</p><div className="mt-2 text-2xl font-black text-emerald-950">{registryGridOwners}</div></div>
             <div className="rounded-3xl border border-blue-200 bg-blue-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Elleverantörer</p><div className="mt-2 text-2xl font-black text-blue-950">{registrySuppliers}</div></div>
             <div className="rounded-3xl border border-sky-200 bg-sky-50 p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-sky-700">Verifierade routes</p><div className="mt-2 text-2xl font-black text-sky-950">{verifiedRegistryRoutes}</div></div>
@@ -272,8 +311,38 @@ export default async function EdielActorsPage() {
               <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Nätägare och elleverantörer från import blir inte automatiskt valbara i kundintaget. Superadmin måste verifiera aktören. Routes kan verifieras, men automatisk sändning förblir av tills separat route-readiness är grön.</p>
             </div>
           </div>
+          <form className="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-4" action="/admin/ediel/actors">
+            <label className="text-xs font-bold text-slate-700">Roll
+              <select name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+                <option value="all">Alla roller</option>
+                <option value="grid_owner">Nätägare</option>
+                <option value="electricity_supplier">Elleverantörer</option>
+                <option value="energy_service_company">Energitjänsteföretag</option>
+                <option value="balance_responsible_party">Balansansvariga</option>
+                <option value="system_supplier">Systemleverantörer</option>
+              </select>
+            </label>
+            <label className="text-xs font-bold text-slate-700">Status
+              <select name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+                <option value="all">Alla statusar</option>
+                <option value="active">Aktiv</option>
+                <option value="needs_review">Kräver granskning</option>
+                <option value="blocked">Blockerad</option>
+                <option value="inactive">Inaktiv</option>
+              </select>
+            </label>
+            <label className="text-xs font-bold text-slate-700 md:col-span-1">Sök
+              <input name="q" defaultValue={params.q ?? ''} placeholder="Namn, org.nr, källa..." className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
+            </label>
+            <div className="flex items-end gap-2">
+              <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Filtrera</button>
+              <a href="/admin/ediel/actors" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700">Rensa</a>
+            </div>
+            <div className="md:col-span-4 text-xs text-slate-600">Visar {filteredMarketActors.length} aktörer · filter: {roleFilterLabel(roleFilter)}</div>
+          </form>
+
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {marketActors.slice(0, 24).map((actor) => {
+            {filteredMarketActors.slice(0, 48).map((actor) => {
               const roles = rolesByActor.get(actor.id) ?? []
               const routes = routesByActor.get(actor.id) ?? []
               const canBeCustomerActor = roles.some((role) => ['grid_owner', 'electricity_supplier'].includes(role))
