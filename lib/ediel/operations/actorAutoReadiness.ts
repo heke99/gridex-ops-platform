@@ -163,22 +163,44 @@ async function syncExistingEdielCertificatesForRoutes(routes: CertificateLookupR
   const edielIds = Array.from(new Set(routes.map((route) => route.ediel_id).filter((value): value is string => Boolean(value))))
   if (edielIds.length === 0) return { synced: 0, candidates: 0 }
 
-  const result = await supabaseService
-    .from('ediel_certificates')
-    .select('id,owner_ediel_id,owner_party_id,environment,purpose,certificate_type,subject,issuer,serial_number,fingerprint_sha256,certificate_fingerprint,valid_from,valid_to,certificate_valid_from,certificate_valid_to,status,encryption_status,source,public_certificate_pem,metadata')
-    .in('owner_ediel_id', edielIds)
-    .eq('purpose', 'encryption')
-    .eq('environment', 'production')
-    .order('certificate_valid_to', { ascending: false, nullsFirst: false })
-  if (result.error) {
-    if (['42P01', '42703', 'PGRST204', 'PGRST205'].includes(result.error.code ?? '')) return { synced: 0, candidates: 0 }
-    throw result.error
+  const selectColumns = 'id,owner_ediel_id,owner_party_id,environment,purpose,certificate_type,subject,issuer,serial_number,fingerprint_sha256,certificate_fingerprint,valid_from,valid_to,certificate_valid_from,certificate_valid_to,status,encryption_status,source,public_certificate_pem,metadata'
+  const rowsById = new Map<string, ExistingEdielCertificateRow>()
+
+  const queries = [
+    supabaseService
+      .from('ediel_certificates')
+      .select(selectColumns)
+      .in('owner_ediel_id', edielIds)
+      .eq('purpose', 'encryption')
+      .eq('environment', 'production')
+      .order('certificate_valid_to', { ascending: false, nullsFirst: false }),
+    supabaseService
+      .from('ediel_certificates')
+      .select(selectColumns)
+      .in('owner_party_id', edielIds)
+      .eq('purpose', 'encryption')
+      .eq('environment', 'production')
+      .order('certificate_valid_to', { ascending: false, nullsFirst: false }),
+  ]
+
+  for (const query of queries) {
+    const result = await query
+    if (result.error) {
+      if (['42P01', '42703', 'PGRST204', 'PGRST205'].includes(result.error.code ?? '')) continue
+      throw result.error
+    }
+    for (const cert of (result.data ?? []) as ExistingEdielCertificateRow[]) {
+      if (cert.id) rowsById.set(cert.id, cert)
+    }
   }
 
   const byEdiel = new Map<string, ExistingEdielCertificateRow[]>()
-  for (const cert of (result.data ?? []) as ExistingEdielCertificateRow[]) {
-    if (!cert.owner_ediel_id) continue
-    byEdiel.set(cert.owner_ediel_id, [...(byEdiel.get(cert.owner_ediel_id) ?? []), cert])
+  for (const cert of rowsById.values()) {
+    const keys = [cert.owner_ediel_id, cert.owner_party_id, cert.metadata?.ownerEdielId as string | undefined, cert.metadata?.owner_ediel_id as string | undefined]
+    for (const key of keys) {
+      if (!key || !edielIds.includes(key)) continue
+      byEdiel.set(key, [...(byEdiel.get(key) ?? []), cert])
+    }
   }
 
   let synced = 0

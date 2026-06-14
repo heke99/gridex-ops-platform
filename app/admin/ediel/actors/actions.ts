@@ -5,6 +5,7 @@ import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expisoftCertificateDirectory'
+import { applyActorAutoSendReadiness, refreshActorCertificateStatuses, runActorReadinessBackfill } from '@/lib/ediel/operations/actorAutoReadiness'
 import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
 
 function value(formData: FormData, key: string): string | null {
@@ -719,6 +720,18 @@ export async function importPlatformActorsAction(formData: FormData) {
     .eq('id', run.data.id)
   if (update.error) throw update.error
 
+  let autoReadinessResult: Record<string, unknown> | null = null
+  try {
+    const backfill = await runActorReadinessBackfill('xml_import_followup')
+    const certificates = await refreshActorCertificateStatuses('certificate_refresh')
+    const autoSend = await applyActorAutoSendReadiness()
+    autoReadinessResult = { ok: true, backfill, certificates, autoSend }
+  } catch (error) {
+    // Import must not be rolled back because an external LDAP/certificate lookup failed.
+    // The auto-readiness page will show the exact blockers and the cron can retry.
+    autoReadinessResult = { ok: false, error: error instanceof Error ? error.message : String(error) }
+  }
+
   await logAdminActionAndUsage({
     companyId: null,
     actorUserId: context.userId,
@@ -728,10 +741,11 @@ export async function importPlatformActorsAction(formData: FormData) {
     label: errors.length > 0 ? 'Aktörsimport slutförd med granskningspunkter' : 'Aktörsimport slutförd',
     billable: true,
     billingUnit: 'actor_import',
-    metadata: { source, fileName, parsed: parsed.length, upserted, failed: errors.length, status, preview },
+    metadata: { source, fileName, parsed: parsed.length, upserted, failed: errors.length, status, preview, autoReadinessResult },
   })
 
   revalidatePath('/admin/ediel/actors')
+  revalidatePath('/admin/ediel/auto-readiness')
   revalidatePath('/admin/customers/intake')
 }
 

@@ -51,6 +51,38 @@ export function expisoftLdapUrlForMail(email: string): string {
   return `ldap://${ldapHost()}:${ldapPort()}/${ldapBaseDn()}?userCertificate?sub?mail=${email}`
 }
 
+function uniq(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const value of values) {
+    const cleaned = clean(value)?.toLowerCase()
+    if (!cleaned || seen.has(cleaned)) continue
+    seen.add(cleaned)
+    out.push(cleaned)
+  }
+  return out
+}
+
+function candidateLookupEmails(input: { smtpEmail: string; edielId?: string | null; subaddress?: string | null }): string[] {
+  const smtpEmail = clean(input.smtpEmail)?.toLowerCase()
+  const edielId = clean(input.edielId)
+  const subaddress = clean(input.subaddress)
+  const candidates: Array<string | null | undefined> = [smtpEmail]
+
+  // Ediel directory entries are not always indexed only by the route SMTP address.
+  // Try common Ediel addressing variants as secondary lookup keys.
+  if (edielId) {
+    candidates.push(`${edielId}@ediel.se`)
+    candidates.push(`${edielId}.ediel@ediel.se`)
+    if (subaddress) {
+      candidates.push(`${edielId}.${subaddress}.ediel@ediel.se`)
+      candidates.push(`${edielId}.${subaddress}@ediel.se`)
+    }
+  }
+
+  return uniq(candidates)
+}
+
 function escapeLdapFilter(value: string): string {
   return value
     .replace(/\\/g, '\\5c')
@@ -312,8 +344,10 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
 }): Promise<ExpisoftCertificateLookupResult> {
   const smtpEmail = clean(input.smtpEmail)?.toLowerCase()
   if (!smtpEmail) throw new Error('SMTP email krävs för Expisoft certificate lookup.')
-  const ldapUrl = expisoftLdapUrlForMail(smtpEmail)
-  const previous = await cachedLookup(smtpEmail)
+  const lookupEmails = candidateLookupEmails({ smtpEmail, edielId: input.edielId, subaddress: input.subaddress })
+  const primaryLookupEmail = lookupEmails[0] ?? smtpEmail
+  const ldapUrl = expisoftLdapUrlForMail(primaryLookupEmail)
+  const previous = await cachedLookup(primaryLookupEmail)
   const fetchedAt = text(previous?.fetched_at)
   const throttled = Boolean(
     !input.forceRefresh &&
@@ -323,7 +357,7 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
 
   if (throttled && previous) {
     return {
-      lookupEmail: smtpEmail,
+      lookupEmail: primaryLookupEmail,
       ldapUrl,
       fetchedFromLdap: false,
       throttled: true,
@@ -357,16 +391,19 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
       'cn',
       'uid',
     ]
-    const filters = [`(mail=${escapeLdapFilter(smtpEmail)})`]
+    const filters: string[] = []
+    for (const email of lookupEmails) filters.push(`(mail=${escapeLdapFilter(email)})`)
     if (input.edielId) {
       const ediel = escapeLdapFilter(input.edielId)
-      filters.push(`(uid=${ediel})`, `(cn=*${ediel}*)`, `(o=${ediel})`)
-      filters.push(`(mail=${ediel}@ediel.se)`)
+      filters.push(`(uid=${ediel})`, `(cn=*${ediel}*)`, `(o=${ediel})`, `(serialNumber=${ediel})`)
     }
 
     const entries: Record<string, unknown>[] = []
     const seenEntryKeys = new Set<string>()
+    const attemptedFilters: string[] = []
+    let rawCertificates: Buffer[] = []
     for (const filter of filters) {
+      attemptedFilters.push(filter)
       const search = await client.search(ldapBaseDn(), {
         scope: 'sub',
         filter,
@@ -378,12 +415,13 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
         seenEntryKeys.add(key)
         entries.push(entry)
       }
-      if (entries.length > 0) break
+      rawCertificates = entries.flatMap((entry) =>
+        extractCertificateValuesFromLdapEntry(entry as Record<string, unknown>),
+      )
+      // Continue through alternate filters if entries exist but no certificate attributes were returned.
+      // A directory person/party entry without userCertificate is not a usable receiver certificate.
+      if (rawCertificates.length > 0) break
     }
-
-    const rawCertificates = entries.flatMap((entry) =>
-      extractCertificateValuesFromLdapEntry(entry as Record<string, unknown>),
-    )
 
     const certs: ExpisoftCertificateLookupResult['certificates'] = []
     for (const rawDer of rawCertificates) {
@@ -435,7 +473,7 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
     }
 
     return {
-      lookupEmail: smtpEmail,
+      lookupEmail: primaryLookupEmail,
       ldapUrl,
       fetchedFromLdap: true,
       throttled: false,
@@ -443,7 +481,8 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
       certificates: certs,
       diagnostics: {
         entries: entries.length,
-        attemptedFilters: filters,
+        attemptedFilters,
+        lookupEmails,
         ldapAttributeKeys: entries.map((entry) => Object.keys(entry as Record<string, unknown>)),
       },
     }
