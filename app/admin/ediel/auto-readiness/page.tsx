@@ -1,6 +1,6 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
-import { listActorSendReadiness } from '@/lib/ediel/operations/actorAutoReadiness'
+import { listActorSendReadiness, type ActorSendReadinessRow } from '@/lib/ediel/operations/actorAutoReadiness'
 import { supabaseService } from '@/lib/supabase/service'
 import { applyActorAutoSendReadinessAction, refreshActorCertificatesAction, runActorReadinessBackfillAction } from './actions'
 
@@ -40,13 +40,35 @@ type CertRow = {
   next_check_at: string | null
 }
 
+type ActorSummary = {
+  actor_id: string
+  actor_name: string | null
+  ediel_id: string | null
+  actor_roles: string[]
+  routes: ActorSendReadinessRow[]
+  electricityRoutes: ActorSendReadinessRow[]
+  routeCount: number
+  prodatCount: number
+  utiltsCount: number
+  autoSendEnabledCount: number
+  readyCount: number
+  missingRequiredCertificateCount: number
+  hardBlockedCount: number
+  status: 'ready' | 'partial' | 'missing_required_certificate' | 'blocked' | 'needs_review' | 'no_electricity_routes'
+  primaryBlocker: string | null
+  blockingReasons: string[]
+  lastCheckedAt: string | null
+  nextCheckAt: string | null
+}
 
 function actorMatchesRoleFilter(roles: string[] | null | undefined, filter: string) {
   const normalized = (roles ?? []).map((role) => String(role).toLowerCase())
   if (!filter || filter === 'all') return true
   if (filter === 'grid_owner') return normalized.some((role) => ['grid_owner', 'network_owner', 'netowner'].includes(role))
   if (filter === 'electricity_supplier') return normalized.some((role) => ['electricity_supplier', 'supplier', 'powersupplier'].includes(role))
-  if (filter === 'balance_responsible_party') return normalized.some((role) => ['balance_responsible_party', 'brp'].includes(role))
+  if (filter === 'energy_service_company') return normalized.some((role) => ['energy_service_company', 'esp', 'asp'].includes(role))
+  if (filter === 'system_supplier') return normalized.some((role) => ['system_supplier', 'systemleverantor', 'systemleverantör'].includes(role))
+  if (filter === 'balance_responsible_party') return normalized.some((role) => ['balance_responsible_party', 'balanceresponsible', 'balanceresponsibleparty', 'balanceresponsible', 'brp', 'bsp'].includes(role))
   return normalized.includes(filter)
 }
 
@@ -57,6 +79,11 @@ function field(value: string | number | boolean | null | undefined) {
 
 function statusLabel(value: string | null | undefined) {
   switch (value) {
+    case 'ready': return 'Klar'
+    case 'partial': return 'Delvis klar'
+    case 'blocked': return 'Blockerad'
+    case 'missing_required_certificate': return 'Saknar PRODAT-certifikat'
+    case 'no_electricity_routes': return 'Saknar elroutes'
     case 'ready_for_auto_send': return 'Redo för auto-send'
     case 'missing_certificate': return 'Saknar certifikat'
     case 'expired_certificate': return 'Certifikat utgånget'
@@ -65,20 +92,103 @@ function statusLabel(value: string | null | undefined) {
     case 'missing_smtp_address': return 'Saknar SMTP'
     case 'party_id_mismatch': return 'Ediel-ID mismatch'
     case 'needs_manual_review': return 'Behöver granskning'
+    case 'needs_review': return 'Behöver granskning'
     default: return field(value)
   }
 }
 
 function tone(value: string | null | undefined) {
-  if (value === 'ready_for_auto_send') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
-  if (value === 'missing_certificate' || value === 'expired_certificate') return 'border-red-200 bg-red-50 text-red-800'
-  if (value === 'certificate_expires_soon' || value === 'route_not_verified' || value === 'needs_manual_review') return 'border-amber-200 bg-amber-50 text-amber-900'
+  if (value === 'ready' || value === 'ready_for_auto_send') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (value === 'partial') return 'border-sky-200 bg-sky-50 text-sky-800'
+  if (value === 'missing_required_certificate' || value === 'missing_certificate' || value === 'expired_certificate') return 'border-red-200 bg-red-50 text-red-800'
+  if (value === 'blocked') return 'border-red-300 bg-red-100 text-red-900'
+  if (value === 'certificate_expires_soon' || value === 'route_not_verified' || value === 'needs_manual_review' || value === 'needs_review') return 'border-amber-200 bg-amber-50 text-amber-900'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
-function summarize(rows: Awaited<ReturnType<typeof listActorSendReadiness>>) {
+function isElectricityRoute(row: ActorSendReadinessRow) {
+  const family = String(row.message_family ?? '').toUpperCase()
+  const subaddress = String(row.subaddress ?? '').toUpperCase()
+  return ['PRODAT', 'UTILTS'].includes(family) && subaddress !== 'GAS'
+}
+
+function routeMatchesFamilyFilter(row: ActorSendReadinessRow, familyFilter: string) {
+  const family = String(row.message_family ?? '').toUpperCase()
+  const subaddress = String(row.subaddress ?? '').toUpperCase()
+  return familyFilter === 'all'
+    || (familyFilter === 'electricity' && ['PRODAT', 'UTILTS'].includes(family) && subaddress !== 'GAS')
+    || family === familyFilter.toUpperCase()
+}
+
+function summarizeActors(rows: ActorSendReadinessRow[]): ActorSummary[] {
+  const byActor = new Map<string, ActorSendReadinessRow[]>()
+  for (const row of rows) {
+    const key = row.actor_id
+    byActor.set(key, [...(byActor.get(key) ?? []), row])
+  }
+
+  return Array.from(byActor.entries()).map(([actor_id, routes]) => {
+    const first = routes[0]
+    const electricityRoutes = routes.filter(isElectricityRoute)
+    const relevant = electricityRoutes.length > 0 ? electricityRoutes : routes
+    const blockingReasons = Array.from(new Set(relevant.flatMap((route) => route.blocking_reasons ?? []))).sort((a, b) => a.localeCompare(b, 'sv'))
+    const hardBlockedReasons = new Set(['party_id_mismatch', 'interchange_party_id_mismatch', 'wrong_environment', 'missing_transport_channel', 'tenant_routing_not_verified', 'route_not_active', 'route_not_verified'])
+    const hardBlockedCount = relevant.filter((route) => (route.blocking_reasons ?? []).some((reason) => hardBlockedReasons.has(reason))).length
+    const missingRequiredCertificateCount = relevant.filter((route) => route.requires_certificate === true && route.certificate_status !== 'valid').length
+    const readyCount = relevant.filter((route) => route.readiness_status === 'ready_for_auto_send').length
+    const autoSendEnabledCount = relevant.filter((route) => route.auto_send_allowed === true).length
+    const routeCount = relevant.length
+    const prodatCount = relevant.filter((route) => String(route.message_family ?? '').toUpperCase() === 'PRODAT').length
+    const utiltsCount = relevant.filter((route) => String(route.message_family ?? '').toUpperCase() === 'UTILTS').length
+
+    let status: ActorSummary['status'] = 'needs_review'
+    let primaryBlocker: string | null = blockingReasons[0] ?? null
+    if (electricityRoutes.length === 0) {
+      status = 'no_electricity_routes'
+      primaryBlocker = 'no_electricity_routes'
+    } else if (hardBlockedCount > 0) {
+      status = 'blocked'
+      primaryBlocker = blockingReasons.find((reason) => hardBlockedReasons.has(reason)) ?? 'blocked'
+    } else if (readyCount === routeCount && routeCount > 0) {
+      status = 'ready'
+      primaryBlocker = null
+    } else if (readyCount > 0 && missingRequiredCertificateCount > 0) {
+      status = 'partial'
+      primaryBlocker = 'missing_required_certificate'
+    } else if (missingRequiredCertificateCount > 0) {
+      status = 'missing_required_certificate'
+      primaryBlocker = 'missing_required_certificate'
+    } else if (readyCount > 0) {
+      status = 'partial'
+      primaryBlocker = blockingReasons[0] ?? null
+    }
+
+    return {
+      actor_id,
+      actor_name: first?.actor_name ?? null,
+      ediel_id: first?.ediel_id ?? null,
+      actor_roles: first?.actor_roles ?? [],
+      routes,
+      electricityRoutes,
+      routeCount,
+      prodatCount,
+      utiltsCount,
+      autoSendEnabledCount,
+      readyCount,
+      missingRequiredCertificateCount,
+      hardBlockedCount,
+      status,
+      primaryBlocker,
+      blockingReasons,
+      lastCheckedAt: relevant.map((row) => row.last_checked_at).filter(Boolean).sort().at(-1) ?? null,
+      nextCheckAt: relevant.map((row) => row.next_check_at).filter(Boolean).sort()[0] ?? null,
+    }
+  })
+}
+
+function summarizeStatus(rows: ActorSummary[]) {
   const counts = new Map<string, number>()
-  for (const row of rows) counts.set(row.readiness_status ?? 'unknown', (counts.get(row.readiness_status ?? 'unknown') ?? 0) + 1)
+  for (const row of rows) counts.set(row.status, (counts.get(row.status) ?? 0) + 1)
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
 }
 
@@ -117,41 +227,39 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
   const familyFilter = params.family ?? 'electricity'
   const statusFilter = params.status ?? 'all'
   const queryFilter = String(params.q ?? '').trim().toLowerCase()
-  const [rows, runs, certificates] = await Promise.all([listActorSendReadiness(1000), loadRuns(), loadCertificates()])
+  const [rows, runs, certificates] = await Promise.all([listActorSendReadiness(3000), loadRuns(), loadCertificates()])
   const filteredRows = rows.filter((row) => {
-    const family = String(row.message_family ?? '').toUpperCase()
-    const subaddress = String(row.subaddress ?? '').toUpperCase()
-    const matchesFamily = familyFilter === 'all'
-      || (familyFilter === 'electricity' && ['PRODAT', 'UTILTS'].includes(family) && subaddress !== 'GAS')
-      || family === familyFilter.toUpperCase()
+    const matchesFamily = routeMatchesFamilyFilter(row, familyFilter)
     const matchesRole = actorMatchesRoleFilter(row.actor_roles, roleFilter)
-    const matchesStatus = statusFilter === 'all' || String(row.readiness_status ?? '') === statusFilter
-    const matchesQuery = !queryFilter || [row.actor_name, row.ediel_id, row.communication_address, row.message_family, row.subaddress]
+    const matchesQuery = !queryFilter || [row.actor_name, row.ediel_id, row.communication_address, row.message_family, row.subaddress, ...(row.actor_roles ?? [])]
       .filter(Boolean)
       .some((item) => String(item).toLowerCase().includes(queryFilter))
-    return matchesFamily && matchesRole && matchesStatus && matchesQuery
+    return matchesFamily && matchesRole && matchesQuery
   })
-  const sortedRows = [...filteredRows].sort((a, b) => {
-    const byStatus = field(a.readiness_status).localeCompare(field(b.readiness_status), 'sv')
-    if (byStatus !== 0) return byStatus
-    return field(a.actor_name).localeCompare(field(b.actor_name), 'sv')
-  })
+  const actorSummaries = summarizeActors(filteredRows)
+    .filter((summary) => statusFilter === 'all' || summary.status === statusFilter || summary.primaryBlocker === statusFilter)
+    .sort((a, b) => {
+      const statusOrder = ['blocked', 'missing_required_certificate', 'partial', 'needs_review', 'no_electricity_routes', 'ready']
+      const byStatus = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)
+      if (byStatus !== 0) return byStatus
+      return field(a.actor_name).localeCompare(field(b.actor_name), 'sv')
+    })
 
   return (
     <main className="space-y-6">
       <AdminHeader
         title="Aktörsberedskap och autosändning"
-        subtitle="Systemet backfillar aktörer, verifierar routes, kontrollerar certifikat och aktiverar autosändning endast när hela kedjan är grön."
+        subtitle="Visar en rad per aktör. PRODAT, UTILTS och certifikat visas som detaljer så samma aktör inte ser ut som dubbletter."
       />
 
       <section className="grid gap-3 md:grid-cols-4">
-        {summarize(filteredRows).map(([status, count]) => (
+        {summarizeStatus(actorSummaries).map(([status, count]) => (
           <div key={status} className={`rounded-2xl border p-4 ${tone(status)}`}>
             <div className="text-2xl font-semibold">{count}</div>
             <div className="mt-1 text-sm font-medium">{statusLabel(status)}</div>
           </div>
         ))}
-        {filteredRows.length === 0 ? (
+        {actorSummaries.length === 0 ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 md:col-span-4">
             Readiness-vyn saknas eller har inga rader. Kör migrationen och importera actor registry först.
           </div>
@@ -166,12 +274,12 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
         </form>
         <form action={refreshActorCertificatesAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-base font-semibold text-slate-950">Kontrollera certifikat</h2>
-          <p className="mt-1 text-sm text-slate-600">Uppdaterar status, nästa kontroll och blockerar auto-send vid utgångna eller saknade certifikat.</p>
+          <p className="mt-1 text-sm text-slate-600">Söker mottagarcertifikat via befintliga certifikat och Expisoft LDAP. Saknas certifikat blockeras endast routes där certifikat krävs.</p>
           <button className="mt-4 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Kontrollera igen</button>
         </form>
         <form action={applyActorAutoSendReadinessAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-base font-semibold text-slate-950">Försök aktivera auto-send</h2>
-          <p className="mt-1 text-sm text-slate-600">Sätter auto-send till ja endast för routes där readiness-vyn visar helt grön kedja.</p>
+          <p className="mt-1 text-sm text-slate-600">Aktiverar bara routes där readiness är grön. PRODAT kräver giltigt mottagarcertifikat.</p>
           <button className="mt-4 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Aktivera där säkert</button>
         </form>
       </section>
@@ -185,6 +293,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
               <option value="electricity_supplier">Elleverantörer</option>
               <option value="energy_service_company">Energitjänsteföretag</option>
               <option value="balance_responsible_party">Balansansvariga</option>
+              <option value="system_supplier">Systemleverantörer</option>
             </select>
           </label>
           <label className="text-xs font-bold text-slate-700">Route-scope
@@ -199,10 +308,11 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
           <label className="text-xs font-bold text-slate-700">Readiness
             <select name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
               <option value="all">Alla statusar</option>
-              <option value="ready_for_auto_send">Redo för auto-send</option>
-              <option value="missing_certificate">Saknar certifikat</option>
-              <option value="route_not_verified">Route ej verifierad</option>
-              <option value="needs_manual_review">Behöver granskning</option>
+              <option value="ready">Klar</option>
+              <option value="partial">Delvis klar</option>
+              <option value="missing_required_certificate">Saknar PRODAT-certifikat</option>
+              <option value="blocked">Blockerad</option>
+              <option value="needs_review">Behöver granskning</option>
             </select>
           </label>
           <label className="text-xs font-bold text-slate-700">Sök
@@ -213,63 +323,90 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
             <a href="/admin/ediel/auto-readiness" className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700">Rensa</a>
           </div>
         </div>
-        <p className="mt-2 text-xs text-slate-500">Visar {filteredRows.length} av {rows.length} routes. Standardläget visar elhandel-routes och döljer GAS/övriga route-typer så de inte blockerar elhandel.</p>
+        <p className="mt-2 text-xs text-slate-500">Visar {actorSummaries.length} aktörer baserat på {filteredRows.length} route-rader. Standardläget visar elhandel-routes och döljer GAS/övriga route-typer.</p>
       </form>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">Aktörer och routes</h2>
-            <p className="text-sm text-slate-600">Klicka vidare via route-sidorna för manuell granskning. Här visas exakt vad som stoppar auto-send.</p>
+            <h2 className="text-lg font-semibold text-slate-950">Aktörer</h2>
+            <p className="text-sm text-slate-600">En rad per aktör. Öppna raden för PRODAT/UTILTS, certifikat och blockerande orsaker.</p>
           </div>
           <a href="/admin/ediel/routes" className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Öppna routes</a>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-3 py-3">Aktör</th>
-                <th className="px-3 py-3">Route</th>
-                <th className="px-3 py-3">Auto-send</th>
-                <th className="px-3 py-3">Certifikat</th>
-                <th className="px-3 py-3">Saknas</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {sortedRows.map((row) => (
-                <tr key={`${row.route_id}-${row.actor_id}`} className="align-top">
-                  <td className="px-3 py-4">
-                    <div className="font-medium text-slate-950">{field(row.actor_name)}</div>
-                    <div className="text-xs text-slate-500">Ediel-ID: {field(row.ediel_id)} · Roller: {(row.actor_roles ?? []).join(', ') || '—'}</div>
-                  </td>
-                  <td className="px-3 py-4 text-xs text-slate-700">
-                    <div>{field(row.message_family)} · {field(row.environment)}</div>
-                    <div>SMTP: {field(row.communication_address)}</div>
-                    <div>Party: {field(row.party_id)} · UNB: {field(row.interchange_party_id)}</div>
-                  </td>
-                  <td className="px-3 py-4">
-                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${tone(row.readiness_status)}`}>{statusLabel(row.readiness_status)}</span>
-                    <div className="mt-2 text-xs text-slate-500">Tillåten: {row.auto_send_allowed ? 'Ja' : 'Nej'} · Route verifierad: {row.route_verified ? 'Ja' : 'Nej'}</div>
-                  </td>
-                  <td className="px-3 py-4 text-xs text-slate-700">
-                    <div>Status: {field(row.certificate_status)}</div>
-                    <div>Gäller till: {field(row.certificate_valid_to)}</div>
-                    <div>Fingerprint: {row.certificate_fingerprint_sha256 ? `${row.certificate_fingerprint_sha256.slice(0, 16)}…` : '—'}</div>
-                    <div>Nästa kontroll: {field(row.certificate_next_check_at)}</div>
-                  </td>
-                  <td className="px-3 py-4 text-xs text-slate-700">
-                    {(row.blocking_reasons ?? []).length === 0 && (row.warnings ?? []).length === 0 ? 'Inga blockerande punkter' : null}
-                    {(row.blocking_reasons ?? []).map((reason) => (
-                      <div key={reason} className="mb-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-red-800">{reason}</div>
+        <div className="space-y-3">
+          {actorSummaries.map((actor) => (
+            <details key={actor.actor_id} className="rounded-2xl border border-slate-200 bg-white p-4 open:bg-slate-50">
+              <summary className="cursor-pointer list-none">
+                <div className="grid gap-3 md:grid-cols-[1.7fr_1fr_1fr_1.2fr] md:items-center">
+                  <div>
+                    <div className="font-semibold text-slate-950">{field(actor.actor_name)}</div>
+                    <div className="text-xs text-slate-500">Ediel-ID: {field(actor.ediel_id)} · Roller: {actor.actor_roles.join(', ') || '—'}</div>
+                  </div>
+                  <div className="text-xs text-slate-600">
+                    <div>PRODAT: {actor.prodatCount}</div>
+                    <div>UTILTS: {actor.utiltsCount}</div>
+                    <div>Auto-send: {actor.autoSendEnabledCount}/{actor.routeCount}</div>
+                  </div>
+                  <div>
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${tone(actor.status)}`}>{statusLabel(actor.status)}</span>
+                    {actor.primaryBlocker ? <div className="mt-1 text-xs text-slate-500">Hinder: {statusLabel(actor.primaryBlocker)}</div> : null}
+                  </div>
+                  <div className="text-xs text-slate-600">
+                    <div>Redo routes: {actor.readyCount}/{actor.routeCount}</div>
+                    <div>Saknar krävt certifikat: {actor.missingRequiredCertificateCount}</div>
+                    <div>Hårda fel: {actor.hardBlockedCount}</div>
+                  </div>
+                </div>
+              </summary>
+              <div className="mt-4 overflow-x-auto border-t border-slate-200 pt-4">
+                <table className="min-w-full divide-y divide-slate-200 text-xs">
+                  <thead className="bg-slate-100 text-left uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Route</th>
+                      <th className="px-3 py-2">Transport</th>
+                      <th className="px-3 py-2">Auto-send</th>
+                      <th className="px-3 py-2">Certifikat</th>
+                      <th className="px-3 py-2">Saknas</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {actor.routes.filter((row) => routeMatchesFamilyFilter(row, familyFilter)).map((row) => (
+                      <tr key={row.route_id} className="align-top">
+                        <td className="px-3 py-3">
+                          <div className="font-medium text-slate-900">{field(row.message_family)} · {field(row.environment)}</div>
+                          <div className="text-slate-500">Subadress: {field(row.subaddress)} · App ref: {field(row.application_reference)}</div>
+                        </td>
+                        <td className="px-3 py-3 text-slate-700">
+                          <div>SMTP: {field(row.communication_address)}</div>
+                          <div>Party: {field(row.party_id)} · UNB: {field(row.interchange_party_id)}</div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className={`inline-flex rounded-full border px-2 py-0.5 font-medium ${tone(row.readiness_status)}`}>{statusLabel(row.readiness_status)}</span>
+                          <div className="mt-1 text-slate-500">Tillåten: {row.auto_send_allowed ? 'Ja' : 'Nej'} · Verifierad: {row.route_verified ? 'Ja' : 'Nej'}</div>
+                        </td>
+                        <td className="px-3 py-3 text-slate-700">
+                          <div>Krävs: {row.requires_certificate ? 'Ja' : 'Nej'}</div>
+                          <div>Status: {field(row.certificate_status)}</div>
+                          <div>Gäller till: {field(row.certificate_valid_to)}</div>
+                          <div>Fingerprint: {row.certificate_fingerprint_sha256 ? `${row.certificate_fingerprint_sha256.slice(0, 16)}…` : '—'}</div>
+                        </td>
+                        <td className="px-3 py-3 text-slate-700">
+                          {(row.blocking_reasons ?? []).length === 0 && (row.warnings ?? []).length === 0 ? 'Inga blockerande punkter' : null}
+                          {(row.blocking_reasons ?? []).map((reason) => (
+                            <div key={reason} className="mb-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-red-800">{reason}</div>
+                          ))}
+                          {(row.warnings ?? []).map((warning) => (
+                            <div key={warning} className="mb-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900">{warning}</div>
+                          ))}
+                        </td>
+                      </tr>
                     ))}
-                    {(row.warnings ?? []).map((warning) => (
-                      <div key={warning} className="mb-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900">{warning}</div>
-                    ))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          ))}
         </div>
       </section>
 

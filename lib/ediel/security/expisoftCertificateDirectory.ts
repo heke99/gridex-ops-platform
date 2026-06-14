@@ -11,6 +11,7 @@ export type ExpisoftCertificateLookupResult = {
   certificates: Array<{
     certificateId: string | null
     fingerprintSha256: string
+    pem: string
     subject: string
     issuer: string
     serialNumber: string
@@ -119,6 +120,10 @@ function extractCertificateValuesFromLdapEntry(entry: Record<string, unknown>): 
     'userCertificate;binary',
     'usercertificate',
     'usercertificate;binary',
+    'userSMIMECertificate',
+    'userSMIMECertificate;binary',
+    'usersmimecertificate',
+    'usersmimecertificate;binary',
   ]
 
   for (const attributeName of directAttributeNames) {
@@ -130,7 +135,7 @@ function extractCertificateValuesFromLdapEntry(entry: Record<string, unknown>): 
   // "userCertificate". Accept any userCertificate attribute, case-insensitively,
   // but avoid duplicate buffers later by fingerprint.
   for (const [key, value] of Object.entries(entry)) {
-    if (key.toLowerCase().startsWith('usercertificate')) {
+    if (key.toLowerCase().startsWith('usercertificate') || key.toLowerCase().startsWith('usersmimecertificate')) {
       values.push(...normalizeLdapCertificateValue(value))
     }
   }
@@ -326,6 +331,7 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
       certificates: [{
         certificateId: text(previous.certificate_id),
         fingerprintSha256: text(previous.sha256_fingerprint) ?? '',
+        pem: text(previous.public_certificate_pem) ?? '',
         subject: text(previous.subject) ?? '',
         issuer: text(previous.issuer) ?? '',
         serialNumber: text(previous.serial_number) ?? '',
@@ -342,13 +348,40 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
 
   const client = new Client({ url: `ldap://${ldapHost()}:${ldapPort()}` })
   try {
-    const search = await client.search(ldapBaseDn(), {
-      scope: 'sub',
-      filter: `(mail=${escapeLdapFilter(smtpEmail)})`,
-      attributes: ['userCertificate', 'userCertificate;binary'],
-    })
+    const attributes = [
+      'userCertificate',
+      'userCertificate;binary',
+      'userSMIMECertificate',
+      'userSMIMECertificate;binary',
+      'mail',
+      'cn',
+      'uid',
+    ]
+    const filters = [`(mail=${escapeLdapFilter(smtpEmail)})`]
+    if (input.edielId) {
+      const ediel = escapeLdapFilter(input.edielId)
+      filters.push(`(uid=${ediel})`, `(cn=*${ediel}*)`, `(o=${ediel})`)
+      filters.push(`(mail=${ediel}@ediel.se)`)
+    }
 
-    const rawCertificates = search.searchEntries.flatMap((entry) =>
+    const entries: Record<string, unknown>[] = []
+    const seenEntryKeys = new Set<string>()
+    for (const filter of filters) {
+      const search = await client.search(ldapBaseDn(), {
+        scope: 'sub',
+        filter,
+        attributes,
+      })
+      for (const entry of search.searchEntries as Record<string, unknown>[]) {
+        const key = JSON.stringify(entry)
+        if (seenEntryKeys.has(key)) continue
+        seenEntryKeys.add(key)
+        entries.push(entry)
+      }
+      if (entries.length > 0) break
+    }
+
+    const rawCertificates = entries.flatMap((entry) =>
       extractCertificateValuesFromLdapEntry(entry as Record<string, unknown>),
     )
 
@@ -388,6 +421,7 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
       certs.push({
         certificateId,
         fingerprintSha256: createHash('sha256').update(rawDer).digest('hex').toUpperCase(),
+        pem,
         subject: cert.subject,
         issuer: cert.issuer,
         serialNumber: cert.serialNumber,
@@ -408,8 +442,9 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
       certificatesFound: certs.length,
       certificates: certs,
       diagnostics: {
-        entries: search.searchEntries.length,
-        ldapAttributeKeys: search.searchEntries.map((entry) => Object.keys(entry as Record<string, unknown>)),
+        entries: entries.length,
+        attemptedFilters: filters,
+        ldapAttributeKeys: entries.map((entry) => Object.keys(entry as Record<string, unknown>)),
       },
     }
   } finally {
