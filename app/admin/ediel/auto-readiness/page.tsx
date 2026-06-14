@@ -61,6 +61,54 @@ type ActorSummary = {
   nextCheckAt: string | null
 }
 
+function asTextArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item ?? '').trim()).filter(Boolean)
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return []
+    try {
+      const parsed = JSON.parse(trimmed)
+      if (Array.isArray(parsed)) return parsed.map((item) => String(item ?? '').trim()).filter(Boolean)
+    } catch {}
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      return trimmed.slice(1, -1).split(',').map((item) => item.replace(/^"|"$/g, '').trim()).filter(Boolean)
+    }
+    return [trimmed]
+  }
+  return []
+}
+
+function safeDateValue(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null
+  const textValue = String(value)
+  const timestamp = Date.parse(textValue)
+  return Number.isFinite(timestamp) ? textValue : null
+}
+
+function normalizeReadinessRow(row: ActorSendReadinessRow): ActorSendReadinessRow {
+  return {
+    ...row,
+    actor_id: String(row.actor_id ?? `unknown-${row.route_id ?? 'route'}`),
+    route_id: String(row.route_id ?? `${row.actor_id ?? 'unknown'}-${row.message_family ?? 'route'}-${row.communication_address ?? 'no-address'}`),
+    actor_roles: asTextArray(row.actor_roles),
+    blocking_reasons: asTextArray(row.blocking_reasons),
+    warnings: asTextArray(row.warnings),
+    last_checked_at: safeDateValue(row.last_checked_at),
+    next_check_at: safeDateValue(row.next_check_at),
+    certificate_valid_to: safeDateValue(row.certificate_valid_to),
+  }
+}
+
+function normalizeCertificate(row: CertRow): CertRow {
+  return {
+    ...row,
+    id: String(row.id ?? `${row.ediel_id ?? 'unknown'}-${row.environment ?? 'env'}-${row.purpose ?? 'purpose'}`),
+    fingerprint_sha256: row.fingerprint_sha256 ? String(row.fingerprint_sha256) : null,
+    valid_to: safeDateValue(row.valid_to),
+    next_check_at: safeDateValue(row.next_check_at),
+  }
+}
+
 function actorMatchesRoleFilter(roles: string[] | null | undefined, filter: string) {
   const normalized = (roles ?? []).map((role) => String(role).toLowerCase())
   if (!filter || filter === 'all') return true
@@ -131,9 +179,9 @@ function summarizeActors(rows: ActorSendReadinessRow[]): ActorSummary[] {
     const first = routes[0]
     const electricityRoutes = routes.filter(isElectricityRoute)
     const relevant = electricityRoutes.length > 0 ? electricityRoutes : routes
-    const blockingReasons = Array.from(new Set(relevant.flatMap((route) => route.blocking_reasons ?? []))).sort((a, b) => a.localeCompare(b, 'sv'))
+    const blockingReasons = Array.from(new Set(relevant.flatMap((route) => asTextArray(route.blocking_reasons)))).sort((a, b) => a.localeCompare(b, 'sv'))
     const hardBlockedReasons = new Set(['party_id_mismatch', 'interchange_party_id_mismatch', 'wrong_environment', 'missing_transport_channel', 'tenant_routing_not_verified', 'route_not_active', 'route_not_verified'])
-    const hardBlockedCount = relevant.filter((route) => (route.blocking_reasons ?? []).some((reason) => hardBlockedReasons.has(reason))).length
+    const hardBlockedCount = relevant.filter((route) => asTextArray(route.blocking_reasons).some((reason) => hardBlockedReasons.has(reason))).length
     const missingRequiredCertificateCount = relevant.filter((route) => route.requires_certificate === true && route.certificate_status !== 'valid').length
     const readyCount = relevant.filter((route) => route.readiness_status === 'ready_for_auto_send').length
     const autoSendEnabledCount = relevant.filter((route) => route.auto_send_allowed === true).length
@@ -167,7 +215,7 @@ function summarizeActors(rows: ActorSendReadinessRow[]): ActorSummary[] {
       actor_id,
       actor_name: first?.actor_name ?? null,
       ediel_id: first?.ediel_id ?? null,
-      actor_roles: first?.actor_roles ?? [],
+      actor_roles: asTextArray(first?.actor_roles),
       routes,
       electricityRoutes,
       routeCount,
@@ -217,7 +265,7 @@ async function loadCertificates(): Promise<CertRow[]> {
     if (['42P01', '42703', 'PGRST205'].includes(result.error.code ?? '')) return []
     throw result.error
   }
-  return (result.data ?? []) as CertRow[]
+  return ((result.data ?? []) as CertRow[]).map(normalizeCertificate)
 }
 
 export default async function EdielAutoReadinessPage({ searchParams }: PageProps) {
@@ -227,7 +275,22 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
   const familyFilter = params.family ?? 'electricity'
   const statusFilter = params.status ?? 'all'
   const queryFilter = String(params.q ?? '').trim().toLowerCase()
-  const [rows, runs, certificates] = await Promise.all([listActorSendReadiness(3000), loadRuns(), loadCertificates()])
+  const loadErrors: string[] = []
+  const [rawRows, runs, certificates] = await Promise.all([
+    listActorSendReadiness(3000).catch((error) => {
+      loadErrors.push(`Readiness kunde inte laddas: ${error instanceof Error ? error.message : String(error)}`)
+      return [] as ActorSendReadinessRow[]
+    }),
+    loadRuns().catch((error) => {
+      loadErrors.push(`Körningshistorik kunde inte laddas: ${error instanceof Error ? error.message : String(error)}`)
+      return [] as RunRow[]
+    }),
+    loadCertificates().catch((error) => {
+      loadErrors.push(`Certifikatkontroller kunde inte laddas: ${error instanceof Error ? error.message : String(error)}`)
+      return [] as CertRow[]
+    }),
+  ])
+  const rows = rawRows.map(normalizeReadinessRow)
   const filteredRows = rows.filter((row) => {
     const matchesFamily = routeMatchesFamilyFilter(row, familyFilter)
     const matchesRole = actorMatchesRoleFilter(row.actor_roles, roleFilter)
@@ -251,6 +314,16 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
         title="Aktörsberedskap och autosändning"
         subtitle="Visar en rad per aktör. PRODAT, UTILTS och certifikat visas som detaljer så samma aktör inte ser ut som dubbletter."
       />
+
+      {loadErrors.length > 0 ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="font-semibold">Adminvyn laddades med varningar</div>
+          <div className="mt-1">Sidan kraschar inte längre om certifikat-/readiness-data är ofullständig. Kontrollera dessa fel i serverloggen:</div>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {loadErrors.map((error) => <li key={error}>{error}</li>)}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="grid gap-3 md:grid-cols-4">
         {summarizeStatus(actorSummaries).map(([status, count]) => (
@@ -389,14 +462,14 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
                           <div>Krävs: {row.requires_certificate ? 'Ja' : 'Nej'}</div>
                           <div>Status: {field(row.certificate_status)}</div>
                           <div>Gäller till: {field(row.certificate_valid_to)}</div>
-                          <div>Fingerprint: {row.certificate_fingerprint_sha256 ? `${row.certificate_fingerprint_sha256.slice(0, 16)}…` : '—'}</div>
+                          <div>Fingerprint: {row.certificate_fingerprint_sha256 ? `${String(row.certificate_fingerprint_sha256).slice(0, 16)}…` : '—'}</div>
                         </td>
                         <td className="px-3 py-3 text-slate-700">
-                          {(row.blocking_reasons ?? []).length === 0 && (row.warnings ?? []).length === 0 ? 'Inga blockerande punkter' : null}
-                          {(row.blocking_reasons ?? []).map((reason) => (
+                          {asTextArray(row.blocking_reasons).length === 0 && asTextArray(row.warnings).length === 0 ? 'Inga blockerande punkter' : null}
+                          {asTextArray(row.blocking_reasons).map((reason) => (
                             <div key={reason} className="mb-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-red-800">{reason}</div>
                           ))}
-                          {(row.warnings ?? []).map((warning) => (
+                          {asTextArray(row.warnings).map((warning) => (
                             <div key={warning} className="mb-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900">{warning}</div>
                           ))}
                         </td>
@@ -431,7 +504,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
               <div key={cert.id} className="rounded-xl border border-slate-200 p-3">
                 <div className="font-medium text-slate-950">Ediel-ID {field(cert.ediel_id)} · {cert.environment} · {cert.purpose}</div>
                 <div className="text-xs text-slate-600">Status: {cert.status} · Gäller till: {field(cert.valid_to)}</div>
-                <div className="text-xs text-slate-500">Nästa kontroll: {field(cert.next_check_at)} · Fingerprint: {cert.fingerprint_sha256 ? `${cert.fingerprint_sha256.slice(0, 18)}…` : '—'}</div>
+                <div className="text-xs text-slate-500">Nästa kontroll: {field(cert.next_check_at)} · Fingerprint: {cert.fingerprint_sha256 ? `${String(cert.fingerprint_sha256).slice(0, 18)}…` : '—'}</div>
               </div>
             ))}
             {certificates.length === 0 ? <div className="text-sm text-slate-500">Inga certifikatposter ännu. Kör backfill för att skapa saknade certifikatkontroller.</div> : null}
