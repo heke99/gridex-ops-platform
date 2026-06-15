@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expisoftCertificateDirectory'
+import { refreshScheduledActorCertificates } from '@/lib/ediel/certificates/actorCertificateRefresh'
 
 export type ActorReadinessRunResult = {
   ok: boolean
@@ -342,7 +343,10 @@ export async function runActorReadinessBackfill(runType: 'nightly_backfill' | 'm
 }
 
 export async function refreshActorCertificateStatuses(runType: 'certificate_refresh' | 'manual_actor_check' | 'manual' = 'certificate_refresh') {
-  const externalLookup = await syncCertificateLookupRoutes(runType)
+  // Use the hardened O6 refresh path so manual auto-readiness also performs live Expisoft/LDAP lookup
+  // on cache miss and writes per-actor refresh job diagnostics. Keep the original RPC refresh afterwards
+  // so existing readiness summaries and auto-send guards remain backwards-compatible.
+  const externalLookup = await refreshScheduledActorCertificates({ limit: runType === 'manual_actor_check' || runType === 'manual' ? 50 : 50 })
   const result = await supabaseService.rpc('gridex_refresh_actor_certificate_statuses', { p_run_type: runType })
   if (result.error) throw result.error
   return {

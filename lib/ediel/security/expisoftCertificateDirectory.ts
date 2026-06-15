@@ -200,6 +200,7 @@ async function upsertCacheRow(input: {
   smtpEmail: string
   edielId?: string | null
   subaddress?: string | null
+  platformMarketActorId?: string | null
   certificateId: string | null
   pem: string
   rawDer: Buffer
@@ -210,25 +211,37 @@ async function upsertCacheRow(input: {
   await supabaseService.from('ediel_certificate_directory_cache').upsert({
     party_id: clean(input.partyId),
     company_id: clean(input.companyId),
+    platform_market_actor_id: clean(input.platformMarketActorId),
     smtp_email: input.smtpEmail,
     ediel_id: clean(input.edielId),
     subaddress: clean(input.subaddress),
     source: 'expisoft_ldap',
     certificate_id: input.certificateId,
     public_certificate_pem: input.pem,
+    certificate_pem: input.pem,
     raw_der_base64: input.rawDer.toString('base64'),
+    certificate_der: `\\x${input.rawDer.toString('hex')}`,
     subject: input.cert.subject,
     issuer: input.cert.issuer,
     serial_number: input.cert.serialNumber,
     not_before: new Date(input.cert.validFrom).toISOString(),
     not_after: new Date(input.cert.validTo).toISOString(),
     sha256_fingerprint: createHash('sha256').update(input.rawDer).digest('hex').toUpperCase(),
+    fingerprint_sha256: createHash('sha256').update(input.rawDer).digest('hex').toUpperCase(),
     key_usage: null,
     subject_alt_names: input.cert.subjectAltName,
     crl_distribution_points: extractCrlDistributionPoints(input.cert),
     fetched_at: new Date().toISOString(),
     last_validated_at: new Date().toISOString(),
+    last_checked_at: new Date().toISOString(),
+    valid_from: new Date(input.cert.validFrom).toISOString(),
+    valid_to: new Date(input.cert.validTo).toISOString(),
+    environment: 'production',
+    purpose: 'encryption',
+    lookup_key: input.smtpEmail,
+    lookup_status: 'found',
     status: input.status,
+    metadata: { source: 'expisoft_ldap', diagnostics: input.diagnostics },
     diagnostics: input.diagnostics,
   }, { onConflict: 'smtp_email,sha256_fingerprint' }).then(({ error }) => {
     if (error && !['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) throw error
@@ -341,6 +354,7 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
   partyId?: string | null
   companyId?: string | null
   forceRefresh?: boolean
+  platformMarketActorId?: string | null
 }): Promise<ExpisoftCertificateLookupResult> {
   const smtpEmail = clean(input.smtpEmail)?.toLowerCase()
   if (!smtpEmail) throw new Error('SMTP email krävs för Expisoft certificate lookup.')
@@ -445,6 +459,7 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
         smtpEmail,
         edielId: input.edielId,
         subaddress: input.subaddress,
+        platformMarketActorId: input.platformMarketActorId,
         certificateId,
         pem,
         rawDer,

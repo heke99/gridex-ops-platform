@@ -109,17 +109,25 @@ export default async function NetworkOwnersPage({
  const actionStatus = params?.status
  const actionMessage = params?.message
 
- const [gridOwners, editingGridOwner, importRunsResult] = await Promise.all([
- listGridOwners(supabase),
- editId ? getGridOwnerById(supabase, editId) : Promise.resolve(null),
- supabase
-   .from('actor_registry_import_runs')
-   .select('id,source_filename,status,total_records,created_count,updated_count,unchanged_count,conflict_count,error_count,started_at,finished_at')
-   .order('started_at', { ascending: false })
-   .limit(5),
+ const [gridOwnersResult, editingGridOwnerResult, importRunsResult] = await Promise.allSettled([
+   listGridOwners(supabase),
+   editId ? getGridOwnerById(supabase, editId) : Promise.resolve(null),
+   supabase
+     .from('actor_registry_import_runs')
+     .select('id,source_filename,status,total_records,created_count,updated_count,unchanged_count,conflict_count,error_count,started_at,finished_at')
+     .order('started_at', { ascending: false })
+     .limit(5),
  ])
 
- const importRuns = importRunsResult.error ? [] : ((importRunsResult.data ?? []) as ImportRunRow[])
+ const gridOwners = gridOwnersResult.status === 'fulfilled' ? gridOwnersResult.value : []
+ const editingGridOwner = editingGridOwnerResult.status === 'fulfilled' ? editingGridOwnerResult.value : null
+ const importRunsPayload = importRunsResult.status === 'fulfilled' ? importRunsResult.value : null
+ const importRuns = importRunsPayload?.error ? [] : ((importRunsPayload?.data ?? []) as ImportRunRow[])
+ const loadError = [
+   gridOwnersResult.status === 'rejected' ? 'nätägarlistan' : null,
+   editingGridOwnerResult.status === 'rejected' ? 'vald nätägare' : null,
+   importRunsResult.status === 'rejected' || importRunsPayload?.error ? 'importhistorik' : null,
+ ].filter(Boolean).join(', ')
 
  const activeCount = gridOwners.filter((owner) => owner.is_active).length
  const verifiedCount = gridOwners.filter((owner) => owner.verification_status === 'verified' || owner.verified_for_customer_flow === true).length
@@ -128,6 +136,9 @@ export default async function NetworkOwnersPage({
  return (
  <div className="space-y-6">
  <ActionFeedbackBanner status={actionStatus} message={actionMessage} />
+ {loadError ? (
+ <ActionFeedbackBanner status="error" message={`Adminvyn kunde laddas delvis, men ${loadError} kunde inte hämtas. Certifikatsökningens resultat finns i refresh-jobb/audit.`} />
+ ) : null}
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
  <div>

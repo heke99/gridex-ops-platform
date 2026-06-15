@@ -121,7 +121,7 @@ export async function refreshGridOwnerCertificatesAction(): Promise<void> {
   let redirectParams: Parameters<typeof redirectToNetworkOwners>[0];
 
   try {
-    const result = await refreshScheduledActorCertificates({ limit: 200 });
+    const result = await refreshScheduledActorCertificates({ limit: 50 });
     await runGridOwnerReadinessCompletion("network_owners_certificate_refresh_action");
     revalidatePath("/admin/network-owners");
     revalidatePath("/admin/ediel/auto-readiness");
@@ -129,7 +129,7 @@ export async function refreshGridOwnerCertificatesAction(): Promise<void> {
 
     redirectParams = {
       status: "success",
-      message: `Certifikatsökning klar. Bearbetade ${result.processed} aktörer, hittade ${result.found} certifikat, infogade ${result.inserted}, uppdaterade ${result.updated}.`,
+      message: `Certifikatsökning klar. Bearbetade ${result.processed} aktörer, hittade ${result.found} certifikat, infogade ${result.inserted}, uppdaterade ${result.updated}. Misslyckade ${result.errors?.length ?? 0}, skippade ${result.skipped?.length ?? 0}.`,
     };
   } catch (error) {
     console.error("network_owners_certificate_refresh_action_failed", error);
@@ -196,7 +196,7 @@ export async function searchGridOwnerCertificateNowAction(formData: FormData): P
       : {
           edit: gridOwnerId,
           status: result.valid > 0 || result.inserted > 0 || result.updated > 0 ? "success" : "info",
-          message: `Certifikatsökning klar för vald nätägare. Hittade ${result.found}, infogade ${result.inserted}, uppdaterade ${result.updated}, giltiga ${result.valid}, utgångna ${result.expired}.`,
+          message: `Certifikatsökning klar för vald nätägare. Hittade ${result.found}, infogade ${result.inserted}, uppdaterade ${result.updated}, giltiga ${result.valid}, utgångna ${result.expired}. ${result.metadata?.lookupAddresses ? `Sökte via ${(result.metadata.lookupAddresses as string[]).join(', ')}.` : ''}` ,
         };
   } catch (error) {
     console.error("network_owner_manual_certificate_search_failed", { gridOwnerId, error });

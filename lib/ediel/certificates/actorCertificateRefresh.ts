@@ -3,8 +3,10 @@ import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expi
 
 type RefreshTrigger = 'manual' | 'scheduled_30_day' | 'xml_import' | 'backfill' | 'certificate_refresh'
 
+type RefreshStatus = 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
+
 type RefreshRoute = {
-  actor_id: string
+  actor_id: string | null
   route_id: string | null
   grid_owner_id: string | null
   company_id: string | null
@@ -14,7 +16,34 @@ type RefreshRoute = {
   communication_address: string | null
   lookup_address: string | null
   route_status: string | null
-  source: 'send_readiness_view' | 'platform_actor_routes' | 'candidate_view'
+  source:
+    | 'send_readiness_view'
+    | 'platform_actor_routes'
+    | 'candidate_view'
+    | 'grid_owner_route_email'
+    | 'grid_owner_communication_email'
+    | 'grid_owner_email'
+    | 'grid_owner_ediel_fallback'
+    | 'actor_identifier_ediel_fallback'
+}
+
+type RefreshCounters = {
+  found: number
+  inserted: number
+  updated: number
+  valid: number
+  expired: number
+}
+
+type RefreshResult = RefreshCounters & {
+  ok: boolean
+  skipped?: boolean
+  reason?: string
+  errors?: Array<Record<string, unknown>>
+  routes?: RefreshRoute[]
+  existingSync?: Record<string, unknown>
+  cacheSync?: Record<string, unknown>
+  metadata?: Record<string, unknown>
 }
 
 type ExistingEdielCertificateRow = {
@@ -38,6 +67,16 @@ type ExistingEdielCertificateRow = {
   source: string | null
   public_certificate_pem: string | null
   metadata: Record<string, unknown> | null
+}
+
+type GridOwnerLookupRow = {
+  id?: string | null
+  company_id?: string | null
+  ediel_id?: string | null
+  communication_email?: string | null
+  email?: string | null
+  platform_market_actor_id?: string | null
+  name?: string | null
 }
 
 function clean(value: unknown): string | null {
@@ -72,10 +111,15 @@ function isMissingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
 }
 
+function errorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message
+  return String(error || 'Okänt fel')
+}
+
 function isRouteSearchable(row: Record<string, unknown>): boolean {
   const family = upper(row.message_family)
   const environment = normalizeEnvironment(row.environment)
-  const status = clean(row.route_status) ?? clean(row.status) ?? 'active'
+  const status = (clean(row.route_status) ?? clean(row.status) ?? 'active').toLowerCase()
   const subaddress = upper(row.subaddress)
 
   return family === 'PRODAT'
@@ -85,23 +129,69 @@ function isRouteSearchable(row: Record<string, unknown>): boolean {
     && status !== 'blocked'
 }
 
+function normalizeEmail(value: unknown): string | null {
+  const email = clean(value)?.toLowerCase()
+  if (!email) return null
+  if (!email.includes('@')) return null
+  return email
+}
+
+function edielFallbackAddress(edielId?: string | null): string | null {
+  const ediel = clean(edielId)
+  return ediel ? `${ediel.toLowerCase()}@ediel.se` : null
+}
+
 function routeLookupAddress(input: { communicationAddress?: string | null; edielId?: string | null }): string | null {
-  const communicationAddress = clean(input.communicationAddress)
-  if (communicationAddress) return communicationAddress
-  const edielId = clean(input.edielId)
-  return edielId ? `${edielId}@ediel.se` : null
+  return normalizeEmail(input.communicationAddress) ?? edielFallbackAddress(input.edielId)
 }
 
 function dedupeRoutes(routes: RefreshRoute[]): RefreshRoute[] {
   const seen = new Set<string>()
   const out: RefreshRoute[] = []
   for (const route of routes) {
-    const key = [route.actor_id, route.route_id ?? '', route.lookup_address ?? route.communication_address ?? '', route.ediel_id ?? '', route.subaddress ?? ''].join('|')
+    const key = [route.actor_id ?? '', route.route_id ?? '', route.lookup_address ?? '', route.ediel_id ?? '', route.subaddress ?? '', route.source].join('|')
     if (seen.has(key)) continue
     seen.add(key)
     out.push(route)
   }
   return out
+}
+
+function lookupDiagnostics(routes: RefreshRoute[], extra: Record<string, unknown> = {}) {
+  return {
+    ...extra,
+    ldapHost: process.env.EDIEL_EXPISOFT_LDAP_HOST ?? 'sodir01.expisoft.se',
+    ldapPort: Number(process.env.EDIEL_EXPISOFT_LDAP_PORT ?? '389'),
+    ldapBaseDn: process.env.EDIEL_EXPISOFT_LDAP_BASE_DN ?? 'c=se',
+    liveLookupAttempted: true,
+    lookupAddresses: Array.from(new Set(routes.map((route) => route.lookup_address).filter((value): value is string => Boolean(value)))),
+    lookupSources: Array.from(new Set(routes.map((route) => route.source))),
+    routeSources: routes.map((route) => ({
+      source: route.source,
+      routeId: route.route_id,
+      actorId: route.actor_id,
+      gridOwnerId: route.grid_owner_id,
+      edielId: route.ediel_id,
+      subaddress: route.subaddress,
+      communicationAddress: route.communication_address,
+      lookupAddress: route.lookup_address,
+      routeStatus: route.route_status,
+      environment: route.environment,
+    })),
+  }
+}
+
+async function safeAudit(action: string, metadata: Record<string, unknown>) {
+  const { error } = await supabaseService
+    .from('audit_logs')
+    .insert({
+      action,
+      entity_type: 'ediel_certificate_refresh',
+      entity_id: clean(metadata.gridOwnerId) ?? clean(metadata.actorId) ?? 'system',
+      metadata,
+      created_at: new Date().toISOString(),
+    })
+  if (error && !isMissingSchema(error)) console.error('ediel_certificate_refresh_audit_failed', error)
 }
 
 async function createRefreshJob(input: {
@@ -111,6 +201,7 @@ async function createRefreshJob(input: {
   companyId?: string | null
   edielId?: string | null
   requestedBy?: string | null
+  metadata?: Record<string, unknown>
 }) {
   const { data, error } = await supabaseService
     .from('ediel_certificate_refresh_jobs')
@@ -123,6 +214,7 @@ async function createRefreshJob(input: {
       requested_by: input.requestedBy ?? null,
       status: 'running',
       started_at: new Date().toISOString(),
+      metadata: input.metadata ?? {},
     })
     .select('id')
     .maybeSingle()
@@ -140,7 +232,9 @@ async function finishRefreshJob(jobId: string | null, payload: Record<string, un
     .from('ediel_certificate_refresh_jobs')
     .update({ ...payload, finished_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq('id', jobId)
-  if (error && !isMissingSchema(error)) throw error
+  if (error && !isMissingSchema(error)) {
+    console.error('ediel_certificate_refresh_job_finish_failed', error)
+  }
 }
 
 async function upsertPlatformActorCertificate(input: {
@@ -197,7 +291,7 @@ async function upsertPlatformActorCertificate(input: {
   if (existing.data?.id) {
     const { error } = await supabaseService.from('platform_actor_certificates').update(payload).eq('id', existing.data.id)
     if (error && !isMissingSchema(error)) throw error
-    return 'updated' as const
+    return error ? 'skipped' as const : 'updated' as const
   }
 
   const { error } = await supabaseService.from('platform_actor_certificates').insert(payload)
@@ -205,26 +299,64 @@ async function upsertPlatformActorCertificate(input: {
   return error ? 'skipped' as const : 'inserted' as const
 }
 
-async function ownerForActor(actorId: string, gridOwnerId?: string | null) {
+async function ownerForActor(actorId: string, gridOwnerId?: string | null): Promise<GridOwnerLookupRow> {
   let query = supabaseService
     .from('grid_owners')
-    .select('id,company_id,ediel_id,communication_email,email,platform_market_actor_id')
+    .select('id,name,company_id,ediel_id,communication_email,email,platform_market_actor_id')
 
   query = gridOwnerId ? query.eq('id', gridOwnerId) : query.eq('platform_market_actor_id', actorId)
 
   const { data, error } = await query.limit(1).maybeSingle()
   if (error && !isMissingSchema(error)) throw error
-  return (data ?? {}) as {
-    id?: string | null
-    company_id?: string | null
-    ediel_id?: string | null
-    communication_email?: string | null
-    email?: string | null
-    platform_market_actor_id?: string | null
-  }
+  return (data ?? {}) as GridOwnerLookupRow
 }
 
-async function listRoutesFromSendReadinessView(actorId: string, owner: Awaited<ReturnType<typeof ownerForActor>>): Promise<RefreshRoute[]> {
+async function actorEdielId(actorId: string): Promise<string | null> {
+  const identifiers = await supabaseService
+    .from('platform_actor_identifiers')
+    .select('identifier_type,identifier_value,is_verified')
+    .eq('actor_id', actorId)
+    .in('identifier_type', ['EdielId', 'ediel_id', 'edielid'])
+    .limit(20)
+  if (identifiers.error) {
+    if (!isMissingSchema(identifiers.error)) throw identifiers.error
+    return null
+  }
+  const verified = (identifiers.data ?? []).find((row) => row.is_verified === true && clean(row.identifier_value))
+  const first = verified ?? (identifiers.data ?? []).find((row) => clean(row.identifier_value))
+  return clean(first?.identifier_value)
+}
+
+function fallbackRoutesForOwner(input: {
+  actorId: string | null
+  owner: GridOwnerLookupRow
+  edielId?: string | null
+}): RefreshRoute[] {
+  const edielId = clean(input.owner.ediel_id) ?? clean(input.edielId)
+  const addresses = [
+    { address: normalizeEmail(input.owner.communication_email), source: 'grid_owner_communication_email' as const },
+    { address: normalizeEmail(input.owner.email), source: 'grid_owner_email' as const },
+    { address: edielFallbackAddress(edielId), source: 'grid_owner_ediel_fallback' as const },
+  ]
+
+  return addresses
+    .filter((item) => Boolean(item.address))
+    .map((item) => ({
+      actor_id: input.actorId,
+      route_id: null,
+      grid_owner_id: clean(input.owner.id),
+      company_id: clean(input.owner.company_id),
+      ediel_id: edielId,
+      subaddress: null,
+      environment: 'production',
+      communication_address: item.source === 'grid_owner_ediel_fallback' ? null : item.address!,
+      lookup_address: item.address!,
+      route_status: 'lookup_only',
+      source: item.source,
+    }))
+}
+
+async function listRoutesFromSendReadinessView(actorId: string, owner: GridOwnerLookupRow): Promise<RefreshRoute[]> {
   const { data, error } = await supabaseService
     .from('platform_actor_send_readiness_v')
     .select('actor_id,route_id,ediel_id,message_family,environment,subaddress,communication_address,route_status')
@@ -258,7 +390,7 @@ async function listRoutesFromSendReadinessView(actorId: string, owner: Awaited<R
     .filter((row) => Boolean(row.lookup_address))
 }
 
-async function listRoutesFromPlatformActorRoutes(actorId: string, owner: Awaited<ReturnType<typeof ownerForActor>>): Promise<RefreshRoute[]> {
+async function listRoutesFromPlatformActorRoutes(actorId: string, owner: GridOwnerLookupRow): Promise<RefreshRoute[]> {
   const { data, error } = await supabaseService
     .from('platform_actor_routes')
     .select('id,actor_id,message_family,environment,subaddress,communication_address,party_id,interchange_party_id,status')
@@ -294,9 +426,11 @@ async function listRoutesFromPlatformActorRoutes(actorId: string, owner: Awaited
 
 async function listRoutesForActor(actorId: string, gridOwnerId?: string | null): Promise<RefreshRoute[]> {
   const owner = await ownerForActor(actorId, gridOwnerId)
+  const edielId = clean(owner.ediel_id) ?? await actorEdielId(actorId)
   const fromReadiness = await listRoutesFromSendReadinessView(actorId, owner)
   const fromRoutes = await listRoutesFromPlatformActorRoutes(actorId, owner)
-  return dedupeRoutes([...fromReadiness, ...fromRoutes])
+  const fallback = fallbackRoutesForOwner({ actorId, owner, edielId })
+  return dedupeRoutes([...fromReadiness, ...fromRoutes, ...fallback])
 }
 
 async function listScheduledCandidates(limit: number): Promise<RefreshRoute[]> {
@@ -310,9 +444,9 @@ async function listScheduledCandidates(limit: number): Promise<RefreshRoute[]> {
   }
   return ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
     const edielId = clean(row.ediel_id)
-    const smtpEmail = clean(row.smtp_email)
+    const smtpEmail = normalizeEmail(row.smtp_email)
     return {
-      actor_id: clean(row.platform_market_actor_id) ?? '',
+      actor_id: clean(row.platform_market_actor_id),
       route_id: null,
       grid_owner_id: clean(row.grid_owner_id),
       company_id: clean(row.company_id),
@@ -324,12 +458,13 @@ async function listScheduledCandidates(limit: number): Promise<RefreshRoute[]> {
       route_status: 'active',
       source: 'candidate_view' as const,
     }
-  }).filter((row) => Boolean(row.actor_id && row.lookup_address))
+  }).filter((row) => Boolean(row.actor_id && row.lookup_address)) as RefreshRoute[]
 }
 
 async function syncExistingEdielCertificatesForRoutes(routes: RefreshRoute[]) {
-  const edielIds = Array.from(new Set(routes.map((route) => route.ediel_id).filter((value): value is string => Boolean(value))))
-  if (edielIds.length === 0) return { synced: 0, candidates: 0, inserted: 0, updated: 0 }
+  const actorRoutes = routes.filter((route): route is RefreshRoute & { actor_id: string } => Boolean(route.actor_id))
+  const edielIds = Array.from(new Set(actorRoutes.map((route) => route.ediel_id).filter((value): value is string => Boolean(value))))
+  if (actorRoutes.length === 0 || edielIds.length === 0) return { synced: 0, candidates: 0, inserted: 0, updated: 0, skipped: true, reason: 'no_safe_actor_routes' }
 
   const selectColumns = 'id,owner_ediel_id,owner_party_id,environment,purpose,certificate_type,subject,issuer,serial_number,fingerprint_sha256,certificate_fingerprint,valid_from,valid_to,certificate_valid_from,certificate_valid_to,status,encryption_status,source,public_certificate_pem,metadata'
   const rowsById = new Map<string, ExistingEdielCertificateRow>()
@@ -381,7 +516,7 @@ async function syncExistingEdielCertificatesForRoutes(routes: RefreshRoute[]) {
   let updated = 0
   let candidates = 0
 
-  for (const route of routes) {
+  for (const route of actorRoutes) {
     const certs = route.ediel_id ? byEdiel.get(route.ediel_id) ?? [] : []
     candidates += certs.length
     for (const cert of certs) {
@@ -423,18 +558,19 @@ async function syncExistingEdielCertificatesForRoutes(routes: RefreshRoute[]) {
 }
 
 async function syncDirectoryCacheForRoutes(routes: RefreshRoute[]) {
+  const actorRoutes = routes.filter((route): route is RefreshRoute & { actor_id: string } => Boolean(route.actor_id))
   let inserted = 0
   let updated = 0
   let candidates = 0
 
-  for (const route of routes) {
-    const emails = Array.from(new Set([route.communication_address, route.lookup_address].map(clean).filter((value): value is string => Boolean(value))))
-    const query = supabaseService
+  for (const route of actorRoutes) {
+    const emails = Array.from(new Set([route.communication_address, route.lookup_address].map(normalizeEmail).filter((value): value is string => Boolean(value))))
+    if (emails.length === 0) continue
+    const { data, error } = await supabaseService
       .from('ediel_certificate_directory_cache')
-      .select('smtp_email,ediel_id,environment,purpose,certificate_pem,public_certificate_pem,fingerprint_sha256,sha256_fingerprint,subject,issuer,serial_number,valid_from,valid_to,not_before,not_after,status,source,metadata')
+      .select('smtp_email,ediel_id,environment,purpose,certificate_pem,public_certificate_pem,fingerprint_sha256,sha256_fingerprint,subject,issuer,serial_number,valid_from,valid_to,not_before,not_after,status,source,metadata,diagnostics')
       .in('smtp_email', emails)
       .limit(20)
-    const { data, error } = await query
     if (error) {
       if (isMissingSchema(error)) continue
       throw error
@@ -464,6 +600,7 @@ async function syncDirectoryCacheForRoutes(routes: RefreshRoute[]) {
           source: 'directory_cache_sync',
           route,
           cacheMetadata: cert.metadata ?? {},
+          cacheDiagnostics: cert.diagnostics ?? {},
         },
       })
       if (result === 'inserted') inserted += 1
@@ -474,48 +611,49 @@ async function syncDirectoryCacheForRoutes(routes: RefreshRoute[]) {
   return { candidates, inserted, updated }
 }
 
-export async function refreshCertificatesForActor(input: {
-  actorId: string
-  gridOwnerId?: string | null
+async function recordLookupMiss(input: {
+  route: RefreshRoute
+  lookupAddress: string
+  diagnostics: Record<string, unknown>
+}) {
+  const payload = {
+    company_id: input.route.company_id,
+    platform_market_actor_id: input.route.actor_id,
+    smtp_email: input.lookupAddress,
+    ediel_id: input.route.ediel_id,
+    subaddress: input.route.subaddress,
+    source: 'expisoft_ldap',
+    environment: normalizeEnvironment(input.route.environment),
+    purpose: 'encryption',
+    lookup_key: input.lookupAddress,
+    lookup_status: 'not_found',
+    last_checked_at: new Date().toISOString(),
+    metadata: {
+      source: 'expisoft_ldap_not_found',
+      diagnostics: input.diagnostics,
+      route: input.route,
+    },
+    diagnostics: input.diagnostics,
+    fetched_at: new Date().toISOString(),
+    status: 'unknown',
+  }
+  const { error } = await supabaseService.from('ediel_certificate_directory_cache').insert(payload)
+  if (error && !isMissingSchema(error)) {
+    // If the legacy unique constraint requires a fingerprint, keep diagnostics in the refresh job instead of failing the action.
+    console.warn('ediel_certificate_lookup_miss_cache_skipped', error.message)
+  }
+}
+
+async function syncLiveLookupForRoutes(input: {
+  routes: RefreshRoute[]
   triggeredBy: RefreshTrigger
   requestedBy?: string | null
 }) {
-  const routes = await listRoutesForActor(input.actorId, input.gridOwnerId)
-  const first = routes[0]
-  const jobId = await createRefreshJob({
-    actorId: input.actorId,
-    gridOwnerId: input.gridOwnerId ?? first?.grid_owner_id ?? null,
-    companyId: first?.company_id ?? null,
-    edielId: first?.ediel_id ?? null,
-    requestedBy: input.requestedBy ?? null,
-    triggeredBy: input.triggeredBy,
-  })
-
-  if (routes.length === 0) {
-    await finishRefreshJob(jobId, {
-      status: 'skipped',
-      error_message: 'Aktören saknar sökbar PRODAT-route eller EDIEL-adress. Kontrollera route-status, message_family, environment och SMTP-adress.',
-      metadata: { reason: 'missing_searchable_prodat_route_or_lookup_address', actorId: input.actorId, gridOwnerId: input.gridOwnerId ?? null },
-    })
-    return { ok: false, skipped: true, reason: 'missing_searchable_prodat_route_or_lookup_address', found: 0, inserted: 0, updated: 0, valid: 0, expired: 0, routes: [] }
-  }
-
-  let found = 0
-  let inserted = 0
-  let updated = 0
-  let valid = 0
-  let expired = 0
+  const counters: RefreshCounters = { found: 0, inserted: 0, updated: 0, valid: 0, expired: 0 }
   const errors: Array<Record<string, unknown>> = []
+  const lookupResults: Array<Record<string, unknown>> = []
 
-  const existingSync = await syncExistingEdielCertificatesForRoutes(routes)
-  inserted += existingSync.inserted
-  updated += existingSync.updated
-
-  const cacheSync = await syncDirectoryCacheForRoutes(routes)
-  inserted += cacheSync.inserted
-  updated += cacheSync.updated
-
-  for (const route of routes) {
+  for (const route of input.routes) {
     if (!route.lookup_address) continue
     try {
       const lookup = await fetchReceiverCertificatesFromExpisoft({
@@ -524,13 +662,30 @@ export async function refreshCertificatesForActor(input: {
         subaddress: route.subaddress,
         partyId: route.ediel_id,
         companyId: route.company_id,
+        platformMarketActorId: route.actor_id,
         forceRefresh: input.triggeredBy === 'manual',
       })
-      found += lookup.certificatesFound
+      counters.found += lookup.certificatesFound
+      lookupResults.push({
+        route,
+        lookupEmail: lookup.lookupEmail,
+        ldapUrl: lookup.ldapUrl,
+        fetchedFromLdap: lookup.fetchedFromLdap,
+        throttled: lookup.throttled,
+        certificatesFound: lookup.certificatesFound,
+        diagnostics: lookup.diagnostics,
+      })
+
+      if (lookup.certificatesFound === 0) {
+        await recordLookupMiss({ route, lookupAddress: route.lookup_address, diagnostics: lookup.diagnostics })
+      }
+
       for (const cert of lookup.certificates) {
         const status = normalizeCertificateStatus(cert.status, cert.validTo)
-        if (status === 'valid' || status === 'expires_soon') valid += 1
-        if (status === 'expired') expired += 1
+        if (status === 'valid' || status === 'expires_soon') counters.valid += 1
+        if (status === 'expired') counters.expired += 1
+
+        if (!route.actor_id) continue
         const result = await upsertPlatformActorCertificate({
           actorId: route.actor_id,
           edielId: route.ediel_id,
@@ -557,39 +712,97 @@ export async function refreshCertificatesForActor(input: {
             diagnostics: lookup.diagnostics,
           },
         })
-        if (result === 'inserted') inserted += 1
-        if (result === 'updated') updated += 1
+        if (result === 'inserted') counters.inserted += 1
+        if (result === 'updated') counters.updated += 1
       }
     } catch (error) {
-      errors.push({ route, error: error instanceof Error ? error.message : String(error) })
+      errors.push({ route, error: errorMessage(error) })
     }
   }
 
-  const recalc = await supabaseService.rpc('gridex_recalculate_actor_readiness', { p_platform_market_actor_id: input.actorId })
-  if (recalc.error && !isMissingSchema(recalc.error)) throw recalc.error
-
-  const status = errors.length > 0 ? 'failed' : 'completed'
-  await finishRefreshJob(jobId, {
-    status,
-    found_count: found,
-    inserted_count: inserted,
-    updated_count: updated,
-    valid_count: valid,
-    expired_count: expired,
-    error_message: errors.length ? 'En eller flera certifikatsökningar misslyckades.' : null,
-    metadata: { errors, routes, existingSync, cacheSync },
-  })
-
-  return { ok: errors.length === 0, found, inserted, updated, valid, expired, errors, routes, existingSync, cacheSync }
+  return { ...counters, errors, lookupResults }
 }
 
+async function recalculateReadiness(actorId?: string | null) {
+  if (!actorId) return { skipped: true, reason: 'missing_actor_id' }
+  const recalc = await supabaseService.rpc('gridex_recalculate_actor_readiness', { p_platform_market_actor_id: actorId })
+  if (recalc.error && !isMissingSchema(recalc.error)) throw recalc.error
+  return { skipped: Boolean(recalc.error), error: recalc.error ? errorMessage(recalc.error) : null }
+}
 
-async function resolveActorIdForGridOwner(owner: {
-  id?: string | null
-  platform_market_actor_id?: string | null
-  ediel_id?: string | null
-  company_id?: string | null
-}) {
+export async function refreshCertificatesForActor(input: {
+  actorId: string
+  gridOwnerId?: string | null
+  triggeredBy: RefreshTrigger
+  requestedBy?: string | null
+}): Promise<RefreshResult> {
+  const routes = await listRoutesForActor(input.actorId, input.gridOwnerId)
+  const first = routes[0]
+  const jobId = await createRefreshJob({
+    actorId: input.actorId,
+    gridOwnerId: input.gridOwnerId ?? first?.grid_owner_id ?? null,
+    companyId: first?.company_id ?? null,
+    edielId: first?.ediel_id ?? null,
+    requestedBy: input.requestedBy ?? null,
+    triggeredBy: input.triggeredBy,
+    metadata: lookupDiagnostics(routes, { actorId: input.actorId, gridOwnerId: input.gridOwnerId ?? null, stage: 'started' }),
+  })
+
+  if (routes.length === 0) {
+    const metadata = lookupDiagnostics(routes, { reason: 'missing_lookup_address', actorId: input.actorId, gridOwnerId: input.gridOwnerId ?? null })
+    await finishRefreshJob(jobId, {
+      status: 'skipped',
+      error_message: 'Aktören saknar EDIEL-id, SMTP-adress eller fallback-adress för certifikatsökning.',
+      metadata,
+    })
+    return { ok: false, skipped: true, reason: 'missing_lookup_address', found: 0, inserted: 0, updated: 0, valid: 0, expired: 0, routes, metadata }
+  }
+
+  let inserted = 0
+  let updated = 0
+  const existingSync = await syncExistingEdielCertificatesForRoutes(routes)
+  inserted += Number(existingSync.inserted ?? 0)
+  updated += Number(existingSync.updated ?? 0)
+
+  const cacheSync = await syncDirectoryCacheForRoutes(routes)
+  inserted += cacheSync.inserted
+  updated += cacheSync.updated
+
+  const live = await syncLiveLookupForRoutes({ routes, triggeredBy: input.triggeredBy, requestedBy: input.requestedBy })
+  inserted += live.inserted
+  updated += live.updated
+
+  const recalc = await recalculateReadiness(input.actorId)
+  const status: RefreshStatus = live.errors.length > 0 ? 'failed' : 'completed'
+  const metadata = lookupDiagnostics(routes, { existingSync, cacheSync, lookupResults: live.lookupResults, errors: live.errors, recalc })
+
+  await finishRefreshJob(jobId, {
+    status,
+    found_count: live.found,
+    inserted_count: inserted,
+    updated_count: updated,
+    valid_count: live.valid,
+    expired_count: live.expired,
+    error_message: live.errors.length ? 'En eller flera certifikatsökningar misslyckades.' : null,
+    metadata,
+  })
+
+  await safeAudit('ediel_certificate_refresh.actor_completed', {
+    actorId: input.actorId,
+    gridOwnerId: input.gridOwnerId ?? null,
+    triggeredBy: input.triggeredBy,
+    found: live.found,
+    inserted,
+    updated,
+    valid: live.valid,
+    expired: live.expired,
+    errors: live.errors,
+  })
+
+  return { ok: live.errors.length === 0, found: live.found, inserted, updated, valid: live.valid, expired: live.expired, errors: live.errors, routes, existingSync, cacheSync, metadata }
+}
+
+async function resolveActorIdForGridOwner(owner: GridOwnerLookupRow): Promise<{ actorId: string | null; source: string }> {
   const existingActorId = clean(owner.platform_market_actor_id)
   if (existingActorId) return { actorId: existingActorId, source: 'grid_owners.platform_market_actor_id' }
 
@@ -610,13 +823,13 @@ async function resolveActorIdForGridOwner(owner: {
       .map((row) => clean(row.actor_id))
       .filter((value): value is string => Boolean(value))))
     if (actorIds.length === 1) {
-      const actorId = actorIds[0]
+      const actorId = String(actorIds[0])
       const { error: updateError } = await supabaseService
         .from('grid_owners')
         .update({ platform_market_actor_id: actorId, updated_at: new Date().toISOString() })
         .eq('id', owner.id)
       if (updateError && !isMissingSchema(updateError)) throw updateError
-      return { actorId, source: 'platform_actor_identifiers.ediel_id' }
+      return { actorId: actorId ?? null, source: 'platform_actor_identifiers.ediel_id' }
     }
     if (actorIds.length > 1) return { actorId: null, source: 'ambiguous_platform_actor_identifiers_ediel_id' }
   }
@@ -624,47 +837,79 @@ async function resolveActorIdForGridOwner(owner: {
   return { actorId: null, source: 'no_platform_actor_match_for_grid_owner_ediel_id' }
 }
 
+async function lookupOnlyForGridOwner(input: {
+  owner: GridOwnerLookupRow
+  reason: string
+  triggeredBy: RefreshTrigger
+  requestedBy?: string | null
+}): Promise<RefreshResult> {
+  const routes = dedupeRoutes(fallbackRoutesForOwner({ actorId: null, owner: input.owner }))
+  const jobId = await createRefreshJob({
+    gridOwnerId: clean(input.owner.id),
+    companyId: clean(input.owner.company_id),
+    edielId: clean(input.owner.ediel_id),
+    requestedBy: input.requestedBy ?? null,
+    triggeredBy: input.triggeredBy,
+    metadata: lookupDiagnostics(routes, { reason: input.reason, lookupOnly: true, stage: 'started' }),
+  })
+
+  if (routes.length === 0) {
+    const metadata = lookupDiagnostics(routes, { reason: input.reason, lookupOnly: true, missing: 'ediel_id_or_email' })
+    await finishRefreshJob(jobId, {
+      status: 'skipped',
+      error_message: 'Nätägaren saknar EDIEL-id och e-postadress för certifikatsökning.',
+      metadata,
+    })
+    return { ok: false, skipped: true, reason: 'missing_grid_owner_ediel_or_email', found: 0, inserted: 0, updated: 0, valid: 0, expired: 0, routes, metadata }
+  }
+
+  const live = await syncLiveLookupForRoutes({ routes, triggeredBy: input.triggeredBy, requestedBy: input.requestedBy })
+  const metadata = lookupDiagnostics(routes, { reason: input.reason, lookupOnly: true, lookupResults: live.lookupResults, errors: live.errors })
+  await finishRefreshJob(jobId, {
+    status: live.errors.length > 0 ? 'failed' : 'completed',
+    found_count: live.found,
+    inserted_count: 0,
+    updated_count: 0,
+    valid_count: live.valid,
+    expired_count: live.expired,
+    error_message: live.errors.length ? 'Live-sökning kördes men en eller flera lookup-adresser misslyckades.' : null,
+    metadata,
+  })
+
+  await safeAudit('ediel_certificate_refresh.grid_owner_lookup_only_completed', {
+    gridOwnerId: input.owner.id ?? null,
+    edielId: input.owner.ediel_id ?? null,
+    reason: input.reason,
+    found: live.found,
+    valid: live.valid,
+    expired: live.expired,
+    errors: live.errors,
+  })
+
+  return { ok: live.errors.length === 0, found: live.found, inserted: 0, updated: 0, valid: live.valid, expired: live.expired, errors: live.errors, routes, metadata }
+}
+
 export async function refreshCertificatesForGridOwner(input: {
   gridOwnerId: string
   triggeredBy: RefreshTrigger
   requestedBy?: string | null
-}) {
+}): Promise<RefreshResult> {
   const { data, error } = await supabaseService
     .from('grid_owners')
-    .select('id,company_id,ediel_id,communication_email,email,platform_market_actor_id')
+    .select('id,name,company_id,ediel_id,communication_email,email,platform_market_actor_id')
     .eq('id', input.gridOwnerId)
     .maybeSingle()
   if (error) throw error
 
-  const owner = (data ?? {}) as {
-    id?: string | null
-    company_id?: string | null
-    ediel_id?: string | null
-    communication_email?: string | null
-    email?: string | null
-    platform_market_actor_id?: string | null
+  const owner = (data ?? {}) as GridOwnerLookupRow
+  if (!owner.id) {
+    const fakeOwner: GridOwnerLookupRow = { id: input.gridOwnerId }
+    return lookupOnlyForGridOwner({ owner: fakeOwner, reason: 'grid_owner_not_found', triggeredBy: input.triggeredBy, requestedBy: input.requestedBy })
   }
 
   const resolved = await resolveActorIdForGridOwner(owner)
   if (!resolved.actorId) {
-    const jobId = await createRefreshJob({
-      gridOwnerId: input.gridOwnerId,
-      companyId: clean(owner.company_id),
-      edielId: clean(owner.ediel_id),
-      requestedBy: input.requestedBy ?? null,
-      triggeredBy: input.triggeredBy,
-    })
-    await finishRefreshJob(jobId, {
-      status: 'skipped',
-      error_message: 'Nätägaren saknar säker koppling till platform actor. Certifikatsökningen stoppades för att undvika fel mottagare.',
-      metadata: {
-        reason: resolved.source,
-        gridOwnerId: input.gridOwnerId,
-        edielId: clean(owner.ediel_id),
-        communicationEmail: clean(owner.communication_email) ?? clean(owner.email),
-      },
-    })
-    return { ok: false, skipped: true, reason: resolved.source, found: 0, inserted: 0, updated: 0, valid: 0, expired: 0 }
+    return lookupOnlyForGridOwner({ owner, reason: resolved.source, triggeredBy: input.triggeredBy, requestedBy: input.requestedBy })
   }
 
   return refreshCertificatesForActor({
@@ -676,7 +921,8 @@ export async function refreshCertificatesForGridOwner(input: {
 }
 
 export async function refreshScheduledActorCertificates(input: { limit?: number } = {}) {
-  const candidates = await listScheduledCandidates(input.limit ?? 100)
+  const limit = Math.max(1, Math.min(input.limit ?? 50, 50))
+  const candidates = await listScheduledCandidates(limit)
   let processed = 0
   let found = 0
   let inserted = 0
@@ -684,9 +930,14 @@ export async function refreshScheduledActorCertificates(input: { limit?: number 
   let valid = 0
   let expired = 0
   const errors: Array<Record<string, unknown>> = []
+  const skipped: Array<Record<string, unknown>> = []
 
   for (const candidate of candidates) {
     try {
+      if (!candidate.actor_id) {
+        skipped.push({ candidate, reason: 'missing_actor_id' })
+        continue
+      }
       const result = await refreshCertificatesForActor({ actorId: candidate.actor_id, gridOwnerId: candidate.grid_owner_id, triggeredBy: 'scheduled_30_day' })
       processed += 1
       found += result.found
@@ -694,11 +945,24 @@ export async function refreshScheduledActorCertificates(input: { limit?: number 
       updated += result.updated
       valid += result.valid
       expired += result.expired
-      if (!result.ok) errors.push({ actorId: candidate.actor_id, errors: result.errors })
+      if (result.skipped) skipped.push({ actorId: candidate.actor_id, reason: result.reason })
+      if (!result.ok && result.errors?.length) errors.push({ actorId: candidate.actor_id, errors: result.errors })
     } catch (error) {
-      errors.push({ actorId: candidate.actor_id, error: error instanceof Error ? error.message : String(error) })
+      errors.push({ actorId: candidate.actor_id, gridOwnerId: candidate.grid_owner_id, error: errorMessage(error) })
     }
   }
 
-  return { ok: errors.length === 0, processed, found, inserted, updated, valid, expired, errors }
+  await safeAudit('ediel_certificate_refresh.scheduled_bulk_completed', {
+    processed,
+    found,
+    inserted,
+    updated,
+    valid,
+    expired,
+    errors,
+    skipped,
+    limit,
+  })
+
+  return { ok: errors.length === 0, processed, found, inserted, updated, valid, expired, errors, skipped, limit }
 }
