@@ -4,7 +4,11 @@ import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getGridOwnerById, listGridOwners } from '@/lib/masterdata/db'
 import GridOwnerForm from '@/components/admin/masterdata/GridOwnerForm'
 import GridOwnersTable from '@/components/admin/masterdata/GridOwnersTable'
-import { backfillGridOwnerVerificationAction } from './actions'
+import {
+  backfillGridOwnerVerificationAction,
+  completeGridOwnerReadinessAction,
+  refreshGridOwnerCertificatesAction,
+} from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +68,22 @@ export default async function NetworkOwnersPage({
  Kontrollera nätägare
  </button>
  </form>
+ <form action={completeGridOwnerReadinessAction}>
+ <button
+ type="submit"
+ className="inline-flex items-center rounded-2xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-800 hover:bg-sky-100"
+ >
+ Komplettera readiness
+ </button>
+ </form>
+ <form action={refreshGridOwnerCertificatesAction}>
+ <button
+ type="submit"
+ className="inline-flex items-center rounded-2xl border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-800 hover:bg-indigo-100"
+ >
+ Hämta certifikat
+ </button>
+ </form>
  <Link
  href="/admin/customers"
  className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
@@ -110,6 +130,7 @@ export default async function NetworkOwnersPage({
  <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-950 shadow-sm">
  <h2 className="text-lg font-semibold text-slate-950">Endast platform/teknisk admin ändrar nätägare</h2>
  <p className="mt-2">Tenant-admins ska välja verifierade aktörer i kundflöden. Tekniska fält som Ediel-id, subadress, certifikat, transportkanal och produktions-/testmiljö ska hanteras centralt så att ett elbolag inte råkar skapa felaktig route eller osäker mottagare.</p>
+ <p className="mt-2">Batch O2 fyller bara subadress automatiskt när exakt en säker subadress finns i aktörsregistret. Saknas subadress eller certifikat visas det som åtgärd, inte som gissning.</p>
  </section>
 
  <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">

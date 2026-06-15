@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { saveGridOwner } from "@/lib/masterdata/db";
-import { runGridOwnerVerificationBackfill } from "@/lib/grid-owners/verification";
+import {
+  confirmGridOwnerEmptySubaddress,
+  runGridOwnerReadinessCompletion,
+  runGridOwnerVerificationBackfill,
+} from "@/lib/grid-owners/verification";
+import { refreshActorCertificateStatuses } from "@/lib/ediel/operations/actorAutoReadiness";
 import {
   gridOwnerInputSchema,
   parseCheckbox,
@@ -14,6 +19,21 @@ function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
   if (typeof value !== "string") return null;
   return value;
+}
+
+function requireUuid(value: FormDataEntryValue | null, fieldName: string): string {
+  if (typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+    throw new Error(`${fieldName} saknas eller är ogiltig.`);
+  }
+  return value;
+}
+
+function requireMessageFamily(value: FormDataEntryValue | null): "PRODAT" | "UTILTS" {
+  const normalized = typeof value === "string" ? value.trim().toUpperCase() : "";
+  if (normalized !== "PRODAT" && normalized !== "UTILTS") {
+    throw new Error("Meddelandetyp måste vara PRODAT eller UTILTS.");
+  }
+  return normalized;
 }
 
 export async function saveGridOwnerAction(formData: FormData): Promise<void> {
@@ -49,6 +69,7 @@ export async function saveGridOwnerAction(formData: FormData): Promise<void> {
   });
 
   await saveGridOwner(supabase, parsed);
+  await runGridOwnerReadinessCompletion("network_owners_save_action");
 
   revalidatePath("/admin/network-owners");
 }
@@ -56,5 +77,57 @@ export async function saveGridOwnerAction(formData: FormData): Promise<void> {
 export async function backfillGridOwnerVerificationAction(): Promise<void> {
   await requirePlatformAdminActionAccess();
   await runGridOwnerVerificationBackfill("network_owners_admin_action");
+  await runGridOwnerReadinessCompletion("network_owners_admin_action");
+  revalidatePath("/admin/network-owners");
+}
+
+export async function completeGridOwnerReadinessAction(): Promise<void> {
+  await requirePlatformAdminActionAccess();
+  await runGridOwnerReadinessCompletion("network_owners_complete_readiness_action");
+  revalidatePath("/admin/network-owners");
+}
+
+export async function refreshGridOwnerCertificatesAction(): Promise<void> {
+  await requirePlatformAdminActionAccess();
+  await refreshActorCertificateStatuses("manual_actor_check");
+  await runGridOwnerReadinessCompletion("network_owners_certificate_refresh_action");
+  revalidatePath("/admin/network-owners");
+}
+
+export async function confirmEmptyGridOwnerSubaddressAction(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdminActionAccess();
+  const gridOwnerId = requireUuid(formData.get("grid_owner_id"), "Nätägare");
+  const messageFamily = requireMessageFamily(formData.get("message_family"));
+  const note = formValue(formData, "note") || null;
+
+  await confirmGridOwnerEmptySubaddress({
+    gridOwnerId,
+    messageFamily,
+    actorUserId: actor.userId,
+    note,
+  });
+
+  revalidatePath("/admin/network-owners");
+}
+
+export async function acknowledgeGridOwnerReviewsAction(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdminActionAccess();
+  const gridOwnerId = requireUuid(formData.get("grid_owner_id"), "Nätägare");
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("grid_owner_verification_reviews")
+    .update({
+      status: "acknowledged",
+      metadata: {
+        acknowledged_by: actor.userId,
+        acknowledged_at: new Date().toISOString(),
+        note: "Granskad i nätägarvyn. Blockerande readiness kvarstår tills data kompletteras.",
+      },
+    })
+    .eq("grid_owner_id", gridOwnerId)
+    .eq("status", "open");
+
+  if (error) throw error;
   revalidatePath("/admin/network-owners");
 }

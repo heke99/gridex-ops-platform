@@ -50,7 +50,7 @@ export type GridOwnerRow = {
   company_id?: string | null;
   platform_market_actor_id?: string | null;
   platform_grid_owner_id?: string | null;
-  verification_status?: 'verified' | 'needs_route' | 'needs_certificate' | 'needs_ediel_id' | 'needs_subaddress' | 'needs_contact' | 'unresolved_duplicate' | string | null;
+  verification_status?: 'verified' | 'needs_route' | 'needs_certificate' | 'needs_ediel_id' | 'needs_subaddress' | 'needs_contact' | 'unresolved_duplicate' | 'ambiguous_subaddress' | string | null;
   verification_reasons?: string[] | null;
   verified_for_customer_flow?: boolean | null;
   actor_registry_status?: string | null;
@@ -66,6 +66,18 @@ export type GridOwnerRow = {
   verification_checked_at?: string | null;
   verified_at?: string | null;
   verification_metadata?: Record<string, unknown> | null;
+  prodat_subaddress_status?: string | null;
+  utilts_subaddress_status?: string | null;
+  prodat_subaddress_source?: string | null;
+  utilts_subaddress_source?: string | null;
+  has_verified_prodat_route?: boolean | null;
+  has_verified_utilts_route?: boolean | null;
+  possible_prodat_subaddresses?: string[] | null;
+  possible_utilts_subaddresses?: string[] | null;
+  can_use_for_prodat?: boolean | null;
+  can_use_for_utilts?: boolean | null;
+  can_start_supplier_switch?: boolean | null;
+  certificate_source?: string | null;
 };
 
 export type ElectricitySupplierRow = {
