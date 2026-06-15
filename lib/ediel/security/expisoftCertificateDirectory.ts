@@ -47,6 +47,25 @@ function ldapBaseDn() {
   return process.env.EDIEL_EXPISOFT_LDAP_BASE_DN ?? 'c=se'
 }
 
+function ldapTimeoutMs() {
+  const parsed = Number(process.env.EDIEL_EXPISOFT_LDAP_TIMEOUT_MS ?? '15000')
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 15000
+}
+
+async function withTimeout<T>(promise: Promise<T>, label: string, timeoutMs = ldapTimeoutMs()): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | null = null
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${label} timeout after ${timeoutMs} ms`)), timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timeout) clearTimeout(timeout)
+  }
+}
+
 export function expisoftLdapUrlForMail(email: string): string {
   return `ldap://${ldapHost()}:${ldapPort()}/${ldapBaseDn()}?userCertificate?sub?mail=${email}`
 }
@@ -110,8 +129,8 @@ function certStatus(cert: X509Certificate): 'valid' | 'expired' | 'not_yet_valid
 function extractCrlDistributionPoints(cert: X509Certificate): string | null {
   const info = cert.infoAccess
   if (!info) return null
-  const lines = info.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-  const crlLines = lines.filter((line) => /ca issuers|ocsp|crl/i.test(line))
+  const lines = info.split(/\r?\n/).map((line: string) => line.trim()).filter(Boolean)
+  const crlLines = lines.filter((line: string) => /ca issuers|ocsp|crl/i.test(line))
   return crlLines.length > 0 ? crlLines.join('\n') : null
 }
 
@@ -243,7 +262,8 @@ async function upsertCacheRow(input: {
     status: input.status,
     metadata: { source: 'expisoft_ldap', diagnostics: input.diagnostics },
     diagnostics: input.diagnostics,
-  }, { onConflict: 'smtp_email,sha256_fingerprint' }).then(({ error }) => {
+  }, { onConflict: 'smtp_email,sha256_fingerprint' }).then((result: { error?: { code?: string; message?: string } | null }) => {
+    const error = result.error
     if (error && !['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) throw error
   })
 }
@@ -390,11 +410,12 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
         subjectAltNames: text(previous.subject_alt_names),
         crlDistributionPoints: text(previous.crl_distribution_points),
       }],
-      diagnostics: { source: 'cache', fetchedAt },
+      diagnostics: { source: 'cache', fetchedAt, ldapTimeoutMs: ldapTimeoutMs() },
     }
   }
 
   const client = new Client({ url: `ldap://${ldapHost()}:${ldapPort()}` })
+  const timeoutMs = ldapTimeoutMs()
   try {
     const attributes = [
       'userCertificate',
@@ -418,11 +439,15 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
     let rawCertificates: Buffer[] = []
     for (const filter of filters) {
       attemptedFilters.push(filter)
-      const search = await client.search(ldapBaseDn(), {
-        scope: 'sub',
-        filter,
-        attributes,
-      })
+      const search = await withTimeout(
+        client.search(ldapBaseDn(), {
+          scope: 'sub',
+          filter,
+          attributes,
+        }) as Promise<{ searchEntries: unknown[] }>,
+        `Expisoft LDAP search ${filter}`,
+        timeoutMs,
+      )
       for (const entry of search.searchEntries as Record<string, unknown>[]) {
         const key = JSON.stringify(entry)
         if (seenEntryKeys.has(key)) continue
@@ -467,6 +492,7 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
         status,
         diagnostics: {
           ldapUrl,
+          ldapTimeoutMs: timeoutMs,
           crlStatus: 'not_checked',
           note: 'CRL URL extraction is stored for admin diagnostics; revoked status requires CRL fetch support in deployment.',
         },
@@ -498,6 +524,10 @@ export async function fetchReceiverCertificatesFromExpisoft(input: {
         entries: entries.length,
         attemptedFilters,
         lookupEmails,
+        ldapTimeoutMs: timeoutMs,
+        ldapHost: ldapHost(),
+        ldapPort: ldapPort(),
+        ldapBaseDn: ldapBaseDn(),
         ldapAttributeKeys: entries.map((entry) => Object.keys(entry as Record<string, unknown>)),
       },
     }

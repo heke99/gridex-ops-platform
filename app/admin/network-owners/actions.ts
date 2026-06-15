@@ -40,6 +40,16 @@ function requireMessageFamily(value: FormDataEntryValue | null): "PRODAT" | "UTI
 
 function actionErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim().length > 0) return error.message;
+  if (typeof error === "string" && error.trim().length > 0) return error;
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    if (typeof record.message === "string" && record.message.trim().length > 0) return record.message;
+    if (record.error && typeof record.error === "object") {
+      const nested = record.error as Record<string, unknown>;
+      if (typeof nested.message === "string" && nested.message.trim().length > 0) return nested.message;
+    }
+    if (typeof record.error === "string" && record.error.trim().length > 0) return record.error;
+  }
   return "Åtgärden kunde inte slutföras. Kontrollera audit/logg eller försök igen.";
 }
 
@@ -128,8 +138,8 @@ export async function refreshGridOwnerCertificatesAction(): Promise<void> {
     revalidatePath("/admin/ediel/certificates");
 
     redirectParams = {
-      status: "success",
-      message: `Certifikatsökning klar. Bearbetade ${result.processed} aktörer, hittade ${result.found} certifikat, infogade ${result.inserted}, uppdaterade ${result.updated}. Misslyckade ${result.errors?.length ?? 0}, skippade ${result.skipped?.length ?? 0}.`,
+      status: result.ok ? "success" : "error",
+      message: `Certifikatsökning klar. Bearbetade ${result.processed} aktörer, hittade ${result.found} certifikat, infogade ${result.inserted}, uppdaterade ${result.updated}. Misslyckade ${result.errors?.length ?? 0}, skippade ${result.skipped?.length ?? 0}.${result.errors?.[0] ? ` Första felet: ${actionErrorMessage(result.errors[0])}` : ""}`,
     };
   } catch (error) {
     console.error("network_owners_certificate_refresh_action_failed", error);
@@ -195,8 +205,10 @@ export async function searchGridOwnerCertificateNowAction(formData: FormData): P
         }
       : {
           edit: gridOwnerId,
-          status: result.valid > 0 || result.inserted > 0 || result.updated > 0 ? "success" : "info",
-          message: `Certifikatsökning klar för vald nätägare. Hittade ${result.found}, infogade ${result.inserted}, uppdaterade ${result.updated}, giltiga ${result.valid}, utgångna ${result.expired}. ${result.metadata?.lookupAddresses ? `Sökte via ${(result.metadata.lookupAddresses as string[]).join(', ')}.` : ''}` ,
+          status: !result.ok ? "error" : result.valid > 0 || result.inserted > 0 || result.updated > 0 ? "success" : "info",
+          message: !result.ok
+            ? `Certifikatsökningen slutfördes med fel. ${actionErrorMessage(result.errors?.[0] ?? result.reason)} ${result.metadata?.lookupAddresses ? `Sökte via ${(result.metadata.lookupAddresses as string[]).join(', ')}.` : ''}`
+            : `Certifikatsökning klar för vald nätägare. Hittade ${result.found}, infogade ${result.inserted}, uppdaterade ${result.updated}, giltiga ${result.valid}, utgångna ${result.expired}. ${result.metadata?.lookupAddresses ? `Sökte via ${(result.metadata.lookupAddresses as string[]).join(', ')}.` : ''}` ,
         };
   } catch (error) {
     console.error("network_owner_manual_certificate_search_failed", { gridOwnerId, error });

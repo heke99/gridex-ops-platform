@@ -3,7 +3,7 @@ import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expi
 
 type RefreshTrigger = 'manual' | 'scheduled_30_day' | 'xml_import' | 'backfill' | 'certificate_refresh'
 
-type RefreshStatus = 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
+type RefreshStatus = 'queued' | 'running' | 'completed' | 'not_found' | 'failed' | 'skipped'
 
 type RefreshRoute = {
   actor_id: string | null
@@ -114,6 +114,28 @@ function isMissingSchema(error: unknown): boolean {
 function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message
   return String(error || 'Okänt fel')
+}
+
+function safeError(error: unknown): Record<string, unknown> {
+  const maybe = error as { code?: unknown; message?: unknown; details?: unknown; hint?: unknown; stack?: unknown } | null
+  return {
+    message: errorMessage(error),
+    code: typeof maybe?.code === 'string' ? maybe.code : undefined,
+    details: typeof maybe?.details === 'string' ? maybe.details : undefined,
+    hint: typeof maybe?.hint === 'string' ? maybe.hint : undefined,
+  }
+}
+
+function refreshStatusFromCounts(input: { found: number; valid: number; errors?: unknown[] }): RefreshStatus {
+  if ((input.errors?.length ?? 0) > 0) return 'failed'
+  if (input.found <= 0) return 'not_found'
+  return 'completed'
+}
+
+function refreshErrorMessage(status: RefreshStatus, lookupAddresses: string[], errors?: unknown[]): string | null {
+  if (status === 'failed') return `Certifikatsökningen misslyckades för ${lookupAddresses.join(', ') || 'valda söknycklar'}.`
+  if (status === 'not_found') return `Sökte via ${lookupAddresses.join(', ') || 'valda söknycklar'} men inget certifikat hittades i Expisoft.`
+  return null
 }
 
 function isRouteSearchable(row: Record<string, unknown>): boolean {
@@ -322,8 +344,9 @@ async function actorEdielId(actorId: string): Promise<string | null> {
     if (!isMissingSchema(identifiers.error)) throw identifiers.error
     return null
   }
-  const verified = (identifiers.data ?? []).find((row) => row.is_verified === true && clean(row.identifier_value))
-  const first = verified ?? (identifiers.data ?? []).find((row) => clean(row.identifier_value))
+  const identifierRows = (identifiers.data ?? []) as Array<{ identifier_type?: unknown; identifier_value?: unknown; is_verified?: unknown }>
+  const verified = identifierRows.find((row) => row.is_verified === true && clean(row.identifier_value))
+  const first = verified ?? identifierRows.find((row) => clean(row.identifier_value))
   return clean(first?.identifier_value)
 }
 
@@ -655,6 +678,7 @@ async function syncLiveLookupForRoutes(input: {
 
   for (const route of input.routes) {
     if (!route.lookup_address) continue
+    const startedAt = Date.now()
     try {
       const lookup = await fetchReceiverCertificatesFromExpisoft({
         smtpEmail: route.lookup_address,
@@ -669,10 +693,13 @@ async function syncLiveLookupForRoutes(input: {
       lookupResults.push({
         route,
         lookupEmail: lookup.lookupEmail,
+        requestedLookupAddress: route.lookup_address,
         ldapUrl: lookup.ldapUrl,
         fetchedFromLdap: lookup.fetchedFromLdap,
         throttled: lookup.throttled,
+        status: lookup.certificatesFound > 0 ? 'found' : 'not_found',
         certificatesFound: lookup.certificatesFound,
+        durationMs: Date.now() - startedAt,
         diagnostics: lookup.diagnostics,
       })
 
@@ -716,7 +743,9 @@ async function syncLiveLookupForRoutes(input: {
         if (result === 'updated') counters.updated += 1
       }
     } catch (error) {
-      errors.push({ route, error: errorMessage(error) })
+      const diagnosticError = { route, lookupAddress: route.lookup_address, status: 'failed', durationMs: Date.now() - startedAt, error: safeError(error) }
+      errors.push(diagnosticError)
+      lookupResults.push(diagnosticError)
     }
   }
 
@@ -736,70 +765,118 @@ export async function refreshCertificatesForActor(input: {
   triggeredBy: RefreshTrigger
   requestedBy?: string | null
 }): Promise<RefreshResult> {
-  const routes = await listRoutesForActor(input.actorId, input.gridOwnerId)
-  const first = routes[0]
-  const jobId = await createRefreshJob({
-    actorId: input.actorId,
-    gridOwnerId: input.gridOwnerId ?? first?.grid_owner_id ?? null,
-    companyId: first?.company_id ?? null,
-    edielId: first?.ediel_id ?? null,
-    requestedBy: input.requestedBy ?? null,
-    triggeredBy: input.triggeredBy,
-    metadata: lookupDiagnostics(routes, { actorId: input.actorId, gridOwnerId: input.gridOwnerId ?? null, stage: 'started' }),
-  })
-
-  if (routes.length === 0) {
-    const metadata = lookupDiagnostics(routes, { reason: 'missing_lookup_address', actorId: input.actorId, gridOwnerId: input.gridOwnerId ?? null })
-    await finishRefreshJob(jobId, {
-      status: 'skipped',
-      error_message: 'Aktören saknar EDIEL-id, SMTP-adress eller fallback-adress för certifikatsökning.',
-      metadata,
-    })
-    return { ok: false, skipped: true, reason: 'missing_lookup_address', found: 0, inserted: 0, updated: 0, valid: 0, expired: 0, routes, metadata }
-  }
-
+  let routes: RefreshRoute[] = []
+  let jobId: string | null = null
   let inserted = 0
   let updated = 0
-  const existingSync = await syncExistingEdielCertificatesForRoutes(routes)
-  inserted += Number(existingSync.inserted ?? 0)
-  updated += Number(existingSync.updated ?? 0)
+  let existingSync: Record<string, unknown> = { skipped: true, reason: 'not_started' }
+  let cacheSync: Record<string, unknown> = { skipped: true, reason: 'not_started' }
+  let live: Awaited<ReturnType<typeof syncLiveLookupForRoutes>> = { found: 0, inserted: 0, updated: 0, valid: 0, expired: 0, errors: [], lookupResults: [] }
+  let recalc: Record<string, unknown> = { skipped: true, reason: 'not_started' }
 
-  const cacheSync = await syncDirectoryCacheForRoutes(routes)
-  inserted += cacheSync.inserted
-  updated += cacheSync.updated
+  try {
+    routes = await listRoutesForActor(input.actorId, input.gridOwnerId)
+    const first = routes[0]
+    jobId = await createRefreshJob({
+      actorId: input.actorId,
+      gridOwnerId: input.gridOwnerId ?? first?.grid_owner_id ?? null,
+      companyId: first?.company_id ?? null,
+      edielId: first?.ediel_id ?? null,
+      requestedBy: input.requestedBy ?? null,
+      triggeredBy: input.triggeredBy,
+      metadata: lookupDiagnostics(routes, { actorId: input.actorId, gridOwnerId: input.gridOwnerId ?? null, stage: 'started' }),
+    })
 
-  const live = await syncLiveLookupForRoutes({ routes, triggeredBy: input.triggeredBy, requestedBy: input.requestedBy })
-  inserted += live.inserted
-  updated += live.updated
+    if (routes.length === 0) {
+      const metadata = lookupDiagnostics(routes, { reason: 'missing_lookup_address', actorId: input.actorId, gridOwnerId: input.gridOwnerId ?? null, stage: 'skipped' })
+      await finishRefreshJob(jobId, {
+        status: 'skipped',
+        error_message: 'Aktören saknar EDIEL-id, SMTP-adress eller fallback-adress för certifikatsökning.',
+        metadata,
+      })
+      return { ok: false, skipped: true, reason: 'missing_lookup_address', found: 0, inserted: 0, updated: 0, valid: 0, expired: 0, routes, metadata }
+    }
 
-  const recalc = await recalculateReadiness(input.actorId)
-  const status: RefreshStatus = live.errors.length > 0 ? 'failed' : 'completed'
-  const metadata = lookupDiagnostics(routes, { existingSync, cacheSync, lookupResults: live.lookupResults, errors: live.errors, recalc })
+    existingSync = await syncExistingEdielCertificatesForRoutes(routes)
+    inserted += Number(existingSync.inserted ?? 0)
+    updated += Number(existingSync.updated ?? 0)
 
-  await finishRefreshJob(jobId, {
-    status,
-    found_count: live.found,
-    inserted_count: inserted,
-    updated_count: updated,
-    valid_count: live.valid,
-    expired_count: live.expired,
-    error_message: live.errors.length ? 'En eller flera certifikatsökningar misslyckades.' : null,
-    metadata,
-  })
+    cacheSync = await syncDirectoryCacheForRoutes(routes)
+    inserted += Number(cacheSync.inserted ?? 0)
+    updated += Number(cacheSync.updated ?? 0)
 
-  await safeAudit('ediel_certificate_refresh.actor_completed', {
-    actorId: input.actorId,
-    gridOwnerId: input.gridOwnerId ?? null,
-    triggeredBy: input.triggeredBy,
-    found: live.found,
-    inserted,
-    updated,
-    valid: live.valid,
-    expired: live.expired,
-    errors: live.errors,
-  })
+    live = await syncLiveLookupForRoutes({ routes, triggeredBy: input.triggeredBy, requestedBy: input.requestedBy })
+    inserted += live.inserted
+    updated += live.updated
 
-  return { ok: live.errors.length === 0, found: live.found, inserted, updated, valid: live.valid, expired: live.expired, errors: live.errors, routes, existingSync, cacheSync, metadata }
+    recalc = await recalculateReadiness(input.actorId)
+
+    const status = refreshStatusFromCounts({ found: live.found, valid: live.valid, errors: live.errors })
+    const metadata = lookupDiagnostics(routes, {
+      stage: status,
+      existingSync,
+      cacheSync,
+      lookupResults: live.lookupResults,
+      errors: live.errors,
+      recalc,
+    })
+
+    await finishRefreshJob(jobId, {
+      status,
+      found_count: live.found,
+      inserted_count: inserted,
+      updated_count: updated,
+      valid_count: live.valid,
+      expired_count: live.expired,
+      error_message: refreshErrorMessage(status, metadata.lookupAddresses as string[], live.errors),
+      metadata,
+    })
+
+    await safeAudit('ediel_certificate_refresh.actor_completed', {
+      actorId: input.actorId,
+      gridOwnerId: input.gridOwnerId ?? null,
+      triggeredBy: input.triggeredBy,
+      status,
+      found: live.found,
+      inserted,
+      updated,
+      valid: live.valid,
+      expired: live.expired,
+      errors: live.errors,
+    })
+
+    return { ok: status !== 'failed', found: live.found, inserted, updated, valid: live.valid, expired: live.expired, errors: live.errors, routes, existingSync, cacheSync, metadata }
+  } catch (error) {
+    const routesForDiagnostics = routes.length > 0 ? routes : []
+    const metadata = lookupDiagnostics(routesForDiagnostics, {
+      stage: 'failed',
+      actorId: input.actorId,
+      gridOwnerId: input.gridOwnerId ?? null,
+      existingSync,
+      cacheSync,
+      lookupResults: live.lookupResults,
+      errors: [...(live.errors ?? []), safeError(error)],
+      recalc,
+    })
+    await finishRefreshJob(jobId, {
+      status: 'failed',
+      found_count: live.found,
+      inserted_count: inserted,
+      updated_count: updated,
+      valid_count: live.valid,
+      expired_count: live.expired,
+      error_message: errorMessage(error),
+      metadata,
+    })
+    await safeAudit('ediel_certificate_refresh.actor_failed', {
+      actorId: input.actorId,
+      gridOwnerId: input.gridOwnerId ?? null,
+      triggeredBy: input.triggeredBy,
+      error: safeError(error),
+      lookupAddresses: metadata.lookupAddresses,
+    })
+    return { ok: false, found: live.found, inserted, updated, valid: live.valid, expired: live.expired, errors: [...(live.errors ?? []), safeError(error)], routes, existingSync, cacheSync, metadata }
+  }
 }
 
 async function resolveActorIdForGridOwner(owner: GridOwnerLookupRow): Promise<{ actorId: string | null; source: string }> {
@@ -818,7 +895,8 @@ async function resolveActorIdForGridOwner(owner: GridOwnerLookupRow): Promise<{ 
   if (identifierResult.error) {
     if (!isMissingSchema(identifierResult.error)) throw identifierResult.error
   } else {
-    const actorIds = Array.from(new Set((identifierResult.data ?? [])
+    const identifierRows = (identifierResult.data ?? []) as Array<{ actor_id?: unknown; identifier_type?: unknown; identifier_value?: unknown }>
+    const actorIds = Array.from(new Set(identifierRows
       .filter((row) => ['edielid', 'ediel_id'].includes(String(row.identifier_type ?? '').toLowerCase()))
       .map((row) => clean(row.actor_id))
       .filter((value): value is string => Boolean(value))))
@@ -844,49 +922,76 @@ async function lookupOnlyForGridOwner(input: {
   requestedBy?: string | null
 }): Promise<RefreshResult> {
   const routes = dedupeRoutes(fallbackRoutesForOwner({ actorId: null, owner: input.owner }))
-  const jobId = await createRefreshJob({
-    gridOwnerId: clean(input.owner.id),
-    companyId: clean(input.owner.company_id),
-    edielId: clean(input.owner.ediel_id),
-    requestedBy: input.requestedBy ?? null,
-    triggeredBy: input.triggeredBy,
-    metadata: lookupDiagnostics(routes, { reason: input.reason, lookupOnly: true, stage: 'started' }),
-  })
+  let jobId: string | null = null
+  let live: Awaited<ReturnType<typeof syncLiveLookupForRoutes>> = { found: 0, inserted: 0, updated: 0, valid: 0, expired: 0, errors: [], lookupResults: [] }
 
-  if (routes.length === 0) {
-    const metadata = lookupDiagnostics(routes, { reason: input.reason, lookupOnly: true, missing: 'ediel_id_or_email' })
+  try {
+    jobId = await createRefreshJob({
+      gridOwnerId: clean(input.owner.id),
+      companyId: clean(input.owner.company_id),
+      edielId: clean(input.owner.ediel_id),
+      requestedBy: input.requestedBy ?? null,
+      triggeredBy: input.triggeredBy,
+      metadata: lookupDiagnostics(routes, { reason: input.reason, lookupOnly: true, stage: 'started' }),
+    })
+
+    if (routes.length === 0) {
+      const metadata = lookupDiagnostics(routes, { reason: input.reason, lookupOnly: true, missing: 'ediel_id_or_email', stage: 'skipped' })
+      await finishRefreshJob(jobId, {
+        status: 'skipped',
+        error_message: 'Nätägaren saknar EDIEL-id och e-postadress för certifikatsökning.',
+        metadata,
+      })
+      return { ok: false, skipped: true, reason: 'missing_grid_owner_ediel_or_email', found: 0, inserted: 0, updated: 0, valid: 0, expired: 0, routes, metadata }
+    }
+
+    live = await syncLiveLookupForRoutes({ routes, triggeredBy: input.triggeredBy, requestedBy: input.requestedBy })
+    const status = refreshStatusFromCounts({ found: live.found, valid: live.valid, errors: live.errors })
+    const metadata = lookupDiagnostics(routes, { reason: input.reason, lookupOnly: true, stage: status, lookupResults: live.lookupResults, errors: live.errors })
     await finishRefreshJob(jobId, {
-      status: 'skipped',
-      error_message: 'Nätägaren saknar EDIEL-id och e-postadress för certifikatsökning.',
+      status,
+      found_count: live.found,
+      inserted_count: 0,
+      updated_count: 0,
+      valid_count: live.valid,
+      expired_count: live.expired,
+      error_message: refreshErrorMessage(status, metadata.lookupAddresses as string[], live.errors),
       metadata,
     })
-    return { ok: false, skipped: true, reason: 'missing_grid_owner_ediel_or_email', found: 0, inserted: 0, updated: 0, valid: 0, expired: 0, routes, metadata }
+
+    await safeAudit('ediel_certificate_refresh.grid_owner_lookup_only_completed', {
+      gridOwnerId: input.owner.id ?? null,
+      edielId: input.owner.ediel_id ?? null,
+      reason: input.reason,
+      status,
+      found: live.found,
+      valid: live.valid,
+      expired: live.expired,
+      errors: live.errors,
+    })
+
+    return { ok: status !== 'failed', found: live.found, inserted: 0, updated: 0, valid: live.valid, expired: live.expired, errors: live.errors, routes, metadata }
+  } catch (error) {
+    const metadata = lookupDiagnostics(routes, { reason: input.reason, lookupOnly: true, stage: 'failed', lookupResults: live.lookupResults, errors: [...(live.errors ?? []), safeError(error)] })
+    await finishRefreshJob(jobId, {
+      status: 'failed',
+      found_count: live.found,
+      inserted_count: 0,
+      updated_count: 0,
+      valid_count: live.valid,
+      expired_count: live.expired,
+      error_message: errorMessage(error),
+      metadata,
+    })
+    await safeAudit('ediel_certificate_refresh.grid_owner_lookup_only_failed', {
+      gridOwnerId: input.owner.id ?? null,
+      edielId: input.owner.ediel_id ?? null,
+      reason: input.reason,
+      error: safeError(error),
+      lookupAddresses: metadata.lookupAddresses,
+    })
+    return { ok: false, found: live.found, inserted: 0, updated: 0, valid: live.valid, expired: live.expired, errors: [...(live.errors ?? []), safeError(error)], routes, metadata }
   }
-
-  const live = await syncLiveLookupForRoutes({ routes, triggeredBy: input.triggeredBy, requestedBy: input.requestedBy })
-  const metadata = lookupDiagnostics(routes, { reason: input.reason, lookupOnly: true, lookupResults: live.lookupResults, errors: live.errors })
-  await finishRefreshJob(jobId, {
-    status: live.errors.length > 0 ? 'failed' : 'completed',
-    found_count: live.found,
-    inserted_count: 0,
-    updated_count: 0,
-    valid_count: live.valid,
-    expired_count: live.expired,
-    error_message: live.errors.length ? 'Live-sökning kördes men en eller flera lookup-adresser misslyckades.' : null,
-    metadata,
-  })
-
-  await safeAudit('ediel_certificate_refresh.grid_owner_lookup_only_completed', {
-    gridOwnerId: input.owner.id ?? null,
-    edielId: input.owner.ediel_id ?? null,
-    reason: input.reason,
-    found: live.found,
-    valid: live.valid,
-    expired: live.expired,
-    errors: live.errors,
-  })
-
-  return { ok: live.errors.length === 0, found: live.found, inserted: 0, updated: 0, valid: live.valid, expired: live.expired, errors: live.errors, routes, metadata }
 }
 
 export async function refreshCertificatesForGridOwner(input: {
