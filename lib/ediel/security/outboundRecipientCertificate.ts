@@ -182,35 +182,38 @@ export async function resolveOutboundRecipientCertificate(input: {
   certificateEnvironment?: string | null
   routeProfileId?: string | null
   smtpTo?: string | null
+  ownEdielId?: string | null
 }): Promise<OutboundRecipientCertificate> {
   let certificateId = String(input.certificateId ?? '').trim()
   let receiverEdielId = String(input.receiverEdielId ?? '').trim()
+  let ownEdielId = String(input.ownEdielId ?? '').trim()
   const receiverSubaddress = normalizeEdielSubaddress(input.receiverSubaddress)
   const messageFamily = String(input.messageFamily ?? input.messageType ?? '').trim().toUpperCase()
   const businessCode = String(input.businessCode ?? '').trim().toUpperCase()
   const environment = String(input.environment ?? '').trim().toLowerCase()
   let certificateEnvironment = String(input.certificateEnvironment ?? '').trim().toLowerCase() || environment
 
-  if (!certificateId) {
-    if (input.routeProfileId) {
-      const { data: routeProfile, error: routeError } = await supabaseService
-        .from('ediel_route_profiles')
-        .select('receiver_certificate_id,certificate_id,receiver_ediel_id,receiver_subaddress,receiver_sub_address,receiver_message_subaddress,message_family,environment_type,target_system,certificate_environment,metadata')
-        .eq('id', input.routeProfileId)
-        .maybeSingle()
-      if (routeError) throw routeError
-      const route = (routeProfile ?? {}) as Record<string, unknown>
-      if (routeLooksLikeAgtProdat(route, messageFamily)) {
-        // Ediel actor tests are logical test runs, but Expisoft/Ediel requires production certificates.
-        // This also protects older route rows that still have certificate_environment='test'.
-        certificateEnvironment = 'production'
-      }
+  if (input.routeProfileId && (!certificateId || !ownEdielId)) {
+    const { data: routeProfile, error: routeError } = await supabaseService
+      .from('ediel_route_profiles')
+      .select('receiver_certificate_id,certificate_id,receiver_ediel_id,own_ediel_id,sender_ediel_id,receiver_subaddress,receiver_sub_address,receiver_message_subaddress,message_family,environment_type,target_system,certificate_environment,metadata')
+      .eq('id', input.routeProfileId)
+      .maybeSingle()
+    if (routeError) throw routeError
+    const route = (routeProfile ?? {}) as Record<string, unknown>
+    if (routeLooksLikeAgtProdat(route, messageFamily)) {
+      // Ediel actor tests are logical test runs, but Expisoft/Ediel requires production certificates.
+      // This also protects older route rows that still have certificate_environment='test'.
+      certificateEnvironment = 'production'
+    }
+    if (!certificateId) {
       certificateId =
         text(route.receiver_certificate_id) ??
         text(route.certificate_id) ??
         ''
       receiverEdielId = receiverEdielId || text(route.receiver_ediel_id) || ''
     }
+    ownEdielId = ownEdielId || text(route.own_ediel_id) || text(route.sender_ediel_id) || ''
   }
 
   let data: CertificateRow | null = null
@@ -342,11 +345,20 @@ export async function resolveOutboundRecipientCertificate(input: {
     throw new Error(`Sändning stoppad: certifikatet är för ${certEnvironment}, men meddelandet skickas i ${environment}.`)
   }
 
-  const certificateOwnerLooksLikeGridex = /Div3rsa|Gridex|serialNumber\s*=\s*21660|CN\s*=\s*ediel@gridex\.se/i.test(subject ?? '')
-  if (receiverEdielId !== '21660' && certificateOwnerLooksLikeGridex) {
-    throw new Error(
-      'Sändning stoppad: valt S/MIME-certifikat verkar vara Div3rsa/Gridex eget certifikat, men mottagaren är en annan aktör. Importera mottagarens publika certifikat.',
-    )
+  // Tenant-driven safeguard: detect when the sending tenant's OWN certificate was
+  // accidentally selected as the recipient certificate. The sender identity comes
+  // from the route profile (own_ediel_id/sender_ediel_id), never from a hardcoded
+  // actor. The deterministic owner==receiver check above is the primary guard; this
+  // catches mislabeled certificate rows whose subject still reveals the sender id.
+  if (ownEdielId && normalize(receiverEdielId) !== normalize(ownEdielId)) {
+    const escapedOwn = ownEdielId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const subjectClaimsSender = new RegExp(`(?:serialNumber|CN|OU|O)\\s*=\\s*[^,]*${escapedOwn}`, 'i').test(subject ?? '')
+      || normalize(ownerEdielId) === normalize(ownEdielId)
+    if (subjectClaimsSender) {
+      throw new Error(
+        'Sändning stoppad: valt S/MIME-certifikat verkar vara avsändarens eget certifikat, men mottagaren är en annan aktör. Importera mottagarens publika certifikat.',
+      )
+    }
   }
 
   return {

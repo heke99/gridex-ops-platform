@@ -17,6 +17,7 @@ import {
   recordFacilityDataIssue,
   type FacilityBusinessErrorCode,
 } from '@/lib/energy/facilityDataErrors'
+import { getBaseAppUrl } from '@/lib/auth/urls'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -82,6 +83,8 @@ const MeteringPointSchema = z.object({
 }).optional()
 
 const ContractSchema = z.object({
+  offer_reference: OPTIONAL_TEXT,
+  offerReference: OPTIONAL_TEXT,
   contract_name: OPTIONAL_TEXT,
   contract_type: OPTIONAL_TEXT,
   contract_number: OPTIONAL_TEXT,
@@ -118,6 +121,8 @@ const ContractSchema = z.object({
 }).optional()
 
 const ApplicationSchema = z.object({
+  offer_reference: OPTIONAL_TEXT,
+  offerReference: OPTIONAL_TEXT,
   external_customer_id: OPTIONAL_TEXT,
   customer_external_id: OPTIONAL_TEXT,
   external_account_id: OPTIONAL_TEXT,
@@ -857,6 +862,7 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     contract_name: firstDefined(nestedContract?.contract_name, nestedContract?.contractName, raw.contract_name, raw.contractName, raw.product_name, raw.productName),
     contract_type: firstDefined(nestedContract?.contract_type, nestedContract?.contractType, raw.contract_type, raw.contractType),
     contract_number: firstDefined(nestedContract?.contract_number, nestedContract?.contractNumber, raw.contract_number, raw.contractNumber),
+    offer_reference: firstDefined(nestedContract?.offer_reference, nestedContract?.offerReference, raw.offer_reference, raw.offerReference),
     price_plan_id: firstDefined(nestedContract?.price_plan_id, nestedContract?.pricePlanId, raw.price_plan_id, raw.pricePlanId),
     price_plan_version_id: firstDefined(nestedContract?.price_plan_version_id, nestedContract?.pricePlanVersionId, raw.price_plan_version_id, raw.pricePlanVersionId),
     contract_offer_id: firstDefined(nestedContract?.contract_offer_id, nestedContract?.contractOfferId, raw.contract_offer_id, raw.contractOfferId),
@@ -919,6 +925,7 @@ function eventVariables(input: {
   contractName?: string | null
   startDate?: string | null
   supportEmail?: string | null
+  portalUrl?: string | null
 }) {
   const cancellationDeadline = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10)
   const rawFirstName = clean(input.rawCustomer?.first_name)
@@ -942,16 +949,24 @@ function eventVariables(input: {
     start_date: input.startDate ?? '',
     facility_id: input.facilityId ?? '',
     metering_point_id: input.meteringPointId ?? '',
-    support_email: input.supportEmail ?? 'kontakt@gridex.se',
+    support_email: input.supportEmail ?? '',
     cancellation_deadline: cancellationDeadline,
-    portal_url: 'https://app.gridex.se/login',
+    portal_url: input.portalUrl ?? '',
   }
 }
 
-async function companyEmailContext(companyId: string): Promise<{ name: string; supportEmail: string | null }> {
+function safePortalUrl(): string | null {
+  try {
+    return `${getBaseAppUrl()}/login`
+  } catch {
+    return null
+  }
+}
+
+async function companyEmailContext(companyId: string): Promise<{ name: string; supportEmail: string | null; portalUrl: string | null }> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('name,support_email,primary_contact_email')
+    .select('name,support_email,primary_contact_email,branding')
     .eq('id', companyId)
     .maybeSingle()
   if (error) throw error
@@ -966,9 +981,17 @@ async function companyEmailContext(companyId: string): Promise<{ name: string; s
     ? null
     : settingsResult.data as { sender_name?: string | null; support_email?: string | null; reply_to_email?: string | null } | null
 
+  const branding = (data?.branding && typeof data.branding === 'object' && !Array.isArray(data.branding)
+    ? data.branding
+    : {}) as Record<string, unknown>
+
   return {
-    name: clean(settings?.sender_name) ?? clean(data?.name) ?? 'Gridex',
-    supportEmail: clean(settings?.support_email) ?? clean(settings?.reply_to_email) ?? clean(data?.support_email) ?? clean(data?.primary_contact_email),
+    name: clean(settings?.sender_name)
+      ?? clean(branding.display_name)
+      ?? clean(data?.name)
+      ?? 'din elhandlare',
+    supportEmail: clean(settings?.support_email) ?? clean(settings?.reply_to_email) ?? clean(branding.support_email) ?? clean(data?.support_email) ?? clean(data?.primary_contact_email),
+    portalUrl: clean(branding.customer_portal_url) ?? clean(branding.website_url) ?? safePortalUrl(),
   }
 }
 
@@ -2144,25 +2167,27 @@ export async function processWebsiteCustomerApplication(input: {
     }))
     resolvedCustomerResult.customer.customer_number = customerNumber
 
+    const selectedOfferReference = clean(body.offer_reference) ?? clean(body.offerReference) ?? clean(body.contract?.offer_reference) ?? clean(body.contract?.offerReference)
     const selectedPricePlanVersionId = clean(body.price_plan_version_id) ?? clean(body.contract?.price_plan_version_id)
     const selectedPricePlanId = clean(body.price_plan_id) ?? clean(body.contract?.price_plan_id)
     const selectedContractOfferId = clean(body.contract_offer_id) ?? clean(body.contract?.contract_offer_id)
     const selectedProductCode = clean(body.product_code) ?? clean(body.contract?.product_code)
-    const hasSelectedPublicContract = Boolean(selectedPricePlanVersionId || selectedPricePlanId || selectedContractOfferId || selectedProductCode)
+    const hasSelectedPublicContract = Boolean(selectedOfferReference || selectedPricePlanVersionId || selectedPricePlanId || selectedContractOfferId || selectedProductCode)
     if (!hasSelectedPublicContract) {
       throw new WebsiteApplicationError({
         message: 'Kundansökan måste referera till ett publicerat avtal från Ops.',
         status: 422,
         code: 'public_contract_required',
-        field: 'contract.price_plan_version_id',
+        field: 'contract.offer_reference',
         stage: 'public_contract_lookup',
-        hint: 'Hämta avtal via GET /api/v1/website/public-contracts och skicka contract_offer_id eller price_plan_version_id. Skicka inte egna priser eller fritextavtal som juridisk sanning.',
+        hint: 'Hämta avtal via GET /api/v1/website/public-contracts och skicka offer_reference. Skicka inte egna priser eller fritextavtal som juridisk sanning.',
       })
     }
 
     publicOffer = hasSelectedPublicContract
       ? await stage('public_contract_lookup', () => resolvePublicContractOffer({
           client: input.client,
+          offerReference: selectedOfferReference,
           pricePlanVersionId: selectedPricePlanVersionId,
           pricePlanId: selectedPricePlanId,
           contractOfferId: selectedContractOfferId,
@@ -2176,9 +2201,9 @@ export async function processWebsiteCustomerApplication(input: {
         message: 'Valt avtal är inte publicerat eller tillhör inte denna tenant.',
         status: 422,
         code: 'public_contract_not_available',
-        field: 'price_plan_version_id',
+        field: 'offer_reference',
         stage: 'public_contract_lookup',
-        hint: 'Hemsidan ska hämta avtal via GET /api/v1/website/public-contracts och skicka price_plan_version_id från svaret.',
+        hint: 'Hemsidan ska hämta avtal via GET /api/v1/website/public-contracts och skicka offer_reference från svaret.',
       })
     }
 
@@ -2242,6 +2267,7 @@ export async function processWebsiteCustomerApplication(input: {
       metering_point_id: meteringPoint?.id ?? null,
       contract_id: contract?.id ?? null,
       contract_number: contract?.contract_number ?? null,
+      offer_reference: publicOffer ? selectedOfferReference ?? (selectedContractOfferId?.startsWith('offer_') ? selectedContractOfferId : null) : null,
       price_plan_id: contract?.price_plan_id ?? publicOffer?.price_plan_id ?? clean(body.price_plan_id) ?? clean(body.contract?.price_plan_id) ?? null,
       price_plan_version_id: contract?.price_plan_version_id ?? publicOffer?.price_plan_version_id ?? clean(body.price_plan_version_id) ?? clean(body.contract?.price_plan_version_id) ?? null,
       contract_price_snapshot_id: contract?.contract_price_snapshot_id ?? null,
@@ -2377,6 +2403,7 @@ export async function processWebsiteCustomerApplication(input: {
           contractName: contract?.contract_name ?? clean(body.contract?.contract_name),
           startDate: readiness.requestedStartDate ?? contract?.starts_at ?? clean(body.contract?.starts_at) ?? clean(body.site?.move_in_date),
           supportEmail: company.supportEmail,
+          portalUrl: company.portalUrl,
         })
         await seedDefaultEmailTemplates(input.client.company_id).catch(() => null)
         await seedDefaultEmailEventRules(input.client.company_id).catch(() => null)

@@ -38,7 +38,7 @@ Authorization: Bearer <GRIDEX_OPS_API_TOKEN>
 GET /api/v1/website/public-contracts
 ```
 
-Hemsidan ska hämta publicerade avtal från Ops och skicka tillbaka valt `contract_offer_id`, `price_plan_id` och/eller `price_plan_version_id` när kunden ansöker. Hemsidan får inte skicka egna priser eller fritextavtal som juridisk sanning.
+Hemsidan ska hämta publicerade avtal från Ops och skicka tillbaka valt `offer_reference` när kunden ansöker. Hemsidan får inte skicka egna priser eller fritextavtal som juridisk sanning.
 
 ## Website customer applications
 
@@ -60,8 +60,7 @@ metering_point_id
 contract_id
 contract_number
 contract_price_snapshot_id
-price_plan_id
-price_plan_version_id
+offer_reference
 status
 missing_fields
 blocking_reasons
@@ -258,7 +257,7 @@ Batch 8 adds admin operations UI and hardening for external website onboarding:
 
 - `/admin/website-applications` for received/failed website customer applications.
 - `/admin/webhooks/deliveries` for webhook delivery logs, resend and ignored deliveries.
-- `POST /api/v1/website/customer-applications` accepts nested and simplified payloads, but contract/pricing truth must still come from public offers/version IDs.
+- `POST /api/v1/website/customer-applications` accepts nested and simplified payloads, but contract/pricing truth must still come from public offers via `offer_reference`.
 - Invalid payloads return `422 validation_error` with `field`, `hint` and `error_stage`.
 - Email and webhook delivery issues must return warnings rather than failing a created customer application.
 - Company pages show tenant email readiness, verified-domain/fallback sender mode, DNS status and template readiness.

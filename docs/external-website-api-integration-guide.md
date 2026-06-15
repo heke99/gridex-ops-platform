@@ -28,7 +28,7 @@ Bygg så här:
 
 ```text
 Extern hemsida hämtar publicerade avtal från Ops
-Extern hemsida skickar valt contract_offer_id/price_plan_version_id till Ops
+Extern hemsida skickar vald opak offer_reference till Ops
 Ops skapar/matchar kund
 Ops skapar customer_number
 Ops skapar contract_number
@@ -114,9 +114,8 @@ Response:
   "data": [
     {
       "id": "offer_...",
+      "offer_reference": "offer_...",
       "contract_offer_id": "offer_...",
-      "price_plan_id": "plan_...",
-      "price_plan_version_id": "version_...",
       "product_code": "gridex_variable",
       "name": "Rörligt elpris",
       "public_name": "Rörligt elpris",
@@ -189,9 +188,7 @@ curl -X POST "https://app.gridex.se/api/v1/website/customer-applications" \
       "move_in_date": "2026-07-01"
     },
     "contract": {
-      "contract_offer_id": "offer_...",
-      "price_plan_id": "plan_...",
-      "price_plan_version_id": "version_...",
+      "offer_reference": "offer_...",
       "requested_start_date": "asap"
     },
     "consents": {
@@ -218,8 +215,7 @@ Response:
     "contract_id": "...",
     "contract_number": "AVT-DX-100001-001",
     "contract_price_snapshot_id": "...",
-    "price_plan_id": "plan_...",
-    "price_plan_version_id": "version_...",
+    "offer_reference": "offer_...",
     "status": "application_received",
     "missing_fields": ["facility_verified", "metering_point_id"],
     "blocking_reasons": [],
@@ -453,7 +449,7 @@ Token ligger aldrig i NEXT_PUBLIC_ eller browserkod.
 Allowed origins är korrekta.
 Scopes är korrekta.
 GET /api/v1/website/public-contracts returnerar publicerade avtal.
-Hemsidan skickar contract_offer_id/price_plan_version_id, inte egna priser som master.
+Hemsidan skickar offer_reference, inte interna pris-ID:n eller egna priser som master.
 POST /api/v1/website/customer-applications är testad.
 Kundansökan returnerar customer_number.
 Kundansökan returnerar contract_number.
@@ -484,8 +480,8 @@ External websites must not own contract/pricing truth. The correct flow is:
 
 1. The website backend calls `GET /api/v1/website/public-contracts` using a tenant-bound API client.
 2. The website shows only the returned published offers.
-3. The website sends the selected `contract_offer_id`, `price_plan_id` and/or `price_plan_version_id` to `POST /api/v1/website/customer-applications`.
-4. OPS creates the customer number, agreement number and locked contract snapshot.
+3. The website sends the selected opaque `offer_reference` to `POST /api/v1/website/customer-applications`; it must not send internal `price_plan_id` or `price_plan_version_id` as public contract truth.
+4. OPS resolves the opaque offer reference internally and creates the customer number, agreement number and locked contract snapshot.
 5. OPS sends and logs legally important confirmation/cooling-off communication unless explicitly configured otherwise.
 
 Tenant admins do not create their own public offers. Platform admin publishes the offers a tenant may sell.

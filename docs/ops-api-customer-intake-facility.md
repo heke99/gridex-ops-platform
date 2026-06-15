@@ -37,9 +37,8 @@ Response:
   "data": [
     {
       "id": "offer-id",
-      "contract_offer_id": "offer-id",
-      "price_plan_id": "price-plan-id",
-      "price_plan_version_id": "price-plan-version-id",
+      "offer_reference": "offer_opaque_reference",
+      "contract_offer_id": "offer_opaque_reference",
       "campaign_version_id": null,
       "product_code": "variable_spot",
       "name": "Rörligt elpris",
@@ -73,7 +72,7 @@ Response:
 }
 ```
 
-Website rule: send `price_plan_version_id` or `contract_offer_id` back when the customer applies. Do not submit only the visible contract name.
+Website rule: send `offer_reference` back when the customer applies. Legacy `contract_offer_id` is accepted only as the same opaque offer reference. Do not submit internal price plan IDs or only the visible contract name.
 
 ## Customer application
 
@@ -86,7 +85,7 @@ Minimum payload:
 ```json
 {
   "external_customer_id": "WEB-20260612-0001",
-  "source": "gridex.se",
+  "source": "elbolagets-hemsida.se",
   "customer": {
     "customer_type": "private",
     "first_name": "Sara",
@@ -105,7 +104,7 @@ Minimum payload:
     "metering_point_id": null
   },
   "contract": {
-    "price_plan_version_id": "price-plan-version-id",
+    "offer_reference": "offer_opaque_reference",
     "requested_start_date": "asap"
   },
   "consents": {
@@ -247,7 +246,7 @@ External websites must first call:
 GET /api/v1/website/public-contracts
 ```
 
-The selected offer/version is then submitted to:
+The selected offer is then submitted to:
 
 ```http
 POST /api/v1/website/customer-applications
@@ -258,15 +257,13 @@ Recommended contract payload:
 ```json
 {
   "contract": {
-    "contract_offer_id": "...",
-    "price_plan_id": "...",
-    "price_plan_version_id": "...",
+    "offer_reference": "offer_opaque_reference",
     "requested_start_date": "asap"
   }
 }
 ```
 
-Do not let a website submit monthly fee, markup or legal terms as the source of truth. OPS creates the locked customer contract snapshot.
+Do not let a website submit internal price plan IDs, monthly fee, markup or legal terms as the source of truth. OPS resolves the opaque offer reference and creates the locked customer contract snapshot.
 
 ### Customer actions
 

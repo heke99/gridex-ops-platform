@@ -505,8 +505,13 @@ function CompanyEmailSection({
         <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-900">E-post</p>
         <h2 className="mt-2 text-2xl font-black text-slate-950">E-postinställningar för elbolag</h2>
         <p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">
-          Aktiv avsändare: {effectiveSender.from}. Reply-to: {effectiveSender.replyTo ?? 'saknas'}. Sender mode: {effectiveSender.mode === 'verified_domain' ? 'Verifierad domän' : 'Fallback via Gridex'}.
+          Aktiv avsändare: {effectiveSender.from}. Reply-to: {effectiveSender.replyTo ?? 'saknas'}. Sender mode: {effectiveSender.mode === 'verified_domain' ? 'Verifierad domän' : 'Fallback via plattformens avsändare'}.
         </p>
+        {effectiveSender.sendReady === false ? (
+          <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-900">
+            {effectiveSender.blocker ?? 'Avsändaren är inte redo för utskick.'}
+          </p>
+        ) : null}
         <div className="mt-4 grid gap-3 text-sm font-semibold md:grid-cols-4">
           <ActionLine label="From-email" value={settings?.sender_email ?? effectiveSender.senderEmail} tone={effectiveSender.mode === 'verified_domain' ? 'emerald' : 'amber'} />
           <ActionLine label="Domänstatus" value={VERIFICATION_STATUS_LABELS[settingStatus] ?? settingStatus} tone={settingStatus === 'verified' ? 'emerald' : 'amber'} />
@@ -543,7 +548,7 @@ function CompanyEmailSection({
         <p className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
           {settingStatus === 'verified'
             ? 'Domänen är verifierad för sändning. Juridiskt viktiga utskick skickas från bolagets egen avsändare.'
-            : 'Domänen är inte verifierad för sändning ännu. Systemet använder fallback-avsändare om bolaget tillåter det, och loggar sender_mode på varje utskick.'}
+            : 'Domänen är inte verifierad för sändning ännu. Juridiska och kritiska kundmail blockeras tills bolagets domän är verifierad. Icke-kritiska testutskick kan använda plattformens fallback-avsändare om den är konfigurerad och tillåten.'}
         </p>
         {notes.length > 0 ? (
           <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
@@ -583,7 +588,7 @@ function CompanyEmailSection({
 
       <section id="email-testmail" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-black text-slate-950">4. Testmail</h3>
-        {effectiveSender.mode === 'fallback' ? <p className="mt-2 text-sm font-semibold text-amber-900">Testmail skickas via Gridex standardavsändare eftersom domänen inte är verifierad.</p> : null}
+        {effectiveSender.mode === 'fallback' ? <p className="mt-2 text-sm font-semibold text-amber-900">Testmail skickas via plattformens fallback-avsändare eftersom bolagets domän inte är verifierad.</p> : null}
         <form action={sendCompanyTestEmailAction} className="mt-4 flex flex-wrap gap-3">
           <input type="hidden" name="company_id" value={company.id} />
           <input name="to" type="email" required placeholder="namn@exempel.se" className="min-w-72 rounded-2xl border border-slate-300 px-4 py-3" />

@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import type SMTPTransport from 'nodemailer/lib/smtp-transport'
 
 export type TransactionalEmailInput = {
   to: string
@@ -50,12 +51,13 @@ export function getAuthSmtpConfig(): AuthSmtpConfig {
 
 function createAuthSmtpTransporter() {
   const config = getAuthSmtpConfig()
-  return nodemailer.createTransport({
+  const transportOptions: SMTPTransport.Options = {
     host: config.host,
     port: config.port,
     secure: config.port === 465,
     auth: { user: config.user, pass: config.pass },
-  })
+  }
+  return nodemailer.createTransport(transportOptions)
 }
 
 export async function assertTransactionalEmailReady() {
@@ -73,12 +75,13 @@ export async function assertTransactionalEmailReady() {
 
 export async function sendTransactionalEmail(input: TransactionalEmailInput) {
   const config = getAuthSmtpConfig()
-  const transporter = nodemailer.createTransport({
+  const transportOptions: SMTPTransport.Options = {
     host: config.host,
     port: config.port,
     secure: config.port === 465,
     auth: { user: config.user, pass: config.pass },
-  })
+  }
+  const transporter = nodemailer.createTransport(transportOptions)
 
   return transporter.sendMail({
     from: input.from || config.from,

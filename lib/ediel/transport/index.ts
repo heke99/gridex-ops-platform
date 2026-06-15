@@ -419,7 +419,9 @@ function encryptSmimeEnvelopedDataWithForge(params: {
 function buildAsciiMessageId(): string {
   const stamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)
   const random = Math.random().toString(36).slice(2, 10)
-  return `<gridex-ediel-${stamp}-${random}@gridex.se>`
+  const smtpFromDomain = process.env.EDIEL_SMTP_FROM?.split('@')[1]
+  const domain = String(process.env.EDIEL_MESSAGE_ID_DOMAIN ?? process.env.EDIEL_MAIL_DOMAIN ?? smtpFromDomain ?? 'ediel.local').trim().toLowerCase()
+  return `<ediel-${stamp}-${random}@${domain || 'ediel.local'}>`
 }
 
 export function isSupportedSmtpMimeMode(value: string | null | undefined): value is EdielSmtpMimeMode {
@@ -1590,6 +1592,11 @@ export async function sendEdielMessageViaSmtp(
       certificateEnvironment: routeCertificateEnvironment(routeProfile as Record<string, unknown> | null, message.environment),
       routeProfileId: routeProfile?.id ?? null,
       smtpTo: message.receiver_email,
+      ownEdielId:
+        (routeProfile as Record<string, unknown> | null)?.own_ediel_id as string | undefined ??
+        (routeProfile as Record<string, unknown> | null)?.sender_ediel_id as string | undefined ??
+        message.sender_ediel_id ??
+        null,
     })
     const recipientCertificatePem = outboundRecipientCertificate.publicCertificatePem
     usedReceiverCertificateId = outboundRecipientCertificate.id

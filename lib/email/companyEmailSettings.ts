@@ -35,6 +35,8 @@ export type EffectiveSender = {
   senderEmail: string
   fromName?: string
   domainVerifiedAt?: string | null
+  sendReady?: boolean
+  blocker?: string | null
 }
 
 type CompanyEmailSettingsInput = {
@@ -66,9 +68,17 @@ type CompanyRow = {
   billing_contact_email?: string | null
 }
 
-export const DEFAULT_FROM_EMAIL = process.env.DEFAULT_FROM_EMAIL ?? 'noreply@gridex.se'
-export const DEFAULT_FROM_NAME = process.env.DEFAULT_FROM_NAME ?? 'Gridex'
-export const DEFAULT_REPLY_TO = process.env.DEFAULT_REPLY_TO ?? 'support@gridex.se'
+function envText(...names: string[]) {
+  for (const name of names) {
+    const value = String(process.env[name] ?? '').trim()
+    if (value) return value
+  }
+  return ''
+}
+
+export const DEFAULT_FROM_EMAIL = envText('PLATFORM_FALLBACK_FROM_EMAIL', 'DEFAULT_FROM_EMAIL', 'RESEND_FROM_EMAIL').toLowerCase()
+export const DEFAULT_FROM_NAME = envText('PLATFORM_FALLBACK_FROM_NAME', 'DEFAULT_FROM_NAME') || 'Plattformen'
+export const DEFAULT_REPLY_TO = envText('PLATFORM_FALLBACK_REPLY_TO', 'DEFAULT_REPLY_TO').toLowerCase()
 
 function clean(value: string | null | undefined) {
   const trimmed = String(value ?? '').trim()
@@ -81,6 +91,10 @@ function cleanEmail(value: string | null | undefined) {
 
 function formatAddress(name: string, email: string) {
   return `${name.replace(/[<>"]/g, '').trim()} <${email}>`
+}
+
+function missingFallbackSenderMessage() {
+  return 'Fallback-avsändare saknas. Sätt PLATFORM_FALLBACK_FROM_EMAIL eller verifiera bolagets egen domän innan utskick.'
 }
 
 async function getCompany(companyId: string): Promise<CompanyRow> {
@@ -163,13 +177,18 @@ export async function seedDefaultCompanyEmailSettings(companyId: string) {
 
   return upsertCompanyEmailSettings(companyId, {
     senderName: company.name,
-    supportEmail: company.support_email ?? company.primary_contact_email ?? company.billing_contact_email ?? DEFAULT_REPLY_TO,
-    replyToEmail: company.support_email ?? company.primary_contact_email ?? DEFAULT_REPLY_TO,
+    supportEmail: company.support_email ?? company.primary_contact_email ?? company.billing_contact_email ?? null,
+    replyToEmail: company.support_email ?? company.primary_contact_email ?? null,
     isActive: true,
+    senderMode: 'fallback_platform_sender',
+    fallbackAllowed: Boolean(DEFAULT_FROM_EMAIL),
+    blockLegalMailWhenUnverified: true,
+    readinessStatus: 'not_ready',
+    readinessNotes: ['Bolagets domän och avsändare behöver verifieras innan juridiska eller kritiska kundmail skickas.'],
   })
 }
 
-export async function getEffectiveSender(companyId: string, options: { legalOrCritical?: boolean } = {}): Promise<EffectiveSender> {
+export async function getEffectiveSender(companyId: string, options: { legalOrCritical?: boolean; requireSendReady?: boolean } = {}): Promise<EffectiveSender> {
   const [company, settings] = await Promise.all([
     getCompany(companyId),
     getCompanyEmailSettings(companyId),
@@ -187,6 +206,10 @@ export async function getEffectiveSender(companyId: string, options: { legalOrCr
     throw new Error('Bolagets domän måste vara verifierad innan juridiska eller kritiska kundmail skickas.')
   }
 
+  if (options.legalOrCritical && (!settings || settings.verification_status !== 'verified')) {
+    throw new Error('Bolagets domän måste vara verifierad innan juridiska eller kritiska kundmail skickas.')
+  }
+
   if (
     settings?.verification_status === 'verified' &&
     settings.is_active &&
@@ -201,23 +224,31 @@ export async function getEffectiveSender(companyId: string, options: { legalOrCr
       senderEmail: settings.sender_email,
       fromName: settings.sender_name,
       domainVerifiedAt: settings.verified_at,
+      sendReady: true,
+      blocker: null,
     }
   }
 
+  const fallbackEmail = DEFAULT_FROM_EMAIL || 'missing-platform-fallback@example.invalid'
+  if (!DEFAULT_FROM_EMAIL && options.requireSendReady) {
+    throw new Error(missingFallbackSenderMessage())
+  }
   const fallbackName = `${company.name} via ${DEFAULT_FROM_NAME}`
   const replyTo =
     settings?.support_email ??
     settings?.reply_to_email ??
     company.support_email ??
     company.primary_contact_email ??
-    DEFAULT_REPLY_TO
+    (DEFAULT_REPLY_TO || null)
 
   return {
-    from: formatAddress(fallbackName, DEFAULT_FROM_EMAIL),
+    from: formatAddress(fallbackName, fallbackEmail),
     replyTo: replyTo ?? undefined,
     mode: 'fallback',
-    senderEmail: DEFAULT_FROM_EMAIL,
+    senderEmail: fallbackEmail,
     fromName: fallbackName,
     domainVerifiedAt: null,
+    sendReady: Boolean(DEFAULT_FROM_EMAIL),
+    blocker: DEFAULT_FROM_EMAIL ? null : missingFallbackSenderMessage(),
   }
 }

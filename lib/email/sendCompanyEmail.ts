@@ -66,7 +66,7 @@ async function isEventRuleEnabled(companyId: string, eventKey: string | null | u
 
 export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   const legalOrCritical = isLegalOrCritical(input)
-  const sender = await getEffectiveSender(input.companyId, { legalOrCritical })
+  const sender = await getEffectiveSender(input.companyId, { legalOrCritical, requireSendReady: true })
   const allowed = await isEventRuleEnabled(input.companyId, input.eventKey, input.templateKey)
   const idempotencyKey = defaultEmailIdempotencyKey(input)
   const existingLog = await findCommunicationLogByIdempotencyKey(input.companyId, idempotencyKey)

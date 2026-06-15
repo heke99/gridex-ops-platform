@@ -28,11 +28,11 @@ export type MailLaneReadiness = {
 }
 
 export const STRATO_EDIEL_DNS_RECORDS: MailReadinessRecord[] = [
-  { type: 'MX', host: '@', value: 'smtpin.rzone.de.', purpose: 'Strato inbound MX for gridex.se / ediel@gridex.se' },
+  { type: 'MX', host: '@', value: 'smtpin.rzone.de.', purpose: 'Strato inbound MX for configured Ediel transport domain' },
   { type: 'TXT', host: '@', value: 'v=spf1 redirect=_spf.strato.com', purpose: 'SPF for Strato SMTP sender' },
   { type: 'CNAME', host: 'strato-dkim-0002._domainkey', value: 'strato-dkim-0002._domainkey.rzone.com.', purpose: 'Strato DKIM selector 0002' },
   { type: 'CNAME', host: 'strato-dkim-0003._domainkey', value: 'strato-dkim-0003._domainkey.rzone.com.', purpose: 'Strato DKIM selector 0003' },
-  { type: 'TXT', host: '_dmarc', value: 'v=DMARC1; p=none; pct=100', purpose: 'DMARC monitoring for gridex.se' },
+  { type: 'TXT', host: '_dmarc', value: 'v=DMARC1; p=none; pct=100', purpose: 'DMARC monitoring for configured Ediel transport domain' },
 ]
 
 export const RESEND_EVENTS_DNS_GUIDANCE: MailReadinessRecord[] = [
@@ -58,6 +58,16 @@ function firstNonBlank(...values: Array<string | undefined | null>): string | nu
     if (trimmed) return trimmed
   }
   return null
+}
+
+function domainFromEmail(value: string | null | undefined): string | null {
+  const email = firstNonBlank(value)
+  const domain = email?.split('@')[1]?.trim().toLowerCase()
+  return domain || null
+}
+
+function dnsHost(name: string, domain: string) {
+  return name === '@' ? domain : `${name}.${domain}`
 }
 
 function flattenTxt(records: string[][]): string[] {
@@ -93,16 +103,16 @@ async function checkTcp(host: string, port: number, timeoutMs = 3000): Promise<{
 }
 
 export function edielSmtpConfig() {
-  const from = firstNonBlank(process.env.EDIEL_SMTP_FROM, 'ediel@gridex.se') ?? 'ediel@gridex.se'
+  const from = firstNonBlank(process.env.EDIEL_SMTP_FROM)
   return {
     provider: firstNonBlank(process.env.EDIEL_EMAIL_PROVIDER, 'strato') ?? 'strato',
     host: firstNonBlank(process.env.EDIEL_SMTP_HOST, 'smtp.strato.de') ?? 'smtp.strato.de',
     port: envNumber('EDIEL_SMTP_PORT', 465),
     secure: envBool('EDIEL_SMTP_SECURE', true),
-    user: firstNonBlank(process.env.EDIEL_SMTP_USER, from) ?? from,
+    user: firstNonBlank(process.env.EDIEL_SMTP_USER, from),
     password: firstNonBlank(process.env.EDIEL_SMTP_PASS, process.env.EDIEL_SMTP_PASSWORD) ?? '',
-    from,
-    replyTo: firstNonBlank(process.env.EDIEL_SMTP_REPLY_TO, from) ?? from,
+    from: from ?? '',
+    replyTo: firstNonBlank(process.env.EDIEL_SMTP_REPLY_TO, from) ?? '',
     appLevelDkimEnabled: envBool('EDIEL_APP_DKIM_ENABLED', false),
   }
 }
@@ -133,8 +143,9 @@ export function assertEdielSmtpReadiness() {
     throw new Error(`Ediel SMTP saknar miljövariabler: ${missing.join(', ')}`)
   }
 
-  if (config.from.toLowerCase() !== 'ediel@gridex.se' || config.user.toLowerCase() !== 'ediel@gridex.se') {
-    throw new Error('Ediel SMTP måste använda ediel@gridex.se som user/from.')
+  const expectedMailbox = firstNonBlank(process.env.EDIEL_SHARED_MAILBOX_ADDRESS)
+  if (expectedMailbox && (config.from.toLowerCase() !== expectedMailbox.toLowerCase() || String(config.user ?? '').toLowerCase() !== expectedMailbox.toLowerCase())) {
+    throw new Error('Ediel SMTP måste använda den konfigurerade shared mailbox-adressen som user/from.')
   }
 
   if (config.appLevelDkimEnabled) {
@@ -145,9 +156,10 @@ export function assertEdielSmtpReadiness() {
 }
 
 export function resendEventsConfig() {
+  const from = firstNonBlank(process.env.DEFAULT_FROM_EMAIL, process.env.RESEND_FROM_EMAIL, process.env.PLATFORM_FALLBACK_FROM_EMAIL) ?? ''
   return {
     provider: 'resend' as const,
-    from: process.env.DEFAULT_FROM_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? 'no-reply@events.gridex.se',
+    from,
     apiKeyConfigured: Boolean(process.env.RESEND_API_KEY),
   }
 }
@@ -156,13 +168,15 @@ export async function getMailReadiness(): Promise<{ ediel: MailLaneReadiness; ev
   const checkedAt = new Date().toISOString()
   const edielConfig = edielSmtpConfig()
   const resendConfig = resendEventsConfig()
+  const edielDomain = firstNonBlank(process.env.EDIEL_MAIL_DOMAIN, domainFromEmail(edielConfig.from))
+  const eventDomain = domainFromEmail(resendConfig.from)
 
   const [mx, rootTxt, dmarcTxt, dkim2, dkim3, tcp] = await Promise.all([
-    dns.resolveMx('gridex.se').catch((error) => ({ error })),
-    dns.resolveTxt('gridex.se').then(flattenTxt).catch((error) => ({ error })),
-    dns.resolveTxt('_dmarc.gridex.se').then(flattenTxt).catch((error) => ({ error })),
-    dns.resolveCname('strato-dkim-0002._domainkey.gridex.se').catch((error) => ({ error })),
-    dns.resolveCname('strato-dkim-0003._domainkey.gridex.se').catch((error) => ({ error })),
+    edielDomain ? dns.resolveMx(edielDomain).catch((error) => ({ error })) : Promise.resolve({ error: new Error('EDIEL_MAIL_DOMAIN/EDIEL_SMTP_FROM saknas') }),
+    edielDomain ? dns.resolveTxt(edielDomain).then(flattenTxt).catch((error) => ({ error })) : Promise.resolve({ error: new Error('EDIEL_MAIL_DOMAIN/EDIEL_SMTP_FROM saknas') }),
+    edielDomain ? dns.resolveTxt(`_dmarc.${edielDomain}`).then(flattenTxt).catch((error) => ({ error })) : Promise.resolve({ error: new Error('EDIEL_MAIL_DOMAIN/EDIEL_SMTP_FROM saknas') }),
+    edielDomain ? dns.resolveCname(`strato-dkim-0002._domainkey.${edielDomain}`).catch((error) => ({ error })) : Promise.resolve({ error: new Error('EDIEL_MAIL_DOMAIN/EDIEL_SMTP_FROM saknas') }),
+    edielDomain ? dns.resolveCname(`strato-dkim-0003._domainkey.${edielDomain}`).catch((error) => ({ error })) : Promise.resolve({ error: new Error('EDIEL_MAIL_DOMAIN/EDIEL_SMTP_FROM saknas') }),
     checkTcp(edielConfig.host, edielConfig.port),
   ])
 
@@ -179,6 +193,13 @@ export async function getMailReadiness(): Promise<{ ediel: MailLaneReadiness; ev
     status('dkim_0002', dkim2Values.includes('strato-dkim-0002._domainkey.rzone.com'), 'Strato DKIM 0002 finns.', 'Strato DKIM 0002 saknas/fel.', dkim2),
     status('dkim_0003', dkim3Values.includes('strato-dkim-0003._domainkey.rzone.com'), 'Strato DKIM 0003 finns.', 'Strato DKIM 0003 saknas/fel.', dkim3),
     status('dmarc', dmarcValues.some((value) => value.toLowerCase().startsWith('v=dmarc1')), 'DMARC finns.', 'DMARC saknas.', dmarcTxt),
+    {
+      key: 'ediel_sender_configured',
+      status: edielConfig.from && edielDomain ? 'ok' : 'error',
+      message: edielConfig.from && edielDomain
+        ? 'Ediel shared mailbox-avsändare är konfigurerad via miljövariabler.'
+        : 'EDIEL_SMTP_FROM eller EDIEL_MAIL_DOMAIN saknas. Shared mailbox måste konfigureras per miljö.',
+    },
     {
       key: 'app_level_dkim',
       status: edielConfig.appLevelDkimEnabled ? 'error' : 'ok',
@@ -208,20 +229,22 @@ export async function getMailReadiness(): Promise<{ ediel: MailLaneReadiness; ev
       lane: 'ediel',
       provider: 'strato',
       sender: edielConfig.from,
-      domain: 'gridex.se',
+      domain: edielDomain ?? 'saknas',
       smtpHost: edielConfig.host,
       smtpPort: edielConfig.port,
       smtpSecure: edielConfig.secure,
       appLevelDkimEnabled: edielConfig.appLevelDkimEnabled,
       statuses: edielStatuses,
-      requiredRecords: STRATO_EDIEL_DNS_RECORDS,
+      requiredRecords: edielDomain
+        ? STRATO_EDIEL_DNS_RECORDS.map((record) => ({ ...record, host: dnsHost(record.host, edielDomain) }))
+        : STRATO_EDIEL_DNS_RECORDS,
       lastCheckedAt: checkedAt,
     },
     events: {
       lane: 'events',
       provider: 'resend',
       sender: resendConfig.from,
-      domain: resendConfig.from.split('@')[1] ?? 'events.gridex.se',
+      domain: eventDomain ?? 'saknas',
       appLevelDkimEnabled: false,
       statuses: [
         {
@@ -231,8 +254,10 @@ export async function getMailReadiness(): Promise<{ ediel: MailLaneReadiness; ev
         },
         {
           key: 'event_sender_domain',
-          status: resendConfig.from.endsWith('@events.gridex.se') || resendConfig.from.endsWith('@send.gridex.se') ? 'ok' : 'warning',
-          message: 'Event-mail ska använda events.gridex.se eller send.gridex.se, inte root gridex.se.',
+          status: eventDomain ? 'ok' : 'warning',
+          message: eventDomain
+            ? 'Event-avsändare är konfigurerad via miljövariabler. Tenant-specifika kundmail ska fortfarande använda verifierad bolagsdomän.'
+            : 'Event-/fallback-avsändare saknas. Sätt DEFAULT_FROM_EMAIL, RESEND_FROM_EMAIL eller PLATFORM_FALLBACK_FROM_EMAIL.',
         },
       ],
       requiredRecords: RESEND_EVENTS_DNS_GUIDANCE,

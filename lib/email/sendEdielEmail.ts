@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import type SMTPTransport from 'nodemailer/lib/smtp-transport'
 import { assertEdielSmtpReadiness, edielSmtpConfig } from '@/lib/ediel/mailReadiness'
 
 export type SendEdielEmailInput =
@@ -29,16 +30,17 @@ export async function sendEdielEmail(input: SendEdielEmailInput): Promise<{
 }> {
   const readiness = assertEdielSmtpReadiness()
   const config = edielSmtpConfig()
-  const transporter = nodemailer.createTransport({
+  const transportOptions: SMTPTransport.Options = {
     host: config.host,
     port: config.port,
     secure: config.secure,
     auth: {
-      user: config.user,
+      user: config.user ?? '',
       pass: config.password,
     },
     tls: { rejectUnauthorized: true },
-  })
+  }
+  const transporter = nodemailer.createTransport(transportOptions)
 
   if ('raw' in input) {
     const result = await transporter.sendMail({

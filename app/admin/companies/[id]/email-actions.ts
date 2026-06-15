@@ -159,9 +159,9 @@ export async function sendCompanyTestEmailAction(formData: FormData) {
     if (error) throw error
     if (!company) throw new Error('Bolaget hittades inte.')
 
-    const sender = await getEffectiveSender(companyId)
-    const subject = `Testmail från ${String(company.name ?? 'Gridex')}`
-    const html = '<p>Detta är ett testutskick från Gridex. Om du har fått detta fungerar e-postkonfigurationen.</p>'
+    const sender = await getEffectiveSender(companyId, { requireSendReady: true })
+    const subject = `Testmail från ${String(company.name ?? 'bolaget')}`
+    const html = '<p>Detta är ett testutskick för bolagets e-postkonfiguration. Om du har fått detta fungerar avsändaren för icke-kritiska testutskick.</p>'
     const log = await createCommunicationLog({
       companyId,
       recipientEmail: to,
@@ -184,7 +184,7 @@ export async function sendCompanyTestEmailAction(formData: FormData) {
         replyTo: sender.replyTo,
         subject,
         html,
-        text: 'Detta är ett testutskick från Gridex. Om du har fått detta fungerar e-postkonfigurationen.',
+        text: 'Detta är ett testutskick för bolagets e-postkonfiguration. Om du har fått detta fungerar avsändaren för icke-kritiska testutskick.',
       })
       await markCommunicationSent(log.id, result.providerMessageId)
     } catch (error) {
@@ -195,7 +195,7 @@ export async function sendCompanyTestEmailAction(formData: FormData) {
     }
 
     revalidatePath(`/admin/companies/${companyId}`)
-    redirectBack(companyId, { success: sender.mode === 'verified_domain' ? 'Testmail skickades från bolagets verifierade avsändare.' : 'Testmail skickades via Gridex standardavsändare.' })
+    redirectBack(companyId, { success: sender.mode === 'verified_domain' ? 'Testmail skickades från bolagets verifierade avsändare.' : 'Testmail skickades via plattformens fallback-avsändare.' })
   } catch (error) {
     if (isRedirectError(error)) throw error
     redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Utskicket kunde inte skickas. Kontrollera e-postinställningarna och försök igen.' })

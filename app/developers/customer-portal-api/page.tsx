@@ -16,7 +16,7 @@ const endpoints = [
     method: 'GET',
     path: '/api/v1/website/public-contracts',
     scope: 'website_contracts.read',
-    description: 'Hämtar publicerade avtal för tenant kopplad till API-klienten. Hemsidan ska visa dessa avtal och skicka valt contract_offer_id eller price_plan_version_id tillbaka till Ops.',
+    description: 'Hämtar publicerade avtal för tenant kopplad till API-klienten. Hemsidan ska visa dessa avtal och skicka valt offer_reference tillbaka till Ops.',
   },
   {
     method: 'POST',
@@ -118,9 +118,7 @@ const onboardingCurl = `curl -X POST "${baseUrl}/api/v1/website/customer-applica
       "move_in_date": "2026-07-01"
     },
     "contract": {
-      "contract_offer_id": "offer_...",
-      "price_plan_id": "plan_...",
-      "price_plan_version_id": "version_...",
+      "offer_reference": "offer_...",
       "requested_start_date": "asap"
     },
     "consents": {
@@ -153,8 +151,7 @@ const simplifiedOnboardingCurl = `curl -X POST "${baseUrl}/api/v1/website/custom
       "move_in_date": "2026-07-01"
     },
     "contract": {
-      "contract_offer_id": "offer_...",
-      "price_plan_version_id": "version_...",
+      "offer_reference": "offer_...",
       "requested_start_date": "asap"
     }
   }'`
@@ -168,9 +165,8 @@ const publicContractsResponseExample = `{
   "data": [
     {
       "id": "offer_...",
+      "offer_reference": "offer_...",
       "contract_offer_id": "offer_...",
-      "price_plan_id": "plan_...",
-      "price_plan_version_id": "version_...",
       "product_code": "gridex_variable",
       "name": "Rörligt elpris",
       "public_name": "Rörligt elpris",
@@ -192,8 +188,7 @@ const publicContractsResponseExample = `{
     }
   ],
   "tenant": {
-    "company_id": "...",
-    "api_client_id": "..."
+    "authenticated": true
   }
 }`
 
@@ -393,7 +388,7 @@ Capway invoice_id       = extern fakturareferens`}</CodeBlock>
           </Section>
 
           <Section id="public-contracts" label="03" title="Hämta publicerade avtal från Ops">
-            <p>Hemsidan ska alltid hämta teckningsbara avtal från Ops innan kunden ansöker. Hemsidan får visa marknadsförande copy, men den juridiska pris- och avtalsversionen kommer från <code>contract_offer_id</code>, <code>price_plan_id</code> och <code>price_plan_version_id</code>.</p>
+            <p>Hemsidan ska alltid hämta teckningsbara avtal från Ops innan kunden ansöker. Hemsidan får visa marknadsförande copy, men den juridiska pris- och avtalsversionen låses via den opaka <code>offer_reference</code> som API:t returnerar. Publik hemsida ska inte behöva interna prisplans-ID:n.</p>
             <CodeBlock>{publicContractsCurl}</CodeBlock>
             <p>Exempel på response:</p>
             <CodeBlock>{publicContractsResponseExample}</CodeBlock>
@@ -424,8 +419,7 @@ Capway invoice_id       = extern fakturareferens`}</CodeBlock>
     "contract_id": "...",
     "contract_number": "AVT-DX-100001-001",
     "contract_price_snapshot_id": "...",
-    "price_plan_id": "plan_...",
-    "price_plan_version_id": "version_...",
+    "offer_reference": "offer_...",
     "status": "application_received",
     "missing_fields": ["facility_verified", "metering_point_id"],
     "blocking_reasons": [],

@@ -43,7 +43,16 @@ contains('app/admin/platform/api-clients/actions.ts', /permission_groups/, 'API-
 contains('app/admin/platform/api-clients/actions.ts', /updateIntegrationApiClientPermissionsAction/, 'Superadmin kan ändra API-behörigheter utan kodändring')
 
 contains('lib/website/publicContracts.ts', /public_price_text[\s\S]*mix/, 'Publik avtals-API skickar pristext och mix')
+const publicContracts = read('lib/website/publicContracts.ts')
+assert(/offer_reference:\s*offerReference/.test(publicContracts), 'Publik avtals-API exponerar opak offer_reference')
+assert(/contract_offer_id:\s*offerReference/.test(publicContracts), 'Legacy contract_offer_id i publik avtals-API är opak referens')
+assert(!/price_plan_id:\s*offer\.price_plan_id/.test(publicContracts), 'Publik avtals-API exponerar inte intern price_plan_id')
+assert(!/price_plan_version_id:\s*offer\.price_plan_version_id/.test(publicContracts), 'Publik avtals-API exponerar inte intern price_plan_version_id')
 contains('lib/website/customerApplications.ts', /public_contract_offer_id[\s\S]*spot_weight_percent[\s\S]*portfolio_weight_percent/, 'Kundteckning sparar juridiskt snapshot av avtal/mix')
+contains('lib/website/customerApplications.ts', /offerReference:[\s\S]*selectedOfferReference/, 'Kundteckning kan lösa publicerat avtal via offer_reference')
+const companyEmailSettings = read('lib/email/companyEmailSettings.ts')
+assert(!/noreply@gridex\.se|support@gridex\.se/.test(companyEmailSettings), 'Fallback-avsändare är miljöstyrd och inte hårdkodad till Gridex')
+assert(/legalOrCritical[\s\S]*verification_status !== 'verified'/.test(companyEmailSettings), 'Juridiska/kritiska kundmail blockeras utan verifierad bolagsdomän')
 
 if (process.exitCode) process.exit(process.exitCode)
 console.log('Gridex platform tenant contracts/API/mail regression passed.')

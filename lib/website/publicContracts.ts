@@ -1,3 +1,4 @@
+import { createHmac } from 'crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { assessPublicOfferReadiness } from '@/lib/website/publicOfferReadiness'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
@@ -91,6 +92,23 @@ function bool(value: unknown): boolean {
 
 function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function offerReferenceSecret() {
+  return clean(process.env.WEBSITE_OFFER_REFERENCE_SECRET)
+    ?? clean(process.env.NEXTAUTH_SECRET)
+    ?? clean(process.env.SUPABASE_SERVICE_ROLE_KEY)
+    ?? 'gridex-public-offer-reference-v1'
+}
+
+function base64Url(value: Buffer) {
+  return value.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+export function publicOfferReference(offer: Pick<PublicContractOffer, 'company_id' | 'id' | 'price_plan_id' | 'price_plan_version_id' | 'product_code'>) {
+  const payload = [offer.company_id, offer.id, offer.price_plan_id ?? '', offer.price_plan_version_id ?? '', offer.product_code ?? ''].join('|')
+  const digest = createHmac('sha256', offerReferenceSecret()).update(payload).digest()
+  return `offer_${base64Url(digest).slice(0, 32)}`
 }
 
 function firstPlan(row: PricePlanVersionRow): PricePlanRow | null {
@@ -208,6 +226,7 @@ function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
 }
 
 export function publicContractResponse(offer: PublicContractOffer) {
+  const offerReference = publicOfferReference(offer)
   const withdrawalVersion = typeof offer.metadata?.withdrawal_version === 'string'
     ? offer.metadata.withdrawal_version
     : typeof offer.metadata?.withdrawal_terms_version === 'string'
@@ -215,12 +234,10 @@ export function publicContractResponse(offer: PublicContractOffer) {
       : offer.terms_version
 
   return {
-    id: offer.id,
-    contract_offer_id: offer.id,
+    id: offerReference,
+    offer_reference: offerReference,
+    contract_offer_id: offerReference,
     offer_code: offer.offer_code ?? null,
-    price_plan_id: offer.price_plan_id,
-    price_plan_version_id: offer.price_plan_version_id,
-    campaign_version_id: offer.campaign_version_id,
     product_code: offer.product_code,
     name: offer.public_name,
     public_name: offer.public_name,
@@ -366,6 +383,7 @@ export async function listPublicContractOffers(input: {
 
 export async function resolvePublicContractOffer(input: {
   client: IntegrationApiClient
+  offerReference?: string | null
   pricePlanVersionId?: string | null
   pricePlanId?: string | null
   contractOfferId?: string | null
@@ -374,6 +392,8 @@ export async function resolvePublicContractOffer(input: {
 }): Promise<PublicContractOffer | null> {
   const offers = await listPublicContractOffers({ client: input.client, customerType: input.customerType })
   return offers.find((offer) => {
+    if (input.offerReference && publicOfferReference(offer) === input.offerReference) return true
+    if (input.contractOfferId && publicOfferReference(offer) === input.contractOfferId) return true
     if (input.contractOfferId && offer.id === input.contractOfferId) return true
     if (input.pricePlanVersionId && offer.price_plan_version_id === input.pricePlanVersionId) return true
     if (input.pricePlanId && offer.price_plan_id === input.pricePlanId) return true
