@@ -2,6 +2,60 @@
 
 Use this file after every Cursor task.
 
+## 2026-06-15 — Multi-tenant branding & hardcoded-Gridex cleanup (review batch)
+
+### Changed files
+
+- lib/customer-portal/types.ts
+- lib/customer-portal/db.ts
+- app/portal/layout.tsx
+- app/portal/page.tsx
+- app/portal/forbrukning/page.tsx
+- app/portal/fakturor/page.tsx
+- app/portal/avtal/page.tsx
+- app/portal/koppla-kund/page.tsx
+- app/teckna-avtal/page.tsx
+- lib/website/customerApplications.ts
+- lib/ediel/security/outboundRecipientCertificate.ts
+- lib/ediel/transport/index.ts
+
+### What changed
+
+- Customer portal (Mina sidor) now resolves the signed-in customer's tenant brand
+  (name, portal name, support email, website, logo, colour) from `companies`/`branding`
+  via a new defensive `resolveCustomerPortalBranding`, added to `CustomerPortalContext`.
+  All portal pages now use the tenant brand instead of hardcoded "Gridex"/"gridex.se".
+  When a portal account spans several companies the UI falls back to neutral copy.
+- Removed the internal Ediel term "UTILTS E66/E30" and "driftdata" from customer-facing
+  portal copy.
+- Website application emails (`customerApplications.ts`) now source support email, sender
+  name and portal URL from tenant config (`companies.branding`/`company_email_settings`
+  + `getBaseAppUrl`) instead of hardcoded `kontakt@gridex.se` / `https://app.gridex.se/login`
+  / "Gridex".
+- Public `/teckna-avtal` page copy no longer leaks internal words ("tenant",
+  "Ediel-liveflöden", "granskningsärende") to customers.
+- Outbound recipient S/MIME guard no longer hardcodes Div3rsa/Gridex/Ediel ID 21660.
+  The "own certificate selected as recipient" safeguard is now tenant-driven via the
+  route profile's `own_ediel_id`/`sender_ediel_id`. The deterministic
+  owner==receiver/usage/purpose/private-material guards are unchanged.
+
+### Why
+
+- Mina sidor and the website intake/email flows were not tenant-safe: every customer saw
+  the "Gridex"/"gridex.se" brand regardless of which electricity company they belong to,
+  and internal system words leaked into public UI. Hardcoded actor identities in the
+  outbound certificate guard violated the tenant-configuration principle.
+
+### Validation
+
+- npm run typecheck (pass)
+- npm run lint (no new errors; pre-existing .cjs require-import errors remain baseline)
+- Ediel: routing-security, production-readiness, inbound-tenant-resolution (pass)
+- Gridex launch: pricing-flow, launch-security, website-api-webhook, customer-intake,
+  ui-db-mismatch, launch-smoke, platform-tenant-contracts-api-mail,
+  customer-application-review, batch-m-ops-master, batch-7-website-foundation (pass)
+- Manual: verify per-tenant portal branding in Supabase/Vercel with a non-Gridex company.
+
 Template:
 
 ## YYYY-MM-DD — Task name
