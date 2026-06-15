@@ -759,6 +759,11 @@ export async function decideCommunicationRoute(
   const senderFromActorSetting =
     text(actorSetting?.ediel_id) ?? text(actorSetting?.actor_ediel_id);
   const senderFromLegacyProfile = text(profile?.sender_ediel_id);
+  const senderEdielIdSource = senderFromActorSetting
+    ? "actor_settings"
+    : senderFromLegacyProfile && !isProduction(environment)
+      ? "route_profile"
+      : "unresolved";
   const senderEdielId = senderFromActorSetting ?? (!isProduction(environment) ? senderFromLegacyProfile : null);
 
   if (isProduction(environment) && senderFromLegacyProfile && !senderFromActorSetting) {
@@ -780,20 +785,46 @@ export async function decideCommunicationRoute(
     });
   }
 
-  const senderSubAddress =
+  const senderSubAddressFromActor =
     messageFamily === "PRODAT"
       ? text(actorSetting?.sender_subaddress_prodat) ??
         text(actorSetting?.sender_subaddress) ??
-        text(actorSetting?.sender_sub_address) ??
-        text(profile?.sender_sub_address)
+        text(actorSetting?.sender_sub_address)
       : messageFamily === "UTILTS"
         ? text(actorSetting?.sender_subaddress_utilts) ??
           text(actorSetting?.sender_subaddress) ??
-          text(actorSetting?.sender_sub_address) ??
-          text(profile?.sender_sub_address)
+          text(actorSetting?.sender_sub_address)
         : text(actorSetting?.sender_subaddress) ??
-          text(actorSetting?.sender_sub_address) ??
-          text(profile?.sender_sub_address);
+          text(actorSetting?.sender_sub_address);
+  const senderSubAddressFromProfile = text(profile?.sender_sub_address);
+  const senderSubAddress =
+    senderSubAddressFromActor ?? (!isProduction(environment) ? senderSubAddressFromProfile : null);
+  const senderSubAddressSource = senderSubAddressFromActor
+    ? "actor_settings"
+    : senderSubAddressFromProfile && !isProduction(environment)
+      ? "route_profile"
+      : "unresolved";
+
+  if (isProduction(environment) && senderSubAddressFromProfile && !senderSubAddressFromActor) {
+    addIssue(blockingReasons, {
+      code: "production_sender_subaddress_not_from_actor_settings",
+      message:
+        "Production sender subadress måste hämtas från bolagets actor settings. Global route profile får inte vara fallback.",
+      source: "actor_setting_resolver",
+      metadata: { senderSubAddressSource },
+    });
+    requiredAdminActions.push("Lägg in bolagets production sender-subadress i Company → Ediel & Go-live.");
+  }
+
+  if (isProduction(environment) && profile?.company_id === null && (profile.sender_ediel_id || profile.sender_sub_address)) {
+    addIssue(blockingReasons, {
+      code: "production_global_profile_sender_fields_blocked",
+      message:
+        "Production route profile är global men innehåller sender-fält. Sender-identitet måste vara tenant-specifik.",
+      source: "route_profile_resolver",
+      metadata: { routeProfileId: profile.id },
+    });
+  }
   const messageVersion =
     agreementDecision.preferredMessageVersion ??
     text(profile?.default_message_version);
@@ -829,6 +860,15 @@ export async function decideCommunicationRoute(
         code: "missing_receiver_ediel_id",
         message:
           "receiver Ediel-id saknas. Välj nätägare/motpart eller komplettera nätägarens Ediel-ID innan Ediel skickas.",
+        source: "route_profile_resolver",
+      });
+    }
+
+    if (isProduction(environment) && ["PRODAT", "UTILTS"].includes(messageFamily) && !receiverSubAddress) {
+      addIssue(blockingReasons, {
+        code: "missing_receiver_subaddress",
+        message:
+          "receiver subadress saknas för production Ediel-flöde. Komplettera verifierad route/motpart innan sändning.",
         source: "route_profile_resolver",
       });
     }
@@ -917,6 +957,28 @@ export async function decideCommunicationRoute(
       reference_requirements: agreementDecision.referenceRequirements,
       route_version: profile?.route_version ?? 1,
       transport_profile_id: profile?.transport_profile_id ?? null,
+      route_decision_evidence: {
+        selected_company_id: input.companyId ?? null,
+        sender_ediel_id_source: senderEdielIdSource,
+        sender_subaddress_source: senderSubAddressSource,
+        receiver_ediel_id_source: dynamicReceiver.receiverEdielId
+          ? "dynamic_receiver"
+          : agreementDecision.receiverEdielId
+            ? "grid_owner_agreement"
+            : profile?.receiver_ediel_id
+              ? "route_profile"
+              : "unresolved",
+        receiver_subaddress_source: dynamicReceiver.receiverSubAddress
+          ? "dynamic_receiver"
+          : agreementDecision.receiverSubAddress
+            ? "grid_owner_agreement"
+            : profile?.receiver_sub_address
+              ? "route_profile"
+              : "unresolved",
+        route_profile_scope: profile?.company_id ? "tenant" : profile ? "global" : "none",
+        certificate_source: "transport_runtime",
+        blocked_reason: blockingReasons[0]?.code ?? null,
+      },
     },
   };
 

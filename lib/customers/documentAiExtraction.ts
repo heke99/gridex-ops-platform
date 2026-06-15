@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 
@@ -63,9 +64,18 @@ export async function createDocumentAiExtraction(input: {
   sourceFileName?: string | null
   rawText: string
   reviewNotes?: string | null
+  parserVendor?: string | null
+  parserVersion?: string | null
+  storagePath?: string | null
+  mimeType?: string | null
+  rawExtractedJson?: Record<string, unknown> | null
+  normalizedRows?: Array<Record<string, unknown>> | null
+  parserWarnings?: Array<Record<string, unknown>> | null
+  boundingBoxes?: Record<string, unknown> | null
 }) {
   await requireCompanyOperationalForWrites(input.companyId)
   const result = extractContractOrAuthorizationFields(input.rawText)
+  const sourceFileSha256 = createHash('sha256').update(input.rawText).digest('hex')
   const { data, error } = await supabaseService
     .from('document_ai_extractions')
     .insert({
@@ -74,13 +84,24 @@ export async function createDocumentAiExtraction(input: {
       source_file_name: input.sourceFileName ?? null,
       raw_text: input.rawText,
       status: 'needs_review',
+      ocr_status: 'staged',
+      parser_vendor: input.parserVendor ?? 'gridex_regex_staging',
+      parser_version: input.parserVersion ?? 'regex-v1',
+      source_file_sha256: sourceFileSha256,
+      storage_path: input.storagePath ?? null,
+      mime_type: input.mimeType ?? null,
+      raw_extracted_json: input.rawExtractedJson ?? { rawText: input.rawText },
+      normalized_rows: input.normalizedRows ?? [],
+      parser_warnings: input.parserWarnings ?? [],
+      bounding_boxes: input.boundingBoxes ?? {},
+      conflict_reasons: [],
       extracted_fields: result.extractedFields,
       field_confidence: result.fieldConfidence,
       detected_signatures: result.detectedSignatures,
       detected_authorizations: result.detectedAuthorizations,
       detected_sites: result.detectedSites,
       detected_invoice_address: result.detectedInvoiceAddress,
-      review_notes: input.reviewNotes ?? null,
+      review_notes: input.reviewNotes ?? 'Staged extraction. Masterdata ändras först efter manuell review/approve.',
       created_by: input.actorUserId,
     })
     .select('*')
@@ -94,7 +115,7 @@ export async function reviewDocumentAiExtraction(input: {
   companyId: string
   actorUserId: string
   extractionId: string
-  status: 'needs_review' | 'approved_for_manual_create' | 'rejected'
+  status: 'needs_review' | 'approved_for_manual_create' | 'rejected' | 'approved_for_apply'
   reviewNotes?: string | null
 }) {
   const { data, error } = await supabaseService
@@ -104,6 +125,8 @@ export async function reviewDocumentAiExtraction(input: {
       review_notes: input.reviewNotes ?? null,
       reviewed_by: input.actorUserId,
       reviewed_at: new Date().toISOString(),
+      approved_by: input.status === 'approved_for_apply' ? input.actorUserId : null,
+      approved_at: input.status === 'approved_for_apply' ? new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
     })
     .eq('company_id', input.companyId)

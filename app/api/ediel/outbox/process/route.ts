@@ -61,7 +61,7 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
   const searchParams = request.nextUrl.searchParams
   const actorUserId =
     clean(process.env.EDIEL_AUTOMATION_ACTOR_USER_ID) ?? '00000000-0000-0000-0000-000000000000'
-  const companyId = clean(String(body.companyId ?? body.company_id ?? '')) ?? clean(searchParams.get('companyId')) ?? clean(searchParams.get('company_id'))
+  const ignoredCompanyId = clean(String(body.companyId ?? body.company_id ?? '')) ?? clean(searchParams.get('companyId')) ?? clean(searchParams.get('company_id'))
   const environment =
     parseEnvironment(String(body.environment ?? '')) ?? parseEnvironment(searchParams.get('environment'))
   const limit = parseLimit(body.limit ?? searchParams.get('limit'))
@@ -69,7 +69,7 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
   try {
     const result = await processEdielOutbox({
       actorUserId,
-      companyId,
+      companyId: null,
       environment,
       limit,
     })
@@ -78,7 +78,8 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
       ok: true,
       source: 'ediel_outbox_cron',
       environment,
-      companyId,
+      companyId: null,
+      ignoredCompanyOverride: ignoredCompanyId ? 'blocked_on_generic_cron' : null,
       result,
     })
   } catch (error) {

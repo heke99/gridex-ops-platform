@@ -957,12 +957,19 @@ export async function markMailboxPollFinished(input: {
 
 async function findExistingInboundEmail(input: {
   mailboxId: string;
+  companyId?: string | null;
+  environment?: string | null;
   internetMessageId?: string | null;
+  rawMessageSha256?: string | null;
   senderEdielId?: string | null;
   interchangeReference?: string | null;
   transactionReference?: string | null;
   externalReference?: string | null;
-}): Promise<string | null> {
+}): Promise<{ id: string; scope: string; reason: string } | null> {
+  // Phase 1: before tenant resolution, only mailbox-scoped immutable mail identity
+  // is safe for dedupe. Business references must not be tenant-neutral in a
+  // shared mailbox because two tenants can legitimately receive the same
+  // sender/reference values.
   if (input.internetMessageId) {
     const { data, error } = await supabaseService
       .from("inbound_email_messages")
@@ -974,13 +981,40 @@ async function findExistingInboundEmail(input: {
 
     if (error) throw error;
     const id = (data as { id?: string } | null)?.id;
-    if (id) return id;
+    if (id) return { id, scope: "mailbox", reason: "internet_message_id" };
   }
+
+  if (input.rawMessageSha256) {
+    const { data, error } = await supabaseService
+      .from("inbound_email_messages")
+      .select("id")
+      .eq("mailbox_id", input.mailboxId)
+      .eq("raw_message_sha256", input.rawMessageSha256)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      const message = postgresErrorMessage(error);
+      if (!/raw_message_sha256|schema cache|Could not find/i.test(message)) throw error;
+    } else {
+      const id = (data as { id?: string } | null)?.id;
+      if (id) return { id, scope: "mailbox", reason: "raw_message_sha256" };
+    }
+  }
+
+  // Phase 2: after company_id is known, business-reference dedupe is scoped
+  // by environment and tenant. If company_id is missing we deliberately do
+  // not dedupe on EDIFACT business references.
+  const companyId = stringOrNull(input.companyId);
+  const environment = normalizeEnvironment(input.environment) ?? "test";
+  if (!companyId) return null;
 
   if (input.senderEdielId && input.interchangeReference) {
     const { data, error } = await supabaseService
       .from("inbound_email_messages")
       .select("id")
+      .eq("environment", environment)
+      .eq("company_id", companyId)
       .eq("sender_ediel_id", input.senderEdielId)
       .eq("interchange_reference", input.interchangeReference)
       .limit(1)
@@ -988,17 +1022,15 @@ async function findExistingInboundEmail(input: {
 
     if (error) throw error;
     const id = (data as { id?: string } | null)?.id;
-    if (id) return id;
+    if (id) return { id, scope: "tenant_environment", reason: "interchange_reference" };
   }
 
-  if (
-    input.senderEdielId &&
-    input.transactionReference &&
-    input.externalReference
-  ) {
+  if (input.senderEdielId && input.transactionReference && input.externalReference) {
     const { data, error } = await supabaseService
       .from("inbound_email_messages")
       .select("id")
+      .eq("environment", environment)
+      .eq("company_id", companyId)
       .eq("sender_ediel_id", input.senderEdielId)
       .eq("transaction_reference", input.transactionReference)
       .eq("external_reference", input.externalReference)
@@ -1006,7 +1038,8 @@ async function findExistingInboundEmail(input: {
       .maybeSingle();
 
     if (error) throw error;
-    return (data as { id?: string } | null)?.id ?? null;
+    const id = (data as { id?: string } | null)?.id;
+    if (id) return { id, scope: "tenant_environment", reason: "transaction_external_reference" };
   }
 
   return null;
@@ -1018,24 +1051,33 @@ export async function storeInboundEmail(
   const dedupeKey = input.internetMessageId
     ? `${input.mailboxId}:${input.internetMessageId}`
     : null;
+  const environment = normalizeEnvironment(input.environment) ?? "test";
+  const rawMessageSha256 = input.rawEmail
+    ? createHash("sha256").update(input.rawEmail).digest("hex")
+    : input.rawEdifactPayload
+      ? createHash("sha256").update(input.rawEdifactPayload).digest("hex")
+      : null;
   const dedupeFacts = parseInboundDedupeFacts(input.rawEdifactPayload);
   const existing = await findExistingInboundEmail({
     mailboxId: input.mailboxId,
+    companyId: input.companyId ?? null,
+    environment,
     internetMessageId: input.internetMessageId ?? null,
+    rawMessageSha256,
     senderEdielId: dedupeFacts.senderEdielId,
     interchangeReference: dedupeFacts.interchangeReference,
     transactionReference: dedupeFacts.transactionReference,
     externalReference: dedupeFacts.externalReference,
   });
 
-  if (existing) return { id: existing, deduped: true };
+  if (existing) return { id: existing.id, deduped: true };
 
   const { data, error } = await supabaseService
     .from("inbound_email_messages")
     .insert({
       mailbox_id: input.mailboxId,
       company_id: input.companyId ?? null,
-      environment: normalizeEnvironment(input.environment) ?? "test",
+      environment,
       internet_message_id: input.internetMessageId ?? null,
       from_address: input.fromAddress ?? null,
       to_address: input.toAddress ?? null,
@@ -1049,6 +1091,9 @@ export async function storeInboundEmail(
         input.hasAttachments ?? Boolean(input.attachments?.length),
       processing_status: "received",
       dedupe_key: dedupeKey,
+      raw_message_sha256: rawMessageSha256,
+      dedupe_scope: input.companyId ? "tenant_environment" : "mailbox_only",
+      dedupe_reason: "initial_store",
       match_status: "not_checked",
       sender_ediel_id: dedupeFacts.senderEdielId,
       receiver_ediel_id: dedupeFacts.receiverEdielId,
@@ -1069,14 +1114,17 @@ export async function storeInboundEmail(
     if (code === "23505") {
       const existingAfterConflict = await findExistingInboundEmail({
         mailboxId: input.mailboxId,
+        companyId: input.companyId ?? null,
+        environment,
         internetMessageId: input.internetMessageId ?? null,
+        rawMessageSha256,
         senderEdielId: dedupeFacts.senderEdielId,
         interchangeReference: dedupeFacts.interchangeReference,
         transactionReference: dedupeFacts.transactionReference,
         externalReference: dedupeFacts.externalReference,
       });
       if (existingAfterConflict)
-        return { id: existingAfterConflict, deduped: true };
+        return { id: existingAfterConflict.id, deduped: true };
     }
 
     throw error;
@@ -1433,6 +1481,42 @@ export async function pollEdielMailbox(input: {
   }
 }
 
+async function claimQueuedInboundProcessingJobs(
+  workerId: string,
+  limit = 50,
+): Promise<InboundProcessingJobRow[]> {
+  const { data, error } = await supabaseService.rpc("claim_inbound_processing_jobs", {
+    p_environment: null,
+    p_limit: limit,
+    p_worker_id: workerId,
+    p_stale_after: `${envInt("EDIEL_INBOUND_STALE_JOB_LOCK_MINUTES", 15)} minutes`,
+  });
+
+  if (!error) return (data ?? []) as InboundProcessingJobRow[];
+
+  const message = postgresErrorMessage(error);
+  if (!/claim_inbound_processing_jobs|schema cache|Could not find/i.test(message)) throw error;
+
+  // Compatibility fallback for environments where the migration has not yet run.
+  // The update below includes a stale/null lock predicate to reduce the chance of
+  // double processing until the RPC is deployed.
+  const candidates = await listQueuedInboundProcessingJobs(limit);
+  const claimed: InboundProcessingJobRow[] = [];
+  for (const job of candidates) {
+    const locked = await markInboundProcessingJobStarted(job, workerId);
+    if (locked) {
+      claimed.push({
+        ...job,
+        status: "processing",
+        locked_by: workerId,
+        locked_at: nowIso(),
+        attempts_count: Number(job.attempts_count ?? 0) + 1,
+      });
+    }
+  }
+  return claimed;
+}
+
 export async function listQueuedInboundProcessingJobs(
   limit = 50,
 ): Promise<InboundProcessingJobRow[]> {
@@ -1458,6 +1542,9 @@ async function markInboundProcessingJobStarted(
   job: InboundProcessingJobRow,
   workerId: string,
 ): Promise<boolean> {
+  const staleLockCutoff = new Date(
+    Date.now() - envInt("EDIEL_INBOUND_STALE_JOB_LOCK_MINUTES", 15) * 60_000,
+  ).toISOString();
   const nextAttempts = Number(job.attempts_count ?? 0) + 1;
   const { data, error } = await supabaseService
     .from("inbound_processing_jobs")
@@ -1473,6 +1560,8 @@ async function markInboundProcessingJobStarted(
       updated_at: nowIso(),
     })
     .eq("id", job.id)
+    .or(`locked_at.is.null,locked_at.lt.${staleLockCutoff}`)
+    .in("status", ["queued", "retry", "received", "processing"])
     .select("id")
     .maybeSingle();
 
@@ -1510,7 +1599,7 @@ export async function processQueuedInboundProcessingJobs(
   } = {},
 ): Promise<{ processed: number; failed: number }> {
   const workerId = input.workerId ?? "inbound-mail-engine";
-  const jobs = await listQueuedInboundProcessingJobs(input.limit ?? 50);
+  const jobs = await claimQueuedInboundProcessingJobs(workerId, input.limit ?? 50);
   const maxAttempts = envInt("EDIEL_INBOUND_MAX_JOB_ATTEMPTS", 5);
   let processed = 0;
   let failed = 0;
@@ -1528,8 +1617,6 @@ export async function processQueuedInboundProcessingJobs(
     }
 
     try {
-      const locked = await markInboundProcessingJobStarted(job, workerId);
-      if (!locked) continue;
       const outcome = await processInboundEmailMessage({
         inboundEmailMessageId: job.inbound_email_message_id,
         actorUserId: input.actorUserId ?? null,
