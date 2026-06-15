@@ -111,9 +111,31 @@ function isMissingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
 }
 
+function jsonSafeString(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (value instanceof Error && value.message) return value.message
+  if (value === null || value === undefined) return ''
+  try {
+    const serialized = JSON.stringify(value)
+    if (serialized && serialized !== '{}') return serialized
+  } catch {
+    // Fall through to String below.
+  }
+  return String(value)
+}
+
 function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message
-  return String(error || 'Okänt fel')
+  const maybe = error as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown } | null
+  const message = jsonSafeString(maybe?.message)
+  if (message && message !== '[object Object]') return message
+  const details = jsonSafeString(maybe?.details)
+  const hint = jsonSafeString(maybe?.hint)
+  const code = jsonSafeString(maybe?.code)
+  const parts = [code, details, hint].filter(Boolean)
+  if (parts.length > 0) return parts.join(' · ')
+  const fallback = jsonSafeString(error)
+  return fallback && fallback !== '[object Object]' ? fallback : 'Okänt fel'
 }
 
 function safeError(error: unknown): Record<string, unknown> {
@@ -121,9 +143,15 @@ function safeError(error: unknown): Record<string, unknown> {
   return {
     message: errorMessage(error),
     code: typeof maybe?.code === 'string' ? maybe.code : undefined,
-    details: typeof maybe?.details === 'string' ? maybe.details : undefined,
-    hint: typeof maybe?.hint === 'string' ? maybe.hint : undefined,
+    details: maybe?.details === undefined ? undefined : jsonSafeString(maybe.details),
+    hint: maybe?.hint === undefined ? undefined : jsonSafeString(maybe.hint),
   }
+}
+
+function isTypeCastError(error: unknown): boolean {
+  const code = String((error as { code?: unknown } | null)?.code ?? '')
+  const message = errorMessage(error)
+  return code === '22P02' || /invalid input syntax for type/i.test(message)
 }
 
 function refreshStatusFromCounts(input: { found: number; valid: number; errors?: unknown[] }): RefreshStatus {
@@ -133,8 +161,15 @@ function refreshStatusFromCounts(input: { found: number; valid: number; errors?:
 }
 
 function refreshErrorMessage(status: RefreshStatus, lookupAddresses: string[], errors?: unknown[]): string | null {
-  if (status === 'failed') return `Certifikatsökningen misslyckades för ${lookupAddresses.join(', ') || 'valda söknycklar'}.`
-  if (status === 'not_found') return `Sökte via ${lookupAddresses.join(', ') || 'valda söknycklar'} men inget certifikat hittades i Expisoft.`
+  const addressText = lookupAddresses.join(', ') || 'valda söknycklar'
+  const firstError = errors?.[0]
+  const firstErrorText = firstError ? errorMessage(firstError) : null
+  if (status === 'failed') {
+    return firstErrorText
+      ? `Certifikatsökningen misslyckades för ${addressText}. ${firstErrorText}`
+      : `Certifikatsökningen misslyckades för ${addressText}.`
+  }
+  if (status === 'not_found') return `Sökte via ${addressText} men inget certifikat hittades i Expisoft.`
   return null
 }
 
@@ -487,32 +522,34 @@ async function listScheduledCandidates(limit: number): Promise<RefreshRoute[]> {
 async function syncExistingEdielCertificatesForRoutes(routes: RefreshRoute[]) {
   const actorRoutes = routes.filter((route): route is RefreshRoute & { actor_id: string } => Boolean(route.actor_id))
   const edielIds = Array.from(new Set(actorRoutes.map((route) => route.ediel_id).filter((value): value is string => Boolean(value))))
-  if (actorRoutes.length === 0 || edielIds.length === 0) return { synced: 0, candidates: 0, inserted: 0, updated: 0, skipped: true, reason: 'no_safe_actor_routes' }
+  if (actorRoutes.length === 0 || edielIds.length === 0) return { synced: 0, candidates: 0, inserted: 0, updated: 0, skipped: true, reason: 'no_safe_actor_routes', queryWarnings: [] }
 
   const selectColumns = 'id,owner_ediel_id,owner_party_id,environment,purpose,certificate_type,subject,issuer,serial_number,fingerprint_sha256,certificate_fingerprint,valid_from,valid_to,certificate_valid_from,certificate_valid_to,status,encryption_status,source,public_certificate_pem,metadata'
   const rowsById = new Map<string, ExistingEdielCertificateRow>()
 
+  const queryWarnings: Array<Record<string, unknown>> = []
   const queries = [
-    supabaseService
-      .from('ediel_certificates')
-      .select(selectColumns)
-      .in('owner_ediel_id', edielIds)
-      .eq('purpose', 'encryption')
-      .eq('environment', 'production')
-      .order('certificate_valid_to', { ascending: false, nullsFirst: false }),
-    supabaseService
-      .from('ediel_certificates')
-      .select(selectColumns)
-      .in('owner_party_id', edielIds)
-      .eq('purpose', 'encryption')
-      .eq('environment', 'production')
-      .order('certificate_valid_to', { ascending: false, nullsFirst: false }),
+    {
+      name: 'owner_ediel_id',
+      query: supabaseService
+        .from('ediel_certificates')
+        .select(selectColumns)
+        .in('owner_ediel_id', edielIds)
+        .eq('purpose', 'encryption')
+        .eq('environment', 'production')
+        .order('certificate_valid_to', { ascending: false, nullsFirst: false }),
+    },
   ]
 
-  for (const query of queries) {
-    const result = await query
+  // Do not query owner_party_id with Ediel IDs. In some production schemas owner_party_id is UUID,
+  // and passing values like "24200" produces Postgres 22P02 before LDAP lookup starts.
+  for (const item of queries) {
+    const result = await item.query
     if (result.error) {
-      if (isMissingSchema(result.error)) continue
+      if (isMissingSchema(result.error) || isTypeCastError(result.error)) {
+        queryWarnings.push({ source: item.name, error: safeError(result.error), skipped: true })
+        continue
+      }
       throw result.error
     }
     for (const cert of (result.data ?? []) as ExistingEdielCertificateRow[]) {
@@ -577,7 +614,7 @@ async function syncExistingEdielCertificatesForRoutes(routes: RefreshRoute[]) {
     }
   }
 
-  return { synced, candidates, inserted, updated }
+  return { synced, candidates, inserted, updated, queryWarnings }
 }
 
 async function syncDirectoryCacheForRoutes(routes: RefreshRoute[]) {

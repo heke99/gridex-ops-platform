@@ -30,6 +30,13 @@ function clean(value?: string | null): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function uuidOrNull(value?: string | null): string | null {
+  const cleaned = clean(value)
+  return cleaned && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cleaned)
+    ? cleaned
+    : null
+}
+
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
@@ -228,7 +235,7 @@ async function upsertCacheRow(input: {
   diagnostics: Record<string, unknown>
 }) {
   await supabaseService.from('ediel_certificate_directory_cache').upsert({
-    party_id: clean(input.partyId),
+    party_id: uuidOrNull(input.partyId),
     company_id: clean(input.companyId),
     platform_market_actor_id: clean(input.platformMarketActorId),
     smtp_email: input.smtpEmail,
@@ -261,7 +268,7 @@ async function upsertCacheRow(input: {
     lookup_status: 'found',
     status: input.status,
     metadata: { source: 'expisoft_ldap', diagnostics: input.diagnostics },
-    diagnostics: input.diagnostics,
+    diagnostics: { ...input.diagnostics, edifactPartyId: clean(input.partyId) },
   }, { onConflict: 'smtp_email,sha256_fingerprint' }).then((result: { error?: { code?: string; message?: string } | null }) => {
     const error = result.error
     if (error && !['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) throw error
@@ -284,7 +291,7 @@ async function upsertOutboundRecipientCertificate(input: {
   const now = new Date().toISOString()
   const payload = {
     company_id: clean(input.companyId),
-    owner_party_id: clean(input.partyId),
+    owner_party_id: uuidOrNull(input.partyId),
     owner_ediel_id: clean(input.edielId),
     owner_subaddress: clean(input.subaddress),
     environment: 'production',
@@ -322,6 +329,7 @@ async function upsertOutboundRecipientCertificate(input: {
       ldapUrl: expisoftLdapUrlForMail(input.smtpEmail),
       ownerEdielId: clean(input.edielId),
       owner_ediel_id: clean(input.edielId),
+      edifactPartyId: clean(input.partyId),
       ownerSubaddress: clean(input.subaddress),
       owner_subaddress: clean(input.subaddress),
       messageFamily: 'PRODAT',
