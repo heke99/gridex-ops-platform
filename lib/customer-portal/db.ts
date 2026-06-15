@@ -6,6 +6,7 @@ import type {
   CustomerInvoiceDocumentRow,
   CustomerInvoiceLineRow,
   CustomerInvoiceRow,
+  CustomerPortalBranding,
   CustomerPortalContext,
   CustomerPortalCustomerRow,
   CustomerPortalMeteringPointRow,
@@ -21,6 +22,69 @@ import type {
 type PortalAccountLookupRow = {
   customer_id: string
   is_active: boolean
+}
+
+const DEFAULT_PORTAL_BRANDING: CustomerPortalBranding = {
+  companyId: null,
+  brandName: 'din elhandlare',
+  portalName: 'Kundportal',
+  supportEmail: null,
+  websiteUrl: null,
+  logoUrl: null,
+  primaryColor: '#047857',
+}
+
+function brandingString(source: Record<string, unknown> | null | undefined, key: string): string | null {
+  const value = source?.[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function isValidHexColor(value: string | null): boolean {
+  return Boolean(value && /^#[0-9a-fA-F]{6}$/.test(value))
+}
+
+// Resolves the tenant brand the signed-in customer belongs to so that the
+// customer portal never shows another company's brand. When the portal account
+// spans several companies (rare) we fall back to neutral, brand-agnostic copy
+// instead of leaking a specific company name.
+async function resolveCustomerPortalBranding(companyIds: string[]): Promise<CustomerPortalBranding> {
+  const distinct = Array.from(new Set(companyIds.filter(Boolean)))
+  if (distinct.length !== 1) return DEFAULT_PORTAL_BRANDING
+
+  const companyId = distinct[0]
+  const { data, error } = await supabaseService
+    .from('companies')
+    .select('id,name,support_email,primary_contact_email,website,branding')
+    .eq('id', companyId)
+    .maybeSingle()
+
+  if (error || !data) return DEFAULT_PORTAL_BRANDING
+
+  const branding = (data.branding && typeof data.branding === 'object' && !Array.isArray(data.branding)
+    ? data.branding
+    : {}) as Record<string, unknown>
+
+  const brandName = brandingString(branding, 'display_name')
+    ?? brandingString(branding, 'customer_portal_name')
+    ?? (typeof data.name === 'string' && data.name.trim() ? data.name.trim() : null)
+    ?? DEFAULT_PORTAL_BRANDING.brandName
+  const portalName = brandingString(branding, 'customer_portal_name') ?? `${brandName} kundportal`
+  const supportEmail = brandingString(branding, 'support_email')
+    ?? (typeof data.support_email === 'string' && data.support_email.trim() ? data.support_email.trim() : null)
+    ?? (typeof data.primary_contact_email === 'string' && data.primary_contact_email.trim() ? data.primary_contact_email.trim() : null)
+  const websiteUrl = brandingString(branding, 'website_url')
+    ?? (typeof data.website === 'string' && data.website.trim() ? data.website.trim() : null)
+  const primaryColorCandidate = brandingString(branding, 'primary_color')
+
+  return {
+    companyId: String(data.id),
+    brandName,
+    portalName,
+    supportEmail,
+    websiteUrl,
+    logoUrl: brandingString(branding, 'logo_url'),
+    primaryColor: isValidHexColor(primaryColorCandidate) ? primaryColorCandidate! : DEFAULT_PORTAL_BRANDING.primaryColor,
+  }
 }
 
 function normalizeNumber(value: unknown): number {
@@ -74,23 +138,30 @@ export const getCustomerPortalContext = cache(async function getCustomerPortalCo
       userEmail: user.email ?? null,
       customerIds: [],
       customers: [],
+      branding: DEFAULT_PORTAL_BRANDING,
     }
   }
 
   const { data: customerRows, error: customerError } = await supabaseService
     .from('customers')
     .select(
-      'id,customer_number,customer_type,status,first_name,last_name,full_name,company_name,email,phone'
+      'id,company_id,customer_number,customer_type,status,first_name,last_name,full_name,company_name,email,phone'
     )
     .in('id', customerIds)
     .order('created_at', { ascending: false })
 
   if (customerError) throw customerError
 
+  const rows = (customerRows ?? []) as Array<CustomerPortalCustomerRow & { company_id?: string | null }>
+  const branding = await resolveCustomerPortalBranding(
+    rows.map((row) => row.company_id ?? '').filter(Boolean)
+  )
+
   return {
     userEmail: user.email ?? null,
     customerIds,
-    customers: (customerRows ?? []) as CustomerPortalCustomerRow[],
+    customers: rows,
+    branding,
   }
 })
 

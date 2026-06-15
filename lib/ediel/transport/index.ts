@@ -1590,6 +1590,11 @@ export async function sendEdielMessageViaSmtp(
       certificateEnvironment: routeCertificateEnvironment(routeProfile as Record<string, unknown> | null, message.environment),
       routeProfileId: routeProfile?.id ?? null,
       smtpTo: message.receiver_email,
+      ownEdielId:
+        (routeProfile as Record<string, unknown> | null)?.own_ediel_id as string | undefined ??
+        (routeProfile as Record<string, unknown> | null)?.sender_ediel_id as string | undefined ??
+        message.sender_ediel_id ??
+        null,
     })
     const recipientCertificatePem = outboundRecipientCertificate.publicCertificatePem
     usedReceiverCertificateId = outboundRecipientCertificate.id

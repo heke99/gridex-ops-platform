@@ -13,9 +13,9 @@ export default async function PortalConsumptionPage() {
       <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
         <h1 className="text-3xl font-bold tracking-tight text-slate-950">Min förbrukning</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-          Förbrukningen baseras på mätvärden som Gridex har mottagit från nätägaren,
-          normalt via UTILTS E66/E30. Saknas en period betyder det att mätvärden ännu inte
-          har inkommit eller inte har kopplats färdigt.
+          Förbrukningen baseras på mätvärden som {context.branding.brandName} har tagit emot
+          från din nätägare. Saknas en period betyder det att mätvärden ännu inte
+          har kommit in eller inte har kopplats färdigt.
         </p>
       </section>
 

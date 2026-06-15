@@ -17,6 +17,7 @@ import {
   recordFacilityDataIssue,
   type FacilityBusinessErrorCode,
 } from '@/lib/energy/facilityDataErrors'
+import { getBaseAppUrl } from '@/lib/auth/urls'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -919,6 +920,7 @@ function eventVariables(input: {
   contractName?: string | null
   startDate?: string | null
   supportEmail?: string | null
+  portalUrl?: string | null
 }) {
   const cancellationDeadline = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10)
   const rawFirstName = clean(input.rawCustomer?.first_name)
@@ -942,16 +944,24 @@ function eventVariables(input: {
     start_date: input.startDate ?? '',
     facility_id: input.facilityId ?? '',
     metering_point_id: input.meteringPointId ?? '',
-    support_email: input.supportEmail ?? 'kontakt@gridex.se',
+    support_email: input.supportEmail ?? '',
     cancellation_deadline: cancellationDeadline,
-    portal_url: 'https://app.gridex.se/login',
+    portal_url: input.portalUrl ?? '',
   }
 }
 
-async function companyEmailContext(companyId: string): Promise<{ name: string; supportEmail: string | null }> {
+function safePortalUrl(): string | null {
+  try {
+    return `${getBaseAppUrl()}/login`
+  } catch {
+    return null
+  }
+}
+
+async function companyEmailContext(companyId: string): Promise<{ name: string; supportEmail: string | null; portalUrl: string | null }> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('name,support_email,primary_contact_email')
+    .select('name,support_email,primary_contact_email,branding')
     .eq('id', companyId)
     .maybeSingle()
   if (error) throw error
@@ -966,9 +976,17 @@ async function companyEmailContext(companyId: string): Promise<{ name: string; s
     ? null
     : settingsResult.data as { sender_name?: string | null; support_email?: string | null; reply_to_email?: string | null } | null
 
+  const branding = (data?.branding && typeof data.branding === 'object' && !Array.isArray(data.branding)
+    ? data.branding
+    : {}) as Record<string, unknown>
+
   return {
-    name: clean(settings?.sender_name) ?? clean(data?.name) ?? 'Gridex',
-    supportEmail: clean(settings?.support_email) ?? clean(settings?.reply_to_email) ?? clean(data?.support_email) ?? clean(data?.primary_contact_email),
+    name: clean(settings?.sender_name)
+      ?? clean(branding.display_name)
+      ?? clean(data?.name)
+      ?? 'din elhandlare',
+    supportEmail: clean(settings?.support_email) ?? clean(settings?.reply_to_email) ?? clean(branding.support_email) ?? clean(data?.support_email) ?? clean(data?.primary_contact_email),
+    portalUrl: clean(branding.customer_portal_url) ?? clean(branding.website_url) ?? safePortalUrl(),
   }
 }
 
@@ -2377,6 +2395,7 @@ export async function processWebsiteCustomerApplication(input: {
           contractName: contract?.contract_name ?? clean(body.contract?.contract_name),
           startDate: readiness.requestedStartDate ?? contract?.starts_at ?? clean(body.contract?.starts_at) ?? clean(body.site?.move_in_date),
           supportEmail: company.supportEmail,
+          portalUrl: company.portalUrl,
         })
         await seedDefaultEmailTemplates(input.client.company_id).catch(() => null)
         await seedDefaultEmailEventRules(input.client.company_id).catch(() => null)
