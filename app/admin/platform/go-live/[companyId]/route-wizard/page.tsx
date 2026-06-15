@@ -53,8 +53,8 @@ export default async function ProductionRouteWizardPage({
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title={`Production route-wizard · ${row.name}`}
-        subtitle="Skapa en separat production route. Test/AGT/TGT-rutter får inte återanvändas i liveflödet."
+        title={`Automatisk Ediel-route · ${row.name}`}
+        subtitle="Skapa production-route utan manuell receiver. Systemet hämtar sender från tenantens actor setting och löser mottagare från kundprocess, nätägare eller inbound sender."
         userEmail={admin.email}
         workspaceMode="platform"
       />
@@ -90,15 +90,13 @@ export default async function ProductionRouteWizardPage({
           >
             <input type="hidden" name="company_id" value={companyId} />
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">
-              Route wizard
+              Automatisk route
             </p>
             <h2 className="mt-2 text-xl font-semibold text-slate-950">
-              Skapa production route
+              Skapa automatisk production route
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              Systemet blockerar 91100, @ediel.se och testdata i production. För
-              kund/mätpunktsflöden ska mottagaren vara dynamisk: systemet
-              skickar till vald nätägares Ediel-ID på anläggningen/mätpunkten.
+              Den här guiden skapar en säker grundroute. Admin ska inte skriva receiver i normala kundflöden: sender kommer från bolagets Ediel-identitet, receiver löses från verifierad nätägare/process och shared mailbox är endast transportkanal.
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -106,12 +104,12 @@ export default async function ProductionRouteWizardPage({
                 Route-namn
                 <input
                   name="route_name"
-                  defaultValue="Production Ediel route"
+                  defaultValue="Automatisk production Ediel route"
                   className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
                 />
               </label>
               <label className="text-sm font-semibold text-slate-700">
-                Sender name
+                Avsändarnamn
                 <input
                   name="sender_name"
                   defaultValue={row.name}
@@ -119,15 +117,16 @@ export default async function ProductionRouteWizardPage({
                 />
               </label>
               <label className="text-sm font-semibold text-slate-700">
-                Eget production Ediel-ID
+                Tenantens production Ediel-ID
                 <input
                   name="sender_ediel_id"
+                  readOnly
                   defaultValue={row.production_ediel_id ?? row.ediel_id ?? ""}
                   className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
                 />
               </label>
               <label className="text-sm font-semibold text-slate-700">
-                Sender subaddress
+                Sender subadress (bara om registrerad)
                 <input
                   name="sender_sub_address"
                   defaultValue={row.production_sender_sub_address ?? ""}
@@ -135,7 +134,7 @@ export default async function ProductionRouteWizardPage({
                 />
               </label>
               <label className="text-sm font-semibold text-slate-700">
-                Mottagartyp
+                Hur receiver ska lösas
                 <select
                   name="receiver_source"
                   defaultValue="selected_metering_point_grid_owner"
@@ -165,30 +164,30 @@ export default async function ProductionRouteWizardPage({
                 value="resolve_from_selected_metering_point_grid_owner"
               />
               <label className="text-sm font-semibold text-slate-700">
-                Receiver Ediel-ID för fast motpart
+                Fast receiver Ediel-ID (endast specialfall)
                 <input
                   name="receiver_ediel_id"
                   defaultValue={row.production_counterparty_ediel_id ?? ""}
-                  placeholder="Lämna tomt för dynamisk nätägarrutt"
+                  placeholder="Lämna tomt. Används bara för fast motpart."
                   className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
                 />
               </label>
               <label className="text-sm font-semibold text-slate-700">
-                Receiver name
+                Fast receiver-namn (specialfall)
                 <input
                   name="receiver_name"
                   className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
                 />
               </label>
               <label className="text-sm font-semibold text-slate-700">
-                Receiver subaddress
+                Receiver subadress (route-specifik, inte tenant-standard)
                 <input
                   name="receiver_sub_address"
                   className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
                 />
               </label>
               <label className="text-sm font-semibold text-slate-700">
-                Production mailbox / target email
+                Shared production mailbox / transportmail
                 <input
                   name="target_email"
                   defaultValue={row.production_mailbox ?? ""}
@@ -196,7 +195,7 @@ export default async function ProductionRouteWizardPage({
                 />
               </label>
               <label className="text-sm font-semibold text-slate-700">
-                Mailbox label
+                Mailbox-label
                 <input
                   name="mailbox"
                   defaultValue={row.production_mailbox ?? "production"}
@@ -204,7 +203,7 @@ export default async function ProductionRouteWizardPage({
                 />
               </label>
               <label className="text-sm font-semibold text-slate-700">
-                Application Reference
+                Application Reference (härledd per message family)
                 <input
                   name="application_reference"
                   defaultValue={row.production_application_reference ?? ""}
@@ -251,11 +250,11 @@ export default async function ProductionRouteWizardPage({
                 Encryption
                 <select
                   name="encryption_mode"
-                  defaultValue="none"
+                  defaultValue="smime"
                   className="mt-1 h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm"
                 >
-                  <option value="none">Ingen</option>
                   <option value="smime">S/MIME</option>
+                  <option value="none">Ingen</option>
                   <option value="pgp">PGP</option>
                 </select>
               </label>
@@ -274,12 +273,12 @@ export default async function ProductionRouteWizardPage({
               <p className="mt-1">
                 För leverantörsbyte, begär uppgifter och mätpunktsflöden väljs
                 mottagaren automatiskt från vald nätägare på kundens
-                anläggning/mätpunkt. Systemet söker inte upp nätägare själv.
+                anläggning/mätpunkt. Admin skriver inte receiver manuellt; systemet använder resolver, verifierat aktörsregister och kundens anläggnings-/mätpunktsdata för att hitta rätt nätägare när data finns.
               </p>
             </div>
 
             <button className="mt-6 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800">
-              Skapa production route
+              Skapa automatisk production route
             </button>
           </form>
 

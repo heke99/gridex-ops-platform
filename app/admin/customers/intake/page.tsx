@@ -7,6 +7,7 @@ import { requireAdminPageAccess } from "@/lib/admin/guards";
 import { listElectricitySuppliers, listGridOwners, listPriceAreas } from "@/lib/masterdata/db";
 import { listContractOffers } from "@/lib/customer-contracts/db";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
+import { getCompanyGoLiveSetupSummary } from "@/lib/ediel/platformGoLive";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function CustomerIntakePage() {
   const user = authResult.user;
   const companyScope = await getOperationalCompanyScope(access.userId);
 
-  const [gridOwnersResult, electricitySuppliersResult, priceAreasResult, contractOffersResult] = await Promise.all([
+  const [gridOwnersResult, electricitySuppliersResult, priceAreasResult, contractOffersResult, goLiveSummary] = await Promise.all([
     safeLoad("Nätägare", () => listGridOwners(supabase, { customerFlowOnly: true })),
     safeLoad("Elhandlare", () => listElectricitySuppliers(supabase, { activeOnly: true, customerFlowOnly: true })),
     safeLoad("Prisområden", () => listPriceAreas(supabase)),
@@ -48,6 +49,7 @@ export default async function CustomerIntakePage() {
           })
         : Promise.resolve([])
     ),
+    companyScope.companyId ? getCompanyGoLiveSetupSummary(companyScope.companyId) : Promise.resolve(null),
   ]);
   const gridOwners = gridOwnersResult.rows;
   const electricitySuppliers = electricitySuppliersResult.rows;
@@ -147,9 +149,24 @@ export default async function CustomerIntakePage() {
         </section>
 
         <section className="rounded-3xl border border-sky-200 bg-sky-50 p-6 text-sm leading-6 text-sky-950 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Verifierade aktörer används i kundflödet</h2>
-          <p className="mt-2">Vanliga elbolagsadmin väljer nätägare och tidigare leverantör från centralt verifierad masterdata. Ediel-id, subadresser, certifikat, SMTP/IMAP och route-profiler hanteras av platform/teknisk admin så att kundintag inte kan skapa osäkra Ediel-rutter.</p>
-          <p className="mt-2">Nästa åtgärd ska alltid vara tydlig: begär anläggningsuppgifter, verifiera nätägare, komplettera fullmakt eller starta leverantörsbyte först när verifierad nätägare, nätområdeskod och anläggningsdata finns.</p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Automatiskt nätägar- och Ediel-flöde</h2>
+              <p className="mt-2">Kundintag ska inte skapa egna tekniska routes eller receiver-värden. Systemet använder verifierad masterdata, tenantens Ediel-ID och go-live route-profiler för att avgöra nästa steg.</p>
+              <p className="mt-2">Om anläggnings-id, mätpunkts-id eller nätägare saknas sparas kunden med blockerare och uppgiftsbegäran i stället för att skicka felaktig PRODAT.</p>
+            </div>
+            <div className="rounded-2xl border border-sky-200 bg-white px-4 py-3 text-xs font-bold text-sky-900">
+              EDIFACT-status: {goLiveSummary?.status === "ready" ? "Redo" : goLiveSummary?.status === "manual_review_required" ? "Kräver granskning" : "Blockerad/saknas"}
+            </div>
+          </div>
+          {goLiveSummary ? (
+            <div className="mt-4 grid gap-3 md:grid-cols-4">
+              <div className="rounded-2xl bg-white p-4"><div className="text-xs font-bold uppercase text-slate-500">Ediel-ID</div><div className="mt-1 font-mono text-sm font-bold text-slate-950">{goLiveSummary.edielId ?? "–"}</div></div>
+              <div className="rounded-2xl bg-white p-4"><div className="text-xs font-bold uppercase text-slate-500">Receiver</div><div className="mt-1 text-sm font-bold text-slate-950">{goLiveSummary.routeResolutionMode === "automatic" ? "Automatiskt" : "Granska"}</div></div>
+              <div className="rounded-2xl bg-white p-4"><div className="text-xs font-bold uppercase text-slate-500">PRODAT-route</div><div className="mt-1 text-sm font-bold text-slate-950">{goLiveSummary.hasProdatRoute ? "Klar" : "Saknas"}</div></div>
+              <div className="rounded-2xl bg-white p-4"><div className="text-xs font-bold uppercase text-slate-500">Juridik</div><div className="mt-1 text-sm font-bold text-slate-950">{goLiveSummary.legal.terms && goLiveSummary.legal.privacy_policy && goLiveSummary.legal.withdrawal && goLiveSummary.legal.power_of_attorney ? "Klar" : "Saknas"}</div></div>
+            </div>
+          ) : null}
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">

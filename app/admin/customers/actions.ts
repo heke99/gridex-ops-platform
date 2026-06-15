@@ -51,6 +51,7 @@ import {
 } from "@/lib/validation/customerFields";
 import { emitDomainEvent } from "@/lib/events/domainEvents";
 import { enqueueWebhookDeliveriesForEvent } from "@/lib/integrations/webhooks";
+import { getCompanyGoLiveSetupSummary } from "@/lib/ediel/platformGoLive";
 
 type CustomerType = "private" | "business" | "association";
 type SiteType = "consumption" | "production" | "mixed";
@@ -2479,6 +2480,7 @@ type CustomerBlockerDraft = {
 
 function blockerTypeFromMissingLabel(label: string): string {
   const lower = label.toLowerCase();
+  if (lower.includes("ediel readiness")) return "ediel_readiness_blocked";
   if (lower.includes("fullmakt")) return "missing_power_of_attorney";
   if (lower.includes("mätpunkt")) return "missing_metering_point_id";
   if (lower.includes("anläggnings")) return "missing_facility_id";
@@ -2492,6 +2494,7 @@ function blockerSeverityFromMissingLabel(
   label: string,
 ): CustomerBlockerDraft["severity"] {
   const lower = label.toLowerCase();
+  if (lower.includes("ediel readiness")) return "blocking";
   if (lower.includes("fullmakt") || lower.includes("mätpunkt"))
     return "blocking";
   if (lower.includes("anläggnings") || lower.includes("nätägare"))
@@ -3271,10 +3274,20 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
       authorizationStatus: effectiveAuthorizationStatus,
       contractStatus: normalizedContractStatus,
     };
-    const missingData = buildMissingDataList(
-      readinessParams,
-      switchRequestResult,
-    );
+    const goLiveSetup = await getCompanyGoLiveSetupSummary(params.companyId).catch((error) => {
+      console.warn("Go-live setup could not be evaluated during customer intake", error);
+      return null;
+    });
+    const edifactReadinessBlockers = params.intakeFlowType && goLiveSetup?.status === "blocked"
+      ? goLiveSetup.blockers.slice(0, 4).map((blocker) => `ediel readiness: ${blocker}`)
+      : [];
+    const missingData = Array.from(new Set([
+      ...buildMissingDataList(
+        readinessParams,
+        switchRequestResult,
+      ),
+      ...edifactReadinessBlockers,
+    ]));
     const addressWarnings = [
       ...buildAddressWarnings(params),
       ...duplicateWarnings,
@@ -3408,6 +3421,14 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
           source: normalizedStartDateSource,
         },
         batch2BAutomation: batch2BAutomationResult,
+        edifactReadiness: goLiveSetup ? {
+          status: goLiveSetup.status,
+          edielId: goLiveSetup.edielId,
+          routeResolutionMode: goLiveSetup.routeResolutionMode,
+          hasProdatRoute: goLiveSetup.hasProdatRoute,
+          blockers: goLiveSetup.blockers.slice(0, 8),
+          warnings: goLiveSetup.warnings.slice(0, 8),
+        } : null,
         transactionReadyMode: "server_validated_rollback",
       },
     });
@@ -3431,6 +3452,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
         powerOfAttorneyId: creationContext.powerOfAttorneyId,
         missingData,
         addressWarnings,
+        edifactReadiness: goLiveSetup ? { status: goLiveSetup.status, edielId: goLiveSetup.edielId, routeResolutionMode: goLiveSetup.routeResolutionMode } : null,
         duplicateReviewRequired,
       },
     }).catch(() => null);

@@ -12,6 +12,9 @@ export type IntakeReadinessInput = {
   meteringPointExternalId?: string | null
   gridOwnerId?: string | null
   gridOwnerVerificationStatus?: string | null
+  gridOwnerRouteStatus?: string | null
+  tenantEdielStatus?: string | null
+  tenantLegalStatus?: string | null
   gridAreaCode?: string | null
 }
 
@@ -35,6 +38,9 @@ export function calculateIntakeReadiness(input: IntakeReadinessInput): IntakeRea
   if (!hasText(input.contractId)) blockers.push('missing_contract')
   if (!hasText(input.gridOwnerId)) blockers.push('missing_grid_owner')
   if (input.gridOwnerVerificationStatus && input.gridOwnerVerificationStatus !== 'verified') blockers.push(`grid_owner_${input.gridOwnerVerificationStatus}`)
+  if (input.gridOwnerRouteStatus && !['ready', 'verified', 'auto_send_ready'].includes(input.gridOwnerRouteStatus)) blockers.push(`grid_owner_route_${input.gridOwnerRouteStatus}`)
+  if (input.tenantEdielStatus && !['ready', 'live', 'manual_review_required'].includes(input.tenantEdielStatus)) blockers.push(`tenant_ediel_${input.tenantEdielStatus}`)
+  if (input.tenantLegalStatus && input.tenantLegalStatus !== 'ready') blockers.push(`tenant_legal_${input.tenantLegalStatus}`)
   if (!hasText(input.gridAreaCode)) blockers.push('missing_grid_area_code')
   if (!hasText(input.meteringPointId) && !hasText(input.meteringPointExternalId)) blockers.push('missing_metering_point')
   if (!hasText(input.facilityId)) warnings.push('missing_facility_id')
@@ -50,4 +56,29 @@ export function calculateIntakeReadiness(input: IntakeReadinessInput): IntakeRea
 
 export function blockSupplierSwitchIfMissingRequiredData(input: IntakeReadinessInput): IntakeReadinessResult {
   return calculateIntakeReadiness(input)
+}
+
+
+export function intakeBlockerLabel(code: string): string {
+  const labels: Record<string, string> = {
+    missing_company_scope: 'Bolagskoppling saknas.',
+    missing_customer: 'Kund saknas.',
+    missing_customer_site: 'Anläggning saknas.',
+    missing_contract: 'Avtal saknas.',
+    missing_grid_owner: 'Verifierad nätägare saknas.',
+    missing_grid_area_code: 'Nätområdeskod saknas.',
+    missing_metering_point: 'Mätpunkts-id saknas.',
+    missing_legal_acceptances: 'Juridiska godkännanden saknas.',
+    missing_power_of_attorney: 'Fullmakt saknas.',
+  }
+  if (labels[code]) return labels[code]
+  if (code.startsWith('grid_owner_route_')) return 'Nätägarens Ediel-route är inte redo.'
+  if (code.startsWith('tenant_ediel_')) return 'Tenantens Ediel-konfiguration är inte redo.'
+  if (code.startsWith('tenant_legal_')) return 'Tenantens juridiska avtalstexter är inte redo.'
+  if (code.startsWith('grid_owner_')) return 'Nätägaren är inte verifierad för kundflödet.'
+  return code
+}
+
+export function shouldCreateFacilityDataRequest(result: IntakeReadinessResult): boolean {
+  return result.blockers.includes('missing_metering_point') || result.blockers.includes('missing_grid_area_code') || result.warnings.includes('missing_facility_id')
 }

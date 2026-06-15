@@ -6,6 +6,8 @@ import { ActorCompanyIdentityCard,
   ActorProfileGuide, EvidencePackage } from '@/components/admin/ediel/ActorTestingViews'
 import { getCompanyProductionReadiness } from '@/lib/ediel/productionReadiness'
 import { ProductionReadinessPanel } from '@/components/admin/ediel/ProductionReadinessViews'
+import { getCompanyGoLiveSetupSummary } from '@/lib/ediel/platformGoLive'
+import { CompanyGoLiveSetupPanel } from '@/components/admin/ediel/GoLiveSetupViews'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,9 +15,10 @@ export default async function PlatformGoLiveCompanyPage({ params, searchParams }
   const admin = await requirePlatformAdminAccess()
   const { companyId } = await params
   const notice = searchParams ? await searchParams : {}
-  const [summary, readiness] = await Promise.all([
+  const [summary, readiness, setupSummary] = await Promise.all([
     getActorTestingSummary(companyId),
     getCompanyProductionReadiness(companyId),
+    getCompanyGoLiveSetupSummary(companyId),
   ])
 
   if (!summary) {
@@ -29,7 +32,7 @@ export default async function PlatformGoLiveCompanyPage({ params, searchParams }
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/platform/go-live" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Alla go-live</Link>
           <Link href={`/admin/platform/actor-testing/${summary.company.id}`} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Aktörstester</Link>
-          <Link href={`/admin/platform/go-live/${summary.company.id}/route-wizard`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Production route-wizard</Link>
+          <Link href={`/admin/platform/go-live/${summary.company.id}/route-wizard`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Automatisk route</Link>
         </div>
         {notice?.message ? (
           <div className={`rounded-3xl border p-5 text-sm font-semibold ${notice.status === 'live' || notice.status === 'prepared' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : notice.status === 'blocked' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
@@ -37,6 +40,7 @@ export default async function PlatformGoLiveCompanyPage({ params, searchParams }
           </div>
         ) : null}
         <ActorCompanyIdentityCard summary={summary} />
+        {setupSummary ? <CompanyGoLiveSetupPanel summary={setupSummary} /> : null}
         <ProductionReadinessPanel readiness={readiness} returnPath={`/admin/platform/go-live/${summary.company.id}`} canManageProduction />
         <ActorProfileGuide summary={summary} />
         <EvidencePackage summary={summary} />

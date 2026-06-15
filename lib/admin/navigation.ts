@@ -137,7 +137,8 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Meddelanden, kvittenser och blockers',
     items: [
       { key: 'ediel.control_tower', label: 'Ediel kontrollvy', href: '/admin/ediel/control-tower', description: 'ACK-kedjor, dubbletter och blockeringar', pageKey: 'ediel.control_tower', platformOnly: true },
-      { key: 'ediel.messages', label: 'Meddelanden', href: '/admin/ediel/messages', description: 'Inkommande och utgående Ediel', pageKey: 'ediel.workspace', platformOnly: true },
+      { key: 'ediel.messages.global', label: 'Ediel-meddelanden', href: '/admin/platform/ediel/messages', description: 'Global inbound/outbound-vy per tenant, typ, status och miljö', pageKey: 'ediel.workspace', platformOnly: true },
+      { key: 'ediel.messages', label: 'Operativ meddelandevy', href: '/admin/ediel/messages', description: 'Inkommande och utgående Ediel med ACK-kedjor', pageKey: 'ediel.workspace', platformOnly: true },
       { key: 'ediel.workspace', label: 'Ediel workspace', href: '/admin/ediel', description: 'PRODAT, UTILTS, CONTRL och APERAK', pageKey: 'ediel.workspace', platformOnly: true },
       { key: 'ediel.test_center', label: 'Testcenter', href: '/admin/ediel/test-center', description: 'L1-L7, UL1-UL6, E3-E8 och UE1-UE2', pageKey: 'platform.actor_testing', platformOnly: true },
       { key: 'ediel.system_tests', label: 'Systemtest', href: '/admin/ediel/system-tests', description: 'TGT/AGT-testcenter med filtrering och körbara testfall', pageKey: 'platform.actor_testing', platformOnly: true },
