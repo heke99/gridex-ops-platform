@@ -18,7 +18,7 @@ export default async function PortalLayout({
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Gridex kundportal
+              {context.branding.portalName}
             </p>
             <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
               Mina sidor
