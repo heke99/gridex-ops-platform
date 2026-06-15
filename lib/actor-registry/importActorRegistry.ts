@@ -282,8 +282,9 @@ async function upsertRoute(actorId: string, route: ActorRegistryRoute, edielId: 
     metadata: {
       ...(route.metadata ?? {}),
       source: 'xml_import',
-      subaddress_status: subaddress ? 'verified' : 'missing',
+      subaddress_status: subaddress ? 'verified' : 'pending_registry_confirmation',
       blank_subaddress_requires_review: !subaddress,
+      blank_subaddress_policy: subaddress ? 'explicit_subaddress_from_registry' : 'requires_unique_route_confirmation',
     },
     updated_at: new Date().toISOString(),
   }
@@ -473,6 +474,15 @@ async function applyActor(actor: ParsedActorRegistryActor, match: MatchResult, s
   await ensureGridOwner(actorId, actor)
   await ensurePlatformGridOwner(actorId, actor)
   await ensureSupplier(actorId, actor)
+
+
+  const blankSubaddressConfirmation = await supabaseService
+    .rpc('gridex_confirm_safe_blank_route_subaddresses', {
+      p_source: 'xml_import',
+      p_actor_id: actorId,
+      p_apply_auto_send: false,
+    })
+  if (blankSubaddressConfirmation.error && !isMissingSchema(blankSubaddressConfirmation.error)) throw blankSubaddressConfirmation.error
 
   const { error } = await supabaseService.rpc('gridex_recalculate_actor_readiness', { p_platform_market_actor_id: actorId })
   if (error && !isMissingSchema(error)) throw error

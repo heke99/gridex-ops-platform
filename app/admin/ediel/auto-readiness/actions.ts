@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
-import { applyActorAutoSendReadiness, refreshActorCertificateStatuses, runActorReadinessBackfill } from '@/lib/ediel/operations/actorAutoReadiness'
+import { applyActorAutoSendReadiness, confirmSafeBlankRouteSubaddresses, refreshActorCertificateStatuses, runActorReadinessBackfill } from '@/lib/ediel/operations/actorAutoReadiness'
 import { supabaseService } from '@/lib/supabase/service'
 
 async function auditAutoReadinessAction(input: {
@@ -44,6 +44,22 @@ async function recordFailedAutoReadinessAction(input: {
       error: input.error instanceof Error ? input.error.message : String(input.error),
     },
   }).catch(() => undefined)
+}
+
+
+export async function confirmSafeBlankSubaddressesAction() {
+  const context = await requirePlatformAdminActionAccess()
+  try {
+    const result = await confirmSafeBlankRouteSubaddresses('manual_actor_check', null, true)
+    await auditAutoReadinessAction({
+      userId: context.userId,
+      action: 'actor_auto_readiness.confirm_safe_blank_subaddresses_manual',
+      metadata: { result },
+    })
+  } catch (error) {
+    await recordFailedAutoReadinessAction({ userId: context.userId, action: 'actor_auto_readiness.confirm_safe_blank_subaddresses_manual', error })
+  }
+  revalidateAutoReadiness()
 }
 
 export async function runActorReadinessBackfillAction() {

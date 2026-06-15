@@ -1,6 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expisoftCertificateDirectory'
-import { refreshScheduledActorCertificates } from '@/lib/ediel/certificates/actorCertificateRefresh'
 
 export type ActorReadinessRunResult = {
   ok: boolean
@@ -16,6 +15,14 @@ export type ActorReadinessRunResult = {
 }
 
 type RpcResult = ActorReadinessRunResult | string | null
+
+
+type SupabaseErrorLike = { code?: string; message?: string }
+
+function isMissingSchema(error: unknown): boolean {
+  const record = (error ?? {}) as SupabaseErrorLike
+  return ['42P01', '42703', '42883', 'PGRST204', 'PGRST205', 'PGRST202'].includes(record.code ?? '') || /schema cache|does not exist|function .* does not exist|column .* does not exist/i.test(record.message ?? '')
+}
 
 function parseRpcResult(data: RpcResult): ActorReadinessRunResult {
   if (!data) return { ok: true }
@@ -336,17 +343,37 @@ async function syncCertificateLookupRoutes(runType: 'certificate_refresh' | 'man
   return { lookedUp, certificatesFound, failed, errors, existingCertificatesSynced: existingSync.synced, existingCertificateCandidates: existingSync.candidates }
 }
 
-export async function runActorReadinessBackfill(runType: 'nightly_backfill' | 'manual_actor_check' | 'xml_import_followup' | 'manual' = 'manual_actor_check') {
-  const result = await supabaseService.rpc('gridex_actor_readiness_backfill', { p_run_type: runType })
-  if (result.error) throw result.error
+export async function confirmSafeBlankRouteSubaddresses(
+  runType: 'nightly_backfill' | 'manual_actor_check' | 'xml_import_followup' | 'manual' | 'certificate_refresh' = 'manual_actor_check',
+  actorId?: string | null,
+  applyAutoSend = false,
+) {
+  const result = await supabaseService.rpc('gridex_confirm_safe_blank_route_subaddresses', {
+    p_source: runType,
+    p_actor_id: actorId ?? null,
+    p_apply_auto_send: applyAutoSend,
+  })
+  if (result.error) {
+    if (isMissingSchema(result.error)) {
+      return { ok: true, skipped: true, reason: 'gridex_confirm_safe_blank_route_subaddresses_not_installed' }
+    }
+    throw result.error
+  }
   return parseRpcResult(result.data as RpcResult)
 }
 
+export async function runActorReadinessBackfill(runType: 'nightly_backfill' | 'manual_actor_check' | 'xml_import_followup' | 'manual' = 'manual_actor_check') {
+  const blankSubaddresses = await confirmSafeBlankRouteSubaddresses(runType, null, false)
+  const result = await supabaseService.rpc('gridex_actor_readiness_backfill', { p_run_type: runType })
+  if (result.error) throw result.error
+  return {
+    ...parseRpcResult(result.data as RpcResult),
+    blank_subaddress_confirmation: blankSubaddresses,
+  }
+}
+
 export async function refreshActorCertificateStatuses(runType: 'certificate_refresh' | 'manual_actor_check' | 'manual' = 'certificate_refresh') {
-  // Use the hardened O6 refresh path so manual auto-readiness also performs live Expisoft/LDAP lookup
-  // on cache miss and writes per-actor refresh job diagnostics. Keep the original RPC refresh afterwards
-  // so existing readiness summaries and auto-send guards remain backwards-compatible.
-  const externalLookup = await refreshScheduledActorCertificates({ limit: runType === 'manual_actor_check' || runType === 'manual' ? 50 : 50 })
+  const externalLookup = await syncCertificateLookupRoutes(runType)
   const result = await supabaseService.rpc('gridex_refresh_actor_certificate_statuses', { p_run_type: runType })
   if (result.error) throw result.error
   return {
@@ -362,11 +389,13 @@ export async function applyActorAutoSendReadiness() {
 }
 
 export async function runFullActorAutoReadiness() {
+  const blankSubaddresses = await confirmSafeBlankRouteSubaddresses('nightly_backfill', null, false)
   const backfill = await runActorReadinessBackfill('nightly_backfill')
   const certificates = await refreshActorCertificateStatuses('certificate_refresh')
   const autoSend = await applyActorAutoSendReadiness()
   return {
     ok: true,
+    blankSubaddresses,
     backfill,
     certificates,
     autoSend,
