@@ -12,7 +12,7 @@ export default async function PublicContractIntakePage({ searchParams }: { searc
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">Elavtal</p>
           <h1 className="mt-3 text-3xl font-bold tracking-tight">Teckna avtal</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-700">
-            Formuläret skapar kund, anläggning, mätpunkt, avtal och ett granskningsärende i rätt tenant. Inga Ediel-liveflöden skickas förrän uppgifterna är verifierade.
+            Fyll i dina uppgifter så skickas din avtalsbegäran till elhandelsbolaget för granskning. Bytet av elleverantör startar först när bolaget har verifierat dina uppgifter.
           </p>
         </section>
 
@@ -91,7 +91,7 @@ export default async function PublicContractIntakePage({ searchParams }: { searc
           </div>
 
           <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-            Genom att skicka in formuläret begär du att elhandelsbolaget granskar uppgifterna. Avtalet blir inte live i Ediel förrän bolaget har verifierat uppgifter, fullmakt och produktionsförutsättningar.
+            Genom att skicka in formuläret begär du att elhandelsbolaget granskar dina uppgifter. Avtalet börjar gälla först när bolaget har verifierat uppgifter, fullmakt och övriga förutsättningar.
           </div>
 
           <button className="mt-6 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-800">
