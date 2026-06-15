@@ -4,6 +4,7 @@ import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getGridOwnerById, listGridOwners } from '@/lib/masterdata/db'
 import GridOwnerForm from '@/components/admin/masterdata/GridOwnerForm'
 import GridOwnersTable from '@/components/admin/masterdata/GridOwnersTable'
+import ActorRegistryImportPanel, { type ImportRunRow } from '@/components/admin/masterdata/ActorRegistryImportPanel'
 import {
   backfillGridOwnerVerificationAction,
   completeGridOwnerReadinessAction,
@@ -27,10 +28,17 @@ export default async function NetworkOwnersPage({
  const params = await searchParams
  const editId = params?.edit
 
- const [gridOwners, editingGridOwner] = await Promise.all([
+ const [gridOwners, editingGridOwner, importRunsResult] = await Promise.all([
  listGridOwners(supabase),
  editId ? getGridOwnerById(supabase, editId) : Promise.resolve(null),
+ supabase
+   .from('actor_registry_import_runs')
+   .select('id,source_filename,status,total_records,created_count,updated_count,unchanged_count,conflict_count,error_count,started_at,finished_at')
+   .order('started_at', { ascending: false })
+   .limit(5),
  ])
+
+ const importRuns = importRunsResult.error ? [] : ((importRunsResult.data ?? []) as ImportRunRow[])
 
  const activeCount = gridOwners.filter((owner) => owner.is_active).length
  const verifiedCount = gridOwners.filter((owner) => owner.verification_status === 'verified' || owner.verified_for_customer_flow === true).length
@@ -132,6 +140,8 @@ export default async function NetworkOwnersPage({
  <p className="mt-2">Tenant-admins ska välja verifierade aktörer i kundflöden. Tekniska fält som Ediel-id, subadress, certifikat, transportkanal och produktions-/testmiljö ska hanteras centralt så att ett elbolag inte råkar skapa felaktig route eller osäker mottagare.</p>
  <p className="mt-2">Batch O2 fyller bara subadress automatiskt när exakt en säker subadress finns i aktörsregistret. Saknas subadress eller certifikat visas det som åtgärd, inte som gissning.</p>
  </section>
+
+ <ActorRegistryImportPanel importRuns={importRuns} />
 
  <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
  <GridOwnerForm gridOwner={editingGridOwner} />

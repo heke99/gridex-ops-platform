@@ -3,6 +3,7 @@ import type { GridOwnerRow } from "@/lib/masterdata/types";
 import {
   acknowledgeGridOwnerReviewsAction,
   confirmEmptyGridOwnerSubaddressAction,
+  searchGridOwnerCertificateNowAction,
 } from "@/app/admin/network-owners/actions";
 
 type GridOwnersTableProps = {
@@ -206,11 +207,20 @@ export default function GridOwnersTable({ gridOwners }: GridOwnersTableProps) {
                     >
                       Redigera
                     </Link>
+                    <form action={searchGridOwnerCertificateNowAction}>
+                      <input type="hidden" name="grid_owner_id" value={owner.id} />
+                      <button
+                        type="submit"
+                        className="inline-flex items-center rounded-xl border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50 "
+                      >
+                        Sök certifikat nu
+                      </button>
+                    </form>
                     <Link
                       href="/admin/ediel/auto-readiness"
-                      className="inline-flex items-center rounded-xl border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50 "
+                      className="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 "
                     >
-                      Koppla certifikat
+                      Tekniska detaljer
                     </Link>
                   </div>
                 </td>

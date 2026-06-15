@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 import { supabaseService } from '@/lib/supabase/service'
+import { getEdielOutboundReadinessBlocker } from '@/lib/ediel/outbox/readinessGuard'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -188,6 +189,23 @@ export async function sendOutboxItem(params: {
   try {
     const message = await getEdielMessageById(edielMessageId, { companyId })
     if (!message) throw new Error('ediel_message_not_found')
+    const readinessBlocker = await getEdielOutboundReadinessBlocker(message)
+    if (readinessBlocker) {
+      await updateOutboxStatus({
+        outboxItemId: params.outboxItemId,
+        sendAttemptId,
+        workerId,
+        payload: {
+          status: 'blocked',
+          last_error: readinessBlocker,
+          locked_at: null,
+          locked_by: null,
+          updated_by: params.actorUserId,
+          updated_at: new Date().toISOString(),
+        },
+      })
+      return { status: 'blocked', messageId: null, error: readinessBlocker }
+    }
     const result = await sendEdielMessageViaSmtp(message, { actorUserId: params.actorUserId, smtpMimeMode: params.smtpMimeMode ?? null })
     await updateOutboxStatus({
       outboxItemId: params.outboxItemId,

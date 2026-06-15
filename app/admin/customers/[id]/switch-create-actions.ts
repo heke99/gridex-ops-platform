@@ -23,6 +23,7 @@ import {
   syncOperationTasksFromReadiness,
 } from "@/lib/operations/db";
 import { assertNoActiveSwitchLifecycleBlock } from "@/lib/operations/switchLifecycleBlocks";
+import { assertGridOwnerVerifiedForSwitch } from "@/lib/grid-owners/verification";
 
 type SwitchRequestType = "switch" | "move_in" | "move_out_takeover";
 type SwitchDirection = "to_us" | "from_us" | "manual";
@@ -665,6 +666,28 @@ export async function createDynamicSupplierSwitchRequestAction(
     throw new Error("Kunde inte hitta kandidat-mätpunkt för switchärendet");
   }
 
+  const resolvedGridOwnerId = meteringPoint.grid_owner_id ?? refreshedSite.grid_owner_id ?? null;
+  try {
+    await assertGridOwnerVerifiedForSwitch(resolvedGridOwnerId);
+  } catch (error) {
+    await insertAuditLog({
+      actorUserId: user.id,
+      entityType: "customer_site",
+      entityId: siteId,
+      action: "supplier_switch_blocked_grid_owner_readiness",
+      companyId,
+      metadata: {
+        customerId,
+        siteId,
+        gridOwnerId: resolvedGridOwnerId,
+        reason: error instanceof Error ? error.message : String(error),
+        requestType,
+        switchDirection,
+      },
+    });
+    throw new Error("Leverantörsbyte kan inte startas eftersom nätägare, PRODAT-route, subadress eller certifikat inte är fullt verifierat.");
+  }
+
   const validationSnapshot = {
     isReady: readiness.isReady,
     issueCount: readiness.issues.length,
@@ -691,8 +714,7 @@ export async function createDynamicSupplierSwitchRequestAction(
         currentSupplierOrgNumber ?? refreshedSite.current_supplier_org_number,
       incoming_supplier_name: incomingSupplierName,
       incoming_supplier_org_number: incomingSupplierOrgNumber ?? null,
-      grid_owner_id:
-        meteringPoint.grid_owner_id ?? refreshedSite.grid_owner_id ?? null,
+      grid_owner_id: resolvedGridOwnerId,
       price_area_code:
         meteringPoint.price_area_code ?? refreshedSite.price_area_code ?? null,
       validation_snapshot: validationSnapshot,

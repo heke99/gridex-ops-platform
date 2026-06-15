@@ -10,6 +10,8 @@ import {
   runGridOwnerVerificationBackfill,
 } from "@/lib/grid-owners/verification";
 import { refreshActorCertificateStatuses } from "@/lib/ediel/operations/actorAutoReadiness";
+import { importActorRegistryXml } from "@/lib/actor-registry/importActorRegistry";
+import { refreshCertificatesForGridOwner } from "@/lib/ediel/certificates/actorCertificateRefresh";
 import {
   gridOwnerInputSchema,
   parseCheckbox,
@@ -92,6 +94,50 @@ export async function refreshGridOwnerCertificatesAction(): Promise<void> {
   await refreshActorCertificateStatuses("manual_actor_check");
   await runGridOwnerReadinessCompletion("network_owners_certificate_refresh_action");
   revalidatePath("/admin/network-owners");
+}
+
+
+export async function importActorRegistryXmlAction(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdminActionAccess();
+  const file = formData.get("actor_registry_xml");
+  const forceReprocess = parseCheckbox(formData.get("force_reprocess"));
+
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("Ladda upp en XML-fil med aktörsregister.");
+  }
+
+  const name = file.name || "actor-registry.xml";
+  if (!name.toLowerCase().endsWith(".xml")) {
+    throw new Error("Filen måste vara en XML-fil.");
+  }
+
+  const xml = Buffer.from(await file.arrayBuffer()).toString("utf8");
+  await importActorRegistryXml({
+    xml,
+    sourceFilename: name,
+    uploadedBy: actor.userId,
+    forceReprocess,
+  });
+
+  await runGridOwnerReadinessCompletion("network_owners_actor_registry_import");
+  revalidatePath("/admin/network-owners");
+  revalidatePath("/admin/ediel/actors");
+}
+
+export async function searchGridOwnerCertificateNowAction(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdminActionAccess();
+  const gridOwnerId = requireUuid(formData.get("grid_owner_id"), "Nätägare");
+
+  await refreshCertificatesForGridOwner({
+    gridOwnerId,
+    triggeredBy: "manual",
+    requestedBy: actor.userId,
+  });
+  await runGridOwnerReadinessCompletion("network_owners_manual_certificate_search");
+
+  revalidatePath("/admin/network-owners");
+  revalidatePath("/admin/ediel/auto-readiness");
+  revalidatePath("/admin/ediel/certificates");
 }
 
 export async function confirmEmptyGridOwnerSubaddressAction(formData: FormData): Promise<void> {

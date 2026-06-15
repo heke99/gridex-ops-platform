@@ -1,0 +1,10 @@
+select 'actor_registry_import_runs' as check_name, to_regclass('public.actor_registry_import_runs') is not null as ok;
+select 'actor_registry_import_items' as check_name, to_regclass('public.actor_registry_import_items') is not null as ok;
+select 'actor_registry_conflicts' as check_name, to_regclass('public.actor_registry_conflicts') is not null as ok;
+select 'ediel_certificate_refresh_jobs' as check_name, to_regclass('public.ediel_certificate_refresh_jobs') is not null as ok;
+select 'actor_readiness_status' as check_name, to_regclass('public.actor_readiness_status') is not null as ok;
+select 'actor_registry_duplicate_candidates_v' as check_name, to_regclass('public.actor_registry_duplicate_candidates_v') is not null as ok;
+select 'ediel_certificate_refresh_candidates_v' as check_name, to_regclass('public.ediel_certificate_refresh_candidates_v') is not null as ok;
+select 'gridex_create_actor_registry_conflict' as check_name, to_regprocedure('public.gridex_create_actor_registry_conflict(uuid,uuid,uuid,uuid,uuid,uuid,text,text,text,text,jsonb,jsonb,jsonb)') is not null as ok;
+select 'gridex_match_actor_registry_item' as check_name, to_regprocedure('public.gridex_match_actor_registry_item(uuid)') is not null as ok;
+select 'gridex_recalculate_actor_readiness' as check_name, to_regprocedure('public.gridex_recalculate_actor_readiness(uuid)') is not null as ok;
