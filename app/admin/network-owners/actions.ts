@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { saveGridOwner } from "@/lib/masterdata/db";
@@ -9,9 +10,8 @@ import {
   runGridOwnerReadinessCompletion,
   runGridOwnerVerificationBackfill,
 } from "@/lib/grid-owners/verification";
-import { refreshActorCertificateStatuses } from "@/lib/ediel/operations/actorAutoReadiness";
 import { importActorRegistryXml } from "@/lib/actor-registry/importActorRegistry";
-import { refreshCertificatesForGridOwner } from "@/lib/ediel/certificates/actorCertificateRefresh";
+import { refreshCertificatesForGridOwner, refreshScheduledActorCertificates } from "@/lib/ediel/certificates/actorCertificateRefresh";
 import {
   gridOwnerInputSchema,
   parseCheckbox,
@@ -36,6 +36,32 @@ function requireMessageFamily(value: FormDataEntryValue | null): "PRODAT" | "UTI
     throw new Error("Meddelandetyp måste vara PRODAT eller UTILTS.");
   }
   return normalized;
+}
+
+function actionErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) return error.message;
+  return "Åtgärden kunde inte slutföras. Kontrollera audit/logg eller försök igen.";
+}
+
+function networkOwnersUrl(params: {
+  status?: "success" | "error" | "info";
+  message?: string;
+  edit?: string | null;
+} = {}): string {
+  const search = new URLSearchParams();
+  if (params.edit) search.set("edit", params.edit);
+  if (params.status) search.set("status", params.status);
+  if (params.message) search.set("message", params.message.slice(0, 900));
+  const query = search.toString();
+  return query ? `/admin/network-owners?${query}` : "/admin/network-owners";
+}
+
+function redirectToNetworkOwners(params: {
+  status?: "success" | "error" | "info";
+  message?: string;
+  edit?: string | null;
+} = {}): never {
+  redirect(networkOwnersUrl(params));
 }
 
 export async function saveGridOwnerAction(formData: FormData): Promise<void> {
@@ -91,9 +117,29 @@ export async function completeGridOwnerReadinessAction(): Promise<void> {
 
 export async function refreshGridOwnerCertificatesAction(): Promise<void> {
   await requirePlatformAdminActionAccess();
-  await refreshActorCertificateStatuses("manual_actor_check");
-  await runGridOwnerReadinessCompletion("network_owners_certificate_refresh_action");
-  revalidatePath("/admin/network-owners");
+
+  let redirectParams: Parameters<typeof redirectToNetworkOwners>[0];
+
+  try {
+    const result = await refreshScheduledActorCertificates({ limit: 200 });
+    await runGridOwnerReadinessCompletion("network_owners_certificate_refresh_action");
+    revalidatePath("/admin/network-owners");
+    revalidatePath("/admin/ediel/auto-readiness");
+    revalidatePath("/admin/ediel/certificates");
+
+    redirectParams = {
+      status: "success",
+      message: `Certifikatsökning klar. Bearbetade ${result.processed} aktörer, hittade ${result.found} certifikat, infogade ${result.inserted}, uppdaterade ${result.updated}.`,
+    };
+  } catch (error) {
+    console.error("network_owners_certificate_refresh_action_failed", error);
+    redirectParams = {
+      status: "error",
+      message: `Certifikatsökningen kunde inte slutföras: ${actionErrorMessage(error)}`,
+    };
+  }
+
+  redirectToNetworkOwners(redirectParams);
 }
 
 
@@ -127,17 +173,41 @@ export async function importActorRegistryXmlAction(formData: FormData): Promise<
 export async function searchGridOwnerCertificateNowAction(formData: FormData): Promise<void> {
   const actor = await requirePlatformAdminActionAccess();
   const gridOwnerId = requireUuid(formData.get("grid_owner_id"), "Nätägare");
+  let redirectParams: Parameters<typeof redirectToNetworkOwners>[0];
 
-  await refreshCertificatesForGridOwner({
-    gridOwnerId,
-    triggeredBy: "manual",
-    requestedBy: actor.userId,
-  });
-  await runGridOwnerReadinessCompletion("network_owners_manual_certificate_search");
+  try {
+    const result = await refreshCertificatesForGridOwner({
+      gridOwnerId,
+      triggeredBy: "manual",
+      requestedBy: actor.userId,
+    });
+    await runGridOwnerReadinessCompletion("network_owners_manual_certificate_search");
 
-  revalidatePath("/admin/network-owners");
-  revalidatePath("/admin/ediel/auto-readiness");
-  revalidatePath("/admin/ediel/certificates");
+    revalidatePath("/admin/network-owners");
+    revalidatePath("/admin/ediel/auto-readiness");
+    revalidatePath("/admin/ediel/certificates");
+
+    redirectParams = result.skipped
+      ? {
+          edit: gridOwnerId,
+          status: "info",
+          message: `Certifikatsökningen hoppades över: ${result.reason ?? "nätägaren saknar säker söknyckel"}.`,
+        }
+      : {
+          edit: gridOwnerId,
+          status: result.valid > 0 || result.inserted > 0 || result.updated > 0 ? "success" : "info",
+          message: `Certifikatsökning klar för vald nätägare. Hittade ${result.found}, infogade ${result.inserted}, uppdaterade ${result.updated}, giltiga ${result.valid}, utgångna ${result.expired}.`,
+        };
+  } catch (error) {
+    console.error("network_owner_manual_certificate_search_failed", { gridOwnerId, error });
+    redirectParams = {
+      edit: gridOwnerId,
+      status: "error",
+      message: `Certifikatsökningen för vald nätägare misslyckades: ${actionErrorMessage(error)}`,
+    };
+  }
+
+  redirectToNetworkOwners(redirectParams);
 }
 
 export async function confirmEmptyGridOwnerSubaddressAction(formData: FormData): Promise<void> {

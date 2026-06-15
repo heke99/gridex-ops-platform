@@ -17,12 +17,32 @@ export const dynamic = 'force-dynamic'
 type NetworkOwnersPageProps = {
  searchParams?: Promise<{
  edit?: string
+ status?: string
+ message?: string
  }>
 }
 
 
 function labelOrDash(value?: string | null) {
   return value && value.trim().length > 0 ? value : '—'
+}
+
+function ActionFeedbackBanner({ status, message }: { status?: string | null; message?: string | null }) {
+  if (!status || !message) return null
+  const normalized = status === 'success' || status === 'info' || status === 'error' ? status : 'info'
+  const tone = normalized === 'success'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+    : normalized === 'error'
+      ? 'border-red-200 bg-red-50 text-red-900'
+      : 'border-sky-200 bg-sky-50 text-sky-900'
+  const label = normalized === 'success' ? 'Klart' : normalized === 'error' ? 'Åtgärd misslyckades' : 'Status'
+
+  return (
+    <section className={`rounded-3xl border p-4 text-sm shadow-sm ${tone}`}>
+      <div className="font-semibold">{label}</div>
+      <p className="mt-1 leading-6">{message}</p>
+    </section>
+  )
 }
 
 function DetailReadinessPill({ ready, label }: { ready?: boolean | null; label: string }) {
@@ -86,6 +106,8 @@ export default async function NetworkOwnersPage({
  const supabase = await createSupabaseServerClient()
  const params = await searchParams
  const editId = params?.edit
+ const actionStatus = params?.status
+ const actionMessage = params?.message
 
  const [gridOwners, editingGridOwner, importRunsResult] = await Promise.all([
  listGridOwners(supabase),
@@ -105,6 +127,7 @@ export default async function NetworkOwnersPage({
 
  return (
  <div className="space-y-6">
+ <ActionFeedbackBanner status={actionStatus} message={actionMessage} />
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
  <div>

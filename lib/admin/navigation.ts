@@ -76,6 +76,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     title: 'Inställningar',
     description: 'Bolagets egna inställningar',
     items: [
+      { key: 'network_owners.company_mode', label: 'Nätägare', href: '/admin/network-owners', description: 'Central verifiering av nätägare, routes, subadresser och certifikat', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'company_settings', label: 'Inställningar', href: '/admin/company-settings', description: 'Kontaktuppgifter och bolagsprofil', pageKey: 'company.settings' },
       { key: 'audit', label: 'Revisionslogg', href: '/admin/audit', description: 'Spårbarhet för behörigt scope', pageKey: 'audit.log' },
     ],
@@ -153,6 +154,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     items: [
       { key: 'communication_routes', label: 'Kommunikationsvägar', href: '/admin/ediel/routes', description: 'Routes och Ediel route profiles', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'ediel.actors', label: 'Aktörer', href: '/admin/ediel/actors', description: 'Ediel-ID, roller, subadresser och miljö', pageKey: 'ediel.routes', platformOnly: true },
+      { key: 'network_owners', label: 'Nätägare', href: '/admin/network-owners', description: 'Verifierade nätägare, PRODAT/UTILTS-route, subadress och certifikat', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'ediel.route_readiness', label: 'Routeberedskap', href: '/admin/ediel/route-readiness', description: 'Saknade routes, contact-only suppliers och launch-spärrar', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'ediel.auto_readiness', label: 'Aktörsberedskap', href: '/admin/ediel/auto-readiness', description: 'Backfill, certifikatkontroll och säker auto-send per aktör', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'ediel.certificates', label: 'Certifikat', href: '/admin/ediel/certificates', description: 'S/MIME-certifikatmetadata och status', pageKey: 'ediel.routes', platformOnly: true },
