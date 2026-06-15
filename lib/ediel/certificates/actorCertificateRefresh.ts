@@ -583,6 +583,47 @@ export async function refreshCertificatesForActor(input: {
   return { ok: errors.length === 0, found, inserted, updated, valid, expired, errors, routes, existingSync, cacheSync }
 }
 
+
+async function resolveActorIdForGridOwner(owner: {
+  id?: string | null
+  platform_market_actor_id?: string | null
+  ediel_id?: string | null
+  company_id?: string | null
+}) {
+  const existingActorId = clean(owner.platform_market_actor_id)
+  if (existingActorId) return { actorId: existingActorId, source: 'grid_owners.platform_market_actor_id' }
+
+  const edielId = clean(owner.ediel_id)
+  if (!edielId) return { actorId: null, source: 'missing_grid_owner_ediel_id' }
+
+  const identifierResult = await supabaseService
+    .from('platform_actor_identifiers')
+    .select('actor_id,identifier_type,identifier_value')
+    .eq('identifier_value', edielId)
+    .limit(20)
+
+  if (identifierResult.error) {
+    if (!isMissingSchema(identifierResult.error)) throw identifierResult.error
+  } else {
+    const actorIds = Array.from(new Set((identifierResult.data ?? [])
+      .filter((row) => ['edielid', 'ediel_id'].includes(String(row.identifier_type ?? '').toLowerCase()))
+      .map((row) => clean(row.actor_id))
+      .filter((value): value is string => Boolean(value))))
+    if (actorIds.length === 1) {
+      const actorId = actorIds[0]
+      const { error: updateError } = await supabaseService
+        .from('grid_owners')
+        .update({ platform_market_actor_id: actorId, updated_at: new Date().toISOString() })
+        .eq('id', owner.id)
+      if (updateError && !isMissingSchema(updateError)) throw updateError
+      return { actorId, source: 'platform_actor_identifiers.ediel_id' }
+    }
+    if (actorIds.length > 1) return { actorId: null, source: 'ambiguous_platform_actor_identifiers_ediel_id' }
+  }
+
+  return { actorId: null, source: 'no_platform_actor_match_for_grid_owner_ediel_id' }
+}
+
 export async function refreshCertificatesForGridOwner(input: {
   gridOwnerId: string
   triggeredBy: RefreshTrigger
@@ -590,13 +631,48 @@ export async function refreshCertificatesForGridOwner(input: {
 }) {
   const { data, error } = await supabaseService
     .from('grid_owners')
-    .select('id,platform_market_actor_id')
+    .select('id,company_id,ediel_id,communication_email,email,platform_market_actor_id')
     .eq('id', input.gridOwnerId)
     .maybeSingle()
   if (error) throw error
-  const actorId = clean((data as { platform_market_actor_id?: string | null } | null)?.platform_market_actor_id)
-  if (!actorId) return { ok: false, skipped: true, reason: 'grid_owner_missing_platform_actor_id', found: 0, inserted: 0, updated: 0, valid: 0, expired: 0 }
-  return refreshCertificatesForActor({ actorId, gridOwnerId: input.gridOwnerId, triggeredBy: input.triggeredBy, requestedBy: input.requestedBy ?? null })
+
+  const owner = (data ?? {}) as {
+    id?: string | null
+    company_id?: string | null
+    ediel_id?: string | null
+    communication_email?: string | null
+    email?: string | null
+    platform_market_actor_id?: string | null
+  }
+
+  const resolved = await resolveActorIdForGridOwner(owner)
+  if (!resolved.actorId) {
+    const jobId = await createRefreshJob({
+      gridOwnerId: input.gridOwnerId,
+      companyId: clean(owner.company_id),
+      edielId: clean(owner.ediel_id),
+      requestedBy: input.requestedBy ?? null,
+      triggeredBy: input.triggeredBy,
+    })
+    await finishRefreshJob(jobId, {
+      status: 'skipped',
+      error_message: 'Nätägaren saknar säker koppling till platform actor. Certifikatsökningen stoppades för att undvika fel mottagare.',
+      metadata: {
+        reason: resolved.source,
+        gridOwnerId: input.gridOwnerId,
+        edielId: clean(owner.ediel_id),
+        communicationEmail: clean(owner.communication_email) ?? clean(owner.email),
+      },
+    })
+    return { ok: false, skipped: true, reason: resolved.source, found: 0, inserted: 0, updated: 0, valid: 0, expired: 0 }
+  }
+
+  return refreshCertificatesForActor({
+    actorId: resolved.actorId,
+    gridOwnerId: input.gridOwnerId,
+    triggeredBy: input.triggeredBy,
+    requestedBy: input.requestedBy ?? null,
+  })
 }
 
 export async function refreshScheduledActorCertificates(input: { limit?: number } = {}) {

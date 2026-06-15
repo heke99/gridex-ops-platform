@@ -9,6 +9,7 @@ import {
   backfillGridOwnerVerificationAction,
   completeGridOwnerReadinessAction,
   refreshGridOwnerCertificatesAction,
+  searchGridOwnerCertificateNowAction,
 } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -17,6 +18,64 @@ type NetworkOwnersPageProps = {
  searchParams?: Promise<{
  edit?: string
  }>
+}
+
+
+function labelOrDash(value?: string | null) {
+  return value && value.trim().length > 0 ? value : '—'
+}
+
+function DetailReadinessPill({ ready, label }: { ready?: boolean | null; label: string }) {
+  return (
+    <span className={[
+      'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold',
+      ready ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-700',
+    ].join(' ')}>
+      {label}: {ready ? 'Klar' : 'Inte klar'}
+    </span>
+  )
+}
+
+function GridOwnerTechnicalActionPanel({ owner }: { owner: Awaited<ReturnType<typeof listGridOwners>>[number] }) {
+  return (
+    <section className="rounded-3xl border border-indigo-200 bg-indigo-50 p-6 text-sm shadow-sm">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Teknisk verifiering</p>
+        <h2 className="mt-1 text-lg font-semibold text-slate-950">Vald nätägare</h2>
+        <p className="mt-2 text-slate-700">
+          Kör certifikatsökning för just den här nätägaren. Det här är rätt flöde när en enskild nätägare saknar PRODAT-certifikat.
+        </p>
+      </div>
+
+      <dl className="mt-4 grid gap-2 text-xs text-slate-700">
+        <div className="flex justify-between gap-3"><dt>Namn</dt><dd className="text-right font-medium text-slate-950">{owner.name}</dd></div>
+        <div className="flex justify-between gap-3"><dt>EDIEL-id</dt><dd className="text-right font-medium text-slate-950">{labelOrDash(owner.ediel_id)}</dd></div>
+        <div className="flex justify-between gap-3"><dt>Platform actor</dt><dd className="max-w-[180px] truncate text-right font-medium text-slate-950">{labelOrDash(owner.platform_market_actor_id)}</dd></div>
+        <div className="flex justify-between gap-3"><dt>Certifikat</dt><dd className="text-right font-medium text-slate-950">{labelOrDash(owner.certificate_status)}</dd></div>
+        <div className="flex justify-between gap-3"><dt>PRODAT-route</dt><dd className="text-right font-medium text-slate-950">{owner.prodat_route_count ?? 0}</dd></div>
+      </dl>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <DetailReadinessPill ready={owner.can_use_for_prodat} label="PRODAT" />
+        <DetailReadinessPill ready={owner.can_use_for_utilts} label="UTILTS" />
+        <DetailReadinessPill ready={owner.can_start_supplier_switch} label="Leverantörsbyte" />
+      </div>
+
+      <form action={searchGridOwnerCertificateNowAction} className="mt-5">
+        <input type="hidden" name="grid_owner_id" value={owner.id} />
+        <button
+          type="submit"
+          className="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-800"
+        >
+          Sök certifikat nu för vald nätägare
+        </button>
+      </form>
+
+      <p className="mt-3 text-xs leading-5 text-indigo-900">
+        Sökningen markerar inte nätägaren som klar om certifikat saknas, är utgånget, har fel miljö eller inte matchar aktören. Då ska felet ligga kvar som åtgärd/review.
+      </p>
+    </section>
+  )
 }
 
 export default async function NetworkOwnersPage({
@@ -144,7 +203,12 @@ export default async function NetworkOwnersPage({
  <ActorRegistryImportPanel importRuns={importRuns} />
 
  <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+ <div className="space-y-6">
  <GridOwnerForm gridOwner={editingGridOwner} />
+ {editingGridOwner ? (
+ <GridOwnerTechnicalActionPanel owner={gridOwners.find((owner) => owner.id === editingGridOwner.id) ?? editingGridOwner} />
+ ) : null}
+ </div>
  <GridOwnersTable gridOwners={gridOwners} />
  </div>
  </div>
