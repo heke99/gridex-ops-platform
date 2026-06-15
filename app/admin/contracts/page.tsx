@@ -4,6 +4,7 @@ import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { listContractOffers } from '@/lib/customer-contracts/db'
 import { saveContractOfferAction } from './actions'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import type { ContractOfferRow } from '@/lib/customer-contracts/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,14 +47,43 @@ function statusTone(status: string, isActive: boolean): string {
  return 'border-slate-200 bg-slate-50 text-slate-700 '
 }
 
-export default async function AdminContractsPage() {
+function firstSearchValue(value: string | string[] | undefined) {
+ return Array.isArray(value) ? value[0] : value
+}
+
+function ActionBanner({ success, error }: { success?: string; error?: string }) {
+ if (!success && !error) return null
+ const tone = success ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'
+ return <section className={`rounded-3xl border p-5 text-sm font-semibold ${tone}`}>{success ?? error}</section>
+}
+
+function errorMessage(error: unknown): string {
+ if (error instanceof Error && error.message.trim()) return error.message
+ if (typeof error === 'object' && error && 'message' in error && typeof (error as { message?: unknown }).message === 'string') return (error as { message: string }).message
+ return 'Avtalsmallar kunde inte hämtas.'
+}
+
+type ContractsSearchParams = Record<string, string | string[] | undefined>
+
+export default async function AdminContractsPage({ searchParams }: { searchParams?: Promise<ContractsSearchParams> }) {
+ const resolvedSearchParams = searchParams ? await searchParams : {}
  const admin = await requirePlatformAdminAccess()
 
  const supabase = await createSupabaseServerClient()
  const { data: authResult } = await supabase.auth.getUser()
  const user = authResult.user
  const scope = user ? await getOperationalCompanyScope(user.id) : { companyId: null, companyName: null, memberships: [], requiresCompany: true, message: 'Inloggning krävs.' }
- const offers = scope.companyId ? await listContractOffers({ companyId: scope.companyId }) : []
+ let offers: ContractOfferRow[] = []
+ let listError: string | undefined
+ if (scope.companyId) {
+   try {
+     offers = await listContractOffers({ companyId: scope.companyId })
+   } catch (error) {
+     listError = errorMessage(error)
+   }
+ }
+ const actionSuccess = firstSearchValue(resolvedSearchParams.success)
+ const actionError = firstSearchValue(resolvedSearchParams.error) ?? listError
 
  return (
  <div className="min-h-screen">
@@ -64,6 +94,7 @@ export default async function AdminContractsPage() {
  />
 
  <div className="grid gap-6 p-8 xl:grid-cols-[460px_minmax(0,1fr)]">
+ <div className="xl:col-span-2"><ActionBanner success={actionSuccess} error={actionError} /></div>
  <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm xl:col-span-2">
  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 ">Operativt bolag</p>
  <h2 className="mt-2 text-xl font-semibold text-slate-950 ">{scope.companyName ?? 'Bolagskoppling saknas'}</h2>

@@ -32,6 +32,8 @@ type PublicOffer = {
   public_price_text: string | null
   terms_version: string | null
   terms_url: string | null
+  legal_bundle_id?: string | null
+  price_book_id?: string | null
   publication_status: string
   website_enabled: boolean
   website_cta_enabled: boolean
@@ -42,6 +44,8 @@ type PublicOffer = {
   portfolio_weight_percent: number | null
   fixed_weight_percent: number | null
   readiness_issues: string[] | null
+  readiness_status?: string | null
+  readiness_blockers?: string[] | null
   created_at: string
   updated_at: string
 }
@@ -66,6 +70,22 @@ type MailReadiness = {
   template_active: boolean | null
   can_send: boolean | null
   issues: string[] | null
+}
+
+type LegalBundle = {
+  id: string
+  name: string | null
+  status: string | null
+  updated_at: string | null
+}
+
+type PriceBook = {
+  id: string
+  name: string | null
+  status: string | null
+  valid_from: string | null
+  valid_to: string | null
+  updated_at: string | null
 }
 
 function formatDate(value: string | null | undefined) {
@@ -128,10 +148,12 @@ async function safeRows<T>(table: string, companyId: string, select: string, ord
 }
 
 export default async function TenantPlatformControls({ companyId, companyName }: { companyId: string; companyName: string }) {
-  const [offers, pricePlans, priceVersions, apiClients, mailReadiness] = await Promise.all([
-    safeRows<PublicOffer>('public_contract_offers', companyId, 'id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,created_at,updated_at', 'sort_order'),
+  const [offers, pricePlans, priceVersions, legalBundles, priceBooks, apiClients, mailReadiness] = await Promise.all([
+    safeRows<PublicOffer>('public_contract_offers', companyId, 'id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at', 'sort_order'),
     safeRows<PricePlan>('price_plans', companyId, 'id,name,pricing_model,status', 'name'),
     safeRows<PricePlanVersion>('price_plan_versions', companyId, 'id,price_plan_id,version_label,status,valid_from,valid_to', 'valid_from'),
+    safeRows<LegalBundle>('legal_bundles', companyId, 'id,name,status,updated_at', 'updated_at'),
+    safeRows<PriceBook>('price_books', companyId, 'id,name,status,valid_from,valid_to,updated_at', 'updated_at'),
     safeRows<ApiClient>('integration_api_clients', companyId, 'id,name,status,key_prefix,scopes,permission_groups,allowed_origins,last_used_at,created_at', 'created_at'),
     safeRows<MailReadiness>('gridex_tenant_email_dispatch_readiness_v', companyId, 'event_key,template_key,enabled,template_name,template_active,can_send,issues', 'event_key'),
   ])
@@ -165,7 +187,11 @@ export default async function TenantPlatformControls({ companyId, companyName }:
       <section id="tenant-avtal" className="grid gap-6 xl:grid-cols-[440px_minmax(0,1fr)]">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-lg font-black text-slate-950">Skapa avtal för {companyName}</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Publicering blockeras om prisplan, prisversion, villkor, publik pristext eller korrekt mixfördelning saknas.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Publicering blockeras om prisplan, prisversion, villkor, publik pristext eller korrekt mixfördelning saknas. Om juridiskt paket eller prislista saknas försöker systemet skapa dem från publicerade juridiska texter och vald prisversion.</p>
+          <div className="mt-3 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold text-slate-700">
+            <div>Juridiska paket: <strong>{legalBundles.length}</strong> · Prislistor: <strong>{priceBooks.length}</strong></div>
+            <div>För att publicera krävs publicerade juridiska texter för villkor, integritet, ångerrätt, fullmakt och prisvillkor samt en publicerbar prisversion.</div>
+          </div>
           <form action={saveTenantPublicContractOfferAction} className="mt-5 grid gap-3">
             <input type="hidden" name="company_id" value={companyId} />
             <input name="offer_code" placeholder="Avtalskod, t.ex. GRIDEX-MIX-70-30-2026" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
@@ -214,6 +240,16 @@ export default async function TenantPlatformControls({ companyId, companyName }:
               <input name="terms_version" required placeholder="Villkorsversion" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
               <input name="terms_url" placeholder="Villkorslänk" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <select name="legal_bundle_id" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
+                <option value="">Auto: skapa/använd juridiskt paket</option>
+                {legalBundles.map((bundle) => <option key={bundle.id} value={bundle.id}>{bundle.name ?? bundle.id.slice(0, 8)} · {bundle.status ?? 'status saknas'}</option>)}
+              </select>
+              <select name="price_book_id" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
+                <option value="">Auto: skapa/använd prislista</option>
+                {priceBooks.map((book) => <option key={book.id} value={book.id}>{book.name ?? book.id.slice(0, 8)} · {book.status ?? 'status saknas'} · {book.valid_from ?? 'utan startdatum'}</option>)}
+              </select>
+            </div>
             <div className="grid gap-3 md:grid-cols-4">
               <input name="binding_months" placeholder="Bindning mån" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
               <input name="notice_months" placeholder="Uppsägning mån" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
@@ -242,6 +278,7 @@ export default async function TenantPlatformControls({ companyId, companyName }:
             {offers.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">Inga avtal skapade ännu.</div> : null}
             {offers.map((offer) => {
               const issues = valueList(offer.readiness_issues)
+              const blockers = valueList(offer.readiness_blockers)
               return (
                 <article key={offer.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -260,7 +297,13 @@ export default async function TenantPlatformControls({ companyId, companyName }:
                     <div>Portfölj: {offer.portfolio_weight_percent ?? 0}%</div>
                     <div>Fast: {offer.fixed_weight_percent ?? 0}%</div>
                   </div>
+                  <div className="mt-3 grid gap-2 text-xs font-semibold text-slate-600 md:grid-cols-2">
+                    <div>Juridiskt paket: {offer.legal_bundle_id ? 'kopplat' : 'auto/ej kopplat'}</div>
+                    <div>Prislista: {offer.price_book_id ? 'kopplad' : 'auto/ej kopplad'}</div>
+                  </div>
+                  {offer.readiness_status ? <div className="mt-3 text-xs font-bold text-slate-600">Readiness: {offer.readiness_status}</div> : null}
                   {issues.length > 0 ? <ul className="mt-3 list-disc rounded-2xl border border-amber-200 bg-amber-50 p-4 pl-8 text-xs font-semibold text-amber-900">{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : null}
+                  {blockers.length > 0 ? <ul className="mt-3 list-disc rounded-2xl border border-red-200 bg-red-50 p-4 pl-8 text-xs font-semibold text-red-900">{blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul> : null}
                   <details className="mt-3">
                     <summary className="cursor-pointer text-xs font-black text-slate-700">Ändra status / publicering</summary>
                     <form action={saveTenantPublicContractOfferAction} className="mt-3 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3">
@@ -274,6 +317,8 @@ export default async function TenantPlatformControls({ companyId, companyName }:
                       <input type="hidden" name="customer_type" value={offer.customer_type} />
                       <input type="hidden" name="price_plan_id" value={offer.price_plan_id ?? ''} />
                       <input type="hidden" name="price_plan_version_id" value={offer.price_plan_version_id ?? ''} />
+                      <input type="hidden" name="legal_bundle_id" value={offer.legal_bundle_id ?? ''} />
+                      <input type="hidden" name="price_book_id" value={offer.price_book_id ?? ''} />
                       <input type="hidden" name="spot_weight_percent" value={String(offer.spot_weight_percent ?? 100)} />
                       <input type="hidden" name="portfolio_weight_percent" value={String(offer.portfolio_weight_percent ?? 0)} />
                       <input type="hidden" name="fixed_weight_percent" value={String(offer.fixed_weight_percent ?? 0)} />

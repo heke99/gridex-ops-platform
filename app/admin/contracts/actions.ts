@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { saveContractOffer } from '@/lib/customer-contracts/db'
@@ -69,7 +70,31 @@ function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
     })
 }
 
+function redirectBack(params: { success?: string; error?: string }): never {
+  const search = new URLSearchParams()
+  if (params.success) search.set('success', params.success)
+  if (params.error) search.set('error', params.error)
+  redirect(`/admin/contracts?${search.toString()}`)
+  throw new Error('Kunde inte navigera tillbaka efter åtgärden.')
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message
+  if (typeof error === 'object' && error && 'message' in error && typeof (error as { message?: unknown }).message === 'string') return (error as { message: string }).message
+  return 'Avtalsmallen kunde inte sparas.'
+}
+
 export async function saveContractOfferAction(formData: FormData) {
+  let success: string
+  try {
+    success = (await saveContractOfferActionImpl(formData)).success
+  } catch (error) {
+    redirectBack({ error: errorMessage(error) })
+  }
+  redirectBack({ success })
+}
+
+async function saveContractOfferActionImpl(formData: FormData): Promise<{ success: string }> {
   await requirePlatformAdminActionAccess()
 
   const supabase = await createSupabaseServerClient()
@@ -156,4 +181,5 @@ export async function saveContractOfferAction(formData: FormData) {
   revalidatePath('/admin/contracts')
   revalidatePath('/admin/customers/intake')
   revalidatePath('/admin/customers')
+  return { success: id ? 'Avtalsmallen uppdaterades.' : 'Avtalsmallen skapades.' }
 }

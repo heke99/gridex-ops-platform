@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { assessPublicOfferReadiness } from '@/lib/website/publicOfferReadiness'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
@@ -36,6 +37,196 @@ function boolValue(formData: FormData, key: string): boolean {
 function cleanCode(value: string): string | null {
   const cleaned = value.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 80)
   return cleaned || null
+}
+
+
+const REQUIRED_PUBLIC_LEGAL_TYPES = ['terms', 'privacy_policy', 'withdrawal', 'power_of_attorney', 'price_terms'] as const
+
+type CanonicalReferenceResult = {
+  id: string | null
+  blockers: string[]
+  created: boolean
+}
+
+function redirectBack(companyId: string | null, params: { success?: string; error?: string }): never {
+  const search = new URLSearchParams()
+  if (params.success) search.set('success', params.success)
+  if (params.error) search.set('error', params.error)
+  const target = companyId ? `/admin/companies/${companyId}?${search.toString()}#tenant-avtal` : `/admin/companies?${search.toString()}`
+  redirect(target)
+  throw new Error('Kunde inte navigera tillbaka efter åtgärden.')
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message
+  if (typeof error === 'object' && error && 'message' in error && typeof (error as { message?: unknown }).message === 'string') return (error as { message: string }).message
+  return 'Åtgärden kunde inte genomföras.'
+}
+
+function isMissingSchemaError(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return ['42P01', '42703', 'PGRST200', 'PGRST201', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist|relationship/i.test(message)
+}
+
+async function getActiveLegalBundle(companyId: string): Promise<string | null> {
+  const { data, error } = await supabaseService
+    .from('legal_bundles')
+    .select('id')
+    .eq('company_id', companyId)
+    .in('status', ['published', 'active'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    if (isMissingSchemaError(error)) return null
+    throw error
+  }
+  return data?.id ?? null
+}
+
+async function ensurePublishedLegalBundle(companyId: string, publicName: string): Promise<CanonicalReferenceResult> {
+  const existing = await getActiveLegalBundle(companyId)
+  if (existing) return { id: existing, blockers: [], created: false }
+
+  const { data: versions, error } = await supabaseService
+    .from('legal_text_versions')
+    .select('id,type,version,published_at,created_at')
+    .eq('company_id', companyId)
+    .eq('status', 'published')
+    .in('type', [...REQUIRED_PUBLIC_LEGAL_TYPES])
+    .order('type', { ascending: true })
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    if (isMissingSchemaError(error)) return { id: null, blockers: ['Juridiska texter eller juridiska paket saknas i databasen.'], created: false }
+    throw error
+  }
+
+  const latestByType = new Map<string, { id: string; type: string }>()
+  for (const row of versions ?? []) {
+    if (!latestByType.has(row.type)) latestByType.set(row.type, row as { id: string; type: string })
+  }
+
+  const missing = REQUIRED_PUBLIC_LEGAL_TYPES.filter((type) => !latestByType.has(type))
+  if (missing.length > 0) {
+    return {
+      id: null,
+      blockers: missing.map((type) => `Publicerad juridisk text saknas: ${type}`),
+      created: false,
+    }
+  }
+
+  const { data: bundle, error: bundleError } = await supabaseService
+    .from('legal_bundles')
+    .insert({
+      company_id: companyId,
+      name: `Standard juridik · ${publicName}`.slice(0, 180),
+      status: 'published',
+    })
+    .select('id')
+    .single()
+
+  if (bundleError) {
+    if (isMissingSchemaError(bundleError)) return { id: null, blockers: ['Tabellen för juridiska paket saknas.'], created: false }
+    throw bundleError
+  }
+
+  const items = REQUIRED_PUBLIC_LEGAL_TYPES.map((type, index) => ({
+    legal_bundle_id: bundle.id,
+    legal_text_version_id: latestByType.get(type)!.id,
+    type,
+    sort_order: (index + 1) * 10,
+  }))
+  const { error: itemsError } = await supabaseService.from('legal_bundle_items').insert(items)
+  if (itemsError) throw itemsError
+
+  return { id: bundle.id, blockers: [], created: true }
+}
+
+async function getActivePriceBook(companyId: string): Promise<string | null> {
+  const { data, error } = await supabaseService
+    .from('price_books')
+    .select('id')
+    .eq('company_id', companyId)
+    .in('status', ['published', 'active'])
+    .order('valid_from', { ascending: false, nullsFirst: false })
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    if (isMissingSchemaError(error)) return null
+    throw error
+  }
+  return data?.id ?? null
+}
+
+async function ensurePublishedPriceBook(input: {
+  companyId: string
+  publicName: string
+  pricePlanId: string | null
+  pricePlanVersionId: string | null
+  publicPriceText: string | null
+  monthlyFeeSek: number | null
+  invoiceFeeSek: number | null
+  markupOrePerKwh: number | null
+  spotMarkupOrePerKwh: number | null
+  variableFeeOrePerKwh: number | null
+  fixedPriceOrePerKwh: number | null
+  validFrom: string | null
+  validTo: string | null
+}): Promise<CanonicalReferenceResult> {
+  const existing = await getActivePriceBook(input.companyId)
+  if (existing) return { id: existing, blockers: [], created: false }
+  if (!input.pricePlanId || !input.pricePlanVersionId) {
+    return { id: null, blockers: ['Prisplan och prisversion krävs innan prislista kan skapas.'], created: false }
+  }
+
+  const { data: version, error: versionError } = await supabaseService
+    .from('price_plan_versions')
+    .select('id,price_plan_id,company_id,version_label,status,valid_from,valid_to')
+    .eq('id', input.pricePlanVersionId)
+    .maybeSingle()
+  if (versionError) throw versionError
+  if (!version || version.company_id !== input.companyId || version.price_plan_id !== input.pricePlanId) {
+    return { id: null, blockers: ['Prisversionen kan inte användas för valt bolag/prisplan.'], created: false }
+  }
+
+  const { data: book, error: bookError } = await supabaseService
+    .from('price_books')
+    .insert({
+      company_id: input.companyId,
+      name: `Prislista · ${input.publicName}`.slice(0, 180),
+      status: 'published',
+      valid_from: input.validFrom ?? version.valid_from ?? new Date().toISOString().slice(0, 10),
+      valid_to: input.validTo ?? version.valid_to ?? null,
+    })
+    .select('id')
+    .single()
+
+  if (bookError) {
+    if (isMissingSchemaError(bookError)) return { id: null, blockers: ['Tabellen för prislista saknas.'], created: false }
+    throw bookError
+  }
+
+  const lines = [
+    { component_key: 'price_plan_version', value: null, unit: 'reference', metadata: { price_plan_id: input.pricePlanId, price_plan_version_id: input.pricePlanVersionId, version_label: version.version_label, status: version.status } },
+    { component_key: 'monthly_fee_sek', value: input.monthlyFeeSek, unit: 'sek_month', metadata: {} },
+    { component_key: 'invoice_fee_sek', value: input.invoiceFeeSek, unit: 'sek_invoice', metadata: {} },
+    { component_key: 'markup_ore_per_kwh', value: input.markupOrePerKwh, unit: 'ore_per_kwh', metadata: {} },
+    { component_key: 'spot_markup_ore_per_kwh', value: input.spotMarkupOrePerKwh, unit: 'ore_per_kwh', metadata: {} },
+    { component_key: 'variable_fee_ore_per_kwh', value: input.variableFeeOrePerKwh, unit: 'ore_per_kwh', metadata: {} },
+    { component_key: 'fixed_price_ore_per_kwh', value: input.fixedPriceOrePerKwh, unit: 'ore_per_kwh', metadata: {} },
+    { component_key: 'public_price_text', value: null, unit: 'text', metadata: { text: input.publicPriceText } },
+  ].map((line, index) => ({ price_book_id: book.id, sort_order: (index + 1) * 10, ...line }))
+
+  const { error: lineError } = await supabaseService.from('price_book_lines').insert(lines)
+  if (lineError) throw lineError
+
+  return { id: book.id, blockers: [], created: true }
 }
 
 function contractType(value: string): string {
@@ -103,6 +294,17 @@ function publicationIssues(input: {
 }
 
 export async function saveTenantPublicContractOfferAction(formData: FormData) {
+  const companyId = text(formData, 'company_id') || null
+  let success: string
+  try {
+    success = (await saveTenantPublicContractOfferActionImpl(formData)).success
+  } catch (error) {
+    redirectBack(companyId, { error: errorMessage(error) })
+  }
+  redirectBack(companyId, { success })
+}
+
+async function saveTenantPublicContractOfferActionImpl(formData: FormData): Promise<{ success: string }> {
   const actor = await requirePlatformAdminActionAccess()
   const companyId = text(formData, 'company_id')
   const id = text(formData, 'id') || null
@@ -170,23 +372,52 @@ export async function saveTenantPublicContractOfferAction(formData: FormData) {
     previous = data as Record<string, unknown>
   }
 
-  // Preserve existing canonical references when the current UI does not submit them.
-  const legalBundleId = submittedLegalBundleId ?? ((previous as any)?.legal_bundle_id ?? null)
-  const priceBookId = submittedPriceBookId ?? ((previous as any)?.price_book_id ?? null)
+  let legalBundleId = submittedLegalBundleId ?? ((previous as any)?.legal_bundle_id ?? null)
+  let priceBookId = submittedPriceBookId ?? ((previous as any)?.price_book_id ?? null)
 
   let readinessStatus: string | null = null
   let readinessBlockers: string[] = []
+  const autoCreatedReferences: string[] = []
 
   // Perform readiness check against tenant launch state and required references.
+  // If the UI has not submitted canonical legal/price references, build safe defaults
+  // from already published legal texts and the selected price plan version.
   if (publicationStatus === 'published') {
+    if (!legalBundleId) {
+      const legal = await ensurePublishedLegalBundle(companyId, publicName)
+      legalBundleId = legal.id
+      readinessBlockers.push(...legal.blockers)
+      if (legal.created) autoCreatedReferences.push('juridiskt paket')
+    }
+    if (!priceBookId) {
+      const priceBook = await ensurePublishedPriceBook({
+        companyId,
+        publicName,
+        pricePlanId,
+        pricePlanVersionId,
+        publicPriceText,
+        monthlyFeeSek: numberValue(formData, 'monthly_fee_sek'),
+        invoiceFeeSek: numberValue(formData, 'invoice_fee_sek'),
+        markupOrePerKwh: numberValue(formData, 'markup_ore_per_kwh'),
+        spotMarkupOrePerKwh: numberValue(formData, 'spot_markup_ore_per_kwh'),
+        variableFeeOrePerKwh: numberValue(formData, 'variable_fee_ore_per_kwh'),
+        fixedPriceOrePerKwh: numberValue(formData, 'fixed_price_ore_per_kwh'),
+        validFrom: dateValue(formData, 'valid_from'),
+        validTo: dateValue(formData, 'valid_to'),
+      })
+      priceBookId = priceBook.id
+      readinessBlockers.push(...priceBook.blockers)
+      if (priceBook.created) autoCreatedReferences.push('prislista')
+    }
+
     const readiness = await assessPublicOfferReadiness({
       companyId,
       offer: { legal_bundle_id: legalBundleId, price_book_id: priceBookId },
     })
-    readinessStatus = readiness.isReady ? 'ready' : 'blocked'
-    readinessBlockers = readiness.blockers
-    if (!readiness.isReady) {
-      throw new Error(`Avtalet kan inte publiceras: ${readiness.blockers.join(', ')}.`)
+    readinessStatus = readiness.isReady && readinessBlockers.length === 0 ? 'ready' : 'blocked'
+    readinessBlockers = [...readinessBlockers, ...readiness.blockers]
+    if (readinessBlockers.length > 0 || !readiness.isReady) {
+      throw new Error(`Avtalet kan inte publiceras: ${readinessBlockers.join(', ')}.`)
     }
   }
 
@@ -271,9 +502,11 @@ export async function saveTenantPublicContractOfferAction(formData: FormData) {
     newValues: saved,
     source: 'company_card_contracts_tab',
     billable: false,
-    metadata: { publicationStatus, websiteEnabled, issues, readinessStatus, readinessBlockers, pricePlanId, pricePlanVersionId, legalBundleId, priceBookId },
+    metadata: { publicationStatus, websiteEnabled, issues, readinessStatus, readinessBlockers, pricePlanId, pricePlanVersionId, legalBundleId, priceBookId, autoCreatedReferences },
   })
 
   revalidatePath(`/admin/companies/${companyId}`)
   revalidatePath('/admin/contracts')
+  const suffix = autoCreatedReferences.length > 0 ? ` Auto-skapade: ${autoCreatedReferences.join(', ')}.` : ''
+  return { success: `${id ? 'Avtalet uppdaterades' : 'Avtalet skapades'}.${publicationStatus === 'published' ? ' Publicerat och redo för hemsidan.' : ''}${suffix}` }
 }

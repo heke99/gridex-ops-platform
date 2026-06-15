@@ -63,11 +63,23 @@ export async function assessPublicOfferReadiness(input: {
     blockers.push('Prislista saknas')
   }
 
-  // Additional readiness signals could be added here, e.g. checking that
-  // required API clients exist and are configured with allowed origins, or
-  // verifying that a customer number sequence is set up. Keep checks
-  // additive so that missing database columns simply add blockers rather
-  // than throwing exceptions.
+  // Require a tenant API client that can read public website contracts.
+  // The public endpoint still authenticates the exact calling client, but
+  // this catches setup mistakes before an offer is published.
+  try {
+    const { data: client, error } = await supabaseService
+      .from('integration_api_clients')
+      .select('id')
+      .eq('company_id', input.companyId)
+      .eq('status', 'active')
+      .contains('scopes', ['website_contracts.read'])
+      .limit(1)
+      .maybeSingle()
+    if (error) throw error
+    if (!client) blockers.push('Aktiv API-klient med behörigheten website_contracts.read saknas')
+  } catch (err) {
+    blockers.push('Kunde inte kontrollera API-klient för hemsideavtal')
+  }
 
   return { isReady: blockers.length === 0, blockers }
 }
