@@ -252,6 +252,31 @@ async function syncExistingEdielCertificatesForRoutes(routes: CertificateLookupR
 }
 
 async function listCertificateLookupRoutes(limit = 1000): Promise<CertificateLookupRoute[]> {
+  const scopedResult = await supabaseService
+    .from('ediel_blocked_grid_owner_certificate_refresh_candidates_v')
+    .select('platform_market_actor_id,ediel_id,route_id,message_family,environment,subaddress,smtp_email,certificate_status,certificate_next_check_at,certificate_fingerprint_sha256')
+    .order('certificate_next_check_at', { ascending: true, nullsFirst: true })
+    .limit(limit)
+
+  if (!scopedResult.error) {
+    return ((scopedResult.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      actor_id: String(row.platform_market_actor_id ?? ''),
+      ediel_id: (row.ediel_id as string | null) ?? null,
+      route_id: String(row.route_id ?? ''),
+      message_family: (row.message_family as string | null) ?? 'PRODAT',
+      environment: (row.environment as string | null) ?? 'production',
+      subaddress: (row.subaddress as string | null) ?? null,
+      communication_address: (row.smtp_email as string | null) ?? null,
+      certificate_status: (row.certificate_status as string | null) ?? null,
+      certificate_next_check_at: (row.certificate_next_check_at as string | null) ?? null,
+      certificate_fingerprint_sha256: (row.certificate_fingerprint_sha256 as string | null) ?? null,
+    })).filter((row) => Boolean(row.actor_id && row.route_id && row.communication_address))
+  }
+
+  if (!isMissingSchema(scopedResult.error)) throw scopedResult.error
+
+  // Pre-O6.4 fallback: still keep the hard filters so the refresh never scans gas routes
+  // or non-PRODAT rows if the new scoped view has not been migrated yet.
   const result = await supabaseService
     .from('platform_actor_send_readiness_v')
     .select('actor_id,ediel_id,route_id,message_family,environment,subaddress,communication_address,certificate_status,certificate_next_check_at,certificate_fingerprint_sha256')
@@ -262,7 +287,7 @@ async function listCertificateLookupRoutes(limit = 1000): Promise<CertificateLoo
     .limit(limit)
 
   if (result.error) {
-    if (['42P01', '42703', 'PGRST205'].includes(result.error.code ?? '')) return []
+    if (isMissingSchema(result.error)) return []
     throw result.error
   }
 

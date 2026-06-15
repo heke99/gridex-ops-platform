@@ -78,6 +78,14 @@ export type GridOwnerRow = {
   can_use_for_utilts?: boolean | null;
   can_start_supplier_switch?: boolean | null;
   certificate_source?: string | null;
+  electricity_scope_status?: string | null;
+  excluded_from_electricity_scope?: boolean | null;
+  manual_review_required?: boolean | null;
+  manual_review_reason?: string | null;
+  supplier_switch_readiness_status?: string | null;
+  primary_role_group?: string | null;
+  is_electricity_grid_owner_scope?: boolean | null;
+  role_aware_blocking_reasons?: string[] | null;
 };
 
 export type ElectricitySupplierRow = {

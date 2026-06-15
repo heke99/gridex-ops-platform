@@ -40,6 +40,37 @@ type CertRow = {
   next_check_at: string | null
 }
 
+
+type RoleReadinessRow = {
+  role_group: string
+  actor_count: number | null
+  supplier_switch_ready_count: number | null
+  excluded_from_electricity_scope_count: number | null
+  manual_review_required_count: number | null
+  missing_or_invalid_certificate_count: number | null
+  missing_prodat_route_count: number | null
+  unsafe_or_missing_subaddress_count: number | null
+  missing_contact_path_count: number | null
+  missing_ediel_id_count: number | null
+  open_blocking_conflicts_count: number | null
+}
+
+type GridOwnerSupplierSwitchRow = {
+  platform_market_actor_id: string
+  actor_name: string | null
+  ediel_id: string | null
+  supplier_switch_readiness_status: string | null
+  can_start_supplier_switch: boolean | null
+  is_electricity_grid_owner_scope: boolean | null
+  electricity_scope_status: string | null
+  missing_or_invalid_certificate: boolean | null
+  missing_prodat_route: boolean | null
+  unsafe_or_missing_subaddress: boolean | null
+  missing_contact_path: boolean | null
+  missing_ediel_id: boolean | null
+  manual_review_required: boolean | null
+}
+
 type ActorSummary = {
   actor_id: string
   actor_name: string | null
@@ -117,6 +148,7 @@ function actorMatchesRoleFilter(roles: string[] | null | undefined, filter: stri
   if (filter === 'energy_service_company') return normalized.some((role) => ['energy_service_company', 'esp', 'asp'].includes(role))
   if (filter === 'system_supplier') return normalized.some((role) => ['system_supplier', 'systemleverantor', 'systemleverantör'].includes(role))
   if (filter === 'balance_responsible_party') return normalized.some((role) => ['balance_responsible_party', 'balanceresponsible', 'balanceresponsibleparty', 'balanceresponsible', 'brp', 'bsp'].includes(role))
+  if (filter === 'gas') return normalized.some((role) => ['gas_grid_owner', 'gas_owner', 'gas_network_owner', 'gas_distribution_system_operator', 'gasnat', 'gasnät'].includes(role))
   return normalized.includes(filter)
 }
 
@@ -134,6 +166,11 @@ function statusLabel(value: string | null | undefined) {
     case 'no_electricity_routes': return 'Saknar elroutes'
     case 'ready_for_auto_send': return 'Redo för auto-send'
     case 'missing_certificate': return 'Saknar certifikat'
+    case 'missing_or_invalid_certificate': return 'Saknar/ogiltigt certifikat'
+    case 'missing_prodat_route': return 'Saknar PRODAT-route'
+    case 'unsafe_or_missing_subaddress': return 'Saknar/osäker subadress'
+    case 'missing_contact_path': return 'Saknar kontaktväg'
+    case 'missing_ediel_id': return 'Saknar Ediel-ID'
     case 'expired_certificate': return 'Certifikat utgånget'
     case 'certificate_expires_soon': return 'Certifikat går ut snart'
     case 'route_not_verified': return 'Route ej verifierad'
@@ -141,12 +178,22 @@ function statusLabel(value: string | null | undefined) {
     case 'party_id_mismatch': return 'Ediel-ID mismatch'
     case 'needs_manual_review': return 'Behöver granskning'
     case 'needs_review': return 'Behöver granskning'
+    case 'manual_review_required': return 'Manuell review'
+    case 'excluded_from_electricity_scope': return 'Exkluderad från elhandel'
+    case 'gas_grid_owner': return 'Gas / separat scope'
+    case 'electricity_grid_owner': return 'Elnät'
+    case 'electricity_supplier': return 'Elhandlare'
+    case 'system_supplier': return 'Systemleverantör'
+    case 'energy_service_company': return 'Energitjänst/ASP/ESP'
+    case 'balance_responsible': return 'Balansansvarig'
+    case 'other': return 'Övrigt'
     default: return field(value)
   }
 }
 
 function tone(value: string | null | undefined) {
   if (value === 'ready' || value === 'ready_for_auto_send') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (value === 'excluded_from_electricity_scope' || value === 'gas_grid_owner') return 'border-slate-200 bg-slate-50 text-slate-700'
   if (value === 'partial') return 'border-sky-200 bg-sky-50 text-sky-800'
   if (value === 'missing_required_certificate' || value === 'missing_certificate' || value === 'expired_certificate') return 'border-red-200 bg-red-50 text-red-800'
   if (value === 'blocked') return 'border-red-300 bg-red-100 text-red-900'
@@ -254,6 +301,31 @@ async function loadRuns(): Promise<RunRow[]> {
   return (result.data ?? []) as RunRow[]
 }
 
+async function loadRoleReadinessSummary(): Promise<RoleReadinessRow[]> {
+  const result = await supabaseService
+    .from('actor_readiness_by_role_v')
+    .select('role_group,actor_count,supplier_switch_ready_count,excluded_from_electricity_scope_count,manual_review_required_count,missing_or_invalid_certificate_count,missing_prodat_route_count,unsafe_or_missing_subaddress_count,missing_contact_path_count,missing_ediel_id_count,open_blocking_conflicts_count')
+
+  if (result.error) {
+    if (['42P01', '42703', 'PGRST205'].includes(result.error.code ?? '')) return []
+    throw result.error
+  }
+  return (result.data ?? []) as RoleReadinessRow[]
+}
+
+async function loadGridOwnerSupplierSwitchReadiness(): Promise<GridOwnerSupplierSwitchRow[]> {
+  const result = await supabaseService
+    .from('grid_owner_supplier_switch_readiness_v')
+    .select('platform_market_actor_id,actor_name,ediel_id,supplier_switch_readiness_status,can_start_supplier_switch,is_electricity_grid_owner_scope,electricity_scope_status,missing_or_invalid_certificate,missing_prodat_route,unsafe_or_missing_subaddress,missing_contact_path,missing_ediel_id,manual_review_required')
+    .limit(1000)
+
+  if (result.error) {
+    if (['42P01', '42703', 'PGRST205'].includes(result.error.code ?? '')) return []
+    throw result.error
+  }
+  return (result.data ?? []) as GridOwnerSupplierSwitchRow[]
+}
+
 async function loadCertificates(): Promise<CertRow[]> {
   const result = await supabaseService
     .from('platform_actor_certificates')
@@ -276,7 +348,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
   const statusFilter = params.status ?? 'all'
   const queryFilter = String(params.q ?? '').trim().toLowerCase()
   const loadErrors: string[] = []
-  const [rawRows, runs, certificates] = await Promise.all([
+  const [rawRows, runs, certificates, roleReadiness, gridOwnerReadiness] = await Promise.all([
     listActorSendReadiness(3000).catch((error) => {
       loadErrors.push(`Readiness kunde inte laddas: ${error instanceof Error ? error.message : String(error)}`)
       return [] as ActorSendReadinessRow[]
@@ -288,6 +360,14 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
     loadCertificates().catch((error) => {
       loadErrors.push(`Certifikatkontroller kunde inte laddas: ${error instanceof Error ? error.message : String(error)}`)
       return [] as CertRow[]
+    }),
+    loadRoleReadinessSummary().catch((error) => {
+      loadErrors.push(`Rollbaserad readiness kunde inte laddas: ${error instanceof Error ? error.message : String(error)}`)
+      return [] as RoleReadinessRow[]
+    }),
+    loadGridOwnerSupplierSwitchReadiness().catch((error) => {
+      loadErrors.push(`Nätägare-readiness kunde inte laddas: ${error instanceof Error ? error.message : String(error)}`)
+      return [] as GridOwnerSupplierSwitchRow[]
     }),
   ])
   const rows = rawRows.map(normalizeReadinessRow)
@@ -308,11 +388,27 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
       return field(a.actor_name).localeCompare(field(b.actor_name), 'sv')
     })
 
+  const electricityGridOwners = gridOwnerReadiness.filter((row) => row.is_electricity_grid_owner_scope === true)
+  const excludedGridOwners = gridOwnerReadiness.filter((row) => row.electricity_scope_status === 'excluded_from_electricity_scope')
+  const gridOwnerMetric = {
+    total: electricityGridOwners.length,
+    ready: electricityGridOwners.filter((row) => row.can_start_supplier_switch === true).length,
+    missingCertificate: electricityGridOwners.filter((row) => row.missing_or_invalid_certificate === true).length,
+    missingRoute: electricityGridOwners.filter((row) => row.missing_prodat_route === true).length,
+    missingSubaddress: electricityGridOwners.filter((row) => row.unsafe_or_missing_subaddress === true).length,
+    missingContact: electricityGridOwners.filter((row) => row.missing_contact_path === true).length,
+    missingEdielId: electricityGridOwners.filter((row) => row.missing_ediel_id === true).length,
+    manualReview: electricityGridOwners.filter((row) => row.manual_review_required === true).length,
+    excluded: excludedGridOwners.length,
+  }
+  const roleSummaryByGroup = new Map(roleReadiness.map((row) => [row.role_group, row]))
+  const separateRoleGroups = ['electricity_supplier', 'system_supplier', 'energy_service_company', 'balance_responsible', 'gas_grid_owner', 'other']
+
   return (
     <main className="space-y-6">
       <AdminHeader
         title="Aktörsberedskap och autosändning"
-        subtitle="Visar en rad per aktör. PRODAT, UTILTS och certifikat visas som detaljer så samma aktör inte ser ut som dubbletter."
+        subtitle="Rollbaserad readiness: leverantörsbyte räknar bara elnät, medan gas, systemleverantörer och övriga roller visas separat."
       />
 
       {loadErrors.length > 0 ? (
@@ -324,6 +420,43 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
           </ul>
         </section>
       ) : null}
+
+      <section className="grid gap-3 md:grid-cols-4">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+          <div className="text-2xl font-semibold">{gridOwnerMetric.ready}/{gridOwnerMetric.total}</div>
+          <div className="mt-1 text-sm font-medium">Nätägare redo för elhandel</div>
+          <div className="mt-1 text-xs">Endast elnät i supplier-switch scope.</div>
+        </div>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-900">
+          <div className="text-2xl font-semibold">{gridOwnerMetric.missingCertificate}</div>
+          <div className="mt-1 text-sm font-medium">Elnät saknar certifikat</div>
+          <div className="mt-1 text-xs">O6.4A cert-refresh kör bara dessa säkra kandidater.</div>
+        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+          <div className="text-2xl font-semibold">{gridOwnerMetric.missingRoute}</div>
+          <div className="mt-1 text-sm font-medium">PRODAT-route saknas</div>
+          <div className="mt-1 text-xs">Manuell review. Ingen gissad route skapas.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-800">
+          <div className="text-2xl font-semibold">{gridOwnerMetric.excluded}</div>
+          <div className="mt-1 text-sm font-medium">Gas/test/system exkluderade</div>
+          <div className="mt-1 text-xs">Blockerar inte elhandelns leverantörsbyte.</div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        {separateRoleGroups.map((roleGroup) => {
+          const row = roleSummaryByGroup.get(roleGroup)
+          if (!row) return null
+          return (
+            <div key={roleGroup} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-xl font-semibold text-slate-950">{field(row.actor_count)}</div>
+              <div className="mt-1 text-sm font-medium text-slate-700">{statusLabel(roleGroup)}</div>
+              <div className="mt-1 text-xs text-slate-500">Redo elflöde: {field(row.supplier_switch_ready_count)} · Exkluderade: {field(row.excluded_from_electricity_scope_count)}</div>
+            </div>
+          )
+        })}
+      </section>
 
       <section className="grid gap-3 md:grid-cols-4">
         {summarizeStatus(actorSummaries).map(([status, count]) => (
@@ -347,7 +480,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
         </form>
         <form action={refreshActorCertificatesAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-base font-semibold text-slate-950">Kontrollera certifikat</h2>
-          <p className="mt-1 text-sm text-slate-600">Söker mottagarcertifikat via befintliga certifikat och Expisoft LDAP. Saknas certifikat blockeras endast routes där certifikat krävs.</p>
+          <p className="mt-1 text-sm text-slate-600">Söker mottagarcertifikat bara för blockerade elnät i supplier-switch scope. Gas, systemleverantörer och övriga roller skannas inte här.</p>
           <button className="mt-4 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Kontrollera igen</button>
         </form>
         <form action={confirmSafeBlankSubaddressesAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -372,6 +505,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
               <option value="energy_service_company">Energitjänsteföretag</option>
               <option value="balance_responsible_party">Balansansvariga</option>
               <option value="system_supplier">Systemleverantörer</option>
+              <option value="gas">Gas / separat scope</option>
             </select>
           </label>
           <label className="text-xs font-bold text-slate-700">Route-scope
@@ -401,7 +535,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
             <a href="/admin/ediel/auto-readiness" className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700">Rensa</a>
           </div>
         </div>
-        <p className="mt-2 text-xs text-slate-500">Visar {actorSummaries.length} aktörer baserat på {filteredRows.length} route-rader. Standardläget visar elhandel-routes och döljer GAS/övriga route-typer.</p>
+        <p className="mt-2 text-xs text-slate-500">Visar {actorSummaries.length} aktörer baserat på {filteredRows.length} route-rader. Leverantörsbyte räknar bara elnät; gas och övriga roller visas separat och blockerar inte elflödet.</p>
       </form>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

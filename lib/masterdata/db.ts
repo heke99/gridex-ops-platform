@@ -190,10 +190,18 @@ export async function listGridOwners(
       can_use_for_utilts: row.can_use_for_utilts === true,
       can_start_supplier_switch: row.can_start_supplier_switch === true,
       certificate_source: (row.certificate_source as string | null) ?? null,
+      electricity_scope_status: (row.electricity_scope_status as string | null) ?? null,
+      excluded_from_electricity_scope: row.excluded_from_electricity_scope === true,
+      manual_review_required: row.manual_review_required === true,
+      manual_review_reason: (row.manual_review_reason as string | null) ?? null,
+      supplier_switch_readiness_status: (row.supplier_switch_readiness_status as string | null) ?? null,
+      primary_role_group: (row.primary_role_group as string | null) ?? null,
+      is_electricity_grid_owner_scope: row.is_electricity_grid_owner_scope === true,
+      role_aware_blocking_reasons: (row.role_aware_blocking_reasons as string[] | null) ?? null,
     })) as GridOwnerRow[];
 
     if (!options.customerFlowOnly) return rows;
-    return rows.filter((row) => row.is_active && row.lifecycle_status !== "blocked" && (row.can_start_supplier_switch === true || (row.verified_for_customer_flow === true && row.verification_status === "verified")) && Boolean(row.ediel_id));
+    return rows.filter((row) => row.is_active && row.lifecycle_status !== "blocked" && row.excluded_from_electricity_scope !== true && row.is_electricity_grid_owner_scope === true && row.can_start_supplier_switch === true && Boolean(row.ediel_id));
   }
 
   if (!missingSchema(verifiedView.error)) throw verifiedView.error;

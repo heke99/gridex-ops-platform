@@ -492,20 +492,35 @@ async function listRoutesForActor(actorId: string, gridOwnerId?: string | null):
 }
 
 async function listScheduledCandidates(limit: number): Promise<RefreshRoute[]> {
-  const { data, error } = await supabaseService
-    .from('ediel_certificate_refresh_candidates_v')
-    .select('platform_market_actor_id,grid_owner_id,company_id,ediel_id,smtp_email,subaddress,environment')
+  const selectColumns = 'platform_market_actor_id,route_id,grid_owner_id,company_id,ediel_id,smtp_email,subaddress,environment'
+  const scoped = await supabaseService
+    .from('ediel_blocked_grid_owner_certificate_refresh_candidates_v')
+    .select(selectColumns)
     .limit(limit)
-  if (error) {
-    if (isMissingSchema(error)) return []
-    throw error
+
+  let rows: Array<Record<string, unknown>> = []
+  if (!scoped.error) {
+    rows = (scoped.data ?? []) as Array<Record<string, unknown>>
+  } else if (!isMissingSchema(scoped.error)) {
+    throw scoped.error
+  } else {
+    const fallback = await supabaseService
+      .from('ediel_certificate_refresh_candidates_v')
+      .select('platform_market_actor_id,grid_owner_id,company_id,ediel_id,smtp_email,subaddress,environment')
+      .limit(limit)
+    if (fallback.error) {
+      if (isMissingSchema(fallback.error)) return []
+      throw fallback.error
+    }
+    rows = (fallback.data ?? []) as Array<Record<string, unknown>>
   }
-  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
+
+  return rows.map((row) => {
     const edielId = clean(row.ediel_id)
     const smtpEmail = normalizeEmail(row.smtp_email)
     return {
       actor_id: clean(row.platform_market_actor_id),
-      route_id: null,
+      route_id: clean(row.route_id),
       grid_owner_id: clean(row.grid_owner_id),
       company_id: clean(row.company_id),
       ediel_id: edielId,

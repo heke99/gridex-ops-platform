@@ -130,8 +130,10 @@ export default async function NetworkOwnersPage({
  ].filter(Boolean).join(', ')
 
  const activeCount = gridOwners.filter((owner) => owner.is_active).length
- const verifiedCount = gridOwners.filter((owner) => owner.verification_status === 'verified' || owner.verified_for_customer_flow === true).length
- const needsReviewCount = gridOwners.filter((owner) => owner.verification_status && owner.verification_status !== 'verified').length
+ const electricityScopeOwners = gridOwners.filter((owner) => owner.excluded_from_electricity_scope !== true && owner.is_electricity_grid_owner_scope === true)
+ const verifiedCount = electricityScopeOwners.filter((owner) => owner.can_start_supplier_switch === true || owner.verification_status === 'verified' || owner.verified_for_customer_flow === true).length
+ const needsReviewCount = electricityScopeOwners.filter((owner) => owner.can_start_supplier_switch !== true && owner.verification_status && owner.verification_status !== 'verified').length
+ const excludedCount = gridOwners.filter((owner) => owner.excluded_from_electricity_scope === true).length
 
  return (
  <div className="space-y-6">
@@ -150,7 +152,7 @@ export default async function NetworkOwnersPage({
  </h1>
  <p className="mt-2 max-w-3xl text-sm text-slate-700 ">
  Hantera register över nätägare med kod, EDIEL-id, org.nr och kontaktuppgifter.
- Dessa används av kundkort, anläggningar, mätpunkter och leverantörsbyte.
+ Dessa används av kundkort, anläggningar, mätpunkter och leverantörsbyte. Gas, test och rena systemaktörer visas separat och ska inte räknas som blockerande elnät.
  </p>
  </div>
 
@@ -208,21 +210,21 @@ export default async function NetworkOwnersPage({
  </div>
  </div>
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Verifierade</div>
+ <div className="text-slate-700 ">Verifierade elnät</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
  {verifiedCount}
  </div>
  </div>
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Behöver åtgärd</div>
+ <div className="text-slate-700 ">Elnät behöver åtgärd</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
  {needsReviewCount}
  </div>
  </div>
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Redigeringsläge</div>
+ <div className="text-slate-700 ">Exkluderade från elhandel</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
- {editingGridOwner ? editingGridOwner.name : 'Nej'}
+ {excludedCount}
  </div>
  </div>
  </div>
@@ -231,7 +233,7 @@ export default async function NetworkOwnersPage({
  <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-950 shadow-sm">
  <h2 className="text-lg font-semibold text-slate-950">Endast platform/teknisk admin ändrar nätägare</h2>
  <p className="mt-2">Tenant-admins ska välja verifierade aktörer i kundflöden. Tekniska fält som Ediel-id, subadress, certifikat, transportkanal och produktions-/testmiljö ska hanteras centralt så att ett elbolag inte råkar skapa felaktig route eller osäker mottagare.</p>
- <p className="mt-2">Batch O2 fyller bara subadress automatiskt när exakt en säker subadress finns i aktörsregistret. Saknas subadress eller certifikat visas det som åtgärd, inte som gissning.</p>
+ <p className="mt-2">Batch O6.4 räknar bara elnät i supplier-switch readiness. Gasaktörer exkluderas från elhandel, missing PRODAT-route blir manuell review och certifikatsökning körs bara för blockerade elnät.</p>
  </section>
 
  <ActorRegistryImportPanel importRuns={importRuns} />

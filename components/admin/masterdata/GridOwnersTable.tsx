@@ -34,12 +34,16 @@ function VerificationBadge({ status }: { status?: string | null }) {
     ambiguous_subaddress: "Välj subadress",
     needs_contact: "Saknar kontaktväg",
     unresolved_duplicate: "Dubblett",
+    excluded_from_electricity_scope: "Exkluderad från elhandel",
+    manual_review_required: "Manuell review",
   };
   const tone = normalized === "verified"
     ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-    : normalized === "unresolved_duplicate" || normalized === "ambiguous_subaddress"
-      ? "bg-red-100 text-red-800 border-red-200"
-      : "bg-amber-100 text-amber-900 border-amber-200";
+    : normalized === "excluded_from_electricity_scope"
+      ? "bg-slate-100 text-slate-700 border-slate-200"
+      : normalized === "unresolved_duplicate" || normalized === "ambiguous_subaddress"
+        ? "bg-red-100 text-red-800 border-red-200"
+        : "bg-amber-100 text-amber-900 border-amber-200";
   return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${tone}`}>{labels[normalized] ?? normalized}</span>;
 }
 
@@ -126,7 +130,7 @@ export default function GridOwnersTable({ gridOwners }: GridOwnersTableProps) {
       <div className="border-b border-slate-200 px-6 py-4 ">
         <h2 className="text-lg font-semibold text-slate-900 ">Registrerade nätägare</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Tabellen visar om nätägaren kan användas i kundintag, PRODAT, UTILTS och leverantörsbyte. Systemet fyller inte subadress automatiskt om den saknas i registret.
+          Tabellen visar om aktören kan användas i elhandelns kundintag, PRODAT, UTILTS och leverantörsbyte. Gas, test och rena systemaktörer visas som exkluderade och blockerar inte elflödet.
         </p>
       </div>
 
@@ -151,6 +155,9 @@ export default function GridOwnersTable({ gridOwners }: GridOwnersTableProps) {
                 <td className="px-6 py-4">
                   <div className="font-medium">{owner.name}</div>
                   <div className="mt-1 text-xs text-slate-700 ">{owner.city || "—"} {owner.country ? `• ${owner.country}` : ""}</div>
+                  {owner.excluded_from_electricity_scope ? (
+                    <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">Exkluderad från elhandelns leverantörsbyte</div>
+                  ) : null}
                   {Number(owner.duplicate_count ?? 0) > 1 ? (
                     <div className="mt-2 text-xs font-semibold text-red-700">Möjlig dubblett: {owner.duplicate_count} träffar</div>
                   ) : null}
@@ -182,6 +189,8 @@ export default function GridOwnersTable({ gridOwners }: GridOwnersTableProps) {
                     <ReadinessPill ready={owner.can_start_supplier_switch} label="Leverantörsbyte" />
                   </div>
                   <div className="mt-2 text-xs text-slate-600">{owner.communication_email ?? owner.email ?? owner.phone ?? "Ingen kontaktinfo"}</div>
+                  {owner.manual_review_required ? <div className="mt-1 text-xs font-semibold text-amber-800">Manuell review: {owner.manual_review_reason ?? "krävs"}</div> : null}
+                  {owner.supplier_switch_readiness_status ? <div className="mt-1 text-xs text-slate-500">Switch-status: {owner.supplier_switch_readiness_status}</div> : null}
                 </td>
                 <td className="px-6 py-4">
                   <VerificationBadge status={owner.verification_status} />
@@ -192,7 +201,7 @@ export default function GridOwnersTable({ gridOwners }: GridOwnersTableProps) {
                 <td className="px-6 py-4">
                   <StatusBadge active={owner.is_active} />
                   <div className="mt-2 text-xs text-slate-600">{owner.actor_registry_status ?? "under_review"}</div>
-                  {owner.verification_status !== "verified" ? (
+                  {owner.excluded_from_electricity_scope !== true && owner.verification_status !== "verified" ? (
                     <form action={acknowledgeGridOwnerReviewsAction} className="mt-2">
                       <input type="hidden" name="grid_owner_id" value={owner.id} />
                       <button type="submit" className="text-xs font-semibold text-slate-600 underline-offset-2 hover:underline">Markera granskad</button>
@@ -207,15 +216,17 @@ export default function GridOwnersTable({ gridOwners }: GridOwnersTableProps) {
                     >
                       Redigera
                     </Link>
-                    <form action={searchGridOwnerCertificateNowAction}>
-                      <input type="hidden" name="grid_owner_id" value={owner.id} />
-                      <button
-                        type="submit"
-                        className="inline-flex items-center rounded-xl border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50 "
-                      >
-                        Sök certifikat nu
-                      </button>
-                    </form>
+                    {owner.excluded_from_electricity_scope !== true ? (
+                      <form action={searchGridOwnerCertificateNowAction}>
+                        <input type="hidden" name="grid_owner_id" value={owner.id} />
+                        <button
+                          type="submit"
+                          className="inline-flex items-center rounded-xl border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50 "
+                        >
+                          Sök certifikat nu
+                        </button>
+                      </form>
+                    ) : null}
                     <Link
                       href="/admin/ediel/auto-readiness"
                       className="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 "

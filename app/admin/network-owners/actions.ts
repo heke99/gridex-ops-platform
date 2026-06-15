@@ -139,7 +139,7 @@ export async function refreshGridOwnerCertificatesAction(): Promise<void> {
 
     redirectParams = {
       status: result.ok ? "success" : "error",
-      message: `Certifikatsökning klar. Bearbetade ${result.processed} aktörer, hittade ${result.found} certifikat, infogade ${result.inserted}, uppdaterade ${result.updated}. Misslyckade ${result.errors?.length ?? 0}, skippade ${result.skipped?.length ?? 0}.${result.errors?.[0] ? ` Första felet: ${actionErrorMessage(result.errors[0])}` : ""}`,
+      message: `Certifikatsökning klar för blockerade elnät i supplier-switch scope. Bearbetade ${result.processed} aktörer, hittade ${result.found} certifikat, infogade ${result.inserted}, uppdaterade ${result.updated}. Misslyckade ${result.errors?.length ?? 0}, skippade ${result.skipped?.length ?? 0}.${result.errors?.[0] ? ` Första felet: ${actionErrorMessage(result.errors[0])}` : ""}`,
     };
   } catch (error) {
     console.error("network_owners_certificate_refresh_action_failed", error);
