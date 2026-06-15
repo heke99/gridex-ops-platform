@@ -128,10 +128,21 @@ export type CustomerPortalMeteringValueRow = {
   created_at: string
 }
 
+export type CustomerPortalBranding = {
+  companyId: string | null
+  brandName: string
+  portalName: string
+  supportEmail: string | null
+  websiteUrl: string | null
+  logoUrl: string | null
+  primaryColor: string
+}
+
 export type CustomerPortalContext = {
   userEmail: string | null
   customerIds: string[]
   customers: CustomerPortalCustomerRow[]
+  branding: CustomerPortalBranding
 }
 
 export type CustomerConsumptionMonth = {

@@ -20,7 +20,7 @@ export default async function PortalInvoicesPage() {
       <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
         <h1 className="text-3xl font-bold tracking-tight text-slate-950">Mina fakturor</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-          Här visas fakturor som fakturapartnern har skapat och skickat tillbaka till Gridex.
+          Här visas fakturor som har skapats och bekräftats hos {context.branding.brandName}.
           Fakturaunderlag som ännu inte blivit faktura visas inte här.
         </p>
       </section>

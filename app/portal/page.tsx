@@ -11,12 +11,12 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-function EmptyPortalState() {
+function EmptyPortalState({ brandName }: { brandName: string }) {
   return (
     <section className="rounded-[32px] border border-amber-200 bg-amber-50 p-8">
       <h2 className="text-xl font-semibold text-amber-950">Ingen kundkoppling hittades</h2>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-amber-900">
-        Ditt login är aktivt, men det är ännu inte kopplat till en kund i Gridex.
+        Ditt login är aktivt, men det är ännu inte kopplat till ett kundkonto hos {brandName}.
         Koppla kontot säkert med personnummer, e-post, namn och anläggnings-ID.
       </p>
       <div className="mt-5 flex flex-wrap gap-3">
@@ -46,8 +46,9 @@ export default async function CustomerPortalPage({
   const { context, invoices, sites, meteringPoints, consumptionMonths } =
     await getPortalDashboardData()
 
-  if (context.customerIds.length === 0) return <EmptyPortalState />
+  if (context.customerIds.length === 0) return <EmptyPortalState brandName={context.branding.brandName} />
 
+  const brandName = context.branding.brandName
   const latestInvoice = invoices[0] ?? null
   const latestConsumption = consumptionMonths[0] ?? null
   const primaryCustomer = context.customers[0] ?? null
@@ -56,7 +57,7 @@ export default async function CustomerPortalPage({
     <div className="space-y-8">
       {params?.kopplad === '1' ? (
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
-          Kundkontot är kopplat. Dina fakturor, anläggningar och förbrukning hämtas nu från Gridex-data.
+          Kundkontot är kopplat. Dina fakturor, anläggningar och förbrukning visas nu här.
         </section>
       ) : null}
 
@@ -70,9 +71,8 @@ export default async function CustomerPortalPage({
               Välkommen{primaryCustomer?.full_name ? `, ${primaryCustomer.full_name}` : ''}
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-              Här ser du dina fakturor från fakturapartnern, din förbrukning och dina
-              anläggningar. Fakturorna visas först när partnern har skapat fakturan och
-              skickat tillbaka fakturadata/PDF till Gridex.
+              Här ser du dina fakturor, din förbrukning och dina anläggningar.
+              Fakturorna visas först när din faktura har skapats och bekräftats.
             </p>
           </div>
 
@@ -170,10 +170,10 @@ export default async function CustomerPortalPage({
         <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Så fungerar fakturorna</h2>
           <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-            <p>Gridex tar emot mätvärden från nätägaren och skapar fakturaunderlag.</p>
+            <p>{brandName} tar emot mätvärden från nätägaren och tar fram ditt fakturaunderlag.</p>
             <p>
-              Fakturapartnern skapar den faktiska fakturan. När partnern skickar tillbaka
-              fakturadata och PDF visas den här i kundportalen.
+              Den faktiska fakturan skapas hos fakturapartnern. När fakturan är klar
+              visas den här i kundportalen.
             </p>
             <p>
               Därför visas bara fakturor som är verkligt skapade hos partnern, inte preliminära underlag.
