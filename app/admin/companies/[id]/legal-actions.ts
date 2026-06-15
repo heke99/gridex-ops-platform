@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { REQUIRED_LEGAL_TEXT_TYPES } from '@/lib/opsMaster/readiness'
+import { seedGridexDefaultLegalPackage } from '@/lib/tenant/legalDefaults'
 import { supabaseService } from '@/lib/supabase/service'
 
 function text(value: FormDataEntryValue | null) {
@@ -176,5 +177,33 @@ export async function archiveLegalTextVersionAction(formData: FormData) {
   } catch (error) {
     if (isRedirectError(error)) throw error
     redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Versionen kunde inte arkiveras.' })
+  }
+}
+
+export async function seedDefaultLegalPackageAction(formData: FormData) {
+  const admin = await requirePlatformAdminActionAccess()
+  const companyId = text(formData.get('company_id'))
+
+  try {
+    if (!companyId) throw new Error('Bolag saknas.')
+    const result = await seedGridexDefaultLegalPackage(companyId, admin.userId)
+    if (result.missingTypes.length > 0) {
+      throw new Error(`Gridex standardjuridik saknar mallar: ${result.missingTypes.join(', ')}`)
+    }
+
+    await supabaseService.from('audit_logs').insert({
+      company_id: companyId,
+      actor_user_id: admin.userId,
+      action: 'LEGAL_DEFAULT_PACKAGE_SEEDED',
+      entity_type: 'legal_text_versions',
+      entity_id: result.bundleId,
+      new_values: result,
+    }).then(() => null)
+
+    revalidatePath(`/admin/companies/${companyId}`)
+    redirectBack(companyId, { success: result.insertedCount > 0 ? 'Gridex standardjuridik kopplades till bolaget.' : 'Bolaget har redan publicerad juridik för alla krav.' })
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Standardjuridiken kunde inte kopplas.' })
   }
 }

@@ -20,6 +20,7 @@ import { getCompanyCommunicationLogs, type CommunicationLog } from '@/lib/email/
 import TenantPlatformControls from './TenantPlatformControls'
 import { computeTenantReadiness, listWebhookSubscriptions } from '@/lib/admin/websiteIntegrationOps'
 import { getTenantWebsiteReadiness, listCompanyLegalTextVersions, REQUIRED_LEGAL_TEXT_TYPES, type LegalTextVersion, type TenantWebsiteReadiness } from '@/lib/opsMaster/readiness'
+import { getTenantLegalDefaultStatus, legalTypeLabel, type TenantLegalDefaultStatus } from '@/lib/tenant/legalDefaults'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
 import {
   checkCompanyDomainVerificationAction,
@@ -31,7 +32,7 @@ import {
   updateEmailEventRuleAction,
   updateEmailTemplateAction,
 } from './email-actions'
-import { archiveLegalTextVersionAction, createLegalTextVersionAction, publishLegalTextVersionAction } from './legal-actions'
+import { archiveLegalTextVersionAction, createLegalTextVersionAction, publishLegalTextVersionAction, seedDefaultLegalPackageAction } from './legal-actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,6 +97,57 @@ type CompanyOperationalStats = {
   queuedEmails: number
   failedEmails: number
   sentEmailsThisMonth: number
+}
+
+
+type TenantIntakeTracking = {
+  total_applications: number
+  applications_this_month: number
+  pending_applications: number
+  completed_applications: number
+  applications_requiring_action: number
+  grid_owner_resolved: number
+  last_application_updated_at: string | null
+}
+
+type TenantEventMailReadiness = {
+  sender_email: string | null
+  sender_name: string | null
+  sender_verification_status: string | null
+  sender_is_active: boolean | null
+  fallback_allowed: boolean | null
+  active_templates: number
+  enabled_event_rules: number
+  can_send_customer_mail: boolean
+  blockers: string[] | null
+}
+
+async function getTenantIntakeTracking(companyId: string): Promise<TenantIntakeTracking | null> {
+  try {
+    const { data, error } = await supabaseService
+      .from('tenant_customer_intake_tracking_v')
+      .select('total_applications,applications_this_month,pending_applications,completed_applications,applications_requiring_action,grid_owner_resolved,last_application_updated_at')
+      .eq('company_id', companyId)
+      .maybeSingle()
+    if (error) return null
+    return data as TenantIntakeTracking | null
+  } catch {
+    return null
+  }
+}
+
+async function getTenantEventMailReadiness(companyId: string): Promise<TenantEventMailReadiness | null> {
+  try {
+    const { data, error } = await supabaseService
+      .from('tenant_event_mail_readiness_v')
+      .select('sender_email,sender_name,sender_verification_status,sender_is_active,fallback_allowed,active_templates,enabled_event_rules,can_send_customer_mail,blockers')
+      .eq('company_id', companyId)
+      .maybeSingle()
+    if (error) return null
+    return data as TenantEventMailReadiness | null
+  } catch {
+    return null
+  }
 }
 
 function monthStartIso() {
@@ -234,10 +286,12 @@ function CompanyLegalMasterSection({
   company,
   versions,
   websiteReadiness,
+  defaultStatus,
 }: {
   company: GovernanceCompany
   versions: LegalTextVersion[]
   websiteReadiness: TenantWebsiteReadiness | null
+  defaultStatus: TenantLegalDefaultStatus
 }) {
   const missingItems = websiteReadiness?.missing_items ?? []
   const publishedTypes = new Set(versions.filter((row) => row.status === 'published').map((row) => row.type))
@@ -256,6 +310,31 @@ function CompanyLegalMasterSection({
         <div className={`rounded-2xl border px-4 py-3 text-sm font-black ${missingItems.length === 0 && missingLegalTypes.length === 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
           {missingItems.length === 0 && missingLegalTypes.length === 0 ? 'Hemsidan är juridiskt redo' : 'Hemsidan är inte juridiskt redo'}
         </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+          <p className="text-sm font-black text-emerald-950">Gridex standardjuridik ingår från start</p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">
+            Alla tenants ska ha Allmänna villkor, Integritetspolicy, Ångerrättsinformation, Prisvillkor och Fullmaktstext. Tenantens egna publicerade texter används först. Om tenant saknar egna texter används Gridex standardpaket så avtal inte fastnar i onödan. Endast platform admin får ändra eller publicera juridiska versioner.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-black">
+            {REQUIRED_LEGAL_TEXT_TYPES.map((type) => (
+              <span key={type} className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-emerald-900">{legalTypeLabel(type)}</span>
+            ))}
+          </div>
+          <p className="mt-3 text-xs font-bold text-emerald-800">
+            Status: {defaultStatus.hasAllRequiredLegalTexts ? 'juridik komplett' : `saknar ${defaultStatus.missingTypes.map(legalTypeLabel).join(', ')}`}
+            {defaultStatus.usingGridexDefaults ? ' · använder Gridex standardpaket' : ''}
+            {defaultStatus.hasTenantOwnedPublishedTexts ? ' · har tenant-egna publicerade texter' : ''}
+          </p>
+        </div>
+        <form action={seedDefaultLegalPackageAction} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+          <input type="hidden" name="company_id" value={company.id} />
+          <p className="text-sm font-black text-slate-950">Standardpaket</p>
+          <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">Koppla/återställ saknade standardtexter från Gridex utan att ändra befintliga tenant-egna publicerade versioner.</p>
+          <button className="mt-4 w-full rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Koppla Gridex standardjuridik</button>
+        </form>
       </div>
 
       {missingItems.length > 0 || missingLegalTypes.length > 0 ? (
@@ -356,7 +435,8 @@ function CompanyEdielConfiguration({ company, config }: { company: GovernanceCom
     <section id="ediel-config" className="space-y-6">
       <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-900">Ediel SaaS-konfiguration</p>
-        <h2 className="mt-2 text-2xl font-black text-slate-950">Shared mailbox, aktörsrouting och bolagets Ediel-identitet</h2>
+        <h2 className="mt-2 text-2xl font-black text-slate-950">Live-profil: Ediel-identitet, produktion och route-readiness</h2>
+        <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-emerald-900">Denna del ska hållas ren för produktion/live. Tester och certifiering ligger separat via knappen på bolagskortet så testdata inte blandas med live-routes.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <ReadinessPill ok={readiness.actor} label="Ediel ID" />
           <ReadinessPill ok={readiness.brp} label="BRP" />
@@ -372,7 +452,6 @@ function CompanyEdielConfiguration({ company, config }: { company: GovernanceCom
             ['#communication', 'Communication'],
             ['#route-profiles', 'Route profiles'],
             ['#message-rules', 'Message rules'],
-            ['#system-tests', 'System tests'],
             ['#operational-health', 'Operational health'],
           ].map(([href, label]) => (
             <a key={href} href={href} className="rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-emerald-900 hover:bg-emerald-100">{label}</a>
@@ -699,6 +778,9 @@ export default async function CompanyDetailPage({
     billingPartnerCount,
     legalTextVersions,
     tenantWebsiteReadiness,
+    tenantLegalDefaultStatus,
+    tenantIntakeTracking,
+    tenantEventMailReadiness,
   ] = await Promise.all([
     getCompanyGovernanceSummary(row),
     getActorTestingSummary(row.id),
@@ -715,6 +797,9 @@ export default async function CompanyDetailPage({
     getCompanyBillingPartnerCount(row.id),
     listCompanyLegalTextVersions(row.id),
     getTenantWebsiteReadiness(row.id),
+    getTenantLegalDefaultStatus(row.id),
+    getTenantIntakeTracking(row.id),
+    getTenantEventMailReadiness(row.id),
   ])
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
@@ -741,9 +826,17 @@ export default async function CompanyDetailPage({
         <ActionBanner success={actionSuccess} error={actionError} />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/admin/companies" className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            Tillbaka till bolag
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/companies" className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Tillbaka till bolag
+            </Link>
+            <Link href={`/admin/platform/companies/${company.id}/testing`} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 hover:bg-emerald-100">
+              Tester & certifiering
+            </Link>
+            <Link href={`/admin/platform/go-live/${company.id}`} className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50">
+              Go-live
+            </Link>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             {statusBadge(company)}
             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">{company.org_number ?? 'Orgnummer saknas'}</span>
@@ -776,7 +869,8 @@ export default async function CompanyDetailPage({
               <h2 className="mt-2 text-xl font-black text-emerald-950">{getActorTestingStatusLabel(actorSummary.actorTestStatus)}</h2>
               <p className="mt-2 text-sm leading-6 text-emerald-800">PRODAT: {actorSummary.prodatPassed}/{actorSummary.prodatTotal} godkända · UTILTS: {actorSummary.utiltsPassed}/{actorSummary.utiltsTotal} godkända.</p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link href={`/admin/platform/actor-testing/${company.id}`} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Öppna tester</Link>
+                <Link href={`/admin/platform/companies/${company.id}/testing`} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Tester & certifiering</Link>
+                <Link href={`/admin/platform/actor-testing/${company.id}`} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Aktörstester</Link>
                 <Link href={`/admin/platform/actor-testing/${company.id}/evidence`} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Bevispaket</Link>
               </div>
             </div>
@@ -823,7 +917,44 @@ export default async function CompanyDetailPage({
 
         <TenantPlatformControls companyId={company.id} companyName={company.name} />
 
-        <CompanyLegalMasterSection company={company} versions={legalTextVersions} websiteReadiness={tenantWebsiteReadiness} />
+        <section id="tenant-intake-tracking" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Kundintag</p>
+              <h2 className="mt-2 text-xl font-black text-slate-950">Ansökningar, automatisk pipeline och tenant-spårning</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Kedjan ska vara spårbar per tenant: ansökan → kund → avtal/prisversion → juridik/fullmakt → nätägare → Ediel-readiness → mail. Mismatch ska bli åtgärd, inte krasch eller felaktigt EDIFACT.</p>
+            </div>
+            <Link href={`/admin/external-contract-intakes?company_id=${company.id}`} className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white">Öppna ansökningar</Link>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+            <StatCard label="Totalt" value={tenantIntakeTracking?.total_applications ?? 0} />
+            <StatCard label="Denna månad" value={tenantIntakeTracking?.applications_this_month ?? 0} />
+            <StatCard label="Pågående" value={tenantIntakeTracking?.pending_applications ?? 0} />
+            <StatCard label="Klara" value={tenantIntakeTracking?.completed_applications ?? 0} />
+            <StatCard label="Kräver åtgärd" value={tenantIntakeTracking?.applications_requiring_action ?? 0} />
+            <StatCard label="Nätägare löst" value={tenantIntakeTracking?.grid_owner_resolved ?? 0} />
+          </div>
+          <p className="mt-4 text-xs font-bold text-slate-600">Senast uppdaterad: {formatDate(tenantIntakeTracking?.last_application_updated_at)}</p>
+        </section>
+
+        <section id="tenant-event-mail-readiness" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Eventmail</p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">Automatiska mail från tenantens registrerade avsändare</h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Systemet ska bara skicka kundmail när avsändare, domän/fallback, mall, eventregel, kund och avtalssnapshot är redo. Annars skapas adminåtgärd och utskicket stoppas.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ReadinessPill ok={tenantEventMailReadiness?.can_send_customer_mail ?? false} label="Kan skicka kundmail" />
+            <ReadinessPill ok={(tenantEventMailReadiness?.active_templates ?? 0) > 0} label="Aktiva mallar" />
+            <ReadinessPill ok={(tenantEventMailReadiness?.enabled_event_rules ?? 0) > 0} label="Eventregler" />
+          </div>
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+            <p>Avsändare: {tenantEventMailReadiness?.sender_name ?? company.name} &lt;{tenantEventMailReadiness?.sender_email ?? 'saknas'}&gt;</p>
+            <p>Status: {tenantEventMailReadiness?.sender_verification_status ?? 'saknas'} · fallback {tenantEventMailReadiness?.fallback_allowed ? 'tillåten' : 'ej tillåten'}</p>
+            {(tenantEventMailReadiness?.blockers ?? []).length > 0 ? <p className="mt-2 text-red-700">Blockerare: {(tenantEventMailReadiness?.blockers ?? []).join(', ')}</p> : <p className="mt-2 text-emerald-800">Mail-readiness ser klar ut.</p>}
+          </div>
+        </section>
+
+
+        <CompanyLegalMasterSection company={company} versions={legalTextVersions} websiteReadiness={tenantWebsiteReadiness} defaultStatus={tenantLegalDefaultStatus} />
 
         <section id="tenant-website-readiness" className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Website readiness</p>

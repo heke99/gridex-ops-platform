@@ -6,6 +6,7 @@ import { assessPublicOfferReadiness } from '@/lib/website/publicOfferReadiness'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { supabaseService } from '@/lib/supabase/service'
+import { seedGridexDefaultLegalPackage } from '@/lib/tenant/legalDefaults'
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
@@ -110,12 +111,39 @@ async function ensurePublishedLegalBundle(companyId: string, publicName: string)
     if (!latestByType.has(row.type)) latestByType.set(row.type, row as { id: string; type: string })
   }
 
-  const missing = REQUIRED_PUBLIC_LEGAL_TYPES.filter((type) => !latestByType.has(type))
+  let missing = REQUIRED_PUBLIC_LEGAL_TYPES.filter((type) => !latestByType.has(type))
   if (missing.length > 0) {
-    return {
-      id: null,
-      blockers: missing.map((type) => `Publicerad juridisk text saknas: ${type}`),
-      created: false,
+    const seeded = await seedGridexDefaultLegalPackage(companyId, null)
+    if (seeded.missingTypes.length > 0) {
+      return {
+        id: null,
+        blockers: seeded.missingTypes.map((type) => `Gridex standardjuridik saknar mall: ${type}`),
+        created: false,
+      }
+    }
+
+    const { data: seededVersions, error: seededError } = await supabaseService
+      .from('legal_text_versions')
+      .select('id,type,version,published_at,created_at')
+      .eq('company_id', companyId)
+      .eq('status', 'published')
+      .in('type', [...REQUIRED_PUBLIC_LEGAL_TYPES])
+      .order('type', { ascending: true })
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+
+    if (seededError) throw seededError
+    latestByType.clear()
+    for (const row of seededVersions ?? []) {
+      if (!latestByType.has(row.type)) latestByType.set(row.type, row as { id: string; type: string })
+    }
+    missing = REQUIRED_PUBLIC_LEGAL_TYPES.filter((type) => !latestByType.has(type))
+    if (missing.length > 0) {
+      return {
+        id: null,
+        blockers: missing.map((type) => `Publicerad juridisk text saknas: ${type}`),
+        created: false,
+      }
     }
   }
 

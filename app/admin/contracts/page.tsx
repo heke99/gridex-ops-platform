@@ -95,6 +95,14 @@ export default async function AdminContractsPage({ searchParams }: { searchParam
 
  <div className="grid gap-6 p-8 xl:grid-cols-[460px_minmax(0,1fr)]">
  <div className="xl:col-span-2"><ActionBanner success={actionSuccess} error={actionError} /></div>
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
+ <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 ">Avtalsmodell</p>
+ <h2 className="mt-2 text-xl font-black text-slate-950 ">Prisversion + juridik + snapshot</h2>
+ <p className="mt-2 max-w-5xl text-sm font-semibold leading-6 text-slate-700 ">
+ Prisversion är den exakta prisuppsättning kunden signerar mot, till exempel “Rörligt elpris 2026-06”. Avtal ska publiceras med prisversion, juridiskt paket och snapshot så kundens signerade villkor aldrig ändras retroaktivt. Om tenant saknar egna juridiska texter används Gridex standardpaket tills platform admin publicerar tenantens egna versioner.
+ </p>
+ </section>
+
  <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm xl:col-span-2">
  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 ">Operativt bolag</p>
  <h2 className="mt-2 text-xl font-semibold text-slate-950 ">{scope.companyName ?? 'Bolagskoppling saknas'}</h2>
