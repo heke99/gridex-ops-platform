@@ -303,6 +303,7 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
   const gridAreaCode = normaliseGridAreaCode(firstText(input, ['grid_area_code', 'gridAreaCode', 'site.grid_area_code', 'site.gridAreaCode', 'metadata.grid_area_code', 'energy_resolution.gridAreaCode']))
   const priceArea = normalisePriceArea(firstText(input, ['price_area_code', 'priceAreaCode', 'price_area', 'priceArea', 'site.price_area_code', 'site.priceAreaCode', 'metering_point.price_area_code', 'energy_resolution.priceArea']))
   const resolutionStatus = firstText(input, ['resolution_status', 'resolutionStatus', 'site.resolution_status', 'energy_resolution.resolutionStatus'])
+  const gridOwnerVerificationStatus = firstText(input, ['grid_owner_verification_status', 'gridOwnerVerificationStatus', 'site.grid_owner_verification_status', 'energy_resolution.gridOwnerVerificationStatus'])
   const facilityDataStatus = firstText(input, [
     'facility_data_status',
     'facilityDataStatus',
@@ -316,7 +317,7 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
   ])
   const informationRequestId = firstText(input, ['grid_owner_information_request_id', 'gridOwnerInformationRequestId', 'metadata.grid_owner_information_request_id'])
   const informationRequestStatus = firstText(input, ['grid_owner_information_request_status', 'gridOwnerInformationRequestStatus', 'metadata.grid_owner_information_request_status'])
-  const hasVerifiedGridOwner = isUuid(gridOwnerId) || isEdielId(gridOwnerEdielId) || Boolean(gridAreaCode && priceArea && ['grid_area_master_validated', 'facility_data_requested', 'facility_data_received', 'facility_verified'].includes(resolutionStatus ?? ''))
+  const hasVerifiedGridOwner = gridOwnerVerificationStatus === 'verified' && (isUuid(gridOwnerId) || isEdielId(gridOwnerEdielId) || Boolean(gridAreaCode && priceArea && ['grid_area_master_validated', 'facility_data_requested', 'facility_data_received', 'facility_verified'].includes(resolutionStatus ?? '')))
   const facilityHasControlledError = isControlledFacilityStatus(facilityDataStatus)
   const facilityVerified = !facilityHasControlledError && (firstBoolean(input, [
     'facility_data_verified',
@@ -371,7 +372,8 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
   }
   if (!hasVerifiedGridOwner) {
     missingFields.push('grid_owner')
-    addIssue(blockingReasons, { field: 'grid_owner', label: 'Nätägare saknas', message: 'Nätägare måste komma från verifierad nätområdes-/aktörsdata innan switch kan skickas.', action: 'Kör adressmatchning eller välj verifierad nätägare.' })
+    const verificationDetail = gridOwnerVerificationStatus && gridOwnerVerificationStatus !== 'verified' ? ` Status: ${gridOwnerVerificationStatus}.` : ''
+    addIssue(blockingReasons, { field: 'grid_owner', label: 'Nätägare ej verifierad', message: `Nätägare måste komma från verifierad nätområdes-/aktörsdata innan switch kan skickas.${verificationDetail}`, action: 'Kör adressmatchning eller låt superadmin verifiera nätägare, Ediel-ID, route, subadress, kontaktväg och certifikat.' })
   }
   if (!facilityVerified) {
     missingFields.push('facility_verified')
@@ -404,6 +406,7 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
   if (siteAddress && !gridAreaCode) warnings.push('address_without_grid_area')
   if (gridAreaCode && !priceArea) warnings.push('grid_area_without_price_area')
   if (resolutionStatus === 'needs_review') warnings.push('energy_resolution_needs_review')
+  if (gridOwnerVerificationStatus && gridOwnerVerificationStatus !== 'verified') warnings.push(`grid_owner_${gridOwnerVerificationStatus}`)
   if (informationRequestId || informationRequestStatus) warnings.push('grid_owner_information_request_open')
   if (gridOwnerId && !isUuid(gridOwnerId)) warnings.push('grid_owner_id_not_verified_uuid')
   if (pricePlanId && !isUuid(pricePlanId) && !pricePlanDefinition) warnings.push('price_plan_id_not_verified_uuid')

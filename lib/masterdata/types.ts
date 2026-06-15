@@ -48,6 +48,24 @@ export type GridOwnerRow = {
   created_by: string | null;
   updated_by: string | null;
   company_id?: string | null;
+  platform_market_actor_id?: string | null;
+  platform_grid_owner_id?: string | null;
+  verification_status?: 'verified' | 'needs_route' | 'needs_certificate' | 'needs_ediel_id' | 'needs_subaddress' | 'needs_contact' | 'unresolved_duplicate' | string | null;
+  verification_reasons?: string[] | null;
+  verified_for_customer_flow?: boolean | null;
+  actor_registry_status?: string | null;
+  certificate_status?: 'finns' | 'saknas' | 'utgånget' | 'fel_miljö' | 'fel_mottagare' | string | null;
+  certificate_environment?: string | null;
+  certificate_fingerprint_sha256?: string | null;
+  route_status?: string | null;
+  route_count?: number | null;
+  prodat_route_count?: number | null;
+  utilts_route_count?: number | null;
+  duplicate_count?: number | null;
+  duplicate_group_key?: string | null;
+  verification_checked_at?: string | null;
+  verified_at?: string | null;
+  verification_metadata?: Record<string, unknown> | null;
 };
 
 export type ElectricitySupplierRow = {

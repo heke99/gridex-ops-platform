@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { EnergyResolverInput, EnergyResolverResult, EnergyResolutionStatus, PriceArea } from '@/lib/energy/types'
+import { getGridOwnerVerification } from '@/lib/grid-owners/verification'
 
 const PRICE_AREAS: PriceArea[] = ['SE1', 'SE2', 'SE3', 'SE4']
 
@@ -89,10 +90,57 @@ function nextActionFor(status: EnergyResolutionStatus, hasFacilityData: boolean)
   return 'Granska ansökan manuellt innan automation fortsätter.'
 }
 
+
+async function mapPlatformGridOwnerToOpsGridOwner(platformGridOwnerId: string | null): Promise<string | null> {
+  const id = clean(platformGridOwnerId)
+  if (!id) return null
+  const { data, error } = await supabaseService
+    .from('platform_grid_owners')
+    .select('ops_grid_owner_id')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) {
+    if (missingSchema(error)) return id
+    throw error
+  }
+  return clean((data as { ops_grid_owner_id?: string | null } | null)?.ops_grid_owner_id) ?? id
+}
+
+async function applyGridOwnerVerification(resolved: EnergyResolverResult): Promise<EnergyResolverResult> {
+  if (!resolved.gridOwnerId) return resolved
+  const verification = await getGridOwnerVerification(resolved.gridOwnerId).catch(() => null)
+  if (!verification) {
+    return {
+      ...resolved,
+      automationAllowed: false,
+      gridOwnerVerificationStatus: 'unknown',
+      gridOwnerVerificationIssues: ['grid_owner_verification_missing'],
+      warnings: [...resolved.warnings, 'grid_owner_verification_missing'],
+      nextRequiredAction: 'Granska nätägare manuellt innan leverantörsbyte eller Ediel-förfrågan skickas.',
+    }
+  }
+  if (verification.verificationStatus !== 'verified' || !verification.verifiedForCustomerFlow) {
+    return {
+      ...resolved,
+      automationAllowed: false,
+      gridOwnerVerificationStatus: verification.verificationStatus,
+      gridOwnerVerificationIssues: verification.reasons.length ? verification.reasons : [verification.verificationStatus],
+      warnings: [...resolved.warnings, `grid_owner_${verification.verificationStatus}`],
+      nextRequiredAction: verification.nextAction ?? 'Verifiera nätägare, route, subadress, kontaktväg och certifikat innan automation fortsätter.',
+    }
+  }
+  return {
+    ...resolved,
+    gridOwnerVerificationStatus: 'verified',
+    gridOwnerVerificationIssues: [],
+    warnings: resolved.warnings.filter((warning) => !warning.startsWith('grid_owner_')),
+  }
+}
+
 async function findGridAreaByCode(gridAreaCode: string): Promise<EnergyResolverResult | null> {
   const { data, error } = await supabaseService
     .from('platform_grid_areas')
-    .select('id,grid_area_code,grid_area_name,grid_owner_id,grid_owner_name,price_area,platform_grid_owners(name)')
+    .select('id,grid_area_code,grid_area_name,grid_owner_id,grid_owner_name,price_area,platform_grid_owners(name,ops_grid_owner_id)')
     .eq('grid_area_code', gridAreaCode)
     .eq('is_active', true)
     .maybeSingle()
@@ -102,11 +150,12 @@ async function findGridAreaByCode(gridAreaCode: string): Promise<EnergyResolverR
     throw error
   }
   if (!data) return null
-  const ownerRelation = data.platform_grid_owners as { name?: string | null } | null | undefined
-  return result({}, {
+  const ownerRelation = data.platform_grid_owners as { name?: string | null; ops_grid_owner_id?: string | null } | null | undefined
+  const opsGridOwnerId = clean(ownerRelation?.ops_grid_owner_id) ?? await mapPlatformGridOwnerToOpsGridOwner(clean(data.grid_owner_id))
+  return applyGridOwnerVerification(result({}, {
     gridAreaCode: clean(data.grid_area_code),
     gridAreaName: clean(data.grid_area_name),
-    gridOwnerId: clean(data.grid_owner_id),
+    gridOwnerId: opsGridOwnerId,
     gridOwnerName: clean(ownerRelation?.name) ?? clean(data.grid_owner_name),
     priceArea: normalisePriceArea(data.price_area),
     resolutionStatus: normalisePriceArea(data.price_area) ? 'grid_area_master_validated' : 'grid_area_resolved',
@@ -115,7 +164,7 @@ async function findGridAreaByCode(gridAreaCode: string): Promise<EnergyResolverR
     automationAllowed: Boolean(normalisePriceArea(data.price_area)),
     nextRequiredAction: nextActionFor(normalisePriceArea(data.price_area) ? 'grid_area_master_validated' : 'grid_area_resolved', false),
     lookupKey: gridAreaCode,
-  })
+  }))
 }
 
 async function cachedAddressCoordinates(input: EnergyResolverInput) {
@@ -231,10 +280,11 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: { sweref
   const status: EnergyResolutionStatus = normalisePriceArea(row.price_area) && clean(row.grid_owner_name)
     ? 'grid_area_master_validated'
     : 'grid_area_resolved'
-  return result(input, {
+  const opsGridOwnerId = await mapPlatformGridOwnerToOpsGridOwner(clean(row.grid_owner_id))
+  return applyGridOwnerVerification(result(input, {
     gridAreaCode: clean(row.grid_area_code),
     gridAreaName: clean(row.grid_area_name),
-    gridOwnerId: clean(row.grid_owner_id),
+    gridOwnerId: opsGridOwnerId,
     gridOwnerName: clean(row.grid_owner_name),
     priceArea: normalisePriceArea(row.price_area),
     resolutionStatus: status,
@@ -248,7 +298,7 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: { sweref
       sweref99X: coordinates.sweref99X ?? null,
       sweref99Y: coordinates.sweref99Y ?? null,
     },
-  })
+  }))
 }
 
 async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResolverResult | null> {
@@ -273,16 +323,20 @@ async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResol
   const rows = data ?? []
   if (rows.length === 0) return null
   const best = rows[0]
-  return result(input, {
+  const master = clean(best.grid_area_code) ? await findGridAreaByCode(clean(best.grid_area_code) as string) : null
+  return applyGridOwnerVerification(result(input, {
     gridAreaCode: clean(best.grid_area_code),
-    priceArea: normalisePriceArea(best.price_area),
+    gridAreaName: master?.gridAreaName ?? null,
+    gridOwnerId: master?.gridOwnerId ?? null,
+    gridOwnerName: master?.gridOwnerName ?? null,
+    priceArea: normalisePriceArea(best.price_area) ?? master?.priceArea ?? null,
     resolutionStatus: 'postal_suggested',
     confidence: Math.min(0.69, numberOrNull(best.confidence) ?? 0.35),
-    sourceChain: ['postal_code', 'platform_postal_code_grid_mappings'],
+    sourceChain: ['postal_code', 'platform_postal_code_grid_mappings', ...(master ? ['platform_grid_areas'] : [])],
     automationAllowed: false,
     nextRequiredAction: nextActionFor('postal_suggested', false),
     warnings: rows.length > 1 ? ['postal_code_multiple_grid_area_candidates'] : [],
-  })
+  }))
 }
 
 async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolverResult): Promise<EnergyResolverResult> {

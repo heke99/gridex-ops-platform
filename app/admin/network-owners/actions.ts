@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { saveGridOwner } from "@/lib/masterdata/db";
+import { runGridOwnerVerificationBackfill } from "@/lib/grid-owners/verification";
 import {
   gridOwnerInputSchema,
   parseCheckbox,
@@ -49,5 +50,11 @@ export async function saveGridOwnerAction(formData: FormData): Promise<void> {
 
   await saveGridOwner(supabase, parsed);
 
+  revalidatePath("/admin/network-owners");
+}
+
+export async function backfillGridOwnerVerificationAction(): Promise<void> {
+  await requirePlatformAdminActionAccess();
+  await runGridOwnerVerificationBackfill("network_owners_admin_action");
   revalidatePath("/admin/network-owners");
 }

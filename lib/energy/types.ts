@@ -61,6 +61,8 @@ export type EnergyResolverResult = {
   lookupKey: string
   coordinates?: EnergyResolverCoordinates | null
   warnings: string[]
+  gridOwnerVerificationStatus?: string | null
+  gridOwnerVerificationIssues?: string[]
   raw?: Record<string, unknown>
 }
 

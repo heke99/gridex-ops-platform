@@ -120,10 +120,72 @@ export async function savePriceAreaLocality(
   return data as PriceAreaLocalityRow;
 }
 
+function missingSchema(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? "";
+  const message = (error as { message?: string } | null)?.message ?? "";
+  return ["42P01", "42703", "PGRST205"].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message);
+}
+
 export async function listGridOwners(
   supabase: SupabaseClient,
   options: { customerFlowOnly?: boolean } = {},
 ): Promise<GridOwnerRow[]> {
+  const verifiedView = await supabase
+    .from("gridex_verified_grid_owners_v")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (!verifiedView.error) {
+    const rows = ((verifiedView.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      id: String(row.grid_owner_id ?? row.id),
+      name: String(row.name ?? ""),
+      owner_code: String(row.owner_code ?? row.ediel_id ?? row.grid_owner_id ?? ""),
+      ediel_id: (row.ediel_id as string | null) ?? null,
+      org_number: (row.org_number as string | null) ?? null,
+      environment: (row.environment as string | null) ?? "production",
+      lifecycle_status: (row.lifecycle_status as string | null) ?? "active",
+      default_prodat_subaddress: (row.default_prodat_subaddress as string | null) ?? null,
+      default_utilts_subaddress: (row.default_utilts_subaddress as string | null) ?? null,
+      transport_channel: null,
+      communication_email: (row.communication_email as string | null) ?? null,
+      contact_name: (row.contact_name as string | null) ?? null,
+      email: (row.email as string | null) ?? null,
+      phone: (row.phone as string | null) ?? null,
+      address_line_1: null,
+      address_line_2: null,
+      postal_code: null,
+      city: null,
+      country: "SE",
+      notes: null,
+      is_active: row.is_active !== false,
+      created_at: "",
+      updated_at: "",
+      created_by: null,
+      updated_by: null,
+      company_id: (row.company_id as string | null) ?? null,
+      platform_market_actor_id: (row.platform_market_actor_id as string | null) ?? null,
+      platform_grid_owner_id: (row.platform_grid_owner_id as string | null) ?? null,
+      verification_status: (row.verification_status as string | null) ?? null,
+      verification_reasons: (row.verification_reasons as string[] | null) ?? null,
+      verified_for_customer_flow: row.verified_for_customer_flow === true,
+      actor_registry_status: (row.actor_registry_status as string | null) ?? null,
+      certificate_status: (row.certificate_status as string | null) ?? null,
+      certificate_environment: (row.certificate_environment as string | null) ?? null,
+      certificate_fingerprint_sha256: (row.certificate_fingerprint_sha256 as string | null) ?? null,
+      route_status: (row.route_status as string | null) ?? null,
+      route_count: typeof row.route_count === "number" ? row.route_count : Number(row.route_count ?? 0),
+      prodat_route_count: typeof row.prodat_route_count === "number" ? row.prodat_route_count : Number(row.prodat_route_count ?? 0),
+      utilts_route_count: typeof row.utilts_route_count === "number" ? row.utilts_route_count : Number(row.utilts_route_count ?? 0),
+      duplicate_count: typeof row.duplicate_count === "number" ? row.duplicate_count : Number(row.duplicate_count ?? 0),
+      duplicate_group_key: (row.duplicate_key as string | null) ?? null,
+    })) as GridOwnerRow[];
+
+    if (!options.customerFlowOnly) return rows;
+    return rows.filter((row) => row.is_active && row.lifecycle_status !== "blocked" && row.verified_for_customer_flow === true && row.verification_status === "verified" && Boolean(row.ediel_id));
+  }
+
+  if (!missingSchema(verifiedView.error)) throw verifiedView.error;
+
   const { data, error } = await supabase
     .from("grid_owners")
     .select("*")
@@ -134,8 +196,8 @@ export async function listGridOwners(
   if (!options.customerFlowOnly) return rows;
 
   const verifiedRows = rows.filter((row) => {
-    const record = row as GridOwnerRow & { verified_for_customer_flow?: boolean | null; actor_registry_status?: string | null };
-    return row.is_active && row.lifecycle_status !== "blocked" && record.verified_for_customer_flow === true && record.actor_registry_status === "verified" && Boolean(row.ediel_id);
+    const record = row as GridOwnerRow & { verified_for_customer_flow?: boolean | null; actor_registry_status?: string | null; verification_status?: string | null };
+    return row.is_active && row.lifecycle_status !== "blocked" && record.verified_for_customer_flow === true && (record.actor_registry_status === "verified" || record.verification_status === "verified") && Boolean(row.ediel_id);
   });
   return verifiedRows;
 }

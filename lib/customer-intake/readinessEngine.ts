@@ -10,6 +10,9 @@ export type IntakeReadinessInput = {
   hasPowerOfAttorney?: boolean | null
   facilityId?: string | null
   meteringPointExternalId?: string | null
+  gridOwnerId?: string | null
+  gridOwnerVerificationStatus?: string | null
+  gridAreaCode?: string | null
 }
 
 export type IntakeReadinessResult = {
@@ -30,6 +33,9 @@ export function calculateIntakeReadiness(input: IntakeReadinessInput): IntakeRea
   if (!hasText(input.customerId)) blockers.push('missing_customer')
   if (!hasText(input.siteId)) blockers.push('missing_customer_site')
   if (!hasText(input.contractId)) blockers.push('missing_contract')
+  if (!hasText(input.gridOwnerId)) blockers.push('missing_grid_owner')
+  if (input.gridOwnerVerificationStatus && input.gridOwnerVerificationStatus !== 'verified') blockers.push(`grid_owner_${input.gridOwnerVerificationStatus}`)
+  if (!hasText(input.gridAreaCode)) blockers.push('missing_grid_area_code')
   if (!hasText(input.meteringPointId) && !hasText(input.meteringPointExternalId)) blockers.push('missing_metering_point')
   if (!hasText(input.facilityId)) warnings.push('missing_facility_id')
   if (input.hasLegalAcceptances === false) blockers.push('missing_legal_acceptances')

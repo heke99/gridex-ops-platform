@@ -4,6 +4,7 @@ import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getGridOwnerById, listGridOwners } from '@/lib/masterdata/db'
 import GridOwnerForm from '@/components/admin/masterdata/GridOwnerForm'
 import GridOwnersTable from '@/components/admin/masterdata/GridOwnersTable'
+import { backfillGridOwnerVerificationAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +29,8 @@ export default async function NetworkOwnersPage({
  ])
 
  const activeCount = gridOwners.filter((owner) => owner.is_active).length
+ const verifiedCount = gridOwners.filter((owner) => owner.verification_status === 'verified' || owner.verified_for_customer_flow === true).length
+ const needsReviewCount = gridOwners.filter((owner) => owner.verification_status && owner.verification_status !== 'verified').length
 
  return (
  <div className="space-y-6">
@@ -53,6 +56,14 @@ export default async function NetworkOwnersPage({
  >
  Ny nätägare
  </Link>
+ <form action={backfillGridOwnerVerificationAction}>
+ <button
+ type="submit"
+ className="inline-flex items-center rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+ >
+ Kontrollera nätägare
+ </button>
+ </form>
  <Link
  href="/admin/customers"
  className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
@@ -62,7 +73,7 @@ export default async function NetworkOwnersPage({
  </div>
  </div>
 
- <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+ <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Antal nätägare</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
@@ -73,6 +84,18 @@ export default async function NetworkOwnersPage({
  <div className="text-slate-700 ">Aktiva</div>
  <div className="mt-1 text-xl font-semibold text-slate-950 ">
  {activeCount}
+ </div>
+ </div>
+ <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
+ <div className="text-slate-700 ">Verifierade</div>
+ <div className="mt-1 text-xl font-semibold text-slate-950 ">
+ {verifiedCount}
+ </div>
+ </div>
+ <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
+ <div className="text-slate-700 ">Behöver åtgärd</div>
+ <div className="mt-1 text-xl font-semibold text-slate-950 ">
+ {needsReviewCount}
  </div>
  </div>
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
