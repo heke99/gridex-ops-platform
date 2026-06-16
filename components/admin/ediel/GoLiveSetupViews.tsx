@@ -69,11 +69,18 @@ function Info({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+function transportLabel(mode: GoLiveRouteSimulation["transportMode"]): string {
+  if (mode === "shared_platform_mailbox") return "Gridex shared transport";
+  if (mode === "company_specific_mailbox") return "Bolagsspecifik mailbox";
+  return "Saknas";
+}
+
 function RouteSimulationCard({
   simulation,
 }: {
   simulation: GoLiveRouteSimulation;
 }) {
+  const transportReady = simulation.transportMode !== "missing";
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -82,12 +89,12 @@ function RouteSimulationCard({
             Route-simulering
           </p>
           <h2 className="mt-2 text-xl font-black text-slate-950">
-            Så ska systemet välja EDIFACT-väg
+            Aktivera PRODAT utan manuell receiver
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-            Admin ska inte mata in receiver manuellt i kundflödet. Sender hämtas
-            från tenantens actor setting, mottagare löses från vald
-            process/nätägare och shared mailbox används bara som transportkanal.
+            Huvudregeln är enkel: tenantens Ediel-ID skickar, mottagaren löses
+            automatiskt via kund → anläggning → verifierad nätägare, och Gridex
+            shared mailbox är bara transportkanal.
           </p>
         </div>
         <Badge
@@ -102,8 +109,6 @@ function RouteSimulationCard({
       </div>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Info label="Message family" value={simulation.messageFamily} />
-        <Info label="Process" value={simulation.processType} />
         <Info
           label="Sender Ediel-ID"
           value={
@@ -116,38 +121,61 @@ function RouteSimulationCard({
           label="Sender subadress"
           value={simulation.senderSubAddress ?? "Ingen standard-subadress"}
         />
-        <Info label="Receiver source" value={simulation.receiverSource} />
         <Info
-          label="Fast receiver"
-          value={simulation.receiverEdielId ?? "Dynamisk via nätägare/process"}
+          label="Mottagare"
+          value="Automatiskt via kundens verifierade nätägare"
+        />
+        <Info label="Kvittens" value="CONTRL + APERAK enligt regelmotor" />
+        <Info
+          label="Gridex S/MIME transport"
+          value={transportReady ? "Redo" : "Saknas"}
         />
         <Info
-          label="Receiver subadress"
-          value={simulation.receiverSubAddress ?? "Endast om route kräver det"}
-        />
-        <Info
-          label="Application Reference"
-          value={simulation.applicationReference ?? "–"}
-        />
-        <Info
-          label="Transport"
-          value={
-            simulation.transportMode === "shared_platform_mailbox"
-              ? "Shared Gridex mailbox"
-              : simulation.transportMode === "company_specific_mailbox"
-                ? "Bolagsspecifik mailbox"
-                : "Saknas"
-          }
+          label="Mottagarcertifikat"
+          value="Kontrolleras per nätägare vid sändning"
         />
         <Info
           label="Kryptering"
           value={
             simulation.encryptionRequired
-              ? "Krävs för PRODAT production"
+              ? "PRODAT krypteras i production"
               : "Ej krav"
           }
         />
+        <Info label="Transportläge" value={transportLabel(simulation.transportMode)} />
       </div>
+
+      <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <summary className="cursor-pointer text-sm font-black text-slate-800">
+          Visa tekniska detaljer
+        </summary>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Info label="Message family" value={simulation.messageFamily} />
+          <Info label="Process" value={simulation.processType} />
+          <Info label="Receiver source" value={simulation.receiverSource} />
+          <Info
+            label="Fast receiver"
+            value={simulation.receiverEdielId ?? "Dynamisk via nätägare/process"}
+          />
+          <Info
+            label="Receiver subadress"
+            value={simulation.receiverSubAddress ?? "Endast om route kräver det"}
+          />
+          <Info
+            label="Application Reference"
+            value={simulation.applicationReference ?? "–"}
+          />
+          <Info label="Transport" value={transportLabel(simulation.transportMode)} />
+          <Info
+            label="Krypteringspolicy"
+            value={
+              simulation.encryptionRequired
+                ? "Krävs för PRODAT production"
+                : "Ej krav"
+            }
+          />
+        </div>
+      </details>
     </section>
   );
 }
@@ -186,9 +214,9 @@ export function GoLiveSetupOverview({
               Tenant-readiness utan manuell receiver
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              Tabellen kontrollerar Ediel-ID, BRP, shared mailbox,
-              route-profiler, juridik, publicerade avtal och sender identity.
-              Receiver ska härledas från process och verifierad motpart, inte
+              Tabellen skiljer på Ediel production, intern kundhantering och
+              hemsida/API. Publicerade avtal och API är separata webbkrav;
+              receiver ska härledas från process och verifierad motpart, inte
               skrivas för hand i kundintag.
             </p>
           </div>
@@ -315,9 +343,9 @@ export function CompanyGoLiveSetupPanel({
             </h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
               Här visas det som faktiskt ska sättas per tenant: Ediel-ID, BRP,
-              sender identity, shared transport, route-profiler, juridik och
-              publicerade avtal. Subadress visas som route-detalj, inte som
-              obligatorisk tenant-inställning.
+              sender identity, shared transport, route-profiler och juridik.
+              Hemsida/API visas separat och ska inte blockera Ediel production.
+              Subadress visas som route-detalj, inte som obligatorisk tenant-inställning.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -378,8 +406,8 @@ export function CompanyGoLiveSetupPanel({
             }
           />
           <Info
-            label="Publicerade avtal"
-            value={summary.hasPublishedContracts ? "Finns" : "Saknas"}
+            label="Hemsida/API"
+            value={summary.hasPublishedContracts ? "Publicerade avtal finns" : "Separat webbkrav"}
           />
           <Info
             label="PRODAT/UTILTS"

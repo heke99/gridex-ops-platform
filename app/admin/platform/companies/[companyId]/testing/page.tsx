@@ -99,6 +99,31 @@ export default async function CompanyTestingPage({ params }: { params: Promise<{
           </div>
         </section>
 
+
+
+        {summary ? (
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Testdata</p>
+                <h2 className="mt-2 text-lg font-black text-slate-950">AGT, PRODAT och UTILTS i separat testprofil</h2>
+                <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Test-BRP, testreceiver, testsubadress och testpayloads hör hemma här. Production-vyn ska bara visa live Ediel-ID, live BRP och produktionsroutes.</p>
+              </div>
+              <Link href={`/admin/ediel/system-tests?companyId=${companyId}`} className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-black text-slate-800">Öppna systemtester</Link>
+            </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Test Ediel-ID</p><p className="mt-1 font-mono text-sm font-black text-slate-950">{summary.company.test_ediel_id ?? summary.company.ediel_id ?? '–'}</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Test sender subadress</p><p className="mt-1 text-sm font-black text-slate-950">{summary.company.test_sender_sub_address ?? 'Ingen'}</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Testreceiver</p><p className="mt-1 font-mono text-sm font-black text-slate-950">{summary.company.test_counterparty_ediel_id ?? '91100'}</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Testmailbox</p><p className="mt-1 break-words text-sm font-black text-slate-950">{summary.company.test_mailbox ?? 'Gridex testtransport'}</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Test-BRP</p><p className="mt-1 font-mono text-sm font-black text-slate-950">{summary.company.brp_ediel_id ?? '–'}</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Application Reference</p><p className="mt-1 font-mono text-sm font-black text-slate-950">{summary.company.test_application_reference ?? 'PRODAT/UTILTS'}</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Testpaket</p><p className="mt-1 text-sm font-black text-slate-950">AGT · Leverantör · Energitjänst · UTILTS</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Payloads</p><p className="mt-1 text-sm font-black text-slate-950">Sparas per testkörning och bevispaket</p></div>
+            </div>
+          </section>
+        ) : null}
+
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-black text-slate-950">Senaste testkörningar</h2>
           <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">

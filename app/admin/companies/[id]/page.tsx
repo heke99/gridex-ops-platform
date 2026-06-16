@@ -22,6 +22,7 @@ import { computeTenantReadiness, listWebhookSubscriptions } from '@/lib/admin/we
 import { getTenantWebsiteReadiness, listCompanyLegalTextVersions, REQUIRED_LEGAL_TEXT_TYPES, type LegalTextVersion, type TenantWebsiteReadiness } from '@/lib/opsMaster/readiness'
 import { getTenantLegalDefaultStatus, legalTypeLabel, type TenantLegalDefaultStatus } from '@/lib/tenant/legalDefaults'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
+import { saveCompanyProfileAction } from './company-profile-actions'
 import {
   checkCompanyDomainVerificationAction,
   resetEmailTemplateAction,
@@ -122,6 +123,20 @@ type TenantEventMailReadiness = {
   blockers: string[] | null
 }
 
+type TenantContractOfferReadiness = {
+  company_id: string
+  total_contract_offers: number
+  draft_contracts: number
+  internal_active_contracts: number
+  website_published_contracts: number
+  contracts_with_price_version: number
+  contracts_with_terms_version: number
+  can_use_internal_customer_intake: boolean
+  can_show_contracts_on_website: boolean
+  internal_blockers: string[] | null
+  website_blockers: string[] | null
+}
+
 async function getTenantIntakeTracking(companyId: string): Promise<TenantIntakeTracking | null> {
   try {
     const { data, error } = await supabaseService
@@ -145,6 +160,20 @@ async function getTenantEventMailReadiness(companyId: string): Promise<TenantEve
       .maybeSingle()
     if (error) return null
     return data as TenantEventMailReadiness | null
+  } catch {
+    return null
+  }
+}
+
+async function getTenantContractOfferReadiness(companyId: string): Promise<TenantContractOfferReadiness | null> {
+  try {
+    const { data, error } = await supabaseService
+      .from('tenant_contract_offer_readiness_v')
+      .select('company_id,total_contract_offers,draft_contracts,internal_active_contracts,website_published_contracts,contracts_with_price_version,contracts_with_terms_version,can_use_internal_customer_intake,can_show_contracts_on_website,internal_blockers,website_blockers')
+      .eq('company_id', companyId)
+      .maybeSingle()
+    if (error) return null
+    return data as TenantContractOfferReadiness | null
   } catch {
     return null
   }
@@ -232,6 +261,195 @@ function ReadinessPill({ ok, label }: { ok: boolean; label: string }) {
     <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
       {label}: {ok ? 'ja' : 'nej'}
     </span>
+  )
+}
+
+type SetupTone = 'green' | 'amber' | 'red' | 'slate'
+
+function setupToneClass(tone: SetupTone): string {
+  return {
+    green: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+    amber: 'border-amber-200 bg-amber-50 text-amber-950',
+    red: 'border-red-200 bg-red-50 text-red-900',
+    slate: 'border-slate-200 bg-slate-50 text-slate-800',
+  }[tone]
+}
+
+function SetupCard({
+  title,
+  status,
+  description,
+  href,
+  actionLabel,
+  tone,
+}: {
+  title: string
+  status: string
+  description: string
+  href?: string
+  actionLabel?: string
+  tone: SetupTone
+}) {
+  return (
+    <article className={`rounded-3xl border p-5 shadow-sm ${setupToneClass(tone)}`}>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-sm font-black text-slate-950">{title}</h3>
+        <span className="rounded-full border border-white/70 bg-white/70 px-2.5 py-1 text-xs font-black">{status}</span>
+      </div>
+      <p className="mt-3 text-sm font-semibold leading-6">{description}</p>
+      {href ? (
+        <Link href={href} className="mt-4 inline-flex rounded-2xl border border-white/80 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:bg-slate-50">
+          {actionLabel ?? 'Öppna'}
+        </Link>
+      ) : null}
+    </article>
+  )
+}
+
+function simpleList(value: string[] | null | undefined): string[] {
+  return Array.isArray(value) ? value.map(String).filter(Boolean) : []
+}
+
+function blockerCopy(code: string): string {
+  switch (code) {
+    case 'contract_missing': return 'Skapa minst ett avtal.'
+    case 'internal_active_contract_missing': return 'Aktivera ett avtal internt för manuell kundregistrering.'
+    case 'price_version_missing': return 'Sätt prisversion/snapshot på avtalet.'
+    case 'terms_version_missing': return 'Sätt villkorsversion på avtalet.'
+    case 'website_contract_publication_missing': return 'Publicera ett avtal till hemsida/API.'
+    default: return code.replaceAll('_', ' ')
+  }
+}
+
+function CompanySetupControlPanel({
+  company,
+  contractReadiness,
+  websiteReadiness,
+  legalDefaultStatus,
+  eventMailReadiness,
+  edielConfig,
+  actorSummary,
+}: {
+  company: GovernanceCompany
+  contractReadiness: TenantContractOfferReadiness | null
+  websiteReadiness: TenantWebsiteReadiness | null
+  legalDefaultStatus: TenantLegalDefaultStatus
+  eventMailReadiness: TenantEventMailReadiness | null
+  edielConfig: CompanyActorConfiguration
+  actorSummary: Awaited<ReturnType<typeof getActorTestingSummary>>
+}) {
+  const productionActor = edielConfig.actors.find((row) => rowText(row, 'environment') === 'production') ?? edielConfig.actors[0] ?? null
+  const productionRoutes = edielConfig.routeProfiles.filter((row) => rowText(row, 'environment') === 'production')
+  const hasProdatProduction = productionRoutes.some((row) => rowText(row, 'message_family') === 'PRODAT' || rowText(row, 'application_reference') === 'PRODAT')
+  const hasUtiltsProduction = productionRoutes.some((row) => rowText(row, 'message_family') === 'UTILTS' || rowText(row, 'application_reference') === 'UTILTS')
+  const hasEdielId = Boolean(rowText(productionActor, 'ediel_id', 'actor_ediel_id'))
+  const hasBrp = edielConfig.brpSettings.some((row) => rowText(row, 'environment') === 'production' && Boolean(rowText(row, 'brp_ediel_id')))
+  const internalReady = contractReadiness?.can_use_internal_customer_intake ?? false
+  const websiteReady = Boolean(websiteReadiness?.has_api_client && websiteReadiness?.has_public_contracts)
+  const legalReady = legalDefaultStatus.hasAllRequiredLegalTexts
+  const mailReady = eventMailReadiness?.can_send_customer_mail ?? false
+  const edielReady = hasEdielId && hasProdatProduction
+  const testsApproved = actorSummary?.actorTestStatus === 'approved'
+  const internalBlockers = simpleList(contractReadiness?.internal_blockers).map(blockerCopy)
+  const websiteBlockers = simpleList(contractReadiness?.website_blockers).map(blockerCopy)
+  const missingLegal = legalDefaultStatus.missingTypes.map(legalTypeLabel)
+
+  return (
+    <section id="company-control-panel" className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Bolagets kontrollpanel</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">Det som avgör vad {company.name} kan göra just nu</h2>
+          <p className="mt-2 max-w-5xl text-sm font-semibold leading-6 text-slate-700">
+            Intern kundhantering, hemsida/API, kundmail, Ediel-produktion och tester är separerade. En blockerare på hemsida/API ska inte stoppa manuell kundhantering, och en testinställning ska inte läcka in i live-profilen.
+          </p>
+        </div>
+        <Link href={`/admin/platform/go-live/${company.id}`} className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800">Öppna go-live</Link>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <SetupCard
+          title="Intern kundhantering"
+          status={internalReady ? 'Redo' : 'Åtgärd krävs'}
+          tone={internalReady ? 'green' : 'amber'}
+          description={internalReady ? 'Minst ett internt aktivt avtal kan användas i OPS utan API eller hemsida.' : `Påverkar manuell kundregistrering. ${internalBlockers.join(' ') || 'Skapa/aktivera avtal och prisversion.'}`}
+          href="/admin/contracts"
+          actionLabel="Hantera interna avtal"
+        />
+        <SetupCard
+          title="Hemsida/API"
+          status={websiteReady ? 'Redo' : 'Separat från intern drift'}
+          tone={websiteReady ? 'green' : 'slate'}
+          description={websiteReady ? 'Publika avtal kan visas och ta emot ansökningar via API.' : `Påverkar bara hemsida/Mina sidor. Intern kundhantering fungerar ändå. ${websiteBlockers.join(' ') || 'Aktivera API-klient och publicera hemsideavtal när det behövs.'}`}
+          href="#tenant-api"
+          actionLabel="Hantera API"
+        />
+        <SetupCard
+          title="Juridik"
+          status={legalReady ? (legalDefaultStatus.usingGridexDefaults ? 'Gridex standard' : 'Egen juridik') : 'Saknas'}
+          tone={legalReady ? 'green' : 'red'}
+          description={legalReady ? 'Publicerade juridiska texter finns och snapshots påverkar inte historiska avtal.' : `Saknas: ${missingLegal.join(', ') || 'juridiska texter'}. Skapa standardpaket eller publicera egna versioner.`}
+          href="#tenant-legal-master"
+          actionLabel="Hantera juridik"
+        />
+        <SetupCard
+          title="Kundmail"
+          status={mailReady ? 'Kan skicka' : 'Blockeras säkert'}
+          tone={mailReady ? 'green' : 'amber'}
+          description={mailReady ? 'Avsändare, mallar och eventregler är redo för automatiska kundmail.' : `Mail stoppas tills readiness är klar. ${simpleList(eventMailReadiness?.blockers).join(' ') || 'Kontrollera avsändare, mallar och eventregler.'}`}
+          href="#tenant-event-mail-readiness"
+          actionLabel="Hantera kundmail"
+        />
+        <SetupCard
+          title="Ediel/PRODAT produktion"
+          status={edielReady ? 'PRODAT aktiv' : 'Inte aktiverad'}
+          tone={edielReady ? 'green' : 'amber'}
+          description={edielReady ? `Ediel-ID ${rowText(productionActor, 'ediel_id', 'actor_ediel_id') ?? 'satt'} används i production. UTILTS: ${hasUtiltsProduction ? 'klar' : 'inte aktiverad ännu'}. BRP: ${hasBrp ? 'satt' : 'saknas'}.` : 'Påverkar leverantörsbyte/Ediel. Aktivera production-profil när Ediel-ID, BRP och transport är redo.'}
+          href={`/admin/platform/go-live/${company.id}/route-wizard`}
+          actionLabel="Aktivera PRODAT"
+        />
+        <SetupCard
+          title="Tester & certifiering"
+          status={testsApproved ? 'Godkända' : getActorTestingStatusLabel(actorSummary?.actorTestStatus ?? 'not_ready')}
+          tone={testsApproved ? 'green' : 'slate'}
+          description="Test-BRP, testreceiver och testpayloads ligger i separat testyta och ska inte blandas med production go-live."
+          href={`/admin/platform/companies/${company.id}/testing`}
+          actionLabel="Öppna tester"
+        />
+      </div>
+    </section>
+  )
+}
+
+function CompanyProfileEditor({ company }: { company: GovernanceCompany }) {
+  return (
+    <section id="company-profile" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Redigera bolagsuppgifter</p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">Enkel bolagsredigerare</h2>
+          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-700">
+            Ändringar gäller framtida avtal, mail och Ediel-konfiguration. Gamla signerade snapshots och historiska meddelanden ändras inte retroaktivt.
+          </p>
+        </div>
+      </div>
+      <form action={saveCompanyProfileAction} className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <input type="hidden" name="company_id" value={company.id} />
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Bolagsnamn<input name="name" defaultValue={company.name} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Organisationsnummer<input name="org_number" defaultValue={company.org_number ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Kundnummerprefix<input name="customer_number_prefix" defaultValue={company.customer_number_prefix ?? ''} placeholder="t.ex. DX" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Kontaktperson<input name="primary_contact_name" defaultValue={company.primary_contact_name ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Kontaktmail<input name="primary_contact_email" type="email" defaultValue={company.primary_contact_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Supportmail<input name="support_email" type="email" defaultValue={company.support_email ?? company.primary_contact_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Telefon<input name="phone" defaultValue={company.phone ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Webbplats<input name="website" defaultValue={company.website ?? ''} placeholder="https://bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Status<select name="status" defaultValue={company.status} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="onboarding">Onboarding</option><option value="active">Aktivt</option><option value="paused">Pausat</option><option value="suspended">Avstängt</option><option value="archived">Arkiverat</option></select></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800 md:col-span-2 xl:col-span-3">Intern notering om status<input name="status_reason" defaultValue={company.status_reason ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <div className="md:col-span-2 xl:col-span-3">
+          <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">Spara bolagsuppgifter</button>
+        </div>
+      </form>
+    </section>
   )
 }
 
@@ -434,25 +652,22 @@ function CompanyEdielConfiguration({ company, config }: { company: GovernanceCom
   return (
     <section id="ediel-config" className="space-y-6">
       <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-900">Ediel SaaS-konfiguration</p>
-        <h2 className="mt-2 text-2xl font-black text-slate-950">Live-profil: Ediel-identitet, produktion och route-readiness</h2>
-        <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-emerald-900">Denna del ska hållas ren för produktion/live. Tester och certifiering ligger separat via knappen på bolagskortet så testdata inte blandas med live-routes.</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-900">Live Ediel-profil</p>
+        <h2 className="mt-2 text-2xl font-black text-slate-950">Ediel-ID, BRP och produktionsstatus</h2>
+        <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-emerald-900">Här ska bara livevärden visas. Receiver, ACK-policy och Application Reference löses av systemet eller ligger bakom tekniska detaljer.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <ReadinessPill ok={readiness.actor} label="Ediel ID" />
           <ReadinessPill ok={readiness.brp} label="BRP" />
-          <ReadinessPill ok={readiness.mailbox} label="Shared mailbox" />
-          <ReadinessPill ok={readiness.route} label="Route profile" />
-          <ReadinessPill ok={readiness.rules} label="Message rules" />
+          <ReadinessPill ok={readiness.mailbox} label="Gridex transport" />
+          <ReadinessPill ok={readiness.route} label="PRODAT/UTILTS" />
+          <ReadinessPill ok={readiness.rules} label="Regler" />
         </div>
         <nav className="mt-5 flex flex-wrap gap-2 text-sm font-black">
           {[
-            ['#overview', 'Overview'],
-            ['#ediel-actor', 'Ediel actor'],
-            ['#brp', 'BRP / balancing'],
-            ['#communication', 'Communication'],
-            ['#route-profiles', 'Route profiles'],
-            ['#message-rules', 'Message rules'],
-            ['#operational-health', 'Operational health'],
+            ['#ediel-actor', 'Live Ediel-profil'],
+            ['#brp', 'Primär BRP'],
+            ['#communication', 'Transportstatus'],
+            ['#system-tests', 'Tester separat'],
           ].map(([href, label]) => (
             <a key={href} href={href} className="rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-emerald-900 hover:bg-emerald-100">{label}</a>
           ))}
@@ -460,28 +675,28 @@ function CompanyEdielConfiguration({ company, config }: { company: GovernanceCom
       </div>
 
       <section id="ediel-actor" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-black text-slate-950">Ediel actor</h2>
-        <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">Plattformen sparar bolagets Ediel ID per miljö. Mailboxen är bara transportkanal.</p>
+        <h2 className="text-lg font-black text-slate-950">Live Ediel-profil</h2>
+        <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">Sätt tenantens production Ediel-ID och ev. registrerad sender-subadress. Om Ediel-ID ändras påverkas bara framtida EDIFACT-meddelanden; historik och snapshots ändras inte.</p>
         <form action={saveCompanyEdielActorAction} className="mt-5 grid gap-4 md:grid-cols-2">
           <input type="hidden" name="company_id" value={company.id} />
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Miljö</span><select name="environment" defaultValue={rowText(actor, 'environment') ?? 'test'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="test">test</option><option value="production">production</option></select></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Miljö</span><select name="environment" defaultValue={rowText(actor, 'environment') ?? 'production'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="production">Produktion</option><option value="test">Test</option></select></label>
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Aktörsroll</span><select name="actor_role" defaultValue={rowText(actor, 'actor_role', 'role') ?? 'supplier'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="supplier">supplier</option><option value="grid_owner">grid_owner</option><option value="esco">esco</option><option value="brp">brp</option><option value="agent">agent</option><option value="other">other</option></select></label>
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Ediel ID</span><input name="ediel_id" defaultValue={rowText(actor, 'ediel_id', 'actor_ediel_id') ?? ''} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Application reference</span><input name="application_reference" defaultValue={rowText(actor, 'application_reference', 'default_application_reference') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Sender subaddress</span><input name="sender_subaddress" defaultValue={rowText(actor, 'sender_subaddress', 'sender_sub_address') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Receiver subaddress</span><input name="receiver_subaddress" defaultValue={rowText(actor, 'receiver_subaddress', 'receiver_sub_address') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <input type="hidden" name="application_reference" value={rowText(actor, 'application_reference', 'default_application_reference') ?? 'PRODAT'} />
+          <input type="hidden" name="receiver_subaddress" value={rowText(actor, 'receiver_subaddress', 'receiver_sub_address') ?? ''} />
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Sender subadress, bara om registrerad</span><input name="sender_subaddress" defaultValue={rowText(actor, 'sender_subaddress', 'sender_sub_address') ?? ''} placeholder="Lämna tom om ingen subadress är registrerad" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Giltig från</span><input type="date" name="valid_from" defaultValue={rowText(actor, 'valid_from') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Giltig till</span><input type="date" name="valid_to" defaultValue={rowText(actor, 'valid_to') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
           <label className="flex items-center gap-2 text-sm font-bold text-slate-800"><input type="checkbox" name="is_active" defaultChecked={actor ? rowBool(actor, 'is_active') : true} /> Aktiv</label>
-          <div className="md:col-span-2"><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Spara Ediel actor</button></div>
+          <div className="md:col-span-2"><button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Spara live Ediel-profil</button></div>
         </form>
       </section>
 
       <section id="brp" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-black text-slate-950">BRP / balancing</h2>
+        <h2 className="text-lg font-black text-slate-950">Primär BRP för produktion</h2>
         <form action={saveCompanyBrpAction} className="mt-5 grid gap-4 md:grid-cols-2">
           <input type="hidden" name="company_id" value={company.id} />
-          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Miljö</span><select name="environment" defaultValue={rowText(brp, 'environment') ?? 'test'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="test">test</option><option value="production">production</option></select></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Miljö</span><select name="environment" defaultValue={rowText(brp, 'environment') ?? 'production'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="production">Produktion</option><option value="test">Test</option></select></label>
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">BRP Ediel ID</span><input name="brp_ediel_id" defaultValue={rowText(brp, 'brp_ediel_id') ?? ''} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">BRP-namn</span><input name="brp_name" defaultValue={rowText(brp, 'brp_name') ?? ''} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">BRP e-post</span><input name="brp_email" defaultValue={rowText(brp, 'brp_email') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
@@ -501,10 +716,17 @@ function CompanyEdielConfiguration({ company, config }: { company: GovernanceCom
         <StatCard label="Senaste outbound" value={formatDate(config.latestOutboundAt)} />
       </section>
 
-      <div id="route-profiles"><ConfigTable title="Route profiles" rows={config.routeProfiles} columns={[{ key: 'environment', label: 'Miljö' }, { key: 'route_name', label: 'Route' }, { key: 'sender_ediel_id', label: 'Sender' }, { key: 'receiver_ediel_id', label: 'Receiver' }, { key: 'is_active', label: 'Aktiv' }]} /></div>
-      <div id="message-rules"><ConfigTable title="Message rules" rows={config.messageRules} columns={[{ key: 'message_family', label: 'Familj' }, { key: 'message_code', label: 'Kod' }, { key: 'version_code', label: 'Version' }, { key: 'direction', label: 'Riktning' }, { key: 'is_active', label: 'Aktiv' }]} /></div>
-      <div id="system-tests" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-lg font-black text-slate-950">System tests</h2><div className="mt-4 flex flex-wrap gap-2"><Link href={`/admin/platform/actor-testing/${company.id}`} className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-50">Öppna aktörstester</Link><Link href="/admin/ediel/system-tests" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-50">Systemtestcenter</Link></div></div>
-      <div id="operational-health" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-lg font-black text-slate-950">Operational health</h2><div className="mt-4 grid gap-3 md:grid-cols-3"><ActionLine label="Unresolved inbound" value={config.unresolvedInboundCount} tone={config.unresolvedInboundCount > 0 ? 'red' : 'emerald'} /><ActionLine label="Aktiva actors" value={config.actors.filter((row) => rowBool(row, 'is_active')).length} tone={readiness.actor ? 'emerald' : 'red'} /><ActionLine label="Aktiva routes" value={config.routeProfiles.filter((row) => rowBool(row, 'is_active') || rowBool(row, 'is_enabled')).length} tone={readiness.route ? 'emerald' : 'amber'} /></div></div>
+      <div id="system-tests" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-lg font-black text-slate-950">Tester & certifiering ligger separat</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-700">Test-BRP, testreceiver och testpayloads ska hanteras i testytan. Live-profilen ovan ska bara innehålla production-värden.</p><div className="mt-4 flex flex-wrap gap-2"><Link href={`/admin/platform/companies/${company.id}/testing`} className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-50">Öppna tester & certifiering</Link><Link href="/admin/ediel/system-tests" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-50">Systemtestcenter</Link></div></div>
+
+      <details id="technical-ediel-details" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <summary className="cursor-pointer text-lg font-black text-slate-950">Visa tekniska detaljer</summary>
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">Här ligger EDIFACT-/route-detaljer för felsökning. De ska inte behövas i normal go-live eller kundintag.</p>
+        <div className="mt-5 space-y-5">
+          <div id="route-profiles"><ConfigTable title="Route profiles" rows={config.routeProfiles} columns={[{ key: 'environment', label: 'Miljö' }, { key: 'route_name', label: 'Route' }, { key: 'sender_ediel_id', label: 'Sender' }, { key: 'receiver_ediel_id', label: 'Receiver' }, { key: 'is_active', label: 'Aktiv' }]} /></div>
+          <div id="message-rules"><ConfigTable title="Message rules" rows={config.messageRules} columns={[{ key: 'message_family', label: 'Familj' }, { key: 'message_code', label: 'Kod' }, { key: 'version_code', label: 'Version' }, { key: 'direction', label: 'Riktning' }, { key: 'is_active', label: 'Aktiv' }]} /></div>
+          <div id="operational-health" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-lg font-black text-slate-950">Driftstatus</h2><div className="mt-4 grid gap-3 md:grid-cols-3"><ActionLine label="Omatchad inbound" value={config.unresolvedInboundCount} tone={config.unresolvedInboundCount > 0 ? 'red' : 'emerald'} /><ActionLine label="Aktiva aktörer" value={config.actors.filter((row) => rowBool(row, 'is_active')).length} tone={readiness.actor ? 'emerald' : 'red'} /><ActionLine label="Aktiva routes" value={config.routeProfiles.filter((row) => rowBool(row, 'is_active') || rowBool(row, 'is_enabled')).length} tone={readiness.route ? 'emerald' : 'amber'} /></div></div>
+        </div>
+      </details>
     </section>
   )
 }
@@ -781,6 +1003,7 @@ export default async function CompanyDetailPage({
     tenantLegalDefaultStatus,
     tenantIntakeTracking,
     tenantEventMailReadiness,
+    tenantContractOfferReadiness,
   ] = await Promise.all([
     getCompanyGovernanceSummary(row),
     getActorTestingSummary(row.id),
@@ -800,6 +1023,7 @@ export default async function CompanyDetailPage({
     getTenantLegalDefaultStatus(row.id),
     getTenantIntakeTracking(row.id),
     getTenantEventMailReadiness(row.id),
+    getTenantContractOfferReadiness(row.id),
   ])
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
@@ -861,6 +1085,18 @@ export default async function CompanyDetailPage({
             </div>
           </div>
         </section>
+
+        <CompanySetupControlPanel
+          company={company}
+          contractReadiness={tenantContractOfferReadiness}
+          websiteReadiness={tenantWebsiteReadiness}
+          legalDefaultStatus={tenantLegalDefaultStatus}
+          eventMailReadiness={tenantEventMailReadiness}
+          edielConfig={edielConfig}
+          actorSummary={actorSummary}
+        />
+
+        <CompanyProfileEditor company={company} />
 
         {actorSummary ? (
           <section className="grid gap-4 lg:grid-cols-2">

@@ -47,6 +47,8 @@ export type GovernanceCompany = {
   status_reason: string | null
   primary_contact_email: string | null
   primary_contact_name: string | null
+  support_email: string | null
+  billing_contact_email: string | null
   phone: string | null
   website: string | null
   created_at: string | null
@@ -349,6 +351,8 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
     status_reason: company.status_reason ?? null,
     primary_contact_email: company.primary_contact_email ?? null,
     primary_contact_name: company.primary_contact_name ?? null,
+    support_email: company.support_email ?? null,
+    billing_contact_email: company.billing_contact_email ?? null,
     phone: company.phone ?? null,
     website: company.website ?? null,
     created_at: company.created_at ?? null,

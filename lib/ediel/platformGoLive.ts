@@ -318,9 +318,7 @@ function summaryFromReadinessViewRow(row: DbRow): GoLiveSetupSummary {
     !boolish(row.has_shared_mailbox)
       ? "Gridex shared production mailbox saknas eller är inte aktiv."
       : null,
-    !boolish(row.has_published_contracts)
-      ? "Hemsida/API saknar publicerat avtal. Intern kundhantering kan ändå användas med internt aktivt avtal."
-      : null,
+
     !boolish(row.has_terms) ? "Publicerad juridisk text saknas: terms." : null,
     !boolish(row.has_privacy_policy)
       ? "Publicerad juridisk text saknas: privacy_policy."
@@ -343,6 +341,9 @@ function summaryFromReadinessViewRow(row: DbRow): GoLiveSetupSummary {
       : null,
     !boolish(row.has_sender_identity)
       ? "Verifierad avsändaridentitet för kundmail saknas."
+      : null,
+    !boolish(row.has_published_contracts)
+      ? "Hemsida/API saknar publicerat avtal. Påverkar bara hemsidan och Mina sidor; Ediel production och intern kundhantering kan fortsätta."
       : null,
   ]);
   const score = Math.max(
@@ -576,8 +577,8 @@ export async function getCompanyGoLiveSetupSummary(
   if (!hasSenderIdentity)
     warnings.push("Verifierad avsändaridentitet för kundmail saknas.");
   if (!hasPublishedContracts)
-    blockers.push(
-      "Hemsida/API saknar publicerat avtal. Intern kundhantering kan ändå användas med internt aktivt avtal.",
+    warnings.push(
+      "Hemsida/API saknar publicerat avtal. Påverkar bara hemsidan och Mina sidor; Ediel production och intern kundhantering kan fortsätta.",
     );
 
   for (const type of REQUIRED_LEGAL_TEXT_TYPES) {

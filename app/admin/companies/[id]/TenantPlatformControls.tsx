@@ -20,6 +20,21 @@ type PricePlanVersion = {
   valid_to: string | null
 }
 
+
+type InternalContractOffer = {
+  id: string
+  name: string
+  status: string | null
+  price_version: string | null
+  terms_version: string | null
+  contract_type: string | null
+  is_active: boolean | null
+  valid_from: string | null
+  valid_to: string | null
+  created_at: string
+  updated_at: string
+}
+
 type PublicOffer = {
   id: string
   offer_code: string | null
@@ -148,8 +163,9 @@ async function safeRows<T>(table: string, companyId: string, select: string, ord
 }
 
 export default async function TenantPlatformControls({ companyId, companyName }: { companyId: string; companyName: string }) {
-  const [offers, pricePlans, priceVersions, legalBundles, priceBooks, apiClients, mailReadiness] = await Promise.all([
+  const [offers, internalContracts, pricePlans, priceVersions, legalBundles, priceBooks, apiClients, mailReadiness] = await Promise.all([
     safeRows<PublicOffer>('public_contract_offers', companyId, 'id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at', 'sort_order'),
+    safeRows<InternalContractOffer>('contract_offers', companyId, 'id,name,status,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at', 'updated_at'),
     safeRows<PricePlan>('price_plans', companyId, 'id,name,pricing_model,status', 'name'),
     safeRows<PricePlanVersion>('price_plan_versions', companyId, 'id,price_plan_id,version_label,status,valid_from,valid_to', 'valid_from'),
     safeRows<LegalBundle>('legal_bundles', companyId, 'id,name,status,updated_at', 'updated_at'),
@@ -159,6 +175,7 @@ export default async function TenantPlatformControls({ companyId, companyName }:
   ])
 
   const activeOffers = offers.filter((offer) => offer.publication_status === 'published' && offer.website_enabled && !offer.is_archived)
+  const internalActiveContracts = internalContracts.filter((contract) => contract.status === 'active' && contract.is_active !== false)
   const activeApiClients = apiClients.filter((client) => client.status === 'active')
   const mailProblems = mailReadiness.filter((row) => row.can_send === false && row.enabled !== false)
 
@@ -168,25 +185,54 @@ export default async function TenantPlatformControls({ companyId, companyName }:
         <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Bolagets hemsida, avtal och API</p>
         <h2 className="mt-2 text-2xl font-black text-slate-950">Avtal, priser, API och automatiska utskick för {companyName}</h2>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-emerald-900">
-          Den här delen ska användas av platform admin. Avtal skapas per bolag, kopplas till bolagets prisplan/prisversion och publiceras till rätt hemsida. Vanliga bolagsadmin ska inte skapa master-avtal.
+          Den här delen ska användas av platform admin. Interna avtal används för manuell kundhantering i OPS utan API. Hemsideavtal publiceras separat och kräver API-klient när de ska visas på webb eller Mina sidor.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-4">
-          <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Publicerade avtal</p><p className="mt-1 text-2xl font-black text-slate-950">{activeOffers.length}</p></div>
-          <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Prisplaner</p><p className="mt-1 text-2xl font-black text-slate-950">{pricePlans.length}</p></div>
+          <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Interna aktiva avtal</p><p className="mt-1 text-2xl font-black text-slate-950">{internalActiveContracts.length}</p></div>
+          <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Publicerade hemsideavtal</p><p className="mt-1 text-2xl font-black text-slate-950">{activeOffers.length}</p></div>
           <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Aktiva API-klienter</p><p className="mt-1 text-2xl font-black text-slate-950">{activeApiClients.length}</p></div>
           <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Mail att åtgärda</p><p className="mt-1 text-2xl font-black text-slate-950">{mailProblems.length}</p></div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-black">
-          <a href="#tenant-avtal" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-emerald-800">Avtal</a>
+          <a href="#tenant-internal-contracts" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-emerald-800">Interna avtal</a>
+          <a href="#tenant-avtal" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-emerald-800">Hemsideavtal</a>
           <a href="#tenant-api" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-emerald-800">API</a>
           <a href="#tenant-mail" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-emerald-800">Automatiska utskick</a>
           <Link href={`/admin/pricing/price-plans`} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-emerald-800">Priser/prisversioner</Link>
         </div>
       </div>
 
+
+      <section id="tenant-internal-contracts" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-black text-slate-950">Interna avtal för kundhantering</h3>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
+              Dessa avtal används när admin lägger in kund manuellt i OPS. De kräver prisversion, juridik och tenant-koppling, men de ska inte blockeras av hemside-API, allowed origins eller publicering på webb.
+            </p>
+          </div>
+          <Link href="/admin/contracts" className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-100">Hantera interna avtal</Link>
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {internalContracts.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">Inga interna avtal finns ännu.</div> : null}
+          {internalContracts.map((contract) => (
+            <article key={contract.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h4 className="text-base font-black text-slate-950">{contract.name}</h4>
+                  <p className="mt-1 text-sm text-slate-600">{contractTypeLabel(contract.contract_type ?? 'spot')} · prisversion {contract.price_version ?? 'saknas'} · villkor {contract.terms_version ?? 'saknas'}</p>
+                </div>
+                {badge(contract.status === 'active' && contract.is_active !== false ? 'green' : contract.status === 'draft' ? 'amber' : 'slate', contract.status === 'active' && contract.is_active !== false ? 'Internt aktivt' : contract.status ?? 'Utkast')}
+              </div>
+              <p className="mt-3 text-xs font-semibold leading-5 text-slate-600">Giltighet: {contract.valid_from ?? 'start saknas'} – {contract.valid_to ?? 'tills vidare'} · senast ändrad {formatDate(contract.updated_at)}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section id="tenant-avtal" className="grid gap-6 xl:grid-cols-[440px_minmax(0,1fr)]">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-black text-slate-950">Skapa avtal för {companyName}</h3>
+          <h3 className="text-lg font-black text-slate-950">Skapa hemsideavtal för {companyName}</h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">Publicering blockeras om prisplan, prisversion, villkor, publik pristext eller korrekt mixfördelning saknas. Om juridiskt paket eller prislista saknas försöker systemet skapa dem från publicerade juridiska texter och vald prisversion.</p>
           <div className="mt-3 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold text-slate-700">
             <div>Juridiska paket: <strong>{legalBundles.length}</strong> · Prislistor: <strong>{priceBooks.length}</strong></div>
@@ -273,9 +319,9 @@ export default async function TenantPlatformControls({ companyId, companyName }:
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-black text-slate-950">Bolagets avtal</h3>
+          <h3 className="text-lg font-black text-slate-950">Hemsidans publicerade avtal</h3>
           <div className="mt-4 grid gap-3">
-            {offers.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">Inga avtal skapade ännu.</div> : null}
+            {offers.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">Inga hemsideavtal skapade ännu.</div> : null}
             {offers.map((offer) => {
               const issues = valueList(offer.readiness_issues)
               const blockers = valueList(offer.readiness_blockers)
