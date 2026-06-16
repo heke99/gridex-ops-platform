@@ -53,8 +53,11 @@ Aktiva behörigheter idag:
 | Mina sidor – uppdatera kunddata | `customer_portal.write` |
 | Läsa händelser | `events.read` |
 | Skicka händelser från hemsidan | `website_events.write` |
+| Läsa kunddokument | `customer_documents.read` |
+| Läsa kundnotiser | `customer_notifications.read` |
+| Uppdatera kundnotiser | `customer_notifications.write` |
 
-Kommande mer granulära behörigheter kan införas senare för dokument, notiser, kontaktuppgifter, anläggningsdata och fullmakt. Dagens kundportal-routes använder främst `customer_portal.read` och `customer_portal.write`.
+Standardpaketet för hemsida/Mina sidor bör innehålla dessa behörigheter: `website_contracts.read`, `website_applications.write`, `customer_portal.read`, `customer_portal.write`, `website_events.write`, `events.read`, `customer_documents.read`, `customer_notifications.read` och `customer_notifications.write`. Mer granulära framtida behörigheter kan införas senare för kontaktuppgifter, anläggningsdata och fullmakt.
 
 ## Publicerade avtal
 
@@ -157,10 +160,44 @@ Kunddata får aldrig hämtas med valfri kund-id från frontend. Använd hemsidan
 x-gridex-external-customer-id: DX-100025
 ```
 
-Endpoints:
+Identifiering kan ske via någon av dessa stabila nycklar. `auth_user_id`/`customer_portal_user_id` är starkast, därefter `external_customer_id`, `customer_number` och unik `email` som fallback:
 
 ```http
-GET  /api/v1/customer/profile
+x-gridex-auth-user-id: <supabase-auth-user-id>
+x-gridex-external-customer-id: CUSTOMER-12345
+x-gridex-customer-number: DX-100025
+x-gridex-customer-email: kund@example.se
+```
+
+Rekommenderad endpoint för Mina sidor är ett samlat bundle-anrop:
+
+```http
+GET /api/v1/customer/portal-bundle
+```
+
+Det returnerar:
+
+```json
+{
+  "data": {
+    "customer": {},
+    "contracts": [],
+    "sites": [],
+    "metering_points": [],
+    "invoices": [],
+    "metering_values": [],
+    "documents": [],
+    "legal_acceptances": [],
+    "notifications": [],
+    "events": []
+  }
+}
+```
+
+Separata endpoints finns kvar:
+
+```http
+GET  /api/v1/customer/me
 GET  /api/v1/customer/contracts
 GET  /api/v1/customer/sites
 GET  /api/v1/customer/invoices
@@ -168,6 +205,9 @@ GET  /api/v1/customer/invoices/[id]
 GET  /api/v1/customer/metering-values
 GET  /api/v1/customer/events
 GET  /api/v1/customer/documents
+GET  /api/v1/customer/legal-acceptances
+GET  /api/v1/customer/notifications
+POST /api/v1/customer/notifications/read
 POST /api/v1/customer/profile-update
 POST /api/v1/customer/move-out
 ```
@@ -178,13 +218,16 @@ Kunddata ska alltid returneras med:
 Cache-Control: no-store
 ```
 
+Tom data är ett normalt svar. Saknade fakturor, dokument, mätvärden, juridiska godkännanden eller notiser ska returnera `200 OK` med tom lista, inte 500. Kund saknas ger 404, saknat scope ger 403 och saknad API-token ger 401.
+
 ## Kundevents från hemsidan
 
 ```http
 POST /api/v1/website/customer-events
+POST /api/v1/events
 ```
 
-Används för operativa kundhändelser, t.ex. att kunden öppnat ett avtal eller laddat ner en faktura. Support- och case-events är inte tillåtna.
+Båda accepterar samma payload. Används för operativa kundhändelser, t.ex. att kunden öppnat ett avtal eller laddat ner ett dokument. Support- och case-events är inte tillåtna. Exempel på tillåtna kundevents: `customer.logged_in`, `customer.viewed_dashboard`, `customer.viewed_contract`, `customer.viewed_site`, `customer.viewed_invoice`, `customer.opened_document`, `customer.downloaded_document`, `customer.updated_profile`, `customer.requested_contact_update`, `customer.viewed_legal_terms` och `customer.viewed_power_of_attorney`.
 
 ## Webhooks
 
@@ -238,6 +281,8 @@ invoice.created
 invoice.sent
 invoice.disputed
 metering_values.updated
+customer.opened_document
+customer.downloaded_document
 ```
 
 Mailrelaterade contract-events ska skapas när kommunikationen faktiskt är skickad eller registrerad som skickad.

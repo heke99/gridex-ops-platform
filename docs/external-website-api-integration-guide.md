@@ -132,13 +132,22 @@ Systemet skapar/matchar kund, skapar kundnummer, länkar portal identity, sparar
 
 ## Mina sidor
 
-Kundportalen anropar server-side med API-nyckel och länkad kundreferens:
+Kundportalen anropar server-side med API-nyckel och minst en stabil kundreferens. Starkast är auth user, därefter extern kundreferens, kundnummer och unik e-post som fallback:
 
 ```http
-x-gridex-external-customer-id: DX-100025
+x-gridex-auth-user-id: <supabase-auth-user-id>
+x-gridex-external-customer-id: CUSTOMER-12345
+x-gridex-customer-number: DX-100025
+x-gridex-customer-email: kund@example.se
 ```
 
-Exempel på endpoints:
+Rekommenderad endpoint för Mina sidor är bundle-anropet:
+
+```text
+GET /api/v1/customer/portal-bundle
+```
+
+Det returnerar kund, avtal, anläggningar, mätpunkter, fakturor, mätvärden, dokument, juridiska godkännanden, notiser och händelser i ett svar. Separata endpoints finns kvar:
 
 ```text
 GET /api/v1/customer/me
@@ -149,9 +158,14 @@ GET /api/v1/customer/invoices/[id]
 GET /api/v1/customer/metering-values
 GET /api/v1/customer/events
 GET /api/v1/customer/documents
+GET /api/v1/customer/legal-acceptances
+GET /api/v1/customer/notifications
+POST /api/v1/customer/notifications/read
 POST /api/v1/customer/profile-update
 POST /api/v1/customer/move-out
 ```
+
+Tomma listor returneras som `200 OK` med `[]`. Kund saknas ger 404, saknat scope ger 403 och internt OPS-fel ger 500.
 
 ## Webhooks
 

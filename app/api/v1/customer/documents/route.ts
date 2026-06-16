@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server'
-import { supabaseService } from '@/lib/supabase/service'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
+import { listPortalDocuments, portalContextFromResolved } from '@/lib/customer-portal/apiData'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -15,17 +15,16 @@ export async function GET(request: NextRequest) {
   if (!context.ok) return context.response
 
   try {
-    const { data, error } = await supabaseService
-      .from('customer_documents')
-      .select('id,customer_id,document_type,title,file_name,mime_type,file_size_bytes,file_path,public_url,source_system,created_at')
-      .eq('company_id', context.client.company_id)
-      .eq('customer_id', context.identity.customer_id)
-      .order('created_at', { ascending: false })
-      .limit(100)
-
-    if (error) throw error
-    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: data?.length ?? 0 })
-    return customerPortalJson({ data: data ?? [] })
+    const portalContext = portalContextFromResolved({
+      companyId: context.client.company_id,
+      customerId: context.identity.customer_id,
+      externalCustomerId: context.identity.external_customer_id,
+      customerNumber: context.identity.customer_number,
+      provider: context.identity.provider,
+    })
+    const documents = await listPortalDocuments(portalContext)
+    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: documents.length })
+    return customerPortalJson({ data: documents })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

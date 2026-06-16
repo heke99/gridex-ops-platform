@@ -105,7 +105,13 @@ export async function GET(request: NextRequest) {
         .limit(100) as ListResult
     }
 
-    if (result.error) throw result.error
+    if (result.error) {
+      if (missingSchema(result.error)) {
+        await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 0 })
+        return customerPortalJson({ data: [] })
+      }
+      throw result.error
+    }
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: result.data?.length ?? 0 })
     return customerPortalJson({ data: result.data ?? [] })
   } catch (error) {

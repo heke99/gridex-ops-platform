@@ -6,6 +6,7 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
+import { isMissingSchemaError } from '@/lib/customer-portal/apiData'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,7 +25,13 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
       .eq('id', id)
       .maybeSingle()
 
-    if (invoiceError) throw invoiceError
+    if (invoiceError) {
+      if (isMissingSchemaError(invoiceError)) {
+        await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 0, metadata: { invoice_id: id, found: false } })
+        return customerPortalJson({ error: 'Fakturan hittades inte.' }, { status: 404 })
+      }
+      throw invoiceError
+    }
     if (!invoice) {
       await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 0, metadata: { invoice_id: id, found: false } })
       return customerPortalJson({ error: 'Fakturan hittades inte.' }, { status: 404 })
@@ -37,7 +44,7 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
       .eq('invoice_id', id)
       .order('created_at', { ascending: true })
 
-    if (lineError) throw lineError
+    if (lineError && !isMissingSchemaError(lineError)) throw lineError
 
     const { data: documents, error: documentError } = await supabaseService
       .from('customer_invoice_documents')
@@ -46,10 +53,10 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
       .eq('invoice_id', id)
       .order('created_at', { ascending: false })
 
-    if (documentError) throw documentError
+    if (documentError && !isMissingSchemaError(documentError)) throw documentError
 
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { invoice_id: id } })
-    return customerPortalJson({ data: { invoice, lines: lines ?? [], documents: documents ?? [] } })
+    return customerPortalJson({ data: { invoice, lines: lineError ? [] : lines ?? [], documents: documentError ? [] : documents ?? [] } })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

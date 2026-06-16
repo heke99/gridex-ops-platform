@@ -17,11 +17,12 @@ const permissions = [
   ['Mina sidor – uppdatera kunddata', 'customer_portal.write', 'Skicka kompletteringar, flyttanmälan och profiländringar.'],
   ['Läsa händelser', 'events.read', 'Läsa händelser som skapats för bolaget.'],
   ['Skicka händelser från hemsidan', 'website_events.write', 'Skicka kundhändelser från hemsida eller kundportal.'],
+  ['Läsa kunddokument', 'customer_documents.read', 'Granulär behörighet för dokument i Mina sidor.'],
+  ['Läsa kundnotiser', 'customer_notifications.read', 'Granulär behörighet för notiser i Mina sidor.'],
+  ['Uppdatera kundnotiser', 'customer_notifications.write', 'Granulär behörighet för att markera notiser som lästa.'],
 ]
 
 const futurePermissions = [
-  ['Dokument', 'customer_documents.read'],
-  ['Notiser', 'customer_notifications.read / customer_notifications.write'],
   ['Kontaktuppgifter', 'customer_contact.write'],
   ['Anläggningsuppgifter', 'customer_facility_data.write'],
   ['Fullmakt', 'customer_power_of_attorney.write'],
@@ -31,7 +32,9 @@ const endpoints = [
   ['GET', '/api/v1/website/public-contracts', 'website_contracts.read', 'Hämta publicerade avtal som hemsidan får visa.'],
   ['POST', '/api/v1/website/customer-applications', 'website_applications.write', 'Skapa kundansökan, avtalssnapshot och juridiska godkännanden.'],
   ['POST', '/api/v1/website/customer-events', 'website_events.write', 'Skicka kundhändelser från hemsidan. Supportärenden ska inte skickas hit.'],
-  ['GET', '/api/v1/customer/me', 'customer_portal.read', 'Hämta länkad kundprofil.'],
+  ['POST', '/api/v1/events', 'website_events.write', 'Alias för att skicka kundhändelser från hemsidan.'],
+  ['GET', '/api/v1/customer/portal-bundle', 'customer_portal.read', 'Hämta kundprofil, avtal, anläggningar, fakturor, dokument, juridik, notiser och events i ett anrop.'],
+  ['GET', '/api/v1/customer/me', 'customer_portal.read', 'Hämta länkad kundprofil med namn-fallback.'],
   ['GET', '/api/v1/customer/contracts', 'customer_portal.read', 'Hämta kundens avtal.'],
   ['GET', '/api/v1/customer/sites', 'customer_portal.read', 'Hämta kundens anläggningar och mätpunkter.'],
   ['GET', '/api/v1/customer/invoices', 'customer_portal.read', 'Hämta kundens fakturor.'],
@@ -39,6 +42,9 @@ const endpoints = [
   ['GET', '/api/v1/customer/metering-values', 'customer_portal.read', 'Hämta kundens mätvärden.'],
   ['GET', '/api/v1/customer/events', 'customer_portal.read', 'Hämta kundens händelser.'],
   ['GET', '/api/v1/customer/documents', 'customer_portal.read', 'Hämta kundens dokument.'],
+  ['GET', '/api/v1/customer/legal-acceptances', 'customer_portal.read', 'Hämta kundens juridiska godkännanden.'],
+  ['GET', '/api/v1/customer/notifications', 'customer_portal.read', 'Hämta kundens notiser.'],
+  ['POST', '/api/v1/customer/notifications/read', 'customer_portal.write', 'Markera kundnotiser som lästa.'],
   ['POST', '/api/v1/customer/profile-update', 'customer_portal.write', 'Skicka profiländring.'],
   ['POST', '/api/v1/customer/move-out', 'customer_portal.write', 'Skicka flyttanmälan.'],
   ['GET', '/api/v1/events', 'events.read', 'Läsa bolagets domänhändelser.'],
@@ -55,6 +61,8 @@ const activeWebhookEvents = [
   'invoice.sent',
   'invoice.disputed',
   'metering_values.updated',
+  'customer.opened_document',
+  'customer.downloaded_document',
 ]
 
 const plannedWebhookEvents = [
@@ -159,10 +167,11 @@ const applicationResponse = `{
   }
 }`
 
-const customerFetchExample = `fetch("${baseUrl}/api/v1/customer/contracts", {
+const customerFetchExample = `fetch("${baseUrl}/api/v1/customer/portal-bundle", {
   headers: {
     Authorization: "Bearer YOUR_GRIDEX_API_TOKEN",
-    "x-gridex-external-customer-id": "DX-100025"
+    "x-gridex-external-customer-id": "CUSTOMER-12345",
+    "x-gridex-customer-number": "DX-100025"
   },
   cache: "no-store"
 })`
@@ -258,7 +267,7 @@ export default function CustomerPortalApiDocsPage() {
 
         <Section title="2. Behörigheter">
           <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b"><th className="py-2">I vanliga ord</th><th>Teknisk behörighet</th><th>Betydelse</th></tr></thead><tbody>{permissions.map((row) => <tr key={row[1]} className="border-b last:border-0"><td className="py-2 font-semibold text-slate-900">{row[0]}</td><td className="font-mono text-xs">{row[1]}</td><td>{row[2]}</td></tr>)}</tbody></table></div>
-          <p>Kommande mer granulära behörigheter finns förberedda men flera kundroutes använder idag fortfarande customer_portal.read/write.</p>
+          <p>Standardpaketet för hemsida/Mina sidor bör innehålla alla rekommenderade behörigheter. Kundroutes filtrerar alltid per bolag från API-nyckeln.</p>
           <ul className="list-disc pl-5">{futurePermissions.map((row) => <li key={row[1]}><strong>{row[0]}:</strong> <code>{row[1]}</code></li>)}</ul>
         </Section>
 
@@ -282,7 +291,7 @@ export default function CustomerPortalApiDocsPage() {
         <Section title="6. Mina sidor">
           <p>Servern bakom kundportalen skickar API-nyckel och kundreferens. Frontend ska först verifiera den inloggade kunden och därefter anropa Gridex API server-side.</p>
           <CodeBlock>{customerFetchExample}</CodeBlock>
-          <p>Alla kundroutes filtrerar på bolag från API-nyckeln och på länkad kundidentitet via <code>x-gridex-external-customer-id</code> eller <code>external_customer_id</code>.</p>
+          <p>Alla kundroutes filtrerar på bolag från API-nyckeln och löser kunden via auth user, external_customer_id, kundnummer eller unik e-post. Saknade listor returneras som tomma arrayer, inte 500.</p>
         </Section>
 
         <Section title="7. Webhooks">

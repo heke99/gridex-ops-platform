@@ -53,10 +53,10 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
   {
     groupKey: 'documents_notifications',
     label: 'Dokument och notiser',
-    description: 'Kommande mer granulär behörighet för dokument/notiser. Tills routes är helt uppdelade används customer_portal.read/write.',
+    description: 'Kunden kan se dokument/notiser och markera notiser som lästa i kundportalen.',
     category: 'portal',
     scopes: ['customer_documents.read', 'customer_notifications.read', 'customer_notifications.write'],
-    recommendedDefault: false,
+    recommendedDefault: true,
     riskLevel: 'normal',
     sortOrder: 50,
   },
@@ -76,6 +76,11 @@ export const CUSTOMER_PORTAL_SCOPES = [
   'customer_portal.read',
   'customer_portal.write',
   'website_applications.write',
+  'website_events.write',
+  'events.read',
+  'customer_documents.read',
+  'customer_notifications.read',
+  'customer_notifications.write',
 ] as const
 
 export const INTEGRATION_API_SCOPE_OPTIONS = INTEGRATION_API_PERMISSION_GROUPS.flatMap((group) =>

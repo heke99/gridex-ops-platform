@@ -1,17 +1,17 @@
 import type { NextRequest } from 'next/server'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
+import { resolvePortalCustomer, isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 
-type PortalCustomerContext = {
+export type PortalCustomerContext = {
   companyId: string
   customerId: string
   externalCustomerId: string
   provider: string
 }
 
-function isMissingSchemaError(error: unknown): boolean {
-  const maybe = error as { code?: string; message?: string } | null
-  return Boolean(maybe && ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(maybe.code ?? '') || /does not exist|schema cache|column .* does not exist/i.test(maybe?.message ?? ''))
+export function isMissingSchemaError(error: unknown): boolean {
+  return isMissingPortalSchemaError(error)
 }
 
 function clean(value: unknown): string | null {
@@ -32,48 +32,33 @@ export async function resolvePortalCustomerContext(input: {
   client: IntegrationApiClient
   externalCustomerId: string | null
 }): Promise<PortalCustomerContext> {
-  const externalCustomerId = clean(input.externalCustomerId)
-  if (!externalCustomerId) throw new Error('external_customer_id krävs för Mina sidor-API.')
+  const resolution = await resolvePortalCustomer({
+    client: input.client,
+    identifiers: { externalCustomerId: input.externalCustomerId },
+  })
+  if (!resolution.ok) throw new Error(resolution.error)
 
-  const link = await supabaseService
-    .from('tenant_portal_customer_links')
-    .select('company_id,customer_id,provider,external_customer_id,status')
-    .eq('company_id', input.client.company_id)
-    .eq('external_customer_id', externalCustomerId)
-    .eq('status', 'active')
-    .limit(1)
-    .maybeSingle()
-
-  if (!link.error && link.data?.customer_id) {
-    return {
-      companyId: input.client.company_id,
-      customerId: String(link.data.customer_id),
-      externalCustomerId,
-      provider: clean(link.data.provider) ?? 'tenant_portal',
-    }
+  return {
+    companyId: input.client.company_id,
+    customerId: resolution.customer.customer_id,
+    externalCustomerId: resolution.customer.external_customer_id ?? resolution.customer.customer_number ?? input.externalCustomerId ?? resolution.customer.customer_id,
+    provider: resolution.customer.provider ?? 'tenant_portal',
   }
-  if (link.error && !isMissingSchemaError(link.error)) throw link.error
+}
 
-  const identity = await supabaseService
-    .from('customer_portal_identities')
-    .select('company_id,customer_id,external_customer_id,provider,status')
-    .eq('company_id', input.client.company_id)
-    .eq('external_customer_id', externalCustomerId)
-    .eq('status', 'active')
-    .limit(1)
-    .maybeSingle()
-
-  if (!identity.error && identity.data?.customer_id) {
-    return {
-      companyId: input.client.company_id,
-      customerId: String(identity.data.customer_id),
-      externalCustomerId,
-      provider: clean(identity.data.provider) ?? 'tenant_portal',
-    }
+export function portalContextFromResolved(input: {
+  companyId: string
+  customerId: string
+  externalCustomerId?: string | null
+  customerNumber?: string | null
+  provider?: string | null
+}): PortalCustomerContext {
+  return {
+    companyId: input.companyId,
+    customerId: input.customerId,
+    externalCustomerId: input.externalCustomerId ?? input.customerNumber ?? input.customerId,
+    provider: input.provider ?? 'tenant_portal',
   }
-  if (identity.error && !isMissingSchemaError(identity.error)) throw identity.error
-
-  throw new Error('Kundkontot är inte säkert länkat till en Gridex-kund ännu.')
 }
 
 async function logPortalAccess(input: {
@@ -142,6 +127,17 @@ export async function listPortalMeteringValues(context: PortalCustomerContext, r
 
 export async function listPortalInvoices(context: PortalCustomerContext, route = '/api/v1/customer/invoices') {
   await logPortalAccess({ context, route, action: 'read_invoices' })
+
+  const invoices = await supabaseService
+    .from('customer_invoices')
+    .select('id,customer_id,agreement_id,billing_underlay_id,partner_export_id,partner_invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,source_system,created_at')
+    .eq('company_id', context.companyId)
+    .eq('customer_id', context.customerId)
+    .order('period_start', { ascending: false, nullsFirst: false })
+    .limit(100)
+
+  if (!invoices.error) return invoices.data ?? []
+  if (!isMissingSchemaError(invoices.error)) throw invoices.error
 
   const exported = await supabaseService
     .from('invoice_export_items')
@@ -235,4 +231,53 @@ export async function createPortalRequest(context: PortalCustomerContext, input:
     return row
   }
   return data ?? row
+}
+
+
+export async function listPortalLegalAcceptances(context: PortalCustomerContext, route = '/api/v1/customer/legal-acceptances') {
+  await logPortalAccess({ context, route, action: 'read_legal_acceptances' })
+  const { data, error } = await supabaseService
+    .from('customer_legal_acceptances')
+    .select('id,acceptance_type,legal_text_version_id,contract_id,contract_application_id,accepted_at,source,snapshot,metadata,created_at')
+    .eq('company_id', context.companyId)
+    .eq('customer_id', context.customerId)
+    .order('accepted_at', { ascending: false })
+    .limit(100)
+  if (error) {
+    if (isMissingSchemaError(error)) return []
+    throw error
+  }
+  return data ?? []
+}
+
+export async function listPortalEvents(context: PortalCustomerContext, route = '/api/v1/customer/events') {
+  await logPortalAccess({ context, route, action: 'read_events' })
+  const { data, error } = await supabaseService
+    .from('customer_events')
+    .select('id,event_type,source,payload,metadata,occurred_at,created_at')
+    .eq('company_id', context.companyId)
+    .eq('customer_id', context.customerId)
+    .order('occurred_at', { ascending: false })
+    .limit(100)
+  if (error) {
+    if (isMissingSchemaError(error)) return []
+    throw error
+  }
+  return data ?? []
+}
+
+export async function listPortalNotifications(context: PortalCustomerContext, route = '/api/v1/customer/notifications') {
+  await logPortalAccess({ context, route, action: 'read_notifications' })
+  const { data, error } = await supabaseService
+    .from('customer_notifications')
+    .select('id,type,title,message,status,read_at,action_url,metadata,created_at')
+    .eq('company_id', context.companyId)
+    .eq('customer_id', context.customerId)
+    .order('created_at', { ascending: false })
+    .limit(100)
+  if (error) {
+    if (isMissingSchemaError(error)) return []
+    throw error
+  }
+  return data ?? []
 }

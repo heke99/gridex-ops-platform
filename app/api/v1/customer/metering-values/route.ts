@@ -7,6 +7,7 @@ import {
   normalizeFacility,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
+import { isMissingSchemaError } from '@/lib/customer-portal/apiData'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -45,7 +46,13 @@ export async function GET(request: NextRequest) {
     if (normalizedFacilityId) query = query.eq('facility_id', normalizedFacilityId)
 
     const { data, error } = await query
-    if (error) throw error
+    if (error) {
+      if (isMissingSchemaError(error)) {
+        await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 0 })
+        return customerPortalJson({ data: [] })
+      }
+      throw error
+    }
 
     await logCustomerPortalSuccess({
       request,

@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseService } from '@/lib/supabase/service'
 import {
   logIntegrationApiRequest,
   requireIntegrationApiAccess,
   type IntegrationApiClient,
 } from '@/lib/integrations/apiAuth'
+import { portalIdentifiersFromRequest, resolvePortalCustomer } from '@/lib/customer-portal/customerResolver'
 
 export type LinkedPortalIdentity = {
-  id: string
+  id: string | null
   company_id: string
   customer_id: string
-  external_customer_id: string
+  external_customer_id: string | null
   email: string | null
+  customer_number: string | null
+  auth_user_id: string | null
   match_strength: string | null
   match_method: string | null
+  provider: string | null
+  customer: Record<string, unknown>
 }
 
 export type CustomerPortalApiContext = {
@@ -27,8 +31,8 @@ export function customerPortalJson<T>(body: T, init: ResponseInit = {}) {
   return NextResponse.json(body, { ...init, headers })
 }
 
-export function jsonError(error: string, status: number) {
-  return customerPortalJson({ error }, { status })
+export function jsonError(error: string, status: number, code?: string) {
+  return customerPortalJson({ error, ...(code ? { code } : {}) }, { status })
 }
 
 export function normalizeEmail(value: unknown): string {
@@ -44,36 +48,19 @@ export function normalizeFacility(value: unknown): string {
 }
 
 export function identityExternalCustomerId(request: NextRequest): string | null {
-  const fromHeader = request.headers.get('x-gridex-external-customer-id')?.trim()
-  if (fromHeader) return fromHeader
-  const fromQuery = request.nextUrl.searchParams.get('external_customer_id')?.trim()
-  if (fromQuery) return fromQuery
-  const legacyQuery = request.nextUrl.searchParams.get('customer_external_id')?.trim()
-  return legacyQuery || null
+  return portalIdentifiersFromRequest(request).externalCustomerId
 }
 
 export async function resolveLinkedPortalIdentity(
   request: NextRequest,
   client: IntegrationApiClient
-): Promise<{ ok: true; identity: LinkedPortalIdentity } | { ok: false; status: number; error: string }> {
-  const externalCustomerId = identityExternalCustomerId(request)
-  if (!externalCustomerId) {
-    return { ok: false, status: 400, error: 'external_customer_id saknas.' }
+): Promise<{ ok: true; identity: LinkedPortalIdentity } | { ok: false; status: number; error: string; code: string }> {
+  const resolution = await resolvePortalCustomer({ request, client })
+  if (!resolution.ok) {
+    return { ok: false, status: resolution.status, error: resolution.error, code: resolution.code }
   }
 
-  const { data, error } = await supabaseService
-    .from('customer_portal_identities')
-    .select('id,company_id,customer_id,external_customer_id,email,status,match_strength,match_method')
-    .eq('company_id', client.company_id)
-    .eq('external_customer_id', externalCustomerId)
-    .eq('status', 'active')
-    .not('customer_id', 'is', null)
-    .maybeSingle()
-
-  if (error) return { ok: false, status: 503, error: 'Kundlänk kunde inte verifieras.' }
-  if (!data?.customer_id) return { ok: false, status: 403, error: 'Kundkontot är inte länkat eller kräver granskning.' }
-
-  return { ok: true, identity: data as LinkedPortalIdentity }
+  return { ok: true, identity: resolution.customer }
 }
 
 export async function requireCustomerPortalApiContext(
@@ -87,7 +74,7 @@ export async function requireCustomerPortalApiContext(
   const auth = await requireIntegrationApiAccess(request, scopes)
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
-    return { ok: false, response: jsonError(auth.error, auth.status), startedAt }
+    return { ok: false, response: jsonError(auth.error, auth.status, auth.errorCode), startedAt }
   }
 
   const identity = await resolveLinkedPortalIdentity(request, auth.client)
@@ -97,10 +84,10 @@ export async function requireCustomerPortalApiContext(
       request,
       statusCode: identity.status,
       startedAt,
-      errorCode: identity.error,
-      metadata: { external_customer_id: identityExternalCustomerId(request) },
+      errorCode: identity.code,
+      metadata: { ...portalIdentifiersFromRequest(request) },
     })
-    return { ok: false, response: jsonError(identity.error, identity.status), startedAt }
+    return { ok: false, response: jsonError(identity.error, identity.status, identity.code), startedAt }
   }
 
   return { ok: true, client: auth.client, identity: identity.identity, startedAt }
@@ -139,5 +126,5 @@ export function handleCustomerPortalRouteError(input: {
     startedAt: input.startedAt,
     errorCode: message,
   })
-  return jsonError(message, 500)
+  return jsonError(message, 500, 'customer_portal_internal_error')
 }
