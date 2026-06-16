@@ -5,8 +5,8 @@ import { supabaseService } from '@/lib/supabase/service'
  * consistently across admin UI, the public contracts API and the live
  * customer intake. When `isReady` is false the offer must not be visible on
  * public endpoints and cannot be published. The `blockers` array contains
- * human‑readable strings in Swedish which can be displayed in admin tools to
- * explain why the offer is not ready. Customer‑facing endpoints should
+ * human-readable strings in Swedish which can be displayed in admin tools to
+ * explain why the offer is not ready. Customer-facing endpoints should
  * provide a generic message instead of exposing internal details.
  */
 export type PublicOfferReadiness = {
@@ -18,44 +18,24 @@ export type PublicOfferReadiness = {
 
 /**
  * Assess whether a given public contract offer is ready to be published or
- * consumed by the website signup flow. This function centralises all
- * readiness checks so that both admin and live systems are consistent. It
- * should be updated as new readiness signals are introduced (e.g. mail
- * readiness or billing readiness).
+ * consumed by the website signup flow. Keep this check scoped to website/API
+ * publication only.
  *
- * The current implementation performs a minimal set of checks:
- *  - Tenant launch state must be `ready` or `live`.
- *  - The offer must reference a non‑null legal_bundle_id and price_book_id.
+ * Important separation:
+ *  - Internal contract creation/activation must not require website/API.
+ *  - Website/API publication must not require Ediel/PRODAT production go-live.
+ *  - Ediel production go-live is checked only when sending live Ediel flows.
  *
- * Additional checks such as API client readiness, allowed origins,
- * canonical price book immutability and Ediel/facility readiness can be
- * introduced here by querying Supabase. Keep this function idempotent and
- * side‑effect free.
+ * Current publication checks:
+ *  - The offer must reference a legal bundle and a price book.
+ *  - The tenant must have an active API client with website_contracts.read.
  */
 export async function assessPublicOfferReadiness(input: {
   companyId: string
   offer: { legal_bundle_id?: string | null; price_book_id?: string | null }
 }): Promise<PublicOfferReadiness> {
   const blockers: string[] = []
-  // Check tenant launch state
-  try {
-    const { data: state, error } = await supabaseService
-      .from('tenant_launch_states')
-      .select('status')
-      .eq('company_id', input.companyId)
-      .maybeSingle()
-    if (error) throw error
-    const status = state?.status
-    if (!status || !['ready', 'live'].includes(status)) {
-      blockers.push('Tenant är inte redo för go‑live')
-    }
-  } catch (err) {
-    // If the table does not exist yet we assume readiness cannot be
-    // determined. Do not throw here to avoid crashing public endpoints.
-    blockers.push('Kunde inte kontrollera tenantens status')
-  }
 
-  // Require legal bundle and price book references
   if (!input.offer.legal_bundle_id) {
     blockers.push('Juridiskt paket saknas')
   }
@@ -63,9 +43,6 @@ export async function assessPublicOfferReadiness(input: {
     blockers.push('Prislista saknas')
   }
 
-  // Require a tenant API client that can read public website contracts.
-  // The public endpoint still authenticates the exact calling client, but
-  // this catches setup mistakes before an offer is published.
   try {
     const { data: client, error } = await supabaseService
       .from('integration_api_clients')
