@@ -1,185 +1,242 @@
-'use server'
+"use server";
 
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
-import { saveContractOffer } from '@/lib/customer-contracts/db'
-import type { ContractType, GreenFeeMode } from '@/lib/customer-contracts/types'
-import { supabaseService } from '@/lib/supabase/service'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
-import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
+import { saveContractOffer } from "@/lib/customer-contracts/db";
+import type {
+  ContractType,
+  GreenFeeMode,
+} from "@/lib/customer-contracts/types";
+import { supabaseService } from "@/lib/supabase/service";
+import { requireOperationalCompanyId } from "@/lib/tenant/scope";
+import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 
 function getString(formData: FormData, key: string): string {
-  return String(formData.get(key) ?? '').trim()
+  return String(formData.get(key) ?? "").trim();
 }
 
 function getNullableNumber(formData: FormData, key: string): number | null {
-  const raw = getString(formData, key)
-  if (!raw) return null
-  const parsed = Number(raw.replace(',', '.'))
-  return Number.isFinite(parsed) ? parsed : null
+  const raw = getString(formData, key);
+  if (!raw) return null;
+  const parsed = Number(raw.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function getNullableInt(formData: FormData, key: string): number | null {
-  const raw = getString(formData, key)
-  if (!raw) return null
-  const parsed = Number.parseInt(raw, 10)
-  return Number.isFinite(parsed) ? parsed : null
+  const raw = getString(formData, key);
+  if (!raw) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function parseContractType(value: string): ContractType {
   switch (value) {
-    case 'fixed':
-    case 'variable_monthly':
-    case 'variable_hourly':
-    case 'portfolio':
-      return value
+    case "fixed":
+    case "variable_monthly":
+    case "variable_hourly":
+    case "portfolio":
+    case "mixed":
+      return value;
     default:
-      return 'variable_hourly'
+      return "variable_hourly";
   }
 }
 
 function parseGreenFeeMode(value: string): GreenFeeMode {
   switch (value) {
-    case 'sek_month':
-    case 'ore_per_kwh':
-      return value
+    case "sek_month":
+    case "ore_per_kwh":
+      return value;
     default:
-      return 'none'
+      return "none";
   }
 }
 
+function nextPriceVersionLabel(input: {
+  name: string;
+  contractType: ContractType;
+  requested?: string | null;
+}): string {
+  const explicit = input.requested?.trim();
+  if (explicit) return explicit;
+  const now = new Date();
+  const ym = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const typeLabel =
+    input.contractType === "fixed"
+      ? "fast"
+      : input.contractType === "portfolio"
+        ? "portfolj"
+        : input.contractType === "mixed"
+          ? "mix"
+          : "rorligt";
+  return `${input.name.trim()} · ${ym} · ${typeLabel}-v1`;
+}
+
 function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
-  const trimmed = value.trim()
-  if (!trimmed) return []
+  const trimmed = value.trim();
+  if (!trimmed) return [];
 
   return trimmed
     .split(/\r?\n/)
     .map((row) => row.trim())
     .filter(Boolean)
     .map((row) => {
-      const [label, amountRaw, unitRaw] = row.split('|').map((part) => part.trim())
-      const amount = amountRaw ? Number(amountRaw.replace(',', '.')) : null
+      const [label, amountRaw, unitRaw] = row
+        .split("|")
+        .map((part) => part.trim());
+      const amount = amountRaw ? Number(amountRaw.replace(",", ".")) : null;
 
       return {
-        label: label || '',
+        label: label || "",
         amount: Number.isFinite(amount ?? NaN) ? amount : null,
-        unit: unitRaw || 'sek',
-      }
-    })
+        unit: unitRaw || "sek",
+      };
+    });
 }
 
 function redirectBack(params: { success?: string; error?: string }): never {
-  const search = new URLSearchParams()
-  if (params.success) search.set('success', params.success)
-  if (params.error) search.set('error', params.error)
-  redirect(`/admin/contracts?${search.toString()}`)
-  throw new Error('Kunde inte navigera tillbaka efter åtgärden.')
+  const search = new URLSearchParams();
+  if (params.success) search.set("success", params.success);
+  if (params.error) search.set("error", params.error);
+  redirect(`/admin/contracts?${search.toString()}`);
+  throw new Error("Kunde inte navigera tillbaka efter åtgärden.");
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message
-  if (typeof error === 'object' && error && 'message' in error && typeof (error as { message?: unknown }).message === 'string') return (error as { message: string }).message
-  return 'Avtalsmallen kunde inte sparas.'
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (
+    typeof error === "object" &&
+    error &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+  )
+    return (error as { message: string }).message;
+  return "Avtalsmallen kunde inte sparas.";
 }
 
 export async function saveContractOfferAction(formData: FormData) {
-  let success: string
+  let success: string;
   try {
-    success = (await saveContractOfferActionImpl(formData)).success
+    success = (await saveContractOfferActionImpl(formData)).success;
   } catch (error) {
-    redirectBack({ error: errorMessage(error) })
+    redirectBack({ error: errorMessage(error) });
   }
-  redirectBack({ success })
+  redirectBack({ success });
 }
 
-async function saveContractOfferActionImpl(formData: FormData): Promise<{ success: string }> {
-  await requirePlatformAdminActionAccess()
+async function saveContractOfferActionImpl(
+  formData: FormData,
+): Promise<{ success: string }> {
+  await requirePlatformAdminActionAccess();
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error('Unauthorized')
+    throw new Error("Unauthorized");
   }
 
-  const companyId = await requireOperationalCompanyId(user.id)
-  await requireCompanyOperationalForWrites(companyId)
-  const id = getString(formData, 'id') || undefined
-  const name = getString(formData, 'name')
+  const companyId = await requireOperationalCompanyId(user.id);
+  await requireCompanyOperationalForWrites(companyId);
+  const id = getString(formData, "id") || undefined;
+  const name = getString(formData, "name");
 
-  let previous: Record<string, unknown> | null = null
+  let previous: Record<string, unknown> | null = null;
   if (id) {
     const { data: oldOffer, error: oldOfferError } = await supabaseService
-      .from('contract_offers')
-      .select('*')
-      .eq('id', id)
-      .eq('company_id', companyId)
-      .maybeSingle()
-    if (oldOfferError) throw oldOfferError
-    previous = (oldOffer as Record<string, unknown> | null) ?? null
+      .from("contract_offers")
+      .select("*")
+      .eq("id", id)
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (oldOfferError) throw oldOfferError;
+    previous = (oldOffer as Record<string, unknown> | null) ?? null;
   }
 
   if (!name) {
-    throw new Error('Avtalsnamn krävs')
+    throw new Error("Avtalsnamn krävs");
   }
+
+  const contractType = parseContractType(getString(formData, "contract_type"));
+  const priceVersion = nextPriceVersionLabel({
+    name,
+    contractType,
+    requested: getString(formData, "price_version") || null,
+  });
 
   const saved = await saveContractOffer({
     id,
     companyId,
     name,
-    slug: getString(formData, 'slug') || null,
-    status: (getString(formData, 'status') || 'active') as 'draft' | 'active' | 'inactive',
-    contractType: parseContractType(getString(formData, 'contract_type')),
-    campaignName: getString(formData, 'campaign_name') || null,
-    campaignCode: getString(formData, 'campaign_code') || null,
-    campaignVersion: getString(formData, 'campaign_version') || null,
-    priceVersion: getString(formData, 'price_version') || null,
-    termsVersion: getString(formData, 'terms_version') || null,
-    maxCustomers: getNullableInt(formData, 'max_customers'),
-    discountValue: getNullableNumber(formData, 'discount_value'),
-    discountUnit: getString(formData, 'discount_unit') || null,
-    startFeeSek: getNullableNumber(formData, 'start_fee_sek'),
-    adminFeeSek: getNullableNumber(formData, 'admin_fee_sek'),
-    breakFeeSek: getNullableNumber(formData, 'break_fee_sek'),
-    vatRate: getNullableNumber(formData, 'vat_rate'),
-    description: getString(formData, 'description') || null,
-    fixedPriceOrePerKwh: getNullableNumber(formData, 'fixed_price_ore_per_kwh'),
-    spotMarkupOrePerKwh: getNullableNumber(formData, 'spot_markup_ore_per_kwh'),
-    variableFeeOrePerKwh: getNullableNumber(formData, 'variable_fee_ore_per_kwh'),
-    monthlyFeeSek: getNullableNumber(formData, 'monthly_fee_sek'),
-    greenFeeMode: parseGreenFeeMode(getString(formData, 'green_fee_mode')),
-    greenFeeValue: getNullableNumber(formData, 'green_fee_value'),
-    defaultBindingMonths: getNullableInt(formData, 'default_binding_months'),
-    defaultNoticeMonths: getNullableInt(formData, 'default_notice_months'),
-    optionalFeeLines: parseOptionalFeeLines(getString(formData, 'optional_fee_lines')),
-    isActive: getString(formData, 'is_active') === 'on',
-    validFrom: getString(formData, 'valid_from') || null,
-    validTo: getString(formData, 'valid_to') || null,
+    slug: getString(formData, "slug") || null,
+    status: (getString(formData, "status") || "active") as
+      | "draft"
+      | "active"
+      | "inactive",
+    contractType,
+    campaignName: getString(formData, "campaign_name") || null,
+    campaignCode: getString(formData, "campaign_code") || null,
+    campaignVersion: getString(formData, "campaign_version") || null,
+    priceVersion,
+    termsVersion: getString(formData, "terms_version") || null,
+    maxCustomers: getNullableInt(formData, "max_customers"),
+    discountValue: getNullableNumber(formData, "discount_value"),
+    discountUnit: getString(formData, "discount_unit") || null,
+    startFeeSek: getNullableNumber(formData, "start_fee_sek"),
+    adminFeeSek: getNullableNumber(formData, "admin_fee_sek"),
+    breakFeeSek: getNullableNumber(formData, "break_fee_sek"),
+    vatRate: getNullableNumber(formData, "vat_rate"),
+    description: getString(formData, "description") || null,
+    fixedPriceOrePerKwh: getNullableNumber(formData, "fixed_price_ore_per_kwh"),
+    spotMarkupOrePerKwh: getNullableNumber(formData, "spot_markup_ore_per_kwh"),
+    variableFeeOrePerKwh: getNullableNumber(
+      formData,
+      "variable_fee_ore_per_kwh",
+    ),
+    monthlyFeeSek: getNullableNumber(formData, "monthly_fee_sek"),
+    greenFeeMode: parseGreenFeeMode(getString(formData, "green_fee_mode")),
+    greenFeeValue: getNullableNumber(formData, "green_fee_value"),
+    defaultBindingMonths: getNullableInt(formData, "default_binding_months"),
+    defaultNoticeMonths: getNullableInt(formData, "default_notice_months"),
+    optionalFeeLines: parseOptionalFeeLines(
+      getString(formData, "optional_fee_lines"),
+    ),
+    isActive: getString(formData, "is_active") === "on",
+    validFrom: getString(formData, "valid_from") || null,
+    validTo: getString(formData, "valid_to") || null,
     actorUserId: user.id,
-  })
+  });
 
-  await supabaseService.from('audit_logs').insert({
+  await supabaseService.from("audit_logs").insert({
     actor_user_id: user.id,
-    entity_type: 'contract_offer',
+    entity_type: "contract_offer",
     entity_id: saved.id,
     company_id: companyId,
-    action: id ? 'contract_offer_updated_platform_admin_only' : 'contract_offer_created_platform_admin_only',
+    action: id
+      ? "contract_offer_updated_platform_admin_only"
+      : "contract_offer_created_platform_admin_only",
     old_values: previous,
     new_values: saved,
     metadata: {
       campaign_code: (saved as Record<string, unknown>).campaign_code ?? null,
-      campaign_version: (saved as Record<string, unknown>).campaign_version ?? null,
-      price_version: (saved as Record<string, unknown>).price_version ?? null,
+      campaign_version:
+        (saved as Record<string, unknown>).campaign_version ?? null,
+      price_version:
+        (saved as Record<string, unknown>).price_version ?? priceVersion,
       terms_version: (saved as Record<string, unknown>).terms_version ?? null,
     },
-  })
+  });
 
-  revalidatePath('/admin/contracts')
-  revalidatePath('/admin/customers/intake')
-  revalidatePath('/admin/customers')
-  return { success: id ? 'Avtalsmallen uppdaterades.' : 'Avtalsmallen skapades.' }
+  revalidatePath("/admin/contracts");
+  revalidatePath("/admin/customers/intake");
+  revalidatePath("/admin/customers");
+  return {
+    success: id
+      ? "Avtalet uppdaterades och ny prisversion/snapshot sparades."
+      : "Avtalet skapades med första prisversionen. Det kan användas internt utan hemsida/API när det är aktivt.",
+  };
 }

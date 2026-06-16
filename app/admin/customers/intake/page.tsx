@@ -4,7 +4,11 @@ import CustomerBulkImportPanel from "@/components/admin/customers/CustomerBulkIm
 import CustomerIntakeForm from "@/components/admin/customers/CustomerIntakeForm";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminPageAccess } from "@/lib/admin/guards";
-import { listElectricitySuppliers, listGridOwners, listPriceAreas } from "@/lib/masterdata/db";
+import {
+  listElectricitySuppliers,
+  listGridOwners,
+  listPriceAreas,
+} from "@/lib/masterdata/db";
 import { listContractOffers } from "@/lib/customer-contracts/db";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
 import { getCompanyGoLiveSetupSummary } from "@/lib/ediel/platformGoLive";
@@ -15,7 +19,10 @@ const bulkExample = `customer_type;intake_flow_type;first_name;last_name;contact
 private;switch;Anna;Svensson;;;anna@example.se;0700000000;199001011234;;1201;Anna Svensson - Lägenhet;735999111111111111;735999000000000001;REPLACE_GRID_OWNER_UUID;STHLM;SE3;2026-06-01;12000;Storgatan 1;11122;Stockholm;;SE;Fortum;5560000000;confirmed;signed;2026-05-21;2027-05-21;2026-06-01;;customer_expected;;;;;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;1
 association;move_in;Sara;Ek;Ordförande;Brf Solrosen;sara@solrosen.se;0701111111;;769600-1234;;Brf Solrosen Huvudanläggning;735999111111111112;735999000000000002;REPLACE_GRID_OWNER_UUID;STHLM;SE3;2026-08-01;54000;Föreningsgatan 4;11123;Stockholm;c/o Styrelsen;SE;E.ON;5561000000;confirmed;sent;2026-05-21;2027-05-21;2026-08-01;;customer_expected;Gamla vägen 9;11121;Stockholm;Vattenfall;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;3`;
 
-async function safeLoad<T>(label: string, loader: () => Promise<T[]>): Promise<{ rows: T[]; warning: string | null }> {
+async function safeLoad<T>(
+  label: string,
+  loader: () => Promise<T[]>,
+): Promise<{ rows: T[]; warning: string | null }> {
   try {
     return { rows: await loader(), warning: null };
   } catch (error) {
@@ -37,9 +44,22 @@ export default async function CustomerIntakePage() {
   const user = authResult.user;
   const companyScope = await getOperationalCompanyScope(access.userId);
 
-  const [gridOwnersResult, electricitySuppliersResult, priceAreasResult, contractOffersResult, goLiveSummary] = await Promise.all([
-    safeLoad("Nätägare", () => listGridOwners(supabase, { customerFlowOnly: true })),
-    safeLoad("Elhandlare", () => listElectricitySuppliers(supabase, { activeOnly: true, customerFlowOnly: true })),
+  const [
+    gridOwnersResult,
+    electricitySuppliersResult,
+    priceAreasResult,
+    contractOffersResult,
+    goLiveSummary,
+  ] = await Promise.all([
+    safeLoad("Nätägare", () =>
+      listGridOwners(supabase, { customerFlowOnly: true }),
+    ),
+    safeLoad("Elhandlare", () =>
+      listElectricitySuppliers(supabase, {
+        activeOnly: true,
+        customerFlowOnly: true,
+      }),
+    ),
     safeLoad("Prisområden", () => listPriceAreas(supabase)),
     safeLoad("Avtalserbjudanden", () =>
       companyScope.companyId
@@ -47,9 +67,11 @@ export default async function CustomerIntakePage() {
             activeOnly: true,
             companyId: companyScope.companyId,
           })
-        : Promise.resolve([])
+        : Promise.resolve([]),
     ),
-    companyScope.companyId ? getCompanyGoLiveSetupSummary(companyScope.companyId) : Promise.resolve(null),
+    companyScope.companyId
+      ? getCompanyGoLiveSetupSummary(companyScope.companyId)
+      : Promise.resolve(null),
   ]);
   const gridOwners = gridOwnersResult.rows;
   const electricitySuppliers = electricitySuppliersResult.rows;
@@ -123,7 +145,9 @@ export default async function CustomerIntakePage() {
 
         {loadWarnings.length > 0 ? (
           <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900 shadow-sm">
-            <h2 className="font-semibold text-amber-950">Kundintag laddades med begränsad masterdata</h2>
+            <h2 className="font-semibold text-amber-950">
+              Kundintag laddades med begränsad masterdata
+            </h2>
             <ul className="mt-3 list-disc space-y-2 pl-5">
               {loadWarnings.map((warning) => (
                 <li key={warning}>{warning}</li>
@@ -134,15 +158,38 @@ export default async function CustomerIntakePage() {
 
         <section className="grid gap-4 md:grid-cols-5">
           {[
-            ['1', 'Kund', 'Privat/företag, identitet, kontakt och fakturaadress.'],
-            ['2', 'Anläggning', 'Anläggnings-id, nätägare, elområde och startdatum.'],
-            ['3', 'Avtal', 'Prisplan, kampanj, fullmakt och startvillkor.'],
-            ['4', 'Fullmakt/Ediel', 'Plattformen avgör fullmakt, leverantörsbyte, inflytt, uppsägning och mätdataflöde.'],
-            ['5', 'Sammanfattning', 'Visa blockerare, nästa steg och om kunden är redo för fakturering.'],
+            [
+              "1",
+              "Kund",
+              "Privat/företag, identitet, kontakt och fakturaadress.",
+            ],
+            [
+              "2",
+              "Anläggning",
+              "Anläggnings-id, nätägare, elområde och startdatum.",
+            ],
+            ["3", "Avtal", "Prisplan, kampanj, fullmakt och startvillkor."],
+            [
+              "4",
+              "Fullmakt/Ediel",
+              "Plattformen avgör fullmakt, leverantörsbyte, inflytt, uppsägning och mätdataflöde.",
+            ],
+            [
+              "5",
+              "Sammanfattning",
+              "Visa blockerare, nästa steg och om kunden är redo för fakturering.",
+            ],
           ].map(([step, title, body]) => (
-            <div key={step} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white">{step}</div>
-              <h2 className="mt-4 text-base font-semibold text-slate-950">{title}</h2>
+            <div
+              key={step}
+              className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white">
+                {step}
+              </div>
+              <h2 className="mt-4 text-base font-semibold text-slate-950">
+                {title}
+              </h2>
               <p className="mt-2 text-sm leading-6 text-slate-700">{body}</p>
             </div>
           ))}
@@ -151,20 +198,71 @@ export default async function CustomerIntakePage() {
         <section className="rounded-3xl border border-sky-200 bg-sky-50 p-6 text-sm leading-6 text-sky-950 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">Automatiskt nätägar- och Ediel-flöde</h2>
-              <p className="mt-2">Kundintag ska inte skapa egna tekniska routes eller receiver-värden. Systemet använder verifierad masterdata, tenantens Ediel-ID och go-live route-profiler för att avgöra nästa steg.</p>
-              <p className="mt-2">Om anläggnings-id, mätpunkts-id eller nätägare saknas sparas kunden med blockerare och uppgiftsbegäran i stället för att skicka felaktig PRODAT.</p>
+              <h2 className="text-lg font-semibold text-slate-950">
+                Automatiskt nätägar- och Ediel-flöde
+              </h2>
+              <p className="mt-2">
+                Kundintag ska inte skapa egna tekniska routes eller
+                receiver-värden. Systemet använder verifierad masterdata,
+                tenantens Ediel-ID och go-live route-profiler för att avgöra
+                nästa steg.
+              </p>
+              <p className="mt-2">
+                Om anläggnings-id, mätpunkts-id eller nätägare saknas sparas
+                kunden med blockerare och uppgiftsbegäran i stället för att
+                skicka felaktig PRODAT.
+              </p>
             </div>
             <div className="rounded-2xl border border-sky-200 bg-white px-4 py-3 text-xs font-bold text-sky-900">
-              EDIFACT-status: {goLiveSummary?.status === "ready" ? "Redo" : goLiveSummary?.status === "manual_review_required" ? "Kräver granskning" : "Blockerad/saknas"}
+              EDIFACT-status:{" "}
+              {goLiveSummary?.status === "ready"
+                ? "Redo"
+                : goLiveSummary?.status === "manual_review_required"
+                  ? "Kräver granskning"
+                  : "Blockerad/saknas"}
             </div>
           </div>
           {goLiveSummary ? (
             <div className="mt-4 grid gap-3 md:grid-cols-4">
-              <div className="rounded-2xl bg-white p-4"><div className="text-xs font-bold uppercase text-slate-500">Ediel-ID</div><div className="mt-1 font-mono text-sm font-bold text-slate-950">{goLiveSummary.edielId ?? "–"}</div></div>
-              <div className="rounded-2xl bg-white p-4"><div className="text-xs font-bold uppercase text-slate-500">Receiver</div><div className="mt-1 text-sm font-bold text-slate-950">{goLiveSummary.routeResolutionMode === "automatic" ? "Automatiskt" : "Granska"}</div></div>
-              <div className="rounded-2xl bg-white p-4"><div className="text-xs font-bold uppercase text-slate-500">PRODAT-route</div><div className="mt-1 text-sm font-bold text-slate-950">{goLiveSummary.hasProdatRoute ? "Klar" : "Saknas"}</div></div>
-              <div className="rounded-2xl bg-white p-4"><div className="text-xs font-bold uppercase text-slate-500">Juridik</div><div className="mt-1 text-sm font-bold text-slate-950">{goLiveSummary.legal.terms && goLiveSummary.legal.privacy_policy && goLiveSummary.legal.withdrawal && goLiveSummary.legal.power_of_attorney ? "Klar" : "Saknas"}</div></div>
+              <div className="rounded-2xl bg-white p-4">
+                <div className="text-xs font-bold uppercase text-slate-500">
+                  Ediel-ID
+                </div>
+                <div className="mt-1 font-mono text-sm font-bold text-slate-950">
+                  {goLiveSummary.edielId ?? "–"}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white p-4">
+                <div className="text-xs font-bold uppercase text-slate-500">
+                  Receiver
+                </div>
+                <div className="mt-1 text-sm font-bold text-slate-950">
+                  {goLiveSummary.routeResolutionMode === "automatic"
+                    ? "Automatiskt"
+                    : "Granska"}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white p-4">
+                <div className="text-xs font-bold uppercase text-slate-500">
+                  PRODAT produktion
+                </div>
+                <div className="mt-1 text-sm font-bold text-slate-950">
+                  {goLiveSummary.hasProdatRoute ? "Klar" : "Inte aktiverad"}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white p-4">
+                <div className="text-xs font-bold uppercase text-slate-500">
+                  Juridik
+                </div>
+                <div className="mt-1 text-sm font-bold text-slate-950">
+                  {goLiveSummary.legal.terms &&
+                  goLiveSummary.legal.privacy_policy &&
+                  goLiveSummary.legal.withdrawal &&
+                  goLiveSummary.legal.power_of_attorney
+                    ? "Klar"
+                    : "Inte aktiverad"}
+                </div>
+              </div>
             </div>
           ) : null}
         </section>

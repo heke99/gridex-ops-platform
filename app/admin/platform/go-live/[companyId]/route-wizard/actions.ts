@@ -10,21 +10,6 @@ function text(formData: FormData, key: string): string | null {
   return value.length > 0 ? value : null;
 }
 
-function intValue(formData: FormData, key: string): number | null {
-  const raw = text(formData, key);
-  if (!raw) return null;
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function normalizeAckMode(value: string | null): string {
-  return value === "none" ||
-    value === "contrl_only" ||
-    value === "contrl_and_aperak"
-    ? value
-    : "default";
-}
-
 function normalizeSubAddress(value: string | null): string | null {
   const clean = value?.trim();
   return clean ? clean.toUpperCase() : null;
@@ -96,7 +81,6 @@ function defaultDynamicReceiverStrategy(receiverSource: string): string {
   return "resolve_from_selected_metering_point_grid_owner";
 }
 
-
 async function getSharedProductionMailbox(companyId: string): Promise<{
   targetEmail: string | null;
   mailboxLabel: string | null;
@@ -111,20 +95,40 @@ async function getSharedProductionMailbox(companyId: string): Promise<{
     .limit(50);
 
   if (error) {
-    console.warn("Production mailbox could not be resolved for route wizard", error);
-    return { targetEmail: null, mailboxLabel: null, mailboxId: null, mode: "missing" };
+    console.warn(
+      "Production mailbox could not be resolved for route wizard",
+      error,
+    );
+    return {
+      targetEmail: null,
+      mailboxLabel: null,
+      mailboxId: null,
+      mode: "missing",
+    };
   }
 
-  const rows = Array.isArray(data) ? data as Array<Record<string, unknown>> : [];
+  const rows = Array.isArray(data)
+    ? (data as Array<Record<string, unknown>>)
+    : [];
   const shared = rows.find((row) => !row.company_id);
   const companyMailbox = rows.find((row) => row.company_id === companyId);
   const chosen = shared ?? companyMailbox ?? null;
 
   return {
-    targetEmail: typeof chosen?.email_address === "string" && chosen.email_address.trim() ? chosen.email_address.trim() : null,
-    mailboxLabel: typeof chosen?.mailbox_name === "string" && chosen.mailbox_name.trim() ? chosen.mailbox_name.trim() : null,
+    targetEmail:
+      typeof chosen?.email_address === "string" && chosen.email_address.trim()
+        ? chosen.email_address.trim()
+        : null,
+    mailboxLabel:
+      typeof chosen?.mailbox_name === "string" && chosen.mailbox_name.trim()
+        ? chosen.mailbox_name.trim()
+        : null,
     mailboxId: typeof chosen?.id === "string" ? chosen.id : null,
-    mode: shared ? "shared_platform_mailbox" : companyMailbox ? "company_specific_mailbox" : "missing",
+    mode: shared
+      ? "shared_platform_mailbox"
+      : companyMailbox
+        ? "company_specific_mailbox"
+        : "missing",
   };
 }
 
@@ -155,7 +159,9 @@ function validateProductionRoute(input: {
       "91109 är test-BRP/testmotpart och får inte användas i production route.",
     );
   if (!input.targetEmail)
-    blockers.push("Shared production mailbox/transportkanal saknas. Lägg upp plattformens production-mailbox i stället för att mata in receiver manuellt.");
+    blockers.push(
+      "Gridex shared production mailbox saknas. Lägg upp plattformens production-transport innan PRODAT aktiveras.",
+    );
   if (
     ![
       "selected_metering_point_grid_owner",
@@ -168,8 +174,6 @@ function validateProductionRoute(input: {
     ].includes(receiverSource)
   )
     blockers.push("Ogiltig receiver_source för production route.");
-  if (!input.applicationReference)
-    blockers.push("Production Application Reference saknas.");
   if (
     String(input.applicationReference ?? "")
       .toUpperCase()
@@ -213,19 +217,15 @@ export async function createProductionRouteFromWizardAction(
   const senderSubAddress =
     normalizeSubAddress(text(formData, "sender_sub_address")) ??
     actorSetting.senderSubAddress;
-  const receiverSource =
-    text(formData, "receiver_source") ?? "selected_metering_point_grid_owner";
+  const receiverSource: string = "selected_metering_point_grid_owner";
   const dynamicReceiverStrategy =
     defaultDynamicReceiverStrategy(receiverSource);
-  const receiverEdielId =
-    receiverSource === "fixed_counterparty" ||
-    receiverSource === "manual_superadmin_only"
-      ? text(formData, "receiver_ediel_id")
-      : null;
-  const targetEmail = text(formData, "target_email") ?? sharedMailbox.targetEmail;
-  const mailboxLabel = text(formData, "mailbox") ?? sharedMailbox.mailboxLabel ?? sharedMailbox.mode;
-  const applicationReference = text(formData, "application_reference") ?? "PRODAT";
-  const encryptionMode = text(formData, "encryption_mode") ?? "smime";
+  const receiverEdielId = null;
+  const targetEmail = sharedMailbox.targetEmail;
+  const mailboxLabel = sharedMailbox.mailboxLabel ?? sharedMailbox.mode;
+  const applicationReference = "PRODAT";
+  const defaultMessageVersion = "26A";
+  const encryptionMode = "smime";
   const blockers = validateProductionRoute({
     senderEdielId,
     receiverEdielId,
@@ -244,16 +244,14 @@ export async function createProductionRouteFromWizardAction(
     transportMode: sharedMailbox.mode,
     applicationReference,
     senderSubAddress,
-    receiverSubAddress: normalizeSubAddress(
-      text(formData, "receiver_sub_address"),
-    ),
-    receiverName: text(formData, "receiver_name"),
+    receiverSubAddress: null,
+    receiverName: null,
     mailbox: mailboxLabel,
     encryptionMode,
-    smtpHost: text(formData, "smtp_host"),
-    smtpPort: intValue(formData, "smtp_port"),
-    defaultMessageVersion: text(formData, "default_message_version"),
-    ackMode: normalizeAckMode(text(formData, "ack_mode")),
+    smtpHost: null,
+    smtpPort: null,
+    defaultMessageVersion,
+    ackMode: "contrl_and_aperak",
   };
 
   if (blockers.length > 0) {
@@ -295,7 +293,7 @@ export async function createProductionRouteFromWizardAction(
     .from("communication_routes")
     .insert({
       company_id: companyId,
-      route_name: text(formData, "route_name") ?? "Production Ediel route",
+      route_name: "PRODAT produktion",
       is_active: true,
       route_scope: "supplier_switch",
       route_type: "ediel_partner",
@@ -304,10 +302,10 @@ export async function createProductionRouteFromWizardAction(
       endpoint: null,
       target_email: targetEmail,
       auth_config: {},
-      supported_payload_version: text(formData, "default_message_version"),
+      supported_payload_version: defaultMessageVersion,
       notes:
         text(formData, "notes") ??
-        "Skapad via production route-wizard. Separat från AGT/TGT/testroutes.",
+        "Skapad via go-live. Receiver löses automatiskt från kundens nätägare/process. Separat från test/certifiering.",
       created_by: admin.userId,
       updated_by: admin.userId,
     })
@@ -324,17 +322,15 @@ export async function createProductionRouteFromWizardAction(
       actor_setting_id: actorSetting.actorSettingId,
       is_enabled: true,
       sender_ediel_id: senderEdielId,
-      sender_name: text(formData, "sender_name"),
+      sender_name: null,
       sender_sub_address: senderSubAddress,
       receiver_ediel_id: receiverEdielId,
       receiver_source: receiverSource,
       dynamic_receiver_strategy: dynamicReceiverStrategy,
-      receiver_name: text(formData, "receiver_name"),
-      receiver_sub_address: normalizeSubAddress(
-        text(formData, "receiver_sub_address"),
-      ),
+      receiver_name: null,
+      receiver_sub_address: null,
       application_reference: applicationReference,
-      default_message_version: text(formData, "default_message_version"),
+      default_message_version: defaultMessageVersion,
       default_test_flag: 0,
       default_timezone: 1,
       environment: "production",
@@ -343,11 +339,11 @@ export async function createProductionRouteFromWizardAction(
       production_mode: "shadow",
       message_family: "PRODAT",
       message_standard: "edifact",
-      ack_mode: normalizeAckMode(text(formData, "ack_mode")),
-      smtp_host: text(formData, "smtp_host"),
-      smtp_port: intValue(formData, "smtp_port"),
-      imap_host: text(formData, "imap_host"),
-      imap_port: intValue(formData, "imap_port"),
+      ack_mode: "contrl_and_aperak",
+      smtp_host: null,
+      smtp_port: null,
+      imap_host: null,
+      imap_port: null,
       mailbox: mailboxLabel,
       encryption_mode: encryptionMode,
       transport_mode: sharedMailbox.mode,
@@ -358,12 +354,10 @@ export async function createProductionRouteFromWizardAction(
       payload_format: "edifact",
       notes:
         text(formData, "notes") ??
-        (receiverSource === "fixed_counterparty"
-          ? "Production route profile skapad via wizard. Fast motpart används bara när processen kräver det."
-          : "Automatisk production route: receiver löses från kundprocess, verifierad nätägare eller inbound sender. Shared mailbox är endast transportkanal."),
+        "PRODAT produktion: receiver löses från kundprocess och verifierad nätägare. Gridex shared mailbox är endast transportkanal.",
       metadata: {
         receiverResolutionOwner: "system",
-        manualReceiverAllowed: receiverSource === "fixed_counterparty",
+        manualReceiverAllowed: false,
         sharedTransportMode: sharedMailbox.mode,
         source: "platform_go_live_route_wizard",
       },
@@ -382,8 +376,7 @@ export async function createProductionRouteFromWizardAction(
       production_sender_sub_address: senderSubAddress,
       production_mailbox: targetEmail,
       production_application_reference: applicationReference,
-      production_counterparty_ediel_id:
-        receiverSource === "fixed_counterparty" ? receiverEdielId : null,
+      production_counterparty_ediel_id: null,
       ediel_primary_production_route_profile_id: profile.id,
       live_blocked_reason: null,
       updated_at: now,
@@ -424,7 +417,8 @@ export async function createProductionRouteFromWizardAction(
 
   const params = new URLSearchParams({
     status: "created",
-    message: "Automatisk production route skapades. Sender hämtas från tenantens actor setting, receiver löses från process/nätägare och shared mailbox används som transport.",
+    message:
+      "Produktionsprofil för PRODAT skapades. Mottagare löses automatiskt från kundens nätägare/process och Gridex shared mailbox används som transport.",
   });
   redirect(
     `/admin/platform/go-live/${companyId}/route-wizard?${params.toString()}`,

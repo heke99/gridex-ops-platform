@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 type IntakeOffer = {
  id: string
  name: string
- contract_type: 'fixed' | 'variable_monthly' | 'variable_hourly' | 'portfolio'
+ contract_type: 'fixed' | 'variable_monthly' | 'variable_hourly' | 'portfolio' | 'mixed'
  fixed_price_ore_per_kwh: number | null
  spot_markup_ore_per_kwh: number | null
  variable_fee_ore_per_kwh: number | null
@@ -32,6 +32,8 @@ function formatContractTypeLabel(value: IntakeOffer['contract_type']): string {
  return 'Rörlig tim'
  case 'portfolio':
  return 'Portfölj'
+ case 'mixed':
+ return 'Mix'
  default:
  return value
  }

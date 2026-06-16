@@ -18,9 +18,46 @@ type CompanyRow = {
   ediel_id: string | null;
   production_sender_sub_address: string | null;
   production_mailbox: string | null;
-  production_application_reference: string | null;
-  production_counterparty_ediel_id: string | null;
 };
+
+type RouteRunRow = {
+  id: string;
+  status: string;
+  created_at: string;
+  blocker_summary?: unknown;
+};
+
+function statusTone(status?: string) {
+  if (status === "created")
+    return "border-emerald-200 bg-emerald-50 text-emerald-900";
+  if (status === "blocked")
+    return "border-amber-200 bg-amber-50 text-amber-900";
+  return "border-slate-200 bg-slate-50 text-slate-800";
+}
+
+function InfoCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
+      <div className="mt-1 break-words text-sm font-black text-slate-950">
+        {value || "–"}
+      </div>
+      {hint ? (
+        <p className="mt-2 text-xs leading-5 text-slate-600">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
 
 export default async function ProductionRouteWizardPage({
   params,
@@ -33,7 +70,7 @@ export default async function ProductionRouteWizardPage({
   const { data: company, error } = await supabaseService
     .from("companies")
     .select(
-      "id,name,production_ediel_id,ediel_id,production_sender_sub_address,production_mailbox,production_application_reference,production_counterparty_ediel_id",
+      "id,name,production_ediel_id,ediel_id,production_sender_sub_address,production_mailbox",
     )
     .eq("id", companyId)
     .maybeSingle();
@@ -42,19 +79,20 @@ export default async function ProductionRouteWizardPage({
   if (!company) return <div className="p-8">Bolaget hittades inte.</div>;
 
   const row = company as CompanyRow;
+  const edielId = row.production_ediel_id ?? row.ediel_id ?? "";
 
   const { data: routeRuns } = await supabaseService
     .from("production_route_wizard_runs")
-    .select("*")
+    .select("id,status,created_at,blocker_summary")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(8);
 
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title={`Automatisk Ediel-route · ${row.name}`}
-        subtitle="Skapa production-route utan manuell receiver. Systemet hämtar sender från tenantens actor setting och löser mottagare från kundprocess, nätägare eller inbound sender."
+        title={`PRODAT produktion · ${row.name}`}
+        subtitle="Aktivera bolagets produktionsprofil utan tekniskt route-formulär. Mottagare väljs automatiskt utifrån kundens nätägare/process och Gridex shared mailbox är endast transportkanal."
         userEmail={admin.email}
         workspaceMode="platform"
       />
@@ -68,16 +106,16 @@ export default async function ProductionRouteWizardPage({
             Till go-live
           </Link>
           <Link
-            href={`/admin/platform/actor-testing/${companyId}`}
+            href={`/admin/platform/companies/${companyId}/testing`}
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
           >
-            Aktörstester
+            Tester & certifiering
           </Link>
         </div>
 
         {notice?.message ? (
           <div
-            className={`rounded-3xl border p-5 text-sm font-semibold ${notice.status === "created" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}
+            className={`rounded-3xl border p-5 text-sm font-semibold ${statusTone(notice.status)}`}
           >
             {notice.message}
           </div>
@@ -89,235 +127,146 @@ export default async function ProductionRouteWizardPage({
             className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
           >
             <input type="hidden" name="company_id" value={companyId} />
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">
-              Automatisk route
+            <input type="hidden" name="message_family" value="PRODAT" />
+            <input
+              type="hidden"
+              name="receiver_source"
+              value="selected_metering_point_grid_owner"
+            />
+            <input
+              type="hidden"
+              name="dynamic_receiver_strategy"
+              value="resolve_from_selected_metering_point_grid_owner"
+            />
+            <input type="hidden" name="ack_mode" value="contrl_and_aperak" />
+            <input type="hidden" name="encryption_mode" value="smime" />
+            <input type="hidden" name="application_reference" value="PRODAT" />
+            <input type="hidden" name="default_message_version" value="26A" />
+
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
+              Produktionsprofil
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-950">
-              Skapa automatisk production route
+            <h2 className="mt-2 text-2xl font-black text-slate-950">
+              Aktivera PRODAT för produktion
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-700">
-              Den här guiden skapar en säker grundroute. Admin ska inte skriva receiver i normala kundflöden: sender kommer från bolagets Ediel-identitet, receiver löses från verifierad nätägare/process och shared mailbox är endast transportkanal.
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
+              Den här åtgärden skapar en säker produktionsprofil. Superadmin ska
+              inte skriva receiver, SMTP, Application Reference eller
+              EDIFACT-version i normal go-live. Systemet använder bolagets
+              Ediel-ID, Gridex shared transport och verifierad nätägare när
+              kundprocessen startar.
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <label className="text-sm font-semibold text-slate-700">
-                Route-namn
-                <input
-                  name="route_name"
-                  defaultValue="Automatisk production Ediel route"
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Avsändarnamn
-                <input
-                  name="sender_name"
-                  defaultValue={row.name}
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Tenantens production Ediel-ID
-                <input
-                  name="sender_ediel_id"
-                  readOnly
-                  defaultValue={row.production_ediel_id ?? row.ediel_id ?? ""}
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Sender subadress (bara om registrerad)
-                <input
-                  name="sender_sub_address"
-                  defaultValue={row.production_sender_sub_address ?? ""}
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Hur receiver ska lösas
-                <select
-                  name="receiver_source"
-                  defaultValue="selected_metering_point_grid_owner"
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm"
-                >
-                  <option value="selected_metering_point_grid_owner">
-                    Dynamisk: vald nätägare på mätpunkt
-                  </option>
-                  <option value="selected_customer_site_grid_owner">
-                    Dynamisk: vald nätägare på anläggning
-                  </option>
-                  <option value="selected_supplier_switch_grid_owner">
-                    Dynamisk: nätägare från leverantörsbyte
-                  </option>
-                  <option value="selected_data_request_grid_owner">
-                    Dynamisk: nätägare från uppgiftsbegäran
-                  </option>
-                  <option value="original_inbound_sender">
-                    Svar: original inbound sender
-                  </option>
-                  <option value="fixed_counterparty">Fast motpart</option>
-                </select>
-              </label>
-              <input
-                type="hidden"
-                name="dynamic_receiver_strategy"
-                value="resolve_from_selected_metering_point_grid_owner"
+              <InfoCard
+                label="Bolagets Ediel-ID"
+                value={edielId}
+                hint="Sätts i bolagets live Ediel-profil. Ändra inte här."
               />
-              <label className="text-sm font-semibold text-slate-700">
-                Fast receiver Ediel-ID (endast specialfall)
-                <input
-                  name="receiver_ediel_id"
-                  defaultValue={row.production_counterparty_ediel_id ?? ""}
-                  placeholder="Lämna tomt. Används bara för fast motpart."
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Fast receiver-namn (specialfall)
-                <input
-                  name="receiver_name"
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Receiver subadress (route-specifik, inte tenant-standard)
-                <input
-                  name="receiver_sub_address"
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Shared production mailbox / transportmail
-                <input
-                  name="target_email"
-                  defaultValue={row.production_mailbox ?? ""}
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Mailbox-label
-                <input
-                  name="mailbox"
-                  defaultValue={row.production_mailbox ?? "production"}
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Application Reference (härledd per message family)
-                <input
-                  name="application_reference"
-                  defaultValue={row.production_application_reference ?? ""}
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Default version
-                <input
-                  name="default_message_version"
-                  placeholder="26A"
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                ACK policy
-                <select
-                  name="ack_mode"
-                  defaultValue="contrl_and_aperak"
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm"
-                >
-                  <option value="default">Default</option>
-                  <option value="contrl_only">CONTRL only</option>
-                  <option value="contrl_and_aperak">CONTRL + APERAK</option>
-                  <option value="none">None</option>
-                </select>
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                SMTP host
-                <input
-                  name="smtp_host"
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                SMTP port
-                <input
-                  name="smtp_port"
-                  inputMode="numeric"
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"
-                />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Encryption
-                <select
-                  name="encryption_mode"
-                  defaultValue="smime"
-                  className="mt-1 h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm"
-                >
-                  <option value="smime">S/MIME</option>
-                  <option value="none">Ingen</option>
-                  <option value="pgp">PGP</option>
-                </select>
-              </label>
-              <label className="text-sm font-semibold text-slate-700 md:col-span-2">
-                Anteckning
-                <textarea
-                  name="notes"
-                  rows={3}
-                  className="mt-1 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-                />
-              </label>
+              <InfoCard
+                label="Sender subadress"
+                value={
+                  row.production_sender_sub_address ??
+                  "Ingen standard-subadress"
+                }
+                hint="Används bara om den är registrerad för bolaget eller krävs av route."
+              />
+              <InfoCard
+                label="Transport"
+                value={
+                  row.production_mailbox
+                    ? `Gridex shared mailbox · ${row.production_mailbox}`
+                    : "Gridex shared mailbox"
+                }
+                hint="Mailboxen är transport, inte tenant-identitet."
+              />
+              <InfoCard
+                label="Kryptering"
+                value="S/MIME"
+                hint="PRODAT krypteras till mottagarens certifikat vid sändning."
+              />
+              <InfoCard
+                label="Mottagare"
+                value="Automatisk via verifierad nätägare"
+                hint="Kund → anläggning/mätpunkt → nätägare → Ediel-ID → certifikat."
+              />
+              <InfoCard
+                label="Kvittens"
+                value="CONTRL + APERAK"
+                hint="Standardpolicy för produktion."
+              />
             </div>
 
-            <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-              <div className="font-semibold">Dynamisk mottagare</div>
-              <p className="mt-1">
-                För leverantörsbyte, begär uppgifter och mätpunktsflöden väljs
-                mottagaren automatiskt från vald nätägare på kundens
-                anläggning/mätpunkt. Admin skriver inte receiver manuellt; systemet använder resolver, verifierat aktörsregister och kundens anläggnings-/mätpunktsdata för att hitta rätt nätägare när data finns.
+            <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+              <div className="font-bold">
+                Inga fasta receivers i normal produktion
+              </div>
+              <p className="mt-1 leading-6">
+                Fast receiver, test-BRP och Edielportal-data hör hemma i Tester
+                & certifiering eller avancerad teknisk override. I live-flödet
+                löser systemet mottagaren från kundens nätägare och skickar via
+                Gridex shared transport.
               </p>
             </div>
 
-            <button className="mt-6 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800">
-              Skapa automatisk production route
+            <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <summary className="cursor-pointer font-bold text-slate-950">
+                Visa tekniska detaljer
+              </summary>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <InfoCard label="Message family" value="PRODAT" />
+                <InfoCard label="Application Reference" value="PRODAT" />
+                <InfoCard label="EDIFACT-version" value="26A" />
+                <InfoCard label="ACK-policy" value="CONTRL + APERAK" />
+                <InfoCard
+                  label="Receiver strategy"
+                  value="resolve_from_selected_metering_point_grid_owner"
+                />
+                <InfoCard
+                  label="Production send"
+                  value="Kräver readiness och superadmin-godkännande"
+                />
+              </div>
+            </details>
+
+            <button className="mt-6 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-800">
+              Skapa produktionsprofil för PRODAT
             </button>
           </form>
 
           <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">
-              Senaste körningar
+            <h2 className="text-lg font-bold text-slate-950">
+              Senaste åtgärder
             </h2>
             <div className="mt-4 space-y-3">
               {(routeRuns ?? []).length === 0 ? (
                 <p className="text-sm text-slate-600">
-                  Ingen route-wizard har körts ännu.
+                  Ingen produktionsprofil har skapats ännu.
                 </p>
               ) : (
-                (routeRuns ?? []).map(
-                  (run: {
-                    id: string;
-                    status: string;
-                    created_at: string;
-                    blocker_summary?: unknown;
-                  }) => (
-                    <article
-                      key={run.id}
-                      className="rounded-2xl border border-slate-200 p-4 text-sm"
-                    >
-                      <div className="font-semibold text-slate-950">
-                        {run.status}
+                ((routeRuns ?? []) as RouteRunRow[]).map((run) => (
+                  <article
+                    key={run.id}
+                    className="rounded-2xl border border-slate-200 p-4 text-sm"
+                  >
+                    <div className="font-bold text-slate-950">
+                      {run.status === "created"
+                        ? "Produktionsprofil skapad"
+                        : run.status === "blocked"
+                          ? "Blockerad"
+                          : run.status}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {new Date(run.created_at).toLocaleString("sv-SE")}
+                    </div>
+                    {Array.isArray(run.blocker_summary) &&
+                    run.blocker_summary.length > 0 ? (
+                      <div className="mt-2 text-xs text-amber-800">
+                        {run.blocker_summary.join(" · ")}
                       </div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        {new Date(run.created_at).toLocaleString("sv-SE")}
-                      </div>
-                      {Array.isArray(run.blocker_summary) &&
-                      run.blocker_summary.length > 0 ? (
-                        <div className="mt-2 text-xs text-amber-800">
-                          {run.blocker_summary.join(" · ")}
-                        </div>
-                      ) : null}
-                    </article>
-                  ),
-                )
+                    ) : null}
+                  </article>
+                ))
               )}
             </div>
           </aside>

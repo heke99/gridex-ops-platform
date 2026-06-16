@@ -1,4 +1,4 @@
-import { supabaseService } from '@/lib/supabase/service'
+import { supabaseService } from "@/lib/supabase/service";
 import type {
   ContractOfferRow,
   ContractType,
@@ -7,123 +7,125 @@ import type {
   CustomerContractRow,
   GreenFeeMode,
   CustomerContractTerminationReason,
-} from './types'
-import { deriveContractEndsAt } from './lifecycle'
+} from "./types";
+import { deriveContractEndsAt } from "./lifecycle";
 
 function slugify(value: string): string {
   return value
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9åäö\s-]/gi, '')
-    .replace(/[åä]/g, 'a')
-    .replace(/ö/g, 'o')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
+    .replace(/[^a-z0-9åäö\s-]/gi, "")
+    .replace(/[åä]/g, "a")
+    .replace(/ö/g, "o")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 }
 
 export type LatestCustomerContractSummary = {
-  contract_name: string
-  status: CustomerContractRow['status']
-  contract_type: CustomerContractRow['contract_type']
-  monthly_fee_sek: number | null
-  starts_at: string | null
-  ends_at: string | null
-  auto_renew_enabled: boolean
-  auto_renew_term_months: number | null
-  termination_notice_date: string | null
-  termination_reason: CustomerContractTerminationReason | null
-} | null
+  contract_name: string;
+  status: CustomerContractRow["status"];
+  contract_type: CustomerContractRow["contract_type"];
+  monthly_fee_sek: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  auto_renew_enabled: boolean;
+  auto_renew_term_months: number | null;
+  termination_notice_date: string | null;
+  termination_reason: CustomerContractTerminationReason | null;
+} | null;
 
 export type LatestContractBucketFilter =
-  | 'all'
-  | 'none'
-  | 'pending_signature'
-  | 'signed'
-  | 'active'
-  | 'closed'
+  | "all"
+  | "none"
+  | "pending_signature"
+  | "signed"
+  | "active"
+  | "closed";
 
 export type LatestContractBucketCounts = {
-  all: number
-  none: number
-  pending_signature: number
-  signed: number
-  active: number
-  closed: number
-}
+  all: number;
+  none: number;
+  pending_signature: number;
+  signed: number;
+  active: number;
+  closed: number;
+};
 
-export async function listContractOffers(options: {
-  activeOnly?: boolean
-  companyId?: string | null
-} = {}): Promise<ContractOfferRow[]> {
+export async function listContractOffers(
+  options: {
+    activeOnly?: boolean;
+    companyId?: string | null;
+  } = {},
+): Promise<ContractOfferRow[]> {
   let query = supabaseService
-    .from('contract_offers')
-    .select('*')
-    .order('is_active', { ascending: false })
-    .order('updated_at', { ascending: false })
+    .from("contract_offers")
+    .select("*")
+    .order("is_active", { ascending: false })
+    .order("updated_at", { ascending: false });
 
   if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
+    query = query.eq("company_id", options.companyId);
   }
 
   if (options.activeOnly) {
-    query = query.eq('is_active', true).eq('status', 'active')
+    query = query.eq("is_active", true).eq("status", "active");
   }
 
-  const { data, error } = await query
-  if (error) throw error
+  const { data, error } = await query;
+  if (error) throw error;
 
-  return (data ?? []) as ContractOfferRow[]
+  return (data ?? []) as ContractOfferRow[];
 }
 
-export async function getContractOfferById(id: string, companyId?: string | null): Promise<ContractOfferRow | null> {
-  let query = supabaseService
-    .from('contract_offers')
-    .select('*')
-    .eq('id', id)
+export async function getContractOfferById(
+  id: string,
+  companyId?: string | null,
+): Promise<ContractOfferRow | null> {
+  let query = supabaseService.from("contract_offers").select("*").eq("id", id);
 
   if (companyId) {
-    query = query.eq('company_id', companyId)
+    query = query.eq("company_id", companyId);
   }
 
-  const { data, error } = await query.maybeSingle()
+  const { data, error } = await query.maybeSingle();
 
-  if (error) throw error
-  return (data as ContractOfferRow | null) ?? null
+  if (error) throw error;
+  return (data as ContractOfferRow | null) ?? null;
 }
 
 export async function saveContractOffer(input: {
-  id?: string
-  companyId?: string | null
-  name: string
-  slug?: string | null
-  status: 'draft' | 'active' | 'inactive'
-  contractType: ContractType
-  campaignName?: string | null
-  campaignCode?: string | null
-  campaignVersion?: string | null
-  priceVersion?: string | null
-  termsVersion?: string | null
-  maxCustomers?: number | null
-  discountValue?: number | null
-  discountUnit?: string | null
-  startFeeSek?: number | null
-  adminFeeSek?: number | null
-  breakFeeSek?: number | null
-  vatRate?: number | null
-  description?: string | null
-  fixedPriceOrePerKwh?: number | null
-  spotMarkupOrePerKwh?: number | null
-  variableFeeOrePerKwh?: number | null
-  monthlyFeeSek?: number | null
-  greenFeeMode: GreenFeeMode
-  greenFeeValue?: number | null
-  defaultBindingMonths?: number | null
-  defaultNoticeMonths?: number | null
-  optionalFeeLines?: Array<Record<string, unknown>> | null
-  isActive: boolean
-  validFrom?: string | null
-  validTo?: string | null
-  actorUserId?: string | null
+  id?: string;
+  companyId?: string | null;
+  name: string;
+  slug?: string | null;
+  status: "draft" | "active" | "inactive";
+  contractType: ContractType;
+  campaignName?: string | null;
+  campaignCode?: string | null;
+  campaignVersion?: string | null;
+  priceVersion?: string | null;
+  termsVersion?: string | null;
+  maxCustomers?: number | null;
+  discountValue?: number | null;
+  discountUnit?: string | null;
+  startFeeSek?: number | null;
+  adminFeeSek?: number | null;
+  breakFeeSek?: number | null;
+  vatRate?: number | null;
+  description?: string | null;
+  fixedPriceOrePerKwh?: number | null;
+  spotMarkupOrePerKwh?: number | null;
+  variableFeeOrePerKwh?: number | null;
+  monthlyFeeSek?: number | null;
+  greenFeeMode: GreenFeeMode;
+  greenFeeValue?: number | null;
+  defaultBindingMonths?: number | null;
+  defaultNoticeMonths?: number | null;
+  optionalFeeLines?: Array<Record<string, unknown>> | null;
+  isActive: boolean;
+  validFrom?: string | null;
+  validTo?: string | null;
+  actorUserId?: string | null;
 }): Promise<ContractOfferRow> {
   const payload = {
     company_id: input.companyId ?? null,
@@ -136,13 +138,27 @@ export async function saveContractOffer(input: {
     campaign_version: input.campaignVersion ?? null,
     price_version: input.priceVersion ?? null,
     terms_version: input.termsVersion ?? null,
-    offer_version: input.termsVersion ?? input.priceVersion ?? input.campaignVersion ?? 'v1',
+    offer_version:
+      input.termsVersion ?? input.priceVersion ?? input.campaignVersion ?? "v1",
     version_snapshot: {
+      model: "contract_offer_price_version",
+      availability:
+        input.status === "active" && input.isActive
+          ? "internal_active"
+          : input.status,
       campaignVersion: input.campaignVersion ?? null,
       priceVersion: input.priceVersion ?? null,
       termsVersion: input.termsVersion ?? null,
       validFrom: input.validFrom ?? null,
       validTo: input.validTo ?? null,
+      pricing: {
+        fixedPriceOrePerKwh: input.fixedPriceOrePerKwh ?? null,
+        spotMarkupOrePerKwh: input.spotMarkupOrePerKwh ?? null,
+        variableFeeOrePerKwh: input.variableFeeOrePerKwh ?? null,
+        monthlyFeeSek: input.monthlyFeeSek ?? null,
+        greenFeeMode: input.greenFeeMode,
+        greenFeeValue: input.greenFeeValue ?? null,
+      },
     },
     max_customers: input.maxCustomers ?? null,
     discount_value: input.discountValue ?? null,
@@ -165,66 +181,66 @@ export async function saveContractOffer(input: {
     valid_from: input.validFrom ?? null,
     valid_to: input.validTo ?? null,
     updated_by: input.actorUserId ?? null,
-  }
+  };
 
   const query = input.id
-    ? supabaseService.from('contract_offers').update(payload).eq('id', input.id)
-    : supabaseService.from('contract_offers').insert({
+    ? supabaseService.from("contract_offers").update(payload).eq("id", input.id)
+    : supabaseService.from("contract_offers").insert({
         ...payload,
         created_by: input.actorUserId ?? null,
-      })
+      });
 
-  const { data, error } = await query.select('*').single()
-  if (error) throw error
+  const { data, error } = await query.select("*").single();
+  if (error) throw error;
 
-  return data as ContractOfferRow
+  return data as ContractOfferRow;
 }
 
 export async function listCustomerContractsByCustomerId(
   customerId: string,
-  options: { companyId?: string | null; limit?: number } = {}
+  options: { companyId?: string | null; limit?: number } = {},
 ): Promise<CustomerContractRow[]> {
   let query = supabaseService
-    .from('customer_contracts')
-    .select('*')
-    .eq('customer_id', customerId)
+    .from("customer_contracts")
+    .select("*")
+    .eq("customer_id", customerId);
 
   if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
+    query = query.eq("company_id", options.companyId);
   }
 
   const { data, error } = await query
-    .order('created_at', { ascending: false })
-    .limit(options.limit ?? 100)
+    .order("created_at", { ascending: false })
+    .limit(options.limit ?? 100);
 
-  if (error) throw error
-  return (data ?? []) as CustomerContractRow[]
+  if (error) throw error;
+  return (data ?? []) as CustomerContractRow[];
 }
 
 export async function listLatestCustomerContractsByCustomerIds(
   customerIds: string[],
-  options: { companyId?: string | null } = {}
+  options: { companyId?: string | null } = {},
 ): Promise<Map<string, LatestCustomerContractSummary>> {
-  const result = new Map<string, LatestCustomerContractSummary>()
+  const result = new Map<string, LatestCustomerContractSummary>();
 
   if (customerIds.length === 0) {
-    return result
+    return result;
   }
 
   let query = supabaseService
-    .from('customer_contracts')
-    .select('*')
-    .in('customer_id', customerIds)
+    .from("customer_contracts")
+    .select("*")
+    .in("customer_id", customerIds);
 
   if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
+    query = query.eq("company_id", options.companyId);
   }
 
-  const { data, error } = await query.order('created_at', { ascending: false })
+  const { data, error } = await query.order("created_at", { ascending: false });
 
-  if (error) throw error
+  if (error) throw error;
 
-  const rows = (data ?? []) as CustomerContractRow[]
+  const rows = (data ?? []) as CustomerContractRow[];
 
   for (const row of rows) {
     if (!result.has(row.customer_id)) {
@@ -239,31 +255,33 @@ export async function listLatestCustomerContractsByCustomerIds(
         auto_renew_term_months: row.auto_renew_term_months,
         termination_notice_date: row.termination_notice_date,
         termination_reason: row.termination_reason,
-      })
+      });
     }
   }
 
-  return result
+  return result;
 }
 
-export async function getLatestContractBucketCounts(options: {
-  query?: string | null
-  customerStatus?: string | null
-} = {}): Promise<LatestContractBucketCounts> {
+export async function getLatestContractBucketCounts(
+  options: {
+    query?: string | null;
+    customerStatus?: string | null;
+  } = {},
+): Promise<LatestContractBucketCounts> {
   const { data, error } = await supabaseService.rpc(
-    'admin_customer_latest_contract_counts',
+    "admin_customer_latest_contract_counts",
     {
       search_text: options.query?.trim() || null,
       customer_status: options.customerStatus?.trim() || null,
-    }
-  )
+    },
+  );
 
-  if (error) throw error
+  if (error) throw error;
 
   const rows = (data ?? []) as Array<{
-    bucket: string
-    total: number | string
-  }>
+    bucket: string;
+    total: number | string;
+  }>;
 
   const counts: LatestContractBucketCounts = {
     all: 0,
@@ -272,36 +290,36 @@ export async function getLatestContractBucketCounts(options: {
     signed: 0,
     active: 0,
     closed: 0,
-  }
+  };
 
   for (const row of rows) {
-    const total = Number(row.total ?? 0)
+    const total = Number(row.total ?? 0);
 
-    if (row.bucket === 'none') counts.none += total
-    if (row.bucket === 'pending_signature') counts.pending_signature += total
-    if (row.bucket === 'signed') counts.signed += total
-    if (row.bucket === 'active') counts.active += total
-    if (row.bucket === 'closed') counts.closed += total
+    if (row.bucket === "none") counts.none += total;
+    if (row.bucket === "pending_signature") counts.pending_signature += total;
+    if (row.bucket === "signed") counts.signed += total;
+    if (row.bucket === "active") counts.active += total;
+    if (row.bucket === "closed") counts.closed += total;
 
-    counts.all += total
+    counts.all += total;
   }
 
-  return counts
+  return counts;
 }
 
 export async function listCustomerIdsByLatestContractBucket(options: {
-  query?: string | null
-  customerStatus?: string | null
-  bucket: LatestContractBucketFilter
-  page: number
-  pageSize: number
-  companyId?: string | null
+  query?: string | null;
+  customerStatus?: string | null;
+  bucket: LatestContractBucketFilter;
+  page: number;
+  pageSize: number;
+  companyId?: string | null;
 }): Promise<{
-  customerIds: string[]
-  total: number
+  customerIds: string[];
+  total: number;
 }> {
   const { data, error } = await supabaseService.rpc(
-    'admin_customer_ids_by_latest_contract',
+    "admin_customer_ids_by_latest_contract",
     {
       search_text: options.query?.trim() || null,
       customer_status: options.customerStatus?.trim() || null,
@@ -309,127 +327,127 @@ export async function listCustomerIdsByLatestContractBucket(options: {
       page_num: options.page,
       page_size: options.pageSize,
       company_id: options.companyId ?? null,
-    }
-  )
+    },
+  );
 
-  if (error) throw error
+  if (error) throw error;
 
   const rows = (data ?? []) as Array<{
-    customer_id: string
-    total_count: number | string
-  }>
+    customer_id: string;
+    total_count: number | string;
+  }>;
 
   return {
     customerIds: rows.map((row) => row.customer_id),
     total: rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0,
-  }
+  };
 }
 
 export async function getCustomerContractById(
-  id: string
+  id: string,
 ): Promise<CustomerContractRow | null> {
   const { data, error } = await supabaseService
-    .from('customer_contracts')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle()
+    .from("customer_contracts")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
 
-  if (error) throw error
-  return (data as CustomerContractRow | null) ?? null
+  if (error) throw error;
+  return (data as CustomerContractRow | null) ?? null;
 }
 
 export async function listCustomerContractEventsByCustomerId(
   customerId: string,
-  options: { companyId?: string | null; limit?: number } = {}
+  options: { companyId?: string | null; limit?: number } = {},
 ): Promise<CustomerContractEventRow[]> {
   let query = supabaseService
-    .from('customer_contract_events')
-    .select('*')
-    .eq('customer_id', customerId)
+    .from("customer_contract_events")
+    .select("*")
+    .eq("customer_id", customerId);
 
   if (options.companyId) {
-    query = query.eq('company_id', options.companyId)
+    query = query.eq("company_id", options.companyId);
   }
 
   const { data, error } = await query
-    .order('happened_at', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(options.limit ?? 100)
+    .order("happened_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(options.limit ?? 100);
 
-  if (error) throw error
-  return (data ?? []) as CustomerContractEventRow[]
+  if (error) throw error;
+  return (data ?? []) as CustomerContractEventRow[];
 }
 
 export async function createCustomerContract(input: {
-  customerId: string
-  siteId?: string | null
-  meteringPointId?: string | null
-  contractOfferId?: string | null
-  sourceType: 'catalog' | 'manual_override'
-  status?: CustomerContractRow['status']
-  companyId?: string | null
-  contractName: string
-  contractType: ContractType
-  campaignName?: string | null
-  campaignCode?: string | null
-  campaignVersion?: string | null
-  priceVersion?: string | null
-  termsVersion?: string | null
-  discountValue?: number | null
-  discountUnit?: string | null
-  startFeeSek?: number | null
-  adminFeeSek?: number | null
-  breakFeeSek?: number | null
-  vatRate?: number | null
-  priceSnapshot?: Record<string, unknown> | null
-  campaignSnapshot?: Record<string, unknown> | null
-  billingReadyStatus?: string | null
-  billingBlockerReasons?: Array<Record<string, unknown>> | null
-  currentSupplierId?: string | null
-  currentSupplierName?: string | null
-  currentSupplierOrgNumber?: string | null
-  currentSupplierContractStatus?: string | null
-  currentSupplierContractEndDate?: string | null
-  currentSupplierNoticePeriod?: string | null
-  currentSupplierTerminationFee?: number | null
-  currentSupplierResponseStatus?: string | null
-  withdrawalRequestedAt?: string | null
-  rejectedReason?: string | null
-  fixedPriceOrePerKwh?: number | null
-  spotMarkupOrePerKwh?: number | null
-  variableFeeOrePerKwh?: number | null
-  monthlyFeeSek?: number | null
-  greenFeeMode: GreenFeeMode
-  greenFeeValue?: number | null
-  bindingMonths?: number | null
-  noticeMonths?: number | null
-  optionalFeeLines?: Array<Record<string, unknown>> | null
-  startsAt?: string | null
-  expectedStartAt?: string | null
-  confirmedStartAt?: string | null
-  actualStartAt?: string | null
-  startDateSource?: string | null
-  invoiceRecipient?: string | null
-  invoiceEmail?: string | null
-  invoiceReference?: string | null
-  billingStreet?: string | null
-  billingPostalCode?: string | null
-  billingCity?: string | null
-  billingCountry?: string | null
-  billingAddressSameAsSite?: boolean | null
-  billingLevel?: string | null
-  consolidatedInvoice?: boolean | null
-  endsAt?: string | null
-  signedAt?: string | null
-  terminationNoticeDate?: string | null
-  terminationReason?: CustomerContractTerminationReason | null
-  autoRenewEnabled?: boolean | null
-  autoRenewTermMonths?: number | null
-  overrideReason?: string | null
-  actorUserId?: string | null
+  customerId: string;
+  siteId?: string | null;
+  meteringPointId?: string | null;
+  contractOfferId?: string | null;
+  sourceType: "catalog" | "manual_override";
+  status?: CustomerContractRow["status"];
+  companyId?: string | null;
+  contractName: string;
+  contractType: ContractType;
+  campaignName?: string | null;
+  campaignCode?: string | null;
+  campaignVersion?: string | null;
+  priceVersion?: string | null;
+  termsVersion?: string | null;
+  discountValue?: number | null;
+  discountUnit?: string | null;
+  startFeeSek?: number | null;
+  adminFeeSek?: number | null;
+  breakFeeSek?: number | null;
+  vatRate?: number | null;
+  priceSnapshot?: Record<string, unknown> | null;
+  campaignSnapshot?: Record<string, unknown> | null;
+  billingReadyStatus?: string | null;
+  billingBlockerReasons?: Array<Record<string, unknown>> | null;
+  currentSupplierId?: string | null;
+  currentSupplierName?: string | null;
+  currentSupplierOrgNumber?: string | null;
+  currentSupplierContractStatus?: string | null;
+  currentSupplierContractEndDate?: string | null;
+  currentSupplierNoticePeriod?: string | null;
+  currentSupplierTerminationFee?: number | null;
+  currentSupplierResponseStatus?: string | null;
+  withdrawalRequestedAt?: string | null;
+  rejectedReason?: string | null;
+  fixedPriceOrePerKwh?: number | null;
+  spotMarkupOrePerKwh?: number | null;
+  variableFeeOrePerKwh?: number | null;
+  monthlyFeeSek?: number | null;
+  greenFeeMode: GreenFeeMode;
+  greenFeeValue?: number | null;
+  bindingMonths?: number | null;
+  noticeMonths?: number | null;
+  optionalFeeLines?: Array<Record<string, unknown>> | null;
+  startsAt?: string | null;
+  expectedStartAt?: string | null;
+  confirmedStartAt?: string | null;
+  actualStartAt?: string | null;
+  startDateSource?: string | null;
+  invoiceRecipient?: string | null;
+  invoiceEmail?: string | null;
+  invoiceReference?: string | null;
+  billingStreet?: string | null;
+  billingPostalCode?: string | null;
+  billingCity?: string | null;
+  billingCountry?: string | null;
+  billingAddressSameAsSite?: boolean | null;
+  billingLevel?: string | null;
+  consolidatedInvoice?: boolean | null;
+  endsAt?: string | null;
+  signedAt?: string | null;
+  terminationNoticeDate?: string | null;
+  terminationReason?: CustomerContractTerminationReason | null;
+  autoRenewEnabled?: boolean | null;
+  autoRenewTermMonths?: number | null;
+  overrideReason?: string | null;
+  actorUserId?: string | null;
 }): Promise<CustomerContractRow> {
   const { data, error } = await supabaseService
-    .from('customer_contracts')
+    .from("customer_contracts")
     .insert({
       company_id: input.companyId ?? null,
       customer_id: input.customerId,
@@ -438,7 +456,7 @@ export async function createCustomerContract(input: {
       metering_point_id: input.meteringPointId ?? null,
       contract_offer_id: input.contractOfferId ?? null,
       source_type: input.sourceType,
-      status: input.status ?? 'draft',
+      status: input.status ?? "draft",
       contract_name: input.contractName,
       contract_type: input.contractType,
       campaign_name: input.campaignName ?? null,
@@ -446,16 +464,35 @@ export async function createCustomerContract(input: {
       campaign_version: input.campaignVersion ?? null,
       price_version: input.priceVersion ?? null,
       terms_version: input.termsVersion ?? null,
-      contract_version: input.termsVersion ?? input.priceVersion ?? input.campaignVersion ?? 'v1',
-      signed_version: input.signedAt ? (input.termsVersion ?? input.priceVersion ?? input.campaignVersion ?? 'v1') : null,
-      terms_signed_version: input.signedAt ? (input.termsVersion ?? 'v1') : null,
+      contract_version:
+        input.termsVersion ??
+        input.priceVersion ??
+        input.campaignVersion ??
+        "v1",
+      signed_version: input.signedAt
+        ? (input.termsVersion ??
+          input.priceVersion ??
+          input.campaignVersion ??
+          "v1")
+        : null,
+      terms_signed_version: input.signedAt
+        ? (input.termsVersion ?? "v1")
+        : null,
       version_snapshot: {
         campaignVersion: input.campaignVersion ?? null,
         priceVersion: input.priceVersion ?? null,
         termsVersion: input.termsVersion ?? null,
         signedAt: input.signedAt ?? null,
       },
-      start_status: input.actualStartAt ? 'active_from_date' : input.confirmedStartAt ? 'confirmed_start_date' : input.expectedStartAt ? 'preliminary_start_date' : input.startsAt ? 'requested_start_date' : 'start_date_missing',
+      start_status: input.actualStartAt
+        ? "active_from_date"
+        : input.confirmedStartAt
+          ? "confirmed_start_date"
+          : input.expectedStartAt
+            ? "preliminary_start_date"
+            : input.startsAt
+              ? "requested_start_date"
+              : "start_date_missing",
       discount_value: input.discountValue ?? null,
       discount_unit: input.discountUnit ?? null,
       start_fee_sek: input.startFeeSek ?? null,
@@ -469,11 +506,15 @@ export async function createCustomerContract(input: {
       current_supplier_id: input.currentSupplierId ?? null,
       current_supplier_name: input.currentSupplierName ?? null,
       current_supplier_org_number: input.currentSupplierOrgNumber ?? null,
-      current_supplier_contract_status: input.currentSupplierContractStatus ?? null,
-      current_supplier_contract_end_date: input.currentSupplierContractEndDate ?? null,
+      current_supplier_contract_status:
+        input.currentSupplierContractStatus ?? null,
+      current_supplier_contract_end_date:
+        input.currentSupplierContractEndDate ?? null,
       current_supplier_notice_period: input.currentSupplierNoticePeriod ?? null,
-      current_supplier_termination_fee: input.currentSupplierTerminationFee ?? null,
-      current_supplier_response_status: input.currentSupplierResponseStatus ?? null,
+      current_supplier_termination_fee:
+        input.currentSupplierTerminationFee ?? null,
+      current_supplier_response_status:
+        input.currentSupplierResponseStatus ?? null,
       withdrawal_requested_at: input.withdrawalRequestedAt ?? null,
       rejected_reason: input.rejectedReason ?? null,
       fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
@@ -498,7 +539,7 @@ export async function createCustomerContract(input: {
       billing_city: input.billingCity ?? null,
       billing_country: input.billingCountry ?? null,
       billing_address_same_as_site: input.billingAddressSameAsSite ?? false,
-      billing_level: input.billingLevel ?? 'customer',
+      billing_level: input.billingLevel ?? "customer",
       consolidated_invoice: input.consolidatedInvoice ?? false,
       ends_at: deriveContractEndsAt({
         startsAt: input.startsAt ?? null,
@@ -509,74 +550,76 @@ export async function createCustomerContract(input: {
         terminationReason: input.terminationReason ?? null,
         autoRenewEnabled: input.autoRenewEnabled ?? null,
         autoRenewTermMonths: input.autoRenewTermMonths ?? null,
-        status: input.status ?? 'draft',
+        status: input.status ?? "draft",
       }),
       signed_at: input.signedAt ?? null,
       termination_notice_date: input.terminationNoticeDate ?? null,
       termination_reason: input.terminationReason ?? null,
-      auto_renew_enabled: input.autoRenewEnabled ?? ((input.bindingMonths ?? 0) > 0),
-      auto_renew_term_months: input.autoRenewTermMonths ?? input.bindingMonths ?? null,
+      auto_renew_enabled:
+        input.autoRenewEnabled ?? (input.bindingMonths ?? 0) > 0,
+      auto_renew_term_months:
+        input.autoRenewTermMonths ?? input.bindingMonths ?? null,
       override_reason: input.overrideReason ?? null,
       created_by: input.actorUserId ?? null,
       updated_by: input.actorUserId ?? null,
     })
-    .select('*')
-    .single()
+    .select("*")
+    .single();
 
-  if (error) throw error
-  return data as CustomerContractRow
+  if (error) throw error;
+  return data as CustomerContractRow;
 }
 
 export async function updateCustomerContract(input: {
-  id: string
-  customerId: string
-  siteId?: string | null
-  meteringPointId?: string | null
-  status: CustomerContractRow['status']
-  companyId?: string | null
-  contractName: string
-  contractType: ContractType
-  campaignName?: string | null
-  campaignCode?: string | null
-  campaignVersion?: string | null
-  priceVersion?: string | null
-  termsVersion?: string | null
-  discountValue?: number | null
-  discountUnit?: string | null
-  startFeeSek?: number | null
-  adminFeeSek?: number | null
-  breakFeeSek?: number | null
-  vatRate?: number | null
-  priceSnapshot?: Record<string, unknown> | null
-  campaignSnapshot?: Record<string, unknown> | null
-  billingReadyStatus?: string | null
-  billingBlockerReasons?: Array<Record<string, unknown>> | null
-  withdrawalRequestedAt?: string | null
-  rejectedReason?: string | null
-  fixedPriceOrePerKwh?: number | null
-  spotMarkupOrePerKwh?: number | null
-  variableFeeOrePerKwh?: number | null
-  monthlyFeeSek?: number | null
-  greenFeeMode?: GreenFeeMode | null
-  greenFeeValue?: number | null
-  bindingMonths?: number | null
-  noticeMonths?: number | null
-  startsAt?: string | null
-  expectedStartAt?: string | null
-  confirmedStartAt?: string | null
-  actualStartAt?: string | null
-  startDateSource?: string | null
-  endsAt?: string | null
-  signedAt?: string | null
-  terminationNoticeDate?: string | null
-  terminationReason?: CustomerContractTerminationReason | null
-  autoRenewEnabled?: boolean | null
-  autoRenewTermMonths?: number | null
-  overrideReason?: string | null
-  actorUserId?: string | null
+  id: string;
+  customerId: string;
+  siteId?: string | null;
+  meteringPointId?: string | null;
+  status: CustomerContractRow["status"];
+  companyId?: string | null;
+  contractName: string;
+  contractType: ContractType;
+  campaignName?: string | null;
+  campaignCode?: string | null;
+  campaignVersion?: string | null;
+  priceVersion?: string | null;
+  termsVersion?: string | null;
+  discountValue?: number | null;
+  discountUnit?: string | null;
+  startFeeSek?: number | null;
+  adminFeeSek?: number | null;
+  breakFeeSek?: number | null;
+  vatRate?: number | null;
+  priceSnapshot?: Record<string, unknown> | null;
+  campaignSnapshot?: Record<string, unknown> | null;
+  billingReadyStatus?: string | null;
+  billingBlockerReasons?: Array<Record<string, unknown>> | null;
+  withdrawalRequestedAt?: string | null;
+  rejectedReason?: string | null;
+  fixedPriceOrePerKwh?: number | null;
+  spotMarkupOrePerKwh?: number | null;
+  variableFeeOrePerKwh?: number | null;
+  monthlyFeeSek?: number | null;
+  greenFeeMode?: GreenFeeMode | null;
+  greenFeeValue?: number | null;
+  bindingMonths?: number | null;
+  noticeMonths?: number | null;
+  startsAt?: string | null;
+  expectedStartAt?: string | null;
+  confirmedStartAt?: string | null;
+  actualStartAt?: string | null;
+  startDateSource?: string | null;
+  endsAt?: string | null;
+  signedAt?: string | null;
+  terminationNoticeDate?: string | null;
+  terminationReason?: CustomerContractTerminationReason | null;
+  autoRenewEnabled?: boolean | null;
+  autoRenewTermMonths?: number | null;
+  overrideReason?: string | null;
+  actorUserId?: string | null;
 }): Promise<CustomerContractRow> {
   const { data, error } = await supabaseService
-    .from('customer_contracts')
+    .from("customer_contracts")
     .update({
       site_id: input.siteId ?? null,
       customer_site_id: input.siteId ?? null,
@@ -589,16 +632,35 @@ export async function updateCustomerContract(input: {
       campaign_version: input.campaignVersion ?? null,
       price_version: input.priceVersion ?? null,
       terms_version: input.termsVersion ?? null,
-      contract_version: input.termsVersion ?? input.priceVersion ?? input.campaignVersion ?? 'v1',
-      signed_version: input.signedAt ? (input.termsVersion ?? input.priceVersion ?? input.campaignVersion ?? 'v1') : null,
-      terms_signed_version: input.signedAt ? (input.termsVersion ?? 'v1') : null,
+      contract_version:
+        input.termsVersion ??
+        input.priceVersion ??
+        input.campaignVersion ??
+        "v1",
+      signed_version: input.signedAt
+        ? (input.termsVersion ??
+          input.priceVersion ??
+          input.campaignVersion ??
+          "v1")
+        : null,
+      terms_signed_version: input.signedAt
+        ? (input.termsVersion ?? "v1")
+        : null,
       version_snapshot: {
         campaignVersion: input.campaignVersion ?? null,
         priceVersion: input.priceVersion ?? null,
         termsVersion: input.termsVersion ?? null,
         signedAt: input.signedAt ?? null,
       },
-      start_status: input.actualStartAt ? 'active_from_date' : input.confirmedStartAt ? 'confirmed_start_date' : input.expectedStartAt ? 'preliminary_start_date' : input.startsAt ? 'requested_start_date' : 'start_date_missing',
+      start_status: input.actualStartAt
+        ? "active_from_date"
+        : input.confirmedStartAt
+          ? "confirmed_start_date"
+          : input.expectedStartAt
+            ? "preliminary_start_date"
+            : input.startsAt
+              ? "requested_start_date"
+              : "start_date_missing",
       discount_value: input.discountValue ?? null,
       discount_unit: input.discountUnit ?? null,
       start_fee_sek: input.startFeeSek ?? null,
@@ -615,7 +677,7 @@ export async function updateCustomerContract(input: {
       spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
       variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
       monthly_fee_sek: input.monthlyFeeSek ?? null,
-      green_fee_mode: input.greenFeeMode ?? 'none',
+      green_fee_mode: input.greenFeeMode ?? "none",
       green_fee_value: input.greenFeeValue ?? null,
       binding_months: input.bindingMonths ?? null,
       notice_months: input.noticeMonths ?? null,
@@ -633,35 +695,37 @@ export async function updateCustomerContract(input: {
         terminationReason: input.terminationReason ?? null,
         autoRenewEnabled: input.autoRenewEnabled ?? null,
         autoRenewTermMonths: input.autoRenewTermMonths ?? null,
-        status: input.status ?? 'draft',
+        status: input.status ?? "draft",
       }),
       signed_at: input.signedAt ?? null,
       termination_notice_date: input.terminationNoticeDate ?? null,
       termination_reason: input.terminationReason ?? null,
-      auto_renew_enabled: input.autoRenewEnabled ?? ((input.bindingMonths ?? 0) > 0),
-      auto_renew_term_months: input.autoRenewTermMonths ?? input.bindingMonths ?? null,
+      auto_renew_enabled:
+        input.autoRenewEnabled ?? (input.bindingMonths ?? 0) > 0,
+      auto_renew_term_months:
+        input.autoRenewTermMonths ?? input.bindingMonths ?? null,
       override_reason: input.overrideReason ?? null,
       updated_by: input.actorUserId ?? null,
     })
-    .eq('id', input.id)
-    .eq('customer_id', input.customerId)
-    .eq('company_id', input.companyId ?? null)
-    .select('*')
-    .single()
+    .eq("id", input.id)
+    .eq("customer_id", input.customerId)
+    .eq("company_id", input.companyId ?? null)
+    .select("*")
+    .single();
 
-  if (error) throw error
-  return data as CustomerContractRow
+  if (error) throw error;
+  return data as CustomerContractRow;
 }
 
 export async function addCustomerContractEvent(input: {
-  companyId?: string | null
-  customerContractId: string
-  customerId: string
-  eventType: CustomerContractEventType
-  happenedAt?: string | null
-  note?: string | null
-  metadata?: Record<string, unknown> | null
-  actorUserId?: string | null
+  companyId?: string | null;
+  customerContractId: string;
+  customerId: string;
+  eventType: CustomerContractEventType;
+  happenedAt?: string | null;
+  note?: string | null;
+  metadata?: Record<string, unknown> | null;
+  actorUserId?: string | null;
 }): Promise<CustomerContractEventRow> {
   const eventPayload = {
     company_id: input.companyId ?? null,
@@ -672,62 +736,62 @@ export async function addCustomerContractEvent(input: {
     note: input.note ?? null,
     metadata: input.metadata ?? null,
     actor_user_id: input.actorUserId ?? null,
-  }
+  };
 
   const { data, error } = await supabaseService
-    .from('customer_contract_events')
+    .from("customer_contract_events")
     .insert(eventPayload)
-    .select('*')
-    .single()
+    .select("*")
+    .single();
 
-  if (error) throw error
+  if (error) throw error;
 
-  if (input.eventType === 'signed' || input.eventType === 'activated') {
+  if (input.eventType === "signed" || input.eventType === "activated") {
     const patch =
-      input.eventType === 'activated'
+      input.eventType === "activated"
         ? {
-            status: 'active',
+            status: "active",
             updated_by: input.actorUserId ?? null,
           }
         : {
-            status: 'signed',
+            status: "signed",
             signed_at: eventPayload.happened_at,
             updated_by: input.actorUserId ?? null,
-          }
+          };
 
     const { error: updateError } = await supabaseService
-      .from('customer_contracts')
+      .from("customer_contracts")
       .update(patch)
-      .eq('id', input.customerContractId)
+      .eq("id", input.customerContractId);
 
-    if (updateError) throw updateError
+    if (updateError) throw updateError;
   }
 
-  if (input.eventType === 'terminated' || input.eventType === 'cancelled') {
+  if (input.eventType === "terminated" || input.eventType === "cancelled") {
     const { error: updateError } = await supabaseService
-      .from('customer_contracts')
+      .from("customer_contracts")
       .update({
-        status: input.eventType === 'terminated' ? 'terminated' : 'cancelled',
+        status: input.eventType === "terminated" ? "terminated" : "cancelled",
         updated_by: input.actorUserId ?? null,
       })
-      .eq('id', input.customerContractId)
+      .eq("id", input.customerContractId);
 
-    if (updateError) throw updateError
+    if (updateError) throw updateError;
   }
 
-  if (input.eventType === 'termination_notice_received') {
+  if (input.eventType === "termination_notice_received") {
     const { data: current, error: currentError } = await supabaseService
-      .from('customer_contracts')
+      .from("customer_contracts")
       .select(
-        'starts_at, ends_at, binding_months, notice_months, status, auto_renew_enabled, auto_renew_term_months, termination_reason'
+        "starts_at, ends_at, binding_months, notice_months, status, auto_renew_enabled, auto_renew_term_months, termination_reason",
       )
-      .eq('id', input.customerContractId)
-      .maybeSingle()
+      .eq("id", input.customerContractId)
+      .maybeSingle();
 
-    if (currentError) throw currentError
+    if (currentError) throw currentError;
 
     const { error: updateError } = await supabaseService
-      .from('customer_contracts')
+      .from("customer_contracts")
       .update({
         termination_notice_date: eventPayload.happened_at,
         ends_at: deriveContractEndsAt({
@@ -743,10 +807,10 @@ export async function addCustomerContractEvent(input: {
         }),
         updated_by: input.actorUserId ?? null,
       })
-      .eq('id', input.customerContractId)
+      .eq("id", input.customerContractId);
 
-    if (updateError) throw updateError
+    if (updateError) throw updateError;
   }
 
-  return data as CustomerContractEventRow
+  return data as CustomerContractEventRow;
 }
