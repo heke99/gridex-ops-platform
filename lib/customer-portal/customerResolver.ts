@@ -18,6 +18,7 @@ export type ResolvedPortalCustomer = {
   customer_number: string | null
   email: string | null
   auth_user_id: string | null
+  customer_portal_user_id: string | null
   match_strength: string | null
   match_method: string | null
   provider: string | null
@@ -28,13 +29,15 @@ export type PortalCustomerResolution =
   | { ok: true; customer: ResolvedPortalCustomer }
   | { ok: false; status: number; error: string; code: string; identifiers: CustomerPortalIdentifiers }
 
-const CUSTOMER_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,first_name,last_name,full_name,company_name,email,phone,created_at,intake_status,intake_missing_fields,intake_quality_score'
-const CUSTOMER_FALLBACK_SELECT = 'id,company_id,customer_number,customer_type,status,first_name,last_name,full_name,company_name,email,phone,created_at'
+const CUSTOMER_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,created_at,intake_status,intake_missing_fields,intake_quality_score'
+const CUSTOMER_FALLBACK_SELECT = 'id,company_id,customer_number,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,created_at'
 const CUSTOMER_MINIMAL_SELECT = 'id,company_id,customer_number,status,email,phone,created_at'
-const IDENTITY_SELECT = 'id,company_id,customer_id,external_customer_id,email,status,match_strength,match_method,provider'
-const ACCOUNT_SELECT = 'id,company_id,customer_id,user_id,email,status,is_active'
+const IDENTITY_SELECT = 'id,company_id,customer_id,external_customer_id,external_account_id,customer_number,email,status,match_strength,match_method,provider,auth_user_id,customer_portal_user_id'
+const IDENTITY_FALLBACK_SELECT = 'id,company_id,customer_id,external_customer_id,email,status,match_strength,match_method,provider'
+const ACCOUNT_SELECT = 'id,company_id,customer_id,user_id,email,user_email,status,is_active'
 const ACCOUNT_FALLBACK_SELECT = 'id,company_id,customer_id,user_id,email,status'
 const PROFILE_SELECT = 'user_id,email,first_name,last_name,full_name,phone,language_code,timezone,onboarding_state'
+const CUSTOMER_PORTAL_ACCOUNT_ROLE = 'owner'
 
 export function isMissingPortalSchemaError(error: unknown): boolean {
   const maybe = error as { code?: string; message?: string } | null
@@ -74,8 +77,8 @@ export function portalIdentifiersFromRequest(request: NextRequest): CustomerPort
     externalCustomerId,
     customerNumber: headerOrQuery(request, ['x-gridex-customer-number', 'x-customer-number'], ['customer_number', 'customerNumber']),
     email: normalizeEmail(headerOrQuery(request, ['x-gridex-customer-email', 'x-customer-email'], ['email', 'customer_email'])),
-    authUserId: headerOrQuery(request, ['x-gridex-auth-user-id', 'x-auth-user-id'], ['auth_user_id', 'authUserId']),
-    customerPortalUserId: headerOrQuery(request, ['x-gridex-customer-portal-user-id', 'x-customer-portal-user-id'], ['customer_portal_user_id', 'customerPortalUserId']),
+    authUserId: headerOrQuery(request, ['x-gridex-auth-user-id', 'x-auth-user-id', 'x-gridex-web-auth-user-id'], ['auth_user_id', 'authUserId', 'web_auth_user_id', 'webAuthUserId']),
+    customerPortalUserId: headerOrQuery(request, ['x-gridex-customer-portal-user-id', 'x-customer-portal-user-id', 'x-gridex-portal-user-id'], ['customer_portal_user_id', 'customerPortalUserId', 'portal_user_id', 'portalUserId']),
   }
 }
 
@@ -95,31 +98,18 @@ function activeAccount(row: Record<string, unknown>): boolean {
 }
 
 async function fetchCustomer(companyId: string, customerId: string): Promise<Record<string, unknown> | null> {
-  let customer = await supabaseService
-    .from('customers')
-    .select(CUSTOMER_SELECT)
-    .eq('company_id', companyId)
-    .eq('id', customerId)
-    .maybeSingle()
+  for (const select of [CUSTOMER_SELECT, CUSTOMER_FALLBACK_SELECT, CUSTOMER_MINIMAL_SELECT]) {
+    const customer = await supabaseService
+      .from('customers')
+      .select(select)
+      .eq('company_id', companyId)
+      .eq('id', customerId)
+      .maybeSingle()
 
-  if (customer.error && isMissingPortalSchemaError(customer.error)) {
-    customer = await supabaseService
-      .from('customers')
-      .select(CUSTOMER_FALLBACK_SELECT)
-      .eq('company_id', companyId)
-      .eq('id', customerId)
-      .maybeSingle()
+    if (!customer.error) return (customer.data ?? null) as Record<string, unknown> | null
+    if (!isMissingPortalSchemaError(customer.error)) throw customer.error
   }
-  if (customer.error && isMissingPortalSchemaError(customer.error)) {
-    customer = await supabaseService
-      .from('customers')
-      .select(CUSTOMER_MINIMAL_SELECT)
-      .eq('company_id', companyId)
-      .eq('id', customerId)
-      .maybeSingle()
-  }
-  if (customer.error) throw customer.error
-  return (customer.data ?? null) as Record<string, unknown> | null
+  return null
 }
 
 async function fetchProfile(input: { email?: string | null; authUserId?: string | null }): Promise<Record<string, unknown> | null> {
@@ -156,7 +146,7 @@ function composeFullName(source: Record<string, unknown>): string | null {
   const firstName = str(source, 'first_name')
   const lastName = str(source, 'last_name')
   const combined = [firstName, lastName].filter(Boolean).join(' ').trim()
-  return combined || str(source, 'company_name') || null
+  return combined || str(source, 'company_name') || str(source, 'name') || null
 }
 
 function mergeCustomerProfile(customer: Record<string, unknown>, profile: Record<string, unknown> | null): Record<string, unknown> {
@@ -193,55 +183,55 @@ async function linkedByExternal(companyId: string, externalCustomerId: string): 
   }
   if (link.error && !isMissingPortalSchemaError(link.error)) throw link.error
 
-  const identity = await supabaseService
-    .from('customer_portal_identities')
-    .select(IDENTITY_SELECT)
-    .eq('company_id', companyId)
-    .eq('external_customer_id', externalCustomerId)
-    .eq('status', 'active')
-    .not('customer_id', 'is', null)
-    .limit(1)
-    .maybeSingle()
-
-  if (!identity.error && identity.data?.customer_id) {
-    const row = identity.data as Record<string, unknown>
+  const identity = await selectPortalIdentities(companyId, 'external_customer_id', externalCustomerId, 1)
+  if (identity.length === 1 && identity[0].customer_id) {
+    const row = identity[0]
     return finishResolved(companyId, String(row.customer_id), {
       id: str(row, 'id'),
       externalCustomerId,
+      customerNumber: str(row, 'customer_number'),
       email: normalizeEmail(row.email),
+      authUserId: str(row, 'auth_user_id'),
+      customerPortalUserId: str(row, 'customer_portal_user_id'),
       provider: str(row, 'provider') ?? 'customer_portal_identity',
       matchMethod: str(row, 'match_method') ?? 'customer_portal_identities.external_customer_id',
       matchStrength: str(row, 'match_strength') ?? 'strong',
     })
   }
-  if (identity.error && !isMissingPortalSchemaError(identity.error)) throw identity.error
 
   return customerByField(companyId, 'external_customer_id', externalCustomerId, 'customers.external_customer_id')
 }
 
 async function customerByField(companyId: string, field: 'external_customer_id' | 'customer_number' | 'email', value: string, method: string): Promise<ResolvedPortalCustomer | null> {
-  const query = supabaseService
-    .from('customers')
-    .select(CUSTOMER_SELECT)
-    .eq('company_id', companyId)
-    .eq(field, value)
-    .limit(field === 'email' ? 2 : 1)
+  const selects = [CUSTOMER_SELECT, CUSTOMER_FALLBACK_SELECT, CUSTOMER_MINIMAL_SELECT]
+  for (const select of selects) {
+    const result = await supabaseService
+      .from('customers')
+      .select(select)
+      .eq('company_id', companyId)
+      .eq(field, value)
+      .limit(field === 'email' ? 2 : 1)
 
-  const result = await query
-  if (result.error) {
-    if (isMissingPortalSchemaError(result.error)) return null
-    throw result.error
+    if (result.error) {
+      if (isMissingPortalSchemaError(result.error)) {
+        if (field === 'external_customer_id') return null
+        continue
+      }
+      throw result.error
+    }
+
+    const rows = asRows(result.data as unknown as Record<string, unknown>[] | null)
+    if (rows.length !== 1) return null
+    return finishResolved(companyId, String(rows[0].id), {
+      externalCustomerId: str(rows[0], 'external_customer_id'),
+      customerNumber: str(rows[0], 'customer_number'),
+      email: normalizeEmail(rows[0].email),
+      matchMethod: method,
+      matchStrength: field === 'email' ? 'medium' : 'strong',
+      prefetchedCustomer: rows[0],
+    })
   }
-  const rows = asRows(result.data as Record<string, unknown>[] | null)
-  if (rows.length !== 1) return null
-  return finishResolved(companyId, String(rows[0].id), {
-    externalCustomerId: str(rows[0], 'external_customer_id'),
-    customerNumber: str(rows[0], 'customer_number'),
-    email: normalizeEmail(rows[0].email),
-    matchMethod: method,
-    matchStrength: field === 'email' ? 'medium' : 'strong',
-    prefetchedCustomer: rows[0],
-  })
+  return null
 }
 
 async function linkedByAccount(companyId: string, userId: string): Promise<ResolvedPortalCustomer | null> {
@@ -266,43 +256,51 @@ async function linkedByAccount(companyId: string, userId: string): Promise<Resol
   }
 
   const rows = asRows(account.data as Record<string, unknown>[] | null).filter((row) => row.customer_id && activeAccount(row))
-  if (rows.length !== 1) return null
-  const row = rows[0]
+  if (rows.length === 1) {
+    const row = rows[0]
+    return finishResolved(companyId, String(row.customer_id), {
+      id: str(row, 'id'),
+      email: normalizeEmail(row.email) ?? normalizeEmail(row.user_email),
+      authUserId: userId,
+      customerPortalUserId: userId,
+      provider: 'customer_portal_accounts',
+      matchMethod: 'customer_portal_accounts.user_id',
+      matchStrength: 'strong',
+    })
+  }
+
+  const identities = await selectPortalIdentitiesByUser(companyId, userId)
+  const active = identities.filter((row) => row.customer_id && activeIdentity(row))
+  if (active.length !== 1) return null
+  const row = active[0]
   return finishResolved(companyId, String(row.customer_id), {
     id: str(row, 'id'),
+    externalCustomerId: str(row, 'external_customer_id'),
+    customerNumber: str(row, 'customer_number'),
     email: normalizeEmail(row.email),
-    authUserId: userId,
-    provider: 'customer_portal_accounts',
-    matchMethod: 'customer_portal_accounts.user_id',
-    matchStrength: 'strong',
+    authUserId: str(row, 'auth_user_id') ?? userId,
+    customerPortalUserId: str(row, 'customer_portal_user_id') ?? userId,
+    provider: str(row, 'provider') ?? 'customer_portal_identity',
+    matchMethod: str(row, 'match_method') ?? 'customer_portal_identities.user_id',
+    matchStrength: str(row, 'match_strength') ?? 'strong',
   })
 }
 
 async function linkedByEmail(companyId: string, email: string): Promise<ResolvedPortalCustomer | null> {
-  const identity = await supabaseService
-    .from('customer_portal_identities')
-    .select(IDENTITY_SELECT)
-    .eq('company_id', companyId)
-    .eq('email', email)
-    .eq('status', 'active')
-    .not('customer_id', 'is', null)
-    .limit(2)
-
-  if (!identity.error) {
-    const rows = asRows(identity.data as Record<string, unknown>[] | null)
-    if (rows.length === 1) {
-      const row = rows[0]
-      return finishResolved(companyId, String(row.customer_id), {
-        id: str(row, 'id'),
-        externalCustomerId: str(row, 'external_customer_id'),
-        email,
-        provider: str(row, 'provider') ?? 'customer_portal_identity',
-        matchMethod: 'customer_portal_identities.email',
-        matchStrength: 'medium',
-      })
-    }
-  } else if (!isMissingPortalSchemaError(identity.error)) {
-    throw identity.error
+  const rows = await selectPortalIdentities(companyId, 'email', email, 2)
+  if (rows.length === 1 && rows[0].customer_id) {
+    const row = rows[0]
+    return finishResolved(companyId, String(row.customer_id), {
+      id: str(row, 'id'),
+      externalCustomerId: str(row, 'external_customer_id'),
+      customerNumber: str(row, 'customer_number'),
+      email,
+      authUserId: str(row, 'auth_user_id'),
+      customerPortalUserId: str(row, 'customer_portal_user_id'),
+      provider: str(row, 'provider') ?? 'customer_portal_identity',
+      matchMethod: 'customer_portal_identities.email',
+      matchStrength: 'medium',
+    })
   }
 
   return customerByField(companyId, 'email', email, 'customers.email')
@@ -314,6 +312,7 @@ async function finishResolved(companyId: string, customerId: string, source: {
   customerNumber?: string | null
   email?: string | null
   authUserId?: string | null
+  customerPortalUserId?: string | null
   provider?: string | null
   matchMethod?: string | null
   matchStrength?: string | null
@@ -321,7 +320,8 @@ async function finishResolved(companyId: string, customerId: string, source: {
 }): Promise<ResolvedPortalCustomer | null> {
   const customer = source.prefetchedCustomer ?? await fetchCustomer(companyId, customerId)
   if (!customer || String(customer.company_id) !== companyId) return null
-  const profile = await fetchProfile({ email: source.email ?? str(customer, 'email'), authUserId: source.authUserId })
+  const userId = source.authUserId ?? source.customerPortalUserId ?? null
+  const profile = await fetchProfile({ email: source.email ?? str(customer, 'email'), authUserId: userId })
   const merged = mergeCustomerProfile(customer, profile)
   return {
     id: source.id ?? null,
@@ -330,12 +330,201 @@ async function finishResolved(companyId: string, customerId: string, source: {
     external_customer_id: source.externalCustomerId ?? str(merged, 'external_customer_id') ?? str(merged, 'customer_number'),
     customer_number: source.customerNumber ?? str(merged, 'customer_number'),
     email: normalizeEmail(source.email ?? merged.email),
-    auth_user_id: source.authUserId ?? null,
+    auth_user_id: source.authUserId ?? userId,
+    customer_portal_user_id: source.customerPortalUserId ?? userId,
     match_strength: source.matchStrength ?? null,
     match_method: source.matchMethod ?? null,
     provider: source.provider ?? null,
     customer: merged,
   }
+}
+
+function activeIdentity(row: Record<string, unknown>): boolean {
+  const status = str(row, 'status')?.toLowerCase()
+  return !status || status === 'active'
+}
+
+async function selectPortalIdentities(companyId: string, field: 'external_customer_id' | 'email', value: string, limit: number): Promise<Record<string, unknown>[]> {
+  for (const select of [IDENTITY_SELECT, IDENTITY_FALLBACK_SELECT]) {
+    const result = await supabaseService
+      .from('customer_portal_identities')
+      .select(select)
+      .eq('company_id', companyId)
+      .eq(field, value)
+      .eq('status', 'active')
+      .not('customer_id', 'is', null)
+      .limit(limit)
+
+    if (!result.error) return asRows(result.data as unknown as Record<string, unknown>[] | null)
+    if (!isMissingPortalSchemaError(result.error)) throw result.error
+  }
+  return []
+}
+
+async function selectPortalIdentitiesByUser(companyId: string, userId: string): Promise<Record<string, unknown>[]> {
+  for (const field of ['auth_user_id', 'customer_portal_user_id', 'external_account_id'] as const) {
+    for (const select of [IDENTITY_SELECT, IDENTITY_FALLBACK_SELECT]) {
+      const result = await supabaseService
+        .from('customer_portal_identities')
+        .select(select)
+        .eq('company_id', companyId)
+        .eq(field, field === 'external_account_id' ? userId : userId)
+        .not('customer_id', 'is', null)
+        .limit(5)
+
+      if (!result.error) {
+        const rows = asRows(result.data as unknown as Record<string, unknown>[] | null)
+        if (rows.length > 0) return rows
+        break
+      }
+      if (!isMissingPortalSchemaError(result.error)) throw result.error
+    }
+  }
+  return []
+}
+
+export async function ensureCustomerPortalUserLink(input: {
+  client: IntegrationApiClient
+  customerId: string
+  userId: string
+  email?: string | null
+  externalCustomerId?: string | null
+  customerNumber?: string | null
+  identityId?: string | null
+  matchMethod?: string | null
+}): Promise<{ accountId: string | null; identityId: string | null; matchMethod: string } | null> {
+  const userId = clean(input.userId)
+  if (!userId) return null
+
+  const customer = await fetchCustomer(input.client.company_id, input.customerId)
+  if (!customer) return null
+
+  const now = new Date().toISOString()
+  const email = normalizeEmail(input.email ?? customer.email)
+  const customerNumber = clean(input.customerNumber) ?? str(customer, 'customer_number')
+  const externalCustomerId = clean(input.externalCustomerId) ?? str(customer, 'external_customer_id') ?? customerNumber
+  const matchMethod = clean(input.matchMethod) ?? 'gridex_web_auth_user_auto_link'
+
+  let accountId: string | null = null
+  const existingAccount = await supabaseService
+    .from('customer_portal_accounts')
+    .select('id')
+    .eq('customer_id', input.customerId)
+    .eq('user_id', userId)
+    .limit(1)
+    .maybeSingle()
+
+  if (existingAccount.error && !isMissingPortalSchemaError(existingAccount.error)) throw existingAccount.error
+
+  if (existingAccount.data?.id) {
+    accountId = String(existingAccount.data.id)
+    const { error } = await supabaseService
+      .from('customer_portal_accounts')
+      .update({
+        company_id: input.client.company_id,
+        email,
+        user_email: email,
+        role: CUSTOMER_PORTAL_ACCOUNT_ROLE,
+        status: 'active',
+        is_active: true,
+        activated_at: now,
+        verified_at: now,
+        match_method: matchMethod,
+        updated_at: now,
+      })
+      .eq('id', accountId)
+    if (error && !isMissingPortalSchemaError(error)) throw error
+  } else {
+    const { data, error } = await supabaseService
+      .from('customer_portal_accounts')
+      .insert({
+        company_id: input.client.company_id,
+        user_id: userId,
+        user_email: email,
+        customer_id: input.customerId,
+        role: CUSTOMER_PORTAL_ACCOUNT_ROLE,
+        is_active: true,
+        invited_at: now,
+        activated_at: now,
+        verified_at: now,
+        match_method: matchMethod,
+        verified_identity_snapshot: {
+          source: 'gridex_website_supabase',
+          email,
+          customer_number: customerNumber,
+          external_customer_id: externalCustomerId,
+          linked_at: now,
+        },
+        status: 'active',
+        email,
+        metadata: {
+          source: 'gridex_website_supabase',
+          auto_linked_at: now,
+          api_client_id: input.client.id,
+        },
+        updated_at: now,
+      })
+      .select('id')
+      .maybeSingle()
+    if (error && !isMissingPortalSchemaError(error)) throw error
+    accountId = data?.id ? String(data.id) : null
+  }
+
+  let identityId = clean(input.identityId)
+  if (!identityId) {
+    const existingIdentity = await supabaseService
+      .from('customer_portal_identities')
+      .select('id')
+      .eq('company_id', input.client.company_id)
+      .eq('customer_id', input.customerId)
+      .limit(1)
+      .maybeSingle()
+    if (!existingIdentity.error && existingIdentity.data?.id) identityId = String(existingIdentity.data.id)
+    if (existingIdentity.error && !isMissingPortalSchemaError(existingIdentity.error)) throw existingIdentity.error
+  }
+
+  const identityPayload = {
+    company_id: input.client.company_id,
+    customer_id: input.customerId,
+    provider: 'external_website',
+    external_customer_id: externalCustomerId,
+    external_account_id: userId,
+    email,
+    status: 'active',
+    match_strength: 'strong',
+    match_method: matchMethod,
+    linked_at: now,
+    metadata: {
+      source: 'gridex_website_supabase',
+      account_id: accountId,
+      api_client_id: input.client.id,
+      auto_linked_at: now,
+    },
+    customer_number: customerNumber,
+    auth_user_id: userId,
+    customer_portal_user_id: userId,
+    last_resolved_at: now,
+    updated_at: now,
+  }
+
+  if (identityId) {
+    const { error } = await supabaseService
+      .from('customer_portal_identities')
+      .update(identityPayload)
+      .eq('id', identityId)
+      .eq('company_id', input.client.company_id)
+    if (error && !isMissingPortalSchemaError(error)) throw error
+  } else {
+    const { data, error } = await supabaseService
+      .from('customer_portal_identities')
+      .insert({ ...identityPayload, api_client_id: input.client.id, created_at: now })
+      .select('id')
+      .maybeSingle()
+    if (error && !isMissingPortalSchemaError(error)) throw error
+    identityId = data?.id ? String(data.id) : null
+  }
+
+  return { accountId, identityId, matchMethod }
 }
 
 export async function resolvePortalCustomer(input: {
@@ -356,7 +545,7 @@ export async function resolvePortalCustomer(input: {
   }
 
   try {
-    const userId = identifiers.authUserId ?? identifiers.customerPortalUserId
+    const userId = clean(identifiers.customerPortalUserId) ?? clean(identifiers.authUserId)
     const resolved =
       (userId ? await linkedByAccount(input.client.company_id, userId) : null) ??
       (identifiers.externalCustomerId ? await linkedByExternal(input.client.company_id, identifiers.externalCustomerId) : null) ??
@@ -365,6 +554,33 @@ export async function resolvePortalCustomer(input: {
 
     if (!resolved) {
       return { ok: false, status: 404, code: 'customer_not_found', error: 'Kunden hittades inte eller är inte länkad till API-klienten.', identifiers }
+    }
+
+    const linked = userId
+      ? await ensureCustomerPortalUserLink({
+          client: input.client,
+          customerId: resolved.customer_id,
+          userId,
+          email: identifiers.email ?? resolved.email,
+          externalCustomerId: identifiers.externalCustomerId ?? resolved.external_customer_id,
+          customerNumber: identifiers.customerNumber ?? resolved.customer_number,
+          identityId: resolved.id,
+          matchMethod: resolved.match_method ?? 'gridex_web_auth_user_auto_link',
+        })
+      : null
+
+    if (linked) {
+      return {
+        ok: true,
+        customer: {
+          ...resolved,
+          id: linked.identityId ?? resolved.id,
+          auth_user_id: userId,
+          customer_portal_user_id: userId,
+          match_method: linked.matchMethod,
+          provider: resolved.provider ?? 'customer_portal_accounts',
+        },
+      }
     }
 
     return { ok: true, customer: resolved }

@@ -136,6 +136,8 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
       "offer_reference": "offer_...",
       "requested_start_date": "2026-07-01"
     },
+    "customer_portal_user_id": "<gridex-web-supabase-session-user-id>",
+    "auth_user_id": "<gridex-web-supabase-session-user-id>",
     "consents": {
       "terms": true,
       "privacy_policy": true,
@@ -170,6 +172,8 @@ const applicationResponse = `{
 const customerFetchExample = `fetch("${baseUrl}/api/v1/customer/portal-bundle", {
   headers: {
     Authorization: "Bearer YOUR_GRIDEX_API_TOKEN",
+    "x-gridex-customer-portal-user-id": "<gridex-web-supabase-session-user-id>",
+    "x-gridex-auth-user-id": "<gridex-web-supabase-session-user-id>",
     "x-gridex-external-customer-id": "CUSTOMER-12345",
     "x-gridex-customer-number": "DX-100025"
   },
@@ -283,15 +287,15 @@ export default function CustomerPortalApiDocsPage() {
         </Section>
 
         <Section title="5. Skicka kundansökan">
-          <p>Kundansökan ska innehålla valt <code>offer_reference</code> och separata juridiska godkännanden. Systemet skapar kund, kundnummer, portal identity, avtal, avtalssnapshot, juridiska acceptanser och fullmakt när flödet kräver det.</p>
+          <p>Kundansökan ska innehålla valt <code>offer_reference</code>, separata juridiska godkännanden och, när kunden redan är inloggad på hemsidan, webbens Supabase <code>session.user.id</code> som <code>customer_portal_user_id</code>. Systemet skapar kund, kundnummer, portal identity, avtal, avtalssnapshot, juridiska acceptanser, fullmakt och portal-account när flödet kräver det.</p>
           <CodeBlock>{applicationExample}</CodeBlock>
           <CodeBlock>{applicationResponse}</CodeBlock>
         </Section>
 
         <Section title="6. Mina sidor">
-          <p>Servern bakom kundportalen skickar API-nyckel och kundreferens. Frontend ska först verifiera den inloggade kunden och därefter anropa Gridex API server-side.</p>
+          <p>Servern bakom kundportalen skickar API-nyckel, webbens Supabase <code>session.user.id</code> och en stabil kundreferens. Frontend ska först verifiera den inloggade kunden och därefter anropa Gridex API server-side.</p>
           <CodeBlock>{customerFetchExample}</CodeBlock>
-          <p>Alla kundroutes filtrerar på bolag från API-nyckeln och löser kunden via auth user, external_customer_id, kundnummer eller unik e-post. Saknade listor returneras som tomma arrayer, inte 500.</p>
+          <p>Alla kundroutes filtrerar på bolag från API-nyckeln och löser kunden via <code>customer_portal_user_id</code>, <code>auth_user_id</code>, <code>external_customer_id</code>, kundnummer eller unik e-post. På första lyckade anropet länkar OPS webbens auth-user till kunden och skapar <code>customer_portal_accounts.role = owner</code>. Saknade listor returneras som tomma arrayer, inte 500.</p>
         </Section>
 
         <Section title="7. Webhooks">

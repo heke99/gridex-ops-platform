@@ -18,6 +18,7 @@ import {
   type FacilityBusinessErrorCode,
 } from '@/lib/energy/facilityDataErrors'
 import { getBaseAppUrl } from '@/lib/auth/urls'
+import { ensureCustomerPortalUserLink } from '@/lib/customer-portal/customerResolver'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -126,6 +127,9 @@ const ApplicationSchema = z.object({
   external_customer_id: OPTIONAL_TEXT,
   customer_external_id: OPTIONAL_TEXT,
   external_account_id: OPTIONAL_TEXT,
+  auth_user_id: OPTIONAL_TEXT,
+  customer_portal_user_id: OPTIONAL_TEXT,
+  web_auth_user_id: OPTIONAL_TEXT,
   source: OPTIONAL_TEXT,
   grid_owner_id: OPTIONAL_TEXT,
   network_owner_id: OPTIONAL_TEXT,
@@ -307,6 +311,7 @@ type ErrorStage =
   | 'customer_create'
   | 'customer_number_create'
   | 'portal_identity_create'
+  | 'portal_user_link'
   | 'site_create'
   | 'metering_point_create'
   | 'contract_create'
@@ -896,6 +901,9 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     source,
     external_customer_id: raw.external_customer_id ?? raw.customer_external_id ?? raw.externalCustomerId,
     customer_external_id: raw.customer_external_id ?? raw.external_customer_id ?? raw.externalCustomerId,
+    external_account_id: firstDefined(raw.external_account_id, raw.externalAccountId, raw.auth_user_id, raw.authUserId, raw.customer_portal_user_id, raw.customerPortalUserId, raw.web_auth_user_id, raw.webAuthUserId),
+    auth_user_id: firstDefined(raw.auth_user_id, raw.authUserId, raw.web_auth_user_id, raw.webAuthUserId),
+    customer_portal_user_id: firstDefined(raw.customer_portal_user_id, raw.customerPortalUserId, raw.web_auth_user_id, raw.webAuthUserId, raw.auth_user_id, raw.authUserId),
     customer,
     site,
     metering_point: meteringPoint,
@@ -1070,6 +1078,9 @@ async function upsertPortalIdentity(input: {
   customerId: string
   externalCustomerId: string
   externalAccountId?: string | null
+  authUserId?: string | null
+  customerPortalUserId?: string | null
+  customerNumber?: string | null
   email?: string | null
   applicationId?: string | null
 }) {
@@ -1080,7 +1091,11 @@ async function upsertPortalIdentity(input: {
     api_client_id: input.client.id,
     provider: 'external_website',
     external_customer_id: input.externalCustomerId,
-    external_account_id: input.externalAccountId ?? null,
+    external_account_id: input.externalAccountId ?? input.customerPortalUserId ?? input.authUserId ?? null,
+    customer_number: input.customerNumber ?? null,
+    auth_user_id: input.authUserId ?? input.customerPortalUserId ?? null,
+    customer_portal_user_id: input.customerPortalUserId ?? input.authUserId ?? null,
+    last_resolved_at: now,
     email: input.email ?? null,
     status: 'active',
     match_strength: 'strong',
@@ -1090,6 +1105,7 @@ async function upsertPortalIdentity(input: {
       source: 'website_customer_applications',
       api_client_id: input.client.id,
       application_id: input.applicationId ?? null,
+      customer_portal_user_id: input.customerPortalUserId ?? input.authUserId ?? null,
     },
     updated_at: now,
   }
@@ -2251,9 +2267,26 @@ export async function processWebsiteCustomerApplication(input: {
       client: input.client,
       customerId: resolvedCustomerResult.customer.id,
       externalCustomerId,
-      externalAccountId: clean(body.external_account_id),
+      externalAccountId: clean(body.external_account_id) ?? clean(body.customer_portal_user_id) ?? clean(body.auth_user_id) ?? clean(body.web_auth_user_id),
+      authUserId: clean(body.auth_user_id) ?? clean(body.web_auth_user_id) ?? clean(body.customer_portal_user_id),
+      customerPortalUserId: clean(body.customer_portal_user_id) ?? clean(body.auth_user_id) ?? clean(body.web_auth_user_id),
+      customerNumber,
       email: normalizedEmail(body.customer.email),
     }))
+
+    const portalUserId = clean(body.customer_portal_user_id) ?? clean(body.auth_user_id) ?? clean(body.web_auth_user_id) ?? clean(body.external_account_id)
+    if (portalUserId) {
+      await stage('portal_user_link', () => ensureCustomerPortalUserLink({
+        client: input.client,
+        customerId: resolvedCustomerResult.customer.id,
+        userId: portalUserId,
+        email: normalizedEmail(body.customer.email),
+        externalCustomerId,
+        customerNumber,
+        identityId: identity.id,
+        matchMethod: 'website_application_auth_user',
+      }))
+    }
 
     const applicationStatus = readiness.status
 

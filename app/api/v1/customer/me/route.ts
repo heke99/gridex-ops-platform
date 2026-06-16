@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
           external_customer_id: context.identity.external_customer_id,
           customer_number: context.identity.customer_number,
           auth_user_id: context.identity.auth_user_id,
+          customer_portal_user_id: context.identity.customer_portal_user_id,
           match_strength: context.identity.match_strength,
           match_method: context.identity.match_method,
           provider: context.identity.provider,

@@ -14,6 +14,7 @@ export type LinkedPortalIdentity = {
   email: string | null
   customer_number: string | null
   auth_user_id: string | null
+  customer_portal_user_id: string | null
   match_strength: string | null
   match_method: string | null
   provider: string | null
