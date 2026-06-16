@@ -152,22 +152,34 @@ Rekommenderad payload:
 
 Systemet matchar eller skapar kund, sätter kundnummer, skapar ansökan, skapar avtalssnapshot, sparar juridiska godkännanden, sparar fullmakt om den krävs och skapar händelser för vidare webhook-leverans.
 
-## Mina sidor
+## Mina sidor-koppling: Customer Portal External Auth Linking
 
-Kunddata får aldrig hämtas med valfri kund-id från frontend. Använd hemsidans backend/session och identifiera kund via säker kundkoppling eller extern kundreferens.
+Kunddata får aldrig hämtas med valfri kund-id från frontend. Använd hemsidans backend/session och identifiera kund via säker kundkoppling.
 
-```http
-x-gridex-external-customer-id: DX-100025
-```
-
-Identifiering kan ske via någon av dessa stabila nycklar. `auth_user_id`/`customer_portal_user_id` är starkast, därefter `external_customer_id`, `customer_number` och unik `email` som fallback:
+När tenantens hemsida har egen Supabase Auth ska webben skicka sin Supabase `session.user.id` till OPS. OPS ska inte försöka hitta kunden i sitt eget `auth.users` när auth ligger i webbens Supabase-projekt.
 
 ```http
-x-gridex-auth-user-id: <supabase-auth-user-id>
+x-gridex-customer-portal-user-id: <gridex-web-supabase-session-user-id>
+x-gridex-auth-user-id: <gridex-web-supabase-session-user-id>
 x-gridex-external-customer-id: CUSTOMER-12345
 x-gridex-customer-number: DX-100025
 x-gridex-customer-email: kund@example.se
 ```
+
+`customer_portal_user_id`/`auth_user_id` är starkast, därefter `external_customer_id`, `customer_number` och unik `email` som fallback. API-nyckeln avgör tenant/bolag. Skicka aldrig `company_id` eller fritt `customer_id` från frontend.
+
+OPS länkar första lyckade anropet så här:
+
+```text
+Gridex-webb Supabase session.user.id
+→ customer_portal_accounts.user_id med role = owner
+→ customer_portal_identities.auth_user_id
+→ customer_portal_identities.customer_portal_user_id
+→ kundens portal-bundle
+```
+
+`customer_portal_accounts.role` ska vara `owner`, `billing` eller `viewer`. Använd inte `customer`.
+
 
 Rekommenderad endpoint för Mina sidor är ett samlat bundle-anrop:
 

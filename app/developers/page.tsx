@@ -6,7 +6,8 @@ export const metadata: Metadata = {
   description: 'Gridex utvecklardokumentation och API-guider.',
 }
 
-export const revalidate = 3600
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default function DevelopersPage() {
   return (
@@ -20,7 +21,7 @@ export default function DevelopersPage() {
             Gridex Developer Documentation
           </h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-            Här finns teknisk dokumentation för hemsidor, kundportaler och partnerintegrationer som ska koppla mot Gridex API.
+            Här finns den publika online-dokumentationen för hemsidor, Mina sidor-koppling, kundportaler och partnerintegrationer som ska koppla mot Gridex API.
           </p>
         </div>
       </section>
@@ -31,12 +32,12 @@ export default function DevelopersPage() {
           className="block rounded-[2rem] border border-emerald-100 bg-white p-8 shadow-sm shadow-emerald-950/5 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-950/10"
         >
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Customer Portal API</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">Koppla extern hemsida till Gridex API</h2>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">Koppla hemsida och Mina sidor till Gridex API</h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-            Guide för hur en extern hemsida, white-label kundportal eller partnerportal skapar kundansökningar, hämtar anläggningar/avtal/fakturor/mätvärden och tar emot webhooks från Gridex API.
+            Guide för hur en tenant-hemsida hämtar avtal, skickar kundansökningar, kopplar webbens Supabase auth-user till OPS via Customer Portal External Auth Linking, hämtar Mina sidor-data och tar emot webhooks.
           </p>
           <span className="mt-6 inline-flex rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
-            Öppna API-guiden
+            Öppna online-guiden
           </span>
         </Link>
       </section>

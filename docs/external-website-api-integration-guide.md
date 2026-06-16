@@ -130,16 +130,37 @@ Krav: `website_applications.write`.
 
 Systemet skapar/matchar kund, skapar kundnummer, länkar portal identity, sparar anläggning/mätpunkt när data finns, skapar avtal och avtalssnapshot, sparar juridiska acceptanser och köar händelser/webhooks.
 
-## Mina sidor
+## Mina sidor-koppling: Customer Portal External Auth Linking
 
-Kundportalen anropar server-side med API-nyckel och minst en stabil kundreferens. Starkast är auth user, därefter extern kundreferens, kundnummer och unik e-post som fallback:
+Det här är obligatoriskt när tenantens hemsida har egen Supabase Auth och OPS inte har kunden i OPS-projektets `auth.users`.
+
+```text
+Gridex-webb Supabase session.user.id
+→ x-gridex-customer-portal-user-id till OPS
+→ OPS matchar tenant via API-nyckeln
+→ OPS matchar kund via external_customer_id, customer_number eller unik email
+→ OPS skapar/uppdaterar customer_portal_accounts.role = owner
+→ OPS fyller customer_portal_identities.auth_user_id och customer_portal_user_id
+→ GET /api/v1/customer/portal-bundle returnerar kundens data
+```
+
+Tenantens backend ska skicka dessa headers vid Mina sidor-anrop:
 
 ```http
-x-gridex-auth-user-id: <supabase-auth-user-id>
+x-gridex-customer-portal-user-id: <gridex-web-supabase-session-user-id>
+x-gridex-auth-user-id: <gridex-web-supabase-session-user-id>
 x-gridex-external-customer-id: CUSTOMER-12345
 x-gridex-customer-number: DX-100025
 x-gridex-customer-email: kund@example.se
 ```
+
+`x-gridex-customer-portal-user-id` och `x-gridex-auth-user-id` ska vara webbens Supabase `session.user.id`. Skicka helst båda. `external_customer_id` eller `customer_number` ska också skickas vid första länkning så OPS kan hitta rätt kund. API-nyckeln avgör alltid bolag/tenant; hemsidan ska aldrig skicka `company_id` eller ett fritt `customer_id` från frontend.
+
+OPS skapar eller uppdaterar `customer_portal_accounts` med rollen `owner`. Värdet `customer` är inte en giltig portalroll.
+
+## Hämta Mina sidor-data
+
+Kundportalen anropar server-side med API-nyckel, webbens Supabase auth user id och minst en stabil kundreferens. Starkast är `customer_portal_user_id`/`auth_user_id`, därefter extern kundreferens, kundnummer och unik e-post som fallback.
 
 Rekommenderad endpoint för Mina sidor är bundle-anropet:
 
@@ -165,7 +186,7 @@ POST /api/v1/customer/profile-update
 POST /api/v1/customer/move-out
 ```
 
-Tomma listor returneras som `200 OK` med `[]`. Kund saknas ger 404, saknat scope ger 403 och internt OPS-fel ger 500.
+Tomma listor returneras som `200 OK` med `[]`. Kund saknas ger 404, saknat scope ger 403 och internt OPS-fel ger 500. På första lyckade anropet kan OPS automatiskt länka webbens auth-user till kunden.
 
 ## Webhooks
 

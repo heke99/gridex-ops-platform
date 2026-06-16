@@ -2,11 +2,12 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
 export const metadata: Metadata = {
-  title: 'Website API & Webhooks | Gridex Developers',
-  description: 'Integrationsguide för hemsidor, kundportaler och partners som ansluter till Gridex API.',
+  title: 'Website API, Mina sidor-koppling & Webhooks | Gridex Developers',
+  description: 'Integrationsguide för hemsidor, kundportaler och partners som ansluter till Gridex API och Customer Portal External Auth Linking.',
 }
 
-export const revalidate = 3600
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 const baseUrl = 'https://app.gridex.se'
 
@@ -180,6 +181,31 @@ const customerFetchExample = `fetch("${baseUrl}/api/v1/customer/portal-bundle", 
   cache: "no-store"
 })`
 
+const authLinkingRequiredHeaders = `Authorization: Bearer YOUR_GRIDEX_API_TOKEN
+x-gridex-customer-portal-user-id: <gridex-web-supabase-session-user-id>
+x-gridex-auth-user-id: <gridex-web-supabase-session-user-id>
+x-gridex-external-customer-id: <external_customer_id>
+# eller, om external_customer_id saknas:
+x-gridex-customer-number: DX-100025
+# optional fallback:
+x-gridex-customer-email: kund@example.se`
+
+const authLinkingFlow = `Gridex-webb Supabase session.user.id
+→ x-gridex-customer-portal-user-id till OPS
+→ OPS matchar tenant via API-nyckeln
+→ OPS matchar kund via external_customer_id, customer_number eller unik email
+→ OPS skapar/uppdaterar customer_portal_accounts.role = owner
+→ OPS fyller customer_portal_identities.auth_user_id och customer_portal_user_id
+→ GET /api/v1/customer/portal-bundle returnerar kundens data`
+
+const authLinkingChecklist = `Tenantens backend ska:
+1. läsa Supabase session.user.id server-side
+2. skicka user.id i x-gridex-customer-portal-user-id
+3. skicka samma user.id i x-gridex-auth-user-id
+4. skicka external_customer_id från ansökan eller customer_number från OPS
+5. aldrig skicka company_id eller customer_id från frontend
+6. använda GET /api/v1/customer/portal-bundle som huvudendpoint för Mina sidor`
+
 const webhookPayload = `{
   "id": "event_123",
   "type": "contract.application_received",
@@ -252,9 +278,9 @@ export default function CustomerPortalApiDocsPage() {
       <div className="mx-auto max-w-6xl space-y-8">
         <section className="rounded-[36px] border border-emerald-100 bg-white p-8 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">Gridex Developers</p>
-          <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-950">Website API och webhooks</h1>
+          <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-950">Website API, Mina sidor-koppling och webhooks</h1>
           <p className="mt-5 max-w-3xl text-base leading-8 text-slate-700">
-            Den här guiden visar hur en hemsida, kundportal eller partnerintegration hämtar publicerade avtal, skickar kundansökningar, hämtar Mina sidor-data och tar emot händelser via webhook.
+            Den här guiden är den publika online-dokumentationen för tenants och webbteam. Den visar hur en hemsida hämtar publicerade avtal, skickar kundansökningar, kopplar Mina sidor mot webbens Supabase-inloggning och tar emot händelser via webhook.
           </p>
           <div className="mt-6 grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-xs font-bold uppercase text-slate-500">Base URL</div><div className="mt-2 font-mono text-sm text-slate-950">{baseUrl}</div></div>
@@ -287,18 +313,27 @@ export default function CustomerPortalApiDocsPage() {
         </Section>
 
         <Section title="5. Skicka kundansökan">
-          <p>Kundansökan ska innehålla valt <code>offer_reference</code>, separata juridiska godkännanden och, när kunden redan är inloggad på hemsidan, webbens Supabase <code>session.user.id</code> som <code>customer_portal_user_id</code>. Systemet skapar kund, kundnummer, portal identity, avtal, avtalssnapshot, juridiska acceptanser, fullmakt och portal-account när flödet kräver det.</p>
+          <p>Kundansökan ska innehålla valt <code>offer_reference</code>, separata juridiska godkännanden och, när kunden redan är inloggad på hemsidan, webbens Supabase <code>session.user.id</code> som både <code>customer_portal_user_id</code> och <code>auth_user_id</code>. Systemet skapar kund, kundnummer, portal identity, avtal, avtalssnapshot, juridiska acceptanser, fullmakt och portal-account när flödet kräver det.</p>
           <CodeBlock>{applicationExample}</CodeBlock>
           <CodeBlock>{applicationResponse}</CodeBlock>
         </Section>
 
-        <Section title="6. Mina sidor">
+        <Section title="6. Obligatoriskt: Mina sidor-koppling">
+          <p>Det här flödet heter <strong>Customer Portal External Auth Linking</strong>. På svenska kallar vi det <strong>Mina sidor-koppling</strong>. Det ska användas när tenantens hemsida har egen Supabase Auth och OPS inte har kunden i sin egen <code>auth.users</code>.</p>
+          <p>Tenantens backend måste skicka webbens Supabase <code>session.user.id</code> till OPS tillsammans med en stabil kundnyckel. API-nyckeln avgör alltid bolag/tenant; hemsidan ska aldrig skicka <code>company_id</code> eller ett fritt <code>customer_id</code>.</p>
+          <CodeBlock>{authLinkingRequiredHeaders}</CodeBlock>
+          <CodeBlock>{authLinkingFlow}</CodeBlock>
+          <CodeBlock>{authLinkingChecklist}</CodeBlock>
+          <p>OPS skapar eller uppdaterar då <code>customer_portal_accounts</code> med rollen <code>owner</code> och fyller <code>customer_portal_identities.auth_user_id</code>, <code>customer_portal_identities.customer_portal_user_id</code> och <code>external_account_id</code>. Värdet <code>customer</code> är inte en giltig portalroll.</p>
+        </Section>
+
+        <Section title="7. Hämta Mina sidor-data">
           <p>Servern bakom kundportalen skickar API-nyckel, webbens Supabase <code>session.user.id</code> och en stabil kundreferens. Frontend ska först verifiera den inloggade kunden och därefter anropa Gridex API server-side.</p>
           <CodeBlock>{customerFetchExample}</CodeBlock>
           <p>Alla kundroutes filtrerar på bolag från API-nyckeln och löser kunden via <code>customer_portal_user_id</code>, <code>auth_user_id</code>, <code>external_customer_id</code>, kundnummer eller unik e-post. På första lyckade anropet länkar OPS webbens auth-user till kunden och skapar <code>customer_portal_accounts.role = owner</code>. Saknade listor returneras som tomma arrayer, inte 500.</p>
         </Section>
 
-        <Section title="7. Webhooks">
+        <Section title="8. Webhooks">
           <p>Webhookar skickas som POST till konfigurerad HTTPS-URL. Leveransen signeras med HMAC SHA-256 över <code>timestamp.rawBody</code>. Mottagaren ska svara 2xx när eventet är mottaget.</p>
           <CodeBlock>{webhookHeaders}</CodeBlock>
           <CodeBlock>{webhookPayload}</CodeBlock>
@@ -309,7 +344,7 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{webhookReceiver}</CodeBlock>
         </Section>
 
-        <Section title="8. Fel och idempotency">
+        <Section title="9. Fel och idempotency">
           <p>Alla write-anrop ska skicka <code>Idempotency-Key</code>. Externa fel returneras som stabila koder, till exempel <code>missing_api_token</code>, <code>api_scope_missing</code>, <code>public_contract_not_available</code>, <code>legal_acceptance_missing</code> eller <code>idempotent_failed</code>. Visa kundvänlig text i slutkunds-UI och logga tekniska detaljer server-side.</p>
         </Section>
       </div>
