@@ -1104,7 +1104,7 @@ async function upsertPortalIdentity(input: {
   return data as { id: string }
 }
 
-async function createOrUpdateCustomer(client: IntegrationApiClient, input: ApplicationInput): Promise<{ customer: CustomerRow; created: boolean }> {
+async function createOrUpdateCustomer(client: IntegrationApiClient, input: ApplicationInput): Promise<{ customer: CustomerRow; created: boolean; customerNumberAssigned: boolean }> {
   const existing = await findExistingCustomer(client.company_id, input)
   const customer = input.customer
   const name = fullName(customer)
@@ -1137,7 +1137,7 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
       .select('id,customer_number,email,full_name,company_name')
       .single()
     if (error && !missingSchema(error)) throw error
-    if (data) return { customer: data as CustomerRow, created: false }
+    if (data) return { customer: data as CustomerRow, created: false, customerNumberAssigned: !existing.customer_number }
 
     const fallback = await supabaseService
       .from('customers')
@@ -1147,7 +1147,7 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
       .select('id,customer_number,email,full_name,company_name')
       .single()
     if (fallback.error) throw fallback.error
-    return { customer: fallback.data as CustomerRow, created: false }
+    return { customer: fallback.data as CustomerRow, created: false, customerNumberAssigned: !existing.customer_number }
   }
 
   const insertPayload = {
@@ -1179,7 +1179,7 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
     .single()
 
   if (error && !missingSchema(error)) throw error
-  if (data) return { customer: data as CustomerRow, created: true }
+  if (data) return { customer: data as CustomerRow, created: true, customerNumberAssigned: true }
 
   const fallback = await supabaseService
     .from('customers')
@@ -1196,7 +1196,7 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
     .single()
 
   if (fallback.error) throw fallback.error
-  return { customer: fallback.data as CustomerRow, created: true }
+  return { customer: fallback.data as CustomerRow, created: true, customerNumberAssigned: true }
 }
 
 async function upsertSite(companyId: string, customerId: string, input: ApplicationInput): Promise<{ id: string; facility_id: string | null } | null> {
@@ -2102,7 +2102,7 @@ export async function processWebsiteCustomerApplication(input: {
   }
 
   let readiness = assessWebsiteApplicationReadiness(body)
-  let customerResult: { customer: CustomerRow; created: boolean } | null = null
+  let customerResult: { customer: CustomerRow; created: boolean; customerNumberAssigned: boolean } | null = null
   let site: { id: string; facility_id: string | null } | null = null
   let meteringPoint: { id: string; metering_point_id: string | null } | null = null
   let contract: WebsiteContractCreateResult | null = null
@@ -2145,7 +2145,7 @@ export async function processWebsiteCustomerApplication(input: {
           customerId: String(data.id),
           existingCustomerNumber: clean(data.customer_number),
         })
-        return { customer: { ...(data as CustomerRow), customer_number: customerNumber }, created: false }
+        return { customer: { ...(data as CustomerRow), customer_number: customerNumber }, created: false, customerNumberAssigned: !clean(data.customer_number) }
       })
     } else {
       customerResult = await stage('customer_create', () => createOrUpdateCustomer(input.client, body))
@@ -2457,6 +2457,24 @@ export async function processWebsiteCustomerApplication(input: {
           next_step: readiness.nextStep,
         },
       })
+
+      if (resolvedCustomerResult.customerNumberAssigned) {
+        await emitDomainEvent({
+          companyId: input.client.company_id,
+          eventType: 'customer_number.assigned',
+          aggregateType: 'customer',
+          aggregateId: resolvedCustomerResult.customer.id,
+          subjectCustomerId: resolvedCustomerResult.customer.id,
+          source: 'website_customer_applications',
+          idempotencyKey: input.idempotencyKey ? `website-customer-number:${input.client.company_id}:${input.idempotencyKey}` : `customer-number:${input.client.company_id}:${resolvedCustomerResult.customer.id}:${customerNumber}`,
+          payload: {
+            customer_number: customerNumber,
+            external_customer_id: externalCustomerId,
+            application_id: application.id,
+            api_client_id: input.client.id,
+          },
+        })
+      }
 
       if (contract?.id) {
         await emitDomainEvent({

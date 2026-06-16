@@ -78,6 +78,9 @@ export type WebhookDeliveryAdminRow = {
   response_body: string | null
   failure_reason: string | null
   payload: Record<string, unknown> | null
+  target_url?: string | null
+  locked_at?: string | null
+  locked_by?: string | null
   created_at: string
   webhook_subscriptions?: { endpoint_url?: string | null; name?: string | null; api_client_id?: string | null } | null
 }
@@ -327,7 +330,7 @@ export async function listWebhookSubscriptions(input: { companyId?: string | nul
 export async function listWebhookDeliveries(input: { companyId?: string | null; status?: string | null; limit?: number } = {}): QueryResult<WebhookDeliveryAdminRow> {
   let query = supabaseService
     .from('webhook_deliveries')
-    .select('id, company_id, webhook_subscription_id, domain_event_id, event_type, status, attempts, max_attempts, next_attempt_at, last_attempt_at, delivered_at, failed_at, response_status, response_body, failure_reason, payload, created_at, webhook_subscriptions(name,endpoint_url,api_client_id)')
+    .select('id, company_id, webhook_subscription_id, domain_event_id, event_type, status, attempts, max_attempts, next_attempt_at, last_attempt_at, delivered_at, failed_at, response_status, response_body, failure_reason, payload, target_url, locked_at, locked_by, created_at, webhook_subscriptions(name,endpoint_url,api_client_id)')
     .order('created_at', { ascending: false })
     .limit(Math.min(Math.max(input.limit ?? 100, 1), 200))
 

@@ -33,7 +33,7 @@ export const API_CLIENT_PROFILES: Record<ApiClientProfileKey, ApiClientProfile> 
   website_signup: {
     key: 'website_signup',
     label: 'Hemsida (kundintag)',
-    defaultScopes: ['website_contracts.read', 'customer_applications.write'],
+    defaultScopes: ['website_contracts.read', 'website_applications.write'],
     requireAllowedOrigins: true,
   },
   customer_portal: {
@@ -45,7 +45,7 @@ export const API_CLIENT_PROFILES: Record<ApiClientProfileKey, ApiClientProfile> 
   events_webhooks: {
     key: 'events_webhooks',
     label: 'Webhooks',
-    defaultScopes: ['events.read', 'events.write'],
+    defaultScopes: ['events.read', 'website_events.write'],
     requireAllowedOrigins: false,
   },
   internal_system_integration: {

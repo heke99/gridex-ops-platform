@@ -232,12 +232,21 @@ export function publicContractResponse(offer: PublicContractOffer) {
     : typeof offer.metadata?.withdrawal_terms_version === 'string'
       ? offer.metadata.withdrawal_terms_version
       : offer.terms_version
+  const legalVersions = offer.legal_versions ?? []
+  const legalVersionByType = new Map(legalVersions.map((version) => [version.type, version.version]))
+  const monthlyFee = offer.monthly_fee_sek === null ? null : { amount: offer.monthly_fee_sek, currency: 'SEK', unit: 'month' }
+  const invoiceFee = offer.invoice_fee_sek === null ? null : { amount: offer.invoice_fee_sek, currency: 'SEK', unit: 'invoice' }
+  const markup = (offer.spot_markup_ore_per_kwh ?? offer.markup_ore_per_kwh) === null
+    ? null
+    : { amount: offer.spot_markup_ore_per_kwh ?? offer.markup_ore_per_kwh, unit: 'ore_per_kwh' }
+  const fixedPrice = offer.fixed_price_ore_per_kwh === null ? null : { amount: offer.fixed_price_ore_per_kwh, unit: 'ore_per_kwh' }
 
   return {
     id: offerReference,
     offer_reference: offerReference,
     contract_offer_id: offerReference,
     offer_code: offer.offer_code ?? null,
+    code: offer.offer_code ?? offer.product_code,
     product_code: offer.product_code,
     name: offer.public_name,
     public_name: offer.public_name,
@@ -247,6 +256,27 @@ export function publicContractResponse(offer: PublicContractOffer) {
     type: offer.contract_type,
     billing_model: offer.billing_model,
     customer_type: offer.customer_type,
+    pricing: {
+      monthly_fee: monthlyFee,
+      invoice_fee: invoiceFee,
+      markup,
+      spot_markup: markup,
+      variable_fee: offer.variable_fee_ore_per_kwh === null ? null : { amount: offer.variable_fee_ore_per_kwh, unit: 'ore_per_kwh' },
+      fixed_price: fixedPrice,
+      green_fee: offer.green_fee_value === null ? null : { amount: offer.green_fee_value, mode: offer.green_fee_mode },
+      spot_share: offer.spot_weight_percent,
+      portfolio_share: offer.portfolio_weight_percent,
+      fixed_share: offer.fixed_weight_percent,
+      public_price_text: offer.public_price_text ?? null,
+    },
+    legal: {
+      terms_version: legalVersionByType.get('terms') ?? offer.terms_version,
+      privacy_policy_version: legalVersionByType.get('privacy_policy') ?? null,
+      withdrawal_version: legalVersionByType.get('withdrawal') ?? withdrawalVersion,
+      power_of_attorney_version: legalVersionByType.get('power_of_attorney') ?? null,
+      price_terms_version: legalVersionByType.get('price_terms') ?? null,
+      power_of_attorney_required: legalVersions.some((version) => version.type === 'power_of_attorney'),
+    },
     monthly_fee_sek: offer.monthly_fee_sek,
     invoice_fee_sek: offer.invoice_fee_sek,
     markup_ore_per_kwh: offer.markup_ore_per_kwh,
@@ -267,7 +297,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
       fixed_weight_percent: offer.fixed_weight_percent ?? null,
     },
     withdrawal_version: withdrawalVersion,
-    legal_versions: offer.legal_versions ?? [],
+    legal_versions: legalVersions,
     valid_from: offer.valid_from,
     valid_to: offer.valid_to,
     is_public: true,

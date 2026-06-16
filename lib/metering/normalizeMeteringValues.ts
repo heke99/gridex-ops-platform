@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { isPriceArea, type PriceArea } from '@/lib/pricing/types'
 
 export type NormalizedMeteringValueInput = {
@@ -173,6 +174,31 @@ export async function normalizeAndStoreMeteringValue(input: NormalizedMeteringVa
 
   if (!normalizedError) normalizedId = (normalized as { id: string }).id
   else warnings.push('Mätvärdet sparades i metering_values men inte i normalized_metering_values. Kontrollera att senaste migrationen är körd.')
+
+  await emitDomainEvent({
+    companyId: input.companyId,
+    eventType: 'metering_values.updated',
+    aggregateType: 'metering_point',
+    aggregateId: resolved.meteringPointId,
+    subjectCustomerId: resolved.customerId,
+    actorUserId: input.createdBy ?? null,
+    source: input.sourceType,
+    payload: {
+      metering_value_id: (meterValue as { id: string }).id,
+      normalized_metering_value_id: normalizedId,
+      metering_point_id: resolved.meteringPointId,
+      customer_site_id: resolved.customerSiteId,
+      facility_id: input.facilityId ?? null,
+      price_area: priceArea,
+      period_start: input.periodStart,
+      period_end: input.periodEnd,
+      resolution: input.resolution ?? null,
+      quantity_kwh: input.quantityKwh,
+      source_type: input.sourceType,
+      status: 'stored',
+    },
+    idempotencyKey: `metering-values-updated:${(meterValue as { id: string }).id}`,
+  }).catch(() => null)
 
   return { status: 'stored', meteringValueId: (meterValue as { id: string }).id, normalizedMeteringValueId: normalizedId, warnings }
 }

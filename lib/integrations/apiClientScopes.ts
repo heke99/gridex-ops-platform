@@ -13,7 +13,7 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
   {
     groupKey: 'website_contracts',
     label: 'Hämta avtal till hemsidan',
-    description: 'Hemsidan får läsa publicerade elavtal från Ops för rätt bolag.',
+    description: 'Hemsidan får läsa publicerade elavtal för rätt bolag.',
     category: 'website',
     scopes: ['website_contracts.read'],
     recommendedDefault: true,
@@ -23,7 +23,7 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
   {
     groupKey: 'website_applications',
     label: 'Skicka kundansökningar',
-    description: 'Hemsidan får skicka in nya kunder och teckningar till Ops.',
+    description: 'Hemsidan får skicka in nya kunder och teckningar till kundplattformen.',
     category: 'website',
     scopes: ['website_applications.write'],
     recommendedDefault: true,
@@ -53,20 +53,20 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
   {
     groupKey: 'documents_notifications',
     label: 'Dokument och notiser',
-    description: 'Kunden kan se dokument/notiser och markera notiser som lästa.',
+    description: 'Kommande mer granulär behörighet för dokument/notiser. Tills routes är helt uppdelade används customer_portal.read/write.',
     category: 'portal',
     scopes: ['customer_documents.read', 'customer_notifications.read', 'customer_notifications.write'],
-    recommendedDefault: true,
+    recommendedDefault: false,
     riskLevel: 'normal',
     sortOrder: 50,
   },
   {
     groupKey: 'facility_power_of_attorney',
     label: 'Komplettera anläggning och fullmakt',
-    description: 'Kunden kan uppdatera kontaktuppgifter, komplettera anläggningsdata och godkänna fullmakt.',
+    description: 'Kommande mer granulär behörighet för kontaktuppgifter, anläggningsdata och fullmakt. Tills routes är helt uppdelade används customer_portal.write.',
     category: 'portal',
     scopes: ['customer_contact.write', 'customer_facility_data.write', 'customer_power_of_attorney.write'],
-    recommendedDefault: true,
+    recommendedDefault: false,
     riskLevel: 'high',
     sortOrder: 60,
   },
@@ -112,9 +112,10 @@ export function scopesForPermissionGroups(groupKeys: unknown[]): string[] {
 }
 
 export function recommendedPermissionGroups(): string[] {
-  // Do not provide default permission groups. Administrators must explicitly
-  // select appropriate groups or use a profile when creating an API client.
-  return []
+  return INTEGRATION_API_PERMISSION_GROUPS
+    .filter((group) => group.recommendedDefault)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((group) => group.groupKey)
 }
 
 export function permissionGroupLabelsForScopes(scopes: string[] | null | undefined): string[] {

@@ -94,7 +94,7 @@ export async function createIntegrationApiClientAction(
     const context = await requirePlatformAdminActionAccess()
     const companyId = text(formData, 'companyId')
     const name = text(formData, 'name')
-    if (!companyId) return { ok: false, message: 'Välj tenant/bolag.' }
+    if (!companyId) return { ok: false, message: 'Välj bolag.' }
     if (!name) return { ok: false, message: 'Ange namn på API-klienten.' }
 
     const permissionGroups = formData.getAll('permissionGroups').length > 0
@@ -183,7 +183,7 @@ export async function createIntegrationApiClientAction(
             api_client_id: data.id,
             name: `${name} · webhook`,
             endpoint_url: webhookUrl,
-            event_types: webhookEventTypes.length > 0 ? webhookEventTypes : ['customer.created', 'contract.application_received', 'invoice.sent'],
+            event_types: webhookEventTypes.length > 0 ? webhookEventTypes : ['customer.created', 'customer.updated', 'customer_number.assigned', 'contract.application_received', 'contract.confirmation_sent', 'contract.cooling_off_sent', 'invoice.created', 'invoice.sent', 'invoice.disputed', 'metering_values.updated'],
             status: 'active',
             signing_secret_ref: webhookSigningSecretRef,
             description: `Webhook skapad tillsammans med API-klienten ${name}.`,

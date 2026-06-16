@@ -41,7 +41,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Token · visas bara en gång</p>
               <code className="mt-2 block break-all rounded-xl bg-slate-950 p-3 text-xs text-emerald-100">{state.token}</code>
               <p className="mt-3 text-xs leading-5 text-slate-600">
-                Lägg den som server secret på Gridex hemsidan, exempelvis <strong>GRIDEX_OPS_API_TOKEN</strong>. Använd headern <strong>Authorization: Bearer &lt;token&gt;</strong>.
+                Lägg den som server secret på Gridex hemsidan, exempelvis <strong>GRIDEX_API_KEY</strong>. Använd headern <strong>Authorization: Bearer &lt;token&gt;</strong>.
               </p>
             </div>
           ) : null}
@@ -50,7 +50,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
 
       <form action={formAction} className="mt-6 grid gap-5">
         <label className="grid gap-2">
-          <span className="text-sm font-semibold text-slate-800">Tenant/bolag</span>
+          <span className="text-sm font-semibold text-slate-800">Bolag</span>
           <select name="companyId" required className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
             <option value="">Välj bolag</option>
             {companies.map((company) => (
@@ -130,7 +130,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
                 placeholder="https://example.se/api/gridex/webhook"
                 className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
               />
-              <span className="text-xs text-slate-500">Valfritt. Används när Ops ska skicka events tillbaka till hemsidan.</span>
+              <span className="text-xs text-slate-500">Valfritt. Används när kundplattformen ska skicka events tillbaka till hemsidan.</span>
             </label>
 
             <label className="grid gap-2">

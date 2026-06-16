@@ -1,5 +1,6 @@
 import { Resend, type WebhookEventPayload } from 'resend'
 import { supabaseService } from '@/lib/supabase/service'
+import { emitDomainEvent } from '@/lib/events/domainEvents'
 import {
   markCommunicationBounced,
   markCommunicationDelivered,
@@ -119,6 +120,34 @@ async function storeProviderEvent(input: {
   if (error && error.code !== '23505') throw error
 }
 
+async function emitCommunicationSentDomainEvents(log: CommunicationLog) {
+  const emittedTypes = log.event_key === 'contract.application_received'
+    ? ['contract.confirmation_sent', 'contract.cooling_off_sent']
+    : []
+
+  for (const eventType of emittedTypes) {
+    await emitDomainEvent({
+      companyId: log.company_id,
+      eventType,
+      aggregateType: log.contract_id ? 'customer_contract' : 'communication_log',
+      aggregateId: log.contract_id ?? (typeof log.metadata?.contract_id === 'string' ? log.metadata.contract_id : null) ?? log.id,
+      subjectCustomerId: log.customer_id,
+      source: 'email_provider_webhook',
+      idempotencyKey: `communication:${eventType}:${log.id}`,
+      payload: {
+        communication_log_id: log.id,
+        customer_number: log.customer_number ?? (typeof log.metadata?.customer_number === 'string' ? log.metadata.customer_number : null),
+        external_customer_id: log.external_customer_id ?? (typeof log.metadata?.external_customer_id === 'string' ? log.metadata.external_customer_id : null),
+        contract_id: log.contract_id ?? (typeof log.metadata?.contract_id === 'string' ? log.metadata.contract_id : null),
+        provider: log.provider,
+        provider_message_id: log.provider_message_id,
+        event_key: log.event_key,
+        template_key: log.template_key,
+      },
+    }).catch((error) => console.warn('[email] domain event after sent mail skipped', error))
+  }
+}
+
 async function applyCommunicationStatus(event: WebhookEventPayload, log: CommunicationLog | null) {
   if (!log) return
 
@@ -126,7 +155,8 @@ async function applyCommunicationStatus(event: WebhookEventPayload, log: Communi
   const eventType = String(event.type)
 
   if (eventType === 'email.sent') {
-    if (log.provider_message_id) await markCommunicationSent(log.id, log.provider_message_id)
+    const sentLog = log.provider_message_id ? await markCommunicationSent(log.id, log.provider_message_id) : log
+    await emitCommunicationSentDomainEvents(sentLog)
     return
   }
 

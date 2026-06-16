@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import {
   logIntegrationApiRequest,
@@ -10,24 +10,37 @@ import { logUsageEvent } from '@/lib/audit/actionLogger'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+function publicContractsJson(body: unknown, init: ResponseInit = {}) {
+  const headers = new Headers(init.headers)
+  headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=60')
+  return NextResponse.json(body, { ...init, headers })
+}
+
+function wantsDiagnostics(request: NextRequest): boolean {
+  const value = request.nextUrl.searchParams.get('diagnostics') ?? request.nextUrl.searchParams.get('debug')
+  return value === '1' || value === 'true'
+}
+
 export async function GET(request: NextRequest) {
   const startedAt = Date.now()
   const auth = await requireIntegrationApiAccess(request, ['website_contracts.read'])
 
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
-    return customerPortalJson({ error: auth.error }, { status: auth.status })
+    return customerPortalJson({ error: { code: auth.errorCode, message: auth.error } }, { status: auth.status })
   }
 
   try {
     const customerType = request.nextUrl.searchParams.get('customer_type')
+    const diagnostics = wantsDiagnostics(request)
     const offers = await listPublicContractOffers({ client: auth.client, customerType })
+    const contracts = offers.map(publicContractResponse)
     await logIntegrationApiRequest({
       client: auth.client,
       request,
       statusCode: 200,
       startedAt,
-      metadata: { result_count: offers.length, customer_type: customerType },
+      metadata: { result_count: offers.length, customer_type: customerType, diagnostics },
     })
     await logUsageEvent({
       companyId: auth.client.company_id,
@@ -39,20 +52,24 @@ export async function GET(request: NextRequest) {
       source: 'website_api',
       billable: true,
       billingUnit: 'api_request',
-      metadata: { result_count: offers.length, customer_type: customerType },
+      metadata: { result_count: offers.length, customer_type: customerType, diagnostics },
     })
 
-    return customerPortalJson({
-      data: offers.map(publicContractResponse),
-      tenant: {
-        authenticated: true,
-        company_id: auth.client.company_id,
-        api_client_id: auth.client.id,
-      },
+    return publicContractsJson({
+      data: contracts,
+      contracts,
+      ...(diagnostics ? {
+        diagnostics: {
+          authenticated: true,
+          company_id: auth.client.company_id,
+          api_client_id: auth.client.id,
+          result_count: offers.length,
+        },
+      } : {}),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Publicerade avtal kunde inte hämtas.'
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: message })
-    return customerPortalJson({ error: message }, { status: 500 })
+    return customerPortalJson({ error: { code: 'public_contracts_unavailable', message } }, { status: 500 })
   }
 }

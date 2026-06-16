@@ -1,270 +1,269 @@
 # Gridex Customer Portal API
 
-Batch 6 kopplar Gridex Ops Platform till externa hemsidor och Mina sidor.
+Det här dokumentet beskriver hur en hemsida, kundportal eller partnerintegration ansluter till Gridex API för att visa publicerade elavtal, skicka kundansökningar och hämta kunddata för Mina sidor.
 
-## Source of truth
-
-Gridex Ops Platform är source of truth för kund, kundnummer, avtal, avtalsnummer, prisversion, avtalssnapshot, anläggningar, mätvärden, fakturor, juridiskt viktig kommunikation och behörighet. Externa hemsidor ska bara vara frontend och ska anropa Ops Platform server-side.
-
-Support ligger utanför Gridex Ops API. Ops ska inte skapa, routa, logga eller exponera supportärenden åt elbolag. Varje elbolag hanterar support i sina egna kanaler.
-
-## Superadmin setup
-
-1. Gå till `/admin/platform/api-clients`.
-2. Välj tenant/bolag.
-3. Skapa API-klient med minsta möjliga scopes:
-   - `website_contracts.read`
-   - `website_applications.write`
-   - `website_events.write` vid behov
-   - `customer_portal.read` vid behov
-   - `customer_portal.write` vid behov
-4. Lägg allowed origins, t.ex.
-   - `https://gridex.se`
-   - `https://www.gridex.se`
-5. Kopiera token direkt. Den visas bara en gång.
-6. Lägg token som server secret på hemsidan, exempelvis `GRIDEX_OPS_API_TOKEN`.
-
-## Header
-
-```http
-Authorization: Bearer <GRIDEX_OPS_API_TOKEN>
-```
-
-`x-api-key` stöds också för enklare server-to-server-test, men rekommenderad header är `Authorization: Bearer`.
-
-## Public contracts
-
-```http
-GET /api/v1/website/public-contracts
-```
-
-Hemsidan ska hämta publicerade avtal från Ops och skicka tillbaka valt `offer_reference` när kunden ansöker. Hemsidan får inte skicka egna priser eller fritextavtal som juridisk sanning.
-
-## Website customer applications
-
-```http
-POST /api/v1/website/customer-applications
-```
-
-Endpointen skapar eller matchar kund, reserverar kundnummer, skapar portal identity, anläggning, mätpunkt, kundavtal, avtalsnummer och låst avtalssnapshot. Response ska returnera:
-
-```text
-application_id
-application_number
-customer_id
-customer_number
-external_customer_id
-portal_identity_id
-customer_site_id
-metering_point_id
-contract_id
-contract_number
-contract_price_snapshot_id
-offer_reference
-status
-missing_fields
-blocking_reasons
-next_step
-warnings
-```
-
-## Länkning
-
-```http
-POST /api/v1/customer-portal/sync
-```
-
-E-post ensam får aldrig ge åtkomst. Stark match kräver minst ett av:
-
-- email + kundnummer
-- email + personnummer/orgnummer
-- kundnummer + anläggnings-id
-- personnummer/orgnummer + anläggnings-id
-
-Möjliga utfall:
-
-- `linked` — kunden får åtkomst
-- `pending_review` — admin måste granska
-- `lead_created` — ingen säker kundmatchning, ingen åtkomst
-- `rejected` — för svag identitet, ingen åtkomst
-
-## Customer endpoints
-
-Rekommenderad endpoint för inloggad/länkad kund:
-
-```http
-GET /api/v1/customer/me
-```
-
-`/customer/me` ska användas när kunden är inloggad/länkad och frontend inte ska skicka valfri `customer_id`.
-
-Övriga customer endpoints kan använda länkad `external_customer_id`, men bara från hemsidans server route efter att den egna sessionen kontrollerats. Skicka external id som query eller header:
-
-```http
-x-gridex-external-customer-id: <external_customer_id>
-```
-
-eller
-
-```http
-GET /api/v1/customer/contracts?external_customer_id=<external_customer_id>
-```
-
-Endpoints:
-
-- `GET /api/v1/customer/me`
-- `GET /api/v1/customer/contracts`
-- `GET /api/v1/customer/invoices`
-- `GET /api/v1/customer/invoices/[id]`
-- `GET /api/v1/customer/sites`
-- `GET /api/v1/customer/metering-values`
-- `GET /api/v1/customer/documents`
-- `POST /api/v1/customer/profile-update`
-- `POST /api/v1/customer/move-out`
-
-## Customer events
-
-```http
-POST /api/v1/website/customer-events
-```
-
-Tillåtna kundevents är exempelvis öppnat avtal, nedladdad faktura, accepterad fullmakt eller visad switchstatus.
-
-Support/case-events är inte tillåtna och ska returnera `422 support_out_of_scope`.
-
-## Mätvärden
-
-`GET /api/v1/customer/metering-values` läser alltid från `normalized_metering_values`, inte äldre tabeller som `metering_values`, `meter_values` eller `billing_underlay_items`.
-
-Matchningskedjan är:
-
-```text
-API-token → integration_api_clients.company_id → external_customer_id → customer_portal_identities.customer_id → normalized_metering_values
-```
-
-Frågan måste alltid filtrera på både `company_id` och `customer_id`. Frontend eller hemsida får aldrig skicka `company_id` som tenant-val.
-
-Stödda filter:
-
-```http
-GET /api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001
-GET /api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001&from=2026-05-01&to=2026-06-01
-GET /api/v1/customer/metering-values?external_customer_id=GRIDEX-WEB-TEST-001&facility_id=735999888000000112
-```
-
-Responsen returnerar normaliserade fält som `quantity_kwh`, `period_start`, `period_end`, `price_area`, `quality_status`, `source_type` och `status`.
-
-## Public developer documentation
-
-External websites and partner portals should use the public developer page:
+Den publika utvecklarsidan är huvudkällan för externa utvecklare:
 
 ```text
 https://app.gridex.se/developers/customer-portal-api
 ```
 
-The repo version of that guide is kept in:
+Repo-versionen av samma publika guide finns i:
 
 ```text
 docs/external-website-api-integration-guide.md
 ```
 
-This page is intentionally written for external frontend/backend developers. It explains server-side token handling, public contracts, `external_customer_id`, endpoint usage, error codes, examples and go-live checks.
+## Grundregel
 
-## Security rules
+Gridex API är källan för kund, kundnummer, avtal, prisversion, avtalssnapshot, juridiska godkännanden, anläggningar, mätvärden, fakturor, dokument, händelser och webhook-leveranser. Hemsidan ska vara kundens frontend och ska inte skapa egna priser, villkor eller kundstatusar som sanning.
 
-- Hemsidan får aldrig skicka `company_id` som source of truth.
-- Ops Platform löser tenant från API-klienten.
-- Customer endpoints använder endast länkad `customer_portal_identities`.
-- Email ensam ger aldrig faktura-/avtalsåtkomst.
-- Token ska aldrig exponeras i browsern.
-- Frontend får aldrig fritt välja `customer_id` eller `external_customer_id`.
-- Gamla eller exponerade API-nycklar ska återkallas och kan därefter raderas i superadmin-UI:t.
+Supportärenden ligger utanför detta API. Varje elbolag hanterar support i sina egna kanaler.
 
-## Audit och cache
+## Superadmin setup
 
-Customer Portal API ska aldrig returnera kunddata med publik cache. Alla customer- och customer-portal-svar ska sätta:
+1. Gå till `/admin/platform/api-clients`.
+2. Välj bolag.
+3. Skapa API-klient för hemsida/Mina sidor.
+4. Använd standardpaketet eller välj behörigheter manuellt.
+5. Lägg till tillåtna domäner, t.ex. `https://www.exempelenergi.se`.
+6. Kopiera API-nyckeln direkt. Den visas bara en gång.
+7. Lägg API-nyckeln som server secret på hemsidan, t.ex. `GRIDEX_API_KEY`.
+
+## Autentisering
+
+```http
+Authorization: Bearer <api_key>
+Content-Type: application/json
+```
+
+`x-api-key` stöds för server-till-server-anrop, men rekommenderad header är `Authorization: Bearer`.
+
+Allowed origins skyddar webbläsaranrop. Server-till-server-anrop kan sakna `Origin`, därför måste API-nyckeln alltid hållas hemlig och användas från backend/server route, inte från publik frontend.
+
+## Behörigheter
+
+Aktiva behörigheter idag:
+
+| Vanligt namn | Teknisk behörighet |
+| --- | --- |
+| Läsa avtal på hemsidan | `website_contracts.read` |
+| Skicka kundansökningar | `website_applications.write` |
+| Mina sidor – läsa kunddata | `customer_portal.read` |
+| Mina sidor – uppdatera kunddata | `customer_portal.write` |
+| Läsa händelser | `events.read` |
+| Skicka händelser från hemsidan | `website_events.write` |
+
+Kommande mer granulära behörigheter kan införas senare för dokument, notiser, kontaktuppgifter, anläggningsdata och fullmakt. Dagens kundportal-routes använder främst `customer_portal.read` och `customer_portal.write`.
+
+## Publicerade avtal
+
+```http
+GET /api/v1/website/public-contracts
+```
+
+Returnerar bara avtal som är publicerade, aktiva för hemsida/API, inte arkiverade, datumgiltiga, kopplade till aktiv prisversion/prisbok, har komplett juridik och tillhör bolaget som API-nyckeln är kopplad till.
+
+Exempel:
+
+```json
+{
+  "data": [
+    {
+      "id": "public_offer_id",
+      "code": "RORLIGT-ELPRIS",
+      "offer_reference": "opaque_offer_reference",
+      "name": "Rörligt elpris",
+      "type": "variable_spot",
+      "customer_type": "both",
+      "pricing": {
+        "monthly_fee": { "amount": 68, "currency": "SEK", "unit": "month" },
+        "invoice_fee": { "amount": 0, "currency": "SEK" },
+        "markup": { "amount": 4, "unit": "ore_per_kwh" },
+        "fixed_price": null,
+        "portfolio_share": null,
+        "spot_share": null
+      },
+      "legal": {
+        "terms_version": "2026-06",
+        "privacy_policy_version": "2026-06",
+        "withdrawal_version": "2026-06",
+        "price_terms_version": "2026-06",
+        "power_of_attorney_required": true
+      },
+      "valid_from": "2026-06-01",
+      "valid_to": null
+    }
+  ]
+}
+```
+
+Hemsidan ska skicka tillbaka `offer_reference` när kunden ansöker. Hemsidan får inte skicka egna månadsavgifter, påslag eller villkor som sanning.
+
+## Kundansökan
+
+```http
+POST /api/v1/website/customer-applications
+```
+
+Rekommenderad payload:
+
+```json
+{
+  "external_customer_id": "WEB-20260616-0001",
+  "source": "www.exempelenergi.se",
+  "customer": {
+    "type": "consumer",
+    "first_name": "Sara",
+    "last_name": "Karlsson",
+    "personal_identity_number": "19900101-1234",
+    "email": "sara@example.se",
+    "phone": "+46700000000"
+  },
+  "site": {
+    "address": "Exempelgatan 1",
+    "postal_code": "11434",
+    "city": "Stockholm",
+    "move_in_date": "2026-07-01",
+    "facility_id": null,
+    "metering_point_id": null,
+    "price_area": "SE3"
+  },
+  "contract": {
+    "offer_reference": "opaque_offer_reference",
+    "requested_start_date": "asap"
+  },
+  "consents": {
+    "terms": true,
+    "privacy_policy": true,
+    "withdrawal": true,
+    "power_of_attorney": true,
+    "price_terms": true
+  },
+  "metadata": {
+    "utm_source": "website",
+    "landing_page": "/elavtal"
+  }
+}
+```
+
+Systemet matchar eller skapar kund, sätter kundnummer, skapar ansökan, skapar avtalssnapshot, sparar juridiska godkännanden, sparar fullmakt om den krävs och skapar händelser för vidare webhook-leverans.
+
+## Mina sidor
+
+Kunddata får aldrig hämtas med valfri kund-id från frontend. Använd hemsidans backend/session och identifiera kund via säker kundkoppling eller extern kundreferens.
+
+```http
+x-gridex-external-customer-id: DX-100025
+```
+
+Endpoints:
+
+```http
+GET  /api/v1/customer/profile
+GET  /api/v1/customer/contracts
+GET  /api/v1/customer/sites
+GET  /api/v1/customer/invoices
+GET  /api/v1/customer/invoices/[id]
+GET  /api/v1/customer/metering-values
+GET  /api/v1/customer/events
+GET  /api/v1/customer/documents
+POST /api/v1/customer/profile-update
+POST /api/v1/customer/move-out
+```
+
+Kunddata ska alltid returneras med:
 
 ```http
 Cache-Control: no-store
 ```
 
-Audit-loggen skrivs till `integration_api_requests`. Tabellen använder kolumnen `route`, inte `path`.
+## Kundevents från hemsidan
 
-Exempel på kontroll efter live-test:
-
-```sql
-select
-  created_at,
-  company_id,
-  api_client_id,
-  method,
-  route,
-  status_code,
-  metadata ->> 'result_count' as result_count,
-  duration_ms,
-  error_code
-from integration_api_requests
-where created_at > now() - interval '30 minutes'
-order by created_at desc
-limit 50;
+```http
+POST /api/v1/website/customer-events
 ```
 
-För ett lyckat mätvärdesanrop ska `route = '/api/v1/customer/metering-values'`, `status_code = 200`, `result_count = 1` och både `company_id` samt `api_client_id` vara satta.
+Används för operativa kundhändelser, t.ex. att kunden öppnat ett avtal eller laddat ner en faktura. Support- och case-events är inte tillåtna.
 
-## Batch 7 website integration foundation
+## Webhooks
 
-External websites should use the public developer guide:
+Webhook-events levereras per bolag till konfigurerade webhook-URL:er. Payloaden har formatet:
+
+```json
+{
+  "id": "event_123",
+  "type": "contract.application_received",
+  "created_at": "2026-06-16T10:30:00Z",
+  "company_id": "uuid",
+  "data": {
+    "customer_number": "DX-100025",
+    "application_id": "uuid",
+    "contract_id": "uuid",
+    "status": "received"
+  }
+}
+```
+
+Standardheaders:
+
+```http
+X-Gridex-Event-Id: event_123
+X-Gridex-Event-Type: contract.application_received
+X-Gridex-Timestamp: 1718532000
+X-Gridex-Signature: sha256=<signature>
+X-Gridex-Delivery-Id: delivery_123
+```
+
+Signaturen beräknas med HMAC SHA-256 över:
 
 ```text
-https://app.gridex.se/developers/customer-portal-api
+timestamp + "." + raw_body
 ```
 
-Batch 7 adds the foundation for:
+Mottagaren ska returnera `2xx` när eventet tagits emot. Icke-`2xx` eller timeout gör att leveransen försöks igen enligt systemets retry-regler.
+
+## Aktiva events
+
+Första events som stöds i integrationskontraktet:
 
 ```text
-customer_number as Ops-owned customer master reference
-contract_number as Ops-owned agreement reference
-contract_price_snapshot_id as legal/pricing snapshot reference
-GET /api/v1/website/public-contracts
-POST /api/v1/website/customer-applications
-webhook_subscriptions and webhook_deliveries
-confirmation/cooling-off communication events
-Capway/customer_number/debtor/invoice reference mapping
-billing dispute traceability
+customer.created
+customer.updated
+customer_number.assigned
+contract.application_received
+contract.confirmation_sent
+contract.cooling_off_sent
+invoice.created
+invoice.sent
+invoice.disputed
+metering_values.updated
 ```
 
-Key principles:
+Mailrelaterade contract-events ska skapas när kommunikationen faktiskt är skickad eller registrerad som skickad.
 
-```text
-Ops is master.
-Websites are channels.
-Capway is a billing/payment partner.
-customer_number belongs to Ops and is the business reference used for invoices, disputes and partner mapping.
+## Felrespons
+
+Externa API-fel ska följa stabilt format:
+
+```json
+{
+  "error": {
+    "code": "missing_scope",
+    "message": "API-nyckeln saknar behörighet för den här åtgärden.",
+    "request_id": "req_123"
+  }
+}
 ```
 
-Webhook dispatch:
+Rå SQL, interna stack traces och interna systemord ska inte visas för partner eller slutkund.
 
-```text
-POST /api/internal/webhooks/dispatch
-Authorization: Bearer <GRIDEX_CRON_SECRET or CRON_SECRET>
-```
+## Säkerhetsregler
 
-Webhook payloads use top-level `event_id`, `event_type`, `created_at`, `company_id`, `customer_id`, `customer_number`, `external_customer_id` and `data`.
-
-## Batch 8 operational hardening
-
-Batch 8 adds admin operations UI and hardening for external website onboarding:
-
-- `/admin/website-applications` for received/failed website customer applications.
-- `/admin/webhooks/deliveries` for webhook delivery logs, resend and ignored deliveries.
-- `POST /api/v1/website/customer-applications` accepts nested and simplified payloads, but contract/pricing truth must still come from public offers via `offer_reference`.
-- Invalid payloads return `422 validation_error` with `field`, `hint` and `error_stage`.
-- Email and webhook delivery issues must return warnings rather than failing a created customer application.
-- Company pages show tenant email readiness, verified-domain/fallback sender mode, DNS status and template readiness.
-- Customer cards show `customer_number`, `contract_number`, `external_customer_id`, source website, communication logs and Capway/billing references.
-
-Public documentation:
-
-```text
-https://app.gridex.se/developers/customer-portal-api
-```
+- API-nyckeln identifierar bolaget.
+- Hemsidan får aldrig skicka bolags-id som sanning.
+- Alla frågor filtreras på rätt bolag.
+- Kundportal-data får bara visas för rätt kund.
+- Token får inte exponeras i browsern.
+- Gamla eller exponerade API-nycklar ska återkallas och kan därefter raderas av superadmin.
+- Signeringshemligheter ska inte visas i klartext efter skapande.

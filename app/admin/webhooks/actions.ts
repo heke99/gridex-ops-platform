@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
-import { dispatchDueWebhookDeliveries } from '@/lib/integrations/webhooks'
+import { dispatchDueWebhookDeliveries, enqueueWebhookDeliveriesForEvent } from '@/lib/integrations/webhooks'
 import { supabaseService } from '@/lib/supabase/service'
 
 function text(formData: FormData, key: string): string {
@@ -18,7 +18,7 @@ function redirectBack(path: string, message?: string) {
 export async function sendWebhookTestEventAction(formData: FormData) {
   const companyId = text(formData, 'company_id')
   const subscriptionId = text(formData, 'subscription_id')
-  await requireCompanyScopedActionAccess(companyId, { anyOf: ['customers.write', 'integrations.write', 'billing_underlay.write'] })
+  await requireCompanyScopedActionAccess(companyId, { anyOf: ['integrations.write'] })
 
   const event = await emitDomainEvent({
     companyId,
@@ -30,9 +30,19 @@ export async function sendWebhookTestEventAction(formData: FormData) {
       test: true,
       webhook_subscription_id: subscriptionId || null,
       message: 'Gridex webhook test event',
+      expected_subscription_id: subscriptionId || null,
     },
     idempotencyKey: `webhook-test:${companyId}:${subscriptionId || 'all'}:${Date.now()}`,
   })
+
+
+
+  if (event && subscriptionId) {
+    const queued = await enqueueWebhookDeliveriesForEvent(event, { subscriptionIds: [subscriptionId], force: true })
+    if (queued === 0) {
+      redirectBack('/admin/webhooks/deliveries', 'Testevent skapades men ingen aktiv webhook matchade vald endpoint.')
+    }
+  }
 
   await supabaseService.from('audit_logs').insert({
     company_id: companyId,
@@ -50,7 +60,7 @@ export async function sendWebhookTestEventAction(formData: FormData) {
 export async function resendWebhookDeliveryAction(formData: FormData) {
   const deliveryId = text(formData, 'delivery_id')
   const companyId = text(formData, 'company_id')
-  const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['customers.write', 'integrations.write', 'billing_underlay.write'] })
+  const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['integrations.write'] })
 
   if (!deliveryId) throw new Error('Webhook delivery saknas.')
 
@@ -60,6 +70,8 @@ export async function resendWebhookDeliveryAction(formData: FormData) {
       status: 'queued',
       next_attempt_at: new Date().toISOString(),
       manual_status: 'resend_requested',
+      locked_at: null,
+      locked_by: null,
       resent_by: admin.userId,
       resent_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -86,7 +98,7 @@ export async function markWebhookDeliveryIgnoredAction(formData: FormData) {
   const deliveryId = text(formData, 'delivery_id')
   const companyId = text(formData, 'company_id')
   const note = text(formData, 'note') || 'Manuellt hanterad.'
-  const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['customers.write', 'integrations.write', 'billing_underlay.write'] })
+  const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['integrations.write'] })
 
   if (!deliveryId) throw new Error('Webhook delivery saknas.')
 

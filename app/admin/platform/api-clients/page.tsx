@@ -149,7 +149,7 @@ export default async function PlatformApiClientsPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Platform · API</p>
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">API-klienter för Mina sidor och webhooks</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              Skapa server-side API-klienter för Gridex hemsida, externa hemsidor, kundportaler och partners. Här styrs tenant, scopes, origins, rate limits, webhook endpoints och nyckelrotation.
+              Skapa server-side API-klienter för Gridex hemsida, externa hemsidor, kundportaler och partners. Här styrs bolagskoppling, behörigheter, domäner, rate limits, webhook endpoints och nyckelrotation.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -188,9 +188,9 @@ export default async function PlatformApiClientsPage() {
         <aside className="space-y-5">
           <div className="rounded-[32px] border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-950">
             <h2 className="text-lg font-semibold text-slate-950">Viktigt för externa hemsidor</h2>
-            <p className="mt-3">API-token ska ligga i hemsidans servermiljö, aldrig i browsern. Tenant väljs via API-token och kunden väljs via external_customer_id.</p>
+            <p className="mt-3">API-token ska ligga i hemsidans servermiljö, aldrig i browsern. Bolag väljs via API-token och kunden väljs via external_customer_id.</p>
             <code className="mt-4 block rounded-2xl bg-slate-950 p-4 text-xs text-amber-100">
-              Authorization: Bearer {'<GRIDEX_OPS_API_TOKEN>'}
+              Authorization: Bearer {'<GRIDEX_API_KEY>'}
             </code>
           </div>
 

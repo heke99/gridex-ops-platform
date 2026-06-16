@@ -6,6 +6,7 @@ import { buildCapwayInvoicePayload } from '@/lib/integrations/billing/capway/pay
 import { buildPurchasePayload } from '@/lib/integrations/billing/capway/purchase'
 import { shouldRequestPurchaseAfterCreate } from '@/lib/integrations/billing/capway/statusMapper'
 import type { CapwayEnvironment, CapwayFinancingMode } from '@/lib/integrations/billing/capway/types'
+import { emitDomainEvent } from '@/lib/events/domainEvents'
 
 function stringValue(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -111,6 +112,26 @@ export async function createInvoiceExportRun(input: {
       .from('invoice_export_items')
       .upsert(itemRows, { onConflict: 'company_id,provider,idempotency_key' })
     if (itemError) throw itemError
+
+    await Promise.all(itemRows.map((row) => row.customer_id ? emitDomainEvent({
+      companyId: input.companyId,
+      eventType: 'invoice.created',
+      aggregateType: 'invoice_export_item',
+      aggregateId: row.idempotency_key,
+      subjectCustomerId: row.customer_id,
+      actorUserId: input.actorUserId ?? null,
+      source: 'billing_invoice_export',
+      payload: {
+        billing_month: input.billingMonth,
+        customer_number: row.customer_number,
+        billing_underlay_id: row.billing_underlay_id,
+        pricing_run_id: row.pricing_run_id,
+        amount_ex_vat: row.amount_ex_vat,
+        amount_inc_vat: row.amount_inc_vat,
+        status: 'created',
+      },
+      idempotencyKey: `invoice-created:${row.idempotency_key}`,
+    }).catch(() => null) : Promise.resolve(null)))
   }
 
   await supabaseService
@@ -226,6 +247,25 @@ export async function sendInvoiceExportRun(input: {
         sent_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }).eq('company_id', input.companyId).eq('id', itemId)
+      await emitDomainEvent({
+        companyId: input.companyId,
+        eventType: 'invoice.sent',
+        aggregateType: 'invoice_export_item',
+        aggregateId: itemId,
+        subjectCustomerId: stringValue(context.customer.id),
+        actorUserId: input.actorUserId ?? null,
+        source: 'billing_invoice_export',
+        payload: {
+          customer_number: stringValue(context.customer.customer_number),
+          invoice_guid: invoiceGuid,
+          export_run_id: input.exportRunId,
+          billing_month: billingMonth,
+          amount_ex_vat: numberValue(item.amount_ex_vat),
+          amount_inc_vat: numberValue(item.amount_inc_vat),
+          status: 'sent',
+        },
+        idempotencyKey: `invoice-sent:${itemId}:${invoiceGuid ?? 'no-provider-id'}`,
+      }).catch(() => null)
       sent += 1
       results.push({ itemId, status: 'sent', invoiceGuid })
     } catch (error) {

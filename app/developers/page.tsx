@@ -20,7 +20,7 @@ export default function DevelopersPage() {
             Gridex Developer Documentation
           </h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-            Här finns teknisk dokumentation för hemsidor, kundportaler och partnerintegrationer som ska koppla mot Gridex Ops Platform.
+            Här finns teknisk dokumentation för hemsidor, kundportaler och partnerintegrationer som ska koppla mot Gridex API.
           </p>
         </div>
       </section>
@@ -33,7 +33,7 @@ export default function DevelopersPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Customer Portal API</p>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">Koppla extern hemsida till Gridex API</h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-            Guide för hur en extern hemsida, white-label kundportal eller partnerportal skapar kundansökningar, hämtar anläggningar/avtal/fakturor/mätvärden och tar emot webhooks från Gridex Ops API.
+            Guide för hur en extern hemsida, white-label kundportal eller partnerportal skapar kundansökningar, hämtar anläggningar/avtal/fakturor/mätvärden och tar emot webhooks från Gridex API.
           </p>
           <span className="mt-6 inline-flex rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
             Öppna API-guiden
