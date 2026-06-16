@@ -62,6 +62,7 @@ export type ContractOfferRow = {
   valid_to: string | null;
   created_at: string;
   updated_at: string;
+  archived_at?: string | null;
   created_by: string | null;
   updated_by: string | null;
 };
@@ -138,6 +139,7 @@ export type CustomerContractRow = {
   override_reason: string | null;
   created_at: string;
   updated_at: string;
+  archived_at?: string | null;
   created_by: string | null;
   updated_by: string | null;
 };

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { supabaseService } from '@/lib/supabase/service'
 import { INTEGRATION_API_PERMISSION_GROUPS, permissionGroupLabelsForScopes } from '@/lib/integrations/apiClientScopes'
-import { saveTenantPublicContractOfferAction } from './tenant-platform-actions'
+import { deleteTenantPublicContractOfferAction, saveTenantPublicContractOfferAction } from './tenant-platform-actions'
 import { updateIntegrationApiClientPermissionsAction, setIntegrationApiClientStatusAction } from '@/app/admin/platform/api-clients/actions'
 
 type PricePlan = {
@@ -350,6 +350,9 @@ export default async function TenantPlatformControls({ companyId, companyName }:
                   {offer.readiness_status ? <div className="mt-3 text-xs font-bold text-slate-600">Readiness: {offer.readiness_status}</div> : null}
                   {issues.length > 0 ? <ul className="mt-3 list-disc rounded-2xl border border-amber-200 bg-amber-50 p-4 pl-8 text-xs font-semibold text-amber-900">{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : null}
                   {blockers.length > 0 ? <ul className="mt-3 list-disc rounded-2xl border border-red-200 bg-red-50 p-4 pl-8 text-xs font-semibold text-red-900">{blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul> : null}
+                  <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                    <strong className="text-slate-800">Radera säkert:</strong> oanvända avtal kan tas bort. Avtal som redan används i signerad historik arkiveras i stället, så snapshots och kundhistorik inte förstörs.
+                  </div>
                   <details className="mt-3">
                     <summary className="cursor-pointer text-xs font-black text-slate-700">Ändra status / publicering</summary>
                     <form action={saveTenantPublicContractOfferAction} className="mt-3 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3">
@@ -383,6 +386,20 @@ export default async function TenantPlatformControls({ companyId, companyName }:
                       <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">Spara status</button>
                     </form>
                   </details>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <form action={deleteTenantPublicContractOfferAction}>
+                      <input type="hidden" name="company_id" value={companyId} />
+                      <input type="hidden" name="id" value={offer.id} />
+                      <input type="hidden" name="delete_mode" value="archive" />
+                      <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">Arkivera avtal</button>
+                    </form>
+                    <form action={deleteTenantPublicContractOfferAction}>
+                      <input type="hidden" name="company_id" value={companyId} />
+                      <input type="hidden" name="id" value={offer.id} />
+                      <input type="hidden" name="delete_mode" value="safe_delete" />
+                      <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100">Ta bort om oanvänt</button>
+                    </form>
+                  </div>
                 </article>
               )
             })}

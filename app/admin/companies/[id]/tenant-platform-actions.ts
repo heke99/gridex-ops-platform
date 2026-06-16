@@ -40,6 +40,65 @@ function cleanCode(value: string): string | null {
   return cleaned || null
 }
 
+function dbCode(error: unknown): string {
+  return (error as { code?: string } | null)?.code ?? ''
+}
+
+function dbMessage(error: unknown): string {
+  return (error as { message?: string } | null)?.message ?? ''
+}
+
+function isDuplicatePublicOfferCodeError(error: unknown): boolean {
+  return dbCode(error) === '23505' && /public_contract_offers_company_offer_code_uidx|offer_code/i.test(dbMessage(error))
+}
+
+function basePublicOfferCode(input: { requested?: string | null; publicName: string; contractType: string }): string {
+  return cleanCode(input.requested ?? '')
+    ?? cleanCode(input.publicName)
+    ?? cleanCode(`${input.contractType}-${new Date().toISOString().slice(0, 10)}`)
+    ?? `AVTAL-${Date.now().toString(36).toUpperCase()}`
+}
+
+async function generateUniquePublicOfferCode(input: {
+  companyId: string
+  requested?: string | null
+  publicName: string
+  contractType: string
+  ignoreId?: string | null
+}): Promise<string> {
+  const base = basePublicOfferCode(input).slice(0, 70)
+  for (let index = 0; index < 50; index += 1) {
+    const suffix = index === 0 ? '' : `-${index + 1}`
+    const candidate = `${base.slice(0, Math.max(1, 80 - suffix.length))}${suffix}`
+    const query = supabaseService
+      .from('public_contract_offers')
+      .select('id')
+      .eq('company_id', input.companyId)
+      .eq('offer_code', candidate)
+      .limit(1)
+
+    const { data, error } = await (input.ignoreId ? query.neq('id', input.ignoreId) : query)
+    if (error) {
+      if (isMissingSchemaError(error)) return candidate
+      throw error
+    }
+    if (!data || data.length === 0) return candidate
+  }
+
+  const tail = Date.now().toString(36).toUpperCase()
+  return `${base.slice(0, Math.max(1, 80 - tail.length - 1))}-${tail}`
+}
+
+async function countRows(table: string, filters: Record<string, string>): Promise<number> {
+  let query = supabaseService.from(table).select('id', { count: 'exact', head: true })
+  for (const [key, value] of Object.entries(filters)) query = query.eq(key, value)
+  const { count, error } = await query
+  if (error) {
+    if (isMissingSchemaError(error)) return 0
+    throw error
+  }
+  return count ?? 0
+}
 
 const REQUIRED_PUBLIC_LEGAL_TYPES = ['terms', 'privacy_policy', 'withdrawal', 'power_of_attorney', 'price_terms'] as const
 
@@ -407,7 +466,7 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
   let readinessBlockers: string[] = []
   const autoCreatedReferences: string[] = []
 
-  // Perform readiness check against tenant launch state and required references.
+  // Website publication readiness is intentionally separate from Ediel/PRODAT go-live.
   // If the UI has not submitted canonical legal/price references, build safe defaults
   // from already published legal texts and the selected price plan version.
   if (publicationStatus === 'published') {
@@ -453,7 +512,13 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
   const isPublic = publicationStatus === 'published' && websiteEnabled && issues.length === 0
   const payload = {
     company_id: companyId,
-    offer_code: cleanCode(text(formData, 'offer_code')),
+    offer_code: await generateUniquePublicOfferCode({
+      companyId,
+      requested: text(formData, 'offer_code'),
+      publicName,
+      contractType: type,
+      ignoreId: id,
+    }),
     public_name: publicName,
     public_description: text(formData, 'public_description') || null,
     product_code: text(formData, 'product_code') || 'electricity',
@@ -509,7 +574,12 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
     : supabaseService.from('public_contract_offers').insert({ ...payload, created_by: actor.userId })
 
   const { data: saved, error } = await query.select('*').single()
-  if (error) throw error
+  if (error) {
+    if (isDuplicatePublicOfferCodeError(error)) {
+      throw new Error('Avtalskoden finns redan för bolaget. Systemet försökte skapa en unik kod automatiskt, men databasen stoppade sparningen. Ändra avtalskoden eller försök spara igen.')
+    }
+    throw error
+  }
 
   const action = publicationStatus === 'published'
     ? 'contract_plan.published'
@@ -537,4 +607,101 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
   revalidatePath('/admin/contracts')
   const suffix = autoCreatedReferences.length > 0 ? ` Auto-skapade: ${autoCreatedReferences.join(', ')}.` : ''
   return { success: `${id ? 'Avtalet uppdaterades' : 'Avtalet skapades'}.${publicationStatus === 'published' ? ' Publicerat och redo för hemsidan.' : ''}${suffix}` }
+}
+
+
+export async function deleteTenantPublicContractOfferAction(formData: FormData) {
+  const companyId = text(formData, 'company_id') || null
+  let success: string
+  try {
+    success = (await deleteTenantPublicContractOfferActionImpl(formData)).success
+  } catch (error) {
+    redirectBack(companyId, { error: errorMessage(error) })
+  }
+  redirectBack(companyId, { success })
+}
+
+async function deleteTenantPublicContractOfferActionImpl(formData: FormData): Promise<{ success: string }> {
+  const actor = await requirePlatformAdminActionAccess()
+  const companyId = text(formData, 'company_id')
+  const id = text(formData, 'id')
+  const mode = text(formData, 'delete_mode') || 'safe_delete'
+
+  if (!companyId || !id) throw new Error('Bolag eller avtal saknas.')
+
+  const { data: offer, error } = await supabaseService
+    .from('public_contract_offers')
+    .select('*')
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .maybeSingle()
+  if (error) throw error
+  if (!offer) throw new Error('Avtalet hittades inte för valt bolag.')
+
+  const snapshotCount = await countRows('contract_price_snapshots', { company_id: companyId, public_contract_offer_id: id })
+  const mustArchive = mode === 'archive' || snapshotCount > 0
+
+  if (mustArchive) {
+    const { data: archived, error: archiveError } = await supabaseService
+      .from('public_contract_offers')
+      .update({
+        publication_status: 'archived',
+        website_enabled: false,
+        website_cta_enabled: false,
+        is_public: false,
+        is_archived: true,
+        archived_at: new Date().toISOString(),
+        updated_by: actor.userId,
+        readiness_status: snapshotCount > 0 ? 'archived_history_locked' : 'archived',
+        readiness_blockers: snapshotCount > 0 ? ['Avtalet används i signerad historik och arkiverades istället för att raderas.'] : [],
+      })
+      .eq('id', id)
+      .eq('company_id', companyId)
+      .select('*')
+      .single()
+    if (archiveError) throw archiveError
+
+    await logAdminActionAndUsage({
+      companyId,
+      actorUserId: actor.userId,
+      entityType: 'public_contract_offer',
+      entityId: id,
+      action: 'contract_plan.archived',
+      label: snapshotCount > 0 ? 'Avtal arkiverat, historik bevarad' : 'Avtal arkiverat',
+      oldValues: offer,
+      newValues: archived,
+      source: 'company_card_contracts_tab',
+      billable: false,
+      metadata: { mode, snapshotCount },
+    })
+
+    revalidatePath(`/admin/companies/${companyId}`)
+    revalidatePath('/admin/contracts')
+    return { success: snapshotCount > 0 ? 'Avtalet används i signerad historik och arkiverades istället för att raderas.' : 'Avtalet arkiverades och är dolt från hemsidan.' }
+  }
+
+  const { error: deleteError } = await supabaseService
+    .from('public_contract_offers')
+    .delete()
+    .eq('id', id)
+    .eq('company_id', companyId)
+  if (deleteError) throw deleteError
+
+  await logAdminActionAndUsage({
+    companyId,
+    actorUserId: actor.userId,
+    entityType: 'public_contract_offer',
+    entityId: id,
+    action: 'contract_plan.deleted_unused',
+    label: 'Oanvänt hemsideavtal raderat',
+    oldValues: offer,
+    newValues: null,
+    source: 'company_card_contracts_tab',
+    billable: false,
+    metadata: { mode, snapshotCount },
+  })
+
+  revalidatePath(`/admin/companies/${companyId}`)
+  revalidatePath('/admin/contracts')
+  return { success: 'Oanvänt avtal raderades. Historiska/signerade avtal raderas aldrig automatiskt.' }
 }

@@ -2,7 +2,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
 import { listContractOffers } from "@/lib/customer-contracts/db";
-import { saveContractOfferAction } from "./actions";
+import { archiveContractOfferAction, deleteContractOfferAction, saveContractOfferAction } from "./actions";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
 import type { ContractOfferRow } from "@/lib/customer-contracts/types";
 
@@ -450,13 +450,16 @@ export default async function AdminContractsPage({
                   <th className="px-6 py-4 text-left font-semibold text-slate-700 ">
                     Status
                   </th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700 ">
+                    Åtgärd
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {offers.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       className="px-6 py-10 text-center text-slate-700 "
                     >
                       Inga avtalsmallar är skapade ännu.
@@ -510,15 +513,32 @@ export default async function AdminContractsPage({
                             offer.is_active,
                           )}`}
                         >
-                          {offer.status === "active"
-                            ? "Internt aktivt"
-                            : offer.status === "draft"
-                              ? "Utkast"
-                              : "Inaktivt"}
-                          {offer.is_active
+                          {offer.archived_at
+                            ? "Arkiverat"
+                            : offer.status === "active"
+                              ? "Internt aktivt"
+                              : offer.status === "draft"
+                                ? "Utkast"
+                                : "Inaktivt"}
+                          {offer.is_active && !offer.archived_at
                             ? " • kan användas i kundintag"
                             : " • dolt"}
                         </span>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="grid gap-2">
+                          {!offer.archived_at ? (
+                            <form action={archiveContractOfferAction}>
+                              <input type="hidden" name="id" value={offer.id} />
+                              <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">Arkivera</button>
+                            </form>
+                          ) : null}
+                          <form action={deleteContractOfferAction}>
+                            <input type="hidden" name="id" value={offer.id} />
+                            <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100">Ta bort om oanvänt</button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   ))

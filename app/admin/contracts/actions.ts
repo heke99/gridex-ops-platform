@@ -116,6 +116,23 @@ function errorMessage(error: unknown): string {
   return "Avtalsmallen kunde inte sparas.";
 }
 
+function isMissingSchemaError(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? "";
+  const message = (error as { message?: string } | null)?.message ?? "";
+  return ["42P01", "42703", "PGRST200", "PGRST201", "PGRST204", "PGRST205"].includes(code) || /schema cache|does not exist|column .* does not exist|relationship/i.test(message);
+}
+
+async function countRows(table: string, filters: Record<string, string>): Promise<number> {
+  let query = supabaseService.from(table).select("id", { count: "exact", head: true });
+  for (const [key, value] of Object.entries(filters)) query = query.eq(key, value);
+  const { count, error } = await query;
+  if (error) {
+    if (isMissingSchemaError(error)) return 0;
+    throw error;
+  }
+  return count ?? 0;
+}
+
 export async function saveContractOfferAction(formData: FormData) {
   let success: string;
   try {
@@ -239,4 +256,149 @@ async function saveContractOfferActionImpl(
       ? "Avtalet uppdaterades och ny prisversion/snapshot sparades."
       : "Avtalet skapades med första prisversionen. Det kan användas internt utan hemsida/API när det är aktivt.",
   };
+}
+
+
+export async function archiveContractOfferAction(formData: FormData) {
+  let success: string;
+  try {
+    success = (await archiveContractOfferActionImpl(formData)).success;
+  } catch (error) {
+    redirectBack({ error: errorMessage(error) });
+  }
+  redirectBack({ success });
+}
+
+async function archiveContractOfferActionImpl(formData: FormData): Promise<{ success: string }> {
+  const actor = await requirePlatformAdminActionAccess();
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const companyId = await requireOperationalCompanyId(user.id);
+  const id = getString(formData, "id");
+  if (!id) throw new Error("Avtal saknas.");
+
+  const { data: previous, error } = await supabaseService
+    .from("contract_offers")
+    .select("*")
+    .eq("id", id)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!previous) throw new Error("Avtalet hittades inte för valt bolag.");
+
+  const { data: archived, error: archiveError } = await supabaseService
+    .from("contract_offers")
+    .update({
+      status: "inactive",
+      is_active: false,
+      archived_at: new Date().toISOString(),
+      updated_by: actor.userId,
+    })
+    .eq("id", id)
+    .eq("company_id", companyId)
+    .select("*")
+    .single();
+  if (archiveError) throw archiveError;
+
+  await supabaseService.from("audit_logs").insert({
+    actor_user_id: actor.userId,
+    entity_type: "contract_offer",
+    entity_id: id,
+    company_id: companyId,
+    action: "contract_offer_archived_platform_admin_only",
+    old_values: previous,
+    new_values: archived,
+    metadata: { source: "admin_contracts", history_preserved: true },
+  });
+
+  revalidatePath("/admin/contracts");
+  revalidatePath("/admin/customers/intake");
+  revalidatePath("/admin/customers");
+  return { success: "Avtalet arkiverades och är dolt från kundintaget. Historiska kundavtal påverkas inte." };
+}
+
+export async function deleteContractOfferAction(formData: FormData) {
+  let success: string;
+  try {
+    success = (await deleteContractOfferActionImpl(formData)).success;
+  } catch (error) {
+    redirectBack({ error: errorMessage(error) });
+  }
+  redirectBack({ success });
+}
+
+async function deleteContractOfferActionImpl(formData: FormData): Promise<{ success: string }> {
+  const actor = await requirePlatformAdminActionAccess();
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const companyId = await requireOperationalCompanyId(user.id);
+  const id = getString(formData, "id");
+  if (!id) throw new Error("Avtal saknas.");
+
+  const { data: previous, error } = await supabaseService
+    .from("contract_offers")
+    .select("*")
+    .eq("id", id)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!previous) throw new Error("Avtalet hittades inte för valt bolag.");
+
+  const customerContractCount = await countRows("customer_contracts", { company_id: companyId, contract_offer_id: id });
+  if (customerContractCount > 0) {
+    const { error: archiveError } = await supabaseService
+      .from("contract_offers")
+      .update({
+        status: "inactive",
+        is_active: false,
+        archived_at: new Date().toISOString(),
+        updated_by: actor.userId,
+      })
+      .eq("id", id)
+      .eq("company_id", companyId);
+    if (archiveError) throw archiveError;
+
+    await supabaseService.from("audit_logs").insert({
+      actor_user_id: actor.userId,
+      entity_type: "contract_offer",
+      entity_id: id,
+      company_id: companyId,
+      action: "contract_offer_archive_instead_of_delete_history_locked",
+      old_values: previous,
+      new_values: { ...(previous as Record<string, unknown>), status: "inactive", is_active: false },
+      metadata: { source: "admin_contracts", customerContractCount },
+    });
+
+    revalidatePath("/admin/contracts");
+    revalidatePath("/admin/customers/intake");
+    revalidatePath("/admin/customers");
+    return { success: "Avtalet används av kundhistorik och arkiverades därför istället för att raderas." };
+  }
+
+  const { error: deleteError } = await supabaseService
+    .from("contract_offers")
+    .delete()
+    .eq("id", id)
+    .eq("company_id", companyId);
+  if (deleteError) throw deleteError;
+
+  await supabaseService.from("audit_logs").insert({
+    actor_user_id: actor.userId,
+    entity_type: "contract_offer",
+    entity_id: id,
+    company_id: companyId,
+    action: "contract_offer_deleted_unused_platform_admin_only",
+    old_values: previous,
+    new_values: null,
+    metadata: { source: "admin_contracts", customerContractCount },
+  });
+
+  revalidatePath("/admin/contracts");
+  revalidatePath("/admin/customers/intake");
+  revalidatePath("/admin/customers");
+  return { success: "Oanvänt avtal raderades. Signerade kundavtal raderas aldrig automatiskt." };
 }
