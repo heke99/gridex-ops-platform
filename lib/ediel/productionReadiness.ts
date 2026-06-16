@@ -57,6 +57,10 @@ export type ProductionReadinessResult = {
     operationsContactEmail: string | null;
     activeTestRouteProfileId: string | null;
     activeProductionRouteProfileId: string | null;
+    activeProductionProdatRouteProfileId: string | null;
+    activeProductionUtiltsRouteProfileId: string | null;
+    hasProductionProdatRoute: boolean;
+    hasProductionUtiltsRoute: boolean;
     productionMailboxId: string | null;
     latestInbound: MessageSnapshot | null;
     latestOutbound: MessageSnapshot | null;
@@ -191,6 +195,19 @@ type ActorSettingRow = Record<string, unknown> & {
   is_active?: boolean | null;
 };
 
+type BrpSettingRow = Record<string, unknown> & {
+  id: string;
+  company_id?: string | null;
+  environment?: string | null;
+  brp_ediel_id?: string | null;
+  brp_name?: string | null;
+  status?: string | null;
+  is_default?: boolean | null;
+  is_active?: boolean | null;
+  valid_from?: string | null;
+  valid_to?: string | null;
+};
+
 type MailboxRow = Record<string, unknown> & {
   id: string;
   company_id?: string | null;
@@ -280,6 +297,25 @@ function isFixedReceiverRoute(
   return (
     text(route?.receiver_source) === "fixed_counterparty" ||
     text(route?.receiver_ediel_id) !== null
+  );
+}
+function routeMatchesMessageFamily(
+  route: RouteProfileRow | undefined | null,
+  family: "PRODAT" | "UTILTS",
+): boolean {
+  const messageFamily = upper(route?.message_family);
+  const applicationReference = upper(route?.application_reference);
+  const metadata =
+    route?.metadata && typeof route.metadata === "object"
+      ? (route.metadata as Record<string, unknown>)
+      : null;
+  const metadataFamily = upper(
+    metadata?.messageFamily ?? metadata?.message_family,
+  );
+  return (
+    messageFamily === family ||
+    applicationReference === family ||
+    metadataFamily === family
   );
 }
 
@@ -599,6 +635,10 @@ export async function getCompanyProductionReadiness(
         operationsContactEmail: null,
         activeTestRouteProfileId: null,
         activeProductionRouteProfileId: null,
+        activeProductionProdatRouteProfileId: null,
+        activeProductionUtiltsRouteProfileId: null,
+        hasProductionProdatRoute: false,
+        hasProductionUtiltsRoute: false,
         productionMailboxId: null,
         latestInbound: null,
         latestOutbound: null,
@@ -616,54 +656,71 @@ export async function getCompanyProductionReadiness(
     };
   }
 
-  const [actors, routes, mailboxes, locks, latestChecks, dryRuns, auditEvents] =
-    await Promise.all([
-      safeSelect<ActorSettingRow>("ediel_actor_settings", (query) =>
+  const [
+    actors,
+    routes,
+    mailboxes,
+    brps,
+    locks,
+    latestChecks,
+    dryRuns,
+    auditEvents,
+  ] = await Promise.all([
+    safeSelect<ActorSettingRow>("ediel_actor_settings", (query) =>
+      query
+        .select("*")
+        .eq("company_id", companyId)
+        .order("updated_at", { ascending: false }),
+    ),
+    safeSelect<RouteProfileRow>("ediel_route_profiles", (query) =>
+      query
+        .select("*")
+        .eq("company_id", companyId)
+        .order("updated_at", { ascending: false }),
+    ),
+    safeSelect<MailboxRow>("ediel_mailboxes", (query) =>
+      query
+        .select("*")
+        .eq("environment", "production")
+        .order("updated_at", { ascending: false })
+        .limit(200),
+    ),
+    safeSelect<BrpSettingRow>("ediel_brp_settings", (query) =>
+      query
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("environment", "production")
+        .order("is_default", { ascending: false })
+        .order("updated_at", { ascending: false })
+        .limit(20),
+    ),
+    safeSelect<SendLockRow>("ediel_send_locks", (query) =>
+      query
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("environment", "production")
+        .order("updated_at", { ascending: false })
+        .limit(1),
+    ),
+    safeSelect<Record<string, unknown>>(
+      "ediel_production_readiness_checks",
+      (query) =>
         query
-          .select("*")
+          .select("id,status,checked_at,checked_by")
           .eq("company_id", companyId)
-          .order("updated_at", { ascending: false }),
-      ),
-      safeSelect<RouteProfileRow>("ediel_route_profiles", (query) =>
-        query
-          .select("*")
-          .eq("company_id", companyId)
-          .order("updated_at", { ascending: false }),
-      ),
-      safeSelect<MailboxRow>("ediel_mailboxes", (query) =>
-        query
-          .select("*")
-          .eq("environment", "production")
-          .order("updated_at", { ascending: false })
-          .limit(200),
-      ),
-      safeSelect<SendLockRow>("ediel_send_locks", (query) =>
-        query
-          .select("*")
-          .eq("company_id", companyId)
-          .eq("environment", "production")
-          .order("updated_at", { ascending: false })
+          .order("checked_at", { ascending: false })
           .limit(1),
-      ),
-      safeSelect<Record<string, unknown>>(
-        "ediel_production_readiness_checks",
-        (query) =>
-          query
-            .select("id,status,checked_at,checked_by")
-            .eq("company_id", companyId)
-            .order("checked_at", { ascending: false })
-            .limit(1),
-      ),
-      safeSelect<Record<string, unknown>>("ediel_go_live_events", (query) =>
-        query
-          .select("id,event_type,to_status,metadata,created_at")
-          .eq("company_id", companyId)
-          .eq("event_type", "production_dry_run")
-          .order("created_at", { ascending: false })
-          .limit(1),
-      ),
-      getLatestGoLiveEvents(companyId),
-    ]);
+    ),
+    safeSelect<Record<string, unknown>>("ediel_go_live_events", (query) =>
+      query
+        .select("id,event_type,to_status,metadata,created_at")
+        .eq("company_id", companyId)
+        .eq("event_type", "production_dry_run")
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ),
+    getLatestGoLiveEvents(companyId),
+  ]);
 
   const testActor = pickPrimary(
     actors.filter(
@@ -680,10 +737,33 @@ export async function getCompanyProductionReadiness(
     routes.filter((row) => row.environment === "test" && isEnabled(row)),
     text(company.ediel_primary_test_route_profile_id),
   );
-  const productionRoute = pickPrimary(
-    routes.filter((row) => row.environment === "production" && isEnabled(row)),
+  const activeProductionRoutes = routes.filter(
+    (row) => row.environment === "production" && isEnabled(row),
+  );
+  const productionProdatRoute = pickPrimary(
+    activeProductionRoutes.filter((row) =>
+      routeMatchesMessageFamily(row, "PRODAT"),
+    ),
     text(company.ediel_primary_production_route_profile_id),
   );
+  const productionUtiltsRoute = pickPrimary(
+    activeProductionRoutes.filter((row) =>
+      routeMatchesMessageFamily(row, "UTILTS"),
+    ),
+  );
+  const productionRoute =
+    productionProdatRoute ??
+    pickPrimary(
+      activeProductionRoutes,
+      text(company.ediel_primary_production_route_profile_id),
+    );
+  const productionBrp =
+    brps.find(
+      (row) =>
+        isEnabled(row) && text(row.brp_ediel_id) && row.is_default !== false,
+    ) ??
+    brps.find((row) => isEnabled(row) && text(row.brp_ediel_id)) ??
+    null;
   const productionMailbox =
     mailboxes.find((mailbox) => {
       const ownsMailbox =
@@ -716,7 +796,8 @@ export async function getCompanyProductionReadiness(
     null;
   const sendLock = locks[0] ?? null;
   const certificateId =
-    text(productionRoute?.certificate_id) ?? text(productionMailbox?.certificate_id);
+    text(productionRoute?.certificate_id) ??
+    text(productionMailbox?.certificate_id);
   const certificateRows = certificateId
     ? await safeSelect<Record<string, unknown>>("ediel_certificates", (query) =>
         query.select("*").eq("id", certificateId).limit(1),
@@ -725,10 +806,10 @@ export async function getCompanyProductionReadiness(
   const certificateStatus = certificateRows[0]
     ? evaluateCertificateStatus(certificateRows[0])
     : null;
-  const latestClockHealth = await getLatestSystemClockHealth({
+  const latestClockHealth = (await getLatestSystemClockHealth({
     companyId,
     environmentType: "production",
-  }).catch(() => null) as Record<string, unknown> | null;
+  }).catch(() => null)) as Record<string, unknown> | null;
 
   const [
     latestInbound,
@@ -807,18 +888,14 @@ export async function getCompanyProductionReadiness(
     text(productionActor?.ediel_id) ?? text(productionActor?.actor_ediel_id);
   const legacyCompanyEdielId =
     text(company.production_ediel_id) ?? text(company.ediel_id);
-  const companyEdielId = actorEdielId ?? legacyCompanyEdielId;
+  const companyEdielId = actorEdielId;
   const actorRole =
-    text(productionActor?.actor_role) ??
-    text(productionActor?.role) ??
-    text(company.market_role) ??
-    text(company.actor_role);
+    text(productionActor?.actor_role) ?? text(productionActor?.role);
   const senderSubAddress =
     text(productionRoute?.sender_sub_address) ??
     text(productionRoute?.sender_subaddress) ??
     text(productionActor?.sender_sub_address) ??
-    text(productionActor?.sender_subaddress) ??
-    text(company.production_sender_sub_address);
+    text(productionActor?.sender_subaddress);
   const receiverSubAddress =
     text(productionRoute?.receiver_sub_address) ??
     text(productionRoute?.receiver_subaddress) ??
@@ -832,7 +909,7 @@ export async function getCompanyProductionReadiness(
     text(productionActor?.operations_contact_email) ??
     text((company.operations_contact as Record<string, unknown> | null)?.email);
   const brpEdielId =
-    text(productionActor?.brp_ediel_id) ?? text(company.brp_ediel_id);
+    text(productionBrp?.brp_ediel_id) ?? text(productionActor?.brp_ediel_id);
 
   if (text(company.id))
     pass(
@@ -906,7 +983,10 @@ export async function getCompanyProductionReadiness(
       "Production transport måste kräva TLS.",
     );
 
-  if ((productionRoute?.encryption_mode ?? productionMailbox?.encryption_mode) === "smime")
+  if (
+    (productionRoute?.encryption_mode ?? productionMailbox?.encryption_mode) ===
+    "smime"
+  )
     pass(
       "safety",
       "production_smime_default",
@@ -933,7 +1013,8 @@ export async function getCompanyProductionReadiness(
       "safety",
       "production_certificate_missing_or_invalid",
       "Certifikat saknas eller är ogiltigt",
-      certificateStatus?.message ?? "Koppla ett aktivt S/MIME-certifikat till production route eller mailbox.",
+      certificateStatus?.message ??
+        "Koppla ett aktivt S/MIME-certifikat till production route eller mailbox.",
     );
 
   if (!latestClockHealth)
@@ -1028,14 +1109,26 @@ export async function getCompanyProductionReadiness(
       "BRP Ediel-ID saknas",
       "BRP/balance responsible party måste vara konfigurerad innan production.",
     );
-  if (String(company.brp_status ?? "").toLowerCase() === "active")
-    pass("actor", "brp_active", "BRP är aktiv", "BRP-status är active.");
+  if (productionBrp)
+    pass(
+      "actor",
+      "brp_active",
+      "Production-BRP är aktiv",
+      "BRP hämtas från ediel_brp_settings för production.",
+    );
+  else if (String(company.brp_status ?? "").toLowerCase() === "active")
+    warn(
+      "actor",
+      "brp_legacy_only",
+      "BRP finns bara som legacy-värde",
+      "Flytta BRP till ediel_brp_settings för production innan live.",
+    );
   else
     block(
       "actor",
       "brp_not_active",
-      "BRP är inte aktiv",
-      "BRP-status måste vara active.",
+      "Production-BRP saknas",
+      "BRP måste finnas i ediel_brp_settings för production.",
     );
   if (String(company.esett_status ?? "").toLowerCase() === "ready")
     pass("actor", "esett_ready", "eSett är klar", "eSett-status är ready.");
@@ -1095,6 +1188,13 @@ export async function getCompanyProductionReadiness(
       "Productionmiljö finns",
       "Aktiv production actor settings finns.",
     );
+  else
+    block(
+      "environment",
+      "production_actor_missing",
+      "Production actor settings saknas",
+      "Lägg in bolagets Ediel-ID som aktiv production actor. Test/legacy-fält används inte som fallback.",
+    );
   if (testRoute)
     pass(
       "route",
@@ -1109,19 +1209,33 @@ export async function getCompanyProductionReadiness(
       "Test route saknas",
       "Skapa aktiv route profile med environment=test.",
     );
-  if (productionRoute)
+  if (productionProdatRoute)
     pass(
       "route",
-      "production_route_exists",
-      "Production route finns",
-      "Aktiv production route profile finns.",
+      "production_prodat_route_exists",
+      "PRODAT production route finns",
+      "Marknadsprocesser har aktiv production route.",
     );
   else
     block(
       "route",
-      "production_route_missing",
-      "Production route saknas",
-      "Skapa aktiv route profile med environment=production.",
+      "production_prodat_route_missing",
+      "PRODAT production route saknas",
+      "Skapa aktiv PRODAT production route innan go-live.",
+    );
+  if (productionUtiltsRoute)
+    pass(
+      "route",
+      "production_utilts_route_exists",
+      "UTILTS production route finns",
+      "Mätvärdesflöden har aktiv production route.",
+    );
+  else
+    warn(
+      "route",
+      "production_utilts_route_missing",
+      "UTILTS production route saknas",
+      "Bolaget kan inte hantera production-mätvärdesflöden förrän UTILTS route är skapad.",
     );
   if (productionRoute) {
     const routeSender = text(productionRoute.sender_ediel_id);
@@ -1485,6 +1599,10 @@ export async function getCompanyProductionReadiness(
       operationsContactEmail,
       activeTestRouteProfileId: testRoute?.id ?? null,
       activeProductionRouteProfileId: productionRoute?.id ?? null,
+      activeProductionProdatRouteProfileId: productionProdatRoute?.id ?? null,
+      activeProductionUtiltsRouteProfileId: productionUtiltsRoute?.id ?? null,
+      hasProductionProdatRoute: Boolean(productionProdatRoute),
+      hasProductionUtiltsRoute: Boolean(productionUtiltsRoute),
       productionMailboxId: productionMailbox?.id ?? null,
       latestInbound,
       latestOutbound,
@@ -1575,14 +1693,21 @@ export async function runProductionDryRun(
       receiverSubAddress: readiness.summary.receiverSubAddress,
       productionRouteProfileId:
         readiness.summary.activeProductionRouteProfileId,
+      productionProdatRouteProfileId:
+        readiness.summary.activeProductionProdatRouteProfileId,
+      productionUtiltsRouteProfileId:
+        readiness.summary.activeProductionUtiltsRouteProfileId,
       productionMailboxId: readiness.summary.productionMailboxId,
+      receiverResolution: "dynamic_grid_owner_from_selected_customer_context",
+      wouldResolveReceiverFrom:
+        "kundprocess -> anläggning/mätpunkt -> verifierad nätägare -> Ediel route/certifikat",
       wouldSend: false,
       wouldBeBlocked: !allowed,
     },
     edifactPreview:
       readiness.summary.edielId &&
       readiness.summary.activeProductionRouteProfileId
-        ? `UNB+UNOC:3+${readiness.summary.edielId}:14+RECEIVER:14+YYYYMMDD:HHMM+DRYRUN++++PRODUCTION'`
+        ? `UNB+UNOC:3+${readiness.summary.edielId}:14+DYNAMIC_GRID_OWNER:14+YYYYMMDD:HHMM+DRYRUN++++PRODUCTION'`
         : null,
   };
 

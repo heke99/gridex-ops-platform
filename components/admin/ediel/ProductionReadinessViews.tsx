@@ -105,9 +105,13 @@ export function ProductionReadinessPanel({
   canManageProduction: boolean;
 }) {
   const s = readiness.summary;
+  const dryRunOk = ["allowed", "warning"].includes(
+    readiness.latestDryRun.status ?? "",
+  );
   const canActivate =
     canManageProduction &&
     readiness.blockingIssues.length === 0 &&
+    dryRunOk &&
     readiness.status !== "live";
   const canResume = canManageProduction && readiness.status === "paused";
   const canPause =
@@ -132,8 +136,8 @@ export function ProductionReadinessPanel({
               {s.companyName ?? "Bolag"} · Go-Live
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              Backend-kontroll av tenant, actor settings, test/production-route,
-              mailbox, aktörstester, driftläge och send locks.
+              Backend-kontroll av tenant, production actor, BRP, PRODAT/UTILTS,
+              mailbox, aktörstester, dry run, driftläge och send locks.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -159,8 +163,12 @@ export function ProductionReadinessPanel({
             value={`${s.environment ?? "test"} → production`}
           />
           <Info
-            label="Tenant ID"
-            value={<span className="font-mono text-xs">{s.tenantId}</span>}
+            label="Marknadsprocesser"
+            value={s.hasProductionProdatRoute ? "PRODAT redo" : "PRODAT saknas"}
+          />
+          <Info
+            label="Mätvärden"
+            value={s.hasProductionUtiltsRoute ? "UTILTS redo" : "UTILTS saknas"}
           />
           <Info label="Orgnummer" value={s.orgNumber} />
           <Info label="Ediel-ID" value={s.edielId} />
@@ -175,6 +183,38 @@ export function ProductionReadinessPanel({
             value={formatDate(readiness.latestCheck.checkedAt)}
           />
         </div>
+
+        <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          <summary className="cursor-pointer font-bold text-slate-950">
+            Visa teknisk identitet
+          </summary>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <Info
+              label="Tenant ID"
+              value={<span className="font-mono text-xs">{s.tenantId}</span>}
+            />
+            <Info
+              label="Primary production route"
+              value={
+                <span className="font-mono text-xs">
+                  {s.activeProductionRouteProfileId ?? "–"}
+                </span>
+              }
+            />
+            <Info
+              label="Production mailbox"
+              value={
+                <span className="font-mono text-xs">
+                  {s.productionMailboxId ?? "–"}
+                </span>
+              }
+            />
+            <Info
+              label="Latest poll"
+              value={`${formatDate(s.latestPollAt)} · ${s.latestPollStatus ?? "status saknas"}`}
+            />
+          </div>
+        </details>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -205,10 +245,18 @@ export function ProductionReadinessPanel({
               }
             />
             <Info
-              label="Production route profile"
+              label="PRODAT route profile"
               value={
                 <span className="font-mono text-xs">
-                  {s.activeProductionRouteProfileId ?? "–"}
+                  {s.activeProductionProdatRouteProfileId ?? "–"}
+                </span>
+              }
+            />
+            <Info
+              label="UTILTS route profile"
+              value={
+                <span className="font-mono text-xs">
+                  {s.activeProductionUtiltsRouteProfileId ?? "–"}
                 </span>
               }
             />
@@ -321,16 +369,17 @@ export function ProductionReadinessPanel({
             />
             <input type="hidden" name="redirect_to" value={returnPath} />
             <h4 className="font-semibold text-emerald-950">
-              Run production dry run
+              Kör production dry run
             </h4>
             <p className="mt-2 text-sm leading-6 text-emerald-800">
-              Simulerar production-send utan att skicka Ediel.
+              Simulerar production-send utan att skicka Ediel och kontrollerar
+              dynamisk mottagarlogik.
             </p>
             <button
               disabled={!canManageProduction}
               className="mt-4 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white disabled:bg-slate-400"
             >
-              Run dry run
+              Kör dry run
             </button>
           </form>
 
@@ -378,7 +427,8 @@ export function ProductionReadinessPanel({
               Aktivera production
             </h4>
             <p className="mt-2 text-sm leading-6 text-emerald-800">
-              Låser upp production-send när readiness saknar blockerare.
+              Låser upp production-send när readiness saknar blockerare och
+              senaste dry run är godkänd.
             </p>
             <input
               name="confirmation"
@@ -389,7 +439,11 @@ export function ProductionReadinessPanel({
               disabled={!canActivate}
               className="mt-3 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white disabled:bg-slate-400"
             >
-              {canActivate ? "Aktivera production" : "Aktivering blockerad"}
+              {canActivate
+                ? "Aktivera production"
+                : dryRunOk
+                  ? "Aktivering blockerad"
+                  : "Kör dry run först"}
             </button>
           </form>
 
@@ -463,7 +517,7 @@ export function ProductionReadinessPanel({
             href={`/admin/platform/go-live/${readiness.companyId}/route-wizard`}
             className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
           >
-            PRODAT produktion
+            Ediel routes
           </Link>
         </div>
         <div className="mt-4 space-y-3">

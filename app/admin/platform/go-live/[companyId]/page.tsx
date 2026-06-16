@@ -60,7 +60,7 @@ export default async function PlatformGoLiveCompanyPage({
             href={`/admin/platform/go-live/${summary.company.id}/route-wizard`}
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
-            PRODAT produktion
+            Ediel production routes
           </Link>
         </div>
         {notice?.message ? (
@@ -79,8 +79,21 @@ export default async function PlatformGoLiveCompanyPage({
           returnPath={`/admin/platform/go-live/${summary.company.id}`}
           canManageProduction
         />
-        <ActorProfileGuide summary={summary} />
-        <EvidencePackage summary={summary} />
+        <details className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <summary className="cursor-pointer text-sm font-black text-slate-950">
+            Avancerat: testprofil, äldre actor-data och evidence package
+          </summary>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+            Den normala go-live-processen ska styras av bolagets production
+            actor, BRP, Ediel routes, readiness och dry run. Manuella receivers,
+            testmotparter och evidence-detaljer visas här för felsökning och
+            revision, inte som primär produktionskonfiguration.
+          </p>
+          <div className="mt-6 space-y-6">
+            <ActorProfileGuide summary={summary} />
+            <EvidencePackage summary={summary} />
+          </div>
+        </details>
       </div>
     </div>
   );

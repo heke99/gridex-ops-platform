@@ -549,9 +549,7 @@ export async function getCompanyGoLiveSetupSummary(
     productionRoutes: activeRoutes,
     mailboxes,
   });
-  const hasSharedMailbox = mailboxes.some(
-    (mailbox) => !str(mailbox, "company_id") && boolish(mailbox.is_active),
-  );
+  const hasSharedMailbox = routeSimulation.transportMode !== "missing";
   const hasSenderIdentity =
     senderSettings.some((row) =>
       ["verified", "completed", "active"].includes(
@@ -571,9 +569,7 @@ export async function getCompanyGoLiveSetupSummary(
   if (!hasUtiltsRoute)
     warnings.push("UTILTS är inte aktiverat för produktion ännu.");
   if (!hasSharedMailbox)
-    blockers.push(
-      "Gridex shared production mailbox saknas eller är inte aktiv.",
-    );
+    blockers.push("Production mailbox/transport saknas eller är inte aktiv.");
   if (!hasSenderIdentity)
     warnings.push("Verifierad avsändaridentitet för kundmail saknas.");
   if (!hasPublishedContracts)

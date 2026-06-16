@@ -61,6 +61,17 @@ function rowBool(row: Record<string, unknown> | null | undefined, key: string): 
   return row?.[key] === true
 }
 
+function rowEnabled(row: Record<string, unknown> | null | undefined): boolean {
+  if (!row) return false
+  return row.is_active !== false && row.is_enabled !== false
+}
+
+function rowFamily(row: Record<string, unknown> | null | undefined): string | null {
+  const metadata = row?.metadata && typeof row.metadata === 'object' ? row.metadata as Record<string, unknown> : null
+  const family = rowText(row, 'message_family', 'application_reference') ?? rowText(metadata, 'messageFamily', 'message_family')
+  return family ? family.toUpperCase() : null
+}
+
 function StatCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
     <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -338,17 +349,23 @@ function CompanySetupControlPanel({
   edielConfig: CompanyActorConfiguration
   actorSummary: Awaited<ReturnType<typeof getActorTestingSummary>>
 }) {
-  const productionActor = edielConfig.actors.find((row) => rowText(row, 'environment') === 'production') ?? edielConfig.actors[0] ?? null
-  const productionRoutes = edielConfig.routeProfiles.filter((row) => rowText(row, 'environment') === 'production')
-  const hasProdatProduction = productionRoutes.some((row) => rowText(row, 'message_family') === 'PRODAT' || rowText(row, 'application_reference') === 'PRODAT')
-  const hasUtiltsProduction = productionRoutes.some((row) => rowText(row, 'message_family') === 'UTILTS' || rowText(row, 'application_reference') === 'UTILTS')
+  const productionActor = edielConfig.actors.find((row) => rowText(row, 'environment') === 'production' && rowEnabled(row)) ?? null
+  const productionRoutes = edielConfig.routeProfiles.filter((row) => rowText(row, 'environment') === 'production' && rowEnabled(row))
+  const hasProdatProduction = productionRoutes.some((row) => rowFamily(row) === 'PRODAT')
+  const hasUtiltsProduction = productionRoutes.some((row) => rowFamily(row) === 'UTILTS')
   const hasEdielId = Boolean(rowText(productionActor, 'ediel_id', 'actor_ediel_id'))
-  const hasBrp = edielConfig.brpSettings.some((row) => rowText(row, 'environment') === 'production' && Boolean(rowText(row, 'brp_ediel_id')))
+  const hasBrp = edielConfig.brpSettings.some((row) => rowText(row, 'environment') === 'production' && rowEnabled(row) && Boolean(rowText(row, 'brp_ediel_id')))
   const internalReady = contractReadiness?.can_use_internal_customer_intake ?? false
   const websiteReady = Boolean(websiteReadiness?.has_api_client && websiteReadiness?.has_public_contracts)
   const legalReady = legalDefaultStatus.hasAllRequiredLegalTexts
   const mailReady = eventMailReadiness?.can_send_customer_mail ?? false
-  const edielReady = hasEdielId && hasProdatProduction
+  const companyRow = company as unknown as Record<string, unknown>
+  const productionLive = Boolean(rowBool(companyRow, 'ediel_production_enabled') || rowBool(companyRow, 'live_ediel_enabled'))
+  const productionStatus = rowText(companyRow, 'ediel_production_status', 'production_status') ?? 'not_ready'
+  const edielPrepared = hasEdielId && hasBrp && hasProdatProduction
+  const edielLive = productionLive && productionStatus === 'live' && edielPrepared
+  const edielStatus = edielLive ? 'Live' : edielPrepared ? 'Förberedd' : hasEdielId ? 'Åtgärd krävs' : 'Ej konfigurerad'
+  const edielTone = edielLive ? 'green' : edielPrepared ? 'amber' : 'slate'
   const testsApproved = actorSummary?.actorTestStatus === 'approved'
   const internalBlockers = simpleList(contractReadiness?.internal_blockers).map(blockerCopy)
   const websiteBlockers = simpleList(contractReadiness?.website_blockers).map(blockerCopy)
@@ -401,12 +418,12 @@ function CompanySetupControlPanel({
           actionLabel="Hantera kundmail"
         />
         <SetupCard
-          title="Ediel/PRODAT produktion"
-          status={edielReady ? 'PRODAT aktiv' : 'Inte aktiverad'}
-          tone={edielReady ? 'green' : 'amber'}
-          description={edielReady ? `Ediel-ID ${rowText(productionActor, 'ediel_id', 'actor_ediel_id') ?? 'satt'} används i production. UTILTS: ${hasUtiltsProduction ? 'klar' : 'inte aktiverad ännu'}. BRP: ${hasBrp ? 'satt' : 'saknas'}.` : 'Påverkar leverantörsbyte/Ediel. Aktivera production-profil när Ediel-ID, BRP och transport är redo.'}
+          title="Ediel production"
+          status={edielStatus}
+          tone={edielTone}
+          description={edielLive ? `Bolaget är live med Ediel-ID ${rowText(productionActor, 'ediel_id', 'actor_ediel_id') ?? 'satt'}. PRODAT och live-send är aktiverat. UTILTS: ${hasUtiltsProduction ? 'klar' : 'inte aktiverad ännu'}.` : edielPrepared ? `Production är förberedd men inte live. Kör readiness och dry run innan aktivering. UTILTS: ${hasUtiltsProduction ? 'klar' : 'saknas'}.` : `Påverkar leverantörsbyte och mätvärden. Saknas: ${[!hasEdielId ? 'Ediel-ID' : null, !hasBrp ? 'BRP' : null, !hasProdatProduction ? 'PRODAT route' : null].filter(Boolean).join(', ') || 'readiness'}.`}
           href={`/admin/platform/go-live/${company.id}/route-wizard`}
-          actionLabel="Aktivera PRODAT"
+          actionLabel="Hantera Ediel routes"
         />
         <SetupCard
           title="Tester & certifiering"

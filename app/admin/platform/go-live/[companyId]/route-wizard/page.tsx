@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
+import { getCompanyGoLiveSetupSummary } from "@/lib/ediel/platformGoLive";
 import { supabaseService } from "@/lib/supabase/service";
 import { createProductionRouteFromWizardAction } from "./actions";
 
@@ -14,10 +15,6 @@ type PageProps = {
 type CompanyRow = {
   id: string;
   name: string;
-  production_ediel_id: string | null;
-  ediel_id: string | null;
-  production_sender_sub_address: string | null;
-  production_mailbox: string | null;
 };
 
 type RouteRunRow = {
@@ -39,13 +36,21 @@ function InfoCard({
   label,
   value,
   hint,
+  tone = "slate",
 }: {
   label: string;
   value: string;
   hint?: string;
+  tone?: "slate" | "green" | "amber";
 }) {
+  const toneClass =
+    tone === "green"
+      ? "border-emerald-200 bg-emerald-50"
+      : tone === "amber"
+        ? "border-amber-200 bg-amber-50"
+        : "border-slate-200 bg-slate-50";
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div className={`rounded-2xl border p-4 ${toneClass}`}>
       <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
         {label}
       </div>
@@ -59,6 +64,30 @@ function InfoCard({
   );
 }
 
+function CurrentFlowCard({
+  label,
+  ready,
+  description,
+}: {
+  label: string;
+  ready: boolean;
+  description: string;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-4 ${ready ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}
+    >
+      <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
+      <div className="mt-1 text-sm font-black text-slate-950">
+        {ready ? "Production route finns" : "Route saknas"}
+      </div>
+      <p className="mt-2 text-xs leading-5 text-slate-700">{description}</p>
+    </div>
+  );
+}
+
 export default async function ProductionRouteWizardPage({
   params,
   searchParams,
@@ -67,32 +96,41 @@ export default async function ProductionRouteWizardPage({
   const { companyId } = await params;
   const notice = searchParams ? await searchParams : {};
 
-  const { data: company, error } = await supabaseService
-    .from("companies")
-    .select(
-      "id,name,production_ediel_id,ediel_id,production_sender_sub_address,production_mailbox",
-    )
-    .eq("id", companyId)
-    .maybeSingle();
+  const [{ data: company, error }, setupSummary, { data: routeRuns }] =
+    await Promise.all([
+      supabaseService
+        .from("companies")
+        .select("id,name")
+        .eq("id", companyId)
+        .maybeSingle(),
+      getCompanyGoLiveSetupSummary(companyId),
+      supabaseService
+        .from("production_route_wizard_runs")
+        .select("id,status,created_at,blocker_summary")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false })
+        .limit(8),
+    ]);
 
   if (error) throw error;
   if (!company) return <div className="p-8">Bolaget hittades inte.</div>;
 
   const row = company as CompanyRow;
-  const edielId = row.production_ediel_id ?? row.ediel_id ?? "";
-
-  const { data: routeRuns } = await supabaseService
-    .from("production_route_wizard_runs")
-    .select("id,status,created_at,blocker_summary")
-    .eq("company_id", companyId)
-    .order("created_at", { ascending: false })
-    .limit(8);
+  const edielId = setupSummary?.edielId ?? "Saknas";
+  const senderSubAddress =
+    setupSummary?.senderSubAddress ?? "Ingen standard-subadress";
+  const transportLabel =
+    setupSummary?.sharedMailboxMode === "shared_platform_mailbox"
+      ? "Gridex shared mailbox"
+      : setupSummary?.sharedMailboxMode === "company_specific_mailbox"
+        ? "Bolagsspecifik mailbox"
+        : "Transport saknas";
 
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title={`PRODAT produktion · ${row.name}`}
-        subtitle="Aktivera bolagets produktionsprofil utan tekniskt route-formulär. Mottagare väljs automatiskt utifrån kundens nätägare/process och Gridex shared mailbox är endast transportkanal."
+        title={`Ediel production routes · ${row.name}`}
+        subtitle="Skapa production routes för marknadsprocesser och mätvärden utan manuella receiver-fält. Systemet löser mottagare från kundens nätägare vid sändning."
         userEmail={admin.email}
         workspaceMode="platform"
       />
@@ -127,7 +165,6 @@ export default async function ProductionRouteWizardPage({
             className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
           >
             <input type="hidden" name="company_id" value={companyId} />
-            <input type="hidden" name="message_family" value="PRODAT" />
             <input
               type="hidden"
               name="receiver_source"
@@ -138,74 +175,96 @@ export default async function ProductionRouteWizardPage({
               name="dynamic_receiver_strategy"
               value="resolve_from_selected_metering_point_grid_owner"
             />
-            <input type="hidden" name="ack_mode" value="contrl_and_aperak" />
-            <input type="hidden" name="encryption_mode" value="smime" />
-            <input type="hidden" name="application_reference" value="PRODAT" />
-            <input type="hidden" name="default_message_version" value="26A" />
 
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
-              Produktionsprofil
+              Produktionsflöden
             </p>
             <h2 className="mt-2 text-2xl font-black text-slate-950">
-              Aktivera PRODAT för produktion
+              Skapa PRODAT och UTILTS för production
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              Den här åtgärden skapar en säker produktionsprofil. Superadmin ska
-              inte skriva receiver, SMTP, Application Reference eller
-              EDIFACT-version i normal go-live. Systemet använder bolagets
-              Ediel-ID, Gridex shared transport och verifierad nätägare när
+              Superadmin ska inte skriva receiver, SMTP, Application Reference
+              eller EDIFACT-version i normal go-live. Systemet använder bolagets
+              Ediel-ID, Gridex transport och verifierad nätägare när
               kundprocessen startar.
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <CurrentFlowCard
+                label="Marknadsprocesser"
+                ready={Boolean(setupSummary?.hasProdatRoute)}
+                description="PRODAT används för leverantörsbyte, ånger, tillstånd och andra marknadsprocesser."
+              />
+              <CurrentFlowCard
+                label="Mätvärden"
+                ready={Boolean(setupSummary?.hasUtiltsRoute)}
+                description="UTILTS används för mätvärden, tidsserier och UTILTS_ERR-flöden."
+              />
               <InfoCard
                 label="Bolagets Ediel-ID"
                 value={edielId}
-                hint="Sätts i bolagets live Ediel-profil. Ändra inte här."
+                hint="Hämtas från production actor settings. Ändra i bolagskortet, inte i routen."
+                tone={setupSummary?.edielId ? "green" : "amber"}
+              />
+              <InfoCard
+                label="BRP"
+                value={setupSummary?.brpEdielId ?? "Saknas"}
+                hint="Hämtas från production BRP-inställning."
+                tone={setupSummary?.hasBrp ? "green" : "amber"}
               />
               <InfoCard
                 label="Sender subadress"
-                value={
-                  row.production_sender_sub_address ??
-                  "Ingen standard-subadress"
-                }
-                hint="Används bara om den är registrerad för bolaget eller krävs av route."
+                value={senderSubAddress}
+                hint="Används bara om den är registrerad eller route kräver den."
               />
               <InfoCard
                 label="Transport"
-                value={
-                  row.production_mailbox
-                    ? `Gridex shared mailbox · ${row.production_mailbox}`
-                    : "Gridex shared mailbox"
-                }
-                hint="Mailboxen är transport, inte tenant-identitet."
+                value={transportLabel}
+                hint="Mailboxen är transportkanal, inte tenant-identitet."
+                tone={setupSummary?.hasSharedMailbox ? "green" : "amber"}
               />
-              <InfoCard
-                label="Kryptering"
-                value="S/MIME"
-                hint="PRODAT krypteras till mottagarens certifikat vid sändning."
-              />
-              <InfoCard
-                label="Mottagare"
-                value="Automatisk via verifierad nätägare"
-                hint="Kund → anläggning/mätpunkt → nätägare → Ediel-ID → certifikat."
-              />
-              <InfoCard
-                label="Kvittens"
-                value="CONTRL + APERAK"
-                hint="Standardpolicy för produktion."
-              />
+            </div>
+
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              <label className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+                <input
+                  type="checkbox"
+                  name="message_family"
+                  value="PRODAT"
+                  defaultChecked={!setupSummary?.hasProdatRoute}
+                  className="mr-2 align-middle"
+                />
+                <span className="font-black">PRODAT</span>
+                <p className="mt-2 text-xs leading-5 text-emerald-900">
+                  Skapar/ersätter production route för marknadsprocesser. Ska
+                  normalt finnas innan bolaget går live.
+                </p>
+              </label>
+              <label className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+                <input
+                  type="checkbox"
+                  name="message_family"
+                  value="UTILTS"
+                  defaultChecked={!setupSummary?.hasUtiltsRoute}
+                  className="mr-2 align-middle"
+                />
+                <span className="font-black">UTILTS</span>
+                <p className="mt-2 text-xs leading-5 text-sky-900">
+                  Skapar/ersätter production route för mätvärden. Om den saknas
+                  ska readiness visa att mätvärdesflöden inte är aktiva.
+                </p>
+              </label>
             </div>
 
             <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
               <div className="font-bold">
-                Inga fasta receivers i normal produktion
+                Inga fasta receivers i normal production
               </div>
               <p className="mt-1 leading-6">
                 Fast receiver, test-BRP och Edielportal-data hör hemma i Tester
                 & certifiering eller avancerad teknisk override. I live-flödet
                 löser systemet mottagaren från kundens nätägare och skickar via
-                Gridex shared transport.
+                Gridex transport.
               </p>
             </div>
 
@@ -214,23 +273,23 @@ export default async function ProductionRouteWizardPage({
                 Visa tekniska detaljer
               </summary>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <InfoCard label="Message family" value="PRODAT" />
-                <InfoCard label="Application Reference" value="PRODAT" />
-                <InfoCard label="EDIFACT-version" value="26A" />
-                <InfoCard label="ACK-policy" value="CONTRL + APERAK" />
+                <InfoCard label="PRODAT Application Reference" value="PRODAT" />
+                <InfoCard label="UTILTS Application Reference" value="UTILTS" />
                 <InfoCard
                   label="Receiver strategy"
                   value="resolve_from_selected_metering_point_grid_owner"
                 />
+                <InfoCard label="PRODAT säkerhet" value="S/MIME + TLS" />
+                <InfoCard label="UTILTS säkerhet" value="TLS" />
                 <InfoCard
                   label="Production send"
-                  value="Kräver readiness och superadmin-godkännande"
+                  value="Kräver readiness och dry run"
                 />
               </div>
             </details>
 
             <button className="mt-6 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-800">
-              Skapa produktionsprofil för PRODAT
+              Skapa valda production routes
             </button>
           </form>
 
@@ -241,7 +300,7 @@ export default async function ProductionRouteWizardPage({
             <div className="mt-4 space-y-3">
               {(routeRuns ?? []).length === 0 ? (
                 <p className="text-sm text-slate-600">
-                  Ingen produktionsprofil har skapats ännu.
+                  Ingen production route har skapats ännu.
                 </p>
               ) : (
                 ((routeRuns ?? []) as RouteRunRow[]).map((run) => (
@@ -251,7 +310,7 @@ export default async function ProductionRouteWizardPage({
                   >
                     <div className="font-bold text-slate-950">
                       {run.status === "created"
-                        ? "Produktionsprofil skapad"
+                        ? "Production route skapad"
                         : run.status === "blocked"
                           ? "Blockerad"
                           : run.status}
@@ -259,11 +318,10 @@ export default async function ProductionRouteWizardPage({
                     <div className="mt-1 text-xs text-slate-500">
                       {new Date(run.created_at).toLocaleString("sv-SE")}
                     </div>
-                    {Array.isArray(run.blocker_summary) &&
-                    run.blocker_summary.length > 0 ? (
-                      <div className="mt-2 text-xs text-amber-800">
-                        {run.blocker_summary.join(" · ")}
-                      </div>
+                    {run.blocker_summary ? (
+                      <pre className="mt-3 max-h-32 overflow-auto rounded-xl bg-slate-950 p-3 text-[11px] text-slate-100">
+                        {JSON.stringify(run.blocker_summary, null, 2)}
+                      </pre>
                     ) : null}
                   </article>
                 ))
