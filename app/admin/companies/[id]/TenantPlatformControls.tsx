@@ -103,6 +103,7 @@ type MailReadiness = {
   template_name: string | null
   template_active: boolean | null
   can_send: boolean | null
+  requires_platform_fallback?: boolean | null
   issues: string[] | null
 }
 
@@ -221,16 +222,30 @@ export default async function TenantPlatformControls({ companyId, companyName }:
     safeRows<PriceBook>('price_books', companyId, 'id,name,status,valid_from,valid_to,updated_at', 'updated_at'),
     safeRows<ApiClient>('integration_api_clients', companyId, 'id,name,status,key_prefix,scopes,permission_groups,allowed_origins,last_used_at,created_at', 'created_at'),
     safeRows<PublicOfferApiDiagnostic>('gridex_public_contract_offer_api_diagnostics_v', companyId, 'id,company_id,offer_code,public_name,publication_status,website_enabled,is_public,is_archived,matched_api_client_count,published_legal_type_count,price_book_status,api_blockers,api_visible,endpoint_path,sort_order', 'sort_order'),
-    safeRows<MailReadiness>('gridex_tenant_email_dispatch_readiness_v', companyId, 'event_key,template_key,enabled,template_name,template_active,can_send,issues', 'event_key'),
+    safeRows<MailReadiness>('gridex_tenant_email_dispatch_readiness_v', companyId, 'event_key,template_key,enabled,template_name,template_active,can_send,requires_platform_fallback,issues', 'event_key'),
   ])
 
   const diagnosticsByOfferId = new Map(offerApiDiagnostics.map((row) => [row.id, row]))
   const activeOffers = offers.filter((offer) => offer.publication_status === 'published' && offer.website_enabled && !offer.is_archived)
   const apiVisibleOffers = offerApiDiagnostics.filter((row) => row.api_visible === true)
   const internalActiveContracts = internalContracts.filter((contract) => contract.status === 'active' && contract.is_active !== false)
-  const mailProblems = mailReadiness.filter((row) => row.can_send === false && row.enabled !== false)
-  const canonicalMailRows = canonicalMailReadinessRows(mailReadiness)
-  const legacyMailRows = legacyMailReadinessRows(mailReadiness)
+  const emailProviderConfigured = Boolean(process.env.RESEND_API_KEY)
+  const platformFallbackConfigured = Boolean(process.env.PLATFORM_FALLBACK_FROM_EMAIL || process.env.DEFAULT_FROM_EMAIL || process.env.RESEND_FROM_EMAIL)
+  const effectiveMailReadiness = mailReadiness.map((row) => {
+    const issues = valueList(row.issues)
+    if (!emailProviderConfigured) {
+      return { ...row, can_send: false, issues: [...issues, 'RESEND_API_KEY saknas i miljövariabler'] }
+    }
+    if (platformFallbackConfigured || !row.requires_platform_fallback) return row
+    return {
+      ...row,
+      can_send: false,
+      issues: [...issues, 'Platformens fallback-avsändare saknas i miljövariabler'],
+    }
+  })
+  const mailProblems = effectiveMailReadiness.filter((row) => row.can_send === false && row.enabled !== false)
+  const canonicalMailRows = canonicalMailReadinessRows(effectiveMailReadiness)
+  const legacyMailRows = legacyMailReadinessRows(effectiveMailReadiness)
 
   return (
     <section id="tenant-platform-controls" className="space-y-6">

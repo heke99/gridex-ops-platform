@@ -4,10 +4,9 @@ import {
   createCommunicationLog,
   findCommunicationLogByIdempotencyKey,
   markCommunicationFailed,
-  markCommunicationSent,
+  replaceCommunicationLog,
 } from './communicationLogs'
 import { getCompanyEmailTemplate } from './emailTemplates'
-import { sendApplicationEmail } from './sendApplicationEmail'
 import { enqueueTenantEmail } from './emailOutbox'
 import { renderEmailTemplate, type EmailTemplateVariables } from './templateRenderer'
 
@@ -45,6 +44,22 @@ function isLegalOrCritical(input: SendCompanyEmailInput) {
     .includes(input.eventKey ?? input.templateKey)
 }
 
+async function communicationLogHasActiveOutbox(logId: string) {
+  const { data, error } = await supabaseService
+    .from('tenant_email_outbox')
+    .select('id')
+    .eq('communication_log_id', logId)
+    .in('status', ['queued', 'processing', 'sent'])
+    .limit(1)
+
+  if (error) {
+    if (['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) return false
+    throw error
+  }
+
+  return Boolean(data?.length)
+}
+
 async function isEventRuleEnabled(companyId: string, eventKey: string | null | undefined, templateKey: string) {
   if (!eventKey || eventKey === 'test_email') return true
 
@@ -71,16 +86,25 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   const idempotencyKey = defaultEmailIdempotencyKey(input)
   const existingLog = await findCommunicationLogByIdempotencyKey(input.companyId, idempotencyKey)
 
-  if (existingLog && ['queued', 'sent', 'delivered'].includes(existingLog.status)) {
+  if (existingLog && ['sent', 'delivered'].includes(existingLog.status)) {
     return { ok: true, duplicate: true, log: existingLog, senderMode: existingLog.sender_mode ?? 'unknown' }
   }
+
+  if (existingLog?.status === 'queued' && await communicationLogHasActiveOutbox(existingLog.id)) {
+    return { ok: true, duplicate: true, log: existingLog, senderMode: existingLog.sender_mode ?? 'unknown' }
+  }
+
+  const reusableLog = existingLog && !['sent', 'delivered'].includes(existingLog.status) ? existingLog : null
+  const writeLog = (payload: Parameters<typeof createCommunicationLog>[0]) => reusableLog
+    ? replaceCommunicationLog(reusableLog.id, payload)
+    : createCommunicationLog(payload)
 
   let sender: Awaited<ReturnType<typeof getEffectiveSender>>
   try {
     sender = await getEffectiveSender(input.companyId, { legalOrCritical, requireSendReady: true })
   } catch (error) {
     const message = cleanError(error)
-    const log = await createCommunicationLog({
+    const log = await writeLog({
       companyId: input.companyId,
       customerId: input.customerId ?? null,
       siteId: input.siteId ?? null,
@@ -108,7 +132,7 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   const allowed = await isEventRuleEnabled(input.companyId, input.eventKey, input.templateKey)
 
   if (!allowed) {
-    const log = await createCommunicationLog({
+    const log = await writeLog({
       companyId: input.companyId,
       customerId: input.customerId ?? null,
       siteId: input.siteId ?? null,
@@ -138,7 +162,7 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   const template = await getCompanyEmailTemplate(input.companyId, input.templateKey)
   if (!template) {
     const message = `E-postmallen ${input.templateKey} hittades inte eller är inaktiv.`
-    const log = await createCommunicationLog({
+    const log = await writeLog({
       companyId: input.companyId,
       customerId: input.customerId ?? null,
       siteId: input.siteId ?? null,
@@ -177,7 +201,7 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
     updated_at: template.updated_at,
   }
 
-  const log = await createCommunicationLog({
+  const log = await writeLog({
     companyId: input.companyId,
     customerId: input.customerId ?? null,
     siteId: input.siteId ?? null,
@@ -222,13 +246,20 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   try {
     await enqueueTenantEmail({
       companyId: input.companyId,
+      customerId: input.customerId ?? null,
+      communicationLogId: log.id,
       to: input.to,
+      from: sender.from,
+      replyTo: sender.replyTo ?? null,
       subject: rendered.subject,
-      templateKey: input.templateKey,
-      payload: {
-        html: rendered.html,
-        text: rendered.text,
-        variables: input.variables ?? {},
+      html: rendered.html,
+      text: rendered.text,
+      emailType: input.eventKey ?? input.templateKey,
+      brandingSnapshot: {
+        sender_mode: sender.mode,
+        sender_email: sender.senderEmail,
+        from_name: sender.fromName ?? null,
+        domain_verified_at: sender.domainVerifiedAt ?? null,
       },
       requestId: null,
       traceId: null,

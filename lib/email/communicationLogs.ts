@@ -100,6 +100,47 @@ export async function createCommunicationLog(input: CreateCommunicationLogInput)
   return data as CommunicationLog
 }
 
+export async function replaceCommunicationLog(logId: string, input: CreateCommunicationLogInput) {
+  const status = input.status ?? 'queued'
+  const { data, error } = await supabaseService
+    .from('communication_logs')
+    .update({
+      customer_id: input.customerId ?? null,
+      site_id: input.siteId ?? null,
+      metering_point_id: input.meteringPointId ?? null,
+      channel: 'email',
+      event_key: input.eventKey ?? null,
+      template_key: input.templateKey ?? null,
+      recipient_email: input.recipientEmail,
+      sender_email: input.senderEmail ?? null,
+      reply_to_email: input.replyToEmail ?? null,
+      subject: input.subject ?? null,
+      sender_mode: input.senderMode ?? null,
+      from_name: input.fromName ?? null,
+      domain_verified_at: input.domainVerifiedAt ?? null,
+      template_version: input.templateVersion ?? null,
+      status,
+      provider: input.provider ?? 'resend',
+      created_by: input.createdBy ?? null,
+      error_message: input.errorMessage ?? null,
+      customer_number: input.customerNumber ?? null,
+      external_customer_id: input.externalCustomerId ?? null,
+      contract_id: input.contractId ?? null,
+      metadata: input.metadata ?? {},
+      provider_message_id: null,
+      sent_at: null,
+      delivered_at: null,
+      bounced_at: null,
+      failed_at: status === 'failed' ? new Date().toISOString() : null,
+    })
+    .eq('id', logId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as CommunicationLog
+}
+
 export async function findCommunicationLogByIdempotencyKey(companyId: string, idempotencyKey: string): Promise<CommunicationLog | null> {
   const { data, error } = await supabaseService
     .from('communication_logs')

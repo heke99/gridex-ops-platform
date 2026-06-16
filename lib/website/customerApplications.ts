@@ -2387,6 +2387,7 @@ export async function processWebsiteCustomerApplication(input: {
 
     const warnings: string[] = [...readiness.warnings, ...(gridOwnerRequest?.warnings ?? [])]
     let communicationResults: unknown[] = []
+    let triggeredEmailEvents: string[] = []
 
     const email = normalizedEmail(body.customer.email)
     if (email) {
@@ -2407,26 +2408,31 @@ export async function processWebsiteCustomerApplication(input: {
         })
         await seedDefaultEmailTemplates(input.client.company_id).catch(() => null)
         await seedDefaultEmailEventRules(input.client.company_id).catch(() => null)
-        // Legacy webhook/event names such as contract.cooling_off_sent remain supported by outbox/docs,
-        // but website intake sends only the canonical contract.application_received customer email.
-        communicationResults = await Promise.all([
+        const contractLifecycleMailReady = Boolean(contract?.id && readiness.canSendAgreementConfirmation)
+        triggeredEmailEvents = [
+          'contract.application_received',
+          ...(contractLifecycleMailReady ? ['contract.confirmation_sent', 'contract.cooling_off_sent'] : []),
+        ]
+
+        communicationResults = await Promise.all(triggeredEmailEvents.map((eventKey) =>
           triggerEmailEvent({
             companyId: input.client.company_id,
             customerId: resolvedCustomerResult.customer.id,
             siteId: site?.id ?? null,
             meteringPointId: meteringPoint?.id ?? null,
-            eventKey: 'contract.application_received',
+            eventKey,
             to: email,
             variables,
-            idempotencyKey: `website_application:${application.id}:contract.application_received`,
+            idempotencyKey: `website_application:${application.id}:${eventKey}`,
             metadata: {
               application_id: application.id,
+              contract_id: contract?.id ?? null,
               external_customer_id: externalCustomerId,
               customer_number: customerNumber,
               source: 'website_customer_applications',
             },
-          }).catch((error) => [{ ok: false, error: errorMessage(error) }]),
-        ])
+          }).catch((error) => [{ ok: false, eventKey, error: errorMessage(error) }])
+        ))
 
         const flattenedResults = communicationResults.flatMap((item) => Array.isArray(item) ? item : [item]) as Array<{ ok?: boolean; error?: unknown }>
         if (flattenedResults.some((result) => result?.ok === false)) {
@@ -2477,25 +2483,30 @@ export async function processWebsiteCustomerApplication(input: {
       }
 
       if (contract?.id) {
-        await emitDomainEvent({
-          companyId: input.client.company_id,
-          eventType: 'contract.application_received',
-          aggregateType: 'customer_contract',
-          aggregateId: contract.id,
-          subjectCustomerId: resolvedCustomerResult.customer.id,
-          source: 'website_customer_applications',
-          idempotencyKey: input.idempotencyKey ? `website-contract:${input.client.company_id}:${input.idempotencyKey}` : null,
-          payload: {
-            customer_number: customerNumber,
-            external_customer_id: externalCustomerId,
-            contract_id: contract.id,
-            application_id: application.id,
-            communication_results: communicationResults,
-            application_status: applicationStatus,
-            missing_fields: readiness.missingFields,
-            next_step: readiness.nextStep,
-          },
-        })
+        const contractLifecycleEvents = readiness.canSendAgreementConfirmation
+          ? ['contract.application_received', 'contract.confirmation_sent', 'contract.cooling_off_sent']
+          : ['contract.application_received']
+        for (const eventType of contractLifecycleEvents) {
+          await emitDomainEvent({
+            companyId: input.client.company_id,
+            eventType,
+            aggregateType: 'customer_contract',
+            aggregateId: contract.id,
+            subjectCustomerId: resolvedCustomerResult.customer.id,
+            source: 'website_customer_applications',
+            idempotencyKey: input.idempotencyKey ? `website-contract:${eventType}:${input.client.company_id}:${input.idempotencyKey}` : null,
+            payload: {
+              customer_number: customerNumber,
+              external_customer_id: externalCustomerId,
+              contract_id: contract.id,
+              application_id: application.id,
+              communication_results: communicationResults,
+              application_status: applicationStatus,
+              missing_fields: readiness.missingFields,
+              next_step: readiness.nextStep,
+            },
+          })
+        }
       }
     } catch (error) {
       warnings.push('domain_event_pending')
@@ -2519,7 +2530,7 @@ export async function processWebsiteCustomerApplication(input: {
       ...responsePayload,
       application_id: application.id,
       communication: {
-        triggered: email ? ['contract.application_received'] : [],
+        triggered: email ? triggeredEmailEvents : [],
         results: communicationResults,
       },
     }, warnings)

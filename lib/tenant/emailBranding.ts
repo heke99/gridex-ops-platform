@@ -1,6 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { getBaseAppUrl } from '@/lib/auth/urls'
-import { sendTransactionalEmail } from '@/lib/auth/smtpTransactionalEmail'
+import { getEffectiveSender } from '@/lib/email/companyEmailSettings'
+import { enqueueTenantEmail, sendTenantEmailNow } from '@/lib/email/emailOutbox'
 
 export type TenantEmailBranding = {
   companyId: string
@@ -136,76 +137,30 @@ export async function queueTenantEmail(input: {
   redirectUrl?: string | null
   actorUserId?: string | null
 }) {
-  const branding = await getTenantEmailBranding(input.companyId)
-  const { data, error } = await supabaseService
-    .from('tenant_email_outbox')
-    .insert({
-      company_id: input.companyId,
-      customer_id: input.customerId ?? null,
-      customer_case_id: input.customerCaseId ?? null,
-      email_type: input.emailType,
-      to_email: input.toEmail,
-      from_email: branding.senderEmail,
-      reply_to_email: branding.supportEmail,
-      subject: input.subject,
-      html_body: input.htmlBody,
-      text_body: input.textBody ?? null,
+  const [branding, sender] = await Promise.all([
+    getTenantEmailBranding(input.companyId),
+    getEffectiveSender(input.companyId, { requireSendReady: true }),
+  ])
+
+  return enqueueTenantEmail({
+    companyId: input.companyId,
+    customerId: input.customerId ?? null,
+    customerCaseId: input.customerCaseId ?? null,
+    emailType: input.emailType,
+    to: input.toEmail,
+    from: sender.from,
+    replyTo: sender.replyTo ?? branding.supportEmail,
+    subject: input.subject,
+    html: input.htmlBody,
+    text: input.textBody ?? null,
+    brandingSnapshot: {
+      ...branding,
+      sender_mode: sender.mode,
+      sender_email: sender.senderEmail,
       redirect_url: input.redirectUrl ?? null,
-      branding_snapshot: branding,
       created_by: input.actorUserId ?? null,
-    })
-    .select('*')
-    .single()
-
-  if (error) throw error
-  return data as { id: string }
-}
-
-export async function sendTenantEmailNow(outboxId: string) {
-  const { data, error } = await supabaseService
-    .from('tenant_email_outbox')
-    .select('*')
-    .eq('id', outboxId)
-    .maybeSingle()
-
-  if (error) throw error
-  if (!data) throw new Error('E-postutskicket hittades inte.')
-
-  try {
-    const result = await sendTransactionalEmail({
-      to: data.to_email,
-      from: data.from_email ?? undefined,
-      replyTo: data.reply_to_email ?? undefined,
-      subject: data.subject,
-      html: data.html_body,
-      text: data.text_body ?? undefined,
-    })
-
-    await supabaseService
-      .from('tenant_email_outbox')
-      .update({
-        status: 'sent',
-        provider_message_id: typeof result.messageId === 'string' ? result.messageId : null,
-        sent_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', outboxId)
-
-    return { ok: true, messageId: result.messageId ?? null }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    await supabaseService
-      .from('tenant_email_outbox')
-      .update({
-        status: 'failed',
-        failure_reason: message,
-        failed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', outboxId)
-
-    return { ok: false, error: message }
-  }
+    },
+  })
 }
 
 export async function queueAndTrySendTenantEmail(input: Parameters<typeof queueTenantEmail>[0]) {

@@ -5,11 +5,11 @@ import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import { getEffectiveSender, upsertCompanyEmailSettings } from '@/lib/email/companyEmailSettings'
-import { createCommunicationLog, markCommunicationFailed, markCommunicationSent } from '@/lib/email/communicationLogs'
+import { createCommunicationLog, markCommunicationFailed } from '@/lib/email/communicationLogs'
 import { checkDomainVerification, startDomainVerification } from '@/lib/email/domainVerification'
 import { updateEmailEventRule } from '@/lib/email/emailEvents'
 import { DEFAULT_EMAIL_TEMPLATES, resetEmailTemplateToDefault, upsertCompanyEmailTemplate } from '@/lib/email/emailTemplates'
-import { getEmailProvider } from '@/lib/email/providers'
+import { enqueueTenantEmail, sendTenantEmailNow } from '@/lib/email/emailOutbox'
 import { supabaseService } from '@/lib/supabase/service'
 
 function text(value: FormDataEntryValue | null) {
@@ -178,15 +178,24 @@ export async function sendCompanyTestEmailAction(formData: FormData) {
     })
 
     try {
-      const result = await getEmailProvider().sendEmail({
-        from: sender.from,
+      const outbox = await enqueueTenantEmail({
+        companyId,
+        communicationLogId: log.id,
+        emailType: 'test_email',
         to,
-        replyTo: sender.replyTo,
+        from: sender.from,
+        replyTo: sender.replyTo ?? null,
         subject,
         html,
         text: 'Detta är ett testutskick för bolagets e-postkonfiguration. Om du har fått detta fungerar avsändaren för icke-kritiska testutskick.',
+        brandingSnapshot: {
+          sender_mode: sender.mode,
+          sender_email: sender.senderEmail,
+          from_name: sender.fromName ?? null,
+        },
       })
-      await markCommunicationSent(log.id, result.providerMessageId)
+      const result = await sendTenantEmailNow(outbox.id)
+      if (!result.ok) throw new Error(result.error ?? 'Utskicket kunde inte skickas.')
     } catch (error) {
       console.warn('[email] test email failed', error)
       const message = actionErrorMessage(error, 'Utskicket kunde inte skickas. Kontrollera e-postinställningarna och försök igen.')
