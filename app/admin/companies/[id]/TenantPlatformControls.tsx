@@ -65,6 +65,23 @@ type PublicOffer = {
   updated_at: string
 }
 
+type PublicOfferApiDiagnostic = {
+  id: string
+  company_id: string
+  offer_code: string | null
+  public_name: string
+  publication_status: string | null
+  website_enabled: boolean | null
+  is_public: boolean | null
+  is_archived: boolean | null
+  matched_api_client_count: number | null
+  published_legal_type_count: number | null
+  price_book_status: string | null
+  api_blockers: string[] | null
+  api_visible: boolean | null
+  endpoint_path: string | null
+}
+
 type ApiClient = {
   id: string
   name: string
@@ -163,7 +180,7 @@ async function safeRows<T>(table: string, companyId: string, select: string, ord
 }
 
 export default async function TenantPlatformControls({ companyId, companyName }: { companyId: string; companyName: string }) {
-  const [offers, internalContracts, pricePlans, priceVersions, legalBundles, priceBooks, apiClients, mailReadiness] = await Promise.all([
+  const [offers, internalContracts, pricePlans, priceVersions, legalBundles, priceBooks, apiClients, offerApiDiagnostics, mailReadiness] = await Promise.all([
     safeRows<PublicOffer>('public_contract_offers', companyId, 'id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at', 'sort_order'),
     safeRows<InternalContractOffer>('contract_offers', companyId, 'id,name,status,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at', 'updated_at'),
     safeRows<PricePlan>('price_plans', companyId, 'id,name,pricing_model,status', 'name'),
@@ -171,12 +188,14 @@ export default async function TenantPlatformControls({ companyId, companyName }:
     safeRows<LegalBundle>('legal_bundles', companyId, 'id,name,status,updated_at', 'updated_at'),
     safeRows<PriceBook>('price_books', companyId, 'id,name,status,valid_from,valid_to,updated_at', 'updated_at'),
     safeRows<ApiClient>('integration_api_clients', companyId, 'id,name,status,key_prefix,scopes,permission_groups,allowed_origins,last_used_at,created_at', 'created_at'),
+    safeRows<PublicOfferApiDiagnostic>('gridex_public_contract_offer_api_diagnostics_v', companyId, 'id,company_id,offer_code,public_name,publication_status,website_enabled,is_public,is_archived,matched_api_client_count,published_legal_type_count,price_book_status,api_blockers,api_visible,endpoint_path,sort_order', 'sort_order'),
     safeRows<MailReadiness>('gridex_tenant_email_dispatch_readiness_v', companyId, 'event_key,template_key,enabled,template_name,template_active,can_send,issues', 'event_key'),
   ])
 
+  const diagnosticsByOfferId = new Map(offerApiDiagnostics.map((row) => [row.id, row]))
   const activeOffers = offers.filter((offer) => offer.publication_status === 'published' && offer.website_enabled && !offer.is_archived)
+  const apiVisibleOffers = offerApiDiagnostics.filter((row) => row.api_visible === true)
   const internalActiveContracts = internalContracts.filter((contract) => contract.status === 'active' && contract.is_active !== false)
-  const activeApiClients = apiClients.filter((client) => client.status === 'active')
   const mailProblems = mailReadiness.filter((row) => row.can_send === false && row.enabled !== false)
 
   return (
@@ -190,7 +209,7 @@ export default async function TenantPlatformControls({ companyId, companyName }:
         <div className="mt-4 grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Interna aktiva avtal</p><p className="mt-1 text-2xl font-black text-slate-950">{internalActiveContracts.length}</p></div>
           <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Publicerade hemsideavtal</p><p className="mt-1 text-2xl font-black text-slate-950">{activeOffers.length}</p></div>
-          <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Aktiva API-klienter</p><p className="mt-1 text-2xl font-black text-slate-950">{activeApiClients.length}</p></div>
+          <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Skickas via API</p><p className="mt-1 text-2xl font-black text-slate-950">{apiVisibleOffers.length}</p></div>
           <div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-xs font-bold text-emerald-900">Mail att åtgärda</p><p className="mt-1 text-2xl font-black text-slate-950">{mailProblems.length}</p></div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-black">
@@ -235,8 +254,9 @@ export default async function TenantPlatformControls({ companyId, companyName }:
           <h3 className="text-lg font-black text-slate-950">Skapa hemsideavtal för {companyName}</h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">Publicering blockeras om prisplan, prisversion, villkor, publik pristext eller korrekt mixfördelning saknas. Om juridiskt paket eller prislista saknas försöker systemet skapa dem från publicerade juridiska texter och vald prisversion.</p>
           <div className="mt-3 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold text-slate-700">
-            <div>Juridiska paket: <strong>{legalBundles.length}</strong> · Prislistor: <strong>{priceBooks.length}</strong></div>
+            <div>Juridiska paket: <strong>{legalBundles.length}</strong> · Prislistor: <strong>{priceBooks.length}</strong> · Avtal som API skickar ut: <strong>{apiVisibleOffers.length}</strong></div>
             <div>För att publicera krävs publicerade juridiska texter för villkor, integritet, ångerrätt, fullmakt och prisvillkor samt en publicerbar prisversion.</div>
+            <div>Endpoint: <code className="rounded bg-white px-1 py-0.5">GET /api/v1/website/public-contracts?customer_type=private</code>. Tenant väljs alltid från API-klientens bolag, inte från frontend.</div>
           </div>
           <form action={saveTenantPublicContractOfferAction} className="mt-5 grid gap-3">
             <input type="hidden" name="company_id" value={companyId} />
@@ -325,6 +345,8 @@ export default async function TenantPlatformControls({ companyId, companyName }:
             {offers.map((offer) => {
               const issues = valueList(offer.readiness_issues)
               const blockers = valueList(offer.readiness_blockers)
+              const apiDiagnostic = diagnosticsByOfferId.get(offer.id)
+              const apiBlockers = valueList(apiDiagnostic?.api_blockers)
               return (
                 <article key={offer.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -336,6 +358,7 @@ export default async function TenantPlatformControls({ companyId, companyName }:
                     <div className="flex flex-wrap gap-2">
                       {badge(offer.is_public ? 'green' : offer.publication_status === 'draft' ? 'amber' : offer.publication_status === 'archived' ? 'slate' : 'red', statusLabel(offer.publication_status))}
                       {offer.website_enabled ? badge('green', 'Syns på hemsida') : badge('slate', 'Dold från hemsida')}
+                      {apiDiagnostic?.api_visible ? badge('green', 'API skickar ut') : badge('amber', 'Syns inte i API')}
                     </div>
                   </div>
                   <div className="mt-3 grid gap-2 text-xs font-semibold text-slate-600 md:grid-cols-3">
@@ -350,6 +373,11 @@ export default async function TenantPlatformControls({ companyId, companyName }:
                   {offer.readiness_status ? <div className="mt-3 text-xs font-bold text-slate-600">Readiness: {offer.readiness_status}</div> : null}
                   {issues.length > 0 ? <ul className="mt-3 list-disc rounded-2xl border border-amber-200 bg-amber-50 p-4 pl-8 text-xs font-semibold text-amber-900">{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : null}
                   {blockers.length > 0 ? <ul className="mt-3 list-disc rounded-2xl border border-red-200 bg-red-50 p-4 pl-8 text-xs font-semibold text-red-900">{blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul> : null}
+                  <div className={`mt-3 rounded-2xl border p-3 text-xs font-semibold ${apiDiagnostic?.api_visible ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+                    <strong>{apiDiagnostic?.api_visible ? 'API-status: skickas ut till tenantens hemsida.' : 'API-status: skickas inte ut ännu.'}</strong>
+                    <div className="mt-1">Endpoint: {apiDiagnostic?.endpoint_path ?? '/api/v1/website/public-contracts'} · API-klienter med rätt behörighet: {apiDiagnostic?.matched_api_client_count ?? 0} · juridiska texter i paket: {apiDiagnostic?.published_legal_type_count ?? 0}/5</div>
+                    {apiBlockers.length > 0 ? <ul className="mt-2 list-disc pl-5">{apiBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul> : null}
+                  </div>
                   <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
                     <strong className="text-slate-800">Radera säkert:</strong> oanvända avtal kan tas bort. Avtal som redan används i signerad historik arkiveras i stället, så snapshots och kundhistorik inte förstörs.
                   </div>

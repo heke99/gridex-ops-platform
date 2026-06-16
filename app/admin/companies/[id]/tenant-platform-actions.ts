@@ -129,6 +129,36 @@ function isMissingSchemaError(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST200', 'PGRST201', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist|relationship/i.test(message)
 }
 
+async function legalBundleHasRequiredTexts(companyId: string, legalBundleId: string): Promise<boolean> {
+  const { data: items, error: itemsError } = await supabaseService
+    .from('legal_bundle_items')
+    .select('legal_text_version_id,type')
+    .eq('legal_bundle_id', legalBundleId)
+
+  if (itemsError) {
+    if (isMissingSchemaError(itemsError)) return true
+    throw itemsError
+  }
+
+  const ids = Array.from(new Set(((items ?? []) as Array<{ legal_text_version_id?: string | null }>).map((row) => row.legal_text_version_id).filter(Boolean))) as string[]
+  if (ids.length === 0) return false
+
+  const { data: versions, error: versionsError } = await supabaseService
+    .from('legal_text_versions')
+    .select('id,type')
+    .eq('company_id', companyId)
+    .eq('status', 'published')
+    .in('id', ids)
+
+  if (versionsError) {
+    if (isMissingSchemaError(versionsError)) return true
+    throw versionsError
+  }
+
+  const present = new Set((versions ?? []).map((row) => row.type))
+  return REQUIRED_PUBLIC_LEGAL_TYPES.every((type) => present.has(type))
+}
+
 async function getActiveLegalBundle(companyId: string): Promise<string | null> {
   const { data, error } = await supabaseService
     .from('legal_bundles')
@@ -136,14 +166,17 @@ async function getActiveLegalBundle(companyId: string): Promise<string | null> {
     .eq('company_id', companyId)
     .in('status', ['published', 'active'])
     .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(10)
 
   if (error) {
     if (isMissingSchemaError(error)) return null
     throw error
   }
-  return data?.id ?? null
+
+  for (const row of (data ?? []) as Array<{ id: string }>) {
+    if (await legalBundleHasRequiredTexts(companyId, row.id)) return row.id
+  }
+  return null
 }
 
 async function ensurePublishedLegalBundle(companyId: string, publicName: string): Promise<CanonicalReferenceResult> {

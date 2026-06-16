@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
       data: offers.map(publicContractResponse),
       tenant: {
         authenticated: true,
+        company_id: auth.client.company_id,
+        api_client_id: auth.client.id,
       },
     })
   } catch (error) {

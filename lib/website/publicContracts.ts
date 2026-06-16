@@ -277,13 +277,22 @@ export function publicContractResponse(offer: PublicContractOffer) {
 }
 
 
+const REQUIRED_PUBLIC_LEGAL_TYPES = ['terms', 'privacy_policy', 'withdrawal', 'power_of_attorney', 'price_terms'] as const
+
+function hasAllRequiredLegalVersions(legalVersions: PublicLegalTextVersion[] | null): boolean {
+  if (legalVersions === null) return true
+  const required = new Set<string>(REQUIRED_PUBLIC_LEGAL_TYPES)
+  for (const row of legalVersions) required.delete(row.type)
+  return required.size === 0
+}
+
 async function listPublishedLegalVersions(companyId: string): Promise<PublicLegalTextVersion[] | null> {
   const { data, error } = await supabaseService
     .from('legal_text_versions')
     .select('id,type,version,title,published_at')
     .eq('company_id', companyId)
     .eq('status', 'published')
-    .in('type', ['terms', 'privacy_policy', 'withdrawal', 'power_of_attorney', 'price_terms'])
+    .in('type', [...REQUIRED_PUBLIC_LEGAL_TYPES])
     .order('type', { ascending: true })
 
   if (error) {
@@ -294,56 +303,118 @@ async function listPublishedLegalVersions(companyId: string): Promise<PublicLega
   return (data ?? []) as PublicLegalTextVersion[]
 }
 
-function offerWithLegalVersions(offer: PublicContractOffer, legalVersions: PublicLegalTextVersion[] | null): PublicContractOffer | null {
-  if (legalVersions === null) return offer
-  const required = new Set(['terms', 'privacy_policy', 'withdrawal', 'power_of_attorney', 'price_terms'])
-  for (const row of legalVersions) required.delete(row.type)
-  if (required.size > 0) return null
+async function listBundleLegalVersions(input: {
+  companyId: string
+  legalBundleId: string | null | undefined
+  companyFallback: PublicLegalTextVersion[] | null
+}): Promise<PublicLegalTextVersion[] | null> {
+  if (!input.legalBundleId) return input.companyFallback
+
+  const items = await supabaseService
+    .from('legal_bundle_items')
+    .select('legal_text_version_id,type,sort_order')
+    .eq('legal_bundle_id', input.legalBundleId)
+    .order('sort_order', { ascending: true })
+
+  if (items.error) {
+    if (missingSchema(items.error)) return input.companyFallback
+    throw items.error
+  }
+
+  const itemRows = (items.data ?? []) as Array<{ legal_text_version_id?: string | null }>
+  const ids = Array.from(new Set(itemRows.map((row) => clean(row.legal_text_version_id)).filter(Boolean))) as string[]
+  if (ids.length === 0) return input.companyFallback
+
+  const versions = await supabaseService
+    .from('legal_text_versions')
+    .select('id,type,version,title,published_at')
+    .eq('company_id', input.companyId)
+    .eq('status', 'published')
+    .in('id', ids)
+
+  if (versions.error) {
+    if (missingSchema(versions.error)) return input.companyFallback
+    throw versions.error
+  }
+
+  const versionRows = (versions.data ?? []) as PublicLegalTextVersion[]
+  if (hasAllRequiredLegalVersions(versionRows)) return versionRows
+  return input.companyFallback
+}
+
+async function offerWithLegalVersions(input: {
+  offer: PublicContractOffer
+  companyLegalVersions: PublicLegalTextVersion[] | null
+}): Promise<PublicContractOffer | null> {
+  const legalVersions = await listBundleLegalVersions({
+    companyId: input.offer.company_id,
+    legalBundleId: input.offer.legal_bundle_id,
+    companyFallback: input.companyLegalVersions,
+  })
+  if (!hasAllRequiredLegalVersions(legalVersions)) return null
   return {
-    ...offer,
-    legal_versions: legalVersions,
+    ...input.offer,
+    legal_versions: legalVersions ?? undefined,
     metadata: {
-      ...offer.metadata,
-      legal_versions: legalVersions,
+      ...input.offer.metadata,
+      legal_versions: legalVersions ?? undefined,
     },
   }
+}
+
+function isWebsitePublishedRow(row: Record<string, unknown>): boolean {
+  const status = clean(row.publication_status)
+  const hasStatusColumn = status !== null
+  const archived = row.is_archived === true || status === 'archived'
+  const websiteEnabled = row.website_enabled !== false
+
+  if (archived || !websiteEnabled) return false
+  if (hasStatusColumn) return status === 'published'
+  return row.is_public === true
+}
+
+async function appendReadyOffer(input: {
+  result: PublicContractOffer[]
+  offer: PublicContractOffer
+  companyLegalVersions: PublicLegalTextVersion[] | null
+  customerType?: string | null
+}) {
+  if (!isCurrentlyValid(input.offer) || !customerTypeAllowed(input.offer, input.customerType)) return
+
+  const readiness = await assessPublicOfferReadiness({
+    companyId: input.offer.company_id,
+    offer: input.offer as unknown as { legal_bundle_id?: string | null; price_book_id?: string | null },
+  })
+  if (!readiness.isReady) return
+
+  const withLegal = await offerWithLegalVersions({ offer: input.offer, companyLegalVersions: input.companyLegalVersions })
+  if (!withLegal) return
+
+  withLegal.metadata = { ...withLegal.metadata, readiness_status: 'ready', readiness_blockers: [] }
+  input.result.push(withLegal)
 }
 
 export async function listPublicContractOffers(input: {
   client: IntegrationApiClient
   customerType?: string | null
 }): Promise<PublicContractOffer[]> {
-  const legalVersions = await listPublishedLegalVersions(input.client.company_id)
+  const companyLegalVersions = await listPublishedLegalVersions(input.client.company_id)
   const primary = await supabaseService
     .from('public_contract_offers')
     .select('*')
     .eq('company_id', input.client.company_id)
-    .eq('is_public', true)
     .eq('is_archived', false)
     .order('sort_order', { ascending: true })
     .order('public_name', { ascending: true })
 
   if (!primary.error) {
-    const mapped = ((primary.data ?? []) as Array<Record<string, unknown>>)
-      .map(mapOfferRow)
-      .map((offer) => offerWithLegalVersions(offer, legalVersions))
-      .filter((offer): offer is PublicContractOffer => Boolean(offer && isCurrentlyValid(offer) && customerTypeAllowed(offer, input.customerType)))
-    // Assess readiness for each offer. If the readiness table does not exist yet
-    // (e.g. before migrations run) the function will report a blocker instead
-    // of throwing. Offers that are not ready will not be returned.
     const result: PublicContractOffer[] = []
-    for (const offer of mapped) {
-      const readiness = await assessPublicOfferReadiness({
-        companyId: input.client.company_id,
-        offer: offer as unknown as { legal_bundle_id?: string | null; price_book_id?: string | null },
-      })
-      if (readiness.isReady) {
-        // attach readiness info to metadata for debugging/admin UI
-        offer.metadata = { ...offer.metadata, readiness_status: 'ready', readiness_blockers: [] }
-        result.push(offer)
-      } else {
-        continue
-      }
+    const offers = ((primary.data ?? []) as Array<Record<string, unknown>>)
+      .filter(isWebsitePublishedRow)
+      .map(mapOfferRow)
+
+    for (const offer of offers) {
+      await appendReadyOffer({ result, offer, companyLegalVersions, customerType: input.customerType })
     }
     return result
   }
@@ -362,21 +433,13 @@ export async function listPublicContractOffers(input: {
     throw fallback.error
   }
 
+  const result: PublicContractOffer[] = []
   const offers = ((fallback.data ?? []) as PricePlanVersionRow[])
     .map(offerFromSnapshot)
-    .filter((offer): offer is PublicContractOffer => Boolean(offer && customerTypeAllowed(offer, input.customerType)))
-    .map((offer) => offerWithLegalVersions(offer, legalVersions))
     .filter((offer): offer is PublicContractOffer => Boolean(offer))
-  const result: PublicContractOffer[] = []
+
   for (const offer of offers) {
-    const readiness = await assessPublicOfferReadiness({
-      companyId: input.client.company_id,
-      offer: offer as unknown as { legal_bundle_id?: string | null; price_book_id?: string | null },
-    })
-    if (readiness.isReady) {
-      offer.metadata = { ...offer.metadata, readiness_status: 'ready', readiness_blockers: [] }
-      result.push(offer)
-    }
+    await appendReadyOffer({ result, offer, companyLegalVersions, customerType: input.customerType })
   }
   return result.sort((a, b) => a.sort_order - b.sort_order || a.public_name.localeCompare(b.public_name, 'sv'))
 }
