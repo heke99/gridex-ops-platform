@@ -65,17 +65,13 @@ function selectedMessageFamilies(formData: FormData): MessageFamily[] {
     .getAll("message_family")
     .map((value) => String(value).trim().toUpperCase())
     .filter(Boolean);
-  const families = Array.from(
+  return Array.from(
     new Set(
       values.filter((value): value is MessageFamily =>
         ["PRODAT", "UTILTS"].includes(value),
       ),
     ),
   );
-  if (families.length === 0) {
-    throw new Error("Välj minst PRODAT eller UTILTS för production route.");
-  }
-  return families;
 }
 
 async function assertPlatformCompanyExists(companyId: string): Promise<void> {
@@ -93,7 +89,7 @@ async function getProductionActorSetting(companyId: string): Promise<{
   edielId: string;
   senderSubAddress: string | null;
   actorSettingId: string;
-}> {
+} | null> {
   const { data, error } = await supabaseService
     .from("ediel_actor_settings")
     .select(
@@ -111,11 +107,7 @@ async function getProductionActorSetting(companyId: string): Promise<{
   const edielId = String(row?.ediel_id ?? row?.actor_ediel_id ?? "")
     .trim()
     .toUpperCase();
-  if (!row || !edielId) {
-    throw new Error(
-      "Bolaget saknar aktivt production Ediel-ID i ediel_actor_settings. Lägg in Ediel-ID i bolagskortet innan route skapas.",
-    );
-  }
+  if (!row || !edielId) return null;
 
   return {
     edielId,
@@ -247,7 +239,6 @@ async function deactivateExistingProductionFamily(
       .from("ediel_route_profiles")
       .update({
         is_enabled: false,
-        is_active: false,
         production_mode: "superseded",
         updated_by: actorUserId,
         updated_at: new Date().toISOString(),
@@ -347,10 +338,22 @@ export async function createProductionRouteFromWizardAction(
   await assertPlatformCompanyExists(companyId);
 
   const selectedFamilies = selectedMessageFamilies(formData);
+  if (selectedFamilies.length === 0) {
+    redirect(
+      `/admin/platform/go-live/${companyId}/route-wizard?status=blocked&message=${encodeURIComponent("Välj minst PRODAT eller UTILTS för production route.")}`,
+    );
+  }
+
   const [actorSetting, sharedMailbox] = await Promise.all([
     getProductionActorSetting(companyId),
     getSharedProductionMailbox(companyId),
   ]);
+  if (!actorSetting) {
+    redirect(
+      `/admin/platform/go-live/${companyId}/route-wizard?status=blocked&message=${encodeURIComponent("Bolaget saknar aktivt production Ediel-ID i ediel_actor_settings. Lägg in Ediel-ID i bolagskortet innan route skapas.")}`,
+    );
+  }
+
   const frontendSenderEdielId =
     text(formData, "sender_ediel_id")?.toUpperCase() ?? null;
   if (frontendSenderEdielId && frontendSenderEdielId !== actorSetting.edielId) {
@@ -536,23 +539,27 @@ export async function createProductionRouteFromWizardAction(
     .eq("id", companyId);
   if (updateError) throw updateError;
 
-  await supabaseService.from("production_route_wizard_runs").insert({
-    company_id: companyId,
-    status: "created",
-    communication_route_id: created[0]?.routeId ?? null,
-    ediel_route_profile_id: primaryProfileId,
-    blocker_summary: [],
-    payload: {
-      selectedFamilies,
-      senderEdielId,
-      senderSubAddress,
-      created,
-      mailboxId: sharedMailbox.mailboxId,
-      targetEmail,
-      transportMode: sharedMailbox.mode,
-    },
-    created_by: admin.userId,
-  });
+  try {
+    await supabaseService.from("production_route_wizard_runs").insert({
+      company_id: companyId,
+      status: "created",
+      communication_route_id: created[0]?.routeId ?? null,
+      ediel_route_profile_id: primaryProfileId,
+      blocker_summary: [],
+      payload: {
+        selectedFamilies,
+        senderEdielId,
+        senderSubAddress,
+        created,
+        mailboxId: sharedMailbox.mailboxId,
+        targetEmail,
+        transportMode: sharedMailbox.mode,
+      },
+      created_by: admin.userId,
+    });
+  } catch (error) {
+    console.warn("Production route wizard history could not be written", error);
+  }
 
   revalidatePath(`/admin/platform/go-live/${companyId}`);
   revalidatePath(`/admin/platform/go-live/${companyId}/route-wizard`);

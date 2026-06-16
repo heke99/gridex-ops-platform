@@ -405,19 +405,37 @@ type RouteProfileLite = {
   message_standard: string | null
   payload_format: string | null
   encryption_mode: string | null
+  message_family?: string | null
+  receiver_source?: string | null
+  dynamic_receiver_strategy?: string | null
+  mailbox_id?: string | null
+  transport_mode?: string | null
 }
 
 async function listRouteProfilesForCompany(companyId: string, environment: 'test' | 'production'): Promise<RouteProfileLite[]> {
   try {
     const { data, error } = await supabaseService
       .from('ediel_route_profiles')
-      .select('id,communication_route_id,is_enabled,sender_ediel_id,sender_sub_address,receiver_ediel_id,receiver_sub_address,application_reference,mailbox,environment,message_standard,payload_format,encryption_mode')
+      .select('id,communication_route_id,is_enabled,sender_ediel_id,sender_sub_address,receiver_ediel_id,receiver_sub_address,application_reference,mailbox,environment,message_standard,payload_format,encryption_mode,message_family,receiver_source,dynamic_receiver_strategy,mailbox_id,transport_mode')
       .eq('company_id', companyId)
       .eq('environment', environment)
       .order('updated_at', { ascending: false })
 
     if (error) {
       if (isMissingRelationError(error)) return []
+      if (error.code === '42703') {
+        const fallback = await supabaseService
+          .from('ediel_route_profiles')
+          .select('id,communication_route_id,is_enabled,sender_ediel_id,sender_sub_address,receiver_ediel_id,receiver_sub_address,application_reference,mailbox,environment,message_standard,payload_format,encryption_mode')
+          .eq('company_id', companyId)
+          .eq('environment', environment)
+          .order('updated_at', { ascending: false })
+        if (fallback.error) {
+          if (isMissingRelationError(fallback.error) || fallback.error.code === '42703') return []
+          throw fallback.error
+        }
+        return (fallback.data ?? []) as unknown as RouteProfileLite[]
+      }
       throw error
     }
 
@@ -426,6 +444,49 @@ async function listRouteProfilesForCompany(companyId: string, environment: 'test
     if (isMissingRelationError(error)) return []
     throw error
   }
+}
+
+
+type ProductionBrpSetting = { brpEdielId: string | null; brpName: string | null }
+
+async function getProductionBrpSetting(companyId: string): Promise<ProductionBrpSetting | null> {
+  try {
+    const { data, error } = await supabaseService
+      .from('ediel_brp_settings')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('environment', 'production')
+      .order('is_default', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(10)
+
+    if (error) {
+      if (isMissingRelationError(error) || error.code === '42703') return null
+      throw error
+    }
+
+    const rows = ((data ?? []) as Array<Record<string, unknown>>).filter((row) => {
+      const disabled = row.is_active === false || row.is_enabled === false
+      return !disabled && nonEmpty(String(row.brp_ediel_id ?? ''))
+    })
+    const row = rows.find((item) => item.is_default !== false) ?? rows[0] ?? null
+    return row
+      ? {
+          brpEdielId: String(row.brp_ediel_id ?? '').trim() || null,
+          brpName: String(row.brp_name ?? '').trim() || null,
+        }
+      : null
+  } catch (error) {
+    if (isMissingRelationError(error)) return null
+    throw error
+  }
+}
+
+function isDynamicProductionProfile(profile: RouteProfileLite): boolean {
+  const source = normalizeToken(profile.receiver_source)
+  const strategy = normalizeToken(profile.dynamic_receiver_strategy)
+  if (!source && !strategy) return false
+  return source !== 'FIXED_COUNTERPARTY' && source !== 'MANUAL_SUPERADMIN_ONLY'
 }
 
 function normalizeToken(value: string | null | undefined): string {
@@ -475,14 +536,14 @@ async function getDeepRouteValidationIssues(company: ActorTestingCompanyRow): Pr
     if (normalizeToken(profile.receiver_ediel_id) === '91100' || productionCounterparty === '91100') {
       issues.push('Djup route-kontroll: produktionsroute får inte peka mot Edielportalen 91100')
     }
-    if (!normalizeToken(profile.receiver_ediel_id) && !productionCounterparty) {
-      issues.push('Djup route-kontroll: produktionsroute saknar mottagande Ediel-id')
+    if (!normalizeToken(profile.receiver_ediel_id) && !productionCounterparty && !isDynamicProductionProfile(profile)) {
+      issues.push('Djup route-kontroll: produktionsroute saknar dynamisk receiver_source eller fast mottagande Ediel-id')
     }
-    if (!normalizeToken(profile.application_reference) && !productionApplicationReference) {
+    if (!normalizeToken(profile.application_reference)) {
       issues.push('Djup route-kontroll: produktionsroute saknar Application Reference')
     }
-    if (!normalizeToken(profile.mailbox) && !productionMailbox) {
-      issues.push('Djup route-kontroll: produktionsroute saknar mailbox/SMTP')
+    if (!normalizeToken(profile.mailbox) && !normalizeToken(profile.mailbox_id) && !normalizeToken(profile.transport_mode) && !productionMailbox) {
+      issues.push('Djup route-kontroll: produktionsroute saknar mailbox/transport')
     }
   }
 
@@ -545,9 +606,7 @@ function goLiveBlockersForCompany(params: {
   if (params.prodatPassed < params.prodatTotal) blockers.push(`PRODAT-tester ej kompletta (${params.prodatPassed}/${params.prodatTotal})`)
   if (params.utiltsPassed < params.utiltsTotal) blockers.push(`UTILTS-tester ej kompletta (${params.utiltsPassed}/${params.utiltsTotal})`)
   if (['paused', 'suspended', 'archived', 'pending_deletion', 'deleted_test_only'].includes(String(company.status ?? ''))) blockers.push('Bolaget är pausat eller blockerat')
-  if (!nonEmpty(company.production_mailbox ?? company.ediel_mailbox)) blockers.push('Produktionsmailbox saknas')
-  if (!nonEmpty(company.production_application_reference)) blockers.push('Produktions Application Reference saknas')
-  if (!nonEmpty(company.production_counterparty_ediel_id)) blockers.push('Produktionsmotpart saknas')
+  if (!nonEmpty(company.production_mailbox ?? company.ediel_mailbox) && !params.hasVerifiedMailbox) blockers.push('Produktionsmailbox/transport saknas')
   for (const issue of params.routeValidationIssues ?? []) blockers.push(issue)
 
   const testEdiel = company.test_ediel_id ?? company.ediel_id
@@ -560,6 +619,13 @@ function goLiveBlockersForCompany(params: {
 }
 
 async function buildSummary(company: ActorTestingCompanyRow, results: ActorTestResultRow[]): Promise<ActorTestingSummary> {
+  const productionBrp = await getProductionBrpSetting(company.id)
+  const companyForSummary: ActorTestingCompanyRow = {
+    ...company,
+    brp_ediel_id: productionBrp?.brpEdielId ?? null,
+    brp_name: productionBrp?.brpName ?? null,
+    brp_status: productionBrp?.brpEdielId ? 'active' : null,
+  }
   const resultsByKey = new Map(results.map((row) => [row.test_key, row]))
   const prodatPassed = PRODAT_TESTS.filter((testCase) => isApprovedStatus(resultsByKey.get(testCase.key)?.status)).length
   const utiltsPassed = UTILTS_TESTS.filter((testCase) => isApprovedStatus(resultsByKey.get(testCase.key)?.status)).length
@@ -569,21 +635,21 @@ async function buildSummary(company: ActorTestingCompanyRow, results: ActorTestR
   const latestRunAt = latestDate(results.map((result) => result.latest_run_at ?? result.updated_at ?? result.created_at))
 
   const [actorProfiles, productionActorProfiles, testRoutes, productionRoutes] = await Promise.all([
-    countActiveActorProfiles(company.id),
-    countActiveActorProfiles(company.id, 'production'),
-    countEnabledRoutes(company.id, 'test'),
-    countEnabledRoutes(company.id, 'production'),
+    countActiveActorProfiles(companyForSummary.id),
+    countActiveActorProfiles(companyForSummary.id, 'production'),
+    countEnabledRoutes(companyForSummary.id, 'test'),
+    countEnabledRoutes(companyForSummary.id, 'production'),
   ])
 
-  const hasActiveActorProfile = actorProfiles > 0 || nonEmpty(company.ediel_id)
+  const hasActiveActorProfile = actorProfiles > 0 || nonEmpty(companyForSummary.ediel_id)
   const hasProductionActorProfile = productionActorProfiles > 0
   const hasTestRoute = testRoutes > 0
   const hasProductionRoute = productionRoutes > 0
-  const hasVerifiedMailbox = nonEmpty(company.production_mailbox ?? company.ediel_mailbox)
-  const missingSetup = missingSetupForCompany(company, hasActiveActorProfile, hasTestRoute)
-  const routeValidationIssues = await getDeepRouteValidationIssues(company)
+  const hasVerifiedMailbox = nonEmpty(companyForSummary.production_mailbox ?? companyForSummary.ediel_mailbox)
+  const missingSetup = missingSetupForCompany(companyForSummary, hasActiveActorProfile, hasTestRoute)
+  const routeValidationIssues = await getDeepRouteValidationIssues(companyForSummary)
   const goLiveBlockers = goLiveBlockersForCompany({
-    company,
+    company: companyForSummary,
     hasActiveActorProfile,
     hasProductionActorProfile,
     hasProductionRoute,
@@ -607,16 +673,16 @@ async function buildSummary(company: ActorTestingCompanyRow, results: ActorTestR
             : 'ready_for_tests'
 
   const productionReadiness: ActorTestingSummary['productionReadiness'] =
-    company.live_ediel_enabled
+    companyForSummary.live_ediel_enabled
       ? 'live'
       : goLiveBlockers.length === 0
         ? 'ready'
-        : ['paused', 'suspended', 'archived', 'pending_deletion', 'deleted_test_only'].includes(String(company.status ?? ''))
+        : ['paused', 'suspended', 'archived', 'pending_deletion', 'deleted_test_only'].includes(String(companyForSummary.status ?? ''))
           ? 'blocked'
           : 'not_ready'
 
   return {
-    company,
+    company: companyForSummary,
     results,
     prodatPassed,
     prodatTotal: PRODAT_TESTS.length,

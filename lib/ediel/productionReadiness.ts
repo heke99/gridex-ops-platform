@@ -908,8 +908,7 @@ export async function getCompanyProductionReadiness(
   const operationsContactEmail =
     text(productionActor?.operations_contact_email) ??
     text((company.operations_contact as Record<string, unknown> | null)?.email);
-  const brpEdielId =
-    text(productionBrp?.brp_ediel_id) ?? text(productionActor?.brp_ediel_id);
+  const brpEdielId = text(productionBrp?.brp_ediel_id);
 
   if (text(company.id))
     pass(
@@ -1116,19 +1115,12 @@ export async function getCompanyProductionReadiness(
       "Production-BRP är aktiv",
       "BRP hämtas från ediel_brp_settings för production.",
     );
-  else if (String(company.brp_status ?? "").toLowerCase() === "active")
-    warn(
-      "actor",
-      "brp_legacy_only",
-      "BRP finns bara som legacy-värde",
-      "Flytta BRP till ediel_brp_settings för production innan live.",
-    );
   else
     block(
       "actor",
       "brp_not_active",
       "Production-BRP saknas",
-      "BRP måste finnas i ediel_brp_settings för production.",
+      "BRP måste finnas i ediel_brp_settings för production. Legacy-fält och actor settings används inte som production-BRP.",
     );
   if (String(company.esett_status ?? "").toLowerCase() === "ready")
     pass("actor", "esett_ready", "eSett är klar", "eSett-status är ready.");

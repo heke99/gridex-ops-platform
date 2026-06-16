@@ -240,9 +240,7 @@ function buildRouteSimulation(input: {
     input.productionRoutes.find((route) =>
       routeMatchesFamily(route, "PRODAT"),
     ) ?? first(input.productionRoutes);
-  const senderEdielId =
-    normalizeUpper(str(input.actor, "ediel_id", "actor_ediel_id")) ??
-    normalizeUpper(str(input.company, "production_ediel_id", "ediel_id"));
+  const senderEdielId = normalizeUpper(str(input.actor, "ediel_id", "actor_ediel_id"));
   const senderSubAddress =
     normalizeUpper(
       str(input.actor, "sender_subaddress", "sender_sub_address"),
@@ -259,9 +257,7 @@ function buildRouteSimulation(input: {
     ),
   );
   const applicationReference =
-    normalizeUpper(str(prodatRoute, "application_reference")) ??
-    normalizeUpper(str(input.company, "production_application_reference")) ??
-    "PRODAT";
+    normalizeUpper(str(prodatRoute, "application_reference")) ?? "PRODAT";
   const sharedMailbox =
     input.mailboxes.find((mailbox) => !str(mailbox, "company_id")) ??
     first(input.mailboxes);

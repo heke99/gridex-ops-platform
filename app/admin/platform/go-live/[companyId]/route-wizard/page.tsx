@@ -64,6 +64,26 @@ function InfoCard({
   );
 }
 
+
+async function loadRouteWizardRuns(companyId: string): Promise<RouteRunRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from("production_route_wizard_runs")
+      .select("id,status,created_at,blocker_summary")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(8);
+    if (error) {
+      console.warn("production route wizard runs could not be loaded", error);
+      return [];
+    }
+    return (Array.isArray(data) ? data : []) as RouteRunRow[];
+  } catch (error) {
+    console.warn("production route wizard runs could not be loaded", error);
+    return [];
+  }
+}
+
 function CurrentFlowCard({
   label,
   ready,
@@ -96,7 +116,7 @@ export default async function ProductionRouteWizardPage({
   const { companyId } = await params;
   const notice = searchParams ? await searchParams : {};
 
-  const [{ data: company, error }, setupSummary, { data: routeRuns }] =
+  const [{ data: company, error }, setupSummary, routeRuns] =
     await Promise.all([
       supabaseService
         .from("companies")
@@ -104,12 +124,7 @@ export default async function ProductionRouteWizardPage({
         .eq("id", companyId)
         .maybeSingle(),
       getCompanyGoLiveSetupSummary(companyId),
-      supabaseService
-        .from("production_route_wizard_runs")
-        .select("id,status,created_at,blocker_summary")
-        .eq("company_id", companyId)
-        .order("created_at", { ascending: false })
-        .limit(8),
+      loadRouteWizardRuns(companyId),
     ]);
 
   if (error) throw error;

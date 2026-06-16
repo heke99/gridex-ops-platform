@@ -72,6 +72,19 @@ function rowFamily(row: Record<string, unknown> | null | undefined): string | nu
   return family ? family.toUpperCase() : null
 }
 
+function productionRows(rows: EdielConfigRow[]): EdielConfigRow[] {
+  return rows.filter((row) => rowText(row, 'environment') === 'production')
+}
+
+function primaryProductionActor(config: CompanyActorConfiguration): EdielConfigRow | null {
+  return productionRows(config.actors).find(rowEnabled) ?? null
+}
+
+function primaryProductionBrp(config: CompanyActorConfiguration): EdielConfigRow | null {
+  const rows = productionRows(config.brpSettings).filter((row) => rowEnabled(row) && Boolean(rowText(row, 'brp_ediel_id')))
+  return rows.find((row) => rowBool(row, 'is_default')) ?? rows[0] ?? null
+}
+
 function StatCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
     <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -349,12 +362,13 @@ function CompanySetupControlPanel({
   edielConfig: CompanyActorConfiguration
   actorSummary: Awaited<ReturnType<typeof getActorTestingSummary>>
 }) {
-  const productionActor = edielConfig.actors.find((row) => rowText(row, 'environment') === 'production' && rowEnabled(row)) ?? null
+  const productionActor = primaryProductionActor(edielConfig)
   const productionRoutes = edielConfig.routeProfiles.filter((row) => rowText(row, 'environment') === 'production' && rowEnabled(row))
   const hasProdatProduction = productionRoutes.some((row) => rowFamily(row) === 'PRODAT')
   const hasUtiltsProduction = productionRoutes.some((row) => rowFamily(row) === 'UTILTS')
   const hasEdielId = Boolean(rowText(productionActor, 'ediel_id', 'actor_ediel_id'))
-  const hasBrp = edielConfig.brpSettings.some((row) => rowText(row, 'environment') === 'production' && rowEnabled(row) && Boolean(rowText(row, 'brp_ediel_id')))
+  const productionBrp = primaryProductionBrp(edielConfig)
+  const hasBrp = Boolean(productionBrp)
   const internalReady = contractReadiness?.can_use_internal_customer_intake ?? false
   const websiteReady = Boolean(websiteReadiness?.has_api_client && websiteReadiness?.has_public_contracts)
   const legalReady = legalDefaultStatus.hasAllRequiredLegalTexts
@@ -652,8 +666,8 @@ function CompanyLegalMasterSection({
 }
 
 function CompanyEdielConfiguration({ company, config }: { company: GovernanceCompany; config: CompanyActorConfiguration }) {
-  const actor = config.actors[0] ?? null
-  const brp = config.brpSettings.find((row) => rowBool(row, 'is_default')) ?? config.brpSettings[0] ?? null
+  const actor = primaryProductionActor(config)
+  const brp = primaryProductionBrp(config)
   const sharedMailbox = config.mailboxes.find((row) => {
     const metadata = row.metadata
     return metadata && typeof metadata === 'object' && (metadata as Record<string, unknown>).scope === 'platform_shared'

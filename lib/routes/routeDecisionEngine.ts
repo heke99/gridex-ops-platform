@@ -48,6 +48,8 @@ type RouteProfileRow = {
   environment: string | null;
   route_version?: number | null;
   transport_profile_id?: string | null;
+  mailbox_id?: string | null;
+  transport_mode?: string | null;
   is_test_route?: boolean | null;
   is_production_route?: boolean | null;
 };
@@ -689,13 +691,19 @@ export async function decideCommunicationRoute(
       requiredAdminActions.push("Koppla en aktiv production route profile.");
     }
 
-    if (!profile.transport_profile_id) {
+    const hasProductionTransport = Boolean(
+      text(profile.transport_profile_id) ||
+        text(profile.mailbox_id) ||
+        text(profile.transport_mode) ||
+        text(profile.mailbox),
+    );
+    if (!hasProductionTransport) {
       addIssue(blockingReasons, {
-        code: "missing_production_transport_profile",
-        message: "Production-send kräver aktiv transportprofil på route profile.",
+        code: "missing_production_transport",
+        message: "Production-send kräver aktiv transportprofil eller mailbox-koppling på route profile.",
         source: "transport_profile_resolver",
       });
-      requiredAdminActions.push("Koppla production transportprofil till route profile.");
+      requiredAdminActions.push("Koppla production transport eller mailbox till route profile.");
     }
   }
 
@@ -956,7 +964,7 @@ export async function decideCommunicationRoute(
       selected_grid_owner_name: dynamicReceiver.receiverName,
       reference_requirements: agreementDecision.referenceRequirements,
       route_version: profile?.route_version ?? 1,
-      transport_profile_id: profile?.transport_profile_id ?? null,
+      transport_profile_id: profile?.transport_profile_id ?? profile?.mailbox_id ?? profile?.transport_mode ?? null,
       route_decision_evidence: {
         selected_company_id: input.companyId ?? null,
         sender_ediel_id_source: senderEdielIdSource,
