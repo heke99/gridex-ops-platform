@@ -49,6 +49,20 @@ export const DEFAULT_EMAIL_TEMPLATES = [
     body_text: 'Hej {{customer_name}}, vi har tagit emot din ansökan om elavtal hos {{company_name}}. Kundnummer: {{customer_number}}. Vi återkommer om något behöver kompletteras.',
   },
   {
+    template_key: 'contract.confirmation_sent',
+    name: 'Avtalsbekräftelse',
+    subject: 'Din avtalsbekräftelse från {{company_name}}',
+    body_html: '<p>Hej {{customer_name}},</p><p>Här kommer din avtalsbekräftelse för {{contract_name}} hos {{company_name}}.</p><p>Kundnummer: {{customer_number}}.</p><p>Startdatum: {{start_date}}.</p><p>Har du frågor når du oss på {{support_email}}.</p>',
+    body_text: 'Hej {{customer_name}}, här kommer din avtalsbekräftelse för {{contract_name}} hos {{company_name}}. Kundnummer: {{customer_number}}. Startdatum: {{start_date}}.',
+  },
+  {
+    template_key: 'contract.cooling_off_sent',
+    name: 'Ångerrätt',
+    subject: 'Information om ångerrätt från {{company_name}}',
+    body_html: '<p>Hej {{customer_name}},</p><p>Här kommer information om din ångerrätt för avtalet hos {{company_name}}.</p><p>Ångerfristen gäller till {{cancellation_deadline}}.</p><p>Har du frågor når du oss på {{support_email}}.</p>',
+    body_text: 'Hej {{customer_name}}, här kommer information om din ångerrätt för avtalet hos {{company_name}}. Ångerfristen gäller till {{cancellation_deadline}}.',
+  },
+  {
     template_key: 'switch.started',
     name: 'Leverantörsbyte startat',
     subject: 'Ditt leverantörsbyte är startat',

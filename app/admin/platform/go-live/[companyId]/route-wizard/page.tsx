@@ -29,6 +29,8 @@ function statusTone(status?: string) {
     return "border-emerald-200 bg-emerald-50 text-emerald-900";
   if (status === "blocked")
     return "border-amber-200 bg-amber-50 text-amber-900";
+  if (status === "failed")
+    return "border-red-200 bg-red-50 text-red-900";
   return "border-slate-200 bg-slate-50 text-slate-800";
 }
 

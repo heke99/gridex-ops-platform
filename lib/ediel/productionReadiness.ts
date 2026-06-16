@@ -172,6 +172,7 @@ type RouteProfileRow = Record<string, unknown> & {
   is_test_route?: boolean | null;
   is_production_route?: boolean | null;
   certificate_id?: string | null;
+  receiver_certificate_id?: string | null;
   encryption_mode?: string | null;
   signing_mode?: string | null;
   tls_required?: boolean | null;
@@ -228,6 +229,7 @@ type MailboxRow = Record<string, unknown> & {
   last_poll_status?: string | null;
   locked_at?: string | null;
   certificate_id?: string | null;
+  receiver_certificate_id?: string | null;
   encryption_mode?: string | null;
   signing_mode?: string | null;
   tls_required?: boolean | null;
@@ -982,39 +984,62 @@ export async function getCompanyProductionReadiness(
       "Production transport måste kräva TLS.",
     );
 
-  if (
-    (productionRoute?.encryption_mode ?? productionMailbox?.encryption_mode) ===
-    "smime"
-  )
+  const prodatEncryptionMode = text(productionProdatRoute?.encryption_mode) ?? text(productionRoute?.encryption_mode);
+  const prodatHasDynamicReceiver =
+    text(productionProdatRoute?.receiver_source) !== "fixed_counterparty" &&
+    !text(productionProdatRoute?.receiver_ediel_id);
+  const prodatReceiverCertificateId =
+    text(productionProdatRoute?.receiver_certificate_id) ??
+    text((productionProdatRoute as Record<string, unknown> | null)?.certificate_id);
+
+  if (!productionProdatRoute) {
+    block(
+      "safety",
+      "production_smime_no_prodat_route",
+      "PRODAT-route saknas",
+      "S/MIME kan inte kontrolleras innan en PRODAT production route finns.",
+    );
+  } else if (prodatEncryptionMode === "smime") {
     pass(
       "safety",
       "production_smime_default",
-      "S/MIME är default för production",
-      "Production PRODAT-route/mailbox använder S/MIME.",
+      "S/MIME är aktiverat för PRODAT",
+      "PRODAT använder S/MIME över shared eller bolagsspecifik transport. Mailboxen är transportkanal, inte tenant-identitet.",
     );
-  else
+  } else {
     block(
       "safety",
       "production_smime_missing",
-      "S/MIME saknas för production",
-      "Production PRODAT ska som default vara S/MIME-krypterad.",
+      "S/MIME saknas för PRODAT",
+      "PRODAT production route måste ha encryption_mode=smime. Shared mailbox ersätter inte mottagarkryptering.",
     );
+  }
 
-  if (certificateStatus?.isUsableForSmime)
+  if (!productionProdatRoute) {
+    // Route blocker ovan räcker.
+  } else if (prodatHasDynamicReceiver) {
+    pass(
+      "safety",
+      "production_recipient_certificate_resolved_at_send",
+      "Mottagarcertifikat löses vid sändning",
+      "Dynamisk production-route använder kundens verifierade nätägare och mottagarens certifikat vid faktisk PRODAT-send. Tenant behöver inget eget mailbox-certifikat för shared transport.",
+    );
+  } else if (prodatReceiverCertificateId || certificateStatus?.isUsableForSmime) {
     pass(
       "safety",
       "production_certificate_active",
-      "Certifikat är aktivt",
-      certificateStatus.message,
+      "Mottagarcertifikat är kopplat",
+      certificateStatus?.message ??
+        "Production PRODAT-route har kopplat mottagarcertifikat för fast motpart.",
     );
-  else
+  } else {
     block(
       "safety",
-      "production_certificate_missing_or_invalid",
-      "Certifikat saknas eller är ogiltigt",
-      certificateStatus?.message ??
-        "Koppla ett aktivt S/MIME-certifikat till production route eller mailbox.",
+      "production_recipient_certificate_missing",
+      "Mottagarcertifikat saknas",
+      "Fast PRODAT-motpart kräver kopplat mottagarcertifikat. För normal production ska route istället använda dynamisk mottagare från nätägare.",
     );
+  }
 
   if (!latestClockHealth)
     warn(

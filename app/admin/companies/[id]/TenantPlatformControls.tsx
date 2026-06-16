@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { supabaseService } from '@/lib/supabase/service'
 import { INTEGRATION_API_PERMISSION_GROUPS, permissionGroupLabelsForScopes } from '@/lib/integrations/apiClientScopes'
 import { deleteTenantPublicContractOfferAction, saveTenantPublicContractOfferAction } from './tenant-platform-actions'
+import { repairCompanyEmailAutomationAction, toggleCompanyEmailEventRuleAction } from './email-automation-actions'
+import { DEFAULT_EMAIL_EVENT_RULES } from '@/lib/email/emailEvents'
 import { updateIntegrationApiClientPermissionsAction, setIntegrationApiClientStatusAction } from '@/app/admin/platform/api-clients/actions'
 
 type PricePlan = {
@@ -164,6 +166,36 @@ function badge(tone: 'green' | 'amber' | 'red' | 'slate', label: string) {
   return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${cls}`}>{label}</span>
 }
 
+const MAIL_EVENT_LABELS: Record<string, string> = {
+  'contract.application_received': 'Ansökan mottagen',
+  'contract.confirmation_sent': 'Avtalsbekräftelse',
+  'contract.cooling_off_sent': 'Ångerrätt',
+  'switch.started': 'Leverantörsbyte startat',
+  'switch.confirmed': 'Leverantörsbyte bekräftat',
+  'switch.action_required': 'Komplettering behövs',
+  'customer.welcome_active': 'Välkommen som kund',
+}
+
+function canonicalMailReadinessRows(rows: MailReadiness[]): MailReadiness[] {
+  return DEFAULT_EMAIL_EVENT_RULES.map((rule) => {
+    const exact = rows.find((row) => row.event_key === rule.event_key && row.template_key === rule.template_key)
+    return exact ?? {
+      event_key: rule.event_key,
+      template_key: rule.template_key,
+      enabled: null,
+      template_name: MAIL_EVENT_LABELS[rule.event_key] ?? rule.template_key,
+      template_active: null,
+      can_send: false,
+      issues: ['Regel saknas. Klicka på Reparera standardmallar.'],
+    }
+  })
+}
+
+function legacyMailReadinessRows(rows: MailReadiness[]): MailReadiness[] {
+  const expected = new Set(DEFAULT_EMAIL_EVENT_RULES.map((rule) => `${rule.event_key}:${rule.template_key}`))
+  return rows.filter((row) => !expected.has(`${row.event_key ?? ''}:${row.template_key ?? ''}`))
+}
+
 async function safeRows<T>(table: string, companyId: string, select: string, order = 'created_at'): Promise<T[]> {
   try {
     const { data, error } = await supabaseService
@@ -197,6 +229,8 @@ export default async function TenantPlatformControls({ companyId, companyName }:
   const apiVisibleOffers = offerApiDiagnostics.filter((row) => row.api_visible === true)
   const internalActiveContracts = internalContracts.filter((contract) => contract.status === 'active' && contract.is_active !== false)
   const mailProblems = mailReadiness.filter((row) => row.can_send === false && row.enabled !== false)
+  const canonicalMailRows = canonicalMailReadinessRows(mailReadiness)
+  const legacyMailRows = legacyMailReadinessRows(mailReadiness)
 
   return (
     <section id="tenant-platform-controls" className="space-y-6">
@@ -473,20 +507,46 @@ export default async function TenantPlatformControls({ companyId, companyName }:
       </section>
 
       <section id="tenant-mail" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-black text-slate-950">Automatiska utskick och mallkontroll</h3>
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Systemet ska bara skicka mail när rätt bolag, avsändare, kund, avtal, prisversion, mall och kommunikationslogg finns. Supportmallar ingår inte i Ops.</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-black text-slate-950">Automatiska utskick och mallkontroll</h3>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Visar bara de kanoniska utskicken som systemet faktiskt ska använda. Felkopplade äldre regler ignoreras och kan repareras med knappen nedan.</p>
+          </div>
+          <form action={repairCompanyEmailAutomationAction}>
+            <input type="hidden" name="company_id" value={companyId} />
+            <button className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 hover:bg-emerald-100">Reparera standardmallar</button>
+          </form>
+        </div>
         <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
           <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600"><tr><th className="px-4 py-3">Händelse</th><th className="px-4 py-3">Mall</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Åtgärd</th></tr></thead>
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600"><tr><th className="px-4 py-3">Händelse</th><th className="px-4 py-3">Mall</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Åtgärd</th><th className="px-4 py-3">Orsak</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
-              {mailReadiness.length === 0 ? <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-600">Inga automatiska utskick är konfigurerade ännu.</td></tr> : null}
-              {mailReadiness.map((row) => {
+              {canonicalMailRows.map((row) => {
                 const issues = valueList(row.issues)
-                return <tr key={`${row.event_key}-${row.template_key}`}><td className="px-4 py-3 font-semibold text-slate-800">{row.event_key ?? 'Händelse saknas'}</td><td className="px-4 py-3 text-slate-700">{row.template_name ?? row.template_key ?? 'Mall saknas'}</td><td className="px-4 py-3">{row.can_send ? badge('green', 'Kan skickas') : badge(row.enabled === false ? 'slate' : 'red', row.enabled === false ? 'Avstängt' : 'Stoppas')}</td><td className="px-4 py-3 text-xs text-slate-600">{issues.join(', ') || 'Klar'}</td></tr>
+                const eventKey = row.event_key ?? ''
+                const enabled = row.enabled !== false
+                return <tr key={`${eventKey}-${row.template_key ?? ''}`}>
+                  <td className="px-4 py-3 font-semibold text-slate-800"><div>{MAIL_EVENT_LABELS[eventKey] ?? eventKey}</div><div className="text-xs font-normal text-slate-500">{eventKey}</div></td>
+                  <td className="px-4 py-3 text-slate-700">{row.template_name ?? row.template_key ?? 'Mall saknas'}<div className="text-xs text-slate-500">{row.template_key ?? 'template saknas'}</div></td>
+                  <td className="px-4 py-3">{row.can_send ? badge('green', 'Kan skickas') : badge(row.enabled === false ? 'slate' : 'red', row.enabled === false ? 'Avstängt' : 'Stoppas')}</td>
+                  <td className="px-4 py-3">
+                    {eventKey ? <form action={toggleCompanyEmailEventRuleAction}>
+                      <input type="hidden" name="company_id" value={companyId} />
+                      <input type="hidden" name="event_key" value={eventKey} />
+                      <input type="hidden" name="enabled" value={enabled ? 'false' : 'true'} />
+                      <button className={enabled ? 'rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50' : 'rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800 hover:bg-emerald-100'}>{enabled ? 'Stäng av' : 'Aktivera'}</button>
+                    </form> : null}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-slate-600">{issues.join(', ') || 'Klar'}</td>
+                </tr>
               })}
             </tbody>
           </table>
         </div>
+        {legacyMailRows.length > 0 ? <details className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <summary className="cursor-pointer font-black">{legacyMailRows.length} äldre/felkopplade regler ignoreras</summary>
+          <div className="mt-3 space-y-2">{legacyMailRows.map((row) => <div key={`${row.event_key}-${row.template_key}`} className="rounded-xl bg-white/70 p-3 text-xs"><strong>{row.event_key ?? 'event saknas'}</strong> → {row.template_name ?? row.template_key ?? 'mall saknas'} · {row.enabled === false ? 'avstängd' : 'aktiv'}</div>)}</div>
+        </details> : null}
       </section>
     </section>
   )

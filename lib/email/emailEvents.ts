@@ -16,6 +16,8 @@ export type EmailEventRule = {
 
 export const DEFAULT_EMAIL_EVENT_RULES = [
   { event_key: 'contract.application_received', template_key: 'contract.application_received' },
+  { event_key: 'contract.confirmation_sent', template_key: 'contract.confirmation_sent' },
+  { event_key: 'contract.cooling_off_sent', template_key: 'contract.cooling_off_sent' },
   { event_key: 'switch.started', template_key: 'switch.started' },
   { event_key: 'switch.confirmed', template_key: 'switch.confirmed' },
   { event_key: 'switch.action_required', template_key: 'switch.action_required' },
@@ -31,9 +33,8 @@ const LEGACY_TEMPLATE_KEYS = new Set([
 ])
 
 const EVENT_ALIASES: Record<string, string> = {
-  contract_signed: 'contract.application_received',
-  'contract.confirmation_sent': 'contract.application_received',
-  'contract.cooling_off_sent': 'contract.application_received',
+  contract_signed: 'contract.confirmation_sent',
+  'contract.signed': 'contract.confirmation_sent',
   customer_created: 'customer.welcome_active',
   'customer.created': 'customer.welcome_active',
   delivery_start_confirmed: 'customer.welcome_active',
@@ -41,14 +42,15 @@ const EVENT_ALIASES: Record<string, string> = {
   supplier_switch_confirmed: 'switch.confirmed',
   supplier_switch_failed: 'switch.action_required',
   missing_customer_information: 'switch.action_required',
-  cancellation_right_started: 'switch.action_required',
+  cancellation_right_started: 'contract.cooling_off_sent',
+  'contract.cancellation_right_started': 'contract.cooling_off_sent',
 }
 
 export function normalizeEmailEventKey(eventKey: string) {
   return EVENT_ALIASES[eventKey] ?? eventKey
 }
 
-function isAllowedRuleForEvent(rule: EmailEventRule, normalizedEventKey: string) {
+function isAllowedRuleForEvent(rule: Pick<EmailEventRule, 'template_key'>, normalizedEventKey: string) {
   const expectedTemplateKey = DEFAULT_TEMPLATE_BY_EVENT.get(normalizedEventKey)
   if (!expectedTemplateKey) return false
   return rule.template_key === expectedTemplateKey && !LEGACY_TEMPLATE_KEYS.has(rule.template_key)
@@ -78,13 +80,15 @@ export async function updateEmailEventRule(
   const fallback = DEFAULT_EMAIL_EVENT_RULES.find((rule) => rule.event_key === normalizedEventKey)
   if (!fallback) throw new Error('Okänd automatisk utskicksregel.')
 
+  const enabled = input.enabled ?? true
   const { data, error } = await supabaseService
     .from('email_event_rules')
     .upsert({
       company_id: companyId,
       event_key: normalizedEventKey,
       template_key: fallback.template_key,
-      enabled: input.enabled ?? true,
+      enabled,
+      is_active: enabled,
       delay_minutes: input.delayMinutes ?? 0,
       send_to_customer: input.sendToCustomer ?? true,
       send_to_admin: input.sendToAdmin ?? false,
@@ -106,19 +110,20 @@ export async function seedDefaultEmailEventRules(companyId: string) {
       event_key: rule.event_key,
       template_key: rule.template_key,
       enabled: true,
+      is_active: true,
       delay_minutes: 0,
       send_to_customer: true,
       send_to_admin: false,
       updated_at: now,
-    })), { onConflict: 'company_id,event_key,template_key', ignoreDuplicates: true })
+    })), { onConflict: 'company_id,event_key,template_key' })
 
   if (error) throw error
 
   await supabaseService
     .from('email_event_rules')
-    .update({ enabled: false, updated_at: now })
+    .update({ enabled: false, is_active: false, updated_at: now })
     .eq('company_id', companyId)
-    .in('template_key', Array.from(LEGACY_TEMPLATE_KEYS))
+    .or(`template_key.in.(${Array.from(LEGACY_TEMPLATE_KEYS).join(',')}),and(event_key.eq.contract.application_received,template_key.neq.contract.application_received),and(event_key.eq.contract.confirmation_sent,template_key.neq.contract.confirmation_sent),and(event_key.eq.contract.cooling_off_sent,template_key.neq.contract.cooling_off_sent)`)
     .then(({ error: legacyError }) => {
       if (legacyError && !['42P01', '42703', 'PGRST205'].includes(legacyError.code ?? '')) throw legacyError
     })
@@ -137,16 +142,18 @@ export async function triggerEmailEvent(input: {
   metadata?: Record<string, unknown>
 }) {
   const normalizedEventKey = normalizeEmailEventKey(input.eventKey)
-  const rules = (await getEmailEventRules(input.companyId))
-    .filter((rule) =>
-      rule.event_key === normalizedEventKey &&
-      rule.enabled &&
-      rule.send_to_customer &&
-      isAllowedRuleForEvent(rule, normalizedEventKey)
-    )
+  const fallbackTemplateKey = DEFAULT_TEMPLATE_BY_EVENT.get(normalizedEventKey)
+  if (!fallbackTemplateKey) return []
+
+  const rules = await getEmailEventRules(input.companyId)
+  const matchingRules = rules.filter((rule) => rule.event_key === normalizedEventKey && isAllowedRuleForEvent(rule, normalizedEventKey))
+  const dispatchRules: Array<Pick<EmailEventRule, 'event_key' | 'template_key'>> =
+    matchingRules.length > 0
+      ? matchingRules
+      : [{ event_key: normalizedEventKey, template_key: fallbackTemplateKey }]
 
   const results = []
-  for (const rule of rules) {
+  for (const rule of dispatchRules) {
     results.push(await sendCompanyEmail({
       companyId: input.companyId,
       customerId: input.customerId ?? null,
@@ -158,7 +165,12 @@ export async function triggerEmailEvent(input: {
       variables: input.variables ?? {},
       createdBy: input.createdBy ?? null,
       idempotencyKey: input.idempotencyKey ?? null,
-      metadata: input.metadata ?? {},
+      metadata: {
+        ...(input.metadata ?? {}),
+        requested_event_key: input.eventKey,
+        normalized_event_key: normalizedEventKey,
+        fallback_rule_used: matchingRules.length === 0,
+      },
     }))
   }
 

@@ -41,7 +41,7 @@ function defaultEmailIdempotencyKey(input: SendCompanyEmailInput) {
 
 function isLegalOrCritical(input: SendCompanyEmailInput) {
   if (input.legalOrCritical) return true
-  return ['contract.application_received', 'switch.started', 'switch.confirmed', 'switch.action_required', 'customer.welcome_active']
+  return ['contract.confirmation_sent', 'contract.cooling_off_sent', 'switch.started', 'switch.confirmed', 'switch.action_required', 'customer.welcome_active']
     .includes(input.eventKey ?? input.templateKey)
 }
 
@@ -54,26 +54,58 @@ async function isEventRuleEnabled(companyId: string, eventKey: string | null | u
     .eq('company_id', companyId)
     .eq('event_key', eventKey)
     .eq('template_key', templateKey)
-    .maybeSingle()
+    .order('updated_at', { ascending: false })
+    .limit(1)
 
   if (error) {
     if (['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) return true
     throw error
   }
 
-  return data ? data.enabled === true : true
+  const row = Array.isArray(data) ? data[0] : data
+  return row ? row.enabled === true : true
 }
 
 export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   const legalOrCritical = isLegalOrCritical(input)
-  const sender = await getEffectiveSender(input.companyId, { legalOrCritical, requireSendReady: true })
-  const allowed = await isEventRuleEnabled(input.companyId, input.eventKey, input.templateKey)
   const idempotencyKey = defaultEmailIdempotencyKey(input)
   const existingLog = await findCommunicationLogByIdempotencyKey(input.companyId, idempotencyKey)
 
   if (existingLog && ['queued', 'sent', 'delivered'].includes(existingLog.status)) {
-    return { ok: true, duplicate: true, log: existingLog, senderMode: sender.mode }
+    return { ok: true, duplicate: true, log: existingLog, senderMode: existingLog.sender_mode ?? 'unknown' }
   }
+
+  let sender: Awaited<ReturnType<typeof getEffectiveSender>>
+  try {
+    sender = await getEffectiveSender(input.companyId, { legalOrCritical, requireSendReady: true })
+  } catch (error) {
+    const message = cleanError(error)
+    const log = await createCommunicationLog({
+      companyId: input.companyId,
+      customerId: input.customerId ?? null,
+      siteId: input.siteId ?? null,
+      meteringPointId: input.meteringPointId ?? null,
+      eventKey: input.eventKey ?? null,
+      templateKey: input.templateKey,
+      recipientEmail: input.to,
+      senderEmail: null,
+      replyToEmail: null,
+      subject: null,
+      senderMode: 'missing_sender',
+      status: 'failed',
+      provider: 'resend',
+      createdBy: input.createdBy ?? null,
+      errorMessage: message,
+      idempotencyKey,
+      metadata: {
+        ...(input.metadata ?? {}),
+        blocked_reason: 'missing_or_blocked_sender',
+      },
+    })
+    return { ok: false, log, senderMode: 'missing_sender', error: message }
+  }
+
+  const allowed = await isEventRuleEnabled(input.companyId, input.eventKey, input.templateKey)
 
   if (!allowed) {
     const log = await createCommunicationLog({
@@ -104,7 +136,34 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   }
 
   const template = await getCompanyEmailTemplate(input.companyId, input.templateKey)
-  if (!template) throw new Error(`E-postmallen ${input.templateKey} hittades inte eller är inaktiv.`)
+  if (!template) {
+    const message = `E-postmallen ${input.templateKey} hittades inte eller är inaktiv.`
+    const log = await createCommunicationLog({
+      companyId: input.companyId,
+      customerId: input.customerId ?? null,
+      siteId: input.siteId ?? null,
+      meteringPointId: input.meteringPointId ?? null,
+      eventKey: input.eventKey ?? null,
+      templateKey: input.templateKey,
+      recipientEmail: input.to,
+      senderEmail: sender.senderEmail,
+      replyToEmail: sender.replyTo ?? null,
+      subject: null,
+      senderMode: sender.mode,
+      fromName: sender.fromName ?? null,
+      domainVerifiedAt: sender.domainVerifiedAt ?? null,
+      status: 'failed',
+      provider: 'resend',
+      createdBy: input.createdBy ?? null,
+      errorMessage: message,
+      idempotencyKey,
+      metadata: {
+        ...(input.metadata ?? {}),
+        blocked_reason: 'missing_or_inactive_template',
+      },
+    })
+    return { ok: false, log, senderMode: sender.mode, error: message }
+  }
 
   const rendered = renderEmailTemplate(template, input.variables ?? {})
   const templateSnapshot = {

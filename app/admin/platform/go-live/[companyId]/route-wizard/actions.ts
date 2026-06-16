@@ -37,7 +37,7 @@ const FAMILY_CONFIG: Record<
   },
   UTILTS: {
     routeName: "UTILTS produktion",
-    routeScope: "metering_values",
+    routeScope: "meter_values",
     applicationReference: "UTILTS",
     defaultMessageVersion: "D97A",
     ackMode: "contrl_and_aperak",
@@ -58,6 +58,24 @@ function text(formData: FormData, key: string): string | null {
 function normalizeSubAddress(value: string | null): string | null {
   const clean = value?.trim();
   return clean ? clean.toUpperCase() : null;
+}
+
+function userSafeErrorMessage(error: unknown): string {
+  const record = error && typeof error === "object" ? (error as Record<string, unknown>) : {};
+  const raw = error instanceof Error ? error.message : String(record.message ?? record.details ?? error ?? "");
+  const code = String(record.code ?? "");
+  if (code === "23514" && /route_scope/i.test(raw)) {
+    return "Production route kunde inte sparas eftersom databasen har en äldre route_scope-regel. Kör senaste SQL-migrationen och försök igen.";
+  }
+  if (["42P01", "42703", "PGRST200", "PGRST201", "PGRST204", "PGRST205"].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(raw)) {
+    return "Production route kunde inte sparas eftersom databasschemat saknar en kolumn eller tabell. Kör senaste SQL-migrationen och försök igen.";
+  }
+  return raw.trim() || "Production route kunde inte skapas. Kontrollera route, transport och migrations.";
+}
+
+function routeWizardRedirect(companyId: string, status: "blocked" | "created" | "failed", message: string): never {
+  redirect(`/admin/platform/go-live/${companyId}/route-wizard?status=${status}&message=${encodeURIComponent(message)}`);
+  throw new Error("Redirect failed after production route wizard action.");
 }
 
 function selectedMessageFamilies(formData: FormData): MessageFamily[] {
@@ -335,239 +353,275 @@ export async function createProductionRouteFromWizardAction(
   const admin = await requirePlatformAdminActionAccess();
   const companyId = text(formData, "company_id");
   if (!companyId) throw new Error("Bolag saknas.");
-  await assertPlatformCompanyExists(companyId);
 
-  const selectedFamilies = selectedMessageFamilies(formData);
-  if (selectedFamilies.length === 0) {
-    redirect(
-      `/admin/platform/go-live/${companyId}/route-wizard?status=blocked&message=${encodeURIComponent("Välj minst PRODAT eller UTILTS för production route.")}`,
-    );
-  }
-
-  const [actorSetting, sharedMailbox] = await Promise.all([
-    getProductionActorSetting(companyId),
-    getSharedProductionMailbox(companyId),
-  ]);
-  if (!actorSetting) {
-    redirect(
-      `/admin/platform/go-live/${companyId}/route-wizard?status=blocked&message=${encodeURIComponent("Bolaget saknar aktivt production Ediel-ID i ediel_actor_settings. Lägg in Ediel-ID i bolagskortet innan route skapas.")}`,
-    );
-  }
-
-  const frontendSenderEdielId =
-    text(formData, "sender_ediel_id")?.toUpperCase() ?? null;
-  if (frontendSenderEdielId && frontendSenderEdielId !== actorSetting.edielId) {
-    throw new Error(
-      "Sender Ediel-ID får inte override:as i route-wizard. Ändra bolagets Ediel-ID i bolagskortet först.",
-    );
-  }
-
-  const senderEdielId = actorSetting.edielId;
-  const senderSubAddress =
-    normalizeSubAddress(text(formData, "sender_sub_address")) ??
-    actorSetting.senderSubAddress;
-  const targetEmail = sharedMailbox.targetEmail;
-  const mailboxLabel = sharedMailbox.mailboxLabel ?? sharedMailbox.mode;
-  const dynamicReceiverStrategy = defaultDynamicReceiverStrategy(
-    "selected_metering_point_grid_owner",
-  );
-  const created: Array<{
-    family: MessageFamily;
-    routeId: string;
-    profileId: string;
-  }> = [];
-
-  for (const family of selectedFamilies) {
-    const config = FAMILY_CONFIG[family];
-    const receiverSource = config.receiverSource;
-    const receiverEdielId = null;
-    const blockers = validateProductionRoute({
-      family,
-      senderEdielId,
-      receiverEdielId,
-      targetEmail,
-      applicationReference: config.applicationReference,
-      receiverSource,
-    });
-    const wizardPayload = {
-      family,
-      senderEdielId,
-      actorSettingId: actorSetting.actorSettingId,
-      receiverEdielId,
-      receiverSource,
-      dynamicReceiverStrategy,
-      targetEmail,
-      mailboxId: sharedMailbox.mailboxId,
-      transportMode: sharedMailbox.mode,
-      applicationReference: config.applicationReference,
-      senderSubAddress,
-      receiverSubAddress: null,
-      receiverName: null,
-      mailbox: mailboxLabel,
-      encryptionMode: config.encryptionMode,
-      signingMode: config.signingMode,
-      smtpHost: null,
-      smtpPort: null,
-      defaultMessageVersion: config.defaultMessageVersion,
-      ackMode: config.ackMode,
-    };
-
-    if (blockers.length > 0) {
-      try {
-        await supabaseService.from("production_route_wizard_runs").insert({
-          company_id: companyId,
-          status: "blocked",
-          blocker_summary: blockers,
-          payload: wizardPayload,
-          created_by: admin.userId,
-        });
-      } catch {
-        // Optional diagnostics should not hide the blocker from the caller.
-      }
-      redirect(
-        `/admin/platform/go-live/${companyId}/route-wizard?status=blocked&message=${encodeURIComponent(blockers.join(" "))}`,
-      );
-    }
-
-    await deactivateExistingProductionFamily(companyId, family, admin.userId);
-
-    const { data: route, error: routeError } = await supabaseService
-      .from("communication_routes")
-      .insert({
-        company_id: companyId,
-        route_name: config.routeName,
-        is_active: true,
-        route_scope: config.routeScope,
-        route_type: "ediel_partner",
-        grid_owner_id: null,
-        target_system: "production_ediel",
-        endpoint: null,
-        target_email: targetEmail,
-        auth_config: {},
-        supported_payload_version: config.defaultMessageVersion,
-        notes: config.notes,
-        created_by: admin.userId,
-        updated_by: admin.userId,
-      })
-      .select("id")
-      .single();
-    if (routeError) throw routeError;
-    const routeId = String((route as { id: string }).id);
-
-    const { data: profile, error: profileError } = await supabaseService
-      .from("ediel_route_profiles")
-      .insert({
-        company_id: companyId,
-        communication_route_id: routeId,
-        actor_setting_id: actorSetting.actorSettingId,
-        is_enabled: true,
-        sender_ediel_id: senderEdielId,
-        sender_name: null,
-        sender_sub_address: senderSubAddress,
-        receiver_ediel_id: receiverEdielId,
-        receiver_source: receiverSource,
-        dynamic_receiver_strategy: dynamicReceiverStrategy,
-        receiver_name: null,
-        receiver_sub_address: null,
-        application_reference: config.applicationReference,
-        default_message_version: config.defaultMessageVersion,
-        default_test_flag: 0,
-        default_timezone: 1,
-        environment: "production",
-        environment_type: "production",
-        is_production_route: true,
-        production_mode: "shadow",
-        message_family: family,
-        message_standard: "edifact",
-        ack_mode: config.ackMode,
-        smtp_host: null,
-        smtp_port: null,
-        imap_host: null,
-        imap_port: null,
-        mailbox: mailboxLabel,
-        encryption_mode: config.encryptionMode,
-        transport_mode: sharedMailbox.mode,
-        mailbox_id: sharedMailbox.mailboxId,
-        signing_mode: config.signingMode,
-        tls_required: true,
-        allow_unencrypted_production: config.allowUnencryptedProduction,
-        payload_format: "edifact",
-        notes: config.notes,
-        metadata: {
-          receiverResolutionOwner: "system",
-          manualReceiverAllowed: false,
-          sharedTransportMode: sharedMailbox.mode,
-          source: "platform_go_live_route_wizard",
-          family,
-        },
-        created_by: admin.userId,
-        updated_by: admin.userId,
-      })
-      .select("id")
-      .single();
-    if (profileError) throw profileError;
-
-    created.push({
-      family,
-      routeId,
-      profileId: String((profile as { id: string }).id),
-    });
-  }
-
-  const primaryProfileId =
-    created.find((item) => item.family === "PRODAT")?.profileId ??
-    created[0]?.profileId ??
-    null;
-
-  const primaryFamily =
-    created.find((item) => item.family === "PRODAT")?.family ??
-    created[0]?.family ??
-    "PRODAT";
-  const { error: updateError } = await supabaseService
-    .from("companies")
-    .update({
-      production_ediel_id: senderEdielId,
-      production_sender_sub_address: senderSubAddress,
-      production_mailbox: targetEmail,
-      production_application_reference:
-        FAMILY_CONFIG[primaryFamily].applicationReference,
-      production_counterparty_ediel_id: null,
-      ediel_primary_production_route_profile_id: primaryProfileId,
-      live_blocked_reason: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", companyId);
-  if (updateError) throw updateError;
+  let outcome: { status: "created" | "blocked" | "failed"; message: string } | null = null;
 
   try {
-    await supabaseService.from("production_route_wizard_runs").insert({
-      company_id: companyId,
-      status: "created",
-      communication_route_id: created[0]?.routeId ?? null,
-      ediel_route_profile_id: primaryProfileId,
-      blocker_summary: [],
-      payload: {
-        selectedFamilies,
-        senderEdielId,
-        senderSubAddress,
-        created,
-        mailboxId: sharedMailbox.mailboxId,
-        targetEmail,
-        transportMode: sharedMailbox.mode,
-      },
-      created_by: admin.userId,
-    });
+    await assertPlatformCompanyExists(companyId);
+
+    const selectedFamilies = selectedMessageFamilies(formData);
+    if (selectedFamilies.length === 0) {
+      outcome = {
+        status: "blocked",
+        message: "Välj minst PRODAT eller UTILTS för production route.",
+      };
+    } else {
+      const [actorSetting, sharedMailbox] = await Promise.all([
+        getProductionActorSetting(companyId),
+        getSharedProductionMailbox(companyId),
+      ]);
+      if (!actorSetting) {
+        outcome = {
+          status: "blocked",
+          message:
+            "Bolaget saknar aktivt production Ediel-ID i ediel_actor_settings. Lägg in Ediel-ID i bolagskortet innan route skapas.",
+        };
+      } else {
+        const frontendSenderEdielId =
+          text(formData, "sender_ediel_id")?.toUpperCase() ?? null;
+        if (frontendSenderEdielId && frontendSenderEdielId !== actorSetting.edielId) {
+          outcome = {
+            status: "blocked",
+            message:
+              "Sender Ediel-ID får inte override:as i route-wizard. Ändra bolagets Ediel-ID i bolagskortet först.",
+          };
+        } else {
+          const senderEdielId = actorSetting.edielId;
+          const senderSubAddress =
+            normalizeSubAddress(text(formData, "sender_sub_address")) ??
+            actorSetting.senderSubAddress;
+          const targetEmail = sharedMailbox.targetEmail;
+          const mailboxLabel = sharedMailbox.mailboxLabel ?? sharedMailbox.mode;
+          const dynamicReceiverStrategy = defaultDynamicReceiverStrategy(
+            "selected_metering_point_grid_owner",
+          );
+          const created: Array<{
+            family: MessageFamily;
+            routeId: string;
+            profileId: string;
+          }> = [];
+
+          for (const family of selectedFamilies) {
+            const config = FAMILY_CONFIG[family];
+            const receiverSource = config.receiverSource;
+            const receiverEdielId = null;
+            const blockers = validateProductionRoute({
+              family,
+              senderEdielId,
+              receiverEdielId,
+              targetEmail,
+              applicationReference: config.applicationReference,
+              receiverSource,
+            });
+            const wizardPayload = {
+              family,
+              senderEdielId,
+              actorSettingId: actorSetting.actorSettingId,
+              receiverEdielId,
+              receiverSource,
+              dynamicReceiverStrategy,
+              targetEmail,
+              mailboxId: sharedMailbox.mailboxId,
+              transportMode: sharedMailbox.mode,
+              applicationReference: config.applicationReference,
+              senderSubAddress,
+              receiverSubAddress: null,
+              receiverName: null,
+              mailbox: mailboxLabel,
+              encryptionMode: config.encryptionMode,
+              signingMode: config.signingMode,
+              smtpHost: null,
+              smtpPort: null,
+              defaultMessageVersion: config.defaultMessageVersion,
+              ackMode: config.ackMode,
+            };
+
+            if (blockers.length > 0) {
+              try {
+                await supabaseService.from("production_route_wizard_runs").insert({
+                  company_id: companyId,
+                  status: "blocked",
+                  blocker_summary: blockers,
+                  payload: wizardPayload,
+                  created_by: admin.userId,
+                });
+              } catch {
+                // Optional diagnostics should not hide the blocker from the caller.
+              }
+              outcome = { status: "blocked", message: blockers.join(" ") };
+              break;
+            }
+
+            await deactivateExistingProductionFamily(companyId, family, admin.userId);
+
+            const { data: route, error: routeError } = await supabaseService
+              .from("communication_routes")
+              .insert({
+                company_id: companyId,
+                route_name: config.routeName,
+                is_active: true,
+                route_scope: config.routeScope,
+                route_type: "ediel_partner",
+                grid_owner_id: null,
+                target_system: "production_ediel",
+                endpoint: null,
+                target_email: targetEmail,
+                auth_config: {},
+                supported_payload_version: config.defaultMessageVersion,
+                notes: config.notes,
+                created_by: admin.userId,
+                updated_by: admin.userId,
+              })
+              .select("id")
+              .single();
+            if (routeError) throw routeError;
+            const routeId = String((route as { id: string }).id);
+
+            const { data: profile, error: profileError } = await supabaseService
+              .from("ediel_route_profiles")
+              .insert({
+                company_id: companyId,
+                communication_route_id: routeId,
+                actor_setting_id: actorSetting.actorSettingId,
+                is_active: true,
+                is_enabled: true,
+                sender_ediel_id: senderEdielId,
+                sender_name: null,
+                sender_sub_address: senderSubAddress,
+                sender_subaddress: senderSubAddress,
+                receiver_ediel_id: receiverEdielId,
+                receiver_source: receiverSource,
+                dynamic_receiver_strategy: dynamicReceiverStrategy,
+                receiver_name: null,
+                receiver_sub_address: null,
+                receiver_subaddress: null,
+                application_reference: config.applicationReference,
+                default_message_version: config.defaultMessageVersion,
+                default_test_flag: 0,
+                default_timezone: 1,
+                environment: "production",
+                environment_type: "production",
+                is_production_route: true,
+                production_mode: "shadow",
+                message_family: family,
+                message_standard: "edifact",
+                ack_mode: config.ackMode,
+                smtp_host: null,
+                smtp_port: null,
+                imap_host: null,
+                imap_port: null,
+                mailbox: mailboxLabel,
+                encryption_mode: config.encryptionMode,
+                transport_mode: sharedMailbox.mode,
+                mailbox_id: sharedMailbox.mailboxId,
+                signing_mode: config.signingMode,
+                tls_required: true,
+                allow_unencrypted_production: config.allowUnencryptedProduction,
+                payload_format: "edifact",
+                notes: config.notes,
+                metadata: {
+                  receiverResolutionOwner: "system",
+                  manualReceiverAllowed: false,
+                  sharedTransportMode: sharedMailbox.mode,
+                  source: "platform_go_live_route_wizard",
+                  family,
+                },
+                created_by: admin.userId,
+                updated_by: admin.userId,
+              })
+              .select("id")
+              .single();
+            if (profileError) throw profileError;
+
+            created.push({
+              family,
+              routeId,
+              profileId: String((profile as { id: string }).id),
+            });
+          }
+
+          if (!outcome) {
+            const primaryProfileId =
+              created.find((item) => item.family === "PRODAT")?.profileId ??
+              created[0]?.profileId ??
+              null;
+
+            const primaryFamily =
+              created.find((item) => item.family === "PRODAT")?.family ??
+              created[0]?.family ??
+              "PRODAT";
+            const { error: updateError } = await supabaseService
+              .from("companies")
+              .update({
+                production_ediel_id: senderEdielId,
+                production_sender_sub_address: senderSubAddress,
+                production_mailbox: targetEmail,
+                production_application_reference:
+                  FAMILY_CONFIG[primaryFamily].applicationReference,
+                production_counterparty_ediel_id: null,
+                ediel_primary_production_route_profile_id: primaryProfileId,
+                live_blocked_reason: null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", companyId);
+            if (updateError) throw updateError;
+
+            try {
+              await supabaseService.from("production_route_wizard_runs").insert({
+                company_id: companyId,
+                status: "created",
+                communication_route_id: created[0]?.routeId ?? null,
+                ediel_route_profile_id: primaryProfileId,
+                blocker_summary: [],
+                payload: {
+                  selectedFamilies,
+                  senderEdielId,
+                  senderSubAddress,
+                  created,
+                  mailboxId: sharedMailbox.mailboxId,
+                  targetEmail,
+                  transportMode: sharedMailbox.mode,
+                },
+                created_by: admin.userId,
+              });
+            } catch (error) {
+              console.warn("Production route wizard history could not be written", error);
+            }
+
+            revalidatePath(`/admin/platform/go-live/${companyId}`);
+            revalidatePath(`/admin/platform/go-live/${companyId}/route-wizard`);
+            revalidatePath(`/admin/platform/companies/${companyId}/testing`);
+            revalidatePath(`/admin/companies/${companyId}`);
+            outcome = {
+              status: "created",
+              message: `Production route skapad för ${created.map((item) => item.family).join(" + ")}. Kör readiness och dry run innan live aktiveras.`,
+            };
+          }
+        }
+      }
+    }
   } catch (error) {
-    console.warn("Production route wizard history could not be written", error);
+    console.warn("Production route wizard failed", error);
+    try {
+      await supabaseService.from("production_route_wizard_runs").insert({
+        company_id: companyId,
+        status: "failed",
+        blocker_summary: [userSafeErrorMessage(error)],
+        payload: {
+          selectedFamilies: selectedMessageFamilies(formData),
+          source: "platform_go_live_route_wizard",
+        },
+        created_by: admin.userId,
+      });
+    } catch {
+      // Logging failure must never crash the admin view.
+    }
+    outcome = { status: "failed", message: userSafeErrorMessage(error) };
   }
 
-  revalidatePath(`/admin/platform/go-live/${companyId}`);
-  revalidatePath(`/admin/platform/go-live/${companyId}/route-wizard`);
-  revalidatePath(`/admin/platform/companies/${companyId}/testing`);
-  revalidatePath(`/admin/companies/${companyId}`);
-  redirect(
-    `/admin/platform/go-live/${companyId}/route-wizard?status=created&message=${encodeURIComponent(
-      `Production route skapad för ${created.map((item) => item.family).join(" + ")}. Kör readiness och dry run innan live aktiveras.`,
-    )}`,
-  );
+  const finalOutcome = outcome ?? {
+    status: "failed" as const,
+    message: "Production route kunde inte skapas. Försök igen efter att du kontrollerat konfigurationen.",
+  };
+  routeWizardRedirect(companyId, finalOutcome.status, finalOutcome.message);
 }
