@@ -229,6 +229,30 @@ export async function listPortalSites(context: PortalCustomerContext, route = '/
   ])
 }
 
+
+const WEBSITE_APPLICATION_SELECT = 'id,company_id,customer_id,customer_site_id,metering_point_id,contract_id,status,grid_area_code,grid_owner_id,price_area_code,resolution_status,facility_data_verified_at,payload,response_payload,warnings,created_at,updated_at'
+const WEBSITE_APPLICATION_MINIMAL_SELECT = 'id,customer_id,customer_site_id,metering_point_id,contract_id,status,response_payload,warnings,created_at,updated_at'
+
+export async function listPortalWebsiteApplications(context: PortalCustomerContext, route = '/api/v1/customer/portal-bundle') {
+  await logPortalAccess({ context, route, action: 'read_website_applications' })
+  return listWithSchemaFallback([
+    async () => await supabaseService
+      .from('website_customer_applications')
+      .select(WEBSITE_APPLICATION_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(20) as ListResult,
+    async () => await supabaseService
+      .from('website_customer_applications')
+      .select(WEBSITE_APPLICATION_MINIMAL_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(20) as ListResult,
+  ])
+}
+
 const METERING_VALUES_SELECT = 'id,customer_id,customer_site_id,site_id,metering_point_id,facility_id,price_area,grid_area,period_start,period_end,resolution,quantity_kwh,quality_status,source_type,status,created_at'
 const METERING_VALUES_LEGACY_SELECT = 'id,metering_point_id,customer_site_id,facility_id,price_area,period_start,period_end,quantity_kwh,resolution,status,created_at'
 const METERING_VALUES_MINIMAL_SELECT = 'id,metering_point_id,period_start,period_end,quantity_kwh,status,created_at'

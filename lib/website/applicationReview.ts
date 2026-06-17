@@ -327,8 +327,38 @@ export function assessWebsiteApplicationReadiness(input: unknown): WebsiteApplic
     'metering_point.facility_data_verified_at',
   ]) || resolutionStatus === 'facility_verified' || Boolean(facilityId && meteringPointId && gridAreaCode && priceArea))
 
-  const pricePlanId = firstText(input, ['price_plan_id', 'pricePlanId', 'contract.price_plan_id', 'contract.pricePlanId'])
-  const pricePlanDefinition = firstText(input, ['contract.contract_name', 'contract.contractName', 'contract.contract_type', 'contract.contractType', 'contract.campaign_code', 'campaign_code'])
+  const pricePlanId = firstText(input, [
+    'price_plan_id',
+    'pricePlanId',
+    'price_plan_version_id',
+    'pricePlanVersionId',
+    'offer_reference',
+    'contract.offer_reference',
+    'contract.price_plan_id',
+    'contract.pricePlanId',
+    'contract.price_plan_version_id',
+    'contract.pricePlanVersionId',
+    'metadata.price_plan_id',
+    'metadata.price_plan_version_id',
+    'metadata.contract_display_snapshot.price_plan_id',
+    'metadata.contract_display_snapshot.price_plan_version_id',
+    'metadata.contract_display_snapshot.offer_reference',
+    'metadata.pricing_preview_snapshot.contract.price_plan_id',
+    'metadata.pricing_preview_snapshot.contract.price_plan_version_id',
+    'metadata.pricing_preview_snapshot.contract.offer_reference',
+  ])
+  const pricePlanDefinition = firstText(input, [
+    'contract.contract_name',
+    'contract.contractName',
+    'contract.contract_type',
+    'contract.contractType',
+    'contract.campaign_code',
+    'campaign_code',
+    'metadata.contract_display_snapshot.name',
+    'metadata.contract_display_snapshot.type',
+    'metadata.pricing_preview_snapshot.contract.name',
+    'metadata.pricing_preview_snapshot.contract.contractType',
+  ])
   const hasValidPricePlan = Boolean(isUuid(pricePlanId) || pricePlanDefinition)
   const requestedStartMode = readRequestedStartMode(input)
   const requestedStartDate = readRequestedStartDate(input)

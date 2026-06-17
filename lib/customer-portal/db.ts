@@ -18,6 +18,7 @@ import type {
   CustomerPortalContractRow,
   CustomerPortalInfoRequestRow,
 } from '@/lib/customer-portal/types'
+import { buildPortalCustomerStatus, displayNameFromCustomer } from '@/lib/customer-portal/status'
 
 type PortalAccountLookupRow = {
   customer_id: string
@@ -94,6 +95,13 @@ function normalizeNumber(value: unknown): number {
     return Number.isFinite(parsed) ? parsed : 0
   }
   return 0
+}
+
+
+function missingPortalDataSchema(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
 }
 
 function monthKeyFromValue(row: CustomerPortalMeteringValueRow): string {
@@ -315,17 +323,84 @@ export function summarizeConsumptionByMonth(
   return Array.from(grouped.values()).sort((a, b) => b.monthKey.localeCompare(a.monthKey))
 }
 
+
+async function listPortalPowersOfAttorneyForDashboard(context: CustomerPortalContext): Promise<Array<Record<string, unknown>>> {
+  if (context.customerIds.length === 0) return []
+
+  const { data, error } = await supabaseService
+    .from('powers_of_attorney')
+    .select('id,customer_id,site_id,metering_point_id,scope,status,signed_at,valid_from,valid_to,reference,metadata,created_at')
+    .in('customer_id', context.customerIds)
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error) {
+    if (missingPortalDataSchema(error)) return []
+    throw error
+  }
+  return (data ?? []) as Array<Record<string, unknown>>
+}
+
+async function listPortalLegalAcceptancesForDashboard(context: CustomerPortalContext): Promise<Array<Record<string, unknown>>> {
+  if (context.customerIds.length === 0) return []
+
+  const { data, error } = await supabaseService
+    .from('customer_legal_acceptances')
+    .select('id,customer_id,contract_id,contract_application_id,acceptance_type,legal_text_version_id,accepted_at,source,metadata,created_at')
+    .in('customer_id', context.customerIds)
+    .order('accepted_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error) {
+    if (missingPortalDataSchema(error)) return []
+    throw error
+  }
+  return (data ?? []) as Array<Record<string, unknown>>
+}
+
+async function listPortalWebsiteApplicationsForDashboard(context: CustomerPortalContext): Promise<Array<Record<string, unknown>>> {
+  if (context.customerIds.length === 0) return []
+
+  const { data, error } = await supabaseService
+    .from('website_customer_applications')
+    .select('id,customer_id,customer_site_id,metering_point_id,contract_id,status,grid_area_code,grid_owner_id,price_area_code,resolution_status,facility_data_verified_at,payload,response_payload,warnings,created_at,updated_at')
+    .in('customer_id', context.customerIds)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  if (error) {
+    if (missingPortalDataSchema(error)) return []
+    throw error
+  }
+  return (data ?? []) as Array<Record<string, unknown>>
+}
+
 export async function getPortalDashboardData() {
   const context = await getCustomerPortalContext()
 
-  const [invoices, sites, meteringValues] = await Promise.all([
+  const [invoices, sites, meteringValues, contracts, powersOfAttorney, legalAcceptances, websiteApplications] = await Promise.all([
     listPortalInvoices(context),
     listPortalSites(context),
     listPortalMeteringValues(context, { limit: 250 }),
+    listPortalContracts(context),
+    listPortalPowersOfAttorneyForDashboard(context),
+    listPortalLegalAcceptancesForDashboard(context),
+    listPortalWebsiteApplicationsForDashboard(context),
   ])
 
   const siteIds = sites.map((site) => site.id)
   const meteringPoints = await listPortalMeteringPoints(siteIds)
+  const primaryCustomer = context.customers[0] ?? null
+  const customerStatus = buildPortalCustomerStatus({
+    customer: primaryCustomer as Record<string, unknown> | null,
+    contracts: contracts as Array<Record<string, unknown>>,
+    sites: sites as Array<Record<string, unknown>>,
+    meteringPoints: meteringPoints as Array<Record<string, unknown>>,
+    powersOfAttorney,
+    legalAcceptances,
+    applications: websiteApplications,
+  })
 
   return {
     context,
@@ -333,6 +408,12 @@ export async function getPortalDashboardData() {
     sites,
     meteringPoints,
     meteringValues,
+    contracts,
+    powersOfAttorney,
+    legalAcceptances,
+    websiteApplications,
+    customerStatus,
+    portalDisplayName: displayNameFromCustomer(primaryCustomer as Record<string, unknown> | null, context.userEmail),
     consumptionMonths: summarizeConsumptionByMonth(meteringValues),
   }
 }

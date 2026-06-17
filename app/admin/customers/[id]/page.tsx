@@ -49,6 +49,7 @@ import CustomerProfileCard from '@/components/admin/customers/CustomerProfileCar
 import CustomerGridOwnerFileImportCard from '@/components/admin/customers/CustomerGridOwnerFileImportCard'
 import CustomerContractOfferEligibilityCard from '@/components/admin/customers/CustomerContractOfferEligibilityCard'
 import CustomerOperationsReadinessStrip from '@/components/admin/customers/CustomerOperationsReadinessStrip'
+import CustomerPortalDataChainCard from '@/components/admin/customers/CustomerPortalDataChainCard'
 import CustomerLegalReadinessCard from '@/components/admin/customers/CustomerLegalReadinessCard'
 import CustomerFacilityWorkflowCard from '@/components/admin/customers/CustomerFacilityWorkflowCard'
 import CustomerBusinessActionsCard from '@/components/admin/customers/CustomerBusinessActionsCard'
@@ -84,6 +85,7 @@ import { listBillingPartnerCustomersForCustomer, listWebsiteApplicationsForCusto
 import { resendCustomerEmailAction } from './email-actions'
 import { customerStatusLabel, intakeStatusLabel as applicationIntakeStatusLabel, missingFieldLabel, sourceLabel } from '@/lib/customers/statusLabels'
 import { evaluateCustomerOpsMasterReadiness, listCustomerDocuments, listCustomerLegalAcceptances, listCustomerOpsTimeline } from '@/lib/opsMaster/readiness'
+import { buildAdminDataChain } from '@/lib/customer-portal/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -1641,6 +1643,16 @@ const analytics = needsAnalyticsData && customerCompanyId
  )
  })
 
+ const portalDataChain = buildAdminDataChain({
+ customer: customer as unknown as Record<string, unknown>,
+ contracts: customerContracts as unknown as Array<Record<string, unknown>>,
+ sites: sites as unknown as Array<Record<string, unknown>>,
+ meteringPoints: meteringPoints as unknown as Array<Record<string, unknown>>,
+ powersOfAttorney: poaRows as unknown as Array<Record<string, unknown>>,
+ legalAcceptances: customerLegalAcceptances as Array<Record<string, unknown>>,
+ applications: websiteApplications as unknown as Array<Record<string, unknown>>,
+ })
+
  const readinessItems = [
  {
  label: 'Villkor',
@@ -2084,6 +2096,7 @@ contracts={customerContracts as CustomerContractRow[]}
  </div>
 
  <div className="space-y-6">
+ <CustomerPortalDataChainCard status={portalDataChain.status} rows={portalDataChain.rows} />
  <CustomerOperationsReadinessStrip items={readinessItems} />
  <CustomerLegalReadinessCard customerId={id} readiness={opsMasterReadiness} acceptances={customerLegalAcceptances} documents={customerDocuments} timeline={customerOpsTimeline} />
 

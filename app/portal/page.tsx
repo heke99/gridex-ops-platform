@@ -43,7 +43,7 @@ export default async function CustomerPortalPage({
   searchParams?: Promise<{ kopplad?: string }>
 }) {
   const params = searchParams ? await searchParams : {}
-  const { context, invoices, sites, meteringPoints, consumptionMonths } =
+  const { context, invoices, sites, meteringPoints, consumptionMonths, customerStatus, portalDisplayName } =
     await getPortalDashboardData()
 
   if (context.customerIds.length === 0) return <EmptyPortalState brandName={context.branding.brandName} />
@@ -68,12 +68,16 @@ export default async function CustomerPortalPage({
               Kundportal
             </div>
             <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-              Välkommen{primaryCustomer?.full_name ? `, ${primaryCustomer.full_name}` : ''}
+              Välkommen{portalDisplayName ? `, ${portalDisplayName}` : ''}
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
               Här ser du dina fakturor, din förbrukning och dina anläggningar.
               Fakturorna visas först när din faktura har skapats och bekräftats.
             </p>
+            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <div className="font-semibold">{customerStatus.label}</div>
+              <p className="mt-1 leading-6">{customerStatus.message}</p>
+            </div>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4">
@@ -121,7 +125,7 @@ export default async function CustomerPortalPage({
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
             {meteringPoints.length}
           </p>
-          <p className="mt-2 text-sm text-slate-600">Under dina anläggningar.</p>
+          <p className="mt-2 text-sm text-slate-600">{meteringPoints.length > 0 ? 'Under dina anläggningar.' : 'Vi visar dem här när anläggningsuppgifterna är verifierade.'}</p>
         </article>
       </section>
 
