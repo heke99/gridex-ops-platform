@@ -42,6 +42,12 @@ type PortalIdentityDbStatus = 'active' | 'pending_review' | 'rejected' | 'disabl
 type PortalIdentityApiStatus = 'linked' | 'pending_review' | 'rejected'
 type PortalIdentityMatchStrength = 'strong' | 'weak' | 'manual'
 
+function missingSchema(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+}
+
 function serializePortalSyncError(error: unknown): Record<string, unknown> {
   if (!error || typeof error !== 'object') {
     return { message: String(error ?? 'Okänt fel') }
@@ -122,14 +128,23 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
   }
 
   if (payload.identifier) {
-    const { data, error } = await supabaseService
+    let result = await supabaseService
       .from('customers')
       .select('id,company_id,customer_number,email,personal_number,org_number')
       .eq('company_id', companyId)
       .or(`personal_number.eq.${payload.identifier},org_number.eq.${payload.identifier},normalized_personal_number.eq.${payload.identifier},normalized_org_number.eq.${payload.identifier}`)
       .limit(20)
-    if (error) throw error
-    addRows(data as CustomerCandidate[])
+
+    if (result.error && missingSchema(result.error)) {
+      result = await supabaseService
+        .from('customers')
+        .select('id,company_id,customer_number,email,personal_number,org_number')
+        .eq('company_id', companyId)
+        .or(`personal_number.eq.${payload.identifier},org_number.eq.${payload.identifier}`)
+        .limit(20)
+    }
+    if (result.error) throw result.error
+    addRows(result.data as CustomerCandidate[])
   }
 
   if (payload.facility_id) {

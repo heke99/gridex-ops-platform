@@ -66,7 +66,7 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
     description: 'Kommande mer granulär behörighet för kontaktuppgifter, anläggningsdata och fullmakt. Tills routes är helt uppdelade används customer_portal.write.',
     category: 'portal',
     scopes: ['customer_contact.write', 'customer_facility_data.write', 'customer_power_of_attorney.write'],
-    recommendedDefault: false,
+    recommendedDefault: true,
     riskLevel: 'high',
     sortOrder: 60,
   },
@@ -81,6 +81,9 @@ export const CUSTOMER_PORTAL_SCOPES = [
   'customer_documents.read',
   'customer_notifications.read',
   'customer_notifications.write',
+  'customer_contact.write',
+  'customer_facility_data.write',
+  'customer_power_of_attorney.write',
 ] as const
 
 export const INTEGRATION_API_SCOPE_OPTIONS = INTEGRATION_API_PERMISSION_GROUPS.flatMap((group) =>

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import {
   customerPortalJson,
@@ -25,6 +26,15 @@ function safeError(error: unknown): string {
   return 'Kundansökan kunde inte behandlas.'
 }
 
+function requestAudit(request: NextRequest) {
+  const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
+  return {
+    ipAddress: forwardedFor,
+    ipHash: forwardedFor ? createHash('sha256').update(forwardedFor).digest('hex') : null,
+    userAgent: request.headers.get('user-agent')?.slice(0, 1000) || null,
+  }
+}
+
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
   const auth = await requireIntegrationApiAccess(request, ['website_applications.write'])
@@ -40,6 +50,7 @@ export async function POST(request: NextRequest) {
       client: auth.client,
       rawBody: body,
       idempotencyKey: request.headers.get('idempotency-key')?.trim() || null,
+      requestAudit: requestAudit(request),
     })
 
     const applicationMetadata = {

@@ -44,6 +44,7 @@ const endpoints = [
   ['GET', '/api/v1/customer/events', 'customer_portal.read', 'Hämta kundens händelser.'],
   ['GET', '/api/v1/customer/documents', 'customer_portal.read', 'Hämta kundens dokument.'],
   ['GET', '/api/v1/customer/legal-acceptances', 'customer_portal.read', 'Hämta kundens juridiska godkännanden.'],
+  ['GET', '/api/v1/customer/powers-of-attorney', 'customer_portal.read', 'Hämta kundens fullmakter.'],
   ['GET', '/api/v1/customer/notifications', 'customer_portal.read', 'Hämta kundens notiser.'],
   ['POST', '/api/v1/customer/notifications/read', 'customer_portal.write', 'Markera kundnotiser som lästa.'],
   ['POST', '/api/v1/customer/profile-update', 'customer_portal.write', 'Skicka profiländring.'],
@@ -193,7 +194,8 @@ x-gridex-customer-email: kund@example.se`
 const authLinkingFlow = `Gridex-webb Supabase session.user.id
 → x-gridex-customer-portal-user-id till OPS
 → OPS matchar tenant via API-nyckeln
-→ OPS matchar kund via external_customer_id, customer_number eller unik email
+→ OPS matchar kund via redan länkad auth-user, riktigt external_customer_id eller kundnummer + e-post
+→ första auto-länkning kräver redan länkad användare eller minst två matchande kunduppgifter
 → OPS skapar/uppdaterar customer_portal_accounts.role = owner
 → OPS fyller customer_portal_identities.auth_user_id och customer_portal_user_id
 → GET /api/v1/customer/portal-bundle returnerar kundens data`
@@ -324,13 +326,14 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{authLinkingRequiredHeaders}</CodeBlock>
           <CodeBlock>{authLinkingFlow}</CodeBlock>
           <CodeBlock>{authLinkingChecklist}</CodeBlock>
-          <p>OPS skapar eller uppdaterar då <code>customer_portal_accounts</code> med rollen <code>owner</code> och fyller <code>customer_portal_identities.auth_user_id</code>, <code>customer_portal_identities.customer_portal_user_id</code> och <code>external_account_id</code>. Värdet <code>customer</code> är inte en giltig portalroll.</p>
+          <p>OPS skapar eller uppdaterar då <code>customer_portal_accounts</code> med rollen <code>owner</code> och fyller <code>customer_portal_identities.auth_user_id</code>, <code>customer_portal_identities.customer_portal_user_id</code> och <code>external_account_id</code>. Värdet <code>customer</code> är inte en giltig portalroll. Skicka inte OPS-kundnummer som <code>external_customer_id</code>; använd <code>customer_number</code> när det är kundnumret.</p>
+          <p>OPS-kundnummer är tenantens kundnummer. Fakturapartners som Capway ska senare kopplas via separata fält som <code>billing_customer_ref</code> och provider-metadata, inte genom att skriva över <code>customer_number</code> eller blanda ihop det med <code>external_customer_id</code>.</p>
         </Section>
 
         <Section title="7. Hämta Mina sidor-data">
           <p>Servern bakom kundportalen skickar API-nyckel, webbens Supabase <code>session.user.id</code> och en stabil kundreferens. Frontend ska först verifiera den inloggade kunden och därefter anropa Gridex API server-side.</p>
           <CodeBlock>{customerFetchExample}</CodeBlock>
-          <p>Alla kundroutes filtrerar på bolag från API-nyckeln och löser kunden via <code>customer_portal_user_id</code>, <code>auth_user_id</code>, <code>external_customer_id</code>, kundnummer eller unik e-post. På första lyckade anropet länkar OPS webbens auth-user till kunden och skapar <code>customer_portal_accounts.role = owner</code>. Saknade listor returneras som tomma arrayer, inte 500.</p>
+          <p>Alla kundroutes filtrerar på bolag från API-nyckeln och löser kunden via redan länkad <code>customer_portal_user_id</code>/<code>auth_user_id</code>, riktigt <code>external_customer_id</code> eller kundnummer + e-post. Första auto-länkning kräver minst två matchande kunduppgifter eller tidigare sync-länkning. Saknade listor returneras som tomma arrayer, inte 500.</p>
         </Section>
 
         <Section title="8. Webhooks">

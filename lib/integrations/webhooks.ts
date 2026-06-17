@@ -72,7 +72,7 @@ function canonicalPayload(event: DomainEventRow) {
   }
 }
 
-function signedHeaders(subscription: WebhookSubscriptionRow, delivery: WebhookDeliveryRow, body: string) {
+function signedHeaders(subscription: WebhookSubscriptionRow, delivery: WebhookDeliveryRow, body: string, secret: string) {
   const headers = new Headers({
     'content-type': 'application/json',
     'user-agent': 'Gridex-Webhooks/1.0',
@@ -85,16 +85,13 @@ function signedHeaders(subscription: WebhookSubscriptionRow, delivery: WebhookDe
     if (typeof value === 'string' && key.toLowerCase() !== 'authorization') headers.set(key, value)
   }
 
-  const secret = signingSecret(subscription)
-  if (secret) {
-    const timestamp = String(Math.floor(Date.now() / 1000))
-    const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex')
-    headers.set('x-gridex-timestamp', timestamp)
-    headers.set('x-gridex-signature', `sha256=${signature}`)
-    // Legacy headers are kept during transition for already connected receivers.
-    headers.set('x-gridex-webhook-timestamp', timestamp)
-    headers.set('x-gridex-webhook-signature', `sha256=${signature}`)
-  }
+  const timestamp = String(Math.floor(Date.now() / 1000))
+  const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex')
+  headers.set('x-gridex-timestamp', timestamp)
+  headers.set('x-gridex-signature', `sha256=${signature}`)
+  // Legacy headers are kept during transition for already connected receivers.
+  headers.set('x-gridex-webhook-timestamp', timestamp)
+  headers.set('x-gridex-webhook-signature', `sha256=${signature}`)
 
   return headers
 }
@@ -252,13 +249,33 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
     }
 
     const body = JSON.stringify(delivery.payload)
+    const secret = signingSecret(subscription)
+    if (!secret) {
+      const deadLetter = attempts >= delivery.max_attempts
+      await supabaseService.from('webhook_deliveries').update({
+        status: deadLetter ? 'dead_letter' : 'failed',
+        attempts,
+        last_attempt_at: new Date().toISOString(),
+        failed_at: new Date().toISOString(),
+        next_attempt_at: deadLetter ? new Date().toISOString() : nextAttempt(attempts),
+        failure_reason: 'webhook_signing_secret_missing',
+        locked_at: null,
+        locked_by: null,
+        target_url: targetUrl,
+        updated_at: new Date().toISOString(),
+      }).eq('id', delivery.id)
+      await updateSubscriptionFailure(subscription, deadLetter).catch(() => null)
+      failed += 1
+      continue
+    }
+
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), subscription.timeout_ms)
 
     try {
       const response = await fetch(targetUrl, {
         method: 'POST',
-        headers: signedHeaders(subscription, delivery, body),
+        headers: signedHeaders(subscription, delivery, body, secret),
         body,
         signal: controller.signal,
       })

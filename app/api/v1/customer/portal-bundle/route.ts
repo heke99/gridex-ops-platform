@@ -15,6 +15,7 @@ import {
   listPortalLegalAcceptances,
   listPortalMeteringValues,
   listPortalNotifications,
+  listPortalPowersOfAttorney,
   listPortalSites,
   portalContextFromResolved,
 } from '@/lib/customer-portal/apiData'
@@ -30,7 +31,7 @@ async function listMeteringPoints(companyId: string, sites: Array<Record<string,
     .from('metering_points')
     .select('id,site_id,customer_site_id,metering_point_id,meter_point_id,ediel_metering_point_id,status,metering_type,measurement_type,reading_frequency,grid_owner_id,grid_area_code,price_area_code,start_date,end_date')
     .eq('company_id', companyId)
-    .in('site_id', siteIds)
+    .or(`site_id.in.(${siteIds.join(',')}),customer_site_id.in.(${siteIds.join(',')})`)
 
   if (error) {
     if (isMissingSchemaError(error)) return []
@@ -52,13 +53,14 @@ export async function GET(request: NextRequest) {
       provider: context.identity.provider,
     })
 
-    const [contracts, sites, invoices, meteringValues, documents, legalAcceptances, notifications, events] = await Promise.all([
+    const [contracts, sites, invoices, meteringValues, documents, legalAcceptances, powersOfAttorney, notifications, events] = await Promise.all([
       listPortalContracts(portalContext, '/api/v1/customer/portal-bundle'),
       listPortalSites(portalContext, '/api/v1/customer/portal-bundle'),
       listPortalInvoices(portalContext, '/api/v1/customer/portal-bundle'),
       listPortalMeteringValues(portalContext, '/api/v1/customer/portal-bundle'),
       listPortalDocuments(portalContext, '/api/v1/customer/portal-bundle'),
       listPortalLegalAcceptances(portalContext, '/api/v1/customer/portal-bundle'),
+      listPortalPowersOfAttorney(portalContext, '/api/v1/customer/portal-bundle'),
       listPortalNotifications(portalContext, '/api/v1/customer/portal-bundle'),
       listPortalEvents(portalContext, '/api/v1/customer/portal-bundle'),
     ])
@@ -75,6 +77,7 @@ export async function GET(request: NextRequest) {
         invoices: invoices.length,
         documents: documents.length,
         legal_acceptances: legalAcceptances.length,
+        powers_of_attorney: powersOfAttorney.length,
         notifications: notifications.length,
         events: events.length,
       },
@@ -106,6 +109,8 @@ export async function GET(request: NextRequest) {
         metering_values: meteringValues,
         documents,
         legal_acceptances: legalAcceptances,
+        powers_of_attorney: powersOfAttorney,
+        powersOfAttorney,
         notifications,
         events,
       },

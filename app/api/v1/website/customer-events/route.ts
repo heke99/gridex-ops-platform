@@ -47,7 +47,9 @@ export async function POST(request: NextRequest) {
     return customerPortalJson({ data })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Kundevent kunde inte behandlas.'
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: message })
-    return customerPortalJson({ error: message, code: 'customer_event_failed' }, { status: 500 })
+    const status = typeof (error as { status?: unknown })?.status === 'number' ? (error as { status: number }).status : 500
+    const code = typeof (error as { code?: unknown })?.code === 'string' ? (error as { code: string }).code : 'customer_event_failed'
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: message })
+    return customerPortalJson({ error: message, code }, { status })
   }
 }

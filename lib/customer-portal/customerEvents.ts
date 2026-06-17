@@ -30,6 +30,11 @@ export function isSupportEvent(eventType: string): boolean {
   return /^customer\.(support|case)(?:_|$)/i.test(eventType)
 }
 
+class CustomerEventResolutionError extends Error {
+  status = 422
+  code = 'customer_identity_required'
+}
+
 async function resolveCustomerIdentity(client: IntegrationApiClient, payload: CustomerEventInput) {
   if (payload.customer_id) {
     const { data, error } = await supabaseService
@@ -72,6 +77,9 @@ export async function recordWebsiteCustomerEvent(input: {
 }) {
   const identity = await resolveCustomerIdentity(input.client, input.payload)
   const customerId = identity.customerId
+  if (!customerId) {
+    throw new CustomerEventResolutionError('Kundevent kräver en verifierad kundlänk. Skicka customer_portal_user_id/auth_user_id och kundnummer eller external_customer_id enligt Customer Portal sync.')
+  }
   const occurredAt = input.payload.occurred_at ?? new Date().toISOString()
   const aggregateId = input.payload.aggregate_id ?? customerId ?? input.payload.external_customer_id ?? input.payload.customer_number ?? input.client.id
   const idempotencyKey = input.request.headers.get('idempotency-key')?.trim() || null

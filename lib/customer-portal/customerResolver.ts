@@ -38,6 +38,7 @@ const ACCOUNT_SELECT = 'id,company_id,customer_id,user_id,email,user_email,statu
 const ACCOUNT_FALLBACK_SELECT = 'id,company_id,customer_id,user_id,email,status'
 const PROFILE_SELECT = 'user_id,email,first_name,last_name,full_name,phone,language_code,timezone,onboarding_state'
 const CUSTOMER_PORTAL_ACCOUNT_ROLE = 'owner'
+const WEBSITE_PORTAL_PROVIDER = 'gridex_website'
 
 export function isMissingPortalSchemaError(error: unknown): boolean {
   const maybe = error as { code?: string; message?: string } | null
@@ -95,6 +96,15 @@ function activeAccount(row: Record<string, unknown>): boolean {
   if (row.is_active === false) return false
   const status = str(row, 'status')?.toLowerCase()
   return !status || ['active', 'confirmed', 'enabled'].includes(status)
+}
+
+function hasStrongFirstLinkFactors(identifiers: CustomerPortalIdentifiers, resolved: ResolvedPortalCustomer): boolean {
+  const hasExistingLink = Boolean(resolved.id)
+  if (hasExistingLink) return true
+  const hasEmail = Boolean(identifiers.email && identifiers.email === resolved.email)
+  const hasCustomerNumber = Boolean(identifiers.customerNumber && identifiers.customerNumber === resolved.customer_number)
+  const hasExternalCustomerId = Boolean(identifiers.externalCustomerId && identifiers.externalCustomerId === resolved.external_customer_id)
+  return (hasExternalCustomerId && (hasEmail || hasCustomerNumber)) || (hasCustomerNumber && hasEmail)
 }
 
 async function fetchCustomer(companyId: string, customerId: string): Promise<Record<string, unknown> | null> {
@@ -327,7 +337,7 @@ async function finishResolved(companyId: string, customerId: string, source: {
     id: source.id ?? null,
     company_id: companyId,
     customer_id: customerId,
-    external_customer_id: source.externalCustomerId ?? str(merged, 'external_customer_id') ?? str(merged, 'customer_number'),
+    external_customer_id: source.externalCustomerId ?? str(merged, 'external_customer_id'),
     customer_number: source.customerNumber ?? str(merged, 'customer_number'),
     email: normalizeEmail(source.email ?? merged.email),
     auth_user_id: source.authUserId ?? userId,
@@ -402,7 +412,7 @@ export async function ensureCustomerPortalUserLink(input: {
   const now = new Date().toISOString()
   const email = normalizeEmail(input.email ?? customer.email)
   const customerNumber = clean(input.customerNumber) ?? str(customer, 'customer_number')
-  const externalCustomerId = clean(input.externalCustomerId) ?? str(customer, 'external_customer_id') ?? customerNumber
+  const externalCustomerId = clean(input.externalCustomerId) ?? str(customer, 'external_customer_id')
   const matchMethod = clean(input.matchMethod) ?? 'gridex_web_auth_user_auto_link'
 
   let accountId: string | null = null
@@ -486,7 +496,7 @@ export async function ensureCustomerPortalUserLink(input: {
   const identityPayload = {
     company_id: input.client.company_id,
     customer_id: input.customerId,
-    provider: 'external_website',
+    provider: WEBSITE_PORTAL_PROVIDER,
     external_customer_id: externalCustomerId,
     external_account_id: userId,
     email,
@@ -554,6 +564,17 @@ export async function resolvePortalCustomer(input: {
 
     if (!resolved) {
       return { ok: false, status: 404, code: 'customer_not_found', error: 'Kunden hittades inte eller är inte länkad till API-klienten.', identifiers }
+    }
+
+    const mayLinkUser = userId ? hasStrongFirstLinkFactors(identifiers, resolved) : false
+    if (userId && !mayLinkUser) {
+      return {
+        ok: false,
+        status: 403,
+        code: 'customer_portal_link_requires_sync',
+        error: 'Första kundportalkopplingen kräver redan länkad användare eller minst två matchande kunduppgifter.',
+        identifiers,
+      }
     }
 
     const linked = userId

@@ -6,7 +6,8 @@ import { resolvePortalCustomer, isMissingPortalSchemaError } from '@/lib/custome
 export type PortalCustomerContext = {
   companyId: string
   customerId: string
-  externalCustomerId: string
+  externalCustomerId: string | null
+  customerNumber: string | null
   provider: string
 }
 
@@ -41,7 +42,8 @@ export async function resolvePortalCustomerContext(input: {
   return {
     companyId: input.client.company_id,
     customerId: resolution.customer.customer_id,
-    externalCustomerId: resolution.customer.external_customer_id ?? resolution.customer.customer_number ?? input.externalCustomerId ?? resolution.customer.customer_id,
+    externalCustomerId: resolution.customer.external_customer_id ?? input.externalCustomerId ?? null,
+    customerNumber: resolution.customer.customer_number ?? null,
     provider: resolution.customer.provider ?? 'tenant_portal',
   }
 }
@@ -56,7 +58,8 @@ export function portalContextFromResolved(input: {
   return {
     companyId: input.companyId,
     customerId: input.customerId,
-    externalCustomerId: input.externalCustomerId ?? input.customerNumber ?? input.customerId,
+    externalCustomerId: input.externalCustomerId ?? null,
+    customerNumber: input.customerNumber ?? null,
     provider: input.provider ?? 'tenant_portal',
   }
 }
@@ -73,31 +76,113 @@ async function logPortalAccess(input: {
     external_customer_id: input.context.externalCustomerId,
     route: input.route,
     action: input.action,
-    metadata: input.metadata ?? {},
+    metadata: {
+      customer_number: input.context.customerNumber,
+      ...(input.metadata ?? {}),
+    },
   }).then(() => null)
 }
 
+const CONTRACT_SELECT = [
+  'id',
+  'customer_id',
+  'site_id',
+  'customer_site_id',
+  'metering_point_id',
+  'status',
+  'contract_number',
+  'contract_name',
+  'contract_type',
+  'source_type',
+  'starts_at',
+  'expected_start_at',
+  'requested_start_date',
+  'requested_start_mode',
+  'calculated_earliest_start_date',
+  'confirmed_start_date',
+  'confirmed_start_at',
+  'actual_start_date',
+  'actual_start_at',
+  'ends_at',
+  'signed_at',
+  'price_plan_id',
+  'price_plan_version_id',
+  'contract_price_snapshot_id',
+  'price_area_used',
+  'grid_area_code_used',
+  'resolution_status',
+  'monthly_fee_sek',
+  'invoice_fee_sek',
+  'markup_ore_per_kwh',
+  'spot_markup_ore_per_kwh',
+  'variable_fee_ore_per_kwh',
+  'fixed_price_ore_per_kwh',
+  'green_fee_mode',
+  'green_fee_value',
+  'binding_months',
+  'notice_months',
+  'terms_version',
+  'metadata',
+  'created_at',
+].join(',')
+
+const CONTRACT_LEGACY_SELECT = [
+  'id',
+  'customer_id',
+  'site_id',
+  'metering_point_id',
+  'status',
+  'contract_number',
+  'contract_name',
+  'contract_type',
+  'starts_at',
+  'ends_at',
+  'signed_at',
+  'monthly_fee_sek',
+  'spot_markup_ore_per_kwh',
+  'variable_fee_ore_per_kwh',
+  'fixed_price_ore_per_kwh',
+  'green_fee_mode',
+  'green_fee_value',
+  'binding_months',
+  'notice_months',
+  'created_at',
+].join(',')
+
+type ListResult = { data: Array<Record<string, unknown>> | null; error: unknown | null }
+
 export async function listPortalContracts(context: PortalCustomerContext, route = '/api/v1/customer/contracts') {
   await logPortalAccess({ context, route, action: 'read_contracts' })
-  const { data, error } = await supabaseService
+  let result = await supabaseService
     .from('customer_contracts')
-    .select('id,status,contract_type,starts_at,ends_at,signed_at,price_plan_id,campaign_id,monthly_fee_sek,spot_markup_ore_per_kwh,green_fee_mode,green_fee_value,created_at')
+    .select(CONTRACT_SELECT)
     .eq('company_id', context.companyId)
     .eq('customer_id', context.customerId)
-    .order('starts_at', { ascending: false })
-    .limit(100)
-  if (error) {
-    if (isMissingSchemaError(error)) return []
-    throw error
+    .order('created_at', { ascending: false })
+    .limit(100) as ListResult
+
+  if (result.error && isMissingSchemaError(result.error)) {
+    result = await supabaseService
+      .from('customer_contracts')
+      .select(CONTRACT_LEGACY_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult
   }
-  return data ?? []
+
+  if (result.error) {
+    if (isMissingSchemaError(result.error)) return []
+    throw result.error
+  }
+  return result.data ?? []
 }
 
 export async function listPortalSites(context: PortalCustomerContext, route = '/api/v1/customer/sites') {
   await logPortalAccess({ context, route, action: 'read_sites' })
   const { data, error } = await supabaseService
     .from('customer_sites')
-    .select('id,status,site_name,facility_id,normalized_facility_id,street,postal_code,city,price_area_code,grid_area_code,grid_owner_id,move_in_date,move_out_date,created_at')
+    .select('id,status,site_name,facility_id,normalized_facility_id,street,postal_code,city,country,price_area_code,grid_area_code,grid_owner_id,grid_owner_verification_status,move_in_date,move_out_date,annual_consumption_kwh,metadata,created_at')
     .eq('company_id', context.companyId)
     .eq('customer_id', context.customerId)
     .order('created_at', { ascending: false })
@@ -199,6 +284,22 @@ export async function listPortalDocuments(context: PortalCustomerContext, route 
   const { data, error } = await supabaseService
     .from('customer_documents')
     .select('id,document_type,file_name,status,created_at,metadata')
+    .eq('company_id', context.companyId)
+    .eq('customer_id', context.customerId)
+    .order('created_at', { ascending: false })
+    .limit(100)
+  if (error) {
+    if (isMissingSchemaError(error)) return []
+    throw error
+  }
+  return data ?? []
+}
+
+export async function listPortalPowersOfAttorney(context: PortalCustomerContext, route = '/api/v1/customer/powers-of-attorney') {
+  await logPortalAccess({ context, route, action: 'read_powers_of_attorney' })
+  const { data, error } = await supabaseService
+    .from('powers_of_attorney')
+    .select('id,contract_id,customer_site_id,site_id,metering_point_id,scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,legal_text_version_id,scope_summary,fullmakt_snapshot,metadata,created_at')
     .eq('company_id', context.companyId)
     .eq('customer_id', context.customerId)
     .order('created_at', { ascending: false })

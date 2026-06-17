@@ -256,6 +256,7 @@ async function persistCustomerLegalAcceptances(input: {
   legalVersions: WebsiteLegalAcceptanceVersion[]
   consents?: Record<string, unknown>
   rawPayload: unknown
+  requestAudit?: RequestAuditMetadata
 }) {
   if (input.legalVersions.length === 0) return
   const now = new Date().toISOString()
@@ -270,6 +271,9 @@ async function persistCustomerLegalAcceptances(input: {
       acceptance_type: definition.acceptanceType,
       legal_text_version_id: legal.id,
       accepted_at: now,
+      accepted_ip: input.requestAudit?.ipAddress ?? null,
+      accepted_ip_hash: input.requestAudit?.ipHash ?? null,
+      accepted_user_agent: input.requestAudit?.userAgent ?? null,
       source: 'website',
       snapshot: {
         legal_text: {
@@ -287,6 +291,7 @@ async function persistCustomerLegalAcceptances(input: {
       metadata: {
         source: 'website_customer_applications',
         application_id: input.applicationId,
+        request_audit: input.requestAudit ?? {},
         raw_payload: input.rawPayload,
       },
     }
@@ -294,6 +299,124 @@ async function persistCustomerLegalAcceptances(input: {
 
   const { error } = await supabaseService.from('customer_legal_acceptances').insert(rows)
   if (error && !missingSchema(error)) throw error
+}
+
+async function ensureWebsitePowerOfAttorney(input: {
+  companyId: string
+  customerId: string
+  contractId: string | null
+  customerSiteId: string | null
+  meteringPointId: string | null
+  applicationId: string
+  publicOffer: PublicContractOffer | null
+  legalVersions: WebsiteLegalAcceptanceVersion[]
+  consents?: Record<string, unknown>
+  requestAudit?: RequestAuditMetadata
+  rawPayload: unknown
+}) {
+  if (!consentAccepted(input.consents, ['power_of_attorney', 'poa_accepted', 'power_of_attorney_accepted'])) return null
+  const legal = input.legalVersions.find((row) => row.type === 'power_of_attorney')
+  if (!legal) return null
+
+  const now = new Date().toISOString()
+  let existingQuery = supabaseService
+    .from('powers_of_attorney')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('scope', 'supplier_switch')
+    .in('status', ['active', 'accepted', 'signed'])
+
+  existingQuery = input.contractId
+    ? existingQuery.eq('contract_id', input.contractId)
+    : existingQuery.is('contract_id', null)
+
+  const existing = await existingQuery.limit(1).maybeSingle()
+
+  if (existing.error && !missingSchema(existing.error)) throw existing.error
+  if (existing.data?.id) return String(existing.data.id)
+
+  const snapshot = {
+    legal_text: {
+      id: legal.id,
+      type: legal.type,
+      version: legal.version,
+      title: legal.title,
+      body: legal.body,
+      published_at: legal.published_at,
+    },
+    public_offer: input.publicOffer,
+    consents: input.consents ?? {},
+    application_id: input.applicationId,
+    accepted_at: now,
+  }
+
+  const row = {
+    company_id: input.companyId,
+    customer_id: input.customerId,
+    contract_id: input.contractId,
+    site_id: input.customerSiteId,
+    customer_site_id: input.customerSiteId,
+    metering_point_id: input.meteringPointId,
+    scope: 'supplier_switch',
+    status: 'signed',
+    signed_at: now,
+    accepted_at: now,
+    valid_from: now.slice(0, 10),
+    legal_text_version_id: legal.id,
+    fullmakt_snapshot: snapshot,
+    accepted_ip: input.requestAudit?.ipAddress ?? null,
+    accepted_ip_hash: input.requestAudit?.ipHash ?? null,
+    accepted_user_agent: input.requestAudit?.userAgent ?? null,
+    accepted_source: 'website',
+    reference: `POA-${input.applicationId}`,
+    scope_summary: {
+      supplier_switch: true,
+      customer_site_id: input.customerSiteId,
+      metering_point_id: input.meteringPointId,
+      contract_id: input.contractId,
+    },
+    metadata: {
+      source: 'website_customer_applications',
+      application_id: input.applicationId,
+      raw_payload: input.rawPayload,
+    },
+    updated_at: now,
+  }
+
+  const { data, error } = await supabaseService
+    .from('powers_of_attorney')
+    .insert(row)
+    .select('id')
+    .maybeSingle()
+
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+
+  const powerOfAttorneyId = data?.id ? String(data.id) : null
+  if (powerOfAttorneyId) {
+    const scopeResult = await supabaseService
+      .from('power_of_attorney_scopes')
+      .insert({
+        company_id: input.companyId,
+        power_of_attorney_id: powerOfAttorneyId,
+        customer_id: input.customerId,
+        site_id: input.customerSiteId,
+        metering_point_id: input.meteringPointId,
+        customer_contract_id: input.contractId,
+        scope_type: 'supplier_switch',
+        status: 'active',
+        is_active: true,
+        valid_from: now.slice(0, 10),
+        metadata: { source: 'website_customer_applications', application_id: input.applicationId },
+      })
+
+    if (scopeResult.error && !missingSchema(scopeResult.error)) throw scopeResult.error
+  }
+
+  return powerOfAttorneyId
 }
 
 type CustomerRow = {
@@ -405,6 +528,14 @@ const WEBSITE_CONTRACT_SOURCE_TYPES = [
   WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
   LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE,
 ]
+const WEBSITE_PORTAL_PROVIDER = 'gridex_website'
+
+type RequestAuditMetadata = {
+  ipAddress?: string | null
+  ipHash?: string | null
+  userAgent?: string | null
+}
+
 
 type WebsiteContractRow = {
   id: string
@@ -420,6 +551,7 @@ type WebsiteContractRow = {
   price_plan_version_id?: string | null
   confirmed_start_date?: string | null
   actual_start_date?: string | null
+  metadata?: Record<string, unknown> | null
 }
 
 function matchesExpectedValue(actual: string | null | undefined, expected: string | null | undefined): boolean {
@@ -439,10 +571,12 @@ async function findExistingWebsiteApplicationContract(input: {
   meteringPointId?: string | null
   requestedStartDate?: string | null
   contractName?: string | null
+  pricePlanVersionId?: string | null
+  idempotencyKey?: string | null
 }): Promise<WebsiteContractRow | null> {
   const { data, error } = await supabaseService
     .from('customer_contracts')
-    .select('id,contract_name,starts_at,status,site_id,customer_site_id,metering_point_id,requested_start_date,contract_number,price_plan_id,price_plan_version_id,confirmed_start_date,actual_start_date')
+    .select('id,contract_name,starts_at,status,site_id,customer_site_id,metering_point_id,requested_start_date,contract_number,price_plan_id,price_plan_version_id,confirmed_start_date,actual_start_date,metadata')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .in('source_type', WEBSITE_CONTRACT_SOURCE_TYPES)
@@ -456,12 +590,17 @@ async function findExistingWebsiteApplicationContract(input: {
 
   const rows = (data ?? []) as WebsiteContractRow[]
   return rows.find((row) => {
+    const metadata = (row as unknown as { metadata?: unknown }).metadata
+    const meta = isObject(metadata) ? metadata : {}
+    if (input.idempotencyKey && meta.website_application_idempotency_key === input.idempotencyKey) return true
+
     const rowSiteId = row.customer_site_id ?? row.site_id ?? null
     const siteMatches = matchesExpectedValue(rowSiteId, input.siteId ?? null)
     const meterMatches = matchesExpectedValue(row.metering_point_id ?? null, input.meteringPointId ?? null)
     const dateMatches = matchesExpectedDate(row.requested_start_date ?? row.starts_at ?? null, input.requestedStartDate ?? null)
     const nameMatches = !input.contractName || !row.contract_name || row.contract_name === input.contractName
-    return siteMatches && meterMatches && dateMatches && nameMatches
+    const versionMatches = !input.pricePlanVersionId || !row.price_plan_version_id || row.price_plan_version_id === input.pricePlanVersionId
+    return siteMatches && meterMatches && dateMatches && nameMatches && versionMatches
   }) ?? null
 }
 
@@ -1089,7 +1228,7 @@ async function upsertPortalIdentity(input: {
     company_id: input.client.company_id,
     customer_id: input.customerId,
     api_client_id: input.client.id,
-    provider: 'external_website',
+    provider: WEBSITE_PORTAL_PROVIDER,
     external_customer_id: input.externalCustomerId,
     external_account_id: input.externalAccountId ?? input.customerPortalUserId ?? input.authUserId ?? null,
     customer_number: input.customerNumber ?? null,
@@ -1251,7 +1390,38 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
       .limit(1)
       .maybeSingle()
     if (existingError) throw existingError
-    if (existing?.id) return existing as { id: string; facility_id: string | null }
+    if (existing?.id) {
+      const enrichment = {
+        site_name: clean(site.site_name) ?? undefined,
+        site_type: clean(site.site_type) ?? undefined,
+        price_area_code: clean(site.price_area_code) ?? undefined,
+        grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode) ?? undefined,
+        grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId) ?? undefined,
+        grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus) ?? undefined,
+        move_in_date: clean(site.move_in_date) ?? undefined,
+        annual_consumption_kwh: site.annual_consumption_kwh ?? undefined,
+        street: clean(site.street) ?? undefined,
+        postal_code: clean(site.postal_code) ?? undefined,
+        city: clean(site.city) ?? undefined,
+        country: clean(site.country) ?? undefined,
+        latitude: site.latitude ?? undefined,
+        longitude: site.longitude ?? undefined,
+        sweref99_x: site.sweref99_x ?? undefined,
+        sweref99_y: site.sweref99_y ?? undefined,
+        updated_at: new Date().toISOString(),
+      }
+      const cleaned = Object.fromEntries(Object.entries(enrichment).filter(([, value]) => value !== undefined))
+      if (Object.keys(cleaned).length > 1) {
+        const siteUpdateResult = await supabaseService
+          .from('customer_sites')
+          .update(cleaned)
+          .eq('company_id', companyId)
+          .eq('id', existing.id)
+
+        if (siteUpdateResult.error && !missingSchema(siteUpdateResult.error)) throw siteUpdateResult.error
+      }
+      return existing as { id: string; facility_id: string | null }
+    }
   }
 
   const hasSiteData = Boolean(facilityId || clean(site.street) || clean(site.city))
@@ -1265,13 +1435,20 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
     site_type: clean(site.site_type) ?? 'consumption',
     status: 'active',
     price_area_code: clean(site.price_area_code),
+    grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
+    grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
+    grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus),
     move_in_date: clean(site.move_in_date),
     annual_consumption_kwh: site.annual_consumption_kwh ?? null,
     street: clean(site.street),
     postal_code: clean(site.postal_code),
     city: clean(site.city),
     country: clean(site.country) ?? 'SE',
-    metadata: { source: 'website_customer_applications' },
+    latitude: site.latitude ?? null,
+    longitude: site.longitude ?? null,
+    sweref99_x: site.sweref99_x ?? null,
+    sweref99_y: site.sweref99_y ?? null,
+    metadata: { source: 'website_customer_applications', energy_resolution: input.metadata?.energy_resolution ?? null },
   }
 
   const { data, error } = await supabaseService
@@ -1570,7 +1747,8 @@ async function createContract(
   input: ApplicationInput,
   readiness: WebsiteApplicationReadiness,
   customerNumber: string,
-  publicOffer: PublicContractOffer | null
+  publicOffer: PublicContractOffer | null,
+  options: { idempotencyKey?: string | null; applicationNumber?: string | null } = {}
 ): Promise<WebsiteContractCreateResult | null> {
   const contract = input.contract
   if (!contract && !publicOffer && !readiness.canCreateContract) return null
@@ -1593,6 +1771,8 @@ async function createContract(
     meteringPointId,
     requestedStartDate,
     contractName: selected.contractName,
+    pricePlanVersionId: selected.pricePlanVersionId,
+    idempotencyKey: options.idempotencyKey ?? null,
   })
   if (existingContract) {
     return {
@@ -1659,6 +1839,8 @@ async function createContract(
     metadata: {
       source: 'website_customer_applications',
       source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+      website_application_idempotency_key: options.idempotencyKey ?? null,
+      application_number: options.applicationNumber ?? null,
       agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
       contract_number: contractNumber,
       price_plan_id: selected.pricePlanId,
@@ -2087,6 +2269,7 @@ export async function processWebsiteCustomerApplication(input: {
   client: IntegrationApiClient
   rawBody: unknown
   idempotencyKey?: string | null
+  requestAudit?: RequestAuditMetadata
 }) {
   const normalizedRaw = normalizeRawApplication(input.rawBody)
   const parsed = ApplicationSchema.safeParse(normalizedRaw)
@@ -2234,18 +2417,18 @@ export async function processWebsiteCustomerApplication(input: {
 
     applicationNumber = await stage('application_record_create', () => reserveApplicationNumber(input.client.company_id))
 
-    site = readiness.canCreateSite
-      ? await stage('site_create', () => upsertSite(input.client.company_id, resolvedCustomerResult.customer.id, body))
-      : null
-
     const energyResolution = await stage('energy_resolution', () => runEnergyResolution({
       companyId: input.client.company_id,
       customerId: resolvedCustomerResult.customer.id,
-      customerSiteId: site?.id ?? null,
+      customerSiteId: null,
       body,
     }))
     body = energyResolution.body
     readiness = assessWebsiteApplicationReadiness(body)
+
+    site = readiness.canCreateSite
+      ? await stage('site_create', () => upsertSite(input.client.company_id, resolvedCustomerResult.customer.id, body))
+      : null
 
     meteringPoint = readiness.canCreateMeteringPoint
       ? await stage('metering_point_create', () => upsertMeteringPoint(input.client.company_id, resolvedCustomerResult.customer.id, site, body))
@@ -2261,7 +2444,8 @@ export async function processWebsiteCustomerApplication(input: {
       body,
       readiness,
       customerNumber,
-      publicOffer
+      publicOffer,
+      { idempotencyKey: input.idempotencyKey ?? null, applicationNumber }
     ))
     const identity = await stage('portal_identity_create', () => upsertPortalIdentity({
       client: input.client,
@@ -2290,7 +2474,7 @@ export async function processWebsiteCustomerApplication(input: {
 
     const applicationStatus = readiness.status
 
-    const responsePayload = {
+    const responsePayload: Record<string, unknown> = {
       customer_id: resolvedCustomerResult.customer.id,
       customer_number: customerNumber,
       application_number: applicationNumber,
@@ -2384,7 +2568,35 @@ export async function processWebsiteCustomerApplication(input: {
       legalVersions: legalAcceptanceVersions,
       consents: body.consents,
       rawPayload: input.rawBody,
+      requestAudit: input.requestAudit,
     }))
+
+    const powerOfAttorneyId = await stage('legal_acceptance', () => ensureWebsitePowerOfAttorney({
+      companyId: input.client.company_id,
+      customerId: resolvedCustomerResult.customer.id,
+      contractId: contract?.id ?? null,
+      customerSiteId: site?.id ?? null,
+      meteringPointId: meteringPoint?.id ?? null,
+      applicationId: application.id,
+      publicOffer,
+      legalVersions: legalAcceptanceVersions,
+      consents: body.consents,
+      requestAudit: input.requestAudit,
+      rawPayload: input.rawBody,
+    }))
+
+    if (powerOfAttorneyId) {
+      responsePayload.power_of_attorney_id = powerOfAttorneyId
+      const applicationUpdateResult = await supabaseService
+        .from('website_customer_applications')
+        .update({
+          response_payload: { ...responsePayload, power_of_attorney_id: powerOfAttorneyId },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', application.id)
+
+      if (applicationUpdateResult.error && !missingSchema(applicationUpdateResult.error)) throw applicationUpdateResult.error
+    }
 
     const gridOwnerRequest = readiness.canRequestGridOwnerInformation
       ? await stage('grid_owner_information_request', () => ensureGridOwnerInformationRequest({
@@ -2441,9 +2653,10 @@ export async function processWebsiteCustomerApplication(input: {
         })
         await seedDefaultEmailTemplates(input.client.company_id).catch(() => null)
         await seedDefaultEmailEventRules(input.client.company_id).catch(() => null)
+        const initialApplicationEmail = { eventKey: 'contract.application_received' as const }
         const contractLifecycleMailReady = Boolean(contract?.id && readiness.canSendAgreementConfirmation)
         triggeredEmailEvents = [
-          'contract.application_received',
+          initialApplicationEmail.eventKey,
           ...(contractLifecycleMailReady ? ['contract.confirmation_sent', 'contract.cooling_off_sent'] : []),
         ]
 
