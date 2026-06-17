@@ -1429,6 +1429,18 @@ export async function startAutomaticOnboardingAction(
   if (missingMasterdata) {
     const gridOwnerId =
       candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null;
+
+    await createMissingCustomerDataTasks({
+      companyId,
+      customerId,
+      customerSiteId: siteId,
+      meteringPointId: candidateMeteringPoint?.id ?? null,
+      facilityId: site.facility_id ?? null,
+      meterPointId: candidateMeteringPoint?.meter_point_id ?? null,
+      gridOwnerId,
+      actorUserId: actor.id,
+    });
+
     const decision = await auditRouteDecisionForCustomerAction({
       actorUserId: actor.id,
       companyId,
@@ -1570,32 +1582,39 @@ export async function startAutomaticOnboardingAction(
     },
   );
 
-  if (!existingOpenRequest) {
-    const savedRequest = await createSupplierSwitchRequest(supabase, {
-      readiness,
-      site,
-      meteringPoint,
-      requestType,
-      requestedStartDate: site.move_in_date ?? null,
-      companyId,
-      automationOrigin: "customer_card_automatic_onboarding",
-      automationKey: `automatic-onboarding:${customerId}:${siteId}:${meteringPoint.id}`,
-    });
+  const switchRequest = existingOpenRequest ?? await createSupplierSwitchRequest(supabase, {
+    readiness,
+    site,
+    meteringPoint,
+    requestType,
+    requestedStartDate: site.move_in_date ?? null,
+    companyId,
+    automationOrigin: "customer_card_automatic_onboarding",
+    automationKey: `automatic-onboarding:${customerId}:${siteId}:${meteringPoint.id}`,
+  });
 
-    await insertAuditLog({
-      actorUserId: actor.id,
-      entityType: "supplier_switch_request",
-      entityId: savedRequest.id,
-      action: "automatic_onboarding_z03_queued",
-      newValues: savedRequest,
-      metadata: {
-        customerId,
-        siteId,
-        meteringPointId: meteringPoint.id,
-        decision: routeDecisionPayload(decision),
-      },
-    });
-  }
+  await insertAuditLog({
+    actorUserId: actor.id,
+    entityType: "supplier_switch_request",
+    entityId: switchRequest.id,
+    action: existingOpenRequest ? "automatic_onboarding_z03_existing_request_reused" : "automatic_onboarding_z03_queued",
+    newValues: switchRequest,
+    metadata: {
+      customerId,
+      siteId,
+      meteringPointId: meteringPoint.id,
+      decision: routeDecisionPayload(decision),
+    },
+  });
+
+  await startSupplierSwitch({
+    actorUserId: actor.id,
+    customerId,
+    switchRequestId: switchRequest.id,
+    siteId,
+    meteringPointId: meteringPoint.id,
+    idempotencyKey: `automatic_onboarding_start:${customerId}:${siteId}:${meteringPoint.id}:${switchRequest.id}`,
+  });
 
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath("/admin/operations");

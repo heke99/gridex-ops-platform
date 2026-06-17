@@ -1,5 +1,41 @@
 import { supabaseService } from "@/lib/supabase/service";
 
+
+function missingSchema(error: unknown): boolean {
+  const code = String((error as { code?: string } | null)?.code ?? "")
+  const message = String((error as { message?: string } | null)?.message ?? "")
+  return ["42P01", "42703", "PGRST205"].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+}
+
+async function hasOpenTask(input: {
+  table: "customer_data_tasks" | "customer_operation_tasks";
+  companyId: string;
+  customerId: string;
+  customerSiteId?: string | null;
+  meteringPointId?: string | null;
+  taskType: string;
+}) {
+  const siteColumn = input.table === "customer_data_tasks" ? "customer_site_id" : "site_id"
+  let query = supabaseService
+    .from(input.table)
+    .select("id")
+    .eq("company_id", input.companyId)
+    .eq("customer_id", input.customerId)
+    .eq("task_type", input.taskType)
+    .in("status", ["open", "in_progress", "blocked", "pending_review"])
+    .limit(1)
+
+  query = input.customerSiteId ? query.eq(siteColumn, input.customerSiteId) : query.is(siteColumn, null)
+  query = input.meteringPointId ? query.eq("metering_point_id", input.meteringPointId) : query.is("metering_point_id", null)
+
+  const { data, error } = await query
+  if (error) {
+    if (missingSchema(error)) return false
+    throw error
+  }
+  return Boolean(data?.length)
+}
+
 export type CustomerDataTaskType =
   | "missing_facility_id"
   | "missing_metering_point"
@@ -20,6 +56,9 @@ export async function createCustomerDataTask(input: {
   actorUserId?: string | null;
   priority?: "low" | "normal" | "high";
 }): Promise<void> {
+  if (await hasOpenTask({ table: "customer_data_tasks", ...input })) return
+  if (await hasOpenTask({ table: "customer_operation_tasks", ...input })) return
+
   const payload = {
     company_id: input.companyId,
     customer_id: input.customerId,
@@ -38,8 +77,7 @@ export async function createCustomerDataTask(input: {
     .insert(payload);
   if (!error) return;
 
-  const code = String((error as { code?: string }).code ?? "");
-  if (!["42P01", "42703", "PGRST205"].includes(code)) {
+  if (!missingSchema(error)) {
     console.warn(
       "[customerDataTasks] Kunde inte skapa customer_data_tasks",
       error,

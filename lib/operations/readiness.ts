@@ -11,15 +11,28 @@ function toDateOrNull(value: string | null): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
+function poaExtraString(poa: PowerOfAttorneyRow, key: string): string | null {
+  const value = (poa as unknown as Record<string, unknown>)[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
 function isSignedAndValidPowerOfAttorney(
   poa: PowerOfAttorneyRow,
   now: Date
 ): boolean {
   if (poa.status !== 'signed') return false
-  if (!poa.document_path?.trim()) return false
+
+  const hasEvidence = Boolean(
+    poa.document_path?.trim() ||
+    poa.signed_at ||
+    poaExtraString(poa, 'accepted_at') ||
+    poa.reference ||
+    (poa as unknown as Record<string, unknown>).fullmakt_snapshot
+  )
+  if (!hasEvidence) return false
 
   const validFrom = toDateOrNull(poa.valid_from)
-  const validTo = toDateOrNull(poa.valid_to)
+  const validTo = toDateOrNull(poa.valid_to) ?? toDateOrNull(poaExtraString(poa, 'valid_until'))
 
   if (validFrom && validFrom > now) return false
   if (validTo && validTo < now) return false

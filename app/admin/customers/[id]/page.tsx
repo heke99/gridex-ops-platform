@@ -498,7 +498,7 @@ function CustomerWorkspaceTabNav({
  )
 
  return (
- <section className="sticky top-3 z-20 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur ">
+ <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm ">
  <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
  <div>
  <h2 className="text-base font-semibold text-slate-950 ">Kundens arbetsyta</h2>

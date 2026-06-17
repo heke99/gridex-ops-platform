@@ -193,7 +193,9 @@ function meteringPointLabel(point: MeteringPointRow | undefined): string | null 
 }
 
 function isSignedPowerOfAttorney(row: PowerOfAttorneyRow): boolean {
-  return row.status === 'signed' && Boolean(row.document_path?.trim())
+  const raw = row as unknown as Record<string, unknown>
+  const evidence = row.document_path?.trim() || raw.signed_at || raw.accepted_at || raw.reference || raw.fullmakt_snapshot
+  return row.status === 'signed' && Boolean(evidence)
 }
 
 function hasOpenRequest(rows: RequestRow[]): boolean {

@@ -361,13 +361,14 @@ export async function getPortalInvoice(context: PortalCustomerContext, invoiceId
   return pricing.data ?? null
 }
 
-const DOCUMENT_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,status,public_url,source_system,source,metadata,created_at'
-const DOCUMENT_LEGACY_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,public_url,source_system,created_at'
-const DOCUMENT_MINIMAL_SELECT = 'id,document_type,file_name,created_at'
+const DOCUMENT_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,status,public_url,source_system,source,metadata,raw_payload,power_of_attorney_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,customer_number,external_customer_id,document_version,created_at'
+const DOCUMENT_LEGACY_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,public_url,source_system,power_of_attorney_id,metadata,created_at'
+const DOCUMENT_MINIMAL_SELECT = 'id,document_type,title,file_name,power_of_attorney_id,created_at'
+const AUTH_DOCUMENT_SELECT = 'id,document_type,status,title,file_name,mime_type,file_size_bytes,storage_bucket,file_path,reference,notes,power_of_attorney_id,customer_contract_id,metering_point_id,metadata,uploaded_at,created_at'
 
 export async function listPortalDocuments(context: PortalCustomerContext, route = '/api/v1/customer/documents') {
   await logPortalAccess({ context, route, action: 'read_documents' })
-  return listWithSchemaFallback([
+  const customerDocuments = await listWithSchemaFallback([
     async () => await supabaseService
       .from('customer_documents')
       .select(DOCUMENT_SELECT)
@@ -390,6 +391,41 @@ export async function listPortalDocuments(context: PortalCustomerContext, route 
       .order('created_at', { ascending: false })
       .limit(100) as ListResult,
   ])
+
+  const authorizationDocuments = await listWithSchemaFallback([
+    async () => await supabaseService
+      .from('customer_authorization_documents')
+      .select(AUTH_DOCUMENT_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .neq('status', 'archived')
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+  ])
+
+  const normalizedAuthorizationDocuments: Array<Record<string, unknown>> = authorizationDocuments.map((row) => ({
+    ...row,
+    source_system: row.source_system ?? 'customer_authorization_documents',
+    source: row.source ?? 'customer_authorization_documents',
+    public_url: row.public_url ?? null,
+    file_path: row.file_path ?? null,
+  }))
+
+  const documents: Array<Record<string, unknown>> = [
+    ...customerDocuments,
+    ...normalizedAuthorizationDocuments,
+  ]
+
+  const seen = new Set<string>()
+  return documents
+    .filter((row) => {
+      const id = String(row.id ?? '')
+      const key = String(row.power_of_attorney_id ?? id)
+      if (key && seen.has(key)) return false
+      if (key) seen.add(key)
+      return true
+    })
+    .sort((a, b) => String(b.created_at ?? b.uploaded_at ?? '').localeCompare(String(a.created_at ?? a.uploaded_at ?? '')))
 }
 
 const POA_SELECT = 'id,contract_id,customer_site_id,site_id,metering_point_id,scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,legal_text_version_id,scope_summary,fullmakt_snapshot,metadata,created_at'
