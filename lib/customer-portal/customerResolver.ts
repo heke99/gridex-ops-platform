@@ -316,6 +316,25 @@ async function linkedByEmail(companyId: string, email: string): Promise<Resolved
   return customerByField(companyId, 'email', email, 'customers.email')
 }
 
+
+async function hasAmbiguousEmailMatch(companyId: string, email: string): Promise<boolean> {
+  const identityRows = await selectPortalIdentities(companyId, 'email', email, 3)
+  const identityCustomers = new Set(identityRows.map((row) => str(row, 'customer_id')).filter(Boolean))
+  if (identityCustomers.size > 1) return true
+
+  const result = await supabaseService
+    .from('customers')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('email', email)
+    .limit(3)
+  if (result.error) {
+    if (isMissingPortalSchemaError(result.error)) return false
+    throw result.error
+  }
+  return new Set(asRows(result.data as unknown as Record<string, unknown>[] | null).map((row) => str(row, 'id')).filter(Boolean)).size > 1
+}
+
 async function finishResolved(companyId: string, customerId: string, source: {
   id?: string | null
   externalCustomerId?: string | null
@@ -551,7 +570,7 @@ export async function resolvePortalCustomer(input: {
   }
 
   if (!identifiers.externalCustomerId && !identifiers.customerNumber && !identifiers.email && !identifiers.authUserId && !identifiers.customerPortalUserId) {
-    return { ok: false, status: 400, code: 'customer_identifier_missing', error: 'Kundidentifierare saknas.', identifiers }
+    return { ok: false, status: 422, code: 'missing_customer_identifier', error: 'Kundidentifierare saknas.', identifiers }
   }
 
   try {
@@ -563,6 +582,9 @@ export async function resolvePortalCustomer(input: {
       (identifiers.email ? await linkedByEmail(input.client.company_id, identifiers.email) : null)
 
     if (!resolved) {
+      if (identifiers.email && await hasAmbiguousEmailMatch(input.client.company_id, identifiers.email)) {
+        return { ok: false, status: 409, code: 'ambiguous_customer_match', error: 'Flera kunder matchar samma e-post inom tenant. Skicka customer_number eller external_customer_id.', identifiers }
+      }
       return { ok: false, status: 404, code: 'customer_not_found', error: 'Kunden hittades inte eller är inte länkad till API-klienten.', identifiers }
     }
 

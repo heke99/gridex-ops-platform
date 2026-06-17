@@ -1,254 +1,142 @@
-# Gridex Website API och webhooks
+# Gridex Customer Portal API
 
-Publik dokumentationssida efter deploy:
+Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
-```text
-https://app.gridex.se/developers/customer-portal-api
-```
+## Grundmodell
 
-Den här guiden är för externa hemsidor, kundportaler och partners som ska ansluta till Gridex API.
+Tenantens hemsida/Mina sidor äger inloggningssessionen. OPS är master för kund, kundnummer, avtal, anläggningar, fullmakter, juridiska godkännanden, dokument, status och processflöden.
 
-## Grundprincip
+Flödet ska vara:
 
 ```text
-Gridex API = master för kund, kundnummer, avtal, avtalsnummer, prisversion, avtalssnapshot, juridiska godkännanden, fullmakter, fakturareferenser, mätvärden, händelser och audit.
-Extern hemsida = kanal där kunden ser publicerade avtal, skickar ansökan och använder Mina sidor.
-Fakturapartner = extern referens och betal-/fakturaflöde, inte master för kund eller avtal.
+Tenant Mina sidor → tenant server route → OPS API → OPS company_id från API-nyckel → kundresolver → OPS masterdata → tenant UI
 ```
 
-Supportärenden ligger utanför Gridex API. Varje elbolag hanterar support i sina egna kanaler.
+Frontend får aldrig anropa OPS direkt med API-nyckel och får aldrig skicka ett fritt `company_id`.
 
-## Autentisering
+## Portal bundle payload
 
-Alla anrop görs server-side:
+Rekommenderad endpoint:
 
 ```http
+POST /api/v1/customer/portal-bundle
 Authorization: Bearer YOUR_GRIDEX_API_TOKEN
-Origin: https://www.exempel.se
 Content-Type: application/json
 ```
 
-API-nyckeln identifierar rätt bolag. Skicka inte egen `company_id` från hemsidan. Allowed origins skyddar webbläsaranrop; server-till-server-anrop kan sakna Origin-header och måste därför hålla API-nyckeln hemlig.
-
-## Behörigheter
-
-| I vanliga ord | Teknisk behörighet |
-| --- | --- |
-| Läsa avtal på hemsidan | `website_contracts.read` |
-| Skicka kundansökningar | `website_applications.write` |
-| Mina sidor – läsa kunddata | `customer_portal.read` |
-| Mina sidor – uppdatera kunddata | `customer_portal.write` |
-| Läsa händelser | `events.read` |
-| Skicka händelser från hemsidan | `website_events.write` |
-
-Kommande mer granulära behörigheter är förberedda men inte fullständigt uppdelade i alla routes ännu: `customer_documents.read`, `customer_notifications.read/write`, `customer_contact.write`, `customer_facility_data.write`, `customer_power_of_attorney.write`.
-
-## Hämta publicerade avtal
-
-```http
-GET /api/v1/website/public-contracts?customer_type=private
-```
-
-Krav: `website_contracts.read`.
-
-Ett avtal syns bara om det är publicerat, aktiverat för hemsida/API, inte arkiverat, datumgiltigt, har aktiv prisversion/prislista och komplett publicerad juridik.
+Payload ska innehålla så många stabila kundnycklar som möjligt:
 
 ```json
 {
-  "data": [
+  "email": "heke99@live.se",
+  "customer_number": "DX-100023",
+  "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f"
+}
+```
+
+OPS löser kund inom API-nyckelns tenant i denna ordning:
+
+1. `external_customer_id`
+2. `customer_number`
+3. länkad portal identity/account
+4. unik `email`
+
+Om flera kunder matchar samma e-post returneras `409 ambiguous_customer_match` och tenant ska skicka `customer_number` eller `external_customer_id`.
+
+## Portal bundle response
+
+```json
+{
+  "data": {
+    "profile": {
+      "customer_number": "DX-100023",
+      "display_name": "Hekmat Hourani",
+      "email": "heke99@live.se"
+    },
+    "customer_status": {
+      "code": "needs_facility_data",
+      "label": "Ansökan behandlas",
+      "message": "Vi behöver komplettera anläggningsuppgifter innan leverantörsbytet kan starta.",
+      "can_start_switch": false
+    },
+    "data_quality": {
+      "status": "needs_action",
+      "issues": ["missing_metering_point", "missing_grid_owner", "facility_not_verified"]
+    }
+  }
+}
+```
+
+## Dokument, fullmakt och juridiska godkännanden
+
+Tenant ska skicka godkända fullmakter, juridiska godkännanden och dokument till OPS så OPS kan starta rätt processer.
+
+```http
+POST /api/v1/customer/sync
+Authorization: Bearer YOUR_GRIDEX_API_TOKEN
+Content-Type: application/json
+Idempotency-Key: tenant-sync-12345
+```
+
+```json
+{
+  "email": "heke99@live.se",
+  "customer_number": "DX-100023",
+  "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f",
+  "power_of_attorney": {
+    "scope": "supplier_switch",
+    "status": "signed",
+    "signed_at": "2026-06-16T15:10:12.647Z",
+    "legal_text_version": "2026-06-12-v1",
+    "reference": "POA-39e9fbc4-2c94-46fb-a1ee-49d18cb0932a",
+    "document": {
+      "external_document_id": "tenant-doc-123",
+      "document_type": "power_of_attorney",
+      "title": "Signerad fullmakt",
+      "file_url": "https://tenant.se/documents/tenant-doc-123.pdf"
+    }
+  },
+  "legal_acceptances": [
+    { "acceptance_type": "terms", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" },
+    { "acceptance_type": "privacy_policy", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" },
+    { "acceptance_type": "price_snapshot", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" }
+  ],
+  "documents": [
     {
-      "id": "offer_...",
-      "offer_reference": "offer_...",
-      "code": "RORLIGT-ELPRIS",
-      "name": "Rörligt elpris",
-      "type": "variable_spot",
-      "customer_type": "both",
-      "pricing": {
-        "monthly_fee": { "amount": 68, "currency": "SEK", "unit": "month" },
-        "markup": { "amount": 4, "unit": "ore_per_kwh" },
-        "invoice_fee": { "amount": 0, "currency": "SEK", "unit": "invoice" },
-        "spot_share": null,
-        "portfolio_share": null
-      },
-      "legal": {
-        "terms_version": "2026-06",
-        "privacy_policy_version": "2026-06",
-        "withdrawal_version": "2026-06",
-        "power_of_attorney_required": true,
-        "price_terms_version": "2026-06"
-      },
-      "valid_from": "2026-06-01",
-      "valid_to": null
+      "external_document_id": "tenant-contract-123",
+      "document_type": "contract_confirmation",
+      "title": "Avtalsbekräftelse",
+      "file_url": "https://tenant.se/documents/tenant-contract-123.pdf"
     }
   ]
 }
 ```
 
-Hemsidan ska skicka tillbaka `offer_reference` när kunden ansöker. Skicka inte egna priser eller fritextvillkor som juridisk sanning.
+OPS sparar:
 
-## Skicka kundansökan
+- fullmakt i `powers_of_attorney`
+- juridiska godkännanden i `customer_legal_acceptances`
+- dokument i `customer_documents`
+- processhändelser som domain events/webhooks
 
-```http
-POST /api/v1/website/customer-applications
-```
+Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switch tills mätpunkt/nätägare är verifierade.
 
-Krav: `website_applications.write`.
+## Scopes
 
-```json
-{
-  "external_customer_id": "CUSTOMER-12345",
-  "source": "exempel.se",
-  "customer": {
-    "customer_type": "private",
-    "first_name": "Anna",
-    "last_name": "Andersson",
-    "email": "anna@example.se",
-    "phone": "+46701234567",
-    "personal_number": "YYYYMMDDXXXX"
-  },
-  "site": {
-    "facility_id": "735999888000000112",
-    "street": "Storgatan 1",
-    "postal_code": "21122",
-    "city": "Malmö",
-    "price_area_code": "SE4",
-    "move_in_date": "2026-07-01"
-  },
-  "contract": {
-    "offer_reference": "offer_...",
-    "requested_start_date": "2026-07-01"
-  },
-  "consents": {
-    "terms": true,
-    "privacy_policy": true,
-    "withdrawal": true,
-    "power_of_attorney": true,
-    "price_terms": true
-  }
-}
-```
+- `customer_portal.read` – hämta Mina sidor-data
+- `customer_portal.write` – skicka kompletteringar/sync
+- `customer_documents.read` – läsa dokument
+- `customer_documents.write` – synka dokument
+- `customer_notifications.read/write` – notiser
+- `customer_facility_data.write` – anläggningskomplettering
+- `customer_power_of_attorney.write` – fullmakt
+- `events.read` och `website_events.write` – händelser
 
-Systemet skapar/matchar kund, skapar kundnummer, länkar portal identity, sparar anläggning/mätpunkt när data finns, skapar avtal och avtalssnapshot, sparar juridiska acceptanser och köar händelser/webhooks.
+## Felkoder
 
-## Mina sidor-koppling: Customer Portal External Auth Linking
-
-Det här är obligatoriskt när tenantens hemsida har egen Supabase Auth och OPS inte har kunden i OPS-projektets `auth.users`.
-
-```text
-Gridex-webb Supabase session.user.id
-→ x-gridex-customer-portal-user-id till OPS
-→ OPS matchar tenant via API-nyckeln
-→ OPS matchar kund via external_customer_id, customer_number eller unik email
-→ OPS skapar/uppdaterar customer_portal_accounts.role = owner
-→ OPS fyller customer_portal_identities.auth_user_id och customer_portal_user_id
-→ GET /api/v1/customer/portal-bundle returnerar kundens data
-```
-
-Tenantens backend ska skicka dessa headers vid Mina sidor-anrop:
-
-```http
-x-gridex-customer-portal-user-id: <gridex-web-supabase-session-user-id>
-x-gridex-auth-user-id: <gridex-web-supabase-session-user-id>
-x-gridex-external-customer-id: CUSTOMER-12345
-x-gridex-customer-number: DX-100025
-x-gridex-customer-email: kund@example.se
-```
-
-`x-gridex-customer-portal-user-id` och `x-gridex-auth-user-id` ska vara webbens Supabase `session.user.id`. Skicka helst båda. `external_customer_id` eller `customer_number` ska också skickas vid första länkning så OPS kan hitta rätt kund. API-nyckeln avgör alltid bolag/tenant; hemsidan ska aldrig skicka `company_id` eller ett fritt `customer_id` från frontend.
-
-OPS skapar eller uppdaterar `customer_portal_accounts` med rollen `owner`. Värdet `customer` är inte en giltig portalroll.
-
-## Hämta Mina sidor-data
-
-Kundportalen anropar server-side med API-nyckel, webbens Supabase auth user id och minst en stabil kundreferens. Starkast är `customer_portal_user_id`/`auth_user_id`, därefter extern kundreferens, kundnummer och unik e-post som fallback.
-
-Rekommenderad endpoint för Mina sidor är bundle-anropet:
-
-```text
-GET /api/v1/customer/portal-bundle
-```
-
-Det returnerar kund, avtal, anläggningar, mätpunkter, fakturor, mätvärden, dokument, juridiska godkännanden, notiser och händelser i ett svar. Separata endpoints finns kvar:
-
-```text
-GET /api/v1/customer/me
-GET /api/v1/customer/contracts
-GET /api/v1/customer/sites
-GET /api/v1/customer/invoices
-GET /api/v1/customer/invoices/[id]
-GET /api/v1/customer/metering-values
-GET /api/v1/customer/events
-GET /api/v1/customer/documents
-GET /api/v1/customer/legal-acceptances
-GET /api/v1/customer/notifications
-POST /api/v1/customer/notifications/read
-POST /api/v1/customer/profile-update
-POST /api/v1/customer/move-out
-```
-
-Tomma listor returneras som `200 OK` med `[]`. Kund saknas ger 404, saknat scope ger 403 och internt OPS-fel ger 500. På första lyckade anropet kan OPS automatiskt länka webbens auth-user till kunden.
-
-## Webhooks
-
-Webhookar skickas som POST till konfigurerad HTTPS-URL. Mottagaren ska svara 2xx när eventet är mottaget.
-
-Headers:
-
-```http
-X-Gridex-Event-Id: event_123
-X-Gridex-Event-Type: contract.application_received
-X-Gridex-Timestamp: 1718532000
-X-Gridex-Signature: sha256=<signature>
-X-Gridex-Delivery-Id: delivery_123
-```
-
-Signaturen är HMAC SHA-256 över:
-
-```text
-timestamp + "." + raw_body
-```
-
-Payload:
-
-```json
-{
-  "id": "event_123",
-  "type": "contract.application_received",
-  "event_id": "event_123",
-  "event_type": "contract.application_received",
-  "created_at": "2026-06-16T10:30:00Z",
-  "company_id": "uuid",
-  "customer_id": "uuid",
-  "customer_number": "DX-100025",
-  "external_customer_id": "CUSTOMER-12345",
-  "aggregate": { "type": "customer_contract", "id": "uuid" },
-  "data": {
-    "application_id": "uuid",
-    "contract_id": "uuid",
-    "status": "application_received"
-  }
-}
-```
-
-Aktiva events i första integrationspaketet:
-
-```text
-customer.created
-customer.updated
-customer_number.assigned
-contract.application_received
-contract.confirmation_sent
-contract.cooling_off_sent
-invoice.created
-invoice.sent
-invoice.disputed
-metering_values.updated
-```
-
-Planerade events ska inte antas finnas förrän de dokumenteras som aktiva.
-
-## Idempotency och fel
-
-Skicka `Idempotency-Key` för write-anrop. En tidigare lyckad request returnerar samma huvudreferenser igen. En tidigare misslyckad request returnerar `409 idempotent_failed` så integrationen inte får falsk success.
-
-Externa API-fel följer stabila koder, till exempel `missing_api_token`, `api_scope_missing`, `public_contract_not_available`, `legal_acceptance_missing` och `idempotent_failed`. Visa kundvänlig text i kund-UI och logga tekniska detaljer server-side.
+- `401 invalid_api_token`
+- `403 api_scope_missing`
+- `404 customer_not_found`
+- `409 ambiguous_customer_match`
+- `422 missing_customer_identifier`
+- `500 customer_portal_internal_error`

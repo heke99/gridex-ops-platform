@@ -4,7 +4,7 @@ import {
   requireIntegrationApiAccess,
   type IntegrationApiClient,
 } from '@/lib/integrations/apiAuth'
-import { portalIdentifiersFromRequest, resolvePortalCustomer } from '@/lib/customer-portal/customerResolver'
+import { portalIdentifiersFromRequest, resolvePortalCustomer, type CustomerPortalIdentifiers } from '@/lib/customer-portal/customerResolver'
 
 export type LinkedPortalIdentity = {
   id: string | null
@@ -50,6 +50,52 @@ export function normalizeFacility(value: unknown): string {
 
 export function identityExternalCustomerId(request: NextRequest): string | null {
   return portalIdentifiersFromRequest(request).externalCustomerId
+}
+
+function cleanIdentifier(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+export function portalIdentifiersFromPayload(payload: unknown): Partial<CustomerPortalIdentifiers> {
+  const body = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {}
+  return {
+    externalCustomerId: cleanIdentifier(body.external_customer_id) ?? cleanIdentifier(body.externalCustomerId) ?? cleanIdentifier(body.customer_external_id),
+    customerNumber: cleanIdentifier(body.customer_number) ?? cleanIdentifier(body.customerNumber),
+    email: normalizeEmail(body.email ?? body.customer_email) || null,
+    authUserId: cleanIdentifier(body.auth_user_id) ?? cleanIdentifier(body.authUserId) ?? cleanIdentifier(body.web_auth_user_id) ?? cleanIdentifier(body.webAuthUserId),
+    customerPortalUserId: cleanIdentifier(body.customer_portal_user_id) ?? cleanIdentifier(body.customerPortalUserId) ?? cleanIdentifier(body.portal_user_id) ?? cleanIdentifier(body.portalUserId),
+  }
+}
+
+export async function requireCustomerPortalApiContextForIdentifiers(
+  request: NextRequest,
+  identifiers: Partial<CustomerPortalIdentifiers>,
+  scopes: string[] = ['customer_portal.read']
+): Promise<
+  | { ok: true; client: IntegrationApiClient; identity: LinkedPortalIdentity; startedAt: number }
+  | { ok: false; response: NextResponse; startedAt: number }
+> {
+  const startedAt = Date.now()
+  const auth = await requireIntegrationApiAccess(request, scopes)
+  if (!auth.ok) {
+    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    return { ok: false, response: jsonError(auth.error, auth.status, auth.errorCode), startedAt }
+  }
+
+  const resolution = await resolvePortalCustomer({ client: auth.client, request, identifiers })
+  if (!resolution.ok) {
+    await logIntegrationApiRequest({
+      client: auth.client,
+      request,
+      statusCode: resolution.status,
+      startedAt,
+      errorCode: resolution.code,
+      metadata: { ...resolution.identifiers },
+    })
+    return { ok: false, response: jsonError(resolution.error, resolution.status, resolution.code), startedAt }
+  }
+
+  return { ok: true, client: auth.client, identity: resolution.customer, startedAt }
 }
 
 export async function resolveLinkedPortalIdentity(

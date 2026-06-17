@@ -19,6 +19,7 @@ const permissions = [
   ['Läsa händelser', 'events.read', 'Läsa händelser som skapats för bolaget.'],
   ['Skicka händelser från hemsidan', 'website_events.write', 'Skicka kundhändelser från hemsida eller kundportal.'],
   ['Läsa kunddokument', 'customer_documents.read', 'Granulär behörighet för dokument i Mina sidor.'],
+  ['Synka kunddokument', 'customer_documents.write', 'Skicka signerade fullmakter, avtalsdokument och andra kunddokument till OPS.'],
   ['Läsa kundnotiser', 'customer_notifications.read', 'Granulär behörighet för notiser i Mina sidor.'],
   ['Uppdatera kundnotiser', 'customer_notifications.write', 'Granulär behörighet för att markera notiser som lästa.'],
 ]
@@ -34,7 +35,9 @@ const endpoints = [
   ['POST', '/api/v1/website/customer-applications', 'website_applications.write', 'Skapa kundansökan, avtalssnapshot och juridiska godkännanden.'],
   ['POST', '/api/v1/website/customer-events', 'website_events.write', 'Skicka kundhändelser från hemsidan. Supportärenden ska inte skickas hit.'],
   ['POST', '/api/v1/events', 'website_events.write', 'Alias för att skicka kundhändelser från hemsidan.'],
-  ['GET', '/api/v1/customer/portal-bundle', 'customer_portal.read', 'Hämta kundprofil, avtal, anläggningar, fakturor, dokument, juridik, notiser och events i ett anrop.'],
+  ['GET', '/api/v1/customer/portal-bundle', 'customer_portal.read', 'Hämta kundprofil, avtal, anläggningar, fakturor, dokument, juridik, notiser och events i ett anrop via headers/query.'],
+  ['POST', '/api/v1/customer/portal-bundle', 'customer_portal.read', 'Hämta Mina sidor-data med JSON-payload: email, customer_number och external_customer_id.'],
+  ['POST', '/api/v1/customer/sync', 'customer_portal.write', 'Synka dokument, fullmakt, juridiska godkännanden och anläggningskompletteringar från tenant till OPS.'],
   ['GET', '/api/v1/customer/me', 'customer_portal.read', 'Hämta länkad kundprofil med namn-fallback.'],
   ['GET', '/api/v1/customer/contracts', 'customer_portal.read', 'Hämta kundens avtal.'],
   ['GET', '/api/v1/customer/sites', 'customer_portal.read', 'Hämta kundens anläggningar och mätpunkter.'],
@@ -59,6 +62,11 @@ const activeWebhookEvents = [
   'contract.application_received',
   'contract.confirmation_sent',
   'contract.cooling_off_sent',
+  'contract.needs_facility_data',
+  'power_of_attorney.signed',
+  'document.created',
+  'facility_data.received',
+  'facility_data.verified',
   'invoice.created',
   'invoice.sent',
   'invoice.disputed',
@@ -171,7 +179,27 @@ const applicationResponse = `{
   }
 }`
 
+const portalBundlePayload = `{
+  "email": "heke99@live.se",
+  "customer_number": "DX-100023",
+  "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f"
+}`
+
 const customerFetchExample = `fetch("${baseUrl}/api/v1/customer/portal-bundle", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: "Bearer YOUR_GRIDEX_API_TOKEN"
+  },
+  body: JSON.stringify({
+    email: session.user.email,
+    customer_number: localCustomer.customerNumber,
+    external_customer_id: localCustomer.externalCustomerId
+  }),
+  cache: "no-store"
+})`
+
+const customerFetchHeaderExample = `fetch("${baseUrl}/api/v1/customer/portal-bundle", {
   headers: {
     Authorization: "Bearer YOUR_GRIDEX_API_TOKEN",
     "x-gridex-customer-portal-user-id": "<gridex-web-supabase-session-user-id>",
@@ -206,7 +234,64 @@ const authLinkingChecklist = `Tenantens backend ska:
 3. skicka samma user.id i x-gridex-auth-user-id
 4. skicka external_customer_id från ansökan eller customer_number från OPS
 5. aldrig skicka company_id eller customer_id från frontend
-6. använda GET /api/v1/customer/portal-bundle som huvudendpoint för Mina sidor`
+6. använda POST /api/v1/customer/portal-bundle som huvudendpoint för Mina sidor`
+
+
+const customerSyncExample = `curl -X POST "${baseUrl}/api/v1/customer/sync" \
+  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: tenant-sync-12345" \
+  -d '{
+    "email": "heke99@live.se",
+    "customer_number": "DX-100023",
+    "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f",
+    "power_of_attorney": {
+      "scope": "supplier_switch",
+      "status": "signed",
+      "signed_at": "2026-06-16T15:10:12.647Z",
+      "legal_text_version": "2026-06-12-v1",
+      "reference": "POA-39e9fbc4-2c94-46fb-a1ee-49d18cb0932a",
+      "document": {
+        "external_document_id": "tenant-doc-123",
+        "document_type": "power_of_attorney",
+        "title": "Signerad fullmakt",
+        "file_url": "https://tenant.se/documents/tenant-doc-123.pdf"
+      }
+    },
+    "legal_acceptances": [
+      { "acceptance_type": "terms", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" },
+      { "acceptance_type": "privacy_policy", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" },
+      { "acceptance_type": "price_snapshot", "legal_text_version": "2026-06-12-v1", "accepted_at": "2026-06-16T15:10:12.647Z" }
+    ],
+    "documents": [
+      {
+        "external_document_id": "tenant-contract-123",
+        "document_type": "contract_confirmation",
+        "title": "Avtalsbekräftelse",
+        "file_url": "https://tenant.se/documents/tenant-contract-123.pdf"
+      }
+    ]
+  }'`
+
+const customerStatusResponseExample = `{
+  "data": {
+    "profile": {
+      "customer_number": "DX-100023",
+      "display_name": "Hekmat Hourani",
+      "email": "heke99@live.se"
+    },
+    "customer_status": {
+      "code": "needs_facility_data",
+      "label": "Ansökan behandlas",
+      "message": "Vi behöver komplettera anläggningsuppgifter innan leverantörsbytet kan starta.",
+      "can_start_switch": false
+    },
+    "data_quality": {
+      "status": "needs_action",
+      "issues": ["missing_metering_point", "missing_grid_owner", "facility_not_verified"]
+    }
+  }
+}`
 
 const webhookPayload = `{
   "id": "event_123",
@@ -331,12 +416,22 @@ export default function CustomerPortalApiDocsPage() {
         </Section>
 
         <Section title="7. Hämta Mina sidor-data">
-          <p>Servern bakom kundportalen skickar API-nyckel, webbens Supabase <code>session.user.id</code> och en stabil kundreferens. Frontend ska först verifiera den inloggade kunden och därefter anropa Gridex API server-side.</p>
+          <p>Tenantens Mina sidor ska anropa OPS server-side med exakt kundidentifiering från den inloggade kunden. Rekommenderad JSON-payload är <code>email</code>, <code>customer_number</code> och <code>external_customer_id</code>.</p>
+          <CodeBlock>{portalBundlePayload}</CodeBlock>
           <CodeBlock>{customerFetchExample}</CodeBlock>
-          <p>Alla kundroutes filtrerar på bolag från API-nyckeln och löser kunden via redan länkad <code>customer_portal_user_id</code>/<code>auth_user_id</code>, riktigt <code>external_customer_id</code> eller kundnummer + e-post. Första auto-länkning kräver minst två matchande kunduppgifter eller tidigare sync-länkning. Saknade listor returneras som tomma arrayer, inte 500.</p>
+          <p>Headers/query stöds fortsatt för äldre implementationer:</p>
+          <CodeBlock>{customerFetchHeaderExample}</CodeBlock>
+          <CodeBlock>{customerStatusResponseExample}</CodeBlock>
+          <p>Alla kundroutes filtrerar på bolag från API-nyckeln och löser kunden via riktigt <code>external_customer_id</code>, kundnummer eller unik e-post. Om flera kunder matchar samma e-post returneras <code>409 ambiguous_customer_match</code>. Saknade listor returneras som tomma arrayer, inte 500.</p>
         </Section>
 
-        <Section title="8. Webhooks">
+        <Section title="8. Synka dokument, fullmakt och juridiska godkännanden till OPS">
+          <p>Godkända fullmakter, juridiska godkännanden och dokument ska skickas till OPS så att OPS kan starta rätt automatiska processer. Använd <code>POST /api/v1/customer/sync</code>. Anropet är tenant-säkert: API-nyckeln avgör bolag och payloaden får inte innehålla fritt <code>company_id</code>.</p>
+          <CodeBlock>{customerSyncExample}</CodeBlock>
+          <p>OPS sparar fullmakt i <code>powers_of_attorney</code>, juridiska godkännanden i <code>customer_legal_acceptances</code> och dokument i <code>customer_documents</code>. Om anläggningsdata saknas skapas statusen <code>needs_facility_data</code> och switch blockeras tills mätpunkt/nätägare är verifierade.</p>
+        </Section>
+
+        <Section title="9. Webhooks">
           <p>Webhookar skickas som POST till konfigurerad HTTPS-URL. Leveransen signeras med HMAC SHA-256 över <code>timestamp.rawBody</code>. Mottagaren ska svara 2xx när eventet är mottaget.</p>
           <CodeBlock>{webhookHeaders}</CodeBlock>
           <CodeBlock>{webhookPayload}</CodeBlock>
@@ -347,7 +442,7 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{webhookReceiver}</CodeBlock>
         </Section>
 
-        <Section title="9. Fel och idempotency">
+        <Section title="10. Fel och idempotency">
           <p>Alla write-anrop ska skicka <code>Idempotency-Key</code>. Externa fel returneras som stabila koder, till exempel <code>missing_api_token</code>, <code>api_scope_missing</code>, <code>public_contract_not_available</code>, <code>legal_acceptance_missing</code> eller <code>idempotent_failed</code>. Visa kundvänlig text i slutkunds-UI och logga tekniska detaljer server-side.</p>
         </Section>
       </div>

@@ -1,9 +1,13 @@
 import { NextRequest } from 'next/server'
+import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import type { LinkedPortalIdentity } from '@/lib/customer-portal/externalApi'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
   logCustomerPortalSuccess,
+  portalIdentifiersFromPayload,
   requireCustomerPortalApiContext,
+  requireCustomerPortalApiContextForIdentifiers,
 } from '@/lib/customer-portal/externalApi'
 import {
   listPortalContracts,
@@ -78,17 +82,20 @@ async function optionalSection(
   }
 }
 
-export async function GET(request: NextRequest) {
-  const context = await requireCustomerPortalApiContext(request, ['customer_portal.read'])
-  if (!context.ok) return context.response
-
+async function buildBundleResponse(input: {
+  request: NextRequest
+  client: IntegrationApiClient
+  identity: LinkedPortalIdentity
+  startedAt: number
+  accessMode: 'headers_or_query' | 'json_payload'
+}) {
   try {
     const portalContext = portalContextFromResolved({
-      companyId: context.client.company_id,
-      customerId: context.identity.customer_id,
-      externalCustomerId: context.identity.external_customer_id,
-      customerNumber: context.identity.customer_number,
-      provider: context.identity.provider,
+      companyId: input.client.company_id,
+      customerId: input.identity.customer_id,
+      externalCustomerId: input.identity.external_customer_id,
+      customerNumber: input.identity.customer_number,
+      provider: input.identity.provider,
     })
     const route = '/api/v1/customer/portal-bundle'
     const warnings: BundleWarning[] = []
@@ -124,7 +131,7 @@ export async function GET(request: NextRequest) {
     const contracts = rawContracts.map((contract) => removeFalsePricePlanBlockers(contract, hasPricePlan))
     const websiteApplications = rawWebsiteApplications.map((application) => removeFalsePricePlanBlockers(application, hasPricePlan))
     const customerStatus = buildPortalCustomerStatus({
-      customer: context.identity.customer,
+      customer: input.identity.customer,
       contracts,
       sites,
       meteringPoints,
@@ -132,14 +139,15 @@ export async function GET(request: NextRequest) {
       legalAcceptances,
       applications: websiteApplications,
     })
-    const displayName = displayNameFromCustomer(context.identity.customer, context.identity.email ?? null)
+    const displayName = displayNameFromCustomer(input.identity.customer, input.identity.email ?? null)
 
     await logCustomerPortalSuccess({
-      request,
-      client: context.client,
-      startedAt: context.startedAt,
+      request: input.request,
+      client: input.client,
+      startedAt: input.startedAt,
       resultCount: 1,
       metadata: {
+        access_mode: input.accessMode,
         contracts: contracts.length,
         sites: sites.length,
         invoices: invoices.length,
@@ -161,22 +169,33 @@ export async function GET(request: NextRequest) {
     return customerPortalJson({
       data: {
         customer: {
-          ...context.identity.customer,
-          customer_id: context.identity.customer_id,
-          external_customer_id: context.identity.external_customer_id,
-          customer_number: context.identity.customer_number ?? context.identity.customer.customer_number ?? null,
-          email: context.identity.email ?? context.identity.customer.email ?? null,
+          ...input.identity.customer,
+          customer_id: input.identity.customer_id,
+          external_customer_id: input.identity.external_customer_id,
+          customer_number: input.identity.customer_number ?? input.identity.customer.customer_number ?? null,
+          email: input.identity.email ?? input.identity.customer.email ?? null,
           display_name: displayName,
           portal_identity: {
-            id: context.identity.id,
-            external_customer_id: context.identity.external_customer_id,
-            customer_number: context.identity.customer_number,
-            auth_user_id: context.identity.auth_user_id,
-            customer_portal_user_id: context.identity.customer_portal_user_id,
-            match_strength: context.identity.match_strength,
-            match_method: context.identity.match_method,
-            provider: context.identity.provider,
+            id: input.identity.id,
+            external_customer_id: input.identity.external_customer_id,
+            customer_number: input.identity.customer_number,
+            auth_user_id: input.identity.auth_user_id,
+            customer_portal_user_id: input.identity.customer_portal_user_id,
+            match_strength: input.identity.match_strength,
+            match_method: input.identity.match_method,
+            provider: input.identity.provider,
           },
+        },
+        profile: {
+          customer_id: input.identity.customer_id,
+          customer_number: input.identity.customer_number ?? input.identity.customer.customer_number ?? null,
+          external_customer_id: input.identity.external_customer_id,
+          display_name: displayName,
+          email: input.identity.email ?? input.identity.customer.email ?? null,
+          full_name: input.identity.customer.full_name ?? displayName,
+          first_name: input.identity.customer.first_name ?? null,
+          last_name: input.identity.customer.last_name ?? null,
+          phone: input.identity.customer.phone ?? null,
         },
         contracts,
         sites,
@@ -203,6 +222,31 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
+    return handleCustomerPortalRouteError({ request: input.request, client: input.client, startedAt: input.startedAt, error })
   }
+}
+
+export async function GET(request: NextRequest) {
+  const context = await requireCustomerPortalApiContext(request, ['customer_portal.read'])
+  if (!context.ok) return context.response
+  return buildBundleResponse({
+    request,
+    client: context.client,
+    identity: context.identity,
+    startedAt: context.startedAt,
+    accessMode: 'headers_or_query',
+  })
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({}))
+  const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_portal.read'])
+  if (!context.ok) return context.response
+  return buildBundleResponse({
+    request,
+    client: context.client,
+    identity: context.identity,
+    startedAt: context.startedAt,
+    accessMode: 'json_payload',
+  })
 }
