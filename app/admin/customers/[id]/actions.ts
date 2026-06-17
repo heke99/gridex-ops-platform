@@ -68,8 +68,14 @@ import { createMissingCustomerDataTasks } from "@/lib/customers/dataTasks";
 import type { BusinessProcess } from "@/lib/routes/routeDecisionTypes";
 import { actionPreflight } from "@/lib/operations/businessActions/actionPreflight";
 import { startSupplierSwitch } from "@/lib/operations/businessActions/startSupplierSwitch";
-import { logAdminActionAndUsage, logUsageEvent } from "@/lib/audit/actionLogger";
-import { emitCustomerOperationEvent, blockerText } from "@/lib/customers/customerOperationEvents";
+import {
+  logAdminActionAndUsage,
+  logUsageEvent,
+} from "@/lib/audit/actionLogger";
+import {
+  emitCustomerOperationEvent,
+  blockerText,
+} from "@/lib/customers/customerOperationEvents";
 import { prepareLegalPayloadForGridOwner } from "@/lib/legal/gridOwnerLegalPayload";
 
 function formValue(formData: FormData, key: string): string | null {
@@ -128,13 +134,14 @@ function validateHistoricalMeteringPeriod(params: {
     throw new Error("Historisk period måste sluta senast igår.");
   }
   if (end < start) {
-    throw new Error("Slutdatum måste vara samma dag eller senare än startdatum.");
+    throw new Error(
+      "Slutdatum måste vara samma dag eller senare än startdatum.",
+    );
   }
   if (start < oldest) {
     throw new Error("Historisk period får vara högst tre år bakåt.");
   }
 }
-
 
 function textOf(value: unknown): string {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -162,16 +169,31 @@ async function tryAutoResolveGridOwnerForSite(params: {
 
   const rows = data as Array<Record<string, unknown>>;
   const match = rows.find((row) => {
-    const rowPriceArea = textOf(row.price_area_code ?? row.bidding_zone ?? row.elomrade).toUpperCase();
-    const rowCity = textOf(row.city ?? row.municipality ?? row.municipality_name ?? row.locality);
-    const rowPostal = textOf(row.postal_code ?? row.postal_code_prefix ?? row.zip_code).replace(/\s+/g, "");
-    const priceOk = !priceAreaCode || !rowPriceArea || rowPriceArea === priceAreaCode;
+    const rowPriceArea = textOf(
+      row.price_area_code ?? row.bidding_zone ?? row.elomrade,
+    ).toUpperCase();
+    const rowCity = textOf(
+      row.city ?? row.municipality ?? row.municipality_name ?? row.locality,
+    );
+    const rowPostal = textOf(
+      row.postal_code ?? row.postal_code_prefix ?? row.zip_code,
+    ).replace(/\s+/g, "");
+    const priceOk =
+      !priceAreaCode || !rowPriceArea || rowPriceArea === priceAreaCode;
     const cityOk = city && rowCity ? rowCity === city : false;
-    const postalOk = postalCode && rowPostal ? postalCode.startsWith(rowPostal) || rowPostal.startsWith(postalCode) : false;
+    const postalOk =
+      postalCode && rowPostal
+        ? postalCode.startsWith(rowPostal) || rowPostal.startsWith(postalCode)
+        : false;
     return priceOk && (cityOk || postalOk);
   });
 
-  const gridOwnerId = match?.grid_owner_id ?? match?.owner_id ?? match?.market_actor_id ?? match?.actor_id ?? null;
+  const gridOwnerId =
+    match?.grid_owner_id ??
+    match?.owner_id ??
+    match?.market_actor_id ??
+    match?.actor_id ??
+    null;
   if (!gridOwnerId) return null;
 
   const resolvedGridOwnerId = String(gridOwnerId);
@@ -196,8 +218,12 @@ async function tryAutoResolveGridOwnerForSite(params: {
     siteId: String(params.site.id),
     eventType: "facility.grid_owner_suggested",
     title: "Nätägare föreslagen automatiskt",
-    message: "Systemet hittade en möjlig nätägare baserat på adress, postnummer, ort och elområde. Granska förslaget innan leverantörsbyte startas.",
-    payload: { grid_owner_id: resolvedGridOwnerId, source: "customer_card_auto_resolver" },
+    message:
+      "Systemet hittade en möjlig nätägare baserat på adress, postnummer, ort och elområde. Granska förslaget innan leverantörsbyte startas.",
+    payload: {
+      grid_owner_id: resolvedGridOwnerId,
+      source: "customer_card_auto_resolver",
+    },
     idempotencyKey: `facility.grid_owner_suggested:${params.customerId}:${String(params.site.id)}:${resolvedGridOwnerId}`,
   });
 
@@ -618,11 +644,22 @@ async function insertAuditLog(params: {
   customerId?: string | null;
   billable?: boolean;
 }) {
-  const metadata = params.metadata && typeof params.metadata === "object" && !Array.isArray(params.metadata)
-    ? (params.metadata as Record<string, unknown>)
-    : { value: params.metadata ?? null };
-  const companyId = params.companyId ?? (typeof metadata.companyId === "string" ? metadata.companyId : null);
-  const customerId = params.customerId ?? (typeof metadata.customerId === "string" ? metadata.customerId : params.entityType === "customer" ? params.entityId : null);
+  const metadata =
+    params.metadata &&
+    typeof params.metadata === "object" &&
+    !Array.isArray(params.metadata)
+      ? (params.metadata as Record<string, unknown>)
+      : { value: params.metadata ?? null };
+  const companyId =
+    params.companyId ??
+    (typeof metadata.companyId === "string" ? metadata.companyId : null);
+  const customerId =
+    params.customerId ??
+    (typeof metadata.customerId === "string"
+      ? metadata.customerId
+      : params.entityType === "customer"
+        ? params.entityId
+        : null);
 
   await logAdminActionAndUsage({
     actorUserId: params.actorUserId,
@@ -635,7 +672,9 @@ async function insertAuditLog(params: {
     newValues: params.newValues,
     metadata,
     billable: params.billable ?? isBillableCustomerAction(params.action),
-    billingUnit: isBillableCustomerAction(params.action) ? "admin_action" : "audit_only",
+    billingUnit: isBillableCustomerAction(params.action)
+      ? "admin_action"
+      : "audit_only",
     source: "customer_card",
   });
 }
@@ -941,7 +980,10 @@ export async function saveMeteringPointAction(
 
   if (!parsedResult.success) {
     const details = parsedResult.error.issues
-      .map((issue) => `${issue.path.join(".") || "fält"}: ${issue.message}`)
+      .map(
+        (issue: { path: Array<string | number>; message: string }) =>
+          `${issue.path.join(".") || "fält"}: ${issue.message}`,
+      )
       .join("; ");
     throw new Error(
       `Kunde inte spara mätpunkten. Kontrollera formuläret. ${details}`,
@@ -1338,7 +1380,8 @@ export async function createSupplierSwitchRequestAction(
       siteId,
       eventType: "supplier_switch.already_open",
       title: "Leverantörsbyte finns redan",
-      message: "Det finns redan ett öppet leverantörsbyte för kunden. Öppna ärendet i stället för att skapa ett nytt.",
+      message:
+        "Det finns redan ett öppet leverantörsbyte för kunden. Öppna ärendet i stället för att skapa ett nytt.",
       payload: { supplier_switch_request_id: existingOpenRequest.id },
       idempotencyKey: `supplier_switch.already_open:${existingOpenRequest.id}`,
     });
@@ -1370,7 +1413,7 @@ export async function createSupplierSwitchRequestAction(
       siteId,
       eventType: "supplier_switch.blocked",
       title: "Leverantörsbyte kan inte startas ännu",
-      message: `Komplettera först: ${blockerText(issues.length ? issues : ["mätpunkt", "nätägare", "anläggnings-ID"])}` ,
+      message: `Komplettera först: ${blockerText(issues.length ? issues : ["mätpunkt", "nätägare", "anläggnings-ID"])}`,
       payload: { readiness },
       idempotencyKey: `supplier_switch.blocked:${customerId}:${siteId}:readiness`,
     });
@@ -1452,7 +1495,7 @@ export async function createSupplierSwitchRequestAction(
     currentSupplierId: site.current_supplier_id ?? null,
     businessProcess: "supplier_switch",
     requestedAction: "start_supplier_switch",
-    messageCode: "Z03",
+    messageCode: messageCodeForBusinessProcess("supplier_switch"),
     payload: {
       requestType,
       requestedStartDate,
@@ -1470,7 +1513,8 @@ export async function createSupplierSwitchRequestAction(
       siteId,
       eventType: "supplier_switch.blocked",
       title: "Kontaktväg till nätägare saknas",
-      message: "Leverantörsbyte kan inte skickas förrän nätägare och kontaktväg är verifierade.",
+      message:
+        "Leverantörsbyte kan inte skickas förrän nätägare och kontaktväg är verifierade.",
       payload: { decision: routeDecisionPayload(routeDecision) },
       idempotencyKey: `supplier_switch.blocked:${customerId}:${siteId}:route`,
     });
@@ -1493,7 +1537,11 @@ export async function createSupplierSwitchRequestAction(
     return;
   }
 
-  const legalPayload = await prepareLegalPayloadForGridOwner({ companyId, customerId, siteId });
+  const legalPayload = await prepareLegalPayloadForGridOwner({
+    companyId,
+    customerId,
+    siteId,
+  });
   if (!legalPayload.ok) {
     await recordCustomerActionResult({
       actorUserId: actor.id,
@@ -1502,7 +1550,7 @@ export async function createSupplierSwitchRequestAction(
       siteId,
       eventType: "legal_documents.missing",
       title: "Juridiskt underlag saknas",
-      message: `Leverantörsbyte kan inte skickas förrän detta finns: ${legalPayload.missing.join(', ')}.`,
+      message: `Leverantörsbyte kan inte skickas förrän detta finns: ${legalPayload.missing.join(", ")}.`,
       payload: { missing: legalPayload.missing },
       idempotencyKey: `legal_documents.missing:${customerId}:${siteId}:supplier_switch`,
     });
@@ -1517,7 +1565,8 @@ export async function createSupplierSwitchRequestAction(
     siteId,
     eventType: "legal_documents.attached_to_request",
     title: "Juridiskt underlag klart",
-    message: "Fullmakt och juridiska godkännanden kopplas till leverantörsbytet.",
+    message:
+      "Fullmakt och juridiska godkännanden kopplas till leverantörsbytet.",
     payload: { legal: legalPayload },
     idempotencyKey: `legal_documents.ready:${customerId}:${siteId}:supplier_switch`,
   });
@@ -1559,7 +1608,10 @@ export async function createSupplierSwitchRequestAction(
     eventType: "supplier_switch.requested",
     title: "Leverantörsbyte begärt",
     message: "Leverantörsbyte har skapats och teknisk sändning startas.",
-    payload: { supplier_switch_request_id: savedRequest.id, metering_point_id: meteringPoint.id },
+    payload: {
+      supplier_switch_request_id: savedRequest.id,
+      metering_point_id: meteringPoint.id,
+    },
     idempotencyKey: `supplier_switch.requested:${savedRequest.id}`,
   });
 
@@ -1608,15 +1660,19 @@ export async function startAutomaticOnboardingAction(
     meteringPoints[0] ??
     null;
 
-  const autoResolvedGridOwnerId = candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id
-    ? null
-    : await tryAutoResolveGridOwnerForSite({
-        companyId,
-        customerId,
-        site: site as unknown as Record<string, unknown>,
-        actorUserId: actor.id,
-      });
-  const effectiveGridOwnerId = candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? autoResolvedGridOwnerId;
+  const autoResolvedGridOwnerId =
+    (candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id)
+      ? null
+      : await tryAutoResolveGridOwnerForSite({
+          companyId,
+          customerId,
+          site: site as unknown as Record<string, unknown>,
+          actorUserId: actor.id,
+        });
+  const effectiveGridOwnerId =
+    candidateMeteringPoint?.grid_owner_id ??
+    site.grid_owner_id ??
+    autoResolvedGridOwnerId;
 
   const missingMasterdata =
     !site.facility_id?.trim() ||
@@ -1645,8 +1701,13 @@ export async function startAutomaticOnboardingAction(
       siteId,
       eventType: "customer_data.requested",
       title: "Uppgifter behöver kompletteras",
-      message: "Systemet saknar anläggnings-ID, mätpunkt eller nätägare och skapar nästa uppgift automatiskt.",
-      payload: { facility_id: site.facility_id ?? null, meter_point_id: candidateMeteringPoint?.meter_point_id ?? null, grid_owner_id: gridOwnerId },
+      message:
+        "Systemet saknar anläggnings-ID, mätpunkt eller nätägare och skapar nästa uppgift automatiskt.",
+      payload: {
+        facility_id: site.facility_id ?? null,
+        meter_point_id: candidateMeteringPoint?.meter_point_id ?? null,
+        grid_owner_id: gridOwnerId,
+      },
       idempotencyKey: `customer_data.requested:${customerId}:${siteId}`,
     });
 
@@ -1658,8 +1719,8 @@ export async function startAutomaticOnboardingAction(
       meteringPointId: candidateMeteringPoint?.id ?? null,
       gridOwnerId,
       businessProcess: "customer_masterdata",
-      requestedAction: "automatic_onboarding_z01_first",
-      messageCode: "Z01",
+      requestedAction: "automatic_onboarding_customer_data_first",
+      messageCode: messageCodeForBusinessProcess("customer_masterdata"),
       payload: {
         reason: "missing_masterdata_before_supplier_switch",
         facilityId: site.facility_id,
@@ -1677,7 +1738,7 @@ export async function startAutomaticOnboardingAction(
         gridOwnerId,
         externalReference: null,
         notes:
-          "Automatisk onboarding valde Z01 först eftersom kund-/anläggningsuppgifter saknas.",
+          "Systemet förberedde begäran om saknade kund- och anläggningsuppgifter.",
       });
     }
 
@@ -1754,7 +1815,7 @@ export async function startAutomaticOnboardingAction(
     currentSupplierId: site.current_supplier_id ?? null,
     businessProcess: "supplier_switch",
     requestedAction: "automatic_onboarding_direct_z03",
-    messageCode: "Z03",
+    messageCode: messageCodeForBusinessProcess("supplier_switch"),
     payload: {
       requestType,
       requestedStartDate: site.move_in_date ?? null,
@@ -1791,22 +1852,26 @@ export async function startAutomaticOnboardingAction(
     },
   );
 
-  const switchRequest = existingOpenRequest ?? await createSupplierSwitchRequest(supabase, {
-    readiness,
-    site,
-    meteringPoint,
-    requestType,
-    requestedStartDate: site.move_in_date ?? null,
-    companyId,
-    automationOrigin: "customer_card_automatic_onboarding",
-    automationKey: `automatic-onboarding:${customerId}:${siteId}:${meteringPoint.id}`,
-  });
+  const switchRequest =
+    existingOpenRequest ??
+    (await createSupplierSwitchRequest(supabase, {
+      readiness,
+      site,
+      meteringPoint,
+      requestType,
+      requestedStartDate: site.move_in_date ?? null,
+      companyId,
+      automationOrigin: "customer_card_automatic_onboarding",
+      automationKey: `automatic-onboarding:${customerId}:${siteId}:${meteringPoint.id}`,
+    }));
 
   await insertAuditLog({
     actorUserId: actor.id,
     entityType: "supplier_switch_request",
     entityId: switchRequest.id,
-    action: existingOpenRequest ? "automatic_onboarding_z03_existing_request_reused" : "automatic_onboarding_z03_queued",
+    action: existingOpenRequest
+      ? "automatic_onboarding_z03_existing_request_reused"
+      : "automatic_onboarding_z03_queued",
     newValues: switchRequest,
     metadata: {
       customerId,
@@ -1938,11 +2003,15 @@ async function createAndQueueCustomerMasterdataZ01(params: {
     companyId: params.companyId,
     customerId: params.customerId,
     siteId: params.siteId,
-    eventType: legalPayload.ok ? "legal_documents.attached_to_request" : "legal_documents.missing",
-    title: legalPayload.ok ? "Juridiskt underlag kopplat" : "Juridiskt underlag saknas",
+    eventType: legalPayload.ok
+      ? "legal_documents.attached_to_request"
+      : "legal_documents.missing",
+    title: legalPayload.ok
+      ? "Juridiskt underlag kopplat"
+      : "Juridiskt underlag saknas",
     message: legalPayload.ok
       ? "Fullmakt och juridiska godkännanden kopplas till uppgiftsbegäran."
-      : `Uppgiftsbegäran skapades men saknar: ${legalPayload.missing.join(', ')}.`,
+      : `Uppgiftsbegäran skapades men saknar: ${legalPayload.missing.join(", ")}.`,
     payload: { request_id: infoRequest.id, legal: legalPayload },
     idempotencyKey: `legal_documents.grid_owner_request:${infoRequest.id}`,
   });
@@ -2032,7 +2101,8 @@ export async function createGridOwnerDataRequestAction(
       siteId,
       eventType: "customer_data.needs_review",
       title: "Nätägare behöver granskas",
-      message: "Uppgifter kan inte skickas automatiskt förrän nätägare och kontaktväg är verifierade.",
+      message:
+        "Uppgifter kan inte skickas automatiskt förrän nätägare och kontaktväg är verifierade.",
       payload: { decision: routeDecisionPayload(routeDecision) },
       idempotencyKey: `customer_data.needs_review:${customerId}:${siteId}:route`,
     });
@@ -2223,8 +2293,13 @@ export async function createGridOwnerDataRequestAction(
     siteId: saved.site_id,
     eventType: "customer_data.request_sent",
     title: "Uppgifter begärda",
-    message: "Systemet har skapat en uppgiftsbegäran och skickar den när kontaktvägen är redo.",
-    payload: { grid_owner_data_request_id: saved.id, outbound_request_id: outbound.id, request_scope: saved.request_scope },
+    message:
+      "Systemet har skapat en uppgiftsbegäran och skickar den när kontaktvägen är redo.",
+    payload: {
+      grid_owner_data_request_id: saved.id,
+      outbound_request_id: outbound.id,
+      request_scope: saved.request_scope,
+    },
     idempotencyKey: `customer_data.request_sent:${saved.id}`,
   });
 
@@ -2500,7 +2575,11 @@ export async function createCustomerDataRequestPackageAction(
 
   if (!gridOwnerId && siteId) {
     const site = await findCustomerSiteById(supabaseService, siteId);
-    if (site && site.company_id === companyId && site.customer_id === customerId) {
+    if (
+      site &&
+      site.company_id === companyId &&
+      site.customer_id === customerId
+    ) {
       gridOwnerId = await tryAutoResolveGridOwnerForSite({
         companyId,
         customerId,
@@ -2519,9 +2598,9 @@ export async function createCustomerDataRequestPackageAction(
         .eq("customer_id", customerId)
         .eq("status", "signed")
         .maybeSingle()
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data;
+        .then((result: { data: unknown; error: unknown }) => {
+          if (result.error) throw result.error;
+          return result.data;
         })
     : await getLatestSignedPowerOfAttorneyForCustomer({
         companyId,
@@ -2539,7 +2618,7 @@ export async function createCustomerDataRequestPackageAction(
       title: "Fullmakt saknas",
       message: "Begäran stoppas tills signerad fullmakt finns.",
       payload: { target },
-      idempotencyKey: `customer_data.blocked:${customerId}:${siteId ?? 'customer'}:poa`,
+      idempotencyKey: `customer_data.blocked:${customerId}:${siteId ?? "customer"}:poa`,
     });
     const blockerId = await createMissingPowerOfAttorneyBlocker({
       companyId,
@@ -2576,6 +2655,26 @@ export async function createCustomerDataRequestPackageAction(
     return;
   }
 
+  const signedPowerOfAttorneyRecord = signedPowerOfAttorney as Record<string, unknown>;
+  const signedPowerOfAttorneyId = String(signedPowerOfAttorneyRecord.id ?? "");
+
+  if (!signedPowerOfAttorneyId) {
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "customer_data.blocked",
+      title: "Fullmakt saknar referens",
+      message: "Begäran stoppas eftersom den signerade fullmakten saknar teknisk referens.",
+      payload: { target },
+    });
+
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/customer-info-requests");
+    return;
+  }
+
   const coversGridOwnerData = target === "grid_owner" || target === "both";
   const coversCurrentSupplierContract =
     target === "current_supplier" || target === "both";
@@ -2585,7 +2684,7 @@ export async function createCustomerDataRequestPackageAction(
       companyId,
       actorUserId: actor.id,
       customerId,
-      powerOfAttorneyId: String(signedPowerOfAttorney.id),
+      powerOfAttorneyId: signedPowerOfAttorneyId,
       authorizationDocumentId: null,
       coverage: {
         coversGridOwnerData,
@@ -2593,10 +2692,10 @@ export async function createCustomerDataRequestPackageAction(
         coversMeteringData: coversGridOwnerData,
       },
       validFrom:
-        (signedPowerOfAttorney as { valid_from?: string | null }).valid_from ??
+        (signedPowerOfAttorneyRecord.valid_from as string | null | undefined) ??
         null,
       validTo:
-        (signedPowerOfAttorney as { valid_to?: string | null }).valid_to ??
+        (signedPowerOfAttorneyRecord.valid_to as string | null | undefined) ??
         null,
       evidenceNote:
         "Signerad fullmakt användes för uppgiftsbegäran från kundkortet.",
@@ -2608,7 +2707,7 @@ export async function createCustomerDataRequestPackageAction(
       actorUserId: actor.id,
       customerId,
       siteId,
-      powerOfAttorneyId: String(signedPowerOfAttorney.id),
+      powerOfAttorneyId: signedPowerOfAttorneyId,
     },
   );
 
@@ -2639,7 +2738,7 @@ export async function createCustomerDataRequestPackageAction(
       externalReference,
       notes:
         notes ??
-        "Begäran om kund- och anläggningsuppgifter från nätägare. Systemet förbereder PRODAT Z01 när route finns.",
+        "Begäran om kund- och anläggningsuppgifter. Systemet hanterar teknisk sändning när kontaktväg finns.",
     });
 
     createdRequestIds.push(request.id);
@@ -2710,7 +2809,7 @@ export async function createCustomerDataRequestPackageAction(
       meteringPointId,
       gridOwnerId,
       authorizationScopeId,
-      powerOfAttorneyId: String(signedPowerOfAttorney.id),
+      powerOfAttorneyId: signedPowerOfAttorneyId,
       resolvedPowerOfAttorneyBlockers: blockerResult.resolved,
     },
   });
@@ -2809,9 +2908,9 @@ export async function registerCurrentSupplierResponseAction(
       responseStatus === "blocked"
         ? "Nuvarande leverantör har svarat att bytet kräver manuell kontroll."
         : responseStatus === "binding_period"
-          ? "Bindningstid finns. Kontrollera bytesdatum innan Z03 skickas."
+          ? "Bindningstid finns. Kontrollera bytesdatum innan leverantörsbyte begärs."
           : responseStatus === "termination_fee"
-            ? "Brytavgift finns. Informera kund och kontrollera beslut innan Z03 skickas."
+            ? "Brytavgift finns. Informera kund och kontrollera beslut innan leverantörsbyte begärs."
             : null;
 
     const { error: updateRequestError } = await supabaseService
@@ -2996,7 +3095,8 @@ async function insertLifecycleFollowUpTask(params: {
       company_id: params.companyId,
       customer_id: params.customerId,
       site_id: params.scopeType === "site" ? params.scopeId : null,
-      metering_point_id: params.scopeType === "metering_point" ? params.scopeId : null,
+      metering_point_id:
+        params.scopeType === "metering_point" ? params.scopeId : null,
       task_type:
         params.decisionType === "withdrawal"
           ? "customer_withdrawal_followup"
@@ -3047,13 +3147,18 @@ async function cancelOpenSwitchRequestsForLifecycleDecision(params: {
       .select("id")
       .eq("customer_id", params.customerId)
       .in("status", openStatuses);
-    if (params.companyId) selectQuery = selectQuery.eq("company_id", params.companyId);
-    if (params.scopeType === "site" && params.scopeId) selectQuery = selectQuery.eq("site_id", params.scopeId);
-    if (params.scopeType === "metering_point" && params.scopeId) selectQuery = selectQuery.eq("metering_point_id", params.scopeId);
+    if (params.companyId)
+      selectQuery = selectQuery.eq("company_id", params.companyId);
+    if (params.scopeType === "site" && params.scopeId)
+      selectQuery = selectQuery.eq("site_id", params.scopeId);
+    if (params.scopeType === "metering_point" && params.scopeId)
+      selectQuery = selectQuery.eq("metering_point_id", params.scopeId);
 
     const { data, error } = await selectQuery;
     if (error) throw error;
-    const ids = (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+    const ids = (data ?? [])
+      .map((row: { id: string }) => row.id)
+      .filter(Boolean);
     if (ids.length === 0) return 0;
 
     let updateQuery = supabaseService
@@ -3065,7 +3170,8 @@ async function cancelOpenSwitchRequestsForLifecycleDecision(params: {
         updated_by: params.actorUserId,
       })
       .in("id", ids);
-    if (params.companyId) updateQuery = updateQuery.eq("company_id", params.companyId);
+    if (params.companyId)
+      updateQuery = updateQuery.eq("company_id", params.companyId);
     const { error: updateError } = await updateQuery;
     if (updateError) throw updateError;
     return ids.length;
@@ -3321,14 +3427,15 @@ export async function registerCustomerLifecycleDecisionAction(
     if (error && !isDatabaseShapeError(error)) throw error;
   }
 
-  const cancelledSwitchRequests = await cancelOpenSwitchRequestsForLifecycleDecision({
-    companyId: customer.company_id,
-    customerId,
-    scopeType,
-    scopeId,
-    reason,
-    actorUserId: actor.id,
-  });
+  const cancelledSwitchRequests =
+    await cancelOpenSwitchRequestsForLifecycleDecision({
+      companyId: customer.company_id,
+      customerId,
+      scopeType,
+      scopeId,
+      reason,
+      actorUserId: actor.id,
+    });
 
   if (blockBilling) {
     await blockBillingForLifecycleDecision({
@@ -3364,11 +3471,19 @@ export async function registerCustomerLifecycleDecisionAction(
       billing_blocked: blockBilling,
       created_by: actor.id,
     })
-    .then(({ error }) => {
-      if (error && !isDatabaseShapeError(error)) throw error;
+    .then((result: { error: unknown }) => {
+      if (result.error && !isDatabaseShapeError(result.error))
+        throw result.error;
     });
 
-  const usageMetadata = { customerId, scopeType, scopeId, reason, decisionType, cancelledSwitchRequests };
+  const usageMetadata = {
+    customerId,
+    scopeType,
+    scopeId,
+    reason,
+    decisionType,
+    cancelledSwitchRequests,
+  };
   await logUsageEvent({
     companyId: customer.company_id,
     actorUserId: actor.id,
@@ -3376,7 +3491,10 @@ export async function registerCustomerLifecycleDecisionAction(
     entityType: "customer",
     entityId: customerId,
     eventKey: "customer.archived",
-    actionLabel: decisionType === "withdrawal" ? "Kund ångrad och arkiverad" : "Kund avvisad och arkiverad",
+    actionLabel:
+      decisionType === "withdrawal"
+        ? "Kund ångrad och arkiverad"
+        : "Kund avvisad och arkiverad",
     source: "customer_lifecycle_decision",
     billable: true,
     billingUnit: "admin_action",
@@ -3387,7 +3505,8 @@ export async function registerCustomerLifecycleDecisionAction(
       companyId: customer.company_id,
       actorUserId: actor.id,
       customerId,
-      entityType: scopeType === "contract" && scopeId ? "customer_contract" : "customer",
+      entityType:
+        scopeType === "contract" && scopeId ? "customer_contract" : "customer",
       entityId: scopeId ?? customerId,
       eventKey: "contract.withdrawn",
       actionLabel: "Avtal eller ansökan ångrad",
