@@ -1,73 +1,96 @@
-import { supabaseService } from '@/lib/supabase/service'
-import { getBaseAppUrl } from '@/lib/auth/urls'
-import { getEffectiveSender } from '@/lib/email/companyEmailSettings'
-import { enqueueTenantEmail, sendTenantEmailNow } from '@/lib/email/emailOutbox'
+import { supabaseService } from "@/lib/supabase/service";
+import { getBaseAppUrl } from "@/lib/auth/urls";
+import { getEffectiveSender } from "@/lib/email/companyEmailSettings";
+import {
+  enqueueTenantEmail,
+  sendTenantEmailNow,
+} from "@/lib/email/emailOutbox";
 
 export type TenantEmailBranding = {
-  companyId: string
-  companyName: string
-  displayName: string
-  supportEmail: string | null
-  billingEmail: string | null
-  senderEmail: string | null
-  customerPortalName: string
-  customerPortalUrl: string
-  primaryColor: string
-  logoUrl: string | null
-}
+  companyId: string;
+  companyName: string;
+  displayName: string;
+  supportEmail: string | null;
+  billingEmail: string | null;
+  senderEmail: string | null;
+  customerPortalName: string;
+  customerPortalUrl: string;
+  primaryColor: string;
+  logoUrl: string | null;
+};
 
 function readString(source: Record<string, unknown> | null, key: string) {
-  const value = source?.[key]
-  return typeof value === 'string' && value.trim() ? value.trim() : null
+  const value = source?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function isValidHex(value: string | null) {
-  return Boolean(value && /^#[0-9a-fA-F]{6}$/.test(value))
+  return Boolean(value && /^#[0-9a-fA-F]{6}$/.test(value));
 }
 
 async function getVerifiedSenderProfile(companyId: string): Promise<{
-  from_email: string
-  reply_to_email: string | null
+  from_email: string;
+  reply_to_email: string | null;
 } | null> {
   const { data, error } = await supabaseService
-    .from('tenant_email_sender_profiles')
-    .select('from_email, reply_to_email')
-    .eq('company_id', companyId)
-    .eq('status', 'verified')
-    .eq('is_default', true)
-    .maybeSingle()
+    .from("tenant_email_sender_profiles")
+    .select("from_email, reply_to_email")
+    .eq("company_id", companyId)
+    .eq("status", "verified")
+    .eq("is_default", true)
+    .maybeSingle();
 
   if (error) {
-    if (['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) return null
-    throw error
+    if (["42P01", "42703", "PGRST205"].includes(error.code ?? "")) return null;
+    throw error;
   }
 
-  return data as { from_email: string; reply_to_email: string | null } | null
+  return data as { from_email: string; reply_to_email: string | null } | null;
 }
 
-export async function getTenantEmailBranding(companyId: string): Promise<TenantEmailBranding> {
+export async function getTenantEmailBranding(
+  companyId: string,
+): Promise<TenantEmailBranding> {
   const [{ data, error }, senderProfile] = await Promise.all([
     supabaseService
-    .from('companies')
-    .select('id, name, support_email, billing_contact_email, primary_contact_email, website, branding')
-    .eq('id', companyId)
-    .maybeSingle(),
+      .from("companies")
+      .select(
+        "id, name, support_email, billing_contact_email, primary_contact_email, website, branding",
+      )
+      .eq("id", companyId)
+      .maybeSingle(),
     getVerifiedSenderProfile(companyId),
-  ])
+  ]);
 
-  if (error) throw error
-  if (!data) throw new Error('Bolaget hittades inte för e-postprofil.')
+  if (error) throw error;
+  if (!data) throw new Error("Bolaget hittades inte för e-postprofil.");
 
-  const branding = (data.branding && typeof data.branding === 'object' && !Array.isArray(data.branding)
-    ? data.branding
-    : {}) as Record<string, unknown>
+  const branding = (
+    data.branding &&
+    typeof data.branding === "object" &&
+    !Array.isArray(data.branding)
+      ? data.branding
+      : {}
+  ) as Record<string, unknown>;
 
-  const displayName = readString(branding, 'display_name') ?? data.name
-  const supportEmail = readString(branding, 'support_email') ?? data.support_email ?? data.primary_contact_email ?? null
-  const billingEmail = readString(branding, 'billing_email') ?? data.billing_contact_email ?? supportEmail
-  const senderEmail = senderProfile?.from_email ?? readString(branding, 'sender_email') ?? supportEmail ?? null
-  const customerPortalName = readString(branding, 'customer_portal_name') ?? displayName
-  const primaryColorCandidate = readString(branding, 'primary_color')
+  const displayName = readString(branding, "display_name") ?? data.name;
+  const supportEmail =
+    readString(branding, "support_email") ??
+    data.support_email ??
+    data.primary_contact_email ??
+    null;
+  const billingEmail =
+    readString(branding, "billing_email") ??
+    data.billing_contact_email ??
+    supportEmail;
+  const senderEmail =
+    senderProfile?.from_email ??
+    readString(branding, "sender_email") ??
+    supportEmail ??
+    null;
+  const customerPortalName =
+    readString(branding, "customer_portal_name") ?? displayName;
+  const primaryColorCandidate = readString(branding, "primary_color");
 
   return {
     companyId: String(data.id),
@@ -78,37 +101,40 @@ export async function getTenantEmailBranding(companyId: string): Promise<TenantE
     senderEmail,
     customerPortalName,
     customerPortalUrl: `${getBaseAppUrl()}/login`,
-    primaryColor: isValidHex(primaryColorCandidate) ? primaryColorCandidate! : '#047857',
-    logoUrl: readString(branding, 'logo_url'),
-  }
+    primaryColor: isValidHex(primaryColorCandidate)
+      ? primaryColorCandidate!
+      : "#047857",
+    logoUrl: readString(branding, "logo_url"),
+  };
 }
 
 function escapeHtml(value: string) {
   return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 export function renderTenantEmailLayout(input: {
-  branding: TenantEmailBranding
-  title: string
-  intro: string
-  body: string
-  ctaLabel?: string | null
-  ctaUrl?: string | null
+  branding: TenantEmailBranding;
+  title: string;
+  intro: string;
+  body: string;
+  ctaLabel?: string | null;
+  ctaUrl?: string | null;
 }) {
-  const safeTitle = escapeHtml(input.title)
-  const safeIntro = escapeHtml(input.intro)
-  const htmlBody = input.body
-  const color = input.branding.primaryColor
+  const safeTitle = escapeHtml(input.title);
+  const safeIntro = escapeHtml(input.intro);
+  const htmlBody = input.body;
+  const color = input.branding.primaryColor;
   const logo = input.branding.logoUrl
     ? `<img src="${escapeHtml(input.branding.logoUrl)}" alt="${escapeHtml(input.branding.displayName)}" style="max-height:44px;max-width:180px;margin-bottom:20px;" />`
-    : `<div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:20px;">${escapeHtml(input.branding.displayName)}</div>`
-  const cta = input.ctaUrl && input.ctaLabel
-    ? `<p style="margin:28px 0;"><a href="${escapeHtml(input.ctaUrl)}" style="background:${color};color:#fff;text-decoration:none;padding:12px 18px;border-radius:14px;font-weight:700;display:inline-block;">${escapeHtml(input.ctaLabel)}</a></p>`
-    : ''
+    : `<div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:20px;">${escapeHtml(input.branding.displayName)}</div>`;
+  const cta =
+    input.ctaUrl && input.ctaLabel
+      ? `<p style="margin:28px 0;"><a href="${escapeHtml(input.ctaUrl)}" style="background:${color};color:#fff;text-decoration:none;padding:12px 18px;border-radius:14px;font-weight:700;display:inline-block;">${escapeHtml(input.ctaLabel)}</a></p>`
+      : "";
 
   return `<!doctype html><html><body style="margin:0;background:#f8fafc;font-family:Arial,sans-serif;color:#0f172a;">
   <div style="max-width:680px;margin:0 auto;padding:32px 18px;">
@@ -119,28 +145,28 @@ export function renderTenantEmailLayout(input: {
       <div style="font-size:15px;line-height:1.7;color:#334155;">${htmlBody}</div>
       ${cta}
       <hr style="border:none;border-top:1px solid #e2e8f0;margin:28px 0;" />
-      <p style="font-size:12px;line-height:1.5;color:#64748b;margin:0;">Detta meddelande skickades av ${escapeHtml(input.branding.displayName)}. Kontakt: ${escapeHtml(input.branding.supportEmail ?? 'kontakta bolaget')}</p>
+      <p style="font-size:12px;line-height:1.5;color:#64748b;margin:0;">Detta meddelande skickades av ${escapeHtml(input.branding.displayName)}. Kontakt: ${escapeHtml(input.branding.supportEmail ?? "kontakta bolaget")}</p>
     </div>
   </div>
-  </body></html>`
+  </body></html>`;
 }
 
 export async function queueTenantEmail(input: {
-  companyId: string
-  customerId?: string | null
-  customerCaseId?: string | null
-  emailType: string
-  toEmail: string
-  subject: string
-  htmlBody: string
-  textBody?: string | null
-  redirectUrl?: string | null
-  actorUserId?: string | null
+  companyId: string;
+  customerId?: string | null;
+  customerCaseId?: string | null;
+  emailType: string;
+  toEmail: string;
+  subject: string;
+  htmlBody: string;
+  textBody?: string | null;
+  redirectUrl?: string | null;
+  actorUserId?: string | null;
 }) {
   const [branding, sender] = await Promise.all([
     getTenantEmailBranding(input.companyId),
     getEffectiveSender(input.companyId, { requireSendReady: true }),
-  ])
+  ]);
 
   return enqueueTenantEmail({
     companyId: input.companyId,
@@ -153,6 +179,7 @@ export async function queueTenantEmail(input: {
     subject: input.subject,
     html: input.htmlBody,
     text: input.textBody ?? null,
+    redirectUrl: input.redirectUrl ?? null,
     brandingSnapshot: {
       ...branding,
       sender_mode: sender.mode,
@@ -160,11 +187,13 @@ export async function queueTenantEmail(input: {
       redirect_url: input.redirectUrl ?? null,
       created_by: input.actorUserId ?? null,
     },
-  })
+  });
 }
 
-export async function queueAndTrySendTenantEmail(input: Parameters<typeof queueTenantEmail>[0]) {
-  const row = await queueTenantEmail(input)
-  const result = await sendTenantEmailNow(row.id)
-  return { outboxId: row.id, ...result }
+export async function queueAndTrySendTenantEmail(
+  input: Parameters<typeof queueTenantEmail>[0],
+) {
+  const row = await queueTenantEmail(input);
+  const result = await sendTenantEmailNow(row.id);
+  return { outboxId: row.id, ...result };
 }
