@@ -575,10 +575,11 @@ export async function listPortalLegalAcceptances(context: PortalCustomerContext,
 
 const EVENT_SELECT = 'id,event_type,source,payload,metadata,occurred_at,created_at'
 const EVENT_LEGACY_SELECT = 'id,event_type,payload,metadata,created_at'
+const DOMAIN_EVENT_SELECT = 'id,event_type,source,payload,occurred_at,created_at'
 
 export async function listPortalEvents(context: PortalCustomerContext, route = '/api/v1/customer/events') {
   await logPortalAccess({ context, route, action: 'read_events' })
-  return listWithSchemaFallback([
+  const customerEvents = await listWithSchemaFallback([
     async () => await supabaseService
       .from('customer_events')
       .select(EVENT_SELECT)
@@ -594,6 +595,28 @@ export async function listPortalEvents(context: PortalCustomerContext, route = '
       .order('created_at', { ascending: false })
       .limit(100) as ListResult,
   ])
+
+  const domainEvents = await listWithSchemaFallback([
+    async () => await supabaseService
+      .from('domain_events')
+      .select(DOMAIN_EVENT_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('subject_customer_id', context.customerId)
+      .order('occurred_at', { ascending: false })
+      .limit(100) as ListResult,
+  ])
+
+  const seen = new Set<string>()
+  return [...customerEvents, ...domainEvents]
+    .filter((row) => {
+      const id = String(row.id ?? '')
+      if (!id) return true
+      if (seen.has(id)) return false
+      seen.add(id)
+      return true
+    })
+    .sort((a, b) => String(b.occurred_at ?? b.created_at ?? '').localeCompare(String(a.occurred_at ?? a.created_at ?? '')))
+    .slice(0, 100)
 }
 
 const NOTIFICATION_SELECT = 'id,type,title,message,status,read_at,action_url,metadata,created_at'

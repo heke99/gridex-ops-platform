@@ -19,7 +19,8 @@ import {
   type CompanyOperationalStatus,
   type GovernanceEventAction,
 } from '@/lib/tenant/governance'
-import { getTenantEmailBranding, queueAndTrySendTenantEmail, renderTenantEmailLayout } from '@/lib/tenant/emailBranding'
+import { getTenantEmailBranding, renderTenantEmailLayout } from '@/lib/tenant/emailBranding'
+import { sendTransactionalEmail, getAuthSmtpReadiness } from '@/lib/auth/smtpTransactionalEmail'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import {
   parseCompanyAssignableMembershipRole,
@@ -265,8 +266,11 @@ async function trySendTenantInviteEmail(input: {
   fullName?: string | null
   temporaryPassword?: string | null
   actorUserId?: string | null
-}) {
+}): Promise<{ ok: boolean; message: string }> {
   try {
+    const readiness = getAuthSmtpReadiness()
+    if (!readiness.ready) return { ok: false, message: readiness.message }
+
     const branding = await getTenantEmailBranding(input.companyId)
     const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/login`
     const html = renderTenantEmailLayout({
@@ -282,20 +286,44 @@ async function trySendTenantInviteEmail(input: {
       ctaUrl: loginUrl,
     })
 
-    await queueAndTrySendTenantEmail({
-      companyId: input.companyId,
-      emailType: 'company_invite',
-      toEmail: input.email,
+    await sendTransactionalEmail({
+      to: input.email,
       subject: `Din åtkomst till ${branding.displayName}`,
-      htmlBody: html,
-      textBody: `Du har fått åtkomst till ${branding.displayName}. Logga in: ${loginUrl}${input.temporaryPassword ? `\nTemporärt lösenord: ${input.temporaryPassword}` : ''}`,
-      redirectUrl: loginUrl,
-      actorUserId: input.actorUserId ?? null,
+      html,
+      text: `Du har fått åtkomst till ${branding.displayName}. Logga in: ${loginUrl}${input.temporaryPassword ? '\nTemporärt lösenord finns i detta konto-mail. Byt lösenord efter första inloggning.' : ''}`,
+      replyTo: branding.supportEmail ?? undefined,
     })
+
+    await supabaseService.from('auth_email_events').insert({
+      email: input.email,
+      company_id: input.companyId,
+      actor_user_id: input.actorUserId ?? null,
+      event_type: 'company_invite_sent',
+      status: 'sent',
+      source: 'company_user_access_smtp',
+      metadata: { has_temporary_password: Boolean(input.temporaryPassword) },
+    }).then(({ error }) => {
+      if (error && !['42P01', '42703', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
+    })
+
+    return { ok: true, message: 'Konto-mail skickades via SMTP.' }
   } catch (error) {
-    console.warn('Tenant invite email could not be sent', error)
+    const message = errorMessage(error, 'Konto-mail kunde inte skickas.')
+    await supabaseService.from('auth_email_events').insert({
+      email: input.email,
+      company_id: input.companyId,
+      actor_user_id: input.actorUserId ?? null,
+      event_type: 'company_invite_sent',
+      status: 'failed',
+      source: 'company_user_access_smtp',
+      metadata: { reason: message, has_temporary_password: Boolean(input.temporaryPassword) },
+    }).then(({ error }) => {
+      if (error && !['42P01', '42703', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
+    })
+    return { ok: false, message }
   }
 }
+
 
 export async function createCompanyAction(
   _prevState: CompanyActionState,
@@ -366,13 +394,14 @@ export async function createCompanyAction(
 
       provisionedProjectRef = provisionedAdmin.supabaseProjectRef
 
-      await trySendTenantInviteEmail({
+      const inviteMail = await trySendTenantInviteEmail({
         companyId: company.id,
         email: initialAdminEmail,
         fullName: initialAdminName || null,
         temporaryPassword: provisionedAdmin.createdAuthUser ? temporaryPassword : null,
         actorUserId,
       })
+      if (!inviteMail.ok) console.warn('Tenant invite email could not be sent', inviteMail.message)
     }
 
     await logTenantGovernanceEvent({
@@ -394,7 +423,7 @@ export async function createCompanyAction(
     return {
       ok: true,
       message: initialAdminEmail
-        ? `Elhandelsbolaget skapades i databasen och bolagsansvarig skapades/kopplades i Supabase Auth${provisionedProjectRef ? ` (${provisionedProjectRef})` : ''}.`
+        ? `Elhandelsbolaget skapades i databasen och bolagsansvarig skapades/kopplades i Supabase Auth${provisionedProjectRef ? ` (${provisionedProjectRef})` : ''}. Konto-mail skickas via SMTP om AUTH_SMTP_* är redo.`
         : 'Elhandelsbolaget skapades i databasen och verifierades.',
     }
   } catch (error) {
@@ -470,7 +499,7 @@ export async function inviteCompanyUserAction(
       source: 'company_users_dashboard',
     })
 
-    await trySendTenantInviteEmail({
+    const inviteMail = await trySendTenantInviteEmail({
       companyId,
       email,
       fullName,
@@ -494,7 +523,7 @@ export async function inviteCompanyUserAction(
 
     return {
       ok: true,
-      message: `Användaren skapades/kopplades i Supabase Auth${provisioned.supabaseProjectRef ? ` (${provisioned.supabaseProjectRef})` : ''} och visas nu i bolagets användarlista.`,
+      message: `Användaren skapades/kopplades i Supabase Auth${provisioned.supabaseProjectRef ? ` (${provisioned.supabaseProjectRef})` : ''} och visas nu i bolagets användarlista. ${inviteMail.message}`,
     }
   } catch (error) {
     return { ok: false, message: errorMessage(error, 'Användaren kunde inte skapas eller kopplas till bolaget.') }

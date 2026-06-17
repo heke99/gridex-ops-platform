@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
-import { getTenantEmailBranding, queueAndTrySendTenantEmail, renderTenantEmailLayout } from '@/lib/tenant/emailBranding'
+import { getTenantEmailBranding, renderTenantEmailLayout } from '@/lib/tenant/emailBranding'
+import { sendTransactionalEmail, getAuthSmtpReadiness } from '@/lib/auth/smtpTransactionalEmail'
 
 function normalizeEmail(value: string | null | undefined) {
   return String(value ?? '').trim().toLowerCase()
@@ -147,15 +148,26 @@ export async function sendTenantBrandedPasswordResetEmail(input: {
       ctaUrl: actionLink,
     })
 
-    await queueAndTrySendTenantEmail({
-      companyId,
-      emailType: 'password_reset',
-      toEmail: email,
+    const smtpReadiness = getAuthSmtpReadiness()
+    if (!smtpReadiness.ready) {
+      await recordPasswordResetEvent({
+        userId: user.id,
+        email,
+        companyId,
+        status: 'failed',
+        source: input.source ?? 'tenant_password_reset',
+        actorUserId: input.actorUserId ?? null,
+        metadata: { branded: true, reason: 'auth_smtp_not_ready', missing: smtpReadiness.missing },
+      })
+      throw new Error(smtpReadiness.message)
+    }
+
+    await sendTransactionalEmail({
+      to: email,
       subject: `${branding.displayName}: Återställ lösenord`,
-      htmlBody: html,
-      textBody: `Återställ lösenord: ${actionLink}`,
-      redirectUrl: actionLink,
-      actorUserId: input.actorUserId ?? null,
+      html,
+      text: 'Återställ ditt lösenord via länken i meddelandet. Om du inte begärt detta kan du ignorera meddelandet.',
+      replyTo: branding.supportEmail ?? undefined,
     })
 
     await recordPasswordResetEvent({

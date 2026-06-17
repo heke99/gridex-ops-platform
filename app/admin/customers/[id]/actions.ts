@@ -69,6 +69,8 @@ import type { BusinessProcess } from "@/lib/routes/routeDecisionTypes";
 import { actionPreflight } from "@/lib/operations/businessActions/actionPreflight";
 import { startSupplierSwitch } from "@/lib/operations/businessActions/startSupplierSwitch";
 import { logAdminActionAndUsage, logUsageEvent } from "@/lib/audit/actionLogger";
+import { emitCustomerOperationEvent, blockerText } from "@/lib/customers/customerOperationEvents";
+import { prepareLegalPayloadForGridOwner } from "@/lib/legal/gridOwnerLegalPayload";
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -566,6 +568,32 @@ async function insertAuditLog(params: {
     billable: params.billable ?? isBillableCustomerAction(params.action),
     billingUnit: isBillableCustomerAction(params.action) ? "admin_action" : "audit_only",
     source: "customer_card",
+  });
+}
+
+async function recordCustomerActionResult(params: {
+  actorUserId: string;
+  companyId: string;
+  customerId: string;
+  siteId?: string | null;
+  eventType: string;
+  title: string;
+  message: string;
+  payload?: Record<string, unknown>;
+  idempotencyKey?: string | null;
+}) {
+  await emitCustomerOperationEvent({
+    companyId: params.companyId,
+    customerId: params.customerId,
+    actorUserId: params.actorUserId,
+    eventType: params.eventType,
+    title: params.title,
+    message: params.message,
+    aggregateType: params.siteId ? "customer_site" : "customer",
+    aggregateId: params.siteId ?? params.customerId,
+    source: "customer_card",
+    payload: params.payload ?? {},
+    idempotencyKey: params.idempotencyKey ?? null,
   });
 }
 
@@ -1234,6 +1262,17 @@ export async function createSupplierSwitchRequestAction(
   );
 
   if (existingOpenRequest) {
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "supplier_switch.already_open",
+      title: "Leverantörsbyte finns redan",
+      message: "Det finns redan ett öppet leverantörsbyte för kunden. Öppna ärendet i stället för att skapa ett nytt.",
+      payload: { supplier_switch_request_id: existingOpenRequest.id },
+      idempotencyKey: `supplier_switch.already_open:${existingOpenRequest.id}`,
+    });
     revalidatePath(`/admin/customers/${customerId}`);
     return;
   }
@@ -1252,6 +1291,20 @@ export async function createSupplierSwitchRequestAction(
   await syncOperationTasksFromReadiness(supabase, readiness);
 
   if (!readiness.isReady || !readiness.candidateMeteringPointId) {
+    const issues = (readiness.issues ?? [])
+      .map((item) => item.title || item.description || item.code)
+      .filter(Boolean);
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "supplier_switch.blocked",
+      title: "Leverantörsbyte kan inte startas ännu",
+      message: `Komplettera först: ${blockerText(issues.length ? issues : ["mätpunkt", "nätägare", "anläggnings-ID"])}` ,
+      payload: { readiness },
+      idempotencyKey: `supplier_switch.blocked:${customerId}:${siteId}:readiness`,
+    });
     await insertAuditLog({
       actorUserId: actor.id,
       entityType: "customer_site",
@@ -1287,6 +1340,20 @@ export async function createSupplierSwitchRequestAction(
   });
 
   if (!preflight.ok) {
+    const issues = preflight.issues
+      .map((issue) => issue.label || issue.code)
+      .filter(Boolean);
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "supplier_switch.blocked",
+      title: "Leverantörsbyte stoppades",
+      message: blockerText(issues),
+      payload: { issues: preflight.issues },
+      idempotencyKey: `supplier_switch.blocked:${customerId}:${siteId}:preflight`,
+    });
     await insertAuditLog({
       actorUserId: actor.id,
       entityType: "customer_site",
@@ -1327,6 +1394,17 @@ export async function createSupplierSwitchRequestAction(
   });
 
   if (routeDecision.decisionStatus === "blocked") {
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "supplier_switch.blocked",
+      title: "Kontaktväg till nätägare saknas",
+      message: "Leverantörsbyte kan inte skickas förrän nätägare och kontaktväg är verifierade.",
+      payload: { decision: routeDecisionPayload(routeDecision) },
+      idempotencyKey: `supplier_switch.blocked:${customerId}:${siteId}:route`,
+    });
     await insertAuditLog({
       actorUserId: actor.id,
       entityType: "customer_site",
@@ -1345,6 +1423,35 @@ export async function createSupplierSwitchRequestAction(
     revalidatePath("/admin/operations/tasks");
     return;
   }
+
+  const legalPayload = await prepareLegalPayloadForGridOwner({ companyId, customerId, siteId });
+  if (!legalPayload.ok) {
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "legal_documents.missing",
+      title: "Juridiskt underlag saknas",
+      message: `Leverantörsbyte kan inte skickas förrän detta finns: ${legalPayload.missing.join(', ')}.`,
+      payload: { missing: legalPayload.missing },
+      idempotencyKey: `legal_documents.missing:${customerId}:${siteId}:supplier_switch`,
+    });
+    revalidatePath(`/admin/customers/${customerId}`);
+    return;
+  }
+
+  await recordCustomerActionResult({
+    actorUserId: actor.id,
+    companyId,
+    customerId,
+    siteId,
+    eventType: "legal_documents.attached_to_request",
+    title: "Juridiskt underlag klart",
+    message: "Fullmakt och juridiska godkännanden kopplas till leverantörsbytet.",
+    payload: { legal: legalPayload },
+    idempotencyKey: `legal_documents.ready:${customerId}:${siteId}:supplier_switch`,
+  });
 
   const savedRequest = await createSupplierSwitchRequest(supabase, {
     readiness,
@@ -1373,6 +1480,18 @@ export async function createSupplierSwitchRequestAction(
     siteId,
     meteringPointId: meteringPoint.id,
     idempotencyKey: `start_supplier_switch:${customerId}:${siteId}:${meteringPoint.id}:${savedRequest.id}`,
+  });
+
+  await recordCustomerActionResult({
+    actorUserId: actor.id,
+    companyId,
+    customerId,
+    siteId,
+    eventType: "supplier_switch.requested",
+    title: "Leverantörsbyte begärt",
+    message: "Leverantörsbyte har skapats och teknisk sändning startas.",
+    payload: { supplier_switch_request_id: savedRequest.id, metering_point_id: meteringPoint.id },
+    idempotencyKey: `supplier_switch.requested:${savedRequest.id}`,
   });
 
   revalidatePath(`/admin/customers/${customerId}`);
@@ -1439,6 +1558,18 @@ export async function startAutomaticOnboardingAction(
       meterPointId: candidateMeteringPoint?.meter_point_id ?? null,
       gridOwnerId,
       actorUserId: actor.id,
+    });
+
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "customer_data.requested",
+      title: "Uppgifter behöver kompletteras",
+      message: "Systemet saknar anläggnings-ID, mätpunkt eller nätägare och skapar nästa uppgift automatiskt.",
+      payload: { facility_id: site.facility_id ?? null, meter_point_id: candidateMeteringPoint?.meter_point_id ?? null, grid_owner_id: gridOwnerId },
+      idempotencyKey: `customer_data.requested:${customerId}:${siteId}`,
     });
 
     const decision = await auditRouteDecisionForCustomerAction({
@@ -1696,6 +1827,12 @@ async function createAndQueueCustomerMasterdataZ01(params: {
   externalReference: string | null;
   notes: string | null;
 }) {
+  const legalPayload = await prepareLegalPayloadForGridOwner({
+    companyId: params.companyId,
+    customerId: params.customerId,
+    siteId: params.siteId,
+  });
+
   const infoRequest = await createCustomerInfoRequest({
     companyId: params.companyId,
     actorUserId: params.actorUserId,
@@ -1716,6 +1853,20 @@ async function createAndQueueCustomerMasterdataZ01(params: {
       "customer_masterdata",
     ],
     notes: params.notes,
+  });
+
+  await recordCustomerActionResult({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    customerId: params.customerId,
+    siteId: params.siteId,
+    eventType: legalPayload.ok ? "legal_documents.attached_to_request" : "legal_documents.missing",
+    title: legalPayload.ok ? "Juridiskt underlag kopplat" : "Juridiskt underlag saknas",
+    message: legalPayload.ok
+      ? "Fullmakt och juridiska godkännanden kopplas till uppgiftsbegäran."
+      : `Uppgiftsbegäran skapades men saknar: ${legalPayload.missing.join(', ')}.`,
+    payload: { request_id: infoRequest.id, legal: legalPayload },
+    idempotencyKey: `legal_documents.grid_owner_request:${infoRequest.id}`,
   });
 
   return queueCustomerInfoRequestForDispatch({
@@ -1796,6 +1947,17 @@ export async function createGridOwnerDataRequestAction(
   });
 
   if (routeDecision.decisionStatus === "blocked") {
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "customer_data.needs_review",
+      title: "Nätägare behöver granskas",
+      message: "Uppgifter kan inte skickas automatiskt förrän nätägare och kontaktväg är verifierade.",
+      payload: { decision: routeDecisionPayload(routeDecision) },
+      idempotencyKey: `customer_data.needs_review:${customerId}:${siteId}:route`,
+    });
     revalidatePath(`/admin/customers/${customerId}`);
     revalidatePath("/admin/operations");
     revalidatePath("/admin/operations/tasks");
@@ -1974,6 +2136,18 @@ export async function createGridOwnerDataRequestAction(
       outboundRequestId: outbound.id,
       syncSummary,
     },
+  });
+
+  await recordCustomerActionResult({
+    actorUserId: actor.id,
+    companyId,
+    customerId,
+    siteId: saved.site_id,
+    eventType: "customer_data.request_sent",
+    title: "Uppgifter begärda",
+    message: "Systemet har skapat en uppgiftsbegäran och skickar den när kontaktvägen är redo.",
+    payload: { grid_owner_data_request_id: saved.id, outbound_request_id: outbound.id, request_scope: saved.request_scope },
+    idempotencyKey: `customer_data.request_sent:${saved.id}`,
   });
 
   revalidatePath(`/admin/customers/${customerId}`);
@@ -2266,6 +2440,17 @@ export async function createCustomerDataRequestPackageAction(
       });
 
   if (!signedPowerOfAttorney) {
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "customer_data.blocked",
+      title: "Fullmakt saknas",
+      message: "Begäran stoppas tills signerad fullmakt finns.",
+      payload: { target },
+      idempotencyKey: `customer_data.blocked:${customerId}:${siteId ?? 'customer'}:poa`,
+    });
     const blockerId = await createMissingPowerOfAttorneyBlocker({
       companyId,
       actorUserId: actor.id,

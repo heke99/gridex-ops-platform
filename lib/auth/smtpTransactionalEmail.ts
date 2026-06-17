@@ -10,6 +10,8 @@ export type TransactionalEmailInput = {
   replyTo?: string
 }
 
+export type AuthSmtpReadiness = { ready: boolean; missing: string[]; message: string }
+
 type AuthSmtpConfig = {
   host: string
   port: number
@@ -37,6 +39,19 @@ function numberEnv(name: string, fallback: number): number {
 
 export function getTransactionalEmailFromAddress() {
   return (process.env.AUTH_SMTP_FROM ?? process.env.AUTH_EMAIL_FROM ?? 'no-reply@gridex.se').trim()
+}
+
+
+export function getAuthSmtpReadiness(): AuthSmtpReadiness {
+  const required = ['AUTH_SMTP_HOST', 'AUTH_SMTP_PORT', 'AUTH_SMTP_USER', 'AUTH_SMTP_PASS', 'AUTH_SMTP_FROM']
+  const missing = required.filter((name) => !String(process.env[name] ?? '').trim())
+  return {
+    ready: missing.length === 0,
+    missing,
+    message: missing.length === 0
+      ? 'Konto-mail via SMTP är redo.'
+      : `Konto-mail kan inte skickas eftersom SMTP för inloggning saknas (${missing.join(', ')}).`,
+  }
 }
 
 export function getAuthSmtpConfig(): AuthSmtpConfig {

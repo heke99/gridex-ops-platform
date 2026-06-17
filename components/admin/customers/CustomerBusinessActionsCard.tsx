@@ -1,5 +1,4 @@
 import {
-  createCustomerDataRequestPackageAction,
   createGridOwnerDataRequestAction,
   createSupplierSwitchRequestAction,
   startAutomaticOnboardingAction,
@@ -12,7 +11,6 @@ import {
   sendCustomerConfirmationBusinessAction,
   terminateMeteringAccessBusinessAction,
 } from '@/app/admin/customers/[id]/business-actions'
-import { missingBusinessDataMessage } from '@/lib/ediel/statusUi'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type { PowerOfAttorneyRow, SupplierSwitchRequestRow } from '@/lib/operations/types'
@@ -39,12 +37,39 @@ function pointLabel(point: MeteringPointRow | null): string {
   return point.meter_point_id || point.id
 }
 
-function ActionShell({ title, text, children }: { title: string; text: string; children: React.ReactNode }) {
+function isSignedPowerOfAttorney(row: PowerOfAttorneyRow): boolean {
+  const raw = row as unknown as Record<string, unknown>
+  return row.status === 'signed' && Boolean(row.document_path || raw.signed_at || raw.accepted_at || raw.reference || raw.fullmakt_snapshot)
+}
+
+function plainBlockerList(input: {
+  site: CustomerSiteRow | null
+  point: MeteringPointRow | null
+  gridOwnerId: string
+  hasSignedPowerOfAttorney: boolean
+}) {
+  return [
+    input.hasSignedPowerOfAttorney ? null : 'Fullmakt saknas',
+    input.site?.facility_id ? null : 'Anläggnings-ID saknas',
+    input.point?.meter_point_id ? null : 'Mätpunkt saknas',
+    input.gridOwnerId ? null : 'Nätägare saknas',
+  ].filter((value): value is string => Boolean(value))
+}
+
+function StatusPill({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="text-sm font-semibold text-slate-950">{title}</div>
-      <p className="mt-1 min-h-12 text-sm leading-5 text-slate-700">{text}</p>
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${ok ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}`}>
       {children}
+    </span>
+  )
+}
+
+function PrimaryAction({ title, text, children }: { title: string; text: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm">
+      <h3 className="text-base font-semibold text-slate-950">{title}</h3>
+      <p className="mt-2 min-h-12 text-sm leading-6 text-slate-700">{text}</p>
+      <div className="mt-4">{children}</div>
     </div>
   )
 }
@@ -66,9 +91,7 @@ export default function CustomerBusinessActionsCard({
     : meteringPoints[0] ?? null
   const gridOwnerId = primaryPoint?.grid_owner_id ?? primarySite?.grid_owner_id ?? ''
   const defaultStartDate = primarySite?.move_in_date ?? ''
-  const hasSignedPowerOfAttorney = powersOfAttorney.some((row) => row.status === 'signed')
-  const supplierInfoIsOpen = infoRequests.some((row) => row.target_party_type === 'current_supplier' && !['completed', 'cancelled', 'rejected'].includes(row.status))
-  const supplierName = primarySite?.current_supplier_name ?? ''
+  const hasSignedPowerOfAttorney = powersOfAttorney.some(isSignedPowerOfAttorney)
   const activeContract = contracts.find((contract) => ['active', 'signed', 'pending_signature'].includes(String(contract.status ?? ''))) ?? contracts[0] ?? null
   const activeSwitchRequest =
     switchRequests.find((request) =>
@@ -78,24 +101,24 @@ export default function CustomerBusinessActionsCard({
     switchRequests.find((request) => ['queued', 'validated', 'ready_to_send', 'submitted', 'waiting_response'].includes(String(request.status ?? ''))) ??
     switchRequests[0] ??
     null
-  const missingBusinessData = [primaryPoint ? null : 'Anläggnings-id', gridOwnerId ? null : 'Nätägare'].filter((value): value is string => Boolean(value))
+  const blockers = plainBlockerList({ site: primarySite, point: primaryPoint, gridOwnerId, hasSignedPowerOfAttorney })
+  const openInfoRequest = infoRequests.find((row) => !['completed', 'cancelled', 'rejected'].includes(row.status))
+  const recommendedAction = blockers.length > 0 ? 'Begär uppgifter' : activeSwitchRequest ? 'Följ pågående leverantörsbyte' : 'Begär leverantörsbyte'
   const businessActionId = `${customerId}:${primarySite?.id ?? 'no-site'}:${primaryPoint?.id ?? 'no-meter'}`
 
-  const renderBusinessActionHiddenFields = (action: string) => {
-    return (
-      <>
-        <input type="hidden" name="customer_id" value={customerId} />
-        <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
-        <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ''} />
-        <input type="hidden" name="switch_request_id" value={activeSwitchRequest?.id ?? ''} />
-        <input type="hidden" name="idempotency_key" value={`${action}:${businessActionId}:${activeSwitchRequest?.id ?? 'no-switch'}`} />
-      </>
-    )
-  }
+  const renderBusinessActionHiddenFields = (action: string) => (
+    <>
+      <input type="hidden" name="customer_id" value={customerId} />
+      <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
+      <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ''} />
+      <input type="hidden" name="switch_request_id" value={activeSwitchRequest?.id ?? ''} />
+      <input type="hidden" name="idempotency_key" value={`${action}:${businessActionId}:${activeSwitchRequest?.id ?? 'no-switch'}`} />
+    </>
+  )
 
   const missingSwitchRequestNotice = activeSwitchRequest ? null : (
     <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-      Starta eller välj ett affärsärende först så plattformen kan koppla åtgärden till rätt bolag.
+      Skapa eller välj leverantörsbyte först så åtgärden kan kopplas rätt.
     </p>
   )
 
@@ -103,10 +126,10 @@ export default function CustomerBusinessActionsCard({
     <section className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Affärsåtgärder</p>
-          <h2 className="mt-2 text-lg font-semibold text-slate-950">Starta rätt flöde utan tekniska val</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Kundens nästa steg</p>
+          <h2 className="mt-2 text-lg font-semibold text-slate-950">Begär uppgifter eller begär leverantörsbyte</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-            Knapparna använder kundens anläggning, mätpunkt, nätägare och behörigheter i bakgrunden. Handläggaren väljer affärsåtgärd; plattformen väljer rätt marknadsprocess.
+            Handläggaren väljer vad som ska hända. Systemet kontrollerar fullmakt, anläggning, mätpunkt, nätägare, juridiskt underlag, mail och teknisk sändning i bakgrunden.
           </p>
         </div>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
@@ -114,139 +137,92 @@ export default function CustomerBusinessActionsCard({
         </span>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-4">
-        <div className="rounded-2xl border border-emerald-100 bg-white p-4 text-sm shadow-sm md:col-span-4">
-          <div className="font-semibold text-slate-950">Redo-kontroll</div>
-          <div className="mt-3 grid gap-2 md:grid-cols-4">
-            <div className={`rounded-xl px-3 py-2 ${primarySite ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>{primarySite ? 'Anläggning vald' : 'Saknar anläggning'}</div>
-            <div className={`rounded-xl px-3 py-2 ${primaryPoint ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>{primaryPoint ? 'Mätpunkt vald' : 'Saknar mätpunkt'}</div>
-            <div className={`rounded-xl px-3 py-2 ${gridOwnerId ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>{gridOwnerId ? 'Nätägare finns' : 'Saknar nätägare'}</div>
-            <div className={`rounded-xl px-3 py-2 ${hasSignedPowerOfAttorney ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>{hasSignedPowerOfAttorney ? 'Signerad fullmakt finns' : 'Fullmakt saknas'}</div>
+      <div className="mt-5 rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-950">Nästa rekommenderade steg</div>
+            <p className="mt-1 text-sm text-slate-700">{recommendedAction}</p>
           </div>
-          {missingBusinessData.length > 0 ? (
-            <pre className="mt-3 whitespace-pre-wrap rounded-2xl border border-red-200 bg-red-50 p-3 text-xs font-semibold leading-5 text-red-900">{missingBusinessDataMessage(missingBusinessData)}</pre>
-          ) : (
-            <p className="mt-3 text-xs leading-5 text-slate-600">Kontrollen avgör om plattformen kan starta åtgärden direkt, behöver komplettera kunddata eller ska skapa en uppföljningsuppgift.</p>
-          )}
+          {openInfoRequest ? <StatusPill ok>Uppgiftsbegäran finns</StatusPill> : null}
         </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <StatusPill ok={hasSignedPowerOfAttorney}>{hasSignedPowerOfAttorney ? 'Fullmakt finns' : 'Fullmakt saknas'}</StatusPill>
+          <StatusPill ok={Boolean(primarySite?.facility_id)}>{primarySite?.facility_id ? 'Anläggnings-ID finns' : 'Anläggnings-ID saknas'}</StatusPill>
+          <StatusPill ok={Boolean(primaryPoint?.meter_point_id)}>{primaryPoint?.meter_point_id ? 'Mätpunkt finns' : 'Mätpunkt saknas'}</StatusPill>
+          <StatusPill ok={Boolean(gridOwnerId)}>{gridOwnerId ? 'Nätägare finns' : 'Nätägare saknas'}</StatusPill>
+        </div>
+        {blockers.length > 0 ? (
+          <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+            Saknas innan leverantörsbyte kan begäras: {blockers.join(', ')}.
+          </p>
+        ) : (
+          <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+            Kunden ser redo ut för nästa kontroll. Systemet gör slutkontrollen innan något skickas.
+          </p>
+        )}
+      </div>
 
-        <ActionShell title="Starta kundflöde" text="Plattformen samlar in saknade uppgifter först och startar leverantörsbyte när kunden är redo.">
-          <form action={startAutomaticOnboardingAction} className="mt-4">
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <PrimaryAction title="Begär uppgifter" text="Systemet begär eller förbereder saknade uppgifter, försöker hitta nätägare automatiskt och skapar tydlig uppgift om granskning behövs.">
+          <form action={startAutomaticOnboardingAction}>
             <input type="hidden" name="customer_id" value={customerId} />
             <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
-            <SubmitButton idleLabel="Starta kundflöde" pendingLabel="Startar…" />
+            <SubmitButton idleLabel="Begär uppgifter" pendingLabel="Kontrollerar…" />
           </form>
-        </ActionShell>
+        </PrimaryAction>
 
-        <ActionShell title="Starta leverantörsbyte" text="Startar leverantörsbyte. Plattformen sköter marknadsmeddelande, kö och kvittenser.">
-          <form action={createSupplierSwitchRequestAction} className="mt-4">
+        <PrimaryAction title="Begär leverantörsbyte" text="Systemet kontrollerar fullmakt, avtal, mätpunkt, nätägare, juridiskt underlag och kontaktväg innan leverantörsbyte startas.">
+          <form action={createSupplierSwitchRequestAction}>
             <input type="hidden" name="customer_id" value={customerId} />
             <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
             <input type="hidden" name="request_type" value={primarySite?.move_in_date ? 'move_in' : 'switch'} />
             <input type="hidden" name="requested_start_date" value={defaultStartDate} />
-            <SubmitButton idleLabel="Starta byte" pendingLabel="Kontrollerar…" />
+            <SubmitButton idleLabel="Begär leverantörsbyte" pendingLabel="Kontrollerar…" />
           </form>
-        </ActionShell>
+        </PrimaryAction>
+      </div>
 
-        <ActionShell title="Registrera ånger" text="Stoppar kundflödet internt och låter plattformen avgöra om avslut eller manuell uppgift behövs.">
-          <form action={registerCancellationBusinessAction} className="mt-4">
+      <details className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+        <summary className="cursor-pointer font-semibold text-slate-900">Fler åtgärder</summary>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <form action={sendCustomerConfirmationBusinessAction} className="rounded-2xl border border-slate-200 p-4">
+            {renderBusinessActionHiddenFields('send_confirmation')}
+            <SubmitButton idleLabel="Skicka bekräftelsemail" pendingLabel="Skickar…" />
+          </form>
+          <form action={registerCancellationBusinessAction} className="rounded-2xl border border-slate-200 p-4">
             {renderBusinessActionHiddenFields('register_cancellation')}
-            <input type="hidden" name="reason" value="Kunden har registrerat ånger från kundkortets affärsåtgärder." />
+            <input type="hidden" name="reason" value="Kunden har registrerat ånger från kundkortet." />
             {missingSwitchRequestNotice}
             <SubmitButton idleLabel="Registrera ånger" pendingLabel="Registrerar…" />
           </form>
-        </ActionShell>
-
-        <ActionShell title="Avsluta avtal" text="Påbörjar avslut och loggar händelsen på kundkortet. Plattformen avgör om marknadsmeddelande behövs.">
-          <form action={endAgreementBusinessAction} className="mt-4">
+          <form action={endAgreementBusinessAction} className="rounded-2xl border border-slate-200 p-4">
             {renderBusinessActionHiddenFields(`end_agreement:${activeContract?.id ?? 'customer'}`)}
-            <input type="hidden" name="reason" value="Avslut av avtal påbörjat från kundkortets affärsåtgärder." />
+            <input type="hidden" name="reason" value="Avslut av avtal påbörjat från kundkortet." />
             {missingSwitchRequestNotice}
-            <SubmitButton idleLabel="Avsluta avtal" pendingLabel="Startar avslut…" />
+            <SubmitButton idleLabel="Avsluta avtal" pendingLabel="Startar…" />
           </form>
-        </ActionShell>
-
-        <ActionShell title="Begär kund-/anläggningsuppgifter" text="Begär kund- och anläggningsuppgifter från rätt nätägare när fullmakt och kontaktväg finns.">
-          <form action={createGridOwnerDataRequestAction} className="mt-4">
+          <form action={createGridOwnerDataRequestAction} className="rounded-2xl border border-slate-200 p-4">
             <input type="hidden" name="customer_id" value={customerId} />
             <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
             <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ''} />
             <input type="hidden" name="grid_owner_id" value={gridOwnerId} />
             <input type="hidden" name="request_scope" value="customer_masterdata" />
-            <input type="hidden" name="business_action" value="request_customer_masterdata" />
-            <input type="hidden" name="notes" value="Kundkort: begär kund-/anläggningsuppgifter om underlag saknas." />
-            <SubmitButton idleLabel="Begär uppgifter" pendingLabel="Skapar…" />
+            <SubmitButton idleLabel="Begär anläggningsuppgifter" pendingLabel="Skapar…" />
           </form>
-        </ActionShell>
-
-        <ActionShell title="Begär uppgifter inför leverantörsbyte" text="Skapar uppföljning för bindningstid, uppsägning, brytavgift och slutdatum. Startar aldrig leverantörsbyte.">
-          <form action={createCustomerDataRequestPackageAction} className="mt-4">
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
-            <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ''} />
-            <input type="hidden" name="grid_owner_id" value={gridOwnerId} />
-            <input type="hidden" name="request_target" value="current_supplier" />
-            <input type="hidden" name="current_supplier_name" value={supplierName} />
-            <input type="hidden" name="notes" value="Kundkort: begär kommersiella uppgifter från nuvarande leverantör." />
-            {supplierInfoIsOpen ? <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Öppen uppföljning finns redan</p> : null}
-            <SubmitButton idleLabel="Begär leverantörssvar" pendingLabel="Skapar…" />
-          </form>
-        </ActionShell>
-
-        <ActionShell title="Begär mätvärdesåtkomst" text="Begär mätvärdesåtkomst hos nätägaren. Kräver avtal/fullmakt och komplett anläggningsdata.">
-          <form action={requestMeteringAccessBusinessAction} className="mt-4">
+          <form action={requestMeteringAccessBusinessAction} className="rounded-2xl border border-slate-200 p-4">
             {renderBusinessActionHiddenFields('request_metering_access')}
-            {missingSwitchRequestNotice}
-            <SubmitButton idleLabel="Begär åtkomst" pendingLabel="Kontrollerar…" />
+            <SubmitButton idleLabel="Begär mätvärdesåtkomst" pendingLabel="Begär…" />
           </form>
-        </ActionShell>
-
-        <ActionShell title="Hämta mätvärden" text="Skapar mätvärdesbegäran mot rätt nätägare när aktiv relation eller åtkomst finns.">
-          <form action={createGridOwnerDataRequestAction} className="mt-4">
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="site_id" value={primarySite?.id ?? ''} />
-            <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ''} />
-            <input type="hidden" name="grid_owner_id" value={gridOwnerId} />
-            <input type="hidden" name="request_scope" value="meter_values" />
-            <input type="hidden" name="business_action" value="request_meter_values" />
-            <input type="hidden" name="notes" value="Kundkort: hämta mätvärden." />
-            <SubmitButton idleLabel="Hämta mätvärden" pendingLabel="Skapar…" />
-          </form>
-        </ActionShell>
-
-        <ActionShell title="Begär historiska mätvärden" text="Kräver avslutad period senast igår och högst tre år bakåt.">
-          <form action={requestHistoricalMeteringAccessBusinessAction} className="mt-4">
+          <form action={requestHistoricalMeteringAccessBusinessAction} className="rounded-2xl border border-slate-200 p-4">
             {renderBusinessActionHiddenFields('request_historical_metering_access')}
-            <div className="mb-4 grid gap-2">
-              <label className="text-xs font-semibold text-slate-700">Startdatum
-                <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" type="date" name="requested_period_start" required />
-              </label>
-              <label className="text-xs font-semibold text-slate-700">Slutdatum
-                <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" type="date" name="requested_period_end" required />
-              </label>
-            </div>
-            {missingSwitchRequestNotice}
-            <SubmitButton idleLabel="Begär historik" pendingLabel="Kontrollerar…" />
+            <SubmitButton idleLabel="Hämta mätvärden" pendingLabel="Kontrollerar…" />
           </form>
-        </ActionShell>
-
-        <ActionShell title="Avsluta mätvärdesåtkomst" text="Avslutar kundens mätvärdestillgång och väntar på bekräftelse från nätägaren.">
-          <form action={terminateMeteringAccessBusinessAction} className="mt-4">
+          <form action={terminateMeteringAccessBusinessAction} className="rounded-2xl border border-slate-200 p-4">
             {renderBusinessActionHiddenFields('terminate_metering_access')}
-            {missingSwitchRequestNotice}
-            <SubmitButton idleLabel="Avsluta åtkomst" pendingLabel="Kontrollerar…" />
+            <SubmitButton idleLabel="Avsluta mätvärdesåtkomst" pendingLabel="Avslutar…" />
           </form>
-        </ActionShell>
-
-        <ActionShell title="Skicka bekräftelsemail" text="Köar kundkommunikation via bolagets mall och avsändarprofil. Marknadsmeddelanden påverkas inte av kundmail.">
-          <form action={sendCustomerConfirmationBusinessAction} className="mt-4">
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="event" value="switch.started" />
-            <input type="hidden" name="idempotency_key" value={`send_customer_confirmation:${businessActionId}:switch.started`} />
-            <SubmitButton idleLabel="Skicka bekräftelse" pendingLabel="Köar…" />
-          </form>
-        </ActionShell>
-      </div>
+        </div>
+      </details>
     </section>
   )
 }

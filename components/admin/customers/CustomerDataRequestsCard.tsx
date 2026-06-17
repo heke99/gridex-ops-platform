@@ -36,11 +36,11 @@ function simpleStatus(value: string): { label: string; className: string; descri
       return { label: 'Redo att skickas', className: 'bg-emerald-100 text-emerald-700', description: 'Systemet har förberett begäran.' }
     case 'sent':
     case 'sent_to_grid_owner':
-      return { label: 'Skickad', className: 'bg-emerald-100 text-emerald-700', description: 'Begäran är skickad eller köad i outbound.' }
+      return { label: 'Skickad', className: 'bg-emerald-100 text-emerald-700', description: 'Begäran är skickad eller köad i utskick.' }
     case 'waiting_for_contrl':
     case 'waiting_for_aperak':
     case 'waiting_for_z02':
-    case 'manual_review_required':
+    case 'kräver granskning':
       return { label: 'Väntar på svar', className: 'bg-amber-100 text-amber-700', description: 'Följ upp när svar kommer.' }
     case 'z02_received':
     case 'completed':
@@ -50,8 +50,8 @@ function simpleStatus(value: string): { label: string; className: string; descri
       return { label: 'Nekad', className: 'bg-red-100 text-red-700', description: 'Begäran behöver rättas eller följas upp.' }
     case 'missing_authorization':
       return { label: 'Saknar fullmakt', className: 'bg-red-100 text-red-700', description: 'Signerad fullmakt krävs innan utskick.' }
-    case 'route_missing':
-      return { label: 'Saknar route', className: 'bg-red-100 text-red-700', description: 'Mottagare/Ediel-route saknas.' }
+    case 'kontaktväg_missing':
+      return { label: 'Saknar kontaktväg', className: 'bg-red-100 text-red-700', description: 'Mottagare/teknisk sändning-kontaktväg saknas.' }
     case 'cancelled':
       return { label: 'Avbruten', className: 'bg-slate-200 text-slate-700', description: 'Begäran är stoppad.' }
     default:
@@ -102,7 +102,7 @@ export default function CustomerDataRequestsCard({
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Begär uppgifter</h2>
             <p className="mt-1 text-sm leading-6 text-slate-700">
-              Välj vad handläggaren behöver. Systemet använder rätt flöde i bakgrunden: nätägare förbereds som Ediel/PRODAT när route finns, nuvarande leverantör blir ett manuellt uppföljningsärende.
+              Välj vad handläggaren behöver. Systemet använder rätt flöde i bakgrunden: nätägare kontaktas automatiskt när kontaktväg finns, nuvarande leverantör blir ett manuellt uppföljningsärende.
             </p>
           </div>
           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${signedPowers.length ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
@@ -152,7 +152,7 @@ export default function CustomerDataRequestsCard({
 
             <label className="grid gap-1 text-sm">
               <span className="font-medium text-slate-700">Mätpunkt</span>
-              <select name="metering_point_id" defaultValue={meteringPoints[0]?.id ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
+              <select name="mätpunkt" defaultValue={meteringPoints[0]?.id ?? ''} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
                 <option value="">Välj mätpunkt om den finns</option>
                 {meteringPoints.map((point) => (
                   <option key={point.id} value={point.id}>{point.meter_point_id || point.id}</option>
@@ -164,7 +164,7 @@ export default function CustomerDataRequestsCard({
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-1 text-sm">
               <span className="font-medium text-slate-700">Nätägare</span>
-              <select name="grid_owner_id" defaultValue="" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
+              <select name="nätägare" defaultValue="" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
                 <option value="">Använd anläggningens nätägare</option>
                 {gridOwners.map((owner) => (
                   <option key={owner.id} value={owner.id}>{owner.name}</option>
