@@ -869,10 +869,10 @@ function customerMasterdataAnchorsAreMissing(
 ): string | null {
   if (!requestNeedsGridOwnerAuthorization(request)) return null;
   if (!request.site_id && !request.metering_point_id) {
-    return "Välj kundens anläggning och mätpunkt innan PRODAT Z01 kan förberedas.";
+    return "Anläggning och mätpunkt behöver väljas eller kompletteras innan begäran kan skickas.";
   }
   if (!request.grid_owner_id) {
-    return "Välj eller koppla nätägare innan PRODAT Z01 kan förberedas.";
+    return "Nätägare behöver verifieras innan begäran kan skickas.";
   }
   return null;
 }
@@ -1038,7 +1038,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
         outboundRequestId: z01.outbound.id,
         edielMessageId: z01.message?.id ?? null,
         expectedResponse:
-          "CONTRL/APERAK och därefter PRODAT Z02 eller negativ APERAK",
+          "Svar från nätägare",
         prodatCode: "Z01",
         routeReady: z01.prepared,
       },
@@ -1059,8 +1059,8 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     actorUserId: input.actorUserId,
     eventType: z01.prepared ? "z01_prepared_for_dispatch" : "z01_route_missing",
     message: z01.prepared
-      ? "PRODAT Z01 är skapad som Ediel-draft, länkad till outbound och köad för dispatch."
-      : (blockerReason ?? "PRODAT Z01 kräver route innan utskick."),
+      ? "Begäran är förberedd och köad för utskick till nätägare."
+      : (blockerReason ?? "Kontaktväg till nätägare behöver verifieras innan utskick."),
     payload: {
       gridOwnerDataRequestId: gridOwnerDataRequest.id,
       outboundRequestId: z01.outbound.id,

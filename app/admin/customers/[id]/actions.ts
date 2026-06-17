@@ -135,6 +135,75 @@ function validateHistoricalMeteringPeriod(params: {
   }
 }
 
+
+function textOf(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+async function tryAutoResolveGridOwnerForSite(params: {
+  companyId: string;
+  customerId: string;
+  site: Record<string, unknown>;
+  actorUserId: string;
+}): Promise<string | null> {
+  if (params.site.grid_owner_id) return String(params.site.grid_owner_id);
+
+  const city = textOf(params.site.city);
+  const postalCode = textOf(params.site.postal_code).replace(/\s+/g, "");
+  const priceAreaCode = textOf(params.site.price_area_code).toUpperCase();
+  if (!city && !postalCode && !priceAreaCode) return null;
+
+  const { data, error } = await supabaseService
+    .from("platform_grid_areas")
+    .select("*")
+    .limit(2000);
+
+  if (error || !Array.isArray(data)) return null;
+
+  const rows = data as Array<Record<string, unknown>>;
+  const match = rows.find((row) => {
+    const rowPriceArea = textOf(row.price_area_code ?? row.bidding_zone ?? row.elomrade).toUpperCase();
+    const rowCity = textOf(row.city ?? row.municipality ?? row.municipality_name ?? row.locality);
+    const rowPostal = textOf(row.postal_code ?? row.postal_code_prefix ?? row.zip_code).replace(/\s+/g, "");
+    const priceOk = !priceAreaCode || !rowPriceArea || rowPriceArea === priceAreaCode;
+    const cityOk = city && rowCity ? rowCity === city : false;
+    const postalOk = postalCode && rowPostal ? postalCode.startsWith(rowPostal) || rowPostal.startsWith(postalCode) : false;
+    return priceOk && (cityOk || postalOk);
+  });
+
+  const gridOwnerId = match?.grid_owner_id ?? match?.owner_id ?? match?.market_actor_id ?? match?.actor_id ?? null;
+  if (!gridOwnerId) return null;
+
+  const resolvedGridOwnerId = String(gridOwnerId);
+  const { error: updateError } = await supabaseService
+    .from("customer_sites")
+    .update({
+      grid_owner_id: resolvedGridOwnerId,
+      resolution_status: "grid_owner_suggested",
+      data_quality_status: "needs_review",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", String(params.site.id))
+    .eq("company_id", params.companyId)
+    .eq("customer_id", params.customerId);
+
+  if (updateError) return resolvedGridOwnerId;
+
+  await recordCustomerActionResult({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    customerId: params.customerId,
+    siteId: String(params.site.id),
+    eventType: "facility.grid_owner_suggested",
+    title: "Nätägare föreslagen automatiskt",
+    message: "Systemet hittade en möjlig nätägare baserat på adress, postnummer, ort och elområde. Granska förslaget innan leverantörsbyte startas.",
+    payload: { grid_owner_id: resolvedGridOwnerId, source: "customer_card_auto_resolver" },
+    idempotencyKey: `facility.grid_owner_suggested:${params.customerId}:${String(params.site.id)}:${resolvedGridOwnerId}`,
+  });
+
+  return resolvedGridOwnerId;
+}
+
 function normalizeNumberOrNull(value: string | null): number | null {
   if (!value) return null;
   const parsed = Number(value.replace(",", "."));
@@ -1539,15 +1608,24 @@ export async function startAutomaticOnboardingAction(
     meteringPoints[0] ??
     null;
 
+  const autoResolvedGridOwnerId = candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id
+    ? null
+    : await tryAutoResolveGridOwnerForSite({
+        companyId,
+        customerId,
+        site: site as unknown as Record<string, unknown>,
+        actorUserId: actor.id,
+      });
+  const effectiveGridOwnerId = candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? autoResolvedGridOwnerId;
+
   const missingMasterdata =
     !site.facility_id?.trim() ||
     !candidateMeteringPoint?.meter_point_id?.trim() ||
-    !(candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id) ||
+    !effectiveGridOwnerId ||
     !(candidateMeteringPoint?.price_area_code ?? site.price_area_code);
 
   if (missingMasterdata) {
-    const gridOwnerId =
-      candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id ?? null;
+    const gridOwnerId = effectiveGridOwnerId ?? null;
 
     await createMissingCustomerDataTasks({
       companyId,
@@ -2402,7 +2480,7 @@ export async function createCustomerDataRequestPackageAction(
   );
   const siteId = formValue(formData, "site_id") || null;
   const meteringPointId = formValue(formData, "metering_point_id") || null;
-  const gridOwnerId = formValue(formData, "grid_owner_id") || null;
+  let gridOwnerId = formValue(formData, "grid_owner_id") || null;
   const externalReference = formValue(formData, "external_reference") || null;
   const notes = formValue(formData, "notes") || null;
   const selectedPowerOfAttorneyId =
@@ -2419,6 +2497,18 @@ export async function createCustomerDataRequestPackageAction(
     customerId,
     powerOfAttorneyId: selectedPowerOfAttorneyId,
   });
+
+  if (!gridOwnerId && siteId) {
+    const site = await findCustomerSiteById(supabaseService, siteId);
+    if (site && site.company_id === companyId && site.customer_id === customerId) {
+      gridOwnerId = await tryAutoResolveGridOwnerForSite({
+        companyId,
+        customerId,
+        site: site as unknown as Record<string, unknown>,
+        actorUserId: actor.id,
+      });
+    }
+  }
 
   const signedPowerOfAttorney = selectedPowerOfAttorneyId
     ? await supabaseService

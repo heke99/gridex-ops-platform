@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import type { CustomerSiteRow, GridOwnerRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type { CustomerInfoRequestRow } from '@/lib/onboarding/infoRequests'
-import type { PowerOfAttorneyRow } from '@/lib/operations/types'
+import type { CustomerAuthorizationDocumentRow, PowerOfAttorneyRow } from '@/lib/operations/types'
 import { facilityMissingFieldLabel, facilityStatusLabel, type FacilityWorkQueueStatus } from '@/lib/facility/workQueue'
+import { hasValidPowerOfAttorney } from '@/lib/customers/customerCardSnapshot'
 
 type FacilityCardItem = {
   siteId: string
@@ -60,9 +61,6 @@ function siteLabel(site: CustomerSiteRow): string {
   return site.site_name || site.facility_id || [site.street, site.postal_code, site.city].filter(Boolean).join(', ') || 'Anläggning'
 }
 
-function signedPowerForCustomer(powersOfAttorney: PowerOfAttorneyRow[]): boolean {
-  return powersOfAttorney.some((row) => row.status === 'signed' && Boolean(row.document_path?.trim()))
-}
 
 function buildFacilityItems(input: {
   customerId: string
@@ -70,9 +68,10 @@ function buildFacilityItems(input: {
   meteringPoints: MeteringPointRow[]
   infoRequests: CustomerInfoRequestRow[]
   powersOfAttorney: PowerOfAttorneyRow[]
+  documents?: CustomerAuthorizationDocumentRow[]
   gridOwners: GridOwnerRow[]
 }): FacilityCardItem[] {
-  const hasSignedPower = signedPowerForCustomer(input.powersOfAttorney)
+  const hasSignedPower = hasValidPowerOfAttorney(input.powersOfAttorney, input.documents ?? [])
 
   return input.sites.map((site) => {
     const points = input.meteringPoints.filter((point) => point.site_id === site.id)
@@ -107,7 +106,7 @@ function buildFacilityItems(input: {
       : status === 'awaiting_grid_owner'
         ? 'Följ upp svar'
         : status === 'missing_authorization'
-          ? 'Verifiera fullmakt'
+          ? 'Kontrollera fullmakt'
           : status === 'needs_grid_owner_review'
             ? 'Verifiera nätägare'
             : 'Begär uppgifter'
@@ -138,6 +137,7 @@ export default function CustomerFacilityWorkflowCard(input: {
   meteringPoints: MeteringPointRow[]
   infoRequests: CustomerInfoRequestRow[]
   powersOfAttorney: PowerOfAttorneyRow[]
+  documents?: CustomerAuthorizationDocumentRow[]
   gridOwners: GridOwnerRow[]
 }) {
   const items = buildFacilityItems(input)
@@ -152,7 +152,7 @@ export default function CustomerFacilityWorkflowCard(input: {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Anläggningsflöde</p>
           <h2 className="mt-1 text-lg font-bold text-slate-950">Saknade uppgifter och nästa åtgärd</h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
-            Kunden får finnas kvar även när anläggnings-ID, mätpunkt eller nätägare saknas. Systemet stoppar däremot leverantörsbyte tills uppgifterna är verifierade och fullmakt finns.
+            Kunden får finnas kvar även när anläggnings-ID, mätpunkt eller nätägare saknas. Systemet stoppar leverantörsbyte tills anläggnings-ID, mätpunkt och nätägare är verifierade. Fullmakt räknas automatiskt när signerad fullmakt eller fullmaktsdokument finns.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs font-bold">

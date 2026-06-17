@@ -13,15 +13,17 @@ import {
 } from '@/app/admin/customers/[id]/business-actions'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
-import type { PowerOfAttorneyRow, SupplierSwitchRequestRow } from '@/lib/operations/types'
+import type { CustomerAuthorizationDocumentRow, PowerOfAttorneyRow, SupplierSwitchRequestRow } from '@/lib/operations/types'
 import type { CustomerInfoRequestRow } from '@/lib/onboarding/infoRequests'
 import SubmitButton from '@/components/admin/customers/document-card/SubmitButton'
+import { buildCustomerCardSnapshot } from '@/lib/customers/customerCardSnapshot'
 
 type Props = {
   customerId: string
   sites: CustomerSiteRow[]
   meteringPoints: MeteringPointRow[]
   powersOfAttorney?: PowerOfAttorneyRow[]
+  documents?: CustomerAuthorizationDocumentRow[]
   infoRequests?: CustomerInfoRequestRow[]
   contracts?: CustomerContractRow[]
   switchRequests?: SupplierSwitchRequestRow[]
@@ -35,25 +37,6 @@ function siteLabel(site: CustomerSiteRow | null): string {
 function pointLabel(point: MeteringPointRow | null): string {
   if (!point) return 'Ingen mätpunkt vald'
   return point.meter_point_id || point.id
-}
-
-function isSignedPowerOfAttorney(row: PowerOfAttorneyRow): boolean {
-  const raw = row as unknown as Record<string, unknown>
-  return row.status === 'signed' && Boolean(row.document_path || raw.signed_at || raw.accepted_at || raw.reference || raw.fullmakt_snapshot)
-}
-
-function plainBlockerList(input: {
-  site: CustomerSiteRow | null
-  point: MeteringPointRow | null
-  gridOwnerId: string
-  hasSignedPowerOfAttorney: boolean
-}) {
-  return [
-    input.hasSignedPowerOfAttorney ? null : 'Fullmakt saknas',
-    input.site?.facility_id ? null : 'Anläggnings-ID saknas',
-    input.point?.meter_point_id ? null : 'Mätpunkt saknas',
-    input.gridOwnerId ? null : 'Nätägare saknas',
-  ].filter((value): value is string => Boolean(value))
 }
 
 function StatusPill({ ok, children }: { ok: boolean; children: React.ReactNode }) {
@@ -79,19 +62,17 @@ export default function CustomerBusinessActionsCard({
   sites,
   meteringPoints,
   powersOfAttorney = [],
+  documents = [],
   infoRequests = [],
   contracts = [],
   switchRequests = [],
 }: Props) {
-  const primarySite = sites.find((site) => site.status === 'active') ?? sites[0] ?? null
-  const primaryPoint = primarySite
-    ? meteringPoints.find((point) => point.site_id === primarySite.id && point.status === 'active') ??
-      meteringPoints.find((point) => point.site_id === primarySite.id) ??
-      null
-    : meteringPoints[0] ?? null
+  const snapshot = buildCustomerCardSnapshot({ sites, meteringPoints, powersOfAttorney, documents, infoRequests, contracts })
+  const primarySite = snapshot.primarySite
+  const primaryPoint = snapshot.primaryMeteringPoint
   const gridOwnerId = primaryPoint?.grid_owner_id ?? primarySite?.grid_owner_id ?? ''
   const defaultStartDate = primarySite?.move_in_date ?? ''
-  const hasSignedPowerOfAttorney = powersOfAttorney.some(isSignedPowerOfAttorney)
+  const hasSignedPowerOfAttorney = snapshot.hasAuthorization
   const activeContract = contracts.find((contract) => ['active', 'signed', 'pending_signature'].includes(String(contract.status ?? ''))) ?? contracts[0] ?? null
   const activeSwitchRequest =
     switchRequests.find((request) =>
@@ -101,9 +82,9 @@ export default function CustomerBusinessActionsCard({
     switchRequests.find((request) => ['queued', 'validated', 'ready_to_send', 'submitted', 'waiting_response'].includes(String(request.status ?? ''))) ??
     switchRequests[0] ??
     null
-  const blockers = plainBlockerList({ site: primarySite, point: primaryPoint, gridOwnerId, hasSignedPowerOfAttorney })
+  const blockers = snapshot.switchBlockerLabels
   const openInfoRequest = infoRequests.find((row) => !['completed', 'cancelled', 'rejected'].includes(row.status))
-  const recommendedAction = blockers.length > 0 ? 'Begär uppgifter' : activeSwitchRequest ? 'Följ pågående leverantörsbyte' : 'Begär leverantörsbyte'
+  const recommendedAction = activeSwitchRequest ? 'Följ pågående leverantörsbyte' : snapshot.nextStepLabel
   const businessActionId = `${customerId}:${primarySite?.id ?? 'no-site'}:${primaryPoint?.id ?? 'no-meter'}`
 
   const renderBusinessActionHiddenFields = (action: string) => (
@@ -142,18 +123,19 @@ export default function CustomerBusinessActionsCard({
           <div>
             <div className="text-sm font-semibold text-slate-950">Nästa rekommenderade steg</div>
             <p className="mt-1 text-sm text-slate-700">{recommendedAction}</p>
+            <p className="mt-1 text-xs font-medium text-slate-600">{snapshot.nextStepDescription}</p>
           </div>
           {openInfoRequest ? <StatusPill ok>Uppgiftsbegäran finns</StatusPill> : null}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <StatusPill ok={hasSignedPowerOfAttorney}>{hasSignedPowerOfAttorney ? 'Fullmakt finns' : 'Fullmakt saknas'}</StatusPill>
-          <StatusPill ok={Boolean(primarySite?.facility_id)}>{primarySite?.facility_id ? 'Anläggnings-ID finns' : 'Anläggnings-ID saknas'}</StatusPill>
-          <StatusPill ok={Boolean(primaryPoint?.meter_point_id)}>{primaryPoint?.meter_point_id ? 'Mätpunkt finns' : 'Mätpunkt saknas'}</StatusPill>
-          <StatusPill ok={Boolean(gridOwnerId)}>{gridOwnerId ? 'Nätägare finns' : 'Nätägare saknas'}</StatusPill>
+          <StatusPill ok={snapshot.hasFacilityId}>{snapshot.hasFacilityId ? 'Anläggnings-ID finns' : 'Anläggnings-ID saknas'}</StatusPill>
+          <StatusPill ok={snapshot.hasMeteringPoint}>{snapshot.hasMeteringPoint ? 'Mätpunkt finns' : 'Mätpunkt saknas'}</StatusPill>
+          <StatusPill ok={snapshot.hasGridOwner}>{snapshot.hasGridOwner ? 'Nätägare finns' : 'Nätägare saknas'}</StatusPill>
         </div>
         {blockers.length > 0 ? (
           <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-            Saknas innan leverantörsbyte kan begäras: {blockers.join(', ')}.
+            Leverantörsbyte kan inte startas ännu. Saknas: {blockers.join(', ')}.
           </p>
         ) : (
           <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">

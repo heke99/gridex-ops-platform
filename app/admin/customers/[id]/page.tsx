@@ -86,6 +86,7 @@ import { resendCustomerEmailAction } from './email-actions'
 import { customerStatusLabel, intakeStatusLabel as applicationIntakeStatusLabel, missingFieldLabel, sourceLabel } from '@/lib/customers/statusLabels'
 import { evaluateCustomerOpsMasterReadiness, listCustomerDocuments, listCustomerLegalAcceptances, listCustomerOpsTimeline } from '@/lib/opsMaster/readiness'
 import { buildAdminDataChain } from '@/lib/customer-portal/status'
+import { buildCustomerCardSnapshot, humanizeMissingField } from '@/lib/customers/customerCardSnapshot'
 
 export const dynamic = 'force-dynamic'
 
@@ -1277,7 +1278,7 @@ function CustomerWebsiteTraceabilityCard({
  const externalCustomerId = latestApplication?.external_customer_id ?? '—'
  const latestStatus = applicationIntakeStatusLabel(latestApplication?.status ?? null)
  const capwayReference = latestBillingPartner?.provider_debtor_id ?? latestBillingPartner?.provider_customer_id ?? '—'
- const missingFields = Array.isArray(latestApplication?.missing_fields) ? latestApplication?.missing_fields.map((item) => missingFieldLabel(String(item))).filter(Boolean) : []
+ const missingFields = Array.isArray(latestApplication?.missing_fields) ? latestApplication?.missing_fields.map((item) => humanizeMissingField(item)).filter(Boolean) : []
  const nextStep = latestApplication?.next_step ?? (missingFields.length > 0 ? 'Komplettera kundansökan.' : 'Kontrollera kundens nästa steg.')
  return (
  <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-6 shadow-sm ">
@@ -1306,7 +1307,7 @@ function CustomerWebsiteTraceabilityCard({
 
  {latestApplication && missingFields.length > 0 ? (
  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 ">
- Kundansökan behöver kompletteras innan switch eller avtalsbekräftelse: {missingFields.join(', ')}. <Link href="/admin/website-applications?status=needs_information" className="underline">Öppna arbetsvyn</Link>.
+ Kundansökan behöver kompletteras innan leverantörsbyte kan startas. Saknas: {missingFields.join(', ')}. <Link href="/admin/website-applications?status=needs_information" className="underline">Öppna arbetsvyn</Link>.
  </div>
  ) : null}
  {latestApplication?.error_stage ? (
@@ -1626,6 +1627,16 @@ const analytics = needsAnalyticsData && customerCompanyId
 
  const hasUsablePowerOfAttorney = opsMasterReadiness.hasActivePowerOfAttorney
 
+ const customerCardSnapshot = buildCustomerCardSnapshot({
+ sites,
+ meteringPoints,
+ powersOfAttorney: poaRows,
+ documents: documentRows,
+ infoRequests: customerInfoRequests,
+ contracts: customerContracts as CustomerContractRow[],
+})
+const legalLooksAccepted = customerLegalAcceptances.length >= 4 || (opsMasterReadiness.hasTerms && opsMasterReadiness.hasPrivacy && opsMasterReadiness.hasWithdrawal)
+
  const hasSwitchData = sites.some((site) => {
  const siteMeteringPoints = meteringPoints.filter((point) => point.site_id === site.id)
  const candidateMeteringPoint =
@@ -1656,45 +1667,42 @@ const analytics = needsAnalyticsData && customerCompanyId
  const readinessItems = [
  {
  label: 'Villkor',
- ok: opsMasterReadiness.hasTerms && opsMasterReadiness.hasPrivacy && opsMasterReadiness.hasWithdrawal,
- detail: opsMasterReadiness.hasTerms && opsMasterReadiness.hasPrivacy && opsMasterReadiness.hasWithdrawal
- ? 'Villkor, integritet och ångerrätt sparade'
- : 'Juridiska godkännanden saknas',
+ ok: legalLooksAccepted,
+ detail: legalLooksAccepted
+ ? 'Juridiska godkännanden sparade'
+ : 'Juridiska godkännanden behöver kontrolleras',
  },
  {
  label: 'Avtal',
- ok: customerContracts.length > 0 && opsMasterReadiness.hasContractSnapshot,
+ ok: customerCardSnapshot.hasContract,
  detail:
- customerContracts.length > 0
- ? opsMasterReadiness.hasContractSnapshot ? `${customerContracts.length} registrerade med snapshot` : 'Avtal finns men snapshot saknas'
+ customerCardSnapshot.hasContract
+ ? customerCardSnapshot.hasPricePlan ? `${customerContracts.length} registrerade` : 'Avtal finns men prisplan/prisversion behöver kontrolleras'
  : 'Saknar kundavtal',
  },
  {
  label: 'Fullmakt',
- ok: hasUsablePowerOfAttorney,
- detail: hasUsablePowerOfAttorney
- ? 'Aktiv fullmakt med rätt scope finns'
- : 'Aktiv fullmakt saknas',
+ ok: customerCardSnapshot.hasAuthorization,
+ detail: customerCardSnapshot.hasAuthorization
+ ? 'Fullmakt finns'
+ : 'Fullmakt saknas',
  },
  {
  label: 'Anläggning',
- ok: sites.length > 0,
- detail: sites.length > 0 ? `${sites.length} st` : 'Ingen anläggning',
+ ok: customerCardSnapshot.hasFacilityId,
+ detail: customerCardSnapshot.hasFacilityId ? 'Anläggnings-ID finns' : 'Anläggnings-ID saknas',
  },
  {
  label: 'Mätpunkt',
- ok: meteringPoints.length > 0,
- detail:
- meteringPoints.length > 0
- ? `${meteringPoints.length} st`
- : 'Ingen mätpunkt',
+ ok: customerCardSnapshot.hasMeteringPoint,
+ detail: customerCardSnapshot.hasMeteringPoint ? 'Mätpunkt finns' : 'Mätpunkt saknas',
  },
  {
  label: 'Switch-data',
- ok: hasSwitchData,
- detail: hasSwitchData
- ? 'Minst en anläggning har masterdata för switch'
- : 'Nuvarande leverantör, nätägare, mätpunkt eller datum saknas',
+ ok: customerCardSnapshot.hasGridOwner,
+ detail: customerCardSnapshot.hasGridOwner
+ ? 'Nätägare finns'
+ : 'Nätägare behöver verifieras',
  },
  {
  label: 'Switch',
@@ -1704,19 +1712,7 @@ const analytics = needsAnalyticsData && customerCompanyId
  ? `${switchRequests.length} ärenden`
  : 'Inget switchärende',
  },
- {
- label: 'Ediel-route',
- ok: hasReadyEdielRoute,
- detail: hasReadyEdielRoute ? 'Minst en route redo' : 'Route/profile blockerad',
- },
- {
- label: 'Outbound',
- ok: outboundRequests.some((row) => row.channel_type !== 'unresolved'),
- detail:
- outboundRequests.length > 0
- ? `${outboundRequests.length} poster`
- : 'Ingen outbound ännu',
- },
+ 
  ]
 
  const primaryContact =
@@ -1751,17 +1747,13 @@ const analytics = needsAnalyticsData && customerCompanyId
  String(request.status ?? '').toLowerCase()
  )
  )
- const nextCustomerStep = opsMasterReadiness.blockers.length > 0
- ? { label: opsMasterReadiness.nextAction.label, href: customerTabHref(id, opsMasterReadiness.nextAction.hrefTab) }
- : pendingCustomerInfoRequests.length === 0
- ? { label: 'Begär uppgifter', href: customerTabHref(id, 'data-requests') }
- : !activeCustomerContract
- ? { label: 'Skapa avtal', href: customerTabHref(id, 'contracts') }
- : lifecycleSummary.readyToExecute > 0
- ? { label: 'Fortsätt leverantörsbyte', href: customerTabHref(id, 'switch-operations') }
- : { label: 'Öppna arbetsläge', href: customerTabHref(id, 'overview') }
+ const nextCustomerStep = customerCardSnapshot.recommendedAction === 'request_switch'
+ ? { label: 'Begär leverantörsbyte', href: customerTabHref(id, 'switch-operations') }
+ : customerCardSnapshot.recommendedAction === 'follow_up'
+ ? { label: 'Följ upp uppgiftsbegäran', href: customerTabHref(id, 'data-requests') }
+ : { label: 'Begär uppgifter', href: customerTabHref(id, 'data-requests') }
  const customerTopStatusCards = [
- { label: 'Fullmakt', value: hasUsablePowerOfAttorney ? 'Signerad' : 'Saknas', href: customerTabHref(id, 'authorization-documents') },
+ { label: 'Fullmakt', value: customerCardSnapshot.hasAuthorization ? 'Finns' : 'Saknas', href: customerTabHref(id, 'authorization-documents') },
  { label: 'Uppgiftsbegäran', value: pendingCustomerInfoRequests.length > 0 ? 'Väntar svar' : 'Ej skickad', href: customerTabHref(id, 'data-requests') },
  { label: 'Avtal', value: activeCustomerContract ? contractStatusUiLabel(activeCustomerContract.status) : 'Saknas', href: customerTabHref(id, 'contracts') },
  { label: 'Leverantörsbyte', value: lifecycleSummary.primaryLabel, href: customerTabHref(id, 'switch-operations') },
@@ -1992,6 +1984,7 @@ const analytics = needsAnalyticsData && customerCompanyId
  meteringPoints={meteringPoints}
  infoRequests={customerInfoRequests}
  powersOfAttorney={poaRows}
+ documents={documentRows}
  gridOwners={gridOwners}
  />
 
@@ -2014,6 +2007,7 @@ const analytics = needsAnalyticsData && customerCompanyId
  sites={sites}
  meteringPoints={meteringPoints}
  powersOfAttorney={poaRows}
+ documents={documentRows}
  infoRequests={customerInfoRequests}
 contracts={customerContracts as CustomerContractRow[]}
  switchRequests={switchRequests}

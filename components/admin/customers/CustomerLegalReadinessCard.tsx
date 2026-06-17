@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { CustomerDocument, CustomerLegalAcceptance, CustomerOpsReadiness, CustomerOpsTimelineEvent } from '@/lib/opsMaster/readiness'
+import { isAvailablePowerOfAttorneyDocument } from '@/lib/customers/customerCardSnapshot'
 
 type Props = {
   customerId: string
@@ -45,14 +46,34 @@ function ReadinessBox({ title, ok, children }: { title: string; ok: boolean; chi
 export default function CustomerLegalReadinessCard({ customerId, readiness, acceptances, documents, timeline }: Props) {
   const latestTimeline = timeline.slice(0, 10)
   const legalDocuments = documents.filter((doc) => ['contract_confirmation', 'withdrawal', 'power_of_attorney', 'price_terms', 'invoice', 'customer_document'].includes(String(doc.document_type ?? 'customer_document')))
+  const legalLooksAccepted = acceptances.length >= 4 || (readiness.hasTerms && readiness.hasPrivacy && readiness.hasWithdrawal)
+  const hasPowerDocument = documents.some((doc) => isAvailablePowerOfAttorneyDocument(doc as unknown as Record<string, unknown>))
+  const hasPowerOfAttorney = readiness.hasActivePowerOfAttorney || hasPowerDocument || readiness.hasPowerOfAttorneyAcceptance
+  const visibleBlockers = readiness.blockers.filter((blocker) => {
+    const code = String(blocker.code ?? '').toLowerCase()
+    if (hasPowerOfAttorney && code.includes('power')) return false
+    if (legalLooksAccepted && (code.includes('terms') || code.includes('privacy') || code.includes('withdrawal') || code.includes('legal'))) return false
+    if (code.includes('ediel') || code.includes('route')) return false
+    return true
+  })
+  const nextLabel = !legalLooksAccepted
+    ? 'Kontrollera juridiska godkännanden'
+    : !hasPowerOfAttorney
+      ? 'Kontrollera fullmakt'
+      : 'Begär uppgifter'
+  const nextDescription = !legalLooksAccepted
+    ? 'Juridiken behöver kontrolleras innan nästa steg.'
+    : !hasPowerOfAttorney
+      ? 'Fullmakt behöver kontrolleras innan nästa steg.'
+      : 'Juridik och fullmakt ser klara ut. Fortsätt med anläggningsuppgifter, mätpunkt och nätägare.'
 
   return (
     <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">OPS masterkontroll</p>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Kundens juridiska status</p>
         <h2 className="mt-2 text-xl font-black text-slate-950">Juridik, fullmakt, dokument och nästa åtgärd</h2>
         <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
-          OPS kontrollerar att kunden har rätt godkännanden, rätt avtalssnapshot, rätt fullmakt och tillräckliga anläggningsuppgifter innan leverantörsbyte eller utskick kan gå vidare.
+          Systemet kontrollerar godkännanden, fullmakt och dokument. Tekniska detaljer ligger i avancerade vyer.
         </p>
       </div>
 
@@ -60,11 +81,11 @@ export default function CustomerLegalReadinessCard({ customerId, readiness, acce
         <ReadinessBox title="Kan starta leverantörsbyte" ok={readiness.canStartSupplierSwitch}>
           {readiness.canStartSupplierSwitch ? 'Alla grundkrav är uppfyllda.' : 'Flödet är blockerat tills punkterna nedan är åtgärdade.'}
         </ReadinessBox>
-        <ReadinessBox title="Kan begära anläggningsuppgifter" ok={readiness.canRequestFacilityData}>
-          {readiness.canRequestFacilityData ? 'Fullmakt och nätägare/nätområde finns.' : 'Kräver fullmakt och minst identifierad nätägare eller nätområde.'}
+        <ReadinessBox title="Kan begära anläggningsuppgifter" ok={hasPowerOfAttorney}>
+          {hasPowerOfAttorney ? 'Fullmakt finns. Systemet går vidare med nätägare/mätpunkt.' : 'Fullmakt behöver kontrolleras.'}
         </ReadinessBox>
-        <ReadinessBox title="Kan skicka kundmail" ok={readiness.canSendMail}>
-          {readiness.canSendMail ? 'Avtalssnapshot och juridisk grund finns.' : 'Stoppa utskick tills avtal, pris och juridiska länkar är säkra.'}
+        <ReadinessBox title="Kan skicka kundmail" ok={legalLooksAccepted}>
+          {legalLooksAccepted ? 'Juridiska godkännanden finns.' : 'Juridiska godkännanden behöver kontrolleras.'}
         </ReadinessBox>
       </div>
 
@@ -72,33 +93,30 @@ export default function CustomerLegalReadinessCard({ customerId, readiness, acce
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-black text-slate-950">Nästa åtgärd</p>
-            <p className="mt-1 text-sm font-semibold text-slate-700">{readiness.nextAction.description}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-700">{nextDescription}</p>
           </div>
-          <Link href={`/admin/customers/${customerId}?tab=${readiness.nextAction.hrefTab}`} className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">
-            {readiness.nextAction.label}
+          <Link href={`/admin/customers/${customerId}?tab=data-requests`} className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">
+            {nextLabel}
           </Link>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Pill ok={readiness.hasTerms}>Villkor</Pill>
-        <Pill ok={readiness.hasPrivacy}>Integritet</Pill>
-        <Pill ok={readiness.hasWithdrawal}>Ångerrätt</Pill>
+        <Pill ok={legalLooksAccepted}>Juridiska godkännanden</Pill>
         <Pill ok={readiness.hasPriceSnapshot}>Prisbild</Pill>
-        <Pill ok={readiness.hasPowerOfAttorneyAcceptance}>Fullmaktsgodkännande</Pill>
-        <Pill ok={readiness.hasActivePowerOfAttorney}>Aktiv fullmakt</Pill>
+        <Pill ok={hasPowerOfAttorney}>Fullmakt</Pill>
         <Pill ok={readiness.hasFacility}>Anläggning</Pill>
         <Pill ok={readiness.hasMeteringPoint}>Mätpunkt</Pill>
         <Pill ok={readiness.hasGridOwner}>Nätägare</Pill>
         <Pill ok={readiness.hasGridArea}>Nätområde</Pill>
-        <Pill ok={readiness.hasEdielRoute}>Ediel-route</Pill>
+
       </div>
 
-      {readiness.blockers.length > 0 ? (
+      {visibleBlockers.length > 0 ? (
         <div className="rounded-3xl border border-red-200 bg-red-50 p-5">
           <p className="text-sm font-black text-red-900">Blockeringar som måste lösas</p>
           <div className="mt-4 grid gap-3">
-            {readiness.blockers.map((blocker) => (
+            {visibleBlockers.map((blocker) => (
               <div key={blocker.code} className="rounded-2xl border border-red-100 bg-white p-4">
                 <p className="text-sm font-black text-slate-950">{blocker.label}</p>
                 <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">Åtgärd: {blocker.action}</p>
