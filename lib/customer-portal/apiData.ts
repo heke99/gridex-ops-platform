@@ -150,6 +150,26 @@ const CONTRACT_LEGACY_SELECT = [
 ].join(',')
 
 type ListResult = { data: Array<Record<string, unknown>> | null; error: unknown | null }
+type PortalListQuery = () => Promise<ListResult>
+
+export function portalQueryErrorMetadata(error: unknown): Record<string, unknown> {
+  const maybe = error as { code?: string; message?: string; details?: string; hint?: string } | null
+  return {
+    code: maybe?.code ?? null,
+    message: maybe?.message ?? String(error ?? 'unknown_error'),
+    details: maybe?.details ?? null,
+    hint: maybe?.hint ?? null,
+  }
+}
+
+async function listWithSchemaFallback(queries: PortalListQuery[]): Promise<Array<Record<string, unknown>>> {
+  for (const query of queries) {
+    const result = await query()
+    if (!result.error) return result.data ?? []
+    if (!isMissingSchemaError(result.error)) throw result.error
+  }
+  return []
+}
 
 export async function listPortalContracts(context: PortalCustomerContext, route = '/api/v1/customer/contracts') {
   await logPortalAccess({ context, route, action: 'read_contracts' })
@@ -178,76 +198,114 @@ export async function listPortalContracts(context: PortalCustomerContext, route 
   return result.data ?? []
 }
 
+const SITE_SELECT = 'id,customer_id,status,site_name,facility_id,normalized_facility_id,site_type,street,postal_code,city,country,price_area_code,grid_area_code,grid_owner_id,resolution_status,move_in_date,move_out_date,annual_consumption_kwh,metadata,created_at'
+const SITE_LEGACY_SELECT = 'id,customer_id,status,site_name,facility_id,site_type,street,postal_code,city,country,price_area_code,grid_owner_id,move_in_date,move_out_date,annual_consumption_kwh,created_at'
+const SITE_MINIMAL_SELECT = 'id,customer_id,status,site_name,facility_id,street,postal_code,city,country,price_area_code,created_at'
+
 export async function listPortalSites(context: PortalCustomerContext, route = '/api/v1/customer/sites') {
   await logPortalAccess({ context, route, action: 'read_sites' })
-  const { data, error } = await supabaseService
-    .from('customer_sites')
-    .select('id,status,site_name,facility_id,normalized_facility_id,street,postal_code,city,country,price_area_code,grid_area_code,grid_owner_id,grid_owner_verification_status,move_in_date,move_out_date,annual_consumption_kwh,metadata,created_at')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .order('created_at', { ascending: false })
-    .limit(100)
-  if (error) {
-    if (isMissingSchemaError(error)) return []
-    throw error
-  }
-  return data ?? []
+  return listWithSchemaFallback([
+    async () => await supabaseService
+      .from('customer_sites')
+      .select(SITE_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('customer_sites')
+      .select(SITE_LEGACY_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('customer_sites')
+      .select(SITE_MINIMAL_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+  ])
 }
+
+const METERING_VALUES_SELECT = 'id,customer_id,customer_site_id,site_id,metering_point_id,facility_id,price_area,grid_area,period_start,period_end,resolution,quantity_kwh,quality_status,source_type,status,created_at'
+const METERING_VALUES_LEGACY_SELECT = 'id,metering_point_id,customer_site_id,facility_id,price_area,period_start,period_end,quantity_kwh,resolution,status,created_at'
+const METERING_VALUES_MINIMAL_SELECT = 'id,metering_point_id,period_start,period_end,quantity_kwh,status,created_at'
 
 export async function listPortalMeteringValues(context: PortalCustomerContext, route = '/api/v1/customer/metering-values') {
   await logPortalAccess({ context, route, action: 'read_metering_values' })
-  const { data, error } = await supabaseService
-    .from('normalized_metering_values')
-    .select('id,metering_point_id,customer_site_id,facility_id,price_area,period_start,period_end,quantity_kwh,resolution,status,source,created_at')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .order('period_start', { ascending: false })
-    .limit(500)
-  if (error) {
-    if (isMissingSchemaError(error)) return []
-    throw error
-  }
-  return data ?? []
+  return listWithSchemaFallback([
+    async () => await supabaseService
+      .from('normalized_metering_values')
+      .select(METERING_VALUES_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('period_start', { ascending: false })
+      .limit(500) as ListResult,
+    async () => await supabaseService
+      .from('normalized_metering_values')
+      .select(METERING_VALUES_LEGACY_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('period_start', { ascending: false })
+      .limit(500) as ListResult,
+    async () => await supabaseService
+      .from('normalized_metering_values')
+      .select(METERING_VALUES_MINIMAL_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('period_start', { ascending: false })
+      .limit(500) as ListResult,
+  ])
 }
+
+const CUSTOMER_INVOICE_SELECT = 'id,customer_id,agreement_id,billing_underlay_id,partner_export_id,partner_invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,source_system,metadata,created_at'
+const CUSTOMER_INVOICE_MINIMAL_SELECT = 'id,customer_id,invoice_number,period_start,period_end,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,created_at'
 
 export async function listPortalInvoices(context: PortalCustomerContext, route = '/api/v1/customer/invoices') {
   await logPortalAccess({ context, route, action: 'read_invoices' })
 
-  const invoices = await supabaseService
-    .from('customer_invoices')
-    .select('id,customer_id,agreement_id,billing_underlay_id,partner_export_id,partner_invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,source_system,created_at')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .order('period_start', { ascending: false, nullsFirst: false })
-    .limit(100)
+  const invoices = await listWithSchemaFallback([
+    async () => await supabaseService
+      .from('customer_invoices')
+      .select(CUSTOMER_INVOICE_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('period_start', { ascending: false, nullsFirst: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('customer_invoices')
+      .select(CUSTOMER_INVOICE_MINIMAL_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('period_start', { ascending: false, nullsFirst: false })
+      .limit(100) as ListResult,
+  ])
 
-  if (!invoices.error) return invoices.data ?? []
-  if (!isMissingSchemaError(invoices.error)) throw invoices.error
+  if (invoices.length > 0) return invoices
 
-  const exported = await supabaseService
-    .from('invoice_export_items')
-    .select('id,status,provider,provider_invoice_guid,provider_invoice_number,provider_payment_reference,provider_ocr,provider_status,purchase_status,recourse_status,amount_ex_vat,vat_amount,amount_inc_vat,created_at,sent_at,metadata')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .order('created_at', { ascending: false })
-    .limit(100)
+  const exported = await listWithSchemaFallback([
+    async () => await supabaseService
+      .from('invoice_export_items')
+      .select('id,status,provider,provider_invoice_guid,provider_invoice_number,provider_payment_reference,provider_ocr,provider_status,purchase_status,recourse_status,amount_ex_vat,vat_amount,amount_inc_vat,created_at,sent_at,metadata')
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+  ])
 
-  if (!exported.error) return exported.data ?? []
-  if (!isMissingSchemaError(exported.error)) throw exported.error
+  if (exported.length > 0) return exported
 
-  const pricing = await supabaseService
-    .from('pricing_runs')
-    .select('id,billing_underlay_id,status,total_ex_vat,vat_amount,total_inc_vat,billing_period_start,billing_period_end,created_at')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .order('created_at', { ascending: false })
-    .limit(100)
-
-  if (pricing.error) {
-    if (isMissingSchemaError(pricing.error)) return []
-    throw pricing.error
-  }
-  return pricing.data ?? []
+  return listWithSchemaFallback([
+    async () => await supabaseService
+      .from('pricing_runs')
+      .select('id,billing_underlay_id,status,total_ex_vat,vat_amount,total_inc_vat,billing_period_start,billing_period_end,created_at')
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+  ])
 }
 
 export async function getPortalInvoice(context: PortalCustomerContext, invoiceId: string, route = '/api/v1/customer/invoices/[id]') {
@@ -279,36 +337,125 @@ export async function getPortalInvoice(context: PortalCustomerContext, invoiceId
   return pricing.data ?? null
 }
 
+const DOCUMENT_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,status,public_url,source_system,source,metadata,created_at'
+const DOCUMENT_LEGACY_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,public_url,source_system,created_at'
+const DOCUMENT_MINIMAL_SELECT = 'id,document_type,file_name,created_at'
+
 export async function listPortalDocuments(context: PortalCustomerContext, route = '/api/v1/customer/documents') {
   await logPortalAccess({ context, route, action: 'read_documents' })
-  const { data, error } = await supabaseService
-    .from('customer_documents')
-    .select('id,document_type,file_name,status,created_at,metadata')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .order('created_at', { ascending: false })
-    .limit(100)
-  if (error) {
-    if (isMissingSchemaError(error)) return []
-    throw error
-  }
-  return data ?? []
+  return listWithSchemaFallback([
+    async () => await supabaseService
+      .from('customer_documents')
+      .select(DOCUMENT_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('customer_documents')
+      .select(DOCUMENT_LEGACY_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('customer_documents')
+      .select(DOCUMENT_MINIMAL_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+  ])
 }
+
+const POA_SELECT = 'id,contract_id,customer_site_id,site_id,metering_point_id,scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,legal_text_version_id,scope_summary,fullmakt_snapshot,metadata,created_at'
+const POA_CURRENT_SELECT = 'id,contract_id,customer_site_id,scope,status,accepted_at,valid_until,legal_text_version_id,scope_summary,fullmakt_snapshot,metadata,created_at'
+const POA_MINIMAL_SELECT = 'id,contract_id,customer_site_id,scope,status,metadata,created_at'
 
 export async function listPortalPowersOfAttorney(context: PortalCustomerContext, route = '/api/v1/customer/powers-of-attorney') {
   await logPortalAccess({ context, route, action: 'read_powers_of_attorney' })
-  const { data, error } = await supabaseService
-    .from('powers_of_attorney')
-    .select('id,contract_id,customer_site_id,site_id,metering_point_id,scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,legal_text_version_id,scope_summary,fullmakt_snapshot,metadata,created_at')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .order('created_at', { ascending: false })
-    .limit(100)
-  if (error) {
-    if (isMissingSchemaError(error)) return []
-    throw error
+  return listWithSchemaFallback([
+    async () => await supabaseService
+      .from('powers_of_attorney')
+      .select(POA_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('powers_of_attorney')
+      .select(POA_CURRENT_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('powers_of_attorney')
+      .select(POA_MINIMAL_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+  ])
+}
+
+const METERING_POINT_SELECT = 'id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,ediel_metering_point_id,site_facility_id,status,metering_type,measurement_type,reading_frequency,grid_owner_id,grid_area_code,price_area_code,start_date,end_date,verification_status,onboarding_status,data_quality_status,created_at'
+const METERING_POINT_LEGACY_SELECT = 'id,customer_id,site_id,metering_point_id,meter_point_id,ediel_metering_point_id,site_facility_id,status,measurement_type,reading_frequency,grid_owner_id,price_area_code,start_date,end_date,created_at'
+const METERING_POINT_MINIMAL_SELECT = 'id,customer_id,site_id,metering_point_id,meter_point_id,status,price_area_code,created_at'
+
+export async function listPortalMeteringPoints(context: PortalCustomerContext, sites: Array<Record<string, unknown>> = [], route = '/api/v1/customer/sites') {
+  await logPortalAccess({ context, route, action: 'read_metering_points' })
+  const siteIds = sites.map((site) => String(site.id ?? '')).filter(Boolean)
+
+  if (siteIds.length === 0) {
+    return listWithSchemaFallback([
+      async () => await supabaseService
+        .from('metering_points')
+        .select(METERING_POINT_SELECT)
+        .eq('company_id', context.companyId)
+        .eq('customer_id', context.customerId)
+        .limit(100) as ListResult,
+      async () => await supabaseService
+        .from('metering_points')
+        .select(METERING_POINT_LEGACY_SELECT)
+        .eq('company_id', context.companyId)
+        .eq('customer_id', context.customerId)
+        .limit(100) as ListResult,
+      async () => await supabaseService
+        .from('metering_points')
+        .select(METERING_POINT_MINIMAL_SELECT)
+        .eq('company_id', context.companyId)
+        .eq('customer_id', context.customerId)
+        .limit(100) as ListResult,
+    ])
   }
-  return data ?? []
+
+  return listWithSchemaFallback([
+    async () => await supabaseService
+      .from('metering_points')
+      .select(METERING_POINT_SELECT)
+      .eq('company_id', context.companyId)
+      .or(`site_id.in.(${siteIds.join(',')}),customer_site_id.in.(${siteIds.join(',')})`)
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('metering_points')
+      .select(METERING_POINT_SELECT)
+      .eq('company_id', context.companyId)
+      .in('customer_site_id', siteIds)
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('metering_points')
+      .select(METERING_POINT_LEGACY_SELECT)
+      .eq('company_id', context.companyId)
+      .in('site_id', siteIds)
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('metering_points')
+      .select(METERING_POINT_MINIMAL_SELECT)
+      .eq('company_id', context.companyId)
+      .in('site_id', siteIds)
+      .limit(100) as ListResult,
+  ])
 }
 
 export async function createPortalRequest(context: PortalCustomerContext, input: {
@@ -335,50 +482,79 @@ export async function createPortalRequest(context: PortalCustomerContext, input:
 }
 
 
+const LEGAL_ACCEPTANCE_SELECT = 'id,acceptance_type,legal_text_version_id,contract_id,contract_application_id,accepted_at,source,snapshot,metadata,created_at'
+const LEGAL_ACCEPTANCE_LEGACY_SELECT = 'id,acceptance_type,legal_text_version_id,contract_id,contract_application_id,accepted_at,snapshot,metadata,created_at'
+const LEGAL_ACCEPTANCE_MINIMAL_SELECT = 'id,acceptance_type,accepted_at,metadata,created_at'
+
 export async function listPortalLegalAcceptances(context: PortalCustomerContext, route = '/api/v1/customer/legal-acceptances') {
   await logPortalAccess({ context, route, action: 'read_legal_acceptances' })
-  const { data, error } = await supabaseService
-    .from('customer_legal_acceptances')
-    .select('id,acceptance_type,legal_text_version_id,contract_id,contract_application_id,accepted_at,source,snapshot,metadata,created_at')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .order('accepted_at', { ascending: false })
-    .limit(100)
-  if (error) {
-    if (isMissingSchemaError(error)) return []
-    throw error
-  }
-  return data ?? []
+  return listWithSchemaFallback([
+    async () => await supabaseService
+      .from('customer_legal_acceptances')
+      .select(LEGAL_ACCEPTANCE_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('accepted_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('customer_legal_acceptances')
+      .select(LEGAL_ACCEPTANCE_LEGACY_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('accepted_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('customer_legal_acceptances')
+      .select(LEGAL_ACCEPTANCE_MINIMAL_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('accepted_at', { ascending: false })
+      .limit(100) as ListResult,
+  ])
 }
+
+const EVENT_SELECT = 'id,event_type,source,payload,metadata,occurred_at,created_at'
+const EVENT_LEGACY_SELECT = 'id,event_type,payload,metadata,created_at'
 
 export async function listPortalEvents(context: PortalCustomerContext, route = '/api/v1/customer/events') {
   await logPortalAccess({ context, route, action: 'read_events' })
-  const { data, error } = await supabaseService
-    .from('customer_events')
-    .select('id,event_type,source,payload,metadata,occurred_at,created_at')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .order('occurred_at', { ascending: false })
-    .limit(100)
-  if (error) {
-    if (isMissingSchemaError(error)) return []
-    throw error
-  }
-  return data ?? []
+  return listWithSchemaFallback([
+    async () => await supabaseService
+      .from('customer_events')
+      .select(EVENT_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('occurred_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('customer_events')
+      .select(EVENT_LEGACY_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+  ])
 }
+
+const NOTIFICATION_SELECT = 'id,type,title,message,status,read_at,action_url,metadata,created_at'
+const NOTIFICATION_LEGACY_SELECT = 'id,type,title,message,status,created_at'
 
 export async function listPortalNotifications(context: PortalCustomerContext, route = '/api/v1/customer/notifications') {
   await logPortalAccess({ context, route, action: 'read_notifications' })
-  const { data, error } = await supabaseService
-    .from('customer_notifications')
-    .select('id,type,title,message,status,read_at,action_url,metadata,created_at')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .order('created_at', { ascending: false })
-    .limit(100)
-  if (error) {
-    if (isMissingSchemaError(error)) return []
-    throw error
-  }
-  return data ?? []
+  return listWithSchemaFallback([
+    async () => await supabaseService
+      .from('customer_notifications')
+      .select(NOTIFICATION_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('customer_notifications')
+      .select(NOTIFICATION_LEGACY_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+  ])
 }

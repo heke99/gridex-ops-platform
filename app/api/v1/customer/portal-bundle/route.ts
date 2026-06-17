@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server'
-import { supabaseService } from '@/lib/supabase/service'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
@@ -7,37 +6,68 @@ import {
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
 import {
-  isMissingSchemaError,
   listPortalContracts,
   listPortalDocuments,
   listPortalEvents,
   listPortalInvoices,
   listPortalLegalAcceptances,
+  listPortalMeteringPoints,
   listPortalMeteringValues,
   listPortalNotifications,
   listPortalPowersOfAttorney,
   listPortalSites,
   portalContextFromResolved,
+  portalQueryErrorMetadata,
 } from '@/lib/customer-portal/apiData'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-async function listMeteringPoints(companyId: string, sites: Array<Record<string, unknown>>) {
-  const siteIds = sites.map((site) => String(site.id ?? '')).filter(Boolean)
-  if (siteIds.length === 0) return []
+type PortalRows = Array<Record<string, unknown>>
+type BundleSection =
+  | 'contracts'
+  | 'sites'
+  | 'metering_points'
+  | 'invoices'
+  | 'metering_values'
+  | 'documents'
+  | 'legal_acceptances'
+  | 'powers_of_attorney'
+  | 'notifications'
+  | 'events'
 
-  const { data, error } = await supabaseService
-    .from('metering_points')
-    .select('id,site_id,customer_site_id,metering_point_id,meter_point_id,ediel_metering_point_id,status,metering_type,measurement_type,reading_frequency,grid_owner_id,grid_area_code,price_area_code,start_date,end_date')
-    .eq('company_id', companyId)
-    .or(`site_id.in.(${siteIds.join(',')}),customer_site_id.in.(${siteIds.join(',')})`)
+type BundleWarning = {
+  section: BundleSection
+  code: unknown
+  message: unknown
+  details: unknown
+  hint: unknown
+}
 
-  if (error) {
-    if (isMissingSchemaError(error)) return []
-    throw error
+function safeWarning(section: BundleSection, error: unknown): BundleWarning {
+  const meta = portalQueryErrorMetadata(error)
+  return {
+    section,
+    code: meta.code,
+    message: meta.message,
+    details: meta.details,
+    hint: meta.hint,
   }
-  return data ?? []
+}
+
+async function optionalSection(
+  section: BundleSection,
+  read: () => Promise<PortalRows>,
+  warnings: BundleWarning[]
+): Promise<PortalRows> {
+  try {
+    return await read()
+  } catch (error) {
+    const warning = safeWarning(section, error)
+    warnings.push(warning)
+    console.error('[customer portal bundle] section failed', warning)
+    return []
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -52,19 +82,25 @@ export async function GET(request: NextRequest) {
       customerNumber: context.identity.customer_number,
       provider: context.identity.provider,
     })
+    const route = '/api/v1/customer/portal-bundle'
+    const warnings: BundleWarning[] = []
 
     const [contracts, sites, invoices, meteringValues, documents, legalAcceptances, powersOfAttorney, notifications, events] = await Promise.all([
-      listPortalContracts(portalContext, '/api/v1/customer/portal-bundle'),
-      listPortalSites(portalContext, '/api/v1/customer/portal-bundle'),
-      listPortalInvoices(portalContext, '/api/v1/customer/portal-bundle'),
-      listPortalMeteringValues(portalContext, '/api/v1/customer/portal-bundle'),
-      listPortalDocuments(portalContext, '/api/v1/customer/portal-bundle'),
-      listPortalLegalAcceptances(portalContext, '/api/v1/customer/portal-bundle'),
-      listPortalPowersOfAttorney(portalContext, '/api/v1/customer/portal-bundle'),
-      listPortalNotifications(portalContext, '/api/v1/customer/portal-bundle'),
-      listPortalEvents(portalContext, '/api/v1/customer/portal-bundle'),
+      optionalSection('contracts', () => listPortalContracts(portalContext, route), warnings),
+      optionalSection('sites', () => listPortalSites(portalContext, route), warnings),
+      optionalSection('invoices', () => listPortalInvoices(portalContext, route), warnings),
+      optionalSection('metering_values', () => listPortalMeteringValues(portalContext, route), warnings),
+      optionalSection('documents', () => listPortalDocuments(portalContext, route), warnings),
+      optionalSection('legal_acceptances', () => listPortalLegalAcceptances(portalContext, route), warnings),
+      optionalSection('powers_of_attorney', () => listPortalPowersOfAttorney(portalContext, route), warnings),
+      optionalSection('notifications', () => listPortalNotifications(portalContext, route), warnings),
+      optionalSection('events', () => listPortalEvents(portalContext, route), warnings),
     ])
-    const meteringPoints = await listMeteringPoints(context.client.company_id, sites as Array<Record<string, unknown>>)
+    const meteringPoints = await optionalSection(
+      'metering_points',
+      () => listPortalMeteringPoints(portalContext, sites, route),
+      warnings
+    )
 
     await logCustomerPortalSuccess({
       request,
@@ -75,11 +111,16 @@ export async function GET(request: NextRequest) {
         contracts: contracts.length,
         sites: sites.length,
         invoices: invoices.length,
+        metering_points: meteringPoints.length,
+        metering_values: meteringValues.length,
         documents: documents.length,
         legal_acceptances: legalAcceptances.length,
         powers_of_attorney: powersOfAttorney.length,
         notifications: notifications.length,
         events: events.length,
+        partial_bundle: warnings.length > 0,
+        failed_sections: warnings.map((warning) => warning.section),
+        section_errors: warnings,
       },
     })
 
@@ -113,6 +154,10 @@ export async function GET(request: NextRequest) {
         powersOfAttorney,
         notifications,
         events,
+        bundle_status: {
+          status: warnings.length > 0 ? 'partial' : 'complete',
+          unavailable_sections: warnings.map((warning) => warning.section),
+        },
       },
     })
   } catch (error) {
