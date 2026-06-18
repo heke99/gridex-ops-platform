@@ -2238,8 +2238,42 @@ export default async function CustomerAdminDetailPage({
 
   const primaryContact =
     contacts.find((contact) => contact.is_primary) ?? contacts[0] ?? null;
+
+  // Anläggningsadressen är operativ sanning för kundkortet. customer_addresses
+  // är en historik-/spegelvy och får aldrig skymma en faktisk customer_site-adress.
+  const addressSiteCandidates = [
+    customerCardSnapshot.primarySite,
+    ...sites.filter((site) => site.id !== customerCardSnapshot.primarySite?.id),
+  ].filter((site): site is CustomerSiteRow => Boolean(site));
+  const activeSiteAddress = addressSiteCandidates.find((site) =>
+    Boolean(site.street?.trim() || site.postal_code?.trim() || site.city?.trim()),
+  ) ?? null;
+  const activeFacilityAddress =
+    addresses.find(
+      (address) => address.type === "facility" && address.is_active,
+    ) ?? null;
   const activeAddress =
-    addresses.find((address) => address.is_active) ?? addresses[0] ?? null;
+    activeFacilityAddress ??
+    addresses.find((address) => address.is_active) ??
+    addresses[0] ??
+    null;
+  const activeAddressDisplay = activeSiteAddress
+    ? {
+        street: activeSiteAddress.street?.trim() || "Anläggningsadress behöver kompletteras",
+        postalCode: activeSiteAddress.postal_code?.trim() || null,
+        city: activeSiteAddress.city?.trim() || null,
+        country: activeSiteAddress.country?.trim() || "SE",
+        type: "Anläggningsadress",
+      }
+    : activeAddress
+      ? {
+          street: activeAddress.street_1?.trim() || "Adress behöver kompletteras",
+          postalCode: activeAddress.postal_code,
+          city: activeAddress.city,
+          country: activeAddress.country,
+          type: activeAddress.type || "Adress",
+        }
+      : null;
 
   const displayEmail = getBestContactEmail(customer, contacts);
   const displayPhone = getBestContactPhone(customer, contacts);
@@ -2467,16 +2501,16 @@ export default async function CustomerAdminDetailPage({
                   {activeAddressHeading(normalizedCustomerType)}
                 </div>
                 <div className="mt-2 font-medium text-slate-900 ">
-                  {activeAddress?.street_1 ?? "Ingen aktiv adress"}
+                  {activeAddressDisplay?.street ?? "Ingen anläggningsadress registrerad"}
                 </div>
                 <div className="mt-2 space-y-1 text-sm text-slate-700 ">
                   <div>
-                    {activeAddress
-                      ? `${activeAddress.postal_code ?? "—"} ${activeAddress.city ?? ""}`
-                      : "—"}
+                    {activeAddressDisplay
+                      ? `${activeAddressDisplay.postalCode ?? "—"} ${activeAddressDisplay.city ?? ""}`
+                      : "Komplettera anläggningsadress för automatisk nätägarträff."}
                   </div>
-                  <div>Typ: {activeAddress?.type ?? "—"}</div>
-                  <div>Land: {activeAddress?.country ?? "—"}</div>
+                  <div>Typ: {activeAddressDisplay?.type ?? "—"}</div>
+                  <div>Land: {activeAddressDisplay?.country ?? "—"}</div>
                 </div>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import {
   createCustomerDataRequestPackageAction,
   registerCurrentSupplierResponseAction,
+  startAutomaticOnboardingAction,
 } from "@/app/admin/customers/[id]/actions";
 import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types";
 import type { CustomerInfoRequestRow } from "@/lib/onboarding/infoRequests";
@@ -167,7 +168,18 @@ export default function CustomerDataRequestsCard({
     snapshot.primaryMeteringPoint ?? meteringPoints[0] ?? null;
   const gridOwnerId =
     primaryPoint?.grid_owner_id ?? defaultSite?.grid_owner_id ?? "";
-  const latestRequests = infoRequests.slice(0, 8);
+  // Standardvyn visar bara den aktiva automatiska nätägarkedjan.
+  // Äldre/manuella leverantörsärenden ligger kvar i historiken men får inte
+  // ersätta kundens verkliga nästa steg.
+  const automatedGridOwnerRequests = infoRequests.filter(
+    (request) =>
+      request.target_party_type === "grid_owner" ||
+      request.request_type === "z01_customer_masterdata",
+  );
+  const latestRequests = automatedGridOwnerRequests.slice(0, 8);
+  const legacyManualRequests = infoRequests.filter(
+    (request) => !automatedGridOwnerRequests.some((item) => item.id === request.id),
+  );
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -204,30 +216,22 @@ export default function CustomerDataRequestsCard({
           ) : null}
         </div>
 
-        <form
-          action={createCustomerDataRequestPackageAction}
-          className="mt-6 space-y-4"
-        >
+        <form action={startAutomaticOnboardingAction} className="mt-6 space-y-4">
           <input type="hidden" name="customer_id" value={customerId} />
-          <input type="hidden" name="request_target" value="both" />
-          <input
-            type="hidden"
-            name="power_of_attorney_id"
-            value={
-              powersOfAttorney.find((row) => row.status === "signed")?.id ?? ""
-            }
-          />
           <input type="hidden" name="site_id" value={defaultSite?.id ?? ""} />
           <input
             type="hidden"
             name="metering_point_id"
             value={primaryPoint?.id ?? ""}
           />
-          <input type="hidden" name="grid_owner_id" value={gridOwnerId} />
           <SubmitButton
             idleLabel="Begär uppgifter"
-            pendingLabel="Kontrollerar och skapar begäran..."
+            pendingLabel="Startar automatiskt flöde..."
           />
+          <p className="text-xs text-slate-600">
+            Begäran startas direkt. Systemet söker och verifierar nätägare i
+            bakgrunden innan något skickas.
+          </p>
         </form>
 
         <details className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm">
@@ -409,20 +413,20 @@ export default function CustomerDataRequestsCard({
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-base font-semibold text-slate-900">
-                Senaste uppgiftsbegäran
+                Automatisk uppgiftsbegäran
               </h3>
               <p className="mt-1 text-sm text-slate-700">
-                Enkel status för handläggaren.
+                Status för den aktiva nätägar- och anläggningskedjan.
               </p>
             </div>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-              {infoRequests.length}
+              {automatedGridOwnerRequests.length}
             </span>
           </div>
           <div className="mt-4 space-y-3">
             {latestRequests.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-700">
-                Inga uppgiftsbegäran finns ännu.
+                Ingen automatisk uppgiftsbegäran har startats ännu.
               </div>
             ) : (
               latestRequests.map((request) => {
@@ -460,6 +464,27 @@ export default function CustomerDataRequestsCard({
               })
             )}
           </div>
+          {legacyManualRequests.length > 0 ? (
+            <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
+              <summary className="cursor-pointer font-semibold text-slate-800">
+                Visa äldre eller manuella uppgiftsärenden ({legacyManualRequests.length})
+              </summary>
+              <p className="mt-2 text-xs text-slate-600">
+                Dessa ärenden styr inte den automatiska nätägar- och byteskedjan.
+              </p>
+              <div className="mt-3 space-y-2">
+                {legacyManualRequests.slice(0, 8).map((request) => {
+                  const status = simpleStatus(request.status);
+                  return (
+                    <div key={request.id} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
+                      <div className="font-semibold text-slate-800">{simpleRequestLabel(request.request_type)}</div>
+                      <div className="mt-1 text-slate-600">{status.label} · {formatDateTime(request.created_at)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+          ) : null}
         </div>
       </div>
     </section>
