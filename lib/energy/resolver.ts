@@ -38,7 +38,7 @@ export function normaliseGridAreaCode(value: unknown): string | null {
 
 export function normalizePostalCode(value: unknown): string | null {
   const digits = clean(value)?.replace(/\D/g, '') ?? ''
-  return digits.length >= 3 ? digits : null
+  return /^\d{5}$/.test(digits) ? digits : null
 }
 
 function hasFullAddress(input: EnergyResolverInput): boolean {

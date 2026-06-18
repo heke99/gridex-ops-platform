@@ -212,6 +212,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = (await request.json().catch(() => ({}))) as SyncPayload
+    const rawBody = body as Record<string, unknown>
+    if ('address' in rawBody || 'facility_data' in rawBody || 'site' in rawBody || 'street' in rawBody || 'postal_code' in rawBody) {
+      return customerPortalJson({
+        error: 'Denna route synkar endast portalidentitet. Skicka anläggningsadress via /api/v1/customer/sync med facility_data.address.',
+        code: 'facility_address_wrong_endpoint',
+      }, { status: 422 })
+    }
     const externalCustomerId = String(body.external_customer_id ?? body.customer_external_id ?? '').trim()
     const externalAccountId = String(body.external_account_id ?? '').trim() || null
     const email = normalizeEmail(body.email)

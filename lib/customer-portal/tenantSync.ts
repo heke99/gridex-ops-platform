@@ -1,4 +1,6 @@
 import { emitDomainEvent } from '@/lib/events/domainEvents'
+import { createOrUpdateCustomerSiteFromAddress } from '@/lib/customer-sites/addressIntake'
+import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import type { LinkedPortalIdentity } from '@/lib/customer-portal/externalApi'
@@ -62,6 +64,18 @@ type TenantPowerOfAttorneyInput = {
   metadata?: JsonRecord
 }
 
+type TenantFacilityAddressInput = {
+  street?: string
+  postal_code?: string
+  postalCode?: string
+  city?: string
+  country?: string
+  care_of?: string
+  careOf?: string
+  apartment_number?: string
+  apartmentNumber?: string
+}
+
 type TenantFacilityDataInput = {
   facility_id?: string
   metering_point_id?: string
@@ -74,6 +88,15 @@ type TenantFacilityDataInput = {
   move_in_date?: string
   requested_start_date?: string
   verified_at?: string
+  address?: TenantFacilityAddressInput
+  street?: string
+  postal_code?: string
+  postalCode?: string
+  city?: string
+  country?: string
+  care_of?: string
+  apartment_number?: string
+  claimed_grid_owner_id?: string
   metadata?: JsonRecord
 }
 
@@ -561,25 +584,68 @@ async function syncFacilityData(input: {
 }): Promise<{ updated: boolean; metering_point_created: boolean; skipped: boolean }> {
   const facility = input.facility
   if (!facility) return { updated: false, metering_point_created: false, skipped: true }
+
   const facilityId = clean(facility.facility_id)
   const meteringPointId = clean(facility.metering_point_id) ?? clean(facility.meter_point_id)
-  const siteId = clean(facility.customer_site_id) ?? clean(facility.site_id) ?? input.refs.siteId
-  if (!siteId || (!facilityId && !meteringPointId && !clean(facility.grid_owner_id) && !clean(facility.grid_area_code))) {
+  const requestedSiteId = clean(facility.customer_site_id) ?? clean(facility.site_id) ?? input.refs.siteId
+  const address = asRecord(facility.address)
+  const addressStreet = clean(address.street) ?? clean(facility.street)
+  const addressPostalCode = clean(address.postal_code) ?? clean(address.postalCode) ?? clean(facility.postal_code) ?? clean(facility.postalCode)
+  const addressCity = clean(address.city) ?? clean(facility.city)
+  const addressCountry = clean(address.country) ?? clean(facility.country) ?? 'SE'
+  const careOf = clean(address.care_of) ?? clean(address.careOf) ?? clean(facility.care_of)
+  const apartmentNumber = clean(address.apartment_number) ?? clean(address.apartmentNumber) ?? clean(facility.apartment_number)
+  const hasAddressPayload = Boolean(addressStreet || addressPostalCode || addressCity)
+
+  if (!requestedSiteId && !hasAddressPayload && !facilityId && !meteringPointId) {
     return { updated: false, metering_point_created: false, skipped: true }
   }
 
+  const site = hasAddressPayload
+    ? await createOrUpdateCustomerSiteFromAddress({
+        companyId: input.client.company_id,
+        customerId: input.identity.customer_id,
+        siteId: requestedSiteId,
+        facilityId,
+        address: {
+          street: addressStreet,
+          postalCode: addressPostalCode,
+          city: addressCity,
+          country: addressCountry,
+          careOf,
+          apartmentNumber,
+          source: 'tenant_api',
+          sourceReference: input.identity.external_customer_id ?? input.identity.customer_number,
+          claimedGridOwnerId: clean(facility.claimed_grid_owner_id) ?? clean(facility.grid_owner_id),
+          metadata: { ...input.baseMetadata, ...asRecord(facility.metadata), supplied_verified_at: clean(facility.verified_at) },
+        },
+      })
+    : requestedSiteId
+      ? { siteId: requestedSiteId, address: null }
+      : null
+
+  if (!site?.siteId) return { updated: false, metering_point_created: false, skipped: true }
+  const siteId = site.siteId
+  const now = new Date().toISOString()
+
+  // Tenant-provided grid-owner/grid-area/verification values are hints only.
+  // They never set operational route readiness or verified facility state.
   const sitePayload = nonNull({
     facility_id: facilityId,
-    grid_owner_id: clean(facility.grid_owner_id),
-    grid_area_code: clean(facility.grid_area_code),
-    price_area_code: clean(facility.price_area_code),
     move_in_date: clean(facility.move_in_date),
-    resolution_status: clean(facility.verified_at) ? 'verified' : undefined,
-    metadata: { ...input.baseMetadata, ...asRecord(facility.metadata), facility_synced_at: new Date().toISOString() },
-    updated_at: new Date().toISOString(),
+    metadata: {
+      ...input.baseMetadata,
+      ...asRecord(facility.metadata),
+      facility_synced_at: now,
+      claimed_grid_owner_id: clean(facility.claimed_grid_owner_id) ?? clean(facility.grid_owner_id),
+      claimed_grid_area_code: clean(facility.grid_area_code),
+      claimed_price_area_code: clean(facility.price_area_code),
+      supplied_verified_at: clean(facility.verified_at),
+    },
+    facility_data_status: 'unverified',
+    updated_at: now,
   })
 
-  let updated = false
   const siteUpdate = await supabaseService
     .from('customer_sites')
     .update(sitePayload)
@@ -588,8 +654,7 @@ async function syncFacilityData(input: {
     .eq('id', siteId)
     .select('id')
     .maybeSingle()
-  if (!siteUpdate.error) updated = Boolean(siteUpdate.data?.id)
-  else if (!isMissingPortalSchemaError(siteUpdate.error)) throw siteUpdate.error
+  if (siteUpdate.error && !isMissingPortalSchemaError(siteUpdate.error)) throw siteUpdate.error
 
   let created = false
   if (meteringPointId) {
@@ -604,43 +669,57 @@ async function syncFacilityData(input: {
       .maybeSingle()
     if (existing.error && !isMissingPortalSchemaError(existing.error)) throw existing.error
 
-    if (!existing.data?.id) {
-      const mpPayload = nonNull({
-        company_id: input.client.company_id,
-        customer_id: input.identity.customer_id,
-        site_id: siteId,
-        customer_site_id: siteId,
-        metering_point_id: meteringPointId,
-        meter_point_id: meteringPointId,
-        site_facility_id: facilityId,
-        grid_owner_id: clean(facility.grid_owner_id),
-        grid_area_code: clean(facility.grid_area_code),
-        price_area_code: clean(facility.price_area_code),
-        status: clean(facility.verified_at) ? 'verified' : 'pending_verification',
-        metadata: { ...input.baseMetadata, ...asRecord(facility.metadata), source: 'tenant_api' },
-      })
-      const inserted = await supabaseService.from('metering_points').insert(mpPayload).select('id').maybeSingle()
-      if (!inserted.error) created = Boolean(inserted.data?.id)
-      else if (!isMissingPortalSchemaError(inserted.error)) throw inserted.error
-    }
+    const mpPayload = nonNull({
+      company_id: input.client.company_id,
+      customer_id: input.identity.customer_id,
+      site_id: siteId,
+      customer_site_id: siteId,
+      metering_point_id: meteringPointId,
+      meter_point_id: meteringPointId,
+      site_facility_id: facilityId,
+      status: 'pending_verification',
+      verification_status: 'pending_verification',
+      metadata: {
+        ...input.baseMetadata,
+        ...asRecord(facility.metadata),
+        source: 'tenant_api',
+        claimed_grid_owner_id: clean(facility.claimed_grid_owner_id) ?? clean(facility.grid_owner_id),
+        claimed_grid_area_code: clean(facility.grid_area_code),
+        claimed_price_area_code: clean(facility.price_area_code),
+      },
+      updated_at: now,
+    })
+    const write = existing.data?.id
+      ? await supabaseService.from('metering_points').update(mpPayload).eq('id', existing.data.id).eq('company_id', input.client.company_id)
+      : await supabaseService.from('metering_points').insert(mpPayload).select('id').maybeSingle()
+    if (write.error && !isMissingPortalSchemaError(write.error)) throw write.error
+    created = Boolean(!existing.data?.id && (write.data as { id?: string } | null)?.id)
   }
 
-  if ((facilityId || meteringPointId) && input.refs.applicationId) {
+  if (input.refs.applicationId) {
     const applicationUpdate = await supabaseService
       .from('website_customer_applications')
-      .update(nonNull({
-        metering_point_id: meteringPointId ?? input.refs.meteringPointId,
+      .update({
         customer_site_id: siteId,
-        facility_data_verified_at: clean(facility.verified_at) ?? (meteringPointId ? new Date().toISOString() : undefined),
-        status: meteringPointId ? 'facility_data_received' : undefined,
-        updated_at: new Date().toISOString(),
-      }))
+        metering_point_id: meteringPointId ?? input.refs.meteringPointId,
+        status: hasAddressPayload ? 'needs_address_resolution' : undefined,
+        updated_at: now,
+      })
       .eq('company_id', input.client.company_id)
       .eq('id', input.refs.applicationId)
     if (applicationUpdate.error && !isMissingPortalSchemaError(applicationUpdate.error)) throw applicationUpdate.error
   }
 
-  return { updated, metering_point_created: created, skipped: false }
+  if (hasAddressPayload && site.address?.status !== 'conflict' && site.address?.status !== 'incomplete') {
+    await enqueueCustomerDataRequestAutomation({
+      companyId: input.client.company_id,
+      customerId: input.identity.customer_id,
+      siteId,
+      meteringPointId: null,
+    })
+  }
+
+  return { updated: Boolean(siteUpdate.data?.id) || Boolean(site.address), metering_point_created: created, skipped: false }
 }
 
 async function emitSyncEvent(input: {

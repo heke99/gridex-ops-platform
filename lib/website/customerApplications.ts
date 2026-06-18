@@ -19,6 +19,8 @@ import {
 } from '@/lib/energy/facilityDataErrors'
 import { getBaseAppUrl } from '@/lib/auth/urls'
 import { ensureCustomerPortalUserLink } from '@/lib/customer-portal/customerResolver'
+import { applyCustomerSiteAddressCandidate } from '@/lib/customer-sites/addressIntake'
+import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -668,23 +670,23 @@ function enrichApplicationWithEnergyResolution(input: ApplicationInput, resoluti
     : undefined
   return {
     ...input,
-    grid_owner_id: resolution.gridOwnerId ?? input.grid_owner_id ?? input.network_owner_id,
-    grid_area_code: resolution.gridAreaCode ?? input.grid_area_code ?? input.gridAreaCode,
-    price_area_code: resolution.priceArea ?? input.price_area_code ?? input.priceAreaCode,
+    grid_owner_id: resolution.gridOwnerId ?? undefined,
+    grid_area_code: resolution.gridAreaCode ?? undefined,
+    price_area_code: resolution.priceArea ?? undefined,
     resolution_status: resolution.resolutionStatus,
     grid_owner_verification_status: resolution.gridOwnerVerificationStatus ?? undefined,
     requested_start_mode: requestedStartMode,
     calculated_earliest_start_date: calculatedStart,
     site: input.site ? {
       ...input.site,
-      grid_area_code: resolution.gridAreaCode ?? input.site.grid_area_code ?? input.site.gridAreaCode,
-      grid_owner_id: resolution.gridOwnerId ?? input.site.grid_owner_id ?? input.site.gridOwnerId,
+      grid_area_code: resolution.gridAreaCode ?? undefined,
+      grid_owner_id: resolution.gridOwnerId ?? undefined,
       grid_owner_verification_status: resolution.gridOwnerVerificationStatus ?? undefined,
-      price_area_code: resolution.priceArea ?? input.site.price_area_code ?? input.site.price_area,
-      latitude: resolution.coordinates?.latitude ?? input.site.latitude,
-      longitude: resolution.coordinates?.longitude ?? input.site.longitude,
-      sweref99_x: resolution.coordinates?.sweref99X ?? input.site.sweref99_x,
-      sweref99_y: resolution.coordinates?.sweref99Y ?? input.site.sweref99_y,
+      price_area_code: resolution.priceArea ?? undefined,
+      latitude: resolution.coordinates?.latitude ?? undefined,
+      longitude: resolution.coordinates?.longitude ?? undefined,
+      sweref99_x: resolution.coordinates?.sweref99X ?? undefined,
+      sweref99_y: resolution.coordinates?.sweref99Y ?? undefined,
     } : input.site,
     metering_point: input.metering_point ? {
       ...input.metering_point,
@@ -716,11 +718,11 @@ async function runEnergyResolution(input: {
     customerId: input.customerId,
     customerSiteId: input.customerSiteId,
     customerApplicationId: input.customerApplicationId,
-    street: clean(body.site?.street) ?? clean(body.customer.billing_street),
-    postalCode: clean(body.site?.postal_code) ?? clean(body.customer.billing_postal_code),
-    city: clean(body.site?.city) ?? clean(body.customer.billing_city),
-    country: clean(body.site?.country) ?? clean(body.customer.billing_country) ?? 'SE',
-    gridAreaCode: clean(body.grid_area_code) ?? clean(body.gridAreaCode) ?? clean(body.site?.grid_area_code) ?? clean(body.site?.gridAreaCode),
+    street: clean(body.site?.street),
+    postalCode: clean(body.site?.postal_code),
+    city: clean(body.site?.city),
+    country: clean(body.site?.country) ?? 'SE',
+    gridAreaCode: null,
     facilityId: clean(body.site?.facility_id),
     meteringPointId: clean(body.metering_point?.metering_point_id) ?? clean(body.metering_point?.meter_point_id) ?? clean(body.metering_point?.ediel_metering_point_id) ?? clean(body.metering_point?.anlage_id),
     requestedStartMode: requestedStartModeFromInput(body),
@@ -864,6 +866,11 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
   const rawAddress = isObject(raw.address) ? raw.address : {}
   const rawSource = raw.source
   const nestedSite = isObject(raw.site) ? { ...raw.site } : null
+  const explicitSiteAddress = Boolean(
+    nestedSite ||
+    ['site', 'facility', 'installation', 'anlaggning'].includes(String(raw.address_type ?? raw.addressType ?? rawAddress.type ?? '').toLowerCase()) ||
+    raw.billing_address_same_as_site === true || raw.billingAddressSameAsSite === true
+  )
   const nestedMeteringPoint = isObject(raw.metering_point) ? { ...raw.metering_point } : null
   const nestedContract = isObject(raw.contract) ? { ...raw.contract } : null
 
@@ -890,10 +897,7 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     raw.meter_point_id,
     raw.meterPointId,
     raw.ediel_metering_point_id,
-    raw.edielMeteringPointId,
-    raw.anlage_id,
-    raw.anlaggningId,
-    raw.facility_metering_point_id
+    raw.edielMeteringPointId
   )
   const topLevelFacilityId = firstClean(
     raw.facility_id,
@@ -901,9 +905,7 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     raw.site_facility_id,
     raw.siteFacilityId,
     raw.anlage_id,
-    raw.anlaggningId,
-    raw.customer_site_id,
-    topLevelMeteringPointId
+    raw.anlaggningId
   )
   const hasTopLevelSite = Boolean(
     nestedSite ||
@@ -911,21 +913,10 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     hasAnyCleanValue(raw, [
       'site_name',
       'site_type',
-      'street',
-      'address_line1',
-      'addressLine1',
-      'address',
-      'street_address',
-      'streetAddress',
-      'postal_code',
-      'postalCode',
-      'zip',
-      'city',
-      'country',
-      'price_area_code',
-      'priceAreaCode',
-      'price_area',
-      'priceArea',
+      ...(explicitSiteAddress ? [
+        'street', 'address_line1', 'addressLine1', 'address', 'street_address', 'streetAddress',
+        'postal_code', 'postalCode', 'zip', 'city', 'country',
+      ] : []),
       'move_in_date',
       'moveInDate',
     ]) ||
@@ -938,10 +929,10 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
         facility_id: firstDefined(nestedSite?.facility_id, nestedSite?.facilityId, raw.facility_id, raw.facilityId, raw.site_facility_id, raw.siteFacilityId, raw.anlage_id, raw.anlaggningId, topLevelFacilityId),
         site_name: firstDefined(nestedSite?.site_name, nestedSite?.siteName, raw.site_name, raw.siteName),
         site_type: normalizedSiteType(firstDefined(nestedSite?.site_type, nestedSite?.siteType, raw.site_type, raw.siteType)),
-        street: firstDefined(nestedSite?.street, nestedSite?.address, raw.street, raw.address_line1, raw.addressLine1, raw.address, raw.street_address, raw.streetAddress, rawAddress.street),
-        postal_code: firstDefined(nestedSite?.postal_code, nestedSite?.postalCode, raw.postal_code, raw.postalCode, raw.zip, rawAddress.postal_code),
-        city: firstDefined(nestedSite?.city, raw.city, rawAddress.city),
-        country: firstDefined(nestedSite?.country, raw.country, rawAddress.country),
+        street: firstDefined(nestedSite?.street, nestedSite?.address, explicitSiteAddress ? raw.street : undefined, explicitSiteAddress ? raw.address_line1 : undefined, explicitSiteAddress ? raw.addressLine1 : undefined, explicitSiteAddress ? raw.address : undefined, explicitSiteAddress ? raw.street_address : undefined, explicitSiteAddress ? raw.streetAddress : undefined, explicitSiteAddress ? rawAddress.street : undefined),
+        postal_code: firstDefined(nestedSite?.postal_code, nestedSite?.postalCode, explicitSiteAddress ? raw.postal_code : undefined, explicitSiteAddress ? raw.postalCode : undefined, explicitSiteAddress ? raw.zip : undefined, explicitSiteAddress ? rawAddress.postal_code : undefined),
+        city: firstDefined(nestedSite?.city, explicitSiteAddress ? raw.city : undefined, explicitSiteAddress ? rawAddress.city : undefined),
+        country: firstDefined(nestedSite?.country, explicitSiteAddress ? raw.country : undefined, explicitSiteAddress ? rawAddress.country : undefined),
         price_area_code: firstDefined(nestedSite?.price_area_code, nestedSite?.priceAreaCode, nestedSite?.price_area, nestedSite?.priceArea, raw.price_area_code, raw.priceAreaCode, raw.price_area, raw.priceArea),
         move_in_date: firstDefined(nestedSite?.move_in_date, nestedSite?.moveInDate, raw.move_in_date, raw.moveInDate, raw.start_date, raw.startDate),
         annual_consumption_kwh: firstDefined(
@@ -975,8 +966,8 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
         metering_point_id: firstDefined(nestedMeteringPoint?.metering_point_id, nestedMeteringPoint?.meteringPointId, raw.metering_point_id, raw.meteringPointId, topLevelMeteringPointId),
         meter_point_id: firstDefined(nestedMeteringPoint?.meter_point_id, nestedMeteringPoint?.meterPointId, raw.meter_point_id, raw.meterPointId, topLevelMeteringPointId),
         ediel_metering_point_id: firstDefined(nestedMeteringPoint?.ediel_metering_point_id, nestedMeteringPoint?.edielMeteringPointId, raw.ediel_metering_point_id, raw.edielMeteringPointId, topLevelMeteringPointId),
-        anlage_id: firstDefined(nestedMeteringPoint?.anlage_id, nestedMeteringPoint?.anlaggningId, raw.anlage_id, raw.anlaggningId, site?.facility_id, topLevelFacilityId),
-        site_facility_id: firstDefined(nestedMeteringPoint?.site_facility_id, nestedMeteringPoint?.siteFacilityId, raw.site_facility_id, raw.siteFacilityId, site?.facility_id, topLevelFacilityId),
+        anlage_id: firstDefined(nestedMeteringPoint?.anlage_id, nestedMeteringPoint?.anlaggningId, raw.anlage_id, raw.anlaggningId),
+        site_facility_id: firstDefined(nestedMeteringPoint?.site_facility_id, nestedMeteringPoint?.siteFacilityId, raw.site_facility_id, raw.siteFacilityId, site?.facility_id),
         reading_frequency: firstDefined(nestedMeteringPoint?.reading_frequency, raw.reading_frequency),
         measurement_type: firstDefined(nestedMeteringPoint?.measurement_type, raw.measurement_type),
         price_area_code: firstDefined(
@@ -1394,20 +1385,13 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
       const enrichment = {
         site_name: clean(site.site_name) ?? undefined,
         site_type: clean(site.site_type) ?? undefined,
-        price_area_code: clean(site.price_area_code) ?? undefined,
-        grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode) ?? undefined,
-        grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId) ?? undefined,
-        grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus) ?? undefined,
+        // Resolver values are the only values allowed to populate operational grid owner/area fields.
         move_in_date: clean(site.move_in_date) ?? undefined,
         annual_consumption_kwh: site.annual_consumption_kwh ?? undefined,
         street: clean(site.street) ?? undefined,
         postal_code: clean(site.postal_code) ?? undefined,
         city: clean(site.city) ?? undefined,
         country: clean(site.country) ?? undefined,
-        latitude: site.latitude ?? undefined,
-        longitude: site.longitude ?? undefined,
-        sweref99_x: site.sweref99_x ?? undefined,
-        sweref99_y: site.sweref99_y ?? undefined,
         updated_at: new Date().toISOString(),
       }
       const cleaned = Object.fromEntries(Object.entries(enrichment).filter(([, value]) => value !== undefined))
@@ -1434,21 +1418,24 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
     facility_id: facilityId,
     site_type: clean(site.site_type) ?? 'consumption',
     status: 'active',
-    price_area_code: clean(site.price_area_code),
-    grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
-    grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
-    grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus),
+    price_area_code: null,
+    grid_area_code: null,
+    grid_owner_id: null,
+    grid_owner_verification_status: null,
     move_in_date: clean(site.move_in_date),
     annual_consumption_kwh: site.annual_consumption_kwh ?? null,
     street: clean(site.street),
     postal_code: clean(site.postal_code),
     city: clean(site.city),
     country: clean(site.country) ?? 'SE',
-    latitude: site.latitude ?? null,
-    longitude: site.longitude ?? null,
-    sweref99_x: site.sweref99_x ?? null,
-    sweref99_y: site.sweref99_y ?? null,
-    metadata: { source: 'website_customer_applications', energy_resolution: input.metadata?.energy_resolution ?? null },
+    metadata: {
+      source: 'website_customer_applications',
+      address_source: 'website',
+      claimed_grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
+      claimed_grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
+      claimed_price_area_code: clean(site.price_area_code) ?? clean(site.price_area),
+      energy_resolution: input.metadata?.energy_resolution ?? null,
+    },
   }
 
   const { data, error } = await supabaseService
@@ -1480,8 +1467,6 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
   const meteringPointId = clean(metering?.metering_point_id)
     ?? clean(metering?.meter_point_id)
     ?? clean(metering?.ediel_metering_point_id)
-    ?? clean(metering?.anlage_id)
-    ?? site?.facility_id
     ?? null
   if (!meteringPointId || !site?.id) return null
 
@@ -1534,8 +1519,8 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
   const startDate = clean(metering?.start_date) ?? clean(metering?.installation_date) ?? clean(input.site?.move_in_date)
   const installationDate = clean(metering?.installation_date) ?? startDate
   const annualConsumption = metering?.estimated_annual_consumption_kwh ?? input.site?.annual_consumption_kwh ?? null
-  const priceAreaCode = clean(metering?.price_area_code) ?? clean(input.site?.price_area_code)
-  const siteFacilityId = clean(metering?.site_facility_id) ?? clean(metering?.anlage_id) ?? site.facility_id ?? meteringPointId
+  const priceAreaCode = null
+  const siteFacilityId = clean(metering?.site_facility_id) ?? clean(metering?.anlage_id) ?? site.facility_id ?? null
   const metadata = {
     source: 'website_customer_applications',
     source_metadata: input.metadata ?? {},
@@ -1563,7 +1548,11 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
     verification_status: 'pending',
     onboarding_status: 'application_received',
     estimated_annual_consumption_kwh: annualConsumption,
-    metadata,
+    metadata: {
+      ...metadata,
+      claimed_grid_area_code: clean(metering?.grid_area_code) ?? clean(metering?.gridAreaCode),
+      claimed_price_area_code: clean(metering?.price_area_code) ?? clean(input.site?.price_area_code),
+    },
     updated_at: new Date().toISOString(),
   }
 
@@ -2429,6 +2418,33 @@ export async function processWebsiteCustomerApplication(input: {
     site = readiness.canCreateSite
       ? await stage('site_create', () => upsertSite(input.client.company_id, resolvedCustomerResult.customer.id, body))
       : null
+
+    const siteAddress = body.site
+    if (site?.id && siteAddress?.street && siteAddress.postal_code && siteAddress.city) {
+      const siteId = site.id
+      const addressResult = await stage('site_create', () => applyCustomerSiteAddressCandidate({
+        companyId: input.client.company_id,
+        customerId: resolvedCustomerResult.customer.id,
+        siteId,
+        address: {
+          street: siteAddress.street,
+          postalCode: siteAddress.postal_code,
+          city: siteAddress.city,
+          country: siteAddress.country ?? 'SE',
+          source: 'website',
+          sourceReference: input.idempotencyKey ?? null,
+          claimedGridOwnerId: clean(siteAddress.grid_owner_id) ?? clean(siteAddress.gridOwnerId),
+          metadata: { application_source: clean(body.source) ?? 'website' },
+        },
+      }))
+      if (addressResult.status === 'updated' || addressResult.status === 'unchanged') {
+        await enqueueCustomerDataRequestAutomation({
+          companyId: input.client.company_id,
+          customerId: resolvedCustomerResult.customer.id,
+          siteId,
+        })
+      }
+    }
 
     meteringPoint = readiness.canCreateMeteringPoint
       ? await stage('metering_point_create', () => upsertMeteringPoint(input.client.company_id, resolvedCustomerResult.customer.id, site, body))

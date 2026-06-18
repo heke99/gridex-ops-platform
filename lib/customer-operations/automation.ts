@@ -289,7 +289,7 @@ export async function resolveCustomerSiteGridOwner(input: {
 }): Promise<{ state: 'verified' | 'suggested' | 'needs_review'; result: EnergyResolverResult }> {
   const { data, error } = await supabaseService
     .from('customer_sites')
-    .select('id,company_id,customer_id,street,postal_code,city,country,grid_area_code,facility_id,price_area_code,grid_owner_id')
+    .select('id,company_id,customer_id,street,postal_code,city,country,address_status,address_hash,address_verified_at,grid_area_code,facility_id,price_area_code,grid_owner_id')
     .eq('id', input.siteId)
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
@@ -298,6 +298,35 @@ export async function resolveCustomerSiteGridOwner(input: {
   if (!data?.id) throw new Error('Anläggningen hittades inte för nätägarmatchning.')
 
   const site = data as JsonRecord
+  const hasCompleteSiteAddress = Boolean(
+    clean(site.street) &&
+    /^\d{5}$/.test((clean(site.postal_code) ?? '').replace(/\D/g, '')) &&
+    clean(site.city) &&
+    clean(site.address_hash),
+  )
+  if (!hasCompleteSiteAddress && !clean(site.facility_id) && !clean(input.meteringPointId)) {
+    const result = await resolveEnergyContext({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      customerSiteId: input.siteId,
+      street: clean(site.street),
+      postalCode: clean(site.postal_code),
+      city: clean(site.city),
+      country: clean(site.country) ?? 'SE',
+    })
+    await emitCustomerOperationEvent({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      actorUserId: input.actorUserId ?? null,
+      eventType: 'facility.address_incomplete',
+      title: 'Anläggningsadress behöver kompletteras',
+      message: 'Systemet behöver gata, femsiffrigt postnummer och ort för att kunna hitta rätt nätägare.',
+      payload: { site_id: input.siteId, resolution: result },
+      idempotencyKey: `facility.address-incomplete:${input.siteId}:${clean(site.address_hash) ?? 'missing'}`,
+    })
+    return { state: 'needs_review', result }
+  }
+
   const knownGridOwnerId = clean(input.knownGridOwnerId) ?? clean(site.grid_owner_id)
   const knownVerification = knownGridOwnerId
     ? await getGridOwnerVerification(knownGridOwnerId).catch(() => null)

@@ -84,24 +84,6 @@ function inferFlowType(site?: CustomerSiteRow | null): SiteFlowType {
  return 'switch'
 }
 
-function gridOwnerOptionLabel(owner: GridOwnerRow): string {
- const parts = [owner.name]
-
- if (owner.owner_code?.trim()) {
- parts.push(`kod: ${owner.owner_code}`)
- }
-
- if (owner.ediel_id?.trim()) {
- parts.push(`EDIEL: ${owner.ediel_id}`)
- }
-
- if (!owner.is_active) {
- parts.push('INAKTIV')
- }
-
- return parts.join(' • ')
-}
-
 export default function CustomerSiteForm({
  customerId,
  gridOwners,
@@ -112,15 +94,6 @@ export default function CustomerSiteForm({
  const isEditing = Boolean(site)
  const [siteFlowType, setSiteFlowType] = useState<SiteFlowType>(inferFlowType(site))
 
- const activeGridOwners = useMemo(
- () => gridOwners.filter((owner) => owner.is_active),
- [gridOwners]
- )
-
- const inactiveGridOwners = useMemo(
- () => gridOwners.filter((owner) => !owner.is_active),
- [gridOwners]
- )
 
  const selectedGridOwner =
  gridOwners.find((owner) => owner.id === (site?.grid_owner_id ?? '')) ?? null
@@ -280,80 +253,28 @@ export default function CustomerSiteForm({
  </select>
  </label>
 
- <label className="grid gap-2 md:col-span-2">
- <span className="text-sm font-medium text-slate-700 ">
- Nätägare
- </span>
- <select
- name="grid_owner_id"
- defaultValue={site?.grid_owner_id ?? ''}
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 "
- >
- <option value="">Välj nätägare</option>
-
- {activeGridOwners.length > 0 ? (
- <optgroup label="Aktiva nätägare">
- {activeGridOwners.map((owner) => (
- <option key={owner.id} value={owner.id}>
- {gridOwnerOptionLabel(owner)}
- </option>
- ))}
- </optgroup>
- ) : null}
-
- {inactiveGridOwners.length > 0 ? (
- <optgroup label="Inaktiva nätägare">
- {inactiveGridOwners.map((owner) => (
- <option key={owner.id} value={owner.id}>
- {gridOwnerOptionLabel(owner)}
- </option>
- ))}
- </optgroup>
- ) : null}
- </select>
-
- <details className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-3 text-sm text-slate-700">
- <summary className="cursor-pointer font-semibold text-emerald-800">Lägg till ny nätägare direkt</summary>
- <div className="mt-3 grid gap-3 md:grid-cols-2">
- <Input name="new_grid_owner_name" label="Namn" />
- <Input name="new_grid_owner_org_number" label="Organisationsnummer" />
- <Input name="new_grid_owner_ediel_id" label="Ediel-ID" />
- <Input name="new_grid_owner_email" label="Kontaktmail" type="email" />
- <Input name="new_grid_owner_phone" label="Telefon" />
- <label className="grid gap-2 md:col-span-2">
- <span className="text-sm font-medium text-slate-700 ">Kommentar</span>
- <textarea name="new_grid_owner_notes" rows={2} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 " />
- </label>
- </div>
- <p className="mt-3 text-xs text-slate-700">Om Ediel-ID eller organisationsnummer redan finns kopplar systemet befintlig nätägare istället för att skapa dubblett.</p>
- </details>
-
- <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 ">
+ <div className="grid gap-2 md:col-span-2">
+ <span className="text-sm font-medium text-slate-700 ">Nätägare</span>
+ <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3 text-sm text-slate-700">
+ Systemet hittar och verifierar nätägare automatiskt från den fullständiga anläggningsadressen. En nätägare skickas aldrig till innan kontaktväg och Ediel-routing har verifierats.
  {selectedGridOwner ? (
- <>
- Vald nätägare: <span className="font-medium text-slate-900 ">{selectedGridOwner.name}</span>
- {selectedGridOwner.owner_code ? ` • kod ${selectedGridOwner.owner_code}` : ''}
- {selectedGridOwner.ediel_id ? ` • EDIEL ${selectedGridOwner.ediel_id}` : ''}
- {!selectedGridOwner.is_active ? ' • INAKTIV' : ''}
- </>
- ) : (
- <>
- Välj nätägare här. Om rätt nätägare saknas går du till registret och lägger upp den först.
- </>
- )}
+ <div className="mt-2 text-xs text-slate-600">
+ Tidigare registrerad uppgift: <span className="font-medium text-slate-900">{selectedGridOwner.name}</span>. Den behandlas som en kandidat tills systemet har verifierat den.
  </div>
- </label>
+ ) : null}
+ </div>
+ </div>
 
  <label className="grid gap-2">
  <span className="text-sm font-medium text-slate-700 ">
- Elområde
+ Elområde (uppgift)
  </span>
  <select
  name="price_area_code"
  defaultValue={site?.price_area_code ?? ''}
  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 "
  >
- <option value="">Välj elområde</option>
+ <option value="">Låt systemet avgöra</option>
  {priceAreas.map((area) => (
  <option key={area.code} value={area.code}>
  {area.code} — {area.name}

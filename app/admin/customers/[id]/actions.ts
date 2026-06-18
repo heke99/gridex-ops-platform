@@ -78,6 +78,7 @@ import {
   blockerText,
 } from "@/lib/customers/customerOperationEvents";
 import { prepareLegalPayloadForGridOwner } from "@/lib/legal/gridOwnerLegalPayload";
+import { applyCustomerSiteAddressCandidate } from "@/lib/customer-sites/addressIntake";
 import {
   enqueueCustomerDataRequestAutomation,
   enqueueSupplierSwitchAutomation,
@@ -701,79 +702,16 @@ export async function saveCustomerSiteAction(
     movedFromSupplierName = undefined;
   }
 
-  let selectedGridOwnerId = normalizeUuidOrNull(
+  const selectedGridOwnerId = normalizeUuidOrNull(
     formValue(formData, "grid_owner_id"),
   );
   const newGridOwnerName = (
     formValue(formData, "new_grid_owner_name") ?? ""
   ).trim();
-  const newGridOwnerEdielId =
-    (formValue(formData, "new_grid_owner_ediel_id") ?? "").trim() || null;
-  const newGridOwnerOrgNumber =
-    (formValue(formData, "new_grid_owner_org_number") ?? "").trim() || null;
-
-  if (!selectedGridOwnerId && newGridOwnerName) {
-    let existingGridOwner: { id: string } | null = null;
-
-    if (newGridOwnerEdielId) {
-      const { data, error } = await supabaseService
-        .from("grid_owners")
-        .select("id")
-        .eq("ediel_id", newGridOwnerEdielId)
-        .limit(1)
-        .maybeSingle();
-      if (
-        error &&
-        !["42P01", "42703", "PGRST205"].includes(
-          String((error as { code?: string }).code ?? ""),
-        )
-      )
-        throw error;
-      existingGridOwner = (data as { id: string } | null) ?? null;
-    }
-
-    if (!existingGridOwner && newGridOwnerOrgNumber) {
-      const { data, error } = await supabaseService
-        .from("grid_owners")
-        .select("id")
-        .eq("org_number", newGridOwnerOrgNumber)
-        .limit(1)
-        .maybeSingle();
-      if (
-        error &&
-        !["42P01", "42703", "PGRST205"].includes(
-          String((error as { code?: string }).code ?? ""),
-        )
-      )
-        throw error;
-      existingGridOwner = (data as { id: string } | null) ?? null;
-    }
-
-    if (!existingGridOwner) {
-      const { data, error } = await supabaseService
-        .from("grid_owners")
-        .insert({
-          company_id: companyId,
-          name: newGridOwnerName,
-          owner_code: newGridOwnerEdielId ?? `NY-${Date.now()}`,
-          org_number: newGridOwnerOrgNumber,
-          ediel_id: newGridOwnerEdielId,
-          email: formValue(formData, "new_grid_owner_email") || null,
-          phone: formValue(formData, "new_grid_owner_phone") || null,
-          notes:
-            formValue(formData, "new_grid_owner_notes") ||
-            "Skapad från kundkort/anläggning.",
-          is_active: true,
-          created_by: actor.id,
-          updated_by: actor.id,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      existingGridOwner = data as { id: string };
-    }
-
-    selectedGridOwnerId = existingGridOwner.id;
+  if (newGridOwnerName) {
+    throw new Error(
+      "Nätägarregister kan bara ändras av plattformsadministratör i aktörsregistret. Kundkortet använder den angivna nätägaren som ett förslag och systemet verifierar automatiskt innan något skickas.",
+    );
   }
 
   const parsed = customerSiteInputSchema.parse({
@@ -784,10 +722,9 @@ export async function saveCustomerSiteAction(
     facility_id: formValue(formData, "facility_id") || undefined,
     site_type: formValue(formData, "site_type") ?? "consumption",
     status: formValue(formData, "status") ?? "draft",
-    grid_owner_id: selectedGridOwnerId,
-    price_area_code: normalizePriceAreaOrNull(
-      formValue(formData, "price_area_code"),
-    ),
+    // Kundkortets manuella värden är kandidater. Resolver eller nätägarsvar får sätta operativ nätägare/elområde.
+    grid_owner_id: null,
+    price_area_code: null,
     move_in_date: moveInDate || undefined,
     annual_consumption_kwh: formValue(formData, "annual_consumption_kwh"),
     current_supplier_name:
@@ -807,6 +744,36 @@ export async function saveCustomerSiteAction(
   });
 
   const savedSite = await saveCustomerSite(supabase, parsed);
+
+  const addressResult = await applyCustomerSiteAddressCandidate({
+    companyId,
+    customerId,
+    siteId: savedSite.id,
+    address: {
+      street,
+      postalCode,
+      city,
+      country: formValue(formData, "country") || "SE",
+      careOf: formValue(formData, "care_of"),
+      source: "manual_intake",
+      sourceReference: savedSite.id,
+      actorUserId: actor.id,
+      claimedGridOwnerId: selectedGridOwnerId,
+      metadata: {
+        manual_price_area_hint: normalizePriceAreaOrNull(formValue(formData, "price_area_code")),
+        source: "customer_site_form",
+      },
+    },
+  });
+
+  if (addressResult.status === "updated" || addressResult.status === "unchanged") {
+    await enqueueCustomerDataRequestAutomation({
+      companyId,
+      customerId,
+      siteId: savedSite.id,
+      actorUserId: actor.id,
+    });
+  }
 
   await createMissingCustomerDataTasks({
     companyId,
@@ -834,6 +801,7 @@ export async function saveCustomerSiteAction(
       companyId,
       siteId: savedSite.id,
       siteFlowType,
+      addressResult,
       readiness,
     },
   });

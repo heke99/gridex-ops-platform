@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
+import { createOrUpdateCustomerSiteFromAddress } from '@/lib/customer-sites/addressIntake'
+import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
 import type {
  CustomerAddressRow,
  CustomerContactRow,
@@ -252,6 +254,46 @@ async function saveCustomerAddressAction(formData: FormData) {
 
  if (error) throw error
 
+ let facilityAddressResult: unknown = null
+ if (type === 'facility' && isActive) {
+ const customer = await supabaseService
+ .from('customers')
+ .select('company_id')
+ .eq('id', customerId)
+ .maybeSingle()
+ if (customer.error) throw customer.error
+ if (!customer.data?.company_id) throw new Error('Kundens bolag saknas')
+
+ const metadata = data && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
+ ? data.metadata as Record<string, unknown>
+ : {}
+ const saved = await createOrUpdateCustomerSiteFromAddress({
+ companyId: String(customer.data.company_id),
+ customerId,
+ siteId: typeof metadata.customer_site_id === 'string' ? metadata.customer_site_id : null,
+ address: {
+ street: street1,
+ postalCode,
+ city,
+ country,
+ careOf: street2,
+ source: 'manual_intake',
+ sourceReference: addressId || null,
+ actorUserId,
+ metadata: { source: 'customer_contacts_addresses_card' },
+ },
+ })
+ facilityAddressResult = saved.address
+ if (saved.address.status === 'updated' || saved.address.status === 'unchanged') {
+ await enqueueCustomerDataRequestAutomation({
+ companyId: String(customer.data.company_id),
+ customerId,
+ siteId: saved.siteId,
+ actorUserId,
+ })
+ }
+ }
+
  await insertAuditLog({
  actorUserId,
  entityType: 'customer_address',
@@ -263,6 +305,7 @@ async function saveCustomerAddressAction(formData: FormData) {
  customerId,
  customerType,
  isActive,
+ facilityAddressResult,
  },
  })
 
