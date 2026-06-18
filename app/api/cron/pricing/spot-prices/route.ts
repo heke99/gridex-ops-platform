@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { ensureSpotPricesForBillingMonth, normalizeSpotAutoImportAreas, normalizeSpotAutoImportMonth } from '@/lib/pricing/spot/spotImportScheduler'
 
 export const runtime = 'nodejs'
@@ -32,8 +33,7 @@ export async function POST(request: NextRequest) {
     const result = await ensureSpotPricesForBillingMonth({ billingMonth, priceAreas, force, reason: 'cron' })
     return NextResponse.json({ ok: true, result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Automatisk spotprisimport misslyckades.'
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    return internalApiError({ context: 'spot_price_cron_failed', error, code: 'spot_price_cron_failed', message: 'Automatisk spotprisimport kunde inte slutföras.' })
   }
 }
 

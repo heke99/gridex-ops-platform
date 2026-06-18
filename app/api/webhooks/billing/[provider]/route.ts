@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { receiveBillingProviderWebhook } from '@/lib/billing/providerWebhooks'
 
 export const runtime = 'nodejs'
@@ -19,7 +20,6 @@ export async function POST(request: NextRequest, { params }: RouteProps) {
     }
     return NextResponse.json({ ok: true, data: result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Webhook kunde inte hanteras.'
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    return internalApiError({ context: 'billing_webhook_failed', error, code: 'billing_webhook_failed', message: 'Webhook kunde inte behandlas.' })
   }
 }

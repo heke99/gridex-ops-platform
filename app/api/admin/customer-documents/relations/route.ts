@@ -11,6 +11,7 @@ import {
 import { listSupplierSwitchRequestsByCustomerId } from '@/lib/operations/db'
 import { loadCustomerTenantContext } from '@/lib/tenant/entityGuards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { internalApiError } from '@/lib/http/apiError'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,9 +38,7 @@ export async function GET(request: NextRequest) {
     .select('id')
     .eq('customer_id', customerId)
 
-  if (documentError) {
-    return NextResponse.json({ error: documentError.message }, { status: 500 })
-  }
+  if (documentError) return internalApiError({ context: 'customer-document-relations', error: documentError, code: 'customer_document_relations_failed', message: 'Dokumentrelationer kunde inte hämtas.' })
 
   const documentIds = (documentRows ?? [])
     .map((row) => row.id)
@@ -63,9 +62,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(200)
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+    if (error) return internalApiError({ context: 'customer-document-relations-audit', error, code: 'customer_document_relations_failed', message: 'Dokumenthistorik kunde inte hämtas.' })
 
     documentAuditLogs = data ?? []
   }

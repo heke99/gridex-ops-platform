@@ -299,20 +299,30 @@ export async function createOrUpdateCustomerSiteFromAddress(input: {
     if (existing.error && !missingSchema(existing.error)) throw existing.error
     siteId = clean(existing.data?.id)
     if (!siteId) {
-      const inserted = await supabaseService.from('customer_sites').insert({
-        company_id: input.companyId,
-        customer_id: input.customerId,
-        site_name: clean(input.siteName) ?? 'Anläggning',
-        facility_id: clean(input.facilityId),
-        site_type: 'consumption',
-        status: 'draft',
-        is_active: true,
-        address_status: 'candidate',
-        facility_data_status: 'unverified',
-        metadata: { created_from_address_source: input.address.source },
-      }).select('id').single()
-      if (inserted.error) throw inserted.error
-      siteId = String(inserted.data.id)
+      const created = await supabaseService.rpc('gridex_create_customer_site_with_address', {
+        p_company_id: input.companyId,
+        p_customer_id: input.customerId,
+        p_site_name: clean(input.siteName) ?? 'Anläggning',
+        p_facility_id: clean(input.facilityId),
+        p_street: address.street,
+        p_postal_code: address.postalCode,
+        p_city: address.city,
+        p_country: address.country,
+        p_address_normalized: address.normalized,
+        p_address_hash: address.hash,
+        p_source: input.address.source,
+        p_metadata: { created_from_address_source: input.address.source },
+      })
+      if (created.error) {
+        if (missingSchema(created.error)) throw new Error('Atomisk anläggningsprovisionering saknas. Kör den senaste OPS-migrationen innan ny anläggning kan skapas.')
+        throw created.error
+      }
+      siteId = clean(created.data)
+      if (!siteId) throw new Error('Atomisk anläggningsprovisionering returnerade inget anläggnings-ID.')
+      return {
+        siteId,
+        address: { status: 'updated', siteId, addressHash: address.hash, normalized: address.normalized },
+      }
     }
   }
   const address = await applyCustomerSiteAddressCandidate({ companyId: input.companyId, customerId: input.customerId, siteId, address: input.address })

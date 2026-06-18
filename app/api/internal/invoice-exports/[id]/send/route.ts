@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { sendInvoiceExportRun } from '@/lib/integrations/billing/invoiceExportCore'
@@ -19,7 +20,6 @@ export async function POST(request: Request, { params }: Props) {
     const result = await sendInvoiceExportRun({ companyId, exportRunId: id, actorUserId: access.guard.userId })
     return NextResponse.json({ data: result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte skicka fakturaexport.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'invoice_export_send_failed', error, code: 'invoice_export_send_failed', message: 'Fakturaexporten kunde inte skickas.' })
   }
 }

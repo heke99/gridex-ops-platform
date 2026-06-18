@@ -1,5 +1,7 @@
 // This cron route is used to trigger the actor readiness process, which checks if actors are ready to send messages based on their certificates and other criteria.
+import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -12,7 +14,12 @@ function isAuthorized(request: NextRequest): boolean {
   const bearer = authorization.startsWith('Bearer ') ? authorization.slice('Bearer '.length) : null
   const headerSecret = request.headers.get('x-cron-secret')
 
-  return bearer === configuredSecret || headerSecret === configuredSecret
+  return [bearer, headerSecret].some((candidate) => {
+    if (!candidate) return false
+    const left = Buffer.from(candidate)
+    const right = Buffer.from(configuredSecret)
+    return left.length === right.length && timingSafeEqual(left, right)
+  })
 }
 
 function parseMode(value: string | null): 'full' | 'certificates' | 'apply' {
@@ -37,11 +44,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, mode, result })
   } catch (error) {
-    console.error('[actor-readiness-cron] Run failed', error instanceof Error ? error.message : 'Unknown error')
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : 'Actor readiness run failed' },
-      { status: 500 }
-    )
+    return internalApiError({ context: 'actor-readiness-cron', error, code: 'actor_readiness_failed', message: 'Aktörsreadiness kunde inte köras.' })
   }
 }
 

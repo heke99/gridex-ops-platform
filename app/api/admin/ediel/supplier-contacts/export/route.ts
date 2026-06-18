@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { internalApiError } from '@/lib/http/apiError'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +19,7 @@ export async function GET() {
     .order('actor_id', { ascending: true })
     .limit(10000)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return internalApiError({ context: 'supplier-contacts-export', error, code: 'supplier_contacts_export_failed', message: 'Leverantörskontakter kunde inte exporteras.' })
 
   const actorIds = [...new Set((contacts ?? []).map((contact) => String(contact.actor_id)).filter(Boolean))]
   const { data: actors } = actorIds.length

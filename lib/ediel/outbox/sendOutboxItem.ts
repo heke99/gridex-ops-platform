@@ -3,6 +3,7 @@ import { getEdielMessageById } from '@/lib/ediel/db'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 import { supabaseService } from '@/lib/supabase/service'
 import { getEdielOutboundReadinessBlocker } from '@/lib/ediel/outbox/readinessGuard'
+import { evaluateEdielRouteContract } from '@/lib/ediel/outbox/routeContract'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -120,6 +121,8 @@ async function updateOutboxStatus(params: {
     delete compatibilityPayload.receiver_ediel_id
     delete compatibilityPayload.receiver_subaddress
     delete compatibilityPayload.certificate_fingerprint
+    delete compatibilityPayload.route_contract_fingerprint
+    delete compatibilityPayload.route_contract_snapshot
     const { error: fallbackError } = await supabaseService
       .from('ediel_outbox')
       .update(compatibilityPayload)
@@ -189,7 +192,8 @@ export async function sendOutboxItem(params: {
   try {
     const message = await getEdielMessageById(edielMessageId, { companyId })
     if (!message) throw new Error('ediel_message_not_found')
-    const readinessBlocker = await getEdielOutboundReadinessBlocker(message)
+    const routeContract = await evaluateEdielRouteContract(message)
+    const readinessBlocker = routeContract.blocker ?? await getEdielOutboundReadinessBlocker(message)
     if (readinessBlocker) {
       await updateOutboxStatus({
         outboxItemId: params.outboxItemId,
@@ -206,6 +210,24 @@ export async function sendOutboxItem(params: {
       })
       return { status: 'blocked', messageId: null, error: readinessBlocker }
     }
+    await updateOutboxStatus({
+      outboxItemId: params.outboxItemId,
+      sendAttemptId,
+      workerId,
+      payload: {
+        route_contract_fingerprint: routeContract.fingerprint,
+        route_contract_snapshot: {
+          route_id: routeContract.routeId,
+          receiver_ediel_id: routeContract.receiverEdielId,
+          receiver_subaddress: routeContract.receiverSubaddress,
+          receiver_certificate_id: routeContract.certificateId,
+          receiver_certificate_fingerprint: routeContract.certificateFingerprint,
+          checks: routeContract.checks,
+          evaluated_at: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      },
+    })
     const result = await sendEdielMessageViaSmtp(message, { actorUserId: params.actorUserId, smtpMimeMode: params.smtpMimeMode ?? null })
     await updateOutboxStatus({
       outboxItemId: params.outboxItemId,

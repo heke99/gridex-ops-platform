@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
@@ -43,7 +44,6 @@ export async function POST(request: Request, { params }: Props) {
     }).catch(() => null)
     return NextResponse.json({ data: result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte registrera bestridande.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'invoice_dispute_failed', error, code: 'invoice_dispute_failed', message: 'Bestridandet kunde inte registreras.' })
   }
 }

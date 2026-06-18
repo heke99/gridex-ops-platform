@@ -1,0 +1,23 @@
+name: OPS hardening
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrations:check
+      - run: npm run typecheck
+      - run: npm run ops:hardening-regression
+      - run: npm run ops:hardening-behavior-regression
+      - run: npm run ops:final-contract-regression
+      - run: npm run api:error-boundaries
+      - run: npm run security:audit-production

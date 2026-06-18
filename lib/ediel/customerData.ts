@@ -109,7 +109,16 @@ export async function getCustomerEdielDataBundle(params: {
               mailbox: profile.mailbox,
               sender_sub_address: profile.sender_sub_address,
               receiver_sub_address: profile.receiver_sub_address,
+              receiver_message_subaddress: profile.receiver_message_subaddress ?? profile.receiver_subaddress ?? null,
+              subaddress_required: profile.subaddress_required ?? false,
               application_reference: profile.application_reference,
+              environment: profile.environment ?? null,
+              message_family: profile.message_family ?? null,
+              message_code: profile.message_code ?? profile.business_code ?? null,
+              encryption_mode: profile.encryption_mode ?? null,
+              transport_security_mode: profile.transport_security_mode ?? null,
+              receiver_certificate_id: profile.receiver_certificate_id ?? profile.certificate_id ?? null,
+              certificate_required: profile.certificate_required ?? false,
             }
           : null,
       }

@@ -34,7 +34,16 @@ export type EdielRecommendationRouteProfile = {
   mailbox: string | null
   sender_sub_address: string | null
   receiver_sub_address: string | null
+  receiver_message_subaddress?: string | null
+  subaddress_required?: boolean | null
   application_reference: string | null
+  environment?: 'test' | 'production' | null
+  message_family?: string | null
+  message_code?: string | null
+  encryption_mode?: string | null
+  transport_security_mode?: string | null
+  receiver_certificate_id?: string | null
+  certificate_required?: boolean | null
 }
 
 export type EdielRecommendationRouteRow = {

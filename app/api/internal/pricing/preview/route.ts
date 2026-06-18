@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { calculatePricingPreviewForBillingMonth, calculatePricingPreviewForUnderlay } from '@/lib/pricing/engine'
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: 'billing_underlay_id eller billing_month måste anges.' }, { status: 400 })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte skapa prispreview.'
-    return NextResponse.json({ error: message }, { status: isBillingPeriodLockError(message) ? 409 : 500 })
+    const internalMessage = error instanceof Error ? error.message : ''
+    return internalApiError({ context: 'pricing-preview', error, code: 'pricing_preview_failed', message: 'Prispreview kunde inte skapas.', status: isBillingPeriodLockError(internalMessage) ? 409 : 500 })
   }
 }

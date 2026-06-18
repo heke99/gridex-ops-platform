@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { lockPricingPreview } from '@/lib/pricing/engine'
@@ -19,7 +20,6 @@ export async function POST(request: Request) {
     await lockPricingPreview({ companyId, pricingRunId, actorUserId: access.guard.userId })
     return NextResponse.json({ data: { status: 'locked' } })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte låsa prispreview.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'pricing_preview_lock_failed', error, code: 'pricing_preview_lock_failed', message: 'Prispreview kunde inte låsas.' })
   }
 }

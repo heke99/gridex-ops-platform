@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { createInvoiceExportRun } from '@/lib/integrations/billing/invoiceExportCore'
@@ -26,7 +27,6 @@ export async function POST(request: Request) {
     })
     return NextResponse.json({ data: result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte skapa fakturaexport.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'invoice_export_create_failed', error, code: 'invoice_export_create_failed', message: 'Fakturaexporten kunde inte skapas.' })
   }
 }

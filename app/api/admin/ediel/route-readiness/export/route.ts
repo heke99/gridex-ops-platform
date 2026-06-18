@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { internalApiError } from '@/lib/http/apiError'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,9 +20,7 @@ export async function GET() {
     .order('actor_name', { ascending: true })
     .limit(5000)
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (error) return internalApiError({ context: 'route-readiness-export', error, code: 'route_readiness_export_failed', message: 'Route-readiness kunde inte exporteras.' })
 
   const rows = data ?? []
   const headers = [

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { getBillingPeriodLock, lockBillingPeriod, unlockBillingPeriod } from '@/lib/billing/invoiceReadiness'
@@ -23,8 +24,7 @@ export async function GET(request: Request) {
     const lock = await getBillingPeriodLock({ companyId, billingMonth })
     return NextResponse.json({ data: { billingMonth, lock, isLocked: ['locked', 'exported', 'closed'].includes(String(lock?.status ?? '')) } })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte läsa fakturaperiodens lås.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'billing-period-lock-read', error, code: 'billing_period_lock_read_failed', message: 'Fakturaperiodens lås kunde inte hämtas.' })
   }
 }
 
@@ -61,7 +61,6 @@ export async function POST(request: Request) {
     })
     return NextResponse.json({ data: { billingMonth, lock } })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte uppdatera fakturaperiodens lås.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'billing-period-lock-write', error, code: 'billing_period_lock_write_failed', message: 'Fakturaperiodens lås kunde inte uppdateras.' })
   }
 }

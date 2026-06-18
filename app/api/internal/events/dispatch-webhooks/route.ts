@@ -1,4 +1,6 @@
+import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { dispatchDueWebhookDeliveries } from '@/lib/integrations/webhooks'
 
 export const runtime = 'nodejs'
@@ -14,7 +16,12 @@ function isAuthorized(request: NextRequest): boolean {
   const authorization = request.headers.get('authorization') ?? ''
   const bearer = authorization.startsWith('Bearer ') ? authorization.slice('Bearer '.length).trim() : null
   const headerSecret = request.headers.get('x-gridex-cron-secret') ?? request.headers.get('x-cron-secret')
-  return bearer === secret || headerSecret === secret
+  return [bearer, headerSecret].some((candidate) => {
+    if (!candidate) return false
+    const left = Buffer.from(candidate)
+    const right = Buffer.from(secret)
+    return left.length === right.length && timingSafeEqual(left, right)
+  })
 }
 
 function parseLimit(value: string | null): number {
@@ -30,8 +37,7 @@ export async function POST(request: NextRequest) {
     const result = await dispatchDueWebhookDeliveries(parseLimit(request.nextUrl.searchParams.get('limit')))
     return NextResponse.json({ ok: true, data: result, canonical_route: '/api/internal/webhooks/dispatch' })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Webhook-dispatch misslyckades.'
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    return internalApiError({ context: 'webhook-dispatch-alias', error, code: 'webhook_dispatch_failed', message: 'Webhook-dispatch kunde inte slutföras.' })
   }
 }
 

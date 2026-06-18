@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { evaluateInboundEdielRequest } from '@/lib/ediel/inboundRequestAutomation'
 
@@ -20,7 +21,6 @@ export async function POST(request: Request) {
     })
     return NextResponse.json({ data: result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte utvärdera inkommande Ediel-begäran.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'inbound_request_automation_failed', error, code: 'inbound_request_automation_failed', message: 'Inkommande Ediel-begäran kunde inte utvärderas.' })
   }
 }

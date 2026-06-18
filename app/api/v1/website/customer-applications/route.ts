@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import {
   customerPortalJson,
@@ -18,12 +18,6 @@ function readStringField(value: unknown, field: string): string | null {
   if (!value || typeof value !== 'object') return null
   const record = value as Record<string, unknown>
   return typeof record[field] === 'string' && record[field].trim() ? record[field] : null
-}
-
-function safeError(error: unknown): string {
-  if (error instanceof Error) return error.message
-  if (typeof error === 'string') return error
-  return 'Kundansökan kunde inte behandlas.'
 }
 
 function requestAudit(request: NextRequest) {
@@ -87,14 +81,20 @@ export async function POST(request: NextRequest) {
 
     return customerPortalJson(result.body, { status: result.status })
   } catch (error) {
-    const message = safeError(error)
+    const traceId = randomUUID()
+    console.error('[website-customer-application] failed', { traceId, error })
     await logIntegrationApiRequest({
       client: auth.client,
       request,
       statusCode: 500,
       startedAt,
-      errorCode: message,
+      errorCode: 'website_application_failed',
+      metadata: { trace_id: traceId },
     })
-    return customerPortalJson({ error: message }, { status: 500 })
+    return customerPortalJson({
+      error: 'Kundansökan kunde inte behandlas just nu.',
+      code: 'website_application_failed',
+      trace_id: traceId,
+    }, { status: 500 })
   }
 }

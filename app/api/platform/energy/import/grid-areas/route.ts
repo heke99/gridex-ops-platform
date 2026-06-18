@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { upsertPlatformGridAreaMasterRows } from '@/lib/energy/resolver'
 
@@ -35,7 +36,6 @@ export async function POST(request: Request) {
     const result = await upsertPlatformGridAreaMasterRows(rows)
     return NextResponse.json({ ok: true, seen: rows.length, result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Masterimporten misslyckades.'
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    return internalApiError({ context: 'grid-area-import', error, code: 'grid_area_import_failed', message: 'Masterimporten kunde inte slutföras.' })
   }
 }

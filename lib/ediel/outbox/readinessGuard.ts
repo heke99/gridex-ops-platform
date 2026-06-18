@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { evaluateEdielRouteContract } from '@/lib/ediel/outbox/routeContract'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 function clean(value: unknown): string | null {
@@ -18,7 +19,10 @@ function isProtectedOutboundFamily(message: EdielMessageRow): boolean {
 export async function getEdielOutboundReadinessBlocker(message: EdielMessageRow): Promise<string | null> {
   if (!isProtectedOutboundFamily(message)) return null
 
-  const receiverEdielId = clean(message.receiver_ediel_id) ?? clean(message.unb_receiver_id)
+  const routeContract = await evaluateEdielRouteContract(message)
+  if (!routeContract.ok) return routeContract.blocker ?? 'route_contract_not_ready'
+
+  const receiverEdielId = clean(message.receiver_ediel_id) ?? clean(message.unb_receiver_id) ?? routeContract.receiverEdielId
   if (!receiverEdielId) return 'receiver_ediel_id_missing'
 
   const { data, error } = await supabaseService

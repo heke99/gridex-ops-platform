@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
-import { configuredEdielAutomationActorId } from '@/lib/ediel/automationActor'
+import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationActor'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -67,7 +67,7 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
   const searchParams = request.nextUrl.searchParams
   let actorUserId: string
   try {
-    actorUserId = configuredEdielAutomationActorId()
+    actorUserId = await resolveConfiguredEdielAutomationActorId()
   } catch (error) {
     console.error('[ediel-outbox-cron] automation actor configuration failed', error)
     return NextResponse.json({ ok: false, error: 'Ediel-automation saknar giltig systemaktör.', code: 'ediel_automation_actor_missing' }, { status: 503 })

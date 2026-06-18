@@ -44,7 +44,10 @@
     "security:audit-production": "npm audit --omit=dev --audit-level=high",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
-    "ops:hardening-behavior-regression": "node scripts/ops-hardening-behavior-regression.cjs"
+    "ops:hardening-behavior-regression": "node scripts/ops-hardening-behavior-regression.cjs",
+    "ops:final-contract-regression": "node scripts/ops-final-contract-regression.cjs",
+    "ops:integration": "node scripts/ops-final-db-integration.cjs",
+    "api:error-boundaries": "node scripts/check-api-error-boundaries.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

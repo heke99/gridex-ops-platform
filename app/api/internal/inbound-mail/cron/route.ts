@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
   let environment: 'test' | 'production'
   try {
     environment = parseEnvironment(request.nextUrl.searchParams.get('environment'))
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Ogiltig environment.' }, { status: 400 })
+  } catch {
+    return NextResponse.json({ ok: false, error: 'environment måste vara test eller production.', code: 'invalid_environment' }, { status: 400 })
   }
 
   const mailboxId = request.nextUrl.searchParams.get('mailbox_id') ?? request.nextUrl.searchParams.get('mailboxId')

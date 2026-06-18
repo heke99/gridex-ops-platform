@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { generateBillingUnderlaysForMonth } from '@/lib/billing/underlayEngine'
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
     const result = await generateBillingUnderlaysForMonth({ companyId, billingMonth, createdBy: access.guard.userId })
     return NextResponse.json({ data: result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte skapa fakturaunderlag.'
-    return NextResponse.json({ error: message }, { status: isBillingPeriodLockError(message) ? 409 : 500 })
+    const internalMessage = error instanceof Error ? error.message : ''
+    return internalApiError({ context: 'billing-underlay-generate', error, code: 'billing_underlay_generate_failed', message: 'Fakturaunderlaget kunde inte skapas.', status: isBillingPeriodLockError(internalMessage) ? 409 : 500 })
   }
 }

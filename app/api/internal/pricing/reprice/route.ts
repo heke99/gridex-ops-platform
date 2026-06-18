@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { calculatePricingPreviewForUnderlay } from '@/lib/pricing/engine'
@@ -19,7 +20,6 @@ export async function POST(request: Request) {
     const result = await calculatePricingPreviewForUnderlay({ companyId, billingUnderlayId, persist: true })
     return NextResponse.json({ data: { ...result, status: result.status === 'success' ? 'repriced' : result.status } })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte räkna om underlaget.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'pricing_reprice_failed', error, code: 'pricing_reprice_failed', message: 'Underlaget kunde inte räknas om.' })
   }
 }

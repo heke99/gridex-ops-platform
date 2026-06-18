@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import {
@@ -46,10 +47,12 @@ export async function POST(request: NextRequest) {
 
     return customerPortalJson({ data })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kundevent kunde inte behandlas.'
-    const status = typeof (error as { status?: unknown })?.status === 'number' ? (error as { status: number }).status : 500
-    const code = typeof (error as { code?: unknown })?.code === 'string' ? (error as { code: string }).code : 'customer_event_failed'
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: message })
-    return customerPortalJson({ error: message, code }, { status })
+    const controlled = typeof (error as { status?: unknown })?.status === 'number' && typeof (error as { code?: unknown })?.code === 'string'
+    const status = controlled ? (error as { status: number }).status : 500
+    const code = controlled ? (error as { code: string }).code : 'customer_event_failed'
+    const traceId = randomUUID()
+    console.error('[website-customer-events] failed', { traceId, error })
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { trace_id: traceId } })
+    return customerPortalJson({ error: controlled ? 'Kundeventet kunde inte behandlas.' : 'Kundeventet kunde inte behandlas just nu.', code, trace_id: traceId }, { status })
   }
 }

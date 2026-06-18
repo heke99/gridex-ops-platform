@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import {
@@ -68,8 +69,9 @@ export async function GET(request: NextRequest) {
       } : {}),
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Publicerade avtal kunde inte hämtas.'
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: message })
-    return customerPortalJson({ error: { code: 'public_contracts_unavailable', message } }, { status: 500 })
+    const traceId = randomUUID()
+    console.error('[public-contracts] failed', { traceId, error })
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'public_contracts_unavailable', metadata: { trace_id: traceId } })
+    return customerPortalJson({ error: { code: 'public_contracts_unavailable', message: 'Publicerade avtal kunde inte hämtas.', trace_id: traceId } }, { status: 500 })
   }
 }

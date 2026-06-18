@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 
@@ -28,7 +29,15 @@ export async function POST(request: Request) {
     })
     return NextResponse.json({ ok: true, result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Energy Resolver misslyckades.'
-    return NextResponse.json({ ok: false, error: message }, { status: /admin|forbidden|unauthorized/i.test(message) ? 403 : 500 })
+    const message = error instanceof Error ? error.message : ''
+    if (/admin|forbidden|unauthorized/i.test(message)) {
+      return NextResponse.json({ ok: false, error: 'Åtgärden kräver plattformsbehörighet.', code: 'platform_access_required' }, { status: 403 })
+    }
+    return internalApiError({
+      context: 'energy-resolve',
+      error,
+      code: 'energy_resolution_failed',
+      message: 'Energimatchningen kunde inte slutföras.',
+    })
   }
 }

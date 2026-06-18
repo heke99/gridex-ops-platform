@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { listDomainEventsForCompany } from '@/lib/events/domainEvents'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
@@ -63,15 +64,10 @@ export async function GET(request: NextRequest) {
       next_before: events.at(-1)?.occurred_at ?? null,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte läsa events.'
-    await logIntegrationApiRequest({
-      client: auth.client,
-      request,
-      statusCode: 500,
-      startedAt,
-      errorCode: message,
-    })
-    return NextResponse.json({ error: message }, { status: 500 })
+    const traceId = randomUUID()
+    console.error('[events-read] failed', { traceId, error })
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'events_read_failed', metadata: { trace_id: traceId } })
+    return NextResponse.json({ error: 'Händelser kunde inte hämtas just nu.', code: 'events_read_failed', trace_id: traceId }, { status: 500 })
   }
 }
 
@@ -117,10 +113,12 @@ export async function POST(request: NextRequest) {
     })
     return customerPortalJson({ data })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kundevent kunde inte behandlas.'
-    const status = typeof (error as { status?: unknown })?.status === 'number' ? (error as { status: number }).status : 500
-    const code = typeof (error as { code?: unknown })?.code === 'string' ? (error as { code: string }).code : 'customer_event_failed'
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: message })
-    return customerPortalJson({ error: message, code }, { status })
+    const controlled = typeof (error as { status?: unknown })?.status === 'number' && typeof (error as { code?: unknown })?.code === 'string'
+    const status = controlled ? (error as { status: number }).status : 500
+    const code = controlled ? (error as { code: string }).code : 'customer_event_failed'
+    const traceId = randomUUID()
+    console.error('[events-write] failed', { traceId, error })
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { trace_id: traceId } })
+    return customerPortalJson({ error: 'Kundeventet kunde inte behandlas.', code, trace_id: traceId }, { status })
   }
 }

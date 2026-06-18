@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
 import { supabaseService } from '@/lib/supabase/service'
-import { configuredEdielAutomationActorId } from '@/lib/ediel/automationActor'
+import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationActor'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
   const environment = clean(body.environment)
   let actorUserId: string
   try {
-    actorUserId = configuredEdielAutomationActorId()
+    actorUserId = await resolveConfiguredEdielAutomationActorId()
   } catch (error) {
     console.error('[ediel-outbox-company] automation actor configuration failed', error)
     return NextResponse.json({ ok: false, error: 'Ediel-automation saknar giltig systemaktör.', code: 'ediel_automation_actor_missing' }, { status: 503 })

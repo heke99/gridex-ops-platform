@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { importSpotPricesForMonth } from '@/lib/pricing/spot/spotPriceImporter'
@@ -22,7 +23,6 @@ export async function POST(request: Request) {
     const result = await importSpotPricesForMonth({ billingMonth, priceAreas, createdBy: access.guard.userId })
     return NextResponse.json({ data: result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Spotprisimporten misslyckades.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'spot_import_failed', error, code: 'spot_import_failed', message: 'Spotprisimporten kunde inte slutföras.' })
   }
 }

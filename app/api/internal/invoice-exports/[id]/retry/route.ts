@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { resetFailedInvoiceExportItems } from '@/lib/integrations/billing/invoiceExportCore'
@@ -19,7 +20,6 @@ export async function POST(request: Request, { params }: Props) {
     await resetFailedInvoiceExportItems({ companyId, exportRunId: id })
     return NextResponse.json({ data: { status: 'pending' } })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte återställa misslyckade exportposter.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'invoice_export_retry_failed', error, code: 'invoice_export_retry_failed', message: 'Misslyckade exportposter kunde inte återställas.' })
   }
 }

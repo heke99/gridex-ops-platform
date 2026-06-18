@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { internalApiError } from '@/lib/http/apiError'
 import {
   apiErrorResponse,
   requireAdminApiAccess,
@@ -65,17 +66,11 @@ export async function GET(request: NextRequest) {
   ])
 
   if (customerResponse.error) {
-    return NextResponse.json(
-      { error: customerResponse.error.message },
-      { status: 500 }
-    )
+    return internalApiError({ context: 'customer-switch-form-options-customer', error: customerResponse.error, code: 'customer_switch_form_options_failed', message: 'Kunduppgifter kunde inte hämtas.' })
   }
 
   if (suppliersResponse.error) {
-    return NextResponse.json(
-      { error: suppliersResponse.error.message },
-      { status: 500 }
-    )
+    return internalApiError({ context: 'customer-switch-form-options-suppliers', error: suppliersResponse.error, code: 'customer_switch_form_options_failed', message: 'Leverantörsalternativ kunde inte hämtas.' })
   }
 
   const ownSupplier: OwnSupplierOption = ownSupplierLookup.supplier

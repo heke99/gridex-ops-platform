@@ -19,9 +19,10 @@ import {
 } from '@/lib/energy/facilityDataErrors'
 import { getBaseAppUrl } from '@/lib/auth/urls'
 import { ensureCustomerPortalUserLink } from '@/lib/customer-portal/customerResolver'
-import { applyCustomerSiteAddressCandidate } from '@/lib/customer-sites/addressIntake'
+import { applyCustomerSiteAddressCandidate, createOrUpdateCustomerSiteFromAddress } from '@/lib/customer-sites/addressIntake'
 import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
 import { ensureCustomerApplicationWorkflow, transitionCustomerApplicationWorkflow } from '@/lib/website/applicationWorkflow'
+import { commitApplicationProvisioning, failApplicationProvisioning } from '@/lib/website/provisioningSaga'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -1415,6 +1416,44 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
   const hasSiteData = Boolean(facilityId || clean(site.street) || clean(site.city))
   if (!hasSiteData) return null
 
+  // A complete website address is provisioned atomically with the new site.
+  // This prevents a draft site without address history from being left behind
+  // if the address commit fails.
+  if (clean(site.street) && clean(site.postal_code) && clean(site.city)) {
+    const created = await createOrUpdateCustomerSiteFromAddress({
+      companyId,
+      customerId,
+      siteName: clean(site.site_name) ?? 'Anläggning',
+      facilityId,
+      address: {
+        street: clean(site.street) ?? '',
+        postalCode: clean(site.postal_code) ?? '',
+        city: clean(site.city) ?? '',
+        country: clean(site.country) ?? 'SE',
+        source: 'website',
+        sourceReference: null,
+        claimedGridOwnerId: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
+        metadata: { source: 'website_customer_applications' },
+      },
+    })
+    const { error: enrichmentError } = await supabaseService
+      .from('customer_sites')
+      .update({
+        site_name: clean(site.site_name) ?? 'Anläggning',
+        facility_id: facilityId,
+        site_type: clean(site.site_type) ?? 'consumption',
+        status: 'active',
+        move_in_date: clean(site.move_in_date),
+        annual_consumption_kwh: site.annual_consumption_kwh ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('company_id', companyId)
+      .eq('customer_id', customerId)
+      .eq('id', created.siteId)
+    if (enrichmentError) throw enrichmentError
+    return { id: created.siteId, facility_id: facilityId }
+  }
+
   const fullPayload = {
     company_id: companyId,
     customer_id: customerId,
@@ -2614,14 +2653,18 @@ export async function processWebsiteCustomerApplication(input: {
       if (applicationUpdateResult.error && !missingSchema(applicationUpdateResult.error)) throw applicationUpdateResult.error
     }
 
-    const workflow = await stage('application_workflow', () => ensureCustomerApplicationWorkflow({
+    // This is the durable commit point. No external grid-owner or Ediel automation
+    // is allowed before all internal references, legal state and workflow metadata
+    // are atomically verified in PostgreSQL.
+    const workflow = await stage('application_workflow', () => commitApplicationProvisioning({
       companyId: input.client.company_id,
       applicationId: application.id,
       customerId: resolvedCustomerResult.customer.id,
-      customerSiteId: site?.id ?? null,
+      siteId: site?.id ?? null,
       meteringPointId: meteringPoint?.id ?? null,
       contractId: contract?.id ?? null,
-      state: readiness.canStartSwitch ? 'ready_for_switch' : site?.id && powerOfAttorneyId ? 'pending_customer_data' : 'pending_review',
+      powerOfAttorneyId,
+      desiredState: readiness.canStartSwitch ? 'ready_for_switch' : site?.id && powerOfAttorneyId ? 'pending_customer_data' : 'pending_review',
       snapshot: {
         application_status: applicationStatus,
         resolver_status: energyResolution.resolution.resolutionStatus,
@@ -2914,6 +2957,12 @@ export async function processWebsiteCustomerApplication(input: {
     })
 
     if (failedApplication?.id && customerResult?.customer?.id) {
+      await failApplicationProvisioning({
+        companyId: input.client.company_id,
+        applicationId: failedApplication.id,
+        code: appError.code,
+        detail: errorMessage(appError),
+      })
       await ensureCustomerApplicationWorkflow({
         companyId: input.client.company_id,
         applicationId: failedApplication.id,

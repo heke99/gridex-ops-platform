@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
@@ -48,7 +49,6 @@ export async function GET(request: Request, { params }: Props) {
 
     return NextResponse.json({ data: { invoiceStatus, financeStatus, invoice: plainSettled(invoice), financial: plainSettled(financial), purchase: plainSettled(purchase), recourse: plainSettled(recourse) } })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte hämta providerstatus.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'invoice_provider_status_failed', error, code: 'invoice_provider_status_failed', message: 'Providerstatus kunde inte hämtas.' })
   }
 }

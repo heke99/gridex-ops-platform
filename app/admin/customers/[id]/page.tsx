@@ -2175,27 +2175,39 @@ export default async function CustomerAdminDetailPage({
 
   const isReadyEdielRouteForGridOwner = (gridOwnerId: string) =>
     edielData.recommendationRoutes.some((route) => {
-      const receiverEdielId =
-        route.profile?.receiver_ediel_id?.trim() ||
-        route.grid_owner_ediel_id?.trim() ||
-        "";
-      const gridOwnerEdielId = route.grid_owner_ediel_id?.trim() || "";
+      const profile = route.profile
+      const receiverEdielId = profile?.receiver_ediel_id?.trim() || route.grid_owner_ediel_id?.trim() || ''
+      const gridOwnerEdielId = route.grid_owner_ediel_id?.trim() || ''
+      const receiverSubaddress = profile?.receiver_message_subaddress?.trim() || profile?.receiver_sub_address?.trim() || ''
+      const profileFamily = profile?.message_family?.trim().toUpperCase() || null
+      const profileCode = profile?.message_code?.trim().toUpperCase() || null
+      const requiresSubaddress = profile?.subaddress_required === true
+      const productionProdat = profile?.environment === 'production' && (profileFamily === 'PRODAT' || !profileFamily)
+      const secureTransport = profile?.transport_security_mode?.trim().toLowerCase()
+      const encryptionMode = profile?.encryption_mode?.trim().toLowerCase()
+      const requiresCertificate = profile?.certificate_required === true || encryptionMode === 'smime' || secureTransport === 'required_encrypted' || secureTransport === 'encrypted'
+      const supportsCustomerDataOrSwitch = !profileCode || ['Z01', 'Z03'].includes(profileCode)
 
-      // A route is only ready for this delivery point when it is bound to the
-      // same verified grid owner and contains the outbound PRODAT addressing
-      // data that the dispatcher will actually use.
+      // This mirrors the outbound contract guard for the customer-facing
+      // readiness state. Sending performs the final certificate-validity check.
       return Boolean(
         route.grid_owner_id === gridOwnerId &&
         route.is_active &&
-        route.profile?.is_enabled &&
-        route.profile?.sender_ediel_id?.trim() &&
+        profile?.is_enabled &&
+        profile?.sender_ediel_id?.trim() &&
         receiverEdielId &&
-        route.profile?.receiver_sub_address?.trim() &&
+        (!requiresSubaddress || receiverSubaddress) &&
         route.target_email?.trim() &&
-        route.profile?.mailbox?.trim() &&
-        (!gridOwnerEdielId || receiverEdielId === gridOwnerEdielId),
-      );
-    });
+        profile?.mailbox?.trim() &&
+        (!gridOwnerEdielId || receiverEdielId === gridOwnerEdielId) &&
+        (!profileFamily || profileFamily === 'PRODAT') &&
+        supportsCustomerDataOrSwitch &&
+        (!profile?.application_reference || profile.application_reference.trim().toUpperCase() === '23-DDQ-PRODAT') &&
+        (!productionProdat || encryptionMode === 'smime') &&
+        (!requiresCertificate || Boolean(profile?.receiver_certificate_id))
+      )
+    })
+
 
   const routeReadyBySiteId = Object.fromEntries(
     sites.map((site) => {

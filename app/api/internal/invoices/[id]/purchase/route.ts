@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
@@ -51,7 +52,6 @@ export async function POST(request: Request, { params }: Props) {
 
     return NextResponse.json({ data: result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Kunde inte begära fakturaköp.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return internalApiError({ context: 'invoice_purchase_failed', error, code: 'invoice_purchase_failed', message: 'Fakturaköp kunde inte begäras.' })
   }
 }

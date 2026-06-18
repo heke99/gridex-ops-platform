@@ -6,6 +6,7 @@ import {
 } from '@/lib/admin/apiGuards'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertCompanyAccessForGuard } from '@/lib/tenant/entityGuards'
+import { internalApiError } from '@/lib/http/apiError'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,9 +28,7 @@ export async function GET(
     .eq('id', documentId)
     .maybeSingle()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (error) return internalApiError({ context: 'customer-document-read', error, code: 'customer_document_read_failed', message: 'Dokumentet kunde inte hämtas.' })
 
   if (!document) {
     return jsonError('Dokumentet hittades inte', 404)
@@ -54,10 +53,7 @@ export async function GET(
     })
 
   if (signedUrlResponse.error || !signedUrlResponse.data?.signedUrl) {
-    return NextResponse.json(
-      { error: signedUrlResponse.error?.message ?? 'Kunde inte skapa signed URL' },
-      { status: 404 }
-    )
+    return internalApiError({ context: 'customer-document-signed-url', error: signedUrlResponse.error ?? new Error('signed_url_missing'), code: 'customer_document_url_failed', message: 'Dokumentlänken kunde inte skapas.', status: 404 })
   }
 
   return NextResponse.redirect(signedUrlResponse.data.signedUrl)
