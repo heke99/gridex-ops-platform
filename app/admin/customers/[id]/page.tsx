@@ -1548,10 +1548,12 @@ function CustomerWebsiteTraceabilityCard({
   customer,
   applications,
   billingPartners,
+  isPlatformAdmin,
 }: {
   customer: CustomerRow;
   applications: WebsiteApplicationAdminRow[];
   billingPartners: BillingPartnerCustomerSummary[];
+  isPlatformAdmin: boolean;
 }) {
   const latestApplication = applications[0] ?? null;
   const latestBillingPartner = billingPartners[0] ?? null;
@@ -1576,6 +1578,23 @@ function CustomerWebsiteTraceabilityCard({
     (missingFields.length > 0
       ? "Komplettera kundansökan."
       : "Kontrollera kundens nästa steg.");
+
+  if (!isPlatformAdmin) {
+    return (
+      <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-6 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">Kundöversikt</p>
+        <h2 className="mt-2 text-xl font-semibold text-slate-950">Kundens ärende</h2>
+        <p className="mt-2 text-sm leading-6 text-emerald-900">Samlad status för kundens ansökan och nästa administrativa steg.</p>
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Kundnummer</div><div className="mt-1 font-mono text-sm font-semibold text-slate-950">{customer.customer_number ?? "—"}</div></div>
+          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Kundkälla</div><div className="mt-1 text-sm font-semibold text-slate-950">{origin}</div></div>
+          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Ansökningsstatus</div><div className="mt-1 text-sm font-semibold text-slate-950">{latestStatus}</div></div>
+          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3"><div className="text-xs uppercase tracking-[0.14em] text-slate-600">Senaste uppdatering</div><div className="mt-1 text-sm font-semibold text-slate-950">{formatDateTime(latestApplication?.updated_at ?? latestApplication?.created_at ?? customer.created_at)}</div></div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-6 shadow-sm ">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -2637,6 +2656,7 @@ export default async function CustomerAdminDetailPage({
         billingPartners={
           billingPartnerCustomers as BillingPartnerCustomerSummary[]
         }
+        isPlatformAdmin={isPlatformAdmin}
       />
 
       <CustomerWorkspaceTabNav
@@ -3092,6 +3112,7 @@ export default async function CustomerAdminDetailPage({
             customerType={normalizedCustomerType}
             contacts={contacts}
             addresses={addresses}
+            sites={sites}
           />
         </SectionAnchor>
       ) : null}

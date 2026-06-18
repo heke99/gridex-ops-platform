@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import type { EnergyResolverResult } from '@/lib/energy/types'
@@ -55,6 +56,7 @@ type JobRow = {
   locked_by: string | null
   last_error: string | null
   created_by: string | null
+  operation_id: string
 }
 
 type JobOutcome = {
@@ -152,7 +154,8 @@ async function enqueue(input: {
   idempotencyKey: string
   payload?: JsonRecord
   priority?: number
-}): Promise<{ id: string; duplicate: boolean }> {
+  operationId?: string | null
+}): Promise<{ id: string; duplicate: boolean; operationId: string }> {
   const row = {
     company_id: input.companyId,
     customer_id: input.customerId,
@@ -162,6 +165,7 @@ async function enqueue(input: {
     status: 'queued',
     priority: input.priority ?? 100,
     idempotency_key: input.idempotencyKey,
+    operation_id: input.operationId ?? randomUUID(),
     payload: input.payload ?? {},
     created_by: uuidOrNull(input.actorUserId),
   }
@@ -172,7 +176,7 @@ async function enqueue(input: {
     .select('id')
     .single()
 
-  if (!error && data?.id) return { id: String(data.id), duplicate: false }
+  if (!error && data?.id) return { id: String(data.id), duplicate: false, operationId: String(row.operation_id) }
   if (!duplicate(error)) {
     if (missingSchema(error)) throw new Error('Automationstabellen saknas. Kör migrationen för kundautomation först.')
     throw error
@@ -180,7 +184,7 @@ async function enqueue(input: {
 
   const { data: existing, error: existingError } = await supabaseService
     .from('customer_operation_jobs')
-    .select('id')
+    .select('id, operation_id')
     .eq('company_id', input.companyId)
     .eq('job_type', input.jobType)
     .eq('idempotency_key', input.idempotencyKey)
@@ -190,7 +194,7 @@ async function enqueue(input: {
     .maybeSingle()
   if (existingError) throw existingError
   if (!existing?.id) throw error
-  return { id: String(existing.id), duplicate: true }
+  return { id: String(existing.id), duplicate: true, operationId: clean(existing.operation_id) ?? String(existing.id) }
 }
 
 export async function enqueueCustomerDataRequestAutomation(input: {
@@ -199,6 +203,7 @@ export async function enqueueCustomerDataRequestAutomation(input: {
   siteId: string
   actorUserId?: string | null
   meteringPointId?: string | null
+  operationId?: string | null
 }) {
   const job = await enqueue({
     ...input,
@@ -216,7 +221,13 @@ export async function enqueueCustomerDataRequestAutomation(input: {
       eventType: 'customer_data.automation_started',
       title: 'Uppgiftsbegäran startad',
       message: 'Systemet söker nätägare och förbereder uppgiftsbegäran i bakgrunden.',
-      payload: { customer_operation_job_id: job.id, site_id: input.siteId },
+      customerSiteId: input.siteId,
+      meteringPointId: input.meteringPointId ?? null,
+      customerOperationJobId: job.id,
+      operationId: job.operationId,
+      status: 'queued',
+      actionUrl: `/admin/customers/${input.customerId}?tab=data-requests`,
+      payload: { customer_operation_job_id: job.id, operation_id: job.operationId, site_id: input.siteId },
       idempotencyKey: `customer_data.automation_started:${job.id}`,
     })
   }
@@ -230,6 +241,7 @@ export async function enqueueSupplierSwitchAutomation(input: {
   siteId: string
   actorUserId?: string | null
   meteringPointId?: string | null
+  operationId?: string | null
 }) {
   const job = await enqueue({
     ...input,
@@ -247,7 +259,13 @@ export async function enqueueSupplierSwitchAutomation(input: {
       eventType: 'supplier_switch.automation_started',
       title: 'Leverantörsbyte kontrolleras',
       message: 'Systemet kontrollerar anläggning, mätpunkt, nätägare, fullmakt och avtal i bakgrunden.',
-      payload: { customer_operation_job_id: job.id, site_id: input.siteId },
+      customerSiteId: input.siteId,
+      meteringPointId: input.meteringPointId ?? null,
+      customerOperationJobId: job.id,
+      operationId: job.operationId,
+      status: 'queued',
+      actionUrl: `/admin/customers/${input.customerId}?tab=supplier-switch`,
+      payload: { customer_operation_job_id: job.id, operation_id: job.operationId, site_id: input.siteId },
       idempotencyKey: `supplier_switch.automation_started:${job.id}`,
     })
   }
@@ -263,6 +281,7 @@ export async function enqueueInboundGridOwnerResponseAutomation(input: {
   edielMessageId: string
   actorUserId?: string | null
   meteringPointId?: string | null
+  operationId?: string | null
 }) {
   return enqueue({
     companyId: input.companyId,
@@ -270,6 +289,7 @@ export async function enqueueInboundGridOwnerResponseAutomation(input: {
     siteId: input.siteId,
     meteringPointId: input.meteringPointId ?? null,
     actorUserId: input.actorUserId,
+    operationId: input.operationId ?? null,
     jobType: 'apply_inbound_grid_owner_response',
     idempotencyKey: `inbound-grid-owner-response:${input.edielMessageId}`,
     payload: { customer_info_request_id: input.requestId, ediel_message_id: input.edielMessageId },
@@ -286,6 +306,8 @@ export async function resolveCustomerSiteGridOwner(input: {
   facilityId?: string | null
   meteringPointId?: string | null
   knownGridOwnerId?: string | null
+  operationId?: string | null
+  customerOperationJobId?: string | null
 }): Promise<{ state: 'verified' | 'suggested' | 'needs_review'; result: EnergyResolverResult }> {
   const { data, error } = await supabaseService
     .from('customer_sites')
@@ -321,7 +343,12 @@ export async function resolveCustomerSiteGridOwner(input: {
       eventType: 'facility.address_incomplete',
       title: 'Anläggningsadress behöver kompletteras',
       message: 'Systemet behöver gata, femsiffrigt postnummer och ort för att kunna hitta rätt nätägare.',
-      payload: { site_id: input.siteId, resolution: result },
+      customerSiteId: input.siteId,
+      meteringPointId: input.meteringPointId ?? null,
+      customerOperationJobId: input.customerOperationJobId ?? null,
+      operationId: input.operationId ?? null,
+      actionUrl: `/admin/customers/${input.customerId}?tab=facility`,
+      payload: { site_id: input.siteId, operation_id: input.operationId ?? null, resolution: result },
       idempotencyKey: `facility.address-incomplete:${input.siteId}:${clean(site.address_hash) ?? 'missing'}`,
     })
     return { state: 'needs_review', result }
@@ -379,7 +406,12 @@ export async function resolveCustomerSiteGridOwner(input: {
       message: state === 'suggested'
         ? 'Systemet har hittat en möjlig nätägare men skickar inget förrän kontaktvägen är verifierad.'
         : 'Systemet behöver mer adress- eller nätområdesdata innan begäran kan skickas.',
-      payload: { resolution: resolved, site_id: input.siteId },
+      customerSiteId: input.siteId,
+      meteringPointId: input.meteringPointId ?? null,
+      customerOperationJobId: input.customerOperationJobId ?? null,
+      operationId: input.operationId ?? null,
+      actionUrl: `/admin/customers/${input.customerId}?tab=facility`,
+      payload: { resolution: resolved, site_id: input.siteId, operation_id: input.operationId ?? null },
       idempotencyKey: `facility.grid-owner-resolution:${input.siteId}:${resolved.lookupKey}:${state}`,
     })
     return { state, result: resolved }
@@ -417,7 +449,11 @@ export async function resolveCustomerSiteGridOwner(input: {
     eventType: 'facility.grid_owner_verified',
     title: 'Nätägare verifierad',
     message: 'Systemet har verifierat nätägare och kontaktväg för anläggningen.',
-    payload: { grid_owner_id: resolved.gridOwnerId, grid_area_code: resolved.gridAreaCode, price_area_code: resolved.priceArea, resolution_id: resolved.resolutionId ?? null },
+    customerSiteId: input.siteId,
+    meteringPointId: input.meteringPointId ?? null,
+    customerOperationJobId: input.customerOperationJobId ?? null,
+    operationId: input.operationId ?? null,
+    payload: { grid_owner_id: resolved.gridOwnerId, grid_area_code: resolved.gridAreaCode, price_area_code: resolved.priceArea, resolution_id: resolved.resolutionId ?? null, operation_id: input.operationId ?? null },
     idempotencyKey: `facility.grid-owner-verified:${input.siteId}:${resolved.gridOwnerId}:${resolved.gridAreaCode ?? ''}`,
   })
 
@@ -440,14 +476,38 @@ async function requestForSite(input: { companyId: string; customerId: string; si
   return data as JsonRecord | null
 }
 
+async function linkOperationResources(input: {
+  companyId: string
+  operationId: string
+  customerInfoRequestId?: string | null
+  gridOwnerDataRequestId?: string | null
+  outboundRequestId?: string | null
+  supplierSwitchRequestId?: string | null
+}) {
+  const updates = [
+    input.customerInfoRequestId ? supabaseService.from('customer_info_requests').update({ operation_id: input.operationId }).eq('id', input.customerInfoRequestId).eq('company_id', input.companyId) : null,
+    input.gridOwnerDataRequestId ? supabaseService.from('grid_owner_data_requests').update({ operation_id: input.operationId }).eq('id', input.gridOwnerDataRequestId).eq('company_id', input.companyId) : null,
+    input.outboundRequestId ? supabaseService.from('outbound_requests').update({ operation_id: input.operationId }).eq('id', input.outboundRequestId).eq('company_id', input.companyId) : null,
+    input.supplierSwitchRequestId ? supabaseService.from('supplier_switch_requests').update({ operation_id: input.operationId }).eq('id', input.supplierSwitchRequestId).eq('company_id', input.companyId) : null,
+  ].filter((query): query is NonNullable<typeof query> => query !== null)
+
+  const results = await Promise.all(updates)
+  for (const result of results) {
+    if (result.error && !missingSchema(result.error)) console.warn('[customer-operation] operation link skipped', result.error)
+  }
+}
+
 async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
   if (!job.customer_site_id) return { status: 'failed', result: { reason: 'missing_site_id' } }
   const actorUserId = automationActorId(job.created_by)
+  const operationId = job.operation_id ?? job.id
   const resolved = await resolveCustomerSiteGridOwner({
     companyId: job.company_id,
     customerId: job.customer_id,
     siteId: job.customer_site_id,
     actorUserId,
+    operationId,
+    customerOperationJobId: job.id,
   })
 
   if (resolved.state !== 'verified' || !resolved.result.gridOwnerId) {
@@ -470,12 +530,21 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
     requestedDataCategories: ['facility_id', 'metering_point_id', 'grid_area', 'customer_masterdata'],
     notes: 'Automatiskt skapad från kundkortet.',
     externalReference: `AUTO-Z01-${job.id.slice(0, 8).toUpperCase()}`,
+    operationId,
   })
 
   const dispatch = await queueCustomerInfoRequestForDispatch({
     companyId: job.company_id,
     actorUserId: actorUserId,
     requestId: String(request.id),
+  })
+
+  await linkOperationResources({
+    companyId: job.company_id,
+    operationId,
+    customerInfoRequestId: String(request.id),
+    gridOwnerDataRequestId: dispatch.gridOwnerDataRequestId,
+    outboundRequestId: dispatch.outboundRequestId,
   })
 
   const waiting = ['z01_prepared', 'sent_to_grid_owner', 'waiting_for_z02', 'waiting_for_aperak', 'waiting_for_contrl'].includes(dispatch.status)
@@ -488,7 +557,12 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
     message: waiting
       ? 'Systemet har förberett uppgiftsbegäran och väntar på svar från nätägaren.'
       : (dispatch.blockerReason ?? 'Systemet kunde inte skicka begäran automatiskt.'),
-    payload: { customer_info_request_id: request.id, dispatch },
+    customerSiteId: job.customer_site_id,
+    meteringPointId: job.metering_point_id,
+    customerOperationJobId: job.id,
+    operationId,
+    actionUrl: `/admin/customers/${job.customer_id}?tab=data-requests`,
+    payload: { customer_info_request_id: request.id, operation_id: operationId, dispatch },
     idempotencyKey: `customer-data-dispatch:${job.id}:${dispatch.status}`,
   })
 
@@ -556,6 +630,8 @@ export async function applyInboundGridOwnerResponse(input: {
   requestId: string
   edielMessageId: string
   actorUserId: string | null
+  operationId?: string | null
+  customerOperationJobId?: string | null
 }): Promise<JsonRecord> {
   const [{ data: messageData, error: messageError }, { data: requestData, error: requestError }, { data: siteData, error: siteError }] = await Promise.all([
     supabaseService.from('ediel_messages').select('*').eq('id', input.edielMessageId).eq('company_id', input.companyId).maybeSingle(),
@@ -571,6 +647,18 @@ export async function applyInboundGridOwnerResponse(input: {
   const request = requestData as JsonRecord
   const site = siteData as JsonRecord
   const effectiveActorUserId = uuidOrNull(input.actorUserId) ?? uuidOrNull(request.created_by) ?? uuidOrNull(message.created_by)
+  const operationId = input.operationId ?? uuidOrNull(request.operation_id) ?? randomUUID()
+  await linkOperationResources({
+    companyId: input.companyId,
+    operationId,
+    customerInfoRequestId: input.requestId,
+  })
+  const messageOperationUpdate = await supabaseService
+    .from('ediel_messages')
+    .update({ operation_id: operationId })
+    .eq('id', input.edielMessageId)
+    .eq('company_id', input.companyId)
+  if (messageOperationUpdate.error && !missingSchema(messageOperationUpdate.error)) throw messageOperationUpdate.error
   const { parsed, line } = z02Line(message)
   const meterPointExternalId = clean(line.meteringPointId)
   const facilityId = clean(site.facility_id) ?? meterPointExternalId
@@ -595,7 +683,11 @@ export async function applyInboundGridOwnerResponse(input: {
       eventType: 'customer_data.needs_review',
       title: 'Svar från nätägaren behöver granskas',
       message: 'Svaret matchade inte den nätägare som uppgiftsbegäran skickades till.',
-      payload: conflict,
+      customerSiteId: input.siteId,
+      customerOperationJobId: input.customerOperationJobId ?? null,
+      operationId,
+      actionUrl: `/admin/customers/${input.customerId}?tab=data-requests`,
+      payload: { ...conflict, operation_id: operationId },
       idempotencyKey: `z02-grid-owner-conflict:${input.edielMessageId}`,
     })
     return conflict
@@ -609,6 +701,8 @@ export async function applyInboundGridOwnerResponse(input: {
     facilityId,
     meteringPointId: meterPointExternalId,
     knownGridOwnerId: responseGridOwnerId ?? requestedGridOwnerId,
+    operationId,
+    customerOperationJobId: input.customerOperationJobId ?? null,
   })
   const verifiedGridOwnerId = resolution.state === 'verified' ? resolution.result.gridOwnerId : null
   const now = nowIso()
@@ -684,7 +778,12 @@ export async function applyInboundGridOwnerResponse(input: {
     message: verifiedGridOwnerId && meteringPointRecordId
       ? 'Systemet har uppdaterat anläggning, mätpunkt och nätägare från nätägarens svar.'
       : 'Systemet kunde inte verifiera alla uppgifter automatiskt.',
-    payload: applied,
+    customerSiteId: input.siteId,
+    meteringPointId: meteringPointRecordId,
+    customerOperationJobId: input.customerOperationJobId ?? null,
+    operationId,
+    actionUrl: `/admin/customers/${input.customerId}?tab=data-requests`,
+    payload: { ...applied, operation_id: operationId },
     idempotencyKey: `z02-masterdata-applied:${input.edielMessageId}`,
   })
 
@@ -695,6 +794,7 @@ export async function applyInboundGridOwnerResponse(input: {
       siteId: input.siteId,
       meteringPointId: meteringPointRecordId,
       actorUserId: effectiveActorUserId,
+      operationId,
     })
   }
 
@@ -713,6 +813,8 @@ async function processInboundResponse(job: JobRow): Promise<JobOutcome> {
     requestId,
     edielMessageId: messageId,
     actorUserId: job.created_by,
+    operationId: job.operation_id ?? job.id,
+    customerOperationJobId: job.id,
   })
   return { status: 'completed', result }
 }
@@ -725,6 +827,7 @@ async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
     return { status: 'failed', result: { reason: 'site_not_found_or_wrong_tenant' } }
   }
   const actorUserId = automationActorId(job.created_by)
+  const operationId = job.operation_id ?? job.id
   const [meteringPoints, powers] = await Promise.all([
     listMeteringPointsForSite(supabaseService, siteId),
     listPowersOfAttorneyByCustomerId(supabaseService, job.customer_id),
@@ -750,7 +853,12 @@ async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
       eventType: 'supplier_switch.blocked',
       title: 'Leverantörsbyte kan inte startas ännu',
       message: `Saknas eller behöver kompletteras: ${labels.join(', ') || 'uppgifter för leverantörsbyte'}.`,
-      payload: { readiness, grid_owner_verification: verification },
+      customerSiteId: siteId,
+      meteringPointId: candidate?.id ?? null,
+      customerOperationJobId: job.id,
+      operationId,
+      actionUrl: `/admin/customers/${job.customer_id}?tab=supplier-switch`,
+      payload: { readiness, grid_owner_verification: verification, operation_id: operationId },
       idempotencyKey: `supplier-switch-blocked:${job.id}`,
     })
     return { status: 'needs_review', result: { readiness, grid_owner_verification: verification, blockers: labels } }
@@ -767,6 +875,12 @@ async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
     companyId: job.company_id,
     automationOrigin: 'customer_operation_job',
     automationKey: `customer-operation:${job.customer_id}:${siteId}:${candidate.id}`,
+  })
+
+  await linkOperationResources({
+    companyId: job.company_id,
+    operationId,
+    supplierSwitchRequestId: String(request.id),
   })
 
   const started = await startSupplierSwitch({
@@ -788,7 +902,12 @@ async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
     eventType: 'supplier_switch.requested',
     title: 'Leverantörsbyte förberett',
     message: 'Systemet har kontrollerat uppgifterna och förberett teknisk sändning.',
-    payload: { supplier_switch_request_id: request.id, duplicate: Boolean(started.duplicate) },
+    customerSiteId: siteId,
+    meteringPointId: candidate.id,
+    customerOperationJobId: job.id,
+    operationId,
+    actionUrl: `/admin/customers/${job.customer_id}?tab=supplier-switch`,
+    payload: { supplier_switch_request_id: request.id, duplicate: Boolean(started.duplicate), operation_id: operationId },
     idempotencyKey: `supplier-switch-requested:${request.id}`,
   })
 
@@ -835,6 +954,21 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
           last_error: null,
           completed_at: ['completed', 'needs_review', 'failed', 'skipped', 'cancelled'].includes(outcome.status) ? nowIso() : null,
         })
+        await emitCustomerOperationEvent({
+          companyId: job.company_id,
+          customerId: job.customer_id,
+          eventType: `operation.${outcome.status}`,
+          title: operationTitle(job.job_type),
+          message: outcome.status === 'completed' ? 'Automationssteget är klart.' : outcome.status === 'waiting_response' ? 'Automationssteget väntar på svar.' : 'Automationssteget behöver följas upp.',
+          customerSiteId: job.customer_site_id,
+          meteringPointId: job.metering_point_id,
+          customerOperationJobId: job.id,
+          operationId: job.operation_id ?? job.id,
+          status: outcome.status,
+          actionUrl: `/admin/customers/${job.customer_id}`,
+          payload: { job_type: job.job_type, result: outcome.result ?? {} },
+          idempotencyKey: `operation-status:${job.id}:${outcome.status}`,
+        })
         return { outcome, error: null as string | null, terminal: false }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Kundautomation misslyckades.'
@@ -847,6 +981,23 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
           last_error: message,
           completed_at: terminal ? nowIso() : null,
         })
+        if (terminal) {
+          await emitCustomerOperationEvent({
+            companyId: job.company_id,
+            customerId: job.customer_id,
+            eventType: 'operation.failed',
+            title: operationTitle(job.job_type),
+            message: 'Automationssteget kunde inte slutföras och behöver granskas.',
+            customerSiteId: job.customer_site_id,
+            meteringPointId: job.metering_point_id,
+            customerOperationJobId: job.id,
+            operationId: job.operation_id ?? job.id,
+            status: 'failed',
+            actionUrl: `/admin/customers/${job.customer_id}`,
+            payload: { job_type: job.job_type, error: message },
+            idempotencyKey: `operation-failed:${job.id}`,
+          })
+        }
         return { outcome: null, error: `${job.id}: ${message}`, terminal }
       }
     },

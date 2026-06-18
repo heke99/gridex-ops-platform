@@ -1,6 +1,22 @@
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { supabaseService } from '@/lib/supabase/service'
 
+type JsonRecord = Record<string, unknown>
+
+export type CustomerOperationEventStatus =
+  | 'queued'
+  | 'in_progress'
+  | 'waiting_response'
+  | 'response_received'
+  | 'completed'
+  | 'needs_review'
+  | 'failed'
+  | 'blocked'
+  | 'skipped'
+  | 'cancelled'
+
+export type CustomerOperationEventSeverity = 'info' | 'warning' | 'error' | 'critical'
+
 type OperationEventInput = {
   companyId: string
   customerId: string
@@ -11,8 +27,17 @@ type OperationEventInput = {
   aggregateType?: string
   aggregateId?: string | null
   source?: string
-  payload?: Record<string, unknown>
+  payload?: JsonRecord
   idempotencyKey?: string | null
+  customerSiteId?: string | null
+  meteringPointId?: string | null
+  customerOperationJobId?: string | null
+  operationId?: string | null
+  status?: CustomerOperationEventStatus
+  severity?: CustomerOperationEventSeverity
+  actionRequired?: boolean
+  actionUrl?: string | null
+  visibility?: 'tenant' | 'platform'
 }
 
 function isMissingSchema(error: unknown): boolean {
@@ -21,46 +46,90 @@ function isMissingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST205', 'PGRST204'].includes(code) || /does not exist|schema cache|column .* does not exist/i.test(message)
 }
 
-export async function emitCustomerOperationEvent(input: OperationEventInput) {
-  const payload = { title: input.title, message: input.message, ...(input.payload ?? {}) }
+function uuidOrNull(value: unknown): string | null {
+  const candidate = typeof value === 'string' ? value.trim() : ''
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
+    ? candidate
+    : null
+}
+
+function deriveStatus(eventCode: string): CustomerOperationEventStatus {
+  if (/\.(cancelled|canceled)$/.test(eventCode)) return 'cancelled'
+  if (/\.(failed|error)$/.test(eventCode)) return 'failed'
+  if (/\.(blocked)$/.test(eventCode)) return 'blocked'
+  if (/(needs_review|incomplete|missing|suggested)/.test(eventCode)) return 'needs_review'
+  if (/(waiting|requested|prepared)/.test(eventCode)) return 'waiting_response'
+  if (/(received|response)/.test(eventCode)) return 'response_received'
+  if (/(completed|verified|applied)/.test(eventCode)) return 'completed'
+  if (/(started|queued)/.test(eventCode)) return 'queued'
+  return 'in_progress'
+}
+
+function deriveSeverity(status: CustomerOperationEventStatus): CustomerOperationEventSeverity {
+  if (status === 'failed') return 'error'
+  if (status === 'blocked') return 'error'
+  if (status === 'needs_review') return 'warning'
+  return 'info'
+}
+
+/**
+ * Writes the tenant operational timeline. This is deliberately separate from
+ * customer_events, which is reserved for customer portal / website events.
+ * Timeline writes are best-effort so telemetry can never fail an automation job.
+ */
+export async function emitCustomerOperationEvent(input: OperationEventInput): Promise<void> {
+  const payload = input.payload ?? {}
+  const customerSiteId = input.customerSiteId ?? uuidOrNull(payload.site_id) ?? uuidOrNull(payload.customer_site_id)
+  const meteringPointId = input.meteringPointId ?? uuidOrNull(payload.metering_point_id)
+  const customerOperationJobId = input.customerOperationJobId ?? uuidOrNull(payload.customer_operation_job_id)
+  const operationId = input.operationId ?? uuidOrNull(payload.operation_id)
+  const status = input.status ?? deriveStatus(input.eventType)
+  const actionRequired = input.actionRequired ?? ['needs_review', 'failed', 'blocked'].includes(status)
 
   await emitDomainEvent({
     companyId: input.companyId,
     eventType: input.eventType,
-    aggregateType: input.aggregateType ?? 'customer',
-    aggregateId: input.aggregateId ?? input.customerId,
+    aggregateType: input.aggregateType ?? (customerSiteId ? 'customer_site' : 'customer'),
+    aggregateId: input.aggregateId ?? customerSiteId ?? input.customerId,
     subjectCustomerId: input.customerId,
     actorUserId: input.actorUserId ?? null,
     source: input.source ?? 'customer_operations',
-    payload,
+    payload: { title: input.title, message: input.message, operation_id: operationId, ...payload },
     idempotencyKey: input.idempotencyKey ?? null,
   }).catch((error) => {
-    if (!isMissingSchema(error)) console.warn('[customer-operation-events] domain event skipped', error)
+    console.warn('[customer-operation-events] domain event skipped', error)
   })
 
-  const row = {
-    company_id: input.companyId,
-    customer_id: input.customerId,
-    event_type: input.eventType,
-    source: input.source ?? 'customer_operations',
-    payload,
-    metadata: { title: input.title, message: input.message, ...(input.payload ?? {}) },
+  const { error } = await supabaseService
+    .from('customer_operation_events')
+    .insert({
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      customer_site_id: customerSiteId,
+      metering_point_id: meteringPointId,
+      customer_operation_job_id: customerOperationJobId,
+      operation_id: operationId,
+      event_code: input.eventType,
+      title: input.title,
+      message: input.message,
+      status,
+      severity: input.severity ?? deriveSeverity(status),
+      action_required: actionRequired,
+      action_url: input.actionUrl ?? null,
+      source: input.source ?? 'customer_operations',
+      visibility: input.visibility ?? 'tenant',
+      payload: { ...payload, operation_id: operationId },
+      idempotency_key: input.idempotencyKey ?? null,
+    })
+
+  if (!error || (error as { code?: string }).code === '23505') return
+  if (isMissingSchema(error)) {
+    console.warn('[customer-operation-events] timeline schema is not applied yet')
+    return
   }
 
-  const { error } = await supabaseService.from('customer_events').insert(row)
-  if (error && !isMissingSchema(error)) throw error
-
-  await supabaseService.from('customer_notifications').insert({
-    company_id: input.companyId,
-    customer_id: input.customerId,
-    type: input.eventType,
-    title: input.title,
-    message: input.message,
-    status: 'unread',
-    metadata: input.payload ?? {},
-  }).then(({ error }) => {
-    if (error && !isMissingSchema(error)) console.warn('[customer-operation-events] notification skipped', error)
-  })
+  // The operational path must remain available even if a non-critical event write fails.
+  console.warn('[customer-operation-events] timeline write skipped', error)
 }
 
 export function blockerText(issues: string[]): string {

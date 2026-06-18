@@ -377,6 +377,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
     return { applied: false, targetId: String(request.id), reason: 'missing_customer_or_site_link' }
   }
 
+  const operationId = uuidOrNull(request.operation_id)
   const responseJob = await enqueueInboundGridOwnerResponseAutomation({
     companyId,
     customerId: linkedCustomerId,
@@ -385,7 +386,17 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
     requestId: String(request.id),
     edielMessageId: params.message.id,
     actorUserId: persistenceActorId,
+    operationId,
   })
+
+  if (operationId) {
+    const messageOperationUpdate = await supabaseService
+      .from('ediel_messages')
+      .update({ operation_id: operationId })
+      .eq('id', params.message.id)
+      .eq('company_id', companyId)
+    if (messageOperationUpdate.error && !isMissingRelationError(messageOperationUpdate.error)) throw messageOperationUpdate.error
+  }
 
   await supabaseService.from('customer_info_request_events').insert({
     company_id: companyId,
@@ -393,7 +404,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
     customer_id: request.customer_id,
     event_type: 'z02_processing_queued',
     message: 'Svar från nätägaren kopplades automatiskt och bearbetas nu i bakgrunden.',
-    payload: { customerOperationJobId: responseJob.id, z02: z02Payload },
+    payload: { customerOperationJobId: responseJob.id, operationId: responseJob.operationId, z02: z02Payload },
     created_by: persistenceActorId,
   })
 

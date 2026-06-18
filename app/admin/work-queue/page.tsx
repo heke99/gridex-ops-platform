@@ -24,6 +24,7 @@ type ActiveCustomer = {
 
 type QueueItem = {
   id: string
+  operationId?: string | null
   source: string
   customerId: string
   customerLabel: string
@@ -43,7 +44,8 @@ type CountFilter = {
 }
 
 const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
-const ACTIVE_TASK_STATUSES = ['open', 'new', 'pending', 'pending_review', 'action_required', 'missing_authorization', 'blocked', 'route_missing', 'manual_review_required', 'failed', 'sent', 'waiting_for_z02', 'waiting_response']
+const ACTIVE_TASK_STATUSES = ['open', 'new', 'pending_review', 'action_required', 'missing_authorization', 'blocked', 'route_missing', 'manual_review_required', 'failed']
+const ACTION_REQUIRED_STATUSES = new Set(ACTIVE_TASK_STATUSES)
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -76,6 +78,103 @@ function priorityTone(priority: QueueItem['priority']) {
   if (priority === 'high') return 'border-amber-200 bg-amber-50 text-amber-900'
   if (priority === 'low') return 'border-slate-200 bg-slate-50 text-slate-700'
   return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+}
+
+function requiresAction(item: Pick<QueueItem, 'status'>): boolean {
+  return ACTION_REQUIRED_STATUSES.has(String(item.status).toLowerCase())
+}
+
+function rankPriority(priority: QueueItem['priority']) {
+  return { critical: 4, high: 3, normal: 2, low: 1 }[priority]
+}
+
+type OperationEventActionRow = {
+  id: string
+  customer_id: string
+  operation_id: string | null
+  title: string
+  message: string
+  status: string
+  severity: string
+  action_url: string | null
+  occurred_at: string | null
+}
+
+async function loadOperationEventActions(supabase: SupabaseClient, companyId: string | null): Promise<OperationEventActionRow[]> {
+  try {
+    let query = supabase
+      .from('customer_operation_events')
+      .select('id, customer_id, operation_id, title, message, status, severity, action_url, occurred_at')
+      .eq('action_required', true)
+      .order('occurred_at', { ascending: false })
+      .limit(100)
+    if (companyId) query = query.eq('company_id', companyId)
+    const { data, error } = await query
+    if (error) throw error
+    return (data ?? []) as OperationEventActionRow[]
+  } catch (error) {
+    if (isSafeDbError(error)) return []
+    throw error
+  }
+}
+
+type OperationJobActionRow = {
+  id: string
+  customer_id: string
+  operation_id: string | null
+  job_type: string
+  status: string
+  last_error: string | null
+  created_at: string | null
+}
+
+async function loadOperationJobActions(supabase: SupabaseClient, companyId: string | null): Promise<OperationJobActionRow[]> {
+  try {
+    let query = supabase
+      .from('customer_operation_jobs')
+      .select('id, customer_id, operation_id, job_type, status, last_error, created_at')
+      .in('status', ['needs_review', 'failed'])
+      .order('created_at', { ascending: false })
+      .limit(100)
+    if (companyId) query = query.eq('company_id', companyId)
+    const { data, error } = await query
+    if (error) throw error
+    return (data ?? []) as OperationJobActionRow[]
+  } catch (error) {
+    if (isSafeDbError(error)) return []
+    throw error
+  }
+}
+
+async function loadCustomersByIds(supabase: SupabaseClient, companyId: string | null, customerIds: string[]): Promise<ActiveCustomer[]> {
+  if (customerIds.length === 0) return []
+  try {
+    let query = supabase
+      .from('customers')
+      .select('id, company_id, customer_number, full_name, first_name, last_name, company_name, email, status, source, created_at')
+      .in('id', customerIds.slice(0, 100))
+    if (companyId) query = query.eq('company_id', companyId)
+    const { data, error } = await query
+    if (error) throw error
+    return (data ?? []) as ActiveCustomer[]
+  } catch (error) {
+    if (isSafeDbError(error)) return []
+    throw error
+  }
+}
+
+function consolidateActionItems(items: QueueItem[]): QueueItem[] {
+  const operationalCustomerIds = new Set(items.filter((item) => item.source === 'Automation').map((item) => item.customerId))
+  const candidates = items.filter((item) => requiresAction(item) && (item.source === 'Automation' || !operationalCustomerIds.has(item.customerId)))
+  const byOperation = new Map<string, QueueItem>()
+  for (const item of candidates) {
+    const key = item.operationId ?? `${item.source}:${item.id}`
+    const current = byOperation.get(key)
+    if (!current || rankPriority(item.priority) > rankPriority(current.priority) || new Date(item.createdAt ?? 0).getTime() > new Date(current.createdAt ?? 0).getTime()) {
+      byOperation.set(key, item)
+    }
+  }
+  return [...byOperation.values()]
 }
 
 function statusLabel(status: string): string {
@@ -199,7 +298,16 @@ export default async function AdminWorkQueuePage() {
   const isPlatformAdmin = isPlatformAdminContext(context)
   const supabase = await createSupabaseServerClient()
   const companyId = isPlatformAdmin ? null : companyScope.companyId
-  const dbQueueRows = await listCompanyWorkQueue(supabase, companyId, { limit: 250 })
+  const [dbQueueRows, operationEventRows, operationJobRows] = await Promise.all([
+    listCompanyWorkQueue(supabase, companyId, { limit: 250 }),
+    loadOperationEventActions(supabase, companyId),
+    loadOperationJobActions(supabase, companyId),
+  ])
+  const operationEventCustomers = await loadCustomersByIds(supabase, companyId, [...new Set([
+    ...operationEventRows.map((row) => row.customer_id),
+    ...operationJobRows.map((row) => row.customer_id),
+  ])])
+  const operationCustomersById = new Map(operationEventCustomers.map((customer) => [customer.id, customer]))
   let activeCustomers: ActiveCustomer[] = []
   const items: QueueItem[] = dbQueueRows.map((row) => ({
     id: row.id,
@@ -215,7 +323,47 @@ export default async function AdminWorkQueuePage() {
     actionLabel: row.actionLabel,
   }))
 
-  if (items.length === 0) {
+  for (const event of operationEventRows) {
+    const customer = operationCustomersById.get(event.customer_id)
+    if (!customer) continue
+    items.push({
+      id: event.id,
+      operationId: event.operation_id,
+      source: 'Automation',
+      customerId: customer.id,
+      customerLabel: customerLabel(customer),
+      title: event.title,
+      description: event.message,
+      status: event.status,
+      priority: event.severity === 'critical' ? 'critical' : event.severity === 'error' || event.severity === 'warning' ? 'high' : 'normal',
+      createdAt: event.occurred_at,
+      href: event.action_url ?? `/admin/customers/${customer.id}`,
+      actionLabel: 'Öppna kundkort',
+    })
+  }
+
+  const operationIdsWithEvent = new Set(operationEventRows.map((event) => event.operation_id).filter((value): value is string => Boolean(value)))
+  for (const job of operationJobRows) {
+    if (job.operation_id && operationIdsWithEvent.has(job.operation_id)) continue
+    const customer = operationCustomersById.get(job.customer_id)
+    if (!customer) continue
+    items.push({
+      id: job.id,
+      operationId: job.operation_id,
+      source: 'Automation',
+      customerId: customer.id,
+      customerLabel: customerLabel(customer),
+      title: taskTypeLabel(job.job_type),
+      description: job.last_error ?? 'Automationssteget behöver granskas innan kedjan kan fortsätta.',
+      status: job.status,
+      priority: job.status === 'failed' ? 'high' : 'normal',
+      createdAt: job.created_at,
+      href: `/admin/customers/${customer.id}`,
+      actionLabel: 'Öppna kundkort',
+    })
+  }
+
+  if (consolidateActionItems(items).length === 0) {
     activeCustomers = await loadActiveCustomers(supabase, companyId, isPlatformAdmin)
     const customerIds = activeCustomers.map((customer) => customer.id)
     const customersById = new Map(activeCustomers.map((customer) => [customer.id, customer]))
@@ -362,27 +510,30 @@ export default async function AdminWorkQueuePage() {
 
   }
 
-  const sortedItems = items.sort((a, b) => {
-    const priorityRank = { critical: 4, high: 3, normal: 2, low: 1 }
-    const byPriority = priorityRank[b.priority] - priorityRank[a.priority]
+  const actionItems = consolidateActionItems(items)
+  const sortedItems = actionItems.sort((a, b) => {
+    const byPriority = rankPriority(b.priority) - rankPriority(a.priority)
     if (byPriority !== 0) return byPriority
     return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
   })
 
-  const visibleCustomerCount = dbQueueRows.length > 0
-    ? new Set(dbQueueRows.map((row) => row.customerId).filter(Boolean)).size
-    : activeCustomers.length
+  const visibleCustomerCount = new Set([
+    ...dbQueueRows.map((row) => row.customerId),
+    ...operationEventRows.map((row) => row.customer_id),
+    ...operationJobRows.map((row) => row.customer_id),
+    ...activeCustomers.map((customer) => customer.id),
+  ].filter(Boolean)).size
   const staleHint = dbQueueRows.length > 0
-    ? `Arbetskön laddas via sammanställd databasvy. ${visibleCustomerCount} kunder har aktiva åtgärder i kön.`
+    ? `Arbetskön visar endast åtgärder som behöver en handläggare. Pågående och klara steg finns under Händelser.`
     : visibleCustomerCount === 0
-      ? 'Arbetskön visar bara driftuppgifter kopplade till synliga kunder. Gamla testkunder, arkiverade kunder och poster utan kund filtreras bort.'
-      : `${visibleCustomerCount} synliga kunder används som grund för kön.`
+      ? 'Arbetskön visar bara manuella åtgärder. Pågående automation och mottagna svar visas under Händelser.'
+      : `${visibleCustomerCount} synliga kunder används som grund för manuella åtgärder.`
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title="Arbetskö"
-        subtitle="Kunder och driftuppgifter som kräver nästa åtgärd. Kön filtrerar bort gamla testkunder och poster utan synlig kund."
+        subtitle="Endast blockerare och manuella uppgifter. Följ automatiska och klara steg under Händelser."
         userEmail={context.email}
         workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
         workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
@@ -403,7 +554,7 @@ export default async function AdminWorkQueuePage() {
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
             <h2 className="text-lg font-bold text-slate-950">Nästa åtgärder</h2>
-            <p className="mt-1 text-sm text-slate-600">Visar bara aktiva rader som går att koppla till en kund som finns i kundregistret.</p>
+            <p className="mt-1 text-sm text-slate-600">Visar endast nästa manuella åtgärd per pågående automatisk kedja. Historik och svar finns under Händelser.</p>
           </div>
 
           {sortedItems.length === 0 ? (

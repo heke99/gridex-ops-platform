@@ -37,7 +37,8 @@
     "gridex:launch-smoke": "node scripts/gridex-launch-regression.cjs launch-smoke",
     "gridex:ops-points-1-8-regression": "node scripts/gridex-ops-points-1-to-8-regression.cjs",
     "gridex:platform-tenant-contracts-api-mail-regression": "node scripts/gridex-platform-tenant-contracts-api-mail-regression.cjs",
-    "gridex:batch-m-ops-master-regression": "node scripts/gridex-batch-m-ops-master-regression.cjs"
+    "gridex:batch-m-ops-master-regression": "node scripts/gridex-batch-m-ops-master-regression.cjs",
+    "gridex:customer-operation-events-regression": "node scripts/gridex-customer-operation-events-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

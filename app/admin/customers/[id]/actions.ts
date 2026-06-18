@@ -1514,81 +1514,146 @@ export async function createSupplierSwitchRequestAction(
   revalidatePath("/admin/ediel");
 }
 
+export type CustomerOperationActionState = {
+  ok: boolean;
+  status: "idle" | "started" | "blocked" | "warning" | "error";
+  title: string;
+  message: string;
+  jobId?: string;
+  actionUrl?: string;
+};
+
+function customerOperationActionError(error: unknown, fallback: string): CustomerOperationActionState {
+  const message = error instanceof Error ? error.message : "";
+  const expected = /saknas|tillhör inte|hittades inte|behörighet|operativ|anläggning|mätpunkt/i.test(message);
+  console.error("[customer-operation] customer card action failed", error);
+  return {
+    ok: false,
+    status: expected ? "blocked" : "error",
+    title: expected ? "Åtgärden kan inte startas ännu" : "Åtgärden kunde inte startas",
+    message: expected && message ? message : fallback,
+  };
+}
+
 export async function startAutomaticOnboardingAction(
+  _previousState: CustomerOperationActionState,
   formData: FormData,
-): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
-  const customerId = formValue(formData, "customer_id") ?? "";
-  const siteId = formValue(formData, "site_id") ?? "";
-  const meteringPointId = formValue(formData, "metering_point_id");
+): Promise<CustomerOperationActionState> {
+  try {
+    const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+    const customerId = formValue(formData, "customer_id") ?? "";
+    const siteId = formValue(formData, "site_id") ?? "";
+    const meteringPointId = formValue(formData, "metering_point_id");
 
-  if (!customerId || !siteId) {
-    throw new Error("Kund eller anläggning saknas för uppgiftsbegäran.");
+    if (!customerId || !siteId) {
+      return {
+        ok: false,
+        status: "blocked",
+        title: "Uppgiftsbegäran kan inte startas ännu",
+        message: "Välj först en kund och en anläggning.",
+      };
+    }
+
+    const { companyId } = await requireCustomerMutationContext(customerId, guard);
+    await assertCustomerSiteTenant({ companyId, customerId, siteId });
+    if (meteringPointId) {
+      await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId });
+    }
+
+    const job = await enqueueCustomerDataRequestAutomation({
+      companyId,
+      customerId,
+      siteId,
+      meteringPointId,
+      actorUserId: guard.userId,
+    });
+
+    // Cron fortsätter idempotent om den omedelbara körningen inte hinner slutföra steget.
+    after(() =>
+      processCustomerOperationJobs({
+        workerId: `customer-card:${job.id}`,
+        limit: 1,
+      }).catch((error) => console.error("[customer-operation] background start failed", error)),
+    );
+
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/events");
+    revalidatePath("/admin/work-queue");
+    revalidatePath("/admin/customer-info-requests");
+
+    return {
+      ok: true,
+      status: "started",
+      title: job.duplicate ? "Uppgiftsbegäran kör redan" : "Uppgiftsbegäran startad",
+      message: job.duplicate
+        ? "Systemet fortsätter den befintliga automatiska kedjan för anläggningen."
+        : "Systemet analyserar anläggningsadressen och söker nätägare i bakgrunden.",
+      jobId: job.id,
+      actionUrl: `/admin/customers/${customerId}?tab=data-requests`,
+    };
+  } catch (error) {
+    return customerOperationActionError(error, "Kontrollera kundens anläggningsuppgifter och försök igen.");
   }
-
-  const { companyId } = await requireCustomerMutationContext(customerId, guard);
-  await assertCustomerSiteTenant({ companyId, customerId, siteId });
-  if (meteringPointId) {
-    await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId });
-  }
-
-  const job = await enqueueCustomerDataRequestAutomation({
-    companyId,
-    customerId,
-    siteId,
-    meteringPointId,
-    actorUserId: guard.userId,
-  });
-
-  // Returnera direkt till kundkortet. after() ger snabb start i samma request; cron är den idempotenta reservvägen.
-  after(() =>
-    processCustomerOperationJobs({
-      workerId: `customer-card:${job.id}`,
-      limit: 1,
-    }).catch((error) => console.error("[customer-operation] background start failed", error)),
-  );
-
-  revalidatePath(`/admin/customers/${customerId}`);
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/customer-info-requests");
 }
 
 export async function requestSupplierSwitchAutomationAction(
+  _previousState: CustomerOperationActionState,
   formData: FormData,
-): Promise<void> {
-  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
-  const customerId = formValue(formData, "customer_id") ?? "";
-  const siteId = formValue(formData, "site_id") ?? "";
-  const meteringPointId = formValue(formData, "metering_point_id");
+): Promise<CustomerOperationActionState> {
+  try {
+    const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+    const customerId = formValue(formData, "customer_id") ?? "";
+    const siteId = formValue(formData, "site_id") ?? "";
+    const meteringPointId = formValue(formData, "metering_point_id");
 
-  if (!customerId || !siteId) {
-    throw new Error("Kund eller anläggning saknas för leverantörsbyte.");
+    if (!customerId || !siteId) {
+      return {
+        ok: false,
+        status: "blocked",
+        title: "Leverantörsbyte kan inte startas ännu",
+        message: "Välj först en kund och en anläggning.",
+      };
+    }
+
+    const { companyId } = await requireCustomerMutationContext(customerId, guard);
+    await assertCustomerSiteTenant({ companyId, customerId, siteId });
+    if (meteringPointId) {
+      await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId });
+    }
+
+    const job = await enqueueSupplierSwitchAutomation({
+      companyId,
+      customerId,
+      siteId,
+      meteringPointId,
+      actorUserId: guard.userId,
+    });
+
+    after(() =>
+      processCustomerOperationJobs({
+        workerId: `customer-switch:${job.id}`,
+        limit: 1,
+      }).catch((error) => console.error("[customer-operation] switch background start failed", error)),
+    );
+
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/events");
+    revalidatePath("/admin/work-queue");
+    revalidatePath("/admin/operations/switches");
+
+    return {
+      ok: true,
+      status: "started",
+      title: job.duplicate ? "Leverantörsbyte kontrolleras redan" : "Kontroll av leverantörsbyte startad",
+      message: job.duplicate
+        ? "Systemet fortsätter den befintliga kontrollen för anläggningen."
+        : "Systemet kontrollerar mätpunkt, nätägare, fullmakt och avtal i bakgrunden.",
+      jobId: job.id,
+      actionUrl: `/admin/customers/${customerId}?tab=supplier-switch`,
+    };
+  } catch (error) {
+    return customerOperationActionError(error, "Kontrollera anläggning, mätpunkt och fullmakt innan du försöker igen.");
   }
-
-  const { companyId } = await requireCustomerMutationContext(customerId, guard);
-  await assertCustomerSiteTenant({ companyId, customerId, siteId });
-  if (meteringPointId) {
-    await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId });
-  }
-
-  const job = await enqueueSupplierSwitchAutomation({
-    companyId,
-    customerId,
-    siteId,
-    meteringPointId,
-    actorUserId: guard.userId,
-  });
-
-  after(() =>
-    processCustomerOperationJobs({
-      workerId: `customer-switch:${job.id}`,
-      limit: 1,
-    }).catch((error) => console.error("[customer-operation] switch background start failed", error)),
-  );
-
-  revalidatePath(`/admin/customers/${customerId}`);
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/operations/switches");
 }
 
 export async function updateOperationTaskStatusAction(

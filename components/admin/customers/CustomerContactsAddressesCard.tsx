@@ -3,13 +3,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
-import { createOrUpdateCustomerSiteFromAddress } from '@/lib/customer-sites/addressIntake'
-import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
 import type {
  CustomerAddressRow,
  CustomerContactRow,
  CustomerType,
 } from '@/types/customers'
+import type { CustomerSiteRow } from '@/lib/masterdata/types'
 
 function formatDateTime(value: string | null | undefined): string {
  if (!value) return '—'
@@ -194,7 +193,7 @@ async function saveCustomerAddressAction(formData: FormData) {
  const customerId = getString(formData, 'customer_id')
  const addressId = getString(formData, 'id')
  const customerType = normalizeCustomerType(getString(formData, 'customer_type'))
- const type = getString(formData, 'type') || 'facility'
+ const type = getString(formData, 'type') || 'registered'
  const street1 = getString(formData, 'street_1')
  const street2 = getString(formData, 'street_2') || null
  const postalCode = getString(formData, 'postal_code') || null
@@ -211,6 +210,10 @@ async function saveCustomerAddressAction(formData: FormData) {
 
  if (!street1) {
  throw new Error('Gatuadress krävs')
+ }
+
+ if (!['registered', 'billing', 'other'].includes(type)) {
+ throw new Error('Anläggningsadress ändras under anläggningsuppgifter.')
  }
 
  const before = addressId
@@ -254,46 +257,6 @@ async function saveCustomerAddressAction(formData: FormData) {
 
  if (error) throw error
 
- let facilityAddressResult: unknown = null
- if (type === 'facility' && isActive) {
- const customer = await supabaseService
- .from('customers')
- .select('company_id')
- .eq('id', customerId)
- .maybeSingle()
- if (customer.error) throw customer.error
- if (!customer.data?.company_id) throw new Error('Kundens bolag saknas')
-
- const metadata = data && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
- ? data.metadata as Record<string, unknown>
- : {}
- const saved = await createOrUpdateCustomerSiteFromAddress({
- companyId: String(customer.data.company_id),
- customerId,
- siteId: typeof metadata.customer_site_id === 'string' ? metadata.customer_site_id : null,
- address: {
- street: street1,
- postalCode,
- city,
- country,
- careOf: street2,
- source: 'manual_intake',
- sourceReference: addressId || null,
- actorUserId,
- metadata: { source: 'customer_contacts_addresses_card' },
- },
- })
- facilityAddressResult = saved.address
- if (saved.address.status === 'updated' || saved.address.status === 'unchanged') {
- await enqueueCustomerDataRequestAutomation({
- companyId: String(customer.data.company_id),
- customerId,
- siteId: saved.siteId,
- actorUserId,
- })
- }
- }
-
  await insertAuditLog({
  actorUserId,
  entityType: 'customer_address',
@@ -305,7 +268,6 @@ async function saveCustomerAddressAction(formData: FormData) {
  customerId,
  customerType,
  isActive,
- facilityAddressResult,
  },
  })
 
@@ -332,14 +294,14 @@ function contactIntro(customerType: CustomerType): string {
 
 function addressIntro(customerType: CustomerType): string {
  if (customerType === 'private') {
- return 'För privatkunder är registrerad adress och anläggningsadress ofta viktigast.'
+ return 'För privatkunder är registrerad adress och fakturaadress vanligast. Anläggningsadress hanteras under anläggningsuppgifter.'
  }
 
  if (customerType === 'association') {
- return 'För föreningar är registrerad adress, fakturaadress och anläggningsadress ofta olika. Spara dem separat vid behov.'
+ return 'För föreningar är registrerad adress och fakturaadress ofta olika. Anläggningsadress hanteras separat under anläggningsuppgifter.'
  }
 
- return 'För företag är registrerad adress, fakturaadress och anläggningsadress ofta olika. Spara dem separat vid behov.'
+ return 'För företag är registrerad adress och fakturaadress ofta olika. Anläggningsadress hanteras separat under anläggningsuppgifter.'
 }
 
 function defaultAddressType(customerType: CustomerType): string {
@@ -485,7 +447,6 @@ function AddressForm({
  >
  <option value="registered">Registered</option>
  <option value="billing">Billing</option>
- <option value="facility">Facility</option>
  <option value="other">Other</option>
  </select>
  </label>
@@ -589,12 +550,15 @@ export default function CustomerContactsAddressesCard({
  customerType,
  contacts,
  addresses,
+ sites,
 }: {
  customerId: string
  customerType: CustomerType
  contacts: CustomerContactRow[]
  addresses: CustomerAddressRow[]
+ sites: CustomerSiteRow[]
 }) {
+ const contactAddresses = addresses.filter((address) => address.type !== 'facility')
  return (
  <section className="grid gap-6 xl:grid-cols-2">
  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
@@ -682,12 +646,26 @@ export default function CustomerContactsAddressesCard({
  </div>
 
  <div className="space-y-4 p-6">
- {addresses.length === 0 ? (
+ <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-800">
+ <div className="font-semibold text-slate-950">Anläggningsadress</div>
+ <p className="mt-1 text-xs leading-5 text-slate-700">Används för nätägarmatchning, Z01 och leverantörsbyte. Ändras under anläggningsuppgifter.</p>
+ <div className="mt-3 space-y-2">
+ {sites.length === 0 ? <div className="text-slate-600">Ingen anläggning registrerad ännu.</div> : sites.map((site) => (
+ <div key={site.id} className="rounded-xl border border-sky-100 bg-white px-3 py-2">
+ <div className="font-medium text-slate-950">{site.site_name}</div>
+ <div className="mt-1 text-slate-700">{[site.care_of, site.street, [site.postal_code, site.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || 'Adress saknas'}</div>
+ <div className="mt-1 text-xs text-slate-500">Anläggnings-ID: {site.facility_id ?? 'saknas'}</div>
+ </div>
+ ))}
+ </div>
+ </div>
+
+ {contactAddresses.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-700 ">
- Inga adressposter ännu.
+ Inga kontakt- eller fakturaadresser ännu.
  </div>
  ) : (
- addresses.map((address) => (
+ contactAddresses.map((address) => (
  <article
  key={address.id}
  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 "

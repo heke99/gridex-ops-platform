@@ -63,6 +63,7 @@ export type CustomerInfoRequestRow = {
   outbound_request_id?: string | null;
   ediel_message_id?: string | null;
   response_ediel_message_id?: string | null;
+  operation_id?: string | null;
   interchange_reference?: string | null;
   transaction_reference?: string | null;
   correlation_reference?: string | null;
@@ -464,6 +465,7 @@ export async function createCustomerInfoRequest(input: {
   requestedDataCategories: string[];
   notes?: string | null;
   externalReference?: string | null;
+  operationId?: string | null;
 }) {
   await requireCompanyOperationalForWrites(input.companyId);
   await assertCustomerBelongsToCompany(input.customerId, input.companyId);
@@ -499,6 +501,7 @@ export async function createCustomerInfoRequest(input: {
       site_id: anchors.siteId,
       metering_point_id: anchors.meteringPointId,
       grid_owner_id: anchors.gridOwnerId,
+      operation_id: input.operationId ?? null,
       current_supplier_name: input.currentSupplierName ?? null,
       status: "draft",
       requested_data_categories: normalizedCategories,
@@ -525,6 +528,7 @@ export async function createCustomerInfoRequest(input: {
       siteId: anchors.siteId,
       meteringPointId: anchors.meteringPointId,
       gridOwnerId: anchors.gridOwnerId,
+      operationId: input.operationId ?? null,
     },
     created_by: input.actorUserId,
   });

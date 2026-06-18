@@ -1,8 +1,4 @@
-import {
-  createGridOwnerDataRequestAction,
-  requestSupplierSwitchAutomationAction,
-  startAutomaticOnboardingAction,
-} from "@/app/admin/customers/[id]/actions";
+import { createGridOwnerDataRequestAction } from "@/app/admin/customers/[id]/actions";
 import {
   endAgreementBusinessAction,
   registerCancellationBusinessAction,
@@ -20,6 +16,7 @@ import type {
 } from "@/lib/operations/types";
 import type { CustomerInfoRequestRow } from "@/lib/onboarding/infoRequests";
 import SubmitButton from "@/components/admin/customers/document-card/SubmitButton";
+import CustomerOperationAutomationForm from "@/components/admin/customers/CustomerOperationAutomationForm";
 import {
   buildCustomerCardSnapshot,
   type CustomerCardSnapshot,
@@ -106,7 +103,6 @@ export default function CustomerBusinessActionsCard({
   const primaryPoint = snapshot.primaryMeteringPoint;
   const gridOwnerId =
     primaryPoint?.grid_owner_id ?? primarySite?.grid_owner_id ?? "";
-  const defaultStartDate = primarySite?.move_in_date ?? "";
   const hasSignedPowerOfAttorney = snapshot.hasAuthorization;
   const activeContract =
     contracts.find((contract) =>
@@ -247,40 +243,28 @@ export default function CustomerBusinessActionsCard({
           title="Begär uppgifter"
           text="Systemet begär eller förbereder saknade uppgifter, försöker hitta nätägare automatiskt och skapar tydlig uppgift om granskning behövs."
         >
-          <form action={startAutomaticOnboardingAction}>
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="site_id" value={primarySite?.id ?? ""} />
-            <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ""} />
-            <SubmitButton
-              idleLabel="Begär uppgifter"
-              pendingLabel="Startar…"
-            />
-          </form>
+          <CustomerOperationAutomationForm
+            kind="customer_data"
+            customerId={customerId}
+            siteId={primarySite?.id}
+            meteringPointId={primaryPoint?.id}
+            idleLabel="Begär uppgifter"
+            pendingLabel="Startar…"
+          />
         </PrimaryAction>
 
         <PrimaryAction
           title="Begär leverantörsbyte"
           text="Systemet kontrollerar fullmakt, avtal, mätpunkt, nätägare, juridiskt underlag och kontaktväg innan leverantörsbyte startas."
         >
-          <form action={requestSupplierSwitchAutomationAction}>
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="site_id" value={primarySite?.id ?? ""} />
-            <input
-              type="hidden"
-              name="request_type"
-              value={primarySite?.move_in_date ? "move_in" : "switch"}
-            />
-            <input
-              type="hidden"
-              name="requested_start_date"
-              value={defaultStartDate}
-            />
-            <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ""} />
-            <SubmitButton
-              idleLabel="Begär leverantörsbyte"
-              pendingLabel="Startar…"
-            />
-          </form>
+          <CustomerOperationAutomationForm
+            kind="supplier_switch"
+            customerId={customerId}
+            siteId={primarySite?.id}
+            meteringPointId={primaryPoint?.id}
+            idleLabel="Begär leverantörsbyte"
+            pendingLabel="Startar…"
+          />
         </PrimaryAction>
       </div>
 

@@ -1,7 +1,6 @@
 import {
   createCustomerDataRequestPackageAction,
   registerCurrentSupplierResponseAction,
-  startAutomaticOnboardingAction,
 } from "@/app/admin/customers/[id]/actions";
 import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types";
 import type { CustomerInfoRequestRow } from "@/lib/onboarding/infoRequests";
@@ -11,6 +10,7 @@ import type {
 } from "@/lib/operations/types";
 import type { GridOwnerRow } from "@/lib/masterdata/types";
 import SubmitButton from "@/components/admin/customers/document-card/SubmitButton";
+import CustomerOperationAutomationForm from "@/components/admin/customers/CustomerOperationAutomationForm";
 import {
   buildCustomerCardSnapshot,
   hasValidPowerOfAttorney,
@@ -216,15 +216,12 @@ export default function CustomerDataRequestsCard({
           ) : null}
         </div>
 
-        <form action={startAutomaticOnboardingAction} className="mt-6 space-y-4">
-          <input type="hidden" name="customer_id" value={customerId} />
-          <input type="hidden" name="site_id" value={defaultSite?.id ?? ""} />
-          <input
-            type="hidden"
-            name="metering_point_id"
-            value={primaryPoint?.id ?? ""}
-          />
-          <SubmitButton
+        <div className="mt-6 space-y-4">
+          <CustomerOperationAutomationForm
+            kind="customer_data"
+            customerId={customerId}
+            siteId={defaultSite?.id}
+            meteringPointId={primaryPoint?.id}
             idleLabel="Begär uppgifter"
             pendingLabel="Startar automatiskt flöde..."
           />
@@ -232,7 +229,7 @@ export default function CustomerDataRequestsCard({
             Begäran startas direkt. Systemet söker och verifierar nätägare i
             bakgrunden innan något skickas.
           </p>
-        </form>
+        </div>
 
         <details className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm">
           <summary className="cursor-pointer font-semibold text-slate-900">

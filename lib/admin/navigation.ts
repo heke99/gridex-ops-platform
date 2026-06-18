@@ -43,6 +43,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     items: [
       { key: 'dashboard', label: 'Översikt', href: '/admin', description: 'Status, arbetskö och nästa åtgärd', pageKey: 'dashboard' },
       { key: 'work_queue', label: 'Arbetskö', href: '/admin/work-queue', description: 'Kunder och driftuppgifter som kräver åtgärd', pageKey: 'operations.tasks' },
+      { key: 'events', label: 'Händelser', href: '/admin/events', description: 'Samlad kund-, anläggnings- och automationshistorik', pageKey: 'operations.tasks' },
     ],
   },
   {
@@ -93,6 +94,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'platform.usage', label: 'Bolagsstatistik', href: '/admin/platform/usage', description: 'Volymer per tenant för framtida fakturering', pageKey: 'platform.usage', platformOnly: true },
       { key: 'platform.analytics', label: 'Plattformsanalys', href: '/admin/platform/analytics', description: 'Prognos, datakvalitet och volymer per tenant', pageKey: 'platform.analytics', platformOnly: true },
       { key: 'platform.work_queue', label: 'Arbetskö', href: '/admin/work-queue', description: 'Blockerare och manuella åtgärder', pageKey: 'operations.tasks' },
+      { key: 'platform.events', label: 'Händelser', href: '/admin/events', description: 'Samlad kund-, anläggnings- och automationshistorik', pageKey: 'operations.tasks' },
     ],
   },
   {
