@@ -136,6 +136,13 @@ export type InboundEngineRunResult = {
     messagesFetched: number;
     messagesStored: number;
     jobsProcessed: number;
+    customerOperationJobs?: {
+      claimed: number;
+      completed: number;
+      needsReview: number;
+      failed: number;
+      errors: string[];
+    } | null;
     errorsByMailbox: Array<{
       mailboxId: string;
       mailboxName: string;
@@ -2006,6 +2013,20 @@ async function logInboundPollRun(
   });
 }
 
+async function mapWithConcurrency<T, R>(items: T[], concurrency: number, worker: (item: T) => Promise<R>): Promise<R[]> {
+  const limit = Math.max(1, Math.min(concurrency, items.length || 1))
+  const output = new Array<R>(items.length)
+  let cursor = 0
+  await Promise.all(Array.from({ length: limit }, async () => {
+    while (true) {
+      const index = cursor++
+      if (index >= items.length) return
+      output[index] = await worker(items[index] as T)
+    }
+  }))
+  return output
+}
+
 export async function runInboundEdielMailEngine(
   input: {
     companyId?: string | null;
@@ -2063,23 +2084,21 @@ export async function runInboundEdielMailEngine(
     0,
     input.pollLimit ?? envInt("EDIEL_INBOUND_MAILBOX_POLL_LIMIT", 10),
   );
-  const results: PollMailboxResult[] = [];
-
-  for (const mailbox of mailboxes) {
-    results.push(
-      await pollEdielMailbox({
-        mailbox,
-        workerId,
-        maxMessages:
-          input.messageLimitPerMailbox ??
-          envInt("EDIEL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX", 25),
-        markSeen: input.markSeen,
-        includeSeenRecent: input.includeSeenRecent,
-        recentDays: input.recentDays,
-        forceLock: force,
-      }),
-    );
-  }
+  const results = await mapWithConcurrency(
+    mailboxes,
+    envInt("EDIEL_INBOUND_MAILBOX_CONCURRENCY", 3),
+    (mailbox) => pollEdielMailbox({
+      mailbox,
+      workerId,
+      maxMessages:
+        input.messageLimitPerMailbox ??
+        envInt("EDIEL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX", 25),
+      markSeen: input.markSeen,
+      includeSeenRecent: input.includeSeenRecent,
+      recentDays: input.recentDays,
+      forceLock: force,
+    }),
+  );
 
   const queueResult = await processQueuedInboundProcessingJobs({
     workerId,
@@ -2113,18 +2132,24 @@ export async function runInboundEdielMailEngine(
     try {
       const { processInboundEdielMessage } =
         await import("@/lib/ediel/flows/inboundProcessing");
-      for (const edielMessageId of edielMessageIds) {
-        try {
-          await processInboundEdielMessage({
-            actorUserId: input.actorUserId ?? "system",
-            edielMessageId,
-          });
-          autoProcessedEdielMessages += 1;
-        } catch (error) {
-          autoProcessErrors.push(
-            `${edielMessageId}: ${error instanceof Error ? error.message : "Okänt fel"}`,
-          );
-        }
+      const processing = await mapWithConcurrency(
+        edielMessageIds,
+        envInt("EDIEL_INBOUND_MESSAGE_CONCURRENCY", 4),
+        async (edielMessageId) => {
+          try {
+            await processInboundEdielMessage({
+              actorUserId: input.actorUserId ?? "system",
+              edielMessageId,
+            });
+            return { edielMessageId, error: null as string | null };
+          } catch (error) {
+            return { edielMessageId, error: error instanceof Error ? error.message : "Okänt fel" };
+          }
+        },
+      );
+      for (const item of processing) {
+        if (item.error) autoProcessErrors.push(`${item.edielMessageId}: ${item.error}`);
+        else autoProcessedEdielMessages += 1;
       }
     } catch (error) {
       autoProcessErrors.push(
@@ -2134,6 +2159,17 @@ export async function runInboundEdielMailEngine(
       );
     }
   }
+  let customerOperationJobs: { claimed: number; completed: number; needsReview: number; failed: number; errors: string[] } | null = null;
+  try {
+    const { processCustomerOperationJobs } = await import("@/lib/customer-operations/automation");
+    customerOperationJobs = await processCustomerOperationJobs({
+      workerId: `${workerId}:customer-operations`,
+      limit: envInt("CUSTOMER_OPERATION_JOB_PROCESS_LIMIT", 20),
+    });
+  } catch (error) {
+    autoProcessErrors.push(`customer-operations: ${error instanceof Error ? error.message : "Okänt fel"}`);
+  }
+
   const fetchedMessages = results.reduce((sum, item) => sum + item.fetched, 0);
   const storedEmails = results.reduce((sum, item) => sum + item.stored, 0);
 
@@ -2168,6 +2204,7 @@ export async function runInboundEdielMailEngine(
       messagesFetched: fetchedMessages,
       messagesStored: storedEmails,
       jobsProcessed: queueResult.processed,
+      customerOperationJobs,
       errorsByMailbox: results
         .filter((result) => result.errors.length > 0)
         .map((result) => ({

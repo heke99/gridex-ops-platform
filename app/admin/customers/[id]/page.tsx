@@ -2274,8 +2274,14 @@ export default async function CustomerAdminDetailPage({
     [
       "draft",
       "ready_to_send",
+      "z01_prepared",
       "sent",
+      "sent_to_grid_owner",
       "waiting_response",
+      "waiting_for_contrl",
+      "waiting_for_aperak",
+      "waiting_for_z02",
+      "z02_received",
       "partially_received",
     ].includes(String(request.status ?? "").toLowerCase()),
   );

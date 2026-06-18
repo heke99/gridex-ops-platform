@@ -1,6 +1,6 @@
 import {
   createGridOwnerDataRequestAction,
-  createSupplierSwitchRequestAction,
+  requestSupplierSwitchAutomationAction,
   startAutomaticOnboardingAction,
 } from "@/app/admin/customers/[id]/actions";
 import {
@@ -250,9 +250,10 @@ export default function CustomerBusinessActionsCard({
           <form action={startAutomaticOnboardingAction}>
             <input type="hidden" name="customer_id" value={customerId} />
             <input type="hidden" name="site_id" value={primarySite?.id ?? ""} />
+            <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ""} />
             <SubmitButton
               idleLabel="Begär uppgifter"
-              pendingLabel="Kontrollerar…"
+              pendingLabel="Startar…"
             />
           </form>
         </PrimaryAction>
@@ -261,7 +262,7 @@ export default function CustomerBusinessActionsCard({
           title="Begär leverantörsbyte"
           text="Systemet kontrollerar fullmakt, avtal, mätpunkt, nätägare, juridiskt underlag och kontaktväg innan leverantörsbyte startas."
         >
-          <form action={createSupplierSwitchRequestAction}>
+          <form action={requestSupplierSwitchAutomationAction}>
             <input type="hidden" name="customer_id" value={customerId} />
             <input type="hidden" name="site_id" value={primarySite?.id ?? ""} />
             <input
@@ -274,9 +275,10 @@ export default function CustomerBusinessActionsCard({
               name="requested_start_date"
               value={defaultStartDate}
             />
+            <input type="hidden" name="metering_point_id" value={primaryPoint?.id ?? ""} />
             <SubmitButton
               idleLabel="Begär leverantörsbyte"
-              pendingLabel="Kontrollerar…"
+              pendingLabel="Startar…"
             />
           </form>
         </PrimaryAction>

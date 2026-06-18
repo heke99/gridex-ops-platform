@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminActionAccess } from "@/lib/admin/guards";
 import {
@@ -77,6 +78,12 @@ import {
   blockerText,
 } from "@/lib/customers/customerOperationEvents";
 import { prepareLegalPayloadForGridOwner } from "@/lib/legal/gridOwnerLegalPayload";
+import {
+  enqueueCustomerDataRequestAutomation,
+  enqueueSupplierSwitchAutomation,
+  processCustomerOperationJobs,
+  resolveCustomerSiteGridOwner,
+} from "@/lib/customer-operations/automation";
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -145,89 +152,6 @@ function validateHistoricalMeteringPeriod(params: {
 
 function textOf(value: unknown): string {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
-}
-
-async function tryAutoResolveGridOwnerForSite(params: {
-  companyId: string;
-  customerId: string;
-  site: Record<string, unknown>;
-  actorUserId: string;
-}): Promise<string | null> {
-  if (params.site.grid_owner_id) return String(params.site.grid_owner_id);
-
-  const city = textOf(params.site.city);
-  const postalCode = textOf(params.site.postal_code).replace(/\s+/g, "");
-  const priceAreaCode = textOf(params.site.price_area_code).toUpperCase();
-  if (!city && !postalCode && !priceAreaCode) return null;
-
-  const { data, error } = await supabaseService
-    .from("platform_grid_areas")
-    .select("*")
-    .limit(2000);
-
-  if (error || !Array.isArray(data)) return null;
-
-  const rows = data as Array<Record<string, unknown>>;
-  const match = rows.find((row) => {
-    const rowPriceArea = textOf(
-      row.price_area_code ?? row.bidding_zone ?? row.elomrade,
-    ).toUpperCase();
-    const rowCity = textOf(
-      row.city ?? row.municipality ?? row.municipality_name ?? row.locality,
-    );
-    const rowPostal = textOf(
-      row.postal_code ?? row.postal_code_prefix ?? row.zip_code,
-    ).replace(/\s+/g, "");
-    const priceOk =
-      !priceAreaCode || !rowPriceArea || rowPriceArea === priceAreaCode;
-    const cityOk = city && rowCity ? rowCity === city : false;
-    const postalOk =
-      postalCode && rowPostal
-        ? postalCode.startsWith(rowPostal) || rowPostal.startsWith(postalCode)
-        : false;
-    return priceOk && (cityOk || postalOk);
-  });
-
-  const gridOwnerId =
-    match?.grid_owner_id ??
-    match?.owner_id ??
-    match?.market_actor_id ??
-    match?.actor_id ??
-    null;
-  if (!gridOwnerId) return null;
-
-  const resolvedGridOwnerId = String(gridOwnerId);
-  const { error: updateError } = await supabaseService
-    .from("customer_sites")
-    .update({
-      grid_owner_id: resolvedGridOwnerId,
-      resolution_status: "grid_owner_suggested",
-      data_quality_status: "needs_review",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", String(params.site.id))
-    .eq("company_id", params.companyId)
-    .eq("customer_id", params.customerId);
-
-  if (updateError) return resolvedGridOwnerId;
-
-  await recordCustomerActionResult({
-    actorUserId: params.actorUserId,
-    companyId: params.companyId,
-    customerId: params.customerId,
-    siteId: String(params.site.id),
-    eventType: "facility.grid_owner_suggested",
-    title: "Nätägare föreslagen automatiskt",
-    message:
-      "Systemet hittade en möjlig nätägare baserat på adress, postnummer, ort och elområde. Granska förslaget innan leverantörsbyte startas.",
-    payload: {
-      grid_owner_id: resolvedGridOwnerId,
-      source: "customer_card_auto_resolver",
-    },
-    idempotencyKey: `facility.grid_owner_suggested:${params.customerId}:${String(params.site.id)}:${resolvedGridOwnerId}`,
-  });
-
-  return resolvedGridOwnerId;
 }
 
 function normalizeNumberOrNull(value: string | null): number | null {
@@ -1626,269 +1550,73 @@ export async function startAutomaticOnboardingAction(
   formData: FormData,
 ): Promise<void> {
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
-  const actor = { id: guard.userId };
-  const supabase = await createSupabaseServerClient();
   const customerId = formValue(formData, "customer_id") ?? "";
   const siteId = formValue(formData, "site_id") ?? "";
+  const meteringPointId = formValue(formData, "metering_point_id");
 
   if (!customerId || !siteId) {
-    throw new Error("Kund eller anläggning saknas för automatisk onboarding.");
+    throw new Error("Kund eller anläggning saknas för uppgiftsbegäran.");
   }
 
   const { companyId } = await requireCustomerMutationContext(customerId, guard);
   await assertCustomerSiteTenant({ companyId, customerId, siteId });
-  const site = await findCustomerSiteById(supabase, siteId);
-
-  if (
-    !site ||
-    site.company_id !== companyId ||
-    site.customer_id !== customerId
-  ) {
-    throw new Error(
-      "Anläggningen kunde inte hittas för automatisk onboarding.",
-    );
+  if (meteringPointId) {
+    await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId });
   }
 
-  const [meteringPoints, powersOfAttorney] = await Promise.all([
-    listMeteringPointsForSite(supabase, siteId),
-    listPowersOfAttorneyByCustomerId(supabase, customerId),
-  ]);
-
-  const candidateMeteringPoint =
-    meteringPoints.find((point) => point.status === "active") ??
-    meteringPoints.find((point) => point.status === "pending_validation") ??
-    meteringPoints[0] ??
-    null;
-
-  const autoResolvedGridOwnerId =
-    (candidateMeteringPoint?.grid_owner_id ?? site.grid_owner_id)
-      ? null
-      : await tryAutoResolveGridOwnerForSite({
-          companyId,
-          customerId,
-          site: site as unknown as Record<string, unknown>,
-          actorUserId: actor.id,
-        });
-  const effectiveGridOwnerId =
-    candidateMeteringPoint?.grid_owner_id ??
-    site.grid_owner_id ??
-    autoResolvedGridOwnerId;
-
-  const missingMasterdata =
-    !site.facility_id?.trim() ||
-    !candidateMeteringPoint?.meter_point_id?.trim() ||
-    !effectiveGridOwnerId ||
-    !(candidateMeteringPoint?.price_area_code ?? site.price_area_code);
-
-  if (missingMasterdata) {
-    const gridOwnerId = effectiveGridOwnerId ?? null;
-
-    await createMissingCustomerDataTasks({
-      companyId,
-      customerId,
-      customerSiteId: siteId,
-      meteringPointId: candidateMeteringPoint?.id ?? null,
-      facilityId: site.facility_id ?? null,
-      meterPointId: candidateMeteringPoint?.meter_point_id ?? null,
-      gridOwnerId,
-      actorUserId: actor.id,
-    });
-
-    await recordCustomerActionResult({
-      actorUserId: actor.id,
-      companyId,
-      customerId,
-      siteId,
-      eventType: "customer_data.requested",
-      title: "Uppgifter behöver kompletteras",
-      message:
-        "Systemet saknar anläggnings-ID, mätpunkt eller nätägare och skapar nästa uppgift automatiskt.",
-      payload: {
-        facility_id: site.facility_id ?? null,
-        meter_point_id: candidateMeteringPoint?.meter_point_id ?? null,
-        grid_owner_id: gridOwnerId,
-      },
-      idempotencyKey: `customer_data.requested:${customerId}:${siteId}`,
-    });
-
-    const decision = await auditRouteDecisionForCustomerAction({
-      actorUserId: actor.id,
-      companyId,
-      customerId,
-      siteId,
-      meteringPointId: candidateMeteringPoint?.id ?? null,
-      gridOwnerId,
-      businessProcess: "customer_masterdata",
-      requestedAction: "automatic_onboarding_customer_data_first",
-      messageCode: messageCodeForBusinessProcess("customer_masterdata"),
-      payload: {
-        reason: "missing_masterdata_before_supplier_switch",
-        facilityId: site.facility_id,
-        meterPointId: candidateMeteringPoint?.meter_point_id ?? null,
-      },
-    });
-
-    if (decision.decisionStatus !== "blocked") {
-      await createAndQueueCustomerMasterdataZ01({
-        actorUserId: actor.id,
-        companyId,
-        customerId,
-        siteId,
-        meteringPointId: candidateMeteringPoint?.id ?? null,
-        gridOwnerId,
-        externalReference: null,
-        notes:
-          "Systemet förberedde begäran om saknade kund- och anläggningsuppgifter.",
-      });
-    }
-
-    await insertAuditLog({
-      actorUserId: actor.id,
-      entityType: "customer_site",
-      entityId: siteId,
-      action:
-        decision.decisionStatus === "blocked"
-          ? "automatic_onboarding_blocked"
-          : "automatic_onboarding_z01_prepared",
-      metadata: {
-        customerId,
-        siteId,
-        meteringPointId: candidateMeteringPoint?.id ?? null,
-        decision: routeDecisionPayload(decision),
-      },
-    });
-
-    revalidatePath(`/admin/customers/${customerId}`);
-    revalidatePath("/admin/customer-info-requests");
-    revalidatePath("/admin/operations");
-    revalidatePath("/admin/operations/tasks");
-    revalidatePath("/admin/outbound");
-    return;
-  }
-
-  const readiness = evaluateSiteSwitchReadiness({
-    site,
-    meteringPoints,
-    powersOfAttorney,
-  });
-  await syncOperationTasksFromReadiness(supabase, readiness);
-
-  if (!readiness.isReady || !readiness.candidateMeteringPointId) {
-    await insertAuditLog({
-      actorUserId: actor.id,
-      entityType: "customer_site",
-      entityId: siteId,
-      action: "automatic_onboarding_switch_blocked_by_readiness",
-      metadata: {
-        customerId,
-        siteId,
-        readiness,
-      },
-    });
-    revalidatePath(`/admin/customers/${customerId}`);
-    revalidatePath("/admin/operations");
-    revalidatePath("/admin/operations/tasks");
-    return;
-  }
-
-  const meteringPoint =
-    meteringPoints.find(
-      (point) => point.id === readiness.candidateMeteringPointId,
-    ) ?? null;
-
-  if (!meteringPoint) {
-    throw new Error(
-      "Kunde inte hitta kandidat-mätpunkt för automatisk onboarding.",
-    );
-  }
-
-  const requestType: SupplierSwitchRequestType = site.move_in_date
-    ? "move_in"
-    : "switch";
-  const decision = await auditRouteDecisionForCustomerAction({
-    actorUserId: actor.id,
+  const job = await enqueueCustomerDataRequestAutomation({
     companyId,
     customerId,
     siteId,
-    meteringPointId: meteringPoint.id,
-    gridOwnerId: meteringPoint.grid_owner_id ?? site.grid_owner_id ?? null,
-    currentSupplierId: site.current_supplier_id ?? null,
-    businessProcess: "supplier_switch",
-    requestedAction: "automatic_onboarding_direct_z03",
-    messageCode: messageCodeForBusinessProcess("supplier_switch"),
-    payload: {
-      requestType,
-      requestedStartDate: site.move_in_date ?? null,
-      move_in: requestType === "move_in",
-      customer_change: requestType === "move_in",
-    },
+    meteringPointId,
+    actorUserId: guard.userId,
   });
 
-  if (decision.decisionStatus === "blocked") {
-    await insertAuditLog({
-      actorUserId: actor.id,
-      entityType: "customer_site",
-      entityId: siteId,
-      action: "automatic_onboarding_route_blocked",
-      metadata: {
-        customerId,
-        siteId,
-        meteringPointId: meteringPoint.id,
-        decision: routeDecisionPayload(decision),
-      },
-    });
-    revalidatePath(`/admin/customers/${customerId}`);
-    revalidatePath("/admin/operations");
-    revalidatePath("/admin/operations/tasks");
-    return;
-  }
-
-  const existingOpenRequest = await findOpenSupplierSwitchRequestForSite(
-    supabase,
-    {
-      customerId,
-      siteId,
-      companyId,
-    },
+  // Returnera direkt till kundkortet. after() ger snabb start i samma request; cron är den idempotenta reservvägen.
+  after(() =>
+    processCustomerOperationJobs({
+      workerId: `customer-card:${job.id}`,
+      limit: 1,
+    }).catch((error) => console.error("[customer-operation] background start failed", error)),
   );
 
-  const switchRequest =
-    existingOpenRequest ??
-    (await createSupplierSwitchRequest(supabase, {
-      readiness,
-      site,
-      meteringPoint,
-      requestType,
-      requestedStartDate: site.move_in_date ?? null,
-      companyId,
-      automationOrigin: "customer_card_automatic_onboarding",
-      automationKey: `automatic-onboarding:${customerId}:${siteId}:${meteringPoint.id}`,
-    }));
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/customer-info-requests");
+}
 
-  await insertAuditLog({
-    actorUserId: actor.id,
-    entityType: "supplier_switch_request",
-    entityId: switchRequest.id,
-    action: existingOpenRequest
-      ? "automatic_onboarding_z03_existing_request_reused"
-      : "automatic_onboarding_z03_queued",
-    newValues: switchRequest,
-    metadata: {
-      customerId,
-      siteId,
-      meteringPointId: meteringPoint.id,
-      decision: routeDecisionPayload(decision),
-    },
-  });
+export async function requestSupplierSwitchAutomationAction(
+  formData: FormData,
+): Promise<void> {
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const customerId = formValue(formData, "customer_id") ?? "";
+  const siteId = formValue(formData, "site_id") ?? "";
+  const meteringPointId = formValue(formData, "metering_point_id");
 
-  await startSupplierSwitch({
-    actorUserId: actor.id,
+  if (!customerId || !siteId) {
+    throw new Error("Kund eller anläggning saknas för leverantörsbyte.");
+  }
+
+  const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  await assertCustomerSiteTenant({ companyId, customerId, siteId });
+  if (meteringPointId) {
+    await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId });
+  }
+
+  const job = await enqueueSupplierSwitchAutomation({
+    companyId,
     customerId,
-    switchRequestId: switchRequest.id,
     siteId,
-    meteringPointId: meteringPoint.id,
-    idempotencyKey: `automatic_onboarding_start:${customerId}:${siteId}:${meteringPoint.id}:${switchRequest.id}`,
+    meteringPointId,
+    actorUserId: guard.userId,
   });
+
+  after(() =>
+    processCustomerOperationJobs({
+      workerId: `customer-switch:${job.id}`,
+      limit: 1,
+    }).catch((error) => console.error("[customer-operation] switch background start failed", error)),
+  );
 
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath("/admin/operations");
@@ -2580,12 +2308,13 @@ export async function createCustomerDataRequestPackageAction(
       site.company_id === companyId &&
       site.customer_id === customerId
     ) {
-      gridOwnerId = await tryAutoResolveGridOwnerForSite({
+      const resolution = await resolveCustomerSiteGridOwner({
         companyId,
         customerId,
-        site: site as unknown as Record<string, unknown>,
+        siteId,
         actorUserId: actor.id,
       });
+      gridOwnerId = resolution.state === "verified" ? resolution.result.gridOwnerId : null;
     }
   }
 

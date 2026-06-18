@@ -59,6 +59,14 @@ export type CustomerInfoRequestRow = {
   requested_at: string | null;
   sent_at: string | null;
   received_at: string | null;
+  grid_owner_data_request_id?: string | null;
+  outbound_request_id?: string | null;
+  ediel_message_id?: string | null;
+  response_ediel_message_id?: string | null;
+  interchange_reference?: string | null;
+  transaction_reference?: string | null;
+  correlation_reference?: string | null;
+  external_reference?: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -157,7 +165,7 @@ export async function listCustomersForInfoRequestSelector(
       throw error;
     }
 
-    return (data ?? []).map((row) => ({
+    return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
       id: String(row.id),
       label: customerLabel(row as Record<string, unknown>),
       sublabel:
@@ -1032,6 +1040,13 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       requested_at: now,
       sent_at: null,
       blocker_reason: blockerReason,
+      grid_owner_data_request_id: gridOwnerDataRequest.id,
+      outbound_request_id: z01.outbound.id,
+      ediel_message_id: z01.message?.id ?? null,
+      interchange_reference: z01.message?.interchange_reference ?? null,
+      transaction_reference: z01.message?.transaction_reference ?? null,
+      correlation_reference: z01.message?.correlation_reference ?? z01.message?.external_reference ?? null,
+      external_reference: z01.message?.external_reference ?? (request.verified_payload?.externalReference as string | null) ?? null,
       verified_payload: {
         ...(request.verified_payload ?? {}),
         gridOwnerDataRequestId: gridOwnerDataRequest.id,

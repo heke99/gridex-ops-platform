@@ -358,9 +358,18 @@ export function buildCustomerCardSnapshot(
         primaryMeteringPoint.id,
     ),
   );
-  const hasGridOwner = truthy(
-    primaryMeteringPoint?.grid_owner_id ?? primarySite?.grid_owner_id,
+  const gridOwnerResolution = lower(
+    asRecord(primarySite).resolution_status ??
+      asRecord(primaryMeteringPoint).resolution_status,
   );
+  const hasGridOwner =
+    truthy(primaryMeteringPoint?.grid_owner_id ?? primarySite?.grid_owner_id) &&
+    ![
+      "grid_owner_suggested",
+      "postal_suggested",
+      "needs_review",
+      "manual_review_required",
+    ].includes(gridOwnerResolution);
   const hasContract = (input.contracts ?? []).length > 0;
   const hasPricePlan = (input.contracts ?? []).some((contract) => {
     const raw = contract as unknown as AnyRow;

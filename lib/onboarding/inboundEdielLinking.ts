@@ -13,6 +13,7 @@ import {
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import type { SupplierSwitchRequestType } from '@/lib/operations/types'
+import { enqueueInboundGridOwnerResponseAutomation } from '@/lib/customer-operations/automation'
 
 type JsonRecord = Record<string, unknown>
 
@@ -35,6 +36,13 @@ function isMissingRelationError(error: unknown): boolean {
 
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function uuidOrNull(value: unknown): string | null {
+  const candidate = stringOrNull(value)
+  return candidate && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
+    ? candidate
+    : null
 }
 
 function unique(values: Array<string | null | undefined>): string[] {
@@ -105,35 +113,52 @@ async function findCustomerInfoRequestForZ02(message: EdielMessageRow): Promise<
   if (!companyId) return null
 
   const references = messageReferenceCandidates(message)
-  const gridOwnerDataRequestId = message.grid_owner_data_request_id ?? null
+  const exactIds = unique([
+    message.grid_owner_data_request_id,
+    message.related_message_id,
+    message.original_message_id,
+  ])
 
-  const { data, error } = await supabaseService
-    .from('customer_info_requests')
-    .select('*')
-    .eq('company_id', companyId)
-    .in('status', ['z01_prepared', 'route_missing', 'sent_to_grid_owner', 'waiting_for_z02', 'waiting_for_aperak', 'waiting_for_contrl', 'ready_to_send', 'draft', 'manual_review_required'])
-    .order('created_at', { ascending: false })
-    .limit(200)
-
-  if (error) {
-    if (isMissingRelationError(error)) return null
-    throw error
+  if (message.grid_owner_data_request_id) {
+    const { data, error } = await supabaseService
+      .from('customer_info_requests')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('grid_owner_data_request_id', message.grid_owner_data_request_id)
+      .maybeSingle()
+    if (error && !isMissingRelationError(error)) throw error
+    if (data) return data as Record<string, unknown>
   }
 
-  const rows = (data ?? []) as Array<Record<string, unknown>>
-  return rows.find((row) => {
-    const payload = readJson(row.verified_payload)
-    const payloadReferences = unique([
-      stringOrNull(payload.externalReference),
-      stringOrNull(payload.caseReference),
-      stringOrNull(payload.z01Reference),
-      stringOrNull(payload.gridOwnerDataRequestId),
-    ])
+  for (const messageId of exactIds) {
+    const { data, error } = await supabaseService
+      .from('customer_info_requests')
+      .select('*')
+      .eq('company_id', companyId)
+      .or(`ediel_message_id.eq.${messageId},response_ediel_message_id.eq.${messageId}`)
+      .limit(2)
+    if (error && !isMissingRelationError(error)) throw error
+    if ((data ?? []).length === 1) return data?.[0] as Record<string, unknown>
+    if ((data ?? []).length > 1) return null
+  }
 
-    if (gridOwnerDataRequestId && payload.gridOwnerDataRequestId === gridOwnerDataRequestId) return true
-    if (message.customer_id && row.customer_id === message.customer_id) return true
-    return payloadReferences.some((reference) => references.includes(reference))
-  }) ?? null
+  if (references.length === 0) return null
+  const lookups = await Promise.all([
+    supabaseService.from('customer_info_requests').select('*').eq('company_id', companyId).in('external_reference', references).limit(3),
+    supabaseService.from('customer_info_requests').select('*').eq('company_id', companyId).in('transaction_reference', references).limit(3),
+    supabaseService.from('customer_info_requests').select('*').eq('company_id', companyId).in('correlation_reference', references).limit(3),
+  ])
+  const candidates = new Map<string, Record<string, unknown>>()
+  for (const lookup of lookups) {
+    if (lookup.error) {
+      if (isMissingRelationError(lookup.error)) continue
+      throw lookup.error
+    }
+    for (const row of (lookup.data ?? []) as Array<Record<string, unknown>>) {
+      if (typeof row.id === 'string') candidates.set(row.id, row)
+    }
+  }
+  return candidates.size === 1 ? [...candidates.values()][0] ?? null : null
 }
 
 async function findMeteringPermissionForZ14(message: EdielMessageRow): Promise<MeteringPermissionRow | null> {
@@ -279,6 +304,11 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
   const companyId = params.message.company_id
   if (!companyId) return { applied: false, targetId: null, reason: 'missing_company_id' }
 
+  const persistenceActorId =
+    uuidOrNull(params.actorUserId) ??
+    uuidOrNull(request.created_by) ??
+    uuidOrNull(params.message.created_by)
+  const eventActorId = persistenceActorId ?? params.actorUserId
   const currentPayload = readJson(request.verified_payload)
   const z02Payload = prodatPayloadSnapshot(params.message)
 
@@ -294,7 +324,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
         z02MessageId: params.message.id,
         linkedAutomaticallyAt: new Date().toISOString(),
       },
-      updated_by: params.actorUserId,
+      updated_by: persistenceActorId,
       updated_at: new Date().toISOString(),
     })
     .eq('company_id', companyId)
@@ -303,7 +333,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
   if (error) throw error
 
   await linkEdielMessage({
-    actorUserId: params.actorUserId,
+    actorUserId: eventActorId,
     edielMessageId: params.message.id,
     customerId: String(request.customer_id ?? '') || params.message.customer_id,
     siteId: String(request.site_id ?? '') || params.message.site_id,
@@ -319,30 +349,56 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
     event_type: 'z02_received',
     message: 'PRODAT Z02 kopplades automatiskt till uppgiftsbegäran och verifierade uppgifter sparades.',
     payload: z02Payload,
-    created_by: params.actorUserId,
+    created_by: persistenceActorId,
   })
 
-  const autoSwitch = await tryQueueSupplierSwitchAfterZ02({
-    actorUserId: params.actorUserId,
+  const linkedCustomerId = String(request.customer_id ?? '') || String(params.message.customer_id ?? '')
+  const linkedSiteId = String(request.site_id ?? '') || String(params.message.site_id ?? '')
+  if (!linkedCustomerId || !linkedSiteId) {
+    await supabaseService
+      .from('customer_info_requests')
+      .update({
+        status: 'manual_review_required',
+        blocker_reason: 'Svaret saknar säker koppling till kundens anläggning.',
+        updated_by: persistenceActorId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('company_id', companyId)
+      .eq('id', request.id)
+    await supabaseService.from('customer_info_request_events').insert({
+      company_id: companyId,
+      customer_info_request_id: request.id,
+      customer_id: request.customer_id,
+      event_type: 'z02_needs_review',
+      message: 'Svar från nätägaren kunde inte kopplas säkert till en anläggning.',
+      payload: { z02: z02Payload },
+      created_by: persistenceActorId,
+    })
+    return { applied: false, targetId: String(request.id), reason: 'missing_customer_or_site_link' }
+  }
+
+  const responseJob = await enqueueInboundGridOwnerResponseAutomation({
     companyId,
-    request,
-    z02Payload,
+    customerId: linkedCustomerId,
+    siteId: linkedSiteId,
+    meteringPointId: String(request.metering_point_id ?? '') || String(params.message.metering_point_id ?? '') || null,
+    requestId: String(request.id),
+    edielMessageId: params.message.id,
+    actorUserId: persistenceActorId,
   })
 
   await supabaseService.from('customer_info_request_events').insert({
     company_id: companyId,
     customer_info_request_id: request.id,
     customer_id: request.customer_id,
-    event_type: autoSwitch.queued ? 'z03_auto_queued_after_z02' : 'z03_auto_not_queued_after_z02',
-    message: autoSwitch.queued
-      ? 'Efter Z02 blev preflight grön och systemet köade leverantörsbyte/Z03.'
-      : 'Z02 mottogs men leverantörsbyte/Z03 köades inte automatiskt.',
-    payload: autoSwitch,
-    created_by: params.actorUserId,
+    event_type: 'z02_processing_queued',
+    message: 'Svar från nätägaren kopplades automatiskt och bearbetas nu i bakgrunden.',
+    payload: { customerOperationJobId: responseJob.id, z02: z02Payload },
+    created_by: persistenceActorId,
   })
 
   await createEdielMessageEvent({
-    actorUserId: params.actorUserId,
+    actorUserId: eventActorId,
     edielMessageId: params.message.id,
     eventType: 'linked',
     eventStatus: 'success',
