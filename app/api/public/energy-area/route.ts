@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { publicPriceAreaByPostalCode, normalizePostalCode } from '@/lib/energy/resolver'
 import { allowPublicRequest } from '@/lib/http/publicRateLimit'
 
@@ -17,6 +18,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ postalCode, priceArea: null, confidence: 0, disclaimer: 'Ange ett svenskt postnummer med fem siffror.' }, { status: 400, headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } })
   }
 
-  const result = await publicPriceAreaByPostalCode(postalCode)
-  return NextResponse.json(result, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' } })
+  try {
+    const result = await publicPriceAreaByPostalCode(postalCode)
+    return NextResponse.json(result, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' } })
+  } catch (error) {
+    return internalApiError({
+      context: 'public-energy-area',
+      error,
+      code: 'energy_area_unavailable',
+      message: 'Elområdet kunde inte hämtas just nu.',
+    })
+  }
 }

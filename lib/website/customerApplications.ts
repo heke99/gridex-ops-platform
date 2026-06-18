@@ -21,6 +21,7 @@ import { getBaseAppUrl } from '@/lib/auth/urls'
 import { ensureCustomerPortalUserLink } from '@/lib/customer-portal/customerResolver'
 import { applyCustomerSiteAddressCandidate } from '@/lib/customer-sites/addressIntake'
 import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
+import { ensureCustomerApplicationWorkflow, transitionCustomerApplicationWorkflow } from '@/lib/website/applicationWorkflow'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -444,6 +445,9 @@ type ErrorStage =
   | 'public_contract_lookup'
   | 'legal_acceptance'
   | 'application_record_create'
+  | 'application_workflow'
+  | 'application_workflow_transition'
+  | 'customer_data_automation'
   | 'communication_trigger'
   | 'domain_event_create'
   | 'webhook_queue'
@@ -2437,13 +2441,9 @@ export async function processWebsiteCustomerApplication(input: {
           metadata: { application_source: clean(body.source) ?? 'website' },
         },
       }))
-      if (addressResult.status === 'updated' || addressResult.status === 'unchanged') {
-        await enqueueCustomerDataRequestAutomation({
-          companyId: input.client.company_id,
-          customerId: resolvedCustomerResult.customer.id,
-          siteId,
-        })
-      }
+      // Do not start external automation here. Contract, immutable legal
+      // acceptances and the application record must exist first.
+      void addressResult
     }
 
     meteringPoint = readiness.canCreateMeteringPoint
@@ -2614,6 +2614,24 @@ export async function processWebsiteCustomerApplication(input: {
       if (applicationUpdateResult.error && !missingSchema(applicationUpdateResult.error)) throw applicationUpdateResult.error
     }
 
+    const workflow = await stage('application_workflow', () => ensureCustomerApplicationWorkflow({
+      companyId: input.client.company_id,
+      applicationId: application.id,
+      customerId: resolvedCustomerResult.customer.id,
+      customerSiteId: site?.id ?? null,
+      meteringPointId: meteringPoint?.id ?? null,
+      contractId: contract?.id ?? null,
+      state: readiness.canStartSwitch ? 'ready_for_switch' : site?.id && powerOfAttorneyId ? 'pending_customer_data' : 'pending_review',
+      snapshot: {
+        application_status: applicationStatus,
+        resolver_status: energyResolution.resolution.resolutionStatus,
+        grid_area_code: readiness.gridAreaCode,
+        price_area: readiness.priceArea,
+        legal_acceptance_complete: Boolean(powerOfAttorneyId),
+        facility_verified: readiness.facilityVerified,
+      },
+    }))
+
     const gridOwnerRequest = readiness.canRequestGridOwnerInformation
       ? await stage('grid_owner_information_request', () => ensureGridOwnerInformationRequest({
           companyId: input.client.company_id,
@@ -2626,6 +2644,18 @@ export async function processWebsiteCustomerApplication(input: {
           priceArea: readiness.priceArea,
         }))
       : null
+
+    const committedSiteId = site?.id ?? null
+    if (committedSiteId && powerOfAttorneyId) {
+      await stage('customer_data_automation', () => enqueueCustomerDataRequestAutomation({
+        companyId: input.client.company_id,
+        customerId: resolvedCustomerResult.customer.id,
+        siteId: committedSiteId,
+        meteringPointId: meteringPoint?.id ?? null,
+        source: 'website_application_committed',
+        operationId: workflow.operationId,
+      }))
+    }
 
     if (gridOwnerRequest?.requestId) {
       await supabaseService
@@ -2645,6 +2675,21 @@ export async function processWebsiteCustomerApplication(input: {
         .eq('id', application.id)
         .eq('company_id', input.client.company_id)
     }
+
+    await stage('application_workflow_transition', () => transitionCustomerApplicationWorkflow({
+      companyId: input.client.company_id,
+      applicationId: application.id,
+      state: readiness.canStartSwitch
+        ? 'ready_for_switch'
+        : gridOwnerRequest?.requestId || (site?.id && powerOfAttorneyId)
+          ? 'pending_customer_data'
+          : 'pending_review',
+      snapshotPatch: {
+        grid_owner_information_request_id: gridOwnerRequest?.requestId ?? null,
+        grid_owner_information_request_status: gridOwnerRequest?.status ?? null,
+        customer_operation_requested: Boolean(site?.id && powerOfAttorneyId),
+      },
+    }))
 
     const warnings: string[] = [...readiness.warnings, ...(gridOwnerRequest?.warnings ?? [])]
     let communicationResults: unknown[] = []
@@ -2867,6 +2912,32 @@ export async function processWebsiteCustomerApplication(input: {
       console.warn('[website-applications] failed to log failed application', failedInsertError)
       return null
     })
+
+    if (failedApplication?.id && customerResult?.customer?.id) {
+      await ensureCustomerApplicationWorkflow({
+        companyId: input.client.company_id,
+        applicationId: failedApplication.id,
+        customerId: customerResult.customer.id,
+        customerSiteId: site?.id ?? null,
+        meteringPointId: meteringPoint?.id ?? null,
+        contractId: contract?.id ?? null,
+        state: 'failed',
+        snapshot: {
+          error_stage: appError.stage,
+          error_code: appError.code,
+          error_message: safeErrorMessage,
+        },
+      }).then((workflow) => transitionCustomerApplicationWorkflow({
+        companyId: input.client.company_id,
+        applicationId: failedApplication.id,
+        state: 'failed',
+        failureCode: appError.code,
+        failureDetailInternal: errorMessage(appError),
+        snapshotPatch: { workflow_operation_id: workflow.operationId },
+      })).catch((workflowError) => {
+        console.warn('[website-applications] failed to persist failed workflow state', workflowError)
+      })
+    }
 
     if (controlledBusinessError && failedApplication?.id) {
       const mapped = mapFacilityBusinessError(controlledBusinessErrorCode(appError), { message: safeErrorMessage })

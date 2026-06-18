@@ -24,6 +24,8 @@ type TenantEmailOutboxRow = {
   max_attempts: number | null;
   next_attempt_at: string | null;
   provider_message_id: string | null;
+  provider_idempotency_key?: string | null;
+  delivery_uncertain_at?: string | null;
   failure_reason: string | null;
   last_error?: string | null;
   branding_snapshot: Record<string, unknown> | null;
@@ -139,9 +141,12 @@ export async function enqueueTenantEmail(
   if (!subject) throw new Error("Ämnesrad saknas för e-postutskicket.");
   if (!html) throw new Error("Mallinnehåll saknas för e-postutskicket.");
 
+  const outboxId = randomUUID();
+  const providerIdempotencyKey = `tenant-email:${input.companyId}:${outboxId}`;
   const { data, error } = await supabaseService
     .from("tenant_email_outbox")
     .insert({
+      id: outboxId,
       company_id: input.companyId,
       customer_id: input.customerId ?? null,
       customer_case_id: input.customerCaseId ?? null,
@@ -187,6 +192,7 @@ async function moveStaleProcessingToUncertain(input: ProcessTenantEmailOutboxInp
       locked_at: null,
       locked_by: null,
       lock_token: null,
+      delivery_uncertain_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("status", "processing")
@@ -249,6 +255,7 @@ async function markOutboxSent(
       failure_reason: null,
       last_error: null,
       sent_at: now,
+      delivery_uncertain_at: null,
       locked_at: null,
       locked_by: null,
       lock_token: null,
@@ -295,6 +302,7 @@ async function markOutboxFailed(
       failure_reason: errorMessage,
       last_error: errorMessage,
       failed_at: deadLetter ? now : null,
+      delivery_uncertain_at: null,
       next_attempt_at: deadLetter ? null : nextAttempt,
       dead_letter_at: deadLetter ? now : null,
       locked_at: null,
@@ -339,6 +347,7 @@ export async function sendTenantEmailOutboxRow(row: TenantEmailOutboxRow) {
     subject: row.subject,
     html: row.html_body,
     text: row.text_body ?? undefined,
+    idempotencyKey: row.provider_idempotency_key ?? `tenant-email:${row.id}`,
   });
 
   return result.providerMessageId;
@@ -402,6 +411,8 @@ export async function sendTenantEmailNow(outboxId: string) {
     return { ok: false, error: "Utskicket är avstängt eller annullerat." };
   if (row.status === "processing")
     return { ok: false, error: "Utskicket behandlas redan." };
+  if (row.status === "delivery_uncertain")
+    return { ok: false, error: "Leveransen är osäker efter ett avbrott och får inte skickas om automatiskt. Granska transportlogg och markera omsändning manuellt." };
 
   const claimed = row.status === "queued" ? await claimRow(row) : row;
   if (!claimed) return { ok: false, error: "Utskicket behandlas redan." };

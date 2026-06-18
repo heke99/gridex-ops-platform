@@ -51,6 +51,18 @@ function missingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
 }
 
+class ResolverSchemaError extends Error {
+  constructor(readonly resource: string, cause?: unknown) {
+    super(`Resolver dependency is unavailable: ${resource}`)
+    this.name = 'ResolverSchemaError'
+    if (cause) this.cause = cause
+  }
+}
+
+function requireResolverSchema(resource: string, error: unknown): never {
+  throw new ResolverSchemaError(resource, error)
+}
+
 function normalisePriceArea(value: unknown): PriceArea | null {
   const area = clean(value)?.toUpperCase()
   return PRICE_AREAS.includes(area as PriceArea) ? area as PriceArea : null
@@ -152,7 +164,7 @@ async function mapPlatformGridOwnerToOpsGridOwner(platformGridOwnerId: string | 
     .eq('id', id)
     .maybeSingle()
   if (error) {
-    if (missingSchema(error)) return null
+    if (missingSchema(error)) requireResolverSchema('platform_grid_owners', error)
     throw error
   }
   return clean((data as { ops_grid_owner_id?: string | null } | null)?.ops_grid_owner_id)
@@ -201,7 +213,7 @@ async function findGridAreaByCode(gridAreaCode: string): Promise<EnergyResolverR
     .maybeSingle()
 
   if (error) {
-    if (missingSchema(error)) return null
+    if (missingSchema(error)) requireResolverSchema('platform_grid_areas', error)
     throw error
   }
   if (!data) return null
@@ -367,10 +379,17 @@ async function lookupPapilite(input: EnergyResolverInput): Promise<GeocodeLookup
       })
       diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: response.ok ? 'response_received' : 'http_error', httpStatus: response.status })
       if (!response.ok) {
+        diagnostics.geocodeHttpStatus = response.status
         diagnostics.geocodeStatus = response.status === 401 || response.status === 403 ? 'unauthorized' : response.status === 429 ? 'rate_limited' : 'provider_error'
         continue
       }
       const payload = await response.json().catch(() => null) as unknown
+      diagnostics.geocodeHttpStatus = response.status
+      diagnostics.geocodeResponseShape = Array.isArray(payload)
+        ? 'array'
+        : payload && typeof payload === 'object'
+          ? `object:${Object.keys(payload as Record<string, unknown>).sort().slice(0, 8).join(',')}`
+          : typeof payload
       const candidate = candidateFromPayload(payload)
       if (!candidate) {
         diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: 'no_match' })
@@ -458,7 +477,7 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
   }
 
   if (error) {
-    if (missingSchema(error)) return null
+    if (missingSchema(error)) requireResolverSchema('gridex_point_to_grid_area', error)
     throw error
   }
   const row = Array.isArray(data) ? data[0] : data
@@ -515,7 +534,7 @@ async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResol
 
   const { data, error } = await query
   if (error) {
-    if (missingSchema(error)) return null
+    if (missingSchema(error)) requireResolverSchema('platform_postal_code_grid_mappings', error)
     throw error
   }
   const rows = data ?? []
@@ -567,8 +586,8 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
     .single()
 
   if (error) {
-    if (!missingSchema(error)) throw error
-    return { ...resolved, warnings: [...resolved.warnings, 'customer_site_resolution_schema_missing'] }
+    if (missingSchema(error)) requireResolverSchema('customer_site_resolution', error)
+    throw error
   }
 
   if (input.customerSiteId) {
@@ -590,7 +609,10 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
       .update(siteUpdate)
       .eq('id', input.customerSiteId)
       .eq('company_id', input.companyId)
-    if (siteResult.error && !missingSchema(siteResult.error)) throw siteResult.error
+    if (siteResult.error) {
+      if (missingSchema(siteResult.error)) requireResolverSchema('customer_sites.energy_resolution_columns', siteResult.error)
+      throw siteResult.error
+    }
   }
 
   return { ...resolved, resolutionId: data.id as string }
@@ -670,13 +692,27 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
     }))
   } catch (error) {
     const code = (error as { code?: string } | null)?.code ?? null
-    return saveResolution(input, result(input, {
+    const schemaResource = error instanceof ResolverSchemaError ? error.resource : null
+    const failed = result(input, {
       resolutionStatus: 'failed',
       confidence: 0,
       sourceChain: ['energy_resolver_error'],
-      nextRequiredAction: 'Teknisk admin behöver kontrollera resolver, geodataimport eller schema.',
-      warnings: [...warnings, code ? `resolver_database_error_${code}` : 'resolver_unexpected_error'],
-    }))
+      nextRequiredAction: schemaResource
+        ? 'OPS saknar ett nödvändigt schemaobjekt för nätområdesmatchning. Kör driftkontrollen och senaste migration innan automation fortsätter.'
+        : 'Teknisk admin behöver kontrollera resolver, geodataimport eller schema.',
+      warnings: [...warnings, schemaResource ? `resolver_schema_missing:${schemaResource}` : code ? `resolver_database_error_${code}` : 'resolver_unexpected_error'],
+      diagnostics: {
+        addressAttempts: [],
+        geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
+        geocodeStatus: schemaResource ? 'schema_missing' : 'failed',
+        coordinateReferenceSystem: null,
+        polygonStatus: schemaResource ? 'schema_missing' : 'not_attempted',
+        mappingStatus: 'not_applicable',
+      },
+    })
+    // A missing result table must never be reported as absent business data.
+    // Avoid a second failing write when the schema itself is unavailable.
+    return schemaResource ? failed : saveResolution(input, failed).catch(() => failed)
   }
 }
 

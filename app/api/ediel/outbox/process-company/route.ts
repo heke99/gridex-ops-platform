@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
 import { supabaseService } from '@/lib/supabase/service'
@@ -24,7 +25,12 @@ function requestToken(request: NextRequest): string | null {
 
 function isAuthorized(request: NextRequest): boolean {
   const token = requestToken(request)
-  return Boolean(token && expectedSecrets().includes(token))
+  if (!token) return false
+  return expectedSecrets().some((secret) => {
+    const left = Buffer.from(token)
+    const right = Buffer.from(secret)
+    return left.length === right.length && timingSafeEqual(left, right)
+  })
 }
 
 function parseLimit(value: unknown): number {

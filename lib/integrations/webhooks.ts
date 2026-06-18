@@ -199,6 +199,19 @@ async function recoverStaleDeliveries() {
   if (error && !missingSchema(error)) throw error
 }
 
+async function finalizeClaimedDelivery(delivery: WebhookDeliveryRow, patch: Record<string, unknown>) {
+  const { data, error } = await supabaseService
+    .from('webhook_deliveries')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('id', delivery.id)
+    .eq('status', 'processing')
+    .eq('locked_by', delivery.locked_by ?? '')
+    .select('id')
+    .maybeSingle()
+  if (error) throw error
+  if (!data?.id) throw new Error('webhook_delivery_lock_lost')
+}
+
 async function claimDueDeliveries(limit: number) {
   await recoverStaleDeliveries()
   const now = new Date().toISOString()
@@ -256,15 +269,14 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
     const targetUrl = delivery.target_url || subscription?.endpoint_url || null
 
     if (!subscription || subscription.status !== 'active' || !targetUrl) {
-      await supabaseService.from('webhook_deliveries').update({
+      await finalizeClaimedDelivery(delivery, {
         status: 'skipped',
         attempts,
         last_attempt_at: new Date().toISOString(),
         failure_reason: !subscription ? 'Webhook subscription was not found.' : 'Webhook subscription is not active or target URL is missing.',
         locked_at: null,
         locked_by: null,
-        updated_at: new Date().toISOString(),
-      }).eq('id', delivery.id).eq('status', 'processing').eq('locked_by', delivery.locked_by ?? '')
+      })
       failed += 1
       continue
     }
@@ -273,7 +285,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
     const secret = signingSecret(subscription)
     if (!secret) {
       const deadLetter = attempts >= delivery.max_attempts
-      await supabaseService.from('webhook_deliveries').update({
+      await finalizeClaimedDelivery(delivery, {
         status: deadLetter ? 'dead_letter' : 'failed',
         attempts,
         last_attempt_at: new Date().toISOString(),
@@ -283,8 +295,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         locked_at: null,
         locked_by: null,
         target_url: targetUrl,
-        updated_at: new Date().toISOString(),
-      }).eq('id', delivery.id).eq('status', 'processing').eq('locked_by', delivery.locked_by ?? '')
+      })
       await updateSubscriptionFailure(subscription, deadLetter).catch(() => null)
       failed += 1
       continue
@@ -303,7 +314,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
       const responseBody = await response.text()
 
       if (response.ok) {
-        await supabaseService.from('webhook_deliveries').update({
+        await finalizeClaimedDelivery(delivery, {
           status: 'sent',
           attempts,
           last_attempt_at: new Date().toISOString(),
@@ -314,13 +325,12 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
           locked_at: null,
           locked_by: null,
           target_url: targetUrl,
-          updated_at: new Date().toISOString(),
-        }).eq('id', delivery.id).eq('status', 'processing').eq('locked_by', delivery.locked_by ?? '')
+        })
         await updateSubscriptionSuccess(subscription.id).catch(() => null)
         sent += 1
       } else {
         const deadLetter = attempts >= delivery.max_attempts
-        await supabaseService.from('webhook_deliveries').update({
+        await finalizeClaimedDelivery(delivery, {
           status: deadLetter ? 'dead_letter' : 'failed',
           attempts,
           last_attempt_at: new Date().toISOString(),
@@ -332,14 +342,13 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
           locked_at: null,
           locked_by: null,
           target_url: targetUrl,
-          updated_at: new Date().toISOString(),
-        }).eq('id', delivery.id).eq('status', 'processing').eq('locked_by', delivery.locked_by ?? '')
+        })
         await updateSubscriptionFailure(subscription, deadLetter).catch(() => null)
         failed += 1
       }
     } catch (error) {
       const deadLetter = attempts >= delivery.max_attempts
-      await supabaseService.from('webhook_deliveries').update({
+      await finalizeClaimedDelivery(delivery, {
         status: deadLetter ? 'dead_letter' : 'failed',
         attempts,
         last_attempt_at: new Date().toISOString(),
@@ -349,8 +358,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         locked_at: null,
         locked_by: null,
         target_url: targetUrl,
-        updated_at: new Date().toISOString(),
-      }).eq('id', delivery.id).eq('status', 'processing').eq('locked_by', delivery.locked_by ?? '')
+      })
       await updateSubscriptionFailure(subscription, deadLetter).catch(() => null)
       failed += 1
     } finally {

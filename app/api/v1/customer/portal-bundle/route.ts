@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import type { LinkedPortalIdentity } from '@/lib/customer-portal/externalApi'
@@ -50,20 +51,25 @@ type BundleSection =
 
 type BundleWarning = {
   section: BundleSection
-  code: unknown
-  message: unknown
-  details: unknown
-  hint: unknown
+  code: 'section_unavailable'
+  message: string
+  trace_id: string
 }
 
 function safeWarning(section: BundleSection, error: unknown): BundleWarning {
-  const meta = portalQueryErrorMetadata(error)
+  const traceId = randomUUID()
+  // Keep provider/schema details in server logs only; the portal response must
+  // never reveal table names, SQL errors or internal integration endpoints.
+  console.error('[customer portal bundle] section failed', {
+    traceId,
+    section,
+    error: portalQueryErrorMetadata(error),
+  })
   return {
     section,
-    code: meta.code,
-    message: meta.message,
-    details: meta.details,
-    hint: meta.hint,
+    code: 'section_unavailable',
+    message: 'Den här delen av kunduppgifterna kunde inte hämtas just nu.',
+    trace_id: traceId,
   }
 }
 
@@ -75,9 +81,7 @@ async function optionalSection(
   try {
     return await read()
   } catch (error) {
-    const warning = safeWarning(section, error)
-    warnings.push(warning)
-    console.error('[customer portal bundle] section failed', warning)
+    warnings.push(safeWarning(section, error))
     return []
   }
 }

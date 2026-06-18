@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "plugins": [],
+    "tsBuildInfoFile": ".next/cache/tsconfig.app.tsbuildinfo"
+  },
+  "include": [
+    "next-env.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "types/**/*.ts",
+    "types/**/*.tsx",
+    "next.config.ts",
+    "proxy.ts"
+  ],
+  "exclude": ["node_modules", ".next", "scripts", "supabase"]
+}

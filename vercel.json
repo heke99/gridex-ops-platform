@@ -31,6 +31,14 @@
     {
       "path": "/api/internal/customer-operations/cron",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/internal/system/health",
+      "schedule": "35 2 * * *"
+    },
+    {
+      "path": "/api/internal/platform/grid-areas/import/cron",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

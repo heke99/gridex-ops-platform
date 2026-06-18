@@ -25,6 +25,8 @@ export type EnergyResolverDiagnostics = {
   addressAttempts?: Array<{ street: string; streetNumber: string | null; outcome: string; httpStatus?: number | null }>
   geocodeProvider?: string | null
   geocodeStatus?: string | null
+  geocodeHttpStatus?: number | null
+  geocodeResponseShape?: string | null
   coordinateReferenceSystem?: 'EPSG:3006' | 'EPSG:4326' | null
   polygonStatus?: 'matched' | 'no_match' | 'not_attempted' | 'schema_missing' | null
   mappingStatus?: 'mapped' | 'platform_to_ops_missing' | 'not_applicable' | null

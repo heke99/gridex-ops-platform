@@ -121,6 +121,9 @@ async function createAddressConflict(input: {
   source: CustomerSiteAddressSource
   sourceReference: string | null
 }) {
+  const dedupeKey = createHash('sha256')
+    .update([input.companyId, input.siteId, input.source, JSON.stringify(input.candidate)].join('|'))
+    .digest('hex')
   const { error } = await supabaseService.from('customer_site_address_conflicts').insert({
     company_id: input.companyId,
     customer_id: input.customerId,
@@ -130,51 +133,11 @@ async function createAddressConflict(input: {
     candidate_address: input.candidate,
     candidate_source: input.source,
     candidate_source_reference: input.sourceReference,
+    dedupe_key: dedupeKey,
   })
-  if (error && !missingSchema(error)) throw error
-}
-
-async function syncFacilityAddressRecord(input: {
-  companyId: string
-  customerId: string
-  siteId: string
-  street: string
-  careOf: string | null
-  postalCode: string
-  city: string
-  country: string
-  source: CustomerSiteAddressSource
-  addressHash: string
-}) {
-  const existing = await supabaseService
-    .from('customer_addresses')
-    .select('id')
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .eq('type', 'facility')
-    .contains('metadata', { customer_site_id: input.siteId })
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (existing.error && !missingSchema(existing.error)) throw existing.error
-
-  const payload = {
-    company_id: input.companyId,
-    customer_id: input.customerId,
-    type: 'facility',
-    street_1: input.street,
-    street_2: input.careOf,
-    postal_code: input.postalCode,
-    city: input.city,
-    country: input.country,
-    is_active: true,
-    metadata: { customer_site_id: input.siteId, address_hash: input.addressHash, source: input.source },
-    updated_at: new Date().toISOString(),
-  }
-  const result = existing.data?.id
-    ? await supabaseService.from('customer_addresses').update(payload).eq('id', existing.data.id)
-    : await supabaseService.from('customer_addresses').insert(payload)
-  if (result.error && !missingSchema(result.error)) throw result.error
+  // Open-address-conflict dedupe is a partial unique index. PostgREST cannot
+  // target it through onConflict, so a duplicate is intentionally a no-op.
+  if (error && error.code !== '23505' && !missingSchema(error)) throw error
 }
 
 export async function applyCustomerSiteAddressCandidate(input: {
@@ -273,88 +236,30 @@ export async function applyCustomerSiteAddressCandidate(input: {
     claimed_grid_owner_id: clean(input.address.claimedGridOwnerId),
     address_candidate_metadata: input.address.metadata ?? {},
   }
-  if (currentHash && currentHash !== address.hash) {
-    const cancelJobs = await supabaseService
-      .from('customer_operation_jobs')
-      .update({
-        status: 'cancelled',
-        last_error: 'Anläggningsadressen ändrades innan automationen var klar.',
-        completed_at: now,
-        locked_at: null,
-        locked_by: null,
-        updated_at: now,
-      })
-      .eq('company_id', input.companyId)
-      .eq('customer_site_id', input.siteId)
-      .in('status', ['queued', 'running'])
-    if (cancelJobs.error && !missingSchema(cancelJobs.error)) throw cancelJobs.error
-
-    const pauseRequests = await supabaseService
-      .from('customer_info_requests')
-      .update({
-        status: 'manual_review_required',
-        blocker_reason: 'Anläggningsadressen har ändrats efter att begäran skapades. Kontrollera adress och starta om automatiken.',
-        updated_at: now,
-      })
-      .eq('company_id', input.companyId)
-      .eq('customer_id', input.customerId)
-      .eq('site_id', input.siteId)
-      .in('status', ['draft', 'ready_to_send', 'z01_prepared', 'waiting_for_z02', 'waiting_for_aperak', 'waiting_for_contrl'])
-    if (pauseRequests.error && !missingSchema(pauseRequests.error)) throw pauseRequests.error
-  }
-
-  const patch: JsonRecord = {
-    street: address.street,
-    postal_code: address.postalCode,
-    city: address.city,
-    country: address.country,
-    care_of: address.careOf,
-    apartment_number: address.apartmentNumber,
-    address_normalized: address.normalized,
-    address_hash: address.hash,
-    address_source: input.address.source,
-    address_source_reference: sourceReference,
-    address_received_at: now,
-    address_verified_at: input.address.source === 'grid_owner_response' ? now : null,
-    address_verification_method: input.address.source === 'grid_owner_response' ? 'grid_owner_response' : null,
-    address_confidence: input.address.source === 'grid_owner_response' ? 1 : null,
-    address_status: input.address.source === 'grid_owner_response' ? 'verified' : 'candidate',
-    address_quality_status: 'complete',
-    address_quality_warnings: [],
-    grid_owner_id: null,
-    grid_area_code: null,
-    price_area_code: null,
-    resolution_id: null,
-    resolution_status: 'address_changed',
-    resolution_confidence: null,
-    facility_data_status: input.address.source === 'grid_owner_response' ? 'verified' : 'unverified',
-    metadata,
-    updated_at: now,
-  }
-  const update = await supabaseService.from('customer_sites').update(patch).eq('id', input.siteId).eq('company_id', input.companyId)
-  if (update.error) throw update.error
-
-  const meterReset = await supabaseService
-    .from('metering_points')
-    .update({ grid_owner_id: null, grid_area_code: null, price_area_code: null, verification_status: 'pending_verification', updated_at: now })
-    .eq('company_id', input.companyId)
-    .eq('site_id', input.siteId)
-    .neq('status', 'closed')
-  if (meterReset.error && !missingSchema(meterReset.error)) throw meterReset.error
-
-  await syncFacilityAddressRecord({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    siteId: input.siteId,
-    street: address.street as string,
-    careOf: address.careOf,
-    postalCode: address.postalCode as string,
-    city: address.city as string,
-    country: address.country,
-    source: input.address.source,
-    addressHash: address.hash,
+  const atomicCommit = await supabaseService.rpc('gridex_commit_customer_site_address', {
+    p_company_id: input.companyId,
+    p_customer_id: input.customerId,
+    p_site_id: input.siteId,
+    p_street: address.street,
+    p_postal_code: address.postalCode,
+    p_city: address.city,
+    p_country: address.country,
+    p_care_of: address.careOf,
+    p_apartment_number: address.apartmentNumber,
+    p_address_normalized: address.normalized,
+    p_address_hash: address.hash,
+    p_source: input.address.source,
+    p_source_reference: sourceReference,
+    p_metadata: metadata,
+    p_actor_user_id: input.address.actorUserId ?? null,
   })
-  await insertAddressHistory({ companyId: input.companyId, customerId: input.customerId, siteId: input.siteId, addressHash: address.hash, source: input.address.source, sourceReference, actorUserId: input.address.actorUserId ?? null, snapshot: candidateSnapshot })
+  if (atomicCommit.error) {
+    if (missingSchema(atomicCommit.error)) {
+      throw new Error('Adressflödets atomiska databasfunktion saknas. Kör den senaste OPS-migrationen innan adress eller nätägare kan ändras.')
+    }
+    throw atomicCommit.error
+  }
+
   await emitCustomerOperationEvent({
     companyId: input.companyId,
     customerId: input.customerId,

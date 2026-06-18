@@ -101,6 +101,17 @@ export type CustomerOpsBlocker = {
     | "overview";
 };
 
+export type CustomerOpsSiteReadiness = {
+  siteId: string;
+  meteringPointId: string | null;
+  hasMeteringPoint: boolean;
+  hasGridOwner: boolean;
+  hasGridArea: boolean;
+  hasContractSnapshot: boolean;
+  hasActivePowerOfAttorney: boolean;
+  hasEdielRoute: boolean;
+};
+
 export type CustomerOpsReadiness = {
   canStartSupplierSwitch: boolean;
   canRequestFacilityData: boolean;
@@ -124,6 +135,7 @@ export type CustomerOpsReadiness = {
     hrefTab: CustomerOpsBlocker["tab"];
     description: string;
   };
+  siteReadiness: CustomerOpsSiteReadiness[];
 };
 
 function missingSchema(error: unknown): boolean {
@@ -370,6 +382,24 @@ function hasSnapshot(row: Record<string, unknown>): boolean {
   );
 }
 
+function scopedRows<T extends Record<string, unknown>>(rows: T[], scope: { customerSiteId?: string | null; meteringPointId?: string | null }, siteCount: number): T[] {
+  return rows.filter((row) => {
+    const rowSiteId = str(row, "customer_site_id", "site_id")
+    const rowMeteringPointId = str(row, "metering_point_id")
+    if (scope.customerSiteId && rowSiteId && rowSiteId !== scope.customerSiteId) return false
+    if (scope.meteringPointId && rowMeteringPointId && rowMeteringPointId !== scope.meteringPointId) return false
+    // Unscoped records can safely satisfy a single-site process only. In a
+    // multi-site customer, they are customer-level evidence, never proof for
+    // a particular delivery point.
+    if (siteCount > 1 && scope.customerSiteId && !rowSiteId && !rowMeteringPointId) return false
+    return true
+  })
+}
+
+function meterIdentityPresent(row: Record<string, unknown>): boolean {
+  return Boolean(str(row, "meter_point_id", "metering_point_id", "ediel_metering_point_id"))
+}
+
 export function evaluateCustomerOpsMasterReadiness(input: {
   customerId: string;
   customerStatus?: string | null;
@@ -381,178 +411,100 @@ export function evaluateCustomerOpsMasterReadiness(input: {
   documents?: CustomerDocument[];
   communicationLogs?: Array<Record<string, unknown>>;
   hasReadyEdielRoute?: boolean;
+  routeReadyBySiteId?: Record<string, boolean>;
+  scope?: { customerSiteId?: string | null; meteringPointId?: string | null };
 }): CustomerOpsReadiness {
   const contracts = asArray(input.contracts);
   const powersOfAttorney = asArray(input.powersOfAttorney);
-  const sites = asArray(input.sites);
+  const sites = asArray(input.sites).filter((site) => String(site.status ?? "active") !== "archived");
   const meteringPoints = asArray(input.meteringPoints);
   const acceptances = asArray(input.legalAcceptances);
   const communicationLogs = asArray(input.communicationLogs);
-  const documents = asArray(input.documents);
+  void input.documents; // Documents are evidence only, never legal authority.
 
+  const selectedSites = input.scope?.customerSiteId
+    ? sites.filter((site) => str(site, "id") === input.scope?.customerSiteId)
+    : sites;
+  const processSites = selectedSites.length > 0 ? selectedSites : sites;
+  const siteCount = processSites.length;
   const activePoaRows = powersOfAttorney.filter(recordDateActive);
-  // Documents are evidence only. The active legal authority lives in powers_of_attorney.
-  void documents;
+
+  const siteReadiness: CustomerOpsSiteReadiness[] = processSites.map((site) => {
+    const siteId = str(site, "id") ?? "unknown";
+    const scoped = { customerSiteId: siteId, meteringPointId: input.scope?.meteringPointId ?? null };
+    const points = scopedRows(meteringPoints, scoped, siteCount).filter((point) => {
+      const pointSiteId = str(point, "site_id", "customer_site_id");
+      return !pointSiteId || pointSiteId === siteId;
+    });
+    const scopedContracts = scopedRows(contracts, scoped, siteCount);
+    const scopedPoa = scopedRows(activePoaRows, scoped, siteCount);
+    const candidate = points.find(meterIdentityPresent) ?? null;
+    const gridOwnerId = str(site, "grid_owner_id", "grid_owner_code") ?? (candidate ? str(candidate, "grid_owner_id") : null);
+    const gridAreaCode = str(site, "grid_area_code") ?? (candidate ? str(candidate, "grid_area_code") : null);
+    const routeReady = input.routeReadyBySiteId
+      ? input.routeReadyBySiteId[siteId] === true
+      : Boolean(input.hasReadyEdielRoute);
+    return {
+      siteId,
+      meteringPointId: candidate ? str(candidate, "id") : null,
+      hasMeteringPoint: Boolean(candidate),
+      hasGridOwner: Boolean(gridOwnerId),
+      hasGridArea: Boolean(gridAreaCode),
+      hasContractSnapshot: scopedContracts.some(hasSnapshot),
+      hasActivePowerOfAttorney: scopedPoa.some((row) => poaAllows(row, "supplier_switch")),
+      hasEdielRoute: routeReady,
+    };
+  });
+
+  const allSites = siteReadiness.length > 0 && siteReadiness.every(Boolean);
   const hasTerms = hasAcceptance(acceptances, "terms");
   const hasPrivacy = hasAcceptance(acceptances, "privacy_policy");
   const hasWithdrawal = hasAcceptance(acceptances, "withdrawal_info");
-  const hasPriceSnapshot =
-    hasAcceptance(acceptances, "price_snapshot") || contracts.some(hasSnapshot);
+  const hasPriceSnapshot = hasAcceptance(acceptances, "price_snapshot") || siteReadiness.every((site) => site.hasContractSnapshot);
   const hasPowerOfAttorneyAcceptance = hasAcceptance(acceptances, "power_of_attorney");
-  const hasActivePowerOfAttorney = activePoaRows.some((row) => poaAllows(row, "supplier_switch"));
-  const hasFacilityPoa = activePoaRows.some(
-    (row) =>
-      poaAllows(row, "facility_data_request") ||
-      poaAllows(row, "metering_point_lookup"),
-  );
-  const hasContractSnapshot = contracts.some(hasSnapshot);
-  const hasFacility = sites.length > 0;
-  const hasMeteringPoint = meteringPoints.some((row) =>
-    Boolean(
-      str(
-        row,
-        "meter_point_id",
-        "metering_point_id",
-        "ediel_metering_point_id",
-      ),
-    ),
-  );
-  const hasGridOwner =
-    sites.some((row) =>
-      Boolean(str(row, "grid_owner_id", "grid_owner_code")),
-    ) || meteringPoints.some((row) => Boolean(str(row, "grid_owner_id")));
-  const hasGridArea =
-    sites.some((row) => Boolean(str(row, "grid_area_code"))) ||
-    meteringPoints.some((row) => Boolean(str(row, "grid_area_code")));
-  const hasEdielRoute = Boolean(input.hasReadyEdielRoute);
+  const hasActivePowerOfAttorney = allSites && siteReadiness.every((site) => site.hasActivePowerOfAttorney);
+  const hasFacilityPoa = allSites && processSites.every((site) => {
+    const scoped = scopedRows(activePoaRows, { customerSiteId: str(site, "id"), meteringPointId: input.scope?.meteringPointId ?? null }, siteCount);
+    return scoped.some((row) => poaAllows(row, "facility_data_request") || poaAllows(row, "metering_point_lookup"));
+  });
+  const hasContractSnapshot = allSites && siteReadiness.every((site) => site.hasContractSnapshot);
+  const hasFacility = processSites.length > 0;
+  const hasMeteringPoint = allSites && siteReadiness.every((site) => site.hasMeteringPoint);
+  const hasGridOwner = allSites && siteReadiness.every((site) => site.hasGridOwner);
+  const hasGridArea = allSites && siteReadiness.every((site) => site.hasGridArea);
+  const hasEdielRoute = allSites && siteReadiness.every((site) => site.hasEdielRoute);
   const hasCommunicationLogs = communicationLogs.length > 0;
 
   const blockers: CustomerOpsBlocker[] = [];
-  const add = (
-    code: string,
-    label: string,
-    action: string,
-    tab: CustomerOpsBlocker["tab"],
-  ) => blockers.push({ code, label, action, tab });
+  const add = (code: string, label: string, action: string, tab: CustomerOpsBlocker["tab"]) => blockers.push({ code, label, action, tab });
 
-  if (!hasTerms)
-    add(
-      "terms_missing",
-      "Villkor saknas",
-      "Be kunden godkänna allmänna villkor eller registrera ett manuellt godkännande med orsak.",
-      "legal-readiness",
-    );
-  if (!hasPrivacy)
-    add(
-      "privacy_missing",
-      "Integritetspolicy saknas",
-      "Spara kundens godkännande av integritetspolicyn innan flödet går vidare.",
-      "legal-readiness",
-    );
-  if (!hasWithdrawal)
-    add(
-      "withdrawal_missing",
-      "Ångerrättsinformation saknas",
-      "Skicka eller visa ångerrättsinformation och spara snapshot.",
-      "legal-readiness",
-    );
-  if (!hasPriceSnapshot)
-    add(
-      "price_snapshot_missing",
-      "Prissnapshot saknas",
-      "Spara exakt avtal/prisversion/pristext som kunden tecknade.",
-      "contracts",
-    );
-  if (!hasPowerOfAttorneyAcceptance)
-    add(
-      "poa_acceptance_missing",
-      "Fullmaktens godkännande saknas",
-      "Be kunden godkänna fullmakten separat, inte bara som del av villkor.",
-      "legal-readiness",
-    );
-  if (!hasActivePowerOfAttorney)
-    add(
-      "poa_missing",
-      "Aktiv fullmakt saknas",
-      "Lägg in eller begär fullmakt med rätt scope för leverantörsbyte.",
-      "authorization-documents",
-    );
-  if (!hasContractSnapshot)
-    add(
-      "contract_snapshot_missing",
-      "Avtalssnapshot saknas",
-      "Spara avtalssnapshot innan leverantörsbyte eller fakturering används.",
-      "contracts",
-    );
-  if (!hasFacility)
-    add(
-      "facility_missing",
-      "Anläggning saknas",
-      "Komplettera kundens anläggning eller begär uppgifter från nätägare.",
-      "sites",
-    );
-  if (!hasMeteringPoint)
-    add(
-      "metering_point_missing",
-      "Mätpunkts-ID saknas",
-      "Begär anläggningsuppgifter från nätägare eller komplettera mätpunkt.",
-      "metering-points",
-    );
-  if (!hasGridOwner)
-    add(
-      "grid_owner_missing",
-      "Nätägare saknas",
-      "Kör adress-/nätområdesmatchning eller verifiera nätägare från masterdata.",
-      "sites",
-    );
-  if (!hasGridArea)
-    add(
-      "grid_area_missing",
-      "Nätområde saknas",
-      "Verifiera nätområdeskod via adress/polygon/masterdata innan Ediel skickas.",
-      "sites",
-    );
-  if (!hasEdielRoute)
-    add(
-      "ediel_route_missing",
-      "Kontaktväg saknas",
-      "Verifiera nätägare och kontaktväg innan teknisk sändning kan göras.",
-      "switch-operations",
-    );
+  if (!hasTerms) add("terms_missing", "Villkor saknas", "Be kunden godkänna allmänna villkor eller registrera ett manuellt godkännande med orsak.", "legal-readiness");
+  if (!hasPrivacy) add("privacy_missing", "Integritetspolicy saknas", "Spara kundens godkännande av integritetspolicyn innan flödet går vidare.", "legal-readiness");
+  if (!hasWithdrawal) add("withdrawal_missing", "Ångerrättsinformation saknas", "Skicka eller visa ångerrättsinformation och spara snapshot.", "legal-readiness");
+  if (!hasPriceSnapshot) add("price_snapshot_missing", "Prissnapshot saknas", "Spara exakt avtal/prisversion/pristext för den aktuella anläggningen.", "contracts");
+  if (!hasPowerOfAttorneyAcceptance) add("poa_acceptance_missing", "Fullmaktens godkännande saknas", "Be kunden godkänna fullmakten separat, inte bara som del av villkor.", "legal-readiness");
+  if (!hasActivePowerOfAttorney) add("poa_missing", "Aktiv fullmakt saknas", "Lägg in eller begär fullmakt med rätt scope för den aktuella anläggningen.", "authorization-documents");
+  if (!hasContractSnapshot) add("contract_snapshot_missing", "Avtalssnapshot saknas", "Spara ett kopplat avtalssnapshot innan leverantörsbyte eller fakturering används.", "contracts");
+  if (!hasFacility) add("facility_missing", "Anläggning saknas", "Komplettera kundens anläggning eller begär uppgifter från nätägare.", "sites");
+  if (!hasMeteringPoint) add("metering_point_missing", "Mätpunkts-ID saknas", "Begär anläggningsuppgifter från nätägare eller komplettera mätpunkt.", "metering-points");
+  if (!hasGridOwner) add("grid_owner_missing", "Nätägare saknas", "Kör adress-/nätområdesmatchning eller verifiera nätägare från masterdata.", "sites");
+  if (!hasGridArea) add("grid_area_missing", "Nätområde saknas", "Verifiera nätområdeskod via adress/polygon/masterdata innan Ediel skickas.", "sites");
+  if (!hasEdielRoute) add("ediel_route_missing", "Kontaktväg saknas", "Verifiera rätt nätägare, mottagaradress, subadress och route innan teknisk sändning kan göras.", "switch-operations");
 
-  const canRequestFacilityData =
-    hasFacilityPoa && (hasGridOwner || hasGridArea);
+  const canRequestFacilityData = hasFacility && hasFacilityPoa && hasGridOwner && hasGridArea && hasEdielRoute;
   const canStartSupplierSwitch = blockers.length === 0;
-  const canSendMail =
-    hasContractSnapshot && hasTerms && hasPrivacy && hasWithdrawal;
-
+  const canSendMail = hasContractSnapshot && hasTerms && hasPrivacy && hasWithdrawal;
   const first = blockers[0];
   const nextAction = first
     ? { label: first.action, hrefTab: first.tab, description: first.label }
-    : {
-        label: "Begär leverantörsbyte",
-        hrefTab: "switch-operations" as const,
-        description: "Alla juridiska och operativa grundkrav är uppfyllda.",
-      };
+    : { label: "Begär leverantörsbyte", hrefTab: "switch-operations" as const, description: "Alla juridiska och operativa grundkrav är uppfyllda för den aktuella anläggningen." };
 
   return {
-    canStartSupplierSwitch,
-    canRequestFacilityData,
-    canSendMail,
-    hasTerms,
-    hasPrivacy,
-    hasWithdrawal,
-    hasPriceSnapshot,
-    hasPowerOfAttorneyAcceptance,
-    hasActivePowerOfAttorney,
-    hasContractSnapshot,
-    hasFacility,
-    hasMeteringPoint,
-    hasGridOwner,
-    hasGridArea,
-    hasEdielRoute,
-    hasCommunicationLogs,
-    blockers,
-    nextAction,
+    canStartSupplierSwitch, canRequestFacilityData, canSendMail,
+    hasTerms, hasPrivacy, hasWithdrawal, hasPriceSnapshot, hasPowerOfAttorneyAcceptance,
+    hasActivePowerOfAttorney, hasContractSnapshot, hasFacility, hasMeteringPoint,
+    hasGridOwner, hasGridArea, hasEdielRoute, hasCommunicationLogs,
+    blockers, nextAction, siteReadiness,
   };
 }
+

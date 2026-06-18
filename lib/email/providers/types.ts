@@ -37,6 +37,8 @@ export type SendEmailInput = {
   subject: string
   html: string
   text?: string
+  /** Stable key used by the transport provider for safe reconciliation. */
+  idempotencyKey?: string
 }
 
 export type SendEmailResult = {

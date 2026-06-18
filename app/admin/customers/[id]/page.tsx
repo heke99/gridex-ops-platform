@@ -2175,20 +2175,37 @@ export default async function CustomerAdminDetailPage({
 
   const isReadyEdielRouteForGridOwner = (gridOwnerId: string) =>
     edielData.recommendationRoutes.some((route) => {
-      const hasReceiver = Boolean(
+      const receiverEdielId =
         route.profile?.receiver_ediel_id?.trim() ||
-        route.grid_owner_ediel_id?.trim(),
-      );
+        route.grid_owner_ediel_id?.trim() ||
+        "";
+      const gridOwnerEdielId = route.grid_owner_ediel_id?.trim() || "";
 
+      // A route is only ready for this delivery point when it is bound to the
+      // same verified grid owner and contains the outbound PRODAT addressing
+      // data that the dispatcher will actually use.
       return Boolean(
         route.grid_owner_id === gridOwnerId &&
         route.is_active &&
         route.profile?.is_enabled &&
         route.profile?.sender_ediel_id?.trim() &&
+        receiverEdielId &&
+        route.profile?.receiver_sub_address?.trim() &&
+        route.target_email?.trim() &&
         route.profile?.mailbox?.trim() &&
-        hasReceiver,
+        (!gridOwnerEdielId || receiverEdielId === gridOwnerEdielId),
       );
     });
+
+  const routeReadyBySiteId = Object.fromEntries(
+    sites.map((site) => {
+      const gridOwnerId =
+        site.grid_owner_id ??
+        meteringPoints.find((point) => point.site_id === site.id)?.grid_owner_id ??
+        null;
+      return [site.id, Boolean(gridOwnerId && isReadyEdielRouteForGridOwner(gridOwnerId))];
+    }),
+  );
 
   const customerGridOwnerIds = Array.from(
     new Set(
@@ -2217,6 +2234,7 @@ export default async function CustomerAdminDetailPage({
     documents: customerDocuments,
     communicationLogs: communicationLogs as Array<Record<string, unknown>>,
     hasReadyEdielRoute,
+    routeReadyBySiteId,
   });
 
   const hasUsablePowerOfAttorney = opsMasterReadiness.hasActivePowerOfAttorney;

@@ -232,7 +232,8 @@ export class ResendEmailProvider implements EmailProvider {
         html: input.html,
         text: input.text,
         replyTo: input.replyTo,
-      })
+        headers: input.idempotencyKey ? { 'Idempotency-Key': input.idempotencyKey } : undefined,
+      } as never)
 
       if (response.error || !response.data) throw response.error
 
