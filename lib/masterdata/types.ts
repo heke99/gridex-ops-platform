@@ -145,6 +145,7 @@ export type CustomerSiteRow = {
   status: SiteStatus;
   grid_owner_id: string | null;
   price_area_code: PriceAreaCode | null;
+  grid_area_code?: string | null;
   move_in_date: string | null;
   annual_consumption_kwh: number | null;
   current_supplier_id?: string | null;
@@ -191,6 +192,8 @@ export type MeteringPointRow = {
   reading_frequency: ReadingFrequency;
   grid_owner_id: string | null;
   price_area_code: PriceAreaCode | null;
+  grid_area_code?: string | null;
+  facility_data_verified_at?: string | null;
   start_date: string | null;
   end_date: string | null;
   closed_at?: string | null;

@@ -193,6 +193,7 @@ export function facilityMissingFieldLabel(value: string): string {
     grid_owner: "Verifierad nätägare",
     price_area: "Elområde",
     power_of_attorney: "Signerad fullmakt",
+    grid_area: "Nätområde",
     grid_area_code: "Nätområdeskod",
   };
   return labels[value] ?? value.replaceAll("_", " ");

@@ -110,6 +110,7 @@ export type CustomerOperationTaskType =
   | "metering_point_missing"
   | "meter_point_id_missing"
   | "grid_owner_missing"
+  | "grid_area_missing"
   | "price_area_missing"
   | "current_supplier_missing"
   | "move_in_date_missing";
@@ -216,6 +217,7 @@ export type SwitchReadinessIssueCode =
   | "metering_point_missing"
   | "meter_point_id_missing"
   | "grid_owner_missing"
+  | "grid_area_missing"
   | "price_area_missing"
   | "current_supplier_missing"
   | "move_in_date_missing";

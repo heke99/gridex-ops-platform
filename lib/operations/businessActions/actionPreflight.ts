@@ -1,6 +1,8 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateEdielDeadline } from '@/lib/ediel/calendar/deadlineCalculator'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
+import type { MeteringPointRow } from '@/lib/masterdata/types'
+import { hasMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
 
 export type BusinessActionPreflightIssue = {
   code: string
@@ -16,6 +18,13 @@ export type BusinessActionPreflightResult = {
   meteringPointId: string | null
   gridOwnerId: string | null
   issues: BusinessActionPreflightIssue[]
+}
+
+function firstNonBlank(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
 }
 
 export async function actionPreflight(input: {
@@ -67,9 +76,18 @@ export async function actionPreflight(input: {
 
   const issues: BusinessActionPreflightIssue[] = []
   if (!site?.id) issues.push({ code: 'site_missing', label: 'Anläggning saknas', blocking: true })
-  if (!meteringPoint?.id) issues.push({ code: 'metering_point_missing', label: 'Anläggnings-id', blocking: true })
-  const gridOwnerId = String(meteringPoint?.grid_owner_id ?? site?.grid_owner_id ?? '').trim() || null
+  const typedMeteringPoint = (meteringPoint as MeteringPointRow | undefined) ?? null
+  if (!typedMeteringPoint) {
+    issues.push({ code: 'metering_point_missing', label: 'Mätpunkt', blocking: true })
+  } else if (!hasMeteringPointIdentity(typedMeteringPoint)) {
+    issues.push({ code: 'meter_point_id_missing', label: 'Mätpunkts-ID', blocking: true })
+  }
+
+  const gridOwnerId = firstNonBlank(meteringPoint?.grid_owner_id, site?.grid_owner_id)
   if (!gridOwnerId) issues.push({ code: 'grid_owner_missing', label: 'Nätägare', blocking: true })
+
+  const gridAreaCode = firstNonBlank(meteringPoint?.grid_area_code, site?.grid_area_code)
+  if (!gridAreaCode) issues.push({ code: 'grid_area_missing', label: 'Nätområde', blocking: true })
 
   if (input.actionType) {
     const deadline = await evaluateEdielDeadline({

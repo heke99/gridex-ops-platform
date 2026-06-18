@@ -18,6 +18,7 @@ import {
   hasValidPowerOfAttorney,
   type CustomerCardSnapshot,
 } from "@/lib/customers/customerCardSnapshot";
+import { hasMeteringPointIdentity, meteringPointIdentityLabel } from "@/lib/customers/meteringIdentity";
 
 type FacilityCardItem = {
   siteId: string;
@@ -25,6 +26,7 @@ type FacilityCardItem = {
   facilityId: string | null;
   meteringPointId: string | null;
   gridOwnerName: string | null;
+  gridAreaCode: string | null;
   priceAreaCode: string | null;
   missingFields: string[];
   status: FacilityWorkQueueStatus;
@@ -70,8 +72,11 @@ function gridOwnerName(
 }
 
 function pointLabel(point: MeteringPointRow | undefined): string | null {
-  if (!point) return null;
-  return point.meter_point_id ?? point.ediel_reference ?? point.id;
+  return meteringPointIdentityLabel(point);
+}
+
+function firstText(...values: Array<string | null | undefined>): string | null {
+  return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim() ?? null;
 }
 
 function siteLabel(site: CustomerSiteRow): string {
@@ -103,13 +108,19 @@ function buildFacilityItems(input: {
     );
     const primaryPoint =
       points.find((point) => point.status === "active") ?? points[0];
-    const effectiveGridOwnerId =
-      site.grid_owner_id ?? primaryPoint?.grid_owner_id ?? null;
-    const effectivePriceAreaCode =
-      site.price_area_code ?? primaryPoint?.price_area_code ?? null;
-    const hasMeteringPoint = points.some((point) =>
-      Boolean(point.meter_point_id?.trim() || point.ediel_reference?.trim()),
+    const effectiveGridOwnerId = firstText(
+      site.grid_owner_id,
+      primaryPoint?.grid_owner_id,
     );
+    const effectiveGridAreaCode = firstText(
+      site.grid_area_code,
+      primaryPoint?.grid_area_code,
+    );
+    const effectivePriceAreaCode = firstText(
+      site.price_area_code,
+      primaryPoint?.price_area_code,
+    );
+    const hasMeteringPoint = points.some(hasMeteringPointIdentity);
     const openRequest = input.infoRequests.some((request) => {
       const sameSite =
         request.site_id === site.id ||
@@ -120,6 +131,7 @@ function buildFacilityItems(input: {
       site.facility_id?.trim() ? null : "facility_id",
       effectiveGridOwnerId ? null : "grid_owner",
       effectivePriceAreaCode ? null : "price_area",
+      effectiveGridAreaCode ? null : "grid_area",
       hasMeteringPoint ? null : "metering_point_id",
       hasSignedPower ? null : "power_of_attorney",
     ].filter((value): value is string => Boolean(value));
@@ -151,6 +163,7 @@ function buildFacilityItems(input: {
       facilityId: site.facility_id,
       meteringPointId: pointLabel(primaryPoint),
       gridOwnerName: gridOwnerName(input.gridOwners, effectiveGridOwnerId),
+      gridAreaCode: effectiveGridAreaCode,
       priceAreaCode: effectivePriceAreaCode,
       missingFields,
       status,
@@ -260,6 +273,12 @@ export default function CustomerFacilityWorkflowCard(input: {
                   Nätägare:{" "}
                   <span className="font-bold">
                     {item.gridOwnerName ?? "Saknas"}
+                  </span>
+                </div>
+                <div>
+                  Nätområde:{" "}
+                  <span className="font-bold">
+                    {item.gridAreaCode ?? "Saknas"}
                   </span>
                 </div>
                 <div>

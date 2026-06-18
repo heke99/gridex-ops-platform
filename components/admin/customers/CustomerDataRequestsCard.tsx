@@ -2,6 +2,7 @@ import {
   createCustomerDataRequestPackageAction,
   registerCurrentSupplierResponseAction,
 } from "@/app/admin/customers/[id]/actions";
+import { meteringPointIdentityLabel } from "@/lib/customers/meteringIdentity";
 import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types";
 import type { CustomerInfoRequestRow } from "@/lib/onboarding/infoRequests";
 import type {
@@ -283,7 +284,7 @@ export default function CustomerDataRequestsCard({
                   <option value="">Välj mätpunkt om den finns</option>
                   {meteringPoints.map((point) => (
                     <option key={point.id} value={point.id}>
-                      {point.meter_point_id || point.id}
+                      {meteringPointIdentityLabel(point) ?? "Mätpunkts-ID saknas"}
                     </option>
                   ))}
                 </select>

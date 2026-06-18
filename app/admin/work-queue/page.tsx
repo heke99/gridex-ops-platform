@@ -164,11 +164,11 @@ async function loadCustomersByIds(supabase: SupabaseClient, companyId: string | 
 }
 
 function consolidateActionItems(items: QueueItem[]): QueueItem[] {
-  const operationalCustomerIds = new Set(items.filter((item) => item.source === 'Automation').map((item) => item.customerId))
-  const candidates = items.filter((item) => requiresAction(item) && (item.source === 'Automation' || !operationalCustomerIds.has(item.customerId)))
   const byOperation = new Map<string, QueueItem>()
-  for (const item of candidates) {
-    const key = item.operationId ?? `${item.source}:${item.id}`
+  for (const item of items.filter(requiresAction)) {
+    // Resources with the same operation id are one business chain. Legacy rows
+    // without a correlation id stay visible rather than hiding another action.
+    const key = item.operationId ? `operation:${item.operationId}` : `${item.source}:${item.id}`
     const current = byOperation.get(key)
     if (!current || rankPriority(item.priority) > rankPriority(current.priority) || new Date(item.createdAt ?? 0).getTime() > new Date(current.createdAt ?? 0).getTime()) {
       byOperation.set(key, item)
@@ -363,8 +363,7 @@ export default async function AdminWorkQueuePage() {
     })
   }
 
-  if (consolidateActionItems(items).length === 0) {
-    activeCustomers = await loadActiveCustomers(supabase, companyId, isPlatformAdmin)
+  activeCustomers = await loadActiveCustomers(supabase, companyId, isPlatformAdmin)
     const customerIds = activeCustomers.map((customer) => customer.id)
     const customersById = new Map(activeCustomers.map((customer) => [customer.id, customer]))
 
@@ -382,7 +381,7 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'customer_info_requests',
       companyId,
-      'id, customer_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, created_at',
+      'id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, created_at',
       [{ column: 'status', op: 'in', value: ACTIVE_TASK_STATUSES }],
       customerIds,
       80,
@@ -391,7 +390,7 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'grid_owner_data_requests',
       companyId,
-      'id, customer_id, request_scope, status, failure_reason, notes, created_at',
+      'id, customer_id, operation_id, request_scope, status, failure_reason, notes, created_at',
       [{ column: 'status', op: 'in', value: ['pending', 'sent', 'failed'] }],
       customerIds,
       50,
@@ -409,7 +408,7 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'supplier_switch_requests',
       companyId,
-      'id, customer_id, status, request_type, created_at',
+      'id, customer_id, operation_id, status, request_type, created_at',
       [{ column: 'status', op: 'in', value: ['draft', 'ready', 'queued', 'submitted', 'accepted', 'pending', 'open'] }],
       customerIds,
       50,
@@ -441,6 +440,7 @@ export default async function AdminWorkQueuePage() {
     const target = row.target_party_type === 'current_supplier' ? 'nuvarande leverantör' : row.target_party_type === 'grid_owner' ? 'nätägare' : 'kund'
     items.push({
       id: String(row.id),
+      operationId: textValue(row.operation_id),
       source: 'Uppgiftsbegäran',
       customerId: customer.id,
       customerLabel: customerLabel(customer),
@@ -459,6 +459,7 @@ export default async function AdminWorkQueuePage() {
     if (!customer) continue
     items.push({
       id: String(row.id),
+      operationId: textValue(row.operation_id),
       source: 'Nätägare',
       customerId: customer.id,
       customerLabel: customerLabel(customer),
@@ -495,6 +496,7 @@ export default async function AdminWorkQueuePage() {
     if (!customer) continue
     items.push({
       id: String(row.id),
+      operationId: textValue(row.operation_id),
       source: 'Leverantörsbyte',
       customerId: customer.id,
       customerLabel: customerLabel(customer),
@@ -506,8 +508,6 @@ export default async function AdminWorkQueuePage() {
       href: `/admin/customers/${customer.id}?tab=supplier-switch`,
       actionLabel: 'Öppna leverantörsbyte',
     })
-  }
-
   }
 
   const actionItems = consolidateActionItems(items)

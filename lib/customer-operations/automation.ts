@@ -18,6 +18,8 @@ import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { startSupplierSwitch } from '@/lib/operations/businessActions/startSupplierSwitch'
 import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
+import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
+import type { MeteringPointRow } from '@/lib/masterdata/types'
 
 export type CustomerOperationJobType =
   | 'request_customer_data'
@@ -80,6 +82,11 @@ function automationActorId(value: unknown): string {
   const actor = uuidOrNull(value) ?? uuidOrNull(process.env.GRIDEX_AUTOMATION_USER_ID)
   if (!actor) throw new Error('GRIDEX_AUTOMATION_USER_ID saknas för automatisk Ediel-åtgärd.')
   return actor
+}
+
+function addressFingerprint(value: JsonRecord): string {
+  const parts = [clean(value.street), clean(value.postal_code)?.replace(/\D/g, ''), clean(value.city)]
+  return parts.filter(Boolean).join('|').toLocaleLowerCase('sv-SE') || 'missing'
 }
 
 function priceArea(value: unknown): EnergyResolverResult['priceArea'] {
@@ -311,7 +318,7 @@ export async function resolveCustomerSiteGridOwner(input: {
 }): Promise<{ state: 'verified' | 'suggested' | 'needs_review'; result: EnergyResolverResult }> {
   const { data, error } = await supabaseService
     .from('customer_sites')
-    .select('id,company_id,customer_id,street,postal_code,city,country,address_status,address_hash,address_verified_at,grid_area_code,facility_id,price_area_code,grid_owner_id')
+    .select('id,company_id,customer_id,street,postal_code,city,country,address_status,address_verified_at,grid_area_code,facility_id,price_area_code,grid_owner_id')
     .eq('id', input.siteId)
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
@@ -323,8 +330,7 @@ export async function resolveCustomerSiteGridOwner(input: {
   const hasCompleteSiteAddress = Boolean(
     clean(site.street) &&
     /^\d{5}$/.test((clean(site.postal_code) ?? '').replace(/\D/g, '')) &&
-    clean(site.city) &&
-    clean(site.address_hash),
+    clean(site.city),
   )
   if (!hasCompleteSiteAddress && !clean(site.facility_id) && !clean(input.meteringPointId)) {
     const result = await resolveEnergyContext({
@@ -349,7 +355,7 @@ export async function resolveCustomerSiteGridOwner(input: {
       operationId: input.operationId ?? null,
       actionUrl: `/admin/customers/${input.customerId}?tab=facility`,
       payload: { site_id: input.siteId, operation_id: input.operationId ?? null, resolution: result },
-      idempotencyKey: `facility.address-incomplete:${input.siteId}:${clean(site.address_hash) ?? 'missing'}`,
+      idempotencyKey: `facility.address-incomplete:${input.siteId}:${addressFingerprint(site)}`,
     })
     return { state: 'needs_review', result }
   }
@@ -819,6 +825,24 @@ async function processInboundResponse(job: JobRow): Promise<JobOutcome> {
   return { status: 'completed', result }
 }
 
+async function normalizeVerifiedMeteringPointIdentity(input: {
+  companyId: string
+  point: MeteringPointRow | null
+}): Promise<MeteringPointRow | null> {
+  const { point } = input
+  const identity = getMeteringPointIdentity(point)
+  if (!point || point.meter_point_id?.trim() || !identity) return point
+
+  const { error } = await supabaseService
+    .from('metering_points')
+    .update({ meter_point_id: identity, updated_at: nowIso() })
+    .eq('id', point.id)
+    .eq('company_id', input.companyId)
+  if (error && !missingSchema(error)) throw error
+
+  return { ...point, meter_point_id: identity }
+}
+
 async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
   const siteId = job.customer_site_id
   if (!siteId) return { status: 'failed', result: { reason: 'missing_site_id' } }
@@ -834,15 +858,17 @@ async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
   ])
   const readiness = evaluateSiteSwitchReadiness({ site, meteringPoints, powersOfAttorney: powers })
   await syncOperationTasksFromReadiness(supabaseService, readiness)
-  const candidate = meteringPoints.find((point) => point.id === readiness.candidateMeteringPointId) ?? null
-  const gridOwnerId = candidate?.grid_owner_id ?? site.grid_owner_id ?? null
+  let candidate = meteringPoints.find((point) => point.id === readiness.candidateMeteringPointId) ?? null
+  candidate = await normalizeVerifiedMeteringPointIdentity({ companyId: job.company_id, point: candidate })
+  const meteringIdentity = getMeteringPointIdentity(candidate)
+  const gridOwnerId = clean(candidate?.grid_owner_id) ?? clean(site.grid_owner_id)
   const verification = await getGridOwnerVerification(gridOwnerId).catch(() => null)
   const isGridOwnerReady = Boolean(verification?.canStartSupplierSwitch || (verification?.verificationStatus === 'verified' && verification?.verifiedForCustomerFlow))
 
-  if (!site.facility_id || !candidate?.meter_point_id || !readiness.isReady || !candidate || !isGridOwnerReady) {
+  if (!site.facility_id || !meteringIdentity || !readiness.isReady || !candidate || !isGridOwnerReady) {
     const labels = [
       !site.facility_id ? 'anläggnings-ID' : null,
-      !candidate?.meter_point_id ? 'mätpunkt' : null,
+      !meteringIdentity ? 'mätpunkt' : null,
       !isGridOwnerReady ? 'verifierad nätägare' : null,
       ...readiness.issues.map((issue) => issue.title),
     ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index)

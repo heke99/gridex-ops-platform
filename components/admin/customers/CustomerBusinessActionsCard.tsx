@@ -21,6 +21,7 @@ import {
   buildCustomerCardSnapshot,
   type CustomerCardSnapshot,
 } from "@/lib/customers/customerCardSnapshot";
+import { meteringPointIdentityLabel } from "@/lib/customers/meteringIdentity";
 
 type Props = {
   customerId: string;
@@ -40,8 +41,7 @@ function siteLabel(site: CustomerSiteRow | null): string {
 }
 
 function pointLabel(point: MeteringPointRow | null): string {
-  if (!point) return "Ingen mätpunkt vald";
-  return point.meter_point_id || point.id;
+  return meteringPointIdentityLabel(point) ?? "Mätpunkts-ID saknas";
 }
 
 function StatusPill({
@@ -223,6 +223,9 @@ export default function CustomerBusinessActionsCard({
           </StatusPill>
           <StatusPill ok={snapshot.hasGridOwner}>
             {snapshot.hasGridOwner ? "Nätägare finns" : "Nätägare saknas"}
+          </StatusPill>
+          <StatusPill ok={snapshot.hasGridArea}>
+            {snapshot.hasGridArea ? "Nätområde finns" : "Nätområde saknas"}
           </StatusPill>
         </div>
         {blockers.length > 0 ? (

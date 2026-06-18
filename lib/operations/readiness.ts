@@ -1,4 +1,5 @@
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
+import { hasMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
 import type {
   PowerOfAttorneyRow,
   SwitchReadinessIssue,
@@ -115,12 +116,12 @@ export function evaluateSiteSwitchReadiness(params: {
       taskType: 'metering_point_missing',
     })
   } else {
-    if (!candidateMeteringPoint.meter_point_id?.trim()) {
+    if (!hasMeteringPointIdentity(candidateMeteringPoint)) {
       issues.push({
         code: 'meter_point_id_missing',
         title: 'Mätpunkts-ID saknas',
         description:
-          'Den valda mätpunkten saknar mätpunkts-ID och måste kompletteras.',
+          'Den valda mätpunkten saknar ett mätpunkts-ID eller en verifierad Ediel-referens.',
         priority: 'critical',
         taskType: 'meter_point_id_missing',
       })
@@ -134,6 +135,17 @@ export function evaluateSiteSwitchReadiness(params: {
           'Varken anläggningen eller mätpunkten har nätägare angiven.',
         priority: 'high',
         taskType: 'grid_owner_missing',
+      })
+    }
+
+    if (!candidateMeteringPoint.grid_area_code && !site.grid_area_code) {
+      issues.push({
+        code: 'grid_area_missing',
+        title: 'Nätområde saknas',
+        description:
+          'Varken anläggningen eller mätpunkten har nätområdeskod angiven. Ediel får inte skickas innan nätområdet är verifierat.',
+        priority: 'high',
+        taskType: 'grid_area_missing',
       })
     }
 

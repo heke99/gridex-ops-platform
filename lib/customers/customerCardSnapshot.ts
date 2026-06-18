@@ -1,6 +1,7 @@
 import type { CustomerContractRow } from "@/lib/customer-contracts/types";
 import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types";
 import type { CustomerInfoRequestRow } from "@/lib/onboarding/infoRequests";
+import { hasMeteringPointIdentity } from "@/lib/customers/meteringIdentity";
 import type {
   CustomerAuthorizationDocumentRow,
   PowerOfAttorneyRow,
@@ -43,6 +44,7 @@ export type CustomerCardSnapshot = {
   hasFacilityId: boolean;
   hasMeteringPoint: boolean;
   hasGridOwner: boolean;
+  hasGridArea: boolean;
   hasContract: boolean;
   hasPricePlan: boolean;
   hasOpenInfoRequest: boolean;
@@ -60,6 +62,7 @@ export type CustomerCardSnapshot = {
   legalStatus: CustomerCardStatus;
   facilityStatus: CustomerCardStatus;
   gridOwnerStatus: CustomerCardStatus;
+  gridAreaStatus: CustomerCardStatus;
   meteringPointStatus: CustomerCardStatus;
   contractStatus: CustomerCardStatus;
   latestEventLabel: string | null;
@@ -350,26 +353,26 @@ export function buildCustomerCardSnapshot(
     documents,
   );
   const hasFacilityId = truthy(primarySite?.facility_id);
-  const hasMeteringPoint = Boolean(
-    primaryMeteringPoint &&
-    truthy(
-      primaryMeteringPoint.meter_point_id ??
-        primaryMeteringPoint.ediel_reference ??
-        primaryMeteringPoint.id,
-    ),
-  );
+  const hasMeteringPoint = hasMeteringPointIdentity(primaryMeteringPoint);
   const gridOwnerResolution = lower(
     asRecord(primarySite).resolution_status ??
       asRecord(primaryMeteringPoint).resolution_status,
   );
   const hasGridOwner =
-    truthy(primaryMeteringPoint?.grid_owner_id ?? primarySite?.grid_owner_id) &&
+    (truthy(primaryMeteringPoint?.grid_owner_id) || truthy(primarySite?.grid_owner_id)) &&
     ![
       "grid_owner_suggested",
       "postal_suggested",
       "needs_review",
       "manual_review_required",
     ].includes(gridOwnerResolution);
+  const hasGridArea =
+    truthy(primaryMeteringPoint?.grid_area_code) || truthy(primarySite?.grid_area_code);
+  const hasResolvableSiteAddress = Boolean(
+    primarySite?.street?.trim() &&
+      /^\d{5}$/.test((primarySite.postal_code ?? "").replace(/\D/g, "")) &&
+      primarySite?.city?.trim(),
+  );
   const hasContract = (input.contracts ?? []).length > 0;
   const hasPricePlan = (input.contracts ?? []).some((contract) => {
     const raw = contract as unknown as AnyRow;
@@ -406,6 +409,7 @@ export function buildCustomerCardSnapshot(
         hasFacilityId ? null : "Anläggnings-ID",
         hasMeteringPoint ? null : "Mätpunkt",
         hasGridOwner ? null : "Verifierad nätägare",
+        hasGridArea ? null : "Nätområde",
         hasContract ? null : "Avtal",
         hasPricePlan
           ? null
@@ -425,7 +429,7 @@ export function buildCustomerCardSnapshot(
       ? "request_switch"
       : hasOpenInfoRequest
         ? "follow_up"
-        : !hasGridOwner
+        : !hasGridOwner && !hasResolvableSiteAddress
           ? "review_grid_owner"
           : "request_data";
   const nextStepLabel =
@@ -451,6 +455,7 @@ export function buildCustomerCardSnapshot(
     hasFacilityId,
     hasMeteringPoint,
     hasGridOwner,
+    hasGridArea,
     hasContract,
     hasPricePlan,
     legalMissingLabels: legal.missing,
@@ -464,6 +469,7 @@ export function buildCustomerCardSnapshot(
     legalStatus: legal.ok ? "ready" : "missing",
     facilityStatus: hasFacilityId ? "ready" : "missing",
     gridOwnerStatus: hasGridOwner ? "ready" : "needs_review",
+    gridAreaStatus: hasGridArea ? "ready" : "needs_review",
     meteringPointStatus: hasMeteringPoint ? "ready" : "missing",
     contractStatus: hasContract
       ? hasPricePlan
@@ -518,6 +524,13 @@ export function buildCustomerReadinessItems(
       detail: snapshot.hasGridOwner
         ? "Nätägare finns"
         : "Nätägare behöver verifieras",
+    },
+    {
+      label: "Nätområde",
+      ok: snapshot.hasGridArea,
+      detail: snapshot.hasGridArea
+        ? "Nätområde finns"
+        : "Nätområde behöver verifieras",
     },
   ];
 }
