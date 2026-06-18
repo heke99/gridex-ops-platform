@@ -315,37 +315,31 @@ function normalizeLegalType(value: unknown): string {
 
 function hasAcceptance(rows: CustomerLegalAcceptance[], type: string): boolean {
   const wanted = normalizeLegalType(type);
-  if (
-    rows.length >= 4 &&
-    [
-      "terms",
-      "privacy_policy",
-      "withdrawal_info",
-      "power_of_attorney",
-    ].includes(wanted)
-  )
-    return true;
   return rows.some((row) => {
-    const direct = normalizeLegalType(row.acceptance_type);
-    if (direct === wanted) return true;
+    if (!row.accepted_at || !row.legal_text_version_id) return false;
+    if (normalizeLegalType(row.acceptance_type) === wanted) return true;
     const snapshot = jsonObj(row.snapshot);
     const metadata = jsonObj(row.metadata);
-    return Object.values(snapshot)
-      .concat(Object.values(metadata))
+    return [snapshot.legal_text_type, snapshot.type, metadata.legal_text_type, metadata.type]
       .some((value) => normalizeLegalType(value) === wanted);
   });
 }
 
 function recordDateActive(row: Record<string, unknown>): boolean {
   const status = String(row.status ?? "").toLowerCase();
-  const validStatus = ["signed", "accepted", "active", "completed"].includes(
-    status,
-  );
-  if (!validStatus) return false;
-  if (str(row, "revoked_at")) return false;
+  if (!["signed", "accepted", "active", "completed"].includes(status)) return false;
+  if (str(row, "revoked_at", "cancelled_at")) return false;
+
+  const now = Date.now();
+  const validFrom = str(row, "valid_from", "valid_from_at");
+  if (validFrom) {
+    const from = new Date(validFrom).getTime();
+    if (!Number.isFinite(from) || from > now) return false;
+  }
   const validUntil = str(row, "valid_until", "valid_to");
   if (!validUntil) return true;
-  return new Date(validUntil).getTime() + 24 * 60 * 60 * 1000 > Date.now();
+  const until = new Date(validUntil).getTime();
+  return Number.isFinite(until) && until > now;
 }
 
 function poaAllows(row: Record<string, unknown>, scope: string): boolean {
@@ -397,32 +391,20 @@ export function evaluateCustomerOpsMasterReadiness(input: {
   const documents = asArray(input.documents);
 
   const activePoaRows = powersOfAttorney.filter(recordDateActive);
-  const hasPowerOfAttorneyDocument = documents.some(
-    (row) =>
-      String(row.document_type ?? "").toLowerCase() === "power_of_attorney" &&
-      ["available", "active", "uploaded", "signed", "completed"].includes(
-        String(row.status ?? "").toLowerCase(),
-      ),
-  );
+  // Documents are evidence only. The active legal authority lives in powers_of_attorney.
+  void documents;
   const hasTerms = hasAcceptance(acceptances, "terms");
   const hasPrivacy = hasAcceptance(acceptances, "privacy_policy");
   const hasWithdrawal = hasAcceptance(acceptances, "withdrawal_info");
   const hasPriceSnapshot =
     hasAcceptance(acceptances, "price_snapshot") || contracts.some(hasSnapshot);
-  const hasPowerOfAttorneyAcceptance =
-    hasAcceptance(acceptances, "power_of_attorney") ||
-    activePoaRows.length > 0 ||
-    hasPowerOfAttorneyDocument;
-  const hasActivePowerOfAttorney =
-    hasPowerOfAttorneyDocument ||
-    activePoaRows.some((row) => poaAllows(row, "supplier_switch"));
-  const hasFacilityPoa =
-    hasPowerOfAttorneyDocument ||
-    activePoaRows.some(
-      (row) =>
-        poaAllows(row, "facility_data_request") ||
-        poaAllows(row, "metering_point_lookup"),
-    );
+  const hasPowerOfAttorneyAcceptance = hasAcceptance(acceptances, "power_of_attorney");
+  const hasActivePowerOfAttorney = activePoaRows.some((row) => poaAllows(row, "supplier_switch"));
+  const hasFacilityPoa = activePoaRows.some(
+    (row) =>
+      poaAllows(row, "facility_data_request") ||
+      poaAllows(row, "metering_point_lookup"),
+  );
   const hasContractSnapshot = contracts.some(hasSnapshot);
   const hasFacility = sites.length > 0;
   const hasMeteringPoint = meteringPoints.some((row) =>

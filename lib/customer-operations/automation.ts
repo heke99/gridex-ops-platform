@@ -56,6 +56,7 @@ type JobRow = {
   run_after: string
   locked_at: string | null
   locked_by: string | null
+  lock_token?: string | null
   last_error: string | null
   created_by: string | null
   operation_id: string
@@ -143,12 +144,15 @@ function operationTitle(type: CustomerOperationJobType): string {
   }
 }
 
-async function updateJob(jobId: string, patch: JsonRecord) {
-  const { error } = await supabaseService
+async function updateJob(job: Pick<JobRow, 'id' | 'lock_token'>, patch: JsonRecord) {
+  let query = supabaseService
     .from('customer_operation_jobs')
     .update({ ...patch, updated_at: nowIso() })
-    .eq('id', jobId)
+    .eq('id', job.id)
+  if (job.lock_token) query = query.eq('lock_token', job.lock_token)
+  const { data, error } = await query.select('id').maybeSingle()
   if (error && !missingSchema(error)) throw error
+  if (!error && job.lock_token && !data?.id) throw new Error('customer_operation_job_lock_lost')
 }
 
 async function enqueue(input: {
@@ -971,7 +975,7 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
     async (job) => {
       try {
         const outcome = await processJob(job)
-        await updateJob(job.id, {
+        await updateJob(job, {
           status: outcome.status,
           result: outcome.result ?? {},
           run_after: outcome.runAfter ?? null,
@@ -999,7 +1003,7 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Kundautomation misslyckades.'
         const terminal = job.attempts >= job.max_attempts
-        await updateJob(job.id, {
+        await updateJob(job, {
           status: terminal ? 'failed' : 'queued',
           run_after: terminal ? null : retryAt(job.attempts),
           locked_at: null,

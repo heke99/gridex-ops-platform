@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import {
   markCommunicationFailed,
@@ -18,7 +19,7 @@ type TenantEmailOutboxRow = {
   subject: string;
   html_body: string;
   text_body: string | null;
-  status: "queued" | "processing" | "sent" | "failed" | "cancelled";
+  status: "queued" | "processing" | "delivery_uncertain" | "sent" | "failed" | "cancelled";
   attempts: number | null;
   max_attempts: number | null;
   next_attempt_at: string | null;
@@ -29,6 +30,9 @@ type TenantEmailOutboxRow = {
   request_id?: string | null;
   trace_id?: string | null;
   redirect_url?: string | null;
+  locked_at?: string | null;
+  locked_by?: string | null;
+  lock_token?: string | null;
 };
 
 type EnqueueTenantEmailInput = {
@@ -172,6 +176,26 @@ export async function enqueueTenantEmail(
   return data as TenantEmailOutboxRow;
 }
 
+async function moveStaleProcessingToUncertain(input: ProcessTenantEmailOutboxInput) {
+  const staleBefore = new Date(Date.now() - 15 * 60_000).toISOString();
+  let query = supabaseService
+    .from("tenant_email_outbox")
+    .update({
+      status: "delivery_uncertain",
+      last_error: "Utskicket avbröts efter att det hade tagits av en worker. Leveransen är osäker och måste granskas innan omsändning.",
+      failure_reason: "delivery_uncertain_after_stale_processing_lock",
+      locked_at: null,
+      locked_by: null,
+      lock_token: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("status", "processing")
+    .lt("locked_at", staleBefore)
+  if (input.companyId) query = query.eq("company_id", input.companyId)
+  const { error } = await query
+  if (error && !["42P01", "42703", "PGRST205"].includes(error.code ?? "")) throw error
+}
+
 async function loadDueRows(input: ProcessTenantEmailOutboxInput) {
   const now = new Date().toISOString();
   let query = supabaseService
@@ -191,9 +215,17 @@ async function loadDueRows(input: ProcessTenantEmailOutboxInput) {
 }
 
 async function claimRow(row: TenantEmailOutboxRow) {
+  const now = new Date().toISOString();
+  const lockToken = randomUUID();
   const { data, error } = await supabaseService
     .from("tenant_email_outbox")
-    .update({ status: "processing", updated_at: new Date().toISOString() })
+    .update({
+      status: "processing",
+      locked_at: now,
+      locked_by: "tenant-email-outbox",
+      lock_token: lockToken,
+      updated_at: now,
+    })
     .eq("id", row.id)
     .eq("company_id", row.company_id)
     .eq("status", "queued")
@@ -217,11 +249,16 @@ async function markOutboxSent(
       failure_reason: null,
       last_error: null,
       sent_at: now,
+      locked_at: null,
+      locked_by: null,
+      lock_token: null,
       updated_at: now,
       ...sensitiveStorageMask(row, now),
     })
     .eq("id", row.id)
-    .eq("company_id", row.company_id);
+    .eq("company_id", row.company_id)
+    .eq("status", "processing")
+    .eq("lock_token", row.lock_token ?? "");
 
   if (error) throw error;
 
@@ -260,11 +297,16 @@ async function markOutboxFailed(
       failed_at: deadLetter ? now : null,
       next_attempt_at: deadLetter ? null : nextAttempt,
       dead_letter_at: deadLetter ? now : null,
+      locked_at: null,
+      locked_by: null,
+      lock_token: null,
       updated_at: now,
       ...(deadLetter ? sensitiveStorageMask(row, now) : {}),
     })
     .eq("id", row.id)
-    .eq("company_id", row.company_id);
+    .eq("company_id", row.company_id)
+    .eq("status", "processing")
+    .eq("lock_token", row.lock_token ?? "");
 
   if (error) throw error;
 
@@ -305,6 +347,7 @@ export async function sendTenantEmailOutboxRow(row: TenantEmailOutboxRow) {
 export async function processTenantEmailOutbox(
   input: ProcessTenantEmailOutboxInput = {},
 ) {
+  await moveStaleProcessingToUncertain(input);
   const rows = await loadDueRows(input);
   const result = {
     scanned: rows.length,

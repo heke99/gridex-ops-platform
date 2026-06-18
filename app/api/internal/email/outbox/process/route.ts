@@ -1,3 +1,4 @@
+import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processTenantEmailOutbox } from '@/lib/email/emailOutbox'
 import { supabaseService } from '@/lib/supabase/service'
@@ -16,24 +17,22 @@ function expectedSecrets(): string[] {
     .filter((value): value is string => Boolean(value))
 }
 
-function requestToken(request: NextRequest): string | null {
-  const authorization = request.headers.get('authorization') ?? ''
-  if (authorization.toLowerCase().startsWith('bearer ')) {
-    return clean(authorization.slice('bearer '.length))
-  }
-
-  return clean(request.headers.get('x-email-cron-secret')) ?? clean(request.headers.get('x-cron-secret'))
+function sameSecret(candidate: string | null, expected: string): boolean {
+  if (!candidate) return false
+  const left = Buffer.from(candidate)
+  const right = Buffer.from(expected)
+  return left.length === right.length && timingSafeEqual(left, right)
 }
 
-function isVercelCron(request: NextRequest) {
-  const userAgent = request.headers.get('user-agent') ?? ''
-  return process.env.VERCEL === '1' && userAgent.toLowerCase().includes('vercel-cron')
+function requestToken(request: NextRequest): string | null {
+  const authorization = request.headers.get('authorization') ?? ''
+  if (authorization.toLowerCase().startsWith('bearer ')) return clean(authorization.slice('bearer '.length))
+  return clean(request.headers.get('x-email-cron-secret')) ?? clean(request.headers.get('x-cron-secret'))
 }
 
 function isAuthorized(request: NextRequest) {
   const token = requestToken(request)
-  if (token && expectedSecrets().includes(token)) return true
-  return isVercelCron(request)
+  return expectedSecrets().some((secret) => sameSecret(token, secret))
 }
 
 function parseLimit(value: string | null) {
@@ -55,9 +54,9 @@ async function logRun(payload: Record<string, unknown>) {
 }
 
 async function run(request: NextRequest, body: Record<string, unknown> = {}) {
-  if (expectedSecrets().length === 0 && !isVercelCron(request)) {
-    await logRun({ status: 'blocked', error_message: 'EMAIL_OUTBOX_CRON_SECRET or CRON_SECRET is not configured.', metadata: { reason: 'missing_secret' } })
-    return NextResponse.json({ ok: false, error: 'EMAIL_OUTBOX_CRON_SECRET or CRON_SECRET is not configured.' }, { status: 503 })
+  if (expectedSecrets().length === 0) {
+    await logRun({ status: 'blocked', error_message: 'Email outbox cron secret is not configured.', metadata: { reason: 'missing_secret' } })
+    return NextResponse.json({ ok: false, error: 'E-postkön är inte konfigurerad.' }, { status: 503 })
   }
 
   if (!isAuthorized(request)) {
@@ -84,12 +83,10 @@ async function run(request: NextRequest, body: Record<string, unknown> = {}) {
     })
     return NextResponse.json({ ok: true, source: 'tenant_email_outbox_cron', companyId: companyId ?? null, result })
   } catch (error) {
-    console.error('[tenant-email-outbox-cron] Run failed', error instanceof Error ? error.message : 'Unknown error')
-    await logRun({ company_id: companyId ?? null, status: 'failed', error_message: error instanceof Error ? error.message : 'Tenant email outbox processing failed.' })
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : 'Tenant email outbox processing failed.' },
-      { status: 500 }
-    )
+    const traceId = randomUUID()
+    console.error('[tenant-email-outbox-cron] Run failed', { traceId, error })
+    await logRun({ company_id: companyId ?? null, status: 'failed', error_message: `trace_id=${traceId}`, metadata: { trace_id: traceId } })
+    return NextResponse.json({ ok: false, error: 'E-postkön kunde inte köras just nu.', code: 'email_outbox_processing_failed', trace_id: traceId }, { status: 500 })
   }
 }
 

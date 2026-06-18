@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
 import { supabaseService } from '@/lib/supabase/service'
+import { configuredEdielAutomationActorId } from '@/lib/ediel/automationActor'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -53,7 +54,13 @@ export async function POST(request: NextRequest) {
   const companyId = clean(body.companyId) ?? clean(body.company_id)
   const reason = clean(body.reason)
   const environment = clean(body.environment)
-  const actorUserId = clean(body.actorUserId) ?? clean(process.env.EDIEL_AUTOMATION_ACTOR_USER_ID) ?? '00000000-0000-0000-0000-000000000000'
+  let actorUserId: string
+  try {
+    actorUserId = configuredEdielAutomationActorId()
+  } catch (error) {
+    console.error('[ediel-outbox-company] automation actor configuration failed', error)
+    return NextResponse.json({ ok: false, error: 'Ediel-automation saknar giltig systemaktör.', code: 'ediel_automation_actor_missing' }, { status: 503 })
+  }
 
   if (!companyId) return NextResponse.json({ ok: false, error: 'company_id krävs.' }, { status: 400 })
   if (!reason) return NextResponse.json({ ok: false, error: 'reason krävs för company-scoped outbox processing.' }, { status: 400 })

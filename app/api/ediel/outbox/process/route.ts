@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
+import { configuredEdielAutomationActorId } from '@/lib/ediel/automationActor'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,8 +60,13 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
   }
 
   const searchParams = request.nextUrl.searchParams
-  const actorUserId =
-    clean(process.env.EDIEL_AUTOMATION_ACTOR_USER_ID) ?? '00000000-0000-0000-0000-000000000000'
+  let actorUserId: string
+  try {
+    actorUserId = configuredEdielAutomationActorId()
+  } catch (error) {
+    console.error('[ediel-outbox-cron] automation actor configuration failed', error)
+    return NextResponse.json({ ok: false, error: 'Ediel-automation saknar giltig systemaktör.', code: 'ediel_automation_actor_missing' }, { status: 503 })
+  }
   const ignoredCompanyId = clean(String(body.companyId ?? body.company_id ?? '')) ?? clean(searchParams.get('companyId')) ?? clean(searchParams.get('company_id'))
   const environment =
     parseEnvironment(String(body.environment ?? '')) ?? parseEnvironment(searchParams.get('environment'))
@@ -87,7 +93,7 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : 'Ediel outbox processing failed.',
+        error: 'Ediel outbox processing failed.', code: 'ediel_outbox_processing_failed',
       },
       { status: 500 }
     )

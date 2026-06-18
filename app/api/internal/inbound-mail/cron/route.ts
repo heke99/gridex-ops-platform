@@ -1,4 +1,5 @@
 // app/api/internal/inbound-mail/cron/route.ts
+import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
@@ -12,7 +13,12 @@ function isAuthorized(request: NextRequest): boolean {
   const bearer = authorization.startsWith('Bearer ') ? authorization.slice('Bearer '.length) : null
   const headerSecret = request.headers.get('x-cron-secret')
 
-  return bearer === configuredSecret || headerSecret === configuredSecret
+  return [bearer, headerSecret].some((candidate) => {
+    if (!candidate) return false
+    const left = Buffer.from(candidate)
+    const right = Buffer.from(configuredSecret)
+    return left.length === right.length && timingSafeEqual(left, right)
+  })
 }
 
 function parseEnvironment(value: string | null): 'test' | 'production' {
@@ -51,12 +57,10 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json({ ok: true, result })
   } catch (error) {
-    console.error('[inbound-mail-cron] Run failed', error instanceof Error ? error.message : 'Unknown error')
+    const traceId = randomUUID()
+    console.error('[inbound-mail-cron] Run failed', { traceId, error })
     return NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : 'Inbound mail engine failed',
-      },
+      { ok: false, error: 'Inbound mail engine failed.', code: 'inbound_mail_processing_failed', trace_id: traceId },
       { status: 500 }
     )
   }

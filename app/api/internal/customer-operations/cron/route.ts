@@ -1,3 +1,4 @@
+import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
 
@@ -19,7 +20,11 @@ function authorized(request: NextRequest) {
   const token = authorization.toLowerCase().startsWith('bearer ')
     ? clean(authorization.slice('bearer '.length))
     : clean(request.headers.get('x-cron-secret'))
-  return Boolean(token && expected.includes(token))
+  return Boolean(token && expected.some((secret) => {
+    const left = Buffer.from(token)
+    const right = Buffer.from(secret)
+    return left.length === right.length && timingSafeEqual(left, right)
+  }))
 }
 
 function limit(value: string | null) {
@@ -36,8 +41,10 @@ async function run(request: NextRequest) {
     })
     return NextResponse.json({ ok: true, result })
   } catch (error) {
+    const traceId = randomUUID()
+    console.error('[customer-operations-cron] failed', { traceId, error })
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : 'Kundautomation kunde inte köras.' },
+      { ok: false, error: 'Kundautomation kunde inte köras just nu.', code: 'customer_operation_processing_failed', trace_id: traceId },
       { status: 500 },
     )
   }

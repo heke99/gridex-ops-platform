@@ -24,7 +24,6 @@ import {
   portalContextFromResolved,
   portalQueryErrorMetadata,
 } from '@/lib/customer-portal/apiData'
-import { ensurePowerOfAttorneyDocumentsForPortalCustomer } from '@/lib/customer-portal/powerOfAttorneyDocuments'
 import {
   buildPortalCustomerStatus,
   displayNameFromCustomer,
@@ -100,12 +99,6 @@ async function buildBundleResponse(input: {
     })
     const route = '/api/v1/customer/portal-bundle'
     const warnings: BundleWarning[] = []
-
-    await ensurePowerOfAttorneyDocumentsForPortalCustomer(portalContext).catch((error) => {
-      const warning = safeWarning('documents', error)
-      warnings.push(warning)
-      console.error('[customer portal bundle] power of attorney document generation failed', warning)
-    })
 
     const [rawContracts, sites, invoices, meteringValues, documents, legalAcceptances, powersOfAttorney, notifications, events, rawWebsiteApplications] = await Promise.all([
       optionalSection('contracts', () => listPortalContracts(portalContext, route), warnings),

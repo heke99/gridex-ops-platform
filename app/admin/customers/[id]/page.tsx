@@ -2173,20 +2173,38 @@ export default async function CustomerAdminDetailPage({
     outboundRequests,
   });
 
-  const hasReadyEdielRoute = edielData.recommendationRoutes.some((route) => {
-    const hasReceiver = Boolean(
-      route.profile?.receiver_ediel_id?.trim() ||
-      route.grid_owner_ediel_id?.trim(),
-    );
+  const isReadyEdielRouteForGridOwner = (gridOwnerId: string) =>
+    edielData.recommendationRoutes.some((route) => {
+      const hasReceiver = Boolean(
+        route.profile?.receiver_ediel_id?.trim() ||
+        route.grid_owner_ediel_id?.trim(),
+      );
 
-    return Boolean(
-      route.is_active &&
-      route.profile?.is_enabled &&
-      route.profile?.sender_ediel_id?.trim() &&
-      route.profile?.mailbox?.trim() &&
-      hasReceiver,
-    );
-  });
+      return Boolean(
+        route.grid_owner_id === gridOwnerId &&
+        route.is_active &&
+        route.profile?.is_enabled &&
+        route.profile?.sender_ediel_id?.trim() &&
+        route.profile?.mailbox?.trim() &&
+        hasReceiver,
+      );
+    });
+
+  const customerGridOwnerIds = Array.from(
+    new Set(
+      sites
+        .map((site) =>
+          site.grid_owner_id ??
+          meteringPoints.find((point) => point.site_id === site.id)?.grid_owner_id ??
+          null,
+        )
+        .filter((value): value is string => Boolean(value?.trim())),
+    ),
+  );
+
+  const hasReadyEdielRoute =
+    customerGridOwnerIds.length > 0 &&
+    customerGridOwnerIds.every(isReadyEdielRouteForGridOwner);
 
   const opsMasterReadiness = evaluateCustomerOpsMasterReadiness({
     customerId: id,

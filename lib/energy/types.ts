@@ -21,6 +21,15 @@ export type EnergyResolutionStatus =
   | 'protected_identity'
   | 'failed'
 
+export type EnergyResolverDiagnostics = {
+  addressAttempts?: Array<{ street: string; streetNumber: string | null; outcome: string; httpStatus?: number | null }>
+  geocodeProvider?: string | null
+  geocodeStatus?: string | null
+  coordinateReferenceSystem?: 'EPSG:3006' | 'EPSG:4326' | null
+  polygonStatus?: 'matched' | 'no_match' | 'not_attempted' | 'schema_missing' | null
+  mappingStatus?: 'mapped' | 'platform_to_ops_missing' | 'not_applicable' | null
+}
+
 export type EnergyResolverCoordinates = {
   latitude?: number | null
   longitude?: number | null
@@ -64,6 +73,7 @@ export type EnergyResolverResult = {
   gridOwnerVerificationStatus?: string | null
   gridOwnerVerificationIssues?: string[]
   raw?: Record<string, unknown>
+  diagnostics?: EnergyResolverDiagnostics
 }
 
 export type GridOwnerInformationRequestInput = {

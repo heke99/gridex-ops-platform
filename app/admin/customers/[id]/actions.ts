@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 import { after } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminActionAccess } from "@/lib/admin/guards";
@@ -149,10 +150,6 @@ function validateHistoricalMeteringPeriod(params: {
   if (start < oldest) {
     throw new Error("Historisk period får vara högst tre år bakåt.");
   }
-}
-
-function textOf(value: unknown): string {
-  return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
 function normalizeNumberOrNull(value: string | null): number | null {
@@ -1525,9 +1522,10 @@ export type CustomerOperationActionState = {
 
 function customerOperationActionError(error: unknown, fallback: string): CustomerOperationActionState {
   const message = error instanceof Error ? error.message.trim() : "";
+  const code = (error as { code?: string } | null)?.code ?? "";
   const authorizationError = /^(unauthorized|forbidden)$/i.test(message);
-  const expected = authorizationError || /saknas|tillhör inte|hittades inte|behörighet|operativ|anläggning|mätpunkt|automationstabellen/i.test(message);
-  console.error("[customer-operation] customer card action failed", error);
+  const traceId = randomUUID();
+  console.error("[customer-operation] customer card action failed", { traceId, code, error });
 
   if (authorizationError) {
     return {
@@ -1537,12 +1535,36 @@ function customerOperationActionError(error: unknown, fallback: string): Custome
       message: "Din roll behöver behörighet att hantera kund- och anläggningsuppgifter. Kontakta bolagsadministratören eller kontrollera rollens behörigheter.",
     };
   }
+  if (code === "23505" || /duplicate key|kundautomation kör redan/i.test(message)) {
+    return {
+      ok: false,
+      status: "warning",
+      title: "En uppgiftsbegäran behandlas redan",
+      message: "Systemet har redan ett aktivt jobb för anläggningen. Öppna arbetskön för att se status eller invänta nästa uppdatering.",
+    };
+  }
+  if (/automationstabellen|schema cache|column .* does not exist|relation .* does not exist/i.test(message)) {
+    return {
+      ok: false,
+      status: "error",
+      title: "Kundautomation behöver en systemuppdatering",
+      message: `Databasschemat för kundautomation saknas eller är inte uppdaterat. Kör den senaste OPS-migrationen. Referens: ${traceId}`,
+    };
+  }
+  if (/nätägare|nätområde|papilite|address|adress/i.test(message)) {
+    return {
+      ok: false,
+      status: "blocked",
+      title: "Nätägaren kunde inte verifieras ännu",
+      message: "Systemet behöver en verifierbar adress- och nätområdesmatchning innan det kan skapa en säker uppgiftsbegäran.",
+    };
+  }
 
   return {
     ok: false,
-    status: expected ? "blocked" : "error",
-    title: expected ? "Åtgärden kan inte startas ännu" : "Åtgärden kunde inte startas",
-    message: expected && message ? message : fallback,
+    status: "error",
+    title: "Åtgärden kunde inte startas",
+    message: `${fallback} Referens: ${traceId}`,
   };
 }
 

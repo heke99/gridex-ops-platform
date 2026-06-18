@@ -28,6 +28,8 @@ type WebhookDeliveryRow = {
   max_attempts: number
   payload: Record<string, unknown>
   target_url?: string | null
+  locked_at?: string | null
+  locked_by?: string | null
 }
 
 type EnqueueOptions = {
@@ -179,7 +181,26 @@ export async function enqueueWebhookDeliveriesForEvent(event: DomainEventRow, op
   return rows.length
 }
 
+async function recoverStaleDeliveries() {
+  const staleBefore = new Date(Date.now() - 15 * 60_000).toISOString()
+  const now = new Date().toISOString()
+  const { error } = await supabaseService
+    .from('webhook_deliveries')
+    .update({
+      status: 'failed',
+      failure_reason: 'stale_processing_lock_recovered',
+      next_attempt_at: now,
+      locked_at: null,
+      locked_by: null,
+      updated_at: now,
+    })
+    .eq('status', 'processing')
+    .lt('locked_at', staleBefore)
+  if (error && !missingSchema(error)) throw error
+}
+
 async function claimDueDeliveries(limit: number) {
+  await recoverStaleDeliveries()
   const now = new Date().toISOString()
   const batchId = randomUUID()
   const due = await supabaseService
@@ -243,7 +264,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         locked_at: null,
         locked_by: null,
         updated_at: new Date().toISOString(),
-      }).eq('id', delivery.id)
+      }).eq('id', delivery.id).eq('status', 'processing').eq('locked_by', delivery.locked_by ?? '')
       failed += 1
       continue
     }
@@ -263,7 +284,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         locked_by: null,
         target_url: targetUrl,
         updated_at: new Date().toISOString(),
-      }).eq('id', delivery.id)
+      }).eq('id', delivery.id).eq('status', 'processing').eq('locked_by', delivery.locked_by ?? '')
       await updateSubscriptionFailure(subscription, deadLetter).catch(() => null)
       failed += 1
       continue
@@ -294,7 +315,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
           locked_by: null,
           target_url: targetUrl,
           updated_at: new Date().toISOString(),
-        }).eq('id', delivery.id)
+        }).eq('id', delivery.id).eq('status', 'processing').eq('locked_by', delivery.locked_by ?? '')
         await updateSubscriptionSuccess(subscription.id).catch(() => null)
         sent += 1
       } else {
@@ -312,7 +333,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
           locked_by: null,
           target_url: targetUrl,
           updated_at: new Date().toISOString(),
-        }).eq('id', delivery.id)
+        }).eq('id', delivery.id).eq('status', 'processing').eq('locked_by', delivery.locked_by ?? '')
         await updateSubscriptionFailure(subscription, deadLetter).catch(() => null)
         failed += 1
       }
@@ -329,7 +350,7 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         locked_by: null,
         target_url: targetUrl,
         updated_at: new Date().toISOString(),
-      }).eq('id', delivery.id)
+      }).eq('id', delivery.id).eq('status', 'processing').eq('locked_by', delivery.locked_by ?? '')
       await updateSubscriptionFailure(subscription, deadLetter).catch(() => null)
       failed += 1
     } finally {

@@ -25,6 +25,10 @@
       "schedule": "25 2 * * *"
     },
     {
+      "path": "/api/internal/webhooks/dispatch",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/internal/customer-operations/cron",
       "schedule": "*/5 * * * *"
     }
