@@ -1524,9 +1524,20 @@ export type CustomerOperationActionState = {
 };
 
 function customerOperationActionError(error: unknown, fallback: string): CustomerOperationActionState {
-  const message = error instanceof Error ? error.message : "";
-  const expected = /saknas|tillhör inte|hittades inte|behörighet|operativ|anläggning|mätpunkt/i.test(message);
+  const message = error instanceof Error ? error.message.trim() : "";
+  const authorizationError = /^(unauthorized|forbidden)$/i.test(message);
+  const expected = authorizationError || /saknas|tillhör inte|hittades inte|behörighet|operativ|anläggning|mätpunkt|automationstabellen/i.test(message);
   console.error("[customer-operation] customer card action failed", error);
+
+  if (authorizationError) {
+    return {
+      ok: false,
+      status: "blocked",
+      title: "Du saknar behörighet för åtgärden",
+      message: "Din roll behöver behörighet att hantera kund- och anläggningsuppgifter. Kontakta bolagsadministratören eller kontrollera rollens behörigheter.",
+    };
+  }
+
   return {
     ok: false,
     status: expected ? "blocked" : "error",

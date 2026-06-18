@@ -214,6 +214,12 @@ export async function requireAdminActionAccess(
     throw new Error('Unauthorized')
   }
 
+  // Platform administrators are explicitly trusted for tenant-operational actions.
+  // Platform-only actions remain protected by requirePlatformAdminActionAccess.
+  if (isPlatformAdminContext(base)) {
+    return base
+  }
+
   const requirement = normalizeRequirement(requiredPermissions)
 
   if (!hasPermissionRequirement(base.permissions, requirement)) {
