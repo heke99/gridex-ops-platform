@@ -4,6 +4,10 @@ import { createGridOwnerDataRequest } from "@/lib/cis/db-data";
 import { createOutboundRequest } from "@/lib/cis/db-outbound";
 import { prepareAndQueueProdatZ01FromDataRequest } from "@/lib/ediel/flows/prodatCustomerMasterdata";
 import { normalizeUuidOrNull, requireUuid } from "@/lib/validation/uuid";
+import {
+  makeCustomerOperationBlocker,
+  type CustomerOperationBlocker,
+} from "@/lib/customer-operations/blockers";
 
 export type CustomerOption = {
   id: string;
@@ -56,6 +60,8 @@ export type CustomerInfoRequestRow = {
   requested_data_categories: string[];
   verified_payload: Record<string, unknown>;
   blocker_reason: string | null;
+  blocker_code?: string | null;
+  blocker_details?: Record<string, unknown> | null;
   notes: string | null;
   requested_at: string | null;
   sent_at: string | null;
@@ -641,6 +647,8 @@ export type InfoRequestDispatchResult = {
   routeProfileId: string | null;
   status: string;
   blockerReason: string | null;
+  blockerCode: string | null;
+  blockerDetails: (CustomerOperationBlocker & Record<string, unknown>) | null;
 };
 
 function todayDate(): string {
@@ -857,13 +865,31 @@ async function blockCustomerInfoRequest(params: {
   actorUserId: string;
   status?: string;
   blockerReason: string;
+  blockerCode?: string | null;
+  blockerDetails?: (CustomerOperationBlocker & Record<string, unknown>) | null;
   eventType: string;
 }): Promise<InfoRequestDispatchResult> {
+  const blockerDetails =
+    params.blockerDetails ??
+    (params.blockerCode
+      ? makeCustomerOperationBlocker(params.blockerCode, {
+          blocker_reason: params.blockerReason,
+        })
+      : null);
   const { data, error } = await supabaseService
     .from("customer_info_requests")
     .update({
       status: params.status ?? "blocked",
       blocker_reason: params.blockerReason,
+      blocker_code: blockerDetails?.blocker_code ?? params.blockerCode ?? null,
+      blocker_details: blockerDetails ?? null,
+      verified_payload: {
+        ...(params.request.verified_payload ?? {}),
+        blocker_code: blockerDetails?.blocker_code ?? params.blockerCode ?? null,
+        blocker_reason: params.blockerReason,
+        next_required_action: blockerDetails?.next_required_action ?? null,
+        blocker_details: blockerDetails ?? null,
+      },
       updated_by: params.actorUserId,
       updated_at: new Date().toISOString(),
     })
@@ -881,6 +907,10 @@ async function blockCustomerInfoRequest(params: {
     actorUserId: params.actorUserId,
     eventType: params.eventType,
     message: params.blockerReason,
+    payload: {
+      blocker_code: blockerDetails?.blocker_code ?? params.blockerCode ?? null,
+      blocker_details: blockerDetails ?? null,
+    },
   });
 
   return {
@@ -890,6 +920,8 @@ async function blockCustomerInfoRequest(params: {
     routeProfileId: null,
     status: params.status ?? "blocked",
     blockerReason: params.blockerReason,
+    blockerCode: blockerDetails?.blocker_code ?? params.blockerCode ?? null,
+    blockerDetails,
   };
 }
 
@@ -933,11 +965,24 @@ export async function queueCustomerInfoRequestForDispatch(input: {
   const authorization = hasAuthorizationForRequest(request, scopes);
 
   if (!authorization.ok) {
+    const blocker = makeCustomerOperationBlocker("missing_power_of_attorney", {
+      blocker_reason:
+        authorization.reason ?? "Begäran blockerades av fullmaktskontroll.",
+    });
     const { data, error } = await supabaseService
       .from("customer_info_requests")
       .update({
         status: "missing_authorization",
-        blocker_reason: authorization.reason,
+        blocker_reason: blocker.blocker_reason,
+        blocker_code: blocker.blocker_code,
+        blocker_details: blocker,
+        verified_payload: {
+          ...(request.verified_payload ?? {}),
+          blocker_code: blocker.blocker_code,
+          blocker_reason: blocker.blocker_reason,
+          next_required_action: blocker.next_required_action,
+          blocker_details: blocker,
+        },
         updated_by: actorUserId,
         updated_at: new Date().toISOString(),
       })
@@ -954,8 +999,8 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       customerId: request.customer_id,
       actorUserId,
       eventType: "blocked_missing_authorization",
-      message:
-        authorization.reason ?? "Begäran blockerades av fullmaktskontroll.",
+      message: blocker.blocker_reason,
+      payload: { blocker_code: blocker.blocker_code, blocker_details: blocker },
     });
 
     return {
@@ -964,7 +1009,9 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       outboundRequestId: null,
       routeProfileId: null,
       status: "missing_authorization",
-      blockerReason: authorization.reason,
+      blockerReason: blocker.blocker_reason,
+      blockerCode: blocker.blocker_code,
+      blockerDetails: blocker,
     };
   }
 
@@ -1006,6 +1053,8 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       routeProfileId: null,
       status: "manual_review_required",
       blockerReason: null,
+      blockerCode: null,
+      blockerDetails: null,
     };
   }
 
@@ -1016,6 +1065,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       companyId,
       actorUserId,
       blockerReason: anchorBlockerReason,
+      blockerCode: "grid_area_not_verified",
       eventType: "blocked_missing_z01_anchors",
     });
   }
@@ -1043,21 +1093,26 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       gridOwnerDataRequestId: gridOwnerDataRequest.id,
     });
   } catch (error) {
-    const blockerReason =
-      error instanceof Error
-        ? error.message
-        : "PRODAT Z01 kunde inte förberedas.";
+    const message = error instanceof Error ? error.message : "";
+    if (!/anläggnings-id|mätpunkt|snapshot|site/i.test(message)) throw error;
+    const blocker = makeCustomerOperationBlocker("invalid_customer_site_snapshot", {
+      blocker_reason: message || "PRODAT Z01 kunde inte förberedas eftersom anläggningsunderlaget är ofullständigt.",
+    });
     return blockCustomerInfoRequest({
       request,
       companyId,
       actorUserId,
-      blockerReason,
+      blockerReason: blocker.blocker_reason,
+      blockerCode: blocker.blocker_code,
+      blockerDetails: blocker,
       eventType: "blocked_z01_prepare_failed",
     });
   }
 
   const nextStatus = z01.prepared ? "z01_prepared" : "route_missing";
   const blockerReason = z01.blockerReason;
+  const blockerCode = z01.blockerCode;
+  const blockerDetails = z01.blockerDetails;
   const now = new Date().toISOString();
 
   const { data, error } = await supabaseService
@@ -1067,6 +1122,8 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       requested_at: now,
       sent_at: null,
       blocker_reason: blockerReason,
+      blocker_code: blockerCode,
+      blocker_details: blockerDetails,
       grid_owner_data_request_id: gridOwnerDataRequest.id,
       outbound_request_id: z01.outbound.id,
       ediel_message_id: z01.message?.id ?? null,
@@ -1083,6 +1140,17 @@ export async function queueCustomerInfoRequestForDispatch(input: {
           "Svar från nätägare",
         prodatCode: "Z01",
         routeReady: z01.prepared,
+        blocker_code: blockerCode,
+        blocker_reason: blockerReason,
+        next_required_action: blockerDetails?.next_required_action ?? null,
+        route_resolution_status: blockerDetails?.route_resolution_status ?? null,
+        platform_actor_route_id: blockerDetails?.platform_actor_route_id ?? null,
+        communication_route_id: blockerDetails?.communication_route_id ?? z01.outbound.communication_route_id ?? null,
+        ediel_route_profile_id: blockerDetails?.ediel_route_profile_id ?? z01.outbound.ediel_route_profile_id ?? null,
+        company_market_party_route_id: blockerDetails?.company_market_party_route_id ?? null,
+        sender_settings_id: blockerDetails?.sender_settings_id ?? null,
+        production_send_lock_status: blockerDetails?.production_send_lock_status ?? null,
+        blocker_details: blockerDetails,
       },
       updated_by: actorUserId,
       updated_at: now,
@@ -1108,6 +1176,8 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       outboundRequestId: z01.outbound.id,
       edielMessageId: z01.message?.id ?? null,
       prodatCode: "Z01",
+      blocker_code: blockerCode,
+      blocker_details: blockerDetails,
     },
   });
 
@@ -1118,6 +1188,8 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     routeProfileId: normalizeUuidOrNull(z01.outbound.ediel_route_profile_id, "route_profile_id"),
     status: nextStatus,
     blockerReason,
+    blockerCode,
+    blockerDetails,
   };
 }
 

@@ -90,6 +90,7 @@ import {
   normalizeUuidOrNull,
   UuidValidationError,
 } from "@/lib/validation/uuid";
+import { customerBlockerStatusLabel } from "@/lib/customer-operations/blockers";
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -1575,6 +1576,81 @@ function customerOperationActionError(error: unknown, fallback: string): Custome
   };
 }
 
+function customerDataRequestActionState(job: Awaited<ReturnType<typeof enqueueCustomerDataRequestAutomation>>, customerId: string): CustomerOperationActionState {
+  if (!job.duplicate) {
+    return {
+      ok: true,
+      status: "started",
+      title: "Uppgiftsbegäran startad",
+      message: "Systemet analyserar anläggningsadressen och söker nätägare i bakgrunden.",
+      jobId: job.id,
+      actionUrl: `/admin/customers/${customerId}?tab=data-requests`,
+    };
+  }
+
+  const result = job.result ?? {};
+  const blockerCode =
+    typeof result.reason_code === "string"
+      ? result.reason_code
+      : typeof result.blocker_code === "string"
+        ? result.blocker_code
+        : null;
+  const nextAction =
+    typeof result.next_required_action === "string"
+      ? result.next_required_action
+      : null;
+  const reason =
+    typeof result.blocker_reason === "string"
+      ? result.blocker_reason
+      : typeof result.reason === "string"
+        ? result.reason
+        : job.lastError;
+
+  if (job.status === "queued") {
+    return {
+      ok: true,
+      status: "started",
+      title: "Uppgiftsbegäran ligger i kö",
+      message: "Systemet har redan köat uppgiftsbegäran och fortsätter automatiskt.",
+      jobId: job.id,
+      actionUrl: `/admin/customers/${customerId}?tab=data-requests`,
+    };
+  }
+  if (job.status === "running") {
+    return {
+      ok: true,
+      status: "started",
+      title: "Uppgiftsbegäran körs",
+      message: "Systemet arbetar med uppgiftsbegäran just nu.",
+      jobId: job.id,
+      actionUrl: `/admin/customers/${customerId}?tab=data-requests`,
+    };
+  }
+  if (job.status === "waiting_response") {
+    return {
+      ok: true,
+      status: "started",
+      title: "Svar inväntas",
+      message: "Begäran är förberedd eller skickad och systemet väntar på kvittens eller svar från nätägaren.",
+      jobId: job.id,
+      actionUrl: `/admin/customers/${customerId}?tab=data-requests`,
+    };
+  }
+
+  return {
+    ok: false,
+    status: "warning",
+    title: customerBlockerStatusLabel(blockerCode),
+    message: [
+      reason ? `Stopporsak: ${reason}.` : null,
+      blockerCode ? `Blockerarkod: ${blockerCode}.` : null,
+      nextAction ? `Nästa åtgärd: ${nextAction}` : null,
+    ].filter(Boolean).join(" ") || "Uppgiftsbegäran behöver granskas innan den kan fortsätta.",
+    jobId: job.id,
+    actionUrl: `/admin/customers/${customerId}?tab=data-requests`,
+  };
+}
+
 export async function startAutomaticOnboardingAction(
   _previousState: CustomerOperationActionState,
   formData: FormData,
@@ -1624,16 +1700,7 @@ export async function startAutomaticOnboardingAction(
     revalidatePath("/admin/work-queue");
     revalidatePath("/admin/customer-info-requests");
 
-    return {
-      ok: true,
-      status: "started",
-      title: job.duplicate ? "Uppgiftsbegäran kör redan" : "Uppgiftsbegäran startad",
-      message: job.duplicate
-        ? "Systemet fortsätter den befintliga automatiska kedjan för anläggningen."
-        : "Systemet analyserar anläggningsadressen och söker nätägare i bakgrunden.",
-      jobId: job.id,
-      actionUrl: `/admin/customers/${customerId}?tab=data-requests`,
-    };
+    return customerDataRequestActionState(job, customerId);
   } catch (error) {
     return customerOperationActionError(error, "Kontrollera kundens anläggningsuppgifter och försök igen.");
   }

@@ -27,6 +27,21 @@ function issueText(issue: RouteDecisionIssue): string {
   return `${issue.code}: ${issue.message}`
 }
 
+export class RouteDecisionBlockedError extends Error {
+  readonly decision: RouteDecisionOutput
+
+  constructor(decision: RouteDecisionOutput) {
+    super(
+      [
+        'Ediel-routing blockerades av backend route engine.',
+        ...decision.blockingReasons.map(issueText),
+      ].join(' ')
+    )
+    this.name = 'RouteDecisionBlockedError'
+    this.decision = decision
+  }
+}
+
 function nonEmpty(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
@@ -79,12 +94,7 @@ export async function resolveDecisionBackedOutboundContext(params: {
   })
 
   if (decision.blockingReasons.length > 0 || decision.decisionStatus === 'blocked') {
-    throw new Error(
-      [
-        'Ediel-routing blockerades av backend route engine.',
-        ...decision.blockingReasons.map(issueText),
-      ].join(' ')
-    )
+    throw new RouteDecisionBlockedError(decision)
   }
 
   if (!decision.communicationRouteId) {

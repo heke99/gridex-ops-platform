@@ -2,17 +2,23 @@
 
 import { getGridOwnerById } from '@/lib/masterdata/db'
 import type { GridOwnerRow } from '@/lib/masterdata/types'
+import { supabaseService } from '@/lib/supabase/service'
 import { getCustomerExportContext, requireContextCompanyId } from '@/lib/cis/db-shared'
 import type { GridOwnerDataRequestRow, OutboundRequestRow } from '@/lib/cis/types'
 import { updateGridOwnerDataRequestStatus } from '@/lib/cis/db-data'
 import { linkEdielMessage } from '@/lib/ediel/db'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
-import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
+import { resolveDecisionBackedOutboundContext, RouteDecisionBlockedError } from '@/lib/ediel/flows/routeDecisionContext'
 import type { CreateEdielMessageInput, EdielEnvironment, EdielMessageRow } from '@/lib/ediel/types'
 import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { inferEdielFileName } from '@/lib/ediel/classify'
+import {
+  makeCustomerOperationBlocker,
+  routeIssueCodeToCustomerBlocker,
+  type CustomerOperationBlocker,
+} from '@/lib/customer-operations/blockers'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
@@ -35,6 +41,16 @@ type PrepareResult = {
   message: EdielMessageRow | null
   prepared: boolean
   blockerReason: string | null
+  blockerCode: string | null
+  blockerDetails: (CustomerOperationBlocker & {
+    route_resolution_status?: string | null
+    platform_actor_route_id?: string | null
+    communication_route_id?: string | null
+    ediel_route_profile_id?: string | null
+    company_market_party_route_id?: string | null
+    sender_settings_id?: string | null
+    production_send_lock_status?: string | null
+  }) | null
 }
 
 function sanitize(value?: string | null): string {
@@ -109,6 +125,65 @@ function resolveGridAreaId(context: Awaited<ReturnType<typeof getCustomerExportC
       gridOwner?.owner_code ??
       null
   ) || null
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+function text(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+async function findVerifiedPlatformActorRoute(input: {
+  actorId?: string | null
+  messageFamily: string
+  environment: EdielEnvironment
+}): Promise<string | null> {
+  if (!input.actorId) return null
+  const { data, error } = await supabaseService
+    .from('platform_actor_routes')
+    .select('id')
+    .eq('actor_id', input.actorId)
+    .eq('message_family', input.messageFamily)
+    .eq('environment', input.environment)
+    .eq('status', 'active')
+    .eq('is_verified', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    const code = (error as { code?: string }).code ?? ''
+    if (['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code)) return null
+    throw error
+  }
+  return text((data as { id?: string } | null)?.id)
+}
+
+async function findCompanyMarketPartyRoute(input: {
+  companyId?: string | null
+  actorId?: string | null
+  messageFamily: string
+}): Promise<string | null> {
+  if (!input.companyId || !input.actorId) return null
+  const { data, error } = await supabaseService
+    .from('company_market_party_routes')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('market_party_id', input.actorId)
+    .eq('message_family', input.messageFamily)
+    .eq('active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    const code = (error as { code?: string }).code ?? ''
+    if (['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code)) return null
+    throw error
+  }
+  return text((data as { id?: string } | null)?.id)
 }
 
 function buildProdatZ01Draft(params: {
@@ -288,6 +363,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   const gridOwner = dataRequest.grid_owner_id
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
     : null
+  const actorId = gridOwner?.platform_market_actor_id ?? null
 
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
@@ -303,7 +379,35 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   })
 
   if (!outbound.communication_route_id) {
-    const blockerReason = 'Saknar aktiv customer_masterdata-route för nätägaren. Lägg till route innan PRODAT Z01 kan skickas.'
+    const platformActorRouteId = await findVerifiedPlatformActorRoute({
+      actorId,
+      messageFamily: 'PRODAT',
+      environment: params.environment ?? 'production',
+    })
+    const blocker = makeCustomerOperationBlocker(
+      platformActorRouteId
+        ? 'platform_route_exists_but_not_materialized'
+        : 'operational_route_missing',
+      {
+        blocker_reason: platformActorRouteId
+          ? 'Nätägaren är verifierad i aktörsregistret, men operativ route saknas.'
+          : 'Saknar aktiv customer_masterdata-route för nätägaren. Lägg till route innan PRODAT Z01 kan skickas.',
+      },
+    )
+    const blockerDetails = {
+      ...blocker,
+      route_resolution_status: 'missing_operational_route',
+      platform_actor_route_id: platformActorRouteId,
+      communication_route_id: null,
+      ediel_route_profile_id: null,
+      company_market_party_route_id: await findCompanyMarketPartyRoute({
+        companyId: dataRequest.company_id ?? null,
+        actorId,
+        messageFamily: 'PRODAT',
+      }),
+      sender_settings_id: null,
+      production_send_lock_status: null,
+    }
     await updateGridOwnerDataRequestStatus({
       actorUserId,
       requestId: dataRequest.id,
@@ -313,9 +417,11 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         ...(dataRequest.response_payload ?? {}),
         outboundRequestId: outbound.id,
         prodatCode: 'Z01',
-        blockedReason: blockerReason,
+        blockedReason: blocker.blocker_reason,
+        blockerCode: blocker.blocker_code,
+        blockerDetails,
       },
-      notes: blockerReason,
+      notes: blocker.blocker_reason,
     })
 
     return {
@@ -323,7 +429,9 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       outbound,
       message: null,
       prepared: false,
-      blockerReason,
+      blockerReason: blocker.blocker_reason,
+      blockerCode: blocker.blocker_code,
+      blockerDetails,
     }
   }
 
@@ -331,25 +439,84 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     preferredRouteId: outbound.communication_route_id,
     explicitEnvironment: params.environment ?? null,
   })
-  const routeContext = await resolveDecisionBackedOutboundContext({
-    requestType: 'customer_masterdata',
-    gridOwner,
-    preferredRouteId: outbound.communication_route_id,
-    companyId: dataRequest.company_id ?? null,
-    customerId: dataRequest.customer_id,
-    siteId: dataRequest.site_id,
-    meteringPointId: dataRequest.metering_point_id,
-    dataRequestId: dataRequest.id,
-    outboundRequestId: outbound.id,
-    environment,
-    messageFamily: 'PRODAT',
-    messageCode: 'Z01',
-    messageStandard: 'edifact',
-    actorUserId,
-    payload: {
-      requestScope: dataRequest.request_scope,
-    },
-  })
+  let routeContext: Awaited<ReturnType<typeof resolveDecisionBackedOutboundContext>>
+  try {
+    routeContext = await resolveDecisionBackedOutboundContext({
+      requestType: 'customer_masterdata',
+      gridOwner,
+      preferredRouteId: outbound.communication_route_id,
+      companyId: dataRequest.company_id ?? null,
+      customerId: dataRequest.customer_id,
+      siteId: dataRequest.site_id,
+      meteringPointId: dataRequest.metering_point_id,
+      dataRequestId: dataRequest.id,
+      outboundRequestId: outbound.id,
+      environment,
+      messageFamily: 'PRODAT',
+      messageCode: 'Z01',
+      messageStandard: 'edifact',
+      actorUserId,
+      payload: {
+        requestScope: dataRequest.request_scope,
+      },
+    })
+  } catch (error) {
+    if (!(error instanceof RouteDecisionBlockedError)) throw error
+    const firstIssue = error.decision.blockingReasons[0]
+    const blocker = makeCustomerOperationBlocker(
+      routeIssueCodeToCustomerBlocker(firstIssue?.code),
+      {
+        blocker_reason: firstIssue?.message ?? 'Ediel-route blockerades av route engine.',
+        next_required_action:
+          error.decision.requiredAdminActions[0] ??
+          makeCustomerOperationBlocker(routeIssueCodeToCustomerBlocker(firstIssue?.code)).next_required_action,
+      },
+    )
+    const evidence = asRecord(asRecord(error.decision.payload).route_decision_evidence)
+    const blockerDetails = {
+      ...blocker,
+      route_resolution_status: error.decision.decisionStatus,
+      platform_actor_route_id: await findVerifiedPlatformActorRoute({
+        actorId,
+        messageFamily: 'PRODAT',
+        environment,
+      }),
+      communication_route_id: error.decision.communicationRouteId ?? outbound.communication_route_id,
+      ediel_route_profile_id: error.decision.edielRouteProfileId,
+      company_market_party_route_id: await findCompanyMarketPartyRoute({
+        companyId: dataRequest.company_id ?? null,
+        actorId,
+        messageFamily: 'PRODAT',
+      }),
+      sender_settings_id: text(evidence.sender_settings_id),
+      production_send_lock_status: text(evidence.production_send_lock_status),
+    }
+    await updateGridOwnerDataRequestStatus({
+      actorUserId,
+      requestId: dataRequest.id,
+      status: 'pending',
+      externalReference: outbound.external_reference ?? dataRequest.external_reference,
+      responsePayload: {
+        ...(dataRequest.response_payload ?? {}),
+        outboundRequestId: outbound.id,
+        prodatCode: 'Z01',
+        blockedReason: blocker.blocker_reason,
+        blockerCode: blocker.blocker_code,
+        blockerDetails,
+        routeDecision: error.decision,
+      },
+      notes: blocker.blocker_reason,
+    })
+    return {
+      dataRequest,
+      outbound,
+      message: null,
+      prepared: false,
+      blockerReason: blocker.blocker_reason,
+      blockerCode: blocker.blocker_code,
+      blockerDetails,
+    }
+  }
 
   const refs = buildCanonicalOutboundReferences({
     family: 'PRODAT',
@@ -445,5 +612,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     message,
     prepared: true,
     blockerReason: null,
+    blockerCode: null,
+    blockerDetails: null,
   }
 }

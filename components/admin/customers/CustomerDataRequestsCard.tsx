@@ -18,6 +18,7 @@ import {
   humanizeBlockerReason,
   type CustomerCardSnapshot,
 } from "@/lib/customers/customerCardSnapshot";
+import { customerBlockerStatusLabel } from "@/lib/customer-operations/blockers";
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -38,11 +39,49 @@ function simpleRequestLabel(value: string): string {
   }
 }
 
-function simpleStatus(value: string): {
+function requestBlockerCode(request: CustomerInfoRequestRow): string | null {
+  const details = request.blocker_details ?? request.verified_payload?.blocker_details;
+  if (details && typeof details === "object" && !Array.isArray(details)) {
+    const record = details as Record<string, unknown>;
+    if (typeof record.blocker_code === "string") return record.blocker_code;
+    if (typeof record.reason_code === "string") return record.reason_code;
+  }
+  if (typeof request.blocker_code === "string") return request.blocker_code;
+  if (typeof request.verified_payload?.blocker_code === "string") {
+    return request.verified_payload.blocker_code;
+  }
+  return null;
+}
+
+function requestBlockerDetail(request: CustomerInfoRequestRow, key: string): string | null {
+  const details = request.blocker_details ?? request.verified_payload?.blocker_details;
+  const record =
+    details && typeof details === "object" && !Array.isArray(details)
+      ? (details as Record<string, unknown>)
+      : {};
+  const value = record[key] ?? request.verified_payload?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function simpleStatus(request: CustomerInfoRequestRow): {
   label: string;
   className: string;
   description: string;
 } {
+  const value = request.status;
+  const blockerCode = requestBlockerCode(request);
+  if (["blocked", "route_missing", "missing_authorization", "manual_review_required"].includes(value) && blockerCode) {
+    return {
+      label: customerBlockerStatusLabel(blockerCode),
+      className:
+        blockerCode === "production_send_locked"
+          ? "bg-amber-100 text-amber-800"
+          : "bg-red-100 text-red-700",
+      description:
+        requestBlockerDetail(request, "blocker_reason") ??
+        "Uppgiftsbegäran behöver granskas innan den kan fortsätta.",
+    };
+  }
   switch (value) {
     case "draft":
       return {
@@ -53,14 +92,14 @@ function simpleStatus(value: string): {
     case "ready_to_send":
     case "z01_prepared":
       return {
-        label: "Redo",
+        label: "Uppgiftsbegäran skickad",
         className: "bg-emerald-100 text-emerald-700",
-        description: "Systemet har förberett begäran.",
+        description: "Systemet har förberett begäran för Ediel-utskick.",
       };
     case "sent":
     case "sent_to_grid_owner":
       return {
-        label: "Skickad",
+        label: "Uppgiftsbegäran skickad",
         className: "bg-emerald-100 text-emerald-700",
         description: "Begäran är skickad eller köad.",
       };
@@ -69,14 +108,14 @@ function simpleStatus(value: string): {
     case "waiting_for_z02":
     case "manual_review_required":
       return {
-        label: "Väntar/granskning",
+        label: value === "manual_review_required" ? "Uppgiftsbegäran kräver granskning" : "Svar inväntas",
         className: "bg-amber-100 text-amber-700",
         description: "Systemet väntar på svar eller granskning.",
       };
     case "z02_received":
     case "completed":
       return {
-        label: "Klar",
+        label: value === "z02_received" ? "Svar mottaget" : "Klar",
         className: "bg-emerald-100 text-emerald-700",
         description: "Uppgifter finns eller är klara.",
       };
@@ -89,7 +128,7 @@ function simpleStatus(value: string): {
       };
     case "missing_authorization":
       return {
-        label: "Fullmakt krävs",
+        label: "Uppgiftsbegäran kräver granskning",
         className: "bg-red-100 text-red-700",
         description: "Fullmakt behöver verifieras innan utskick.",
       };
@@ -97,7 +136,7 @@ function simpleStatus(value: string): {
     case "route_missing":
     case "contact_path_missing":
       return {
-        label: "Blockerad",
+        label: "Uppgiftsbegäran kräver granskning",
         className: "bg-red-100 text-red-700",
         description: "En uppgift eller kontaktväg behöver verifieras.",
       };
@@ -356,7 +395,7 @@ export default function CustomerDataRequestsCard({
                 {currentSupplierRequests.map((request) => (
                   <option key={request.id} value={request.id}>
                     {simpleRequestLabel(request.request_type)} ·{" "}
-                    {simpleStatus(request.status).label} ·{" "}
+                    {simpleStatus(request).label} ·{" "}
                     {formatDateTime(request.created_at)}
                   </option>
                 ))}
@@ -428,8 +467,13 @@ export default function CustomerDataRequestsCard({
               </div>
             ) : (
               latestRequests.map((request) => {
-                const status = simpleStatus(request.status);
-                const blocker = humanizeBlockerReason(request.blocker_reason);
+                const status = simpleStatus(request);
+                const blockerCode = requestBlockerCode(request);
+                const blockerReason =
+                  requestBlockerDetail(request, "blocker_reason") ??
+                  humanizeBlockerReason(request.blocker_reason);
+                const nextAction = requestBlockerDetail(request, "next_required_action");
+                const issueType = requestBlockerDetail(request, "issue_type");
                 return (
                   <article
                     key={request.id}
@@ -452,9 +496,12 @@ export default function CustomerDataRequestsCard({
                       </span>
                     </div>
                     <p className="mt-3 text-slate-700">{status.description}</p>
-                    {blocker ? (
+                    {blockerReason || blockerCode || nextAction ? (
                       <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                        {blocker}
+                        {blockerReason ? <div>{blockerReason}</div> : null}
+                        {blockerCode ? <div className="mt-1 font-mono">Blockerarkod: {blockerCode}</div> : null}
+                        {issueType ? <div className="mt-1">Typ: {issueType}</div> : null}
+                        {nextAction ? <div className="mt-1">Nästa åtgärd: {nextAction}</div> : null}
                       </div>
                     ) : null}
                   </article>
@@ -472,7 +519,7 @@ export default function CustomerDataRequestsCard({
               </p>
               <div className="mt-3 space-y-2">
                 {legacyManualRequests.slice(0, 8).map((request) => {
-                  const status = simpleStatus(request.status);
+                  const status = simpleStatus(request);
                   return (
                     <div key={request.id} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
                       <div className="font-semibold text-slate-800">{simpleRequestLabel(request.request_type)}</div>

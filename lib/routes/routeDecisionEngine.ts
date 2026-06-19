@@ -60,11 +60,16 @@ type ActorSettingRow = {
   environment: string | null;
   ediel_id: string | null;
   actor_ediel_id: string | null;
+  actor_role?: string | null;
+  role?: string | null;
+  market_roles?: unknown;
   sender_subaddress: string | null;
   sender_subaddress_prodat?: string | null;
   sender_subaddress_utilts?: string | null;
   sender_sub_address: string | null;
   is_active: boolean | null;
+  production_send_lock_enabled?: boolean | null;
+  first_production_send_approved?: boolean | null;
 };
 
 function text(value: unknown): string | null {
@@ -213,23 +218,53 @@ async function findRouteProfile(
 async function findActiveActorSetting(params: {
   companyId?: string | null;
   environment?: string | null;
-}): Promise<ActorSettingRow | null> {
-  if (!params.companyId) return null;
+  messageFamily?: string | null;
+  messageCode?: string | null;
+}): Promise<{ setting: ActorSettingRow | null; ambiguous: boolean; matches: ActorSettingRow[] }> {
+  if (!params.companyId) return { setting: null, ambiguous: false, matches: [] };
 
   const { data, error } = await supabaseService
     .from("ediel_actor_settings")
     .select(
-      "id,company_id,environment,ediel_id,actor_ediel_id,sender_subaddress,sender_subaddress_prodat,sender_subaddress_utilts,sender_sub_address,is_active",
+      "id,company_id,environment,ediel_id,actor_ediel_id,actor_role,role,market_roles,sender_subaddress,sender_subaddress_prodat,sender_subaddress_utilts,sender_sub_address,is_active,production_send_lock_enabled,first_production_send_approved",
     )
     .eq("company_id", params.companyId)
     .eq("environment", params.environment ?? "test")
     .eq("is_active", true)
     .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(10);
 
   if (error) throw error;
-  return (data as ActorSettingRow | null) ?? null;
+  const rows = (data ?? []) as ActorSettingRow[];
+  const family = upper(params.messageFamily);
+  const matching = rows.filter((row) => {
+    const role = lowerText(row.role ?? row.actor_role);
+    const roles = Array.isArray(row.market_roles)
+      ? row.market_roles.map((item) => lowerText(item))
+      : [];
+    const roleMatches =
+      !role ||
+      role === "supplier" ||
+      role === "electricity_supplier" ||
+      roles.length === 0 ||
+      roles.includes("supplier") ||
+      roles.includes("electricity_supplier");
+    const metadata = row as ActorSettingRow & { metadata?: Record<string, unknown> };
+    const metadataFamily = upper(metadata.metadata?.message_family);
+    const metadataCode = text(metadata.metadata?.message_code);
+    const familyMatches = !metadataFamily || !family || metadataFamily === family;
+    const codeMatches = !metadataCode || !params.messageCode || metadataCode === params.messageCode;
+    return roleMatches && familyMatches && codeMatches;
+  });
+  return {
+    setting: matching.length === 1 ? matching[0] ?? null : null,
+    ambiguous: matching.length > 1,
+    matches: matching,
+  };
+}
+
+function lowerText(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
 }
 
 function productionGuardIssues(params: {
@@ -631,10 +666,26 @@ export async function decideCommunicationRoute(
   const profile = routeResult.route
     ? await findRouteProfile(routeResult.route.id, input.companyId ?? null, environment)
     : null;
-  const actorSetting = await findActiveActorSetting({
+  const actorSettingResult = await findActiveActorSetting({
     companyId: input.companyId ?? null,
     environment,
+    messageFamily,
+    messageCode,
   });
+  const actorSetting = actorSettingResult.setting;
+
+  if (actorSettingResult.ambiguous) {
+    addIssue(blockingReasons, {
+      code: "ambiguous_sender_settings",
+      message:
+        "Flera aktiva avsändarinställningar matchar bolag, miljö och Ediel-flöde. Systemet blockerar hellre än gissar.",
+      source: "actor_setting_resolver",
+      metadata: { actorSettingIds: actorSettingResult.matches.map((row) => row.id) },
+    });
+    requiredAdminActions.push(
+      "Inaktivera dubbletter eller konfigurera en entydig avsändarinställning.",
+    );
+  }
 
   if (actorSetting) {
     addTrace(trace, {
@@ -657,6 +708,24 @@ export async function decideCommunicationRoute(
     });
     requiredAdminActions.push(
       "Lägg in bolagets production Ediel-ID i Company → Ediel & Go-live.",
+    );
+  }
+
+  if (
+    actorSetting &&
+    isProduction(environment) &&
+    actorSetting.production_send_lock_enabled === true &&
+    actorSetting.first_production_send_approved !== true
+  ) {
+    addIssue(blockingReasons, {
+      code: "production_send_locked",
+      message:
+        "Route och payload kan förberedas, men första produktionssändningen kräver plattformsadministratörens godkännande.",
+      source: "production_send_lock",
+      metadata: { actorSettingId: actorSetting.id },
+    });
+    requiredAdminActions.push(
+      "Begär plattformsadministratörens godkännande av första produktionssändningen.",
     );
   }
 
@@ -967,6 +1036,14 @@ export async function decideCommunicationRoute(
       transport_profile_id: profile?.transport_profile_id ?? profile?.mailbox_id ?? profile?.transport_mode ?? null,
       route_decision_evidence: {
         selected_company_id: input.companyId ?? null,
+        sender_settings_id: actorSetting?.id ?? null,
+        production_send_lock_status:
+          actorSetting && isProduction(environment)
+            ? actorSetting.production_send_lock_enabled === true &&
+              actorSetting.first_production_send_approved !== true
+              ? "locked"
+              : "approved"
+            : "not_applicable",
         sender_ediel_id_source: senderEdielIdSource,
         sender_subaddress_source: senderSubAddressSource,
         receiver_ediel_id_source: dynamicReceiver.receiverEdielId

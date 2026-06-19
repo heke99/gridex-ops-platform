@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { materializePlatformActorRoute } from '@/lib/ediel/routeMaterializer'
+import { normalizeUuidOrNull } from '@/lib/validation/uuid'
 
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key)
@@ -42,8 +44,8 @@ function revalidateRouteReadiness() {
 
 export async function verifyActorRouteForManualSendAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
-  const actorId = value(formData, 'actorId')
-  const routeId = value(formData, 'routeId')
+  const actorId = normalizeUuidOrNull(value(formData, 'actorId'), 'actor_id')
+  const routeId = normalizeUuidOrNull(value(formData, 'routeId'), 'platform_actor_route_id')
   if (!actorId) throw new Error('Actor saknas.')
 
   const actorUpdate = await supabaseService
@@ -71,6 +73,10 @@ export async function verifyActorRouteForManualSendAction(formData: FormData) {
       .eq('id', routeId)
       .eq('actor_id', actorId)
     if (routeUpdate.error) throw routeUpdate.error
+    await materializePlatformActorRoute({
+      platformActorRouteId: routeId,
+      actorUserId: context.userId,
+    })
   }
 
   await auditLaunchAction({
@@ -509,6 +515,10 @@ export async function bulkRouteReadinessByStatusAction(formData: FormData) {
         .eq('id', row.route_id)
         .eq('actor_id', row.actor_id)
       if (routeUpdate.error) throw routeUpdate.error
+      await materializePlatformActorRoute({
+        platformActorRouteId: row.route_id,
+        actorUserId: context.userId,
+      })
       affected += 1
     }
 

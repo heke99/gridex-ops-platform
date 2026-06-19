@@ -1,0 +1,180 @@
+export type CustomerOperationBlockerCode =
+  | "grid_area_not_verified"
+  | "operational_route_missing"
+  | "platform_route_exists_but_not_materialized"
+  | "production_send_locked"
+  | "certificate_missing"
+  | "missing_power_of_attorney"
+  | "invalid_customer_site_snapshot"
+  | "environment_mismatch"
+  | "ambiguous_sender_settings"
+  | "technical_error"
+  | "temporary_provider_error"
+  | "send_uncertain";
+
+export type CustomerOperationIssueType =
+  | "data"
+  | "route"
+  | "certificate"
+  | "production_approval"
+  | "legal"
+  | "technical";
+
+export type CustomerOperationErrorClass =
+  | "business_blocker"
+  | "configuration_blocker"
+  | "technical_error"
+  | "temporary_provider_error"
+  | "send_uncertain";
+
+export type CustomerOperationBlocker = {
+  reason_code: CustomerOperationBlockerCode | string;
+  blocker_code: CustomerOperationBlockerCode | string;
+  blocker_reason: string;
+  next_required_action: string;
+  issue_type: CustomerOperationIssueType;
+  error_class: CustomerOperationErrorClass;
+};
+
+const BLOCKERS: Record<CustomerOperationBlockerCode, Omit<CustomerOperationBlocker, "reason_code" | "blocker_code">> = {
+  grid_area_not_verified: {
+    blocker_reason: "Nätområde eller nätägare är inte verifierad för automatiskt Ediel-utskick.",
+    next_required_action: "Verifiera nätområde och nätägare innan EDIFACT skickas.",
+    issue_type: "data",
+    error_class: "business_blocker",
+  },
+  operational_route_missing: {
+    blocker_reason: "Operativ Ediel-route saknas för nätägaren och meddelandetypen.",
+    next_required_action: "Skapa eller aktivera communication_route och Ediel route profile för nätägaren.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
+  platform_route_exists_but_not_materialized: {
+    blocker_reason: "Nätägaren är verifierad i aktörsregistret, men operativ route saknas.",
+    next_required_action: "Synkronisera aktörsregistrets route till bolagets operativa route-konfiguration.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
+  production_send_locked: {
+    blocker_reason: "Produktionsutskick är låst tills första produktionssändningen är godkänd.",
+    next_required_action: "Begär plattformsadministratörens godkännande av första produktionssändningen.",
+    issue_type: "production_approval",
+    error_class: "configuration_blocker",
+  },
+  certificate_missing: {
+    blocker_reason: "Mottagarens giltiga certifikat saknas eller matchar inte route-konfigurationen.",
+    next_required_action: "Lägg in och verifiera mottagarcertifikat för rätt Ediel-ID och miljö.",
+    issue_type: "certificate",
+    error_class: "configuration_blocker",
+  },
+  missing_power_of_attorney: {
+    blocker_reason: "Signerad fullmakt saknas för uppgiftsbegäran.",
+    next_required_action: "Ladda upp eller verifiera signerad fullmakt med rätt omfattning.",
+    issue_type: "legal",
+    error_class: "business_blocker",
+  },
+  invalid_customer_site_snapshot: {
+    blocker_reason: "Kundens anläggningssnapshot är inte längre giltig.",
+    next_required_action: "Uppdatera anläggningsadressen och starta om uppgiftsbegäran.",
+    issue_type: "data",
+    error_class: "business_blocker",
+  },
+  environment_mismatch: {
+    blocker_reason: "Miljö stämmer inte mellan operation, aktörsinställning, route, certifikat eller transport.",
+    next_required_action: "Korrigera miljö på route, aktörsinställning, certifikat och transport innan utskick.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
+  ambiguous_sender_settings: {
+    blocker_reason: "Flera avsändarinställningar matchar samma bolag, miljö och meddelandeflöde.",
+    next_required_action: "Inaktivera dubbletter eller välj en entydig avsändarinställning. Systemet gissar inte.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
+  technical_error: {
+    blocker_reason: "Ett tekniskt fel stoppade automationen.",
+    next_required_action: "Granska tekniskt fel och försök igen när felet är åtgärdat.",
+    issue_type: "technical",
+    error_class: "technical_error",
+  },
+  temporary_provider_error: {
+    blocker_reason: "Extern tjänst svarade tillfälligt inte.",
+    next_required_action: "Försök igen när leverantören är tillgänglig.",
+    issue_type: "technical",
+    error_class: "temporary_provider_error",
+  },
+  send_uncertain: {
+    blocker_reason: "Det är oklart om meddelandet skickades.",
+    next_required_action: "Kontrollera transportloggar och invänta kvittens innan nytt utskick görs.",
+    issue_type: "technical",
+    error_class: "send_uncertain",
+  },
+};
+
+export function normalizeBlockerCode(value: unknown): CustomerOperationBlockerCode | string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return null;
+  if (normalized in BLOCKERS) return normalized;
+  return normalized;
+}
+
+export function makeCustomerOperationBlocker(
+  code: CustomerOperationBlockerCode | string,
+  overrides: Partial<Omit<CustomerOperationBlocker, "reason_code" | "blocker_code">> = {},
+): CustomerOperationBlocker {
+  const normalized = normalizeBlockerCode(code) ?? "technical_error";
+  const defaults =
+    normalized in BLOCKERS
+      ? BLOCKERS[normalized as CustomerOperationBlockerCode]
+      : BLOCKERS.technical_error;
+  return {
+    reason_code: normalized,
+    blocker_code: normalized,
+    ...defaults,
+    ...overrides,
+  };
+}
+
+export function routeIssueCodeToCustomerBlocker(code: unknown): CustomerOperationBlockerCode {
+  const normalized = String(code ?? "").trim().toLowerCase();
+  if (
+    normalized.includes("environment") ||
+    normalized.includes("production_route_profile_not_production") ||
+    normalized.includes("test_route_profile_not_test") ||
+    normalized.includes("known_test_id")
+  ) {
+    return "environment_mismatch";
+  }
+  if (normalized.includes("ambiguous") && normalized.includes("sender")) {
+    return "ambiguous_sender_settings";
+  }
+  if (normalized.includes("certificate")) return "certificate_missing";
+  if (normalized.includes("production_send_locked")) return "production_send_locked";
+  if (normalized.includes("authorization") || normalized.includes("power_of_attorney")) {
+    return "missing_power_of_attorney";
+  }
+  return "operational_route_missing";
+}
+
+export function customerBlockerStatusLabel(code: unknown): string {
+  const normalized = normalizeBlockerCode(code);
+  switch (normalized) {
+    case "platform_route_exists_but_not_materialized":
+    case "operational_route_missing":
+    case "ambiguous_sender_settings":
+      return "Uppgiftsbegäran blockerad av route-konfiguration";
+    case "production_send_locked":
+      return "Uppgiftsbegäran blockerad av produktionslås";
+    case "grid_area_not_verified":
+      return "Uppgiftsbegäran kräver granskning";
+    case "certificate_missing":
+      return "Uppgiftsbegäran kräver granskning";
+    case "missing_power_of_attorney":
+      return "Uppgiftsbegäran kräver granskning";
+    case "send_uncertain":
+      return "Leveransstatus osäker";
+    default:
+      return "Uppgiftsbegäran kräver granskning";
+  }
+}

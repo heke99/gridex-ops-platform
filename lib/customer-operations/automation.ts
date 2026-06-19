@@ -21,6 +21,10 @@ import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEve
 import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
 import type { MeteringPointRow } from '@/lib/masterdata/types'
 import { normalizeUuidOrNull, requireUuid } from '@/lib/validation/uuid'
+import {
+  makeCustomerOperationBlocker,
+  type CustomerOperationBlocker,
+} from '@/lib/customer-operations/blockers'
 
 export type CustomerOperationJobType =
   | 'request_customer_data'
@@ -34,6 +38,8 @@ export type CustomerOperationJobStatus =
   | 'waiting_response'
   | 'completed'
   | 'needs_review'
+  | 'blocked'
+  | 'delivery_uncertain'
   | 'failed'
   | 'skipped'
   | 'cancelled'
@@ -308,6 +314,7 @@ function operationOutcomeMessage(status: JobOutcome['status'], result: JsonRecor
   if (status === 'completed') return 'Automationssteget är klart.'
   if (status === 'waiting_response') return 'Automationssteget väntar på svar.'
   const reason =
+    clean(result?.reason_code) ??
     clean(result?.stale_reason) ??
     clean(result?.reason) ??
     clean(result?.blocker_reason) ??
@@ -315,6 +322,12 @@ function operationOutcomeMessage(status: JobOutcome['status'], result: JsonRecor
   return reason
     ? `Automationssteget behöver följas upp: ${reason}.`
     : 'Automationssteget behöver följas upp.'
+}
+
+function operationEventStatus(
+  status: JobOutcome['status'],
+): 'waiting_response' | 'completed' | 'needs_review' | 'failed' | 'skipped' | 'cancelled' | 'blocked' {
+  return status === 'delivery_uncertain' ? 'needs_review' : status
 }
 
 function customerDataResolutionReason(resolution: EnergyResolverResult): string {
@@ -334,6 +347,19 @@ function customerDataResolutionReason(resolution: EnergyResolverResult): string 
   if (resolution.resolutionStatus === 'postal_suggested') return 'postal_code_suggestion_requires_review'
   if (!resolution.automationAllowed) return resolution.nextRequiredAction || 'manual_review_required'
   return 'grid_owner_not_verified'
+}
+
+function blockerResult(
+  code: string,
+  overrides: Partial<Omit<CustomerOperationBlocker, 'reason_code' | 'blocker_code'>> = {},
+  extra: JsonRecord = {},
+): JsonRecord {
+  const blocker = makeCustomerOperationBlocker(code, overrides)
+  return {
+    ...extra,
+    ...blocker,
+    reason: blocker.reason_code,
+  }
 }
 
 async function updateJob(job: Pick<JobRow, 'id' | 'lock_token'>, patch: JsonRecord) {
@@ -359,7 +385,15 @@ async function enqueue(input: {
   priority?: number
   operationId?: string | null
   requestSnapshot?: JsonRecord
-}): Promise<{ id: string; duplicate: boolean; operationId: string; traceId: string | null }> {
+}): Promise<{
+  id: string
+  duplicate: boolean
+  operationId: string
+  traceId: string | null
+  status: CustomerOperationJobStatus | null
+  result: JsonRecord | null
+  lastError: string | null
+}> {
   const companyId = requireUuid(input.companyId, 'company_id')
   const customerId = requireUuid(input.customerId, 'customer_id')
   const siteId = normalizeUuidOrNull(input.siteId, 'customer_site_id')
@@ -388,7 +422,9 @@ async function enqueue(input: {
     .select('id')
     .single()
 
-  if (!error && data?.id) return { id: String(data.id), duplicate: false, operationId, traceId }
+  if (!error && data?.id) {
+    return { id: String(data.id), duplicate: false, operationId, traceId, status: 'queued', result: null, lastError: null }
+  }
   if (!duplicate(error)) {
     if (missingSchema(error)) throw new Error('Automationstabellen saknas. Kör migrationen för kundautomation först.')
     throw error
@@ -396,7 +432,7 @@ async function enqueue(input: {
 
   const { data: existing, error: existingError } = await supabaseService
     .from('customer_operation_jobs')
-    .select('id, operation_id, trace_id')
+    .select('id, operation_id, trace_id, status, result, last_error')
     .eq('company_id', companyId)
     .eq('job_type', input.jobType)
     .eq('idempotency_key', input.idempotencyKey)
@@ -411,6 +447,9 @@ async function enqueue(input: {
     duplicate: true,
     operationId: normalizeUuidOrNull(existing.operation_id, 'operation_id') ?? String(existing.id),
     traceId: normalizeUuidOrNull(existing.trace_id, 'trace_id'),
+    status: (clean(existing.status) as CustomerOperationJobStatus | null) ?? null,
+    result: record(existing.result),
+    lastError: clean(existing.last_error),
   }
 }
 
@@ -802,7 +841,14 @@ async function linkOperationResources(input: {
 }
 
 async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
-  if (!job.customer_site_id) return { status: 'failed', result: { reason: 'missing_site_id' } }
+  if (!job.customer_site_id) {
+    return {
+      status: 'needs_review',
+      result: blockerResult('invalid_customer_site_snapshot', {
+        blocker_reason: 'Anläggning saknas på kundoperationen.',
+      }),
+    }
+  }
   const actorUserId = automationActorId(job.created_by)
   const operationId = job.operation_id ?? job.id
   const resolved = await resolveCustomerSiteGridOwner({
@@ -816,9 +862,18 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
 
   if (resolved.state !== 'verified' || !resolved.result.gridOwnerId) {
     const reason = customerDataResolutionReason(resolved.result)
+    const blocker = makeCustomerOperationBlocker('grid_area_not_verified', {
+      blocker_reason:
+        reason === 'platform_to_ops_grid_owner_mapping_missing'
+          ? 'Nätområdet saknar OPS-koppling till verifierad nätägare.'
+          : 'Nätområde eller nätägare är inte verifierad för automatiskt Ediel-utskick.',
+      next_required_action:
+        resolved.result.nextRequiredAction ||
+        'Verifiera föreslagen nätägare innan EDIFACT skickas.',
+    })
     return {
       status: 'needs_review',
-      result: { resolution: resolved.result, reason },
+      result: { resolution: resolved.result, ...blocker, reason },
     }
   }
 
@@ -861,6 +916,12 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
   })
 
   const waiting = ['z01_prepared', 'sent_to_grid_owner', 'waiting_for_z02', 'waiting_for_aperak', 'waiting_for_contrl'].includes(dispatch.status)
+  const dispatchBlocker = dispatch.blockerDetails ??
+    (dispatch.blockerCode
+      ? makeCustomerOperationBlocker(dispatch.blockerCode, {
+          blocker_reason: dispatch.blockerReason ?? undefined,
+        })
+      : null)
   await emitCustomerOperationEvent({
     companyId: job.company_id,
     customerId: job.customer_id,
@@ -869,19 +930,24 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
     title: waiting ? 'Uppgiftsbegäran förberedd' : 'Uppgiftsbegäran behöver granskas',
     message: waiting
       ? 'Systemet har förberett uppgiftsbegäran och väntar på svar från nätägaren.'
-      : (dispatch.blockerReason ?? 'Systemet kunde inte skicka begäran automatiskt.'),
+      : (dispatchBlocker?.blocker_reason ?? dispatch.blockerReason ?? 'Systemet kunde inte skicka begäran automatiskt.'),
     customerSiteId: job.customer_site_id,
     meteringPointId: job.metering_point_id,
     customerOperationJobId: job.id,
     operationId,
     actionUrl: `/admin/customers/${job.customer_id}?tab=data-requests`,
-    payload: { customer_info_request_id: request.id, operation_id: operationId, dispatch },
+    payload: { customer_info_request_id: request.id, operation_id: operationId, dispatch, blocker: dispatchBlocker },
     idempotencyKey: `customer-data-dispatch:${job.id}:${dispatch.status}`,
   })
 
   return {
     status: waiting ? 'waiting_response' : 'needs_review',
-    result: { customer_info_request_id: request.id, dispatch, resolution: resolved.result },
+    result: {
+      customer_info_request_id: request.id,
+      dispatch,
+      resolution: resolved.result,
+      ...(dispatchBlocker ? { ...dispatchBlocker, reason: dispatchBlocker.reason_code } : {}),
+    },
   }
 }
 
@@ -1261,9 +1327,18 @@ async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
 async function processJob(job: JobRow): Promise<JobOutcome> {
   const staleReason = await staleSnapshotReason(job)
   if (staleReason) {
+    const blocker = makeCustomerOperationBlocker('invalid_customer_site_snapshot', {
+      blocker_reason: 'Kundens anläggningssnapshot är inte längre giltig.',
+    })
     return {
       status: 'needs_review',
-      result: { stale_reason: staleReason, operation_id: job.operation_id, action: 'refresh_site_address_and_restart_operation' },
+      result: {
+        stale_reason: staleReason,
+        operation_id: job.operation_id,
+        action: 'refresh_site_address_and_restart_operation',
+        ...blocker,
+        reason: blocker.reason_code,
+      },
     }
   }
   switch (job.job_type) {
@@ -1297,14 +1372,15 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
       try {
         const outcome = await processJob(job)
         await updateJob(job, {
-          status: outcome.status,
+          status: operationEventStatus(outcome.status),
           result: outcome.result ?? {},
           stale_reason: outcome.status === 'needs_review' ? clean((outcome.result ?? {}).stale_reason) : null,
           run_after: outcome.runAfter ?? null,
           locked_at: null,
           locked_by: null,
+          lock_token: null,
           last_error: null,
-          completed_at: ['completed', 'needs_review', 'failed', 'skipped', 'cancelled'].includes(outcome.status) ? nowIso() : null,
+          completed_at: ['completed', 'needs_review', 'blocked', 'delivery_uncertain', 'failed', 'skipped', 'cancelled'].includes(outcome.status) ? nowIso() : null,
         })
         await emitCustomerOperationEvent({
           companyId: job.company_id,
@@ -1316,7 +1392,7 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
           meteringPointId: job.metering_point_id,
           customerOperationJobId: job.id,
           operationId: job.operation_id ?? job.id,
-          status: outcome.status,
+          status: operationEventStatus(outcome.status),
           actionUrl: `/admin/customers/${job.customer_id}`,
           payload: { job_type: job.job_type, result: outcome.result ?? {} },
           idempotencyKey: `operation-status:${job.id}:${outcome.status}`,
@@ -1330,6 +1406,7 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
           run_after: terminal ? null : retryAt(job.attempts),
           locked_at: null,
           locked_by: null,
+          lock_token: null,
           last_error: message,
           completed_at: terminal ? nowIso() : null,
         })

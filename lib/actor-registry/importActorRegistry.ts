@@ -4,6 +4,7 @@ import type { ActorRegistryImportSummary, ParsedActorRegistryActor, ActorRegistr
 import { cleanString, normalizeEdielId, normalizeEic, normalizeName, normalizeOrgNumber } from '@/lib/actor-registry/normalizeActor'
 import { parseActorRegistryXml } from '@/lib/actor-registry/parseActorRegistryXml'
 import { refreshCertificatesForActor } from '@/lib/ediel/certificates/actorCertificateRefresh'
+import { materializePlatformActorRoute } from '@/lib/ediel/routeMaterializer'
 
 type MatchResult = {
   status: 'matched' | 'no_match' | 'conflict'
@@ -292,12 +293,21 @@ async function upsertRoute(actorId: string, route: ActorRegistryRoute, edielId: 
   if (!existing.error && existing.data?.id) {
     const update = await supabaseService.from('platform_actor_routes').update(payload).eq('id', existing.data.id)
     if (update.error && !isMissingSchema(update.error)) throw update.error
+    await materializePlatformActorRoute({ platformActorRouteId: String(existing.data.id) }).catch((error) => {
+      console.warn('[actor-registry] route materialization skipped', error)
+    })
     return
   }
   if (existing.error && !isMissingSchema(existing.error) && existing.error.code !== 'PGRST116') throw existing.error
 
-  const insert = await supabaseService.from('platform_actor_routes').insert(payload)
+  const insert = await supabaseService.from('platform_actor_routes').insert(payload).select('id').single()
   if (insert.error && !isMissingSchema(insert.error)) throw insert.error
+  const routeId = (insert.data as { id?: string } | null)?.id
+  if (routeId) {
+    await materializePlatformActorRoute({ platformActorRouteId: String(routeId) }).catch((error) => {
+      console.warn('[actor-registry] route materialization skipped', error)
+    })
+  }
 }
 
 function parsePemCertificate(input: ActorRegistryCertificate): { fingerprint: string; validFrom: string | null; validTo: string | null; subject: string | null; issuer: string | null; serialNumber: string | null; status: 'valid' | 'expired' | 'invalid' | 'unknown' } | null {

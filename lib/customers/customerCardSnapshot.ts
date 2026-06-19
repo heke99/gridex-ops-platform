@@ -302,6 +302,22 @@ export function humanizeBlockerReason(value: unknown): string {
   }
   const raw = String(value);
   const normalized = raw.toLowerCase();
+  if (normalized.includes("platform_route_exists_but_not_materialized"))
+    return "Nätägaren är verifierad i aktörsregistret, men operativ route saknas.";
+  if (normalized.includes("operational_route_missing"))
+    return "Operativ route saknas för nätägaren.";
+  if (normalized.includes("production_send_locked"))
+    return "Produktionsutskick är låst tills första sändningen är godkänd av plattformsadministratör.";
+  if (normalized.includes("certificate_missing"))
+    return "Mottagarcertifikat saknas eller behöver verifieras.";
+  if (normalized.includes("grid_area_not_verified"))
+    return "Nätområde eller nätägare behöver verifieras innan begäran kan skickas.";
+  if (normalized.includes("missing_power_of_attorney"))
+    return "Signerad fullmakt behöver verifieras innan begäran kan skickas.";
+  if (normalized.includes("environment_mismatch"))
+    return "Miljö stämmer inte mellan route, aktörsinställning, certifikat eller transport.";
+  if (normalized.includes("ambiguous_sender_settings"))
+    return "Flera avsändarinställningar matchar. Systemet gissar inte.";
   if (
     normalized.includes("prodat") ||
     normalized.includes("z01") ||
