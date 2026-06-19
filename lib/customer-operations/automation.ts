@@ -20,6 +20,7 @@ import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
 import type { MeteringPointRow } from '@/lib/masterdata/types'
+import { normalizeUuidOrNull, requireUuid } from '@/lib/validation/uuid'
 
 export type CustomerOperationJobType =
   | 'request_customer_data'
@@ -61,6 +62,7 @@ type JobRow = {
   last_error: string | null
   created_by: string | null
   operation_id: string
+  trace_id?: string | null
 }
 
 type JobOutcome = {
@@ -73,15 +75,8 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function uuidOrNull(value: unknown): string | null {
-  const candidate = clean(value)
-  return candidate && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
-    ? candidate
-    : null
-}
-
 function automationActorId(value: unknown): string {
-  const actor = uuidOrNull(value) ?? uuidOrNull(process.env.GRIDEX_AUTOMATION_USER_ID)
+  const actor = normalizeUuidOrNull(value, 'created_by') ?? normalizeUuidOrNull(process.env.GRIDEX_AUTOMATION_USER_ID, 'GRIDEX_AUTOMATION_USER_ID')
   if (!actor) throw new Error('GRIDEX_AUTOMATION_USER_ID saknas för automatisk Ediel-åtgärd.')
   return actor
 }
@@ -97,6 +92,7 @@ type SiteOperationSnapshot = {
   address_hash: string
   grid_owner_id: string | null
   grid_area_code: string | null
+  route_profile_id: string | null
   facility_id: string | null
   captured_at: string
 }
@@ -117,10 +113,11 @@ async function captureSiteOperationSnapshot(input: {
   if (!data?.id) throw new Error('Anläggningen hittades inte för operationssnapshot.')
   const row = data as JsonRecord
   return {
-    site_id: String(row.id),
+    site_id: requireUuid(row.id, 'customer_site_id'),
     address_hash: clean(row.address_hash) ?? addressFingerprint(row),
-    grid_owner_id: clean(row.grid_owner_id),
+    grid_owner_id: normalizeUuidOrNull(row.grid_owner_id, 'grid_owner_id'),
     grid_area_code: clean(row.grid_area_code),
+    route_profile_id: null,
     facility_id: clean(row.facility_id),
     captured_at: nowIso(),
   }
@@ -136,22 +133,37 @@ async function persistOperationSnapshot(input: {
   requestKind: 'customer_data_request' | 'supplier_switch' | 'inbound_grid_owner_response'
   snapshot: SiteOperationSnapshot
   requestReference?: string | null
+  routeProfileId?: string | null
+  traceId?: string | null
 }) {
+  const routeProfileId = normalizeUuidOrNull(input.routeProfileId ?? input.snapshot.route_profile_id, 'route_profile_id')
+  const meteringPointId = normalizeUuidOrNull(input.meteringPointId, 'metering_point_id')
+  const operationId = requireUuid(input.operationId, 'operation_id')
+  const traceId = normalizeUuidOrNull(input.traceId, 'trace_id')
+  const storedSnapshot = {
+    ...input.snapshot,
+    operation_id: operationId,
+    request_reference: clean(input.requestReference),
+    route_profile_id: routeProfileId,
+    trace_id: traceId,
+  }
   const { error } = await supabaseService
     .from('customer_operation_request_snapshots')
     .upsert({
-      company_id: input.companyId,
-      customer_id: input.customerId,
-      customer_site_id: input.siteId,
-      metering_point_id: input.meteringPointId ?? null,
-      customer_operation_job_id: input.jobId,
-      operation_id: input.operationId,
+      company_id: requireUuid(input.companyId, 'company_id'),
+      customer_id: requireUuid(input.customerId, 'customer_id'),
+      customer_site_id: requireUuid(input.siteId, 'customer_site_id'),
+      metering_point_id: meteringPointId,
+      customer_operation_job_id: requireUuid(input.jobId, 'customer_operation_job_id'),
+      operation_id: operationId,
       request_kind: input.requestKind,
       site_address_hash: input.snapshot.address_hash,
       grid_owner_id: input.snapshot.grid_owner_id,
       grid_area_code: input.snapshot.grid_area_code,
+      route_profile_id: routeProfileId,
       request_reference: input.requestReference ?? null,
-      snapshot: input.snapshot,
+      trace_id: traceId,
+      snapshot: storedSnapshot,
     }, { onConflict: 'company_id,operation_id,request_kind' })
   if (error) {
     if (missingSchema(error)) throw new Error('Operationssnapshot saknas. Kör den senaste OPS-migrationen innan extern kommunikation startas.')
@@ -164,12 +176,18 @@ async function setOperationSnapshotRequestReference(input: {
   operationId: string
   requestKind: 'customer_data_request' | 'supplier_switch' | 'inbound_grid_owner_response'
   requestReference: string
+  routeProfileId?: string | null
 }) {
+  const routeProfileId = normalizeUuidOrNull(input.routeProfileId, 'route_profile_id')
+  const patch: JsonRecord = {
+    request_reference: clean(input.requestReference),
+    route_profile_id: routeProfileId,
+  }
   const { error } = await supabaseService
     .from('customer_operation_request_snapshots')
-    .update({ request_reference: input.requestReference })
-    .eq('company_id', input.companyId)
-    .eq('operation_id', input.operationId)
+    .update(patch)
+    .eq('company_id', requireUuid(input.companyId, 'company_id'))
+    .eq('operation_id', requireUuid(input.operationId, 'operation_id'))
     .eq('request_kind', input.requestKind)
   if (error) {
     if (missingSchema(error)) throw new Error('Operationssnapshot saknas. Kör den senaste OPS-migrationen innan extern kommunikation startas.')
@@ -184,9 +202,9 @@ async function originalCustomerDataSnapshot(input: {
 }): Promise<SiteOperationSnapshot | null> {
   const { data, error } = await supabaseService
     .from('customer_operation_request_snapshots')
-    .select('site_address_hash,grid_owner_id,grid_area_code,snapshot,superseded_at')
-    .eq('company_id', input.companyId)
-    .eq('operation_id', input.operationId)
+    .select('site_address_hash,grid_owner_id,grid_area_code,route_profile_id,snapshot,superseded_at')
+    .eq('company_id', requireUuid(input.companyId, 'company_id'))
+    .eq('operation_id', requireUuid(input.operationId, 'operation_id'))
     .eq('request_kind', 'customer_data_request')
     .eq('request_reference', input.requestId)
     .maybeSingle()
@@ -201,8 +219,9 @@ async function originalCustomerDataSnapshot(input: {
   return {
     site_id: clean(stored.site_id) ?? '',
     address_hash: addressHash,
-    grid_owner_id: clean(data.grid_owner_id) ?? clean(stored.grid_owner_id),
+    grid_owner_id: normalizeUuidOrNull(data.grid_owner_id, 'grid_owner_id') ?? normalizeUuidOrNull(stored.grid_owner_id, 'grid_owner_id'),
     grid_area_code: clean(data.grid_area_code) ?? clean(stored.grid_area_code),
+    route_profile_id: normalizeUuidOrNull(data.route_profile_id, 'route_profile_id') ?? normalizeUuidOrNull(stored.route_profile_id, 'route_profile_id'),
     facility_id: clean(stored.facility_id),
     captured_at: clean(stored.captured_at) ?? nowIso(),
   }
@@ -285,6 +304,38 @@ function operationTitle(type: CustomerOperationJobType): string {
   }
 }
 
+function operationOutcomeMessage(status: JobOutcome['status'], result: JsonRecord | undefined): string {
+  if (status === 'completed') return 'Automationssteget är klart.'
+  if (status === 'waiting_response') return 'Automationssteget väntar på svar.'
+  const reason =
+    clean(result?.stale_reason) ??
+    clean(result?.reason) ??
+    clean(result?.blocker_reason) ??
+    clean(record(result?.dispatch).blockerReason)
+  return reason
+    ? `Automationssteget behöver följas upp: ${reason}.`
+    : 'Automationssteget behöver följas upp.'
+}
+
+function customerDataResolutionReason(resolution: EnergyResolverResult): string {
+  const warnings = resolution.warnings ?? []
+  if (warnings.includes('platform_to_ops_grid_owner_mapping_missing')) {
+    return 'platform_to_ops_grid_owner_mapping_missing'
+  }
+  if (!resolution.gridOwnerId) return 'grid_owner_missing'
+  if (!resolution.gridAreaCode) return 'grid_area_missing'
+  if (resolution.gridOwnerVerificationIssues?.length) {
+    return resolution.gridOwnerVerificationIssues[0] ?? 'grid_owner_not_verified'
+  }
+  if (resolution.diagnostics?.geocodeStatus === 'no_match') return 'address_matching_missing'
+  if (resolution.diagnostics?.geocodeStatus === 'unauthorized') return 'address_provider_unauthorized'
+  if (resolution.diagnostics?.geocodeStatus === 'rate_limited') return 'address_provider_rate_limited'
+  if (resolution.diagnostics?.geocodeStatus === 'provider_unavailable') return 'address_provider_unavailable'
+  if (resolution.resolutionStatus === 'postal_suggested') return 'postal_code_suggestion_requires_review'
+  if (!resolution.automationAllowed) return resolution.nextRequiredAction || 'manual_review_required'
+  return 'grid_owner_not_verified'
+}
+
 async function updateJob(job: Pick<JobRow, 'id' | 'lock_token'>, patch: JsonRecord) {
   let query = supabaseService
     .from('customer_operation_jobs')
@@ -308,20 +359,27 @@ async function enqueue(input: {
   priority?: number
   operationId?: string | null
   requestSnapshot?: JsonRecord
-}): Promise<{ id: string; duplicate: boolean; operationId: string }> {
+}): Promise<{ id: string; duplicate: boolean; operationId: string; traceId: string | null }> {
+  const companyId = requireUuid(input.companyId, 'company_id')
+  const customerId = requireUuid(input.customerId, 'customer_id')
+  const siteId = normalizeUuidOrNull(input.siteId, 'customer_site_id')
+  const meteringPointId = normalizeUuidOrNull(input.meteringPointId, 'metering_point_id')
+  const operationId = normalizeUuidOrNull(input.operationId, 'operation_id') ?? randomUUID()
+  const traceId = randomUUID()
   const row = {
-    company_id: input.companyId,
-    customer_id: input.customerId,
-    customer_site_id: input.siteId ?? null,
-    metering_point_id: input.meteringPointId ?? null,
+    company_id: companyId,
+    customer_id: customerId,
+    customer_site_id: siteId,
+    metering_point_id: meteringPointId,
     job_type: input.jobType,
     status: 'queued',
     priority: input.priority ?? 100,
     idempotency_key: input.idempotencyKey,
-    operation_id: input.operationId ?? randomUUID(),
+    operation_id: operationId,
+    trace_id: traceId,
     payload: input.payload ?? {},
     request_snapshot: input.requestSnapshot ?? record(input.payload).site_snapshot ?? {},
-    created_by: uuidOrNull(input.actorUserId),
+    created_by: normalizeUuidOrNull(input.actorUserId, 'created_by'),
   }
 
   const { data, error } = await supabaseService
@@ -330,7 +388,7 @@ async function enqueue(input: {
     .select('id')
     .single()
 
-  if (!error && data?.id) return { id: String(data.id), duplicate: false, operationId: String(row.operation_id) }
+  if (!error && data?.id) return { id: String(data.id), duplicate: false, operationId, traceId }
   if (!duplicate(error)) {
     if (missingSchema(error)) throw new Error('Automationstabellen saknas. Kör migrationen för kundautomation först.')
     throw error
@@ -338,8 +396,8 @@ async function enqueue(input: {
 
   const { data: existing, error: existingError } = await supabaseService
     .from('customer_operation_jobs')
-    .select('id, operation_id')
-    .eq('company_id', input.companyId)
+    .select('id, operation_id, trace_id')
+    .eq('company_id', companyId)
     .eq('job_type', input.jobType)
     .eq('idempotency_key', input.idempotencyKey)
     .in('status', ['queued', 'running', 'waiting_response'])
@@ -348,7 +406,12 @@ async function enqueue(input: {
     .maybeSingle()
   if (existingError) throw existingError
   if (!existing?.id) throw error
-  return { id: String(existing.id), duplicate: true, operationId: clean(existing.operation_id) ?? String(existing.id) }
+  return {
+    id: String(existing.id),
+    duplicate: true,
+    operationId: normalizeUuidOrNull(existing.operation_id, 'operation_id') ?? String(existing.id),
+    traceId: normalizeUuidOrNull(existing.trace_id, 'trace_id'),
+  }
 }
 
 export async function enqueueCustomerDataRequestAutomation(input: {
@@ -360,24 +423,33 @@ export async function enqueueCustomerDataRequestAutomation(input: {
   operationId?: string | null
   source?: string | null
 }) {
-  const siteSnapshot = await captureSiteOperationSnapshot(input)
-  const job = await enqueue({
+  const normalized = {
     ...input,
+    companyId: requireUuid(input.companyId, 'company_id'),
+    customerId: requireUuid(input.customerId, 'customer_id'),
+    siteId: requireUuid(input.siteId, 'customer_site_id'),
+    meteringPointId: normalizeUuidOrNull(input.meteringPointId, 'metering_point_id'),
+    operationId: normalizeUuidOrNull(input.operationId, 'operation_id'),
+  }
+  const siteSnapshot = await captureSiteOperationSnapshot(normalized)
+  const job = await enqueue({
+    ...normalized,
     jobType: 'request_customer_data',
-    idempotencyKey: `customer-data:${input.customerId}:${input.siteId}`,
-    payload: { requestedFrom: input.source ?? 'customer_card', site_snapshot: siteSnapshot },
+    idempotencyKey: `customer-data:${normalized.customerId}:${normalized.siteId}`,
+    payload: { requestedFrom: normalized.source ?? 'customer_card', site_snapshot: siteSnapshot },
     requestSnapshot: siteSnapshot,
     priority: 20,
   })
 
   if (!job.duplicate) {
     await persistOperationSnapshot({
-      companyId: input.companyId,
-      customerId: input.customerId,
-      siteId: input.siteId,
-      meteringPointId: input.meteringPointId,
+      companyId: normalized.companyId,
+      customerId: normalized.customerId,
+      siteId: normalized.siteId,
+      meteringPointId: normalized.meteringPointId,
       jobId: job.id,
       operationId: job.operationId,
+      traceId: job.traceId,
       requestKind: 'customer_data_request',
       snapshot: siteSnapshot,
     })
@@ -385,19 +457,19 @@ export async function enqueueCustomerDataRequestAutomation(input: {
 
   if (!job.duplicate) {
     await emitCustomerOperationEvent({
-      companyId: input.companyId,
-      customerId: input.customerId,
-      actorUserId: input.actorUserId,
+      companyId: normalized.companyId,
+      customerId: normalized.customerId,
+      actorUserId: normalized.actorUserId,
       eventType: 'customer_data.automation_started',
       title: 'Uppgiftsbegäran startad',
       message: 'Systemet söker nätägare och förbereder uppgiftsbegäran i bakgrunden.',
-      customerSiteId: input.siteId,
-      meteringPointId: input.meteringPointId ?? null,
+      customerSiteId: normalized.siteId,
+      meteringPointId: normalized.meteringPointId,
       customerOperationJobId: job.id,
       operationId: job.operationId,
       status: 'queued',
-      actionUrl: `/admin/customers/${input.customerId}?tab=data-requests`,
-      payload: { customer_operation_job_id: job.id, operation_id: job.operationId, site_id: input.siteId },
+      actionUrl: `/admin/customers/${normalized.customerId}?tab=data-requests`,
+      payload: { customer_operation_job_id: job.id, operation_id: job.operationId, site_id: normalized.siteId },
       idempotencyKey: `customer_data.automation_started:${job.id}`,
     })
   }
@@ -414,24 +486,33 @@ export async function enqueueSupplierSwitchAutomation(input: {
   operationId?: string | null
   source?: string | null
 }) {
-  const siteSnapshot = await captureSiteOperationSnapshot(input)
-  const job = await enqueue({
+  const normalized = {
     ...input,
+    companyId: requireUuid(input.companyId, 'company_id'),
+    customerId: requireUuid(input.customerId, 'customer_id'),
+    siteId: requireUuid(input.siteId, 'customer_site_id'),
+    meteringPointId: normalizeUuidOrNull(input.meteringPointId, 'metering_point_id'),
+    operationId: normalizeUuidOrNull(input.operationId, 'operation_id'),
+  }
+  const siteSnapshot = await captureSiteOperationSnapshot(normalized)
+  const job = await enqueue({
+    ...normalized,
     jobType: 'start_supplier_switch',
-    idempotencyKey: `supplier-switch:${input.customerId}:${input.siteId}`,
-    payload: { requestedFrom: input.source ?? 'customer_card', site_snapshot: siteSnapshot },
+    idempotencyKey: `supplier-switch:${normalized.customerId}:${normalized.siteId}`,
+    payload: { requestedFrom: normalized.source ?? 'customer_card', site_snapshot: siteSnapshot },
     requestSnapshot: siteSnapshot,
     priority: 30,
   })
 
   if (!job.duplicate) {
     await persistOperationSnapshot({
-      companyId: input.companyId,
-      customerId: input.customerId,
-      siteId: input.siteId,
-      meteringPointId: input.meteringPointId,
+      companyId: normalized.companyId,
+      customerId: normalized.customerId,
+      siteId: normalized.siteId,
+      meteringPointId: normalized.meteringPointId,
       jobId: job.id,
       operationId: job.operationId,
+      traceId: job.traceId,
       requestKind: 'supplier_switch',
       snapshot: siteSnapshot,
     })
@@ -439,19 +520,19 @@ export async function enqueueSupplierSwitchAutomation(input: {
 
   if (!job.duplicate) {
     await emitCustomerOperationEvent({
-      companyId: input.companyId,
-      customerId: input.customerId,
-      actorUserId: input.actorUserId,
+      companyId: normalized.companyId,
+      customerId: normalized.customerId,
+      actorUserId: normalized.actorUserId,
       eventType: 'supplier_switch.automation_started',
       title: 'Leverantörsbyte kontrolleras',
       message: 'Systemet kontrollerar anläggning, mätpunkt, nätägare, fullmakt och avtal i bakgrunden.',
-      customerSiteId: input.siteId,
-      meteringPointId: input.meteringPointId ?? null,
+      customerSiteId: normalized.siteId,
+      meteringPointId: normalized.meteringPointId,
       customerOperationJobId: job.id,
       operationId: job.operationId,
       status: 'queued',
-      actionUrl: `/admin/customers/${input.customerId}?tab=supplier-switch`,
-      payload: { customer_operation_job_id: job.id, operation_id: job.operationId, site_id: input.siteId },
+      actionUrl: `/admin/customers/${normalized.customerId}?tab=supplier-switch`,
+      payload: { customer_operation_job_id: job.id, operation_id: job.operationId, site_id: normalized.siteId },
       idempotencyKey: `supplier_switch.automation_started:${job.id}`,
     })
   }
@@ -469,27 +550,36 @@ export async function enqueueInboundGridOwnerResponseAutomation(input: {
   meteringPointId?: string | null
   operationId?: string | null
 }) {
-  const operationId = input.operationId ?? randomUUID()
+  const normalized = {
+    ...input,
+    companyId: requireUuid(input.companyId, 'company_id'),
+    customerId: requireUuid(input.customerId, 'customer_id'),
+    siteId: requireUuid(input.siteId, 'customer_site_id'),
+    requestId: requireUuid(input.requestId, 'customer_info_request_id'),
+    edielMessageId: requireUuid(input.edielMessageId, 'ediel_message_id'),
+    meteringPointId: normalizeUuidOrNull(input.meteringPointId, 'metering_point_id'),
+    operationId: normalizeUuidOrNull(input.operationId, 'operation_id') ?? randomUUID(),
+  }
   const requestSnapshot = await originalCustomerDataSnapshot({
-    companyId: input.companyId,
-    operationId,
-    requestId: input.requestId,
+    companyId: normalized.companyId,
+    operationId: normalized.operationId,
+    requestId: normalized.requestId,
   })
   if (!requestSnapshot?.site_id || !requestSnapshot.address_hash) {
     throw new Error('Det inkommande svaret saknar en aktiv requestsnapshot. Svaret måste granskas manuellt innan kunddata kan uppdateras.')
   }
   const job = await enqueue({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    siteId: input.siteId,
-    meteringPointId: input.meteringPointId ?? null,
-    actorUserId: input.actorUserId,
-    operationId,
+    companyId: normalized.companyId,
+    customerId: normalized.customerId,
+    siteId: normalized.siteId,
+    meteringPointId: normalized.meteringPointId,
+    actorUserId: normalized.actorUserId,
+    operationId: normalized.operationId,
     jobType: 'apply_inbound_grid_owner_response',
-    idempotencyKey: `inbound-grid-owner-response:${input.edielMessageId}`,
+    idempotencyKey: `inbound-grid-owner-response:${normalized.edielMessageId}`,
     payload: {
-      customer_info_request_id: input.requestId,
-      ediel_message_id: input.edielMessageId,
+      customer_info_request_id: normalized.requestId,
+      ediel_message_id: normalized.edielMessageId,
       site_snapshot: requestSnapshot,
     },
     requestSnapshot,
@@ -497,14 +587,15 @@ export async function enqueueInboundGridOwnerResponseAutomation(input: {
   })
   if (!job.duplicate) {
     await persistOperationSnapshot({
-      companyId: input.companyId,
-      customerId: input.customerId,
-      siteId: input.siteId,
-      meteringPointId: input.meteringPointId,
+      companyId: normalized.companyId,
+      customerId: normalized.customerId,
+      siteId: normalized.siteId,
+      meteringPointId: normalized.meteringPointId,
       jobId: job.id,
       operationId: job.operationId,
+      traceId: job.traceId,
       requestKind: 'inbound_grid_owner_response',
-      requestReference: input.requestId,
+      requestReference: normalized.requestId,
       snapshot: requestSnapshot,
     })
   }
@@ -724,9 +815,10 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
   })
 
   if (resolved.state !== 'verified' || !resolved.result.gridOwnerId) {
+    const reason = customerDataResolutionReason(resolved.result)
     return {
       status: 'needs_review',
-      result: { resolution: resolved.result, reason: 'grid_owner_not_verified' },
+      result: { resolution: resolved.result, reason },
     }
   }
 
@@ -746,17 +838,18 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
     operationId,
   })
 
+  const dispatch = await queueCustomerInfoRequestForDispatch({
+    companyId: job.company_id,
+    actorUserId: actorUserId,
+    requestId: String(request.id),
+  })
+
   await setOperationSnapshotRequestReference({
     companyId: job.company_id,
     operationId,
     requestKind: 'customer_data_request',
     requestReference: String(request.id),
-  })
-
-  const dispatch = await queueCustomerInfoRequestForDispatch({
-    companyId: job.company_id,
-    actorUserId: actorUserId,
-    requestId: String(request.id),
+    routeProfileId: dispatch.routeProfileId,
   })
 
   await linkOperationResources({
@@ -853,10 +946,15 @@ export async function applyInboundGridOwnerResponse(input: {
   operationId?: string | null
   customerOperationJobId?: string | null
 }): Promise<JsonRecord> {
+  const companyId = requireUuid(input.companyId, 'company_id')
+  const customerId = requireUuid(input.customerId, 'customer_id')
+  const siteId = requireUuid(input.siteId, 'customer_site_id')
+  const requestId = requireUuid(input.requestId, 'customer_info_request_id')
+  const edielMessageId = requireUuid(input.edielMessageId, 'ediel_message_id')
   const [{ data: messageData, error: messageError }, { data: requestData, error: requestError }, { data: siteData, error: siteError }] = await Promise.all([
-    supabaseService.from('ediel_messages').select('*').eq('id', input.edielMessageId).eq('company_id', input.companyId).maybeSingle(),
-    supabaseService.from('customer_info_requests').select('*').eq('id', input.requestId).eq('company_id', input.companyId).maybeSingle(),
-    supabaseService.from('customer_sites').select('*').eq('id', input.siteId).eq('company_id', input.companyId).eq('customer_id', input.customerId).maybeSingle(),
+    supabaseService.from('ediel_messages').select('*').eq('id', edielMessageId).eq('company_id', companyId).maybeSingle(),
+    supabaseService.from('customer_info_requests').select('*').eq('id', requestId).eq('company_id', companyId).maybeSingle(),
+    supabaseService.from('customer_sites').select('*').eq('id', siteId).eq('company_id', companyId).eq('customer_id', customerId).maybeSingle(),
   ])
   if (messageError) throw messageError
   if (requestError) throw requestError
@@ -866,8 +964,14 @@ export async function applyInboundGridOwnerResponse(input: {
   const message = messageData as EdielMessageRow
   const request = requestData as JsonRecord
   const site = siteData as JsonRecord
-  const effectiveActorUserId = uuidOrNull(input.actorUserId) ?? uuidOrNull(request.created_by) ?? uuidOrNull(message.created_by)
-  const operationId = input.operationId ?? uuidOrNull(request.operation_id) ?? randomUUID()
+  const effectiveActorUserId =
+    normalizeUuidOrNull(input.actorUserId, 'actor_user_id') ??
+    normalizeUuidOrNull(request.created_by, 'created_by') ??
+    normalizeUuidOrNull(message.created_by, 'created_by')
+  const operationId =
+    normalizeUuidOrNull(input.operationId, 'operation_id') ??
+    normalizeUuidOrNull(request.operation_id, 'operation_id') ??
+    randomUUID()
   await linkOperationResources({
     companyId: input.companyId,
     operationId,
@@ -882,8 +986,8 @@ export async function applyInboundGridOwnerResponse(input: {
   const { parsed, line } = z02Line(message)
   const meterPointExternalId = clean(line.meteringPointId)
   const facilityId = clean(site.facility_id) ?? meterPointExternalId
-  const requestedGridOwnerId = clean(request.grid_owner_id)
-  const responseGridOwnerId = clean(message.grid_owner_id)
+  const requestedGridOwnerId = normalizeUuidOrNull(request.grid_owner_id, 'grid_owner_id')
+  const responseGridOwnerId = normalizeUuidOrNull(message.grid_owner_id, 'grid_owner_id')
   if (requestedGridOwnerId && responseGridOwnerId && requestedGridOwnerId !== responseGridOwnerId) {
     const conflict = {
       reason: 'grid_owner_response_conflict',
@@ -1207,7 +1311,7 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
           customerId: job.customer_id,
           eventType: `operation.${outcome.status}`,
           title: operationTitle(job.job_type),
-          message: outcome.status === 'completed' ? 'Automationssteget är klart.' : outcome.status === 'waiting_response' ? 'Automationssteget väntar på svar.' : 'Automationssteget behöver följas upp.',
+          message: operationOutcomeMessage(outcome.status, outcome.result),
           customerSiteId: job.customer_site_id,
           meteringPointId: job.metering_point_id,
           customerOperationJobId: job.id,

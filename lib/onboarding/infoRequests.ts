@@ -3,6 +3,7 @@ import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { createGridOwnerDataRequest } from "@/lib/cis/db-data";
 import { createOutboundRequest } from "@/lib/cis/db-outbound";
 import { prepareAndQueueProdatZ01FromDataRequest } from "@/lib/ediel/flows/prodatCustomerMasterdata";
+import { normalizeUuidOrNull, requireUuid } from "@/lib/validation/uuid";
 
 export type CustomerOption = {
   id: string;
@@ -365,8 +366,17 @@ async function resolveCustomerInfoRequestAnchors(input: {
   meteringPointId: string | null;
   gridOwnerId: string | null;
 }> {
-  const requestedSiteId = input.siteId ?? null;
-  const requestedMeteringPointId = input.meteringPointId ?? null;
+  const companyId = requireUuid(input.companyId, "company_id");
+  const customerId = requireUuid(input.customerId, "customer_id");
+  const requestedSiteId = normalizeUuidOrNull(input.siteId, "customer_site_id");
+  const requestedMeteringPointId = normalizeUuidOrNull(
+    input.meteringPointId,
+    "metering_point_id",
+  );
+  const requestedGridOwnerId = normalizeUuidOrNull(
+    input.gridOwnerId,
+    "grid_owner_id",
+  );
   let site: Record<string, unknown> | null = null;
   let meteringPoint: Record<string, unknown> | null = null;
 
@@ -374,7 +384,7 @@ async function resolveCustomerInfoRequestAnchors(input: {
     const { data, error } = await supabaseService
       .from("metering_points")
       .select("id, site_id, grid_owner_id")
-      .eq("company_id", input.companyId)
+      .eq("company_id", companyId)
       .eq("id", requestedMeteringPointId)
       .maybeSingle();
 
@@ -391,8 +401,8 @@ async function resolveCustomerInfoRequestAnchors(input: {
     const { data, error } = await supabaseService
       .from("customer_sites")
       .select("id, customer_id, grid_owner_id")
-      .eq("company_id", input.companyId)
-      .eq("customer_id", input.customerId)
+      .eq("company_id", companyId)
+      .eq("customer_id", customerId)
       .eq("id", effectiveSiteId)
       .maybeSingle();
 
@@ -419,9 +429,9 @@ async function resolveCustomerInfoRequestAnchors(input: {
     (typeof site?.grid_owner_id === "string" ? site.grid_owner_id : null);
 
   if (
-    input.gridOwnerId &&
+    requestedGridOwnerId &&
     inferredGridOwnerId &&
-    input.gridOwnerId !== inferredGridOwnerId
+    requestedGridOwnerId !== inferredGridOwnerId
   ) {
     throw new Error(
       "Vald nätägare matchar inte anläggningens eller mätpunktens nätägare.",
@@ -431,7 +441,7 @@ async function resolveCustomerInfoRequestAnchors(input: {
   return {
     siteId: effectiveSiteId,
     meteringPointId: requestedMeteringPointId,
-    gridOwnerId: input.gridOwnerId ?? inferredGridOwnerId ?? null,
+    gridOwnerId: requestedGridOwnerId ?? inferredGridOwnerId ?? null,
   };
 }
 
@@ -467,11 +477,16 @@ export async function createCustomerInfoRequest(input: {
   externalReference?: string | null;
   operationId?: string | null;
 }) {
-  await requireCompanyOperationalForWrites(input.companyId);
-  await assertCustomerBelongsToCompany(input.customerId, input.companyId);
+  const companyId = requireUuid(input.companyId, "company_id");
+  const actorUserId = requireUuid(input.actorUserId, "actor_user_id");
+  const customerId = requireUuid(input.customerId, "customer_id");
+  const operationId = normalizeUuidOrNull(input.operationId, "operation_id");
+
+  await requireCompanyOperationalForWrites(companyId);
+  await assertCustomerBelongsToCompany(customerId, companyId);
   const anchors = await resolveCustomerInfoRequestAnchors({
-    companyId: input.companyId,
-    customerId: input.customerId,
+    companyId,
+    customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
     gridOwnerId: input.gridOwnerId ?? null,
@@ -493,15 +508,15 @@ export async function createCustomerInfoRequest(input: {
   const { data, error } = await supabaseService
     .from("customer_info_requests")
     .insert({
-      company_id: input.companyId,
-      customer_id: input.customerId,
+      company_id: companyId,
+      customer_id: customerId,
       request_type: input.requestType,
       target_party_type: input.targetPartyType,
       target_party_name: input.targetPartyName ?? null,
       site_id: anchors.siteId,
       metering_point_id: anchors.meteringPointId,
       grid_owner_id: anchors.gridOwnerId,
-      operation_id: input.operationId ?? null,
+      operation_id: operationId,
       current_supplier_name: input.currentSupplierName ?? null,
       status: "draft",
       requested_data_categories: normalizedCategories,
@@ -509,8 +524,8 @@ export async function createCustomerInfoRequest(input: {
         ? { externalReference: input.externalReference }
         : {},
       notes: input.notes ?? null,
-      created_by: input.actorUserId,
-      updated_by: input.actorUserId,
+      created_by: actorUserId,
+      updated_by: actorUserId,
     })
     .select("*")
     .single();
@@ -518,9 +533,9 @@ export async function createCustomerInfoRequest(input: {
   if (error) throw error;
 
   await supabaseService.from("customer_info_request_events").insert({
-    company_id: input.companyId,
+    company_id: companyId,
     customer_info_request_id: data.id,
-    customer_id: input.customerId,
+    customer_id: customerId,
     event_type: "created",
     message: "Uppgiftsbegäran skapades.",
     payload: {
@@ -528,9 +543,9 @@ export async function createCustomerInfoRequest(input: {
       siteId: anchors.siteId,
       meteringPointId: anchors.meteringPointId,
       gridOwnerId: anchors.gridOwnerId,
-      operationId: input.operationId ?? null,
+      operationId,
     },
-    created_by: input.actorUserId,
+    created_by: actorUserId,
   });
 
   return data as CustomerInfoRequestRow;
@@ -623,6 +638,7 @@ export type InfoRequestDispatchResult = {
   customerInfoRequest: CustomerInfoRequestRow;
   gridOwnerDataRequestId: string | null;
   outboundRequestId: string | null;
+  routeProfileId: string | null;
   status: string;
   blockerReason: string | null;
 };
@@ -871,6 +887,7 @@ async function blockCustomerInfoRequest(params: {
     customerInfoRequest: data as CustomerInfoRequestRow,
     gridOwnerDataRequestId: null,
     outboundRequestId: null,
+    routeProfileId: null,
     status: params.status ?? "blocked",
     blockerReason: params.blockerReason,
   };
@@ -894,19 +911,23 @@ export async function queueCustomerInfoRequestForDispatch(input: {
   actorUserId: string;
   requestId: string;
 }): Promise<InfoRequestDispatchResult> {
-  await requireCompanyOperationalForWrites(input.companyId);
+  const companyId = requireUuid(input.companyId, "company_id");
+  const actorUserId = requireUuid(input.actorUserId, "actor_user_id");
+  const requestId = requireUuid(input.requestId, "customer_info_request_id");
+
+  await requireCompanyOperationalForWrites(companyId);
 
   const request = await getCustomerInfoRequestById({
-    companyId: input.companyId,
-    requestId: input.requestId,
+    companyId,
+    requestId,
   });
 
   if (!request)
     throw new Error("Uppgiftsbegäran hittades inte för valt bolag.");
-  await assertCustomerBelongsToCompany(request.customer_id, input.companyId);
+  await assertCustomerBelongsToCompany(request.customer_id, companyId);
 
   const scopes = await listActiveAuthorizationScopesForCustomer({
-    companyId: input.companyId,
+    companyId,
     customerId: request.customer_id,
   });
   const authorization = hasAuthorizationForRequest(request, scopes);
@@ -917,10 +938,10 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       .update({
         status: "missing_authorization",
         blocker_reason: authorization.reason,
-        updated_by: input.actorUserId,
+        updated_by: actorUserId,
         updated_at: new Date().toISOString(),
       })
-      .eq("company_id", input.companyId)
+      .eq("company_id", companyId)
       .eq("id", request.id)
       .select("*")
       .single();
@@ -928,10 +949,10 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     if (error) throw error;
 
     await addCustomerInfoRequestEvent({
-      companyId: input.companyId,
+      companyId,
       requestId: request.id,
       customerId: request.customer_id,
-      actorUserId: input.actorUserId,
+      actorUserId,
       eventType: "blocked_missing_authorization",
       message:
         authorization.reason ?? "Begäran blockerades av fullmaktskontroll.",
@@ -941,6 +962,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       customerInfoRequest: data as CustomerInfoRequestRow,
       gridOwnerDataRequestId: null,
       outboundRequestId: null,
+      routeProfileId: null,
       status: "missing_authorization",
       blockerReason: authorization.reason,
     };
@@ -957,10 +979,10 @@ export async function queueCustomerInfoRequestForDispatch(input: {
         blocker_reason:
           "Bindningstid, uppsägningstid och avtalsvillkor ska bekräftas från kund eller nuvarande elhandlare. Ingen nätägarroute används för detta.",
         requested_at: new Date().toISOString(),
-        updated_by: input.actorUserId,
+        updated_by: actorUserId,
         updated_at: new Date().toISOString(),
       })
-      .eq("company_id", input.companyId)
+      .eq("company_id", companyId)
       .eq("id", request.id)
       .select("*")
       .single();
@@ -968,10 +990,10 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     if (error) throw error;
 
     await addCustomerInfoRequestEvent({
-      companyId: input.companyId,
+      companyId,
       requestId: request.id,
       customerId: request.customer_id,
-      actorUserId: input.actorUserId,
+      actorUserId,
       eventType: "manual_supplier_contract_check",
       message:
         "Begäran markerades för manuell kontroll mot kund eller nuvarande elhandlare.",
@@ -981,6 +1003,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       customerInfoRequest: data as CustomerInfoRequestRow,
       gridOwnerDataRequestId: null,
       outboundRequestId: null,
+      routeProfileId: null,
       status: "manual_review_required",
       blockerReason: null,
     };
@@ -990,8 +1013,8 @@ export async function queueCustomerInfoRequestForDispatch(input: {
   if (anchorBlockerReason) {
     return blockCustomerInfoRequest({
       request,
-      companyId: input.companyId,
-      actorUserId: input.actorUserId,
+      companyId,
+      actorUserId,
       blockerReason: anchorBlockerReason,
       eventType: "blocked_missing_z01_anchors",
     });
@@ -999,7 +1022,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
 
   const automationKey = `customer-info-request:${request.id}:z01`;
   const gridOwnerDataRequest = await createGridOwnerDataRequest({
-    actorUserId: input.actorUserId,
+    actorUserId,
     customerId: request.customer_id,
     siteId: request.site_id,
     meteringPointId: request.metering_point_id,
@@ -1016,7 +1039,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
   let z01: Awaited<ReturnType<typeof prepareAndQueueProdatZ01FromDataRequest>>;
   try {
     z01 = await prepareAndQueueProdatZ01FromDataRequest({
-      actorUserId: input.actorUserId,
+      actorUserId,
       gridOwnerDataRequestId: gridOwnerDataRequest.id,
     });
   } catch (error) {
@@ -1026,8 +1049,8 @@ export async function queueCustomerInfoRequestForDispatch(input: {
         : "PRODAT Z01 kunde inte förberedas.";
     return blockCustomerInfoRequest({
       request,
-      companyId: input.companyId,
-      actorUserId: input.actorUserId,
+      companyId,
+      actorUserId,
       blockerReason,
       eventType: "blocked_z01_prepare_failed",
     });
@@ -1061,10 +1084,10 @@ export async function queueCustomerInfoRequestForDispatch(input: {
         prodatCode: "Z01",
         routeReady: z01.prepared,
       },
-      updated_by: input.actorUserId,
+      updated_by: actorUserId,
       updated_at: now,
     })
-    .eq("company_id", input.companyId)
+    .eq("company_id", companyId)
     .eq("id", request.id)
     .select("*")
     .single();
@@ -1072,10 +1095,10 @@ export async function queueCustomerInfoRequestForDispatch(input: {
   if (error) throw error;
 
   await addCustomerInfoRequestEvent({
-    companyId: input.companyId,
+    companyId,
     requestId: request.id,
     customerId: request.customer_id,
-    actorUserId: input.actorUserId,
+    actorUserId,
     eventType: z01.prepared ? "z01_prepared_for_dispatch" : "z01_route_missing",
     message: z01.prepared
       ? "Begäran är förberedd och köad för utskick till nätägare."
@@ -1092,6 +1115,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     customerInfoRequest: data as CustomerInfoRequestRow,
     gridOwnerDataRequestId: gridOwnerDataRequest.id,
     outboundRequestId: z01.outbound.id,
+    routeProfileId: normalizeUuidOrNull(z01.outbound.ediel_route_profile_id, "route_profile_id"),
     status: nextStatus,
     blockerReason,
   };

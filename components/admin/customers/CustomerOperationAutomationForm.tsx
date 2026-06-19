@@ -46,8 +46,10 @@ export default function CustomerOperationAutomationForm({
   return (
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="customer_id" value={customerId} />
-      <input type="hidden" name="site_id" value={siteId ?? ""} />
-      <input type="hidden" name="metering_point_id" value={meteringPointId ?? ""} />
+      {siteId ? <input type="hidden" name="site_id" value={siteId} /> : null}
+      {meteringPointId ? (
+        <input type="hidden" name="metering_point_id" value={meteringPointId} />
+      ) : null}
       <SubmitButton idleLabel={idleLabel} pendingLabel={pendingLabel} />
       {state.status !== "idle" ? (
         <div aria-live="polite" className={`rounded-2xl border px-3 py-3 text-sm ${tone(state.status)}`}>

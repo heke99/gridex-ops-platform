@@ -1,5 +1,6 @@
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { supabaseService } from '@/lib/supabase/service'
+import { normalizeUuidOrNull } from '@/lib/validation/uuid'
 
 type JsonRecord = Record<string, unknown>
 
@@ -47,10 +48,11 @@ function isMissingSchema(error: unknown): boolean {
 }
 
 function uuidOrNull(value: unknown): string | null {
-  const candidate = typeof value === 'string' ? value.trim() : ''
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
-    ? candidate
-    : null
+  try {
+    return normalizeUuidOrNull(value)
+  } catch {
+    return null
+  }
 }
 
 function deriveStatus(eventCode: string): CustomerOperationEventStatus {

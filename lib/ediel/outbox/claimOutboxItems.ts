@@ -54,6 +54,25 @@ export async function claimEdielOutboxItems(params: {
 
   const companyId = clean(params.companyId)
   const environment = clean(params.environment)
+
+  let staleUpdate = supabaseService
+    .from('ediel_outbox')
+    .update({
+      status: 'delivery_uncertain',
+      last_error: 'stale_sending_lock_requires_transport_reconciliation',
+      locked_at: null,
+      locked_by: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('status', 'sending')
+    .lt('locked_at', new Date(Date.now() - 10 * 60 * 1000).toISOString())
+  if (companyId) staleUpdate = staleUpdate.eq('company_id', companyId)
+  if (environment) staleUpdate = staleUpdate.eq('environment', environment)
+  const { error: staleError } = await staleUpdate
+  if (staleError && !/schema cache|column .* does not exist/i.test(postgresErrorMessage(staleError))) {
+    throw staleError
+  }
+
   if (companyId) query = query.eq('company_id', companyId)
   if (environment) query = query.eq('environment', environment)
 

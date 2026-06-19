@@ -86,15 +86,14 @@ import {
   processCustomerOperationJobs,
   resolveCustomerSiteGridOwner,
 } from "@/lib/customer-operations/automation";
+import {
+  normalizeUuidOrNull,
+  UuidValidationError,
+} from "@/lib/validation/uuid";
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
   if (typeof value !== "string") return null;
-  return value;
-}
-
-function normalizeUuidOrNull(value: string | null): string | null {
-  if (!value) return null;
   return value;
 }
 
@@ -1543,6 +1542,14 @@ function customerOperationActionError(error: unknown, fallback: string): Custome
       message: "Systemet har redan ett aktivt jobb för anläggningen. Öppna arbetskön för att se status eller invänta nästa uppdatering.",
     };
   }
+  if (error instanceof UuidValidationError || /ogiltigt UUID-format/i.test(message)) {
+    return {
+      ok: false,
+      status: "blocked",
+      title: "Åtgärden innehåller ogiltiga referenser",
+      message: `${message || "En referens från formuläret har ogiltigt format."} Uppdatera sidan och försök igen. Referens: ${traceId}`,
+    };
+  }
   if (/automationstabellen|schema cache|column .* does not exist|relation .* does not exist/i.test(message)) {
     return {
       ok: false,
@@ -1574,9 +1581,12 @@ export async function startAutomaticOnboardingAction(
 ): Promise<CustomerOperationActionState> {
   try {
     const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
-    const customerId = formValue(formData, "customer_id") ?? "";
-    const siteId = formValue(formData, "site_id") ?? "";
-    const meteringPointId = formValue(formData, "metering_point_id");
+    const customerId = normalizeUuidOrNull(formValue(formData, "customer_id"), "customer_id");
+    const siteId = normalizeUuidOrNull(formValue(formData, "site_id"), "customer_site_id");
+    const meteringPointId = normalizeUuidOrNull(
+      formValue(formData, "metering_point_id"),
+      "metering_point_id",
+    );
 
     if (!customerId || !siteId) {
       return {
@@ -1635,9 +1645,12 @@ export async function requestSupplierSwitchAutomationAction(
 ): Promise<CustomerOperationActionState> {
   try {
     const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
-    const customerId = formValue(formData, "customer_id") ?? "";
-    const siteId = formValue(formData, "site_id") ?? "";
-    const meteringPointId = formValue(formData, "metering_point_id");
+    const customerId = normalizeUuidOrNull(formValue(formData, "customer_id"), "customer_id");
+    const siteId = normalizeUuidOrNull(formValue(formData, "site_id"), "customer_site_id");
+    const meteringPointId = normalizeUuidOrNull(
+      formValue(formData, "metering_point_id"),
+      "metering_point_id",
+    );
 
     if (!customerId || !siteId) {
       return {
@@ -1823,15 +1836,18 @@ export async function createGridOwnerDataRequestAction(
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
   const actor = { id: guard.userId };
   const supabase = await createSupabaseServerClient();
-  const customerId = formValue(formData, "customer_id") ?? "";
+  const customerId = normalizeUuidOrNull(formValue(formData, "customer_id"), "customer_id");
 
   if (!customerId) {
     throw new Error("Customer ID saknas");
   }
 
   const { companyId } = await requireCustomerMutationContext(customerId, guard);
-  const siteId = formValue(formData, "site_id") || null;
-  const meteringPointId = formValue(formData, "metering_point_id") || null;
+  const siteId = normalizeUuidOrNull(formValue(formData, "site_id"), "customer_site_id");
+  const meteringPointId = normalizeUuidOrNull(
+    formValue(formData, "metering_point_id"),
+    "metering_point_id",
+  );
   await assertCustomerSiteTenant({ companyId, customerId, siteId });
   await assertMeteringPointTenant({
     companyId,
@@ -1839,7 +1855,7 @@ export async function createGridOwnerDataRequestAction(
     siteId,
     meteringPointId,
   });
-  const rawGridOwnerId = formValue(formData, "grid_owner_id") || null;
+  const rawGridOwnerId = normalizeUuidOrNull(formValue(formData, "grid_owner_id"), "grid_owner_id");
   const requestScope = normalizeGridOwnerRequestScope(
     formValue(formData, "request_scope"),
   );
@@ -2337,7 +2353,7 @@ export async function createCustomerDataRequestPackageAction(
 ): Promise<void> {
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
   const actor = { id: guard.userId };
-  const customerId = formValue(formData, "customer_id") ?? "";
+  const customerId = normalizeUuidOrNull(formValue(formData, "customer_id"), "customer_id");
 
   if (!customerId) {
     throw new Error("Kund saknas.");
@@ -2347,13 +2363,16 @@ export async function createCustomerDataRequestPackageAction(
   const target = normalizeDataRequestTarget(
     formValue(formData, "request_target"),
   );
-  const siteId = formValue(formData, "site_id") || null;
-  const meteringPointId = formValue(formData, "metering_point_id") || null;
-  let gridOwnerId = formValue(formData, "grid_owner_id") || null;
+  const siteId = normalizeUuidOrNull(formValue(formData, "site_id"), "customer_site_id");
+  const meteringPointId = normalizeUuidOrNull(
+    formValue(formData, "metering_point_id"),
+    "metering_point_id",
+  );
+  let gridOwnerId = normalizeUuidOrNull(formValue(formData, "grid_owner_id"), "grid_owner_id");
   const externalReference = formValue(formData, "external_reference") || null;
   const notes = formValue(formData, "notes") || null;
   const selectedPowerOfAttorneyId =
-    formValue(formData, "power_of_attorney_id") || null;
+    normalizeUuidOrNull(formValue(formData, "power_of_attorney_id"), "power_of_attorney_id");
   await assertCustomerSiteTenant({ companyId, customerId, siteId });
   await assertMeteringPointTenant({
     companyId,
@@ -2621,9 +2640,12 @@ export async function registerCurrentSupplierResponseAction(
 ): Promise<void> {
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
   const actor = { id: guard.userId };
-  const customerId = formValue(formData, "customer_id") ?? "";
-  const siteId = formValue(formData, "site_id") ?? "";
-  const requestId = formValue(formData, "customer_info_request_id") || null;
+  const customerId = normalizeUuidOrNull(formValue(formData, "customer_id"), "customer_id");
+  const siteId = normalizeUuidOrNull(formValue(formData, "site_id"), "customer_site_id");
+  const requestId = normalizeUuidOrNull(
+    formValue(formData, "customer_info_request_id"),
+    "customer_info_request_id",
+  );
 
   if (!customerId || !siteId) {
     throw new Error("Kund och anläggning krävs för leverantörssvar.");
