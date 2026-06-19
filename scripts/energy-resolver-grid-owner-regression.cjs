@@ -24,7 +24,7 @@ const checks = [
   ['app/admin/website-applications/page.tsx', 'Kör adressmatchning'],
   ['app/admin/website-applications/page.tsx', 'Begär uppgifter från nätägare'],
   ['app/api/platform/energy/resolve/route.ts', 'resolveEnergyContext'],
-  ['app/api/platform/energy/import/svk-geometries/route.ts', 'N%C3%A4tomr%C3%A5den_240524_2_WFL1'],
+  ['lib/energy/svkGeometryImport.ts', 'N%C3%A4tomr%C3%A5den_240524_2_WFL1'],
   ['app/api/public/energy-area/route.ts', 'publicPriceAreaByPostalCode'],
 ]
 
