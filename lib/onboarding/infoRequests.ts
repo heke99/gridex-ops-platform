@@ -1189,7 +1189,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     actorUserId,
     eventType: z01.prepared ? "z01_prepared_for_dispatch" : "z01_route_missing",
     message: z01.prepared
-      ? "Begäran är förberedd och köad för utskick till nätägare."
+      ? "PRODAT Z01 är förberedd. Utskick räknas först när outbox/send guard har skickat eller köat meddelandet."
       : (blockerReason ?? "Kontaktväg till nätägare behöver verifieras innan utskick."),
     payload: {
       gridOwnerDataRequestId: gridOwnerDataRequest.id,

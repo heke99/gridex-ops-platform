@@ -3448,3 +3448,91 @@ export async function registerCustomerLifecycleDecisionAction(
   revalidatePath("/admin/customers");
   revalidatePath("/admin/billing/export-center");
 }
+
+export async function verifyCustomerSiteGridOwnerManually(formData: FormData) {
+  const customerId = normalizeUuidOrNull(formData.get('customer_id'), 'customer_id')
+  const companyId = normalizeUuidOrNull(formData.get('company_id'), 'company_id')
+  const customerSiteId = normalizeUuidOrNull(formData.get('customer_site_id'), 'customer_site_id')
+  const gridOwnerId = normalizeUuidOrNull(formData.get('grid_owner_id'), 'grid_owner_id')
+  const gridAreaCode = String(formData.get('grid_area_code') ?? '').trim().toUpperCase() || null
+  const priceAreaCode = normalizePriceAreaOrNull(String(formData.get('price_area_code') ?? '').trim() || null)
+  const source = String(formData.get('source') ?? 'manual_admin_verification').trim()
+  const confidence = Number(formData.get('confidence') ?? 1)
+
+  if (!companyId || !customerId || !customerSiteId || !gridOwnerId || !gridAreaCode) {
+    throw new Error('Kund, bolag, anläggning, nätägare och nätområdeskod krävs för verifiering.')
+  }
+
+  const access = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  await assertCustomerSiteTenant({ companyId, customerId, siteId: customerSiteId })
+
+  const gridOwner = await supabaseService
+    .from('grid_owners')
+    .select('id,name,ediel_id,verification_status,route_status,certificate_status')
+    .eq('id', gridOwnerId)
+    .maybeSingle()
+  if (gridOwner.error) throw gridOwner.error
+  if (!gridOwner.data) throw new Error('Nätägaren kunde inte hittas.')
+
+  const now = new Date().toISOString()
+  const verificationPayload = {
+    resolution_status: 'manual_verified',
+    grid_owner_id: gridOwnerId,
+    grid_area_code: gridAreaCode,
+    price_area_code: priceAreaCode,
+    resolution_confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 1,
+    address_quality_warnings: [] as unknown[],
+    onboarding_issues: [] as unknown[],
+    updated_at: now,
+  }
+
+  const update = await supabaseService
+    .from('customer_sites')
+    .update(verificationPayload)
+    .eq('id', customerSiteId)
+    .eq('company_id', companyId)
+  if (update.error) throw update.error
+
+  await emitCustomerOperationEvent({
+    companyId,
+    customerId,
+    actorUserId: access.userId,
+    eventType: 'facility.grid_owner_manual_verified',
+    title: 'Nätägare verifierad manuellt',
+    message: `Nätområde ${gridAreaCode} verifierades manuellt mot ${String(gridOwner.data.name ?? 'vald nätägare')}.`,
+    customerSiteId,
+    payload: {
+      source,
+      confidence: verificationPayload.resolution_confidence,
+      grid_owner_id: gridOwnerId,
+      grid_owner_name: gridOwner.data.name,
+      grid_owner_ediel_id: gridOwner.data.ediel_id,
+      grid_area_code: gridAreaCode,
+      price_area_code: priceAreaCode,
+      verification_status: gridOwner.data.verification_status,
+      route_status: gridOwner.data.route_status,
+      certificate_status: gridOwner.data.certificate_status,
+    },
+    idempotencyKey: `manual-grid-owner-verify:${customerSiteId}:${gridOwnerId}:${gridAreaCode}`,
+  })
+
+  await logAdminActionAndUsage({
+    actorUserId: access.userId,
+    companyId,
+    customerId,
+    entityType: 'customer_site',
+    entityId: customerSiteId,
+    action: 'customer_site.manual_grid_owner_verify',
+    label: 'Manuell verifiering av nätägare',
+    metadata: {
+      customer_id: customerId,
+      grid_owner_id: gridOwnerId,
+      grid_area_code: gridAreaCode,
+      price_area_code: priceAreaCode,
+      source,
+    },
+  })
+
+  revalidatePath(`/admin/customers/${customerId}`)
+  return { ok: true, status: 'manual_verified' }
+}

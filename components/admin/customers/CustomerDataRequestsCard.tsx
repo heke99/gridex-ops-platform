@@ -90,11 +90,16 @@ function simpleStatus(request: CustomerInfoRequestRow): {
         description: "Sparad men inte skickad.",
       };
     case "ready_to_send":
+      return {
+        label: "Klar för utskick",
+        className: "bg-sky-100 text-sky-700",
+        description: "Begäran är redo men inte bekräftad som skickad.",
+      };
     case "z01_prepared":
       return {
-        label: "Uppgiftsbegäran skickad",
-        className: "bg-emerald-100 text-emerald-700",
-        description: "Systemet har förberett begäran för Ediel-utskick.",
+        label: "Uppgiftsbegäran förberedd",
+        className: "bg-sky-100 text-sky-700",
+        description: "PRODAT Z01 är förberedd. Kontrollera outbox/send-status innan den räknas som skickad.",
       };
     case "sent":
     case "sent_to_grid_owner":

@@ -47,7 +47,10 @@
     "ops:hardening-behavior-regression": "node scripts/ops-hardening-behavior-regression.cjs",
     "ops:final-contract-regression": "node scripts/ops-final-contract-regression.cjs",
     "ops:integration": "node scripts/ops-final-db-integration.cjs",
-    "api:error-boundaries": "node scripts/check-api-error-boundaries.cjs"
+    "api:error-boundaries": "node scripts/check-api-error-boundaries.cjs",
+    "gridex:customer-info-status-regression": "node scripts/gridex-customer-info-status-regression.cjs",
+    "ediel:route-materialization-regression": "node scripts/ediel-route-materialization-regression.cjs",
+    "gridex:energy-resolver-contract-regression": "node scripts/gridex-energy-resolver-contract-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

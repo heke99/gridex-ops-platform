@@ -21,10 +21,24 @@ export type EnergyResolutionStatus =
   | 'protected_identity'
   | 'failed'
 
+export type EnergyGeocodeStatus =
+  | 'not_configured'
+  | 'missing_api_key'
+  | 'missing_base_url'
+  | 'unauthorized'
+  | 'rate_limited'
+  | 'provider_unavailable'
+  | 'invalid_response'
+  | 'no_match'
+  | 'success'
+
 export type EnergyResolverDiagnostics = {
   addressAttempts?: Array<{ street: string; streetNumber: string | null; outcome: string; httpStatus?: number | null }>
   geocodeProvider?: string | null
-  geocodeStatus?: string | null
+  geocodeStatus?: EnergyGeocodeStatus | string
+  providerStatus?: string | null
+  providerHttpStatus?: number | null
+  providerErrorCode?: string | null
   geocodeHttpStatus?: number | null
   geocodeResponseShape?: string | null
   coordinateReferenceSystem?: 'EPSG:3006' | 'EPSG:4326' | null
@@ -63,6 +77,11 @@ export type EnergyResolverResult = {
   gridAreaName: string | null
   gridOwnerId: string | null
   gridOwnerName: string | null
+  suggestedGridAreaCode?: string | null
+  suggestedGridOwnerId?: string | null
+  suggestedGridOwnerName?: string | null
+  suggestionSource?: string | null
+  suggestionConfidence?: number | null
   priceArea: PriceArea | null
   resolutionStatus: EnergyResolutionStatus
   confidence: number

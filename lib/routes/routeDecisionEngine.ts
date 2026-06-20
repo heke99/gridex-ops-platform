@@ -2,6 +2,7 @@ import { supabaseService } from "@/lib/supabase/service";
 import { isEdielPortalParty } from "@/lib/ediel/core/productionGuards";
 import { resolveDynamicReceiver } from "@/lib/routes/dynamicReceiverResolver";
 import { resolveGridOwnerAgreementReference } from "@/lib/routes/agreementReferenceResolver";
+import { resolveSenderSettings as resolveCompanySenderSettings, senderSettingProductionLockStatus } from "@/lib/ediel/senderSettingsResolver";
 import {
   buildAckPolicy,
   defaultMessageForProcess,
@@ -679,15 +680,18 @@ export async function decideCommunicationRoute(
   const profile = routeResult.route
     ? await findRouteProfile(routeResult.route.id, input.companyId ?? null, environment)
     : null;
-  const actorSettingResult = await findActiveActorSetting({
+  const actorSettingResult = await resolveCompanySenderSettings({
     companyId: input.companyId ?? null,
     environment,
+    actorRole: typeof input.payload?.actorRole === "string" ? input.payload.actorRole : null,
+    marketRole: typeof input.payload?.marketRole === "string" ? input.payload.marketRole : null,
     messageFamily,
     messageCode,
+    applicationReference: typeof input.payload?.applicationReference === "string" ? input.payload.applicationReference : null,
   });
-  const actorSetting = actorSettingResult.setting;
+  const actorSetting = actorSettingResult.status === "resolved" ? actorSettingResult.setting : null;
 
-  if (actorSettingResult.ambiguous) {
+  if (actorSettingResult.status === "ambiguous") {
     addIssue(blockingReasons, {
       code: "ambiguous_sender_settings",
       message:
@@ -712,7 +716,18 @@ export async function decideCommunicationRoute(
     });
   }
 
-  if (!actorSetting && isProduction(environment)) {
+  if (actorSettingResult.status === "environment_mismatch") {
+    addIssue(blockingReasons, {
+      code: "environment_mismatch",
+      message:
+        "Bolagets Ediel-aktör finns men matchar inte operationens miljö. Systemet blockerar hellre än gissar.",
+      source: "actor_setting_resolver",
+      metadata: { actorSettingIds: actorSettingResult.matches.map((row) => row.id), environment },
+    });
+    requiredAdminActions.push("Korrigera miljö på actor settings, route profile, certifikat och transport.");
+  }
+
+  if (!actorSetting && isProduction(environment) && actorSettingResult.status !== "environment_mismatch") {
     addIssue(blockingReasons, {
       code: "missing_company_actor_setting",
       message:
@@ -727,8 +742,7 @@ export async function decideCommunicationRoute(
   if (
     actorSetting &&
     isProduction(environment) &&
-    actorSetting.production_send_lock_enabled === true &&
-    actorSetting.first_production_send_approved !== true
+    senderSettingProductionLockStatus(actorSetting, environment) === "locked"
   ) {
     addIssue(blockingReasons, {
       code: "production_send_locked",
@@ -1052,10 +1066,7 @@ export async function decideCommunicationRoute(
         sender_settings_id: actorSetting?.id ?? null,
         production_send_lock_status:
           actorSetting && isProduction(environment)
-            ? actorSetting.production_send_lock_enabled === true &&
-              actorSetting.first_production_send_approved !== true
-              ? "locked"
-              : "approved"
+            ? senderSettingProductionLockStatus(actorSetting, environment)
             : "not_applicable",
         sender_ediel_id_source: senderEdielIdSource,
         sender_subaddress_source: senderSubAddressSource,

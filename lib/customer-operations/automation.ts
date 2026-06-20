@@ -919,7 +919,8 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
     outboundRequestId: dispatch.outboundRequestId,
   })
 
-  const waiting = ['z01_prepared', 'sent_to_grid_owner', 'waiting_for_z02', 'waiting_for_aperak', 'waiting_for_contrl'].includes(dispatch.status)
+  const preparedOnly = dispatch.status === 'z01_prepared'
+  const waiting = ['sent_to_grid_owner', 'waiting_for_z02', 'waiting_for_aperak', 'waiting_for_contrl'].includes(dispatch.status)
   const dispatchBlocker = dispatch.blockerDetails ??
     (dispatch.blockerCode
       ? makeCustomerOperationBlocker(dispatch.blockerCode, {
@@ -930,10 +931,12 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
     companyId: job.company_id,
     customerId: job.customer_id,
     actorUserId,
-    eventType: waiting ? 'customer_data.waiting_for_grid_owner' : 'customer_data.needs_review',
-    title: waiting ? 'Uppgiftsbegäran förberedd' : 'Uppgiftsbegäran behöver granskas',
+    eventType: waiting ? 'customer_data.waiting_for_grid_owner' : preparedOnly ? 'customer_data.z01_prepared' : 'customer_data.needs_review',
+    title: waiting ? 'Svar inväntas från nätägare' : preparedOnly ? 'Uppgiftsbegäran förberedd' : 'Uppgiftsbegäran behöver granskas',
     message: waiting
-      ? 'Systemet har förberett uppgiftsbegäran och väntar på svar från nätägaren.'
+      ? 'Begäran är skickad eller köad och systemet väntar på nätägarens svar.'
+      : preparedOnly
+        ? 'PRODAT Z01 är förberedd. Kontrollera outbox, send guard och produktionsgodkännande innan den räknas som skickad.'
       : (dispatchBlocker?.blocker_reason ?? dispatch.blockerReason ?? 'Systemet kunde inte skicka begäran automatiskt.'),
     customerSiteId: job.customer_site_id,
     meteringPointId: job.metering_point_id,

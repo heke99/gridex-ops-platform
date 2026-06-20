@@ -1,5 +1,10 @@
 import { supabaseService } from "@/lib/supabase/service";
 import { makeCustomerOperationBlocker } from "@/lib/customer-operations/blockers";
+import {
+  resolveSenderSettings,
+  senderSettingProductionLockStatus,
+  type SenderSettingRow,
+} from "@/lib/ediel/senderSettingsResolver";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -28,25 +33,7 @@ type GridOwnerMaterializationRow = {
   platform_market_actor_id: string | null;
 };
 
-type ActorSettingRow = {
-  id: string;
-  company_id: string;
-  environment: string;
-  ediel_id: string | null;
-  actor_ediel_id: string | null;
-  role?: string | null;
-  actor_role?: string | null;
-  market_roles?: unknown;
-  sender_subaddress: string | null;
-  sender_subaddress_prodat?: string | null;
-  sender_subaddress_utilts?: string | null;
-  sender_sub_address: string | null;
-  application_reference?: string | null;
-  default_application_reference?: string | null;
-  is_active: boolean | null;
-  production_send_lock_enabled?: boolean | null;
-  first_production_send_approved?: boolean | null;
-};
+type ActorSettingRow = SenderSettingRow;
 
 export type RouteMaterializationResult = {
   platformActorRouteId: string;
@@ -65,15 +52,21 @@ function text(value: unknown): string | null {
 }
 
 function upper(value: unknown): string {
-  return String(value ?? "").trim().toUpperCase();
+  return String(value ?? "")
+    .trim()
+    .toUpperCase();
 }
 
 function lower(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase();
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function metadata(value: unknown): JsonRecord {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : {};
 }
 
 function routeScopeForFamily(messageFamily: string): string {
@@ -94,9 +87,17 @@ function defaultApplicationReference(messageFamily: string): string {
 
 function roleMatches(row: ActorSettingRow, messageFamily: string): boolean {
   const role = lower(row.role ?? row.actor_role);
-  const roles = Array.isArray(row.market_roles) ? row.market_roles.map(lower) : [];
+  const roles = Array.isArray(row.market_roles)
+    ? row.market_roles.map(lower)
+    : [];
   if (upper(messageFamily) === "PRODAT") {
-    return !role || role === "supplier" || role === "electricity_supplier" || roles.includes("supplier") || roles.includes("electricity_supplier");
+    return (
+      !role ||
+      role === "supplier" ||
+      role === "electricity_supplier" ||
+      roles.includes("supplier") ||
+      roles.includes("electricity_supplier")
+    );
   }
   return true;
 }
@@ -104,10 +105,16 @@ function roleMatches(row: ActorSettingRow, messageFamily: string): boolean {
 function routeAllowsBlankSubaddress(route: PlatformActorRouteRow): boolean {
   const meta = metadata(route.metadata);
   const status = lower(meta.subaddress_status);
-  return !text(route.subaddress) && (status === "not_required_confirmed" || meta.blank_subaddress_requires_review === false);
+  return (
+    !text(route.subaddress) &&
+    (status === "not_required_confirmed" ||
+      meta.blank_subaddress_requires_review === false)
+  );
 }
 
-async function getPlatformActorRoute(routeId: string): Promise<PlatformActorRouteRow | null> {
+async function getPlatformActorRoute(
+  routeId: string,
+): Promise<PlatformActorRouteRow | null> {
   const { data, error } = await supabaseService
     .from("platform_actor_routes")
     .select("*")
@@ -117,7 +124,9 @@ async function getPlatformActorRoute(routeId: string): Promise<PlatformActorRout
   return (data as PlatformActorRouteRow | null) ?? null;
 }
 
-async function getMappedGridOwners(actorId: string): Promise<GridOwnerMaterializationRow[]> {
+async function getMappedGridOwners(
+  actorId: string,
+): Promise<GridOwnerMaterializationRow[]> {
   const { data, error } = await supabaseService
     .from("grid_owners")
     .select("id,company_id,name,ediel_id,platform_market_actor_id")
@@ -127,7 +136,11 @@ async function getMappedGridOwners(actorId: string): Promise<GridOwnerMaterializ
   return (data ?? []) as GridOwnerMaterializationRow[];
 }
 
-async function candidateCompanyIds(params: { gridOwnerCompanyId?: string | null; environment: string; messageFamily: string }): Promise<string[]> {
+async function candidateCompanyIds(params: {
+  gridOwnerCompanyId?: string | null;
+  environment: string;
+  messageFamily: string;
+}): Promise<string[]> {
   if (params.gridOwnerCompanyId) return [params.gridOwnerCompanyId];
   const { data, error } = await supabaseService
     .from("ediel_actor_settings")
@@ -139,35 +152,10 @@ async function candidateCompanyIds(params: { gridOwnerCompanyId?: string | null;
   if (error) throw error;
   const ids = new Set<string>();
   for (const row of (data ?? []) as ActorSettingRow[]) {
-    if (row.company_id && roleMatches(row, params.messageFamily)) ids.add(row.company_id);
+    if (row.company_id && roleMatches(row, params.messageFamily))
+      ids.add(row.company_id);
   }
   return [...ids];
-}
-
-async function resolveSenderSettings(params: {
-  companyId: string;
-  environment: string;
-  messageFamily: string;
-  messageCode?: string | null;
-}): Promise<{ setting: ActorSettingRow | null; ambiguous: boolean; matches: ActorSettingRow[] }> {
-  const { data, error } = await supabaseService
-    .from("ediel_actor_settings")
-    .select("*")
-    .eq("company_id", params.companyId)
-    .eq("environment", params.environment)
-    .eq("is_active", true)
-    .limit(25);
-  if (error) throw error;
-  const family = upper(params.messageFamily);
-  const code = text(params.messageCode);
-  const matches = ((data ?? []) as ActorSettingRow[]).filter((row) => {
-    if (!roleMatches(row, family)) return false;
-    const meta = metadata((row as ActorSettingRow & { metadata?: JsonRecord }).metadata);
-    const rowFamily = upper(meta.message_family);
-    const rowCode = text(meta.message_code);
-    return (!rowFamily || rowFamily === family) && (!rowCode || !code || rowCode === code);
-  });
-  return { setting: matches.length === 1 ? matches[0] ?? null : null, ambiguous: matches.length > 1, matches };
 }
 
 async function upsertCommunicationRoute(params: {
@@ -187,8 +175,10 @@ async function upsertCommunicationRoute(params: {
     message_family: params.messageFamily,
     message_code: params.messageCode,
     environment: params.route.environment,
-    receiver_subaddress_status: metadata(params.route.metadata).subaddress_status ?? null,
-    blank_subaddress_requires_review: metadata(params.route.metadata).blank_subaddress_requires_review ?? null,
+    receiver_subaddress_status:
+      metadata(params.route.metadata).subaddress_status ?? null,
+    blank_subaddress_requires_review:
+      metadata(params.route.metadata).blank_subaddress_requires_review ?? null,
   };
   const existing = await supabaseService
     .from("communication_routes")
@@ -198,7 +188,10 @@ async function upsertCommunicationRoute(params: {
     .eq("route_scope", routeScope)
     .limit(20);
   if (existing.error) throw existing.error;
-  const match = ((existing.data ?? []) as Array<JsonRecord>).find((row) => metadata(row.auth_config).platform_actor_route_id === params.route.id);
+  const match = ((existing.data ?? []) as Array<JsonRecord>).find(
+    (row) =>
+      metadata(row.auth_config).platform_actor_route_id === params.route.id,
+  );
   const payload = {
     company_id: params.companyId,
     route_name: routeName,
@@ -216,14 +209,22 @@ async function upsertCommunicationRoute(params: {
     supported_message_codes: params.messageCode ? [params.messageCode] : [],
     environment_type: params.route.environment,
     market_party_role: "grid_owner",
-    counterparty_ediel_id: text(params.route.party_id) ?? text(params.route.interchange_party_id) ?? text(params.gridOwner.ediel_id),
+    counterparty_ediel_id:
+      text(params.route.party_id) ??
+      text(params.route.interchange_party_id) ??
+      text(params.gridOwner.ediel_id),
     notes: "Materialiserad från verifierad aktörsregister-route.",
     updated_by: params.actorUserId,
     updated_at: new Date().toISOString(),
   };
   const query = match?.id
-    ? supabaseService.from("communication_routes").update(payload).eq("id", match.id)
-    : supabaseService.from("communication_routes").insert({ ...payload, created_by: params.actorUserId });
+    ? supabaseService
+        .from("communication_routes")
+        .update(payload)
+        .eq("id", match.id)
+    : supabaseService
+        .from("communication_routes")
+        .insert({ ...payload, created_by: params.actorUserId });
   const { data, error } = await query.select("id").single();
   if (error) throw error;
   return String((data as { id: string }).id);
@@ -238,12 +239,21 @@ async function upsertRouteProfile(params: {
   messageFamily: string;
   messageCode: string | null;
 }): Promise<string> {
-  const senderEdielId = text(params.senderSettings.ediel_id) ?? text(params.senderSettings.actor_ediel_id);
+  const senderEdielId =
+    text(params.senderSettings.ediel_id) ??
+    text(params.senderSettings.actor_ediel_id);
   const senderSubaddress =
     params.messageFamily === "PRODAT"
-      ? text(params.senderSettings.sender_subaddress_prodat) ?? text(params.senderSettings.sender_subaddress) ?? text(params.senderSettings.sender_sub_address)
-      : text(params.senderSettings.sender_subaddress_utilts) ?? text(params.senderSettings.sender_subaddress) ?? text(params.senderSettings.sender_sub_address);
-  const receiverEdielId = text(params.route.party_id) ?? text(params.route.interchange_party_id) ?? text(params.gridOwner.ediel_id);
+      ? (text(params.senderSettings.sender_subaddress_prodat) ??
+        text(params.senderSettings.sender_subaddress) ??
+        text(params.senderSettings.sender_sub_address))
+      : (text(params.senderSettings.sender_subaddress_utilts) ??
+        text(params.senderSettings.sender_subaddress) ??
+        text(params.senderSettings.sender_sub_address));
+  const receiverEdielId =
+    text(params.route.party_id) ??
+    text(params.route.interchange_party_id) ??
+    text(params.gridOwner.ediel_id);
   const applicationReference =
     text(params.route.application_reference) ??
     text(params.senderSettings.application_reference) ??
@@ -254,14 +264,18 @@ async function upsertRouteProfile(params: {
     platform_actor_route_id: params.route.id,
     platform_market_actor_id: params.route.actor_id,
     sender_settings_id: params.senderSettings.id,
-    receiver_subaddress_status: routeMetadata.subaddress_status ?? (routeAllowsBlankSubaddress(params.route) ? "not_required_confirmed" : null),
-    blank_subaddress_requires_review: routeMetadata.blank_subaddress_requires_review ?? !routeAllowsBlankSubaddress(params.route),
-    production_send_lock_status:
-      params.route.environment === "production" &&
-      params.senderSettings.production_send_lock_enabled === true &&
-      params.senderSettings.first_production_send_approved !== true
-        ? "locked"
-        : "approved",
+    receiver_subaddress_status:
+      routeMetadata.subaddress_status ??
+      (routeAllowsBlankSubaddress(params.route)
+        ? "not_required_confirmed"
+        : null),
+    blank_subaddress_requires_review:
+      routeMetadata.blank_subaddress_requires_review ??
+      !routeAllowsBlankSubaddress(params.route),
+    production_send_lock_status: senderSettingProductionLockStatus(
+      params.senderSettings,
+      params.route.environment,
+    ),
   };
   const existing = await supabaseService
     .from("ediel_route_profiles")
@@ -271,7 +285,9 @@ async function upsertRouteProfile(params: {
     .eq("environment", params.route.environment)
     .limit(10);
   if (existing.error) throw existing.error;
-  const match = ((existing.data ?? []) as Array<JsonRecord>).find((row) => metadata(row.metadata).platform_actor_route_id === params.route.id);
+  const match = ((existing.data ?? []) as Array<JsonRecord>).find(
+    (row) => metadata(row.metadata).platform_actor_route_id === params.route.id,
+  );
   const payload = {
     company_id: params.senderSettings.company_id,
     communication_route_id: params.communicationRouteId,
@@ -309,8 +325,13 @@ async function upsertRouteProfile(params: {
     updated_by: params.actorUserId,
   };
   const query = match?.id
-    ? supabaseService.from("ediel_route_profiles").update(payload).eq("id", match.id)
-    : supabaseService.from("ediel_route_profiles").insert({ ...payload, created_by: params.actorUserId });
+    ? supabaseService
+        .from("ediel_route_profiles")
+        .update(payload)
+        .eq("id", match.id)
+    : supabaseService
+        .from("ediel_route_profiles")
+        .insert({ ...payload, created_by: params.actorUserId });
   const { data, error } = await query.select("id").single();
   if (error) throw error;
   return String((data as { id: string }).id);
@@ -320,6 +341,8 @@ async function upsertCompanyMarketPartyRoute(params: {
   companyId: string;
   marketPartyId: string;
   messageFamily: string;
+  messageCode: string | null;
+  environment: string;
   routeProfileId: string;
   actorUserId: string | null;
   platformActorRouteId: string;
@@ -333,22 +356,32 @@ async function upsertCompanyMarketPartyRoute(params: {
     metadata: {
       platform_actor_route_id: params.platformActorRouteId,
       materialized_from: "platform_actor_routes",
+      environment: params.environment,
+      message_code: params.messageCode,
     },
     created_by: params.actorUserId,
     updated_at: new Date().toISOString(),
   };
   const existing = await supabaseService
     .from("company_market_party_routes")
-    .select("id")
+    .select("id,metadata")
     .eq("company_id", params.companyId)
     .eq("market_party_id", params.marketPartyId)
     .eq("message_family", params.messageFamily)
     .eq("active", true)
-    .limit(1)
-    .maybeSingle();
+    .limit(25);
   if (existing.error) throw existing.error;
-  const query = existing.data?.id
-    ? supabaseService.from("company_market_party_routes").update(payload).eq("id", existing.data.id)
+  const match = ((existing.data ?? []) as Array<JsonRecord>).find((row) => {
+    const rowMeta = metadata(row.metadata);
+    return rowMeta.platform_actor_route_id === params.platformActorRouteId &&
+      rowMeta.environment === params.environment &&
+      (rowMeta.message_code ?? null) === (params.messageCode ?? null);
+  });
+  const query = match?.id
+    ? supabaseService
+        .from("company_market_party_routes")
+        .update(payload)
+        .eq("id", match.id)
     : supabaseService.from("company_market_party_routes").insert(payload);
   const { data, error } = await query.select("id").single();
   if (error) throw error;
@@ -362,19 +395,28 @@ export async function materializePlatformActorRoute(params: {
   const route = await getPlatformActorRoute(params.platformActorRouteId);
   if (!route) return [];
   const messageFamily = upper(route.message_family);
-  const messageCode = text(metadata(route.metadata).message_code) ?? defaultMessageCode(messageFamily);
-  if (route.status !== "active" || route.is_verified !== true || route.auto_send_allowed === false) {
-    return [{
-      platformActorRouteId: params.platformActorRouteId,
-      companyId: null,
-      gridOwnerId: null,
-      status: "skipped",
-      reasonCode: "platform_route_not_verified",
-      nextRequiredAction: "Verifiera aktörsregistrets route innan operativ materialisering.",
-      communicationRouteId: null,
-      edielRouteProfileId: null,
-      companyMarketPartyRouteId: null,
-    }];
+  const messageCode =
+    text(metadata(route.metadata).message_code) ??
+    defaultMessageCode(messageFamily);
+  if (
+    route.status !== "active" ||
+    route.is_verified !== true ||
+    route.auto_send_allowed === false
+  ) {
+    return [
+      {
+        platformActorRouteId: params.platformActorRouteId,
+        companyId: null,
+        gridOwnerId: null,
+        status: "skipped",
+        reasonCode: "platform_route_not_verified",
+        nextRequiredAction:
+          "Verifiera aktörsregistrets route innan operativ materialisering.",
+        communicationRouteId: null,
+        edielRouteProfileId: null,
+        companyMarketPartyRouteId: null,
+      },
+    ];
   }
 
   const gridOwners = await getMappedGridOwners(route.actor_id);
@@ -392,7 +434,8 @@ export async function materializePlatformActorRoute(params: {
         gridOwnerId: gridOwner.id,
         status: "blocked",
         reasonCode: "sender_settings_missing",
-        nextRequiredAction: "Lägg in aktiv Ediel-aktör för bolaget och miljön innan route materialiseras.",
+        nextRequiredAction:
+          "Lägg in aktiv Ediel-aktör för bolaget och miljön innan route materialiseras.",
         communicationRouteId: null,
         edielRouteProfileId: null,
         companyMarketPartyRouteId: null,
@@ -401,12 +444,25 @@ export async function materializePlatformActorRoute(params: {
     }
 
     for (const companyId of companies) {
-      const sender = await resolveSenderSettings({ companyId, environment: route.environment, messageFamily, messageCode });
-      if (sender.ambiguous || !sender.setting) {
-        const blocker = makeCustomerOperationBlocker(sender.ambiguous ? "ambiguous_sender_settings" : "sender_settings_missing", {
-          blocker_reason: sender.ambiguous
-            ? "Flera aktiva avsändarinställningar matchar route-materialisering."
-            : "Avsändarinställning saknas för route-materialisering.",
+      const sender = await resolveSenderSettings({
+        companyId,
+        environment: route.environment,
+        actorRole: "supplier",
+        marketRole: "electricity_supplier",
+        messageFamily,
+        messageCode,
+        applicationReference:
+          text(route.application_reference) ??
+          defaultApplicationReference(messageFamily),
+      });
+      if (sender.status !== "resolved") {
+        const blocker = makeCustomerOperationBlocker(sender.blockerCode, {
+          blocker_reason:
+            sender.status === "ambiguous"
+              ? "Flera aktiva avsändarinställningar matchar route-materialisering."
+              : sender.status === "environment_mismatch"
+                ? "Avsändarinställningar finns, men inte för route-materialiseringens miljö."
+                : "Avsändarinställning saknas för route-materialisering.",
         });
         results.push({
           platformActorRouteId: route.id,
@@ -442,6 +498,8 @@ export async function materializePlatformActorRoute(params: {
         companyId,
         marketPartyId: route.actor_id,
         messageFamily,
+        messageCode,
+        environment: route.environment,
         routeProfileId: edielRouteProfileId,
         actorUserId: params.actorUserId ?? null,
         platformActorRouteId: route.id,

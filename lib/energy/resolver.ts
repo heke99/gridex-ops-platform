@@ -137,7 +137,10 @@ function result(input: EnergyResolverInput, patch: Partial<EnergyResolverResult>
     diagnostics: {
       addressAttempts: [],
       geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-      geocodeStatus: 'not_applicable',
+      geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
+      providerStatus: process.env.PAPILITE_GEOCODE_URL ? 'not_attempted' : 'not_configured',
+      providerHttpStatus: null,
+      providerErrorCode: null,
       coordinateReferenceSystem: null,
       polygonStatus: 'not_attempted',
       mappingStatus: 'not_applicable',
@@ -150,7 +153,7 @@ function nextActionFor(status: EnergyResolutionStatus, hasFacilityData: boolean)
   if (status === 'facility_verified') return 'Starta leverantörsbyte när övriga readiness-krav är uppfyllda.'
   if (hasFacilityData && status === 'grid_area_master_validated') return 'Verifiera anläggningsuppgifter och starta leverantörsbyte när fullmakt och avtal är klara.'
   if (status === 'grid_area_master_validated') return 'Begär anläggningsuppgifter från nätägare innan leverantörsbyte kan startas.'
-  if (status === 'postal_suggested') return 'Komplettera eller granska full adress för säker nätområdesmatchning.'
+  if (status === 'postal_suggested') return 'Verifiera föreslagen nätägare innan EDIFACT skickas.'
   if (status === 'address_resolved' || status === 'grid_area_resolved') return 'Validera nätområde mot masterdata eller granska manuellt.'
   return 'Granska ansökan manuellt innan automation fortsätter.'
 }
@@ -239,7 +242,10 @@ async function findGridAreaByCode(gridAreaCode: string): Promise<EnergyResolverR
     diagnostics: {
       addressAttempts: [],
       geocodeProvider: null,
-      geocodeStatus: 'not_applicable',
+      geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
+      providerStatus: process.env.PAPILITE_GEOCODE_URL ? 'not_attempted' : 'not_configured',
+      providerHttpStatus: null,
+      providerErrorCode: null,
       coordinateReferenceSystem: null,
       polygonStatus: 'not_attempted',
       mappingStatus: mappingMissing ? 'platform_to_ops_missing' : 'mapped',
@@ -349,13 +355,16 @@ async function lookupPapilite(input: EnergyResolverInput): Promise<GeocodeLookup
   const diagnostics: EnergyResolverDiagnostics = {
     addressAttempts: [],
     geocodeProvider: url ? 'papilite' : null,
-    geocodeStatus: url ? 'not_started' : 'not_configured',
+    geocodeStatus: url ? 'no_match' : 'not_configured',
+    providerStatus: url ? 'not_attempted' : 'not_configured',
+    providerHttpStatus: null,
+    providerErrorCode: url ? null : 'missing_base_url',
     coordinateReferenceSystem: null,
     polygonStatus: 'not_attempted',
     mappingStatus: 'not_applicable',
   }
   if (!url || attempts.length === 0 || !hasFullAddress(input)) {
-    return { coordinates: null, warnings: [url ? 'address_not_complete_for_geocoding' : 'papilite_not_configured'], diagnostics }
+    return { coordinates: null, warnings: [url ? 'address_not_complete_for_geocoding' : 'papilite_not_configured'], diagnostics: { ...diagnostics, geocodeStatus: url ? 'no_match' : 'not_configured', providerStatus: url ? 'not_attempted' : 'not_configured', providerErrorCode: url ? 'address_not_complete' : 'missing_base_url' } }
   }
 
   for (const attempt of attempts) {
@@ -380,11 +389,16 @@ async function lookupPapilite(input: EnergyResolverInput): Promise<GeocodeLookup
       diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: response.ok ? 'response_received' : 'http_error', httpStatus: response.status })
       if (!response.ok) {
         diagnostics.geocodeHttpStatus = response.status
-        diagnostics.geocodeStatus = response.status === 401 || response.status === 403 ? 'unauthorized' : response.status === 429 ? 'rate_limited' : 'provider_error'
+        diagnostics.providerHttpStatus = response.status
+        diagnostics.providerStatus = 'http_error'
+        diagnostics.providerErrorCode = `http_${response.status}`
+        diagnostics.geocodeStatus = response.status === 401 || response.status === 403 ? 'unauthorized' : response.status === 429 ? 'rate_limited' : 'provider_unavailable'
         continue
       }
       const payload = await response.json().catch(() => null) as unknown
       diagnostics.geocodeHttpStatus = response.status
+      diagnostics.providerHttpStatus = response.status
+      diagnostics.providerStatus = 'success'
       diagnostics.geocodeResponseShape = Array.isArray(payload)
         ? 'array'
         : payload && typeof payload === 'object'
@@ -432,13 +446,15 @@ async function lookupPapilite(input: EnergyResolverInput): Promise<GeocodeLookup
       const cache = await supabaseService.from('platform_address_lookup_cache').upsert(row, { onConflict: 'address_key' })
       const warnings = cache.error && !missingSchema(cache.error) ? ['address_cache_write_failed'] : []
       diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome: 'matched' })
-      diagnostics.geocodeStatus = 'matched'
+      diagnostics.geocodeStatus = 'success'
       diagnostics.coordinateReferenceSystem = sweref99X !== null && sweref99Y !== null ? 'EPSG:3006' : 'EPSG:4326'
       return { coordinates, warnings, diagnostics }
     } catch (error) {
       const outcome = error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'provider_unavailable'
       diagnostics.addressAttempts?.push({ street: attempt.street, streetNumber: attempt.streetNumber, outcome })
-      diagnostics.geocodeStatus = outcome
+      diagnostics.geocodeStatus = outcome === 'timeout' ? 'provider_unavailable' : 'provider_unavailable'
+      diagnostics.providerStatus = outcome
+      diagnostics.providerErrorCode = outcome
     } finally {
       clearTimeout(timeout)
     }
@@ -449,7 +465,7 @@ async function lookupPapilite(input: EnergyResolverInput): Promise<GeocodeLookup
     ? 'papilite_unauthorized'
     : status === 'rate_limited'
       ? 'papilite_rate_limited'
-      : status === 'timeout'
+      : status === 'provider_unavailable' && diagnostics.providerErrorCode === 'timeout'
         ? 'papilite_timeout'
         : status === 'provider_unavailable'
           ? 'papilite_unavailable'
@@ -510,7 +526,10 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
     diagnostics: {
       addressAttempts: [],
       geocodeProvider: 'papilite',
-      geocodeStatus: 'matched',
+      geocodeStatus: 'success',
+      providerStatus: 'success',
+      providerHttpStatus: null,
+      providerErrorCode: null,
       coordinateReferenceSystem,
       polygonStatus: 'matched',
       mappingStatus: mappingMissing ? 'platform_to_ops_missing' : 'mapped',
@@ -541,19 +560,35 @@ async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResol
   if (rows.length === 0) return null
   const best = rows[0]
   const master = clean(best.grid_area_code) ? await findGridAreaByCode(clean(best.grid_area_code) as string) : null
-  return applyGridOwnerVerification(result(input, {
-    gridAreaCode: clean(best.grid_area_code),
-    gridAreaName: master?.gridAreaName ?? null,
-    gridOwnerId: master?.gridOwnerId ?? null,
-    gridOwnerName: master?.gridOwnerName ?? null,
+  return result(input, {
+    gridAreaCode: null,
+    gridAreaName: null,
+    gridOwnerId: null,
+    gridOwnerName: null,
+    suggestedGridAreaCode: clean(best.grid_area_code),
+    suggestedGridOwnerId: master?.gridOwnerId ?? null,
+    suggestedGridOwnerName: master?.gridOwnerName ?? null,
+    suggestionSource: 'postal_city_mapping',
+    suggestionConfidence: Math.min(0.85, numberOrNull(best.confidence) ?? 0.35),
     priceArea: normalisePriceArea(best.price_area) ?? master?.priceArea ?? null,
     resolutionStatus: 'postal_suggested',
-    confidence: Math.min(0.69, numberOrNull(best.confidence) ?? 0.35),
+    confidence: Math.min(0.85, numberOrNull(best.confidence) ?? 0.35),
     sourceChain: ['postal_code', 'platform_postal_code_grid_mappings', ...(master ? ['platform_grid_areas'] : [])],
     automationAllowed: false,
     nextRequiredAction: nextActionFor('postal_suggested', false),
     warnings: rows.length > 1 ? ['postal_code_multiple_grid_area_candidates'] : [],
-  }))
+    diagnostics: {
+      addressAttempts: [],
+      geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
+      geocodeStatus: process.env.PAPILITE_GEOCODE_URL ? 'no_match' : 'not_configured',
+      providerStatus: 'not_attempted',
+      providerHttpStatus: null,
+      providerErrorCode: 'postal_city_mapping_used',
+      coordinateReferenceSystem: null,
+      polygonStatus: 'not_attempted',
+      mappingStatus: 'not_applicable',
+    },
+  })
 }
 
 async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolverResult): Promise<EnergyResolverResult> {
@@ -564,10 +599,10 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
     customer_id: clean(input.customerId),
     customer_site_id: clean(input.customerSiteId),
     customer_application_id: clean(input.customerApplicationId),
-    grid_owner_id: clean(resolved.gridOwnerId),
-    grid_area_code: clean(resolved.gridAreaCode),
+    grid_owner_id: resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridOwnerId),
+    grid_area_code: resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridAreaCode),
     grid_area_name: clean(resolved.gridAreaName),
-    grid_owner_name: clean(resolved.gridOwnerName),
+    grid_owner_name: resolved.resolutionStatus === 'postal_suggested' ? clean(resolved.suggestedGridOwnerName) : clean(resolved.gridOwnerName),
     price_area: resolved.priceArea,
     resolution_status: resolved.resolutionStatus,
     confidence: resolved.confidence,
@@ -605,8 +640,8 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
     const protectedManualVerification = ['manual_verified', 'facility_verified'].includes(currentStatus) && !resolved.automationAllowed
     if (!protectedManualVerification) {
       const siteUpdate: Record<string, unknown> = {
-        grid_owner_id: resolved.gridOwnerId,
-        grid_area_code: resolved.gridAreaCode,
+        grid_owner_id: resolved.resolutionStatus === 'postal_suggested' ? null : resolved.gridOwnerId,
+        grid_area_code: resolved.resolutionStatus === 'postal_suggested' ? null : resolved.gridAreaCode,
         price_area_code: resolved.priceArea,
         resolution_id: data.id,
         resolution_status: resolved.resolutionStatus,
@@ -657,7 +692,10 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
             diagnostics: {
               addressAttempts: [],
               geocodeProvider: 'cache',
-              geocodeStatus: 'cache_hit',
+              geocodeStatus: 'success',
+              providerStatus: 'cache_hit',
+              providerHttpStatus: null,
+              providerErrorCode: null,
               coordinateReferenceSystem: cached.sweref99X !== null && cached.sweref99Y !== null ? 'EPSG:3006' as const : 'EPSG:4326' as const,
               polygonStatus: 'not_attempted' as const,
               mappingStatus: 'not_applicable' as const,
@@ -718,7 +756,10 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
       diagnostics: {
         addressAttempts: [],
         geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-        geocodeStatus: schemaResource ? 'schema_missing' : 'failed',
+        geocodeStatus: schemaResource ? 'provider_unavailable' : 'provider_unavailable',
+        providerStatus: schemaResource ? 'schema_missing' : 'failed',
+        providerHttpStatus: null,
+        providerErrorCode: schemaResource ? `schema_missing:${schemaResource}` : (code ?? 'resolver_failed'),
         coordinateReferenceSystem: null,
         polygonStatus: schemaResource ? 'schema_missing' : 'not_attempted',
         mappingStatus: 'not_applicable',
