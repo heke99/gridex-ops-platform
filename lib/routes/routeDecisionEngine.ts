@@ -267,6 +267,19 @@ function lowerText(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
 }
 
+function profileMetadata(profile: RouteProfileRow | null): Record<string, unknown> {
+  const value = (profile as (RouteProfileRow & { metadata?: unknown }) | null)?.metadata;
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function receiverBlankSubaddressAllowed(profile: RouteProfileRow | null): boolean {
+  const metadata = profileMetadata(profile);
+  return !text(profile?.receiver_sub_address) && (
+    lowerText(metadata.receiver_subaddress_status) === "not_required_confirmed" ||
+    metadata.blank_subaddress_requires_review === false
+  );
+}
+
 function productionGuardIssues(params: {
   environment?: string | null;
   route?: RouteRow | null;
@@ -941,11 +954,11 @@ export async function decideCommunicationRoute(
       });
     }
 
-    if (isProduction(environment) && ["PRODAT", "UTILTS"].includes(messageFamily) && !receiverSubAddress) {
+    if (isProduction(environment) && ["PRODAT", "UTILTS"].includes(messageFamily) && !receiverSubAddress && !receiverBlankSubaddressAllowed(profile)) {
       addIssue(blockingReasons, {
         code: "missing_receiver_subaddress",
         message:
-          "receiver subadress saknas för production Ediel-flöde. Komplettera verifierad route/motpart innan sändning.",
+          "receiver subadress saknas för production Ediel-flöde och routen har inte verifierat att blank subadress är tillåten.",
         source: "route_profile_resolver",
       });
     }

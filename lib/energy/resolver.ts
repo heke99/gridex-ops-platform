@@ -137,7 +137,7 @@ function result(input: EnergyResolverInput, patch: Partial<EnergyResolverResult>
     diagnostics: {
       addressAttempts: [],
       geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
-      geocodeStatus: null,
+      geocodeStatus: 'not_applicable',
       coordinateReferenceSystem: null,
       polygonStatus: 'not_attempted',
       mappingStatus: 'not_applicable',
@@ -239,7 +239,7 @@ async function findGridAreaByCode(gridAreaCode: string): Promise<EnergyResolverR
     diagnostics: {
       addressAttempts: [],
       geocodeProvider: null,
-      geocodeStatus: null,
+      geocodeStatus: 'not_applicable',
       coordinateReferenceSystem: null,
       polygonStatus: 'not_attempted',
       mappingStatus: mappingMissing ? 'platform_to_ops_missing' : 'mapped',
@@ -591,27 +591,41 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
   }
 
   if (input.customerSiteId) {
-    const siteUpdate: Record<string, unknown> = {
-      grid_owner_id: resolved.gridOwnerId,
-      grid_area_code: resolved.gridAreaCode,
-      price_area_code: resolved.priceArea,
-      resolution_id: data.id,
-      resolution_status: resolved.resolutionStatus,
-      resolution_confidence: resolved.confidence,
-      latitude: resolved.coordinates?.latitude ?? null,
-      longitude: resolved.coordinates?.longitude ?? null,
-      sweref99_x: resolved.coordinates?.sweref99X ?? null,
-      sweref99_y: resolved.coordinates?.sweref99Y ?? null,
-      updated_at: now,
-    }
-    const siteResult = await supabaseService
+    const current = await supabaseService
       .from('customer_sites')
-      .update(siteUpdate)
+      .select('resolution_status,address_status,facility_data_status')
       .eq('id', input.customerSiteId)
       .eq('company_id', input.companyId)
-    if (siteResult.error) {
-      if (missingSchema(siteResult.error)) requireResolverSchema('customer_sites.energy_resolution_columns', siteResult.error)
-      throw siteResult.error
+      .maybeSingle()
+    if (current.error) {
+      if (missingSchema(current.error)) requireResolverSchema('customer_sites.energy_resolution_columns', current.error)
+      throw current.error
+    }
+    const currentStatus = String((current.data as Record<string, unknown> | null)?.resolution_status ?? '').toLowerCase()
+    const protectedManualVerification = ['manual_verified', 'facility_verified'].includes(currentStatus) && !resolved.automationAllowed
+    if (!protectedManualVerification) {
+      const siteUpdate: Record<string, unknown> = {
+        grid_owner_id: resolved.gridOwnerId,
+        grid_area_code: resolved.gridAreaCode,
+        price_area_code: resolved.priceArea,
+        resolution_id: data.id,
+        resolution_status: resolved.resolutionStatus,
+        resolution_confidence: resolved.confidence,
+        latitude: resolved.coordinates?.latitude ?? null,
+        longitude: resolved.coordinates?.longitude ?? null,
+        sweref99_x: resolved.coordinates?.sweref99X ?? null,
+        sweref99_y: resolved.coordinates?.sweref99Y ?? null,
+        updated_at: now,
+      }
+      const siteResult = await supabaseService
+        .from('customer_sites')
+        .update(siteUpdate)
+        .eq('id', input.customerSiteId)
+        .eq('company_id', input.companyId)
+      if (siteResult.error) {
+        if (missingSchema(siteResult.error)) requireResolverSchema('customer_sites.energy_resolution_columns', siteResult.error)
+        throw siteResult.error
+      }
     }
   }
 

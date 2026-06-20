@@ -6,7 +6,7 @@ export async function processEdielOutbox(params: {
   companyId?: string | null
   limit?: number
   environment?: 'test' | 'production' | string | null
-}): Promise<{ processed: number; sent: number; failed: number; blocked: number; results: Array<Record<string, unknown>> }> {
+}): Promise<{ processed: number; sent: number; failed: number; blocked: number; deliveryUncertain: number; results: Array<Record<string, unknown>> }> {
   const workerId = `ediel-outbox-${params.actorUserId}-${Date.now()}`
   const items = await claimEdielOutboxItems({
     workerId,
@@ -32,6 +32,7 @@ export async function processEdielOutbox(params: {
     sent: results.filter((item) => item.status === 'sent').length,
     failed: results.filter((item) => item.status === 'failed').length,
     blocked: results.filter((item) => item.status === 'blocked').length,
+    deliveryUncertain: results.filter((item) => item.status === 'delivery_uncertain').length,
     results,
   }
 }

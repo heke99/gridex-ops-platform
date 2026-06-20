@@ -925,6 +925,11 @@ async function blockCustomerInfoRequest(params: {
   };
 }
 
+function customerDataDispatchEnvironment(): 'test' | 'production' | null {
+  const raw = process.env.GRIDEX_CUSTOMER_DATA_EDIEL_ENVIRONMENT ?? process.env.GRIDEX_EDIEL_ENVIRONMENT ?? null;
+  return raw === 'test' || raw === 'production' ? raw : null;
+}
+
 function customerMasterdataAnchorsAreMissing(
   request: CustomerInfoRequestRow,
 ): string | null {
@@ -1070,6 +1075,20 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     });
   }
 
+  const dispatchEnvironment = customerDataDispatchEnvironment();
+  if (!dispatchEnvironment) {
+    const blocker = makeCustomerOperationBlocker('environment_not_resolved');
+    return blockCustomerInfoRequest({
+      request,
+      companyId,
+      actorUserId,
+      blockerReason: blocker.blocker_reason,
+      blockerCode: blocker.blocker_code,
+      blockerDetails: blocker,
+      eventType: 'blocked_environment_not_resolved',
+    });
+  }
+
   const automationKey = `customer-info-request:${request.id}:z01`;
   const gridOwnerDataRequest = await createGridOwnerDataRequest({
     actorUserId,
@@ -1091,6 +1110,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     z01 = await prepareAndQueueProdatZ01FromDataRequest({
       actorUserId,
       gridOwnerDataRequestId: gridOwnerDataRequest.id,
+      environment: dispatchEnvironment,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";

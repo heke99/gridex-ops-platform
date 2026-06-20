@@ -20,6 +20,7 @@ import {
   type CustomerOperationBlocker,
 } from '@/lib/customer-operations/blockers'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
+import { materializePlatformActorRoute } from '@/lib/ediel/routeMaterializer'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import { renderProdat26A } from '@/lib/ediel/prodatEngine'
@@ -119,9 +120,11 @@ function resolveMeterPointId(context: Awaited<ReturnType<typeof getCustomerExpor
 }
 
 function resolveGridAreaId(context: Awaited<ReturnType<typeof getCustomerExportContext>>, gridOwner: GridOwnerRow | null): string | null {
+  // Grid area and bidding/price area are different market concepts.
+  // PRODAT fields that ask for grid area must use e.g. LKA, not SE4.
   return sanitize(
-    context.meteringPoint?.price_area_code ??
-      context.site?.price_area_code ??
+    context.meteringPoint?.grid_area_code ??
+      context.site?.grid_area_code ??
       gridOwner?.owner_code ??
       null
   ) || null
@@ -365,25 +368,59 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     : null
   const actorId = gridOwner?.platform_market_actor_id ?? null
 
+  const requestedEnvironment = params.environment ?? null
+  if (!requestedEnvironment && !params.communicationRouteId) {
+    const outbound = await findOrCreateDataRequestOutbound({
+      actorUserId,
+      requestType: 'customer_masterdata',
+      communicationRouteId: null,
+      dataRequest,
+      payload: {
+        edielCode: 'Z01',
+        queuedFrom: 'prepare_prodat_z01_customer_masterdata',
+        requestScope: dataRequest.request_scope,
+        expectedResponse: 'PRODAT Z02 eller negativ APERAK',
+        blockerCode: 'environment_not_resolved',
+      },
+    })
+    const blocker = makeCustomerOperationBlocker('environment_not_resolved')
+    return {
+      dataRequest,
+      outbound,
+      message: null,
+      prepared: false,
+      blockerReason: blocker.blocker_reason,
+      blockerCode: blocker.blocker_code,
+      blockerDetails: blocker,
+    }
+  }
+  const materializationEnvironment = requestedEnvironment ?? null
+  const platformActorRouteId = await findVerifiedPlatformActorRoute({
+    actorId,
+    messageFamily: 'PRODAT',
+    environment: materializationEnvironment ?? 'test',
+  })
+  const materializedRoute = !params.communicationRouteId && platformActorRouteId
+    ? (await materializePlatformActorRoute({ platformActorRouteId, actorUserId }))
+        .find((row) => row.companyId === dataRequest.company_id && row.status === 'materialized' && row.communicationRouteId)
+    : null
+
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'customer_masterdata',
-    communicationRouteId: params.communicationRouteId ?? null,
+    communicationRouteId: params.communicationRouteId ?? materializedRoute?.communicationRouteId ?? null,
     dataRequest,
     payload: {
       edielCode: 'Z01',
       queuedFrom: 'prepare_prodat_z01_customer_masterdata',
       requestScope: dataRequest.request_scope,
       expectedResponse: 'PRODAT Z02 eller negativ APERAK',
+      platformActorRouteId,
+      materializedRouteProfileId: materializedRoute?.edielRouteProfileId ?? null,
     },
   })
 
   if (!outbound.communication_route_id) {
-    const platformActorRouteId = await findVerifiedPlatformActorRoute({
-      actorId,
-      messageFamily: 'PRODAT',
-      environment: params.environment ?? 'production',
-    })
     const blocker = makeCustomerOperationBlocker(
       platformActorRouteId
         ? 'platform_route_exists_but_not_materialized'

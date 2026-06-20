@@ -138,7 +138,7 @@ export async function sendOutboxItem(params: {
   workerId?: string | null
   sendAttemptId?: string | null
   alreadyClaimed?: boolean
-}): Promise<{ status: 'sent' | 'failed' | 'blocked'; messageId: string | null; error?: string | null }> {
+}): Promise<{ status: 'sent' | 'failed' | 'blocked' | 'delivery_uncertain'; messageId: string | null; error?: string | null }> {
   const workerId = clean(params.workerId) ?? `ediel-outbox-direct-${params.actorUserId}`
   let sendAttemptId = clean(params.sendAttemptId)
   let item: Record<string, unknown> | null = null
@@ -229,24 +229,42 @@ export async function sendOutboxItem(params: {
       },
     })
     const result = await sendEdielMessageViaSmtp(message, { actorUserId: params.actorUserId, smtpMimeMode: params.smtpMimeMode ?? null })
-    await updateOutboxStatus({
-      outboxItemId: params.outboxItemId,
-      sendAttemptId,
-      workerId,
-      payload: {
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-        smtp_message_id: result.messageId ?? null,
-        transport_channel: 'smtp',
-        receiver_ediel_id: message.receiver_ediel_id ?? null,
-        receiver_subaddress: message.receiver_sub_address ?? null,
-        last_error: null,
-        locked_at: null,
-        locked_by: null,
-        updated_by: params.actorUserId,
-        updated_at: new Date().toISOString(),
-      },
-    })
+    try {
+      await updateOutboxStatus({
+        outboxItemId: params.outboxItemId,
+        sendAttemptId,
+        workerId,
+        payload: {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          smtp_message_id: result.messageId ?? null,
+          transport_channel: 'smtp',
+          receiver_ediel_id: message.receiver_ediel_id ?? null,
+          receiver_subaddress: message.receiver_sub_address ?? null,
+          last_error: null,
+          locked_at: null,
+          locked_by: null,
+          updated_by: params.actorUserId,
+          updated_at: new Date().toISOString(),
+        },
+      })
+    } catch (statusError) {
+      const statusMessage = statusError instanceof Error ? statusError.message : String(statusError)
+      await updateOutboxStatus({
+        outboxItemId: params.outboxItemId,
+        workerId,
+        payload: {
+          status: 'delivery_uncertain',
+          smtp_message_id: result.messageId ?? null,
+          last_error: `delivery_uncertain_after_smtp_send: ${statusMessage}`,
+          locked_at: null,
+          locked_by: null,
+          updated_by: params.actorUserId,
+          updated_at: new Date().toISOString(),
+        },
+      }).catch(() => undefined)
+      return { status: 'delivery_uncertain', messageId: result.messageId ?? null, error: statusMessage }
+    }
     return { status: 'sent', messageId: result.messageId ?? null }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

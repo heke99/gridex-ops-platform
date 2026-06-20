@@ -310,7 +310,10 @@ export function publicContractResponse(offer: PublicContractOffer) {
 const REQUIRED_PUBLIC_LEGAL_TYPES = ['terms', 'privacy_policy', 'withdrawal', 'power_of_attorney', 'price_terms'] as const
 
 function hasAllRequiredLegalVersions(legalVersions: PublicLegalTextVersion[] | null): boolean {
-  if (legalVersions === null) return true
+  // Public contract offers must never fail open when legal text schema or
+  // published versions are missing. Missing legal data makes the offer
+  // unavailable until platform admin fixes the deployment/configuration.
+  if (legalVersions === null) return false
   const required = new Set<string>(REQUIRED_PUBLIC_LEGAL_TYPES)
   for (const row of legalVersions) required.delete(row.type)
   return required.size === 0

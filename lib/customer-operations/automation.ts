@@ -92,6 +92,10 @@ function addressFingerprint(value: JsonRecord): string {
   return parts.filter(Boolean).join('|').toLocaleLowerCase('sv-SE') || 'missing'
 }
 
+function textField(value: JsonRecord, key: string): string | null {
+  return clean(value[key])
+}
+
 
 type SiteOperationSnapshot = {
   site_id: string
@@ -120,7 +124,7 @@ async function captureSiteOperationSnapshot(input: {
   const row = data as JsonRecord
   return {
     site_id: requireUuid(row.id, 'customer_site_id'),
-    address_hash: clean(row.address_hash) ?? addressFingerprint(row),
+    address_hash: textField(row, 'address_hash') ?? addressFingerprint(row),
     grid_owner_id: normalizeUuidOrNull(row.grid_owner_id, 'grid_owner_id'),
     grid_area_code: clean(row.grid_area_code),
     route_profile_id: null,
@@ -1049,6 +1053,59 @@ export async function applyInboundGridOwnerResponse(input: {
     .eq('id', input.edielMessageId)
     .eq('company_id', input.companyId)
   if (messageOperationUpdate.error && !missingSchema(messageOperationUpdate.error)) throw messageOperationUpdate.error
+  const originalSnapshot = await originalCustomerDataSnapshot({ companyId, operationId, requestId }).catch(() => null)
+  if (originalSnapshot) {
+    const currentAddressHash = textField(site, 'address_hash') ?? addressFingerprint(site)
+    const requestedGridOwnerSnapshot = normalizeUuidOrNull(originalSnapshot.grid_owner_id, 'grid_owner_id')
+    const currentGridOwnerId = normalizeUuidOrNull(site.grid_owner_id, 'grid_owner_id')
+    const staleReasons = [
+      currentAddressHash !== originalSnapshot.address_hash ? 'site_address_changed_after_request' : null,
+      requestedGridOwnerSnapshot && currentGridOwnerId && requestedGridOwnerSnapshot !== currentGridOwnerId ? 'site_grid_owner_changed_after_request' : null,
+    ].filter(Boolean) as string[]
+    if (staleReasons.length > 0) {
+      const blocker = makeCustomerOperationBlocker('stale_response_requires_review')
+      const payload = {
+        ...blocker,
+        reason: blocker.reason_code,
+        stale_reasons: staleReasons,
+        original_snapshot: originalSnapshot,
+        current_snapshot: {
+          site_id: siteId,
+          address_hash: currentAddressHash,
+          grid_owner_id: currentGridOwnerId,
+          grid_area_code: clean(site.grid_area_code),
+        },
+        source_ediel_message_id: edielMessageId,
+      }
+      await supabaseService
+        .from('customer_info_requests')
+        .update({
+          status: 'manual_review_required',
+          blocker_reason: blocker.blocker_reason,
+          verified_payload: { ...record(request.verified_payload), stale_response: payload },
+          updated_by: effectiveActorUserId,
+          updated_at: nowIso(),
+        })
+        .eq('id', requestId)
+        .eq('company_id', companyId)
+      await emitCustomerOperationEvent({
+        companyId,
+        customerId,
+        actorUserId: effectiveActorUserId,
+        eventType: 'customer_data.needs_review',
+        title: 'Svar från nätägaren behöver granskas',
+        message: blocker.blocker_reason,
+        customerSiteId: siteId,
+        customerOperationJobId: input.customerOperationJobId ?? null,
+        operationId,
+        actionUrl: `/admin/customers/${customerId}?tab=data-requests`,
+        payload,
+        idempotencyKey: `z02-stale-response:${edielMessageId}`,
+      })
+      return payload
+    }
+  }
+
   const { parsed, line } = z02Line(message)
   const meterPointExternalId = clean(line.meteringPointId)
   const facilityId = clean(site.facility_id) ?? meterPointExternalId

@@ -40,7 +40,9 @@ export async function resolveOutboundRuntimeEnvironment(params: {
   const explicit = normalizeEdielEnvironment(params.explicitEnvironment ?? null)
   if (explicit) return explicit
 
-  if (!params.preferredRouteId) return 'production'
+  if (!params.preferredRouteId) {
+    throw new Error('environment_not_resolved: route eller explicit miljö krävs innan Ediel-runtime kan väljas.')
+  }
 
   const { data, error } = await supabaseService
     .from('communication_routes')

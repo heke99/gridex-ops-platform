@@ -282,6 +282,29 @@ async function markOutboxSent(
   }
 }
 
+async function markOutboxDeliveryUncertain(
+  row: TenantEmailOutboxRow,
+  providerMessageId: string | null,
+  errorMessage: string,
+) {
+  const now = new Date().toISOString();
+  await supabaseService
+    .from("tenant_email_outbox")
+    .update({
+      status: "delivery_uncertain",
+      provider_message_id: providerMessageId,
+      failure_reason: "delivery_uncertain_after_provider_send",
+      last_error: errorMessage,
+      delivery_uncertain_at: now,
+      locked_at: null,
+      locked_by: null,
+      lock_token: null,
+      updated_at: now,
+    })
+    .eq("id", row.id)
+    .eq("company_id", row.company_id);
+}
+
 async function markOutboxFailed(
   row: TenantEmailOutboxRow,
   errorMessage: string,
@@ -378,8 +401,15 @@ export async function processTenantEmailOutbox(
     result.claimed += 1;
     try {
       const providerMessageId = await sendTenantEmailOutboxRow(claimed);
-      await markOutboxSent(claimed, providerMessageId);
-      result.sent += 1;
+      try {
+        await markOutboxSent(claimed, providerMessageId);
+        result.sent += 1;
+      } catch (statusError) {
+        const message = safeError(statusError);
+        await markOutboxDeliveryUncertain(claimed, providerMessageId, message);
+        result.errors.push({ id: claimed.id, error: `delivery_uncertain_after_provider_send: ${message}` });
+        continue;
+      }
     } catch (error) {
       const message = safeError(error);
       await markOutboxFailed(claimed, message);
@@ -419,8 +449,14 @@ export async function sendTenantEmailNow(outboxId: string) {
 
   try {
     const providerMessageId = await sendTenantEmailOutboxRow(claimed);
-    await markOutboxSent(claimed, providerMessageId);
-    return { ok: true, messageId: providerMessageId };
+    try {
+      await markOutboxSent(claimed, providerMessageId);
+      return { ok: true, messageId: providerMessageId };
+    } catch (statusError) {
+      const message = safeError(statusError);
+      await markOutboxDeliveryUncertain(claimed, providerMessageId, message);
+      return { ok: false, error: `Leveransen är osäker efter lyckad provider-sändning: ${message}` };
+    }
   } catch (error) {
     const message = safeError(error);
     await markOutboxFailed(claimed, message);

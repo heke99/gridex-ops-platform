@@ -8,6 +8,9 @@ export type CustomerOperationBlockerCode =
   | "invalid_customer_site_snapshot"
   | "environment_mismatch"
   | "ambiguous_sender_settings"
+  | "sender_settings_missing"
+  | "environment_not_resolved"
+  | "stale_response_requires_review"
   | "technical_error"
   | "temporary_provider_error"
   | "send_uncertain";
@@ -91,6 +94,24 @@ const BLOCKERS: Record<CustomerOperationBlockerCode, Omit<CustomerOperationBlock
     issue_type: "route",
     error_class: "configuration_blocker",
   },
+  sender_settings_missing: {
+    blocker_reason: "Avsändarinställning saknas för bolag, miljö och Ediel-flöde.",
+    next_required_action: "Lägg in en entydig aktiv Ediel-aktör för rätt bolag, roll och miljö.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
+  environment_not_resolved: {
+    blocker_reason: "Ediel-miljö kunde inte bestämmas säkert.",
+    next_required_action: "Välj eller koppla route/miljö explicit innan EDIFACT förbereds.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
+  stale_response_requires_review: {
+    blocker_reason: "Svaret matchar inte längre kundens ursprungliga anläggningssnapshot.",
+    next_required_action: "Granska svaret manuellt innan anläggnings- eller mätpunktsdata uppdateras.",
+    issue_type: "data",
+    error_class: "business_blocker",
+  },
   technical_error: {
     blocker_reason: "Ett tekniskt fel stoppade automationen.",
     next_required_action: "Granska tekniskt fel och försök igen när felet är åtgärdat.",
@@ -149,6 +170,10 @@ export function routeIssueCodeToCustomerBlocker(code: unknown): CustomerOperatio
   if (normalized.includes("ambiguous") && normalized.includes("sender")) {
     return "ambiguous_sender_settings";
   }
+  if (normalized.includes("sender_settings_missing") || normalized.includes("missing_company_actor_setting")) {
+    return "sender_settings_missing";
+  }
+  if (normalized.includes("environment_not_resolved")) return "environment_not_resolved";
   if (normalized.includes("certificate")) return "certificate_missing";
   if (normalized.includes("production_send_locked")) return "production_send_locked";
   if (normalized.includes("authorization") || normalized.includes("power_of_attorney")) {

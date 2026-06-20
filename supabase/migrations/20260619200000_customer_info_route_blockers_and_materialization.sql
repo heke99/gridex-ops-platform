@@ -227,7 +227,7 @@ select
     and rp.id is not null
     and nullif(btrim(coalesce(rp.sender_ediel_id, '')), '') is not null
     and nullif(btrim(coalesce(rp.receiver_ediel_id, g.ediel_id, '')), '') is not null
-    and nullif(btrim(coalesce(cr.target_email, rp.receiver_email, '')), '') is not null
+    and nullif(btrim(coalesce(cr.target_email, '')), '') is not null
     and not (
       coalesce(eas.production_send_lock_enabled, false) = true
       and coalesce(eas.first_production_send_approved, false) = false
