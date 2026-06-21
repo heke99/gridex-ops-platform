@@ -53,7 +53,12 @@
     "gridex:energy-resolver-contract-regression": "node scripts/gridex-energy-resolver-contract-regression.cjs",
     "ediel:production-customer-info-route-regression": "node scripts/ediel-production-customer-info-route-regression.cjs",
     "ediel:company-route-materialization-regression": "node scripts/ediel-company-route-materialization-regression.cjs",
-    "gridex:customer-info-dispatch-finalizer-regression": "node scripts/gridex-customer-info-dispatch-finalizer-regression.cjs"
+    "gridex:customer-info-dispatch-finalizer-regression": "node scripts/gridex-customer-info-dispatch-finalizer-regression.cjs",
+    "ediel:company-route-materialization-core-regression": "node scripts/ediel-company-route-materialization-core-regression.cjs",
+    "ediel:production-send-guard-regression": "node scripts/ediel-production-send-guard-regression.cjs",
+    "ediel:z01-golden-regression": "node scripts/ediel-z01-golden-regression.cjs",
+    "ediel:two-tenant-route-isolation-regression": "node scripts/ediel-two-tenant-route-isolation-regression.cjs",
+    "gridex:production-route-readiness-regression": "npm run ediel:company-route-materialization-core-regression && npm run ediel:production-send-guard-regression && npm run ediel:z01-golden-regression && npm run ediel:two-tenant-route-isolation-regression"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

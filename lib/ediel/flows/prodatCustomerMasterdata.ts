@@ -20,7 +20,7 @@ import {
   type CustomerOperationBlocker,
 } from '@/lib/customer-operations/blockers'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
-import { materializePlatformActorRoute } from '@/lib/ediel/routeMaterializer'
+import { materializeCompanyGridOwnerRoute } from '@/lib/ediel/routeMaterializer'
 import { resolveCustomerInfoOperationEnvironment } from '@/lib/ediel/customerInfoEnvironmentResolver'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
@@ -453,9 +453,16 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     messageFamily: 'PRODAT',
     environment: materializationEnvironment ?? 'test',
   })
-  const materializedRoute = !params.communicationRouteId && platformActorRouteId
-    ? (await materializePlatformActorRoute({ platformActorRouteId, actorUserId }))
-        .find((row) => row.companyId === dataRequest.company_id && row.status === 'materialized' && row.communicationRouteId)
+  const materializedRoute = !params.communicationRouteId && platformActorRouteId && dataRequest.company_id && dataRequest.grid_owner_id
+    ? await materializeCompanyGridOwnerRoute({
+        companyId: dataRequest.company_id,
+        gridOwnerId: dataRequest.grid_owner_id,
+        platformActorRouteId,
+        messageFamily: 'PRODAT',
+        messageCode: 'Z01',
+        environment: materializationEnvironment ?? 'test',
+        actorUserId,
+      })
     : null
 
   const outbound = await findOrCreateDataRequestOutbound({
@@ -472,6 +479,9 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       operation_id: operationId,
       platformActorRouteId,
       materializedRouteProfileId: materializedRoute?.edielRouteProfileId ?? null,
+      materializedCompanyMarketPartyRouteId: materializedRoute?.companyMarketPartyRouteId ?? null,
+      materializationStatus: materializedRoute?.status ?? null,
+      materializationReasonCode: materializedRoute?.reasonCode ?? null,
     },
   })
 
@@ -482,17 +492,20 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         : 'operational_route_missing',
       {
         blocker_reason: platformActorRouteId
-          ? 'Nätägaren är verifierad i aktörsregistret, men operativ route saknas.'
+          ? (materializedRoute?.nextRequiredAction ?? 'Nätägaren är verifierad i aktörsregistret, men operativ route saknas.')
           : 'Saknar aktiv customer_masterdata-route för nätägaren. Lägg till route innan PRODAT Z01 kan skickas.',
+        next_required_action: platformActorRouteId
+          ? (materializedRoute?.nextRequiredAction ?? 'Materialisera operativ production-route för nätägaren.')
+          : 'Skapa eller aktivera communication_route och Ediel route profile för nätägaren.',
       },
     )
     const blockerDetails = {
       ...blocker,
-      route_resolution_status: 'missing_operational_route',
+      route_resolution_status: platformActorRouteId ? 'route_materialization_required' : 'missing_operational_route',
       platform_actor_route_id: platformActorRouteId,
-      communication_route_id: null,
-      ediel_route_profile_id: null,
-      company_market_party_route_id: await findCompanyMarketPartyRoute({
+      communication_route_id: materializedRoute?.communicationRouteId ?? null,
+      ediel_route_profile_id: materializedRoute?.edielRouteProfileId ?? null,
+      company_market_party_route_id: materializedRoute?.companyMarketPartyRouteId ?? await findCompanyMarketPartyRoute({
         companyId: dataRequest.company_id ?? null,
         actorId,
         messageFamily: 'PRODAT',

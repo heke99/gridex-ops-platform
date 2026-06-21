@@ -10,6 +10,8 @@ import {
   markRouteNotRelevantAction,
   saveSupplierContactAction,
   verifyActorRouteForManualSendAction,
+  materializeCompanyGridOwnerRouteAction,
+  approveFirstProductionSendAction,
 } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -51,6 +53,23 @@ type ContactRow = {
   email: string | null
   phone: string | null
   is_verified: boolean
+}
+
+type CompanyRouteReadinessRow = {
+  company_id: string
+  grid_owner_id: string | null
+  grid_owner_name: string | null
+  grid_owner_ediel_id: string | null
+  platform_actor_route_id: string | null
+  message_family: string | null
+  message_code: string | null
+  environment: string | null
+  operational_route_ready: boolean | null
+  send_ready: boolean | null
+  blocker_code: string | null
+  readiness_message: string | null
+  sender_settings_id: string | null
+  production_send_lock_status: string | null
 }
 
 const ORDER: RouteReadinessStatus[] = [
@@ -100,6 +119,22 @@ async function loadRouteReadiness() {
   return { rows: (result.data ?? []) as RouteReadinessRow[], error: null as string | null }
 }
 
+
+async function loadCompanyRouteReadiness() {
+  const result = await supabaseService
+    .from('gridex_company_route_readiness_v')
+    .select('company_id, grid_owner_id, grid_owner_name, grid_owner_ediel_id, platform_actor_route_id, message_family, message_code, environment, operational_route_ready, send_ready, blocker_code, readiness_message, sender_settings_id, production_send_lock_status')
+    .or('operational_route_ready.eq.false,send_ready.eq.false')
+    .order('grid_owner_name', { ascending: true })
+    .limit(50)
+
+  if (result.error) {
+    if (isMissingSchemaError(result.error)) return [] as CompanyRouteReadinessRow[]
+    throw result.error
+  }
+  return (result.data ?? []) as CompanyRouteReadinessRow[]
+}
+
 async function loadContacts(actorIds: string[]) {
   if (actorIds.length === 0) return [] as ContactRow[]
   const result = await supabaseService
@@ -117,6 +152,7 @@ async function loadContacts(actorIds: string[]) {
 export default async function EdielRouteReadinessPage() {
   await requirePlatformAdminAccess()
   const { rows, error } = await loadRouteReadiness()
+  const companyRouteRows = await loadCompanyRouteReadiness()
   const contacts = await loadContacts([...new Set(rows.map((row) => row.actor_id))])
   const contactsByActor = new Map<string, ContactRow[]>()
   for (const contact of contacts) {
@@ -141,6 +177,44 @@ export default async function EdielRouteReadinessPage() {
       {error ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           {error}
+        </section>
+      ) : null}
+
+
+      {companyRouteRows.length > 0 ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-amber-950">Bolagsspecifika Ediel-routes som kräver åtgärd</h2>
+          <p className="mt-1 text-sm text-amber-900">Global aktörsroute kan vara verifierad medan bolagets operativa communication_route/route_profile saknas. Materialisera här innan kundautomation försöker finalisera Z01.</p>
+          <div className="mt-4 grid gap-3">
+            {companyRouteRows.slice(0, 8).map((row) => (
+              <div key={`${row.company_id}-${row.grid_owner_id}-${row.platform_actor_route_id}-${row.message_family}-${row.message_code}`} className="rounded-xl border border-amber-200 bg-white p-3 text-sm">
+                <div className="font-medium text-slate-950">{field(row.grid_owner_name)} · {field(row.message_family)}/{field(row.message_code)} · {field(row.environment)}</div>
+                <div className="mt-1 text-xs text-slate-600">Ediel-ID {field(row.grid_owner_ediel_id)} · blocker {field(row.blocker_code)} · production lock {field(row.production_send_lock_status)}</div>
+                <div className="mt-1 text-xs text-slate-600">{row.readiness_message ?? 'Operativ route eller send-readiness saknas.'}</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {row.blocker_code === 'platform_route_exists_but_not_materialized' && row.grid_owner_id && row.platform_actor_route_id ? (
+                    <form action={materializeCompanyGridOwnerRouteAction}>
+                      <input type="hidden" name="companyId" value={row.company_id} />
+                      <input type="hidden" name="gridOwnerId" value={row.grid_owner_id} />
+                      <input type="hidden" name="platformActorRouteId" value={row.platform_actor_route_id} />
+                      <input type="hidden" name="messageFamily" value={row.message_family ?? 'PRODAT'} />
+                      <input type="hidden" name="messageCode" value={row.message_code ?? 'Z01'} />
+                      <input type="hidden" name="environment" value={row.environment ?? 'production'} />
+                      <button className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800">Materialisera route</button>
+                    </form>
+                  ) : null}
+                  {row.production_send_lock_status === 'locked' ? (
+                    <form action={approveFirstProductionSendAction}>
+                      <input type="hidden" name="companyId" value={row.company_id} />
+                      <input type="hidden" name="actorSettingId" value={row.sender_settings_id ?? ''} />
+                      <input type="hidden" name="reason" value="Godkänd från route-readiness efter verifierad production readiness." />
+                      <button className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-medium text-amber-900 hover:bg-amber-100">Godkänn första production-send</button>
+                    </form>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       ) : null}
 

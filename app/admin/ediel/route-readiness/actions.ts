@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { materializePlatformActorRoute } from '@/lib/ediel/routeMaterializer'
+import { materializePlatformActorRoute, materializeCompanyGridOwnerRoute } from '@/lib/ediel/routeMaterializer'
+import { approveFirstProductionSend } from '@/lib/ediel/productionSendApproval'
 import { normalizeUuidOrNull } from '@/lib/validation/uuid'
 
 function value(formData: FormData, key: string): string | null {
@@ -40,6 +41,52 @@ function revalidateRouteReadiness() {
   revalidatePath('/admin/ediel/routes')
   revalidatePath('/admin/ediel/actors')
   revalidatePath('/admin/system-health')
+}
+
+
+export async function materializeCompanyGridOwnerRouteAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const companyId = normalizeUuidOrNull(value(formData, 'companyId'), 'company_id')
+  const gridOwnerId = normalizeUuidOrNull(value(formData, 'gridOwnerId'), 'grid_owner_id')
+  const platformActorRouteId = normalizeUuidOrNull(value(formData, 'platformActorRouteId'), 'platform_actor_route_id')
+  const messageFamily = value(formData, 'messageFamily') ?? 'PRODAT'
+  const messageCode = value(formData, 'messageCode') ?? 'Z01'
+  const environment = value(formData, 'environment') ?? 'production'
+  if (!companyId || !gridOwnerId || !platformActorRouteId) throw new Error('Bolag, nätägare och aktörsroute krävs.')
+
+  const result = await materializeCompanyGridOwnerRoute({
+    companyId,
+    gridOwnerId,
+    platformActorRouteId,
+    messageFamily,
+    messageCode,
+    environment,
+    actorUserId: context.userId,
+  })
+  await auditLaunchAction({
+    actorUserId: context.userId,
+    action: 'route_readiness.company_route_materialized',
+    actorId: gridOwnerId,
+    routeId: platformActorRouteId,
+    metadata: { companyId, messageFamily, messageCode, environment, result },
+  })
+  if (result.status !== 'materialized') throw new Error(result.nextRequiredAction ?? result.reasonCode ?? 'Route kunde inte materialiseras.')
+  revalidateRouteReadiness()
+}
+
+export async function approveFirstProductionSendAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const companyId = normalizeUuidOrNull(value(formData, 'companyId'), 'company_id')
+  const actorSettingId = normalizeUuidOrNull(value(formData, 'actorSettingId'), 'actor_setting_id')
+  if (!companyId) throw new Error('Bolag saknas.')
+  await approveFirstProductionSend({
+    actorUserId: context.userId,
+    companyId,
+    actorSettingId,
+    reason: value(formData, 'reason'),
+  })
+  revalidateRouteReadiness()
+  revalidatePath('/admin/ediel/outbox')
 }
 
 export async function verifyActorRouteForManualSendAction(formData: FormData) {

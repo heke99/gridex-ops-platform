@@ -8,7 +8,7 @@ import {
 
 type JsonRecord = Record<string, unknown>;
 
-type PlatformActorRouteRow = {
+export type PlatformActorRouteRow = {
   id: string;
   actor_id: string;
   message_family: string;
@@ -25,7 +25,7 @@ type PlatformActorRouteRow = {
   metadata: JsonRecord | null;
 };
 
-type GridOwnerMaterializationRow = {
+export type GridOwnerMaterializationRow = {
   id: string;
   company_id: string | null;
   name: string | null;
@@ -33,7 +33,7 @@ type GridOwnerMaterializationRow = {
   platform_market_actor_id: string | null;
 };
 
-type ActorSettingRow = SenderSettingRow;
+export type ActorSettingRow = SenderSettingRow;
 
 export type RouteMaterializationResult = {
   platformActorRouteId: string;
@@ -112,7 +112,7 @@ function routeAllowsBlankSubaddress(route: PlatformActorRouteRow): boolean {
   );
 }
 
-async function getPlatformActorRoute(
+export async function getPlatformActorRoute(
   routeId: string,
 ): Promise<PlatformActorRouteRow | null> {
   const { data, error } = await supabaseService
@@ -354,6 +354,10 @@ async function upsertCompanyMarketPartyRoute(params: {
     company_id: params.companyId,
     market_party_id: params.marketPartyId,
     message_family: params.messageFamily,
+    message_code: params.messageCode,
+    environment: params.environment,
+    platform_actor_route_id: params.platformActorRouteId,
+    communication_route_id: params.communicationRouteId,
     route_profile_id: params.routeProfileId,
     active: true,
     metadata: {
@@ -399,6 +403,180 @@ async function upsertCompanyMarketPartyRoute(params: {
   const { data, error } = await query.select("id").single();
   if (error) throw error;
   return String((data as { id: string }).id);
+}
+
+
+async function getGridOwnerForCompanyMaterialization(gridOwnerId: string): Promise<GridOwnerMaterializationRow | null> {
+  const { data, error } = await supabaseService
+    .from("grid_owners")
+    .select("id,company_id,name,ediel_id,platform_market_actor_id")
+    .eq("id", gridOwnerId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as GridOwnerMaterializationRow | null) ?? null;
+}
+
+export async function materializeCompanyGridOwnerRoute(params: {
+  companyId: string;
+  gridOwnerId: string;
+  platformActorRouteId: string;
+  messageFamily?: string | null;
+  messageCode?: string | null;
+  environment?: "test" | "production" | string | null;
+  actorUserId?: string | null;
+}): Promise<RouteMaterializationResult> {
+  const route = await getPlatformActorRoute(params.platformActorRouteId);
+  const messageFamily = upper(params.messageFamily ?? route?.message_family ?? "PRODAT");
+  const messageCode = text(params.messageCode) ?? (route ? text(metadata(route.metadata).message_code) : null) ?? defaultMessageCode(messageFamily);
+  const environment = (params.environment === "test" || params.environment === "production")
+    ? params.environment
+    : route?.environment;
+
+  if (!route) {
+    return {
+      platformActorRouteId: params.platformActorRouteId,
+      companyId: params.companyId,
+      gridOwnerId: params.gridOwnerId,
+      status: "blocked",
+      reasonCode: "platform_route_missing",
+      nextRequiredAction: "Verifierad global route saknas för nätägaren.",
+      communicationRouteId: null,
+      edielRouteProfileId: null,
+      companyMarketPartyRouteId: null,
+    };
+  }
+
+  const gridOwner = await getGridOwnerForCompanyMaterialization(params.gridOwnerId);
+  if (!gridOwner) {
+    return {
+      platformActorRouteId: route.id,
+      companyId: params.companyId,
+      gridOwnerId: params.gridOwnerId,
+      status: "blocked",
+      reasonCode: "grid_owner_missing",
+      nextRequiredAction: "Nätägaren saknas i masterdata.",
+      communicationRouteId: null,
+      edielRouteProfileId: null,
+      companyMarketPartyRouteId: null,
+    };
+  }
+
+  if (gridOwner.platform_market_actor_id !== route.actor_id) {
+    return {
+      platformActorRouteId: route.id,
+      companyId: params.companyId,
+      gridOwnerId: gridOwner.id,
+      status: "blocked",
+      reasonCode: "grid_owner_actor_mismatch",
+      nextRequiredAction: "Koppla nätägaren till samma verifierade marknadsaktör som routen innan materialisering.",
+      communicationRouteId: null,
+      edielRouteProfileId: null,
+      companyMarketPartyRouteId: null,
+    };
+  }
+
+  if (route.status !== "active" || route.is_verified !== true || route.auto_send_allowed === false) {
+    return {
+      platformActorRouteId: route.id,
+      companyId: params.companyId,
+      gridOwnerId: gridOwner.id,
+      status: "blocked",
+      reasonCode: "platform_route_not_verified",
+      nextRequiredAction: "Verifiera aktörsregistrets route innan operativ materialisering.",
+      communicationRouteId: null,
+      edielRouteProfileId: null,
+      companyMarketPartyRouteId: null,
+    };
+  }
+
+  if (environment && route.environment !== environment) {
+    return {
+      platformActorRouteId: route.id,
+      companyId: params.companyId,
+      gridOwnerId: gridOwner.id,
+      status: "blocked",
+      reasonCode: "platform_route_environment_mismatch",
+      nextRequiredAction: "Välj en global route i samma miljö som kundflödet.",
+      communicationRouteId: null,
+      edielRouteProfileId: null,
+      companyMarketPartyRouteId: null,
+    };
+  }
+
+  const sender = await resolveSenderSettings({
+    companyId: params.companyId,
+    environment: route.environment,
+    actorRole: "supplier",
+    marketRole: "electricity_supplier",
+    messageFamily,
+    messageCode,
+    applicationReference: text(route.application_reference),
+  });
+
+  if (sender.status !== "resolved") {
+    const blocker = makeCustomerOperationBlocker(sender.blockerCode, {
+      blocker_reason:
+        sender.status === "ambiguous"
+          ? "Flera aktiva avsändarinställningar matchar route-materialisering."
+          : sender.status === "environment_mismatch"
+            ? "Avsändarinställningar finns, men inte för route-materialiseringens miljö."
+            : "Avsändarinställning saknas för route-materialisering.",
+    });
+    return {
+      platformActorRouteId: route.id,
+      companyId: params.companyId,
+      gridOwnerId: gridOwner.id,
+      status: "blocked",
+      reasonCode: String(blocker.blocker_code ?? blocker.reason_code ?? sender.blockerCode),
+      nextRequiredAction: blocker.next_required_action,
+      communicationRouteId: null,
+      edielRouteProfileId: null,
+      companyMarketPartyRouteId: null,
+    };
+  }
+
+  const communicationRouteId = await upsertCommunicationRoute({
+    actorUserId: params.actorUserId ?? null,
+    companyId: params.companyId,
+    route,
+    gridOwner,
+    messageFamily,
+    messageCode,
+  });
+  const edielRouteProfileId = await upsertRouteProfile({
+    actorUserId: params.actorUserId ?? null,
+    route,
+    communicationRouteId,
+    gridOwner,
+    senderSettings: sender.setting,
+    messageFamily,
+    messageCode,
+  });
+  const companyMarketPartyRouteId = await upsertCompanyMarketPartyRoute({
+    companyId: params.companyId,
+    marketPartyId: route.actor_id,
+    messageFamily,
+    messageCode,
+    environment: route.environment,
+    routeProfileId: edielRouteProfileId,
+    actorUserId: params.actorUserId ?? null,
+    platformActorRouteId: route.id,
+    communicationRouteId,
+    senderSettings: sender.setting,
+    route,
+  });
+
+  return {
+    platformActorRouteId: route.id,
+    companyId: params.companyId,
+    gridOwnerId: gridOwner.id,
+    status: "materialized",
+    reasonCode: null,
+    nextRequiredAction: null,
+    communicationRouteId,
+    edielRouteProfileId,
+    companyMarketPartyRouteId,
+  };
 }
 
 export async function materializePlatformActorRoute(params: {

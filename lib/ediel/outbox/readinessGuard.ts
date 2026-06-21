@@ -1,6 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateEdielRouteContract } from '@/lib/ediel/outbox/routeContract'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { getProductionSendApprovalBlocker } from '@/lib/ediel/productionSendApproval'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
@@ -18,6 +19,14 @@ function isProtectedOutboundFamily(message: EdielMessageRow): boolean {
 
 export async function getEdielOutboundReadinessBlocker(message: EdielMessageRow): Promise<string | null> {
   if (!isProtectedOutboundFamily(message)) return null
+
+  const productionApprovalBlocker = await getProductionSendApprovalBlocker({
+    companyId: message.company_id ?? null,
+    environment: message.environment ?? null,
+    senderEdielId: message.sender_ediel_id ?? message.unb_sender_id ?? null,
+    messageFamily: message.message_family ?? null,
+  })
+  if (productionApprovalBlocker) return productionApprovalBlocker
 
   const routeContract = await evaluateEdielRouteContract(message)
   if (!routeContract.ok) return routeContract.blocker ?? 'route_contract_not_ready'
