@@ -871,6 +871,9 @@ async function blockCustomerInfoRequest(params: {
   blockerReason: string;
   blockerCode?: string | null;
   blockerDetails?: (CustomerOperationBlocker & Record<string, unknown>) | null;
+  gridOwnerDataRequestId?: string | null;
+  outboundRequestId?: string | null;
+  edielMessageId?: string | null;
   eventType: string;
 }): Promise<InfoRequestDispatchResult> {
   const blockerDetails =
@@ -895,12 +898,18 @@ async function blockCustomerInfoRequest(params: {
       blocker_reason: params.blockerReason,
       blocker_code: blockerDetails?.blocker_code ?? params.blockerCode ?? null,
       blocker_details: blockerDetails ?? null,
+      grid_owner_data_request_id: params.gridOwnerDataRequestId ?? params.request.grid_owner_data_request_id ?? null,
+      outbound_request_id: params.outboundRequestId ?? params.request.outbound_request_id ?? null,
+      ediel_message_id: params.edielMessageId ?? params.request.ediel_message_id ?? null,
       verified_payload: {
         ...(params.request.verified_payload ?? {}),
         blocker_code: blockerDetails?.blocker_code ?? params.blockerCode ?? null,
         blocker_reason: params.blockerReason,
         next_required_action: blockerDetails?.next_required_action ?? null,
         blocker_details: blockerDetails ?? null,
+        gridOwnerDataRequestId: params.gridOwnerDataRequestId ?? params.request.grid_owner_data_request_id ?? null,
+        outboundRequestId: params.outboundRequestId ?? params.request.outbound_request_id ?? null,
+        edielMessageId: params.edielMessageId ?? params.request.ediel_message_id ?? null,
       },
       route_resolution_status: routeResolutionStatus,
       route_resolution_reason: params.blockerReason,
@@ -925,13 +934,16 @@ async function blockCustomerInfoRequest(params: {
     payload: {
       blocker_code: blockerDetails?.blocker_code ?? params.blockerCode ?? null,
       blocker_details: blockerDetails ?? null,
+      gridOwnerDataRequestId: params.gridOwnerDataRequestId ?? params.request.grid_owner_data_request_id ?? null,
+      outboundRequestId: params.outboundRequestId ?? params.request.outbound_request_id ?? null,
+      edielMessageId: params.edielMessageId ?? params.request.ediel_message_id ?? null,
     },
   });
 
   return {
     customerInfoRequest: data as CustomerInfoRequestRow,
-    gridOwnerDataRequestId: null,
-    outboundRequestId: null,
+    gridOwnerDataRequestId: params.gridOwnerDataRequestId ?? params.request.grid_owner_data_request_id ?? null,
+    outboundRequestId: params.outboundRequestId ?? params.request.outbound_request_id ?? null,
     routeProfileId: null,
     status: params.status ?? "blocked",
     blockerReason: params.blockerReason,
@@ -956,6 +968,52 @@ function customerMasterdataAnchorsAreMissing(
     return "Nätägare behöver verifieras innan begäran kan skickas.";
   }
   return null;
+}
+
+
+function customerInfoStatusFromZ01Result(z01: Awaited<ReturnType<typeof prepareAndQueueProdatZ01FromDataRequest>>): string {
+  if (z01.prepared) return "z01_prepared";
+  const code = String(z01.blockerCode ?? z01.blockerDetails?.blocker_code ?? "").toLowerCase();
+  if (code === "missing_power_of_attorney") return "missing_authorization";
+  if (code === "operational_route_missing" || code === "missing_route") return "route_missing";
+  return "blocked";
+}
+
+function routeResolutionStatusFromZ01Result(z01: Awaited<ReturnType<typeof prepareAndQueueProdatZ01FromDataRequest>>): string {
+  if (z01.prepared) return "prepared";
+  return String(
+    z01.blockerDetails?.route_resolution_status ??
+      z01.blockerCode ??
+      "z01_prepare_failed",
+  );
+}
+
+function dispatchBlockerFromError(error: unknown): (CustomerOperationBlocker & Record<string, unknown>) | null {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  const normalized = message.toLowerCase();
+  if (/anläggnings-id|mätpunkt|snapshot|site|facility/.test(message)) {
+    return makeCustomerOperationBlocker("invalid_customer_site_snapshot", {
+      blocker_reason: message || "PRODAT Z01 kunde inte förberedas eftersom anläggningsunderlaget är ofullständigt.",
+    });
+  }
+  const known: Array<[string, string]> = [
+    ["production_send_locked", "production_send_locked"],
+    ["platform_route_exists_but_not_materialized", "platform_route_exists_but_not_materialized"],
+    ["operational_route_missing", "operational_route_missing"],
+    ["missing_route", "operational_route_missing"],
+    ["sender_settings_missing", "sender_settings_missing"],
+    ["environment_not_resolved", "environment_not_resolved"],
+    ["certificate", "certificate_missing"],
+    ["routing blockerades", "operational_route_missing"],
+    ["saknar aktiv route", "operational_route_missing"],
+    ["saknar mottagande ediel-id", "operational_route_missing"],
+    ["saknar ediel-id", "sender_settings_missing"],
+  ];
+  const hit = known.find(([needle]) => normalized.includes(needle));
+  if (!hit) return null;
+  return makeCustomerOperationBlocker(hit[1], {
+    blocker_reason: message || undefined,
+  });
 }
 
 export async function queueCustomerInfoRequestForDispatch(input: {
@@ -1114,6 +1172,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     });
   }
   const dispatchEnvironment = environmentResolution.environment;
+  const operationId = normalizeUuidOrNull(request.operation_id, "operation_id");
 
   const automationKey = `customer-info-request:${request.id}:z01`;
   const gridOwnerDataRequest = await createGridOwnerDataRequest({
@@ -1129,7 +1188,32 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     notes: request.notes,
     automationOrigin: "customer_info_request",
     automationKey,
+    operationId,
   });
+
+  const linkNow = await supabaseService
+    .from("customer_info_requests")
+    .update({
+      grid_owner_data_request_id: gridOwnerDataRequest.id,
+      operation_id: operationId ?? request.operation_id ?? null,
+      route_resolution_status: "grid_owner_request_created",
+      route_resolution_reason: null,
+      next_required_action: "Förbereder PRODAT Z01 mot nätägaren.",
+      updated_by: actorUserId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("company_id", companyId)
+    .eq("id", request.id);
+  if (linkNow.error) throw linkNow.error;
+
+  const linkedRequest: CustomerInfoRequestRow = {
+    ...request,
+    grid_owner_data_request_id: gridOwnerDataRequest.id,
+    operation_id: operationId ?? request.operation_id ?? null,
+    route_resolution_status: "grid_owner_request_created",
+    route_resolution_reason: null,
+    next_required_action: "Förbereder PRODAT Z01 mot nätägaren.",
+  };
 
   let z01: Awaited<ReturnType<typeof prepareAndQueueProdatZ01FromDataRequest>>;
   try {
@@ -1137,25 +1221,29 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       actorUserId,
       gridOwnerDataRequestId: gridOwnerDataRequest.id,
       environment: dispatchEnvironment,
+      operationId,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    if (!/anläggnings-id|mätpunkt|snapshot|site/i.test(message)) throw error;
-    const blocker = makeCustomerOperationBlocker("invalid_customer_site_snapshot", {
-      blocker_reason: message || "PRODAT Z01 kunde inte förberedas eftersom anläggningsunderlaget är ofullständigt.",
-    });
+    const blocker = dispatchBlockerFromError(error);
+    if (!blocker) throw error;
+    const status = blocker.blocker_code === "operational_route_missing" ? "route_missing" : "blocked";
     return blockCustomerInfoRequest({
-      request,
+      request: linkedRequest,
       companyId,
       actorUserId,
+      status,
       blockerReason: blocker.blocker_reason,
       blockerCode: blocker.blocker_code,
-      blockerDetails: blocker,
+      blockerDetails: {
+        ...blocker,
+        route_resolution_status: blocker.blocker_code,
+      },
+      gridOwnerDataRequestId: gridOwnerDataRequest.id,
       eventType: "blocked_z01_prepare_failed",
     });
   }
 
-  const nextStatus = z01.prepared ? "z01_prepared" : "route_missing";
+  const nextStatus = customerInfoStatusFromZ01Result(z01);
   const blockerReason = z01.blockerReason;
   const blockerCode = z01.blockerCode;
   const blockerDetails = z01.blockerDetails;
@@ -1172,18 +1260,20 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       blocker_details: blockerDetails,
       grid_owner_data_request_id: gridOwnerDataRequest.id,
       outbound_request_id: z01.outbound.id,
+      operation_id: operationId ?? request.operation_id ?? null,
       ediel_message_id: z01.message?.id ?? null,
       interchange_reference: z01.message?.interchange_reference ?? null,
       transaction_reference: z01.message?.transaction_reference ?? null,
       correlation_reference: z01.message?.correlation_reference ?? z01.message?.external_reference ?? null,
       external_reference: z01.message?.external_reference ?? (request.verified_payload?.externalReference as string | null) ?? null,
-      route_resolution_status: blockerDetails?.route_resolution_status ?? (blockerCode ? String(blockerCode) : "prepared"),
-      route_resolution_reason: blockerReason,
-      next_required_action: blockerDetails?.next_required_action ?? null,
+      route_resolution_status: routeResolutionStatusFromZ01Result(z01),
+      route_resolution_reason: blockerReason ?? (z01.prepared ? "PRODAT Z01 förberedd." : "PRODAT Z01 kunde inte förberedas automatiskt."),
+      next_required_action: blockerDetails?.next_required_action ?? (z01.prepared ? "Kontrollera outbox/send guard innan meddelandet räknas som skickat." : null),
       verified_payload: {
         ...(request.verified_payload ?? {}),
         dispatchEnvironment,
         environmentResolution: environmentResolution.evidence,
+        operationId: operationId ?? request.operation_id ?? null,
         gridOwnerDataRequestId: gridOwnerDataRequest.id,
         outboundRequestId: z01.outbound.id,
         edielMessageId: z01.message?.id ?? null,
@@ -1194,7 +1284,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
         blocker_code: blockerCode,
         blocker_reason: blockerReason,
         next_required_action: blockerDetails?.next_required_action ?? null,
-        route_resolution_status: blockerDetails?.route_resolution_status ?? null,
+        route_resolution_status: routeResolutionStatusFromZ01Result(z01),
         platform_actor_route_id: blockerDetails?.platform_actor_route_id ?? null,
         communication_route_id: blockerDetails?.communication_route_id ?? z01.outbound.communication_route_id ?? null,
         ediel_route_profile_id: blockerDetails?.ediel_route_profile_id ?? z01.outbound.ediel_route_profile_id ?? null,
@@ -1218,7 +1308,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     requestId: request.id,
     customerId: request.customer_id,
     actorUserId,
-    eventType: z01.prepared ? "z01_prepared_for_dispatch" : "z01_route_missing",
+    eventType: z01.prepared ? "z01_prepared_for_dispatch" : nextStatus === "route_missing" ? "z01_route_missing" : "z01_blocked",
     message: z01.prepared
       ? "PRODAT Z01 är förberedd. Utskick räknas först när outbox/send guard har skickat eller köat meddelandet."
       : (blockerReason ?? "Kontaktväg till nätägare behöver verifieras innan utskick."),
@@ -1226,6 +1316,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       gridOwnerDataRequestId: gridOwnerDataRequest.id,
       outboundRequestId: z01.outbound.id,
       edielMessageId: z01.message?.id ?? null,
+      operationId: operationId ?? request.operation_id ?? null,
       prodatCode: "Z01",
       blocker_code: blockerCode,
       blocker_details: blockerDetails,

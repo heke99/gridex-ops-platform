@@ -354,6 +354,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   gridOwnerDataRequestId: string
   communicationRouteId?: string | null
   environment?: EdielEnvironment | null
+  operationId?: string | null
 }): Promise<PrepareResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await makeServerClient()
@@ -363,6 +364,8 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   if (dataRequest.request_scope !== 'customer_masterdata') {
     throw new Error('PRODAT Z01 kan bara byggas från en customer_masterdata-begäran.')
   }
+
+  const operationId = params.operationId ?? dataRequest.operation_id ?? null
 
   const gridOwner = dataRequest.grid_owner_id
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
@@ -378,10 +381,12 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         requestType: 'customer_masterdata',
         communicationRouteId: null,
         dataRequest,
+        operationId,
         payload: {
           edielCode: 'Z01',
           queuedFrom: 'prepare_prodat_z01_customer_masterdata',
           requestScope: dataRequest.request_scope,
+          operation_id: operationId,
           blockerCode: 'operational_route_missing',
         },
       })
@@ -410,11 +415,13 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         requestType: 'customer_masterdata',
         communicationRouteId: null,
         dataRequest,
+        operationId,
         payload: {
           edielCode: 'Z01',
           queuedFrom: 'prepare_prodat_z01_customer_masterdata',
           requestScope: dataRequest.request_scope,
           expectedResponse: 'PRODAT Z02 eller negativ APERAK',
+          operation_id: operationId,
           blockerCode: environmentResolution.blocker.blocker_code,
           environmentResolution: environmentResolution.evidence,
         },
@@ -425,6 +432,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         sender_settings_id: environmentResolution.actorSettingId,
         ediel_route_profile_id: environmentResolution.routeProfileId,
         production_send_lock_status: environmentResolution.productionSendLockStatus,
+        route_resolution_status: environmentResolution.blocker.blocker_code,
       }
       return {
         dataRequest,
@@ -455,11 +463,13 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     requestType: 'customer_masterdata',
     communicationRouteId: params.communicationRouteId ?? materializedRoute?.communicationRouteId ?? null,
     dataRequest,
+    operationId,
     payload: {
       edielCode: 'Z01',
       queuedFrom: 'prepare_prodat_z01_customer_masterdata',
       requestScope: dataRequest.request_scope,
       expectedResponse: 'PRODAT Z02 eller negativ APERAK',
+      operation_id: operationId,
       platformActorRouteId,
       materializedRouteProfileId: materializedRoute?.edielRouteProfileId ?? null,
     },
@@ -501,6 +511,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         prodatCode: 'Z01',
         blockedReason: blocker.blocker_reason,
         blockerCode: blocker.blocker_code,
+        operation_id: operationId,
         blockerDetails,
       },
       notes: blocker.blocker_reason,
@@ -540,24 +551,31 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       actorUserId,
       payload: {
         requestScope: dataRequest.request_scope,
+        operation_id: operationId,
       },
     })
   } catch (error) {
     if (!(error instanceof RouteDecisionBlockedError)) throw error
     const firstIssue = error.decision.blockingReasons[0]
+    const evidence = asRecord(asRecord(error.decision.payload).route_decision_evidence)
+    const productionLockStatus = text(evidence.production_send_lock_status)
+    const blockerCode = productionLockStatus && productionLockStatus !== 'approved'
+      ? 'production_send_locked'
+      : routeIssueCodeToCustomerBlocker(firstIssue?.code)
     const blocker = makeCustomerOperationBlocker(
-      routeIssueCodeToCustomerBlocker(firstIssue?.code),
+      blockerCode,
       {
-        blocker_reason: firstIssue?.message ?? 'Ediel-route blockerades av route engine.',
+        blocker_reason: blockerCode === 'production_send_locked'
+          ? 'Första produktionssändningen kräver godkännande innan PRODAT Z01 får skickas.'
+          : firstIssue?.message ?? 'Ediel-route blockerades av route engine.',
         next_required_action:
           error.decision.requiredAdminActions[0] ??
-          makeCustomerOperationBlocker(routeIssueCodeToCustomerBlocker(firstIssue?.code)).next_required_action,
+          makeCustomerOperationBlocker(blockerCode).next_required_action,
       },
     )
-    const evidence = asRecord(asRecord(error.decision.payload).route_decision_evidence)
     const blockerDetails = {
       ...blocker,
-      route_resolution_status: error.decision.decisionStatus,
+      route_resolution_status: blockerCode === 'production_send_locked' ? 'production_send_locked' : error.decision.decisionStatus,
       platform_actor_route_id: await findVerifiedPlatformActorRoute({
         actorId,
         messageFamily: 'PRODAT',
@@ -584,6 +602,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         prodatCode: 'Z01',
         blockedReason: blocker.blocker_reason,
         blockerCode: blocker.blocker_code,
+        operation_id: operationId,
         blockerDetails,
         routeDecision: error.decision,
       },
@@ -657,6 +676,14 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     communicationRouteId: routeContext.route.id,
   })
 
+  if (operationId) {
+    const { error } = await supabaseService
+      .from('ediel_messages')
+      .update({ operation_id: operationId })
+      .eq('id', message.id)
+    if (error && !['42703', 'PGRST204', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
+  }
+
   await queuePreparedEdielMessage({
     actorUserId,
     messageId: message.id,
@@ -665,6 +692,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     payload: {
       edielCode: 'Z01',
       routeId: routeContext.route.id,
+      operationId,
       gridOwnerDataRequestId: dataRequest.id,
       messageFamily: 'PRODAT',
       messageCode: 'Z01',
@@ -684,6 +712,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       prodatCode: 'Z01',
       expectedResponse: 'CONTRL/APERAK och därefter PRODAT Z02 eller negativ APERAK',
       routeId: routeContext.route.id,
+      operation_id: operationId,
     },
     notes: dataRequest.notes,
   })

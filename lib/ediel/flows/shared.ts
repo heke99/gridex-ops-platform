@@ -144,6 +144,7 @@ export async function findOrCreateDataRequestOutbound(params: {
   communicationRouteId?: string | null
   dataRequest: GridOwnerDataRequestRow
   payload: Record<string, unknown>
+  operationId?: string | null
 }) {
   const existing = await findOpenOutboundBySource({
     sourceType: 'grid_owner_data_request',
@@ -166,6 +167,7 @@ export async function findOrCreateDataRequestOutbound(params: {
     periodStart: params.dataRequest.requested_period_start,
     periodEnd: params.dataRequest.requested_period_end,
     externalReference: params.dataRequest.external_reference,
+    operationId: params.operationId ?? params.dataRequest.operation_id ?? null,
     payload: params.payload,
   })
 }

@@ -218,6 +218,7 @@ export async function createGridOwnerDataRequest(input: {
   notes?: string | null
   automationOrigin?: string | null
   automationKey?: string | null
+  operationId?: string | null
 }): Promise<GridOwnerDataRequestRow> {
   const context = await getCustomerExportContext({
     customerId: input.customerId,
@@ -234,11 +235,41 @@ export async function createGridOwnerDataRequest(input: {
     requested_period_start: input.requestedPeriodStart ?? null,
     requested_period_end: input.requestedPeriodEnd ?? null,
     external_reference: input.externalReference ?? null,
+    operation_id: input.operationId ?? null,
     ...buildCustomerIdentityPayload(context),
     ...buildSitePayload(context.site),
     ...buildMeteringPointPayload(context.meteringPoint),
     ...buildContractPayload(context.contract),
   })
+
+  if (input.operationId) {
+    let existingByOperationQuery = supabaseService
+      .from('grid_owner_data_requests')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('operation_id', input.operationId)
+      .eq('customer_id', input.customerId)
+      .eq('request_scope', input.requestScope)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (input.siteId) existingByOperationQuery = existingByOperationQuery.eq('site_id', input.siteId)
+    else existingByOperationQuery = existingByOperationQuery.is('site_id', null)
+
+    if (input.meteringPointId) existingByOperationQuery = existingByOperationQuery.eq('metering_point_id', input.meteringPointId)
+    else existingByOperationQuery = existingByOperationQuery.is('metering_point_id', null)
+
+    if (input.gridOwnerId) existingByOperationQuery = existingByOperationQuery.eq('grid_owner_id', input.gridOwnerId)
+    else existingByOperationQuery = existingByOperationQuery.is('grid_owner_id', null)
+
+    const { data: existingByOperation, error: existingByOperationError } = await existingByOperationQuery.maybeSingle()
+
+    const existingByOperationCode = findPostgresErrorCode(existingByOperationError)
+    if (existingByOperationError && !['42703', 'PGRST204', 'PGRST205'].includes(existingByOperationCode ?? '')) {
+      throw existingByOperationError
+    }
+    if (existingByOperation) return existingByOperation as GridOwnerDataRequestRow
+  }
 
   const insertPayload = {
     company_id: companyId,
@@ -251,6 +282,7 @@ export async function createGridOwnerDataRequest(input: {
     requested_period_start: input.requestedPeriodStart ?? null,
     requested_period_end: input.requestedPeriodEnd ?? null,
     external_reference: input.externalReference ?? null,
+    operation_id: input.operationId ?? null,
     notes: input.notes ?? null,
     request_payload: requestPayload,
     response_payload: {},

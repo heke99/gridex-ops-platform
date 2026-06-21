@@ -84,6 +84,7 @@ async function getOutboundRequestByCanonicalBusinessEvent(input: {
   periodStart?: string | null
   periodEnd?: string | null
   gridOwnerId?: string | null
+  operationId?: string | null
 }): Promise<OutboundRequestRow | null> {
   const sourceType = input.sourceType ?? 'manual'
   const sourceId = input.sourceId ?? null
@@ -116,6 +117,8 @@ async function getOutboundRequestByCanonicalBusinessEvent(input: {
   } else {
     query = query.is('grid_owner_id', null)
   }
+
+  if (input.operationId) query = query.eq('operation_id', input.operationId)
 
   const { data, error } = await query.maybeSingle()
   if (error) throw error
@@ -194,6 +197,7 @@ export async function createOutboundRequest(input: {
   dispatchBatchKey?: string | null
   automationOrigin?: string | null
   automationKey?: string | null
+  operationId?: string | null
   replaceOpenSupplierSwitchAttempt?: boolean
 }): Promise<OutboundRequestRow> {
   const context = await getCustomerExportContext({
@@ -242,6 +246,24 @@ export async function createOutboundRequest(input: {
       input.requestType === 'supplier_switch'
   )
 
+  if (input.operationId && input.sourceType === 'grid_owner_data_request' && input.sourceId) {
+    const existingByOperation = await getOutboundRequestByCanonicalBusinessEvent({
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      requestType: input.requestType,
+      periodStart: input.periodStart ?? null,
+      periodEnd: input.periodEnd ?? null,
+      gridOwnerId,
+      operationId: input.operationId,
+    }).catch((error) => {
+      const code = findPostgresErrorCode(error)
+      if (['42703', 'PGRST204', 'PGRST205'].includes(code ?? '')) return null
+      throw error
+    })
+
+    if (existingByOperation) return existingByOperation
+  }
+
   if (shouldReplaceSupplierSwitchAttempt && input.sourceId) {
     await cancelSupplierSwitchOutboundAttemptsForReplacement({
       actorUserId: input.actorUserId,
@@ -257,6 +279,7 @@ export async function createOutboundRequest(input: {
     period_start: input.periodStart ?? null,
     period_end: input.periodEnd ?? null,
     external_reference: input.externalReference ?? null,
+    operation_id: input.operationId ?? null,
     ...buildCustomerIdentityPayload(context),
     ...buildSitePayload(context.site),
     ...buildMeteringPointPayload(context.meteringPoint),
@@ -297,6 +320,7 @@ export async function createOutboundRequest(input: {
     period_start: input.periodStart ?? null,
     period_end: input.periodEnd ?? null,
     external_reference: input.externalReference ?? null,
+    operation_id: input.operationId ?? null,
     dispatch_batch_key: input.dispatchBatchKey ?? buildBatchKey(input.requestType),
     automation_origin: input.automationOrigin ?? null,
     automation_key: input.automationKey ?? null,
@@ -349,6 +373,7 @@ export async function createOutboundRequest(input: {
           targetSystem: route?.target_system ?? null,
           targetEmail: route?.target_email ?? null,
           routeDecision: routeDecisionPayload(routeDecision),
+          operationId: input.operationId ?? null,
           replacement: true,
         },
       })
@@ -369,6 +394,7 @@ export async function createOutboundRequest(input: {
         periodStart: input.periodStart ?? null,
         periodEnd: input.periodEnd ?? null,
         gridOwnerId: input.gridOwnerId ?? null,
+        operationId: input.operationId ?? null,
       })
 
       if (existing) return existing
@@ -394,6 +420,7 @@ export async function createOutboundRequest(input: {
       targetSystem: route?.target_system ?? null,
       targetEmail: route?.target_email ?? null,
       routeDecision: routeDecisionPayload(routeDecision),
+      operationId: input.operationId ?? null,
     },
   })
 

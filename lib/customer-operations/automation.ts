@@ -982,9 +982,14 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
     status: waiting ? 'waiting_response' : 'needs_review',
     result: {
       customer_info_request_id: request.id,
+      grid_owner_data_request_id: dispatch.gridOwnerDataRequestId,
+      outbound_request_id: dispatch.outboundRequestId,
+      reason: preparedOnly
+        ? 'z01_prepared_pending_send_guard'
+        : dispatchBlocker?.reason_code ?? dispatch.status,
       dispatch,
       resolution: resolved.result,
-      ...(dispatchBlocker ? { ...dispatchBlocker, reason: dispatchBlocker.reason_code } : {}),
+      ...(dispatchBlocker ? { ...dispatchBlocker } : {}),
     },
   }
 }

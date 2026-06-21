@@ -42,6 +42,7 @@ export type GridOwnerDataRequestRow = {
   created_by: string | null
   updated_by: string | null
   automation_origin: string | null
+  operation_id?: string | null
   automation_key: string | null
 }
 
@@ -304,6 +305,7 @@ export type OutboundRequestRow = {
   created_by: string | null
   updated_by: string | null
   automation_origin: string | null
+  operation_id?: string | null
   automation_key: string | null
 }
 
