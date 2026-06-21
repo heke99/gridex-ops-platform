@@ -6,8 +6,9 @@ export const metadata: Metadata = {
   description: 'Integrationsguide för hemsidor, kundportaler och partners som ansluter till Gridex API och Customer Portal External Auth Linking.',
 }
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Public, static integration guide with no tenant/customer/private data.
+// Safe to serve from the CDN with ISR (Group A).
+export const revalidate = 3600
 
 const baseUrl = 'https://app.gridex.se'
 

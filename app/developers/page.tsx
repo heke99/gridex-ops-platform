@@ -6,8 +6,9 @@ export const metadata: Metadata = {
   description: 'Gridex utvecklardokumentation och API-guider.',
 }
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Public, static documentation with no tenant/customer/private data.
+// Safe to serve from the CDN with ISR (Group A).
+export const revalidate = 3600
 
 export default function DevelopersPage() {
   return (
