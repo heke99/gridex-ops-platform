@@ -3,6 +3,7 @@ import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { createGridOwnerDataRequest } from "@/lib/cis/db-data";
 import { createOutboundRequest } from "@/lib/cis/db-outbound";
 import { prepareAndQueueProdatZ01FromDataRequest } from "@/lib/ediel/flows/prodatCustomerMasterdata";
+import { resolveCustomerInfoOperationEnvironment } from "@/lib/ediel/customerInfoEnvironmentResolver";
 import { normalizeUuidOrNull, requireUuid } from "@/lib/validation/uuid";
 import {
   makeCustomerOperationBlocker,
@@ -78,6 +79,9 @@ export type CustomerInfoRequestRow = {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  route_resolution_status?: string | null;
+  route_resolution_reason?: string | null;
+  next_required_action?: string | null;
 };
 
 export type AuthorizationScopeRow = {
@@ -876,6 +880,14 @@ async function blockCustomerInfoRequest(params: {
           blocker_reason: params.blockerReason,
         })
       : null);
+  const blockerExtra = (blockerDetails ?? {}) as Record<string, unknown>;
+  const routeResolutionStatus = String(
+    blockerExtra.route_resolution_status ??
+      blockerDetails?.reason_code ??
+      blockerDetails?.blocker_code ??
+      params.blockerCode ??
+      "blocked",
+  );
   const { data, error } = await supabaseService
     .from("customer_info_requests")
     .update({
@@ -890,6 +902,9 @@ async function blockCustomerInfoRequest(params: {
         next_required_action: blockerDetails?.next_required_action ?? null,
         blocker_details: blockerDetails ?? null,
       },
+      route_resolution_status: routeResolutionStatus,
+      route_resolution_reason: params.blockerReason,
+      next_required_action: blockerDetails?.next_required_action ?? null,
       updated_by: params.actorUserId,
       updated_at: new Date().toISOString(),
     })
@@ -925,7 +940,7 @@ async function blockCustomerInfoRequest(params: {
   };
 }
 
-function customerDataDispatchEnvironment(): 'test' | 'production' | null {
+function customerDataDispatchEnvironmentOverride(): 'test' | 'production' | null {
   const raw = process.env.GRIDEX_CUSTOMER_DATA_EDIEL_ENVIRONMENT ?? process.env.GRIDEX_EDIEL_ENVIRONMENT ?? null;
   return raw === 'test' || raw === 'production' ? raw : null;
 }
@@ -1075,19 +1090,30 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     });
   }
 
-  const dispatchEnvironment = customerDataDispatchEnvironment();
-  if (!dispatchEnvironment) {
-    const blocker = makeCustomerOperationBlocker('environment_not_resolved');
+  const environmentResolution = await resolveCustomerInfoOperationEnvironment({
+    companyId,
+    explicitEnvironment: customerDataDispatchEnvironmentOverride(),
+    messageFamily: "PRODAT",
+    messageCode: "Z01",
+  });
+  if (environmentResolution.status === "blocked") {
     return blockCustomerInfoRequest({
       request,
       companyId,
       actorUserId,
-      blockerReason: blocker.blocker_reason,
-      blockerCode: blocker.blocker_code,
-      blockerDetails: blocker,
-      eventType: 'blocked_environment_not_resolved',
+      blockerReason: environmentResolution.blocker.blocker_reason,
+      blockerCode: environmentResolution.blocker.blocker_code,
+      blockerDetails: {
+        ...environmentResolution.blocker,
+        environment_evidence: environmentResolution.evidence,
+        sender_settings_id: environmentResolution.actorSettingId,
+        ediel_route_profile_id: environmentResolution.routeProfileId,
+        production_send_lock_status: environmentResolution.productionSendLockStatus,
+      },
+      eventType: "blocked_environment_resolution",
     });
   }
+  const dispatchEnvironment = environmentResolution.environment;
 
   const automationKey = `customer-info-request:${request.id}:z01`;
   const gridOwnerDataRequest = await createGridOwnerDataRequest({
@@ -1151,8 +1177,13 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       transaction_reference: z01.message?.transaction_reference ?? null,
       correlation_reference: z01.message?.correlation_reference ?? z01.message?.external_reference ?? null,
       external_reference: z01.message?.external_reference ?? (request.verified_payload?.externalReference as string | null) ?? null,
+      route_resolution_status: blockerDetails?.route_resolution_status ?? (blockerCode ? String(blockerCode) : "prepared"),
+      route_resolution_reason: blockerReason,
+      next_required_action: blockerDetails?.next_required_action ?? null,
       verified_payload: {
         ...(request.verified_payload ?? {}),
+        dispatchEnvironment,
+        environmentResolution: environmentResolution.evidence,
         gridOwnerDataRequestId: gridOwnerDataRequest.id,
         outboundRequestId: z01.outbound.id,
         edielMessageId: z01.message?.id ?? null,

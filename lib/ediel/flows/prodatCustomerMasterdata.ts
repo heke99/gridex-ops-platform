@@ -21,6 +21,7 @@ import {
 } from '@/lib/customer-operations/blockers'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { materializePlatformActorRoute } from '@/lib/ediel/routeMaterializer'
+import { resolveCustomerInfoOperationEnvironment } from '@/lib/ediel/customerInfoEnvironmentResolver'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import { renderProdat26A } from '@/lib/ediel/prodatEngine'
@@ -368,31 +369,75 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     : null
   const actorId = gridOwner?.platform_market_actor_id ?? null
 
-  const requestedEnvironment = params.environment ?? null
+  let requestedEnvironment = params.environment ?? null
+  let environmentEvidence: Record<string, unknown> = {}
   if (!requestedEnvironment && !params.communicationRouteId) {
-    const outbound = await findOrCreateDataRequestOutbound({
-      actorUserId,
-      requestType: 'customer_masterdata',
-      communicationRouteId: null,
-      dataRequest,
-      payload: {
-        edielCode: 'Z01',
-        queuedFrom: 'prepare_prodat_z01_customer_masterdata',
-        requestScope: dataRequest.request_scope,
-        expectedResponse: 'PRODAT Z02 eller negativ APERAK',
-        blockerCode: 'environment_not_resolved',
-      },
-    })
-    const blocker = makeCustomerOperationBlocker('environment_not_resolved')
-    return {
-      dataRequest,
-      outbound,
-      message: null,
-      prepared: false,
-      blockerReason: blocker.blocker_reason,
-      blockerCode: blocker.blocker_code,
-      blockerDetails: blocker,
+    if (!dataRequest.company_id) {
+      const outbound = await findOrCreateDataRequestOutbound({
+        actorUserId,
+        requestType: 'customer_masterdata',
+        communicationRouteId: null,
+        dataRequest,
+        payload: {
+          edielCode: 'Z01',
+          queuedFrom: 'prepare_prodat_z01_customer_masterdata',
+          requestScope: dataRequest.request_scope,
+          blockerCode: 'operational_route_missing',
+        },
+      })
+      const blocker = makeCustomerOperationBlocker('operational_route_missing', {
+        blocker_reason: 'Bolagskoppling saknas på nätägarbegäran.',
+        next_required_action: 'Koppla begäran till rätt bolag innan EDIFACT förbereds.',
+      })
+      return {
+        dataRequest,
+        outbound,
+        message: null,
+        prepared: false,
+        blockerReason: blocker.blocker_reason,
+        blockerCode: blocker.blocker_code,
+        blockerDetails: { ...blocker, route_resolution_status: 'company_missing' },
+      }
     }
+    const environmentResolution = await resolveCustomerInfoOperationEnvironment({
+      companyId: dataRequest.company_id,
+      messageFamily: 'PRODAT',
+      messageCode: 'Z01',
+    })
+    if (environmentResolution.status === 'blocked') {
+      const outbound = await findOrCreateDataRequestOutbound({
+        actorUserId,
+        requestType: 'customer_masterdata',
+        communicationRouteId: null,
+        dataRequest,
+        payload: {
+          edielCode: 'Z01',
+          queuedFrom: 'prepare_prodat_z01_customer_masterdata',
+          requestScope: dataRequest.request_scope,
+          expectedResponse: 'PRODAT Z02 eller negativ APERAK',
+          blockerCode: environmentResolution.blocker.blocker_code,
+          environmentResolution: environmentResolution.evidence,
+        },
+      })
+      const blockerDetails = {
+        ...environmentResolution.blocker,
+        environment_evidence: environmentResolution.evidence,
+        sender_settings_id: environmentResolution.actorSettingId,
+        ediel_route_profile_id: environmentResolution.routeProfileId,
+        production_send_lock_status: environmentResolution.productionSendLockStatus,
+      }
+      return {
+        dataRequest,
+        outbound,
+        message: null,
+        prepared: false,
+        blockerReason: environmentResolution.blocker.blocker_reason,
+        blockerCode: String(environmentResolution.blocker.blocker_code),
+        blockerDetails,
+      }
+    }
+    requestedEnvironment = environmentResolution.environment
+    environmentEvidence = environmentResolution.evidence
   }
   const materializationEnvironment = requestedEnvironment ?? null
   const platformActorRouteId = await findVerifiedPlatformActorRoute({

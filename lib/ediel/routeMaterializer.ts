@@ -346,6 +346,9 @@ async function upsertCompanyMarketPartyRoute(params: {
   routeProfileId: string;
   actorUserId: string | null;
   platformActorRouteId: string;
+  communicationRouteId: string;
+  senderSettings: ActorSettingRow;
+  route: PlatformActorRouteRow;
 }): Promise<string> {
   const payload = {
     company_id: params.companyId,
@@ -358,6 +361,16 @@ async function upsertCompanyMarketPartyRoute(params: {
       materialized_from: "platform_actor_routes",
       environment: params.environment,
       message_code: params.messageCode,
+      communication_route_id: params.communicationRouteId,
+      ediel_route_profile_id: params.routeProfileId,
+      sender_settings_id: params.senderSettings.id,
+      receiver_ediel_id:
+        text(params.route.party_id) ??
+        text(params.route.interchange_party_id),
+      receiver_subaddress: text(params.route.subaddress),
+      target_email: text(params.route.communication_address),
+      production_send_lock_enabled: params.senderSettings.production_send_lock_enabled ?? false,
+      first_production_send_approved: params.senderSettings.first_production_send_approved ?? false,
     },
     created_by: params.actorUserId,
     updated_at: new Date().toISOString(),
@@ -451,9 +464,7 @@ export async function materializePlatformActorRoute(params: {
         marketRole: "electricity_supplier",
         messageFamily,
         messageCode,
-        applicationReference:
-          text(route.application_reference) ??
-          defaultApplicationReference(messageFamily),
+        applicationReference: text(route.application_reference),
       });
       if (sender.status !== "resolved") {
         const blocker = makeCustomerOperationBlocker(sender.blockerCode, {
@@ -503,6 +514,9 @@ export async function materializePlatformActorRoute(params: {
         routeProfileId: edielRouteProfileId,
         actorUserId: params.actorUserId ?? null,
         platformActorRouteId: route.id,
+        communicationRouteId,
+        senderSettings: sender.setting,
+        route,
       });
       results.push({
         platformActorRouteId: route.id,

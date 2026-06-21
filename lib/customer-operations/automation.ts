@@ -807,16 +807,41 @@ export async function resolveCustomerSiteGridOwner(input: {
   return { state: 'verified', result: resolved }
 }
 
-async function requestForSite(input: { companyId: string; customerId: string; siteId: string }) {
-  const { data, error } = await supabaseService
+async function requestForSite(input: {
+  companyId: string;
+  customerId: string;
+  siteId: string;
+  operationId?: string | null;
+  gridOwnerId?: string | null;
+}) {
+  let query = supabaseService
     .from('customer_info_requests')
     .select('*')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('site_id', input.siteId)
     .eq('request_type', 'z01_customer_masterdata')
-    .in('status', ['draft', 'ready_to_send', 'z01_prepared', 'sent_to_grid_owner', 'waiting_for_z02', 'waiting_for_aperak', 'waiting_for_contrl', 'z02_received', 'ready_for_switch'])
-    .order('created_at', { ascending: false })
+    .in('status', [
+      'draft',
+      'blocked',
+      'route_missing',
+      'missing_authorization',
+      'manual_review_required',
+      'ready_to_send',
+      'z01_prepared',
+      'sent_to_grid_owner',
+      'waiting_for_z02',
+      'waiting_for_aperak',
+      'waiting_for_contrl',
+      'z02_received',
+      'ready_for_switch',
+    ])
+
+  if (input.operationId) query = query.eq('operation_id', input.operationId)
+  if (input.gridOwnerId) query = query.eq('grid_owner_id', input.gridOwnerId)
+
+  const { data, error } = await query
+    .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
   if (error && !missingSchema(error)) throw error
@@ -881,7 +906,13 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
     }
   }
 
-  const existing = await requestForSite({ companyId: job.company_id, customerId: job.customer_id, siteId: job.customer_site_id })
+  const existing = await requestForSite({
+    companyId: job.company_id,
+    customerId: job.customer_id,
+    siteId: job.customer_site_id,
+    operationId,
+    gridOwnerId: resolved.result.gridOwnerId,
+  })
   const request = existing ?? await createCustomerInfoRequest({
     companyId: job.company_id,
     actorUserId: actorUserId,
@@ -1461,30 +1492,34 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Kundautomation misslyckades.'
         const terminal = job.attempts >= job.max_attempts
+        const reviewTerminal = terminal && job.job_type === 'request_customer_data'
         await updateJob(job, {
-          status: terminal ? 'failed' : 'queued',
+          status: reviewTerminal ? 'needs_review' : terminal ? 'failed' : 'queued',
+          result: reviewTerminal ? blockerResult('technical_error', { blocker_reason: message }) : undefined,
+          stale_reason: null,
           run_after: terminal ? null : retryAt(job.attempts),
           locked_at: null,
           locked_by: null,
           lock_token: null,
-          last_error: message,
+          heartbeat_at: null,
+          last_error: reviewTerminal ? null : message,
           completed_at: terminal ? nowIso() : null,
         })
         if (terminal) {
           await emitCustomerOperationEvent({
             companyId: job.company_id,
             customerId: job.customer_id,
-            eventType: 'operation.failed',
+            eventType: reviewTerminal ? 'operation.needs_review' : 'operation.failed',
             title: operationTitle(job.job_type),
-            message: 'Automationssteget kunde inte slutföras och behöver granskas.',
+            message: reviewTerminal ? 'Automationssteget behöver granskas innan ny körning.' : 'Automationssteget kunde inte slutföras och behöver granskas.',
             customerSiteId: job.customer_site_id,
             meteringPointId: job.metering_point_id,
             customerOperationJobId: job.id,
             operationId: job.operation_id ?? job.id,
-            status: 'failed',
+            status: reviewTerminal ? 'needs_review' : 'failed',
             actionUrl: `/admin/customers/${job.customer_id}`,
-            payload: { job_type: job.job_type, error: message },
-            idempotencyKey: `operation-failed:${job.id}`,
+            payload: { job_type: job.job_type, error: message, terminal_status: reviewTerminal ? 'needs_review' : 'failed' },
+            idempotencyKey: `operation-terminal:${job.id}:${reviewTerminal ? 'needs_review' : 'failed'}`,
           })
         }
         return { outcome: null, error: `${job.id}: ${message}`, terminal }
