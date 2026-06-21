@@ -9,6 +9,7 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { processWebsiteCustomerApplication } from '@/lib/website/customerApplications'
 import { logUsageEvent } from '@/lib/audit/actionLogger'
+import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -39,7 +40,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json().catch(() => ({}))
+    const parsed = await readJsonWithLimit(request)
+    if (!parsed.ok) {
+      const status = parsed.code === 'payload_too_large' ? 413 : 400
+      await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: parsed.code })
+      return customerPortalJson({
+        error: parsed.code === 'payload_too_large'
+          ? 'Förfrågans innehåll är för stort.'
+          : 'Ogiltig JSON i förfrågan.',
+        code: parsed.code,
+      }, { status })
+    }
+    const body = (parsed.body ?? {}) as Record<string, unknown>
     const result = await processWebsiteCustomerApplication({
       client: auth.client,
       rawBody: body,
