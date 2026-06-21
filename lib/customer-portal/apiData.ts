@@ -162,6 +162,14 @@ export function portalQueryErrorMetadata(error: unknown): Record<string, unknown
   }
 }
 
+// Clamps an optional caller-provided section limit to a safe range. When no
+// limit is supplied the section keeps its existing default so the default
+// portal-bundle response shape and size remain unchanged.
+export function clampSectionLimit(limit: number | null | undefined, fallback: number, max = 500): number {
+  if (typeof limit !== 'number' || !Number.isFinite(limit)) return fallback
+  return Math.min(Math.max(Math.trunc(limit), 1), max)
+}
+
 async function listWithSchemaFallback(queries: PortalListQuery[]): Promise<Array<Record<string, unknown>>> {
   for (const query of queries) {
     const result = await query()
@@ -257,8 +265,9 @@ const METERING_VALUES_SELECT = 'id,customer_id,customer_site_id,site_id,metering
 const METERING_VALUES_LEGACY_SELECT = 'id,metering_point_id,customer_site_id,facility_id,price_area,period_start,period_end,quantity_kwh,resolution,status,created_at'
 const METERING_VALUES_MINIMAL_SELECT = 'id,metering_point_id,period_start,period_end,quantity_kwh,status,created_at'
 
-export async function listPortalMeteringValues(context: PortalCustomerContext, route = '/api/v1/customer/metering-values') {
+export async function listPortalMeteringValues(context: PortalCustomerContext, route = '/api/v1/customer/metering-values', limit?: number | null) {
   await logPortalAccess({ context, route, action: 'read_metering_values' })
+  const rowLimit = clampSectionLimit(limit, 500)
   return listWithSchemaFallback([
     async () => await supabaseService
       .from('normalized_metering_values')
@@ -266,21 +275,21 @@ export async function listPortalMeteringValues(context: PortalCustomerContext, r
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .order('period_start', { ascending: false })
-      .limit(500) as ListResult,
+      .limit(rowLimit) as ListResult,
     async () => await supabaseService
       .from('normalized_metering_values')
       .select(METERING_VALUES_LEGACY_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .order('period_start', { ascending: false })
-      .limit(500) as ListResult,
+      .limit(rowLimit) as ListResult,
     async () => await supabaseService
       .from('normalized_metering_values')
       .select(METERING_VALUES_MINIMAL_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .order('period_start', { ascending: false })
-      .limit(500) as ListResult,
+      .limit(rowLimit) as ListResult,
   ])
 }
 
@@ -366,8 +375,9 @@ const DOCUMENT_LEGACY_SELECT = 'id,document_type,title,file_name,mime_type,file_
 const DOCUMENT_MINIMAL_SELECT = 'id,document_type,title,file_name,power_of_attorney_id,created_at'
 const AUTH_DOCUMENT_SELECT = 'id,document_type,status,title,file_name,mime_type,file_size_bytes,storage_bucket,file_path,reference,notes,power_of_attorney_id,customer_contract_id,metering_point_id,metadata,uploaded_at,created_at'
 
-export async function listPortalDocuments(context: PortalCustomerContext, route = '/api/v1/customer/documents') {
+export async function listPortalDocuments(context: PortalCustomerContext, route = '/api/v1/customer/documents', limit?: number | null) {
   await logPortalAccess({ context, route, action: 'read_documents' })
+  const rowLimit = clampSectionLimit(limit, 100)
   const customerDocuments = await listWithSchemaFallback([
     async () => await supabaseService
       .from('customer_documents')
@@ -375,21 +385,21 @@ export async function listPortalDocuments(context: PortalCustomerContext, route 
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
+      .limit(rowLimit) as ListResult,
     async () => await supabaseService
       .from('customer_documents')
       .select(DOCUMENT_LEGACY_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
+      .limit(rowLimit) as ListResult,
     async () => await supabaseService
       .from('customer_documents')
       .select(DOCUMENT_MINIMAL_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
+      .limit(rowLimit) as ListResult,
   ])
 
   const authorizationDocuments = await listWithSchemaFallback([
@@ -400,7 +410,7 @@ export async function listPortalDocuments(context: PortalCustomerContext, route 
       .eq('customer_id', context.customerId)
       .neq('status', 'archived')
       .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
+      .limit(rowLimit) as ListResult,
   ])
 
   const normalizedAuthorizationDocuments: Array<Record<string, unknown>> = authorizationDocuments.map((row) => ({
@@ -577,8 +587,9 @@ const EVENT_SELECT = 'id,event_type,source,payload,metadata,occurred_at,created_
 const EVENT_LEGACY_SELECT = 'id,event_type,payload,metadata,created_at'
 const DOMAIN_EVENT_SELECT = 'id,event_type,source,payload,occurred_at,created_at'
 
-export async function listPortalEvents(context: PortalCustomerContext, route = '/api/v1/customer/events') {
+export async function listPortalEvents(context: PortalCustomerContext, route = '/api/v1/customer/events', limit?: number | null) {
   await logPortalAccess({ context, route, action: 'read_events' })
+  const rowLimit = clampSectionLimit(limit, 100)
   const customerEvents = await listWithSchemaFallback([
     async () => await supabaseService
       .from('customer_events')
@@ -586,14 +597,14 @@ export async function listPortalEvents(context: PortalCustomerContext, route = '
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .order('occurred_at', { ascending: false })
-      .limit(100) as ListResult,
+      .limit(rowLimit) as ListResult,
     async () => await supabaseService
       .from('customer_events')
       .select(EVENT_LEGACY_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
+      .limit(rowLimit) as ListResult,
   ])
 
   const domainEvents = await listWithSchemaFallback([
@@ -603,7 +614,7 @@ export async function listPortalEvents(context: PortalCustomerContext, route = '
       .eq('company_id', context.companyId)
       .eq('subject_customer_id', context.customerId)
       .order('occurred_at', { ascending: false })
-      .limit(100) as ListResult,
+      .limit(rowLimit) as ListResult,
   ])
 
   const seen = new Set<string>()
@@ -616,7 +627,7 @@ export async function listPortalEvents(context: PortalCustomerContext, route = '
       return true
     })
     .sort((a, b) => String(b.occurred_at ?? b.created_at ?? '').localeCompare(String(a.occurred_at ?? a.created_at ?? '')))
-    .slice(0, 100)
+    .slice(0, rowLimit)
 }
 
 const NOTIFICATION_SELECT = 'id,type,title,message,status,read_at,action_url,metadata,created_at'

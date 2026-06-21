@@ -31,9 +31,66 @@ import {
   hasContractPricePlan,
   removeFalsePricePlanBlockers,
 } from '@/lib/customer-portal/status'
+import { startRouteTimer } from '@/lib/performance/timing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+// Optional heavy sections that callers may exclude or limit. Core sections
+// (contracts, sites, metering points, powers of attorney, legal acceptances,
+// website applications) are always loaded because the derived customer_status
+// depends on them. When no options are supplied the full default bundle is
+// returned unchanged for backward compatibility.
+const OPTIONAL_SECTIONS = ['metering_values', 'documents', 'events', 'invoices', 'notifications'] as const
+type OptionalSection = (typeof OPTIONAL_SECTIONS)[number]
+
+type BundleOptions = {
+  summary: boolean
+  includedOptionalSections: Set<OptionalSection>
+  meteringValuesLimit: number | null
+  documentsLimit: number | null
+  eventsLimit: number | null
+}
+
+const SUMMARY_HEAVY_LIMIT = 30
+
+function parseBooleanFlag(value: string | null): boolean {
+  return value === '1' || value === 'true' || value === 'yes'
+}
+
+function parseLimitParam(value: string | null): number | null {
+  if (!value) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null
+}
+
+function parseBundleOptions(request: NextRequest): BundleOptions {
+  const params = request.nextUrl.searchParams
+  const summary = parseBooleanFlag(params.get('summary'))
+
+  const includeRaw = params.get('include')
+  let includedOptionalSections: Set<OptionalSection>
+  if (includeRaw && includeRaw.trim()) {
+    const requested = new Set(
+      includeRaw
+        .split(',')
+        .map((part) => part.trim().toLowerCase())
+        .filter(Boolean)
+    )
+    includedOptionalSections = new Set(OPTIONAL_SECTIONS.filter((section) => requested.has(section)))
+  } else {
+    includedOptionalSections = new Set(OPTIONAL_SECTIONS)
+  }
+
+  const summaryLimit = summary ? SUMMARY_HEAVY_LIMIT : null
+  return {
+    summary,
+    includedOptionalSections,
+    meteringValuesLimit: parseLimitParam(params.get('metering_values_limit')) ?? summaryLimit,
+    documentsLimit: parseLimitParam(params.get('documents_limit')) ?? summaryLimit,
+    eventsLimit: parseLimitParam(params.get('events_limit')) ?? summaryLimit,
+  }
+}
 
 type PortalRows = Array<Record<string, unknown>>
 type BundleSection =
@@ -86,13 +143,28 @@ async function optionalSection(
   }
 }
 
+// Like optionalSection, but skips the read entirely (returning an empty array)
+// when the caller excluded the section via ?include=. The response key is still
+// present, so no public/customer response fields are removed.
+async function gatedSection(
+  section: BundleSection,
+  enabled: boolean,
+  read: () => Promise<PortalRows>,
+  warnings: BundleWarning[]
+): Promise<PortalRows> {
+  if (!enabled) return []
+  return optionalSection(section, read, warnings)
+}
+
 async function buildBundleResponse(input: {
   request: NextRequest
   client: IntegrationApiClient
   identity: LinkedPortalIdentity
   startedAt: number
   accessMode: 'headers_or_query' | 'json_payload'
+  options: BundleOptions
 }) {
+  const timer = startRouteTimer('/api/v1/customer/portal-bundle')
   try {
     const portalContext = portalContextFromResolved({
       companyId: input.client.company_id,
@@ -103,17 +175,18 @@ async function buildBundleResponse(input: {
     })
     const route = '/api/v1/customer/portal-bundle'
     const warnings: BundleWarning[] = []
+    const { options } = input
 
     const [rawContracts, sites, invoices, meteringValues, documents, legalAcceptances, powersOfAttorney, notifications, events, rawWebsiteApplications] = await Promise.all([
       optionalSection('contracts', () => listPortalContracts(portalContext, route), warnings),
       optionalSection('sites', () => listPortalSites(portalContext, route), warnings),
-      optionalSection('invoices', () => listPortalInvoices(portalContext, route), warnings),
-      optionalSection('metering_values', () => listPortalMeteringValues(portalContext, route), warnings),
-      optionalSection('documents', () => listPortalDocuments(portalContext, route), warnings),
+      gatedSection('invoices', options.includedOptionalSections.has('invoices'), () => listPortalInvoices(portalContext, route), warnings),
+      gatedSection('metering_values', options.includedOptionalSections.has('metering_values'), () => listPortalMeteringValues(portalContext, route, options.meteringValuesLimit), warnings),
+      gatedSection('documents', options.includedOptionalSections.has('documents'), () => listPortalDocuments(portalContext, route, options.documentsLimit), warnings),
       optionalSection('legal_acceptances', () => listPortalLegalAcceptances(portalContext, route), warnings),
       optionalSection('powers_of_attorney', () => listPortalPowersOfAttorney(portalContext, route), warnings),
-      optionalSection('notifications', () => listPortalNotifications(portalContext, route), warnings),
-      optionalSection('events', () => listPortalEvents(portalContext, route), warnings),
+      gatedSection('notifications', options.includedOptionalSections.has('notifications'), () => listPortalNotifications(portalContext, route), warnings),
+      gatedSection('events', options.includedOptionalSections.has('events'), () => listPortalEvents(portalContext, route, options.eventsLimit), warnings),
       optionalSection('website_applications', () => listPortalWebsiteApplications(portalContext, route), warnings),
     ])
     const meteringPoints = await optionalSection(
@@ -167,7 +240,16 @@ async function buildBundleResponse(input: {
         data_quality_issues: customerStatus.issues,
         failed_sections: warnings.map((warning) => warning.section),
         section_errors: warnings,
+        summary_mode: options.summary,
+        included_optional_sections: Array.from(options.includedOptionalSections),
       },
+    })
+
+    timer.stop({
+      status: 200,
+      count: contracts.length + sites.length + meteringPoints.length + invoices.length,
+      companyId: input.client.company_id,
+      meta: { summary: options.summary, partial: warnings.length > 0 },
     })
 
     return customerPortalJson({
@@ -226,6 +308,7 @@ async function buildBundleResponse(input: {
       },
     })
   } catch (error) {
+    timer.stop({ status: 500, companyId: input.client.company_id })
     return handleCustomerPortalRouteError({ request: input.request, client: input.client, startedAt: input.startedAt, error })
   }
 }
@@ -239,6 +322,7 @@ export async function GET(request: NextRequest) {
     identity: context.identity,
     startedAt: context.startedAt,
     accessMode: 'headers_or_query',
+    options: parseBundleOptions(request),
   })
 }
 
@@ -252,5 +336,6 @@ export async function POST(request: NextRequest) {
     identity: context.identity,
     startedAt: context.startedAt,
     accessMode: 'json_payload',
+    options: parseBundleOptions(request),
   })
 }
