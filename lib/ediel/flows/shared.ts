@@ -14,6 +14,7 @@ import {
   cancelSupplierSwitchOutboundAttemptsForReplacement,
   createOutboundRequest,
   findOpenOutboundBySource,
+  repairOutboundRequestCommunicationRoute,
   updateOutboundRequestStatus,
 } from '@/lib/cis/db'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
@@ -152,7 +153,30 @@ export async function findOrCreateDataRequestOutbound(params: {
     requestType: params.requestType,
   })
 
-  if (existing) return existing
+  if (existing) {
+    // Tenant safety: an outbound found by this data request's source id must
+    // belong to the same company before it is reused or repaired.
+    const sameCompany =
+      !existing.company_id ||
+      !params.dataRequest.company_id ||
+      existing.company_id === params.dataRequest.company_id
+
+    // Repair a stale outbound that was created before an operational route
+    // existed: if it has no communication_route_id and a valid route is now
+    // available, attach it instead of returning the broken outbound unchanged.
+    if (sameCompany && !existing.communication_route_id && params.communicationRouteId) {
+      return repairOutboundRequestCommunicationRoute({
+        actorUserId: params.actorUserId,
+        outbound: existing,
+        communicationRouteId: params.communicationRouteId,
+        operationId: params.operationId ?? params.dataRequest.operation_id ?? null,
+      })
+    }
+
+    if (sameCompany) return existing
+    // If the existing outbound belongs to another company, do not reuse it;
+    // fall through to createOutboundRequest which re-scopes by company.
+  }
 
   return createOutboundRequest({
     actorUserId: params.actorUserId,
