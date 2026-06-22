@@ -69,7 +69,11 @@
     "gridex:route-materialization-partial-repair-regression": "node scripts/gridex-route-materialization-partial-repair-regression.cjs",
     "gridex:route-runtime-selection-regression": "node scripts/gridex-route-runtime-selection-regression.cjs",
     "gridex:customer-info-z01-chain-regression": "node scripts/gridex-customer-info-z01-chain-regression.cjs",
-    "gridex:ack-chain-regression": "node scripts/gridex-ack-chain-regression.cjs"
+    "gridex:ack-chain-regression": "node scripts/gridex-ack-chain-regression.cjs",
+    "gridex:z01-grid-owner-finalizer-regression": "node scripts/gridex-z01-grid-owner-finalizer-regression.cjs",
+    "gridex:customer-card-workflow-ui-regression": "node scripts/gridex-customer-card-workflow-ui-regression.cjs",
+    "gridex:messages-sidebar-regression": "node scripts/gridex-messages-sidebar-regression.cjs",
+    "gridex:schema-relationship-contract-regression": "node scripts/gridex-schema-relationship-contract-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

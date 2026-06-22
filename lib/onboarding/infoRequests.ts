@@ -1174,6 +1174,11 @@ export async function queueCustomerInfoRequestForDispatch(input: {
   const dispatchEnvironment = environmentResolution.environment;
   const operationId = normalizeUuidOrNull(request.operation_id, "operation_id");
 
+  // Idempotency: if this customer_info_request already points to a pending GODR
+  // that has no linked outbound (stuck from a previous throw), reuse it rather
+  // than creating yet another pending row. createGridOwnerDataRequest handles
+  // dedup by automationKey, so the same GODR is returned when retrying the
+  // same customer_info_request.
   const automationKey = `customer-info-request:${request.id}:z01`;
   const gridOwnerDataRequest = await createGridOwnerDataRequest({
     actorUserId,
@@ -1205,6 +1210,31 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     .eq("company_id", companyId)
     .eq("id", request.id);
   if (linkNow.error) throw linkNow.error;
+
+  // Mark other stuck pending GODRs for the same customer/site/grid_owner/scope as failed
+  // to prevent accumulation of orphaned rows. Fire-and-forget — non-critical.
+  if (request.customer_id && request.grid_owner_id) {
+    supabaseService
+      .from("grid_owner_data_requests")
+      .update({
+        status: "failed",
+        failure_reason: "Begäran ersattes av en ny uppgiftsbegäran.",
+        failed_at: new Date().toISOString(),
+        updated_by: actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("company_id", companyId)
+      .eq("customer_id", request.customer_id)
+      .eq("grid_owner_id", request.grid_owner_id)
+      .eq("request_scope", "customer_masterdata")
+      .eq("status", "pending")
+      .neq("id", gridOwnerDataRequest.id)
+      .then(({ error: supersededError }) => {
+        if (supersededError) {
+          console.warn("[infoRequests] kunde inte markera gamla pending GODR som avslutade", supersededError?.message);
+        }
+      });
+  }
 
   const linkedRequest: CustomerInfoRequestRow = {
     ...request,

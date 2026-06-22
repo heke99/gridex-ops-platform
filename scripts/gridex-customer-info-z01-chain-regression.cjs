@@ -110,4 +110,39 @@ assert(
   'routeMatrix: PRODAT Z01 is not mapped to supplier_switch on any single line'
 )
 
+// ---- 11. Post-route-ready flow: GODR -> outbound via source_type/source_id ----
+const sharedFlow = read('lib/ediel/flows/shared.ts')
+assert(
+  /sourceType.*grid_owner_data_request|'grid_owner_data_request'/.test(sharedFlow),
+  'shared.ts: outbound uses source_type = grid_owner_data_request'
+)
+assert(
+  /sourceId.*dataRequest\.id|source_id.*dataRequest\.id/.test(sharedFlow),
+  'shared.ts: outbound source_id is set to dataRequest.id'
+)
+
+// ---- 12. findOrCreateDataRequestOutbound repairs null-route outbound when route is ready ----
+assert(
+  /repairOutboundRequestCommunicationRoute/.test(sharedFlow),
+  'shared.ts: findOrCreateDataRequestOutbound calls repairOutboundRequestCommunicationRoute when route is available'
+)
+
+// ---- 13. finalizer exports and delegates to Z01 prep ----
+const finalizer = read('lib/customer-operations/z01Finalizer.ts')
+assert(
+  /finalizeStuckZ01GridOwnerDataRequest/.test(finalizer),
+  'z01Finalizer.ts: exports finalizeStuckZ01GridOwnerDataRequest'
+)
+assert(
+  /prepareAndQueueProdatZ01FromDataRequest/.test(finalizer),
+  'z01Finalizer.ts: delegates finalization to prepareAndQueueProdatZ01FromDataRequest'
+)
+
+// ---- 14. infoRequests marks old stuck GODRs as failed (prevents accumulation) ----
+const infoReqs = read('lib/onboarding/infoRequests.ts')
+assert(
+  /status.*failed[\s\S]{0,100}grid_owner_data_requests|grid_owner_data_requests[\s\S]{0,100}status.*failed/s.test(infoReqs),
+  'infoRequests.ts: marks superseded pending GODRs as failed on new dispatch'
+)
+
 console.log('\nCustomer info Z01 chain regression passed.')
