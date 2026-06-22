@@ -49,6 +49,59 @@ export async function getProductionSendApprovalBlocker(params: {
   return null
 }
 
+// Merge existing metadata into the approval stamp so prior keys are preserved.
+async function mergeApprovalMetadataUpdate(params: {
+  actorUserId: string
+  companyId: string
+  actorSettingId?: string | null
+  reason?: string | null
+  now: string
+}): Promise<void> {
+  const approvalStamp = {
+    production_send_approved_by: params.actorUserId,
+    production_send_approved_at: params.now,
+    production_send_approval_reason: params.reason ?? 'Första produktionssändningen godkänd av platform admin.',
+  }
+
+  let selectQuery = supabaseService
+    .from('ediel_actor_settings')
+    .select('id,metadata')
+    .eq('company_id', params.companyId)
+    .eq('environment', 'production')
+    .eq('is_active', true)
+  if (params.actorSettingId) selectQuery = selectQuery.eq('id', params.actorSettingId)
+
+  const existing = await selectQuery.limit(50)
+  if (existing.error) {
+    if (schemaCompatibilityError(existing.error)) {
+      const fallback = await supabaseService
+        .from('ediel_actor_settings')
+        .update({ first_production_send_approved: true, production_send_lock_enabled: false, updated_at: params.now })
+        .eq('company_id', params.companyId)
+        .eq('environment', 'production')
+      if (fallback.error && !schemaCompatibilityError(fallback.error)) throw fallback.error
+      return
+    }
+    throw existing.error
+  }
+
+  for (const row of (existing.data ?? []) as Array<{ id: string; metadata?: unknown }>) {
+    const currentMetadata = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+      ? (row.metadata as Record<string, unknown>)
+      : {}
+    const update = await supabaseService
+      .from('ediel_actor_settings')
+      .update({
+        first_production_send_approved: true,
+        production_send_lock_enabled: false,
+        updated_at: params.now,
+        metadata: { ...currentMetadata, ...approvalStamp },
+      })
+      .eq('id', row.id)
+    if (update.error && !schemaCompatibilityError(update.error)) throw update.error
+  }
+}
+
 export async function approveFirstProductionSend(params: {
   actorUserId: string
   companyId: string
@@ -56,36 +109,23 @@ export async function approveFirstProductionSend(params: {
   reason?: string | null
 }): Promise<void> {
   const now = new Date().toISOString()
-  let query = supabaseService
-    .from('ediel_actor_settings')
-    .update({
-      first_production_send_approved: true,
-      production_send_lock_enabled: false,
-      updated_at: now,
-      metadata: {
-        production_send_approved_by: params.actorUserId,
-        production_send_approved_at: now,
-        production_send_approval_reason: params.reason ?? 'Första produktionssändningen godkänd av platform admin.',
-      },
-    })
-    .eq('company_id', params.companyId)
-    .eq('environment', 'production')
-    .eq('is_active', true)
 
-  if (params.actorSettingId) query = query.eq('id', params.actorSettingId)
-  const { error } = await query
-  if (error) {
-    if (!schemaCompatibilityError(error)) throw error
-    const fallback = await supabaseService
-      .from('ediel_actor_settings')
-      .update({
-        first_production_send_approved: true,
-        production_send_lock_enabled: false,
-        updated_at: now,
-      })
-      .eq('company_id', params.companyId)
-      .eq('environment', 'production')
-    if (fallback.error) throw fallback.error
+  // Prefer the SECURITY DEFINER RPC which merges metadata (|| jsonb) and records
+  // an immutable approval row scoped to company/environment.
+  const rpc = await supabaseService.rpc('gridex_approve_first_production_send', {
+    p_company_id: params.companyId,
+    p_actor_setting_id: params.actorSettingId ?? null,
+    p_actor_user_id: params.actorUserId,
+    p_reason: params.reason ?? null,
+  })
+
+  if (rpc.error) {
+    // Compatibility fallback for environments where the RPC is not deployed yet:
+    // still merge (never overwrite) existing metadata.
+    if (!schemaCompatibilityError(rpc.error) && !/function .* does not exist|Could not find the function/i.test(String(rpc.error.message ?? ''))) {
+      throw rpc.error
+    }
+    await mergeApprovalMetadataUpdate({ ...params, now })
   }
 
   await supabaseService
@@ -96,6 +136,8 @@ export async function approveFirstProductionSend(params: {
       entity_type: 'companies',
       entity_id: params.companyId,
       metadata: {
+        company_id: params.companyId,
+        environment: 'production',
         actor_setting_id: params.actorSettingId ?? null,
         reason: params.reason ?? null,
       },
