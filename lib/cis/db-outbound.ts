@@ -580,6 +580,78 @@ export async function updateOutboundRequestStatus(input: {
   return row
 }
 
+// Repairs an existing outbound that was created before an operational route
+// existed. Only repairs when the new route is active and belongs to the SAME
+// company and environment as the outbound — never crosses tenant or test/prod
+// boundaries. Returns the (possibly unchanged) outbound row.
+export async function repairOutboundRequestCommunicationRoute(input: {
+  actorUserId: string
+  outbound: OutboundRequestRow
+  communicationRouteId: string
+  operationId?: string | null
+}): Promise<OutboundRequestRow> {
+  const outbound = input.outbound
+  if (outbound.communication_route_id) return outbound
+
+  const route = await getCommunicationRouteById(input.communicationRouteId)
+  if (!route) return outbound
+
+  const routeCompanyId = (route as { company_id?: string | null }).company_id ?? null
+  const routeActive = (route as { is_active?: boolean | null }).is_active
+  if (routeActive === false) return outbound
+
+  // Tenant safety: never attach another company's route to this outbound.
+  if (outbound.company_id && routeCompanyId && outbound.company_id !== routeCompanyId) {
+    return outbound
+  }
+
+  // Environment safety: never repair a test outbound with a production route or
+  // vice versa. The outbound's intended environment is read from its payload.
+  const routeEnvironment = String((route as { environment_type?: string | null }).environment_type ?? '').toLowerCase() || null
+  const outboundEnvironment = String((outbound.payload as { environment?: unknown } | null)?.environment ?? '').toLowerCase() || null
+  if (routeEnvironment && outboundEnvironment && routeEnvironment !== outboundEnvironment) {
+    return outbound
+  }
+
+  const repairedPayload = mergeJsonObjects(outbound.payload ?? {}, {
+    ...buildRoutePayload(route),
+    communication_route_id: route.id,
+    operation_id: input.operationId ?? (outbound.payload as { operation_id?: unknown } | null)?.operation_id ?? null,
+    route_materialization_repaired: true,
+    route_materialization_repaired_at: new Date().toISOString(),
+  })
+
+  const update = await supabaseService
+    .from('outbound_requests')
+    .update({
+      communication_route_id: route.id,
+      payload: repairedPayload,
+      updated_by: input.actorUserId,
+    })
+    .eq('id', outbound.id)
+    .is('communication_route_id', null)
+    .select('*')
+    .maybeSingle()
+
+  if (update.error) {
+    if (['42703', 'PGRST204', 'PGRST205'].includes(findPostgresErrorCode(update.error) ?? '')) return outbound
+    throw update.error
+  }
+
+  const repaired = (update.data as OutboundRequestRow | null) ?? outbound
+
+  await createOutboundDispatchEvent({
+    actorUserId: input.actorUserId,
+    outboundRequestId: outbound.id,
+    eventType: 'queued',
+    eventStatus: 'route_repaired',
+    message: 'Outbound-route repareras efter materialisering av operativ route.',
+    payload: { communication_route_id: route.id, operation_id: input.operationId ?? null },
+  }).catch(() => undefined)
+
+  return repaired
+}
+
 export async function getOutboundRequestById(
   outboundRequestId: string
 ): Promise<OutboundRequestRow | null> {

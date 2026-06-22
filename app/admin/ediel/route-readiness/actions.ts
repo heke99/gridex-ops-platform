@@ -1,11 +1,35 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { materializePlatformActorRoute, materializeCompanyGridOwnerRoute } from '@/lib/ediel/routeMaterializer'
 import { approveFirstProductionSend } from '@/lib/ediel/productionSendApproval'
 import { normalizeUuidOrNull } from '@/lib/validation/uuid'
+
+const ROUTE_READINESS_PATH = '/admin/ediel/route-readiness'
+
+function normalizeEnvironment(raw: string | null): 'test' | 'production' | null {
+  return raw === 'test' || raw === 'production' ? raw : null
+}
+
+// Resolve the effective message code without trusting the hidden form field:
+// PRODAT with an empty code defaults to Z01, UTILTS must stay null/empty.
+function resolveMessageCode(messageFamily: string, rawCode: string | null): string | null {
+  if (rawCode) return rawCode
+  return messageFamily.toUpperCase() === 'PRODAT' ? 'Z01' : null
+}
+
+function safeMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error ?? 'unknown_error')
+}
+
+// Build a controlled redirect back to the page with a non-sensitive status code.
+// Technical details stay in audit/metadata/logging, never in the URL/UI.
+function redirectWithStatus(kind: 'ok' | 'error', code: string): never {
+  redirect(`${ROUTE_READINESS_PATH}?status=${kind}&code=${encodeURIComponent(code)}`)
+}
 
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key)
@@ -45,48 +69,136 @@ function revalidateRouteReadiness() {
 
 
 export async function materializeCompanyGridOwnerRouteAction(formData: FormData) {
+  // Authorization failures are intentional (403) and may surface as-is.
   const context = await requirePlatformAdminActionAccess()
-  const companyId = normalizeUuidOrNull(value(formData, 'companyId'), 'company_id')
-  const gridOwnerId = normalizeUuidOrNull(value(formData, 'gridOwnerId'), 'grid_owner_id')
-  const platformActorRouteId = normalizeUuidOrNull(value(formData, 'platformActorRouteId'), 'platform_actor_route_id')
-  const messageFamily = value(formData, 'messageFamily') ?? 'PRODAT'
-  const messageCode = value(formData, 'messageCode') ?? 'Z01'
-  const environment = value(formData, 'environment') ?? 'production'
-  if (!companyId || !gridOwnerId || !platformActorRouteId) throw new Error('Bolag, nätägare och aktörsroute krävs.')
 
-  const result = await materializeCompanyGridOwnerRoute({
-    companyId,
-    gridOwnerId,
-    platformActorRouteId,
-    messageFamily,
-    messageCode,
-    environment,
-    actorUserId: context.userId,
-  })
-  await auditLaunchAction({
-    actorUserId: context.userId,
-    action: 'route_readiness.company_route_materialized',
-    actorId: gridOwnerId,
-    routeId: platformActorRouteId,
-    metadata: { companyId, messageFamily, messageCode, environment, result },
-  })
-  if (result.status !== 'materialized') throw new Error(result.nextRequiredAction ?? result.reasonCode ?? 'Route kunde inte materialiseras.')
+  // The whole materialization is wrapped so a thrown error or a non-materialized
+  // result never crashes the Server Component render. We always end with a
+  // controlled redirect carrying a non-sensitive status code.
+  let outcome: { kind: 'ok' | 'error'; code: string } = { kind: 'error', code: 'unknown_error' }
+  try {
+    const companyId = normalizeUuidOrNull(value(formData, 'companyId'), 'company_id')
+    const gridOwnerId = normalizeUuidOrNull(value(formData, 'gridOwnerId'), 'grid_owner_id')
+    const platformActorRouteId = normalizeUuidOrNull(value(formData, 'platformActorRouteId'), 'platform_actor_route_id')
+    const messageFamily = (value(formData, 'messageFamily') ?? 'PRODAT').toUpperCase()
+    const messageCode = resolveMessageCode(messageFamily, value(formData, 'messageCode'))
+    const environment = normalizeEnvironment(value(formData, 'environment'))
+
+    if (!companyId || !gridOwnerId || !platformActorRouteId) {
+      await auditLaunchAction({
+        actorUserId: context.userId,
+        action: 'route_readiness.company_route_materialize_rejected',
+        actorId: gridOwnerId,
+        routeId: platformActorRouteId,
+        metadata: { companyId, gridOwnerId, platformActorRouteId, messageFamily, messageCode, environment, reasonCode: 'missing_required_identifiers', actorUserId: context.userId },
+      })
+      outcome = { kind: 'error', code: 'missing_required_identifiers' }
+    } else if (!environment) {
+      await auditLaunchAction({
+        actorUserId: context.userId,
+        action: 'route_readiness.company_route_materialize_rejected',
+        actorId: gridOwnerId,
+        routeId: platformActorRouteId,
+        metadata: { companyId, gridOwnerId, platformActorRouteId, messageFamily, messageCode, environment: value(formData, 'environment'), reasonCode: 'invalid_environment', actorUserId: context.userId },
+      })
+      outcome = { kind: 'error', code: 'invalid_environment' }
+    } else {
+      const result = await materializeCompanyGridOwnerRoute({
+        companyId,
+        gridOwnerId,
+        platformActorRouteId,
+        messageFamily,
+        messageCode,
+        environment,
+        actorUserId: context.userId,
+      })
+      await auditLaunchAction({
+        actorUserId: context.userId,
+        action: result.status === 'materialized' ? 'route_readiness.company_route_materialized' : 'route_readiness.company_route_materialize_blocked',
+        actorId: gridOwnerId,
+        routeId: platformActorRouteId,
+        metadata: {
+          companyId,
+          gridOwnerId,
+          platformActorRouteId,
+          messageFamily,
+          messageCode,
+          environment,
+          reasonCode: result.reasonCode,
+          technicalMessage: result.technicalMessage ?? null,
+          nextRequiredAction: result.nextRequiredAction,
+          actorUserId: context.userId,
+          result,
+        },
+      })
+      outcome = result.status === 'materialized'
+        ? { kind: 'ok', code: 'materialized' }
+        : { kind: 'error', code: result.reasonCode ?? 'route_materialization_failed' }
+    }
+  } catch (error) {
+    await auditLaunchAction({
+      actorUserId: context.userId,
+      action: 'route_readiness.company_route_materialize_failed',
+      metadata: { reasonCode: 'unexpected_error', technicalMessage: safeMessage(error), actorUserId: context.userId },
+    }).catch(() => undefined)
+    outcome = { kind: 'error', code: 'route_materialization_failed' }
+  }
+
   revalidateRouteReadiness()
+  redirectWithStatus(outcome.kind, outcome.code)
 }
 
 export async function approveFirstProductionSendAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
-  const companyId = normalizeUuidOrNull(value(formData, 'companyId'), 'company_id')
-  const actorSettingId = normalizeUuidOrNull(value(formData, 'actorSettingId'), 'actor_setting_id')
-  if (!companyId) throw new Error('Bolag saknas.')
-  await approveFirstProductionSend({
-    actorUserId: context.userId,
-    companyId,
-    actorSettingId,
-    reason: value(formData, 'reason'),
-  })
+
+  let outcome: { kind: 'ok' | 'error'; code: string } = { kind: 'error', code: 'unknown_error' }
+  try {
+    const companyId = normalizeUuidOrNull(value(formData, 'companyId'), 'company_id')
+    const actorSettingId = normalizeUuidOrNull(value(formData, 'actorSettingId'), 'actor_setting_id')
+    if (!companyId) {
+      outcome = { kind: 'error', code: 'missing_company' }
+    } else {
+      // Server-side guard: never approve production before an operational route
+      // exists for the company in production. Hidden fields are not trusted.
+      let readinessQuery = supabaseService
+        .from('gridex_company_route_readiness_v')
+        .select('operational_route_ready,sender_settings_id')
+        .eq('company_id', companyId)
+        .eq('environment', 'production')
+        .eq('operational_route_ready', true)
+      if (actorSettingId) readinessQuery = readinessQuery.eq('sender_settings_id', actorSettingId)
+      const readiness = await readinessQuery.limit(1)
+      const operationalReadyExists = !readiness.error && (readiness.data ?? []).length > 0
+
+      if (!operationalReadyExists) {
+        await auditLaunchAction({
+          actorUserId: context.userId,
+          action: 'route_readiness.production_approval_rejected',
+          metadata: { companyId, actorSettingId, reasonCode: 'operational_route_missing', actorUserId: context.userId },
+        })
+        outcome = { kind: 'error', code: 'operational_route_missing' }
+      } else {
+        await approveFirstProductionSend({
+          actorUserId: context.userId,
+          companyId,
+          actorSettingId,
+          reason: value(formData, 'reason'),
+        })
+        outcome = { kind: 'ok', code: 'production_approved' }
+      }
+    }
+  } catch (error) {
+    await auditLaunchAction({
+      actorUserId: context.userId,
+      action: 'route_readiness.production_approval_failed',
+      metadata: { reasonCode: 'unexpected_error', technicalMessage: safeMessage(error), actorUserId: context.userId },
+    }).catch(() => undefined)
+    outcome = { kind: 'error', code: 'production_approval_failed' }
+  }
+
   revalidateRouteReadiness()
   revalidatePath('/admin/ediel/outbox')
+  redirectWithStatus(outcome.kind, outcome.code)
 }
 
 export async function verifyActorRouteForManualSendAction(formData: FormData) {
