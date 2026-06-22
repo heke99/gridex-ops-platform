@@ -314,6 +314,7 @@ export async function createParseResult(input: {
 
 export async function createInboundEdielMessage(input: {
   companyId: string
+  environment?: string | null
   inboundEmailMessageId: string
   parseResultId?: string | null
   parsed: ParsedEdifactEnvelope
@@ -343,8 +344,15 @@ export async function createInboundEdielMessage(input: {
     parseResultId: input.parseResultId ?? null,
   })
 
+  const normalizedEnvironment =
+    input.environment === 'test' || input.environment === 'production' ? input.environment : null
+  const matchedOperationId =
+    typeof matchedOutbound.operation_id === 'string' ? matchedOutbound.operation_id : null
+
   const insertPayload = {
     company_id: input.companyId,
+    environment: normalizedEnvironment,
+    operation_id: matchedOperationId,
     direction: 'inbound',
     message_standard: 'edifact',
     message_family: input.parsed.messageFamily,

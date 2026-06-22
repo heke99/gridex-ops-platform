@@ -1143,6 +1143,7 @@ async function loadExistingIdentity(companyId: string, externalCustomerId: strin
     .from('customer_portal_identities')
     .select('id,customer_id,external_customer_id,status')
     .eq('company_id', companyId)
+    .eq('provider', WEBSITE_PORTAL_PROVIDER)
     .eq('external_customer_id', externalCustomerId)
     .in('status', ['active', 'pending_review'])
     .order('created_at', { ascending: false })
@@ -1261,11 +1262,15 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
   const name = fullName(customer)
   const email = normalizedEmail(customer.email)
   const customerNumber = existing?.customer_number ?? await reserveCustomerNumber(client.company_id)
+  const externalCustomerId = clean(input.external_customer_id)
   const now = new Date().toISOString()
 
   if (existing) {
     const updatePayload = {
       customer_number: customerNumber,
+      // Keep customers.external_customer_id in sync so tenant-scoped portal
+      // resolution can fall back to it without a portal identity row.
+      ...(externalCustomerId ? { external_customer_id: externalCustomerId } : {}),
       email: email ?? existing.email,
       phone: clean(customer.phone),
       full_name: name ?? existing.full_name,
@@ -1314,6 +1319,7 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
     email,
     phone: clean(customer.phone),
     customer_number: customerNumber,
+    ...(externalCustomerId ? { external_customer_id: externalCustomerId } : {}),
     invoice_email: normalizedEmail(customer.invoice_email) ?? email,
     billing_street: clean(customer.billing_street),
     billing_postal_code: clean(customer.billing_postal_code),

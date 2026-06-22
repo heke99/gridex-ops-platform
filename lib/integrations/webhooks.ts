@@ -54,6 +54,11 @@ function signingSecret(subscription: WebhookSubscriptionRow): string | null {
   return byRef ?? process.env.WEBHOOK_SIGNING_SECRET_FALLBACK ?? null
 }
 
+function eventEnvironment(data: Record<string, unknown>): 'test' | 'production' | null {
+  const value = String(data.environment ?? '').trim().toLowerCase()
+  return value === 'test' || value === 'production' ? value : null
+}
+
 function canonicalPayload(event: DomainEventRow) {
   const data = event.payload ?? {}
   return {
@@ -63,6 +68,9 @@ function canonicalPayload(event: DomainEventRow) {
     event_type: event.event_type,
     created_at: event.occurred_at,
     company_id: event.company_id,
+    // Surface environment so consumers can never confuse a test event with a
+    // production event. Route/outbox/customer-operation events carry it in data.
+    environment: eventEnvironment(data),
     customer_id: event.subject_customer_id,
     customer_number: typeof data.customer_number === 'string' ? data.customer_number : null,
     external_customer_id: typeof data.external_customer_id === 'string' ? data.external_customer_id : null,
@@ -82,6 +90,11 @@ function signedHeaders(subscription: WebhookSubscriptionRow, delivery: WebhookDe
     'x-gridex-event-type': delivery.event_type,
     'x-gridex-delivery-id': delivery.id,
   })
+
+  const deliveryEnvironment = (delivery.payload as { environment?: unknown }).environment
+  if (deliveryEnvironment === 'test' || deliveryEnvironment === 'production') {
+    headers.set('x-gridex-environment', deliveryEnvironment)
+  }
 
   for (const [key, value] of Object.entries(subscription.custom_headers ?? {})) {
     if (typeof value === 'string' && key.toLowerCase() !== 'authorization') headers.set(key, value)

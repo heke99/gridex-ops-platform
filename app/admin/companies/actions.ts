@@ -22,6 +22,7 @@ import {
 import { getTenantEmailBranding, renderTenantEmailLayout } from '@/lib/tenant/emailBranding'
 import { sendTransactionalEmail, getAuthSmtpReadiness } from '@/lib/auth/smtpTransactionalEmail'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
+import { seedCompanyOnboardingTasks } from '@/lib/onboarding/companyReadiness'
 import {
   parseCompanyAssignableMembershipRole,
   parseCompanyAssignableRoleKey,
@@ -376,6 +377,11 @@ export async function createCompanyAction(
     createdCompanyId = company.id as string
     await verifyCompanyCreated(createdCompanyId)
     await seedDefaultCompanyEmailConfiguration(createdCompanyId)
+    // Seed the onboarding readiness checklist so the tenant has an explicit
+    // test/production readiness path from creation (best-effort).
+    await seedCompanyOnboardingTasks(createdCompanyId).catch((error) =>
+      console.warn('Company onboarding checklist could not be seeded', error),
+    )
 
     let provisionedProjectRef: string | null = null
 

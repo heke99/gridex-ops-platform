@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types";
 import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness";
 import { resolveOwnElectricitySupplier } from "@/lib/masterdata/selfSupplier";
+import { calculateEarliestSwitchStartDate } from "@/lib/operations/switchStartDate";
 import {
   assertNoActiveSwitchLifecycleBlock,
   OPEN_SUPPLIER_SWITCH_STATUSES,
@@ -1426,6 +1427,19 @@ export async function createSupplierSwitchRequest(
   const incomingSupplierName = ownSupplier?.name ?? "Gridex";
   const incomingSupplierOrgNumber = ownSupplier?.org_number ?? null;
 
+  // Compute the earliest legally/market-valid start date from notice period,
+  // contract end and move-in date. We honor a provided requested date but fill
+  // it in when missing, and always record the calculation for audit/review.
+  const startDateCalculation = calculateEarliestSwitchStartDate({
+    requestType: params.requestType,
+    requestedStartDate: params.requestedStartDate,
+    noticePeriod: params.site.current_supplier_notice_period ?? null,
+    contractEndDate: params.site.current_supplier_contract_end_date ?? null,
+    moveInDate: params.site.move_in_date ?? null,
+  });
+  const effectiveRequestedStartDate =
+    params.requestedStartDate ?? startDateCalculation.effectiveStartDate;
+
   const insertPayload = {
     customer_id: params.readiness.customerId,
     site_id: params.site.id,
@@ -1434,7 +1448,7 @@ export async function createSupplierSwitchRequest(
     authorization_document_id: params.authorizationDocumentId ?? null,
     request_type: params.requestType,
     status: "queued" as const,
-    requested_start_date: params.requestedStartDate,
+    requested_start_date: effectiveRequestedStartDate,
     current_supplier_id: params.site.current_supplier_id ?? null,
     current_supplier_name: params.site.current_supplier_name,
     current_supplier_org_number: params.site.current_supplier_org_number,
@@ -1469,6 +1483,7 @@ export async function createSupplierSwitchRequest(
         terminationFee: params.site.current_supplier_termination_fee ?? null,
         responseStatus: params.site.current_supplier_response_status ?? null,
       },
+      startDateCalculation,
     },
     automation_origin: params.automationOrigin ?? null,
     automation_key: params.automationKey ?? null,

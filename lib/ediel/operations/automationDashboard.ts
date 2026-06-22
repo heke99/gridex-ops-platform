@@ -97,7 +97,7 @@ export async function getEdielAutomationDashboard(params?: {
     }),
     safeTableRows({
       table: 'ediel_outbox',
-      select: 'id,company_id,ediel_message_id,source_message_id,status,priority,message_family,message_code,ack_outcome,environment,attempts,last_error,created_at,updated_at,sent_at',
+      select: 'id,company_id,ediel_message_id,source_message_id,status,priority,message_family,message_code,ack_outcome,environment,attempts,last_error,locked_at,locked_by,created_at,updated_at,sent_at',
       orderColumn: 'created_at',
       limit,
       companyId: params?.companyId ?? null,
