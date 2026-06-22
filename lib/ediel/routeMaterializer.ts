@@ -1,5 +1,6 @@
 import { supabaseService } from "@/lib/supabase/service";
 import { makeCustomerOperationBlocker } from "@/lib/customer-operations/blockers";
+import { getCompanyGridOwnerRouteReadiness } from "@/lib/ediel/companyRouteReadiness";
 import {
   resolveSenderSettings,
   senderSettingProductionLockStatus,
@@ -7,6 +8,44 @@ import {
 } from "@/lib/ediel/senderSettingsResolver";
 
 type JsonRecord = Record<string, unknown>;
+
+function pgErrorCode(error: unknown): string | null {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === "string" && code.trim() ? code.trim() : null;
+}
+
+function pgErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  const candidate = error as { message?: unknown; details?: unknown; hint?: unknown } | null;
+  return [candidate?.message, candidate?.details, candidate?.hint]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .join(" ") || String(error ?? "unknown_error");
+}
+
+function isSchemaError(error: unknown): boolean {
+  const code = pgErrorCode(error) ?? "";
+  return (
+    ["42P01", "42703", "PGRST204", "PGRST205"].includes(code) ||
+    /schema cache|does not exist|column .* does not exist|could not find the table/i.test(pgErrorMessage(error))
+  );
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return pgErrorCode(error) === "23505";
+}
+
+// Maps a thrown upsert error to the structured per-step reason code so the
+// caller never surfaces a raw exception into a Server Component render.
+function stepFailureReason(
+  error: unknown,
+  insertFailed: string,
+  updateFailed: string,
+  isUpdate: boolean,
+): string {
+  if (isSchemaError(error)) return "schema_mismatch";
+  if (isUniqueViolation(error)) return "duplicate_route_conflict";
+  return isUpdate ? updateFailed : insertFailed;
+}
 
 export type PlatformActorRouteRow = {
   id: string;
@@ -45,6 +84,10 @@ export type RouteMaterializationResult = {
   communicationRouteId: string | null;
   edielRouteProfileId: string | null;
   companyMarketPartyRouteId: string | null;
+  technicalMessage?: string | null;
+  messageFamily?: string | null;
+  messageCode?: string | null;
+  environment?: string | null;
 };
 
 function text(value: unknown): string | null {
@@ -226,7 +269,7 @@ async function upsertCommunicationRoute(params: {
         .from("communication_routes")
         .insert({ ...payload, created_by: params.actorUserId });
   const { data, error } = await query.select("id").single();
-  if (error) throw error;
+  if (error) throw Object.assign(error as object, { gridexIsUpdate: Boolean(match?.id) });
   return String((data as { id: string }).id);
 }
 
@@ -333,7 +376,7 @@ async function upsertRouteProfile(params: {
         .from("ediel_route_profiles")
         .insert({ ...payload, created_by: params.actorUserId });
   const { data, error } = await query.select("id").single();
-  if (error) throw error;
+  if (error) throw Object.assign(error as object, { gridexIsUpdate: Boolean(match?.id) });
   return String((data as { id: string }).id);
 }
 
@@ -401,7 +444,7 @@ async function upsertCompanyMarketPartyRoute(params: {
         .eq("id", match.id)
     : supabaseService.from("company_market_party_routes").insert(payload);
   const { data, error } = await query.select("id").single();
-  if (error) throw error;
+  if (error) throw Object.assign(error as object, { gridexIsUpdate: Boolean(match?.id) });
   return String((data as { id: string }).id);
 }
 
@@ -535,36 +578,140 @@ export async function materializeCompanyGridOwnerRoute(params: {
     };
   }
 
-  const communicationRouteId = await upsertCommunicationRoute({
-    actorUserId: params.actorUserId ?? null,
+  const failure = (reasonCode: string, nextRequiredAction: string, error: unknown): RouteMaterializationResult => ({
+    platformActorRouteId: route.id,
     companyId: params.companyId,
-    route,
-    gridOwner,
-    messageFamily,
-    messageCode,
-  });
-  const edielRouteProfileId = await upsertRouteProfile({
-    actorUserId: params.actorUserId ?? null,
-    route,
-    communicationRouteId,
-    gridOwner,
-    senderSettings: sender.setting,
-    messageFamily,
-    messageCode,
-  });
-  const companyMarketPartyRouteId = await upsertCompanyMarketPartyRoute({
-    companyId: params.companyId,
-    marketPartyId: route.actor_id,
+    gridOwnerId: gridOwner.id,
+    status: "blocked",
+    reasonCode,
+    nextRequiredAction,
+    communicationRouteId: null,
+    edielRouteProfileId: null,
+    companyMarketPartyRouteId: null,
+    technicalMessage: pgErrorMessage(error),
     messageFamily,
     messageCode,
     environment: route.environment,
-    routeProfileId: edielRouteProfileId,
-    actorUserId: params.actorUserId ?? null,
-    platformActorRouteId: route.id,
-    communicationRouteId,
-    senderSettings: sender.setting,
-    route,
   });
+
+  let communicationRouteId: string;
+  try {
+    communicationRouteId = await upsertCommunicationRoute({
+      actorUserId: params.actorUserId ?? null,
+      companyId: params.companyId,
+      route,
+      gridOwner,
+      messageFamily,
+      messageCode,
+    });
+  } catch (error) {
+    return failure(
+      stepFailureReason(error, "communication_route_insert_failed", "communication_route_update_failed", Boolean((error as { gridexIsUpdate?: boolean }).gridexIsUpdate)),
+      "Communication route kunde inte sparas. Kontrollera schema och dubbletter.",
+      error,
+    );
+  }
+
+  let edielRouteProfileId: string;
+  try {
+    edielRouteProfileId = await upsertRouteProfile({
+      actorUserId: params.actorUserId ?? null,
+      route,
+      communicationRouteId,
+      gridOwner,
+      senderSettings: sender.setting,
+      messageFamily,
+      messageCode,
+    });
+  } catch (error) {
+    return failure(
+      stepFailureReason(error, "ediel_route_profile_insert_failed", "ediel_route_profile_update_failed", Boolean((error as { gridexIsUpdate?: boolean }).gridexIsUpdate)),
+      "Ediel route profile kunde inte sparas. Kontrollera schema och dubbletter.",
+      error,
+    );
+  }
+
+  let companyMarketPartyRouteId: string;
+  try {
+    companyMarketPartyRouteId = await upsertCompanyMarketPartyRoute({
+      companyId: params.companyId,
+      marketPartyId: route.actor_id,
+      messageFamily,
+      messageCode,
+      environment: route.environment,
+      routeProfileId: edielRouteProfileId,
+      actorUserId: params.actorUserId ?? null,
+      platformActorRouteId: route.id,
+      communicationRouteId,
+      senderSettings: sender.setting,
+      route,
+    });
+  } catch (error) {
+    return failure(
+      stepFailureReason(error, "company_market_party_route_insert_failed", "company_market_party_route_update_failed", Boolean((error as { gridexIsUpdate?: boolean }).gridexIsUpdate)),
+      "Company market party route kunde inte sparas. Kontrollera schema och dubbletter.",
+      error,
+    );
+  }
+
+  // Postcheck: reload the readiness view and confirm the operational route is
+  // actually ready for the exact tenant/environment/message scope before we
+  // report success. This prevents false "materialized" results.
+  let postcheckMessage: string | null = null;
+  try {
+    const readiness = await getCompanyGridOwnerRouteReadiness({
+      companyId: params.companyId,
+      gridOwnerId: gridOwner.id,
+      messageFamily,
+      messageCode,
+      environment: route.environment,
+    });
+    const ok = Boolean(
+      readiness &&
+        readiness.operational_route_ready === true &&
+        readiness.communication_route_id &&
+        readiness.ediel_route_profile_id &&
+        readiness.company_market_party_route_id &&
+        String(readiness.platform_actor_route_id ?? route.id) === route.id &&
+        String(readiness.environment ?? route.environment) === route.environment,
+    );
+    if (!ok) {
+      return {
+        platformActorRouteId: route.id,
+        companyId: params.companyId,
+        gridOwnerId: gridOwner.id,
+        status: "blocked",
+        reasonCode: "route_materialization_postcheck_failed",
+        nextRequiredAction:
+          "Operativa rader skrevs men readiness-vyn bekräftar inte operativ route. Kontrollera route-profil och constraints.",
+        communicationRouteId,
+        edielRouteProfileId,
+        companyMarketPartyRouteId,
+        technicalMessage: readiness ? "readiness_view_operational_route_not_ready" : "readiness_view_row_missing",
+        messageFamily,
+        messageCode,
+        environment: route.environment,
+      };
+    }
+  } catch (error) {
+    // A postcheck read failure must not look like a successful materialization.
+    postcheckMessage = pgErrorMessage(error);
+    return {
+      platformActorRouteId: route.id,
+      companyId: params.companyId,
+      gridOwnerId: gridOwner.id,
+      status: "blocked",
+      reasonCode: "route_materialization_postcheck_failed",
+      nextRequiredAction: "Kunde inte läsa readiness-vyn efter materialisering. Försök igen.",
+      communicationRouteId,
+      edielRouteProfileId,
+      companyMarketPartyRouteId,
+      technicalMessage: postcheckMessage,
+      messageFamily,
+      messageCode,
+      environment: route.environment,
+    };
+  }
 
   return {
     platformActorRouteId: route.id,
@@ -576,6 +723,10 @@ export async function materializeCompanyGridOwnerRoute(params: {
     communicationRouteId,
     edielRouteProfileId,
     companyMarketPartyRouteId,
+    technicalMessage: null,
+    messageFamily,
+    messageCode,
+    environment: route.environment,
   };
 }
 
