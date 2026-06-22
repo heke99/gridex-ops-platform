@@ -24,6 +24,7 @@ function assert(condition, message) {
 
 const chained = [
   'gridex:communication-route-materializer-contract-regression',
+  'gridex:tenant-customer-edifact-completion-regression',
   'gridex:tenant-route-readiness-runtime-regression',
   'ediel:production-customer-info-route-regression',
   'ediel:company-route-materialization-regression',

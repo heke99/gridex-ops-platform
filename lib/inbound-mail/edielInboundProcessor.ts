@@ -158,6 +158,7 @@ export async function processInboundEmailMessage(input: {
   } else {
     await createInboundEdielMessage({
       companyId: tenant.companyId,
+      environment,
       inboundEmailMessageId: input.inboundEmailMessageId,
       parseResultId,
       parsed,

@@ -31,10 +31,19 @@ function canSend(row: EdielAutomationRow): boolean {
   return ['prepared', 'queued', 'failed'].includes(String(row.status ?? '').toLowerCase())
 }
 
+function lockText(row: EdielAutomationRow): string | null {
+  if (!row.locked_at) return null
+  return `Låst ${dateText(row.locked_at)}${row.locked_by ? ` av ${text(row.locked_by)}` : ''}`
+}
+
 function OutboxRow({ row }: { row: EdielAutomationRow }) {
+  const lock = lockText(row)
   return (
     <tr className="border-b border-slate-100 align-top">
-      <td className="px-4 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(row.status)}`}>{text(row.status)}</span></td>
+      <td className="px-4 py-4">
+        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(row.status)}`}>{text(row.status)}</span>
+        {lock ? <div className="mt-1 text-[11px] font-medium text-slate-500">{lock}</div> : null}
+      </td>
       <td className="px-4 py-4">
         <div className="font-black text-slate-950">{text(row.message_family)} {text(row.message_code)}</div>
         <div className="mt-1 text-xs text-slate-500">Outcome: {text(row.ack_outcome)} · Miljö: {text(row.environment)}</div>
@@ -57,12 +66,38 @@ function OutboxRow({ row }: { row: EdielAutomationRow }) {
   )
 }
 
+function OutboxSection({ title, subtitle, tone, rows }: { title: string; subtitle: string; tone: string; rows: EdielAutomationRow[] }) {
+  return (
+    <section className={`overflow-hidden rounded-3xl border ${tone} shadow-sm`}>
+      <div className="border-b border-slate-200 px-5 py-4">
+        <h2 className="text-lg font-black text-slate-950">{title}</h2>
+        <p className="mt-1 text-sm text-slate-600">{subtitle}</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase tracking-[0.12em] text-slate-500">
+            <tr><th className="px-4 py-3">Status</th><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Försök</th><th className="px-4 py-3">Tid</th><th className="px-4 py-3">Fel / send-guard</th><th className="px-4 py-3">Åtgärd</th></tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? <tr><td className="px-4 py-6 text-slate-500" colSpan={6}>Inga outbox-poster i denna miljö.</td></tr> : null}
+            {rows.map((row) => <OutboxRow key={text(row.id)} row={row} />)}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
 export default async function EdielOutboxPage() {
   const context = await requirePlatformAdminAccess()
   const isPlatformAdmin = isPlatformAdminContext(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
   const dashboard = await getEdielAutomationDashboard({ companyId: isPlatformAdmin ? null : companyScope.companyId, limit: 100 })
   const queued = dashboard.outboxItems.filter((row) => ['prepared', 'queued', 'failed'].includes(String(row.status ?? '').toLowerCase()))
+  const envOf = (row: EdielAutomationRow) => String(row.environment ?? '').toLowerCase()
+  const productionItems = dashboard.outboxItems.filter((row) => envOf(row) === 'production')
+  const testItems = dashboard.outboxItems.filter((row) => envOf(row) === 'test')
+  const otherItems = dashboard.outboxItems.filter((row) => envOf(row) !== 'production' && envOf(row) !== 'test')
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -107,23 +142,28 @@ export default async function EdielOutboxPage() {
           </section>
         ) : null}
 
-        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-lg font-black text-slate-950">Outbox-poster</h2>
-            <p className="mt-1 text-sm text-slate-600">Statusar: prepared/queued/sending/sent/failed/blocked/superseded.</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-[0.12em] text-slate-500">
-                <tr><th className="px-4 py-3">Status</th><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Försök</th><th className="px-4 py-3">Tid</th><th className="px-4 py-3">Fel</th><th className="px-4 py-3">Åtgärd</th></tr>
-              </thead>
-              <tbody>
-                {dashboard.outboxItems.length === 0 ? <tr><td className="px-4 py-6 text-slate-500" colSpan={6}>Inga outbox-poster.</td></tr> : null}
-                {dashboard.outboxItems.map((row) => <OutboxRow key={text(row.id)} row={row} />)}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <OutboxSection
+          title="Produktions-outbox"
+          subtitle="Produktionsskick är låst tills send-guard passerar (företagsscope, produktions-route, produktions-avsändare, produktionsgodkännande, certifikat). Send-guardens orsak visas i felkolumnen. Produktionsgodkännande sker på route-readiness, inte här."
+          tone="border-amber-200 bg-amber-50/40"
+          rows={productionItems}
+        />
+
+        <OutboxSection
+          title="Test-outbox"
+          subtitle="Testskick använder enbart test-route och test-avsändare och kräver aldrig produktionsgodkännande."
+          tone="border-sky-200 bg-sky-50/40"
+          rows={testItems}
+        />
+
+        {otherItems.length > 0 ? (
+          <OutboxSection
+            title="Outbox utan tydlig miljö"
+            subtitle="Poster som saknar miljö måste granskas innan de skickas."
+            tone="border-slate-200 bg-white"
+            rows={otherItems}
+          />
+        ) : null}
       </main>
     </div>
   )

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { recalculateCompanyOnboardingReadiness } from '@/lib/onboarding/companyReadiness'
 
 const ENVIRONMENTS = new Set(['test', 'production'])
 const ACTOR_ROLES = new Set(['supplier', 'grid_owner', 'esco', 'brp', 'agent', 'other'])
@@ -161,6 +162,12 @@ export async function saveCompanyEdielActorAction(formData: FormData) {
       entityId: (data as { id?: string }).id ?? null,
       payload,
     })
+
+    // Recalculate the onboarding readiness checklist (does not auto-send or
+    // approve production). Best-effort: never block the save on it.
+    await recalculateCompanyOnboardingReadiness(companyId).catch((error) =>
+      console.warn('Company onboarding readiness recalculation failed', error),
+    )
   } catch (error) {
     redirectMessage = error instanceof Error ? error.message : 'Aktörsprofilen kunde inte sparas.'
     redirect(`/admin/companies/${companyId || ''}?error=${encodeURIComponent(redirectMessage)}#ediel-actor`)
@@ -234,6 +241,10 @@ export async function saveCompanyBrpAction(formData: FormData) {
       entityId: (data as { id?: string }).id ?? null,
       payload,
     })
+
+    await recalculateCompanyOnboardingReadiness(companyId).catch((error) =>
+      console.warn('Company onboarding readiness recalculation failed', error),
+    )
   } catch (error) {
     redirectMessage = error instanceof Error ? error.message : 'BRP-inställningen kunde inte sparas.'
     redirect(`/admin/companies/${companyId || ''}?error=${encodeURIComponent(redirectMessage)}#brp`)
