@@ -148,6 +148,80 @@ export async function materializeCompanyGridOwnerRouteAction(formData: FormData)
   redirectWithStatus(outcome.kind, outcome.code)
 }
 
+
+export async function bulkMaterializeOperationalRoutesAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+
+  let outcome: { kind: 'ok' | 'error'; code: string } = { kind: 'error', code: 'unknown_error' }
+  try {
+    const companyId = normalizeUuidOrNull(value(formData, 'companyId'), 'company_id')
+    const environment = normalizeEnvironment(value(formData, 'environment'))
+    const messageFamily = value(formData, 'messageFamily')?.toUpperCase() ?? null
+    const dryRun = value(formData, 'mode') !== 'apply'
+
+    if (!companyId) {
+      outcome = { kind: 'error', code: 'missing_company' }
+    } else {
+      const { data, error } = await supabaseService.rpc('gridex_materialize_company_operational_routes', {
+        p_company_id: companyId,
+        p_environment: environment,
+        p_message_family: messageFamily,
+        p_dry_run: dryRun,
+      })
+
+      if (error) throw error
+
+      const rows = Array.isArray(data) ? data as Array<Record<string, unknown>> : []
+      const failed = rows.filter((row) => ['blocked', 'skipped'].includes(String(row.result_status ?? '')))
+      const materialized = rows.filter((row) => String(row.result_status ?? '') === 'materialized')
+      const dryRuns = rows.filter((row) => String(row.result_status ?? '') === 'dry_run')
+
+      await auditLaunchAction({
+        actorUserId: context.userId,
+        action: dryRun ? 'route_readiness.bulk_materialize_dry_run' : 'route_readiness.bulk_materialize_apply',
+        metadata: {
+          companyId,
+          environment,
+          messageFamily,
+          dryRun,
+          rowCount: rows.length,
+          dryRunCount: dryRuns.length,
+          materializedCount: materialized.length,
+          blockedCount: failed.length,
+          repairedOutboundCount: rows.reduce((sum, row) => sum + Number(row.repaired_outbound_count ?? 0), 0),
+          repairedCustomerInfoCount: rows.reduce((sum, row) => sum + Number(row.repaired_customer_info_count ?? 0), 0),
+          actorUserId: context.userId,
+          sample: rows.slice(0, 25),
+        },
+      })
+
+      if (rows.length === 0) {
+        outcome = { kind: 'ok', code: dryRun ? 'bulk_no_candidates_dry_run' : 'bulk_no_candidates_apply' }
+      } else if (!dryRun && materialized.length > 0 && failed.length === 0) {
+        outcome = { kind: 'ok', code: 'bulk_materialized_and_repaired' }
+      } else if (!dryRun && materialized.length > 0) {
+        outcome = { kind: 'error', code: 'bulk_partially_materialized' }
+      } else if (dryRun && dryRuns.length > 0) {
+        outcome = { kind: 'ok', code: 'bulk_dry_run_completed' }
+      } else {
+        outcome = { kind: 'error', code: String(failed[0]?.reason_code ?? 'bulk_materialization_blocked') }
+      }
+    }
+  } catch (error) {
+    await auditLaunchAction({
+      actorUserId: context.userId,
+      action: 'route_readiness.bulk_materialize_failed',
+      metadata: { reasonCode: 'unexpected_error', technicalMessage: safeMessage(error), actorUserId: context.userId },
+    }).catch(() => undefined)
+    outcome = { kind: 'error', code: 'bulk_materialization_failed' }
+  }
+
+  revalidateRouteReadiness()
+  revalidatePath('/admin/customer-info-requests')
+  revalidatePath('/admin/outbound')
+  redirectWithStatus(outcome.kind, outcome.code)
+}
+
 export async function approveFirstProductionSendAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
 

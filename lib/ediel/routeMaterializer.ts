@@ -112,6 +112,15 @@ function metadata(value: unknown): JsonRecord {
     : {};
 }
 
+
+function targetSystemForOperationalRoute(environment: string): string {
+  // Keep transport (SMTP/email address) separate from the business target
+  // system. Downstream EDIEL routing/readiness code expects EDIEL target
+  // system names, not the platform_actor_routes.communication_type value
+  // (for example "SMTP").
+  return environment === "production" ? "production_ediel" : "ediel";
+}
+
 function routeScopeForFamily(messageFamily: string): string {
   if (upper(messageFamily) === "PRODAT") return "customer_masterdata";
   if (upper(messageFamily) === "UTILTS") return "meter_values";
@@ -246,7 +255,7 @@ async function upsertCommunicationRoute(params: {
     route_type: "ediel_partner",
     route_group: "grid_owner",
     grid_owner_id: params.gridOwner.id,
-    target_system: lower(params.route.communication_type) || "smtp",
+    target_system: targetSystemForOperationalRoute(params.route.environment),
     endpoint: params.route.communication_address,
     target_email: params.route.communication_address,
     auth_config: authConfig,

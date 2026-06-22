@@ -24,6 +24,10 @@ function assert(condition, message) {
 
 const chained = [
   'gridex:communication-route-materializer-contract-regression',
+<<<<<<< HEAD
+=======
+  'gridex:bulk-route-materialization-repair-regression',
+>>>>>>> ac073d6 (33442)
   'gridex:tenant-customer-edifact-completion-regression',
   'gridex:tenant-route-readiness-runtime-regression',
   'ediel:production-customer-info-route-regression',
@@ -67,6 +71,17 @@ assert(/operational_route_ready === true/.test(materializer) && /communication_r
 // Server action keeps raw technical detail in audit, not in the redirect/UI (Error E).
 assert(/technicalMessage/.test(actions) && /redirectWithStatus/.test(actions), 'materialize action audits technical detail and redirects with a safe status code')
 
+<<<<<<< HEAD
+=======
+
+const bulkMigration = read('supabase/migrations/20260622133000_bulk_operational_route_materialization_repair.sql')
+assert(/gridex_materialize_company_operational_routes/.test(bulkMigration), 'bulk materialization RPC exists for production repair')
+assert(/p_dry_run boolean default true/.test(bulkMigration), 'bulk materialization RPC defaults to dry-run')
+assert(/update public\.outbound_requests[\s\S]*communication_route_id = v_comm_route_id/.test(bulkMigration), 'bulk repair updates null-route outbound rows')
+assert(/update public\.customer_info_requests[\s\S]*production_send_locked/.test(bulkMigration), 'bulk repair moves production customer-info blockers to production_send_locked')
+assert(/targetSystemForOperationalRoute/.test(materializer) && /production_ediel/.test(materializer), 'runtime materializer uses EDIEL business target system, not SMTP as target_system')
+
+>>>>>>> ac073d6 (33442)
 // Tenant/environment scoping (Error G) — materializer requires explicit company + environment.
 assert(/companyId: string/.test(materializer) && /environment\?: "test" \| "production"/.test(materializer), 'materializer requires explicit company and environment scope')
 

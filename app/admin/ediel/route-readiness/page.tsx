@@ -12,6 +12,7 @@ import {
   verifyActorRouteForManualSendAction,
   materializeCompanyGridOwnerRouteAction,
   approveFirstProductionSendAction,
+  bulkMaterializeOperationalRoutesAction,
 } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -244,6 +245,15 @@ const STATUS_BANNERS: Record<string, string> = {
   schema_mismatch: 'Databasens schema matchar inte route-materialiseringen. Kör senaste migrationerna.',
   duplicate_route_conflict: 'En aktiv operativ route finns redan för samma identitet. Inaktivera dubbletten innan ny materialisering.',
   sender_settings_ambiguous: 'Flera avsändarinställningar matchar – välj en entydig innan materialisering.',
+  bulk_dry_run_completed: 'Bulk dry-run slutförd. Se audit-logg för kandidater och detaljer.',
+  bulk_no_candidates_dry_run: 'Bulk dry-run hittade inga saknade operativa routes.',
+  bulk_no_candidates_apply: 'Bulk apply hittade inga saknade operativa routes att materialisera.',
+  bulk_materialized_and_repaired: 'Saknade operativa routes materialiserades och relaterade null-route-rader reparerades.',
+  bulk_partially_materialized: 'Bulk materialisering kördes delvis. Vissa rader blockerades – se audit-logg.',
+  bulk_materialization_failed: 'Bulk materialisering kunde inte köras. Se audit-logg för teknisk orsak.',
+  bulk_materialization_blocked: 'Bulk materialisering blockerades av readiness-krav.',
+  platform_route_missing_or_not_verified: 'Global route saknas, är inte verifierad eller saknar kommunikationsadress.',
+  ediel_identity_missing: 'Avsändar- eller mottagande Ediel-ID saknas.',
 }
 
 // Admin-safe next action per reason code. Raw SQL/constraint detail stays in
@@ -264,6 +274,11 @@ const NEXT_ACTIONS: Record<string, string> = {
   platform_route_environment_mismatch: 'Välj en global route i samma miljö som kundflödet.',
   grid_owner_actor_mismatch: 'Koppla nätägaren till samma verifierade marknadsaktör som routen.',
   operational_route_missing: 'Materialisera den operativa routen innan du godkänner produktion.',
+  bulk_partially_materialized: 'Öppna audit-loggen för sample/radresultat och kör ny dry-run efter åtgärd.',
+  bulk_materialization_failed: 'Kontrollera RPC/migration och kör dry-run igen.',
+  bulk_materialization_blocked: 'Åtgärda första blocker-koden från audit-loggen och kör dry-run igen.',
+  platform_route_missing_or_not_verified: 'Verifiera global route och kommunikationsadress innan bulk körs igen.',
+  ediel_identity_missing: 'Komplettera avsändar-/mottagar-Ediel-ID innan bulk körs igen.',
 }
 
 export default async function EdielRouteReadinessPage(props: {
@@ -342,6 +357,39 @@ export default async function EdielRouteReadinessPage(props: {
           <li>Produktionsgodkännande blir möjligt <strong>först efter</strong> att en operativ produktions-route finns.</li>
           <li>Test och produktion är separata banor. En testroute kan aldrig användas i produktion och tvärtom.</li>
         </ul>
+      </section>
+
+
+
+      <section className="rounded-2xl border border-purple-200 bg-purple-50 p-4 shadow-sm">
+        <h2 className="text-base font-semibold text-purple-950">Bulk-materialisera saknade operativa routes</h2>
+        <p className="mt-1 text-sm text-purple-900">
+          Kör först dry-run. Apply skapar bara bolagets operativa routes för verifierade kandidater och reparerar relaterade null-route-rader. Den skickar aldrig SMTP och godkänner aldrig produktion.
+        </p>
+        <form action={bulkMaterializeOperationalRoutesAction} className="mt-4 grid gap-3 md:grid-cols-5">
+          <input
+            name="companyId"
+            required
+            defaultValue={[...new Set(companyRouteRows.map((row) => row.company_id))].length === 1 ? companyRouteRows[0]?.company_id ?? '' : ''}
+            placeholder="company_id"
+            className="rounded-xl border border-purple-200 px-3 py-2 text-sm md:col-span-2"
+          />
+          <select name="environment" defaultValue={filters.environment ?? 'production'} className="rounded-xl border border-purple-200 px-3 py-2 text-sm">
+            <option value="">Alla miljöer</option>
+            <option value="production">Produktion</option>
+            <option value="test">Test</option>
+          </select>
+          <select name="messageFamily" defaultValue={filters.messageFamily ?? 'PRODAT'} className="rounded-xl border border-purple-200 px-3 py-2 text-sm">
+            <option value="">Alla familjer</option>
+            <option value="PRODAT">PRODAT</option>
+            <option value="UTILTS">UTILTS</option>
+          </select>
+          <select name="mode" defaultValue="dry-run" className="rounded-xl border border-purple-200 px-3 py-2 text-sm">
+            <option value="dry-run">Dry-run</option>
+            <option value="apply">Apply + repair</option>
+          </select>
+          <button className="rounded-xl bg-purple-950 px-3 py-2 text-sm font-medium text-white hover:bg-purple-900 md:col-span-1">Kör bulk</button>
+        </form>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

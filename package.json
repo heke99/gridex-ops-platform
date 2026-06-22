@@ -62,7 +62,8 @@
     "gridex:tenant-route-readiness-runtime-regression": "node scripts/gridex-tenant-route-readiness-runtime-regression.cjs",
     "gridex:communication-route-materializer-contract-regression": "node scripts/gridex-communication-route-materializer-contract-regression.cjs",
     "gridex:tenant-customer-edifact-production-flow-regression": "node scripts/gridex-tenant-customer-edifact-production-flow-regression.cjs",
-    "gridex:tenant-customer-edifact-completion-regression": "node scripts/gridex-tenant-customer-edifact-completion-regression.cjs"
+    "gridex:tenant-customer-edifact-completion-regression": "node scripts/gridex-tenant-customer-edifact-completion-regression.cjs",
+    "gridex:bulk-route-materialization-repair-regression": "node scripts/gridex-bulk-route-materialization-repair-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
