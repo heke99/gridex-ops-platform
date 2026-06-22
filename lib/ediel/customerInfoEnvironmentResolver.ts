@@ -221,14 +221,27 @@ export async function resolveCustomerInfoOperationEnvironment(params: {
     };
   }
 
-  const details = blocker(settings.length === 0 ? "sender_settings_missing" : "environment_not_resolved", {
+  // Distinguish a true environment ambiguity (both lanes viable, no explicit
+  // choice, production cannot be confidently preferred) from "could not resolve
+  // at all". We never silently fall back to test for production or vice versa.
+  const ambiguous = !explicit && narrowed.length > 1;
+  const unresolvedCode = settings.length === 0
+    ? "sender_settings_missing"
+    : ambiguous
+      ? "environment_ambiguous"
+      : "environment_not_resolved";
+  const details = blocker(unresolvedCode, {
     blocker_reason: settings.length === 0
       ? "Avsändarinställning saknas för bolagets kunduppgiftsflöde."
-      : "Ediel-miljö kunde inte bestämmas säkert för kunduppgiftsflödet.",
+      : ambiguous
+        ? "Både test- och produktionsbanor är möjliga för kunduppgiftsflödet – systemet får aldrig gissa miljö."
+        : "Ediel-miljö kunde inte bestämmas säkert för kunduppgiftsflödet.",
     next_required_action: settings.length === 0
       ? "Lägg in en aktiv Ediel-aktör för rätt bolag, roll och miljö."
-      : "Välj miljö explicit eller koppla en entydig production PRODAT route profile för kunduppgifter.",
-    route_resolution_status: settings.length === 0 ? "sender_settings_missing" : "environment_not_resolved",
+      : ambiguous
+        ? "Välj test eller produktion explicit, eller koppla en entydig production PRODAT route profile för kunduppgifter."
+        : "Välj miljö explicit eller koppla en entydig production PRODAT route profile för kunduppgifter.",
+    route_resolution_status: unresolvedCode,
   });
   return {
     status: "blocked",

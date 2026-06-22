@@ -27,7 +27,9 @@ const dbOutbound = read('lib/cis/db-outbound.ts')
 const approval = read('lib/ediel/productionSendApproval.ts')
 const infoRequests = read('lib/onboarding/infoRequests.ts')
 const blockers = read('lib/customer-operations/blockers.ts')
+const envResolver = read('lib/ediel/customerInfoEnvironmentResolver.ts')
 const viewMigration = read('supabase/migrations/20260621143000_company_route_materialization_production_readiness.sql')
+const readinessNullFix = read('supabase/migrations/20260622090000_company_route_readiness_utilts_null_message_code_fix.sql')
 
 // Task 2 — UI
 assert(!/slice\(0,\s*8\)/.test(page), 'route-readiness UI does not truncate company routes with slice(0, 8)')
@@ -65,6 +67,12 @@ assert(/case when par\.message_family = 'PRODAT' then 'Z01' else null end/.test(
 assert(/pr\.environment = cs\.environment/.test(viewMigration), 'readiness view separates test and production lanes by environment')
 assert(/company_market_party_routes_active_route_uidx/.test(viewMigration), 'company_market_party_routes has a route-scoped active unique index')
 
+// Task 4 — UTILTS null message_code must become operational-ready (null-safe join)
+assert(/create or replace view public\.gridex_company_route_readiness_v/.test(readinessNullFix), 'readiness view is recreated by the null-safe message_code migration')
+assert(/=\s*coalesce\(pr\.message_code,\s*''\)/.test(readinessNullFix), 'readiness view normalizes message_code to empty string on both sides so UTILTS null matches')
+assert(/nullif\(cmpr\.message_code,\s*''\)/.test(readinessNullFix), 'readiness view treats empty cmpr.message_code as null before matching')
+assert(/case when pr\.message_family = 'PRODAT' then 'Z01' else '' end/.test(readinessNullFix), 'readiness view still maps PRODAT null message_code to Z01 while keeping UTILTS empty')
+
 // Task 7 — outbound repair
 assert(/repairOutboundRequestCommunicationRoute/.test(dbOutbound), 'db-outbound exposes outbound route repair')
 assert(/route_materialization_repaired/.test(dbOutbound), 'outbound repair flags repaired route in payload metadata')
@@ -81,6 +89,11 @@ assert(/missing_company_scope_for_production_send/.test(approval) && /production
 assert(/\["platform_route_exists_but_not_materialized", "platform_route_exists_but_not_materialized"\]/.test(infoRequests), 'customer info requests preserve exact platform_route_exists_but_not_materialized blocker')
 assert(/platform_route_exists_but_not_materialized/.test(blockers), 'blocker registry defines platform_route_exists_but_not_materialized distinctly from operational_route_missing')
 assert(/route_resolution_status/.test(infoRequests) && /next_required_action/.test(infoRequests), 'customer info requests expose route_resolution_status and next_required_action')
+
+// Task 11 — environment must never be guessed (distinct ambiguous vs unresolved)
+assert(/environment_ambiguous/.test(blockers), 'blocker registry defines environment_ambiguous distinctly from environment_not_resolved')
+assert(/environment_not_resolved/.test(blockers), 'blocker registry keeps environment_not_resolved for the truly unresolvable case')
+assert(/const ambiguous = !explicit && narrowed\.length > 1/.test(envResolver) && /environment_ambiguous/.test(envResolver), 'environment resolver blocks ambiguous test/production lanes instead of guessing')
 
 if (failures > 0) {
   console.error(`\nTenant route-readiness runtime regression FAILED (${failures} assertions).`)
