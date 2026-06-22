@@ -10,6 +10,7 @@ export type CustomerOperationBlockerCode =
   | "ambiguous_sender_settings"
   | "sender_settings_missing"
   | "environment_not_resolved"
+  | "environment_ambiguous"
   | "stale_response_requires_review"
   | "technical_error"
   | "temporary_provider_error"
@@ -106,6 +107,12 @@ const BLOCKERS: Record<CustomerOperationBlockerCode, Omit<CustomerOperationBlock
     issue_type: "route",
     error_class: "configuration_blocker",
   },
+  environment_ambiguous: {
+    blocker_reason: "Både test- och produktionsbanor är möjliga – systemet får aldrig gissa miljö.",
+    next_required_action: "Välj test eller produktion explicit, eller koppla en entydig route profile per miljö.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
   stale_response_requires_review: {
     blocker_reason: "Svaret matchar inte längre kundens ursprungliga anläggningssnapshot.",
     next_required_action: "Granska svaret manuellt innan anläggnings- eller mätpunktsdata uppdateras.",
@@ -173,6 +180,7 @@ export function routeIssueCodeToCustomerBlocker(code: unknown): CustomerOperatio
   if (normalized.includes("sender_settings_missing") || normalized.includes("missing_company_actor_setting")) {
     return "sender_settings_missing";
   }
+  if (normalized.includes("environment_ambiguous")) return "environment_ambiguous";
   if (normalized.includes("environment_not_resolved")) return "environment_not_resolved";
   if (normalized.includes("certificate")) return "certificate_missing";
   if (normalized.includes("production_send_locked")) return "production_send_locked";
