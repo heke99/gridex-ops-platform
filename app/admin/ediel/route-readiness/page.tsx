@@ -120,13 +120,33 @@ async function loadRouteReadiness() {
 }
 
 
-async function loadCompanyRouteReadiness() {
-  const result = await supabaseService
+type CompanyRouteFilters = {
+  query: string | null
+  environment: string | null
+  messageFamily: string | null
+  messageCode: string | null
+  blockerCode: string | null
+}
+
+async function loadCompanyRouteReadiness(filters: CompanyRouteFilters) {
+  let query = supabaseService
     .from('gridex_company_route_readiness_v')
     .select('company_id, grid_owner_id, grid_owner_name, grid_owner_ediel_id, platform_actor_route_id, message_family, message_code, environment, operational_route_ready, send_ready, blocker_code, readiness_message, sender_settings_id, production_send_lock_status')
     .or('operational_route_ready.eq.false,send_ready.eq.false')
+
+  if (filters.environment) query = query.eq('environment', filters.environment)
+  if (filters.messageFamily) query = query.eq('message_family', filters.messageFamily)
+  if (filters.messageCode) query = query.eq('message_code', filters.messageCode)
+  if (filters.blockerCode) query = query.eq('blocker_code', filters.blockerCode)
+  if (filters.query) {
+    const escaped = filters.query.replace(/[%,]/g, ' ').trim()
+    query = query.or(`grid_owner_name.ilike.%${escaped}%,grid_owner_ediel_id.ilike.%${escaped}%`)
+  }
+
+  const result = await query
+    .order('environment', { ascending: true })
     .order('grid_owner_name', { ascending: true })
-    .limit(50)
+    .limit(500)
 
   if (result.error) {
     if (isMissingSchemaError(result.error)) return [] as CompanyRouteReadinessRow[]
@@ -149,10 +169,97 @@ async function loadContacts(actorIds: string[]) {
   return (result.data ?? []) as ContactRow[]
 }
 
-export default async function EdielRouteReadinessPage() {
+function firstParam(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0]?.trim() || null
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function renderCompanyRouteCard(row: CompanyRouteReadinessRow) {
+  const isProduction = row.environment === 'production'
+  const isTest = row.environment === 'test'
+  const operationalReady = row.operational_route_ready === true
+  const materializeLabel = isProduction
+    ? 'Materialisera production-route'
+    : isTest
+      ? 'Materialisera test-route'
+      : 'Materialisera route'
+  // Approval is only valid for a production row whose operational route exists
+  // and whose production lock is still locked. Never shown for test rows.
+  const showApproval = isProduction && operationalReady && row.production_send_lock_status === 'locked'
+  const canMaterialize = !operationalReady && Boolean(row.grid_owner_id && row.platform_actor_route_id)
+
+  return (
+    <div key={`${row.company_id}-${row.grid_owner_id}-${row.platform_actor_route_id}-${row.message_family}-${row.message_code}-${row.environment}`} className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+      <div className="font-medium text-slate-950">{field(row.grid_owner_name)} · {field(row.message_family)}/{field(row.message_code)} · {field(row.environment)}</div>
+      <div className="mt-1 text-xs text-slate-600">Ediel-ID {field(row.grid_owner_ediel_id)} · blocker {field(row.blocker_code)} · operativ route {field(operationalReady)} · production lock {field(row.production_send_lock_status)}</div>
+      <div className="mt-1 text-xs text-slate-600">{row.readiness_message ?? 'Operativ route eller send-readiness saknas.'}</div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {canMaterialize ? (
+          <form action={materializeCompanyGridOwnerRouteAction}>
+            <input type="hidden" name="companyId" value={row.company_id} />
+            <input type="hidden" name="gridOwnerId" value={row.grid_owner_id ?? ''} />
+            <input type="hidden" name="platformActorRouteId" value={row.platform_actor_route_id ?? ''} />
+            <input type="hidden" name="messageFamily" value={row.message_family ?? 'PRODAT'} />
+            <input type="hidden" name="messageCode" value={row.message_code ?? ''} />
+            <input type="hidden" name="environment" value={row.environment ?? ''} />
+            <button className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800">{materializeLabel}</button>
+          </form>
+        ) : null}
+        {showApproval ? (
+          <form action={approveFirstProductionSendAction}>
+            <input type="hidden" name="companyId" value={row.company_id} />
+            <input type="hidden" name="actorSettingId" value={row.sender_settings_id ?? ''} />
+            <input type="hidden" name="reason" value="Godkänd från route-readiness efter verifierad production readiness." />
+            <button className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-medium text-amber-900 hover:bg-amber-100">Godkänn första production-send</button>
+          </form>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+const STATUS_BANNERS: Record<string, string> = {
+  materialized: 'Operativ route materialiserades.',
+  production_approved: 'Första produktionssändningen godkändes.',
+  platform_route_missing: 'Verifierad global route saknas för nätägaren.',
+  grid_owner_missing: 'Nätägaren saknas i masterdata.',
+  grid_owner_actor_mismatch: 'Nätägaren är inte kopplad till routens marknadsaktör.',
+  platform_route_not_verified: 'Den globala routen är inte verifierad/aktiv ännu.',
+  platform_route_environment_mismatch: 'Routens miljö matchar inte vald miljö.',
+  sender_settings_missing: 'Avsändarinställning saknas för bolag/miljö.',
+  ambiguous_sender_settings: 'Flera avsändarinställningar matchar – välj entydig.',
+  route_materialization_postcheck_failed: 'Raderna skrevs men readiness bekräftades inte. Kontrollera route-profil.',
+  route_materialization_failed: 'Route kunde inte materialiseras. Se audit-logg för teknisk orsak.',
+  operational_route_missing: 'Operativ route måste materialiseras innan produktion godkänns.',
+  invalid_environment: 'Ogiltig miljö angavs.',
+  missing_required_identifiers: 'Bolag, nätägare och aktörsroute krävs.',
+  missing_company: 'Bolag saknas.',
+  production_approval_failed: 'Produktionsgodkännandet kunde inte sparas.',
+}
+
+export default async function EdielRouteReadinessPage(props: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
   await requirePlatformAdminAccess()
+  const searchParams = (await props.searchParams) ?? {}
+  const filters: CompanyRouteFilters = {
+    query: firstParam(searchParams.q),
+    environment: firstParam(searchParams.env),
+    messageFamily: firstParam(searchParams.family),
+    messageCode: firstParam(searchParams.mcode),
+    blockerCode: firstParam(searchParams.blocker),
+  }
+  const statusKind = firstParam(searchParams.status)
+  const bannerCode = firstParam(searchParams.code)
+  const banner = statusKind
+    ? { kind: statusKind, message: STATUS_BANNERS[bannerCode ?? ''] ?? (statusKind === 'ok' ? 'Åtgärden lyckades.' : 'Åtgärden kunde inte slutföras.') }
+    : null
+
   const { rows, error } = await loadRouteReadiness()
-  const companyRouteRows = await loadCompanyRouteReadiness()
+  const companyRouteRows = await loadCompanyRouteReadiness(filters)
+  const testCompanyRows = companyRouteRows.filter((row) => row.environment === 'test')
+  const productionCompanyRows = companyRouteRows.filter((row) => row.environment === 'production')
+  const otherCompanyRows = companyRouteRows.filter((row) => row.environment !== 'test' && row.environment !== 'production')
   const contacts = await loadContacts([...new Set(rows.map((row) => row.actor_id))])
   const contactsByActor = new Map<string, ContactRow[]>()
   for (const contact of contacts) {
@@ -181,40 +288,75 @@ export default async function EdielRouteReadinessPage() {
       ) : null}
 
 
-      {companyRouteRows.length > 0 ? (
+      {banner ? (
+        <section className={`rounded-2xl border p-4 text-sm ${banner.kind === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-800'}`}>
+          {banner.message}
+        </section>
+      ) : null}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+        <h2 className="text-base font-semibold text-slate-950">Så fungerar tenant route-readiness</h2>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-600">
+          <li>Global nätägare verifierad i aktörsregistret är <strong>inte</strong> samma sak som att bolagets operativa route är klar.</li>
+          <li>Route-materialisering skapar bolagets operativa route – det är <strong>inte</strong> ett produktionsgodkännande.</li>
+          <li>Produktionsgodkännande blir möjligt <strong>först efter</strong> att en operativ produktions-route finns.</li>
+          <li>Test och produktion är separata banor. En testroute kan aldrig användas i produktion och tvärtom.</li>
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="text-base font-semibold text-slate-950">Sök bolags-routes</h2>
+        <form className="mt-3 grid gap-2 md:grid-cols-6">
+          <input name="q" defaultValue={filters.query ?? ''} placeholder="Nätägare eller Ediel-ID (t.ex. 25600)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2" />
+          <select name="env" defaultValue={filters.environment ?? ''} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+            <option value="">Alla miljöer</option>
+            <option value="test">Test</option>
+            <option value="production">Produktion</option>
+          </select>
+          <select name="family" defaultValue={filters.messageFamily ?? ''} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+            <option value="">Alla familjer</option>
+            <option value="PRODAT">PRODAT</option>
+            <option value="UTILTS">UTILTS</option>
+          </select>
+          <input name="mcode" defaultValue={filters.messageCode ?? ''} placeholder="Message code (Z01)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+          <input name="blocker" defaultValue={filters.blockerCode ?? ''} placeholder="Blocker code" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+          <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 md:col-span-1">Sök</button>
+          <a href="/admin/ediel/route-readiness" className="rounded-xl border border-slate-300 px-3 py-2 text-center text-sm font-medium text-slate-700 hover:bg-slate-50 md:col-span-1">Rensa</a>
+        </form>
+      </section>
+
+      {productionCompanyRows.length > 0 ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-amber-950">Bolagsspecifika Ediel-routes som kräver åtgärd</h2>
-          <p className="mt-1 text-sm text-amber-900">Global aktörsroute kan vara verifierad medan bolagets operativa communication_route/route_profile saknas. Materialisera här innan kundautomation försöker finalisera Z01.</p>
+          <h2 className="text-base font-semibold text-amber-950">Produktions-routes som kräver åtgärd</h2>
+          <p className="mt-1 text-sm text-amber-900">Materialisera operativ produktions-route innan kundautomation försöker finalisera Z01. Produktionsgodkännande visas först när operativ route finns och låset är aktivt.</p>
           <div className="mt-4 grid gap-3">
-            {companyRouteRows.slice(0, 8).map((row) => (
-              <div key={`${row.company_id}-${row.grid_owner_id}-${row.platform_actor_route_id}-${row.message_family}-${row.message_code}`} className="rounded-xl border border-amber-200 bg-white p-3 text-sm">
-                <div className="font-medium text-slate-950">{field(row.grid_owner_name)} · {field(row.message_family)}/{field(row.message_code)} · {field(row.environment)}</div>
-                <div className="mt-1 text-xs text-slate-600">Ediel-ID {field(row.grid_owner_ediel_id)} · blocker {field(row.blocker_code)} · production lock {field(row.production_send_lock_status)}</div>
-                <div className="mt-1 text-xs text-slate-600">{row.readiness_message ?? 'Operativ route eller send-readiness saknas.'}</div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {row.blocker_code === 'platform_route_exists_but_not_materialized' && row.grid_owner_id && row.platform_actor_route_id ? (
-                    <form action={materializeCompanyGridOwnerRouteAction}>
-                      <input type="hidden" name="companyId" value={row.company_id} />
-                      <input type="hidden" name="gridOwnerId" value={row.grid_owner_id} />
-                      <input type="hidden" name="platformActorRouteId" value={row.platform_actor_route_id} />
-                      <input type="hidden" name="messageFamily" value={row.message_family ?? 'PRODAT'} />
-                      <input type="hidden" name="messageCode" value={row.message_code ?? 'Z01'} />
-                      <input type="hidden" name="environment" value={row.environment ?? 'production'} />
-                      <button className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800">Materialisera route</button>
-                    </form>
-                  ) : null}
-                  {row.production_send_lock_status === 'locked' ? (
-                    <form action={approveFirstProductionSendAction}>
-                      <input type="hidden" name="companyId" value={row.company_id} />
-                      <input type="hidden" name="actorSettingId" value={row.sender_settings_id ?? ''} />
-                      <input type="hidden" name="reason" value="Godkänd från route-readiness efter verifierad production readiness." />
-                      <button className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-medium text-amber-900 hover:bg-amber-100">Godkänn första production-send</button>
-                    </form>
-                  ) : null}
-                </div>
-              </div>
-            ))}
+            {productionCompanyRows.map((row) => renderCompanyRouteCard(row))}
           </div>
+        </section>
+      ) : null}
+
+      {testCompanyRows.length > 0 ? (
+        <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-sky-950">Test-routes som kräver åtgärd</h2>
+          <p className="mt-1 text-sm text-sky-900">Testbanan är helt separat från produktion. Produktionsgodkännande visas aldrig för testrader.</p>
+          <div className="mt-4 grid gap-3">
+            {testCompanyRows.map((row) => renderCompanyRouteCard(row))}
+          </div>
+        </section>
+      ) : null}
+
+      {otherCompanyRows.length > 0 ? (
+        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-950">Routes utan tydlig miljö</h2>
+          <div className="mt-4 grid gap-3">
+            {otherCompanyRows.map((row) => renderCompanyRouteCard(row))}
+          </div>
+        </section>
+      ) : null}
+
+      {companyRouteRows.length === 0 ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+          Inga bolags-routes matchar nuvarande filter.
         </section>
       ) : null}
 
