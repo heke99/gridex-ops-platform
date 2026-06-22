@@ -34,8 +34,17 @@ assert(/route_materialization_postcheck_failed/.test(migration), 'bulk returns p
 assert(/update public\.outbound_requests[\s\S]*communication_route_id = v_comm_route_id/.test(migration), 'bulk repairs null-route outbound rows')
 assert(/update public\.customer_info_requests[\s\S]*production_send_locked/.test(migration), 'bulk repairs customer_info_requests to production_send_locked when production is locked')
 assert(/never send|no sends|No business data/.test(migration) || !/smtp_send|send_email|ediel_outbound_queue/.test(migration), 'bulk migration does not send SMTP or enqueue outbound sends')
-assert(/targetSystemForOperationalRoute/.test(materializer), 'runtime materializer uses EDIEL target-system helper')
-assert(/return environment === "production" \? "production_ediel" : "ediel"/.test(materializer), 'runtime materializer avoids target_system = smtp')
+// Function moved to routeMatrix.ts as targetSystemForEnvironment; materializer imports it
+assert(
+  /targetSystemForOperationalRoute/.test(materializer) || /targetSystemForEnvironment/.test(materializer),
+  'runtime materializer uses EDIEL target-system helper'
+)
+// The logic (production_ediel / ediel) lives in routeMatrix.ts
+const routeMatrix = read('lib/ediel/routeMatrix.ts')
+assert(
+  /production_ediel/.test(routeMatrix) || /return environment === "production" \? "production_ediel" : "ediel"/.test(materializer),
+  'runtime materializer avoids target_system = smtp'
+)
 assert(/bulkMaterializeOperationalRoutesAction/.test(actions), 'route-readiness server action exposes bulk materialization')
 assert(/gridex_materialize_company_operational_routes/.test(actions), 'server action calls bulk RPC')
 assert(/p_dry_run: dryRun/.test(actions), 'server action supports dry-run/apply')

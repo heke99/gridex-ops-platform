@@ -1,13 +1,26 @@
 import type { BusinessProcess, RouteScope, OutboundIntent } from '@/lib/routes/routeDecisionTypes'
+import { routeScopeForProcess } from '@/lib/ediel/routeMatrix'
 
-export function routeScopeForBusinessProcess(process: BusinessProcess): RouteScope {
-  if (process === 'metering_access') return 'metering_access'
-  if (process === 'meter_values') return 'meter_values'
-  if (process === 'billing_underlay') return 'billing_underlay'
-  if (process === 'partner_export') return 'partner_export'
-  if (process === 'ediel_ack') return 'ediel_ack'
-  if (process === 'customer_masterdata') return 'customer_masterdata'
-  return 'supplier_switch'
+export function routeScopeForBusinessProcess(process: BusinessProcess, messageCode?: string | null): RouteScope {
+  // CONTRL/APERAK/ediel_ack reuse the source message route; they have no own
+  // communication_routes DB row with a dedicated scope.
+  if (process === 'ediel_ack') return 'customer_masterdata'
+
+  // Delegate to the central route matrix for all other processes.
+  const messageFamily =
+    process === 'customer_masterdata' ? 'PRODAT' :
+    process === 'supplier_switch' ? 'PRODAT' :
+    process === 'metering_access' ? 'PRODAT' :
+    process === 'meter_values' ? 'UTILTS' :
+    process === 'billing_underlay' ? 'UTILTS' :
+    process === 'partner_export' ? 'OTHER' :
+    'PRODAT'
+
+  const scope = routeScopeForProcess({ messageFamily, messageCode })
+  // routeScopeForProcess returns null only for CONTRL/APERAK; for all other
+  // processes it always returns a DB-valid scope.
+  if (!scope) return 'customer_masterdata'
+  return scope as RouteScope
 }
 
 export function defaultMessageForProcess(process: BusinessProcess): { family: string; code: string | null; intent: OutboundIntent } {

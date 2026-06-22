@@ -6,6 +6,12 @@ import {
   senderSettingProductionLockStatus,
   type SenderSettingRow,
 } from "@/lib/ediel/senderSettingsResolver";
+import {
+  ackModeForProcess,
+  applicationReferenceForProcess,
+  routeScopeForProcess,
+  targetSystemForEnvironment,
+} from "@/lib/ediel/routeMatrix";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -113,28 +119,9 @@ function metadata(value: unknown): JsonRecord {
 }
 
 
-function targetSystemForOperationalRoute(environment: string): string {
-  // Keep transport (SMTP/email address) separate from the business target
-  // system. Downstream EDIEL routing/readiness code expects EDIEL target
-  // system names, not the platform_actor_routes.communication_type value
-  // (for example "SMTP").
-  return environment === "production" ? "production_ediel" : "ediel";
-}
-
-function routeScopeForFamily(messageFamily: string): string {
-  if (upper(messageFamily) === "PRODAT") return "customer_masterdata";
-  if (upper(messageFamily) === "UTILTS") return "meter_values";
-  return "customer_masterdata";
-}
-
 function defaultMessageCode(messageFamily: string): string | null {
   if (upper(messageFamily) === "PRODAT") return "Z01";
   return null;
-}
-
-function defaultApplicationReference(messageFamily: string): string {
-  if (upper(messageFamily) === "PRODAT") return "23-DDQ-PRODAT";
-  return upper(messageFamily) || "PRODAT";
 }
 
 function roleMatches(row: ActorSettingRow, messageFamily: string): boolean {
@@ -218,7 +205,7 @@ async function upsertCommunicationRoute(params: {
   messageFamily: string;
   messageCode: string | null;
 }): Promise<string> {
-  const routeScope = routeScopeForFamily(params.messageFamily);
+  const routeScope = routeScopeForProcess({ messageFamily: params.messageFamily, messageCode: params.messageCode }) ?? "customer_masterdata";
   const routeName = `${params.gridOwner.name ?? "Nätägare"} ${params.messageFamily} ${params.route.environment}`;
   const authConfig = {
     platform_actor_route_id: params.route.id,
@@ -255,7 +242,7 @@ async function upsertCommunicationRoute(params: {
     route_type: "ediel_partner",
     route_group: "grid_owner",
     grid_owner_id: params.gridOwner.id,
-    target_system: targetSystemForOperationalRoute(params.route.environment),
+    target_system: targetSystemForEnvironment(params.route.environment),
     endpoint: params.route.communication_address,
     target_email: params.route.communication_address,
     auth_config: authConfig,
@@ -309,11 +296,12 @@ async function upsertRouteProfile(params: {
     text(params.route.party_id) ??
     text(params.route.interchange_party_id) ??
     text(params.gridOwner.ediel_id);
+  const routeScope = routeScopeForProcess({ messageFamily: params.messageFamily, messageCode: params.messageCode }) ?? "customer_masterdata";
   const applicationReference =
     text(params.route.application_reference) ??
     text(params.senderSettings.application_reference) ??
     text(params.senderSettings.default_application_reference) ??
-    defaultApplicationReference(params.messageFamily);
+    applicationReferenceForProcess({ routeScope, messageFamily: params.messageFamily, messageCode: params.messageCode });
   const routeMetadata = metadata(params.route.metadata);
   const metadataPayload = {
     platform_actor_route_id: params.route.id,
@@ -351,7 +339,7 @@ async function upsertRouteProfile(params: {
     route_type: "email",
     payload_format: "edifact",
     message_standard: "edifact",
-    ack_mode: "contrl_aperak",
+    ack_mode: ackModeForProcess({ messageFamily: params.messageFamily, messageCode: params.messageCode }),
     default_test_flag: params.route.environment === "production" ? 0 : 1,
     default_timezone: 1,
     sender_ediel_id: senderEdielId,
@@ -372,7 +360,7 @@ async function upsertRouteProfile(params: {
     mailbox: null,
     encryption_mode: params.messageFamily === "PRODAT" ? "smime" : "none",
     transport_type: "smtp",
-    ack_policy: "contrl_aperak",
+    ack_policy: ackModeForProcess({ messageFamily: params.messageFamily, messageCode: params.messageCode }),
     is_active: true,
     is_enabled: true,
     metadata: metadataPayload,

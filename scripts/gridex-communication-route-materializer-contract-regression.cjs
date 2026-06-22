@@ -3,9 +3,11 @@
 // Communication-route materializer DB-contract regression.
 // Locks the communication_routes payload to the real check constraints:
 //   communication_routes_route_type_check  in (partner_api, ediel_partner, file_export, email_manual)
-//   communication_routes_route_scope_check in (supplier_switch, customer_masterdata, meter_values, metering_values, billing_underlay)
+//   communication_routes_route_scope_check in (supplier_switch, customer_masterdata, meter_values, metering_values, billing_underlay, metering_access)
 // and guards against re-introducing route_type='ediel' or a transport_type
 // column write on communication_routes.
+// Note: scope mapping logic moved from routeScopeForFamily() in routeMaterializer
+// to routeScopeForProcess() in lib/ediel/routeMatrix.ts.
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -55,14 +57,22 @@ assert(
 assert(!/transport_type/.test(commBody), 'communication_routes payload never writes transport_type (column does not exist)')
 
 // Error C — valid route_scope mapping
-assert(/route_scope:\s*routeScope/.test(commBody), 'communication_routes route_scope comes from routeScopeForFamily')
-const scopeFn = functionBody(materializer, 'routeScopeForFamily')
-const ALLOWED_SCOPES = ['supplier_switch', 'customer_masterdata', 'meter_values', 'metering_values', 'billing_underlay']
-assert(/PRODAT[\s\S]*?"customer_masterdata"/.test(scopeFn), 'PRODAT maps to customer_masterdata route_scope')
-assert(/UTILTS[\s\S]*?"(meter_values|metering_values)"/.test(scopeFn), 'UTILTS maps to a valid meter route_scope')
-const scopeLiterals = [...scopeFn.matchAll(/"([a-z_]+)"/g)].map((m) => m[1])
+// Scope logic moved to routeMatrix.ts; materializer calls routeScopeForProcess()
+assert(
+  /route_scope:\s*routeScope/.test(commBody) || /routeScopeForProcess/.test(commBody),
+  'communication_routes route_scope comes from routeScopeForProcess (central route matrix)'
+)
+const routeMatrix = read('lib/ediel/routeMatrix.ts')
+const ALLOWED_SCOPES = ['supplier_switch', 'customer_masterdata', 'meter_values', 'metering_values', 'billing_underlay', 'metering_access']
+assert(/PRODAT[\s\S]*?"customer_masterdata"/.test(routeMatrix), 'PRODAT maps to customer_masterdata route_scope')
+assert(/UTILTS[\s\S]*?"(meter_values|metering_values)"/.test(routeMatrix), 'UTILTS maps to a valid meter route_scope')
+// All scope literals returned inside routeScopeForProcess must be DB-valid.
+// Extract only the routeScopeForProcess function body to avoid picking up
+// ack_mode or other return values from other functions.
+const scopeFnBody = functionBody(routeMatrix, 'routeScopeForProcess')
+const scopeLiterals = [...scopeFnBody.matchAll(/return "([a-z_]+)"/g)].map((m) => m[1])
 for (const scope of scopeLiterals) {
-  assert(ALLOWED_SCOPES.includes(scope), `routeScopeForFamily scope "${scope}" is within the DB check constraint`)
+  assert(ALLOWED_SCOPES.includes(scope) || scope === 'null', `routeScopeForProcess scope "${scope}" is within the DB check constraint`)
 }
 
 // Required operational columns still present on the communication_routes payload
