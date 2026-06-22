@@ -240,7 +240,10 @@ async function upsertCommunicationRoute(params: {
     route_name: routeName,
     is_active: true,
     route_scope: routeScope,
-    route_type: "ediel",
+    // communication_routes_route_type_check allows only
+    // partner_api | ediel_partner | file_export | email_manual.
+    // EDIEL counterparty operational routes are 'ediel_partner'.
+    route_type: "ediel_partner",
     route_group: "grid_owner",
     grid_owner_id: params.gridOwner.id,
     target_system: lower(params.route.communication_type) || "smtp",

@@ -235,6 +235,35 @@ const STATUS_BANNERS: Record<string, string> = {
   missing_required_identifiers: 'Bolag, nätägare och aktörsroute krävs.',
   missing_company: 'Bolag saknas.',
   production_approval_failed: 'Produktionsgodkännandet kunde inte sparas.',
+  communication_route_insert_failed: 'Communication route kunde inte skapas. Kontrollera route-typ, scope och bolagsdata.',
+  communication_route_update_failed: 'Communication route kunde inte uppdateras. Kontrollera befintlig route och constraints.',
+  ediel_route_profile_insert_failed: 'Ediel route profile kunde inte skapas. Kontrollera avsändarinställningar och profil-schema.',
+  ediel_route_profile_update_failed: 'Ediel route profile kunde inte uppdateras. Kontrollera befintlig profil och constraints.',
+  company_market_party_route_insert_failed: 'Bolagets operativa route kunde inte skapas. Kontrollera unik route-identitet (bolag/miljö/meddelandekod).',
+  company_market_party_route_update_failed: 'Bolagets operativa route kunde inte uppdateras. Kontrollera befintlig route och constraints.',
+  schema_mismatch: 'Databasens schema matchar inte route-materialiseringen. Kör senaste migrationerna.',
+  duplicate_route_conflict: 'En aktiv operativ route finns redan för samma identitet. Inaktivera dubbletten innan ny materialisering.',
+  sender_settings_ambiguous: 'Flera avsändarinställningar matchar – välj en entydig innan materialisering.',
+}
+
+// Admin-safe next action per reason code. Raw SQL/constraint detail stays in
+// the audit log; the UI only shows a controlled, actionable hint.
+const NEXT_ACTIONS: Record<string, string> = {
+  communication_route_insert_failed: 'Kontrollera att route-typ är ediel_partner och att scope/bolag är giltiga, försök sedan igen.',
+  communication_route_update_failed: 'Granska den befintliga communication route och försök igen.',
+  ediel_route_profile_insert_failed: 'Säkerställ aktiva avsändarinställningar för bolag/miljö/meddelandefamilj och försök igen.',
+  ediel_route_profile_update_failed: 'Granska den befintliga route-profilen och försök igen.',
+  company_market_party_route_insert_failed: 'Inaktivera eventuell dubblett-route och försök igen.',
+  company_market_party_route_update_failed: 'Granska den befintliga operativa routen och försök igen.',
+  schema_mismatch: 'Kör senaste Supabase-migrationerna och försök igen.',
+  duplicate_route_conflict: 'Inaktivera den befintliga aktiva routen med samma identitet och försök igen.',
+  route_materialization_postcheck_failed: 'Kontrollera route-profil och constraints, försök sedan materialisera igen.',
+  sender_settings_missing: 'Lägg in en aktiv Ediel-aktör för rätt bolag, roll och miljö.',
+  sender_settings_ambiguous: 'Inaktivera dubbletter eller välj en entydig avsändarinställning.',
+  platform_route_not_verified: 'Verifiera aktörsregistrets route innan operativ materialisering.',
+  platform_route_environment_mismatch: 'Välj en global route i samma miljö som kundflödet.',
+  grid_owner_actor_mismatch: 'Koppla nätägaren till samma verifierade marknadsaktör som routen.',
+  operational_route_missing: 'Materialisera den operativa routen innan du godkänner produktion.',
 }
 
 export default async function EdielRouteReadinessPage(props: {
@@ -252,7 +281,12 @@ export default async function EdielRouteReadinessPage(props: {
   const statusKind = firstParam(searchParams.status)
   const bannerCode = firstParam(searchParams.code)
   const banner = statusKind
-    ? { kind: statusKind, message: STATUS_BANNERS[bannerCode ?? ''] ?? (statusKind === 'ok' ? 'Åtgärden lyckades.' : 'Åtgärden kunde inte slutföras.') }
+    ? {
+        kind: statusKind,
+        code: bannerCode,
+        message: STATUS_BANNERS[bannerCode ?? ''] ?? (statusKind === 'ok' ? 'Åtgärden lyckades.' : 'Åtgärden kunde inte slutföras.'),
+        nextAction: statusKind === 'error' ? (NEXT_ACTIONS[bannerCode ?? ''] ?? null) : null,
+      }
     : null
 
   const { rows, error } = await loadRouteReadiness()
@@ -290,7 +324,13 @@ export default async function EdielRouteReadinessPage(props: {
 
       {banner ? (
         <section className={`rounded-2xl border p-4 text-sm ${banner.kind === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-800'}`}>
-          {banner.message}
+          <div className="font-medium">{banner.message}</div>
+          {banner.kind === 'error' && banner.code ? (
+            <div className="mt-1 text-xs opacity-80">Orsakskod: {banner.code}</div>
+          ) : null}
+          {banner.nextAction ? (
+            <div className="mt-1 text-xs">Nästa steg: {banner.nextAction}</div>
+          ) : null}
         </section>
       ) : null}
 

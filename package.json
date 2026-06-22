@@ -59,7 +59,9 @@
     "ediel:z01-golden-regression": "node scripts/ediel-z01-golden-regression.cjs",
     "ediel:two-tenant-route-isolation-regression": "node scripts/ediel-two-tenant-route-isolation-regression.cjs",
     "gridex:production-route-readiness-regression": "npm run ediel:company-route-materialization-core-regression && npm run ediel:production-send-guard-regression && npm run ediel:z01-golden-regression && npm run ediel:two-tenant-route-isolation-regression",
-    "gridex:tenant-route-readiness-runtime-regression": "node scripts/gridex-tenant-route-readiness-runtime-regression.cjs"
+    "gridex:tenant-route-readiness-runtime-regression": "node scripts/gridex-tenant-route-readiness-runtime-regression.cjs",
+    "gridex:communication-route-materializer-contract-regression": "node scripts/gridex-communication-route-materializer-contract-regression.cjs",
+    "gridex:tenant-customer-edifact-production-flow-regression": "node scripts/gridex-tenant-customer-edifact-production-flow-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
