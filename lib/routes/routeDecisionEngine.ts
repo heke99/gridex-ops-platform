@@ -487,9 +487,9 @@ export async function decideCommunicationRoute(
   const warnings: RouteDecisionIssue[] = [];
   const requiredAdminActions: string[] = [];
   const defaults = defaultMessageForProcess(input.businessProcess);
-  const routeScope = routeScopeForBusinessProcess(input.businessProcess);
   const messageFamily = upper(input.messageFamily) || defaults.family;
   const messageCode = text(input.messageCode) ?? defaults.code;
+  const routeScope = routeScopeForBusinessProcess(input.businessProcess, messageCode);
   const environment = text(input.environment) ?? "test";
 
   addTrace(trace, {
