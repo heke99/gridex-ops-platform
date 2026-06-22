@@ -63,7 +63,13 @@
     "gridex:communication-route-materializer-contract-regression": "node scripts/gridex-communication-route-materializer-contract-regression.cjs",
     "gridex:tenant-customer-edifact-production-flow-regression": "node scripts/gridex-tenant-customer-edifact-production-flow-regression.cjs",
     "gridex:tenant-customer-edifact-completion-regression": "node scripts/gridex-tenant-customer-edifact-completion-regression.cjs",
-    "gridex:bulk-route-materialization-repair-regression": "node scripts/gridex-bulk-route-materialization-repair-regression.cjs"
+    "gridex:bulk-route-materialization-repair-regression": "node scripts/gridex-bulk-route-materialization-repair-regression.cjs",
+    "gridex:ediel-route-db-contract-regression": "node scripts/gridex-ediel-route-db-contract-regression.cjs",
+    "gridex:ediel-route-matrix-regression": "node scripts/gridex-ediel-route-matrix-regression.cjs",
+    "gridex:route-materialization-partial-repair-regression": "node scripts/gridex-route-materialization-partial-repair-regression.cjs",
+    "gridex:route-runtime-selection-regression": "node scripts/gridex-route-runtime-selection-regression.cjs",
+    "gridex:customer-info-z01-chain-regression": "node scripts/gridex-customer-info-z01-chain-regression.cjs",
+    "gridex:ack-chain-regression": "node scripts/gridex-ack-chain-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
