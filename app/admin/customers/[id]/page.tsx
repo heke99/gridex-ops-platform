@@ -2729,6 +2729,7 @@ export default async function CustomerAdminDetailPage({
             contracts={customerContracts as CustomerContractRow[]}
             switchRequests={switchRequests}
             snapshot={customerCardSnapshot}
+            isPlatformAdmin={isPlatformAdmin}
           />
           <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">

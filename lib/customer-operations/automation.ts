@@ -814,38 +814,54 @@ async function requestForSite(input: {
   operationId?: string | null;
   gridOwnerId?: string | null;
 }) {
-  let query = supabaseService
+  const ACTIVE_STATUSES = [
+    'draft',
+    'blocked',
+    'route_missing',
+    'missing_authorization',
+    'manual_review_required',
+    'ready_to_send',
+    'z01_prepared',
+    'sent_to_grid_owner',
+    'waiting_for_z02',
+    'waiting_for_aperak',
+    'waiting_for_contrl',
+    'z02_received',
+    'ready_for_switch',
+  ]
+
+  // Phase 1: exact match by operation_id when provided
+  if (input.operationId) {
+    let q = supabaseService
+      .from('customer_info_requests')
+      .select('*')
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('site_id', input.siteId)
+      .eq('request_type', 'z01_customer_masterdata')
+      .eq('operation_id', input.operationId)
+      .in('status', ACTIVE_STATUSES)
+    if (input.gridOwnerId) q = q.eq('grid_owner_id', input.gridOwnerId)
+    const { data, error } = await q.order('updated_at', { ascending: false }).limit(1).maybeSingle()
+    if (error && !missingSchema(error)) throw error
+    if (data) return data as JsonRecord
+  }
+
+  // Phase 2: fallback to latest active/blocked request regardless of operation_id.
+  // Reusing an existing blocked/route_missing request instead of creating a new one
+  // prevents accumulation of stuck pending grid_owner_data_requests.
+  let q2 = supabaseService
     .from('customer_info_requests')
     .select('*')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('site_id', input.siteId)
     .eq('request_type', 'z01_customer_masterdata')
-    .in('status', [
-      'draft',
-      'blocked',
-      'route_missing',
-      'missing_authorization',
-      'manual_review_required',
-      'ready_to_send',
-      'z01_prepared',
-      'sent_to_grid_owner',
-      'waiting_for_z02',
-      'waiting_for_aperak',
-      'waiting_for_contrl',
-      'z02_received',
-      'ready_for_switch',
-    ])
-
-  if (input.operationId) query = query.eq('operation_id', input.operationId)
-  if (input.gridOwnerId) query = query.eq('grid_owner_id', input.gridOwnerId)
-
-  const { data, error } = await query
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error && !missingSchema(error)) throw error
-  return data as JsonRecord | null
+    .in('status', ACTIVE_STATUSES)
+  if (input.gridOwnerId) q2 = q2.eq('grid_owner_id', input.gridOwnerId)
+  const { data: data2, error: error2 } = await q2.order('updated_at', { ascending: false }).limit(1).maybeSingle()
+  if (error2 && !missingSchema(error2)) throw error2
+  return data2 as JsonRecord | null
 }
 
 async function linkOperationResources(input: {

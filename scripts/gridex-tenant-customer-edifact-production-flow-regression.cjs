@@ -85,6 +85,47 @@ assert(
 // Tenant/environment scoping (Error G) — materializer requires explicit company + environment.
 assert(/companyId: string/.test(materializer) && /environment\?: "test" \| "production"/.test(materializer), 'materializer requires explicit company and environment scope')
 
+// ---- Post-route-ready flow: GODR -> outbound via source_type/source_id ----
+const sharedFlow = read('lib/ediel/flows/shared.ts')
+assert(
+  /sourceType.*grid_owner_data_request|'grid_owner_data_request'/.test(sharedFlow),
+  'post-route-ready: shared.ts uses source_type=grid_owner_data_request for outbound linkage'
+)
+assert(
+  /source_id.*dataRequest\.id|sourceId.*dataRequest\.id/.test(sharedFlow),
+  'post-route-ready: shared.ts uses source_id=GODR.id for outbound linkage'
+)
+
+// ---- Finalizer exists for historical stuck rows ----
+const finalizer = read('lib/customer-operations/z01Finalizer.ts')
+assert(
+  /finalizeStuckZ01GridOwnerDataRequest/.test(finalizer),
+  'post-route-ready: z01Finalizer.ts exports finalizeStuckZ01GridOwnerDataRequest'
+)
+assert(
+  /prepareAndQueueProdatZ01FromDataRequest/.test(finalizer),
+  'post-route-ready: z01Finalizer.ts delegates to existing Z01 prep flow'
+)
+
+// ---- Repair API endpoint exists and requires platform admin ----
+const repairApi = read('app/api/internal/z01-repair/route.ts')
+assert(
+  /requirePlatformAdminAccess/.test(repairApi),
+  'post-route-ready: z01-repair API requires platform admin access'
+)
+assert(
+  !/smtp_send|sendEmail|send_email|createTransport|nodemailer/.test(repairApi),
+  'post-route-ready: z01-repair API does NOT send SMTP directly'
+)
+
+// ---- GridOwnerDataRequestRow does NOT have outbound_request_id ----
+const cisTypes = read('lib/cis/types.ts')
+const godrTypeBlock = cisTypes.match(/GridOwnerDataRequestRow\s*=\s*\{[\s\S]*?\}/)?.[0] ?? ''
+assert(
+  !godrTypeBlock.includes('outbound_request_id'),
+  'post-route-ready: GridOwnerDataRequestRow does NOT have outbound_request_id'
+)
+
 if (failures > 0) {
   console.error(`\nTenant-customer EDIFACT production flow regression FAILED (${failures} checks).`)
   process.exit(1)

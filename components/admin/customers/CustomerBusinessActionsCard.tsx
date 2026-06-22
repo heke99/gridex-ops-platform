@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createGridOwnerDataRequestAction } from "@/app/admin/customers/[id]/actions";
 import {
   endAgreementBusinessAction,
@@ -17,11 +18,15 @@ import type {
 import type { CustomerInfoRequestRow } from "@/lib/onboarding/infoRequests";
 import SubmitButton from "@/components/admin/customers/document-card/SubmitButton";
 import CustomerOperationAutomationForm from "@/components/admin/customers/CustomerOperationAutomationForm";
+import CustomerProcessTimeline from "@/components/admin/customers/CustomerProcessTimeline";
 import {
   buildCustomerCardSnapshot,
   type CustomerCardSnapshot,
 } from "@/lib/customers/customerCardSnapshot";
 import { meteringPointIdentityLabel } from "@/lib/customers/meteringIdentity";
+import {
+  buildCustomerCardWorkflow,
+} from "@/lib/customer-operations/customerCardWorkflow";
 
 type Props = {
   customerId: string;
@@ -33,15 +38,16 @@ type Props = {
   contracts?: CustomerContractRow[];
   switchRequests?: SupplierSwitchRequestRow[];
   snapshot?: CustomerCardSnapshot;
+  isPlatformAdmin?: boolean;
 };
+
+function pointLabel(point: MeteringPointRow | null): string {
+  return meteringPointIdentityLabel(point) ?? "Mätpunkts-ID saknas";
+}
 
 function siteLabel(site: CustomerSiteRow | null): string {
   if (!site) return "Ingen anläggning vald";
   return `${site.site_name}${site.facility_id ? ` · ${site.facility_id}` : " · saknar anläggnings-ID"}`;
-}
-
-function pointLabel(point: MeteringPointRow | null): string {
-  return meteringPointIdentityLabel(point) ?? "Mätpunkts-ID saknas";
 }
 
 function StatusPill({
@@ -60,24 +66,6 @@ function StatusPill({
   );
 }
 
-function PrimaryAction({
-  title,
-  text,
-  children,
-}: {
-  title: string;
-  text: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm">
-      <h3 className="text-base font-semibold text-slate-950">{title}</h3>
-      <p className="mt-2 min-h-12 text-sm leading-6 text-slate-700">{text}</p>
-      <div className="mt-4">{children}</div>
-    </div>
-  );
-}
-
 export default function CustomerBusinessActionsCard({
   customerId,
   sites,
@@ -88,6 +76,7 @@ export default function CustomerBusinessActionsCard({
   contracts = [],
   switchRequests = [],
   snapshot: suppliedSnapshot,
+  isPlatformAdmin = false,
 }: Props) {
   const snapshot =
     suppliedSnapshot ??
@@ -99,11 +88,23 @@ export default function CustomerBusinessActionsCard({
       infoRequests,
       contracts,
     });
+
+  const workflow = buildCustomerCardWorkflow({
+    customerId,
+    snapshot,
+    sites,
+    meteringPoints,
+    infoRequests,
+    contracts,
+    switchRequests,
+    powersOfAttorney,
+    isPlatformAdmin,
+  });
+
   const primarySite = snapshot.primarySite;
   const primaryPoint = snapshot.primaryMeteringPoint;
   const gridOwnerId =
     primaryPoint?.grid_owner_id ?? primarySite?.grid_owner_id ?? "";
-  const hasSignedPowerOfAttorney = snapshot.hasAuthorization;
   const activeContract =
     contracts.find((contract) =>
       ["active", "signed", "pending_signature"].includes(
@@ -125,24 +126,9 @@ export default function CustomerBusinessActionsCard({
           "cancellation_requested",
         ].includes(String(request.status ?? "")),
     ) ??
-    switchRequests.find((request) =>
-      [
-        "queued",
-        "validated",
-        "ready_to_send",
-        "submitted",
-        "waiting_response",
-      ].includes(String(request.status ?? "")),
-    ) ??
     switchRequests[0] ??
     null;
-  const blockers = snapshot.switchBlockerLabels;
-  const openInfoRequest = infoRequests.find(
-    (row) => !["completed", "cancelled", "rejected"].includes(row.status),
-  );
-  const recommendedAction = activeSwitchRequest
-    ? "Följ pågående leverantörsbyte"
-    : snapshot.nextStepLabel;
+
   const businessActionId = `${customerId}:${primarySite?.id ?? "no-site"}:${primaryPoint?.id ?? "no-meter"}`;
 
   const renderBusinessActionHiddenFields = (action: string) => (
@@ -167,212 +153,307 @@ export default function CustomerBusinessActionsCard({
     </>
   );
 
-  const missingSwitchRequestNotice = activeSwitchRequest ? null : (
-    <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-      Skapa eller välj leverantörsbyte först så åtgärden kan kopplas rätt.
-    </p>
-  );
+  const showWaitMessage =
+    workflow.primaryAction === "wait_for_grid_owner" ||
+    workflow.primaryAction === "no_action_required";
 
   return (
-    <section className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-            Kundens nästa steg
-          </p>
-          <h2 className="mt-2 text-lg font-semibold text-slate-950">
-            Begär uppgifter eller begär leverantörsbyte
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-            Handläggaren väljer vad som ska hända. Systemet kontrollerar
-            fullmakt, anläggning, mätpunkt, nätägare, juridiskt underlag, mail
-            och teknisk sändning i bakgrunden.
-          </p>
-        </div>
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
-          {siteLabel(primarySite)} · {pointLabel(primaryPoint)}
-        </span>
-      </div>
+    <section className="space-y-4">
+      {/* Visual process overview */}
+      <CustomerProcessTimeline
+        steps={workflow.workflowSteps}
+        showTechnical={isPlatformAdmin}
+      />
 
-      <div className="mt-5 rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Operational summary card */}
+      <section className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-slate-950">
-              Nästa rekommenderade steg
-            </div>
-            <p className="mt-1 text-sm text-slate-700">{recommendedAction}</p>
-            <p className="mt-1 text-xs font-medium text-slate-600">
-              {snapshot.nextStepDescription}
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+              Nästa åtgärd
             </p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-950">
+              {workflow.adminMessage}
+            </h2>
+            {workflow.nextRequiredAction ? (
+              <p className="mt-1 max-w-2xl text-sm text-slate-600">
+                {workflow.nextRequiredAction}
+              </p>
+            ) : null}
           </div>
-          {openInfoRequest ? (
-            <StatusPill ok>Uppgiftsbegäran finns</StatusPill>
-          ) : null}
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+            {siteLabel(primarySite)} · {pointLabel(primaryPoint)}
+          </span>
         </div>
+
+        {/* Readiness pills */}
         <div className="mt-4 flex flex-wrap gap-2">
-          <StatusPill ok={hasSignedPowerOfAttorney}>
-            {hasSignedPowerOfAttorney ? "Fullmakt finns" : "Fullmakt saknas"}
+          <StatusPill ok={snapshot.hasAuthorization}>
+            {snapshot.hasAuthorization ? "Fullmakt" : "Fullmakt saknas"}
           </StatusPill>
           <StatusPill ok={snapshot.hasFacilityId}>
-            {snapshot.hasFacilityId
-              ? "Anläggnings-ID finns"
-              : "Anläggnings-ID saknas"}
-          </StatusPill>
-          <StatusPill ok={snapshot.hasMeteringPoint}>
-            {snapshot.hasMeteringPoint ? "Mätpunkt finns" : "Mätpunkt saknas"}
+            {snapshot.hasFacilityId ? "Anläggnings-ID" : "Anläggnings-ID saknas"}
           </StatusPill>
           <StatusPill ok={snapshot.hasGridOwner}>
-            {snapshot.hasGridOwner ? "Nätägare finns" : "Nätägare saknas"}
+            {snapshot.hasGridOwner ? "Nätägare" : "Nätägare saknas"}
           </StatusPill>
           <StatusPill ok={snapshot.hasGridArea}>
-            {snapshot.hasGridArea ? "Nätområde finns" : "Nätområde saknas"}
+            {snapshot.hasGridArea ? "Nätområde" : "Nätområde saknas"}
           </StatusPill>
         </div>
-        {blockers.length > 0 ? (
-          <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-            Leverantörsbyte kan inte startas ännu. Saknas: {blockers.join(", ")}
-            .
-          </p>
-        ) : (
-          <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
-            Kunden ser redo ut för nästa kontroll. Systemet gör slutkontrollen
-            innan något skickas.
-          </p>
-        )}
-      </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <PrimaryAction
-          title="Begär uppgifter"
-          text="Systemet begär eller förbereder saknade uppgifter, försöker hitta nätägare automatiskt och skapar tydlig uppgift om granskning behövs."
-        >
-          <CustomerOperationAutomationForm
-            kind="customer_data"
-            customerId={customerId}
-            siteId={primarySite?.id}
-            meteringPointId={primaryPoint?.id}
-            idleLabel="Begär uppgifter"
-            pendingLabel="Startar…"
-          />
-        </PrimaryAction>
+        {/* Blocker message - in plain Swedish, no internal codes */}
+        {workflow.blockerAdminMessage && workflow.primaryAction === "review_blocker" ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-900">Åtgärd krävs</p>
+            <p className="mt-1 text-sm text-amber-800">{workflow.blockerAdminMessage}</p>
+          </div>
+        ) : null}
 
-        <PrimaryAction
-          title="Begär leverantörsbyte"
-          text="Systemet kontrollerar fullmakt, avtal, mätpunkt, nätägare, juridiskt underlag och kontaktväg innan leverantörsbyte startas."
-        >
-          <CustomerOperationAutomationForm
-            kind="supplier_switch"
-            customerId={customerId}
-            siteId={primarySite?.id}
-            meteringPointId={primaryPoint?.id}
-            idleLabel="Begär leverantörsbyte"
-            pendingLabel="Startar…"
-          />
-        </PrimaryAction>
-      </div>
-
-      <details className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
-        <summary className="cursor-pointer font-semibold text-slate-900">
-          Fler åtgärder
-        </summary>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <form
-            action={sendCustomerConfirmationBusinessAction}
-            className="rounded-2xl border border-slate-200 p-4"
-          >
-            {renderBusinessActionHiddenFields("send_confirmation")}
-            <SubmitButton
-              idleLabel="Skicka bekräftelsemail"
-              pendingLabel="Skickar…"
-            />
-          </form>
-          <form
-            action={registerCancellationBusinessAction}
-            className="rounded-2xl border border-slate-200 p-4"
-          >
-            {renderBusinessActionHiddenFields("register_cancellation")}
-            <input
-              type="hidden"
-              name="reason"
-              value="Kunden har registrerat ånger från kundkortet."
-            />
-            {missingSwitchRequestNotice}
-            <SubmitButton
-              idleLabel="Registrera ånger"
-              pendingLabel="Registrerar…"
-            />
-          </form>
-          <form
-            action={endAgreementBusinessAction}
-            className="rounded-2xl border border-slate-200 p-4"
-          >
-            {renderBusinessActionHiddenFields(
-              `end_agreement:${activeContract?.id ?? "customer"}`,
-            )}
-            <input
-              type="hidden"
-              name="reason"
-              value="Avslut av avtal påbörjat från kundkortet."
-            />
-            {missingSwitchRequestNotice}
-            <SubmitButton idleLabel="Avsluta avtal" pendingLabel="Startar…" />
-          </form>
-          <form
-            action={createGridOwnerDataRequestAction}
-            className="rounded-2xl border border-slate-200 p-4"
-          >
-            <input type="hidden" name="customer_id" value={customerId} />
-            <input type="hidden" name="site_id" value={primarySite?.id ?? ""} />
-            <input
-              type="hidden"
-              name="metering_point_id"
-              value={primaryPoint?.id ?? ""}
-            />
-            <input type="hidden" name="grid_owner_id" value={gridOwnerId} />
-            <input
-              type="hidden"
-              name="request_scope"
-              value="customer_masterdata"
-            />
-            <SubmitButton
-              idleLabel="Begär anläggningsuppgifter"
-              pendingLabel="Skapar…"
-            />
-          </form>
-          <form
-            action={requestMeteringAccessBusinessAction}
-            className="rounded-2xl border border-slate-200 p-4"
-          >
-            {renderBusinessActionHiddenFields("request_metering_access")}
-            <SubmitButton
-              idleLabel="Begär mätvärdesåtkomst"
-              pendingLabel="Begär…"
-            />
-          </form>
-          <form
-            action={requestHistoricalMeteringAccessBusinessAction}
-            className="rounded-2xl border border-slate-200 p-4"
-          >
-            {renderBusinessActionHiddenFields(
-              "request_historical_metering_access",
-            )}
-            <SubmitButton
-              idleLabel="Hämta mätvärden"
-              pendingLabel="Kontrollerar…"
-            />
-          </form>
-          <form
-            action={terminateMeteringAccessBusinessAction}
-            className="rounded-2xl border border-slate-200 p-4"
-          >
-            {renderBusinessActionHiddenFields("terminate_metering_access")}
-            <SubmitButton
-              idleLabel="Avsluta mätvärdesåtkomst"
-              pendingLabel="Avslutar…"
-            />
-          </form>
+        {/* Primary CTA */}
+        <div className="mt-5">
+          {showWaitMessage ? (
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+              {workflow.adminMessage}
+            </div>
+          ) : workflow.primaryAction === "request_data" ||
+            workflow.primaryAction === "continue_data_request" ? (
+            <div className="rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm">
+              <h3 className="text-base font-semibold text-slate-950">
+                {workflow.primaryAction === "continue_data_request"
+                  ? "Fortsätt uppgiftsbegäran"
+                  : "Begär uppgifter"}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                Systemet begär anläggningsuppgifter från nätägaren och förbereder
+                Ediel-meddelandet i bakgrunden.
+              </p>
+              <div className="mt-4">
+                <CustomerOperationAutomationForm
+                  kind="customer_data"
+                  customerId={customerId}
+                  siteId={primarySite?.id}
+                  meteringPointId={primaryPoint?.id}
+                  idleLabel={
+                    workflow.primaryAction === "continue_data_request"
+                      ? "Fortsätt uppgiftsbegäran"
+                      : "Begär uppgifter"
+                  }
+                  pendingLabel="Startar…"
+                />
+              </div>
+            </div>
+          ) : workflow.primaryAction === "create_supplier_switch" ? (
+            <div className="rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm">
+              <h3 className="text-base font-semibold text-slate-950">
+                Begär leverantörsbyte
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                Uppgifter mottagna. Systemet kontrollerar alla förutsättningar
+                innan leverantörsbyte startas.
+              </p>
+              <div className="mt-4">
+                <CustomerOperationAutomationForm
+                  kind="supplier_switch"
+                  customerId={customerId}
+                  siteId={primarySite?.id}
+                  meteringPointId={primaryPoint?.id}
+                  idleLabel="Begär leverantörsbyte"
+                  pendingLabel="Startar…"
+                />
+              </div>
+            </div>
+          ) : workflow.primaryAction === "review_blocker" ? (
+            <div className="rounded-3xl border border-amber-200 bg-white p-5 shadow-sm">
+              <h3 className="text-base font-semibold text-slate-950">
+                Granska blockerare
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                Uppgiftsbegäran är blockerad. Se processöversikten ovan för detaljer
+                och kontakta plattformsadministratören vid behov.
+              </p>
+              <div className="mt-4 flex gap-3">
+                <Link
+                  href={`/admin/customer-info-requests`}
+                  className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+                >
+                  Visa uppgiftsbegäran
+                </Link>
+              </div>
+            </div>
+          ) : null}
         </div>
-      </details>
+
+        {/* Secondary actions */}
+        <div className="mt-4 flex flex-wrap gap-3">
+          {workflow.secondaryActions.map((action) => (
+            <Link
+              key={action.id}
+              href={action.href ?? "#"}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              {action.label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Technical / advanced actions — platform admin only */}
+        {isPlatformAdmin ? (
+          <details className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+            <summary className="cursor-pointer font-semibold text-slate-900">
+              Tekniska åtgärder
+            </summary>
+            <div className="mt-4 space-y-4">
+              {/* Technical details */}
+              {Object.entries(workflow.technicalDetails).some(([, v]) => Boolean(v)) ? (
+                <div className="rounded-xl bg-slate-50 p-3 font-mono text-xs text-slate-600 space-y-1">
+                  {workflow.technicalDetails.customerInfoRequestId ? (
+                    <div>customer_info_request: {workflow.technicalDetails.customerInfoRequestId}</div>
+                  ) : null}
+                  {workflow.technicalDetails.gridOwnerDataRequestId ? (
+                    <div>grid_owner_data_request: {workflow.technicalDetails.gridOwnerDataRequestId}</div>
+                  ) : null}
+                  {workflow.technicalDetails.outboundRequestId ? (
+                    <div>outbound_request: {workflow.technicalDetails.outboundRequestId}</div>
+                  ) : null}
+                  {workflow.technicalDetails.edielMessageId ? (
+                    <div>ediel_message: {workflow.technicalDetails.edielMessageId}</div>
+                  ) : null}
+                  {workflow.technicalDetails.communicationRouteId ? (
+                    <div>communication_route: {workflow.technicalDetails.communicationRouteId}</div>
+                  ) : null}
+                  {workflow.technicalDetails.edielRouteProfileId ? (
+                    <div>ediel_route_profile: {workflow.technicalDetails.edielRouteProfileId}</div>
+                  ) : null}
+                  {workflow.technicalDetails.operationId ? (
+                    <div>operation_id: {workflow.technicalDetails.operationId}</div>
+                  ) : null}
+                  {workflow.technicalDetails.blockerCode ? (
+                    <div>blocker_code: {workflow.technicalDetails.blockerCode}</div>
+                  ) : null}
+                  {workflow.technicalDetails.routeResolutionStatus ? (
+                    <div>route_resolution_status: {workflow.technicalDetails.routeResolutionStatus}</div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {/* Repair Z01 chain */}
+              {workflow.canRunRepair ? (
+                <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
+                  <p className="text-sm font-semibold text-orange-900">Reparera Z01-kedja</p>
+                  <p className="mt-1 text-xs text-orange-700">
+                    Det finns en stuck grid_owner_data_request utan outbound. Kör finalisering för att skapa outbound och förbereda Ediel-meddelandet.
+                  </p>
+                  <p className="mt-2 text-xs font-mono text-orange-600">
+                    POST /api/internal/z01-repair · company_id + grid_owner_data_request_id
+                  </p>
+                  {workflow.technicalDetails.gridOwnerDataRequestId ? (
+                    <p className="mt-1 text-xs font-mono text-orange-600">
+                      grid_owner_data_request_id: {workflow.technicalDetails.gridOwnerDataRequestId}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <form
+                  action={sendCustomerConfirmationBusinessAction}
+                  className="rounded-2xl border border-slate-200 p-4"
+                >
+                  {renderBusinessActionHiddenFields("send_confirmation")}
+                  <SubmitButton
+                    idleLabel="Skicka bekräftelsemail"
+                    pendingLabel="Skickar…"
+                  />
+                </form>
+                <form
+                  action={registerCancellationBusinessAction}
+                  className="rounded-2xl border border-slate-200 p-4"
+                >
+                  {renderBusinessActionHiddenFields("register_cancellation")}
+                  <input
+                    type="hidden"
+                    name="reason"
+                    value="Kunden har registrerat ånger från kundkortet."
+                  />
+                  <SubmitButton
+                    idleLabel="Registrera ånger"
+                    pendingLabel="Registrerar…"
+                  />
+                </form>
+                <form
+                  action={endAgreementBusinessAction}
+                  className="rounded-2xl border border-slate-200 p-4"
+                >
+                  {renderBusinessActionHiddenFields(
+                    `end_agreement:${activeContract?.id ?? "customer"}`,
+                  )}
+                  <input
+                    type="hidden"
+                    name="reason"
+                    value="Avslut av avtal påbörjat från kundkortet."
+                  />
+                  <SubmitButton idleLabel="Avsluta avtal" pendingLabel="Startar…" />
+                </form>
+                <form
+                  action={createGridOwnerDataRequestAction}
+                  className="rounded-2xl border border-slate-200 p-4"
+                >
+                  <input type="hidden" name="customer_id" value={customerId} />
+                  <input type="hidden" name="site_id" value={primarySite?.id ?? ""} />
+                  <input
+                    type="hidden"
+                    name="metering_point_id"
+                    value={primaryPoint?.id ?? ""}
+                  />
+                  <input type="hidden" name="grid_owner_id" value={gridOwnerId} />
+                  <input
+                    type="hidden"
+                    name="request_scope"
+                    value="customer_masterdata"
+                  />
+                  <SubmitButton
+                    idleLabel="Begär anläggningsuppgifter (manuellt)"
+                    pendingLabel="Skapar…"
+                  />
+                </form>
+                <form
+                  action={requestMeteringAccessBusinessAction}
+                  className="rounded-2xl border border-slate-200 p-4"
+                >
+                  {renderBusinessActionHiddenFields("request_metering_access")}
+                  <SubmitButton
+                    idleLabel="Begär mätvärdesåtkomst"
+                    pendingLabel="Begär…"
+                  />
+                </form>
+                <form
+                  action={requestHistoricalMeteringAccessBusinessAction}
+                  className="rounded-2xl border border-slate-200 p-4"
+                >
+                  {renderBusinessActionHiddenFields(
+                    "request_historical_metering_access",
+                  )}
+                  <SubmitButton
+                    idleLabel="Hämta mätvärden"
+                    pendingLabel="Kontrollerar…"
+                  />
+                </form>
+                <form
+                  action={terminateMeteringAccessBusinessAction}
+                  className="rounded-2xl border border-slate-200 p-4"
+                >
+                  {renderBusinessActionHiddenFields("terminate_metering_access")}
+                  <SubmitButton
+                    idleLabel="Avsluta mätvärdesåtkomst"
+                    pendingLabel="Avslutar…"
+                  />
+                </form>
+              </div>
+            </div>
+          </details>
+        ) : null}
+      </section>
     </section>
   );
 }
