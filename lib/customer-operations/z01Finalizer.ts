@@ -357,7 +357,7 @@ async function syncCustomerInfoRequestAfterZ01Repair(input: {
       status: "z01_prepared",
       blocker_code: null,
       blocker_reason: null,
-      blocker_details: null,
+      blocker_details: {},
       route_resolution_status: "prepared",
       next_required_action: nextRequiredAction,
     });

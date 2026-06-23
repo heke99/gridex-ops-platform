@@ -35,6 +35,7 @@ const assert = (condition, message) => {
 const actionsCard = read('components/admin/customers/CustomerBusinessActionsCard.tsx')
 const businessActions = read('app/admin/customers/[id]/business-actions.ts')
 const messagesPage = read('app/admin/messages/page.tsx')
+const routeEngine = read('lib/routes/routeDecisionEngine.ts')
 
 // ---- 1. CustomerBusinessActionsCard wires the repair/dry-run forms ----
 assert(
@@ -200,6 +201,21 @@ assert(
 assert(
   !/customer_info_request_events["']\s*\)[\s\S]*?\.maybeSingle\(\)/.test(dryRunBody),
   'business-actions.ts: dry-run audit insert is not a bare .maybeSingle() that discards the error'
+)
+
+
+// ---- 16. Route decision logging must not turn transport_mode into UUID transport_profile_id ----
+assert(
+  /transport_profile_id:\s*uuidOrNull/.test(routeEngine),
+  'routeDecisionEngine.ts: route decision logging writes transport_profile_id only after UUID guard'
+)
+assert(
+  /transport_mode:\s*text\(profile\?\.transport_mode\)/.test(routeEngine),
+  'routeDecisionEngine.ts: route decision payload carries transport_mode separately from transport_profile_id'
+)
+assert(
+  !/transport_profile_id:\s*profile\?\.transport_profile_id \?\? profile\?\.mailbox_id \?\? profile\?\.transport_mode/.test(routeEngine),
+  'routeDecisionEngine.ts: transport_mode is never used as UUID fallback'
 )
 
 console.log('\n✓ Z01 repair action integration regression passed.')

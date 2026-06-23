@@ -18,6 +18,7 @@ const assert = (condition, message) => {
 }
 
 const finalizer = read('lib/customer-operations/z01Finalizer.ts')
+const routeEngine = read('lib/routes/routeDecisionEngine.ts')
 const prodat = read('lib/ediel/flows/prodatCustomerMasterdata.ts')
 const infoRequests = read('lib/onboarding/infoRequests.ts')
 const card = read('components/admin/customers/CustomerBusinessActionsCard.tsx')
@@ -66,6 +67,10 @@ assert(
   'z01Finalizer.ts: sync helper commits prepared and blocked states explicitly',
 )
 assert(
+  /blocker_details:\s*\{\}/.test(finalizer),
+  'z01Finalizer.ts: clears blocker_details with {} instead of null for NOT NULL jsonb schemas',
+)
+assert(
   /route_profile_found_but_not_production_ready/.test(finalizer),
   'z01Finalizer.ts: maps production_route_profile_not_ready to route_profile_found_but_not_production_ready',
 )
@@ -112,6 +117,24 @@ assert(
 assert(
   /routeResolutionStatusForZ01Blocker/.test(prodat) && /route_profile_found_but_not_production_ready/.test(prodat),
   'prodatCustomerMasterdata.ts: blocked route details keep precise route resolution status',
+)
+
+// ---- Route decision audit must never coerce transport_mode into UUID fields ----
+assert(
+  /function uuidOrNull/.test(routeEngine) && /transport_profile_id:\s*uuidOrNull/.test(routeEngine),
+  'routeDecisionEngine.ts: sanitizes transport_profile_id as UUID/null before DB logging',
+)
+assert(
+  /transport_mode:\s*text\(profile\?\.transport_mode\)/.test(routeEngine),
+  'routeDecisionEngine.ts: keeps transport_mode as text in route decision payload',
+)
+assert(
+  !/transport_profile_id:\s*profile\?\.transport_profile_id \?\? profile\?\.mailbox_id \?\? profile\?\.transport_mode/.test(routeEngine),
+  'routeDecisionEngine.ts: never falls back from transport_profile_id to transport_mode',
+)
+assert(
+  /Route decision audit logging skipped after non-blocking error/.test(routeEngine) && /Admin task creation skipped after non-blocking error/.test(routeEngine),
+  'routeDecisionEngine.ts: audit/admin-task side effects are non-blocking for controlled repair outcomes',
 )
 
 // ---- Server action and page/card safety ----

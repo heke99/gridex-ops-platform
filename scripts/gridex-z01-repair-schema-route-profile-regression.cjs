@@ -70,4 +70,19 @@ assert(
   'backfill migration: only touches production rows (never crosses test/production)',
 )
 
+
+// ---- 5. Transport mode / profile id schema safety ----
+assert(
+  /function uuidOrNull/.test(routeEngine) && /transport_profile_id:\s*uuidOrNull/.test(routeEngine),
+  'routeDecisionEngine.ts: UUID-only guard protects ediel_routing_decisions.transport_profile_id',
+)
+assert(
+  /transport_mode:\s*text\(profile\?\.transport_mode\)/.test(routeEngine),
+  'routeDecisionEngine.ts: transport_mode remains text metadata, not a UUID reference',
+)
+assert(
+  !/transport_profile_id:\s*profile\?\.transport_profile_id \?\? profile\?\.mailbox_id \?\? profile\?\.transport_mode/.test(routeEngine),
+  'routeDecisionEngine.ts: smtp_imap cannot be assigned to transport_profile_id',
+)
+
 console.log('\n\u2713 Z01 repair schema + route-profile regression passed.')
