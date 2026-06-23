@@ -16,6 +16,11 @@ import {
 } from "@/lib/customer-operations/z01Finalizer";
 import { supabaseService } from "@/lib/supabase/service";
 import type { EdielEnvironment } from "@/lib/ediel/types";
+import {
+  Z01_FACILITY_IDENTIFIER_BLOCKER_CODE,
+  Z01_FACILITY_IDENTIFIER_BLOCKER_REASON,
+  Z01_FACILITY_IDENTIFIER_NEXT_ACTION,
+} from "@/lib/customer-operations/z01Prerequisites";
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -128,21 +133,29 @@ async function writeSafeZ01RepairFailedEventFromAction(params: {
     (typeof routeDecisionPayload?.environment === "string"
       ? routeDecisionPayload.environment
       : null);
+  const errorMessage = safeActionErrorMessage(params.error);
+  const isMissingFacility =
+    errorMessage.includes(Z01_FACILITY_IDENTIFIER_BLOCKER_CODE) ||
+    errorMessage.toLowerCase().includes("anläggnings-id") ||
+    errorMessage.toLowerCase().includes("mätpunkt");
 
   await insertZ01RepairTerminalEvent({
     companyId: params.companyId,
     customerInfoRequestId: params.customerInfoRequestId,
     customerId: resolvedCustomerId,
     actorUserId: params.actorUserId,
-    outcome: "failed",
-    blockerCode: "technical_error",
-    blockerReason:
-      "Z01-reparationen stoppades av ett tekniskt fel innan status kunde sparas säkert.",
+    outcome: isMissingFacility ? "blocked" : "failed",
+    blockerCode: isMissingFacility ? Z01_FACILITY_IDENTIFIER_BLOCKER_CODE : "technical_error",
+    blockerReason: isMissingFacility
+      ? Z01_FACILITY_IDENTIFIER_BLOCKER_REASON
+      : "Z01-reparationen stoppades av ett tekniskt fel innan status kunde sparas säkert.",
     outboundRequestId: outbound?.id ?? null,
     edielRouteProfileId: outbound?.ediel_route_profile_id ?? null,
     edielMessageId: null,
     environment,
-    nextRequiredAction: `Granska Vercel-loggen för reparationsåtgärden och kör om när felet är åtgärdat. Teknisk orsak: ${safeActionErrorMessage(params.error)}`,
+    nextRequiredAction: isMissingFacility
+      ? Z01_FACILITY_IDENTIFIER_NEXT_ACTION
+      : `Granska Vercel-loggen för reparationsåtgärden och kör om när felet är åtgärdat. Teknisk orsak: ${errorMessage}`,
   });
 }
 
