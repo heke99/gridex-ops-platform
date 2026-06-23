@@ -13,6 +13,9 @@
 // 10. messages/page.tsx queries outbound_requests (not only ediel_messages)
 // 11. No gridex_repair_z01_grid_owner_data_request_finalizer SQL RPC expected (Option B)
 // 12. Ownership verification present in repair action (company_id check)
+// 14. dryRunZ01RepairAction audit insert uses real columns (customer_id/payload/created_by)
+//     and not metadata/actor_user_id
+// 15. dry-run audit insert error is checked, not discarded via bare .maybeSingle()
 
 const fs = require('fs')
 const path = require('path')
@@ -144,6 +147,54 @@ assert(
 assert(
   /dryRunZ01RepairAction/.test(actionsCard),
   'CustomerBusinessActionsCard.tsx: imports dryRunZ01RepairAction'
+)
+
+// ---- 14. dryRunZ01RepairAction audit insert uses real customer_info_request_events columns ----
+// The table requires customer_id (NOT NULL) and uses payload/created_by. A previous
+// regression bug inserted actor_user_id/metadata and omitted customer_id, so the insert
+// silently failed (.maybeSingle() error was discarded) and no dry-run audit row persisted.
+const dryRunBody = businessActions.match(/export async function dryRunZ01RepairAction[\s\S]*?\n}/)?.[0] ?? ''
+assert(
+  dryRunBody.length > 0,
+  'business-actions.ts: dryRunZ01RepairAction body extracted for audit-insert checks'
+)
+
+const dryRunInsert =
+  dryRunBody.match(/\.from\(\s*["']customer_info_request_events["']\s*\)[\s\S]*?\}\s*\)/)?.[0] ?? ''
+assert(
+  dryRunInsert.length > 0,
+  'business-actions.ts: dryRunZ01RepairAction inserts into customer_info_request_events'
+)
+assert(
+  /customer_id\s*:/.test(dryRunInsert),
+  'business-actions.ts: dry-run audit insert provides NOT NULL customer_id'
+)
+assert(
+  /payload\s*:/.test(dryRunInsert),
+  'business-actions.ts: dry-run audit insert uses payload column'
+)
+assert(
+  /created_by\s*:/.test(dryRunInsert),
+  'business-actions.ts: dry-run audit insert uses created_by column'
+)
+assert(
+  !/metadata\s*:/.test(dryRunInsert),
+  'business-actions.ts: dry-run audit insert does NOT use non-existent metadata column'
+)
+assert(
+  !/actor_user_id\s*:/.test(dryRunInsert),
+  'business-actions.ts: dry-run audit insert does NOT use non-existent actor_user_id column'
+)
+
+// ---- 15. dry-run audit insert error is checked, not discarded via bare .maybeSingle() ----
+assert(
+  /const\s*\{\s*error\s*:\s*auditError\s*\}\s*=\s*await\s+supabaseService[\s\S]*?customer_info_request_events/.test(dryRunBody) ||
+    /auditError/.test(dryRunBody),
+  'business-actions.ts: dry-run audit insert checks the returned error (no silent failure)'
+)
+assert(
+  !/customer_info_request_events["']\s*\)[\s\S]*?\.maybeSingle\(\)/.test(dryRunBody),
+  'business-actions.ts: dry-run audit insert is not a bare .maybeSingle() that discards the error'
 )
 
 console.log('\n✓ Z01 repair action integration regression passed.')

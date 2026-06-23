@@ -226,16 +226,33 @@ export async function dryRunZ01RepairAction(
     throw new Error("Ange grid_owner_data_request_id eller customer_info_request_id.");
   }
 
-  // Server-side ownership verification
+  // Server-side ownership verification. We also derive the customer_id from the
+  // verified row instead of trusting the form payload, since
+  // customer_info_request_events.customer_id is NOT NULL.
+  let resolvedCustomerId: string | null = customerId;
+
   if (gridOwnerDataRequestId) {
     const { data: godr, error: godrError } = await supabaseService
       .from("grid_owner_data_requests")
-      .select("id, company_id")
+      .select("id, company_id, customer_id")
       .eq("id", gridOwnerDataRequestId)
       .single();
 
     if (godrError || !godr) throw new Error("Uppgiftsbegäran hittades inte.");
     if (godr.company_id !== companyId) throw new Error("Uppgiftsbegäran tillhör inte angivet bolag.");
+    resolvedCustomerId = resolvedCustomerId ?? (godr.customer_id as string | null) ?? null;
+  }
+
+  if (customerInfoRequestId) {
+    const { data: cir, error: cirError } = await supabaseService
+      .from("customer_info_requests")
+      .select("id, company_id, customer_id")
+      .eq("id", customerInfoRequestId)
+      .single();
+
+    if (cirError || !cir) throw new Error("Kundinformationsbegäran hittades inte.");
+    if (cir.company_id !== companyId) throw new Error("Kundinformationsbegäran tillhör inte angivet bolag.");
+    resolvedCustomerId = resolvedCustomerId ?? (cir.customer_id as string | null) ?? null;
   }
 
   const result = await dryRunZ01Finalizer({
@@ -248,8 +265,11 @@ export async function dryRunZ01RepairAction(
   });
 
   // Record the dry-run result as an audit event so the admin can inspect it
-  // in the customer operation timeline without raw SQL errors being shown
-  if (customerInfoRequestId) {
+  // in the customer operation timeline without raw SQL errors being shown.
+  // customer_info_request_events requires customer_id (NOT NULL) and uses the
+  // columns payload/created_by — matching addCustomerInfoRequestEvent and the
+  // finalizer audit insert in z01Finalizer.ts.
+  if (customerInfoRequestId && resolvedCustomerId) {
     const summary = [
       `wouldCreateOutbound: ${result.wouldCreateOutbound}`,
       `wouldPrepareEdielMessage: ${result.wouldPrepareEdielMessage}`,
@@ -257,15 +277,15 @@ export async function dryRunZ01RepairAction(
       ...(result.warnings.length > 0 ? result.warnings.map((w) => `warning: ${w.code} — ${w.message}`) : []),
     ].join(' | ');
 
-    await supabaseService
+    const { error: auditError } = await supabaseService
       .from("customer_info_request_events")
       .insert({
         customer_info_request_id: customerInfoRequestId,
         company_id: companyId,
+        customer_id: resolvedCustomerId,
         event_type: "z01_dry_run_repair",
-        actor_user_id: guard.userId,
         message: `Torrkörning av Z01-reparation: ${summary}`,
-        metadata: {
+        payload: {
           dryRun: true,
           wouldCreateOutbound: result.wouldCreateOutbound,
           wouldPrepareEdielMessage: result.wouldPrepareEdielMessage,
@@ -273,8 +293,15 @@ export async function dryRunZ01RepairAction(
           warnings: result.warnings,
           environment,
         },
-      })
-      .maybeSingle();
+        created_by: guard.userId,
+      });
+
+    if (
+      auditError &&
+      !["42703", "PGRST204", "PGRST205"].includes(String((auditError as { code?: string }).code ?? ""))
+    ) {
+      throw new Error(`Kunde inte spara torrkörningens revisionshändelse: ${auditError.message}`);
+    }
   }
 
   // Revalidate so the admin sees the new audit event
