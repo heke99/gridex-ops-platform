@@ -14,6 +14,12 @@ import type { GridOwnerDataRequestRow } from "@/lib/cis/types";
 import type { CustomerInfoRequestRow } from "@/lib/onboarding/infoRequests";
 import type { EdielEnvironment } from "@/lib/ediel/types";
 import { makeCustomerOperationBlocker } from "@/lib/customer-operations/blockers";
+import {
+  Z01_FACILITY_IDENTIFIER_BLOCKER_CODE,
+  Z01_FACILITY_IDENTIFIER_BLOCKER_REASON,
+  Z01_FACILITY_IDENTIFIER_NEXT_ACTION,
+  Z01_FACILITY_IDENTIFIER_ROUTE_STATUS,
+} from "@/lib/customer-operations/z01Prerequisites";
 
 export type Z01FinalizerInput = {
   companyId: string;
@@ -95,6 +101,7 @@ const CONTROLLED_Z01_BLOCKERS = new Set([
   "sender_ediel_id_missing",
   "environment_missing",
   "environment_not_resolved",
+  "facility_or_metering_point_missing",
 ]);
 
 function asRecord(v: unknown): Record<string, unknown> {
@@ -120,6 +127,13 @@ function controlledBlockerCodeFromError(error: unknown): string | null {
   for (const code of CONTROLLED_Z01_BLOCKERS) {
     if (normalized.includes(code)) return code;
   }
+  if (
+    normalized.includes("facility_or_metering_point_missing") ||
+    normalized.includes("anläggnings-id") ||
+    normalized.includes("mätpunkt") ||
+    normalized.includes("facility")
+  )
+    return Z01_FACILITY_IDENTIFIER_BLOCKER_CODE;
   if (normalized.includes("ambiguous") && normalized.includes("actor"))
     return "actor_settings_ambiguous";
   return null;
@@ -142,7 +156,11 @@ function normalizeRouteIssueCodeToZ01Blocker(code: unknown): string | null {
 
 function firstOutboundRouteBlocker(
   outbound: OutboundSummary | null,
-): { code: string; message: string | null; details: Record<string, unknown> | null } | null {
+): {
+  code: string;
+  message: string | null;
+  details: Record<string, unknown> | null;
+} | null {
   if (!outbound) return null;
   const payload = asRecord(outbound.route_decision_payload);
   const candidates = [
@@ -173,7 +191,8 @@ function firstOutboundRouteBlocker(
   return {
     code: directCode,
     message:
-      compactString(payload.blocker_reason) ?? compactString(payload.blockerReason),
+      compactString(payload.blocker_reason) ??
+      compactString(payload.blockerReason),
     details: payload,
   };
 }
@@ -206,6 +225,8 @@ function routeResolutionStatusForZ01Blocker(
       return "environment_missing";
     case "environment_not_resolved":
       return "environment_not_resolved";
+    case "facility_or_metering_point_missing":
+      return Z01_FACILITY_IDENTIFIER_ROUTE_STATUS;
     default:
       return String(fallback ?? blockerCode ?? "z01_prepare_failed");
   }
@@ -219,6 +240,9 @@ function blockerReasonForZ01Repair(
   if (blockerCode === "production_route_profile_not_ready") {
     return "Route profile finns och är kopplad till routen men är inte produktionsklar.";
   }
+  if (blockerCode === Z01_FACILITY_IDENTIFIER_BLOCKER_CODE) {
+    return Z01_FACILITY_IDENTIFIER_BLOCKER_REASON;
+  }
   return fallback ?? makeCustomerOperationBlocker(blockerCode).blocker_reason;
 }
 
@@ -229,6 +253,9 @@ function nextActionForZ01Repair(
   if (!blockerCode) return fallback ?? null;
   if (blockerCode === "production_route_profile_not_ready") {
     return "Granska och aktivera produktionsprofilen för PRODAT Z01 innan meddelandet kan förberedas eller skickas.";
+  }
+  if (blockerCode === Z01_FACILITY_IDENTIFIER_BLOCKER_CODE) {
+    return Z01_FACILITY_IDENTIFIER_NEXT_ACTION;
   }
   return (
     fallback ?? makeCustomerOperationBlocker(blockerCode).next_required_action
@@ -768,7 +795,9 @@ export async function finalizeStuckZ01GridOwnerDataRequest(
     const nextRequiredAction = nextActionForZ01Repair(controlledBlockerCode);
     const repairEnvironment =
       input.environment ??
-      compactString(asRecord(outboundAfterError?.route_decision_payload).environment);
+      compactString(
+        asRecord(outboundAfterError?.route_decision_payload).environment,
+      );
 
     if (outboundAfterError) {
       const blockerDetails = normalizeBlockerDetails({

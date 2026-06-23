@@ -6,6 +6,7 @@ export type CustomerOperationBlockerCode =
   | "certificate_missing"
   | "missing_power_of_attorney"
   | "invalid_customer_site_snapshot"
+  | "facility_or_metering_point_missing"
   | "environment_mismatch"
   | "environment_missing"
   | "ambiguous_sender_settings"
@@ -45,70 +46,100 @@ export type CustomerOperationBlocker = {
   error_class: CustomerOperationErrorClass;
 };
 
-const BLOCKERS: Record<CustomerOperationBlockerCode, Omit<CustomerOperationBlocker, "reason_code" | "blocker_code">> = {
+const BLOCKERS: Record<
+  CustomerOperationBlockerCode,
+  Omit<CustomerOperationBlocker, "reason_code" | "blocker_code">
+> = {
   grid_area_not_verified: {
-    blocker_reason: "Nätområde eller nätägare är inte verifierad för automatiskt Ediel-utskick.",
-    next_required_action: "Verifiera nätområde och nätägare innan EDIFACT skickas.",
+    blocker_reason:
+      "Nätområde eller nätägare är inte verifierad för automatiskt Ediel-utskick.",
+    next_required_action:
+      "Verifiera nätområde och nätägare innan EDIFACT skickas.",
     issue_type: "data",
     error_class: "business_blocker",
   },
   operational_route_missing: {
-    blocker_reason: "Operativ Ediel-route saknas för nätägaren och meddelandetypen.",
-    next_required_action: "Skapa eller aktivera communication_route och Ediel route profile för nätägaren.",
+    blocker_reason:
+      "Operativ Ediel-route saknas för nätägaren och meddelandetypen.",
+    next_required_action:
+      "Skapa eller aktivera communication_route och Ediel route profile för nätägaren.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
   platform_route_exists_but_not_materialized: {
-    blocker_reason: "Nätägaren är verifierad i aktörsregistret, men operativ route saknas.",
-    next_required_action: "Synkronisera aktörsregistrets route till bolagets operativa route-konfiguration.",
+    blocker_reason:
+      "Nätägaren är verifierad i aktörsregistret, men operativ route saknas.",
+    next_required_action:
+      "Synkronisera aktörsregistrets route till bolagets operativa route-konfiguration.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
   production_send_locked: {
-    blocker_reason: "Produktionsutskick är låst tills första produktionssändningen är godkänd.",
-    next_required_action: "Begär plattformsadministratörens godkännande av första produktionssändningen.",
+    blocker_reason:
+      "Produktionsutskick är låst tills första produktionssändningen är godkänd.",
+    next_required_action:
+      "Begär plattformsadministratörens godkännande av första produktionssändningen.",
     issue_type: "production_approval",
     error_class: "configuration_blocker",
   },
   certificate_missing: {
-    blocker_reason: "Mottagarens giltiga certifikat saknas eller matchar inte route-konfigurationen.",
-    next_required_action: "Lägg in och verifiera mottagarcertifikat för rätt Ediel-ID och miljö.",
+    blocker_reason:
+      "Mottagarens giltiga certifikat saknas eller matchar inte route-konfigurationen.",
+    next_required_action:
+      "Lägg in och verifiera mottagarcertifikat för rätt Ediel-ID och miljö.",
     issue_type: "certificate",
     error_class: "configuration_blocker",
   },
   missing_power_of_attorney: {
     blocker_reason: "Signerad fullmakt saknas för uppgiftsbegäran.",
-    next_required_action: "Ladda upp eller verifiera signerad fullmakt med rätt omfattning.",
+    next_required_action:
+      "Ladda upp eller verifiera signerad fullmakt med rätt omfattning.",
     issue_type: "legal",
     error_class: "business_blocker",
   },
   invalid_customer_site_snapshot: {
     blocker_reason: "Kundens anläggningssnapshot är inte längre giltig.",
-    next_required_action: "Uppdatera anläggningsadressen och starta om uppgiftsbegäran.",
+    next_required_action:
+      "Uppdatera anläggningsadressen och starta om uppgiftsbegäran.",
+    issue_type: "data",
+    error_class: "business_blocker",
+  },
+  facility_or_metering_point_missing: {
+    blocker_reason:
+      "PRODAT Z01 kan inte förberedas eftersom anläggnings-id eller mätpunkt saknas.",
+    next_required_action:
+      "Begär anläggningsuppgifter från nätägaren eller komplettera anläggnings-id/mätpunkt innan Z01 kan förberedas.",
     issue_type: "data",
     error_class: "business_blocker",
   },
   environment_mismatch: {
-    blocker_reason: "Miljö stämmer inte mellan operation, aktörsinställning, route, certifikat eller transport.",
-    next_required_action: "Korrigera miljö på route, aktörsinställning, certifikat och transport innan utskick.",
+    blocker_reason:
+      "Miljö stämmer inte mellan operation, aktörsinställning, route, certifikat eller transport.",
+    next_required_action:
+      "Korrigera miljö på route, aktörsinställning, certifikat och transport innan utskick.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
   environment_missing: {
-    blocker_reason: "Ediel-miljö (test/produktion) saknas för operationen. Systemet får aldrig gissa miljö.",
-    next_required_action: "Ange uttrycklig Ediel-miljö (test eller produktion) innan EDIFACT förbereds.",
+    blocker_reason:
+      "Ediel-miljö (test/produktion) saknas för operationen. Systemet får aldrig gissa miljö.",
+    next_required_action:
+      "Ange uttrycklig Ediel-miljö (test eller produktion) innan EDIFACT förbereds.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
   sender_ediel_id_missing: {
-    blocker_reason: "Avsändarens Ediel-ID saknas för route profile och avsändarinställning.",
-    next_required_action: "Fyll i bolagets Ediel-ID i ediel_actor_settings eller på route profile för rätt miljö.",
+    blocker_reason:
+      "Avsändarens Ediel-ID saknas för route profile och avsändarinställning.",
+    next_required_action:
+      "Fyll i bolagets Ediel-ID i ediel_actor_settings eller på route profile för rätt miljö.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
   route_profile_missing: {
     blocker_reason: "Vald route saknar Ediel route profile.",
-    next_required_action: "Skapa en Ediel route profile kopplad till routen via communication_route_id.",
+    next_required_action:
+      "Skapa en Ediel route profile kopplad till routen via communication_route_id.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
@@ -119,44 +150,56 @@ const BLOCKERS: Record<CustomerOperationBlockerCode, Omit<CustomerOperationBlock
     error_class: "configuration_blocker",
   },
   production_route_profile_not_ready: {
-    blocker_reason: "Route profile finns och är kopplad till routen men är inte produktionsklar.",
-    next_required_action: "Granska och aktivera produktionsprofilen för PRODAT Z01 innan meddelandet kan förberedas eller skickas.",
+    blocker_reason:
+      "Route profile finns och är kopplad till routen men är inte produktionsklar.",
+    next_required_action:
+      "Granska och aktivera produktionsprofilen för PRODAT Z01 innan meddelandet kan förberedas eller skickas.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
   ambiguous_sender_settings: {
-    blocker_reason: "Flera avsändarinställningar matchar samma bolag, miljö och meddelandeflöde.",
-    next_required_action: "Inaktivera dubbletter eller välj en entydig avsändarinställning. Systemet gissar inte.",
+    blocker_reason:
+      "Flera avsändarinställningar matchar samma bolag, miljö och meddelandeflöde.",
+    next_required_action:
+      "Inaktivera dubbletter eller välj en entydig avsändarinställning. Systemet gissar inte.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
   sender_settings_missing: {
-    blocker_reason: "Avsändarinställning saknas för bolag, miljö och Ediel-flöde.",
-    next_required_action: "Lägg in en entydig aktiv Ediel-aktör för rätt bolag, roll och miljö.",
+    blocker_reason:
+      "Avsändarinställning saknas för bolag, miljö och Ediel-flöde.",
+    next_required_action:
+      "Lägg in en entydig aktiv Ediel-aktör för rätt bolag, roll och miljö.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
   environment_not_resolved: {
     blocker_reason: "Ediel-miljö kunde inte bestämmas säkert.",
-    next_required_action: "Välj eller koppla route/miljö explicit innan EDIFACT förbereds.",
+    next_required_action:
+      "Välj eller koppla route/miljö explicit innan EDIFACT förbereds.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
   environment_ambiguous: {
-    blocker_reason: "Både test- och produktionsbanor är möjliga – systemet får aldrig gissa miljö.",
-    next_required_action: "Välj test eller produktion explicit, eller koppla en entydig route profile per miljö.",
+    blocker_reason:
+      "Både test- och produktionsbanor är möjliga – systemet får aldrig gissa miljö.",
+    next_required_action:
+      "Välj test eller produktion explicit, eller koppla en entydig route profile per miljö.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },
   stale_response_requires_review: {
-    blocker_reason: "Svaret matchar inte längre kundens ursprungliga anläggningssnapshot.",
-    next_required_action: "Granska svaret manuellt innan anläggnings- eller mätpunktsdata uppdateras.",
+    blocker_reason:
+      "Svaret matchar inte längre kundens ursprungliga anläggningssnapshot.",
+    next_required_action:
+      "Granska svaret manuellt innan anläggnings- eller mätpunktsdata uppdateras.",
     issue_type: "data",
     error_class: "business_blocker",
   },
   technical_error: {
     blocker_reason: "Ett tekniskt fel stoppade automationen.",
-    next_required_action: "Granska tekniskt fel och försök igen när felet är åtgärdat.",
+    next_required_action:
+      "Granska tekniskt fel och försök igen när felet är åtgärdat.",
     issue_type: "technical",
     error_class: "technical_error",
   },
@@ -168,13 +211,16 @@ const BLOCKERS: Record<CustomerOperationBlockerCode, Omit<CustomerOperationBlock
   },
   send_uncertain: {
     blocker_reason: "Det är oklart om meddelandet skickades.",
-    next_required_action: "Kontrollera transportloggar och invänta kvittens innan nytt utskick görs.",
+    next_required_action:
+      "Kontrollera transportloggar och invänta kvittens innan nytt utskick görs.",
     issue_type: "technical",
     error_class: "send_uncertain",
   },
 };
 
-export function normalizeBlockerCode(value: unknown): CustomerOperationBlockerCode | string | null {
+export function normalizeBlockerCode(
+  value: unknown,
+): CustomerOperationBlockerCode | string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim().toLowerCase();
   if (!normalized) return null;
@@ -184,7 +230,9 @@ export function normalizeBlockerCode(value: unknown): CustomerOperationBlockerCo
 
 export function makeCustomerOperationBlocker(
   code: CustomerOperationBlockerCode | string,
-  overrides: Partial<Omit<CustomerOperationBlocker, "reason_code" | "blocker_code">> = {},
+  overrides: Partial<
+    Omit<CustomerOperationBlocker, "reason_code" | "blocker_code">
+  > = {},
 ): CustomerOperationBlocker {
   const normalized = normalizeBlockerCode(code) ?? "technical_error";
   const defaults =
@@ -199,14 +247,31 @@ export function makeCustomerOperationBlocker(
   };
 }
 
-export function routeIssueCodeToCustomerBlocker(code: unknown): CustomerOperationBlockerCode {
-  const normalized = String(code ?? "").trim().toLowerCase();
+export function routeIssueCodeToCustomerBlocker(
+  code: unknown,
+): CustomerOperationBlockerCode {
+  const normalized = String(code ?? "")
+    .trim()
+    .toLowerCase();
   // Most specific route-profile states first so they are never collapsed into a
   // generic "operational_route_missing".
   if (normalized.includes("environment_missing")) return "environment_missing";
-  if (normalized.includes("production_route_profile_not_ready")) return "production_route_profile_not_ready";
-  if (normalized.includes("route_profile_disabled")) return "route_profile_disabled";
-  if (normalized.includes("route_profile_missing") || normalized.includes("missing_route_profile")) {
+  if (normalized.includes("facility_or_metering_point_missing"))
+    return "facility_or_metering_point_missing";
+  if (
+    normalized.includes("anläggnings-id") ||
+    normalized.includes("mätpunkt") ||
+    normalized.includes("facility_or_metering")
+  )
+    return "facility_or_metering_point_missing";
+  if (normalized.includes("production_route_profile_not_ready"))
+    return "production_route_profile_not_ready";
+  if (normalized.includes("route_profile_disabled"))
+    return "route_profile_disabled";
+  if (
+    normalized.includes("route_profile_missing") ||
+    normalized.includes("missing_route_profile")
+  ) {
     return "route_profile_missing";
   }
   if (
@@ -220,17 +285,29 @@ export function routeIssueCodeToCustomerBlocker(code: unknown): CustomerOperatio
   if (normalized.includes("ambiguous") && normalized.includes("sender")) {
     return "ambiguous_sender_settings";
   }
-  if (normalized.includes("missing_sender_ediel_id") || normalized.includes("sender_ediel_id_missing")) {
+  if (
+    normalized.includes("missing_sender_ediel_id") ||
+    normalized.includes("sender_ediel_id_missing")
+  ) {
     return "sender_ediel_id_missing";
   }
-  if (normalized.includes("sender_settings_missing") || normalized.includes("missing_company_actor_setting")) {
+  if (
+    normalized.includes("sender_settings_missing") ||
+    normalized.includes("missing_company_actor_setting")
+  ) {
     return "sender_settings_missing";
   }
-  if (normalized.includes("environment_ambiguous")) return "environment_ambiguous";
-  if (normalized.includes("environment_not_resolved")) return "environment_not_resolved";
+  if (normalized.includes("environment_ambiguous"))
+    return "environment_ambiguous";
+  if (normalized.includes("environment_not_resolved"))
+    return "environment_not_resolved";
   if (normalized.includes("certificate")) return "certificate_missing";
-  if (normalized.includes("production_send_locked")) return "production_send_locked";
-  if (normalized.includes("authorization") || normalized.includes("power_of_attorney")) {
+  if (normalized.includes("production_send_locked"))
+    return "production_send_locked";
+  if (
+    normalized.includes("authorization") ||
+    normalized.includes("power_of_attorney")
+  ) {
     return "missing_power_of_attorney";
   }
   return "operational_route_missing";
@@ -252,6 +329,8 @@ export function customerBlockerStatusLabel(code: unknown): string {
       return "Uppgiftsbegäran blockerad av route-konfiguration";
     case "production_send_locked":
       return "Uppgiftsbegäran blockerad av produktionslås";
+    case "facility_or_metering_point_missing":
+      return "Anläggningsuppgifter saknas";
     case "grid_area_not_verified":
       return "Uppgiftsbegäran kräver granskning";
     case "certificate_missing":

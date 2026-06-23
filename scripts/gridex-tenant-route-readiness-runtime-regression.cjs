@@ -86,7 +86,7 @@ assert(/\.\.\.currentMetadata/.test(approval), 'production approval fallback mer
 assert(/missing_company_scope_for_production_send/.test(approval) && /production_send_locked/.test(approval), 'production send guard fails closed for missing scope/lock in production')
 
 // Task 6 — blocker preservation
-assert(/\["platform_route_exists_but_not_materialized", "platform_route_exists_but_not_materialized"\]/.test(infoRequests), 'customer info requests preserve exact platform_route_exists_but_not_materialized blocker')
+assert(/\[\s*["\']platform_route_exists_but_not_materialized["\']\s*,\s*["\']platform_route_exists_but_not_materialized["\']\s*,?\s*\]/.test(infoRequests), 'customer info requests preserve exact platform_route_exists_but_not_materialized blocker')
 assert(/platform_route_exists_but_not_materialized/.test(blockers), 'blocker registry defines platform_route_exists_but_not_materialized distinctly from operational_route_missing')
 assert(/route_resolution_status/.test(infoRequests) && /next_required_action/.test(infoRequests), 'customer info requests expose route_resolution_status and next_required_action')
 

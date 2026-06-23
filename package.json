@@ -98,7 +98,9 @@
     "gridex:z01-real-repair-controlled-blocker-regression": "node scripts/gridex-z01-real-repair-controlled-blocker-regression.cjs",
     "gridex:route-profile-production-readiness-regression": "node scripts/gridex-route-profile-production-readiness-regression.cjs",
     "gridex:z01-continue-finalization-regression": "node scripts/gridex-z01-continue-finalization-regression.cjs",
-    "gridex:route-profile-certificate-auto-match-regression": "node scripts/gridex-route-profile-certificate-auto-match-regression.cjs"
+    "gridex:route-profile-certificate-auto-match-regression": "node scripts/gridex-route-profile-certificate-auto-match-regression.cjs",
+    "gridex:z01-facility-preflight-regression": "node scripts/gridex-z01-facility-preflight-regression.cjs",
+    "gridex:z01-missing-facility-controlled-blocker-regression": "node scripts/gridex-z01-missing-facility-controlled-blocker-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
