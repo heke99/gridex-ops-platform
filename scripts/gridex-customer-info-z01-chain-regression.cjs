@@ -145,4 +145,15 @@ assert(
   'infoRequests.ts: marks superseded pending GODRs as failed on new dispatch'
 )
 
+// ---- 15. Option B: no SQL RPC, repair is TypeScript server action ----
+const businessActions = read('app/admin/customers/[id]/business-actions.ts')
+assert(
+  /repairZ01CustomerInfoRequestAction/.test(businessActions),
+  'business-actions.ts: Z01 repair server action exists (Option B: TypeScript-only path)'
+)
+assert(
+  /requirePlatformAdminAccess/.test(businessActions),
+  'business-actions.ts: repair server action requires platform admin (not accessible to company admins)'
+)
+
 console.log('\nCustomer info Z01 chain regression passed.')

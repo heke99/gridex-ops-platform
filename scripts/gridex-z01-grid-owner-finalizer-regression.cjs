@@ -141,6 +141,26 @@ assert(
   'automation.ts: requestForSite has phase-2 fallback without operation_id filter'
 )
 
+// ---- 10a. Repair path is a server action (Option B: TypeScript-only, no SQL RPC) ----
+const businessActions = read('app/admin/customers/[id]/business-actions.ts')
+assert(
+  /repairZ01CustomerInfoRequestAction/.test(businessActions),
+  'business-actions.ts: repair path is a server action (Option B — TypeScript-only, no SQL RPC)'
+)
+assert(
+  /finalizeStuckZ01GridOwnerDataRequest/.test(businessActions),
+  'business-actions.ts: server action calls finalizeStuckZ01GridOwnerDataRequest'
+)
+// Verify no SQL RPC was added
+const migrationDir = path.join(root, 'supabase/migrations')
+const migrationFiles = require('fs').readdirSync(migrationDir).map((f) => {
+  try { return require('fs').readFileSync(require('path').join(migrationDir, f), 'utf8') } catch { return '' }
+})
+assert(
+  !migrationFiles.some((c) => /gridex_repair_z01_grid_owner_data_request_finalizer/.test(c)),
+  'supabase/migrations: no SQL RPC gridex_repair_z01_grid_owner_data_request_finalizer (Option B)'
+)
+
 // ---- 10. ediel_messages uses correct column names ----
 const edielTypes = read('lib/ediel/types.ts')
 const edielTypeBlock = edielTypes.match(/EdielMessageRow\s*=\s*\{[\s\S]*?\}/)?.[0] ?? ''

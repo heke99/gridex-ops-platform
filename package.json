@@ -73,7 +73,21 @@
     "gridex:z01-grid-owner-finalizer-regression": "node scripts/gridex-z01-grid-owner-finalizer-regression.cjs",
     "gridex:customer-card-workflow-ui-regression": "node scripts/gridex-customer-card-workflow-ui-regression.cjs",
     "gridex:messages-sidebar-regression": "node scripts/gridex-messages-sidebar-regression.cjs",
-    "gridex:schema-relationship-contract-regression": "node scripts/gridex-schema-relationship-contract-regression.cjs"
+    "gridex:schema-relationship-contract-regression": "node scripts/gridex-schema-relationship-contract-regression.cjs",
+    "gridex:z01-repair-action-integration-regression": "node scripts/gridex-z01-repair-action-integration-regression.cjs",
+    "gridex:tenant-production-profile-chain-regression": "node scripts/gridex-tenant-production-profile-chain-regression.cjs",
+    "gridex:website-application-customer-number-chain-regression": "node scripts/gridex-website-application-customer-number-chain-regression.cjs",
+    "gridex:multi-site-customer-chain-regression": "node scripts/gridex-multi-site-customer-chain-regression.cjs",
+    "gridex:customer-info-z01-multisite-regression": "node scripts/gridex-customer-info-z01-multisite-regression.cjs",
+    "gridex:supplier-switch-multisite-regression": "node scripts/gridex-supplier-switch-multisite-regression.cjs",
+    "gridex:edifact-inbound-tenant-resolution-regression": "node scripts/gridex-edifact-inbound-tenant-resolution-regression.cjs",
+    "gridex:multi-metering-values-regression": "node scripts/gridex-multi-metering-values-regression.cjs",
+    "gridex:multi-site-billing-underlay-regression": "node scripts/gridex-multi-site-billing-underlay-regression.cjs",
+    "gridex:invoice-partner-customer-number-regression": "node scripts/gridex-invoice-partner-customer-number-regression.cjs",
+    "gridex:customer-portal-multi-site-api-regression": "node scripts/gridex-customer-portal-multi-site-api-regression.cjs",
+    "gridex:rls-multisite-metering-billing-regression": "node scripts/gridex-rls-multisite-metering-billing-regression.cjs",
+    "gridex:automation-idempotency-multisite-regression": "node scripts/gridex-automation-idempotency-multisite-regression.cjs",
+    "gridex:messages-operations-visibility-regression": "node scripts/gridex-messages-operations-visibility-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

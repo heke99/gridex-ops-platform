@@ -32,6 +32,7 @@ const chained = [
   'gridex:customer-info-dispatch-finalizer-regression',
   'gridex:production-route-readiness-regression',
   'gridex:energy-resolver-contract-regression',
+  'gridex:z01-repair-action-integration-regression',
 ]
 
 for (const script of chained) {
