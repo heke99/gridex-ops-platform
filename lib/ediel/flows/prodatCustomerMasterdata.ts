@@ -143,6 +143,37 @@ function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function errorSummary(error: unknown): Record<string, unknown> {
+  if (error instanceof Error) return { name: error.name, message: error.message }
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>
+    return {
+      code: record.code ?? null,
+      message: record.message ?? null,
+      details: record.details ?? null,
+      hint: record.hint ?? null,
+    }
+  }
+  return { message: String(error ?? 'unknown') }
+}
+
+async function tryUpdateGridOwnerDataRequestStatus(
+  input: Parameters<typeof updateGridOwnerDataRequestStatus>[0],
+  context: Record<string, unknown>,
+): Promise<GridOwnerDataRequestRow | null> {
+  try {
+    return await updateGridOwnerDataRequestStatus(input)
+  } catch (error) {
+    console.warn('[prodat z01] Kunde inte uppdatera grid_owner_data_requests; fortsätter med kontrollerad Z01-status', {
+      requestId: input.requestId,
+      status: input.status,
+      ...context,
+      error: errorSummary(error),
+    })
+    return null
+  }
+}
+
 function routeResolutionStatusForZ01Blocker(blockerCode: string | null | undefined, fallback: string | null | undefined): string {
   switch (String(blockerCode ?? '').trim().toLowerCase()) {
     case 'production_route_profile_not_ready':
@@ -600,7 +631,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       sender_settings_id: null,
       production_send_lock_status: null,
     }
-    await updateGridOwnerDataRequestStatus({
+    await tryUpdateGridOwnerDataRequestStatus({
       actorUserId,
       requestId: dataRequest.id,
       status: 'pending',
@@ -615,6 +646,10 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         blockerDetails,
       },
       notes: blocker.blocker_reason,
+    }, {
+      phase: 'missing_or_unmaterialized_route_blocker',
+      blockerCode: blocker.blocker_code,
+      outboundRequestId: outbound.id,
     })
 
     return {
@@ -705,7 +740,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       status: 'failed',
       failureReason: blocker.blocker_reason,
     })
-    await updateGridOwnerDataRequestStatus({
+    await tryUpdateGridOwnerDataRequestStatus({
       actorUserId,
       requestId: dataRequest.id,
       status: 'pending',
@@ -721,6 +756,12 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         routeDecision: error.decision,
       },
       notes: blocker.blocker_reason,
+    }, {
+      phase: 'route_decision_controlled_blocker',
+      blockerCode: blocker.blocker_code,
+      outboundRequestId: outbound.id,
+      communicationRouteId: error.decision.communicationRouteId ?? null,
+      edielRouteProfileId: error.decision.edielRouteProfileId ?? null,
     })
 
     const blockedOutbound = {

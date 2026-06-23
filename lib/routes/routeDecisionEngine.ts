@@ -2,10 +2,7 @@ import { supabaseService } from "@/lib/supabase/service";
 import { isEdielPortalParty } from "@/lib/ediel/core/productionGuards";
 import { resolveDynamicReceiver } from "@/lib/routes/dynamicReceiverResolver";
 import { resolveGridOwnerAgreementReference } from "@/lib/routes/agreementReferenceResolver";
-import {
-  resolveSenderSettings as resolveCompanySenderSettings,
-  senderSettingProductionLockStatus,
-} from "@/lib/ediel/senderSettingsResolver";
+import { resolveSenderSettings as resolveCompanySenderSettings, senderSettingProductionLockStatus } from "@/lib/ediel/senderSettingsResolver";
 import {
   buildAckPolicy,
   defaultMessageForProcess,
@@ -94,12 +91,12 @@ function text(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 function uuidOrNull(value: unknown): string | null {
-  const cleaned = text(value);
-  return cleaned && UUID_RE.test(cleaned) ? cleaned : null;
+  const candidate = text(value);
+  if (!candidate) return null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
+    ? candidate
+    : null;
 }
 
 function upper(value: unknown): string {
@@ -253,13 +250,8 @@ async function findActiveActorSetting(params: {
   environment?: string | null;
   messageFamily?: string | null;
   messageCode?: string | null;
-}): Promise<{
-  setting: ActorSettingRow | null;
-  ambiguous: boolean;
-  matches: ActorSettingRow[];
-}> {
-  if (!params.companyId)
-    return { setting: null, ambiguous: false, matches: [] };
+}): Promise<{ setting: ActorSettingRow | null; ambiguous: boolean; matches: ActorSettingRow[] }> {
+  if (!params.companyId) return { setting: null, ambiguous: false, matches: [] };
 
   const { data, error } = await supabaseService
     .from("ediel_actor_settings")
@@ -287,30 +279,22 @@ async function findActiveActorSetting(params: {
       roles.length === 0 ||
       roles.includes("supplier") ||
       roles.includes("electricity_supplier");
-    const metadata = row as ActorSettingRow & {
-      metadata?: Record<string, unknown>;
-    };
+    const metadata = row as ActorSettingRow & { metadata?: Record<string, unknown> };
     const metadataFamily = upper(metadata.metadata?.message_family);
     const metadataCode = text(metadata.metadata?.message_code);
-    const familyMatches =
-      !metadataFamily || !family || metadataFamily === family;
-    const codeMatches =
-      !metadataCode ||
-      !params.messageCode ||
-      metadataCode === params.messageCode;
+    const familyMatches = !metadataFamily || !family || metadataFamily === family;
+    const codeMatches = !metadataCode || !params.messageCode || metadataCode === params.messageCode;
     return roleMatches && familyMatches && codeMatches;
   });
   return {
-    setting: matching.length === 1 ? (matching[0] ?? null) : null,
+    setting: matching.length === 1 ? matching[0] ?? null : null,
     ambiguous: matching.length > 1,
     matches: matching,
   };
 }
 
 function lowerText(value: unknown): string {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase();
+  return String(value ?? "").trim().toLowerCase();
 }
 
 // Deterministic actor-setting lookup via a route profile's actor_setting_id.
@@ -330,45 +314,26 @@ async function findActorSettingByIdScoped(params: {
     .eq("is_active", true)
     .maybeSingle();
   if (error) {
-    if (
-      ["42703", "PGRST204", "PGRST205"].includes(
-        String((error as { code?: string }).code ?? ""),
-      )
-    )
-      return null;
+    if (["42703", "PGRST204", "PGRST205"].includes(String((error as { code?: string }).code ?? ""))) return null;
     throw error;
   }
   const row = (data as ActorSettingRow | null) ?? null;
   if (!row) return null;
-  if (params.companyId && row.company_id && row.company_id !== params.companyId)
-    return null;
-  if (
-    params.environment &&
-    lowerText(row.environment) !== lowerText(params.environment)
-  )
-    return null;
+  if (params.companyId && row.company_id && row.company_id !== params.companyId) return null;
+  if (params.environment && lowerText(row.environment) !== lowerText(params.environment)) return null;
   return row;
 }
 
-function profileMetadata(
-  profile: RouteProfileRow | null,
-): Record<string, unknown> {
-  const value = (profile as (RouteProfileRow & { metadata?: unknown }) | null)
-    ?.metadata;
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+function profileMetadata(profile: RouteProfileRow | null): Record<string, unknown> {
+  const value = (profile as (RouteProfileRow & { metadata?: unknown }) | null)?.metadata;
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function receiverBlankSubaddressAllowed(
-  profile: RouteProfileRow | null,
-): boolean {
+function receiverBlankSubaddressAllowed(profile: RouteProfileRow | null): boolean {
   const metadata = profileMetadata(profile);
-  return (
-    !text(profile?.receiver_sub_address) &&
-    (lowerText(metadata.receiver_subaddress_status) ===
-      "not_required_confirmed" ||
-      metadata.blank_subaddress_requires_review === false)
+  return !text(profile?.receiver_sub_address) && (
+    lowerText(metadata.receiver_subaddress_status) === "not_required_confirmed" ||
+    metadata.blank_subaddress_requires_review === false
   );
 }
 
@@ -440,10 +405,6 @@ function compactPayload(
     warnings: decision.warnings,
     required_admin_actions: decision.requiredAdminActions,
     decision_trace: decision.decisionTrace,
-    transport_profile_id: uuidOrNull(
-      (decision.payload ?? {}).transport_profile_id,
-    ),
-    transport_mode: text((decision.payload ?? {}).transport_mode),
   };
 }
 
@@ -451,103 +412,91 @@ export async function logRouteDecision(
   input: RouteDecisionInput,
   decision: RouteDecisionOutput,
 ): Promise<void> {
-  try {
-    const routeLogPayload = {
-      company_id: input.companyId ?? null,
-      customer_id: input.customerId ?? null,
-      site_id: input.siteId ?? null,
-      metering_point_id: input.meteringPointId ?? null,
-      grid_owner_id: decision.resolvedGridOwnerId ?? input.gridOwnerId ?? null,
-      current_supplier_id: input.currentSupplierId ?? null,
-      business_process: input.businessProcess,
-      requested_action: input.requestedAction ?? null,
-      message_family: decision.messageFamily,
-      message_code: decision.messageCode,
-      environment: input.environment ?? "test",
-      decision_status: decision.decisionStatus,
-      route_scope: decision.routeScope,
-      communication_route_id: decision.communicationRouteId,
-      ediel_route_profile_id: decision.edielRouteProfileId,
-      grid_owner_access_agreement_id: decision.gridOwnerAccessAgreementId,
-      application_reference: decision.applicationReference,
-      message_version: decision.messageVersion,
-      sender_ediel_id: decision.senderEdielId,
-      sender_sub_address: decision.senderSubAddress,
-      receiver_ediel_id: decision.receiverEdielId,
-      receiver_sub_address: decision.receiverSubAddress,
-      receiver_source: decision.receiverSource,
-      dynamic_receiver_strategy: decision.dynamicReceiverStrategy,
-      ack_policy: decision.ackPolicy,
-      blocking_reasons: decision.blockingReasons,
-      warnings: decision.warnings,
-      required_admin_actions: decision.requiredAdminActions,
-      decision_trace: decision.decisionTrace,
-      source_payload: input.payload ?? {},
-      created_by: input.actorUserId ?? null,
-    };
+  const routeLogPayload = {
+    company_id: input.companyId ?? null,
+    customer_id: input.customerId ?? null,
+    site_id: input.siteId ?? null,
+    metering_point_id: input.meteringPointId ?? null,
+    grid_owner_id: decision.resolvedGridOwnerId ?? input.gridOwnerId ?? null,
+    current_supplier_id: input.currentSupplierId ?? null,
+    business_process: input.businessProcess,
+    requested_action: input.requestedAction ?? null,
+    message_family: decision.messageFamily,
+    message_code: decision.messageCode,
+    environment: input.environment ?? "test",
+    decision_status: decision.decisionStatus,
+    route_scope: decision.routeScope,
+    communication_route_id: decision.communicationRouteId,
+    ediel_route_profile_id: decision.edielRouteProfileId,
+    grid_owner_access_agreement_id: decision.gridOwnerAccessAgreementId,
+    application_reference: decision.applicationReference,
+    message_version: decision.messageVersion,
+    sender_ediel_id: decision.senderEdielId,
+    sender_sub_address: decision.senderSubAddress,
+    receiver_ediel_id: decision.receiverEdielId,
+    receiver_sub_address: decision.receiverSubAddress,
+    receiver_source: decision.receiverSource,
+    dynamic_receiver_strategy: decision.dynamicReceiverStrategy,
+    ack_policy: decision.ackPolicy,
+    blocking_reasons: decision.blockingReasons,
+    warnings: decision.warnings,
+    required_admin_actions: decision.requiredAdminActions,
+    decision_trace: decision.decisionTrace,
+    source_payload: input.payload ?? {},
+    created_by: input.actorUserId ?? null,
+  };
 
-    const { data, error } = await supabaseService
-      .from("route_decision_logs")
-      .insert(routeLogPayload)
-      .select("id")
-      .maybeSingle();
+  const { data, error } = await supabaseService
+    .from("route_decision_logs")
+    .insert(routeLogPayload)
+    .select("id")
+    .maybeSingle();
 
-    if (error) {
-      console.warn(
-        "[routeDecisionEngine] Kunde inte logga route-beslut",
-        error,
-      );
-      return;
-    }
-
-    const routeDecisionLogId = (data as { id?: string } | null)?.id ?? null;
-    const routingDecisionPayload = {
-      route_decision_log_id: routeDecisionLogId,
-      company_id: input.companyId ?? null,
-      environment: input.environment ?? "test",
-      message_family: decision.messageFamily,
-      message_code: decision.messageCode,
-      direction: "outbound",
-      sender_ediel_id: decision.senderEdielId,
-      sender_subaddress: decision.senderSubAddress,
-      receiver_ediel_id: decision.receiverEdielId,
-      receiver_subaddress: decision.receiverSubAddress,
-      receiver_source: decision.receiverSource ?? "unresolved",
-      dynamic_receiver_strategy: decision.dynamicReceiverStrategy,
-      route_profile_id: decision.edielRouteProfileId,
-      route_version: Number((decision.payload ?? {}).route_version ?? 1),
-      transport_profile_id: uuidOrNull(
-        (decision.payload ?? {}).transport_profile_id,
-      ),
-      metering_point_id: input.meteringPointId ?? null,
-      grid_owner_id: decision.resolvedGridOwnerId ?? input.gridOwnerId ?? null,
-      validation_status:
-        decision.decisionStatus === "send"
-          ? "passed"
-          : decision.decisionStatus === "manual_review"
-            ? "warning"
-            : "blocked",
-      validation_errors: decision.blockingReasons,
-      validation_warnings: decision.warnings,
-      decision_trace: decision.decisionTrace,
-      is_dry_run: input.payload?.dryRun === true,
-      created_by: input.actorUserId ?? null,
-    };
-
-    const { error: routingDecisionError } = await supabaseService
-      .from("ediel_routing_decisions")
-      .insert(routingDecisionPayload);
-    if (routingDecisionError)
-      console.warn(
-        "[routeDecisionEngine] Kunde inte logga ediel_routing_decisions",
-        routingDecisionError,
-      );
-  } catch (error) {
-    console.warn(
-      "[routeDecisionEngine] Route decision audit logging skipped after non-blocking error",
-      error,
-    );
+  if (error) {
+    console.warn("[routeDecisionEngine] Kunde inte logga route-beslut", error);
+    return;
   }
+
+  const routeDecisionLogId = (data as { id?: string } | null)?.id ?? null;
+  const routingDecisionPayload = {
+    route_decision_log_id: routeDecisionLogId,
+    company_id: input.companyId ?? null,
+    environment: input.environment ?? "test",
+    message_family: decision.messageFamily,
+    message_code: decision.messageCode,
+    direction: "outbound",
+    sender_ediel_id: decision.senderEdielId,
+    sender_subaddress: decision.senderSubAddress,
+    receiver_ediel_id: decision.receiverEdielId,
+    receiver_subaddress: decision.receiverSubAddress,
+    receiver_source: decision.receiverSource ?? "unresolved",
+    dynamic_receiver_strategy: decision.dynamicReceiverStrategy,
+    route_profile_id: decision.edielRouteProfileId,
+    route_version: Number((decision.payload ?? {}).route_version ?? 1),
+    transport_profile_id: uuidOrNull((decision.payload ?? {}).transport_profile_id),
+    metering_point_id: input.meteringPointId ?? null,
+    grid_owner_id: decision.resolvedGridOwnerId ?? input.gridOwnerId ?? null,
+    validation_status:
+      decision.decisionStatus === "send"
+        ? "passed"
+        : decision.decisionStatus === "manual_review"
+          ? "warning"
+          : "blocked",
+    validation_errors: decision.blockingReasons,
+    validation_warnings: decision.warnings,
+    decision_trace: decision.decisionTrace,
+    is_dry_run: input.payload?.dryRun === true,
+    created_by: input.actorUserId ?? null,
+  };
+
+  const { error: routingDecisionError } = await supabaseService
+    .from("ediel_routing_decisions")
+    .insert(routingDecisionPayload);
+  if (routingDecisionError)
+    console.warn(
+      "[routeDecisionEngine] Kunde inte logga ediel_routing_decisions",
+      routingDecisionError,
+    );
 }
 
 export async function createRouteAdminTasks(
@@ -596,10 +545,7 @@ export async function decideCommunicationRoute(
   const defaults = defaultMessageForProcess(input.businessProcess);
   const messageFamily = upper(input.messageFamily) || defaults.family;
   const messageCode = text(input.messageCode) ?? defaults.code;
-  const routeScope = routeScopeForBusinessProcess(
-    input.businessProcess,
-    messageCode,
-  );
+  const routeScope = routeScopeForBusinessProcess(input.businessProcess, messageCode);
   const explicitEnvironment = text(input.environment);
 
   // Fail closed: production-capable outbound paths must never silently default
@@ -623,12 +569,7 @@ export async function decideCommunicationRoute(
     step: "classify_process",
     status: "success",
     message: `${input.businessProcess} klassades som ${routeScope}.`,
-    metadata: {
-      messageFamily,
-      messageCode,
-      environment,
-      environmentExplicit: Boolean(explicitEnvironment),
-    },
+    metadata: { messageFamily, messageCode, environment, environmentExplicit: Boolean(explicitEnvironment) },
   });
 
   const dynamicReceiver = await resolveDynamicReceiver({
@@ -810,37 +751,22 @@ export async function decideCommunicationRoute(
   }
 
   const profileResolution = routeResult.route
-    ? await findRouteProfile(
-        routeResult.route.id,
-        input.companyId ?? null,
-        environment,
-      )
+    ? await findRouteProfile(routeResult.route.id, input.companyId ?? null, environment)
     : { profile: null, status: "missing" as const };
   const profile = profileResolution.profile;
   const actorSettingResult = await resolveCompanySenderSettings({
     companyId: input.companyId ?? null,
     environment,
-    actorRole:
-      typeof input.payload?.actorRole === "string"
-        ? input.payload.actorRole
-        : null,
-    marketRole:
-      typeof input.payload?.marketRole === "string"
-        ? input.payload.marketRole
-        : null,
+    actorRole: typeof input.payload?.actorRole === "string" ? input.payload.actorRole : null,
+    marketRole: typeof input.payload?.marketRole === "string" ? input.payload.marketRole : null,
     messageFamily,
     messageCode,
-    applicationReference:
-      typeof input.payload?.applicationReference === "string"
-        ? input.payload.applicationReference
-        : null,
+    applicationReference: typeof input.payload?.applicationReference === "string" ? input.payload.applicationReference : null,
   });
-  let actorSetting =
-    actorSettingResult.status === "resolved"
-      ? actorSettingResult.setting
-      : null;
-  let actorSettingSelectedVia: "resolver" | "route_profile_link" | null =
-    actorSetting ? "resolver" : null;
+  let actorSetting = actorSettingResult.status === "resolved" ? actorSettingResult.setting : null;
+  let actorSettingSelectedVia: "resolver" | "route_profile_link" | null = actorSetting
+    ? "resolver"
+    : null;
 
   // Preferred actor source order (Phase 8): a route profile's actor_setting_id
   // deterministically resolves the sender identity and breaks ambiguity. This
@@ -866,9 +792,7 @@ export async function decideCommunicationRoute(
       message:
         "Flera aktiva avsändarinställningar matchar bolag, miljö och Ediel-flöde. Systemet blockerar hellre än gissar.",
       source: "actor_setting_resolver",
-      metadata: {
-        actorSettingIds: actorSettingResult.matches.map((row) => row.id),
-      },
+      metadata: { actorSettingIds: actorSettingResult.matches.map((row) => row.id) },
     });
     requiredAdminActions.push(
       "Inaktivera dubbletter eller koppla en entydig avsändarinställning till route profile.",
@@ -894,21 +818,12 @@ export async function decideCommunicationRoute(
       message:
         "Bolagets Ediel-aktör finns men matchar inte operationens miljö. Systemet blockerar hellre än gissar.",
       source: "actor_setting_resolver",
-      metadata: {
-        actorSettingIds: actorSettingResult.matches.map((row) => row.id),
-        environment,
-      },
+      metadata: { actorSettingIds: actorSettingResult.matches.map((row) => row.id), environment },
     });
-    requiredAdminActions.push(
-      "Korrigera miljö på actor settings, route profile, certifikat och transport.",
-    );
+    requiredAdminActions.push("Korrigera miljö på actor settings, route profile, certifikat och transport.");
   }
 
-  if (
-    !actorSetting &&
-    isProduction(environment) &&
-    actorSettingResult.status !== "environment_mismatch"
-  ) {
+  if (!actorSetting && isProduction(environment) && actorSettingResult.status !== "environment_mismatch") {
     addIssue(blockingReasons, {
       code: "missing_company_actor_setting",
       message:
@@ -952,8 +867,7 @@ export async function decideCommunicationRoute(
   if (routeResult.route && profileResolution.status === "missing") {
     addIssue(blockingReasons, {
       code: "route_profile_missing",
-      message:
-        "Vald route saknar Ediel route profile. Skapa en route profile kopplad till routen.",
+      message: "Vald route saknar Ediel route profile. Skapa en route profile kopplad till routen.",
       source: "route_profile_resolver",
     });
     requiredAdminActions.push("Skapa eller aktivera Ediel route profile.");
@@ -964,8 +878,7 @@ export async function decideCommunicationRoute(
   if (routeResult.route && profileResolution.status === "disabled") {
     addIssue(blockingReasons, {
       code: "route_profile_disabled",
-      message:
-        "Route profile finns men är avstängd (is_enabled=false). Aktivera profilen innan utskick.",
+      message: "Route profile finns men är avstängd (is_enabled=false). Aktivera profilen innan utskick.",
       source: "route_profile_resolver",
       metadata: { routeProfileId: profile?.id ?? null },
     });
@@ -999,19 +912,11 @@ export async function decideCommunicationRoute(
     );
   }
 
-  if (
-    profile &&
-    profileResolution.status === "enabled" &&
-    isProduction(environment)
-  ) {
-    if (
-      profile.environment !== "production" ||
-      profile.is_production_route === false
-    ) {
+  if (profile && profileResolution.status === "enabled" && isProduction(environment)) {
+    if (profile.environment !== "production" || profile.is_production_route === false) {
       addIssue(blockingReasons, {
         code: "production_route_profile_not_production",
-        message:
-          "Production-send kräver aktiv production route profile. Test- eller blandprofil får inte användas.",
+        message: "Production-send kräver aktiv production route profile. Test- eller blandprofil får inte användas.",
         source: "route_profile_resolver",
       });
       requiredAdminActions.push("Koppla en aktiv production route profile.");
@@ -1019,33 +924,25 @@ export async function decideCommunicationRoute(
 
     const hasProductionTransport = Boolean(
       text(profile.transport_profile_id) ||
-      text(profile.mailbox_id) ||
-      text(profile.transport_mode) ||
-      text(profile.mailbox),
+        text(profile.mailbox_id) ||
+        text(profile.transport_mode) ||
+        text(profile.mailbox),
     );
     if (!hasProductionTransport) {
       addIssue(blockingReasons, {
         code: "missing_production_transport",
-        message:
-          "Production-send kräver aktiv transportprofil eller mailbox-koppling på route profile.",
+        message: "Production-send kräver aktiv transportprofil eller mailbox-koppling på route profile.",
         source: "transport_profile_resolver",
       });
-      requiredAdminActions.push(
-        "Koppla production transport eller mailbox till route profile.",
-      );
+      requiredAdminActions.push("Koppla production transport eller mailbox till route profile.");
     }
   }
 
-  if (
-    profile &&
-    profileResolution.status === "enabled" &&
-    !isProduction(environment)
-  ) {
+  if (profile && profileResolution.status === "enabled" && !isProduction(environment)) {
     if (profile.environment !== "test" || profile.is_test_route === false) {
       addIssue(blockingReasons, {
         code: "test_route_profile_not_test",
-        message:
-          "Testsend kräver aktiv test route profile och får inte använda production-route.",
+        message: "Testsend kräver aktiv test route profile och får inte använda production-route.",
         source: "route_profile_resolver",
       });
       requiredAdminActions.push("Koppla en aktiv test route profile.");
@@ -1088,11 +985,7 @@ export async function decideCommunicationRoute(
   const resolvedGridOwnerId = selectedGridOwnerId;
   const resolvedCounterpartyId = dynamicReceiver.counterpartyId ?? null;
 
-  if (
-    isProduction(environment) &&
-    text(profile?.receiver_ediel_id) &&
-    dynamicReceiver.receiverSource === "not_required"
-  ) {
+  if (isProduction(environment) && text(profile?.receiver_ediel_id) && dynamicReceiver.receiverSource === "not_required") {
     addIssue(warnings, {
       code: "production_fixed_receiver_route",
       message:
@@ -1110,31 +1003,19 @@ export async function decideCommunicationRoute(
     : senderFromLegacyProfile && !isProduction(environment)
       ? "route_profile"
       : "unresolved";
-  const senderEdielId =
-    senderFromActorSetting ??
-    (!isProduction(environment) ? senderFromLegacyProfile : null);
+  const senderEdielId = senderFromActorSetting ?? (!isProduction(environment) ? senderFromLegacyProfile : null);
 
-  if (
-    isProduction(environment) &&
-    senderFromLegacyProfile &&
-    !senderFromActorSetting
-  ) {
+  if (isProduction(environment) && senderFromLegacyProfile && !senderFromActorSetting) {
     addIssue(blockingReasons, {
       code: "production_sender_not_from_actor_settings",
       message:
         "Production sender Ediel-ID måste hämtas från ediel_actor_settings för bolaget. Route profile får inte vara fallback source-of-truth.",
       source: "actor_setting_resolver",
     });
-    requiredAdminActions.push(
-      "Lägg in bolagets production Ediel-ID i Company → Ediel & Go-live.",
-    );
+    requiredAdminActions.push("Lägg in bolagets production Ediel-ID i Company → Ediel & Go-live.");
   }
 
-  if (
-    isProduction(environment) &&
-    senderEdielId &&
-    isKnownTestEdielId(senderEdielId)
-  ) {
+  if (isProduction(environment) && senderEdielId && isKnownTestEdielId(senderEdielId)) {
     addIssue(blockingReasons, {
       code: "production_sender_known_test_id",
       message: "Production sender får inte vara ett känt systemtest-/AGT-ID.",
@@ -1145,30 +1026,25 @@ export async function decideCommunicationRoute(
 
   const senderSubAddressFromActor =
     messageFamily === "PRODAT"
-      ? (text(actorSetting?.sender_subaddress_prodat) ??
+      ? text(actorSetting?.sender_subaddress_prodat) ??
         text(actorSetting?.sender_subaddress) ??
-        text(actorSetting?.sender_sub_address))
+        text(actorSetting?.sender_sub_address)
       : messageFamily === "UTILTS"
-        ? (text(actorSetting?.sender_subaddress_utilts) ??
+        ? text(actorSetting?.sender_subaddress_utilts) ??
           text(actorSetting?.sender_subaddress) ??
-          text(actorSetting?.sender_sub_address))
-        : (text(actorSetting?.sender_subaddress) ??
-          text(actorSetting?.sender_sub_address));
+          text(actorSetting?.sender_sub_address)
+        : text(actorSetting?.sender_subaddress) ??
+          text(actorSetting?.sender_sub_address);
   const senderSubAddressFromProfile = text(profile?.sender_sub_address);
   const senderSubAddress =
-    senderSubAddressFromActor ??
-    (!isProduction(environment) ? senderSubAddressFromProfile : null);
+    senderSubAddressFromActor ?? (!isProduction(environment) ? senderSubAddressFromProfile : null);
   const senderSubAddressSource = senderSubAddressFromActor
     ? "actor_settings"
     : senderSubAddressFromProfile && !isProduction(environment)
       ? "route_profile"
       : "unresolved";
 
-  if (
-    isProduction(environment) &&
-    senderSubAddressFromProfile &&
-    !senderSubAddressFromActor
-  ) {
+  if (isProduction(environment) && senderSubAddressFromProfile && !senderSubAddressFromActor) {
     addIssue(blockingReasons, {
       code: "production_sender_subaddress_not_from_actor_settings",
       message:
@@ -1176,16 +1052,10 @@ export async function decideCommunicationRoute(
       source: "actor_setting_resolver",
       metadata: { senderSubAddressSource },
     });
-    requiredAdminActions.push(
-      "Lägg in bolagets production sender-subadress i Company → Ediel & Go-live.",
-    );
+    requiredAdminActions.push("Lägg in bolagets production sender-subadress i Company → Ediel & Go-live.");
   }
 
-  if (
-    isProduction(environment) &&
-    profile?.company_id === null &&
-    (profile.sender_ediel_id || profile.sender_sub_address)
-  ) {
+  if (isProduction(environment) && profile?.company_id === null && (profile.sender_ediel_id || profile.sender_sub_address)) {
     addIssue(blockingReasons, {
       code: "production_global_profile_sender_fields_blocked",
       message:
@@ -1233,12 +1103,7 @@ export async function decideCommunicationRoute(
       });
     }
 
-    if (
-      isProduction(environment) &&
-      ["PRODAT", "UTILTS"].includes(messageFamily) &&
-      !receiverSubAddress &&
-      !receiverBlankSubaddressAllowed(profile)
-    ) {
+    if (isProduction(environment) && ["PRODAT", "UTILTS"].includes(messageFamily) && !receiverSubAddress && !receiverBlankSubaddressAllowed(profile)) {
       addIssue(blockingReasons, {
         code: "missing_receiver_subaddress",
         message:
@@ -1330,9 +1195,7 @@ export async function decideCommunicationRoute(
       selected_grid_owner_name: dynamicReceiver.receiverName,
       reference_requirements: agreementDecision.referenceRequirements,
       route_version: profile?.route_version ?? 1,
-      transport_profile_id: uuidOrNull(
-        profile?.transport_profile_id ?? profile?.mailbox_id,
-      ),
+      transport_profile_id: uuidOrNull(profile?.transport_profile_id ?? profile?.mailbox_id),
       transport_mode: text(profile?.transport_mode),
       route_decision_evidence: {
         selected_company_id: input.companyId ?? null,
@@ -1357,25 +1220,23 @@ export async function decideCommunicationRoute(
             : profile?.receiver_sub_address
               ? "route_profile"
               : "unresolved",
-        route_profile_scope: profile?.company_id
-          ? "tenant"
-          : profile
-            ? "global"
-            : "none",
+        route_profile_scope: profile?.company_id ? "tenant" : profile ? "global" : "none",
         certificate_source: "transport_runtime",
         blocked_reason: blockingReasons[0]?.code ?? null,
       },
     },
   };
 
-  await logRouteDecision(input, decision);
+  try {
+    await logRouteDecision(input, decision);
+  } catch (error) {
+    console.warn("[routeDecisionEngine] Route decision audit failed without blocking routing", error);
+  }
+
   try {
     await createRouteAdminTasks(input, decision);
   } catch (error) {
-    console.warn(
-      "[routeDecisionEngine] Admin task creation skipped after non-blocking error",
-      error,
-    );
+    console.warn("[routeDecisionEngine] Route admin task creation failed without blocking routing", error);
   }
 
   return decision;
@@ -1386,6 +1247,7 @@ export function routeDecisionPayload(
 ): Record<string, unknown> {
   return compactPayload(decision);
 }
+
 
 // Public wrapper kept for the Ediel hardening architecture: callers should route
 // through this backend decision engine before any EDIFACT builder receives sender/receiver data.

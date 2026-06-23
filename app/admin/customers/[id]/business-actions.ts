@@ -49,6 +49,14 @@ function revalidateCustomerBusinessPaths(customerId: string) {
 
 function safeActionErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim()) return error.message.trim();
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const parts = [record.code, record.message, record.details, record.hint]
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      .map((value) => value.trim());
+    if (parts.length > 0) return parts.join(" · ").slice(0, 600);
+  }
+  if (typeof error === "string" && error.trim()) return error.trim();
   return "Okänt tekniskt fel.";
 }
 

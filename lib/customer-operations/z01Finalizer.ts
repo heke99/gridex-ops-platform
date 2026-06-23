@@ -125,6 +125,59 @@ function controlledBlockerCodeFromError(error: unknown): string | null {
   return null;
 }
 
+function normalizeRouteIssueCodeToZ01Blocker(code: unknown): string | null {
+  const normalized = compactString(code)?.toLowerCase() ?? null;
+  if (!normalized) return null;
+  switch (normalized) {
+    case "missing_route_profile":
+      return "route_profile_missing";
+    case "ambiguous_route_profile":
+      return "route_profile_ambiguous";
+    case "ambiguous_sender_settings":
+      return "actor_settings_ambiguous";
+    default:
+      return CONTROLLED_Z01_BLOCKERS.has(normalized) ? normalized : null;
+  }
+}
+
+function firstOutboundRouteBlocker(
+  outbound: OutboundSummary | null,
+): { code: string; message: string | null; details: Record<string, unknown> | null } | null {
+  if (!outbound) return null;
+  const payload = asRecord(outbound.route_decision_payload);
+  const candidates = [
+    outbound.blocking_reasons,
+    payload.blocking_reasons,
+    payload.blockingReasons,
+  ];
+
+  for (const value of candidates) {
+    if (!Array.isArray(value)) continue;
+    for (const rawIssue of value) {
+      const issue = asRecord(rawIssue);
+      const code = normalizeRouteIssueCodeToZ01Blocker(issue.code);
+      if (!code) continue;
+      return {
+        code,
+        message: compactString(issue.message),
+        details: issue,
+      };
+    }
+  }
+
+  const directCode =
+    normalizeRouteIssueCodeToZ01Blocker(payload.blocker_code) ??
+    normalizeRouteIssueCodeToZ01Blocker(payload.blockerCode);
+  if (!directCode) return null;
+
+  return {
+    code: directCode,
+    message:
+      compactString(payload.blocker_reason) ?? compactString(payload.blockerReason),
+    details: payload,
+  };
+}
+
 function routeResolutionStatusForZ01Blocker(
   blockerCode: string | null | undefined,
   fallback?: string | null,
@@ -702,26 +755,31 @@ export async function finalizeStuckZ01GridOwnerDataRequest(
       operationId,
     });
   } catch (error) {
-    const controlledBlockerCode = controlledBlockerCodeFromError(error);
+    const outboundAfterError = await findOutboundForGodr(godr.id);
+    const outboundBlocker = firstOutboundRouteBlocker(outboundAfterError);
+    const controlledBlockerCode =
+      controlledBlockerCodeFromError(error) ?? outboundBlocker?.code ?? null;
     if (!controlledBlockerCode || !cir) throw error;
 
-    const outboundAfterError = await findOutboundForGodr(godr.id);
     const blockerReason = blockerReasonForZ01Repair(
       controlledBlockerCode,
-      errorMessage(error),
+      outboundBlocker?.message ?? errorMessage(error),
     );
     const nextRequiredAction = nextActionForZ01Repair(controlledBlockerCode);
+    const repairEnvironment =
+      input.environment ??
+      compactString(asRecord(outboundAfterError?.route_decision_payload).environment);
 
     if (outboundAfterError) {
       const blockerDetails = normalizeBlockerDetails({
         blockerCode: controlledBlockerCode,
         blockerReason,
-        blockerDetails: null,
+        blockerDetails: outboundBlocker?.details ?? null,
         outboundRequestId: outboundAfterError.id,
         edielMessageId: null,
         edielRouteProfileId: outboundAfterError.ediel_route_profile_id ?? null,
         communicationRouteId: outboundAfterError.communication_route_id ?? null,
-        environment: input.environment ?? null,
+        environment: repairEnvironment,
         nextRequiredAction,
       });
 
@@ -751,7 +809,7 @@ export async function finalizeStuckZ01GridOwnerDataRequest(
           edielRouteProfileId:
             outboundAfterError.ediel_route_profile_id ?? null,
           edielMessageId: null,
-          environment: input.environment ?? null,
+          environment: repairEnvironment,
           nextRequiredAction:
             "Granska teknisk logg och schema innan reparationen körs igen.",
         });
@@ -770,7 +828,7 @@ export async function finalizeStuckZ01GridOwnerDataRequest(
       outboundRequestId: outboundAfterError?.id ?? null,
       edielRouteProfileId: outboundAfterError?.ediel_route_profile_id ?? null,
       edielMessageId: null,
-      environment: input.environment ?? null,
+      environment: repairEnvironment,
       nextRequiredAction,
     });
 
@@ -786,7 +844,7 @@ export async function finalizeStuckZ01GridOwnerDataRequest(
       blockerCode: controlledBlockerCode,
       blockerReason,
       nextRequiredAction,
-      environment: input.environment ?? null,
+      environment: repairEnvironment,
       smtpSent: false,
       warnings,
       auditEvent: "z01_repair_blocked",
