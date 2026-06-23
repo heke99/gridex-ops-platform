@@ -149,4 +149,18 @@ assert(
   'messages/page.tsx: has status filter'
 )
 
+// ---- 9. Messages page also queries pre-message operational rows ----
+assert(
+  /outbound_requests/.test(messagesPage),
+  'messages/page.tsx: also queries outbound_requests (pre-message operational rows)'
+)
+assert(
+  /grid_owner_data_requests/.test(messagesPage),
+  'messages/page.tsx: also queries grid_owner_data_requests (stuck operational rows)'
+)
+assert(
+  /Meddelande ej skapat|Väntar på finalisering|Uppgiftsbegäran/.test(messagesPage),
+  'messages/page.tsx: shows Swedish operational labels for pre-message rows'
+)
+
 console.log('\n✓ Messages sidebar regression passed.')

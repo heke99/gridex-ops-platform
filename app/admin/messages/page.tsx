@@ -20,6 +20,38 @@ type PageProps = {
   }>
 }
 
+// Represents an outbound_request row without a linked ediel_message
+type PendingOutboundRow = {
+  _rowKind: 'outbound'
+  id: string
+  company_id: string | null
+  source_type: string | null
+  source_id: string | null
+  request_type: string | null
+  status: string | null
+  customer_id: string | null
+  site_id: string | null
+  created_at: string | null
+}
+
+// Represents a grid_owner_data_request row that is stuck/pending
+type PendingGodrRow = {
+  _rowKind: 'godr'
+  id: string
+  company_id: string | null
+  customer_id: string | null
+  site_id: string | null
+  grid_owner_id: string | null
+  request_scope: string | null
+  status: string | null
+  created_at: string | null
+}
+
+type UnifiedRow =
+  | (EdielMessageRow & { _rowKind: 'ediel' })
+  | PendingOutboundRow
+  | PendingGodrRow
+
 function firstParam(v: string | string[] | undefined): string | null {
   if (Array.isArray(v)) return v[0] ?? null
   return v ?? null
@@ -102,6 +134,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
   const fromFilter = firstParam(params.from)
   const toFilter = firstParam(params.to)
   const gridOwnerFilter = firstParam(params.grid_owner)
+  const customerIdFilter = firstParam(params.customer_id)
 
   // Query ediel_messages
   let query = supabaseService
@@ -128,9 +161,54 @@ export default async function MessagesPage({ searchParams }: PageProps) {
     throw messagesError
   }
 
+  // Query outbound_requests without a linked ediel_message (pre-message operational rows)
+  // Only show when no direction/family/status filter is active (these only apply to ediel_messages)
+  const showOperationalRows = !directionFilter && !familyFilter
+
+  let pendingOutboundRows: PendingOutboundRow[] = []
+  let pendingGodrRows: PendingGodrRow[] = []
+
+  if (showOperationalRows) {
+    let outboundQuery = supabaseService
+      .from('outbound_requests')
+      .select('id,company_id,source_type,source_id,request_type,status,customer_id,site_id,created_at')
+      .is('ediel_message_id', null)
+      .not('status', 'in', '("sent","completed","cancelled","failed")')
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (scope.companyId) outboundQuery = outboundQuery.eq('company_id', scope.companyId)
+    if (customerIdFilter) outboundQuery = outboundQuery.eq('customer_id', customerIdFilter)
+    if (fromFilter) outboundQuery = outboundQuery.gte('created_at', fromFilter)
+    if (toFilter) outboundQuery = outboundQuery.lte('created_at', toFilter + 'T23:59:59Z')
+
+    const { data: outboundData, error: outboundError } = await outboundQuery
+    if (!outboundError || ['42703', 'PGRST204', '42P01'].includes(String((outboundError as { code?: string }).code ?? ''))) {
+      pendingOutboundRows = ((outboundData ?? []) as PendingOutboundRow[]).map((r) => ({ ...r, _rowKind: 'outbound' as const }))
+    }
+
+    let godrQuery = supabaseService
+      .from('grid_owner_data_requests')
+      .select('id,company_id,customer_id,site_id,grid_owner_id,request_scope,status,created_at')
+      .in('status', ['pending', 'queued', 'processing', 'draft'])
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (scope.companyId) godrQuery = godrQuery.eq('company_id', scope.companyId)
+    if (customerIdFilter) godrQuery = godrQuery.eq('customer_id', customerIdFilter)
+    if (gridOwnerFilter) godrQuery = godrQuery.eq('grid_owner_id', gridOwnerFilter)
+    if (fromFilter) godrQuery = godrQuery.gte('created_at', fromFilter)
+    if (toFilter) godrQuery = godrQuery.lte('created_at', toFilter + 'T23:59:59Z')
+
+    const { data: godrData, error: godrError } = await godrQuery
+    if (!godrError || ['42703', 'PGRST204', '42P01'].includes(String((godrError as { code?: string }).code ?? ''))) {
+      pendingGodrRows = ((godrData ?? []) as PendingGodrRow[]).map((r) => ({ ...r, _rowKind: 'godr' as const }))
+    }
+  }
+
   let messages = ((rawMessages ?? []) as EdielMessageRow[])
 
-  // Client-side search filter
+  // Client-side search filter (applies only to ediel_messages)
   if (q) {
     messages = messages.filter((m) => {
       const haystack = [
@@ -149,27 +227,34 @@ export default async function MessagesPage({ searchParams }: PageProps) {
     })
   }
 
-  // Fetch customer names for messages that have customer_id
-  const customerIds = [...new Set(messages.map((m) => m.customer_id).filter((id): id is string => Boolean(id)))]
+  // Collect all customer IDs across all row kinds for name lookup
+  const allCustomerIds = new Set<string>()
+  messages.forEach((m) => { if (m.customer_id) allCustomerIds.add(m.customer_id) })
+  pendingOutboundRows.forEach((r) => { if (r.customer_id) allCustomerIds.add(r.customer_id) })
+  pendingGodrRows.forEach((r) => { if (r.customer_id) allCustomerIds.add(r.customer_id) })
+
   const customerMap = new Map<string, CustomerRow>()
-  if (customerIds.length > 0) {
+  if (allCustomerIds.size > 0) {
     const { data: customers } = await supabaseService
       .from('customers')
       .select('id,first_name,last_name,company_name')
-      .in('id', customerIds.slice(0, 50))
+      .in('id', [...allCustomerIds].slice(0, 100))
     for (const c of (customers ?? []) as CustomerRow[]) {
       customerMap.set(c.id, c)
     }
   }
 
-  // Fetch grid owner names
-  const gridOwnerIds = [...new Set(messages.map((m) => m.grid_owner_id).filter((id): id is string => Boolean(id)))]
+  // Collect all grid owner IDs
+  const allGridOwnerIds = new Set<string>()
+  messages.forEach((m) => { if (m.grid_owner_id) allGridOwnerIds.add(m.grid_owner_id) })
+  pendingGodrRows.forEach((r) => { if (r.grid_owner_id) allGridOwnerIds.add(r.grid_owner_id) })
+
   const gridOwnerMap = new Map<string, GridOwnerRow>()
-  if (gridOwnerIds.length > 0) {
+  if (allGridOwnerIds.size > 0) {
     const { data: gos } = await supabaseService
       .from('grid_owners')
       .select('id,name')
-      .in('id', gridOwnerIds.slice(0, 50))
+      .in('id', [...allGridOwnerIds].slice(0, 50))
     for (const g of (gos ?? []) as GridOwnerRow[]) {
       gridOwnerMap.set(g.id, g)
     }
@@ -287,10 +372,83 @@ export default async function MessagesPage({ searchParams }: PageProps) {
 
         {/* Message count */}
         <p className="mb-4 text-sm text-slate-500">
-          {messages.length} meddelande{messages.length !== 1 ? 'n' : ''} visas
+          {messages.length} EDIEL-meddelande{messages.length !== 1 ? 'n' : ''}
+          {pendingOutboundRows.length > 0 || pendingGodrRows.length > 0
+            ? ` · ${pendingOutboundRows.length + pendingGodrRows.length} operativa rader utan meddelande`
+            : ''}
         </p>
 
-        {/* Messages list */}
+        {/* Operational pre-message rows: outbound_requests and grid_owner_data_requests */}
+        {showOperationalRows && (pendingOutboundRows.length > 0 || pendingGodrRows.length > 0) ? (
+          <div className="mb-6 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Operativa rader utan EDIEL-meddelande</p>
+            {pendingOutboundRows.map((row) => {
+              const customerLink = row.customer_id ? `/admin/customers/${row.customer_id}` : null
+              return (
+                <div key={`outbound-${row.id}`} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Pill text="Utgående" tone="border-blue-200 bg-blue-50 text-blue-700" />
+                      <Pill text={row.request_type ?? 'Outbound'} />
+                      <Pill text="Meddelande ej skapat" tone="border-amber-200 bg-amber-100 text-amber-800" />
+                    </div>
+                    <span className="text-xs text-slate-400">{formatDate(row.created_at)}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-700">
+                    <span>
+                      <span className="font-medium">Kund:</span>{' '}
+                      {customerLink ? (
+                        <Link href={customerLink} className="text-emerald-700 hover:underline">
+                          {customerLabel(row.customer_id)}
+                        </Link>
+                      ) : customerLabel(row.customer_id)}
+                    </span>
+                    {row.status ? <span><span className="font-medium">Status:</span> {statusLabel(row.status)}</span> : null}
+                  </div>
+                  {isPlatformAdmin ? (
+                    <div className="mt-1 font-mono text-[10px] text-slate-400 space-y-0.5">
+                      <div>outbound: {row.id}</div>
+                      {row.source_type ? <div>source: {row.source_type} / {row.source_id?.slice(0, 8)}</div> : null}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+            {pendingGodrRows.map((row) => {
+              const customerLink = row.customer_id ? `/admin/customers/${row.customer_id}` : null
+              return (
+                <div key={`godr-${row.id}`} className="rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Pill text="Uppgiftsbegäran" tone="border-orange-200 bg-orange-100 text-orange-800" />
+                      <Pill text={row.request_scope ?? 'PRODAT Z01'} />
+                      <Pill text={row.status === 'pending' ? 'Väntar på finalisering' : row.status === 'draft' ? 'Förbereds' : 'I kö'} tone="border-amber-200 bg-amber-100 text-amber-800" />
+                    </div>
+                    <span className="text-xs text-slate-400">{formatDate(row.created_at)}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-700">
+                    <span>
+                      <span className="font-medium">Kund:</span>{' '}
+                      {customerLink ? (
+                        <Link href={customerLink} className="text-emerald-700 hover:underline">
+                          {customerLabel(row.customer_id)}
+                        </Link>
+                      ) : customerLabel(row.customer_id)}
+                    </span>
+                    <span><span className="font-medium">Nätägare:</span> {gridOwnerLabel(row.grid_owner_id)}</span>
+                  </div>
+                  {isPlatformAdmin ? (
+                    <div className="mt-1 font-mono text-[10px] text-slate-400">
+                      godr: {row.id}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        ) : null}
+
+        {/* EDIEL messages list */}
         {messages.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm">
             Inga meddelanden matchar filtret.

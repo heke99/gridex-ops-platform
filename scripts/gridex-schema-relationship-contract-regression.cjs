@@ -148,4 +148,25 @@ assert(
   'app/admin/messages/page.tsx: does NOT use message_type (uses message_family/message_code)'
 )
 
+// ---- 11. outbound_requests.source_type/source_id links to grid_owner_data_requests ----
+// This is the canonical join path used by the finalizer and shared flow
+const migrationDir = require('path').join(root, 'supabase/migrations')
+const allMigrations = require('fs').readdirSync(migrationDir)
+  .map((f) => { try { return require('fs').readFileSync(require('path').join(migrationDir, f), 'utf8') } catch { return '' } })
+  .join('\n')
+assert(
+  /source_type.*outbound_requests|outbound_requests.*source_type/s.test(allMigrations),
+  'supabase/migrations: outbound_requests has source_type column'
+)
+assert(
+  /source_id.*outbound_requests|outbound_requests.*source_id/s.test(allMigrations),
+  'supabase/migrations: outbound_requests has source_id column'
+)
+
+// ---- 12. ediel_message_id on outbound_requests (so messages page can filter null) ----
+assert(
+  /ediel_message_id.*outbound_requests|outbound_requests.*ediel_message_id/s.test(allMigrations),
+  'supabase/migrations: outbound_requests has ediel_message_id column (for messages page filter)'
+)
+
 console.log('\n✓ Schema relationship contract regression passed.')

@@ -2721,6 +2721,7 @@ export default async function CustomerAdminDetailPage({
         >
           <CustomerBusinessActionsCard
             customerId={id}
+            companyId={customerCompanyId ?? undefined}
             sites={sites}
             meteringPoints={meteringPoints}
             powersOfAttorney={poaRows}

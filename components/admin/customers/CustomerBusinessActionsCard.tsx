@@ -3,6 +3,8 @@ import { createGridOwnerDataRequestAction } from "@/app/admin/customers/[id]/act
 import {
   endAgreementBusinessAction,
   registerCancellationBusinessAction,
+  repairZ01CustomerInfoRequestAction,
+  dryRunZ01RepairAction,
   requestHistoricalMeteringAccessBusinessAction,
   requestMeteringAccessBusinessAction,
   sendCustomerConfirmationBusinessAction,
@@ -30,6 +32,7 @@ import {
 
 type Props = {
   customerId: string;
+  companyId?: string | null;
   sites: CustomerSiteRow[];
   meteringPoints: MeteringPointRow[];
   powersOfAttorney?: PowerOfAttorneyRow[];
@@ -68,6 +71,7 @@ function StatusPill({
 
 export default function CustomerBusinessActionsCard({
   customerId,
+  companyId: suppliedCompanyId,
   sites,
   meteringPoints,
   powersOfAttorney = [],
@@ -100,6 +104,13 @@ export default function CustomerBusinessActionsCard({
     powersOfAttorney,
     isPlatformAdmin,
   });
+
+  // Derive companyId: prefer explicit prop, then fall back to first infoRequest or site
+  const companyId =
+    suppliedCompanyId ??
+    infoRequests.find((r) => r.company_id)?.company_id ??
+    sites.find((s) => s.company_id)?.company_id ??
+    null;
 
   const primarySite = snapshot.primarySite;
   const primaryPoint = snapshot.primaryMeteringPoint;
@@ -337,19 +348,55 @@ export default function CustomerBusinessActionsCard({
                 </div>
               ) : null}
 
-              {/* Repair Z01 chain */}
-              {workflow.canRunRepair ? (
-                <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
-                  <p className="text-sm font-semibold text-orange-900">Reparera Z01-kedja</p>
-                  <p className="mt-1 text-xs text-orange-700">
-                    Det finns en stuck grid_owner_data_request utan outbound. Kör finalisering för att skapa outbound och förbereda Ediel-meddelandet.
-                  </p>
-                  <p className="mt-2 text-xs font-mono text-orange-600">
-                    POST /api/internal/z01-repair · company_id + grid_owner_data_request_id
-                  </p>
+              {/* Repair Z01 chain — platform admin only, requires canRunRepair */}
+              {workflow.canRunRepair && companyId ? (
+                <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold text-orange-900">Reparera Z01-kedja</p>
+                    <p className="mt-1 text-xs text-orange-700">
+                      Det finns en uppgiftsbegäran utan outbound-förfrågan. Finalisering skapar outbound och förbereder Ediel-meddelandet utan att skicka SMTP direkt.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <form action={repairZ01CustomerInfoRequestAction}>
+                      <input type="hidden" name="company_id" value={companyId} />
+                      <input type="hidden" name="customer_id" value={customerId} />
+                      {workflow.technicalDetails.customerInfoRequestId ? (
+                        <input type="hidden" name="customer_info_request_id" value={workflow.technicalDetails.customerInfoRequestId} />
+                      ) : null}
+                      {workflow.technicalDetails.gridOwnerDataRequestId ? (
+                        <input type="hidden" name="grid_owner_data_request_id" value={workflow.technicalDetails.gridOwnerDataRequestId} />
+                      ) : null}
+                      <input type="hidden" name="environment" value="production" />
+                      <SubmitButton
+                        idleLabel="Reparera uppgiftsbegäran"
+                        pendingLabel="Reparerar…"
+                      />
+                    </form>
+                    <form action={dryRunZ01RepairAction}>
+                      <input type="hidden" name="company_id" value={companyId} />
+                      <input type="hidden" name="customer_id" value={customerId} />
+                      {workflow.technicalDetails.customerInfoRequestId ? (
+                        <input type="hidden" name="customer_info_request_id" value={workflow.technicalDetails.customerInfoRequestId} />
+                      ) : null}
+                      {workflow.technicalDetails.gridOwnerDataRequestId ? (
+                        <input type="hidden" name="grid_owner_data_request_id" value={workflow.technicalDetails.gridOwnerDataRequestId} />
+                      ) : null}
+                      <input type="hidden" name="environment" value="production" />
+                      <SubmitButton
+                        idleLabel="Testa reparation"
+                        pendingLabel="Testar…"
+                      />
+                    </form>
+                  </div>
                   {workflow.technicalDetails.gridOwnerDataRequestId ? (
-                    <p className="mt-1 text-xs font-mono text-orange-600">
-                      grid_owner_data_request_id: {workflow.technicalDetails.gridOwnerDataRequestId}
+                    <p className="text-xs font-mono text-orange-600">
+                      grid_owner_data_request: {workflow.technicalDetails.gridOwnerDataRequestId}
+                    </p>
+                  ) : null}
+                  {workflow.technicalDetails.customerInfoRequestId ? (
+                    <p className="text-xs font-mono text-orange-600">
+                      customer_info_request: {workflow.technicalDetails.customerInfoRequestId}
                     </p>
                   ) : null}
                 </div>

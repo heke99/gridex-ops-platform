@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdminActionAccess } from "@/lib/admin/guards";
+import { requireAdminActionAccess, requirePlatformAdminAccess } from "@/lib/admin/guards";
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions";
 import { endAgreement } from "@/lib/operations/businessActions/endAgreement";
 import { registerCancellation } from "@/lib/operations/businessActions/registerCancellation";
@@ -9,6 +9,9 @@ import { requestHistoricalMeteringAccess } from "@/lib/operations/businessAction
 import { requestMeteringAccess } from "@/lib/operations/businessActions/requestMeteringAccess";
 import { sendCustomerConfirmation } from "@/lib/operations/businessActions/sendCustomerConfirmation";
 import { terminateMeteringAccess } from "@/lib/operations/businessActions/terminateMeteringAccess";
+import { finalizeStuckZ01GridOwnerDataRequest, dryRunZ01Finalizer } from "@/lib/customer-operations/z01Finalizer";
+import { supabaseService } from "@/lib/supabase/service";
+import type { EdielEnvironment } from "@/lib/ediel/types";
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -120,4 +123,164 @@ export async function sendCustomerConfirmationBusinessAction(
   });
 
   revalidateCustomerBusinessPaths(customerId);
+}
+
+/**
+ * Platform-admin-only: finalize a stuck PRODAT Z01 grid_owner_data_request
+ * that has no linked outbound_request or ediel_message.
+ *
+ * Validates tenant/company ownership before calling the TypeScript finalizer.
+ * Does NOT send SMTP directly — delegates to the normal guarded send path.
+ */
+export async function repairZ01CustomerInfoRequestAction(
+  formData: FormData,
+): Promise<void> {
+  const guard = await requirePlatformAdminAccess();
+
+  const companyId = requiredFormValue(formData, "company_id", "Bolag");
+  const gridOwnerDataRequestId = formValue(formData, "grid_owner_data_request_id");
+  const customerInfoRequestId = formValue(formData, "customer_info_request_id");
+  const customerId = formValue(formData, "customer_id");
+  const environment = (formValue(formData, "environment") ?? "production") as EdielEnvironment;
+
+  if (!gridOwnerDataRequestId && !customerInfoRequestId) {
+    throw new Error("Ange grid_owner_data_request_id eller customer_info_request_id.");
+  }
+
+  // Server-side ownership verification: confirm the GODR belongs to this company
+  if (gridOwnerDataRequestId) {
+    const { data: godr, error: godrError } = await supabaseService
+      .from("grid_owner_data_requests")
+      .select("id, company_id, customer_id")
+      .eq("id", gridOwnerDataRequestId)
+      .single();
+
+    if (godrError || !godr) {
+      throw new Error("Uppgiftsbegäran hittades inte.");
+    }
+
+    if (godr.company_id !== companyId) {
+      throw new Error("Uppgiftsbegäran tillhör inte angivet bolag.");
+    }
+
+    if (customerId && godr.customer_id !== customerId) {
+      throw new Error("Uppgiftsbegäran tillhör inte angiven kund.");
+    }
+  }
+
+  if (customerInfoRequestId) {
+    const { data: cir, error: cirError } = await supabaseService
+      .from("customer_info_requests")
+      .select("id, company_id")
+      .eq("id", customerInfoRequestId)
+      .single();
+
+    if (cirError || !cir) {
+      throw new Error("Kundinformationsbegäran hittades inte.");
+    }
+
+    if (cir.company_id !== companyId) {
+      throw new Error("Kundinformationsbegäran tillhör inte angivet bolag.");
+    }
+  }
+
+  await finalizeStuckZ01GridOwnerDataRequest({
+    companyId,
+    actorUserId: guard.userId,
+    gridOwnerDataRequestId,
+    customerInfoRequestId,
+    environment,
+    dryRun: false,
+  });
+
+  // Revalidate all affected views
+  if (customerId) {
+    revalidatePath(`/admin/customers/${customerId}`);
+  }
+  revalidatePath("/admin/messages");
+  revalidatePath("/admin/outbound");
+  revalidatePath("/admin/customer-info-requests");
+  revalidatePath("/admin/work-queue");
+  revalidatePath("/admin/operations");
+}
+
+/**
+ * Platform-admin-only: dry-run of the Z01 repair — simulates what would happen
+ * without creating any rows or sending any SMTP.
+ *
+ * Result is written to customer_info_request_events so the platform admin
+ * can inspect it in the customer operation timeline after the page revalidates.
+ */
+export async function dryRunZ01RepairAction(
+  formData: FormData,
+): Promise<void> {
+  const guard = await requirePlatformAdminAccess();
+
+  const companyId = requiredFormValue(formData, "company_id", "Bolag");
+  const gridOwnerDataRequestId = formValue(formData, "grid_owner_data_request_id");
+  const customerInfoRequestId = formValue(formData, "customer_info_request_id");
+  const customerId = formValue(formData, "customer_id");
+  const environment = (formValue(formData, "environment") ?? "production") as EdielEnvironment;
+
+  if (!gridOwnerDataRequestId && !customerInfoRequestId) {
+    throw new Error("Ange grid_owner_data_request_id eller customer_info_request_id.");
+  }
+
+  // Server-side ownership verification
+  if (gridOwnerDataRequestId) {
+    const { data: godr, error: godrError } = await supabaseService
+      .from("grid_owner_data_requests")
+      .select("id, company_id")
+      .eq("id", gridOwnerDataRequestId)
+      .single();
+
+    if (godrError || !godr) throw new Error("Uppgiftsbegäran hittades inte.");
+    if (godr.company_id !== companyId) throw new Error("Uppgiftsbegäran tillhör inte angivet bolag.");
+  }
+
+  const result = await dryRunZ01Finalizer({
+    companyId,
+    actorUserId: guard.userId,
+    gridOwnerDataRequestId,
+    customerInfoRequestId,
+    environment,
+    dryRun: true,
+  });
+
+  // Record the dry-run result as an audit event so the admin can inspect it
+  // in the customer operation timeline without raw SQL errors being shown
+  if (customerInfoRequestId) {
+    const summary = [
+      `wouldCreateOutbound: ${result.wouldCreateOutbound}`,
+      `wouldPrepareEdielMessage: ${result.wouldPrepareEdielMessage}`,
+      `wouldClearBlocker: ${result.wouldClearBlocker}`,
+      ...(result.warnings.length > 0 ? result.warnings.map((w) => `warning: ${w.code} — ${w.message}`) : []),
+    ].join(' | ');
+
+    await supabaseService
+      .from("customer_info_request_events")
+      .insert({
+        customer_info_request_id: customerInfoRequestId,
+        company_id: companyId,
+        event_type: "z01_dry_run_repair",
+        actor_user_id: guard.userId,
+        message: `Torrkörning av Z01-reparation: ${summary}`,
+        metadata: {
+          dryRun: true,
+          wouldCreateOutbound: result.wouldCreateOutbound,
+          wouldPrepareEdielMessage: result.wouldPrepareEdielMessage,
+          wouldClearBlocker: result.wouldClearBlocker,
+          warnings: result.warnings,
+          environment,
+        },
+      })
+      .maybeSingle();
+  }
+
+  // Revalidate so the admin sees the new audit event
+  if (customerId) {
+    revalidatePath(`/admin/customers/${customerId}`);
+  }
+  revalidatePath("/admin/messages");
+  revalidatePath("/admin/customer-info-requests");
 }
