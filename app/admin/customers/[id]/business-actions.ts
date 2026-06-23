@@ -9,7 +9,11 @@ import { requestHistoricalMeteringAccess } from "@/lib/operations/businessAction
 import { requestMeteringAccess } from "@/lib/operations/businessActions/requestMeteringAccess";
 import { sendCustomerConfirmation } from "@/lib/operations/businessActions/sendCustomerConfirmation";
 import { terminateMeteringAccess } from "@/lib/operations/businessActions/terminateMeteringAccess";
-import { finalizeStuckZ01GridOwnerDataRequest, dryRunZ01Finalizer } from "@/lib/customer-operations/z01Finalizer";
+import {
+  finalizeStuckZ01GridOwnerDataRequest,
+  dryRunZ01Finalizer,
+  insertZ01RepairTerminalEvent,
+} from "@/lib/customer-operations/z01Finalizer";
 import { supabaseService } from "@/lib/supabase/service";
 import type { EdielEnvironment } from "@/lib/ediel/types";
 
@@ -42,6 +46,98 @@ function revalidateCustomerBusinessPaths(customerId: string) {
   revalidatePath("/admin/outbound");
   revalidatePath("/admin/ediel");
 }
+
+function safeActionErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message.trim();
+  return "Okänt tekniskt fel.";
+}
+
+async function findLatestZ01OutboundForRepair(params: {
+  gridOwnerDataRequestId: string | null;
+  customerInfoRequestGridOwnerDataRequestId?: string | null;
+}): Promise<{
+  id: string;
+  ediel_route_profile_id: string | null;
+  route_decision_payload: Record<string, unknown> | null;
+} | null> {
+  const sourceId =
+    params.gridOwnerDataRequestId ??
+    params.customerInfoRequestGridOwnerDataRequestId ??
+    null;
+  if (!sourceId) return null;
+
+  const { data, error } = await supabaseService
+    .from("outbound_requests")
+    .select("id, ediel_route_profile_id, route_decision_payload")
+    .eq("source_type", "grid_owner_data_request")
+    .eq("source_id", sourceId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return null;
+  return (data as {
+    id: string;
+    ediel_route_profile_id: string | null;
+    route_decision_payload: Record<string, unknown> | null;
+  } | null) ?? null;
+}
+
+async function writeSafeZ01RepairFailedEventFromAction(params: {
+  companyId: string;
+  actorUserId: string;
+  customerInfoRequestId: string | null;
+  customerId: string | null;
+  gridOwnerDataRequestId: string | null;
+  environment: string | null;
+  error: unknown;
+}) {
+  if (!params.customerInfoRequestId) return;
+
+  const { data: cir } = await supabaseService
+    .from("customer_info_requests")
+    .select("id, company_id, customer_id, grid_owner_data_request_id")
+    .eq("id", params.customerInfoRequestId)
+    .maybeSingle();
+
+  const resolvedCustomerId =
+    params.customerId ??
+    ((cir as { customer_id?: string | null } | null)?.customer_id ?? null);
+  if (!resolvedCustomerId) return;
+
+  const outbound = await findLatestZ01OutboundForRepair({
+    gridOwnerDataRequestId: params.gridOwnerDataRequestId,
+    customerInfoRequestGridOwnerDataRequestId:
+      (cir as { grid_owner_data_request_id?: string | null } | null)
+        ?.grid_owner_data_request_id ?? null,
+  });
+  const routeDecisionPayload =
+    outbound?.route_decision_payload && typeof outbound.route_decision_payload === "object"
+      ? outbound.route_decision_payload
+      : null;
+  const environment =
+    params.environment ??
+    (typeof routeDecisionPayload?.environment === "string"
+      ? routeDecisionPayload.environment
+      : null);
+
+  await insertZ01RepairTerminalEvent({
+    companyId: params.companyId,
+    customerInfoRequestId: params.customerInfoRequestId,
+    customerId: resolvedCustomerId,
+    actorUserId: params.actorUserId,
+    outcome: "failed",
+    blockerCode: "technical_error",
+    blockerReason:
+      "Z01-reparationen stoppades av ett tekniskt fel innan status kunde sparas säkert.",
+    outboundRequestId: outbound?.id ?? null,
+    edielRouteProfileId: outbound?.ediel_route_profile_id ?? null,
+    edielMessageId: null,
+    environment,
+    nextRequiredAction: `Granska Vercel-loggen för reparationsåtgärden och kör om när felet är åtgärdat. Teknisk orsak: ${safeActionErrorMessage(params.error)}`,
+  });
+}
+
 
 export async function registerCancellationBusinessAction(
   formData: FormData,
@@ -184,16 +280,48 @@ export async function repairZ01CustomerInfoRequestAction(
     }
   }
 
-  await finalizeStuckZ01GridOwnerDataRequest({
-    companyId,
-    actorUserId: guard.userId,
-    gridOwnerDataRequestId,
-    customerInfoRequestId,
-    environment,
-    dryRun: false,
-  });
+  try {
+    await finalizeStuckZ01GridOwnerDataRequest({
+      companyId,
+      actorUserId: guard.userId,
+      gridOwnerDataRequestId,
+      customerInfoRequestId,
+      environment,
+      dryRun: false,
+    });
+  } catch (error) {
+    console.error("[z01 repair] real repair failed", {
+      companyId,
+      customerId,
+      customerInfoRequestId,
+      gridOwnerDataRequestId,
+      environment,
+      message: safeActionErrorMessage(error),
+    });
 
-  // Revalidate all affected views
+    try {
+      await writeSafeZ01RepairFailedEventFromAction({
+        companyId,
+        actorUserId: guard.userId,
+        customerInfoRequestId,
+        customerId,
+        gridOwnerDataRequestId,
+        environment,
+        error,
+      });
+    } catch (eventError) {
+      console.error("[z01 repair] failed to write terminal failure event", {
+        companyId,
+        customerId,
+        customerInfoRequestId,
+        gridOwnerDataRequestId,
+        message: safeActionErrorMessage(eventError),
+      });
+    }
+  }
+
+  // Revalidate all affected views. Do not throw from this action for controlled
+  // or failed repairs; the customer card must render the terminal event/status.
   if (customerId) {
     revalidatePath(`/admin/customers/${customerId}`);
   }

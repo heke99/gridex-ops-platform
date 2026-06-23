@@ -349,7 +349,6 @@ async function syncCustomerInfoRequestAfterZ01Repair(input: {
   const updatePayload: Record<string, unknown> = {
     outbound_request_id: input.outboundRequestId,
     ediel_message_id: input.edielMessageId,
-    updated_by: input.actorUserId,
     updated_at: new Date().toISOString(),
   };
 
@@ -360,7 +359,6 @@ async function syncCustomerInfoRequestAfterZ01Repair(input: {
       blocker_reason: null,
       blocker_details: null,
       route_resolution_status: "prepared",
-      route_resolution_reason: "PRODAT Z01 förberedd via reparationsväg.",
       next_required_action: nextRequiredAction,
     });
   } else {
@@ -387,7 +385,6 @@ async function syncCustomerInfoRequestAfterZ01Repair(input: {
         blockerCode,
         compactString(normalizedDetails.route_resolution_status),
       ),
-      route_resolution_reason: blockerReason,
       next_required_action: nextRequiredAction,
     });
   }
