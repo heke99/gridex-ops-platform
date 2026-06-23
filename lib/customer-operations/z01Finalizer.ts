@@ -126,6 +126,41 @@ async function findOutboundForGodr(
   return (data as { id: string; status: string; communication_route_id: string | null } | null) ?? null
 }
 
+type RouteProfileSummary = {
+  id: string
+  is_enabled: boolean | null
+  is_active: boolean | null
+  is_production_ready: boolean | null
+  production_mode: string | null
+  sender_ediel_id: string | null
+  environment: string | null
+}
+
+/**
+ * Look up the route profile attached to a communication route for a given
+ * environment via the correct relation ediel_route_profiles.communication_route_id.
+ * Does NOT filter is_enabled so a disabled/not-ready profile is still surfaced.
+ */
+async function findRouteProfileForRoute(
+  communicationRouteId: string,
+  companyId: string,
+  environment?: EdielEnvironment | null,
+): Promise<RouteProfileSummary | null> {
+  let query = supabaseService
+    .from('ediel_route_profiles')
+    .select('id,is_enabled,is_active,is_production_ready,production_mode,sender_ediel_id,environment')
+    .eq('communication_route_id', communicationRouteId)
+  if (environment) query = query.eq('environment', environment)
+  query = query.or(`company_id.is.null,company_id.eq.${companyId}`)
+  const { data, error } = await query
+    .order('is_enabled', { ascending: false })
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error && !['42703', 'PGRST204', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) throw error
+  return (data as RouteProfileSummary | null) ?? null
+}
+
 async function findEdielMessageForGodr(
   godrId: string,
 ): Promise<{ id: string; status: string } | null> {
@@ -213,6 +248,30 @@ export async function dryRunZ01Finalizer(input: Z01FinalizerInput): Promise<Z01D
     })
   }
 
+  // Resolve which route profile would be selected and report its readiness so
+  // the dry-run is informative (selected route/profile/sender/environment) and
+  // never looks like nothing happened.
+  let routeProfile: RouteProfileSummary | null = null
+  if (existingOutbound?.communication_route_id) {
+    routeProfile = await findRouteProfileForRoute(
+      existingOutbound.communication_route_id,
+      input.companyId,
+      input.environment ?? null,
+    )
+    if (routeProfile) {
+      if (routeProfile.is_enabled === false) {
+        warnings.push({ code: 'route_profile_disabled', message: `Route profile ${routeProfile.id} är avstängd (is_enabled=false).` })
+      } else if (
+        (input.environment ?? null) === 'production' &&
+        (routeProfile.is_production_ready === false || String(routeProfile.production_mode ?? '').toLowerCase() === 'disabled')
+      ) {
+        warnings.push({ code: 'production_route_profile_not_ready', message: `Route profile ${routeProfile.id} är inte produktionsklar (is_production_ready/production_mode).` })
+      }
+    } else {
+      warnings.push({ code: 'route_profile_missing', message: 'Ingen route profile hittades för routen i vald miljö.' })
+    }
+  }
+
   const wouldCreateOutbound = !existingOutbound
   const wouldPrepareEdielMessage = !existingEdielMessage
   const wouldClearBlocker = cir
@@ -229,7 +288,7 @@ export async function dryRunZ01Finalizer(input: Z01FinalizerInput): Promise<Z01D
     existingOutboundForGodr: existingOutbound,
     existingEdielMessageForGodr: existingEdielMessage,
     selectedCommunicationRouteId: existingOutbound?.communication_route_id ?? null,
-    selectedRouteProfileId: null,
+    selectedRouteProfileId: routeProfile?.id ?? null,
     wouldCreateOutbound,
     wouldPrepareEdielMessage,
     wouldClearBlocker,
@@ -306,18 +365,28 @@ export async function finalizeStuckZ01GridOwnerDataRequest(
     operationId,
   })
 
-  // Update customer_info_request if it exists and was blocked by missing route
-  if (cir && ['blocked', 'route_missing'].includes(cir.status)) {
+  // Always link the customer_info_request to the outbound that now exists, even
+  // when the message could not be prepared. The previous guard only ran for
+  // status in {blocked, route_missing}, which left outbound_request_id = null
+  // and a stale `operational_route_missing` blocker after a real repair.
+  if (cir) {
     const now = new Date().toISOString()
-    const nextStatus = z01.prepared ? 'z01_prepared' : cir.status
+    const wasRouteMissingBlocker = String(cir.blocker_code ?? '') === 'operational_route_missing'
+    const nextStatus = z01.prepared
+      ? 'z01_prepared'
+      : ['blocked', 'route_missing'].includes(cir.status)
+        ? cir.status
+        : cir.status
     const updatePayload: Record<string, unknown> = {
+      // Link outbound regardless of prepared/failed so the chain is traceable.
       outbound_request_id: z01.outbound.id,
+      // Keep ediel_message_id null when no message was created.
       ediel_message_id: z01.message?.id ?? cir.ediel_message_id ?? null,
       route_resolution_status: z01.prepared ? 'prepared' : String(z01.blockerCode ?? 'z01_prepare_failed'),
       route_resolution_reason: z01.prepared ? 'PRODAT Z01 finaliserad via reparationsväg.' : (z01.blockerReason ?? null),
       next_required_action: z01.prepared
         ? 'Kontrollera outbox/send guard innan meddelandet räknas som skickat.'
-        : (asRecord(z01.blockerDetails).next_required_action ?? null),
+        : (asRecord(z01.blockerDetails).next_required_action ?? z01.blockerReason ?? null),
       updated_by: input.actorUserId,
       updated_at: now,
     }
@@ -328,7 +397,10 @@ export async function finalizeStuckZ01GridOwnerDataRequest(
       updatePayload.blocker_reason = null
       updatePayload.blocker_details = null
     } else {
-      updatePayload.blocker_code = z01.blockerCode ?? null
+      // Replace any stale generic blocker with the precise one from the resolver
+      // (e.g. production_route_profile_not_ready / route_profile_disabled).
+      updatePayload.status = nextStatus
+      updatePayload.blocker_code = z01.blockerCode ?? (wasRouteMissingBlocker ? null : cir.blocker_code) ?? null
       updatePayload.blocker_reason = z01.blockerReason ?? null
       updatePayload.blocker_details = z01.blockerDetails ?? null
     }
@@ -356,11 +428,18 @@ export async function finalizeStuckZ01GridOwnerDataRequest(
           : `Nätägarbegäran finaliserades men blockeras fortfarande: ${z01.blockerReason ?? z01.blockerCode}`,
         payload: {
           old_blocker_code: cir.blocker_code ?? null,
+          new_blocker_code: z01.prepared ? null : (z01.blockerCode ?? null),
+          blocker_reason: z01.blockerReason ?? null,
+          next_required_action: z01.prepared
+            ? 'Kontrollera outbox/send guard innan meddelandet räknas som skickat.'
+            : (asRecord(z01.blockerDetails).next_required_action ?? z01.blockerReason ?? null),
           grid_owner_data_request_id: godr.id,
           outbound_request_id: z01.outbound.id,
           ediel_message_id: z01.message?.id ?? null,
           communication_route_id: z01.outbound.communication_route_id,
           ediel_route_profile_id: z01.outbound.ediel_route_profile_id ?? null,
+          sender_ediel_id: (z01.outbound as { sender_ediel_id?: string | null }).sender_ediel_id ?? null,
+          environment: input.environment ?? null,
           operation_id: operationId,
           smtp_sent: false,
           prepared: z01.prepared,

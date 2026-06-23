@@ -7,8 +7,13 @@ export type CustomerOperationBlockerCode =
   | "missing_power_of_attorney"
   | "invalid_customer_site_snapshot"
   | "environment_mismatch"
+  | "environment_missing"
   | "ambiguous_sender_settings"
   | "sender_settings_missing"
+  | "sender_ediel_id_missing"
+  | "route_profile_missing"
+  | "route_profile_disabled"
+  | "production_route_profile_not_ready"
   | "environment_not_resolved"
   | "environment_ambiguous"
   | "stale_response_requires_review"
@@ -89,6 +94,36 @@ const BLOCKERS: Record<CustomerOperationBlockerCode, Omit<CustomerOperationBlock
     issue_type: "route",
     error_class: "configuration_blocker",
   },
+  environment_missing: {
+    blocker_reason: "Ediel-miljö (test/produktion) saknas för operationen. Systemet får aldrig gissa miljö.",
+    next_required_action: "Ange uttrycklig Ediel-miljö (test eller produktion) innan EDIFACT förbereds.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
+  sender_ediel_id_missing: {
+    blocker_reason: "Avsändarens Ediel-ID saknas för route profile och avsändarinställning.",
+    next_required_action: "Fyll i bolagets Ediel-ID i ediel_actor_settings eller på route profile för rätt miljö.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
+  route_profile_missing: {
+    blocker_reason: "Vald route saknar Ediel route profile.",
+    next_required_action: "Skapa en Ediel route profile kopplad till routen via communication_route_id.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
+  route_profile_disabled: {
+    blocker_reason: "Route profile finns men är avstängd (is_enabled=false).",
+    next_required_action: "Aktivera Ediel route profile innan EDIFACT skickas.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
+  production_route_profile_not_ready: {
+    blocker_reason: "Route profile finns och är kopplad men är inte produktionsklar (is_production_ready=false eller production_mode=disabled).",
+    next_required_action: "Markera route profile som produktionsklar och aktivera production_mode innan produktionsutskick.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
+  },
   ambiguous_sender_settings: {
     blocker_reason: "Flera avsändarinställningar matchar samma bolag, miljö och meddelandeflöde.",
     next_required_action: "Inaktivera dubbletter eller välj en entydig avsändarinställning. Systemet gissar inte.",
@@ -166,6 +201,14 @@ export function makeCustomerOperationBlocker(
 
 export function routeIssueCodeToCustomerBlocker(code: unknown): CustomerOperationBlockerCode {
   const normalized = String(code ?? "").trim().toLowerCase();
+  // Most specific route-profile states first so they are never collapsed into a
+  // generic "operational_route_missing".
+  if (normalized.includes("environment_missing")) return "environment_missing";
+  if (normalized.includes("production_route_profile_not_ready")) return "production_route_profile_not_ready";
+  if (normalized.includes("route_profile_disabled")) return "route_profile_disabled";
+  if (normalized.includes("route_profile_missing") || normalized.includes("missing_route_profile")) {
+    return "route_profile_missing";
+  }
   if (
     normalized.includes("environment") ||
     normalized.includes("production_route_profile_not_production") ||
@@ -176,6 +219,9 @@ export function routeIssueCodeToCustomerBlocker(code: unknown): CustomerOperatio
   }
   if (normalized.includes("ambiguous") && normalized.includes("sender")) {
     return "ambiguous_sender_settings";
+  }
+  if (normalized.includes("missing_sender_ediel_id") || normalized.includes("sender_ediel_id_missing")) {
+    return "sender_ediel_id_missing";
   }
   if (normalized.includes("sender_settings_missing") || normalized.includes("missing_company_actor_setting")) {
     return "sender_settings_missing";
@@ -196,6 +242,13 @@ export function customerBlockerStatusLabel(code: unknown): string {
     case "platform_route_exists_but_not_materialized":
     case "operational_route_missing":
     case "ambiguous_sender_settings":
+    case "sender_settings_missing":
+    case "sender_ediel_id_missing":
+    case "route_profile_missing":
+    case "route_profile_disabled":
+    case "production_route_profile_not_ready":
+    case "environment_missing":
+    case "environment_mismatch":
       return "Uppgiftsbegäran blockerad av route-konfiguration";
     case "production_send_locked":
       return "Uppgiftsbegäran blockerad av produktionslås";
