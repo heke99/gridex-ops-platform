@@ -1,3 +1,4 @@
+//lib/ediel/routeMaterializer.ts
 import { supabaseService } from "@/lib/supabase/service";
 import { evaluateRouteProfileProductionReadiness } from "@/lib/ediel/routeProfileProductionReadiness";
 import { makeCustomerOperationBlocker } from "@/lib/customer-operations/blockers";
