@@ -53,6 +53,18 @@ type RouteProfileRow = {
   transport_mode?: string | null;
   is_test_route?: boolean | null;
   is_production_route?: boolean | null;
+  is_active?: boolean | null;
+  is_production_ready?: boolean | null;
+  production_mode?: string | null;
+  actor_setting_id?: string | null;
+};
+
+type RouteProfileResolution = {
+  // The best matching profile for this route+environment, INCLUDING disabled or
+  // not-production-ready ones, so the resolver can attach the id and report a
+  // precise blocker instead of a generic "missing route profile".
+  profile: RouteProfileRow | null;
+  status: "enabled" | "disabled" | "missing";
 };
 
 type ActorSettingRow = {
@@ -195,12 +207,15 @@ async function findRouteProfile(
   routeId: string,
   companyId?: string | null,
   environment?: string | null,
-): Promise<RouteProfileRow | null> {
+): Promise<RouteProfileResolution> {
+  // Correct relation: ediel_route_profiles.communication_route_id = communication_routes.id.
+  // We deliberately do NOT pre-filter is_enabled, so that a profile that exists
+  // but is disabled/not-ready is detected and reported precisely (the live bug
+  // returned "missing_route_profile" even though the production profile existed).
   let query = supabaseService
     .from("ediel_route_profiles")
     .select("*")
-    .eq("communication_route_id", routeId)
-    .eq("is_enabled", true);
+    .eq("communication_route_id", routeId);
 
   if (environment) query = query.eq("environment", environment);
 
@@ -208,12 +223,18 @@ async function findRouteProfile(
     query = query.or(`company_id.is.null,company_id.eq.${companyId}`);
 
   const { data, error } = await query
+    .order("is_enabled", { ascending: false })
     .order("company_id", { ascending: false })
     .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(5);
   if (error) throw error;
-  return (data as RouteProfileRow | null) ?? null;
+
+  const rows = (data ?? []) as RouteProfileRow[];
+  if (rows.length === 0) return { profile: null, status: "missing" };
+
+  const enabled = rows.find((row) => row.is_enabled === true);
+  if (enabled) return { profile: enabled, status: "enabled" };
+  return { profile: rows[0], status: "disabled" };
 }
 
 async function findActiveActorSetting(params: {
@@ -266,6 +287,33 @@ async function findActiveActorSetting(params: {
 
 function lowerText(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
+}
+
+// Deterministic actor-setting lookup via a route profile's actor_setting_id.
+// Scoped to the same company AND environment so production can never resolve a
+// test actor setting (and vice versa). Returns null on any mismatch.
+async function findActorSettingByIdScoped(params: {
+  actorSettingId: string;
+  companyId?: string | null;
+  environment?: string | null;
+}): Promise<ActorSettingRow | null> {
+  const { data, error } = await supabaseService
+    .from("ediel_actor_settings")
+    .select(
+      "id,company_id,environment,ediel_id,actor_ediel_id,actor_role,role,market_roles,sender_subaddress,sender_subaddress_prodat,sender_subaddress_utilts,sender_sub_address,is_active,production_send_lock_enabled,first_production_send_approved",
+    )
+    .eq("id", params.actorSettingId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) {
+    if (["42703", "PGRST204", "PGRST205"].includes(String((error as { code?: string }).code ?? ""))) return null;
+    throw error;
+  }
+  const row = (data as ActorSettingRow | null) ?? null;
+  if (!row) return null;
+  if (params.companyId && row.company_id && row.company_id !== params.companyId) return null;
+  if (params.environment && lowerText(row.environment) !== lowerText(params.environment)) return null;
+  return row;
 }
 
 function profileMetadata(profile: RouteProfileRow | null): Record<string, unknown> {
@@ -490,13 +538,30 @@ export async function decideCommunicationRoute(
   const messageFamily = upper(input.messageFamily) || defaults.family;
   const messageCode = text(input.messageCode) ?? defaults.code;
   const routeScope = routeScopeForBusinessProcess(input.businessProcess, messageCode);
-  const environment = text(input.environment) ?? "test";
+  const explicitEnvironment = text(input.environment);
+
+  // Fail closed: production-capable outbound paths must never silently default
+  // to test. When the caller requires an explicit environment and none was
+  // supplied, block before any test/production lane is chosen.
+  if (!explicitEnvironment && input.failOnMissingEnvironment === true) {
+    addIssue(blockingReasons, {
+      code: "environment_missing",
+      message:
+        "Ediel-miljö (test/produktion) saknas. Systemet får aldrig gissa miljö för ett produktionskapabelt flöde.",
+      source: "environment_guard",
+    });
+    requiredAdminActions.push(
+      "Ange uttrycklig Ediel-miljö (test eller produktion) innan routing.",
+    );
+  }
+
+  const environment = explicitEnvironment ?? "test";
 
   addTrace(trace, {
     step: "classify_process",
     status: "success",
     message: `${input.businessProcess} klassades som ${routeScope}.`,
-    metadata: { messageFamily, messageCode, environment },
+    metadata: { messageFamily, messageCode, environment, environmentExplicit: Boolean(explicitEnvironment) },
   });
 
   const dynamicReceiver = await resolveDynamicReceiver({
@@ -677,9 +742,10 @@ export async function decideCommunicationRoute(
     requiredAdminActions.push("Skapa aktiv communication_route.");
   }
 
-  const profile = routeResult.route
+  const profileResolution = routeResult.route
     ? await findRouteProfile(routeResult.route.id, input.companyId ?? null, environment)
-    : null;
+    : { profile: null, status: "missing" as const };
+  const profile = profileResolution.profile;
   const actorSettingResult = await resolveCompanySenderSettings({
     companyId: input.companyId ?? null,
     environment,
@@ -689,9 +755,30 @@ export async function decideCommunicationRoute(
     messageCode,
     applicationReference: typeof input.payload?.applicationReference === "string" ? input.payload.applicationReference : null,
   });
-  const actorSetting = actorSettingResult.status === "resolved" ? actorSettingResult.setting : null;
+  let actorSetting = actorSettingResult.status === "resolved" ? actorSettingResult.setting : null;
+  let actorSettingSelectedVia: "resolver" | "route_profile_link" | null = actorSetting
+    ? "resolver"
+    : null;
 
-  if (actorSettingResult.status === "ambiguous") {
+  // Preferred actor source order (Phase 8): a route profile's actor_setting_id
+  // deterministically resolves the sender identity and breaks ambiguity. This
+  // is scoped to the same company+environment, so production Z01 selects the
+  // production actor setting and never the test ones.
+  if (!actorSetting && text(profile?.actor_setting_id)) {
+    const linked = await findActorSettingByIdScoped({
+      actorSettingId: profile!.actor_setting_id!,
+      companyId: input.companyId ?? null,
+      environment,
+    });
+    if (linked && linked.company_id) {
+      actorSetting = linked as unknown as typeof actorSetting;
+      actorSettingSelectedVia = "route_profile_link";
+    }
+  }
+
+  // Only block on ambiguity if the route profile link could not pin down a
+  // single, environment-correct actor setting.
+  if (!actorSetting && actorSettingResult.status === "ambiguous") {
     addIssue(blockingReasons, {
       code: "ambiguous_sender_settings",
       message:
@@ -700,7 +787,7 @@ export async function decideCommunicationRoute(
       metadata: { actorSettingIds: actorSettingResult.matches.map((row) => row.id) },
     });
     requiredAdminActions.push(
-      "Inaktivera dubbletter eller konfigurera en entydig avsändarinställning.",
+      "Inaktivera dubbletter eller koppla en entydig avsändarinställning till route profile.",
     );
   }
 
@@ -712,6 +799,7 @@ export async function decideCommunicationRoute(
       metadata: {
         actorSettingId: actorSetting.id,
         edielId: actorSetting.ediel_id ?? actorSetting.actor_ediel_id,
+        selectedVia: actorSettingSelectedVia,
       },
     });
   }
@@ -768,16 +856,55 @@ export async function decideCommunicationRoute(
     });
   }
 
-  if (routeResult.route && !profile) {
+  if (routeResult.route && profileResolution.status === "missing") {
     addIssue(blockingReasons, {
-      code: "missing_route_profile",
-      message: "Vald route saknar aktiv Ediel route profile.",
+      code: "route_profile_missing",
+      message: "Vald route saknar Ediel route profile. Skapa en route profile kopplad till routen.",
       source: "route_profile_resolver",
     });
     requiredAdminActions.push("Skapa eller aktivera Ediel route profile.");
   }
 
-  if (profile && isProduction(environment)) {
+  // Profile EXISTS on the route but is switched off: report precisely so the
+  // operator does not chase a non-existent "missing profile".
+  if (routeResult.route && profileResolution.status === "disabled") {
+    addIssue(blockingReasons, {
+      code: "route_profile_disabled",
+      message: "Route profile finns men är avstängd (is_enabled=false). Aktivera profilen innan utskick.",
+      source: "route_profile_resolver",
+      metadata: { routeProfileId: profile?.id ?? null },
+    });
+    requiredAdminActions.push("Aktivera Ediel route profile (is_enabled).");
+  }
+
+  // Profile exists and is enabled but is not production-ready: this is NOT a
+  // missing profile and must not be reported as one.
+  if (
+    profile &&
+    profileResolution.status === "enabled" &&
+    isProduction(environment) &&
+    (profile.is_production_ready === false ||
+      lowerText(profile.production_mode) === "disabled" ||
+      profile.is_active === false)
+  ) {
+    addIssue(blockingReasons, {
+      code: "production_route_profile_not_ready",
+      message:
+        "Route profile finns och är kopplad till routen men är inte produktionsklar (is_production_ready=false eller production_mode=disabled).",
+      source: "route_profile_resolver",
+      metadata: {
+        routeProfileId: profile.id,
+        isProductionReady: profile.is_production_ready ?? null,
+        productionMode: profile.production_mode ?? null,
+        isActive: profile.is_active ?? null,
+      },
+    });
+    requiredAdminActions.push(
+      "Markera route profile som produktionsklar (is_production_ready) och aktivera production_mode.",
+    );
+  }
+
+  if (profile && profileResolution.status === "enabled" && isProduction(environment)) {
     if (profile.environment !== "production" || profile.is_production_route === false) {
       addIssue(blockingReasons, {
         code: "production_route_profile_not_production",
@@ -803,7 +930,7 @@ export async function decideCommunicationRoute(
     }
   }
 
-  if (profile && !isProduction(environment)) {
+  if (profile && profileResolution.status === "enabled" && !isProduction(environment)) {
     if (profile.environment !== "test" || profile.is_test_route === false) {
       addIssue(blockingReasons, {
         code: "test_route_profile_not_test",

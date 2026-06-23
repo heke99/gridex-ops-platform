@@ -50,6 +50,12 @@ export type SenderSettingsResolution =
       setting: null;
       blockerCode: "environment_mismatch";
       matches: SenderSettingRow[];
+    }
+  | {
+      status: "environment_missing";
+      setting: null;
+      blockerCode: "environment_missing";
+      matches: SenderSettingRow[];
     };
 
 export type ResolveSenderSettingsInput = {
@@ -262,7 +268,17 @@ export async function resolveSenderSettings(
       blockerCode: "sender_settings_missing",
       matches: [],
     };
-  const environment = lower(input.environment) || "test";
+  // Fail closed: never silently default to "test". A production caller that
+  // forgot to pass environment must not accidentally match test actor settings.
+  const environment = lower(input.environment);
+  if (environment !== "test" && environment !== "production") {
+    return {
+      status: "environment_missing",
+      setting: null,
+      blockerCode: "environment_missing",
+      matches: [],
+    };
+  }
 
   const { data, error } = await supabaseService
     .from("ediel_actor_settings")

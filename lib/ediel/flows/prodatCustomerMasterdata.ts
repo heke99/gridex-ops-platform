@@ -10,6 +10,8 @@ import { linkEdielMessage } from '@/lib/ediel/db'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
 import { resolveDecisionBackedOutboundContext, RouteDecisionBlockedError } from '@/lib/ediel/flows/routeDecisionContext'
+import { routeDecisionPayload } from '@/lib/routes/routeDecisionEngine'
+import type { RouteDecisionOutput } from '@/lib/routes/routeDecisionTypes'
 import type { CreateEdielMessageInput, EdielEnvironment, EdielMessageRow } from '@/lib/ediel/types'
 import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
@@ -139,6 +141,50 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+/**
+ * Persist the resolved route decision onto the outbound row so that — even when
+ * the message could not be prepared — the outbound carries the correct
+ * communication_route_id, ediel_route_profile_id, sender identity and a
+ * route_decision_payload whose top-level environment reflects the real lane.
+ * Never crosses the test/production boundary and never sends SMTP.
+ */
+async function persistOutboundRouteDecision(params: {
+  actorUserId: string
+  outboundId: string
+  decision: RouteDecisionOutput
+  environment: EdielEnvironment
+  status?: 'failed' | null
+  failureReason?: string | null
+}): Promise<void> {
+  const decision = params.decision
+  const update: Record<string, unknown> = {
+    communication_route_id: decision.communicationRouteId ?? null,
+    ediel_route_profile_id: decision.edielRouteProfileId ?? null,
+    sender_ediel_id: decision.senderEdielId ?? null,
+    sender_sub_address: decision.senderSubAddress ?? null,
+    receiver_ediel_id: decision.receiverEdielId ?? null,
+    receiver_sub_address: decision.receiverSubAddress ?? null,
+    application_reference: decision.applicationReference ?? null,
+    message_family: decision.messageFamily ?? 'PRODAT',
+    message_code: decision.messageCode ?? 'Z01',
+    blocking_reasons: decision.blockingReasons,
+    required_admin_actions: decision.requiredAdminActions,
+    route_decision_payload: { ...routeDecisionPayload(decision), environment: params.environment },
+    updated_by: params.actorUserId,
+  }
+  if (params.status === 'failed') {
+    update.status = 'failed'
+    update.failure_reason = params.failureReason ?? null
+  }
+  const { error } = await supabaseService
+    .from('outbound_requests')
+    .update(update)
+    .eq('id', params.outboundId)
+  if (error && !['42703', 'PGRST204', 'PGRST205'].includes(String((error as { code?: string }).code ?? ''))) {
+    throw error
+  }
 }
 
 async function findVerifiedPlatformActorRoute(input: {
@@ -447,7 +493,20 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     requestedEnvironment = environmentResolution.environment
     environmentEvidence = environmentResolution.evidence
   }
-  const materializationEnvironment = requestedEnvironment ?? null
+  // Resolve the effective environment BEFORE the outbound (and its route
+  // decision) is created. Production must never silently default to test:
+  // when only a communication route was supplied we derive the environment
+  // from that route instead of guessing.
+  const effectiveEnvironment: EdielEnvironment | null =
+    requestedEnvironment ??
+    (params.communicationRouteId
+      ? await resolveOutboundRuntimeEnvironment({
+          preferredRouteId: params.communicationRouteId,
+          explicitEnvironment: params.environment ?? null,
+        })
+      : null)
+
+  const materializationEnvironment = effectiveEnvironment ?? null
   const platformActorRouteId = await findVerifiedPlatformActorRoute({
     actorId,
     messageFamily: 'PRODAT',
@@ -483,6 +542,8 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       materializationStatus: materializedRoute?.status ?? null,
       materializationReasonCode: materializedRoute?.reasonCode ?? null,
     },
+    environment: effectiveEnvironment,
+    failOnMissingEnvironment: true,
   })
 
   if (!outbound.communication_route_id) {
@@ -543,7 +604,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
 
   const environment = await resolveOutboundRuntimeEnvironment({
     preferredRouteId: outbound.communication_route_id,
-    explicitEnvironment: params.environment ?? null,
+    explicitEnvironment: effectiveEnvironment ?? params.environment ?? null,
   })
   let routeContext: Awaited<ReturnType<typeof resolveDecisionBackedOutboundContext>>
   try {
@@ -604,6 +665,17 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       sender_settings_id: text(evidence.sender_settings_id),
       production_send_lock_status: text(evidence.production_send_lock_status),
     }
+    // Even though the message was blocked, persist the route decision result on
+    // the outbound: it must carry the (now correct) profile id, sender identity
+    // and a route_decision_payload whose environment reflects the real lane.
+    await persistOutboundRouteDecision({
+      actorUserId,
+      outboundId: outbound.id,
+      decision: error.decision,
+      environment,
+      status: 'failed',
+      failureReason: blocker.blocker_reason,
+    })
     await updateGridOwnerDataRequestStatus({
       actorUserId,
       requestId: dataRequest.id,
@@ -631,6 +703,16 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       blockerDetails,
     }
   }
+
+  // Route decision succeeded: make sure the outbound row carries the resolved
+  // profile id, sender identity and the production-lane route_decision_payload
+  // before the EDIFACT message is finalized.
+  await persistOutboundRouteDecision({
+    actorUserId,
+    outboundId: outbound.id,
+    decision: routeContext.routeDecision,
+    environment,
+  })
 
   const refs = buildCanonicalOutboundReferences({
     family: 'PRODAT',

@@ -8,6 +8,7 @@ import type {
 } from '@/lib/cis/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
+import type { EdielEnvironment } from '@/lib/ediel/types'
 import { findBestCommunicationRoute } from './db-routes'
 import { decideCommunicationRoute, routeDecisionPayload } from '@/lib/routes/routeDecisionEngine'
 import type { BusinessProcess } from '@/lib/routes/routeDecisionTypes'
@@ -199,6 +200,8 @@ export async function createOutboundRequest(input: {
   automationKey?: string | null
   operationId?: string | null
   replaceOpenSupplierSwitchAttempt?: boolean
+  environment?: EdielEnvironment | null
+  failOnMissingEnvironment?: boolean
 }): Promise<OutboundRequestRow> {
   const context = await getCustomerExportContext({
     customerId: input.customerId,
@@ -219,6 +222,11 @@ export async function createOutboundRequest(input: {
     gridOwnerId,
     businessProcess,
     requestedAction: input.requestType,
+    // Environment must flow all the way into the route decision. Without it the
+    // engine defaults to "test", which silently leaks test actor settings and
+    // hides production route profiles in production flows.
+    environment: input.environment ?? null,
+    failOnMissingEnvironment: input.failOnMissingEnvironment ?? false,
     preferredRouteId: input.communicationRouteId ?? null,
     authorizationDocumentId: input.payload?.authorization_document_id as string | undefined,
     payload: input.payload ?? {},
@@ -280,6 +288,9 @@ export async function createOutboundRequest(input: {
     period_end: input.periodEnd ?? null,
     external_reference: input.externalReference ?? null,
     operation_id: input.operationId ?? null,
+    // Persist the intended environment so later repair/reuse never crosses the
+    // test/production boundary (read back in repairOutboundRequestCommunicationRoute).
+    environment: input.environment ?? null,
     ...buildCustomerIdentityPayload(context),
     ...buildSitePayload(context.site),
     ...buildMeteringPointPayload(context.meteringPoint),

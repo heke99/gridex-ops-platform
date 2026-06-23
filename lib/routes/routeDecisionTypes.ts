@@ -59,6 +59,13 @@ export type RouteDecisionInput = {
   messageFamily?: EdielMessageFamily | string | null;
   messageCode?: string | null;
   environment?: EdielEnvironment | string | null;
+  /**
+   * When true, the decision engine fails closed with an `environment_missing`
+   * blocking reason if no explicit environment is supplied. Production-capable
+   * outbound creation paths (PRODAT/UTILTS/Z01) set this so that environment is
+   * never silently defaulted to `test`.
+   */
+  failOnMissingEnvironment?: boolean | null;
   preferredRouteId?: string | null;
   supplierSwitchRequestId?: string | null;
   dataRequestId?: string | null;

@@ -106,6 +106,8 @@ export async function findOrCreateSwitchOutbound(params: {
   externalReference: string | null
   payload: Record<string, unknown>
   forceCreateNewAttempt?: boolean
+  environment?: EdielEnvironment | null
+  failOnMissingEnvironment?: boolean
 }) {
   if (!params.forceCreateNewAttempt) {
     const existing = await findOpenOutboundBySource({
@@ -136,6 +138,8 @@ export async function findOrCreateSwitchOutbound(params: {
     externalReference: params.externalReference,
     replaceOpenSupplierSwitchAttempt: Boolean(params.forceCreateNewAttempt),
     payload: params.payload,
+    environment: params.environment ?? null,
+    failOnMissingEnvironment: params.failOnMissingEnvironment ?? false,
   })
 }
 
@@ -146,6 +150,8 @@ export async function findOrCreateDataRequestOutbound(params: {
   dataRequest: GridOwnerDataRequestRow
   payload: Record<string, unknown>
   operationId?: string | null
+  environment?: EdielEnvironment | null
+  failOnMissingEnvironment?: boolean
 }) {
   const existing = await findOpenOutboundBySource({
     sourceType: 'grid_owner_data_request',
@@ -193,6 +199,8 @@ export async function findOrCreateDataRequestOutbound(params: {
     externalReference: params.dataRequest.external_reference,
     operationId: params.operationId ?? params.dataRequest.operation_id ?? null,
     payload: params.payload,
+    environment: params.environment ?? null,
+    failOnMissingEnvironment: params.failOnMissingEnvironment ?? false,
   })
 }
 
