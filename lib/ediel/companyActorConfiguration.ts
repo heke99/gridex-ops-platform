@@ -3,6 +3,13 @@ import { isMissingRelationError } from '@/lib/tenant/scope'
 
 export type EdielConfigRow = Record<string, unknown> & { id: string }
 
+export type DuplicateActorSettingGroup = {
+  environment: string
+  role: string
+  edielId: string | null
+  actorSettingIds: string[]
+}
+
 export type CompanyActorConfiguration = {
   actors: EdielConfigRow[]
   brpSettings: EdielConfigRow[]
@@ -13,6 +20,34 @@ export type CompanyActorConfiguration = {
   latestInboundAt: string | null
   latestOutboundAt: string | null
   unresolvedInboundCount: number
+  // Admin-safe diagnostic: more than one ACTIVE actor setting for the same
+  // company + environment + role (+ Ediel-ID). This is exactly what makes the
+  // route decision engine fail closed with `ambiguous_sender_settings`.
+  duplicateActiveActorSettings: DuplicateActorSettingGroup[]
+}
+
+/**
+ * Detect duplicate ACTIVE actor settings per company+environment+role(+ediel id).
+ * Pure function over already-fetched actor rows so it is cheap and testable.
+ */
+export function detectDuplicateActiveActorSettings(
+  actors: EdielConfigRow[],
+): DuplicateActorSettingGroup[] {
+  const groups = new Map<string, DuplicateActorSettingGroup>()
+  for (const row of actors) {
+    if (row.is_active !== true) continue
+    const environment = String(row.environment ?? '').trim().toLowerCase()
+    const role = String(row.actor_role ?? row.role ?? '').trim().toLowerCase()
+    const edielId = stringValue(row, 'ediel_id') ?? stringValue(row, 'actor_ediel_id')
+    const key = `${environment}|${role}`
+    const existing = groups.get(key)
+    if (existing) {
+      existing.actorSettingIds.push(row.id)
+    } else {
+      groups.set(key, { environment, role, edielId, actorSettingIds: [row.id] })
+    }
+  }
+  return [...groups.values()].filter((group) => group.actorSettingIds.length > 1)
 }
 
 function stringValue(row: Record<string, unknown>, key: string): string | null {
@@ -129,5 +164,6 @@ export async function getCompanyActorConfiguration(companyId: string): Promise<C
     latestInboundAt: latestInbound,
     latestOutboundAt: latestOutbound,
     unresolvedInboundCount: unresolved,
+    duplicateActiveActorSettings: detectDuplicateActiveActorSettings(actors),
   }
 }

@@ -95,6 +95,14 @@ export async function saveCompanyEdielActorAction(formData: FormData) {
     const actorRole = normalizeActorRole(text(formData.get('actor_role')) || 'supplier')
     const edielId = assertEdielId(text(formData.get('ediel_id')), 'Ediel ID')
     const senderSubaddress = assertSubaddress(nullableText(formData.get('sender_subaddress')))
+    // Per-family sender subaddresses are the actual schema columns used by the
+    // sender resolver (sender_subaddress_prodat / sender_subaddress_utilts).
+    // Default each to the combined value so the bolagskort stays the source of
+    // truth even when the per-family fields are left empty.
+    const senderSubaddressProdat =
+      assertSubaddress(nullableText(formData.get('sender_subaddress_prodat'))) ?? senderSubaddress
+    const senderSubaddressUtilts =
+      assertSubaddress(nullableText(formData.get('sender_subaddress_utilts'))) ?? senderSubaddress
     const receiverSubaddress = assertSubaddress(nullableText(formData.get('receiver_subaddress')))
     const applicationReference = nullableText(formData.get('application_reference'))?.toUpperCase() ?? null
     const isActive = formData.get('is_active') !== null
@@ -136,6 +144,8 @@ export async function saveCompanyEdielActorAction(formData: FormData) {
       environment,
       sender_sub_address: senderSubaddress,
       sender_subaddress: senderSubaddress,
+      sender_subaddress_prodat: senderSubaddressProdat,
+      sender_subaddress_utilts: senderSubaddressUtilts,
       receiver_subaddress: receiverSubaddress,
       default_application_reference: applicationReference,
       application_reference: applicationReference,

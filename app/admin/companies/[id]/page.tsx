@@ -707,7 +707,19 @@ function CompanyEdielConfiguration({ company, config }: { company: GovernanceCom
 
       <section id="ediel-actor" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-black text-slate-950">Live Ediel-profil</h2>
-        <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">Sätt tenantens production Ediel-ID och ev. registrerad sender-subadress. Om Ediel-ID ändras påverkas bara framtida EDIFACT-meddelanden; historik och snapshots ändras inte.</p>
+        <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">Sätt tenantens production Ediel-ID och ev. registrerad sender-subadress. Om Ediel-ID ändras påverkas bara framtida EDIFACT-meddelanden; historik och snapshots ändras inte. Bolagskortet är källan till sanning för tenantens Ediel-identitet — delad brevlåda är bara transport.</p>
+        {config.duplicateActiveActorSettings.length > 0 ? (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+            <p>Dubbletter: flera aktiva avsändarinställningar för samma miljö och roll. Detta gör att produktionsrouting blockeras med <span className="font-mono">ambiguous_sender_settings</span>. Inaktivera dubbletter så att exakt en aktiv aktör finns per miljö och roll.</p>
+            <ul className="mt-2 list-disc pl-5 font-mono text-xs">
+              {config.duplicateActiveActorSettings.map((group) => (
+                <li key={`${group.environment}-${group.role}`}>
+                  {group.environment} / {group.role}: {group.actorSettingIds.join(', ')}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <form action={saveCompanyEdielActorAction} className="mt-5 grid gap-4 md:grid-cols-2">
           <input type="hidden" name="company_id" value={company.id} />
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Miljö</span><select name="environment" defaultValue={rowText(actor, 'environment') ?? 'production'} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="production">Produktion</option><option value="test">Test</option></select></label>
@@ -716,6 +728,8 @@ function CompanyEdielConfiguration({ company, config }: { company: GovernanceCom
           <input type="hidden" name="application_reference" value={rowText(actor, 'application_reference', 'default_application_reference') ?? 'PRODAT'} />
           <input type="hidden" name="receiver_subaddress" value={rowText(actor, 'receiver_subaddress', 'receiver_sub_address') ?? ''} />
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Sender subadress, bara om registrerad</span><input name="sender_subaddress" defaultValue={rowText(actor, 'sender_subaddress', 'sender_sub_address') ?? ''} placeholder="Lämna tom om ingen subadress är registrerad" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Sender subadress PRODAT</span><input name="sender_subaddress_prodat" defaultValue={rowText(actor, 'sender_subaddress_prodat') ?? ''} placeholder="Ärvs från sender subadress om tom" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Sender subadress UTILTS</span><input name="sender_subaddress_utilts" defaultValue={rowText(actor, 'sender_subaddress_utilts') ?? ''} placeholder="Ärvs från sender subadress om tom" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Giltig från</span><input type="date" name="valid_from" defaultValue={rowText(actor, 'valid_from') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
           <label className="grid gap-1"><span className="text-xs font-bold text-slate-700">Giltig till</span><input type="date" name="valid_to" defaultValue={rowText(actor, 'valid_to') ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
           <label className="flex items-center gap-2 text-sm font-bold text-slate-800"><input type="checkbox" name="is_active" defaultChecked={actor ? rowBool(actor, 'is_active') : true} /> Aktiv</label>
