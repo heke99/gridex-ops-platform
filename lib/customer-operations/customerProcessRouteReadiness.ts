@@ -1,0 +1,170 @@
+import { getCompanyGridOwnerRouteReadiness } from '@/lib/ediel/companyRouteReadiness'
+import { evaluateRouteProfileProductionReadiness } from '@/lib/ediel/routeProfileProductionReadiness'
+import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProcessEvents'
+
+type Process = 'facility_lookup' | 'z01_customer_masterdata' | 'supplier_switch'
+
+type JsonRecord = Record<string, unknown>
+
+export type CustomerProcessRouteReadinessResult = {
+  process: Process
+  ready: boolean
+  blockers: Array<{ code: string; message: string; source: string; metadata?: JsonRecord }>
+  warnings: Array<{ code: string; message: string; source: string; metadata?: JsonRecord }>
+  routeProfileId: string | null
+  communicationRouteId: string | null
+  family: string
+  code: string | null
+}
+
+function messageConfig(process: Process): { family: string; code: string | null; needsOutboundSendReadiness: boolean } {
+  if (process === 'supplier_switch') return { family: 'PRODAT', code: 'Z03', needsOutboundSendReadiness: true }
+  if (process === 'z01_customer_masterdata') return { family: 'PRODAT', code: 'Z01', needsOutboundSendReadiness: true }
+  return { family: 'facility_lookup', code: null, needsOutboundSendReadiness: false }
+}
+
+function text(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+export async function evaluateCustomerProcessRouteReadiness(input: {
+  companyId: string
+  customerId?: string | null
+  siteId?: string | null
+  gridOwnerId?: string | null
+  process: Process
+  actorUserId?: string | null
+  emitEvents?: boolean
+}): Promise<CustomerProcessRouteReadinessResult> {
+  const config = messageConfig(input.process)
+  const blockers: CustomerProcessRouteReadinessResult['blockers'] = []
+  const warnings: CustomerProcessRouteReadinessResult['warnings'] = []
+
+  if (!input.gridOwnerId) {
+    blockers.push({ code: 'grid_owner_missing', message: 'Nätägare saknas för kundprocessen.', source: 'customer_process_route_readiness' })
+    return {
+      process: input.process,
+      ready: false,
+      blockers,
+      warnings,
+      routeProfileId: null,
+      communicationRouteId: null,
+      family: config.family,
+      code: config.code,
+    }
+  }
+
+  if (input.process === 'facility_lookup') {
+    // Facility lookup may be manual. Missing contact route must block auto-send,
+    // but it must not block manual handling of the request.
+    warnings.push({
+      code: 'facility_lookup_manual_route_allowed',
+      message: 'Anläggningsuppgifter kan hanteras manuellt om automatisk kontaktväg saknas.',
+      source: 'customer_process_route_readiness',
+    })
+    return {
+      process: input.process,
+      ready: true,
+      blockers,
+      warnings,
+      routeProfileId: null,
+      communicationRouteId: null,
+      family: config.family,
+      code: config.code,
+    }
+  }
+
+  const readiness = await getCompanyGridOwnerRouteReadiness({
+    companyId: input.companyId,
+    gridOwnerId: input.gridOwnerId,
+    messageFamily: config.family,
+    messageCode: config.code,
+    environment: 'production',
+  })
+
+  if (!readiness) {
+    blockers.push({
+      code: 'route_readiness_missing',
+      message: 'Produktionsroute saknas eller kunde inte kontrolleras för nästa steg.',
+      source: 'gridex_company_route_readiness_v',
+      metadata: { process: input.process, family: config.family, code: config.code },
+    })
+  } else {
+    if (readiness.blocker_code) {
+      blockers.push({
+        code: readiness.blocker_code,
+        message: readiness.readiness_message ?? 'Route readiness blockerar nästa steg.',
+        source: 'gridex_company_route_readiness_v',
+        metadata: readiness as unknown as JsonRecord,
+      })
+    }
+    if (config.needsOutboundSendReadiness && readiness.send_ready !== true) {
+      blockers.push({
+        code: 'route_not_send_ready',
+        message: 'Route är inte godkänd för produktionsutskick.',
+        source: 'gridex_company_route_readiness_v',
+        metadata: readiness as unknown as JsonRecord,
+      })
+    }
+  }
+
+  if (readiness?.ediel_route_profile_id) {
+    const profile = await evaluateRouteProfileProductionReadiness({
+      routeProfileId: readiness.ediel_route_profile_id,
+      actorUserId: input.actorUserId ?? null,
+      applyFixes: true,
+    })
+    for (const issue of profile.blockers) {
+      blockers.push({
+        code: issue.code,
+        message: issue.message,
+        source: 'route_profile_production_readiness',
+        metadata: issue.metadata,
+      })
+    }
+    for (const issue of profile.warnings) {
+      warnings.push({
+        code: issue.code,
+        message: issue.message,
+        source: 'route_profile_production_readiness',
+        metadata: issue.metadata,
+      })
+    }
+  }
+
+  const ready = blockers.length === 0
+
+  if (!ready && input.emitEvents !== false && input.customerId) {
+    await emitCustomerProcessEvent({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      customerSiteId: input.siteId ?? null,
+      eventType: 'supplier_switch.blocked',
+      title: 'Route blockerar nästa steg',
+      message: blockers[0]?.message ?? 'Nödvändig produktionsroute är inte klar.',
+      actorUserId: input.actorUserId ?? null,
+      status: 'blocked',
+      severity: 'error',
+      actionRequired: true,
+      source: 'customer_process_route_readiness',
+      payload: { process: input.process, blockers, warnings },
+      idempotencyKey: `route_readiness.blocked:${input.companyId}:${input.siteId ?? input.customerId}:${input.process}:${blockers.map((b) => b.code).join('|')}`,
+    })
+  }
+
+  return {
+    process: input.process,
+    ready,
+    blockers,
+    warnings,
+    routeProfileId: readiness?.ediel_route_profile_id ?? null,
+    communicationRouteId: readiness?.communication_route_id ?? null,
+    family: config.family,
+    code: config.code,
+  }
+}
+
+export function routeReadinessSummary(result: CustomerProcessRouteReadinessResult): string {
+  if (result.ready) return 'Alla nödvändiga routes är produktionsklara för nästa steg.'
+  return result.blockers.map((item) => text(item.message) ?? item.code).join(', ')
+}

@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+const fs = require('fs')
+function read(p){ return fs.readFileSync(p,'utf8') }
+function ok(cond,msg){ if(!cond){ console.error(`FAIL: ${msg}`); process.exitCode=1 } else console.log(`OK: ${msg}`) }
+const workflow = read('lib/facility/facilityLookupWorkflow.ts')
+const actions = read('app/admin/facility-requests/actions.ts')
+const page = read('app/admin/facility-requests/page.tsx')
+const sync = read('lib/facility/facilityMeteringPointSync.ts')
+ok(workflow.includes('markFacilityLookupSentManually'), 'manual sent workflow exists')
+ok(workflow.includes("status: 'waiting_response'") && workflow.includes('manual_sent_by') && workflow.includes('manual_channel'), 'manual sent stores waiting_response and manual metadata')
+ok(workflow.includes('facility_lookup.manual_sent') && workflow.includes('Anläggningsbegäran skickad manuellt'), 'manual sent emits tenant timeline event')
+ok(!/sendEdielEmail|sendCompanyEmail|smtp/i.test(workflow.split('markFacilityLookupSentManually')[1].split('export async function completeFacilityLookup')[0]), 'manual sent action does not send SMTP/Ediel')
+ok(workflow.includes('completeFacilityLookup'), 'facility lookup complete workflow exists')
+ok(workflow.includes("status: 'completed'") && workflow.includes('completed_at') && workflow.includes('received_payload'), 'complete workflow marks request completed with received payload')
+ok(workflow.includes('updateCustomerSite') && workflow.includes('facility_data_status') && workflow.includes('facility_data_verified_at'), 'complete workflow updates customer site facility verification')
+ok(sync.includes('upsertFacilityMeteringPoint') && sync.includes('metering_points') && sync.includes('site_id'), 'metering point sync helper exists')
+ok(workflow.includes('clearFacilityBlockers') && workflow.includes('facility_or_metering_point_missing') && workflow.includes('facility_identifier_received'), 'complete workflow clears facility blocker')
+ok(workflow.includes('evaluateAndRunNextCustomerStep') && workflow.includes("trigger: 'facility_data_received'"), 'complete workflow triggers next-step engine')
+ok(actions.includes('markFacilityLookupSentManuallyAction') && actions.includes('completeFacilityLookupAction'), 'facility request server actions exist')
+ok(page.includes('Markera skickad manuellt') && page.includes('Registrera svar från nätägare'), 'facility requests UI exposes manual sent and complete actions')
+if(process.exitCode) process.exit(1)
+console.log('Facility lookup manual workflow regression passed')

@@ -100,7 +100,12 @@
     "gridex:z01-continue-finalization-regression": "node scripts/gridex-z01-continue-finalization-regression.cjs",
     "gridex:route-profile-certificate-auto-match-regression": "node scripts/gridex-route-profile-certificate-auto-match-regression.cjs",
     "gridex:z01-facility-preflight-regression": "node scripts/gridex-z01-facility-preflight-regression.cjs",
-    "gridex:z01-missing-facility-controlled-blocker-regression": "node scripts/gridex-z01-missing-facility-controlled-blocker-regression.cjs"
+    "gridex:z01-missing-facility-controlled-blocker-regression": "node scripts/gridex-z01-missing-facility-controlled-blocker-regression.cjs",
+    "gridex:facility-lookup-manual-workflow-regression": "node scripts/gridex-facility-lookup-manual-workflow-regression.cjs",
+    "gridex:inbound-facility-recognition-regression": "node scripts/gridex-inbound-facility-recognition-regression.cjs",
+    "gridex:customer-process-next-step-regression": "node scripts/gridex-customer-process-next-step-regression.cjs",
+    "gridex:route-readiness-process-sweep-regression": "node scripts/gridex-route-readiness-process-sweep-regression.cjs",
+    "gridex:tenant-process-timeline-regression": "node scripts/gridex-tenant-process-timeline-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

@@ -52,6 +52,7 @@ import {
 import { resolveInboundTenantForMessage } from "@/lib/ediel/core/tenantResolver";
 import { analyzeEdielProcessingPipeline } from "@/lib/ediel/orchestrator/edielProcessingPipeline";
 import { createOutboxItem } from "@/lib/ediel/outbox/createOutboxItem";
+import { recognizeInboundFacilityData } from "@/lib/ediel/inbound/inboundFacilityRecognition";
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
@@ -548,6 +549,24 @@ async function processInboundProdatMessage(params: {
   actorUserId: string;
   message: EdielMessageRow;
 }) {
+  const facilityRecognition = await recognizeInboundFacilityData({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.message.id,
+  }).catch(async (error) => {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.message.id,
+      eventType: "manual_note",
+      eventStatus: "warning",
+      message: "Inbound facility recognition kunde inte slutföras. Normal PRODAT-hantering fortsätter.",
+      payload: {
+        recognition: "inbound_facility_recognition_failed_non_blocking",
+        error: formatErrorMessage(error, "okänt fel"),
+      },
+    }).catch(() => null);
+    return null;
+  });
+
   const canonicalLinks = await linkInboundProdatMessageCanonically({
     actorUserId: params.actorUserId,
     message: params.message,
