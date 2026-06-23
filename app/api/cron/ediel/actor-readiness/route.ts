@@ -22,8 +22,8 @@ function isAuthorized(request: NextRequest): boolean {
   })
 }
 
-function parseMode(value: string | null): 'full' | 'certificates' | 'apply' {
-  if (value === 'certificates' || value === 'apply' || value === 'full') return value
+function parseMode(value: string | null): 'full' | 'certificates' | 'apply' | 'route_profiles' {
+  if (value === 'certificates' || value === 'apply' || value === 'full' || value === 'route_profiles') return value
   return 'full'
 }
 
@@ -40,7 +40,9 @@ export async function POST(request: NextRequest) {
       ? await operations.refreshActorCertificateStatuses('certificate_refresh')
       : mode === 'apply'
         ? await operations.applyActorAutoSendReadiness()
-        : await operations.runFullActorAutoReadiness()
+        : mode === 'route_profiles'
+          ? await operations.refreshRouteProfileProductionReadiness()
+          : await operations.runFullActorAutoReadiness()
 
     return NextResponse.json({ ok: true, mode, result })
   } catch (error) {

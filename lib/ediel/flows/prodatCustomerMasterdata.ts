@@ -212,7 +212,7 @@ async function persistOutboundRouteDecision(params: {
   outboundId: string
   decision: RouteDecisionOutput
   environment: EdielEnvironment
-  status?: 'failed' | null
+  status?: 'failed' | 'prepared' | 'queued' | null
   failureReason?: string | null
 }): Promise<void> {
   const decision = params.decision
@@ -234,6 +234,11 @@ async function persistOutboundRouteDecision(params: {
   if (params.status === 'failed') {
     update.status = 'failed'
     update.failure_reason = params.failureReason ?? null
+  } else if (params.status === 'prepared' || params.status === 'queued') {
+    update.status = params.status
+    update.failure_reason = null
+    update.blocking_reasons = []
+    update.required_admin_actions = []
   }
   const { error } = await supabaseService
     .from('outbound_requests')
@@ -792,6 +797,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     outboundId: outbound.id,
     decision: routeContext.routeDecision,
     environment,
+    status: 'prepared',
   })
 
   const refs = buildCanonicalOutboundReferences({

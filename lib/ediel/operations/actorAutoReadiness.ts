@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expisoftCertificateDirectory'
+import { refreshProductionRouteProfileReadiness } from '@/lib/ediel/routeProfileProductionReadiness'
 
 export type ActorReadinessRunResult = {
   ok: boolean
@@ -413,16 +414,22 @@ export async function applyActorAutoSendReadiness() {
   return parseRpcResult(result.data as RpcResult)
 }
 
+export async function refreshRouteProfileProductionReadiness() {
+  return refreshProductionRouteProfileReadiness({ limit: 1000 })
+}
+
 export async function runFullActorAutoReadiness() {
   const blankSubaddresses = await confirmSafeBlankRouteSubaddresses('nightly_backfill', null, false)
   const backfill = await runActorReadinessBackfill('nightly_backfill')
   const certificates = await refreshActorCertificateStatuses('certificate_refresh')
+  const routeProfiles = await refreshRouteProfileProductionReadiness()
   const autoSend = await applyActorAutoSendReadiness()
   return {
     ok: true,
     blankSubaddresses,
     backfill,
     certificates,
+    routeProfiles,
     autoSend,
   }
 }

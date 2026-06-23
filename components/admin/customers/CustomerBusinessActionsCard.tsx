@@ -454,12 +454,14 @@ export default function CustomerBusinessActionsCard({
               ) : null}
 
               {/* Repair Z01 chain — platform admin only, requires canRunRepair */}
-              {workflow.canRunRepair && companyId ? (
+              {(workflow.canRunRepair || workflow.canContinueFinalization) && companyId ? (
                 <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 space-y-3">
                   <div>
-                    <p className="text-sm font-semibold text-orange-900">Reparera Z01-kedja</p>
+                    <p className="text-sm font-semibold text-orange-900">{workflow.canContinueFinalization ? "Fortsätt Z01-finalisering" : "Reparera Z01-kedja"}</p>
                     <p className="mt-1 text-xs text-orange-700">
-                      Det finns en uppgiftsbegäran utan outbound-förfrågan. Finalisering skapar outbound och förbereder Ediel-meddelandet utan att skicka SMTP direkt.
+                      {workflow.canContinueFinalization
+                        ? "Route-blockeringen verkar vara åtgärdad. Kör om finaliseringen för att skapa PRODAT Z01-utkast. Ingen SMTP skickas direkt."
+                        : "Det finns en uppgiftsbegäran utan outbound-förfrågan. Finalisering skapar outbound och förbereder Ediel-meddelandet utan att skicka SMTP direkt."}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -474,8 +476,8 @@ export default function CustomerBusinessActionsCard({
                       ) : null}
                       <input type="hidden" name="environment" value="production" />
                       <SubmitButton
-                        idleLabel="Reparera uppgiftsbegäran"
-                        pendingLabel="Reparerar…"
+                        idleLabel={workflow.canContinueFinalization ? "Fortsätt Z01-finalisering" : "Reparera uppgiftsbegäran"}
+                        pendingLabel={workflow.canContinueFinalization ? "Finaliserar…" : "Reparerar…"}
                       />
                     </form>
                     <form action={dryRunZ01RepairAction}>
@@ -489,7 +491,7 @@ export default function CustomerBusinessActionsCard({
                       ) : null}
                       <input type="hidden" name="environment" value="production" />
                       <SubmitButton
-                        idleLabel="Testa reparation"
+                        idleLabel={workflow.canContinueFinalization ? "Testa finalisering" : "Testa reparation"}
                         pendingLabel="Testar…"
                       />
                     </form>

@@ -803,3 +803,62 @@ export async function bulkRouteReadinessByStatusAction(formData: FormData) {
   })
   revalidateRouteReadiness()
 }
+
+export async function checkRouteProfileProductionReadinessAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const routeProfileId = normalizeUuidOrNull(value(formData, 'routeProfileId') ?? value(formData, 'route_profile_id'), 'route_profile_id')
+  if (!routeProfileId) redirectWithStatus('error', 'missing_route_profile_id')
+
+  const { evaluateRouteProfileProductionReadiness } = await import('@/lib/ediel/routeProfileProductionReadiness')
+  const result = await evaluateRouteProfileProductionReadiness({
+    routeProfileId,
+    actorUserId: context.userId,
+    applyFixes: false,
+  })
+  await auditLaunchAction({
+    actorUserId: context.userId,
+    action: result.ready ? 'route_profile.production_readiness_checked_ready' : 'route_profile.production_readiness_checked_blocked',
+    routeId: routeProfileId,
+    metadata: { result },
+  }).catch(() => undefined)
+  revalidateRouteReadiness()
+  redirectWithStatus(result.ready ? 'ok' : 'error', result.ready ? 'route_profile_ready' : (result.blockers[0]?.code ?? 'route_profile_not_ready'))
+}
+
+export async function applyRouteProfileReadinessFixesAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const routeProfileId = normalizeUuidOrNull(value(formData, 'routeProfileId') ?? value(formData, 'route_profile_id'), 'route_profile_id')
+  if (!routeProfileId) redirectWithStatus('error', 'missing_route_profile_id')
+
+  const { evaluateRouteProfileProductionReadiness } = await import('@/lib/ediel/routeProfileProductionReadiness')
+  const result = await evaluateRouteProfileProductionReadiness({
+    routeProfileId,
+    actorUserId: context.userId,
+    applyFixes: true,
+  })
+  await auditLaunchAction({
+    actorUserId: context.userId,
+    action: result.ready ? 'route_profile.production_readiness_fixed_ready' : 'route_profile.production_readiness_fixed_blocked',
+    routeId: routeProfileId,
+    metadata: { result },
+  }).catch(() => undefined)
+  revalidateRouteReadiness()
+  redirectWithStatus(result.ready ? 'ok' : 'error', result.ready ? 'route_profile_ready_after_fixes' : (result.blockers[0]?.code ?? 'route_profile_not_ready'))
+}
+
+export async function approveRouteProfileProductionAction(formData: FormData) {
+  const context = await requirePlatformAdminActionAccess()
+  const routeProfileId = normalizeUuidOrNull(value(formData, 'routeProfileId') ?? value(formData, 'route_profile_id'), 'route_profile_id')
+  if (!routeProfileId) redirectWithStatus('error', 'missing_route_profile_id')
+
+  const { approveRouteProfileForProduction } = await import('@/lib/ediel/routeProfileProductionReadiness')
+  const result = await approveRouteProfileForProduction({ routeProfileId, actorUserId: context.userId })
+  await auditLaunchAction({
+    actorUserId: context.userId,
+    action: result.ready ? 'route_profile.production_approved' : 'route_profile.production_approval_blocked',
+    routeId: routeProfileId,
+    metadata: { result },
+  }).catch(() => undefined)
+  revalidateRouteReadiness()
+  redirectWithStatus(result.ready ? 'ok' : 'error', result.ready ? 'route_profile_production_approved' : (result.blockers[0]?.code ?? 'route_profile_not_ready'))
+}

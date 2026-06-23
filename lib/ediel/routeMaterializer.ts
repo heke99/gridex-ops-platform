@@ -1,4 +1,5 @@
 import { supabaseService } from "@/lib/supabase/service";
+import { evaluateRouteProfileProductionReadiness } from "@/lib/ediel/routeProfileProductionReadiness";
 import { makeCustomerOperationBlocker } from "@/lib/customer-operations/blockers";
 import { getCompanyGridOwnerRouteReadiness } from "@/lib/ediel/companyRouteReadiness";
 import {
@@ -380,6 +381,26 @@ async function upsertRouteProfile(params: {
   return String((data as { id: string }).id);
 }
 
+
+async function applySafeRouteProfileReadiness(params: {
+  routeProfileId: string;
+  actorUserId?: string | null;
+}) {
+  try {
+    await evaluateRouteProfileProductionReadiness({
+      routeProfileId: params.routeProfileId,
+      actorUserId: params.actorUserId ?? null,
+      applyFixes: true,
+      approveProduction: false,
+    });
+  } catch (error) {
+    console.warn("[routeMaterializer] Route profile production readiness sync skipped", {
+      routeProfileId: params.routeProfileId,
+      error: pgErrorMessage(error),
+    });
+  }
+}
+
 async function upsertCompanyMarketPartyRoute(params: {
   companyId: string;
   marketPartyId: string;
@@ -631,6 +652,11 @@ export async function materializeCompanyGridOwnerRoute(params: {
     );
   }
 
+  await applySafeRouteProfileReadiness({
+    routeProfileId: edielRouteProfileId,
+    actorUserId: params.actorUserId ?? null,
+  });
+
   let companyMarketPartyRouteId: string;
   try {
     companyMarketPartyRouteId = await upsertCompanyMarketPartyRoute({
@@ -834,6 +860,11 @@ export async function materializePlatformActorRoute(params: {
         messageFamily,
         messageCode,
       });
+      await applySafeRouteProfileReadiness({
+        routeProfileId: edielRouteProfileId,
+        actorUserId: params.actorUserId ?? null,
+      });
+
       const companyMarketPartyRouteId = await upsertCompanyMarketPartyRoute({
         companyId,
         marketPartyId: route.actor_id,

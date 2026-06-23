@@ -62,6 +62,7 @@ export type CustomerCardWorkflow = {
   latestMessageId: string | null
   canShowTechnicalActions: boolean
   canRunRepair: boolean
+  canContinueFinalization: boolean
   technicalDetails: {
     outboundRequestId: string | null
     edielMessageId: string | null
@@ -89,6 +90,9 @@ function blockerToAdminMessage(blockerCode: string | null | undefined): string |
     operational_route_missing: 'Kontaktväg till nätägaren är inte klar. Plattformsadministratören behöver konfigurera Ediel-route.',
     platform_route_exists_but_not_materialized: 'Nätägaren finns i aktörsregistret men den operativa kontaktvägen är inte aktiverad.',
     production_send_locked: 'Produktionsutskick kräver godkännande från plattformsadministratören.',
+    production_route_profile_not_ready: 'Route profile finns men är inte produktionsklar. Granska produktionsklarhet och fortsätt finalisering när profilen är live.',
+    route_profile_disabled: 'Route profile finns men är avstängd. Aktivera profilen innan finalisering.',
+    route_profile_missing: 'Vald route saknar Ediel route profile. Skapa eller materialisera profilen.',
     certificate_missing: 'Mottagarcertifikat saknas för krypterad Ediel-kommunikation.',
     missing_power_of_attorney: 'Signerad fullmakt saknas för uppgiftsbegäran.',
     grid_area_not_verified: 'Nätområde eller nätägare är inte verifierad för automatiskt utskick.',
@@ -348,10 +352,29 @@ export function buildCustomerCardWorkflow(input: CustomerCardWorkflowInput): Cus
     routeResolutionStatus: routeResolutionStatus ?? null,
   }
 
+  const missingRouteRepairBlockers = [
+    'operational_route_missing',
+    'platform_route_exists_but_not_materialized',
+  ]
+  const z01ContinuationBlockers = [
+    ...missingRouteRepairBlockers,
+    'production_route_profile_not_ready',
+    'route_profile_disabled',
+    'route_profile_missing',
+    'production_send_locked',
+  ]
+
   const canRunRepair = isPlatformAdmin &&
-    Boolean(gridOwnerDataRequestId) &&
+    Boolean(gridOwnerDataRequestId || openInfoRequest?.id) &&
     ['blocked', 'route_missing'].includes(infoStatus ?? '') &&
-    ['operational_route_missing', 'platform_route_exists_but_not_materialized'].includes(blockerCode ?? '')
+    missingRouteRepairBlockers.includes(blockerCode ?? '')
+
+  const canContinueFinalization = isPlatformAdmin &&
+    Boolean(gridOwnerDataRequestId || openInfoRequest?.id) &&
+    Boolean(outboundRequestId) &&
+    !edielMessageId &&
+    ['blocked', 'route_missing'].includes(infoStatus ?? '') &&
+    z01ContinuationBlockers.includes(blockerCode ?? '')
 
   return {
     primaryStatus: infoStatus ?? 'no_request',
@@ -370,6 +393,7 @@ export function buildCustomerCardWorkflow(input: CustomerCardWorkflowInput): Cus
     latestMessageId: edielMessageId ?? null,
     canShowTechnicalActions: isPlatformAdmin,
     canRunRepair,
+    canContinueFinalization,
     technicalDetails,
   }
 }

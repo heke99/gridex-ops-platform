@@ -1,6 +1,7 @@
 import { supabaseService } from "@/lib/supabase/service";
 import { isEdielPortalParty } from "@/lib/ediel/core/productionGuards";
 import { resolveDynamicReceiver } from "@/lib/routes/dynamicReceiverResolver";
+import { evaluateRouteProfileProductionReadiness } from "@/lib/ediel/routeProfileProductionReadiness";
 import { resolveGridOwnerAgreementReference } from "@/lib/routes/agreementReferenceResolver";
 import { resolveSenderSettings as resolveCompanySenderSettings, senderSettingProductionLockStatus } from "@/lib/ediel/senderSettingsResolver";
 import {
@@ -910,6 +911,42 @@ export async function decideCommunicationRoute(
     requiredAdminActions.push(
       "Markera route profile som produktionsklar (is_production_ready) och aktivera production_mode.",
     );
+  }
+
+  if (profile && profileResolution.status === "enabled" && isProduction(environment)) {
+    try {
+      const readiness = await evaluateRouteProfileProductionReadiness({
+        routeProfileId: profile.id,
+        applyFixes: false,
+        approveProduction: false,
+      });
+      for (const issue of readiness.blockers) {
+        if (blockingReasons.some((existing) => existing.code === issue.code)) continue;
+        addIssue(blockingReasons, {
+          code: issue.code,
+          message: issue.message,
+          source: "route_profile_production_readiness",
+          metadata: issue.metadata ?? readiness.evidence,
+        });
+        requiredAdminActions.push(issue.message);
+      }
+      addTrace(trace, {
+        step: "route_profile_production_readiness",
+        status: readiness.ready ? "success" : "blocked",
+        message: readiness.ready
+          ? "Route profile är produktionsklar."
+          : "Route profile saknar produktionsreadiness.",
+        metadata: readiness.evidence,
+      });
+    } catch (error) {
+      addIssue(blockingReasons, {
+        code: "route_profile_readiness_check_failed",
+        message: "Route profile kunde inte produktionskontrolleras. Systemet blockerar hellre än skickar osäkert.",
+        source: "route_profile_production_readiness",
+        metadata: { routeProfileId: profile.id, error: error instanceof Error ? error.message : String(error) },
+      });
+      requiredAdminActions.push("Granska route profile readiness och teknisk logg.");
+    }
   }
 
   if (profile && profileResolution.status === "enabled" && isProduction(environment)) {
