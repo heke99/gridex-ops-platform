@@ -94,7 +94,8 @@
     "gridex:z01-production-resolver-environment-regression": "node scripts/gridex-z01-production-resolver-environment-regression.cjs",
     "gridex:z01-route-profile-join-regression": "node scripts/gridex-z01-route-profile-join-regression.cjs",
     "gridex:z01-customer-info-linkage-regression": "node scripts/gridex-z01-customer-info-linkage-regression.cjs",
-    "gridex:z01-repair-schema-route-profile-regression": "node scripts/gridex-z01-repair-schema-route-profile-regression.cjs"
+    "gridex:z01-repair-schema-route-profile-regression": "node scripts/gridex-z01-repair-schema-route-profile-regression.cjs",
+    "gridex:z01-real-repair-controlled-blocker-regression": "node scripts/gridex-z01-real-repair-controlled-blocker-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

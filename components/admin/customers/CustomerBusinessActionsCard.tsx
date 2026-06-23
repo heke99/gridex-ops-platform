@@ -54,11 +54,42 @@ type Props = {
 };
 
 function z01PayloadValue(payload: Record<string, unknown> | null, key: string): string | null {
-  if (!payload) return null;
+  if (!payload || typeof payload !== "object") return null;
   const value = payload[key];
   if (value === null || value === undefined) return null;
   if (typeof value === "boolean") return value ? "ja" : "nej";
-  return String(value);
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  return null;
+}
+
+function z01PayloadAny(payload: Record<string, unknown> | null, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = z01PayloadValue(payload, key);
+    if (value) return value;
+  }
+  return null;
+}
+
+function z01EventDateLabel(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleString("sv-SE");
+}
+
+function z01EventLabel(eventType: string): string {
+  switch (eventType) {
+    case "z01_dry_run_repair":
+      return "Torrkörning";
+    case "z01_repair_blocked":
+      return "Reparation blockerad";
+    case "z01_repair_failed":
+      return "Reparation misslyckades";
+    case "z01_repair_completed":
+    case "z01_grid_owner_data_request_finalized_after_route_ready":
+      return "Reparation";
+    default:
+      return "Z01-händelse";
+  }
 }
 
 function pointLabel(point: MeteringPointRow | null): string {
@@ -374,39 +405,47 @@ export default function CustomerBusinessActionsCard({
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 space-y-2">
                   <p className="text-sm font-semibold text-emerald-900">Senaste Z01-reparation / torrkörning</p>
                   {z01RepairEvents.slice(0, 3).map((event) => {
-                    const isDryRun = event.event_type === "z01_dry_run_repair";
+                    const dateLabel = z01EventDateLabel(event.created_at);
+                    const environment = z01PayloadAny(event.payload, ["environment"]);
+                    const outboundRequestId = z01PayloadAny(event.payload, ["outboundRequestId", "outbound_request_id"]);
+                    const routeProfileId = z01PayloadAny(event.payload, ["edielRouteProfileId", "ediel_route_profile_id"]);
+                    const senderEdielId = z01PayloadAny(event.payload, ["senderEdielId", "sender_ediel_id"]);
+                    const blockerCode = z01PayloadAny(event.payload, ["blockerCode", "new_blocker_code", "blocker_code"]);
+                    const edielMessageId = z01PayloadAny(event.payload, ["edielMessageId", "ediel_message_id"]);
+                    const smtpSent = z01PayloadAny(event.payload, ["smtpSent", "smtp_sent"]);
+                    const nextRequiredAction = z01PayloadAny(event.payload, ["nextRequiredAction", "next_required_action"]);
                     return (
                       <div key={event.id} className="rounded-xl bg-white/70 p-3 text-xs text-emerald-900">
                         <div className="font-medium">
-                          {isDryRun ? "Torrkörning" : "Reparation"}
-                          {event.created_at ? ` · ${new Date(event.created_at).toLocaleString("sv-SE")}` : ""}
+                          {z01EventLabel(event.event_type)}
+                          {dateLabel ? ` · ${dateLabel}` : ""}
                         </div>
                         {event.message ? <div className="mt-1 text-emerald-800">{event.message}</div> : null}
                         <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px] text-emerald-700">
-                          {z01PayloadValue(event.payload, "environment") ? (
-                            <><dt>miljö</dt><dd>{z01PayloadValue(event.payload, "environment")}</dd></>
+                          {environment ? (
+                            <><dt>miljö</dt><dd>{environment}</dd></>
                           ) : null}
-                          {z01PayloadValue(event.payload, "outbound_request_id") ? (
-                            <><dt>outbound</dt><dd>{z01PayloadValue(event.payload, "outbound_request_id")}</dd></>
+                          {outboundRequestId ? (
+                            <><dt>outbound</dt><dd>{outboundRequestId}</dd></>
                           ) : null}
-                          {z01PayloadValue(event.payload, "ediel_route_profile_id") ? (
-                            <><dt>route profile</dt><dd>{z01PayloadValue(event.payload, "ediel_route_profile_id")}</dd></>
+                          {routeProfileId ? (
+                            <><dt>route profile</dt><dd>{routeProfileId}</dd></>
                           ) : null}
-                          {z01PayloadValue(event.payload, "sender_ediel_id") ? (
-                            <><dt>sender Ediel-ID</dt><dd>{z01PayloadValue(event.payload, "sender_ediel_id")}</dd></>
+                          {senderEdielId ? (
+                            <><dt>sender Ediel-ID</dt><dd>{senderEdielId}</dd></>
                           ) : null}
-                          {z01PayloadValue(event.payload, "new_blocker_code") ? (
-                            <><dt>blockerkod</dt><dd>{z01PayloadValue(event.payload, "new_blocker_code")}</dd></>
+                          {blockerCode ? (
+                            <><dt>blockerkod</dt><dd>{blockerCode}</dd></>
                           ) : null}
-                          {z01PayloadValue(event.payload, "ediel_message_id") ? (
-                            <><dt>ediel-meddelande</dt><dd>{z01PayloadValue(event.payload, "ediel_message_id")}</dd></>
+                          {edielMessageId ? (
+                            <><dt>ediel-meddelande</dt><dd>{edielMessageId}</dd></>
                           ) : (
                             <><dt>ediel-meddelande</dt><dd>ej skapat</dd></>
                           )}
-                          <dt>SMTP skickad</dt><dd>nej</dd>
+                          <dt>SMTP skickad</dt><dd>{smtpSent ?? "nej"}</dd>
                         </dl>
-                        {z01PayloadValue(event.payload, "next_required_action") ? (
-                          <p className="mt-1 text-emerald-800">Nästa åtgärd: {z01PayloadValue(event.payload, "next_required_action")}</p>
+                        {nextRequiredAction ? (
+                          <p className="mt-1 text-emerald-800">Nästa åtgärd: {nextRequiredAction}</p>
                         ) : null}
                       </div>
                     );

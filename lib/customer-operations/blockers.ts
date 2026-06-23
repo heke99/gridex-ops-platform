@@ -119,8 +119,8 @@ const BLOCKERS: Record<CustomerOperationBlockerCode, Omit<CustomerOperationBlock
     error_class: "configuration_blocker",
   },
   production_route_profile_not_ready: {
-    blocker_reason: "Route profile finns och är kopplad men är inte produktionsklar (is_production_ready=false eller production_mode=disabled).",
-    next_required_action: "Markera route profile som produktionsklar och aktivera production_mode innan produktionsutskick.",
+    blocker_reason: "Route profile finns och är kopplad till routen men är inte produktionsklar.",
+    next_required_action: "Granska och aktivera produktionsprofilen för PRODAT Z01 innan meddelandet kan förberedas eller skickas.",
     issue_type: "route",
     error_class: "configuration_blocker",
   },

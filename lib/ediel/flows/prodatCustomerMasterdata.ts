@@ -143,6 +143,32 @@ function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function routeResolutionStatusForZ01Blocker(blockerCode: string | null | undefined, fallback: string | null | undefined): string {
+  switch (String(blockerCode ?? '').trim().toLowerCase()) {
+    case 'production_route_profile_not_ready':
+      return 'route_profile_found_but_not_production_ready'
+    case 'route_profile_disabled':
+      return 'route_profile_disabled'
+    case 'production_send_locked':
+      return 'production_send_locked'
+    case 'route_profile_missing':
+      return 'route_profile_missing'
+    case 'route_profile_ambiguous':
+      return 'route_profile_ambiguous'
+    case 'actor_settings_ambiguous':
+    case 'ambiguous_sender_settings':
+      return 'actor_settings_ambiguous'
+    case 'sender_ediel_id_missing':
+      return 'sender_ediel_id_missing'
+    case 'environment_missing':
+      return 'environment_missing'
+    case 'environment_not_resolved':
+      return 'environment_not_resolved'
+    default:
+      return String(fallback ?? blockerCode ?? 'z01_prepare_failed')
+  }
+}
+
 /**
  * Persist the resolved route decision onto the outbound row so that — even when
  * the message could not be prepared — the outbound carries the correct
@@ -649,7 +675,10 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     )
     const blockerDetails = {
       ...blocker,
-      route_resolution_status: blockerCode === 'production_send_locked' ? 'production_send_locked' : error.decision.decisionStatus,
+      route_resolution_status: routeResolutionStatusForZ01Blocker(
+        blockerCode,
+        blockerCode === 'production_send_locked' ? 'production_send_locked' : error.decision.decisionStatus,
+      ),
       platform_actor_route_id: await findVerifiedPlatformActorRoute({
         actorId,
         messageFamily: 'PRODAT',
@@ -693,9 +722,19 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       },
       notes: blocker.blocker_reason,
     })
+
+    const blockedOutbound = {
+      ...outbound,
+      communication_route_id: error.decision.communicationRouteId ?? outbound.communication_route_id,
+      ediel_route_profile_id: error.decision.edielRouteProfileId ?? outbound.ediel_route_profile_id ?? null,
+      route_decision_payload: error.decision.payload ?? outbound.route_decision_payload ?? null,
+      blocking_reasons: error.decision.blockingReasons ?? outbound.blocking_reasons ?? null,
+      required_admin_actions: error.decision.requiredAdminActions ?? outbound.required_admin_actions ?? null,
+    }
+
     return {
       dataRequest,
-      outbound,
+      outbound: blockedOutbound,
       message: null,
       prepared: false,
       blockerReason: blocker.blocker_reason,

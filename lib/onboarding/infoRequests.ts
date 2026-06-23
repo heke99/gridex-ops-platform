@@ -217,6 +217,9 @@ export async function listZ01RepairEventsByCustomerId(params: {
       .in("event_type", [
         "z01_dry_run_repair",
         "z01_grid_owner_data_request_finalized_after_route_ready",
+        "z01_repair_blocked",
+        "z01_repair_failed",
+        "z01_repair_completed",
       ])
       .order("created_at", { ascending: false })
       .limit(params.limit ?? 5);
@@ -1022,6 +1025,16 @@ function customerInfoStatusFromZ01Result(z01: Awaited<ReturnType<typeof prepareA
 
 function routeResolutionStatusFromZ01Result(z01: Awaited<ReturnType<typeof prepareAndQueueProdatZ01FromDataRequest>>): string {
   if (z01.prepared) return "prepared";
+  const code = String(z01.blockerCode ?? z01.blockerDetails?.blocker_code ?? "").toLowerCase();
+  if (code === "production_route_profile_not_ready") return "route_profile_found_but_not_production_ready";
+  if (code === "route_profile_disabled") return "route_profile_disabled";
+  if (code === "production_send_locked") return "production_send_locked";
+  if (code === "route_profile_missing") return "route_profile_missing";
+  if (code === "route_profile_ambiguous") return "route_profile_ambiguous";
+  if (code === "actor_settings_ambiguous" || code === "ambiguous_sender_settings") return "actor_settings_ambiguous";
+  if (code === "sender_ediel_id_missing") return "sender_ediel_id_missing";
+  if (code === "environment_missing") return "environment_missing";
+  if (code === "environment_not_resolved") return "environment_not_resolved";
   return String(
     z01.blockerDetails?.route_resolution_status ??
       z01.blockerCode ??

@@ -153,7 +153,7 @@ export async function repairZ01CustomerInfoRequestAction(
       .from("grid_owner_data_requests")
       .select("id, company_id, customer_id")
       .eq("id", gridOwnerDataRequestId)
-      .single();
+      .maybeSingle();
 
     if (godrError || !godr) {
       throw new Error("Uppgiftsbegäran hittades inte.");
@@ -173,7 +173,7 @@ export async function repairZ01CustomerInfoRequestAction(
       .from("customer_info_requests")
       .select("id, company_id")
       .eq("id", customerInfoRequestId)
-      .single();
+      .maybeSingle();
 
     if (cirError || !cir) {
       throw new Error("Kundinformationsbegäran hittades inte.");
@@ -236,7 +236,7 @@ export async function dryRunZ01RepairAction(
       .from("grid_owner_data_requests")
       .select("id, company_id, customer_id")
       .eq("id", gridOwnerDataRequestId)
-      .single();
+      .maybeSingle();
 
     if (godrError || !godr) throw new Error("Uppgiftsbegäran hittades inte.");
     if (godr.company_id !== companyId) throw new Error("Uppgiftsbegäran tillhör inte angivet bolag.");
@@ -248,7 +248,7 @@ export async function dryRunZ01RepairAction(
       .from("customer_info_requests")
       .select("id, company_id, customer_id")
       .eq("id", customerInfoRequestId)
-      .single();
+      .maybeSingle();
 
     if (cirError || !cir) throw new Error("Kundinformationsbegäran hittades inte.");
     if (cir.company_id !== companyId) throw new Error("Kundinformationsbegäran tillhör inte angivet bolag.");

@@ -45,7 +45,7 @@ assert(
   /from\("ediel_route_profiles"\)[\s\S]{0,200}\.eq\("communication_route_id", routeId\)/.test(routeEngine),
   'routeDecisionEngine.ts: findRouteProfile joins ediel_route_profiles.communication_route_id = route id',
 )
-const finalizerJoin = /from\('ediel_route_profiles'\)[\s\S]{0,260}\.eq\('communication_route_id', communicationRouteId\)/.test(finalizer)
+const finalizerJoin = /from\(["']ediel_route_profiles["']\)[\s\S]{0,320}\.eq\(["']communication_route_id["'], communicationRouteId\)/.test(finalizer)
 assert(finalizerJoin, 'z01Finalizer.ts: dry-run route profile lookup uses communication_route_id join')
 
 // ---- 3. Outbound gets the profile id even when blocked ----
