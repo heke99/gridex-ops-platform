@@ -191,6 +191,47 @@ export async function listCustomersForInfoRequestSelector(
   }
 }
 
+export type Z01RepairEventRow = {
+  id: string;
+  event_type: string;
+  message: string | null;
+  payload: Record<string, unknown> | null;
+  created_at: string | null;
+};
+
+/**
+ * Latest Z01 repair / dry-run audit events for a customer so the customer card
+ * can show a visible result after the platform admin clicks repair/dry-run.
+ */
+export async function listZ01RepairEventsByCustomerId(params: {
+  companyId: string;
+  customerId: string;
+  limit?: number;
+}): Promise<Z01RepairEventRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from("customer_info_request_events")
+      .select("id,event_type,message,payload,created_at")
+      .eq("company_id", params.companyId)
+      .eq("customer_id", params.customerId)
+      .in("event_type", [
+        "z01_dry_run_repair",
+        "z01_grid_owner_data_request_finalized_after_route_ready",
+      ])
+      .order("created_at", { ascending: false })
+      .limit(params.limit ?? 5);
+
+    if (error) {
+      if (isMissingRelationError(error)) return [];
+      throw error;
+    }
+    return (data ?? []) as Z01RepairEventRow[];
+  } catch (error) {
+    if (isMissingRelationError(error)) return [];
+    return [];
+  }
+}
+
 export async function listCustomerInfoRequests(
   companyId: string,
 ): Promise<CustomerInfoRequestRow[]> {

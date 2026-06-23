@@ -31,6 +31,11 @@ type PendingOutboundRow = {
   status: string | null
   customer_id: string | null
   site_id: string | null
+  grid_owner_id: string | null
+  message_family: string | null
+  message_code: string | null
+  ediel_route_profile_id: string | null
+  failure_reason: string | null
   created_at: string | null
 }
 
@@ -169,11 +174,14 @@ export default async function MessagesPage({ searchParams }: PageProps) {
   let pendingGodrRows: PendingGodrRow[] = []
 
   if (showOperationalRows) {
+    // Include FAILED pre-message outbound (e.g. a Z01 repair that could not be
+    // prepared) so failed/repaired rows are visible even without an ediel_message.
+    // Still exclude truly terminal sent/completed/cancelled rows.
     let outboundQuery = supabaseService
       .from('outbound_requests')
-      .select('id,company_id,source_type,source_id,request_type,status,customer_id,site_id,created_at')
+      .select('id,company_id,source_type,source_id,request_type,status,customer_id,site_id,grid_owner_id,message_family,message_code,ediel_route_profile_id,failure_reason,created_at')
       .is('ediel_message_id', null)
-      .not('status', 'in', '("sent","completed","cancelled","failed")')
+      .not('status', 'in', '("sent","completed","cancelled")')
       .order('created_at', { ascending: false })
       .limit(50)
 
@@ -248,6 +256,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
   const allGridOwnerIds = new Set<string>()
   messages.forEach((m) => { if (m.grid_owner_id) allGridOwnerIds.add(m.grid_owner_id) })
   pendingGodrRows.forEach((r) => { if (r.grid_owner_id) allGridOwnerIds.add(r.grid_owner_id) })
+  pendingOutboundRows.forEach((r) => { if (r.grid_owner_id) allGridOwnerIds.add(r.grid_owner_id) })
 
   const gridOwnerMap = new Map<string, GridOwnerRow>()
   if (allGridOwnerIds.size > 0) {
@@ -384,13 +393,23 @@ export default async function MessagesPage({ searchParams }: PageProps) {
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Operativa rader utan EDIEL-meddelande</p>
             {pendingOutboundRows.map((row) => {
               const customerLink = row.customer_id ? `/admin/customers/${row.customer_id}` : null
+              const isFailed = row.status === 'failed'
+              const isZ01 = (row.request_type ?? '').startsWith('customer_masterdata') ||
+                (String(row.message_family ?? '').toUpperCase() === 'PRODAT' && String(row.message_code ?? '').toUpperCase() === 'Z01')
+              const typeLabel = isZ01 ? 'Uppgiftsbegäran / PRODAT Z01' : (row.request_type ?? 'Outbound')
               return (
-                <div key={`outbound-${row.id}`} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                <div
+                  key={`outbound-${row.id}`}
+                  className={`rounded-2xl border p-4 shadow-sm ${isFailed ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <Pill text="Utgående" tone="border-blue-200 bg-blue-50 text-blue-700" />
-                      <Pill text={row.request_type ?? 'Outbound'} />
-                      <Pill text="Meddelande ej skapat" tone="border-amber-200 bg-amber-100 text-amber-800" />
+                      <Pill text={typeLabel} tone={isZ01 ? 'border-orange-200 bg-orange-100 text-orange-800' : undefined} />
+                      <Pill
+                        text={isFailed ? 'Misslyckad – route/profil-problem' : 'Meddelande ej skapat'}
+                        tone={isFailed ? 'border-red-200 bg-red-100 text-red-800' : 'border-amber-200 bg-amber-100 text-amber-800'}
+                      />
                     </div>
                     <span className="text-xs text-slate-400">{formatDate(row.created_at)}</span>
                   </div>
@@ -403,11 +422,22 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                         </Link>
                       ) : customerLabel(row.customer_id)}
                     </span>
+                    {row.grid_owner_id ? <span><span className="font-medium">Nätägare:</span> {gridOwnerLabel(row.grid_owner_id)}</span> : null}
                     {row.status ? <span><span className="font-medium">Status:</span> {statusLabel(row.status)}</span> : null}
+                    <span><span className="font-medium">Route profile:</span> {row.ediel_route_profile_id ? 'kopplad' : 'saknas'}</span>
                   </div>
+                  {row.failure_reason ? (
+                    <p className="mt-2 text-sm text-red-700">{row.failure_reason}</p>
+                  ) : null}
+                  {customerLink ? (
+                    <Link href={customerLink} className="mt-2 inline-block text-xs font-medium text-emerald-700 hover:underline">
+                      Öppna kundkort →
+                    </Link>
+                  ) : null}
                   {isPlatformAdmin ? (
                     <div className="mt-1 font-mono text-[10px] text-slate-400 space-y-0.5">
                       <div>outbound: {row.id}</div>
+                      {row.ediel_route_profile_id ? <div>route_profile: {row.ediel_route_profile_id}</div> : null}
                       {row.source_type ? <div>source: {row.source_type} / {row.source_id?.slice(0, 8)}</div> : null}
                     </div>
                   ) : null}

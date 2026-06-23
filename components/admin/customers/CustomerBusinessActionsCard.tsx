@@ -30,6 +30,14 @@ import {
   buildCustomerCardWorkflow,
 } from "@/lib/customer-operations/customerCardWorkflow";
 
+export type Z01RepairEvent = {
+  id: string;
+  event_type: string;
+  message: string | null;
+  payload: Record<string, unknown> | null;
+  created_at: string | null;
+};
+
 type Props = {
   customerId: string;
   companyId?: string | null;
@@ -42,7 +50,16 @@ type Props = {
   switchRequests?: SupplierSwitchRequestRow[];
   snapshot?: CustomerCardSnapshot;
   isPlatformAdmin?: boolean;
+  z01RepairEvents?: Z01RepairEvent[];
 };
+
+function z01PayloadValue(payload: Record<string, unknown> | null, key: string): string | null {
+  if (!payload) return null;
+  const value = payload[key];
+  if (value === null || value === undefined) return null;
+  if (typeof value === "boolean") return value ? "ja" : "nej";
+  return String(value);
+}
 
 function pointLabel(point: MeteringPointRow | null): string {
   return meteringPointIdentityLabel(point) ?? "Mätpunkts-ID saknas";
@@ -81,6 +98,7 @@ export default function CustomerBusinessActionsCard({
   switchRequests = [],
   snapshot: suppliedSnapshot,
   isPlatformAdmin = false,
+  z01RepairEvents = [],
 }: Props) {
   const snapshot =
     suppliedSnapshot ??
@@ -345,6 +363,54 @@ export default function CustomerBusinessActionsCard({
                   {workflow.technicalDetails.routeResolutionStatus ? (
                     <div>route_resolution_status: {workflow.technicalDetails.routeResolutionStatus}</div>
                   ) : null}
+                </div>
+              ) : null}
+
+              {/* Visible result of the latest Z01 dry-run/repair so clicking the
+                  button never looks like nothing happened. Shown regardless of
+                  canRunRepair (a successful repair changes the blocker code and
+                  would otherwise hide this section). */}
+              {z01RepairEvents.length > 0 ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 space-y-2">
+                  <p className="text-sm font-semibold text-emerald-900">Senaste Z01-reparation / torrkörning</p>
+                  {z01RepairEvents.slice(0, 3).map((event) => {
+                    const isDryRun = event.event_type === "z01_dry_run_repair";
+                    return (
+                      <div key={event.id} className="rounded-xl bg-white/70 p-3 text-xs text-emerald-900">
+                        <div className="font-medium">
+                          {isDryRun ? "Torrkörning" : "Reparation"}
+                          {event.created_at ? ` · ${new Date(event.created_at).toLocaleString("sv-SE")}` : ""}
+                        </div>
+                        {event.message ? <div className="mt-1 text-emerald-800">{event.message}</div> : null}
+                        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px] text-emerald-700">
+                          {z01PayloadValue(event.payload, "environment") ? (
+                            <><dt>miljö</dt><dd>{z01PayloadValue(event.payload, "environment")}</dd></>
+                          ) : null}
+                          {z01PayloadValue(event.payload, "outbound_request_id") ? (
+                            <><dt>outbound</dt><dd>{z01PayloadValue(event.payload, "outbound_request_id")}</dd></>
+                          ) : null}
+                          {z01PayloadValue(event.payload, "ediel_route_profile_id") ? (
+                            <><dt>route profile</dt><dd>{z01PayloadValue(event.payload, "ediel_route_profile_id")}</dd></>
+                          ) : null}
+                          {z01PayloadValue(event.payload, "sender_ediel_id") ? (
+                            <><dt>sender Ediel-ID</dt><dd>{z01PayloadValue(event.payload, "sender_ediel_id")}</dd></>
+                          ) : null}
+                          {z01PayloadValue(event.payload, "new_blocker_code") ? (
+                            <><dt>blockerkod</dt><dd>{z01PayloadValue(event.payload, "new_blocker_code")}</dd></>
+                          ) : null}
+                          {z01PayloadValue(event.payload, "ediel_message_id") ? (
+                            <><dt>ediel-meddelande</dt><dd>{z01PayloadValue(event.payload, "ediel_message_id")}</dd></>
+                          ) : (
+                            <><dt>ediel-meddelande</dt><dd>ej skapat</dd></>
+                          )}
+                          <dt>SMTP skickad</dt><dd>nej</dd>
+                        </dl>
+                        {z01PayloadValue(event.payload, "next_required_action") ? (
+                          <p className="mt-1 text-emerald-800">Nästa åtgärd: {z01PayloadValue(event.payload, "next_required_action")}</p>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : null}
 

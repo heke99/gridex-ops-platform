@@ -69,7 +69,7 @@ import {
   listOutboundRequestsByCustomerId,
   listPartnerExportsByCustomerId,
 } from "@/lib/cis/db";
-import { listCustomerInfoRequestsByCustomerId } from "@/lib/onboarding/infoRequests";
+import { listCustomerInfoRequestsByCustomerId, listZ01RepairEventsByCustomerId } from "@/lib/onboarding/infoRequests";
 import {
   listCustomerAuthorizationDocumentsByCustomerId,
   listCustomerBlockersByCustomerId,
@@ -2062,6 +2062,9 @@ export default async function CustomerAdminDetailPage({
   const contacts = (contactsResponse.data ?? []) as CustomerContactRow[];
   const addresses = (addressesResponse.data ?? []) as CustomerAddressRow[];
   const poaRows = powersOfAttorney as PowerOfAttorneyRow[];
+  const z01RepairEvents = customerCompanyId
+    ? await listZ01RepairEventsByCustomerId({ companyId: customerCompanyId, customerId: id })
+    : [];
   const documentRows =
     authorizationDocuments as CustomerAuthorizationDocumentRow[];
   const { data: powerScopeRows, error: powerScopeError } = needsPowerScopes
@@ -2731,6 +2734,7 @@ export default async function CustomerAdminDetailPage({
             switchRequests={switchRequests}
             snapshot={customerCardSnapshot}
             isPlatformAdmin={isPlatformAdmin}
+            z01RepairEvents={z01RepairEvents}
           />
           <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
