@@ -95,4 +95,18 @@ assert(
   'messages/page.tsx: outbound operational rows labelled "Utgående"'
 )
 
+// ---- New: failed/repaired pre-message outbound (PRODAT Z01) is visible ----
+assert(
+  /\.not\('status', 'in', '\("sent","completed","cancelled"\)'\)/.test(messagesPage),
+  'messages/page.tsx: pre-message outbound query INCLUDES failed rows (only excludes sent/completed/cancelled)'
+)
+assert(
+  /Uppgiftsbegäran \/ PRODAT Z01/.test(messagesPage),
+  'messages/page.tsx: labels failed Z01 outbound as "Uppgiftsbegäran / PRODAT Z01"'
+)
+assert(
+  /Route profile:/.test(messagesPage) && /Öppna kundkort/.test(messagesPage),
+  'messages/page.tsx: failed outbound row shows route/profile readiness and a link to the customer card'
+)
+
 console.log('\n✓ Messages operations visibility regression passed.')

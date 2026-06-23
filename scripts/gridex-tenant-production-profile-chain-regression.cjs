@@ -120,4 +120,15 @@ assert(
   'supabase/migrations: company_market_party_routes table exists'
 )
 
+// ---- New: route profile actor_setting_id deterministically links sender identity ----
+const routeEngineSrc = read('lib/routes/routeDecisionEngine.ts')
+assert(
+  /profile\?\.actor_setting_id/.test(routeEngineSrc) && /findActorSettingByIdScoped/.test(routeEngineSrc),
+  'routeDecisionEngine.ts: production sender resolved via route profile actor_setting_id (env-scoped)'
+)
+const backfillExists = fs
+  .readdirSync(path.join(root, 'supabase/migrations'))
+  .some((f) => /z01_route_profile_actor_setting_backfill\.sql$/.test(f))
+assert(backfillExists, 'migrations: guarded route profile -> actor setting backfill migration is present')
+
 console.log('\n✓ Tenant production profile chain regression passed.')

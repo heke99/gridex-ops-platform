@@ -169,4 +169,22 @@ assert(
   'supabase/migrations: outbound_requests has ediel_message_id column (for messages page filter)'
 )
 
+// ---- 13. Route profile relation: ediel_route_profiles.communication_route_id ----
+const routeEngineSrc = read('lib/routes/routeDecisionEngine.ts')
+assert(
+  /\.eq\("communication_route_id", routeId\)/.test(routeEngineSrc),
+  'routeDecisionEngine.ts: resolves route profile via ediel_route_profiles.communication_route_id'
+)
+// No code may assume a communication_routes.ediel_route_profile_id column.
+for (const file of [
+  'lib/routes/routeDecisionEngine.ts',
+  'lib/ediel/core/routeRegistry.ts',
+  'lib/ediel/flows/prodatCustomerMasterdata.ts',
+]) {
+  assert(
+    !/communication_routes[\s\S]{0,120}ediel_route_profile_id/.test(read(file)),
+    `${file}: does NOT assume communication_routes.ediel_route_profile_id`
+  )
+}
+
 console.log('\n✓ Schema relationship contract regression passed.')

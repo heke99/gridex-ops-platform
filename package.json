@@ -87,7 +87,14 @@
     "gridex:customer-portal-multi-site-api-regression": "node scripts/gridex-customer-portal-multi-site-api-regression.cjs",
     "gridex:rls-multisite-metering-billing-regression": "node scripts/gridex-rls-multisite-metering-billing-regression.cjs",
     "gridex:automation-idempotency-multisite-regression": "node scripts/gridex-automation-idempotency-multisite-regression.cjs",
-    "gridex:messages-operations-visibility-regression": "node scripts/gridex-messages-operations-visibility-regression.cjs"
+    "gridex:messages-operations-visibility-regression": "node scripts/gridex-messages-operations-visibility-regression.cjs",
+    "gridex:tenant-source-of-truth-regression": "node scripts/gridex-tenant-source-of-truth-regression.cjs",
+    "gridex:shared-mailbox-tenant-resolution-regression": "node scripts/gridex-shared-mailbox-tenant-resolution-regression.cjs",
+    "gridex:test-production-separation-regression": "node scripts/gridex-test-production-separation-regression.cjs",
+    "gridex:z01-production-resolver-environment-regression": "node scripts/gridex-z01-production-resolver-environment-regression.cjs",
+    "gridex:z01-route-profile-join-regression": "node scripts/gridex-z01-route-profile-join-regression.cjs",
+    "gridex:z01-customer-info-linkage-regression": "node scripts/gridex-z01-customer-info-linkage-regression.cjs",
+    "gridex:z01-repair-schema-route-profile-regression": "node scripts/gridex-z01-repair-schema-route-profile-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

@@ -181,4 +181,15 @@ assert(
   'EdielMessageRow type: does NOT have message_type field'
 )
 
+// ---- New: finalizer always links the outbound and never sends SMTP directly ----
+const finalizerSrc = read('lib/customer-operations/z01Finalizer.ts')
+assert(
+  /if \(cir\) \{/.test(finalizerSrc) && /outbound_request_id:\s*z01\.outbound\.id/.test(finalizerSrc),
+  'z01Finalizer.ts: links customer_info_requests.outbound_request_id whenever the CIR exists'
+)
+assert(
+  /smtp_sent:\s*false/.test(finalizerSrc),
+  'z01Finalizer.ts: finalization audit records smtp_sent:false (no direct SMTP)'
+)
+
 console.log('\n✓ Z01 grid owner finalizer regression passed.')

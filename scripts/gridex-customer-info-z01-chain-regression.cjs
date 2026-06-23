@@ -156,4 +156,17 @@ assert(
   'business-actions.ts: repair server action requires platform admin (not accessible to company admins)'
 )
 
+// ---- New: precise route-profile blockers no longer collapse to operational_route_missing ----
+const blockersSrc = read('lib/customer-operations/blockers.ts')
+assert(
+  /production_route_profile_not_ready/.test(blockersSrc) &&
+  /route_profile_disabled/.test(blockersSrc) &&
+  /route_profile_missing/.test(blockersSrc),
+  'blockers.ts: precise route-profile blocker codes exist'
+)
+assert(
+  /normalized\.includes\("production_route_profile_not_ready"\)\)\s*return\s*"production_route_profile_not_ready"/.test(blockersSrc),
+  'blockers.ts: routeIssueCodeToCustomerBlocker maps production_route_profile_not_ready precisely'
+)
+
 console.log('\nCustomer info Z01 chain regression passed.')

@@ -36,11 +36,16 @@ const actionsCard = read('components/admin/customers/CustomerBusinessActionsCard
 const businessActions = read('app/admin/customers/[id]/business-actions.ts')
 const messagesPage = read('app/admin/messages/page.tsx')
 
-// ---- 1. CustomerBusinessActionsCard contains actual <form> inside canRunRepair block ----
-const canRunRepairBlock = actionsCard.match(/canRunRepair[\s\S]*?<\/div>\s*\) : null}/)?.[0] ?? actionsCard
+// ---- 1. CustomerBusinessActionsCard wires the repair/dry-run forms ----
 assert(
-  /<form/.test(canRunRepairBlock) || /<form/.test(actionsCard.split('canRunRepair')[1] ?? ''),
-  'CustomerBusinessActionsCard.tsx: canRunRepair block contains actual <form> element(s)'
+  /action=\{repairZ01CustomerInfoRequestAction\}/.test(actionsCard) &&
+  /action=\{dryRunZ01RepairAction\}/.test(actionsCard),
+  'CustomerBusinessActionsCard.tsx: wires repair + dry-run server actions to <form> elements'
+)
+// ---- 1b. A visible Z01 repair/dry-run result is rendered (so clicking is not silent) ----
+assert(
+  /z01RepairEvents/.test(actionsCard) && /Senaste Z01-reparation/.test(actionsCard),
+  'CustomerBusinessActionsCard.tsx: renders a visible Z01 repair/dry-run result panel'
 )
 
 // ---- 2. repairZ01CustomerInfoRequestAction is exported ----
