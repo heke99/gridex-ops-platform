@@ -103,7 +103,7 @@
     "ldapts": "^8.1.8",
     "next": "^16.2.6",
     "node-forge": "^1.4.0",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^9.0.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.12.4",
