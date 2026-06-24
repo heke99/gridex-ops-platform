@@ -111,7 +111,8 @@
     "gridex:supplier-business-full-regression": "npm run gridex:supplier-ombud-business-automation-regression && npm run gridex:supplier-remaining-business-regression",
     "gridex:customer-card-tenant-ux-regression": "node scripts/gridex-customer-card-tenant-ux-regression.cjs",
     "gridex:customer-card-ux-full-regression": "npm run gridex:customer-card-tenant-ux-regression && npm run gridex:customer-card-real-tenant-simplification-regression && npm run gridex:supplier-business-full-regression",
-    "gridex:customer-card-real-tenant-simplification-regression": "node scripts/gridex-customer-card-real-tenant-simplification-regression.cjs"
+    "gridex:customer-card-real-tenant-simplification-regression": "node scripts/gridex-customer-card-real-tenant-simplification-regression.cjs",
+    "gridex:automatic-customer-intake-foundation-regression": "node scripts/gridex-automatic-customer-intake-foundation-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

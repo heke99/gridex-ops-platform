@@ -1,5 +1,5 @@
-import { getCompanyGridOwnerRouteReadiness } from '@/lib/ediel/companyRouteReadiness'
 import { evaluateRouteProfileProductionReadiness } from '@/lib/ediel/routeProfileProductionReadiness'
+import { evaluateGridOwnerBusinessApproval } from '@/lib/ediel/gridOwnerBusinessApproval'
 import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProcessEvents'
 
 type Process = 'facility_lookup' | 'grid_owner_information_request' | 'z01_customer_masterdata' | 'supplier_switch'
@@ -58,41 +58,32 @@ export async function evaluateCustomerProcessRouteReadiness(input: {
   // finnas som fallback i UI, men readiness ska fortfarande utvärdera PRODAT Z01
   // så tenant inte får en falsk känsla av att automatisering är klar.
 
-  const readiness = await getCompanyGridOwnerRouteReadiness({
+  const businessApproval = await evaluateGridOwnerBusinessApproval({
     companyId: input.companyId,
     gridOwnerId: input.gridOwnerId,
-    messageFamily: config.family,
-    messageCode: config.code,
+    process: input.process,
     environment: 'production',
   })
+  const readiness = businessApproval.routeReadiness
 
-  if (!readiness) {
+  for (const blocker of businessApproval.blockers) {
     blockers.push({
-      code: 'route_readiness_missing',
-      message: 'Produktionsroute saknas eller kunde inte kontrolleras för nästa steg.',
-      source: 'gridex_company_route_readiness_v',
-      metadata: { process: input.process, family: config.family, code: config.code },
+      code: blocker.code,
+      message: blocker.message,
+      source: blocker.source,
+      metadata: blocker.metadata,
     })
-  } else {
-    if (readiness.blocker_code) {
-      blockers.push({
-        code: readiness.blocker_code,
-        message: readiness.readiness_message ?? 'Route readiness blockerar nästa steg.',
-        source: 'gridex_company_route_readiness_v',
-        metadata: readiness as unknown as JsonRecord,
-      })
-    }
-    if (config.needsOutboundSendReadiness && readiness.send_ready !== true) {
-      blockers.push({
-        code: 'route_not_send_ready',
-        message: 'Route är inte godkänd för produktionsutskick.',
-        source: 'gridex_company_route_readiness_v',
-        metadata: readiness as unknown as JsonRecord,
-      })
-    }
+  }
+  for (const warning of businessApproval.warnings) {
+    warnings.push({
+      code: warning.code,
+      message: warning.message,
+      source: warning.source,
+      metadata: warning.metadata,
+    })
   }
 
-  if (readiness?.ediel_route_profile_id) {
+  if (readiness?.ediel_route_profile_id && businessApproval.processRelevant) {
     const profile = await evaluateRouteProfileProductionReadiness({
       routeProfileId: readiness.ediel_route_profile_id,
       actorUserId: input.actorUserId ?? null,

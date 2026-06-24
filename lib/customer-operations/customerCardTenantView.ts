@@ -79,7 +79,7 @@ export function buildTenantCustomerCardView(params: {
         : ['request_data', 'continue_data_request', 'approve_and_send'].includes(workflow.primaryAction)
           ? {
               id: 'request_grid_owner_information',
-              label: 'Begär uppgifter från nätägare',
+              label: 'Hämta uppgifter från nätägare',
               kind: 'customer_data',
               enabled: true,
             }
@@ -100,8 +100,8 @@ export function buildTenantCustomerCardView(params: {
       },
       {
         label: 'Anläggning',
-        value: snapshot.hasMeteringPoint ? 'Klar' : 'Saknas',
-        description: snapshot.hasMeteringPoint ? 'Anläggningsuppgifter finns.' : 'Uppgifter från nätägare behövs.',
+        value: snapshot.hasMeteringPoint ? 'Klar' : ['request_data', 'continue_data_request', 'approve_and_send', 'wait_for_grid_owner'].includes(workflow.primaryAction) ? 'Hämtas' : 'Saknas',
+        description: snapshot.hasMeteringPoint ? 'Anläggningsuppgifter finns.' : 'Systemet hämtar uppgifter från nätägaren när route och fullmakt är klara.',
         targetTab: 'sites',
       },
       {

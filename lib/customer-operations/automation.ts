@@ -19,6 +19,7 @@ import { startSupplierSwitch } from '@/lib/operations/businessActions/startSuppl
 import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
+import { ensureFacilityLookupAutomation } from '@/lib/customer-operations/facilityLookupAutomation'
 import type { MeteringPointRow } from '@/lib/masterdata/types'
 import { normalizeUuidOrNull, requireUuid } from '@/lib/validation/uuid'
 import {
@@ -974,6 +975,49 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
           blocker_reason: dispatch.blockerReason ?? undefined,
         })
       : null)
+
+  if (dispatch.blockerCode === 'facility_or_metering_point_missing' && job.customer_site_id) {
+    const facilityLookup = await ensureFacilityLookupAutomation({
+      companyId: job.company_id,
+      customerId: job.customer_id,
+      siteId: job.customer_site_id,
+      actorUserId,
+      source: 'customer_data_request_automation',
+    })
+    const automationWaiting = ['ready_to_send', 'waiting_response'].includes(facilityLookup.status)
+    await emitCustomerOperationEvent({
+      companyId: job.company_id,
+      customerId: job.customer_id,
+      actorUserId,
+      eventType: automationWaiting ? 'customer_data.facility_lookup_ready' : 'customer_data.facility_lookup_needs_review',
+      title: automationWaiting ? 'Nätägarbegäran är redo' : 'Nätägarbegäran behöver granskas',
+      message: automationWaiting
+        ? 'Anläggningsuppgifter saknas. Systemet har kopplat begäran till godkänd produktionsroute och inväntar/fortsätter automatiskt.'
+        : facilityLookup.nextStep,
+      customerSiteId: job.customer_site_id,
+      meteringPointId: job.metering_point_id,
+      customerOperationJobId: job.id,
+      operationId,
+      actionUrl: `/admin/customers/${job.customer_id}?tab=sites`,
+      payload: { customer_info_request_id: request.id, operation_id: operationId, dispatch, facility_lookup: facilityLookup },
+      status: automationWaiting ? 'waiting_response' : 'needs_review',
+      idempotencyKey: `customer-data-facility-lookup:${job.id}:${facilityLookup.requestId ?? 'no-request'}:${facilityLookup.status}`,
+    })
+    return {
+      status: automationWaiting ? 'waiting_response' : 'needs_review',
+      result: {
+        customer_info_request_id: request.id,
+        grid_owner_data_request_id: dispatch.gridOwnerDataRequestId,
+        outbound_request_id: dispatch.outboundRequestId,
+        reason: automationWaiting ? 'facility_lookup_ready' : 'facility_lookup_needs_review',
+        dispatch,
+        facility_lookup: facilityLookup,
+        resolution: resolved.result,
+        ...(dispatchBlocker ? { ...dispatchBlocker } : {}),
+      },
+    }
+  }
+
   await emitCustomerOperationEvent({
     companyId: job.company_id,
     customerId: job.customer_id,

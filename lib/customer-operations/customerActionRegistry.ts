@@ -31,8 +31,8 @@ function actionFromPrimaryAction(action: WorkflowPrimaryAction, workflow: Custom
     case 'approve_and_send':
       return {
         id: 'request_grid_owner_information',
-        label: 'Begär uppgifter från nätägare',
-        description: 'Systemet begär anläggnings- och nätägaruppgifter och hanterar tekniken i bakgrunden.',
+        label: 'Hämta uppgifter från nätägare',
+        description: 'Systemet hämtar anläggnings-ID och mätpunkt från nätägaren och hanterar tekniken i bakgrunden.',
         kind: 'customer_data',
         status: 'available',
         priority: 'primary',
@@ -113,6 +113,7 @@ export function buildCustomerStatusCards(input: {
 }): CustomerStatusCard[] {
   const { workflow, snapshot } = input
   const hasFacility = snapshot.hasFacilityId && snapshot.hasGridOwner
+  const facilityLookupInProgress = ['request_data', 'continue_data_request', 'approve_and_send', 'wait_for_grid_owner'].includes(workflow.primaryAction)
   const blocker = workflow.primaryAction === 'review_blocker'
 
   return [
@@ -129,10 +130,12 @@ export function buildCustomerStatusCards(input: {
     {
       id: 'facility',
       label: 'Anläggning och nätägare',
-      value: hasFacility ? 'Kontrolleras' : 'Saknas',
+      value: hasFacility ? 'Kontrolleras' : facilityLookupInProgress ? 'Hämtas' : 'Saknas',
       description: hasFacility
         ? 'Anläggnings- och nätägaruppgifter finns på kundkortet.'
-        : 'Systemet behöver uppgifter från nätägaren eller komplettering på kundkortet.',
+        : facilityLookupInProgress
+          ? 'Systemet hämtar anläggnings-ID och mätpunkt från nätägaren.'
+          : 'Systemet behöver uppgifter från nätägaren eller komplettering på kundkortet.',
       tone: hasFacility ? 'ok' : blocker ? 'blocked' : 'waiting',
       targetTab: 'sites',
     },

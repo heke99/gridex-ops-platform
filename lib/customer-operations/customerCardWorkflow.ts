@@ -92,6 +92,12 @@ function asRecord(v: unknown): Record<string, unknown> {
     : {};
 }
 
+function maybeRecord(v: unknown): Record<string, unknown> | null {
+  return v && typeof v === "object" && !Array.isArray(v)
+    ? (v as Record<string, unknown>)
+    : null;
+}
+
 function blockerToAdminMessage(
   blockerCode: string | null | undefined,
 ): string | null {
@@ -117,7 +123,7 @@ function blockerToAdminMessage(
     invalid_customer_site_snapshot:
       "Anläggningsuppgifterna är ofullständiga och behöver uppdateras.",
     facility_or_metering_point_missing:
-      "Anläggningsuppgifter saknas. Begär uppgifter från nätägaren eller komplettera kundkortet.",
+      "Anläggnings-ID eller mätpunkt saknas. Systemet hämtar uppgifterna från nätägaren innan leverantörsbyte startas.",
     environment_not_resolved:
       "Systemet kunde inte avgöra om begäran gäller test- eller produktionsmiljön.",
     sender_settings_missing: "Avsändarinställning saknas i systemet.",
@@ -196,6 +202,18 @@ export function buildCustomerCardWorkflow(
   const blockerReason = asString(openInfoRequest?.blocker_reason);
 
   const verifiedPayload = asRecord(openInfoRequest?.verified_payload);
+  const blockerDetails = asRecord(openInfoRequest?.blocker_details);
+  const facilityLookup =
+    maybeRecord(blockerDetails.facility_lookup) ??
+    maybeRecord(verifiedPayload.facility_lookup) ??
+    null;
+  const facilityLookupStatus = asString(facilityLookup?.status);
+  const facilityLookupReady = ["ready_to_send", "sent", "waiting_response"].includes(
+    facilityLookupStatus ?? "",
+  );
+  const facilityLookupWaiting = ["sent", "waiting_response"].includes(
+    facilityLookupStatus ?? "",
+  );
   const outboundRequestId = asString(
     openInfoRequest?.outbound_request_id ?? verifiedPayload.outboundRequestId,
   );
@@ -305,11 +323,19 @@ export function buildCustomerCardWorkflow(
       dataRequestExplanation =
         "Begäran har skickats. Väntar på svar från nätägaren.";
     } else if (["blocked", "route_missing"].includes(infoStatus ?? "")) {
-      dataRequestStatus = "blocked";
-      dataRequestExplanation =
-        blockerToAdminMessage(blockerCode) ??
-        "Uppgiftsbegäran är blockerad. Se detaljer nedan.";
-      dataRequestBlocker = blockerToAdminMessage(blockerCode) ?? blockerReason;
+      if (blockerCode === "facility_or_metering_point_missing" && facilityLookupReady) {
+        dataRequestStatus = facilityLookupWaiting ? "waiting" : "current";
+        dataRequestExplanation = facilityLookupWaiting
+          ? "Begäran om anläggningsuppgifter är skickad. Vi väntar på svar från nätägaren."
+          : "Anläggnings-ID och mätpunkt saknas. Nätägarbegäran är redo att skickas automatiskt.";
+        dataRequestBlocker = null;
+      } else {
+        dataRequestStatus = "blocked";
+        dataRequestExplanation =
+          blockerToAdminMessage(blockerCode) ??
+          "Uppgiftsbegäran är blockerad. Se detaljer nedan.";
+        dataRequestBlocker = blockerToAdminMessage(blockerCode) ?? blockerReason;
+      }
     } else if (["missing_authorization"].includes(infoStatus ?? "")) {
       dataRequestStatus = "blocked";
       dataRequestExplanation = "Signerad fullmakt saknas för uppgiftsbegäran.";
@@ -423,6 +449,14 @@ export function buildCustomerCardWorkflow(
   if (hasPendingSwitch) {
     primaryAction = "wait_for_grid_owner";
     adminMessage = "Leverantörsbyte pågår. Väntar på svar.";
+  } else if (blockerCode === "facility_or_metering_point_missing" && facilityLookupReady) {
+    primaryAction = "wait_for_grid_owner";
+    adminMessage = facilityLookupWaiting
+      ? "Vi väntar på svar från nätägaren. Ingen åtgärd krävs just nu."
+      : "Nätägarbegäran är redo att skickas via produktionsklar route.";
+    nextRequiredAction = facilityLookupWaiting
+      ? "Invänta svar från nätägaren."
+      : "Skicka/köa nätägarbegäran automatiskt.";
   } else if (hasResponseForSwitch) {
     primaryAction = "create_supplier_switch";
     adminMessage = "Uppgifter mottagna. Starta leverantörsbyte när du är redo.";
@@ -434,7 +468,7 @@ export function buildCustomerCardWorkflow(
     primaryAction = "review_blocker";
     adminMessage =
       blockerCode === "facility_or_metering_point_missing"
-        ? "Anläggningsuppgifter saknas. Begär uppgifter från nätägaren eller komplettera kundkortet."
+        ? "Anläggnings-ID eller mätpunkt saknas. Systemet hämtar uppgifterna från nätägaren innan leverantörsbyte startas."
         : (blockerToAdminMessage(blockerCode) ??
           "Uppgiftsbegäran är blockerad. Granska detaljer.");
     nextRequiredAction = asString(openInfoRequest?.next_required_action);
@@ -448,6 +482,9 @@ export function buildCustomerCardWorkflow(
     primaryAction = "continue_data_request";
     adminMessage =
       "Uppgiftsbegäran är blockerad. Starta om för att försöka med uppdaterad route.";
+  } else if (!openInfoRequest && hasAuth && snapshot.hasGridOwner && !snapshot.hasFacilityId) {
+    primaryAction = "request_data";
+    adminMessage = "Hämta anläggnings-ID och mätpunkt från nätägaren.";
   } else if (!openInfoRequest && hasFacility && hasAuth) {
     primaryAction = "request_data";
     adminMessage = "Begär uppgifter från nätägaren.";
@@ -456,9 +493,10 @@ export function buildCustomerCardWorkflow(
     adminMessage =
       "Fullmakt saknas. Lägg till signerad fullmakt innan uppgifter kan begäras.";
   } else if (!hasFacility) {
-    primaryAction = "review_blocker";
-    adminMessage =
-      "Anläggningsuppgifter saknas. Begär uppgifter från nätägaren eller komplettera kundkortet.";
+    primaryAction = snapshot.hasGridOwner && hasAuth ? "request_data" : "review_blocker";
+    adminMessage = snapshot.hasGridOwner && hasAuth
+      ? "Hämta anläggnings-ID och mätpunkt från nätägaren."
+      : "Anläggningsuppgifter saknas. Komplettera kundkortet eller verifiera nätägaren.";
   } else if (infoStatus === "completed") {
     primaryAction = "no_action_required";
     adminMessage = "Inga åtgärder krävs. Uppgiftsbegäran är slutförd.";

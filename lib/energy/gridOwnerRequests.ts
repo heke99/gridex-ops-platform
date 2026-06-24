@@ -1,6 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { GridOwnerInformationRequestInput, GridOwnerInformationRequestResult, PriceArea } from '@/lib/energy/types'
 import { normaliseGridAreaCode } from '@/lib/energy/resolver'
+import { evaluateGridOwnerBusinessApproval } from '@/lib/ediel/gridOwnerBusinessApproval'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -15,6 +16,44 @@ function missingSchema(error: unknown): boolean {
 function normalisePriceArea(value: unknown): PriceArea | null {
   const area = clean(value)?.toUpperCase()
   return area === 'SE1' || area === 'SE2' || area === 'SE3' || area === 'SE4' ? area : null
+}
+
+
+async function findOperationalRouteReadiness(input: GridOwnerInformationRequestInput) {
+  if (!input.gridOwnerId) return null
+  try {
+    const approval = await evaluateGridOwnerBusinessApproval({
+      companyId: input.companyId,
+      gridOwnerId: input.gridOwnerId,
+      process: 'facility_lookup',
+      environment: 'production',
+    })
+    if (!approval.businessProductionApproved) return { approval, ready: false }
+    return { approval, ready: true }
+  } catch (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+}
+
+function metadataWithOperationalRoute(input: {
+  base?: Record<string, unknown> | null
+  approval: NonNullable<Awaited<ReturnType<typeof findOperationalRouteReadiness>>>['approval']
+}) {
+  return {
+    ...(input.base ?? {}),
+    auto_send_allowed: input.approval.businessProductionApproved,
+    production_guard: 'switch_blocked_until_facility_verified',
+    route_source: input.approval.businessProductionApproved ? 'company_operational_routes' : 'manual',
+    communication_route_id: input.approval.communicationRouteId,
+    ediel_route_profile_id: input.approval.edielRouteProfileId,
+    technical_send_ready: input.approval.technicalSendReady,
+    business_production_approved: input.approval.businessProductionApproved,
+    actor_scope: input.approval.actorScope,
+    process_relevant: input.approval.processRelevant,
+    route_warnings: input.approval.warnings,
+    route_blockers: input.approval.blockers,
+  }
 }
 
 async function findContactRoute(input: GridOwnerInformationRequestInput) {
@@ -126,29 +165,73 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
     }
   }
 
+  const operationalRoute = await findOperationalRouteReadiness(input)
   const existing = await existingOpenRequest(input)
   if (existing) {
+    if (operationalRoute?.ready && !['sent', 'waiting_response', 'received', 'completed'].includes(String(existing.status ?? ''))) {
+      const now = new Date().toISOString()
+      const metadata = metadataWithOperationalRoute({
+        base: (existing.metadata && typeof existing.metadata === 'object' && !Array.isArray(existing.metadata))
+          ? existing.metadata as Record<string, unknown>
+          : {},
+        approval: operationalRoute.approval,
+      })
+      const update = await supabaseService
+        .from('grid_owner_information_requests')
+        .update({
+          status: 'ready_to_send',
+          channel: 'ediel',
+          template_id: 'facility_lookup.prodat_z01',
+          actor_route_id: operationalRoute.approval.routeReadiness?.platform_actor_route_id ?? existing.actor_route_id ?? null,
+          metadata,
+          updated_at: now,
+        })
+        .eq('id', existing.id)
+        .eq('company_id', input.companyId)
+        .select('id,status,channel,contact_route_id,actor_route_id,metadata')
+        .maybeSingle()
+      if (update.error && !missingSchema(update.error)) throw update.error
+      const upgraded = update.data ?? existing
+      return {
+        requestId: upgraded.id as string,
+        status: upgraded.status,
+        channel: upgraded.channel,
+        routeId: operationalRoute.approval.communicationRouteId ?? upgraded.contact_route_id ?? upgraded.actor_route_id ?? null,
+        nextStep: 'Nätägarbegäran är kopplad till produktionsklar Ediel-route och kan skickas automatiskt.',
+        warnings,
+      }
+    }
     return {
       requestId: existing.id as string,
       status: existing.status,
       channel: existing.channel,
-      routeId: existing.contact_route_id ?? null,
+      routeId: existing.contact_route_id ?? existing.actor_route_id ?? operationalRoute?.approval.communicationRouteId ?? null,
       nextStep: existing.status === 'waiting_response'
         ? 'Invänta svar från nätägaren och markera anläggningsuppgifter mottagna när svaret kommit.'
-        : 'Granska och skicka/hantera befintlig nätägarbegäran.',
-      warnings,
+        : operationalRoute?.ready
+          ? 'Nätägarbegäran är redo att skickas automatiskt via godkänd produktionsroute.'
+          : 'Granska och skicka/hantera befintlig nätägarbegäran.',
+      warnings: operationalRoute && !operationalRoute.ready ? [...warnings, ...operationalRoute.approval.blockers.map((b) => b.code)] : warnings,
     }
   }
 
-  const contactRoute = await findContactRoute(input)
-  const actorRoute = contactRoute ? null : await findActorRoute(input)
-  if (!contactRoute && !actorRoute) warnings.push('grid_owner_contact_route_missing')
+  const contactRoute = operationalRoute?.ready ? null : await findContactRoute(input)
+  const actorRoute = contactRoute || operationalRoute?.ready ? null : await findActorRoute(input)
+  if (!contactRoute && !actorRoute && !operationalRoute?.ready) warnings.push('grid_owner_contact_route_missing')
   if (actorRoute && (!actorRoute.is_verified || actorRoute.status !== 'active')) warnings.push('actor_route_needs_verification')
+  if (operationalRoute && !operationalRoute.ready) warnings.push(...operationalRoute.approval.blockers.map((b) => b.code))
 
-  const channel = (contactRoute?.channel ?? (actorRoute ? 'ediel' : 'manual')) as 'email' | 'ediel' | 'portal' | 'manual'
-  const routeIsSendReady = Boolean(contactRoute && channel !== 'manual') || Boolean(actorRoute?.is_verified && actorRoute.status === 'active')
+  const channel = (operationalRoute?.ready ? 'ediel' : contactRoute?.channel ?? (actorRoute ? 'ediel' : 'manual')) as 'email' | 'ediel' | 'portal' | 'manual'
+  const routeIsSendReady = Boolean(operationalRoute?.ready) || Boolean(contactRoute && channel !== 'manual') || Boolean(actorRoute?.is_verified && actorRoute.status === 'active')
   const status = routeIsSendReady ? 'ready_to_send' : actorRoute ? 'needs_review' : 'draft'
   const now = new Date().toISOString()
+  const routeMetadata = operationalRoute
+    ? metadataWithOperationalRoute({ approval: operationalRoute.approval })
+    : {
+        auto_send_allowed: Boolean(contactRoute?.auto_send_allowed ?? actorRoute?.auto_send_allowed),
+        production_guard: 'switch_blocked_until_facility_verified',
+        route_source: contactRoute ? 'grid_owner_contact_routes' : actorRoute ? 'platform_actor_routes' : 'manual',
+      }
 
   const { data, error } = await supabaseService
     .from('grid_owner_information_requests')
@@ -164,16 +247,14 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
       request_type: input.requestType ?? 'facility_lookup',
       status,
       channel,
-      template_id: clean(contactRoute?.template_id) ?? (actorRoute ? 'facility_lookup.prodat_z01' : 'facility_lookup.default'),
+      template_id: clean(contactRoute?.template_id) ?? (actorRoute || operationalRoute?.ready ? 'facility_lookup.prodat_z01' : 'facility_lookup.default'),
       contact_route_id: clean(contactRoute?.id),
-      actor_route_id: clean(actorRoute?.id),
+      actor_route_id: clean(actorRoute?.id) ?? operationalRoute?.approval.routeReadiness?.platform_actor_route_id ?? null,
       requires_poa: contactRoute?.requires_poa ?? actorRoute?.requires_poa ?? true,
       created_by: clean(input.createdBy),
       metadata: {
         created_from: 'energy_resolver',
-        auto_send_allowed: Boolean(contactRoute?.auto_send_allowed ?? actorRoute?.auto_send_allowed),
-        production_guard: 'switch_blocked_until_facility_verified',
-        route_source: contactRoute ? 'grid_owner_contact_routes' : actorRoute ? 'platform_actor_routes' : 'manual',
+        ...routeMetadata,
       },
       updated_at: now,
     })
@@ -219,9 +300,9 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
     requestId: data.id as string,
     status: data.status,
     channel: data.channel,
-    routeId: data.contact_route_id ?? data.actor_route_id ?? null,
+    routeId: operationalRoute?.approval.communicationRouteId ?? data.contact_route_id ?? data.actor_route_id ?? null,
     nextStep: status === 'ready_to_send'
-      ? 'Granska begäran och skicka den till nätägaren. Leverantörsbyte är blockerat tills anläggningsuppgifter är mottagna.'
+      ? 'Nätägarbegäran är redo att skickas via produktionsklar Ediel-route. Leverantörsbyte är blockerat tills anläggningsuppgifter är mottagna.'
       : actorRoute
         ? 'Verifiera importerad Ediel-route/subadress innan sändning. Leverantörsbyte är blockerat tills route och anläggningsuppgifter är gröna.'
         : 'Komplettera kontaktväg eller hantera nätägarbegäran manuellt. Leverantörsbyte är blockerat tills anläggningsuppgifter är mottagna.',
