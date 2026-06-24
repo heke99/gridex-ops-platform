@@ -28,6 +28,7 @@ import {
  latestSiteId,
  splitPartnerExports,
 } from './billing-metering/utils'
+import { GRIDEX_TENANT_BUSINESS_ACTIONS } from '@/lib/ediel/businessLabels'
 import {
  QuickActionButton,
  SectionCard,
@@ -57,6 +58,7 @@ type Props = {
  billingUnderlays: BillingUnderlayRow[]
  partnerExports: PartnerExportRow[]
  outboundRequests: OutboundRequestRow[]
+ isPlatformAdmin?: boolean
 }
 
 export default function CustomerBillingMeteringCard({
@@ -69,6 +71,7 @@ export default function CustomerBillingMeteringCard({
  billingUnderlays,
  partnerExports,
  outboundRequests,
+ isPlatformAdmin = false,
 }: Props) {
  const unresolvedOutbound = outboundRequests.filter(
  (request) => request.channel_type === 'unresolved'
@@ -148,6 +151,85 @@ export default function CustomerBillingMeteringCard({
  const defaultMeteringPointId = latestMeteringPointId(meteringPoints)
  const defaultGridOwnerId = inferredGridOwnerId(sites, meteringPoints)
  const defaultPeriod = inferDefaultPeriod()
+ const blockedUnderlays = billingUnderlays.filter((underlay) =>
+ ['blocked', 'failed', 'needs_review', 'pricing_failed'].includes(String(underlay.readiness_status ?? underlay.status ?? ''))
+ )
+ const sentExports = partnerExports.filter((exportRow) =>
+ ['queued', 'sent', 'acknowledged'].includes(exportRow.status)
+ )
+ const latestUnderlay = [...billingUnderlays].sort((a, b) =>
+ new Date(b.updated_at ?? b.created_at).getTime() - new Date(a.updated_at ?? a.created_at).getTime()
+ )[0] ?? null
+ const billingStatusLabel = blockedUnderlays.length > 0
+ ? GRIDEX_TENANT_BUSINESS_ACTIONS.requiresAction
+ : sentExports.length > 0
+ ? GRIDEX_TENANT_BUSINESS_ACTIONS.billingSentToPartner
+ : billingUnderlays.length > 0
+ ? 'Underlag klart'
+ : meteringValues.length > 0
+ ? GRIDEX_TENANT_BUSINESS_ACTIONS.billingAutomatic
+ : GRIDEX_TENANT_BUSINESS_ACTIONS.waitingForMeteringValues
+
+ if (!isPlatformAdmin) {
+ return (
+ <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+ <div className="space-y-6">
+ <SectionCard
+ title="Fakturering"
+ description="Mätvärden och fakturaunderlag hanteras automatiskt. Du behöver bara agera om systemet markerar en avvikelse."
+ >
+ <div className="space-y-4">
+ <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+ <div className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Status</div>
+ <div className="mt-2 text-xl font-semibold text-slate-950">{billingStatusLabel}</div>
+ <p className="mt-2 text-sm leading-6 text-slate-700">
+ Systemet tar emot mätvärden från nätägaren, skapar fakturaunderlag i bakgrunden och skickar färdigt underlag till fakturapartner när perioden är komplett.
+ </p>
+ </div>
+ <div className="grid gap-3 sm:grid-cols-3">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4">
+ <div className="text-xs uppercase tracking-[0.15em] text-slate-600">Mätvärden</div>
+ <div className="mt-2 text-2xl font-semibold text-slate-950">{meteringValues.length}</div>
+ </div>
+ <div className="rounded-2xl border border-slate-200 bg-white p-4">
+ <div className="text-xs uppercase tracking-[0.15em] text-slate-600">Underlag</div>
+ <div className="mt-2 text-2xl font-semibold text-slate-950">{billingUnderlays.length}</div>
+ </div>
+ <div className="rounded-2xl border border-slate-200 bg-white p-4">
+ <div className="text-xs uppercase tracking-[0.15em] text-slate-600">Avvikelser</div>
+ <div className="mt-2 text-2xl font-semibold text-slate-950">{blockedUnderlays.length}</div>
+ </div>
+ </div>
+ {blockedUnderlays.length > 0 ? (
+ <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+ <div className="font-semibold">Fakturering kräver åtgärd</div>
+ <p className="mt-1">Det finns mätvärden eller fakturaunderlag som inte kan skickas automatiskt. Kontrollera arbetskön eller kontakta plattformsadministratör.</p>
+ </div>
+ ) : null}
+ {latestUnderlay ? (
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+ Senaste underlag: {latestUnderlay.underlay_year ?? '—'}-{String(latestUnderlay.underlay_month ?? '').padStart(2, '0')} · status {latestUnderlay.status}
+ </div>
+ ) : null}
+ </div>
+ </SectionCard>
+ </div>
+ <div className="space-y-6">
+ <CustomerTimelinePanel
+ timeline={timeline}
+ sites={sites}
+ meteringPoints={meteringPoints}
+ gridOwners={gridOwners}
+ />
+ <CustomerBillingUnderlaysPanel
+ billingUnderlays={billingUnderlays}
+ sites={sites}
+ meteringPoints={meteringPoints}
+ />
+ </div>
+ </section>
+ )
+ }
 
  return (
  <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">

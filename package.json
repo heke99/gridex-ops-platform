@@ -105,7 +105,8 @@
     "gridex:inbound-facility-recognition-regression": "node scripts/gridex-inbound-facility-recognition-regression.cjs",
     "gridex:customer-process-next-step-regression": "node scripts/gridex-customer-process-next-step-regression.cjs",
     "gridex:route-readiness-process-sweep-regression": "node scripts/gridex-route-readiness-process-sweep-regression.cjs",
-    "gridex:tenant-process-timeline-regression": "node scripts/gridex-tenant-process-timeline-regression.cjs"
+    "gridex:tenant-process-timeline-regression": "node scripts/gridex-tenant-process-timeline-regression.cjs",
+    "gridex:supplier-ombud-business-automation-regression": "node scripts/gridex-supplier-ombud-business-automation-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

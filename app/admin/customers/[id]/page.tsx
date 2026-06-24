@@ -3036,7 +3036,7 @@ export default async function CustomerAdminDetailPage({
         <SectionAnchor
           id="billing-metering"
           title="Nätägaruppgifter"
-          description="Här begär du mätvärden, billingunderlag och övrigt underlag från nätägaren."
+          description="Fakturering hanteras automatiskt från mätvärden till fakturapartner. Tenant ser bara status och avvikelser."
         >
           <CustomerBillingMeteringCard
             customerId={id}
@@ -3048,6 +3048,7 @@ export default async function CustomerAdminDetailPage({
             billingUnderlays={billingUnderlays}
             partnerExports={partnerExports}
             outboundRequests={outboundRequests}
+            isPlatformAdmin={isPlatformAdmin}
           />
         </SectionAnchor>
       ) : null}

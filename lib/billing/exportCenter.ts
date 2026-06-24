@@ -255,7 +255,7 @@ function buildInvoiceSnapshot(params: {
 
 async function createBlockedBillingCasesForItems(params: {
   companyId: string;
-  actorUserId: string;
+  actorUserId: string | null;
   exportRunId: string;
   items: BillingExportRunItemRow[];
 }) {
@@ -314,7 +314,7 @@ async function createBlockedBillingCasesForItems(params: {
 
 export async function createBillingExportRun(input: {
   companyId: string;
-  actorUserId: string;
+  actorUserId: string | null;
   periodMonth: string;
   targetSystem: string;
   exportFormat: string;
@@ -488,7 +488,7 @@ export async function createBillingExportRun(input: {
 
 export async function queueReadyBillingExportRunItems(input: {
   companyId: string;
-  actorUserId: string;
+  actorUserId: string | null;
   exportRunId: string;
 }): Promise<{ queued: number; blocked: number; skipped: number }> {
   await requireCompanyOperationalForWrites(input.companyId);
@@ -920,7 +920,7 @@ async function findPartnerApiEndpoint(
 
 export async function sendBillingExportRunToPartnerApi(input: {
   companyId: string;
-  actorUserId: string;
+  actorUserId: string | null;
   exportRunId: string;
 }): Promise<{
   sent: boolean;
@@ -1078,7 +1078,7 @@ export async function sendBillingExportRunToPartnerApi(input: {
 
 export async function retryFailedBillingExportRunItems(input: {
   companyId: string;
-  actorUserId: string;
+  actorUserId: string | null;
   exportRunId: string;
 }): Promise<{ reopened: number }> {
   await requireCompanyOperationalForWrites(input.companyId);

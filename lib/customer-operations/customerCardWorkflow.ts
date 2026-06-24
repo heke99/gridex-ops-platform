@@ -17,6 +17,7 @@ import type {
   PowerOfAttorneyRow,
   SupplierSwitchRequestRow,
 } from "@/lib/operations/types";
+import { gridexBlockerLabel } from "@/lib/ediel/businessLabels";
 
 export type WorkflowStepStatus =
   | "done"
@@ -116,14 +117,14 @@ function blockerToAdminMessage(
     invalid_customer_site_snapshot:
       "Anläggningsuppgifterna är ofullständiga och behöver uppdateras.",
     facility_or_metering_point_missing:
-      "Anläggnings-id eller mätpunkt saknas. Begär uppgifter från nätägaren eller komplettera anläggningen innan Z01 kan förberedas.",
+      "Anläggningsuppgifter saknas. Begär uppgifter från nätägaren eller komplettera kundkortet.",
     environment_not_resolved:
       "Systemet kunde inte avgöra om begäran gäller test- eller produktionsmiljön.",
     sender_settings_missing: "Avsändarinställning saknas i systemet.",
     stale_response_requires_review:
       "Nätägarsvar är för gammalt och kräver manuell granskning.",
   };
-  return messages[blockerCode] ?? null;
+  return messages[blockerCode] ?? gridexBlockerLabel(blockerCode, "tenant");
 }
 
 function infoRequestToStepStatus(
@@ -331,11 +332,11 @@ export function buildCustomerCardWorkflow(
     messageId: isPlatformAdmin ? gridOwnerDataRequestId : null,
   });
 
-  // Step 5: Meddelande förbereds / skickat
+  // Step 5: Begäran förbereds / skickat
   const outboundExists = Boolean(outboundRequestId);
   const edielExists = Boolean(edielMessageId);
   let messageStep: WorkflowStepStatus = "not_started";
-  let messageExplanation = "Ediel-meddelandet är inte förberett ännu.";
+  let messageExplanation = "Begäran är inte förberedd ännu.";
 
   if (edielExists) {
     if (
@@ -347,24 +348,24 @@ export function buildCustomerCardWorkflow(
       ].includes(infoStatus ?? "")
     ) {
       messageStep = "done";
-      messageExplanation = "Meddelandet har skickats till nätägaren.";
+      messageExplanation = "Begäran har skickats till nätägaren.";
     } else {
       messageStep = "current";
       messageExplanation =
-        "Meddelandet är förberett och väntar på att skickas.";
+        "Begäran är förberedd och väntar på att skickas.";
     }
   } else if (outboundExists) {
     messageStep = "current";
-    messageExplanation = "Systemet förbereder Ediel-meddelandet.";
+    messageExplanation = "Systemet förbereder Begäran.";
   } else if (dataRequestStatus === "blocked") {
     messageStep = "not_started";
     messageExplanation =
-      "Meddelandet kan inte förberedas förrän blockeraren är löst.";
+      "Begäran kan inte förberedas förrän blockeraren är löst.";
   }
 
   steps.push({
     id: "message_prepared",
-    label: "Meddelande förbereds",
+    label: "Begäran förbereds",
     explanation: messageExplanation,
     status: messageStep,
     messageId: isPlatformAdmin ? edielMessageId : null,
@@ -416,7 +417,7 @@ export function buildCustomerCardWorkflow(
   // Primary action
   let primaryAction: WorkflowPrimaryAction = "request_data";
   let adminMessage =
-    "Begär anläggningsuppgifter från nätägaren för att komma vidare.";
+    "Begär uppgifter från nätägaren för att komma vidare.";
   let nextRequiredAction: string | null = null;
 
   if (hasPendingSwitch) {
@@ -433,13 +434,13 @@ export function buildCustomerCardWorkflow(
     primaryAction = "review_blocker";
     adminMessage =
       blockerCode === "facility_or_metering_point_missing"
-        ? "Anläggningsuppgifter saknas. Komplettera anläggnings-id/mätpunkt eller begär uppgifter från nätägaren."
+        ? "Anläggningsuppgifter saknas. Begär uppgifter från nätägaren eller komplettera kundkortet."
         : (blockerToAdminMessage(blockerCode) ??
           "Uppgiftsbegäran är blockerad. Granska detaljer.");
     nextRequiredAction = asString(openInfoRequest?.next_required_action);
   } else if (infoStatus === "z01_prepared" || messageStep === "current") {
     primaryAction = "approve_and_send";
-    adminMessage = "Meddelandet är förberett och väntar på godkänt utskick.";
+    adminMessage = "Begäran är förberedd och väntar på godkänt utskick.";
   } else if (
     openInfoRequest &&
     ["route_missing", "blocked"].includes(infoStatus ?? "")
@@ -449,7 +450,7 @@ export function buildCustomerCardWorkflow(
       "Uppgiftsbegäran är blockerad. Starta om för att försöka med uppdaterad route.";
   } else if (!openInfoRequest && hasFacility && hasAuth) {
     primaryAction = "request_data";
-    adminMessage = "Begär anläggningsuppgifter från nätägaren.";
+    adminMessage = "Begär uppgifter från nätägaren.";
   } else if (!hasAuth) {
     primaryAction = "review_blocker";
     adminMessage =
@@ -457,7 +458,7 @@ export function buildCustomerCardWorkflow(
   } else if (!hasFacility) {
     primaryAction = "review_blocker";
     adminMessage =
-      "Anläggningsuppgifter saknas. Begär uppgifter från nätägaren eller komplettera anläggnings-id/mätpunkt.";
+      "Anläggningsuppgifter saknas. Begär uppgifter från nätägaren eller komplettera kundkortet.";
   } else if (infoStatus === "completed") {
     primaryAction = "no_action_required";
     adminMessage = "Inga åtgärder krävs. Uppgiftsbegäran är slutförd.";

@@ -2,7 +2,7 @@ import { getCompanyGridOwnerRouteReadiness } from '@/lib/ediel/companyRouteReadi
 import { evaluateRouteProfileProductionReadiness } from '@/lib/ediel/routeProfileProductionReadiness'
 import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProcessEvents'
 
-type Process = 'facility_lookup' | 'z01_customer_masterdata' | 'supplier_switch'
+type Process = 'facility_lookup' | 'grid_owner_information_request' | 'z01_customer_masterdata' | 'supplier_switch'
 
 type JsonRecord = Record<string, unknown>
 
@@ -19,8 +19,8 @@ export type CustomerProcessRouteReadinessResult = {
 
 function messageConfig(process: Process): { family: string; code: string | null; needsOutboundSendReadiness: boolean } {
   if (process === 'supplier_switch') return { family: 'PRODAT', code: 'Z03', needsOutboundSendReadiness: true }
-  if (process === 'z01_customer_masterdata') return { family: 'PRODAT', code: 'Z01', needsOutboundSendReadiness: true }
-  return { family: 'facility_lookup', code: null, needsOutboundSendReadiness: false }
+  if (process === 'z01_customer_masterdata' || process === 'facility_lookup' || process === 'grid_owner_information_request') return { family: 'PRODAT', code: 'Z01', needsOutboundSendReadiness: true }
+  return { family: 'PRODAT', code: 'Z01', needsOutboundSendReadiness: true }
 }
 
 function text(value: unknown): string | null {
@@ -54,25 +54,9 @@ export async function evaluateCustomerProcessRouteReadiness(input: {
     }
   }
 
-  if (input.process === 'facility_lookup') {
-    // Facility lookup may be manual. Missing contact route must block auto-send,
-    // but it must not block manual handling of the request.
-    warnings.push({
-      code: 'facility_lookup_manual_route_allowed',
-      message: 'Anläggningsuppgifter kan hanteras manuellt om automatisk kontaktväg saknas.',
-      source: 'customer_process_route_readiness',
-    })
-    return {
-      process: input.process,
-      ready: true,
-      blockers,
-      warnings,
-      routeProfileId: null,
-      communicationRouteId: null,
-      family: config.family,
-      code: config.code,
-    }
-  }
+  // Uppgiftsbegäran är Ediel-first i produktion. Manuell hantering får
+  // finnas som fallback i UI, men readiness ska fortfarande utvärdera PRODAT Z01
+  // så tenant inte får en falsk känsla av att automatisering är klar.
 
   const readiness = await getCompanyGridOwnerRouteReadiness({
     companyId: input.companyId,

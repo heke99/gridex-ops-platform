@@ -206,7 +206,7 @@ export async function listPartnerExportsByCustomerId(
 }
 
 export async function createGridOwnerDataRequest(input: {
-  actorUserId: string
+  actorUserId: string | null
   customerId: string
   siteId?: string | null
   meteringPointId?: string | null
@@ -314,7 +314,7 @@ export async function createGridOwnerDataRequest(input: {
 }
 
 export async function createPartnerExport(input: {
-  actorUserId: string
+  actorUserId: string | null
   customerId: string
   siteId?: string | null
   meteringPointId?: string | null
@@ -738,7 +738,7 @@ function isCorrectionInput(input: {
 }
 
 export async function ingestMeteringValue(input: {
-  actorUserId: string
+  actorUserId: string | null
   customerId: string
   siteId?: string | null
   meteringPointId: string
@@ -879,7 +879,7 @@ export async function ingestMeteringValue(input: {
 }
 
 export async function ingestBillingUnderlay(input: {
-  actorUserId: string
+  actorUserId: string | null
   customerId: string
   siteId?: string | null
   meteringPointId?: string | null
