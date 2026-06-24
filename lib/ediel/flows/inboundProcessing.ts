@@ -53,6 +53,7 @@ import { resolveInboundTenantForMessage } from "@/lib/ediel/core/tenantResolver"
 import { analyzeEdielProcessingPipeline } from "@/lib/ediel/orchestrator/edielProcessingPipeline";
 import { createOutboxItem } from "@/lib/ediel/outbox/createOutboxItem";
 import { recognizeInboundFacilityData } from "@/lib/ediel/inbound/inboundFacilityRecognition";
+import { applyInboundBusinessStateMachine } from "@/lib/ediel/flows/inboundBusinessStateMachine";
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
@@ -596,6 +597,16 @@ async function processInboundProdatMessage(params: {
     });
 
   if (!canonicalLinks.matchedSwitch) {
+    const businessState = await applyInboundBusinessStateMachine({
+      actorUserId: params.actorUserId,
+      message: params.message,
+      customerInfoRequestId:
+        (customerInfoLink as { customerInfoRequestId?: string | null } | null)?.customerInfoRequestId ??
+        (customerInfoLink as { requestId?: string | null } | null)?.requestId ??
+        null,
+      source: "prodat_without_strong_switch_match",
+    });
+
     const safeApplyProposalChanges = ["Z06", "Z10"].includes(
       String(params.message.message_code),
     )
@@ -644,6 +655,7 @@ async function processInboundProdatMessage(params: {
         inboundCaseId: inboundCase?.id ?? null,
         customerInfoRequestLink: customerInfoLink,
         meteringPermissionLink,
+        businessState,
       },
     });
 
@@ -672,6 +684,17 @@ async function processInboundProdatMessage(params: {
     });
   }
 
+  const businessState = await applyInboundBusinessStateMachine({
+    actorUserId: params.actorUserId,
+    message: params.message,
+    matchedSwitchRequestId: canonicalLinks.matchedSwitch.id,
+    customerInfoRequestId:
+      (customerInfoLink as { customerInfoRequestId?: string | null } | null)?.customerInfoRequestId ??
+      (customerInfoLink as { requestId?: string | null } | null)?.requestId ??
+      null,
+    source: "prodat_with_strong_switch_match",
+  });
+
   const safeApplyProposalChanges = ["Z06", "Z10"].includes(
     String(params.message.message_code),
   )
@@ -695,6 +718,7 @@ async function processInboundProdatMessage(params: {
         inboundCaseId: inboundCase?.id ?? null,
         customerInfoRequestLink: customerInfoLink,
         meteringPermissionLink,
+        businessState,
       },
     });
   }
@@ -720,6 +744,7 @@ async function processInboundProdatMessage(params: {
       inboundCaseId: inboundCase?.id ?? null,
       customerInfoRequestLink: customerInfoLink,
       meteringPermissionLink,
+      businessState,
     },
   });
 
@@ -737,6 +762,7 @@ async function processInboundProdatMessage(params: {
       ackMessages: ackSnapshot.ackMessages,
       safeApplyProposalChanges,
       inboundCaseId: inboundCase?.id ?? null,
+      businessState,
     },
   });
 }
@@ -847,6 +873,11 @@ export async function processInboundEdielMessage(params: {
     runtimeMessage.message_family === "UTILTS_ERR"
   ) {
     await processInboundAckMessage({ actorUserId, message: runtimeMessage });
+    await applyInboundBusinessStateMachine({
+      actorUserId,
+      message: runtimeMessage,
+      source: "ack_processing",
+    });
     await syncActorTestingGlobally({
       actorUserId,
       message: runtimeMessage,
@@ -866,6 +897,11 @@ export async function processInboundEdielMessage(params: {
     await processInboundUtiltsMessage({
       actorUserId,
       edielMessageId: runtimeMessage.id,
+    });
+    await applyInboundBusinessStateMachine({
+      actorUserId,
+      message: runtimeMessage,
+      source: "utilts_processing",
     });
     return runtimeMessage;
   }

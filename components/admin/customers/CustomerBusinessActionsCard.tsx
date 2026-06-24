@@ -29,6 +29,10 @@ import { meteringPointIdentityLabel } from "@/lib/customers/meteringIdentity";
 import {
   buildCustomerCardWorkflow,
 } from "@/lib/customer-operations/customerCardWorkflow";
+import {
+  buildCustomerBusinessActionPlan,
+  tenantBusinessActionStatusLabel,
+} from "@/lib/customer-operations/customerBusinessActions";
 
 export type Z01RepairEvent = {
   id: string;
@@ -88,7 +92,7 @@ function z01EventLabel(eventType: string): string {
     case "z01_grid_owner_data_request_finalized_after_route_ready":
       return "Reparation";
     default:
-      return "Z01-händelse";
+      return "Teknisk uppgiftsbegäran";
   }
 }
 
@@ -152,6 +156,11 @@ export default function CustomerBusinessActionsCard({
     switchRequests,
     powersOfAttorney,
     isPlatformAdmin,
+  });
+
+  const businessActionPlan = buildCustomerBusinessActionPlan({
+    workflow,
+    visibility: isPlatformAdmin ? "superadmin" : "tenant",
   });
 
   // Derive companyId: prefer explicit prop, then fall back to first infoRequest or site
@@ -262,6 +271,29 @@ export default function CustomerBusinessActionsCard({
           </StatusPill>
         </div>
 
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          {businessActionPlan.filter((action) => action.showToTenant).map((action) => (
+            <div
+              key={action.id}
+              className={`rounded-2xl border p-4 ${
+                action.primary
+                  ? "border-emerald-200 bg-white"
+                  : action.status === "blocked"
+                    ? "border-amber-200 bg-amber-50"
+                    : "border-slate-200 bg-white/70"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-950">{action.label}</p>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                  {tenantBusinessActionStatusLabel(action.status)}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-600">{action.description}</p>
+            </div>
+          ))}
+        </div>
+
         {/* Blocker message - in plain Swedish, no internal codes */}
         {workflow.blockerAdminMessage && workflow.primaryAction === "review_blocker" ? (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
@@ -285,8 +317,8 @@ export default function CustomerBusinessActionsCard({
                   : "Begär uppgifter"}
               </h3>
               <p className="mt-2 text-sm leading-6 text-slate-700">
-                Systemet begär anläggningsuppgifter från nätägaren och förbereder
-                Ediel-meddelandet i bakgrunden.
+                Systemet begär anläggningsuppgifter från nätägaren och hanterar
+                utskicket i bakgrunden.
               </p>
               <div className="mt-4">
                 <CustomerOperationAutomationForm

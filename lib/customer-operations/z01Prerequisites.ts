@@ -5,9 +5,9 @@ import { makeCustomerOperationBlocker } from "@/lib/customer-operations/blockers
 export const Z01_FACILITY_IDENTIFIER_BLOCKER_CODE =
   "facility_or_metering_point_missing";
 export const Z01_FACILITY_IDENTIFIER_BLOCKER_REASON =
-  "Begäran kan inte skickas automatiskt eftersom anläggnings-id eller mätpunkt saknas i det tekniska underlaget.";
+  "Anläggningsuppgifter saknas. Systemet ska i första hand begära uppgifter från nätägaren och bara blockera om nätägare, fullmakt eller produktionsväg saknas.";
 export const Z01_FACILITY_IDENTIFIER_NEXT_ACTION =
-  "Begär uppgifter från nätägaren eller komplettera kundkortet innan automatiskt utskick fortsätter.";
+  "Begär uppgifter från nätägaren eller komplettera kundkortet om uppgiftsbegäran redan har avvisats.";
 export const Z01_FACILITY_IDENTIFIER_ROUTE_STATUS =
   "awaiting_facility_identifier";
 

@@ -685,7 +685,7 @@ export async function createDynamicSupplierSwitchRequestAction(
         switchDirection,
       },
     });
-    throw new Error("Leverantörsbyte kan inte startas eftersom nätägare, PRODAT-route, subadress eller certifikat inte är fullt verifierat.");
+    throw new Error("Leverantörsbyte kan inte startas eftersom nätägarens tekniska väg inte är klar. Kontakta plattformsadministratör eller kontrollera bolagets produktionsinställningar.");
   }
 
   const validationSnapshot = {
