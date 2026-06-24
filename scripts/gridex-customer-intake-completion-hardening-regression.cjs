@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+const fs = require('node:fs')
+
+function read(path) { return fs.readFileSync(path, 'utf8') }
+function ok(condition, message) {
+  if (!condition) {
+    console.error(`FAIL: ${message}`)
+    process.exit(1)
+  }
+  console.log(`OK: ${message}`)
+}
+
+const orchestrator = read('lib/customer-operations/facilityResponseOrchestrator.ts')
+ok(orchestrator.includes('completeFacilityLookupAndRunNextSteps'), 'facility response orchestrator entrypoint exists')
+ok(orchestrator.includes('triggerNextStep: false'), 'orchestrator completes facility lookup before running next steps')
+ok(orchestrator.includes('evaluateCustomerIntake') && orchestrator.includes('apply: true'), 'orchestrator refreshes customer intake source of truth')
+ok(orchestrator.includes('skipZ01Finalization: true'), 'facility response starts supplier switch without creating a second Z01')
+ok(orchestrator.includes('facility_response.orchestrated') && orchestrator.includes('Leverantörsbyte startat automatiskt'), 'orchestrator emits business timeline event')
+
+const workflow = read('lib/facility/facilityLookupWorkflow.ts')
+ok(workflow.includes("dispatch_status: 'completed'"), 'facility completion closes dispatch lifecycle')
+ok(workflow.includes("status: 'ready_for_switch'") && workflow.includes('Starta leverantörsbyte när readiness är grön'), 'facility completion marks customer info request ready for switch')
+ok(workflow.includes('customerId,') && workflow.includes('customerSiteId,') && workflow.includes('operationId:'), 'facility completion returns context for orchestrator')
+
+const nextStep = read('lib/customer-operations/customerProcessNextStepEngine.ts')
+ok(nextStep.includes('skipZ01Finalization?: boolean'), 'next-step engine supports skipping Z01 repair for facility responses')
+ok(nextStep.includes('input.skipZ01Finalization !== true'), 'skip flag prevents duplicate Z01 before supplier switch')
+
+const inbound = read('lib/ediel/inbound/inboundFacilityRecognition.ts')
+ok(inbound.includes('completeFacilityLookupAndRunNextSteps'), 'inbound facility recognition uses response orchestrator')
+ok(!inbound.includes("import { completeFacilityLookup }"), 'inbound recognition no longer calls raw completion directly')
+
+const actions = read('app/admin/facility-requests/actions.ts')
+ok(actions.includes('completeFacilityLookupAndRunNextSteps'), 'manual facility completion uses the same response orchestrator')
+
+const workQueue = read('app/admin/work-queue/page.tsx')
+ok(workQueue.includes("'grid_owner_information_requests'") && workQueue.includes('dispatch_status'), 'work queue reads facility lookup dispatch rows')
+ok(workQueue.includes('Nätägaruppgifter') && workQueue.includes('Väntar på anläggningssvar'), 'work queue has customer-friendly facility lookup states')
+ok(workQueue.includes('dispatch_error_message'), 'work queue surfaces facility dispatch errors')
+
+const vercel = read('vercel.json')
+ok(vercel.includes('/api/cron/billing/monthly') && vercel.includes('20 4 1 * *'), 'monthly billing cron is scheduled in Vercel')
+
+const migration = read('supabase/migrations/20260624183000_gridex_customer_intake_completion_hardening.sql')
+ok(migration.includes('grid_owner_information_requests_work_queue_idx'), 'migration adds work queue index for facility lookup rows')
+ok(migration.includes("dispatch_status = 'completed'"), 'migration backfills completed facility lookup dispatch status')
+ok(migration.includes('customer_info_requests_ready_for_switch_idx'), 'migration adds ready-for-switch customer-info index')
+
+const pkg = read('package.json')
+ok(pkg.includes('gridex:customer-intake-completion-hardening-regression'), 'package script exposes completion hardening regression')
+
+console.log('Gridex customer intake completion hardening regression passed')

@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
 import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
-import { completeFacilityLookup, markFacilityLookupSentManually } from '@/lib/facility/facilityLookupWorkflow'
+import { markFacilityLookupSentManually } from '@/lib/facility/facilityLookupWorkflow'
+import { completeFacilityLookupAndRunNextSteps } from '@/lib/customer-operations/facilityResponseOrchestrator'
 
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key)
@@ -54,7 +55,7 @@ export async function completeFacilityLookupAction(formData: FormData) {
   const guard = await requireAdminActionAccess(['customers.write'])
   const requestId = required(formData, 'request_id', 'Anläggningsbegäran')
   const companyId = await resolveCompanyForRequest(requestId, guard)
-  await completeFacilityLookup({
+  await completeFacilityLookupAndRunNextSteps({
     companyId,
     requestId,
     actorUserId: guard.userId,

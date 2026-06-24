@@ -173,9 +173,9 @@ async function clearFacilityBlockers(input: {
       blocker_reason: null,
       blocker_details: {},
       route_resolution_status: 'facility_identifier_received',
-      next_required_action: 'Fortsätt Z01-finalisering.',
+      next_required_action: 'Starta leverantörsbyte när readiness är grön.',
       metering_point_id: input.meteringPointId ?? undefined,
-      status: 'pending',
+      status: 'ready_for_switch',
       updated_at: new Date().toISOString(),
       updated_by: input.actorUserId ?? undefined,
     })
@@ -274,6 +274,9 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
     .from('grid_owner_information_requests')
     .update({
       status: 'completed',
+      dispatch_status: 'completed',
+      dispatch_error_code: null,
+      dispatch_error_message: null,
       received_at: now,
       completed_at: now,
       facility_id: facilityId,
@@ -286,7 +289,7 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
         completed_by: input.source,
         completed_at: now,
         matched_ediel_message_id: text(input.edielMessageId),
-        next_step_triggered: 'customer_process_next_step_engine',
+        next_step_triggered: input.triggerNextStep === false ? 'facility_response_orchestrator' : 'customer_process_next_step_engine',
       },
       updated_at: now,
       updated_by: input.actorUserId ?? null,
@@ -396,6 +399,9 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
     facilityId,
     meteringPointId,
     meteringPointRecordId: meterSync.id,
+    customerId,
+    customerSiteId,
+    operationId: text(request.operation_id),
     nextStep,
   }
 }

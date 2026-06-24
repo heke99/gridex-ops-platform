@@ -39,6 +39,10 @@
     {
       "path": "/api/internal/platform/grid-areas/import/cron",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/billing/monthly",
+      "schedule": "20 4 1 * *"
     }
   ]
 }

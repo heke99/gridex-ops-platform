@@ -1,7 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { completeFacilityLookup } from '@/lib/facility/facilityLookupWorkflow'
+import { completeFacilityLookupAndRunNextSteps } from '@/lib/customer-operations/facilityResponseOrchestrator'
 import { emitInboundFacilityUnmatchedEvent } from '@/lib/customer-operations/customerProcessEvents'
 
 type JsonRecord = Record<string, unknown>
@@ -255,7 +255,7 @@ export async function recognizeInboundFacilityData(input: { actorUserId: string;
     return { status: 'manual_review', reason: 'no_safe_single_match', requestId: null, customerId: message.customer_id, customerSiteId: message.site_id, facilityId: extraction.facilityId, meteringPointId: extraction.meteringPointId }
   }
 
-  const completion = await completeFacilityLookup({
+  const completion = await completeFacilityLookupAndRunNextSteps({
     companyId: match.companyId,
     requestId: match.requestId,
     actorUserId: input.actorUserId,

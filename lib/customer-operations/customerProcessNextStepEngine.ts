@@ -283,6 +283,7 @@ export async function evaluateAndRunNextCustomerStep(input: {
   trigger: CustomerProcessNextStepTrigger
   actorUserId?: string | null
   source?: 'manual' | 'ediel_inbound' | 'system'
+  skipZ01Finalization?: boolean
 }): Promise<CustomerProcessNextStepResult> {
   const actorUserId = input.actorUserId ?? 'system'
   const blockers: CustomerProcessNextStepResult['blockers'] = []
@@ -329,7 +330,7 @@ export async function evaluateAndRunNextCustomerStep(input: {
     actorUserId,
   })
 
-  if (z01Route.ready) {
+  if (z01Route.ready && input.skipZ01Finalization !== true) {
     const z01Result = await tryPrepareZ01({ companyId: input.companyId, customerId: input.customerId, siteId: site.id, operationId: input.operationId ?? null, actorUserId })
     if (z01Result) return z01Result
   }

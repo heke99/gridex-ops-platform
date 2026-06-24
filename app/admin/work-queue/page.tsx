@@ -194,6 +194,8 @@ function statusLabel(status: string): string {
     waiting_response: 'Väntar på svar',
     draft: 'Utkast',
     ready_to_send: 'Redo att skickas',
+    dispatch_failed: 'Utskick misslyckades',
+    waiting_grid_owner_response: 'Väntar på nätägare',
     ready: 'Redo',
     queued: 'Köad',
     submitted: 'Skickad',
@@ -367,7 +369,7 @@ export default async function AdminWorkQueuePage() {
     const customerIds = activeCustomers.map((customer) => customer.id)
     const customersById = new Map(activeCustomers.map((customer) => [customer.id, customer]))
 
-    const [blockers, infoRequests, gridOwnerRequests, operationTasks, switchRequests] = await Promise.all([
+    const [blockers, infoRequests, gridOwnerRequests, facilityRequests, operationTasks, switchRequests] = await Promise.all([
     safeRows<Record<string, unknown>>(
       supabase,
       'customer_blockers',
@@ -394,6 +396,15 @@ export default async function AdminWorkQueuePage() {
       [{ column: 'status', op: 'in', value: ['pending', 'sent', 'failed'] }],
       customerIds,
       50,
+    ),
+    safeRows<Record<string, unknown>>(
+      supabase,
+      'grid_owner_information_requests',
+      companyId,
+      'id, customer_id, customer_site_id, operation_id, request_type, status, dispatch_status, dispatch_error_code, dispatch_error_message, channel, outbound_request_id, ediel_message_id, created_at, updated_at',
+      [{ column: 'status', op: 'in', value: ['draft', 'ready_to_send', 'needs_review', 'failed', 'waiting_response'] }],
+      customerIds,
+      80,
     ),
     safeRows<Record<string, unknown>>(
       supabase,
@@ -470,6 +481,29 @@ export default async function AdminWorkQueuePage() {
       createdAt: dateValue(row.created_at),
       href: `/admin/customers/${customer.id}?tab=data-requests`,
       actionLabel: 'Öppna kundkort',
+    })
+  }
+
+  for (const row of facilityRequests) {
+    const customer = customersById.get(String(row.customer_id ?? ''))
+    if (!customer) continue
+    const status = String(row.status ?? 'pending')
+    const dispatchStatus = String(row.dispatch_status ?? '')
+    const failed = status === 'failed' || status === 'needs_review' || dispatchStatus === 'failed'
+    const waiting = status === 'waiting_response' || dispatchStatus === 'queued' || dispatchStatus === 'sent' || Boolean(row.outbound_request_id || row.ediel_message_id)
+    items.push({
+      id: String(row.id),
+      operationId: textValue(row.operation_id),
+      source: 'Nätägaruppgifter',
+      customerId: customer.id,
+      customerLabel: customerLabel(customer),
+      title: failed ? 'Nätägarbegäran behöver granskning' : waiting ? 'Väntar på anläggningssvar' : 'Nätägarbegäran redo att skickas',
+      description: textValue(row.dispatch_error_message) ?? (waiting ? 'Begäran är skickad eller köad via Ediel och svar inväntas.' : 'Begäran kan skickas via godkänd Ediel-route eller behöver manuell granskning.'),
+      status: failed ? 'failed' : waiting ? 'waiting_response' : status,
+      priority: failed ? 'high' : status === 'ready_to_send' ? 'normal' : 'low',
+      createdAt: dateValue(row.updated_at) ?? dateValue(row.created_at),
+      href: `/admin/customers/${customer.id}?tab=data-requests`,
+      actionLabel: failed ? 'Granska blockerare' : 'Öppna kundkort',
     })
   }
 
