@@ -1,4 +1,5 @@
 import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
+import { dispatchFacilityLookupEdifact } from '@/lib/customer-operations/facilityLookupEdifactDispatch'
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { supabaseService } from '@/lib/supabase/service'
@@ -14,6 +15,10 @@ export type FacilityLookupAutomationResult = {
   requestId: string | null
   channel: string | null
   routeId: string | null
+  outboundRequestId?: string | null
+  edielMessageId?: string | null
+  operationId?: string | null
+  dispatchStatus?: string | null
   nextStep: string
   warnings: string[]
   blockers: Array<{ code: string; message: string; source?: string }>
@@ -113,6 +118,7 @@ export async function ensureFacilityLookupAutomation(input: {
   customerApplicationId?: string | null
   resolutionId?: string | null
   source?: string | null
+  operationId?: string | null
 }): Promise<FacilityLookupAutomationResult> {
   const site = await readSite(input)
   if (!site) {
@@ -196,7 +202,7 @@ export async function ensureFacilityLookupAutomation(input: {
   }))
 
   const readyStatuses = new Set(['ready_to_send', 'sent', 'waiting_response'])
-  const status = request.status === 'sent' || request.status === 'waiting_response'
+  const initialStatus: FacilityLookupAutomationResult['status'] = request.status === 'sent' || request.status === 'waiting_response'
     ? 'waiting_response'
     : routeReadiness.ready && readyStatuses.has(request.status)
       ? 'ready_to_send'
@@ -205,6 +211,43 @@ export async function ensureFacilityLookupAutomation(input: {
         : request.status === 'skipped'
           ? 'skipped'
           : 'needs_review'
+
+  let status: FacilityLookupAutomationResult['status'] = initialStatus
+  let nextStep = request.nextStep
+  let routeId = request.routeId ?? routeReadiness.communicationRouteId
+  let outboundRequestId = request.outboundRequestId ?? null
+  let edielMessageId = request.edielMessageId ?? null
+  let operationId = request.operationId ?? input.operationId ?? null
+  let dispatchStatus = request.dispatchStatus ?? null
+  const finalBlockers = [...blockers]
+  let dispatch: Awaited<ReturnType<typeof dispatchFacilityLookupEdifact>> | null = null
+
+  if (initialStatus === 'ready_to_send' && request.requestId && routeReadiness.ready) {
+    dispatch = await dispatchFacilityLookupEdifact({
+      companyId: input.companyId,
+      requestId: request.requestId,
+      actorUserId: input.actorUserId ?? null,
+      operationId: input.operationId ?? request.operationId ?? null,
+    })
+    routeId = dispatch.communicationRouteId ?? routeId
+    outboundRequestId = dispatch.outboundRequestId
+    edielMessageId = dispatch.edielMessageId
+    operationId = dispatch.operationId
+    dispatchStatus = dispatch.status
+
+    if (dispatch.status === 'queued' || dispatch.status === 'already_waiting') {
+      status = 'waiting_response'
+      nextStep = 'Nätägarbegäran är köad via Ediel. Invänta CONTRL/APERAK och nätägarens svar.'
+    } else if (dispatch.status === 'blocked' || dispatch.status === 'failed') {
+      status = 'needs_review'
+      nextStep = dispatch.blockerMessage ?? 'Nätägarbegäran kunde inte köas via Ediel och behöver granskas.'
+      finalBlockers.push({
+        code: dispatch.blockerCode ?? 'facility_lookup_edifact_dispatch_failed',
+        message: nextStep,
+        source: 'facility_lookup_edifact_dispatch',
+      })
+    }
+  }
 
   await patchCustomerIntakeStatus({
     companyId: input.companyId,
@@ -215,7 +258,7 @@ export async function ensureFacilityLookupAutomation(input: {
       ? 'wait_for_grid_owner'
       : status === 'ready_to_send'
         ? 'send_facility_lookup'
-        : status === 'blocked'
+        : status === 'blocked' || status === 'needs_review'
           ? 'review_blocker'
           : 'request_facility_data',
     actorUserId: input.actorUserId ?? null,
@@ -228,29 +271,38 @@ export async function ensureFacilityLookupAutomation(input: {
     actorUserId: input.actorUserId ?? null,
     eventType: status === 'ready_to_send' ? 'facility_lookup.ready_to_send' : status === 'waiting_response' ? 'facility_lookup.waiting_response' : 'facility_lookup.needs_review',
     title: status === 'ready_to_send' ? 'Nätägarbegäran är redo' : status === 'waiting_response' ? 'Svar inväntas från nätägare' : 'Nätägarbegäran behöver granskas',
-    message: request.nextStep,
-    status: status === 'blocked' ? 'blocked' : status === 'waiting_response' ? 'waiting_response' : 'queued',
-    severity: status === 'blocked' ? 'error' : 'info',
+    message: nextStep,
+    status: status === 'blocked' || status === 'needs_review' ? 'blocked' : status === 'waiting_response' ? 'waiting_response' : 'queued',
+    severity: status === 'blocked' || status === 'needs_review' ? 'error' : 'info',
     actionRequired: status === 'blocked' || status === 'needs_review',
     source: input.source ?? 'facility_lookup_automation',
     payload: {
       request_id: request.requestId,
-      route_id: request.routeId,
+      route_id: routeId,
       channel: request.channel,
+      outbound_request_id: outboundRequestId,
+      ediel_message_id: edielMessageId,
+      operation_id: operationId,
+      dispatch_status: dispatchStatus,
+      dispatch,
       route_readiness: routeReadiness,
       warnings: request.warnings,
-      blockers,
+      blockers: finalBlockers,
     },
-    idempotencyKey: `facility_lookup.${status}:${input.companyId}:${input.siteId}:${request.requestId ?? 'no-request'}`,
+    idempotencyKey: `facility_lookup.${status}:${input.companyId}:${input.siteId}:${request.requestId ?? 'no-request'}:${edielMessageId ?? dispatchStatus ?? 'no-message'}`,
   })
 
   return {
     status,
     requestId: request.requestId,
     channel: request.channel,
-    routeId: request.routeId ?? routeReadiness.communicationRouteId,
-    nextStep: request.nextStep,
+    routeId,
+    outboundRequestId,
+    edielMessageId,
+    operationId,
+    dispatchStatus,
+    nextStep,
     warnings: [...request.warnings, ...routeReadiness.warnings.map((warning) => warning.code)],
-    blockers,
+    blockers: finalBlockers,
   }
 }

@@ -112,7 +112,8 @@
     "gridex:customer-card-tenant-ux-regression": "node scripts/gridex-customer-card-tenant-ux-regression.cjs",
     "gridex:customer-card-ux-full-regression": "npm run gridex:customer-card-tenant-ux-regression && npm run gridex:customer-card-real-tenant-simplification-regression && npm run gridex:supplier-business-full-regression",
     "gridex:customer-card-real-tenant-simplification-regression": "node scripts/gridex-customer-card-real-tenant-simplification-regression.cjs",
-    "gridex:automatic-customer-intake-foundation-regression": "node scripts/gridex-automatic-customer-intake-foundation-regression.cjs"
+    "gridex:automatic-customer-intake-foundation-regression": "node scripts/gridex-automatic-customer-intake-foundation-regression.cjs",
+    "gridex:automatic-facility-lookup-edifact-dispatch-regression": "node scripts/gridex-automatic-facility-lookup-edifact-dispatch-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

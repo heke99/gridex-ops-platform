@@ -1,6 +1,7 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
+import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-operations/facilityLookupEdifactDispatch'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,11 +36,15 @@ function limit(value: string | null) {
 async function run(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
   try {
-    const result = await processCustomerOperationJobs({
+    const requestedLimit = limit(request.nextUrl.searchParams.get('limit'))
+    const customerOperations = await processCustomerOperationJobs({
       workerId: `customer-operations-cron:${new Date().toISOString()}`,
-      limit: limit(request.nextUrl.searchParams.get('limit')),
+      limit: requestedLimit,
     })
-    return NextResponse.json({ ok: true, result })
+    const facilityLookupDispatch = await processReadyFacilityLookupEdifactDispatches({
+      limit: Math.min(requestedLimit, 25),
+    })
+    return NextResponse.json({ ok: true, result: { customerOperations, facilityLookupDispatch } })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[customer-operations-cron] failed', { traceId, error })

@@ -183,12 +183,17 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
           channel: 'ediel',
           template_id: 'facility_lookup.prodat_z01',
           actor_route_id: operationalRoute.approval.routeReadiness?.platform_actor_route_id ?? existing.actor_route_id ?? null,
+          communication_route_id: operationalRoute.approval.communicationRouteId,
+          ediel_route_profile_id: operationalRoute.approval.edielRouteProfileId,
+          dispatch_status: 'ready',
+          dispatch_error_code: null,
+          dispatch_error_message: null,
           metadata,
           updated_at: now,
         })
         .eq('id', existing.id)
         .eq('company_id', input.companyId)
-        .select('id,status,channel,contact_route_id,actor_route_id,metadata')
+        .select('id,status,channel,contact_route_id,actor_route_id,communication_route_id,ediel_route_profile_id,outbound_request_id,ediel_message_id,operation_id,dispatch_status,metadata')
         .maybeSingle()
       if (update.error && !missingSchema(update.error)) throw update.error
       const upgraded = update.data ?? existing
@@ -196,7 +201,13 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
         requestId: upgraded.id as string,
         status: upgraded.status,
         channel: upgraded.channel,
-        routeId: operationalRoute.approval.communicationRouteId ?? upgraded.contact_route_id ?? upgraded.actor_route_id ?? null,
+        routeId: upgraded.communication_route_id ?? operationalRoute.approval.communicationRouteId ?? upgraded.contact_route_id ?? upgraded.actor_route_id ?? null,
+        communicationRouteId: upgraded.communication_route_id ?? operationalRoute.approval.communicationRouteId ?? null,
+        edielRouteProfileId: upgraded.ediel_route_profile_id ?? operationalRoute.approval.edielRouteProfileId ?? null,
+        outboundRequestId: upgraded.outbound_request_id ?? null,
+        edielMessageId: upgraded.ediel_message_id ?? null,
+        operationId: upgraded.operation_id ?? null,
+        dispatchStatus: upgraded.dispatch_status ?? null,
         nextStep: 'Nätägarbegäran är kopplad till produktionsklar Ediel-route och kan skickas automatiskt.',
         warnings,
       }
@@ -205,7 +216,13 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
       requestId: existing.id as string,
       status: existing.status,
       channel: existing.channel,
-      routeId: existing.contact_route_id ?? existing.actor_route_id ?? operationalRoute?.approval.communicationRouteId ?? null,
+      routeId: existing.communication_route_id ?? operationalRoute?.approval.communicationRouteId ?? existing.contact_route_id ?? existing.actor_route_id ?? null,
+      communicationRouteId: existing.communication_route_id ?? operationalRoute?.approval.communicationRouteId ?? null,
+      edielRouteProfileId: existing.ediel_route_profile_id ?? operationalRoute?.approval.edielRouteProfileId ?? null,
+      outboundRequestId: existing.outbound_request_id ?? null,
+      edielMessageId: existing.ediel_message_id ?? null,
+      operationId: existing.operation_id ?? null,
+      dispatchStatus: existing.dispatch_status ?? null,
       nextStep: existing.status === 'waiting_response'
         ? 'Invänta svar från nätägaren och markera anläggningsuppgifter mottagna när svaret kommit.'
         : operationalRoute?.ready
@@ -250,6 +267,11 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
       template_id: clean(contactRoute?.template_id) ?? (actorRoute || operationalRoute?.ready ? 'facility_lookup.prodat_z01' : 'facility_lookup.default'),
       contact_route_id: clean(contactRoute?.id),
       actor_route_id: clean(actorRoute?.id) ?? operationalRoute?.approval.routeReadiness?.platform_actor_route_id ?? null,
+      communication_route_id: operationalRoute?.approval.communicationRouteId ?? null,
+      ediel_route_profile_id: operationalRoute?.approval.edielRouteProfileId ?? null,
+      dispatch_status: operationalRoute?.ready ? 'ready' : 'not_started',
+      dispatch_error_code: null,
+      dispatch_error_message: null,
       requires_poa: contactRoute?.requires_poa ?? actorRoute?.requires_poa ?? true,
       created_by: clean(input.createdBy),
       metadata: {
@@ -258,7 +280,7 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
       },
       updated_at: now,
     })
-    .select('id,status,channel,contact_route_id,actor_route_id')
+    .select('id,status,channel,contact_route_id,actor_route_id,communication_route_id,ediel_route_profile_id,outbound_request_id,ediel_message_id,operation_id,dispatch_status')
     .single()
 
   if (error) {
@@ -300,7 +322,13 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
     requestId: data.id as string,
     status: data.status,
     channel: data.channel,
-    routeId: operationalRoute?.approval.communicationRouteId ?? data.contact_route_id ?? data.actor_route_id ?? null,
+    routeId: data.communication_route_id ?? operationalRoute?.approval.communicationRouteId ?? data.contact_route_id ?? data.actor_route_id ?? null,
+    communicationRouteId: data.communication_route_id ?? operationalRoute?.approval.communicationRouteId ?? null,
+    edielRouteProfileId: data.ediel_route_profile_id ?? operationalRoute?.approval.edielRouteProfileId ?? null,
+    outboundRequestId: data.outbound_request_id ?? null,
+    edielMessageId: data.ediel_message_id ?? null,
+    operationId: data.operation_id ?? null,
+    dispatchStatus: data.dispatch_status ?? null,
     nextStep: status === 'ready_to_send'
       ? 'Nätägarbegäran är redo att skickas via produktionsklar Ediel-route. Leverantörsbyte är blockerat tills anläggningsuppgifter är mottagna.'
       : actorRoute

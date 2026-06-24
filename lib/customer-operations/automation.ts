@@ -983,6 +983,7 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
       siteId: job.customer_site_id,
       actorUserId,
       source: 'customer_data_request_automation',
+      operationId,
     })
     const automationWaiting = ['ready_to_send', 'waiting_response'].includes(facilityLookup.status)
     await emitCustomerOperationEvent({

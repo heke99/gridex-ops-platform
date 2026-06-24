@@ -116,5 +116,11 @@ export type GridOwnerInformationRequestResult = {
   channel: 'email' | 'ediel' | 'portal' | 'manual' | null
   nextStep: string
   routeId?: string | null
+  communicationRouteId?: string | null
+  edielRouteProfileId?: string | null
+  outboundRequestId?: string | null
+  edielMessageId?: string | null
+  operationId?: string | null
+  dispatchStatus?: string | null
   warnings: string[]
 }
