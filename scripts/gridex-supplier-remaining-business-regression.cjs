@@ -32,8 +32,8 @@ ok(/isBackgroundAutomation:\s*true/.test(businessProcesses), 'background billing
 
 ok(/buildCustomerBusinessActionPlan/.test(businessActions), 'customer business action plan helper exists')
 ok(/tenantBusinessActionStatusLabel/.test(businessActions), 'tenant status labels exist for action plan')
-ok(/businessActionPlan/.test(customerCard), 'customer card renders business action plan')
-ok(/Tekniska åtgärder/.test(customerCard), 'technical actions remain behind platform-admin section')
+ok(/const primaryAction = actions\.find/.test(customerCard), 'customer card renders one primary business action')
+ok(/Tekniska detaljer och felsökning/.test(customerCard), 'technical details remain behind platform-admin section')
 ok(!/Leverantörsbyte kan inte startas eftersom nätägare, PRODAT-route/.test(switchCreate), 'tenant-facing supplier switch route error is no longer raw technical copy')
 ok(/nätägarens tekniska väg/.test(switchCreate), 'supplier switch route blocker uses plain Swedish tenant copy')
 

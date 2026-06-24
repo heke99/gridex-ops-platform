@@ -194,7 +194,7 @@ export default function SiteLifecycleSection({
 
  <div className="rounded-3xl border border-slate-200 p-5 ">
  <h3 className="text-sm font-semibold text-slate-900 ">
- Nästa arbetsyta
+ Nästa steg
  </h3>
 
  <div className="mt-4 space-y-3">

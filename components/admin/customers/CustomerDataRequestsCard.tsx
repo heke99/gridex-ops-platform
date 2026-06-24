@@ -99,7 +99,7 @@ function simpleStatus(request: CustomerInfoRequestRow): {
       return {
         label: "Uppgiftsbegäran förberedd",
         className: "bg-sky-100 text-sky-700",
-        description: "PRODAT Z01 är förberedd. Kontrollera outbox/send-status innan den räknas som skickad.",
+        description: "Begäran är förberedd. Kontrollera teknisk status innan den räknas som skickad.",
       };
     case "sent":
     case "sent_to_grid_owner":
@@ -174,6 +174,7 @@ export default function CustomerDataRequestsCard({
   powersOfAttorney,
   documents,
   snapshot: suppliedSnapshot,
+  isPlatformAdmin = false,
 }: {
   customerId: string;
   sites: CustomerSiteRow[];
@@ -183,6 +184,7 @@ export default function CustomerDataRequestsCard({
   powersOfAttorney: PowerOfAttorneyRow[];
   documents: CustomerAuthorizationDocumentRow[];
   snapshot?: CustomerCardSnapshot;
+  isPlatformAdmin?: boolean;
 }) {
   const snapshot =
     suppliedSnapshot ??
@@ -261,21 +263,23 @@ export default function CustomerDataRequestsCard({
           ) : null}
         </div>
 
-        <div className="mt-6 space-y-4">
-          <CustomerOperationAutomationForm
-            kind="customer_data"
-            customerId={customerId}
-            siteId={defaultSite?.id}
-            meteringPointId={primaryPoint?.id}
-            idleLabel="Begär uppgifter"
-            pendingLabel="Startar automatiskt flöde..."
-          />
-          <p className="text-xs text-slate-600">
-            Begäran startas direkt. Systemet söker och verifierar nätägare i
-            bakgrunden innan något skickas.
-          </p>
-        </div>
+        {isPlatformAdmin ? (
+          <div className="mt-6 space-y-4">
+            <CustomerOperationAutomationForm
+              kind="customer_data"
+              customerId={customerId}
+              siteId={defaultSite?.id}
+              meteringPointId={primaryPoint?.id}
+              idleLabel="Begär uppgifter från nätägare"
+              pendingLabel="Startar automatiskt flöde..."
+            />
+            <p className="text-xs text-slate-600">
+              Den primära tenant-knappen finns på översikten. Här kan plattformsadmin starta eller felsöka samma kedja.
+            </p>
+          </div>
+        ) : null}
 
+        {isPlatformAdmin ? (
         <details className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm">
           <summary className="cursor-pointer font-semibold text-slate-900">
             Avancerad uppgiftsbegäran
@@ -355,6 +359,7 @@ export default function CustomerDataRequestsCard({
             />
           </form>
         </details>
+        ) : null}
       </div>
 
       <div className="space-y-6">
@@ -373,6 +378,7 @@ export default function CustomerDataRequestsCard({
           </div>
         </div>
 
+        {isPlatformAdmin ? (
         <details className="rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm">
           <summary className="cursor-pointer text-base font-semibold text-slate-900">
             Fler åtgärder: registrera leverantörssvar manuellt
@@ -450,6 +456,7 @@ export default function CustomerDataRequestsCard({
             />
           </form>
         </details>
+        ) : null}
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-3">

@@ -134,6 +134,7 @@ export default function CustomerSwitchOperationsCard({
  outboundRequests,
  edielMessages,
  edielRecommendationRoutes,
+ isPlatformAdmin = false,
 }: CustomerSwitchOperationsCardProps) {
  const switchOutboundRequests = outboundRequests.filter(
  (request) => request.request_type === 'supplier_switch'
@@ -142,6 +143,55 @@ export default function CustomerSwitchOperationsCard({
  const openSwitches = switchRequests.filter((request) =>
  ['queued', 'submitted', 'accepted', 'failed', 'draft'].includes(request.status)
  )
+
+ if (!isPlatformAdmin) {
+ const latestSwitch = [...switchRequests].sort(
+ (a, b) => new Date(b.updated_at ?? b.created_at).getTime() - new Date(a.updated_at ?? a.created_at).getTime()
+ )[0] ?? null
+ const latestEvent = [...switchEvents].sort(
+ (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+ )[0] ?? null
+ const statusLabel = latestSwitch
+ ? latestSwitch.status === 'accepted'
+ ? 'Bekräftat'
+ : latestSwitch.status === 'failed'
+ ? 'Kräver åtgärd'
+ : ['queued', 'submitted', 'draft'].includes(latestSwitch.status)
+ ? 'Pågår'
+ : latestSwitch.status
+ : 'Inte startat'
+ return (
+ <section id="switch-operations" className="space-y-6">
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+ <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Leverantörsbyte</p>
+ <h2 className="mt-2 text-xl font-semibold text-slate-950">{statusLabel}</h2>
+ <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
+ Här ser du om leverantörsbytet är startat, väntar på svar eller kräver åtgärd. Tekniska utskick och kvittenser hanteras av plattformen.
+ </p>
+ <div className="mt-5 grid gap-3 md:grid-cols-3">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="text-xs uppercase tracking-[0.14em] text-slate-600">Status</div>
+ <div className="mt-2 text-lg font-semibold text-slate-950">{statusLabel}</div>
+ </div>
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="text-xs uppercase tracking-[0.14em] text-slate-600">Startdatum</div>
+ <div className="mt-2 text-lg font-semibold text-slate-950">{latestSwitch?.requested_start_date ?? 'Ej valt'}</div>
+ </div>
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="text-xs uppercase tracking-[0.14em] text-slate-600">Senaste händelse</div>
+ <div className="mt-2 text-sm font-semibold text-slate-950">{latestEvent?.message ?? 'Ingen händelse ännu'}</div>
+ </div>
+ </div>
+ </section>
+ <SwitchRequestSection
+ title="Starta leverantörsbyte"
+ description="Välj startdatum och starta bytet när kundens uppgifter är klara."
+ >
+ <CustomerSwitchCreatePanel customerId={customerId} sites={sites} />
+ </SwitchRequestSection>
+ </section>
+ )
+ }
 
  const missingOutbound = openSwitches.filter(
  (request) =>
@@ -255,7 +305,7 @@ export default function CustomerSwitchOperationsCard({
  request.failed_at ??
  request.submitted_at ??
  request.created_at,
- title: 'Switchärende',
+ title: 'Leverantörsbyte',
  description: `${request.request_type} · ${request.status} · ${siteLabel(
  request.site_id,
  sites
@@ -295,7 +345,7 @@ export default function CustomerSwitchOperationsCard({
 
  <div className="grid gap-4 xl:grid-cols-8">
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
- <div className="text-sm text-slate-700 ">Aktiva switchar</div>
+ <div className="text-sm text-slate-700 ">Aktiva leverantörsbyten</div>
  <div className="mt-2 text-3xl font-semibold text-slate-950 ">
  {openSwitches.length}
  </div>
@@ -310,7 +360,7 @@ export default function CustomerSwitchOperationsCard({
  {missingOutbound.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Switchärenden där externt utskick ännu inte finns.
+ Leverantörsbyten där externt utskick ännu inte finns.
  </div>
  </div>
 
@@ -322,7 +372,7 @@ export default function CustomerSwitchOperationsCard({
  {blockedByValidation.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Switchar där readiness eller validering fortfarande stoppar flödet.
+ Leverantörsbyten där readiness eller validering fortfarande stoppar flödet.
  </div>
  </div>
 
@@ -342,7 +392,7 @@ export default function CustomerSwitchOperationsCard({
  {awaitingResponse.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Skickade switchar som väntar på extern återkoppling.
+ Skickade leverantörsbyten som väntar på extern återkoppling.
  </div>
  </div>
 
@@ -352,7 +402,7 @@ export default function CustomerSwitchOperationsCard({
  {readyToExecute.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Kvitterade switchar där nästa steg är intern slutförande.
+ Kvitterade leverantörsbyten där nästa steg är intern slutförande.
  </div>
  </div>
 
@@ -362,7 +412,7 @@ export default function CustomerSwitchOperationsCard({
  {autoQueuedOutbound.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Switchar som redan fått externt utskick automatiskt efter skapande.
+ Leverantörsbyten som redan fått externt utskick automatiskt efter skapande.
  </div>
  </div>
 
@@ -377,7 +427,7 @@ export default function CustomerSwitchOperationsCard({
  </div>
 
  <div className="rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm ">
- <div className="text-sm text-slate-700 ">Fastnade switchar</div>
+ <div className="text-sm text-slate-700 ">Fastnade leverantörsbyten</div>
  <div className="mt-2 text-3xl font-semibold text-slate-950 ">
  {stuckSwitches.length}
  </div>
@@ -388,7 +438,7 @@ export default function CustomerSwitchOperationsCard({
  </div>
 
  <SwitchRequestSection
- title="Skapa nytt switchärende"
+ title="Starta leverantörsbyte"
  description="Starta nytt leverantörsbyte eller bytesspår direkt från kundkortet."
  >
  <CustomerSwitchCreatePanel customerId={customerId} sites={sites} />
@@ -428,19 +478,19 @@ export default function CustomerSwitchOperationsCard({
  </Link>
  </div>
  ) : (
- 'Inget externt utskick finns ännu för switchärenden på kunden.'
+ 'Inget externt utskick finns ännu för leverantörsbyten på kunden.'
  )}
  </div>
  </SwitchRequestSection>
 
  <SwitchRequestSection
- title="Vad gör att switchar fastnar?"
+ title="Vad gör att leverantörsbyten fastnar?"
  description="Kort förklaring per aktivt ärende så ansvarig snabbt ser nästa arbetsyta."
  >
  <div className="space-y-3">
  {openSwitches.length === 0 ? (
  <div className="rounded-3xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-700 ">
- Inga aktiva switchärenden för kunden just nu.
+ Inga aktiva leverantörsbyten för kunden just nu.
  </div>
  ) : (
  openSwitches.map((request) => {

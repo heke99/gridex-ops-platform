@@ -108,7 +108,9 @@
     "gridex:tenant-process-timeline-regression": "node scripts/gridex-tenant-process-timeline-regression.cjs",
     "gridex:supplier-ombud-business-automation-regression": "node scripts/gridex-supplier-ombud-business-automation-regression.cjs",
     "gridex:supplier-remaining-business-regression": "node scripts/gridex-supplier-remaining-business-regression.cjs",
-    "gridex:supplier-business-full-regression": "npm run gridex:supplier-ombud-business-automation-regression && npm run gridex:supplier-remaining-business-regression"
+    "gridex:supplier-business-full-regression": "npm run gridex:supplier-ombud-business-automation-regression && npm run gridex:supplier-remaining-business-regression",
+    "gridex:customer-card-tenant-ux-regression": "node scripts/gridex-customer-card-tenant-ux-regression.cjs",
+    "gridex:customer-card-ux-full-regression": "npm run gridex:customer-card-tenant-ux-regression && npm run gridex:supplier-business-full-regression"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

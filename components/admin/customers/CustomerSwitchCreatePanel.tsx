@@ -43,7 +43,7 @@ function SubmitButton() {
  disabled={pending}
  className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 "
  >
- {pending ? 'Skapar switchärende...' : 'Skapa switchärende'}
+ {pending ? 'Startar leverantörsbyte...' : 'Starta leverantörsbyte'}
  </button>
  )
 }
@@ -55,14 +55,14 @@ function customerTypeLabel(value: string | null | undefined) {
 }
 
 function ownSupplierResolutionLabel(value: OwnElectricitySupplierResolution) {
- if (value === 'explicit_flag') return 'explicit markering i leverantörsregistret'
+ if (value === 'explicit_flag') return 'Egen leverantör är vald'
  if (value === 'legacy_exact_gridex_name') {
- return 'legacy fallback via exakt namnmatch'
+ return 'Egen leverantör hittades via namnmatchning'
  }
  if (value === 'legacy_partial_gridex_name') {
- return 'legacy fallback via delvis namnmatch'
+ return 'Egen leverantör hittades via delvis namnmatchning'
  }
- return 'ingen leverantör markerad ännu'
+ return 'Egen leverantör behöver väljas'
 }
 
 export default function CustomerSwitchCreatePanel({
@@ -120,12 +120,10 @@ export default function CustomerSwitchCreatePanel({
  <div className="rounded-3xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
  <h2 className="text-lg font-semibold text-slate-900 ">
- Skapa nytt leverantörsbyte
+ Starta leverantörsbyte
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Formuläret anpassar sig efter kundtyp, tillåter manuell override och kan
- nu markera en leverantör som er egen så att framtida autoifyllnad blir
- korrekt.
+ Välj anläggning, startdatum och de uppgifter som behövs för att starta kundens leverantörsbyte.
  </p>
  </div>
 
@@ -138,9 +136,7 @@ export default function CustomerSwitchCreatePanel({
  {customerSummary}
  </div>
  <div className="mt-2 text-xs text-slate-700 ">
- Privatkund använder personidentitet från kundkortet.
- Företag/förening använder organisationsuppgifter från kundkortet.
- Här fyller du främst switchspecifika uppgifter och leverantörer.
+ Kundens identitet hämtas från kundkortet. Här väljer du bara det som behövs för bytet.
  </div>
  </div>
 
@@ -153,22 +149,22 @@ export default function CustomerSwitchCreatePanel({
  >
  <div className="font-semibold">
  {ownSupplier
- ? 'Egen leverantör är identifierad'
- : 'Egen leverantör är inte markerad ännu'}
+ ? 'Egen leverantör är vald'
+ : 'Egen leverantör behöver väljas'}
  </div>
  <div className="mt-1">
  {ownSupplier
  ? `${ownSupplier.name}${ownSupplier.org_number ? ` • ${ownSupplier.org_number}` : ''}`
- : 'Du kan markera nuvarande eller inkommande leverantör som er egen direkt i formuläret nedan. Då sparas detta för framtida autoifyllning.'}
+ : 'Välj vilken leverantör som är ert bolag innan bytet skickas vidare.'}
  </div>
  <div className="mt-2 text-xs opacity-80">
- Upplösning: {ownSupplierResolutionLabel(ownSupplierResolution)}.
+ Status: {ownSupplierResolutionLabel(ownSupplierResolution)}.
  </div>
  </div>
 
  {loading ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-700 ">
- Laddar leverantörsregister...
+ Laddar leverantörer...
  </div>
  ) : sites.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-700 ">
@@ -328,7 +324,7 @@ export default function CustomerSwitchCreatePanel({
  value="true"
  className="h-4 w-4"
  />
- Spara nuvarande leverantör i register om den inte redan finns
+ Spara nuvarande leverantör
  </label>
 
  <label className="inline-flex items-center gap-2 text-sm text-slate-700 md:col-span-2">
@@ -338,7 +334,7 @@ export default function CustomerSwitchCreatePanel({
  value="true"
  className="h-4 w-4"
  />
- Markera nuvarande leverantör som vår egen leverantör
+ Markera som vår leverantör
  </label>
  </div>
 
@@ -413,7 +409,7 @@ export default function CustomerSwitchCreatePanel({
  value="true"
  className="h-4 w-4"
  />
- Spara inkommande leverantör i register om den inte redan finns
+ Spara inkommande leverantör
  </label>
 
  <label className="inline-flex items-center gap-2 text-sm text-slate-700 md:col-span-2">
@@ -423,15 +419,12 @@ export default function CustomerSwitchCreatePanel({
  value="true"
  className="h-4 w-4"
  />
- Markera inkommande leverantör som vår egen leverantör
+ Markera som vår leverantör
  </label>
  </div>
 
  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700 ">
- Routingen för dispatch styrs fortfarande av anläggningens nätägare via
- communication routes. Leverantörsregistret används här för korrekt
- switchdata och återanvändbara val. Det här blocket förbättrar
- leverantörsidentiteten, inte route-logiken.
+ Leverantörsregistret används för att fylla i rätt leverantörsuppgifter och återanvända säkra val.
  </div>
 
  <div className="mt-5">

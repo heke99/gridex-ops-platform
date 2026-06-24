@@ -34,7 +34,7 @@ export default function CustomerPortalDataChainCard({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Kundkedja</p>
-          <h2 className="mt-1 text-lg font-bold text-slate-950">OPS masterdata och portalstatus</h2>
+          <h2 className="mt-1 text-lg font-bold text-slate-950">Kunddata och portalstatus</h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
             Sammanfattar om kund, avtal, fullmakt, juridik, anläggning och mätpunkt hänger ihop innan fakturering eller leverantörsbyte fortsätter.
           </p>

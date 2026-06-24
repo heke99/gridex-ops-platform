@@ -172,6 +172,46 @@ export default function CustomerBillingMeteringCard({
 
  if (!isPlatformAdmin) {
  return (
+ <section className="space-y-6">
+ <SectionCard
+ title="Fakturering"
+ description="Mätvärden och fakturaunderlag hanteras automatiskt. Du behöver bara agera om systemet markerar en avvikelse."
+ >
+ <div className="space-y-4">
+ <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+ <div className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Status</div>
+ <div className="mt-2 text-xl font-semibold text-slate-950">{billingStatusLabel}</div>
+ <p className="mt-2 text-sm leading-6 text-slate-700">
+ Systemet tar emot mätvärden från nätägaren, skapar fakturaunderlag i bakgrunden och skickar färdigt underlag till fakturapartner när perioden är komplett.
+ </p>
+ </div>
+ <div className="grid gap-3 sm:grid-cols-3">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4">
+ <div className="text-xs uppercase tracking-[0.15em] text-slate-600">Senaste period</div>
+ <div className="mt-2 text-lg font-semibold text-slate-950">{latestUnderlay ? `${latestUnderlay.underlay_year ?? '—'}-${String(latestUnderlay.underlay_month ?? '').padStart(2, '0')}` : 'Inväntar data'}</div>
+ </div>
+ <div className="rounded-2xl border border-slate-200 bg-white p-4">
+ <div className="text-xs uppercase tracking-[0.15em] text-slate-600">Underlag</div>
+ <div className="mt-2 text-lg font-semibold text-slate-950">{billingUnderlays.length > 0 ? 'Skapat' : 'Skapas automatiskt'}</div>
+ </div>
+ <div className="rounded-2xl border border-slate-200 bg-white p-4">
+ <div className="text-xs uppercase tracking-[0.15em] text-slate-600">Avvikelser</div>
+ <div className="mt-2 text-lg font-semibold text-slate-950">{blockedUnderlays.length > 0 ? 'Kräver åtgärd' : 'Inga kända'}</div>
+ </div>
+ </div>
+ {blockedUnderlays.length > 0 ? (
+ <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+ <div className="font-semibold">Fakturering kräver åtgärd</div>
+ <p className="mt-1">Det finns mätvärden eller fakturaunderlag som inte kan skickas automatiskt. Kontrollera arbetskön eller kontakta plattformsadministratör.</p>
+ </div>
+ ) : null}
+ </div>
+ </SectionCard>
+ </section>
+ )
+ }
+
+ return (
  <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
  <div className="space-y-6">
  <SectionCard
@@ -230,283 +270,3 @@ export default function CustomerBillingMeteringCard({
  </section>
  )
  }
-
- return (
- <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
- <div className="space-y-6">
- <SectionCard
- title="Direktåtgärder för nätägare"
- description="Snabbaste vägen för att begära mätvärden, faktureringsunderlag eller kund- och anläggningsdata utan att fylla hela formuläret varje gång."
- >
- <div className="grid gap-4">
- <div className="grid gap-3 sm:grid-cols-3">
- <form action={createGridOwnerDataRequestAction} className="contents">
- <input type="hidden" name="customer_id" value={customerId} />
- <input type="hidden" name="request_scope" value="meter_values" />
- <input type="hidden" name="site_id" value={defaultSiteId} />
- <input type="hidden" name="metering_point_id" value={defaultMeteringPointId} />
- <input type="hidden" name="grid_owner_id" value={defaultGridOwnerId} />
- <input type="hidden" name="requested_period_start" value={defaultPeriod.start} />
- <input type="hidden" name="requested_period_end" value={defaultPeriod.end} />
- <input type="hidden" name="notes" value="Snabbåtgärd från kundkort: mätvärden" />
- <QuickActionButton
- idleLabel="Begär mätvärden"
- pendingLabel="Skapar..."
- tone="warning"
- />
- </form>
-
- <form action={createGridOwnerDataRequestAction} className="contents">
- <input type="hidden" name="customer_id" value={customerId} />
- <input type="hidden" name="request_scope" value="billing_underlay" />
- <input type="hidden" name="site_id" value={defaultSiteId} />
- <input type="hidden" name="metering_point_id" value={defaultMeteringPointId} />
- <input type="hidden" name="grid_owner_id" value={defaultGridOwnerId} />
- <input type="hidden" name="requested_period_start" value={defaultPeriod.start} />
- <input type="hidden" name="requested_period_end" value={defaultPeriod.end} />
- <input
- type="hidden"
- name="notes"
- value="Snabbåtgärd från kundkort: faktureringsunderlag"
- />
- <QuickActionButton
- idleLabel="Begär faktureringsunderlag"
- pendingLabel="Skapar..."
- tone="warning"
- />
- </form>
-
- <form action={createGridOwnerDataRequestAction} className="contents">
- <input type="hidden" name="customer_id" value={customerId} />
- <input type="hidden" name="request_scope" value="customer_masterdata" />
- <input type="hidden" name="site_id" value={defaultSiteId} />
- <input type="hidden" name="metering_point_id" value={defaultMeteringPointId} />
- <input type="hidden" name="grid_owner_id" value={defaultGridOwnerId} />
- <input
- type="hidden"
- name="notes"
- value="Snabbåtgärd från kundkort: kund- och anläggningsdata"
- />
- <QuickActionButton
- idleLabel="Begär kund- och anläggningsdata"
- pendingLabel="Skapar..."
- tone="warning"
- />
- </form>
- </div>
-
- <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700 ">
- Snabbknapparna använder första tillgängliga anläggning, mätpunkt och nätägare på kunden. Behöver du styra exakt period, mätpunkt eller referens använder du formulären längre ner.
- </div>
- </div>
- </SectionCard>
-
- <SectionCard
- title="Direktåtgärder för utskick"
- description="Förbered externa utskick direkt för mätvärden eller faktureringsunderlag."
- >
- <div className="grid gap-3 sm:grid-cols-2">
- <form action={queueOutboundRequestAction} className="contents">
- <input type="hidden" name="customer_id" value={customerId} />
- <input type="hidden" name="request_type" value="meter_values" />
- <input type="hidden" name="site_id" value={defaultSiteId} />
- <input type="hidden" name="metering_point_id" value={defaultMeteringPointId} />
- <input type="hidden" name="grid_owner_id" value={defaultGridOwnerId} />
- <input type="hidden" name="period_start" value={defaultPeriod.start} />
- <input type="hidden" name="period_end" value={defaultPeriod.end} />
- <input
- type="hidden"
- name="payload_note"
- value="Snabbåtgärd från kundkort: utskick av mätvärden"
- />
- <QuickActionButton
- idleLabel="Förbered utskick: mätvärden"
- pendingLabel="Köar..."
- tone="info"
- />
- </form>
-
- <form action={queueOutboundRequestAction} className="contents">
- <input type="hidden" name="customer_id" value={customerId} />
- <input type="hidden" name="request_type" value="billing_underlay" />
- <input type="hidden" name="site_id" value={defaultSiteId} />
- <input type="hidden" name="metering_point_id" value={defaultMeteringPointId} />
- <input type="hidden" name="grid_owner_id" value={defaultGridOwnerId} />
- <input type="hidden" name="period_start" value={defaultPeriod.start} />
- <input type="hidden" name="period_end" value={defaultPeriod.end} />
- <input
- type="hidden"
- name="payload_note"
- value="Snabbåtgärd från kundkort: utskick av faktureringsunderlag"
- />
- <QuickActionButton
- idleLabel="Förbered utskick: faktureringsunderlag"
- pendingLabel="Köar..."
- tone="info"
- />
- </form>
- </div>
- </SectionCard>
-
- <SectionCard
- title="Direktåtgärder för export"
- description="Förbered partnerexporter utan att fylla hela exportformuläret varje gång."
- >
- <div className="grid gap-3 sm:grid-cols-3">
- <form action={createPartnerExportAction} className="contents">
- <input type="hidden" name="customer_id" value={customerId} />
- <input type="hidden" name="export_kind" value="billing_underlay" />
- <input type="hidden" name="target_system" value="billing_partner" />
- <input type="hidden" name="site_id" value={defaultSiteId} />
- <input type="hidden" name="metering_point_id" value={defaultMeteringPointId} />
- <input
- type="hidden"
- name="notes"
- value="Snabbåtgärd från kundkort: export av faktureringsunderlag"
- />
- <QuickActionButton
- idleLabel="Export: faktureringsunderlag"
- pendingLabel="Skapar..."
- tone="success"
- />
- </form>
-
- <form action={createPartnerExportAction} className="contents">
- <input type="hidden" name="customer_id" value={customerId} />
- <input type="hidden" name="export_kind" value="meter_values" />
- <input type="hidden" name="target_system" value="billing_partner" />
- <input type="hidden" name="site_id" value={defaultSiteId} />
- <input type="hidden" name="metering_point_id" value={defaultMeteringPointId} />
- <input
- type="hidden"
- name="notes"
- value="Snabbåtgärd från kundkort: export av mätvärden"
- />
- <QuickActionButton
- idleLabel="Export: mätvärden"
- pendingLabel="Skapar..."
- tone="success"
- />
- </form>
-
- <form action={createPartnerExportAction} className="contents">
- <input type="hidden" name="customer_id" value={customerId} />
- <input type="hidden" name="export_kind" value="customer_snapshot" />
- <input type="hidden" name="target_system" value="billing_partner" />
- <input type="hidden" name="site_id" value={defaultSiteId} />
- <input type="hidden" name="metering_point_id" value={defaultMeteringPointId} />
- <input
- type="hidden"
- name="notes"
- value="Snabbåtgärd från kundkort: export av kundbild"
- />
- <QuickActionButton
- idleLabel="Export: kundbild"
- pendingLabel="Skapar..."
- tone="success"
- />
- </form>
- </div>
- </SectionCard>
-
- <CustomerOperationalSignalPanel
- unresolvedOutbound={unresolvedOutbound}
- openDataRequests={openDataRequests}
- readyUnderlaysWithoutExport={readyUnderlaysWithoutExport}
- openMeterValueRequests={openMeterValueRequests}
- openBillingRequests={openBillingRequests}
- openMasterdataRequests={openMasterdataRequests}
- queuedMeterValueOutbound={queuedMeterValueOutbound}
- queuedBillingOutbound={queuedBillingOutbound}
- billingExports={billingExports}
- meteringExports={meteringExports}
- customerSnapshotExports={customerSnapshotExports}
- sites={sites}
- meteringPoints={meteringPoints}
- />
-
- <SectionCard
- title="Förbered externt utskick"
- description="Styrt formulär: mätpunkter filtreras per vald anläggning, nätägare förifylls och perioden rekommenderas utifrån verklig data."
- >
- <SmartOutboundForm
- customerId={customerId}
- sites={sites}
- meteringPoints={meteringPoints}
- gridOwners={gridOwners}
- billingUnderlays={billingUnderlays}
- meteringValues={meteringValues}
- />
- </SectionCard>
-
- <CustomerOutboundHistoryPanel
- outboundRequests={outboundRequests}
- sites={sites}
- meteringPoints={meteringPoints}
- gridOwners={gridOwners}
- />
-
- <SectionCard
- title="Begär underlag från nätägare"
- description="Styrt formulär: mätpunkter filtreras per vald anläggning, nätägare förifylls och perioden rekommenderas utifrån verklig data."
- >
- <SmartDataRequestForm
- customerId={customerId}
- sites={sites}
- meteringPoints={meteringPoints}
- gridOwners={gridOwners}
- billingUnderlays={billingUnderlays}
- meteringValues={meteringValues}
- />
- </SectionCard>
-
- <SectionCard
- title="Förbered partnerexport"
- description="Styrt formulär: faktureringsunderlag filtreras hårt mot vald anläggning och mätpunkt."
- >
- <SmartPartnerExportForm
- customerId={customerId}
- sites={sites}
- meteringPoints={meteringPoints}
- gridOwners={gridOwners}
- billingUnderlays={billingUnderlays}
- />
- </SectionCard>
- </div>
-
- <div className="space-y-6">
- <CustomerTimelinePanel
- timeline={timeline}
- sites={sites}
- meteringPoints={meteringPoints}
- gridOwners={gridOwners}
- />
-
- <CustomerDataRequestsPanel
- dataRequests={dataRequests}
- sites={sites}
- meteringPoints={meteringPoints}
- gridOwners={gridOwners}
- />
-
- <CustomerMeteringValuesPanel
- meteringValues={meteringValues}
- meteringPoints={meteringPoints}
- />
-
- <CustomerBillingUnderlaysPanel
- billingUnderlays={billingUnderlays}
- sites={sites}
- meteringPoints={meteringPoints}
- />
-
- <CustomerPartnerExportsPanel
- partnerExports={partnerExports}
- underlayById={underlayById}
- sites={sites}
- meteringPoints={meteringPoints}
- />
- </div>
- </section>
- )
-}

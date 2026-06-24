@@ -453,20 +453,20 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
   },
   {
     id: "legal-readiness",
-    label: "Juridik & godkännanden",
+    label: "Avtal & fullmakt",
     description: "Villkor, fullmakt, snapshots, dokument och blockerare.",
     group: "Start",
   },
   {
     id: "authorization-documents",
-    label: "Fullmakt / avtal",
+    label: "Dokument",
     description: "Dokument, signerad fullmakt och scope.",
     group: "Drift",
   },
   {
     id: "switch-operations",
     label: "Leverantörsbyte",
-    description: "Starta och följ switchärenden.",
+    description: "Starta och följ leverantörsbyte.",
     group: "Drift",
   },
   {
@@ -477,8 +477,8 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
   },
   {
     id: "billing-metering",
-    label: "Nätägaruppgifter",
-    description: "Mätvärden, billingunderlag och partnerexporter.",
+    label: "Fakturering",
+    description: "Automatisk status för mätvärden, fakturaunderlag och fakturapartner.",
     group: "Drift",
   },
   {
@@ -514,8 +514,8 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
   },
   {
     id: "sites",
-    label: "Anläggningar",
-    description: "Anläggningar, nätägare och elområden.",
+    label: "Anläggning & nätägare",
+    description: "Anläggning, nätägare och elområde.",
     group: "Kunddata",
   },
   {
@@ -562,9 +562,22 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
   },
 ];
 
+const TENANT_CUSTOMER_WORKSPACE_TAB_IDS = new Set<CustomerWorkspaceTab>([
+  "overview",
+  "legal-readiness",
+  "sites",
+  "switch-operations",
+  "billing-metering",
+  "notes",
+]);
+
 const CUSTOMER_WORKSPACE_TAB_IDS = new Set<CustomerWorkspaceTab>(
   CUSTOMER_WORKSPACE_TABS.map((tab) => tab.id),
 );
+
+function canShowCustomerWorkspaceTab(tab: CustomerWorkspaceTab, isPlatformAdmin: boolean): boolean {
+  return isPlatformAdmin || TENANT_CUSTOMER_WORKSPACE_TAB_IDS.has(tab);
+}
 
 function normalizeWorkspaceTab(
   value: string | null | undefined,
@@ -636,8 +649,8 @@ function CustomerWorkspaceTabNav({
   isPlatformAdmin: boolean;
 }) {
   const groups = ["Start", "Drift", "Kunddata", "Historik"] as const;
-  const visibleTabs = CUSTOMER_WORKSPACE_TABS.filter(
-    (tab) => isPlatformAdmin || tab.id !== "ediel-operations",
+  const visibleTabs = CUSTOMER_WORKSPACE_TABS.filter((tab) =>
+    canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin),
   );
 
   return (
@@ -645,11 +658,10 @@ function CustomerWorkspaceTabNav({
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <h2 className="text-base font-semibold text-slate-950 ">
-            Kundens arbetsyta
+            Kundprocess
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-slate-700 ">
-            Välj arbetsflöde i knapparna nedan. Kundkortet visar bara vald del,
-            så handläggaren slipper en lång sida som bara fortsätter nedåt.
+            Se var kunden befinner sig, vad som händer nu och vad som kräver åtgärd.
           </p>
         </div>
         <Link
@@ -1603,12 +1615,11 @@ function CustomerWebsiteTraceabilityCard({
             Kundnummer och externa kopplingar
           </p>
           <h2 className="mt-2 text-xl font-semibold text-slate-950 ">
-            Ops är master för kundrelationen
+            Kundrelation och externa kopplingar
           </h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-emerald-900 ">
-            Kundnumret används som huvudreferens för faktura, Capway, webhooks
-            och bestridan. Externa kund-ID:n och Capway-ID:n är bara
-            partnerreferenser.
+            Kundnumret används som huvudreferens i avtal, fakturering och externa kopplingar.
+            Externa kund-ID:n är partnerreferenser.
           </p>
         </div>
         <Link
@@ -1839,10 +1850,12 @@ export default async function CustomerAdminDetailPage({
     : editMeteringPointId
       ? "metering-points"
       : normalizeWorkspaceTab(resolvedSearchParams.tab);
-  const activeTab: CustomerWorkspaceTab =
-    !isPlatformAdmin && requestedTab === "ediel-operations"
-      ? "overview"
-      : requestedTab;
+  const activeTab: CustomerWorkspaceTab = canShowCustomerWorkspaceTab(
+    requestedTab,
+    isPlatformAdmin,
+  )
+    ? requestedTab
+    : "overview";
 
   const supabase = await createSupabaseServerClient();
   const tenantScope = await resolveAdminTenantReadScope(access);
@@ -2690,25 +2703,29 @@ export default async function CustomerAdminDetailPage({
         </div>
       </section>
 
-      <CustomerFacilityWorkflowCard
-        customerId={id}
-        sites={sites}
-        meteringPoints={meteringPoints}
-        infoRequests={customerInfoRequests}
-        powersOfAttorney={poaRows}
-        documents={documentRows}
-        gridOwners={gridOwners}
-        snapshot={customerCardSnapshot}
-      />
+      {isPlatformAdmin ? (
+        <CustomerFacilityWorkflowCard
+          customerId={id}
+          sites={sites}
+          meteringPoints={meteringPoints}
+          infoRequests={customerInfoRequests}
+          powersOfAttorney={poaRows}
+          documents={documentRows}
+          gridOwners={gridOwners}
+          snapshot={customerCardSnapshot}
+        />
+      ) : null}
 
-      <CustomerWebsiteTraceabilityCard
-        customer={customer}
-        applications={websiteApplications as WebsiteApplicationAdminRow[]}
-        billingPartners={
-          billingPartnerCustomers as BillingPartnerCustomerSummary[]
-        }
-        isPlatformAdmin={isPlatformAdmin}
-      />
+      {isPlatformAdmin ? (
+        <CustomerWebsiteTraceabilityCard
+          customer={customer}
+          applications={websiteApplications as WebsiteApplicationAdminRow[]}
+          billingPartners={
+            billingPartnerCustomers as BillingPartnerCustomerSummary[]
+          }
+          isPlatformAdmin={isPlatformAdmin}
+        />
+      ) : null}
 
       <CustomerWorkspaceTabNav
         customerId={id}
@@ -2736,6 +2753,7 @@ export default async function CustomerAdminDetailPage({
             isPlatformAdmin={isPlatformAdmin}
             z01RepairEvents={z01RepairEvents}
           />
+          {isPlatformAdmin ? (
           <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
               <div className="flex flex-wrap items-center gap-3">
@@ -2886,6 +2904,8 @@ export default async function CustomerAdminDetailPage({
               </div>
             </div>
           </div>
+
+          ) : null}
         </SectionAnchor>
       ) : null}
 
@@ -2961,6 +2981,7 @@ export default async function CustomerAdminDetailPage({
             powersOfAttorney={poaRows}
             documents={documentRows}
             snapshot={customerCardSnapshot}
+            isPlatformAdmin={isPlatformAdmin}
           />
         </SectionAnchor>
       ) : null}
@@ -3006,6 +3027,7 @@ export default async function CustomerAdminDetailPage({
             outboundRequests={outboundRequests}
             edielMessages={edielData.edielMessages}
             edielRecommendationRoutes={edielData.recommendationRoutes}
+            isPlatformAdmin={isPlatformAdmin}
           />
         </SectionAnchor>
       ) : null}

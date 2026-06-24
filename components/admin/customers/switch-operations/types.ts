@@ -19,6 +19,7 @@ export type CustomerSwitchOperationsCardProps = {
   outboundRequests: OutboundRequestRow[]
   edielMessages: CustomerEdielMessageRow[]
   edielRecommendationRoutes: EdielRecommendationRouteRow[]
+  isPlatformAdmin?: boolean
 }
 
 export type SwitchTimelineEntry = {
