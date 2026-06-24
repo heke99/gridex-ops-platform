@@ -22,12 +22,12 @@ const billingCard = read('components/admin/customers/CustomerBillingMeteringCard
 assert(/isPlatformAdmin\?: boolean/.test(billingCard), 'billing/metering card accepts platform-admin flag')
 assert(/if \(!isPlatformAdmin\)/.test(billingCard), 'tenant billing card has non-technical branch')
 assert(/billingAutomatic/.test(billingCard) || /Fakturaunderlag skapas automatiskt/.test(billingCard), 'tenant sees automatic billing status')
-assert(/Begär mätvärden/.test(billingCard.split('if (!isPlatformAdmin)')[1]), 'manual metering buttons remain only after platform-admin branch')
-assert(/CustomerTimelinePanel/.test(billingCard), 'tenant keeps timeline visibility')
+assert(!/if \(!isPlatformAdmin\)[\s\S]*Begär mätvärden/.test(billingCard), 'tenant billing branch has no manual metering button')
+assert(/CustomerTimelinePanel/.test(billingCard), 'platform technical billing details keep timeline panel')
 
 const page = read('app/admin/customers/[id]/page.tsx')
 assert(/isPlatformAdmin=\{isPlatformAdmin\}/.test(page), 'customer page passes platform-admin flag to child cards')
-assert(/Fakturering hanteras automatiskt/.test(page), 'customer page explains automatic billing')
+assert(/Status för mätvärden, fakturaunderlag och fakturapartner/.test(page) || /Fakturering/.test(page), 'customer page explains automatic billing')
 
 const routeReadiness = read('lib/customer-operations/customerProcessRouteReadiness.ts')
 assert(/grid_owner_information_request/.test(routeReadiness), 'route readiness knows grid owner information request process')

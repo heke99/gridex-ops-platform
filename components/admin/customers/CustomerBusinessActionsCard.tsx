@@ -101,7 +101,6 @@ export default function CustomerBusinessActionsCard({
     visibility: isPlatformAdmin ? 'superadmin' : 'tenant',
   })
   const primaryAction = actions.find((action) => action.primary) ?? null
-  const secondaryActions = actions.filter((action) => action.priority === 'secondary')
   const statusCards = buildCustomerBusinessStatusCards({ workflow, snapshot })
   const primarySite = snapshot.primarySite
   const primaryPoint = snapshot.primaryMeteringPoint
@@ -134,17 +133,16 @@ export default function CustomerBusinessActionsCard({
 
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {statusCards.map((card) => (
-            <Link
+            <article
               key={card.id}
-              href={card.href ?? '#'}
-              className={`rounded-2xl border p-4 transition hover:shadow-sm ${customerStatusToneClass(card.tone)}`}
+              className={`rounded-2xl border p-4 ${customerStatusToneClass(card.tone)}`}
             >
               <div className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">
                 {card.label}
               </div>
               <div className="mt-2 text-lg font-semibold">{card.value}</div>
               <p className="mt-2 text-xs leading-5 opacity-90">{card.description}</p>
-            </Link>
+            </article>
           ))}
         </div>
 
@@ -185,19 +183,7 @@ export default function CustomerBusinessActionsCard({
           </div>
         ) : null}
 
-        {secondaryActions.length > 0 ? (
-          <div className="mt-5 flex flex-wrap gap-3">
-            {secondaryActions.map((action) => (
-              <Link
-                key={action.id}
-                href={action.href ?? '#'}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                {action.label}
-              </Link>
-            ))}
-          </div>
-        ) : null}
+
 
         {isPlatformAdmin ? (
           <details className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">

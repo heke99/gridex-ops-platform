@@ -437,7 +437,8 @@ type CustomerWorkspaceTab =
   | "notes"
   | "communication"
   | "lifecycle-decisions"
-  | "audit";
+  | "audit"
+  | "technical-details";
 
 const CUSTOMER_WORKSPACE_TABS: Array<{
   id: CustomerWorkspaceTab;
@@ -560,6 +561,12 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
     description: "Senaste ändringar och spårbarhet.",
     group: "Historik",
   },
+  {
+    id: "technical-details",
+    label: "Tekniska detaljer",
+    description: "Avancerad drift, externa referenser, Ediel, audit och felsökning.",
+    group: "Historik",
+  },
 ];
 
 const TENANT_CUSTOMER_WORKSPACE_TAB_IDS = new Set<CustomerWorkspaceTab>([
@@ -648,66 +655,53 @@ function CustomerWorkspaceTabNav({
   activeTab: CustomerWorkspaceTab;
   isPlatformAdmin: boolean;
 }) {
-  const groups = ["Start", "Drift", "Kunddata", "Historik"] as const;
-  const visibleTabs = CUSTOMER_WORKSPACE_TABS.filter((tab) =>
-    canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin),
-  );
+  const tenantTabs: CustomerWorkspaceTab[] = [
+    "overview",
+    "legal-readiness",
+    "sites",
+    "switch-operations",
+    "billing-metering",
+    "notes",
+  ];
+  const platformTabs: CustomerWorkspaceTab[] = [
+    ...tenantTabs,
+    "technical-details",
+  ];
+  const visibleTabIds = isPlatformAdmin ? platformTabs : tenantTabs;
+  const visibleTabs = visibleTabIds
+    .map((id) => CUSTOMER_WORKSPACE_TABS.find((tab) => tab.id === id))
+    .filter((tab): tab is (typeof CUSTOMER_WORKSPACE_TABS)[number] => Boolean(tab));
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm ">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-slate-950 ">
-            Kundprocess
-          </h2>
-          <p className="mt-1 max-w-3xl text-sm text-slate-700 ">
-            Se var kunden befinner sig, vad som händer nu och vad som kräver åtgärd.
-          </p>
+    <nav className="rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {visibleTabs.map((tab) => {
+            const isActive = tab.id === activeTab;
+            return (
+              <Link
+                key={tab.id}
+                href={customerTabHref(customerId, tab.id)}
+                title={tab.description}
+                className={`rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${
+                  isActive
+                    ? "border-emerald-300 bg-emerald-700 text-white shadow-sm "
+                    : "border-slate-300 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 "
+                }`}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
         </div>
         <Link
           href="/admin/customers"
-          className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
+          className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
         >
           Till kundregister
         </Link>
       </div>
-
-      <div className="mt-4 space-y-3">
-        {groups.map((group) => {
-          const tabs = visibleTabs.filter((tab) => tab.group === group);
-          if (tabs.length === 0) return null;
-          return (
-            <div
-              key={group}
-              className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3"
-            >
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 ">
-                {group}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {tabs.map((tab) => {
-                  const isActive = tab.id === activeTab;
-                  return (
-                    <Link
-                      key={tab.id}
-                      href={customerTabHref(customerId, tab.id)}
-                      title={tab.description}
-                      className={`rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${
-                        isActive
-                          ? "border-emerald-300 bg-emerald-700 text-white shadow-sm "
-                          : "border-slate-300 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 "
-                      }`}
-                    >
-                      {tab.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
+    </nav>
   );
 }
 
@@ -1612,14 +1606,13 @@ function CustomerWebsiteTraceabilityCard({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800 ">
-            Kundnummer och externa kopplingar
+            Externa referenser
           </p>
           <h2 className="mt-2 text-xl font-semibold text-slate-950 ">
-            Kundrelation och externa kopplingar
+            API- och partnerkopplingar
           </h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-emerald-900 ">
-            Kundnumret används som huvudreferens i avtal, fakturering och externa kopplingar.
-            Externa kund-ID:n är partnerreferenser.
+            Visar tekniska referenser för hemsida, kundportal och fakturapartner.
           </p>
         </div>
         <Link
@@ -1920,27 +1913,27 @@ export default async function CustomerAdminDetailPage({
     : tenantScope.companyId;
   const needsEdielData =
     ["overview", "switch-operations"].includes(activeTab) ||
-    (isPlatformAdmin && activeTab === "ediel-operations");
+    (isPlatformAdmin && ["ediel-operations", "technical-details"].includes(activeTab));
   const needsGridOwners =
     needsEdielData ||
-    ["data-requests", "billing-metering", "sites", "metering-points"].includes(
+    ["data-requests", "billing-metering", "sites", "metering-points", "technical-details"].includes(
       activeTab,
     );
-  const needsPriceAreas = ["sites", "metering-points"].includes(activeTab);
+  const needsPriceAreas = ["sites", "metering-points", "technical-details"].includes(activeTab);
   const needsContractOffers = activeTab === "profile";
   const needsBillingMeteringData =
-    activeTab === "overview" || activeTab === "billing-metering";
+    activeTab === "overview" || activeTab === "billing-metering" || activeTab === "technical-details";
   const needsAnalyticsData =
     activeTab === "overview" || activeTab === "analytics";
-  const needsPortalAccessData = activeTab === "portal-access";
-  const needsSwitchEvents = activeTab === "switch-operations";
-  const needsAuditLogs = activeTab === "audit";
-  const needsPowerScopes = activeTab === "authorization-documents";
-  const needsOpsMasterData = ["overview", "legal-readiness"].includes(
+  const needsPortalAccessData = activeTab === "portal-access" || activeTab === "technical-details";
+  const needsSwitchEvents = activeTab === "switch-operations" || activeTab === "technical-details";
+  const needsAuditLogs = activeTab === "audit" || activeTab === "technical-details";
+  const needsPowerScopes = activeTab === "authorization-documents" || activeTab === "technical-details";
+  const needsOpsMasterData = ["overview", "legal-readiness", "technical-details"].includes(
     activeTab,
   );
   const needsCommunicationLogs =
-    activeTab === "communication" || needsOpsMasterData;
+    activeTab === "communication" || activeTab === "technical-details" || needsOpsMasterData;
   const emptyEdielData: CustomerEdielDataBundle = {
     communicationRoutes: [],
     routeProfiles: [],
@@ -1983,7 +1976,7 @@ export default async function CustomerAdminDetailPage({
     listGridOwnerDataRequestsByCustomerId(id, {
       companyId: customerCompanyId,
       limit:
-        needsBillingMeteringData || activeTab === "ediel-operations" ? 50 : 10,
+        needsBillingMeteringData || ["ediel-operations", "technical-details"].includes(activeTab) ? 50 : 10,
     }),
     needsBillingMeteringData
       ? listMeteringValuesByCustomerId(id, {
@@ -2003,7 +1996,7 @@ export default async function CustomerAdminDetailPage({
           limit: activeTab === "billing-metering" ? 50 : 10,
         })
       : Promise.resolve([]),
-    ["overview", "billing-metering", "switch-operations"].includes(activeTab)
+    ["overview", "billing-metering", "switch-operations", "technical-details"].includes(activeTab)
       ? listOutboundRequestsByCustomerId(id, {
           companyId: customerCompanyId,
           limit: activeTab === "overview" ? 20 : 50,
@@ -2410,55 +2403,23 @@ export default async function CustomerAdminDetailPage({
         }
       : customerCardSnapshot.recommendedAction === "follow_up"
         ? {
-            label: "Följ upp uppgiftsbegäran",
-            href: customerTabHref(id, "data-requests"),
+            label: "Följ upp uppgifter",
+            href: customerTabHref(id, "sites"),
           }
         : {
             label: "Begär uppgifter",
-            href: customerTabHref(id, "data-requests"),
+            href: customerTabHref(id, "overview"),
           };
-  const customerTopStatusCards = [
-    {
-      label: "Fullmakt",
-      value: customerCardSnapshot.hasAuthorization ? "Finns" : "Saknas",
-      href: customerTabHref(id, "authorization-documents"),
-    },
-    {
-      label: "Uppgiftsbegäran",
-      value:
-        pendingCustomerInfoRequests.length > 0 ? "Väntar svar" : "Ej skickad",
-      href: customerTabHref(id, "data-requests"),
-    },
-    {
-      label: "Avtal",
-      value: activeCustomerContract
-        ? contractStatusUiLabel(activeCustomerContract.status)
-        : "Saknas",
-      href: customerTabHref(id, "contracts"),
-    },
-    {
-      label: "Leverantörsbyte",
-      value: lifecycleSummary.primaryLabel,
-      href: customerTabHref(id, "switch-operations"),
-    },
-    {
-      label: "Blockerare",
-      value:
-        openCustomerBlockers.length > 0
-          ? `${openCustomerBlockers.length} öppna`
-          : "Inga öppna",
-      href: customerTabHref(id, "overview"),
-    },
-  ];
+
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-700 ">Kundkort</p>
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-700">Kundkort</p>
             <div className="mt-1 flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-950 ">
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
                 {customerName}
               </h1>
               <span
@@ -2469,176 +2430,28 @@ export default async function CustomerAdminDetailPage({
                 {customerStatusLabel(customer.status)}
               </span>
             </div>
-
-            <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-700 ">
-              <span className="rounded-full bg-slate-100 px-3 py-1 ">
-                {displayEmail ?? "Ingen e-post"}
-              </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 ">
-                {displayPhone ?? "Ingen telefon"}
-              </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 ">
-                {customerTypeUiLabel}
-              </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 ">
+            <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-700">
+              <span className="rounded-full bg-slate-100 px-3 py-1">
                 Kundnummer: {customer.customer_number ?? "—"}
               </span>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 ">
-              {customerTypeDescription(normalizedCustomerType)}
-            </div>
-
-            <div className="mt-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm ">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 ">
-                    Kundintag och datakvalitet
-                  </div>
-                  <p className="mt-1 text-sm text-slate-700 ">
-                    Visar om kunden är redo för avtal, drift och fakturering
-                    utan att handläggaren behöver leta efter saknade uppgifter.
-                  </p>
-                </div>
-                <span
-                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${intakeStatusTone(customer.intake_status)}`}
-                >
-                  {intakeStatusLabel(customer.intake_status)} ·{" "}
-                  {customer.intake_quality_score ?? 0}%
-                </span>
-              </div>
-              {normalizeJsonList(customer.intake_missing_fields).length > 0 ? (
-                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 ">
-                  <div className="font-semibold">Saknade uppgifter</div>
-                  <p className="mt-1">
-                    {normalizeJsonList(customer.intake_missing_fields).join(
-                      ", ",
-                    )}
-                  </p>
-                </div>
-              ) : null}
-              {normalizeJsonList(customer.intake_warnings).length > 0 ? (
-                <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 ">
-                  <div className="font-semibold">Varningar att kontrollera</div>
-                  <p className="mt-1">
-                    {normalizeJsonList(customer.intake_warnings).join(" ")}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-3">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 ">
-                <div className="text-xs uppercase tracking-[0.14em] text-slate-700 ">
-                  {primaryIdentityLabel}
-                </div>
-                <div className="mt-1 font-medium text-slate-900 ">
-                  {primaryIdentityValue}
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 ">
-                <div className="text-xs uppercase tracking-[0.14em] text-slate-700 ">
-                  {secondaryIdentityLabel}
-                </div>
-                <div className="mt-1 font-medium text-slate-900 ">
-                  {secondaryIdentityValue}
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 ">
-                <div className="text-xs uppercase tracking-[0.14em] text-slate-700 ">
-                  Skapad
-                </div>
-                <div className="mt-1 font-medium text-slate-900 ">
-                  {formatDateTime(customer.created_at)}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3 lg:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 ">
-                <div className="text-xs uppercase tracking-[0.14em] text-slate-700 ">
-                  {primaryContactHeading(normalizedCustomerType)}
-                </div>
-                <div className="mt-2 font-medium text-slate-900 ">
-                  {primaryContact?.name ??
-                    (normalizedCustomerType === "private"
-                      ? customerName
-                      : "Ingen primär kontaktperson")}
-                </div>
-                <div className="mt-2 space-y-1 text-sm text-slate-700 ">
-                  <div>
-                    E-post: {primaryContact?.email ?? displayEmail ?? "—"}
-                  </div>
-                  <div>
-                    Telefon: {primaryContact?.phone ?? displayPhone ?? "—"}
-                  </div>
-                  <div>Typ: {primaryContact?.type ?? "—"}</div>
-                  <div>Titel: {primaryContact?.title ?? "—"}</div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 ">
-                <div className="text-xs uppercase tracking-[0.14em] text-slate-700 ">
-                  {activeAddressHeading(normalizedCustomerType)}
-                </div>
-                <div className="mt-2 font-medium text-slate-900 ">
-                  {activeAddressDisplay?.street ?? "Ingen anläggningsadress registrerad"}
-                </div>
-                <div className="mt-2 space-y-1 text-sm text-slate-700 ">
-                  <div>
-                    {activeAddressDisplay
-                      ? `${activeAddressDisplay.postalCode ?? "—"} ${activeAddressDisplay.city ?? ""}`
-                      : "Komplettera anläggningsadress för automatisk nätägarträff."}
-                  </div>
-                  <div>Typ: {activeAddressDisplay?.type ?? "—"}</div>
-                  <div>Land: {activeAddressDisplay?.country ?? "—"}</div>
-                </div>
-              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1">
+                {displayEmail ?? "Ingen e-post"}
+              </span>
+              <span className="rounded-full bg-slate-100 px-3 py-1">
+                {displayPhone ?? "Ingen telefon"}
+              </span>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
-              <div className="text-slate-700 ">Anläggningar</div>
-              <div className="mt-1 text-xl font-semibold text-slate-950 ">
-                {sites.length}
-              </div>
-              <div className="mt-1 text-xs text-slate-700 ">
-                {activeSites} aktiva
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
-              <div className="text-slate-700 ">Mätpunkter</div>
-              <div className="mt-1 text-xl font-semibold text-slate-950 ">
-                {meteringPoints.length}
-              </div>
-              <div className="mt-1 text-xs text-slate-700 ">
-                {activeMeteringPoints} aktiva
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
-              <div className="text-slate-700 ">Uppgiftsbegäran</div>
-              <div className="mt-1 text-xl font-semibold text-slate-950 ">
-                {dataRequests.length}
-              </div>
-              <div className="mt-1 text-xs text-slate-700 ">
-                fakturering och mätvärden
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
-              <div className="text-slate-700 ">Partnerexporter</div>
-              <div className="mt-1 text-xl font-semibold text-slate-950 ">
-                {partnerExports.length}
-              </div>
-              <div className="mt-1 text-xs text-slate-700 ">
-                köad / skickad / kvitterad
-              </div>
-            </div>
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 lg:max-w-xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+              Nästa steg
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950">
+              {nextCustomerStep.label}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              {customerCardSnapshot.nextStepDescription}
+            </p>
           </div>
         </div>
       </section>
@@ -2667,66 +2480,6 @@ export default async function CustomerAdminDetailPage({
         </section>
       ) : null}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-slate-900">
-              Snabbstatus
-            </div>
-            <p className="mt-1 text-sm text-slate-700">
-              Samlad bild av nästa steg för kunden utan att handläggaren behöver
-              leta i alla flikar.
-            </p>
-          </div>
-          <Link
-            href={nextCustomerStep.href}
-            className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
-          >
-            Nästa steg: {nextCustomerStep.label}
-          </Link>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          {customerTopStatusCards.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm hover:bg-slate-100"
-            >
-              <div className="text-xs uppercase tracking-[0.12em] text-slate-600">
-                {item.label}
-              </div>
-              <div className="mt-1 font-semibold text-slate-950">
-                {item.value}
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {isPlatformAdmin ? (
-        <CustomerFacilityWorkflowCard
-          customerId={id}
-          sites={sites}
-          meteringPoints={meteringPoints}
-          infoRequests={customerInfoRequests}
-          powersOfAttorney={poaRows}
-          documents={documentRows}
-          gridOwners={gridOwners}
-          snapshot={customerCardSnapshot}
-        />
-      ) : null}
-
-      {isPlatformAdmin ? (
-        <CustomerWebsiteTraceabilityCard
-          customer={customer}
-          applications={websiteApplications as WebsiteApplicationAdminRow[]}
-          billingPartners={
-            billingPartnerCustomers as BillingPartnerCustomerSummary[]
-          }
-          isPlatformAdmin={isPlatformAdmin}
-        />
-      ) : null}
-
       <CustomerWorkspaceTabNav
         customerId={id}
         activeTab={activeTab}
@@ -2737,7 +2490,7 @@ export default async function CustomerAdminDetailPage({
         <SectionAnchor
           id="overview"
           title="Översikt"
-          description="Samlad status för kundens operativa läge och rekommenderad nästa åtgärd."
+          description="Enkel översikt med process, status och ett tydligt nästa steg."
         >
           <CustomerBusinessActionsCard
             customerId={id}
@@ -2753,159 +2506,7 @@ export default async function CustomerAdminDetailPage({
             isPlatformAdmin={isPlatformAdmin}
             z01RepairEvents={z01RepairEvents}
           />
-          {isPlatformAdmin ? (
-          <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="text-sm font-semibold text-slate-900 ">
-                  Arbetsläge
-                </div>
-                <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${lifecycleTone(
-                    lifecycleSummary.primaryLabel === "Blockerade switchar"
-                      ? "blocked"
-                      : lifecycleSummary.primaryLabel === "Redo att slutföra"
-                        ? "ready_to_execute"
-                        : lifecycleSummary.primaryLabel === "Väntar på kvittens"
-                          ? "awaiting_response"
-                          : lifecycleSummary.primaryLabel ===
-                              "Fel eller avvisat"
-                            ? "failed"
-                            : lifecycleSummary.primaryLabel ===
-                                "Inga akuta switchblockerare"
-                              ? "completed"
-                              : "queued_for_outbound",
-                  )}`}
-                >
-                  {lifecycleSummary.primaryLabel}
-                </span>
-              </div>
 
-              <p className="mt-3 text-sm text-slate-700 ">
-                {lifecycleSummary.primaryDescription}
-              </p>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
-                  <div className="text-slate-700 ">Aktiva öppna</div>
-                  <div className="mt-1 text-xl font-semibold text-slate-950 ">
-                    {lifecycleSummary.activeOpen}
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
-                  <div className="text-slate-700 ">Redo att slutföra</div>
-                  <div className="mt-1 text-xl font-semibold text-slate-950 ">
-                    {lifecycleSummary.readyToExecute}
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
-                  <div className="text-slate-700 ">Väntar svar</div>
-                  <div className="mt-1 text-xl font-semibold text-slate-950 ">
-                    {lifecycleSummary.awaitingResponse}
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
-                  <div className="text-slate-700 ">Blockerade</div>
-                  <div className="mt-1 text-xl font-semibold text-slate-950 ">
-                    {lifecycleSummary.blocked}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Link
-                  href={lifecycleSummary.primaryHref}
-                  className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 "
-                >
-                  Öppna rekommenderad arbetsyta
-                </Link>
-                <Link
-                  href={customerTabHref(id, "switch-operations")}
-                  className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 "
-                >
-                  Leverantörsbyte
-                </Link>
-                <Link
-                  href={customerTabHref(id, "billing-metering")}
-                  className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 "
-                >
-                  Nätägaruppgifter
-                </Link>
-                {isPlatformAdmin ? (
-                  <Link
-                    href={customerTabHref(id, "ediel-operations")}
-                    className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 "
-                  >
-                    Ediel
-                  </Link>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <CustomerPortalDataChainCard
-                status={portalDataChain.status}
-                rows={portalDataChain.rows}
-              />
-              <CustomerOperationsReadinessStrip items={readinessItems} />
-              <CustomerLegalReadinessCard
-                customerId={id}
-                readiness={opsMasterReadiness}
-                acceptances={customerLegalAcceptances}
-                documents={customerDocuments}
-                timeline={customerOpsTimeline}
-                snapshot={customerCardSnapshot}
-              />
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Link
-                  href="/admin/operations/switches?stage=queued_for_outbound"
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 "
-                >
-                  <div className="text-sm text-slate-700 ">Saknar utskick</div>
-                  <div className="mt-1 text-2xl font-semibold text-slate-950 ">
-                    {lifecycleSummary.queuedForOutbound}
-                  </div>
-                </Link>
-                <Link
-                  href="/admin/operations/switches?stage=awaiting_dispatch"
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 "
-                >
-                  <div className="text-sm text-slate-700 ">
-                    Väntar på sändning
-                  </div>
-                  <div className="mt-1 text-2xl font-semibold text-slate-950 ">
-                    {lifecycleSummary.awaitingDispatch}
-                  </div>
-                </Link>
-                <Link
-                  href="/admin/operations/switches?stage=failed"
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 "
-                >
-                  <div className="text-sm text-slate-700 ">
-                    Fel eller avvisat
-                  </div>
-                  <div className="mt-1 text-2xl font-semibold text-slate-950 ">
-                    {lifecycleSummary.failed}
-                  </div>
-                </Link>
-                <Link
-                  href="/admin/operations/ready-to-execute"
-                  className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm transition hover:bg-emerald-50 "
-                >
-                  <div className="text-sm text-slate-700 ">
-                    Klart eller redo
-                  </div>
-                  <div className="mt-1 text-2xl font-semibold text-slate-950 ">
-                    {lifecycleSummary.completed +
-                      lifecycleSummary.readyToExecute}
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          ) : null}
         </SectionAnchor>
       ) : null}
 
@@ -3028,6 +2629,7 @@ export default async function CustomerAdminDetailPage({
             edielMessages={edielData.edielMessages}
             edielRecommendationRoutes={edielData.recommendationRoutes}
             isPlatformAdmin={isPlatformAdmin}
+            allowTenantStartSwitch={customerCardSnapshot.recommendedAction === "request_switch"}
           />
         </SectionAnchor>
       ) : null}
@@ -3057,8 +2659,8 @@ export default async function CustomerAdminDetailPage({
       {activeTab === "billing-metering" ? (
         <SectionAnchor
           id="billing-metering"
-          title="Nätägaruppgifter"
-          description="Fakturering hanteras automatiskt från mätvärden till fakturapartner. Tenant ser bara status och avvikelser."
+          title="Fakturering"
+          description="Status för mätvärden, fakturaunderlag och fakturapartner."
         >
           <CustomerBillingMeteringCard
             customerId={id}
@@ -3197,24 +2799,69 @@ export default async function CustomerAdminDetailPage({
       {activeTab === "sites" ? (
         <SectionAnchor
           id="sites"
-          title="Anläggningar"
-          description="Skapa eller redigera kundens anläggningar."
+          title="Anläggning och nätägare"
+          description="Kundens anläggning, mätpunkt, nätägare och vad som eventuellt saknas."
         >
-          <section className="grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
-            <CustomerSiteForm
-              customerId={id}
-              gridOwners={gridOwners}
-              priceAreas={priceAreas}
-              site={safeSelectedSite}
-              cancelHref={`/admin/customers/${id}?tab=sites`}
-            />
-            <CustomerSitesTable
-              customerId={id}
-              sites={sites}
-              gridOwners={gridOwners}
-              meteringPoints={meteringPoints}
-              selectedSiteId={safeSelectedSite?.id ?? null}
-            />
+          <section className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Anläggning</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">
+                  {customerCardSnapshot.primarySite?.facility_id ?? "Saknas"}
+                </p>
+                <p className="mt-1 text-sm text-slate-700">
+                  {customerCardSnapshot.primarySite?.site_name ?? "Ingen anläggning vald"}
+                </p>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Mätpunkt</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">
+                  {customerCardSnapshot.primaryMeteringPoint?.meter_point_id ?? "Saknas"}
+                </p>
+                <p className="mt-1 text-sm text-slate-700">Används för mätvärden och leverantörsbyte.</p>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Nätägare</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">
+                  {gridOwners.find((owner) => owner.id === (customerCardSnapshot.primaryMeteringPoint?.grid_owner_id ?? customerCardSnapshot.primarySite?.grid_owner_id ?? null))?.name ?? "Saknas"}
+                </p>
+                <p className="mt-1 text-sm text-slate-700">Behövs för uppgiftsbegäran och leverantörsbyte.</p>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Elområde</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">
+                  {customerCardSnapshot.primaryMeteringPoint?.price_area_code ?? customerCardSnapshot.primarySite?.price_area_code ?? "Saknas"}
+                </p>
+                <p className="mt-1 text-sm text-slate-700">Används för pris och fakturering.</p>
+              </div>
+            </div>
+            {customerCardSnapshot.switchBlockerLabels.length > 0 ? (
+              <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+                <p className="font-semibold">Saknas innan nästa steg</p>
+                <p className="mt-2">{customerCardSnapshot.switchBlockerLabels.join(", ")}</p>
+              </div>
+            ) : null}
+            {isPlatformAdmin ? (
+              <details className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <summary className="cursor-pointer text-sm font-semibold text-slate-900">Redigera anläggningsuppgifter</summary>
+                <section className="mt-5 grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
+                  <CustomerSiteForm
+                    customerId={id}
+                    gridOwners={gridOwners}
+                    priceAreas={priceAreas}
+                    site={safeSelectedSite}
+                    cancelHref={`/admin/customers/${id}?tab=sites`}
+                  />
+                  <CustomerSitesTable
+                    customerId={id}
+                    sites={sites}
+                    gridOwners={gridOwners}
+                    meteringPoints={meteringPoints}
+                    selectedSiteId={safeSelectedSite?.id ?? null}
+                  />
+                </section>
+              </details>
+            ) : null}
           </section>
         </SectionAnchor>
       ) : null}
@@ -3252,6 +2899,69 @@ export default async function CustomerAdminDetailPage({
           description="Intern drift- och kundhistorik."
         >
           <NotesSection customerId={id} notes={notes} />
+        </SectionAnchor>
+      ) : null}
+
+      {isPlatformAdmin && activeTab === "technical-details" ? (
+        <SectionAnchor
+          id="technical-details"
+          title="Tekniska detaljer"
+          description="Avancerad drift, externa referenser och felsökning. Standardvyn ovan är samma enkla kundkort som tenant använder."
+        >
+          <div className="space-y-6">
+            <CustomerWebsiteTraceabilityCard
+              customer={customer}
+              applications={websiteApplications as WebsiteApplicationAdminRow[]}
+              billingPartners={
+                billingPartnerCustomers as BillingPartnerCustomerSummary[]
+              }
+              isPlatformAdmin={isPlatformAdmin}
+            />
+            <CustomerFacilityWorkflowCard
+              customerId={id}
+              sites={sites}
+              meteringPoints={meteringPoints}
+              infoRequests={customerInfoRequests}
+              powersOfAttorney={poaRows}
+              documents={documentRows}
+              gridOwners={gridOwners}
+              snapshot={customerCardSnapshot}
+            />
+            <CustomerPortalDataChainCard
+              status={portalDataChain.status}
+              rows={portalDataChain.rows}
+            />
+            <CustomerOperationsReadinessStrip items={readinessItems} />
+            <CustomerDataRequestsCard
+              customerId={id}
+              sites={sites}
+              meteringPoints={meteringPoints}
+              gridOwners={gridOwners}
+              infoRequests={customerInfoRequests}
+              powersOfAttorney={poaRows}
+              documents={documentRows}
+              snapshot={customerCardSnapshot}
+              isPlatformAdmin={isPlatformAdmin}
+            />
+            <CustomerEdielOperationsCard
+              customerId={id}
+              sites={sites}
+              meteringPoints={meteringPoints}
+              gridOwners={gridOwners}
+              switchRequests={switchRequests}
+              dataRequests={dataRequests}
+              communicationRoutes={edielData.communicationRoutes}
+              routeProfiles={edielData.routeProfiles}
+              edielMessages={edielData.edielMessages}
+              recommendationRoutes={edielData.recommendationRoutes}
+              isPlatformAdmin={isPlatformAdmin}
+            />
+            <AuditSection
+              auditLogs={auditLogs}
+              sites={sites}
+              meteringPoints={meteringPoints}
+            />
+          </div>
         </SectionAnchor>
       ) : null}
 

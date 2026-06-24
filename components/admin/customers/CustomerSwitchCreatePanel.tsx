@@ -54,17 +54,6 @@ function customerTypeLabel(value: string | null | undefined) {
  return 'Privatkund'
 }
 
-function ownSupplierResolutionLabel(value: OwnElectricitySupplierResolution) {
- if (value === 'explicit_flag') return 'Egen leverantör är vald'
- if (value === 'legacy_exact_gridex_name') {
- return 'Egen leverantör hittades via namnmatchning'
- }
- if (value === 'legacy_partial_gridex_name') {
- return 'Egen leverantör hittades via delvis namnmatchning'
- }
- return 'Egen leverantör behöver väljas'
-}
-
 export default function CustomerSwitchCreatePanel({
  customerId,
  sites,
@@ -101,9 +90,7 @@ export default function CustomerSwitchCreatePanel({
  }, [customerId])
 
  const customer = payload?.customer ?? null
- const suppliers = payload?.suppliers ?? []
  const ownSupplier = payload?.ownSupplier ?? null
- const ownSupplierResolution = payload?.ownSupplierResolution ?? 'not_found'
 
  const customerSummary = useMemo(() => {
  if (!customer) return 'Kunddata laddas...'
@@ -157,9 +144,7 @@ export default function CustomerSwitchCreatePanel({
  ? `${ownSupplier.name}${ownSupplier.org_number ? ` • ${ownSupplier.org_number}` : ''}`
  : 'Välj vilken leverantör som är ert bolag innan bytet skickas vidare.'}
  </div>
- <div className="mt-2 text-xs opacity-80">
- Status: {ownSupplierResolutionLabel(ownSupplierResolution)}.
- </div>
+
  </div>
 
  {loading ? (
@@ -200,37 +185,18 @@ export default function CustomerSwitchCreatePanel({
  ) : null}
  </div>
 
- <div className="mt-4 grid gap-4 md:grid-cols-3">
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Ärendetyp
- </span>
- <select
- name="request_type"
- defaultValue="switch"
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- >
- <option value="switch">Byte av leverantör</option>
- <option value="move_in">Inflytt</option>
- <option value="move_out_takeover">Övertag vid utflytt</option>
- </select>
- </label>
+ <input type="hidden" name="request_type" value="switch" />
+ <input type="hidden" name="switch_direction" value="to_us" />
+ <input type="hidden" name="current_supplier_name" value={site.current_supplier_name ?? ''} />
+ <input type="hidden" name="current_supplier_org_number" value={site.current_supplier_org_number ?? ''} />
 
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Riktning
- </span>
- <select
- name="switch_direction"
- defaultValue="to_us"
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- >
- <option value="to_us">Kund byter till oss</option>
- <option value="from_us">Kund byter från oss</option>
- <option value="manual">Manuell / specialfall</option>
- </select>
- </label>
-
+ <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+ <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+ <div className="font-semibold text-slate-950">Kontrollera uppgifterna</div>
+ <p className="mt-1">
+ Bytet startas för vald anläggning. Nuvarande leverantör och tekniska uppgifter hämtas från kundkortet när de finns.
+ </p>
+ </div>
  <label className="grid gap-2">
  <span className="text-sm font-medium text-slate-700 ">
  Önskat startdatum
@@ -244,188 +210,19 @@ export default function CustomerSwitchCreatePanel({
  </label>
  </div>
 
- <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700 ">
- Vid <strong>kund byter till oss</strong> fylls inkommande leverantör
- automatiskt från er egen leverantörspost om fälten lämnas tomma.
- Vid <strong>kund byter från oss</strong> fylls nuvarande leverantör
- automatiskt från samma källa. Du kan alltid skriva över manuellt.
+ <details className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+ <summary className="cursor-pointer font-semibold text-slate-900">Visa uppgifter som används</summary>
+ <div className="mt-3 grid gap-3 md:grid-cols-2">
+ <div>
+ <div className="text-xs uppercase tracking-[0.14em] text-slate-600">Nuvarande leverantör</div>
+ <div className="mt-1 font-medium text-slate-900">{site.current_supplier_name ?? 'Saknas'}</div>
  </div>
-
- <div className="mt-5 grid gap-4 md:grid-cols-2">
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- {customer?.customer_type === 'private'
- ? 'Privatkundens nuvarande elleverantör'
- : 'Nuvarande elleverantör'}
- </span>
- <select
- name="current_supplier_id"
- defaultValue=""
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- >
- <option value="">Välj från lista</option>
- {suppliers.map((supplier) => (
- <option key={supplier.id} value={supplier.id}>
- {supplier.name}
- {supplier.org_number ? ` • ${supplier.org_number}` : ''}
- {supplier.is_own_supplier ? ' • EGEN' : ''}
- </option>
- ))}
- </select>
- </label>
-
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Nuvarande leverantör namn
- </span>
- <input
- name="current_supplier_name"
- defaultValue={site.current_supplier_name ?? ''}
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- />
- </label>
-
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Nuvarande leverantör org.nr
- </span>
- <input
- name="current_supplier_org_number"
- defaultValue={site.current_supplier_org_number ?? ''}
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- />
- </label>
-
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Nuvarande leverantör e-post
- </span>
- <input
- name="current_supplier_email"
- type="email"
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- />
- </label>
-
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Nuvarande leverantör telefon
- </span>
- <input
- name="current_supplier_phone"
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- />
- </label>
-
- <label className="inline-flex items-center gap-2 text-sm text-slate-700 md:col-span-2">
- <input
- type="checkbox"
- name="save_new_current_supplier"
- value="true"
- className="h-4 w-4"
- />
- Spara nuvarande leverantör
- </label>
-
- <label className="inline-flex items-center gap-2 text-sm text-slate-700 md:col-span-2">
- <input
- type="checkbox"
- name="mark_current_supplier_as_own"
- value="true"
- className="h-4 w-4"
- />
- Markera som vår leverantör
- </label>
+ <div>
+ <div className="text-xs uppercase tracking-[0.14em] text-slate-600">Egen leverantör</div>
+ <div className="mt-1 font-medium text-slate-900">{ownSupplier?.name ?? 'Behöver väljas av plattformsadmin'}</div>
  </div>
-
- <div className="mt-5 grid gap-4 md:grid-cols-2">
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Ny / inkommande elleverantör
- </span>
- <select
- name="incoming_supplier_id"
- defaultValue=""
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- >
- <option value="">Välj från lista</option>
- {suppliers.map((supplier) => (
- <option key={supplier.id} value={supplier.id}>
- {supplier.name}
- {supplier.org_number ? ` • ${supplier.org_number}` : ''}
- {supplier.is_own_supplier ? ' • EGEN' : ''}
- </option>
- ))}
- </select>
- </label>
-
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Inkommande leverantör namn
- </span>
- <input
- name="incoming_supplier_name"
- defaultValue=""
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- />
- </label>
-
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Inkommande leverantör org.nr
- </span>
- <input
- name="incoming_supplier_org_number"
- defaultValue=""
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- />
- </label>
-
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Inkommande leverantör e-post
- </span>
- <input
- name="incoming_supplier_email"
- type="email"
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- />
- </label>
-
- <label className="grid gap-2">
- <span className="text-sm font-medium text-slate-700 ">
- Inkommande leverantör telefon
- </span>
- <input
- name="incoming_supplier_phone"
- className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 "
- />
- </label>
-
- <label className="inline-flex items-center gap-2 text-sm text-slate-700 md:col-span-2">
- <input
- type="checkbox"
- name="save_new_incoming_supplier"
- value="true"
- className="h-4 w-4"
- />
- Spara inkommande leverantör
- </label>
-
- <label className="inline-flex items-center gap-2 text-sm text-slate-700 md:col-span-2">
- <input
- type="checkbox"
- name="mark_incoming_supplier_as_own"
- value="true"
- className="h-4 w-4"
- />
- Markera som vår leverantör
- </label>
  </div>
-
- <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700 ">
- Leverantörsregistret används för att fylla i rätt leverantörsuppgifter och återanvända säkra val.
- </div>
+ </details>
 
  <div className="mt-5">
  <SubmitButton />

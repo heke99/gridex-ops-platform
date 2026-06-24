@@ -9,7 +9,7 @@ export type CustomerVisibleAction = {
   label: string
   description: string
   kind?: 'customer_data' | 'supplier_switch'
-  href?: string
+  targetTab?: 'overview' | 'legal-readiness' | 'sites' | 'switch-operations' | 'billing-metering' | 'notes'
   status: CustomerVisibleActionStatus
   reason?: string | null
   priority: CustomerVisibleActionPriority
@@ -21,7 +21,7 @@ export type CustomerStatusCard = {
   value: string
   description: string
   tone: 'ok' | 'waiting' | 'blocked' | 'neutral'
-  href?: string
+  targetTab?: 'overview' | 'legal-readiness' | 'sites' | 'switch-operations' | 'billing-metering' | 'notes'
 }
 
 function actionFromPrimaryAction(action: WorkflowPrimaryAction, workflow: CustomerCardWorkflow): CustomerVisibleAction | null {
@@ -84,7 +84,7 @@ function switchStatus(workflow: CustomerCardWorkflow): CustomerStatusCard {
       value: 'Pågår',
       description: 'Bytet är startat och inväntar nästa svar eller bekräftelse.',
       tone: 'waiting',
-      href: '#switch-operations',
+      targetTab: 'switch-operations',
     }
   }
   if (workflow.primaryAction === 'create_supplier_switch') {
@@ -94,7 +94,7 @@ function switchStatus(workflow: CustomerCardWorkflow): CustomerStatusCard {
       value: 'Redo att starta',
       description: 'Uppgifter finns. Starta leverantörsbyte när startdatum är valt.',
       tone: 'ok',
-      href: '#switch-operations',
+      targetTab: 'switch-operations',
     }
   }
   return {
@@ -103,7 +103,7 @@ function switchStatus(workflow: CustomerCardWorkflow): CustomerStatusCard {
     value: 'Inte startat',
     description: 'Bytet startas när uppgifter och fullmakt är klara.',
     tone: 'neutral',
-    href: '#switch-operations',
+    targetTab: 'switch-operations',
   }
 }
 
@@ -124,7 +124,7 @@ export function buildCustomerStatusCards(input: {
         ? 'Kunden har tillräckligt underlag för nästa steg.'
         : 'Signerad fullmakt eller komplett avtal behöver finnas innan externa steg startas.',
       tone: snapshot.hasAuthorization ? 'ok' : 'blocked',
-      href: '#legal-readiness',
+      targetTab: 'legal-readiness',
     },
     {
       id: 'facility',
@@ -134,7 +134,7 @@ export function buildCustomerStatusCards(input: {
         ? 'Anläggnings- och nätägaruppgifter finns på kundkortet.'
         : 'Systemet behöver uppgifter från nätägaren eller komplettering på kundkortet.',
       tone: hasFacility ? 'ok' : blocker ? 'blocked' : 'waiting',
-      href: '#sites',
+      targetTab: 'sites',
     },
     switchStatus(workflow),
     {
@@ -143,7 +143,7 @@ export function buildCustomerStatusCards(input: {
       value: 'Automatisk',
       description: 'Mätvärden tas emot och fakturaunderlag skapas automatiskt när perioden är komplett.',
       tone: 'neutral',
-      href: '#billing-metering',
+      targetTab: 'billing-metering',
     },
   ]
 }
@@ -159,25 +159,25 @@ export function buildCustomerVisibleActions(input: {
       id: 'view_contracts',
       label: 'Visa avtal och fullmakt',
       description: 'Öppna kundens juridiska underlag.',
-      href: '#legal-readiness',
+      targetTab: 'legal-readiness',
       status: 'available',
-      priority: 'secondary',
+      priority: 'hidden',
     },
     {
       id: 'view_facility',
       label: 'Visa anläggning och nätägare',
       description: 'Öppna kundens anläggningsstatus.',
-      href: '#sites',
+      targetTab: 'sites',
       status: 'available',
-      priority: 'secondary',
+      priority: 'hidden',
     },
     {
       id: 'view_billing',
       label: 'Visa fakturering',
       description: 'Öppna automatisk faktureringsstatus.',
-      href: '#billing-metering',
+      targetTab: 'billing-metering',
       status: 'available',
-      priority: 'secondary',
+      priority: 'hidden',
     },
   ]
 

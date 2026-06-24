@@ -135,6 +135,7 @@ export default function CustomerSwitchOperationsCard({
  edielMessages,
  edielRecommendationRoutes,
  isPlatformAdmin = false,
+ allowTenantStartSwitch = false,
 }: CustomerSwitchOperationsCardProps) {
  const switchOutboundRequests = outboundRequests.filter(
  (request) => request.request_type === 'supplier_switch'
@@ -183,12 +184,21 @@ export default function CustomerSwitchOperationsCard({
  </div>
  </div>
  </section>
+ {allowTenantStartSwitch ? (
  <SwitchRequestSection
  title="Starta leverantörsbyte"
  description="Välj startdatum och starta bytet när kundens uppgifter är klara."
  >
  <CustomerSwitchCreatePanel customerId={customerId} sites={sites} />
  </SwitchRequestSection>
+ ) : (
+ <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+ <h3 className="text-base font-semibold text-slate-950">Nästa steg</h3>
+ <p className="mt-2 text-sm leading-6 text-slate-700">
+ Leverantörsbyte kan startas när uppgifter från nätägare, avtal och fullmakt är klara. Startknappen visas på översikten när det är rätt steg.
+ </p>
+ </section>
+ )}
  </section>
  )
  }
