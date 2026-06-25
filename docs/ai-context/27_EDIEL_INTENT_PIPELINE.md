@@ -103,9 +103,36 @@ never a placeholder string. If a real identifier exists on the site it is used.
   `buildUtiltsOutboundDraft`; environment/test flag now come from the resolved route.
 - Regression: `gridex:utilts-completion-regression`.
 
-## Scope / follow-up
+## Phase 4 (Batches 8–9)
 
-- AI/BI reconciliation (Batch 8) and ESETT_XML family (Batch 9) are subsequent commits.
+### Batch 8 — AI/BI reconciliation (no masterdata auto-overwrite)
+- The AI/BI import engine remains reconciliation-only (writes only `ai_list_imports`
+  / `ai_list_import_rows` / `ai_list_discrepancies`), never `customer_sites`,
+  `metering_points`, `contracts`, `customer_contracts` or `supplier_switch_requests`.
+- `lib/ediel/aiBiReconciliation.ts`: `AI_BI_PROTECTED_MASTERDATA_TABLES`,
+  `assertAiBiNeverOverwritesMasterdata`, and `approveAiBiDiscrepancy` (admin approval
+  with audit: resolution/resolved_by/resolved_at). Updates happen only after approval.
+- Retention/GDPR metadata (`retention_until`, `gdpr_basis`) saved on import.
+- Migration `20260625120000_ai_bi_reconciliation_approval_audit.sql` (idempotent,
+  `alter ... if exists`). Regression: `gridex:ai-bi-reconciliation-regression`.
+
+### Batch 9 — ESETT_XML family
+- `lib/ediel/xml/esett/`: `schemaRegistry.ts`, `parser.ts`, `validator.ts`,
+  `renderer.ts`, `acknowledgement.ts`. eSett/NBS XML is a separate family — not parsed
+  as EDIFACT — with schema validation before outbox and the shared
+  intent/route/outbox/audit/ACK lifecycle (ack family `ESETT_XML_ACK`). Unsupported
+  document types go to manual_review. Regression: `gridex:esett-xml-regression`.
+
+## Full regression suite
+
+`npm run gridex:ediel-intent-pipeline-full-regression` runs all Batch 1–9 regressions.
+
+## Known DB drift (informational)
+
+The `ai_list_*` reconciliation tables and the eSett XML lifecycle exist in code +
+migrations but the dev project `gridex-ops-dev` had not applied the original AI/BI
+migration. The Batch 8 migration is `alter ... if exists` so it is a safe no-op until
+the base tables are provisioned. No destructive action is taken.
 
 ## Commands
 

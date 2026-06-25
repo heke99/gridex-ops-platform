@@ -123,7 +123,10 @@
     "gridex:prodat-support-registry-regression": "node scripts/gridex-prodat-support-registry-regression.cjs",
     "gridex:supplier-switch-scheduler-regression": "node scripts/gridex-supplier-switch-scheduler-regression.cjs",
     "gridex:acknowledgement-engine-regression": "node scripts/gridex-acknowledgement-engine-regression.cjs",
-    "gridex:utilts-completion-regression": "node scripts/gridex-utilts-completion-regression.cjs"
+    "gridex:utilts-completion-regression": "node scripts/gridex-utilts-completion-regression.cjs",
+    "gridex:ai-bi-reconciliation-regression": "node scripts/gridex-ai-bi-reconciliation-regression.cjs",
+    "gridex:esett-xml-regression": "node scripts/gridex-esett-xml-regression.cjs",
+    "gridex:ediel-intent-pipeline-full-regression": "npm run gridex:ediel-intent-pipeline-regression && npm run gridex:prodat-support-registry-regression && npm run gridex:supplier-switch-scheduler-regression && npm run gridex:acknowledgement-engine-regression && npm run gridex:utilts-completion-regression && npm run gridex:ai-bi-reconciliation-regression && npm run gridex:esett-xml-regression"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
