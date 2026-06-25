@@ -79,10 +79,33 @@ never a placeholder string. If a real identifier exists on the site it is used.
 - Integrated as a hard gate in `startSupplierSwitch` (blocks before queueing Z03).
 - Regression: `gridex:supplier-switch-scheduler-regression`.
 
+## Phase 3 (Batches 6–7)
+
+### Batch 6 — AcknowledgementEngine + AdminActionEngine
+- `lib/ediel/ack/acknowledgementEngine.ts`: deterministic `classifyAcknowledgement`
+  (CONTRL/APERAK/UTILTS_ERR/ESETT_XML_ACK) → single business effect
+  (`continue|next_step|stop_automation|manual_review|noop`). Positive CONTRL = syntax
+  OK (not business final); negative CONTRL/APERAK/UTILTS_ERR stop automation + admin
+  action; positive APERAK drives next step; duplicate = no-op; unmatched/unknown =
+  manual_review. `isExpectedAckOverdue` enforces the 30-minute ACK SLA.
+- `lib/ediel/ack/adminActionEngine.ts`: structured, idempotent admin actions recorded
+  on the Ediel message timeline (technical, superadmin-facing).
+- Regression: `gridex:acknowledgement-engine-regression`.
+
+### Batch 7 — UTILTS completion
+- `lib/ediel/utilts/utiltsMessageSupportRegistry.ts`: one status per code
+  (E66/E73/E31/S01–S07/E30/E72/E74/ERR). No partial unknown — unknown → manual_review/
+  unsupported. Intent gate blocks unsupported/manual_review UTILTS codes.
+- `lib/ediel/utilts/utiltsErrorReason.ts`: UTILTS_ERR reason engine maps the ACTUAL
+  reason to a canonical error; identity/object reasons evaluated before
+  period/quantity (never a generic fallback that overrides the cause).
+- Removed hardcoded `environment: 'test'` / `testFlag: 1` from
+  `buildUtiltsOutboundDraft`; environment/test flag now come from the resolved route.
+- Regression: `gridex:utilts-completion-regression`.
+
 ## Scope / follow-up
 
-- UTILTS completion, ESETT_XML, AcknowledgementEngine hardening and AI/BI
-  reconciliation are Batches 6–9 (subsequent commits).
+- AI/BI reconciliation (Batch 8) and ESETT_XML family (Batch 9) are subsequent commits.
 
 ## Commands
 

@@ -1,6 +1,7 @@
 // lib/ediel/utilts.ts
 import type {
   CreateEdielMessageInput,
+  EdielEnvironment,
   EdielKnownMessageCode,
   EdielMessageFamily,
 } from '@/lib/ediel/types'
@@ -87,6 +88,8 @@ export type UtiltsOutboundDraftInput = {
   correlationReference?: string | null
   transactionReference?: string | null
   routeDefaultMessageVersion?: string | null
+  // Environment is resolved from the route/runtime, never hardcoded to test.
+  environment?: EdielEnvironment | null
 
   payload?: Record<string, unknown>
 }
@@ -471,6 +474,10 @@ export async function buildUtiltsOutboundDraft(
   const externalReference = refs.externalReference ?? `UTILTS-${input.code}`
   const transactionReference = refs.transactionReference ?? `UTILTS-${input.code}`
 
+  // Environment/test flag come from the resolved route/runtime, not hardcoded.
+  const environment: EdielEnvironment = input.environment === 'production' ? 'production' : 'test'
+  const testFlag: 0 | 1 = environment === 'production' ? 0 : 1
+
   const messageVersion =
     (await resolveCanonicalOutboundVersion({
       family: 'UTILTS',
@@ -478,7 +485,7 @@ export async function buildUtiltsOutboundDraft(
       fallback: 'E5SE5A',
       standard: 'edifact',
       routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
-      environment: 'test',
+      environment,
     })) ?? 'E5SE5A'
 
   const senderEdielId = requireOutboundEdielId(input.senderEdielId, 'sender')
@@ -507,7 +514,7 @@ export async function buildUtiltsOutboundDraft(
     receiverEdielId,
     receiverSubAddress,
     applicationReference,
-    testFlag: 1,
+    testFlag,
     messageTypeToken: `UTILTS:D:02B:UN:${messageVersion}`,
     segments: renderUtiltsSegments({
       code: input.code,
@@ -530,8 +537,8 @@ export async function buildUtiltsOutboundDraft(
     messageCode: input.code,
     messageVersion,
     processType: input.code === 'E73' ? 'meter_values_request' : 'meter_values_export',
-    environment: 'test',
-    testFlag: 1,
+    environment,
+    testFlag,
     status: 'draft',
     transportType: 'smtp',
     mailbox: input.mailbox ?? null,

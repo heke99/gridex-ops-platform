@@ -121,7 +121,9 @@
     "gridex:application-reference-policy-regression": "node scripts/gridex-application-reference-policy-regression.cjs",
     "gridex:ediel-intent-pipeline-regression": "npm run gridex:ediel-message-intent-foundation-regression && npm run gridex:z01-facility-no-placeholder-regression && npm run gridex:application-reference-policy-regression",
     "gridex:prodat-support-registry-regression": "node scripts/gridex-prodat-support-registry-regression.cjs",
-    "gridex:supplier-switch-scheduler-regression": "node scripts/gridex-supplier-switch-scheduler-regression.cjs"
+    "gridex:supplier-switch-scheduler-regression": "node scripts/gridex-supplier-switch-scheduler-regression.cjs",
+    "gridex:acknowledgement-engine-regression": "node scripts/gridex-acknowledgement-engine-regression.cjs",
+    "gridex:utilts-completion-regression": "node scripts/gridex-utilts-completion-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
