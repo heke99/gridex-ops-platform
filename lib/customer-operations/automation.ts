@@ -306,6 +306,10 @@ function retryAt(attempts: number) {
   return new Date(Date.now() + seconds * 1000).toISOString()
 }
 
+function safeRunAfter(value?: string | null): string {
+  return clean(value) ?? nowIso()
+}
+
 function operationTitle(type: CustomerOperationJobType): string {
   switch (type) {
     case 'request_customer_data': return 'Systemet söker nätägare och förbereder uppgiftsbegäran'
@@ -368,9 +372,14 @@ function blockerResult(
 }
 
 async function updateJob(job: Pick<JobRow, 'id' | 'lock_token'>, patch: JsonRecord) {
+  const guardedPatch = {
+    ...patch,
+    run_after: safeRunAfter(patch.run_after as string | null | undefined),
+    updated_at: nowIso(),
+  }
   let query = supabaseService
     .from('customer_operation_jobs')
-    .update({ ...patch, updated_at: nowIso() })
+    .update(guardedPatch)
     .eq('id', job.id)
   if (job.lock_token) query = query.eq('lock_token', job.lock_token)
   const { data, error } = await query.select('id').maybeSingle()
@@ -418,6 +427,7 @@ async function enqueue(input: {
     trace_id: traceId,
     payload: input.payload ?? {},
     request_snapshot: input.requestSnapshot ?? record(input.payload).site_snapshot ?? {},
+    run_after: nowIso(),
     created_by: normalizeUuidOrNull(input.actorUserId, 'created_by'),
   }
 
@@ -1532,7 +1542,7 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
           status: operationEventStatus(outcome.status),
           result: outcome.result ?? {},
           stale_reason: outcome.status === 'needs_review' ? clean((outcome.result ?? {}).stale_reason) : null,
-          run_after: outcome.runAfter ?? null,
+          run_after: safeRunAfter(outcome.runAfter),
           locked_at: null,
           locked_by: null,
           lock_token: null,
@@ -1563,7 +1573,7 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
           status: reviewTerminal ? 'needs_review' : terminal ? 'failed' : 'queued',
           result: reviewTerminal ? blockerResult('technical_error', { blocker_reason: message }) : undefined,
           stale_reason: null,
-          run_after: terminal ? null : retryAt(job.attempts),
+          run_after: terminal ? nowIso() : retryAt(job.attempts),
           locked_at: null,
           locked_by: null,
           lock_token: null,

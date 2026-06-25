@@ -26,6 +26,22 @@ function parseEnvironment(value: string | null): 'test' | 'production' {
   throw new Error('environment måste vara test eller production.')
 }
 
+function safeInboundErrorCode(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  if (/mailbox.*missing|mailbox.*not.*found|no active mailbox/i.test(message)) return 'mailbox_config_missing'
+  if (/credential|password|username|secret|imap.*env/i.test(message)) return 'imap_credentials_missing'
+  if (/authentication|login|AUTHENTICATIONFAILED|Invalid credentials/i.test(message)) return 'imap_login_failed'
+  if (/ECONN|ETIMEDOUT|ENOTFOUND|imap.*connect|socket/i.test(message)) return 'imap_connection_failed'
+  if (/smime|cms|decrypt|certificate|pfx/i.test(message)) return 'smime_decrypt_failed'
+  if (/parse|edifact|payload/i.test(message)) return 'inbound_payload_parse_failed'
+  return 'inbound_mail_processing_failed'
+}
+
+function safeInboundErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  return message.replace(/[\r\n]+/g, ' ').replace(/(password|secret|token|key)=\S+/gi, '$1=[redacted]').slice(0, 220)
+}
+
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
@@ -58,9 +74,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, result })
   } catch (error) {
     const traceId = randomUUID()
-    console.error('[inbound-mail-cron] Run failed', { traceId, error })
+    const code = safeInboundErrorCode(error)
+    console.error('[inbound-mail-cron] Run failed', { traceId, environment, mailboxId, code, error })
     return NextResponse.json(
-      { ok: false, error: 'Inbound mail engine failed.', code: 'inbound_mail_processing_failed', trace_id: traceId },
+      { ok: false, error: 'Inbound mail engine failed.', code, message: safeInboundErrorMessage(error), trace_id: traceId, environment, mailbox_id: mailboxId ?? null },
       { status: 500 }
     )
   }

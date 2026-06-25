@@ -19,6 +19,8 @@ import {
 } from '@/lib/cis/db'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { supabaseService } from '@/lib/supabase/service'
+import { getEdielMessageById } from '@/lib/ediel/db'
+import { createOutboxItem } from '@/lib/ediel/outbox/createOutboxItem'
 
 type ActiveReleaseFamily =
   | 'PRODAT'
@@ -249,11 +251,31 @@ export async function queuePreparedEdielMessage(params: {
 }) {
   const { updateEdielMessageStatus } = await import('@/lib/ediel/db')
 
-  await updateEdielMessageStatus({
+  const message = await updateEdielMessageStatus({
     actorUserId: params.actorUserId,
     edielMessageId: params.messageId,
     status: 'queued',
   })
+
+  const outboxMessage = message ?? await getEdielMessageById(params.messageId)
+  if (outboxMessage) {
+    await createOutboxItem({
+      actorUserId: params.actorUserId,
+      message: outboxMessage,
+      status: 'queued',
+      priority: 50,
+      lockKey: [
+        'outbound',
+        params.outboundRequestId ?? outboxMessage.outbound_request_id ?? 'message',
+        params.messageId,
+      ].join(':'),
+      payload: {
+        outboundRequestId: params.outboundRequestId ?? outboxMessage.outbound_request_id ?? null,
+        externalReference: params.externalReference ?? outboxMessage.external_reference ?? null,
+        ...(params.payload ?? {}),
+      },
+    })
+  }
 
   if (params.outboundRequestId) {
     await updateOutboundRequestStatus({
@@ -263,6 +285,7 @@ export async function queuePreparedEdielMessage(params: {
       externalReference: params.externalReference ?? null,
       responsePayload: {
         edielMessageId: params.messageId,
+        edielOutboxQueued: Boolean(outboxMessage),
         ...(params.payload ?? {}),
       },
     })

@@ -19,6 +19,8 @@ import type { EdielEnvironment } from '@/lib/ediel/types'
 
 type JsonRecord = Record<string, unknown>
 
+const FACILITY_LOOKUP_APPLICATION_REFERENCE = '23-DDQ-PRODAT'
+
 type FacilityLookupRequestRow = {
   id: string
   company_id: string
@@ -311,7 +313,7 @@ async function buildFacilityLookupDraft(input: {
     senderSubAddress: input.routeContext.senderSubAddress,
     receiverEdielId: input.routeContext.receiverEdielId,
     receiverSubAddress: input.routeContext.receiverMessageSubAddress ?? input.routeContext.receiverSubAddress,
-    applicationReference: input.routeContext.applicationReference,
+    applicationReference: FACILITY_LOOKUP_APPLICATION_REFERENCE,
     testFlag: input.routeContext.environment === 'production' ? 0 : 1,
     messageTypeToken: `PRODAT:D:97A:UN:${messageVersionToken}`,
     segments: rendered.segments,
@@ -345,7 +347,7 @@ async function buildFacilityLookupDraft(input: {
     interchangeReference: envelope.interchangeReference,
     externalReference,
     transactionReference,
-    applicationReference: input.routeContext.applicationReference,
+    applicationReference: FACILITY_LOOKUP_APPLICATION_REFERENCE,
     communicationRouteId: input.routeContext.route.id,
     outboundRequestId: input.outboundRequestId,
     customerId: input.request.customer_id,
@@ -420,7 +422,7 @@ export async function dispatchFacilityLookupEdifact(input: {
 
   const actorUserId = clean(input.actorUserId) ?? clean(request.created_by) ?? 'system'
   const metadata = requestMetadata(request)
-  if (['sent', 'waiting_response'].includes(request.status) && (request.ediel_message_id || request.outbound_request_id)) {
+  if (['sent', 'waiting_response'].includes(request.status) && request.ediel_message_id && request.outbound_request_id) {
     return {
       requestId: request.id,
       status: 'already_waiting',
@@ -479,28 +481,111 @@ export async function dispatchFacilityLookupEdifact(input: {
   }
 
   const existingOutbound = await findExistingDispatchForRequest(request)
+  const operationId = clean(input.operationId) ?? clean(request.operation_id) ?? randomUUID()
+  const environment = input.environment ?? await resolveOutboundRuntimeEnvironment({
+    preferredRouteId: routeReadiness.communicationRouteId,
+    explicitEnvironment: input.environment ?? null,
+  })
+  const gridOwner = await readGridOwner(request.grid_owner_id)
+
   if (existingOutbound?.id) {
     const responsePayload = isRecord(existingOutbound.response_payload) ? existingOutbound.response_payload : {}
-    const existingMessageId = clean(responsePayload.edielMessageId) ?? clean(request.ediel_message_id)
+    let existingMessageId = clean(responsePayload.edielMessageId) ?? clean(request.ediel_message_id)
+
+    await safePatch('outbound_requests', {
+      companyId: request.company_id,
+      id: clean(existingOutbound.id),
+      patch: {
+        grid_owner_information_request_id: request.id,
+        customer_site_id: request.customer_site_id,
+        operation_id: clean(existingOutbound.operation_id) ?? operationId,
+      },
+    })
+
+    if (!existingMessageId) {
+      const routeContext = await resolveCanonicalOutboundContext({
+        requestType: 'customer_masterdata',
+        gridOwner: gridOwner as never,
+        preferredRouteId: clean(existingOutbound.communication_route_id) ?? routeReadiness.communicationRouteId,
+        companyId: request.company_id,
+        environment,
+        messageStandard: 'edifact',
+      })
+      const draft = await buildFacilityLookupDraft({
+        actorUserId,
+        request,
+        routeContext,
+        outboundRequestId: clean(existingOutbound.id)!,
+        operationId: clean(existingOutbound.operation_id) ?? operationId,
+        gridOwner,
+      })
+      const message = await finalizeOutboundDraft({
+        actorUserId,
+        requestType: 'customer_masterdata',
+        routeContext,
+        draft,
+        outboundRequestId: clean(existingOutbound.id),
+        duplicateCheck: {
+          sourceType: 'grid_owner_information_request',
+          sourceId: request.id,
+          receiverEdielId: routeContext.receiverEdielId,
+          messageFamily: 'PRODAT',
+          messageCode: 'Z01',
+          messageVersion: draft.messageVersion,
+        },
+      })
+      existingMessageId = message.id
+      await queuePreparedEdielMessage({
+        actorUserId,
+        messageId: message.id,
+        outboundRequestId: clean(existingOutbound.id),
+        externalReference: message.external_reference ?? draft.externalReference,
+        payload: {
+          gridOwnerInformationRequestId: request.id,
+          operationId: clean(existingOutbound.operation_id) ?? operationId,
+          messageFamily: 'PRODAT',
+          messageCode: 'Z01',
+          routeId: routeContext.route.id,
+          dispatchKind: 'facility_lookup_edifact_repair',
+        },
+      })
+      await safePatch('outbound_requests', {
+        companyId: request.company_id,
+        id: clean(existingOutbound.id),
+        patch: {
+          grid_owner_information_request_id: request.id,
+          customer_site_id: request.customer_site_id,
+          ediel_route_profile_id: routeReadiness.routeProfileId,
+          response_payload: {
+            ...responsePayload,
+            edielMessageId: message.id,
+            gridOwnerInformationRequestId: request.id,
+            operationId: clean(existingOutbound.operation_id) ?? operationId,
+            repairedFacilityLookupEdifactDispatch: true,
+          },
+        },
+      })
+    }
+
     await patchRequest({
       companyId: request.company_id,
       requestId: request.id,
       patch: {
-        status: 'waiting_response',
+        status: existingMessageId ? 'waiting_response' : 'ready_to_send',
         channel: 'ediel',
-        dispatch_status: 'queued',
+        dispatch_status: existingMessageId ? 'queued' : 'outbound_created',
         communication_route_id: clean(existingOutbound.communication_route_id) ?? routeReadiness.communicationRouteId,
         ediel_route_profile_id: clean(existingOutbound.ediel_route_profile_id) ?? routeReadiness.routeProfileId,
         outbound_request_id: clean(existingOutbound.id),
         ediel_message_id: existingMessageId,
-        operation_id: clean(existingOutbound.operation_id) ?? clean(request.operation_id) ?? clean(input.operationId),
+        operation_id: clean(existingOutbound.operation_id) ?? clean(request.operation_id) ?? operationId,
         metadata: {
           ...metadata,
           reused_existing_outbound: true,
           outbound_request_id: clean(existingOutbound.id),
           ediel_message_id: existingMessageId,
           facility_lookup_edifact_dispatch: {
-            status: 'already_queued',
+            status: existingMessageId ? 'repaired_and_queued' : 'already_queued',
             reused_at: new Date().toISOString(),
             outbound_request_id: clean(existingOutbound.id),
             ediel_message_id: existingMessageId,
@@ -510,23 +595,17 @@ export async function dispatchFacilityLookupEdifact(input: {
     })
     return {
       requestId: request.id,
-      status: 'already_waiting',
+      status: existingMessageId ? 'queued' : 'already_waiting',
       outboundRequestId: clean(existingOutbound.id),
       edielMessageId: existingMessageId,
       communicationRouteId: clean(existingOutbound.communication_route_id) ?? routeReadiness.communicationRouteId,
       edielRouteProfileId: clean(existingOutbound.ediel_route_profile_id) ?? routeReadiness.routeProfileId,
-      operationId: clean(existingOutbound.operation_id) ?? clean(request.operation_id) ?? clean(input.operationId),
+      operationId: clean(existingOutbound.operation_id) ?? clean(request.operation_id) ?? operationId,
       blockerCode: null,
       blockerMessage: null,
     }
   }
 
-  const operationId = clean(input.operationId) ?? clean(request.operation_id) ?? randomUUID()
-  const environment = input.environment ?? await resolveOutboundRuntimeEnvironment({
-    preferredRouteId: routeReadiness.communicationRouteId,
-    explicitEnvironment: input.environment ?? null,
-  })
-  const gridOwner = await readGridOwner(request.grid_owner_id)
   const outbound = await createOutboundRequest({
     actorUserId,
     customerId: request.customer_id,
@@ -615,6 +694,7 @@ export async function dispatchFacilityLookupEdifact(input: {
     id: outbound.id,
     patch: {
       grid_owner_information_request_id: request.id,
+      customer_site_id: request.customer_site_id,
       operation_id: operationId,
       ediel_route_profile_id: routeReadiness.routeProfileId,
       response_payload: {
@@ -727,7 +807,7 @@ export async function processReadyFacilityLookupEdifactDispatches(input: {
     .from('grid_owner_information_requests')
     .select('*')
     .eq('request_type', 'facility_lookup')
-    .eq('status', 'ready_to_send')
+    .in('status', ['ready_to_send', 'waiting_response'])
     .eq('channel', 'ediel')
     .order('updated_at', { ascending: true })
     .limit(Math.min(Math.max(input.limit ?? 10, 1), 50))
@@ -741,7 +821,10 @@ export async function processReadyFacilityLookupEdifactDispatches(input: {
 
   const rows = ((data ?? []) as FacilityLookupRequestRow[]).filter((row) => {
     const metadata = requestMetadata(row)
-    return metadata.auto_send_allowed === true || clean(metadata.route_source) === 'company_operational_routes'
+    const autoAllowed = metadata.auto_send_allowed === true || clean(metadata.route_source) === 'company_operational_routes'
+    if (!autoAllowed) return false
+    if (row.status === 'ready_to_send') return true
+    return row.status === 'waiting_response' && Boolean(row.outbound_request_id) && !row.ediel_message_id
   })
   let queued = 0
   let blocked = 0
