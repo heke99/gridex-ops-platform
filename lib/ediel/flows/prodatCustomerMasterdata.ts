@@ -301,8 +301,8 @@ async function persistOutboundRouteDecision(params: {
       params.requiredAdminActions ?? decision.requiredAdminActions,
     route_decision_payload: {
       ...routeDecisionPayload(decision),
-      ...(params.extraPayload ?? {}),
       environment: params.environment,
+      ...(params.extraPayload ?? {}),
     },
     updated_by: params.actorUserId,
   };
@@ -912,8 +912,10 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         error.decision.edielRouteProfileId ??
         outbound.ediel_route_profile_id ??
         null,
-      route_decision_payload:
-        error.decision.payload ?? outbound.route_decision_payload ?? null,
+      route_decision_payload: {
+        ...(error.decision.payload ?? outbound.route_decision_payload ?? {}),
+        environment,
+      },
       blocking_reasons:
         error.decision.blockingReasons ?? outbound.blocking_reasons ?? null,
       required_admin_actions:

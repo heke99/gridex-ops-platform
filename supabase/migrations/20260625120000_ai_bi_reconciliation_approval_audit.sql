@@ -64,13 +64,13 @@ create table if not exists public.ai_list_discrepancies (
   created_at timestamptz not null default now()
 );
 
-alter table public.ai_list_imports
+alter table if exists public.ai_list_imports
   add column if not exists retention_until date,
   add column if not exists gdpr_basis text,
   add column if not exists approved_by uuid,
   add column if not exists approved_at timestamptz;
 
-alter table public.ai_list_discrepancies
+alter table if exists public.ai_list_discrepancies
   add column if not exists resolution text,
   add column if not exists resolution_note text,
   add column if not exists resolved_by uuid,

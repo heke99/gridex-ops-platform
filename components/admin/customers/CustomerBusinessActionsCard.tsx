@@ -10,6 +10,10 @@ import type { CustomerInfoRequestRow } from '@/lib/onboarding/infoRequests'
 import CustomerOperationAutomationForm from '@/components/admin/customers/CustomerOperationAutomationForm'
 import CustomerProcessTimeline from '@/components/admin/customers/CustomerProcessTimeline'
 import {
+  dryRunZ01RepairAction,
+  repairZ01CustomerInfoRequestAction,
+} from '@/app/admin/customers/[id]/business-actions'
+import {
   buildCustomerCardSnapshot,
   type CustomerCardSnapshot,
 } from '@/lib/customers/customerCardSnapshot'
@@ -60,8 +64,52 @@ function primaryActionTone(status: string): string {
   return 'border-emerald-200 bg-emerald-50 text-emerald-950'
 }
 
+function hiddenValue(value: string | null | undefined): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function repairEventSummary(event: Z01RepairEvent): string {
+  const payload = event.payload ?? {}
+  const blocker = typeof payload.blockerCode === 'string' ? payload.blockerCode : null
+  const dryRun = payload.dryRun === true ? 'Torrkörning' : null
+  return [dryRun, blocker, event.message].filter(Boolean).join(' · ') || 'Z01-reparation registrerad.'
+}
+
+function z01PayloadAny(event: Z01RepairEvent, key: string): unknown {
+  const payload = event.payload ?? {}
+  return payload[key]
+}
+
+function z01EventLabel(event: Z01RepairEvent): string {
+  switch (event.event_type) {
+    case 'z01_repair_blocked':
+      return 'Blockerad'
+    case 'z01_repair_failed':
+      return 'Misslyckad'
+    case 'z01_repair_completed':
+      return 'Slutförd'
+    case 'z01_dry_run_repair':
+      return 'Torrkörning'
+    default:
+      return event.event_type || 'Z01-händelse'
+  }
+}
+
+function z01EventDateLabel(value: string | null): string {
+  if (!value) return 'Tid saknas'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Ogiltigt datum'
+  return date.toLocaleString('sv-SE')
+}
+
+function z01EventEdielMessageLabel(event: Z01RepairEvent): string {
+  const edielMessageId = z01PayloadAny(event, 'edielMessageId') ?? z01PayloadAny(event, 'ediel_message_id')
+  return typeof edielMessageId === 'string' && edielMessageId.trim() ? edielMessageId.trim() : 'ej skapat'
+}
+
 export default function CustomerBusinessActionsCard({
   customerId,
+  companyId,
   sites,
   meteringPoints,
   powersOfAttorney = [],
@@ -71,6 +119,7 @@ export default function CustomerBusinessActionsCard({
   switchRequests = [],
   snapshot: suppliedSnapshot,
   isPlatformAdmin = false,
+  z01RepairEvents = [],
 }: Props) {
   const snapshot =
     suppliedSnapshot ??
@@ -100,7 +149,11 @@ export default function CustomerBusinessActionsCard({
     snapshot,
     visibility: isPlatformAdmin ? 'superadmin' : 'tenant',
   })
-  const primaryAction = actions.find((action) => action.primary) ?? null
+  const workflowPrimaryAction = workflow.primaryAction
+  const primaryAction =
+    actions.find((action) => action.id === workflowPrimaryAction) ??
+    actions.find((action) => action.primary) ??
+    null
   const statusCards = buildCustomerBusinessStatusCards({ workflow, snapshot })
   const primarySite = snapshot.primarySite
   const primaryPoint = snapshot.primaryMeteringPoint
@@ -183,12 +236,90 @@ export default function CustomerBusinessActionsCard({
           </div>
         ) : null}
 
+        {isPlatformAdmin && (workflow.canRunRepair || workflow.canContinueFinalization) ? (
+          <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]">
+                Tekniska åtgärder
+              </p>
+              <h3 className="text-lg font-semibold">
+                {workflow.canContinueFinalization
+                  ? 'Fortsätt Z01-finalisering'
+                  : 'Z01-reparation kan köras'}
+              </h3>
+              <p className="max-w-3xl leading-6">
+                Ingen SMTP skickas direkt. Åtgärden går via server-side Z01-reparation/finalizer och den vanliga guarded send-pipelinen.
+              </p>
+            </div>
 
+            <div className="mt-4 flex flex-wrap gap-3">
+              <form action={dryRunZ01RepairAction}>
+                <input type="hidden" name="company_id" value={hiddenValue(companyId)} />
+                <input type="hidden" name="customer_id" value={customerId} />
+                <input
+                  type="hidden"
+                  name="customer_info_request_id"
+                  value={hiddenValue(workflow.technicalDetails.customerInfoRequestId)}
+                />
+                <input
+                  type="hidden"
+                  name="grid_owner_data_request_id"
+                  value={hiddenValue(workflow.technicalDetails.gridOwnerDataRequestId)}
+                />
+                <input type="hidden" name="environment" value="production" />
+                <button
+                  type="submit"
+                  className="rounded-2xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100"
+                >
+                  Granska Z01-finalisering
+                </button>
+              </form>
+
+              <form action={repairZ01CustomerInfoRequestAction}>
+                <input type="hidden" name="company_id" value={hiddenValue(companyId)} />
+                <input type="hidden" name="customer_id" value={customerId} />
+                <input
+                  type="hidden"
+                  name="customer_info_request_id"
+                  value={hiddenValue(workflow.technicalDetails.customerInfoRequestId)}
+                />
+                <input
+                  type="hidden"
+                  name="grid_owner_data_request_id"
+                  value={hiddenValue(workflow.technicalDetails.gridOwnerDataRequestId)}
+                />
+                <input type="hidden" name="environment" value="production" />
+                <button
+                  type="submit"
+                  className="rounded-2xl bg-amber-900 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800"
+                >
+                  Fortsätt Z01-finalisering
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : null}
+
+        {isPlatformAdmin && z01RepairEvents.length > 0 ? (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
+            <p className="font-semibold text-slate-950">Senaste Z01-reparation</p>
+            <ul className="mt-2 space-y-2">
+              {z01RepairEvents.slice(0, 3).map((event) => (
+                <li key={event.id} className="rounded-xl bg-white px-3 py-2">
+                  <span className="font-medium">{z01EventLabel(event)}</span>
+                  <span className="ml-2 text-slate-600">{repairEventSummary(event)}</span>
+                  <span className="ml-2 text-slate-500">{z01EventDateLabel(event.created_at)}</span>
+                  <span className="ml-2 text-slate-500">Ediel: {z01EventEdielMessageLabel(event)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {isPlatformAdmin ? (
           <details className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
             <summary className="cursor-pointer font-semibold text-slate-900">
-              Tekniska detaljer och felsökning
+              Tekniska åtgärder och felsökning
             </summary>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {Object.entries(workflow.technicalDetails).map(([key, value]) =>

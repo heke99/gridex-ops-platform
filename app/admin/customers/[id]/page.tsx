@@ -582,8 +582,19 @@ const CUSTOMER_WORKSPACE_TAB_IDS = new Set<CustomerWorkspaceTab>(
   CUSTOMER_WORKSPACE_TABS.map((tab) => tab.id),
 );
 
-function canShowCustomerWorkspaceTab(tab: CustomerWorkspaceTab, isPlatformAdmin: boolean): boolean {
-  return isPlatformAdmin || TENANT_CUSTOMER_WORKSPACE_TAB_IDS.has(tab);
+function canShowCustomerWorkspaceTab(
+  tab: CustomerWorkspaceTab,
+  isPlatformAdmin: boolean,
+): boolean {
+  if (tab === "ediel-operations") {
+    return isPlatformAdmin;
+  }
+
+  if (!isPlatformAdmin) {
+    return TENANT_CUSTOMER_WORKSPACE_TAB_IDS.has(tab);
+  }
+
+  return true;
 }
 
 function normalizeWorkspaceTab(
@@ -670,7 +681,8 @@ function CustomerWorkspaceTabNav({
   const visibleTabIds = isPlatformAdmin ? platformTabs : tenantTabs;
   const visibleTabs = visibleTabIds
     .map((id) => CUSTOMER_WORKSPACE_TABS.find((tab) => tab.id === id))
-    .filter((tab): tab is (typeof CUSTOMER_WORKSPACE_TABS)[number] => Boolean(tab));
+    .filter((tab): tab is (typeof CUSTOMER_WORKSPACE_TABS)[number] => Boolean(tab))
+    .filter((tab) => canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin));
 
   return (
     <nav className="rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
