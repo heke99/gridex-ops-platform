@@ -31,6 +31,34 @@ function upper(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
+// Single rule source (PART 6). The business process — not the route profile or a
+// scattered constant — deterministically decides the PRODAT Application Reference.
+// DDQ is the supplier/masterdata channel; DGI is the energy-service/metering-access
+// channel. Facility lookup and customer masterdata are always DDQ. A DGI process
+// (metering access/permission/values) is modelled as a separate business process,
+// never mixed into the facility-lookup flow.
+export function resolveApplicationReferenceForProcess(
+  businessProcess: string | null | undefined,
+  family: string = 'PRODAT',
+): string {
+  const fam = upper(family) || 'PRODAT'
+  if (fam !== 'PRODAT') {
+    // Non-PRODAT families fall back to the generic policy resolver elsewhere.
+    return `23-DDQ-${fam}`
+  }
+  const process = String(businessProcess ?? '').trim().toLowerCase()
+  const dgiProcesses = new Set([
+    'metering_access',
+    'metering_permission',
+    'metering_values',
+    'timeseries_request',
+  ])
+  if (dgiProcesses.has(process)) return '23-DGI-PRODAT'
+  // facility_lookup, customer_masterdata, supplier_switch and everything else on
+  // the supplier channel.
+  return '23-DDQ-PRODAT'
+}
+
 // The authoritative Application Reference for an outbound message, derived from
 // policy only (never from a route profile override).
 export function resolvePolicyApplicationReference(input: ApplicationReferenceResolverInput): string {

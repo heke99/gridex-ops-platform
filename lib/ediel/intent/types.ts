@@ -159,6 +159,15 @@ export type CreateEdielMessageIntentInput = {
   idempotencyKey: string
 
   actorUserId?: string | null
+
+  // Optional route-declared metadata used only to validate (never override) the
+  // Application Reference policy at creation time (PART 6). A mismatch becomes a
+  // controlled intent blocker instead of a send-time crash.
+  routeProfile?: {
+    applicationReference?: string | null
+    actorRole?: string | null
+    companyRole?: string | null
+  } | null
 }
 
 // Required intent metadata that ediel_outbox must observe before a message can be

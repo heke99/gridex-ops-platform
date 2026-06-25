@@ -96,6 +96,13 @@ function mapRowToIntent(row: IntentRow): EdielMessageIntent {
 // without a database.
 export function evaluateIntentValidation(
   input: CreateEdielMessageIntentInput | EdielMessageIntent,
+  options?: {
+    routeProfile?: {
+      applicationReference?: string | null
+      actorRole?: string | null
+      companyRole?: string | null
+    } | null
+  },
 ): EdielIntentValidationResult {
   const blockingReasons: EdielIntentBlockingReason[] = []
   const checks: Record<string, boolean> = {}
@@ -128,6 +135,10 @@ export function evaluateIntentValidation(
   blockingReasons.push(...placeholderReasons)
 
   // 3) Application Reference policy (route may declare, not override).
+  const routeProfile =
+    options?.routeProfile ??
+    ('routeProfile' in input ? (input as CreateEdielMessageIntentInput).routeProfile : null) ??
+    null
   const appref = validateApplicationReferencePolicy({
     messageFamily: input.messageFamily,
     messageType: input.messageCode,
@@ -136,6 +147,7 @@ export function evaluateIntentValidation(
     environment: input.environment,
     sender: input.senderEdielId,
     receiver: input.receiverEdielId,
+    routeProfile,
   })
   checks.application_reference_policy = appref.ok
   blockingReasons.push(...appref.blockingReasons)

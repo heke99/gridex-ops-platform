@@ -987,7 +987,19 @@ export async function decideCommunicationRoute(
   }
 
   const expectedAppRef = expectedApplicationReference(routeScope);
+  // A caller may request the policy-expected Application Reference to keep a flow
+  // deterministic (PART 6: facility lookup must always be DDQ even when a route
+  // profile default carries DGI for another process). The request can ONLY pin the
+  // value to the scope's policy expectation; it can never override policy.
+  const requestedAppRef = text(
+    (input.payload as Record<string, unknown> | undefined)?.applicationReference,
+  );
+  const requestedPolicyAppRef =
+    requestedAppRef && expectedAppRef && requestedAppRef === expectedAppRef
+      ? requestedAppRef
+      : null;
   const applicationReference =
+    requestedPolicyAppRef ??
     agreementDecision.applicationReference ??
     text(profile?.application_reference) ??
     expectedAppRef;

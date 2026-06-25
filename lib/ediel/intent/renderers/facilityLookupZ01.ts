@@ -17,11 +17,15 @@ import { inferEdielFileName } from '@/lib/ediel/classify'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import type { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
+import { resolveApplicationReferenceForProcess } from '@/lib/ediel/intent/applicationReferencePolicy'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
 
 type JsonRecord = Record<string, unknown>
 
-export const FACILITY_LOOKUP_APPLICATION_REFERENCE = '23-DDQ-PRODAT'
+// Derived from the single rule source so facility lookup is deterministically DDQ
+// (never inherits a DGI route-profile default).
+export const FACILITY_LOOKUP_APPLICATION_REFERENCE =
+  resolveApplicationReferenceForProcess('facility_lookup')
 
 // Z01 customer-identity request may be address-keyed; LIN/object-id is not a
 // required signal for Z01, so a missing facility/metering identifier is a

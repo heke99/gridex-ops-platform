@@ -9,6 +9,7 @@ import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
 import { renderAndQueueFacilityLookupZ01 } from '@/lib/ediel/intent/renderGateway'
 import { translateBlockingReasonsForTenant } from '@/lib/ediel/intent/tenantStatusTranslator'
 import { FACILITY_LOOKUP_APPLICATION_REFERENCE } from '@/lib/ediel/intent/renderers/facilityLookupZ01'
+import { markLegacyOutboundSupersededByIntent } from '@/lib/ediel/outbox/legacyOutboundBridge'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 
 type JsonRecord = Record<string, unknown>
@@ -240,6 +241,9 @@ async function createFacilityLookupIntent(input: {
     receiverEdielId: input.routeContext.receiverEdielId,
     receiverSubaddress: input.routeContext.receiverMessageSubAddress ?? input.routeContext.receiverSubAddress ?? null,
     applicationReference: FACILITY_LOOKUP_APPLICATION_REFERENCE,
+    // Validate (never override) the route-declared Application Reference against
+    // policy at creation: a misconfigured DGI route becomes a controlled blocker.
+    routeProfile: { applicationReference: input.routeContext.applicationReference ?? null },
     routeProfileId: input.routeProfileId ?? input.routeContext.route.id,
     communicationRouteId: input.routeContext.route.id,
     customerId: input.request.customer_id,
@@ -407,6 +411,15 @@ export async function dispatchFacilityLookupEdifact(input: {
       }
       const message = rendered.message
       existingMessageId = message.id
+      // Bridge the legacy outbound row into the intent pipeline: from now on the
+      // intent/outbox/message chain is the source of truth for this row.
+      await markLegacyOutboundSupersededByIntent({
+        companyId: request.company_id,
+        outboundRequestId: clean(existingOutbound.id)!,
+        intentId: intent.id,
+        edielMessageId: message.id,
+        actorUserId,
+      })
       await safePatch('outbound_requests', {
         companyId: request.company_id,
         id: clean(existingOutbound.id),
@@ -486,6 +499,11 @@ export async function dispatchFacilityLookupEdifact(input: {
       operation_id: operationId,
       messageFamily: 'PRODAT',
       messageCode: 'Z01',
+      // Deterministic single rule source (PART 6): facility lookup is always DDQ.
+      // Passing it explicitly keeps the legacy outbound row and route decision from
+      // inheriting a DGI route-profile default and producing an expected/actual
+      // Application Reference mismatch.
+      applicationReference: FACILITY_LOOKUP_APPLICATION_REFERENCE,
       expectedResponse: 'PRODAT Z02 eller negativ APERAK',
       lookupMode: 'facility_lookup_without_identifier',
     },
