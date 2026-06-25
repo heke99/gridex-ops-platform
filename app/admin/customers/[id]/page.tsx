@@ -70,6 +70,7 @@ import {
   listPartnerExportsByCustomerId,
 } from "@/lib/cis/db";
 import { listCustomerInfoRequestsByCustomerId, listZ01RepairEventsByCustomerId } from "@/lib/onboarding/infoRequests";
+import { resolveEdielDispatchState } from "@/lib/ediel/intent/dispatchState";
 import {
   listCustomerAuthorizationDocumentsByCustomerId,
   listCustomerBlockersByCustomerId,
@@ -2287,6 +2288,17 @@ export default async function CustomerAdminDetailPage({
   });
   const legalLooksAccepted = customerCardSnapshot.hasLegalAcceptance;
 
+  // Single source of truth for outbound dispatch (intent → outbox → message).
+  // Used so the overview card never claims "waiting for grid owner" unless a real
+  // queued/sent state exists.
+  const customerDispatchState = customerCompanyId
+    ? await resolveEdielDispatchState({
+        companyId: customerCompanyId,
+        customerId: id,
+        customerSiteId: customerCardSnapshot.primarySite?.id ?? null,
+      }).catch(() => null)
+    : null;
+
   const hasSwitchData = sites.some((site) => {
     const siteMeteringPoints = meteringPoints.filter(
       (point) => point.site_id === site.id,
@@ -2517,6 +2529,7 @@ export default async function CustomerAdminDetailPage({
             snapshot={customerCardSnapshot}
             isPlatformAdmin={isPlatformAdmin}
             z01RepairEvents={z01RepairEvents}
+            dispatchState={customerDispatchState}
           />
 
         </SectionAnchor>

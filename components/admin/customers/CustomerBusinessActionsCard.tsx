@@ -19,6 +19,7 @@ import {
 } from '@/lib/customers/customerCardSnapshot'
 import { meteringPointIdentityLabel } from '@/lib/customers/meteringIdentity'
 import { buildCustomerCardWorkflow } from '@/lib/customer-operations/customerCardWorkflow'
+import type { EdielDispatchStateResult } from '@/lib/ediel/intent/dispatchState'
 import {
   buildCustomerBusinessActionPlan,
   buildCustomerBusinessStatusCards,
@@ -47,6 +48,7 @@ type Props = {
   snapshot?: CustomerCardSnapshot
   isPlatformAdmin?: boolean
   z01RepairEvents?: Z01RepairEvent[]
+  dispatchState?: EdielDispatchStateResult | null
 }
 
 function pointLabel(point: MeteringPointRow | null): string {
@@ -120,6 +122,7 @@ export default function CustomerBusinessActionsCard({
   snapshot: suppliedSnapshot,
   isPlatformAdmin = false,
   z01RepairEvents = [],
+  dispatchState = null,
 }: Props) {
   const snapshot =
     suppliedSnapshot ??
@@ -142,6 +145,7 @@ export default function CustomerBusinessActionsCard({
     switchRequests,
     powersOfAttorney,
     isPlatformAdmin,
+    dispatchState,
   })
 
   const actions = buildCustomerBusinessActionPlan({

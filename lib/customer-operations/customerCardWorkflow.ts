@@ -18,6 +18,7 @@ import type {
   SupplierSwitchRequestRow,
 } from "@/lib/operations/types";
 import { gridexBlockerLabel } from "@/lib/ediel/businessLabels";
+import type { EdielDispatchStateResult } from "@/lib/ediel/intent/dispatchState";
 
 export type WorkflowStepStatus =
   | "done"
@@ -41,6 +42,7 @@ export type WorkflowPrimaryAction =
   | "continue_data_request"
   | "review_blocker"
   | "approve_and_send"
+  | "dispatch_in_progress"
   | "wait_for_grid_owner"
   | "create_supplier_switch"
   | "no_action_required";
@@ -172,6 +174,10 @@ export type CustomerCardWorkflowInput = {
   switchRequests: SupplierSwitchRequestRow[];
   powersOfAttorney: PowerOfAttorneyRow[];
   isPlatformAdmin: boolean;
+  // Single source of truth for outbound dispatch (intent → outbox → message).
+  // When provided, "waiting for grid owner" is derived from a real queued/sent
+  // state, never from a legacy `ready_to_send` or a queued outbound_requests row.
+  dispatchState?: EdielDispatchStateResult | null;
 };
 
 export function buildCustomerCardWorkflow(
@@ -211,15 +217,39 @@ export function buildCustomerCardWorkflow(
   const facilityLookupReady = ["ready_to_send", "sent", "waiting_response"].includes(
     facilityLookupStatus ?? "",
   );
-  const facilityLookupWaiting = ["sent", "waiting_response"].includes(
-    facilityLookupStatus ?? "",
-  );
   const outboundRequestId = asString(
     openInfoRequest?.outbound_request_id ?? verifiedPayload.outboundRequestId,
   );
   const edielMessageId = asString(
     openInfoRequest?.ediel_message_id ?? verifiedPayload.edielMessageId,
   );
+
+  // Dispatch truth (PART 3): the facility lookup may only be shown as "waiting for
+  // grid owner" when a real outbox/message state exists. The dispatchState (intent
+  // → outbox → message) is authoritative. Without it we fall back to a CORRECTED
+  // legacy heuristic that requires a real ediel_message_id plus a true post-send
+  // status — `ready_to_send` alone never counts as waiting.
+  const dispatchState = input.dispatchState ?? null;
+  const legacyActuallyDispatched =
+    Boolean(edielMessageId) &&
+    ["sent", "waiting_response"].includes(facilityLookupStatus ?? "");
+  const facilityDispatchSent = dispatchState
+    ? dispatchState.state === "sent"
+    : legacyActuallyDispatched;
+  const facilityDispatchQueued = dispatchState
+    ? dispatchState.state === "queued"
+    : false;
+  const facilityDispatched = facilityDispatchSent || facilityDispatchQueued;
+  const facilityDispatchControlledBlock = dispatchState
+    ? dispatchState.state === "blocked" || dispatchState.state === "failed"
+    : false;
+  // Lookup is "in flight" once an intent exists (created/validated/rendered/queued
+  // /sent/blocked) or, in the legacy fallback, once the request is ready/created.
+  const facilityLookupInFlight = dispatchState
+    ? dispatchState.state !== "none"
+    : facilityLookupReady || Boolean(edielMessageId);
+  const dispatchBlockerMessage =
+    dispatchState?.blockingReasons?.[0]?.message ?? null;
   const gridOwnerDataRequestId = asString(
     openInfoRequest?.grid_owner_data_request_id,
   );
@@ -323,11 +353,19 @@ export function buildCustomerCardWorkflow(
       dataRequestExplanation =
         "Begäran har skickats. Väntar på svar från nätägaren.";
     } else if (["blocked", "route_missing"].includes(infoStatus ?? "")) {
-      if (blockerCode === "facility_or_metering_point_missing" && facilityLookupReady) {
-        dataRequestStatus = facilityLookupWaiting ? "waiting" : "current";
-        dataRequestExplanation = facilityLookupWaiting
+      if (
+        blockerCode === "facility_or_metering_point_missing" &&
+        facilityLookupInFlight &&
+        !facilityDispatchControlledBlock
+      ) {
+        dataRequestStatus = facilityDispatchSent
+          ? "waiting"
+          : "current";
+        dataRequestExplanation = facilityDispatchSent
           ? "Begäran om anläggningsuppgifter är skickad. Vi väntar på svar från nätägaren."
-          : "Anläggnings-ID och mätpunkt saknas. Nätägarbegäran är redo att skickas automatiskt.";
+          : facilityDispatchQueued
+            ? "Nätägarbegäran är köad för Ediel-sändning."
+            : "Anläggnings-ID och mätpunkt saknas. Nätägarbegäran förbereds för sändning.";
         dataRequestBlocker = null;
       } else {
         dataRequestStatus = "blocked";
@@ -449,14 +487,30 @@ export function buildCustomerCardWorkflow(
   if (hasPendingSwitch) {
     primaryAction = "wait_for_grid_owner";
     adminMessage = "Leverantörsbyte pågår. Väntar på svar.";
-  } else if (blockerCode === "facility_or_metering_point_missing" && facilityLookupReady) {
-    primaryAction = "wait_for_grid_owner";
-    adminMessage = facilityLookupWaiting
-      ? "Vi väntar på svar från nätägaren. Ingen åtgärd krävs just nu."
-      : "Nätägarbegäran är redo att skickas via produktionsklar route.";
-    nextRequiredAction = facilityLookupWaiting
-      ? "Invänta svar från nätägaren."
-      : "Skicka/köa nätägarbegäran automatiskt.";
+  } else if (
+    blockerCode === "facility_or_metering_point_missing" &&
+    facilityLookupInFlight
+  ) {
+    if (facilityDispatchControlledBlock) {
+      // Render/queue produced a controlled blocker. Never claim "waiting".
+      primaryAction = "review_blocker";
+      adminMessage =
+        dispatchBlockerMessage ??
+        "Nätägarbegäran behöver granskas innan den kan skickas.";
+      nextRequiredAction = "Granska blockeraren och försök igen.";
+    } else if (facilityDispatchSent) {
+      primaryAction = "wait_for_grid_owner";
+      adminMessage = "Vi väntar på svar från nätägaren. Ingen åtgärd krävs just nu.";
+      nextRequiredAction = "Invänta svar från nätägaren.";
+    } else {
+      // Created/validated/rendered/queued but NOT yet sent: the system is
+      // preparing/queueing the send. This is not "waiting for grid owner".
+      primaryAction = "dispatch_in_progress";
+      adminMessage = facilityDispatchQueued
+        ? "Nätägarbegäran är köad för Ediel-sändning. Ingen åtgärd krävs."
+        : "Nätägarbegäran förbereds för sändning. Ingen åtgärd krävs.";
+      nextRequiredAction = "Systemet köar och skickar begäran automatiskt.";
+    }
   } else if (hasResponseForSwitch) {
     primaryAction = "create_supplier_switch";
     adminMessage = "Uppgifter mottagna. Starta leverantörsbyte när du är redo.";

@@ -1,5 +1,6 @@
 import type { CustomerCardSnapshot } from '@/lib/customers/customerCardSnapshot'
 import type { CustomerCardWorkflow } from '@/lib/customer-operations/customerCardWorkflow'
+import type { EdielDispatchStateResult } from '@/lib/ediel/intent/dispatchState'
 
 export type TenantCustomerTab =
   | 'overview'
@@ -43,9 +44,22 @@ function stepStatus(isDone: boolean, isCurrent: boolean, isBlocked = false): Ten
 export function buildTenantCustomerCardView(params: {
   snapshot: CustomerCardSnapshot
   workflow: CustomerCardWorkflow
+  dispatchState?: EdielDispatchStateResult | null
 }): TenantCustomerCardView {
   const { snapshot, workflow } = params
   const isBlocked = workflow.primaryAction === 'review_blocker'
+  // A facility lookup is only "sent / waiting for grid owner" when a real
+  // outbox/message dispatch exists. ready_to_send / queued is pre-send.
+  const dispatchSent =
+    (params.dispatchState ? params.dispatchState.state === 'sent' : false) ||
+    workflow.primaryAction === 'wait_for_grid_owner'
+  const facilityInProgress = [
+    'request_data',
+    'continue_data_request',
+    'approve_and_send',
+    'dispatch_in_progress',
+    'wait_for_grid_owner',
+  ].includes(workflow.primaryAction)
 
   return {
     processSteps: [
@@ -58,7 +72,7 @@ export function buildTenantCustomerCardView(params: {
       {
         id: 'facility',
         label: 'Uppgifter från nätägare',
-        status: stepStatus(snapshot.hasFacilityId && snapshot.hasMeteringPoint && snapshot.hasGridOwner, ['request_data', 'continue_data_request', 'approve_and_send', 'wait_for_grid_owner'].includes(workflow.primaryAction), isBlocked),
+        status: stepStatus(snapshot.hasFacilityId && snapshot.hasMeteringPoint && snapshot.hasGridOwner, facilityInProgress, isBlocked),
       },
       {
         id: 'switch',
@@ -83,14 +97,21 @@ export function buildTenantCustomerCardView(params: {
               kind: 'customer_data',
               enabled: true,
             }
-          : workflow.primaryAction === 'wait_for_grid_owner'
+          : workflow.primaryAction === 'dispatch_in_progress'
             ? {
-                id: 'wait_for_grid_owner',
-                label: 'Väntar på svar från nätägare',
+                id: 'dispatch_in_progress',
+                label: 'Köad för Ediel-sändning',
                 enabled: false,
                 reason: workflow.nextRequiredAction,
               }
-            : null,
+            : workflow.primaryAction === 'wait_for_grid_owner'
+              ? {
+                  id: 'wait_for_grid_owner',
+                  label: 'Väntar på svar från nätägare',
+                  enabled: false,
+                  reason: workflow.nextRequiredAction,
+                }
+              : null,
     statusCards: [
       {
         label: 'Avtal',
@@ -100,7 +121,13 @@ export function buildTenantCustomerCardView(params: {
       },
       {
         label: 'Anläggning',
-        value: snapshot.hasMeteringPoint ? 'Klar' : ['request_data', 'continue_data_request', 'approve_and_send', 'wait_for_grid_owner'].includes(workflow.primaryAction) ? 'Hämtas' : 'Saknas',
+        value: snapshot.hasMeteringPoint
+          ? 'Klar'
+          : dispatchSent
+            ? 'Väntar på nätägare'
+            : facilityInProgress
+              ? 'Hämtas'
+              : 'Saknas',
         description: snapshot.hasMeteringPoint ? 'Anläggningsuppgifter finns.' : 'Systemet hämtar uppgifter från nätägaren när route och fullmakt är klara.',
         targetTab: 'sites',
       },

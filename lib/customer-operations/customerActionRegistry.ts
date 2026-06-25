@@ -46,6 +46,14 @@ function actionFromPrimaryAction(action: WorkflowPrimaryAction, workflow: Custom
         status: 'available',
         priority: 'primary',
       }
+    case 'dispatch_in_progress':
+      return {
+        id: 'dispatch_in_progress',
+        label: 'Köad för Ediel-sändning',
+        description: workflow.nextRequiredAction ?? 'Systemet förbereder och skickar begäran automatiskt. Ingen åtgärd krävs.',
+        status: 'waiting',
+        priority: 'primary',
+      }
     case 'wait_for_grid_owner':
       return {
         id: 'waiting_for_grid_owner',
@@ -113,7 +121,7 @@ export function buildCustomerStatusCards(input: {
 }): CustomerStatusCard[] {
   const { workflow, snapshot } = input
   const hasFacility = snapshot.hasFacilityId && snapshot.hasGridOwner
-  const facilityLookupInProgress = ['request_data', 'continue_data_request', 'approve_and_send', 'wait_for_grid_owner'].includes(workflow.primaryAction)
+  const facilityLookupInProgress = ['request_data', 'continue_data_request', 'approve_and_send', 'dispatch_in_progress', 'wait_for_grid_owner'].includes(workflow.primaryAction)
   const blocker = workflow.primaryAction === 'review_blocker'
 
   return [
