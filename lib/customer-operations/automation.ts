@@ -1116,6 +1116,78 @@ async function upsertMeteringPoint(input: {
   return clean(data?.id)
 }
 
+// Completes the new-model grid_owner_information_requests row when an inbound Z02
+// is applied. The facility lookup created via the intent pipeline links its
+// grid_owner_information_request to the outbound message; the inbound Z02 links to
+// that outbound via related_message_id. This is additive + tenant-scoped + safe if
+// the optional column / table is absent.
+async function completeLinkedGridOwnerInformationRequest(input: {
+  companyId: string
+  outboundEdielMessageId: string | null
+  inboundEdielMessageId: string
+  facilityId: string | null
+  meteringPointExternalId: string | null
+  gridAreaCode: string | null
+  priceArea: string | null
+  verified: boolean
+  receivedPayload: JsonRecord
+  actorUserId: string | null
+}): Promise<void> {
+  const messageIds = [clean(input.outboundEdielMessageId), clean(input.inboundEdielMessageId)].filter(
+    (id): id is string => Boolean(id),
+  )
+  if (messageIds.length === 0) return
+
+  const { data, error } = await supabaseService
+    .from('grid_owner_information_requests')
+    .select('id,metadata')
+    .eq('company_id', input.companyId)
+    .in('ediel_message_id', messageIds)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    if (missingSchema(error)) return
+    throw error
+  }
+  const row = (data as JsonRecord | null) ?? null
+  if (!row) return
+
+  const now = nowIso()
+  const patch: JsonRecord = {
+    status: input.verified ? 'completed' : 'needs_review',
+    facility_verification_status: input.verified ? 'verified' : 'needs_review',
+    facility_id: input.facilityId,
+    metering_point_id: input.meteringPointExternalId,
+    grid_area_code: input.gridAreaCode,
+    price_area: input.priceArea,
+    received_payload: input.receivedPayload,
+    received_at: now,
+    completed_at: input.verified ? now : null,
+    dispatch_error_code: null,
+    dispatch_error_message: null,
+    updated_at: now,
+  }
+  const { error: updateError } = await supabaseService
+    .from('grid_owner_information_requests')
+    .update(patch)
+    .eq('company_id', input.companyId)
+    .eq('id', String(row.id))
+  // facility_verification_status may be absent on older schemas; retry without it.
+  if (updateError && missingSchema(updateError)) {
+    const fallbackPatch = { ...patch }
+    delete fallbackPatch.facility_verification_status
+    const retry = await supabaseService
+      .from('grid_owner_information_requests')
+      .update(fallbackPatch)
+      .eq('company_id', input.companyId)
+      .eq('id', String(row.id))
+    if (retry.error && !missingSchema(retry.error)) throw retry.error
+  } else if (updateError) {
+    throw updateError
+  }
+}
+
 export async function applyInboundGridOwnerResponse(input: {
   companyId: string
   customerId: string
@@ -1269,6 +1341,7 @@ export async function applyInboundGridOwnerResponse(input: {
     grid_area_code: clean(line.gridAreaId) ?? resolution.result.gridAreaCode,
     price_area_code: resolution.result.priceArea ?? clean(site.price_area_code),
     facility_data_verified_at: verifiedGridOwnerId ? now : null,
+    facility_data_status: verifiedGridOwnerId && meterPointExternalId ? 'verified' : 'needs_review',
     resolution_status: verifiedGridOwnerId ? 'facility_verified' : resolution.result.resolutionStatus,
     data_quality_status: verifiedGridOwnerId && meterPointExternalId ? 'complete' : 'needs_review',
     updated_at: now,
@@ -1342,6 +1415,23 @@ export async function applyInboundGridOwnerResponse(input: {
     actionUrl: `/admin/customers/${input.customerId}?tab=data-requests`,
     payload: { ...applied, operation_id: operationId },
     idempotencyKey: `z02-masterdata-applied:${input.edielMessageId}`,
+  })
+
+  // Complete the linked new-model grid_owner_information_requests row (facility
+  // lookup created via the intent pipeline) so its status reflects reality.
+  await completeLinkedGridOwnerInformationRequest({
+    companyId: input.companyId,
+    outboundEdielMessageId: clean((message as JsonRecord).related_message_id),
+    inboundEdielMessageId: input.edielMessageId,
+    facilityId,
+    meteringPointExternalId: meterPointExternalId,
+    gridAreaCode: clean(line.gridAreaId) ?? resolution.result.gridAreaCode,
+    priceArea: resolution.result.priceArea ?? null,
+    verified: Boolean(verifiedGridOwnerId && meteringPointRecordId),
+    receivedPayload: applied,
+    actorUserId: effectiveActorUserId,
+  }).catch((error) => {
+    if (!missingSchema(error)) throw error
   })
 
   if (verifiedGridOwnerId && meteringPointRecordId) {

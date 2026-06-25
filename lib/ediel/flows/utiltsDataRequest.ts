@@ -55,6 +55,7 @@ import {
   type EdielAperakApplicationError,
 } from '@/lib/ediel/ack'
 import { updateMeterValueBillingReadiness } from '@/lib/billing/meterValueBillingMatcher'
+import { projectMeteringValueToNormalized } from '@/lib/metering/normalizeMeteringValues'
 
 type UtiltsProcessResult = {
   message: EdielMessageRow
@@ -607,6 +608,30 @@ async function maybeIngestMeteringValue(params: {
       meterValue: row,
       sourceMessageId: params.message.id,
     })
+    // Project into normalized_metering_values so monthly billing underlay (which
+    // prefers normalized rows) sees inbound UTILTS data. Idempotent: re-processing
+    // the same message never double counts consumption.
+    await projectMeteringValueToNormalized({
+      companyId,
+      meteringValueId: row.id,
+      customerId: row.customer_id ?? customerId,
+      customerSiteId: (row as Record<string, unknown>).customer_site_id as string | null ?? null,
+      siteId: row.site_id ?? siteAndCustomer?.siteId ?? params.siteId,
+      meteringPointId,
+      facilityId: (row as Record<string, unknown>).site_facility_id as string | null ?? item.externalMeteringPointId ?? null,
+      priceArea: (row as Record<string, unknown>).price_area_code as string | null ?? null,
+      gridArea: item.externalGridAreaId ?? null,
+      periodStart: item.periodStart,
+      periodEnd: item.periodEnd,
+      resolution: (row as Record<string, unknown>).measurement_resolution as string | null ?? null,
+      quantityKwh: item.quantity,
+      qualityStatus: item.qualityCode,
+      sourceType: 'ediel_utilts',
+      sourceMessageId: params.message.id,
+      sourceTransactionReference: item.transactionReference,
+      sourceLineReference: item.externalMeteringPointId ?? null,
+      createdBy: params.actorUserId,
+    }).catch(() => null)
     rows.push(row)
   }
 

@@ -81,6 +81,81 @@ async function resolveMeteringPoint(input: NormalizedMeteringValueInput): Promis
   }
 }
 
+// Projects an already-ingested metering_values row into normalized_metering_values
+// without re-writing metering_values. Used by the inbound UTILTS path (which writes
+// metering_values via ingestMeteringValue) so billing underlay generation — which
+// prefers normalized rows — sees UTILTS data. Idempotent: duplicate rows (unique
+// dedupe index) are ignored, so re-processing the same UTILTS message never double
+// counts consumption.
+export async function projectMeteringValueToNormalized(input: {
+  companyId: string
+  meteringValueId: string
+  customerId?: string | null
+  customerSiteId?: string | null
+  siteId?: string | null
+  meteringPointId: string
+  facilityId?: string | null
+  priceArea?: PriceArea | string | null
+  gridArea?: string | null
+  periodStart: string | null
+  periodEnd: string | null
+  resolution?: string | null
+  quantityKwh: number
+  qualityStatus?: string | null
+  sourceType: 'ediel_utilts' | 'brp_import' | 'manual' | 'api' | string
+  sourceMessageId?: string | null
+  sourceTransactionReference?: string | null
+  sourceLineReference?: string | null
+  rawPayload?: Record<string, unknown>
+  createdBy?: string | null
+}): Promise<{ status: 'stored' | 'duplicate' | 'skipped'; normalizedMeteringValueId?: string | null }> {
+  if (!input.companyId || !nonEmpty(input.meteringPointId)) return { status: 'skipped' }
+  if (!Number.isFinite(input.quantityKwh)) return { status: 'skipped' }
+  const periodStart = nonEmpty(input.periodStart)
+  const periodEnd = nonEmpty(input.periodEnd)
+  if (!periodStart || !periodEnd) return { status: 'skipped' }
+  const priceArea = isPriceArea(input.priceArea ?? undefined) ? input.priceArea : null
+
+  const { data, error } = await supabaseService
+    .from('normalized_metering_values')
+    .insert({
+      company_id: input.companyId,
+      customer_id: input.customerId ?? null,
+      customer_site_id: input.customerSiteId ?? null,
+      site_id: input.siteId ?? null,
+      metering_point_id: input.meteringPointId,
+      facility_id: input.facilityId ?? null,
+      price_area: priceArea,
+      grid_area: input.gridArea ?? null,
+      period_start: periodStart,
+      period_end: periodEnd,
+      resolution: input.resolution ?? null,
+      quantity_kwh: input.quantityKwh,
+      quality_status: input.qualityStatus ?? null,
+      source_type: input.sourceType,
+      source_message_id: input.sourceMessageId ?? null,
+      source_transaction_reference: input.sourceTransactionReference ?? null,
+      source_line_reference: input.sourceLineReference ?? null,
+      source_metering_value_id: input.meteringValueId,
+      raw_payload: input.rawPayload ?? {},
+      status: 'stored',
+      created_by: input.createdBy ?? null,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    // 23505 = unique violation (duplicate already normalized) → idempotent no-op.
+    const code = String((error as { code?: unknown }).code ?? '')
+    if (code === '23505') return { status: 'duplicate' }
+    // Missing table/column (older schema) → skip silently; metering_values still saved.
+    if (['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code)) return { status: 'skipped' }
+    throw error
+  }
+
+  return { status: 'stored', normalizedMeteringValueId: (data as { id: string }).id }
+}
+
 export async function normalizeAndStoreMeteringValue(input: NormalizedMeteringValueInput): Promise<NormalizeResult> {
   const warnings: string[] = []
   if (!input.companyId) return { status: 'needs_review', reason: 'company_id saknas.', warnings }
