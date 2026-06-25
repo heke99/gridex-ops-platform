@@ -559,7 +559,10 @@ function renderProdatSegments(params: {
 } {
   const portalData = portalSnapshot(params.switchRequest)
   const customerName = portalString(portalData, 'customerName') ?? inferCustomerName(params.switchRequest, params.site)
-  const meterPointId = portalString(portalData, 'facilityId') ?? (inferMeterPointIdentifier(params.meteringPoint) || 'UNKNOWN')
+  // No-placeholder: never fabricate 'UNKNOWN'. An empty id makes the generic
+  // builder omit the LIN object identifier; codes that require LIN (e.g. Z03) are
+  // then blocked by validation instead of silently sending a fake identifier.
+  const meterPointId = portalString(portalData, 'facilityId') ?? (inferMeterPointIdentifier(params.meteringPoint) || '')
   const gridAreaId = portalString(portalData, 'gridAreaId') ?? inferGridArea(params.gridOwner)
   const startDate =
     portalDate102(portalString(portalData, 'agreementStartDateTime')) ||

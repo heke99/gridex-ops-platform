@@ -180,9 +180,13 @@ export function buildGenericProdatSegments(input: {
     ? resolvePermissionPurpose(context.code, portalString(portalData, 'permissionPurpose') ?? context.permissionPurpose ?? null, reasonForTransaction)
     : sanitizeProdatToken(portalString(portalData, 'permissionPurpose') ?? context.permissionPurpose ?? null, 12)
 
-  const meterPointId =
-    portalString(portalData, 'facilityId') ??
-    (sanitizeProdatText(context.meterPointId) || 'UNKNOWN')
+  // Production rule (no-placeholder): never fabricate an object identifier such as
+  // 'UNKNOWN'. When no real facility/metering point id exists the object id is
+  // omitted. A Z01 customer-identity request is address-keyed and does not require
+  // LIN per its rulebook profile, so omission is documented-safe; other codes
+  // always carry a real id (enforced by their preflight) and are unaffected.
+  const meterPointId = portalString(portalData, 'facilityId') ?? sanitizeProdatText(context.meterPointId)
+  const hasObjectIdentifier = meterPointId.trim().length > 0
 
   const gridAreaId = portalString(portalData, 'gridAreaId') ?? sanitizeProdatText(context.gridAreaId)
   const startDate = isHistoricalPermission
@@ -205,8 +209,12 @@ export function buildGenericProdatSegments(input: {
     'DTM+ZZZ:1:805',
     prodatPartySegment('FR', context.senderEdielId),
     prodatPartySegment('DO', context.receiverEdielId),
-    `LIN+1++${sanitizeProdatText(meterPointId)}:::9`,
   ]
+
+  // Only emit the LIN object identifier when a real id exists. No 'UNKNOWN'.
+  if (hasObjectIdentifier) {
+    segments.push(`LIN+1++${sanitizeProdatText(meterPointId)}:::9`)
+  }
 
   const startDate203 = prodatDate203AtStartOfDay(startDate)
   if (context.code === 'Z18') {
@@ -328,6 +336,7 @@ export function buildGenericProdatSegments(input: {
       bgmReference,
       reasonForTransaction,
       meteringMethod,
+      objectIdentifierMissing: !hasObjectIdentifier,
       hasPortalSnapshot: Boolean(portalData),
       segmentCountBeforeEnvelope: segments.length,
       routeDecisionReason: input.routeDecisionReason ?? null,

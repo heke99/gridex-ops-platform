@@ -117,6 +117,7 @@ export type ProdatEngineDiagnostics = {
   bgmReference: string
   reasonForTransaction: string | null
   meteringMethod: string | null
+  objectIdentifierMissing?: boolean
   hasPortalSnapshot: boolean
   segmentCountBeforeEnvelope: number
   routeDecisionReason?: string | null

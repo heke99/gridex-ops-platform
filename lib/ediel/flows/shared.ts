@@ -247,6 +247,7 @@ export async function queuePreparedEdielMessage(params: {
   messageId: string
   outboundRequestId?: string | null
   externalReference?: string | null
+  intentId?: string | null
   payload?: Record<string, unknown>
 }) {
   const { updateEdielMessageStatus } = await import('@/lib/ediel/db')
@@ -264,6 +265,7 @@ export async function queuePreparedEdielMessage(params: {
       message: outboxMessage,
       status: 'queued',
       priority: 50,
+      intentId: params.intentId ?? outboxMessage.intent_id ?? null,
       lockKey: [
         'outbound',
         params.outboundRequestId ?? outboxMessage.outbound_request_id ?? 'message',

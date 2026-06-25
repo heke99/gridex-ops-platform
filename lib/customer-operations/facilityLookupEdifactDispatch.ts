@@ -1,25 +1,17 @@
 import { randomUUID } from 'node:crypto'
 import { createOutboundRequest } from '@/lib/cis/db'
-import { getCustomerExportContext, requireContextCompanyId } from '@/lib/cis/db-shared'
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
-import { buildEdifactEnvelope } from '@/lib/ediel/messages'
-import { inferEdielFileName } from '@/lib/ediel/classify'
-import { renderProdat26A } from '@/lib/ediel/prodatEngine'
-import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
-import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
-import {
-  finalizeOutboundDraft,
-  queuePreparedEdielMessage,
-  resolveOutboundRuntimeEnvironment,
-} from '@/lib/ediel/flows/shared'
+import { resolveOutboundRuntimeEnvironment } from '@/lib/ediel/flows/shared'
+import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
+import { renderAndQueueFacilityLookupZ01 } from '@/lib/ediel/intent/renderGateway'
+import { translateBlockingReasonsForTenant } from '@/lib/ediel/intent/tenantStatusTranslator'
+import { FACILITY_LOOKUP_APPLICATION_REFERENCE } from '@/lib/ediel/intent/renderers/facilityLookupZ01'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 
 type JsonRecord = Record<string, unknown>
-
-const FACILITY_LOOKUP_APPLICATION_REFERENCE = '23-DDQ-PRODAT'
 
 type FacilityLookupRequestRow = {
   id: string
@@ -79,11 +71,6 @@ function sanitize(value: unknown): string {
     .trim()
 }
 
-function date102(value?: string | null): string | null {
-  const digits = String(value ?? '').replace(/\D/g, '')
-  return digits.length >= 8 ? digits.slice(0, 8) : null
-}
-
 function compactReference(value: string | null | undefined, fallbackPrefix: string, maxLength: number): string {
   const cleaned = sanitize(value).toUpperCase().replace(/[^A-Z0-9_.\/-]/g, '')
   if (cleaned) return cleaned.slice(0, maxLength)
@@ -93,26 +80,6 @@ function compactReference(value: string | null | undefined, fallbackPrefix: stri
 
 function requestMetadata(row: FacilityLookupRequestRow): JsonRecord {
   return isRecord(row.metadata) ? row.metadata : {}
-}
-
-function customerName(customer: JsonRecord | null | undefined): string {
-  const name = sanitize(
-    customer?.company_name ??
-      customer?.full_name ??
-      [customer?.first_name, customer?.last_name].filter(Boolean).join(' ') ??
-      customer?.customer_number ??
-      'Kund',
-  )
-  return name || 'Kund'
-}
-
-function customerIdentifier(customer: JsonRecord | null | undefined): { id: string | null; qualifier: string | null } {
-  const id = sanitize(customer?.personal_number ?? customer?.org_number ?? customer?.customer_number ?? '')
-  if (!id) return { id: null, qualifier: null }
-  return {
-    id,
-    qualifier: customer?.org_number ? '1' : id.length === 10 ? 'SE1' : 'SE2',
-  }
 }
 
 async function readFacilityLookupRequest(input: { companyId: string; requestId: string }) {
@@ -214,6 +181,11 @@ async function markDispatchBlocked(input: {
   })
 
   if (input.request.customer_id) {
+    // Tenant sees plain Swedish; the raw technical code/message stays in payload
+    // for superadmin diagnostics only (PART 6).
+    const blockingReasons = Array.isArray((input.details as JsonRecord | undefined)?.blockingReasons)
+      ? ((input.details as JsonRecord).blockingReasons as { code: string; message: string }[])
+      : [{ code: input.code, message: input.message }]
     await emitCustomerOperationEvent({
       companyId: input.request.company_id,
       customerId: input.request.customer_id,
@@ -221,12 +193,12 @@ async function markDispatchBlocked(input: {
       actorUserId: input.actorUserId,
       eventType: 'facility_lookup.edifact_blocked',
       title: 'Nätägarbegäran kunde inte köas',
-      message: input.message,
+      message: translateBlockingReasonsForTenant(blockingReasons),
       status: 'blocked',
       severity: 'error',
       actionRequired: true,
       source: 'facility_lookup_edifact_dispatch',
-      payload: { request_id: input.request.id, code: input.code, details: input.details ?? {} },
+      payload: { request_id: input.request.id, code: input.code, technicalMessage: input.message, details: input.details ?? {} },
       idempotencyKey: `facility-lookup-edifact-blocked:${input.request.id}:${input.code}`,
     })
   }
@@ -244,158 +216,55 @@ async function markDispatchBlocked(input: {
   }
 }
 
-async function buildFacilityLookupDraft(input: {
+// Business process creates the intent only. The RenderGateway is the sole caller
+// of EDIFACT renderers; this module no longer renders PRODAT directly.
+async function createFacilityLookupIntent(input: {
   actorUserId: string
   request: FacilityLookupRequestRow
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
-  outboundRequestId: string
+  routeProfileId: string | null
   operationId: string
-  gridOwner: JsonRecord | null
 }) {
-  if (!input.request.customer_id || !input.request.customer_site_id) {
-    throw new Error('facility_lookup_missing_customer_or_site')
-  }
-
-  const context = await getCustomerExportContext({
-    customerId: input.request.customer_id,
-    siteId: input.request.customer_site_id,
-    meteringPointId: null,
-  })
-  const companyId = requireContextCompanyId(context, 'Bygg facility lookup PRODAT Z01')
-  const customer = (context.customer ?? null) as unknown as JsonRecord | null
-  const site = (context.site ?? null) as unknown as JsonRecord | null
-  const identity = customerIdentifier(customer)
-  const externalReference = compactReference(`FLZ01-${input.request.id.slice(0, 8)}`, 'FLZ01', 20)
-  const transactionReference = compactReference(`FL-${input.request.id.slice(0, 12)}`, 'FL', 25)
-  const messageVersion = (await resolveCanonicalOutboundVersion({
-    family: 'PRODAT',
-    code: 'Z01',
-    standard: 'edifact',
-    fallback: '26A',
-    routeDefaultMessageVersion: input.routeContext.defaultMessageVersion ?? null,
-    environment: input.routeContext.environment,
-  })) ?? '26A'
-  const messageVersionToken = messageVersion === '26A' ? 'E2SE6A' : messageVersion
-
-  // This dispatcher is intentionally only for the facility-lookup gap: the
-  // customer/site/grid-owner are known, but the facility/metering identifier is
-  // not. The placeholder is visible in validation_report and parsed_payload so
-  // the ordinary supplier-switch Z01 preflight remains strict and unchanged.
-  const meterPointPlaceholder = 'UNKNOWN'
-  const rendered = renderProdat26A({
-    context: {
-      code: 'Z01',
-      bgmReference: externalReference,
-      transactionReference,
-      senderEdielId: input.routeContext.senderEdielId,
-      receiverEdielId: input.routeContext.receiverEdielId,
-      customerName: customerName(customer),
-      customerId: identity.id,
-      customerIdCodeListQualifier: identity.qualifier,
-      meterPointId: meterPointPlaceholder,
-      gridAreaId: clean(input.request.grid_area_code) ?? clean(site?.grid_area_code) ?? clean(input.gridOwner?.owner_code),
-      startDate: date102(clean(site?.move_in_date)) ?? new Date().toISOString().slice(0, 10).replace(/-/g, ''),
-      customerAddress: clean(site?.street),
-      customerPostalCode: clean(site?.postal_code),
-      customerCity: clean(site?.city),
-      customerCountry: clean(site?.country) ?? 'SE',
-      siteAddress: clean(site?.street),
-      sitePostalCode: clean(site?.postal_code),
-      siteCity: clean(site?.city),
-      siteCountry: clean(site?.country) ?? 'SE',
-      reasonForTransaction: 'Z22',
-      powerOfAttorneyReference: externalReference,
-    },
-  })
-
-  const envelope = buildEdifactEnvelope({
-    senderEdielId: input.routeContext.senderEdielId,
-    senderSubAddress: input.routeContext.senderSubAddress,
-    receiverEdielId: input.routeContext.receiverEdielId,
-    receiverSubAddress: input.routeContext.receiverMessageSubAddress ?? input.routeContext.receiverSubAddress,
-    applicationReference: FACILITY_LOOKUP_APPLICATION_REFERENCE,
-    testFlag: input.routeContext.environment === 'production' ? 0 : 1,
-    messageTypeToken: `PRODAT:D:97A:UN:${messageVersionToken}`,
-    segments: rendered.segments,
-  })
-  const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z01' })
-
-  return {
+  const reference = compactReference(`FLZ01-${input.request.id.slice(0, 8)}`, 'FLZ01', 20)
+  return createEdielMessageIntent({
     actorUserId: input.actorUserId,
-    companyId,
-    direction: 'outbound' as const,
-    messageStandard: 'edifact' as const,
-    messageFamily: 'PRODAT' as const,
-    messageCode: 'Z01',
-    messageVersion,
-    processType: 'facility_lookup_request',
+    companyId: input.request.company_id,
     environment: input.routeContext.environment,
-    testFlag: input.routeContext.environment === 'production' ? 0 as const : 1 as const,
-    status: 'draft' as const,
-    transportType: 'smtp' as const,
-    mailbox: input.routeContext.mailbox,
+    market: 'electricity',
+    messageFamily: 'PRODAT',
+    messageCode: 'Z01',
+    businessProcess: 'facility_lookup',
+    direction: 'outbound',
     senderEdielId: input.routeContext.senderEdielId,
-    senderName: input.routeContext.senderName,
+    senderSubaddress: input.routeContext.senderSubAddress ?? null,
     receiverEdielId: input.routeContext.receiverEdielId,
-    receiverName: input.routeContext.receiverName,
-    senderSubAddress: input.routeContext.senderSubAddress,
-    receiverSubAddress: input.routeContext.receiverMessageSubAddress ?? input.routeContext.receiverSubAddress,
-    receiverEmail: input.routeContext.receiverEmail,
-    subject: `PRODAT Z01 facility lookup ${externalReference}`,
-    fileName: inferEdielFileName({ family: 'PRODAT', code: 'Z01', direction: 'outbound', extension: 'edi' }),
-    mimeType: 'application/edifact',
-    interchangeReference: envelope.interchangeReference,
-    externalReference,
-    transactionReference,
+    receiverSubaddress: input.routeContext.receiverMessageSubAddress ?? input.routeContext.receiverSubAddress ?? null,
     applicationReference: FACILITY_LOOKUP_APPLICATION_REFERENCE,
+    routeProfileId: input.routeProfileId ?? input.routeContext.route.id,
     communicationRouteId: input.routeContext.route.id,
-    outboundRequestId: input.outboundRequestId,
     customerId: input.request.customer_id,
-    siteId: input.request.customer_site_id,
+    customerSiteId: input.request.customer_site_id,
+    gridOwnerInformationRequestId: input.request.id,
+    operationId: input.operationId,
+    // Facility lookup is the documented allowed-missing case for the metering
+    // point / facility id: the identifier is requested from the grid owner. It is
+    // modelled as null (never a placeholder string).
+    facilityId: null,
     meteringPointId: null,
-    gridOwnerId: input.request.grid_owner_id,
-    rawPayload: envelope.raw,
-    parsedPayload: {
-      draftType: 'facility_lookup_prodat_z01_outbound',
-      processLabel: 'facility_lookup_request',
+    gridAreaCode: clean(input.request.grid_area_code),
+    interchangeReference: reference,
+    messageReference: reference,
+    transactionReference: compactReference(`FL-${input.request.id.slice(0, 12)}`, 'FL', 25),
+    idempotencyKey: `facility-lookup-z01:${input.request.id}`,
+    payload: {
       grid_owner_information_request_id: input.request.id,
       operation_id: input.operationId,
       lookupMode: 'customer_site_address_without_facility_identifier',
-      placeholderMeterPointId: meterPointPlaceholder,
-      requestedFields: ['facility_id', 'metering_point_id', 'grid_area_code', 'price_area'],
-      expectedResponse: 'CONTRL/APERAK och därefter PRODAT Z02 eller negativ APERAK',
+      allowedMissing: ['facility_id', 'metering_point_id'],
       gridOwnerId: input.request.grid_owner_id,
-      gridAreaCode: input.request.grid_area_code,
       priceArea: input.request.price_area,
-      prodatEngine: rendered.diagnostics,
-      prodatAckExpectation: rendered.ackExpectation ?? null,
     },
-    validationReport: {
-      status: 'warning',
-      checkedAt: new Date().toISOString(),
-      facilityLookupDispatch: true,
-      placeholderMeterPointId: meterPointPlaceholder,
-      reason: 'Facility/metering identifier saknas och begärs från nätägaren.',
-      prodatEngine: rendered.diagnostics,
-      prodatAckExpectation: rendered.ackExpectation ?? null,
-      engineIssues: rendered.issues,
-      payloadPreflight: envelope.payloadPreflight,
-    },
-    requiresContrl: ack.requiresContrl,
-    requiresAperak: ack.requiresAperak,
-    contrlStatus: ack.contrlStatus,
-    aperakStatus: ack.aperakStatus,
-    utiltsErrStatus: ack.utiltsErrStatus,
-    ackDueAt: computeOutboundAckDueAt({
-      requiresContrl: ack.requiresContrl,
-      requiresAperak: ack.requiresAperak,
-      contrlStatus: ack.contrlStatus,
-      aperakStatus: ack.aperakStatus,
-      utiltsErrStatus: ack.utiltsErrStatus,
-    }),
-    syntaxCheckStatus: 'not_checked',
-    functionalCheckStatus: 'not_checked',
-  }
+  })
 }
 
 export async function dispatchFacilityLookupEdifact(input: {
@@ -503,6 +372,7 @@ export async function dispatchFacilityLookupEdifact(input: {
     })
 
     if (!existingMessageId) {
+      const repairOperationId = clean(existingOutbound.operation_id) ?? operationId
       const routeContext = await resolveCanonicalOutboundContext({
         requestType: 'customer_masterdata',
         gridOwner: gridOwner as never,
@@ -511,44 +381,32 @@ export async function dispatchFacilityLookupEdifact(input: {
         environment,
         messageStandard: 'edifact',
       })
-      const draft = await buildFacilityLookupDraft({
+      const intent = await createFacilityLookupIntent({
+        actorUserId,
+        request,
+        routeContext,
+        routeProfileId: routeReadiness.routeProfileId,
+        operationId: repairOperationId,
+      })
+      const rendered = await renderAndQueueFacilityLookupZ01({
+        intentId: intent.id,
         actorUserId,
         request,
         routeContext,
         outboundRequestId: clean(existingOutbound.id)!,
-        operationId: clean(existingOutbound.operation_id) ?? operationId,
-        gridOwner,
+        operationId: repairOperationId,
       })
-      const message = await finalizeOutboundDraft({
-        actorUserId,
-        requestType: 'customer_masterdata',
-        routeContext,
-        draft,
-        outboundRequestId: clean(existingOutbound.id),
-        duplicateCheck: {
-          sourceType: 'grid_owner_information_request',
-          sourceId: request.id,
-          receiverEdielId: routeContext.receiverEdielId,
-          messageFamily: 'PRODAT',
-          messageCode: 'Z01',
-          messageVersion: draft.messageVersion,
-        },
-      })
+      if (rendered.status === 'blocked') {
+        return markDispatchBlocked({
+          request,
+          actorUserId,
+          code: rendered.blockingReasons[0]?.code ?? 'facility_lookup_intent_blocked',
+          message: rendered.blockingReasons[0]?.message ?? 'Facility lookup-intent blockerades före rendering.',
+          details: { intentId: intent.id, blockingReasons: rendered.blockingReasons },
+        })
+      }
+      const message = rendered.message
       existingMessageId = message.id
-      await queuePreparedEdielMessage({
-        actorUserId,
-        messageId: message.id,
-        outboundRequestId: clean(existingOutbound.id),
-        externalReference: message.external_reference ?? draft.externalReference,
-        payload: {
-          gridOwnerInformationRequestId: request.id,
-          operationId: clean(existingOutbound.operation_id) ?? operationId,
-          messageFamily: 'PRODAT',
-          messageCode: 'Z01',
-          routeId: routeContext.route.id,
-          dispatchKind: 'facility_lookup_edifact_repair',
-        },
-      })
       await safePatch('outbound_requests', {
         companyId: request.company_id,
         id: clean(existingOutbound.id),
@@ -559,8 +417,9 @@ export async function dispatchFacilityLookupEdifact(input: {
           response_payload: {
             ...responsePayload,
             edielMessageId: message.id,
+            intentId: intent.id,
             gridOwnerInformationRequestId: request.id,
-            operationId: clean(existingOutbound.operation_id) ?? operationId,
+            operationId: repairOperationId,
             repairedFacilityLookupEdifactDispatch: true,
           },
         },
@@ -650,44 +509,32 @@ export async function dispatchFacilityLookupEdifact(input: {
     environment,
     messageStandard: 'edifact',
   })
-  const draft = await buildFacilityLookupDraft({
+
+  const intent = await createFacilityLookupIntent({
+    actorUserId,
+    request,
+    routeContext,
+    routeProfileId: routeReadiness.routeProfileId,
+    operationId,
+  })
+  const rendered = await renderAndQueueFacilityLookupZ01({
+    intentId: intent.id,
     actorUserId,
     request,
     routeContext,
     outboundRequestId: outbound.id,
     operationId,
-    gridOwner,
   })
-  const message = await finalizeOutboundDraft({
-    actorUserId,
-    requestType: 'customer_masterdata',
-    routeContext,
-    draft,
-    outboundRequestId: outbound.id,
-    duplicateCheck: {
-      sourceType: 'grid_owner_information_request',
-      sourceId: request.id,
-      receiverEdielId: routeContext.receiverEdielId,
-      messageFamily: 'PRODAT',
-      messageCode: 'Z01',
-      messageVersion: draft.messageVersion,
-    },
-  })
-
-  await queuePreparedEdielMessage({
-    actorUserId,
-    messageId: message.id,
-    outboundRequestId: outbound.id,
-    externalReference: message.external_reference ?? draft.externalReference,
-    payload: {
-      gridOwnerInformationRequestId: request.id,
-      operationId,
-      messageFamily: 'PRODAT',
-      messageCode: 'Z01',
-      routeId: routeContext.route.id,
-      dispatchKind: 'facility_lookup_edifact',
-    },
-  })
+  if (rendered.status === 'blocked') {
+    return markDispatchBlocked({
+      request,
+      actorUserId,
+      code: rendered.blockingReasons[0]?.code ?? 'facility_lookup_intent_blocked',
+      message: rendered.blockingReasons[0]?.message ?? 'Facility lookup-intent blockerades före rendering.',
+      details: { intentId: intent.id, blockingReasons: rendered.blockingReasons },
+    })
+  }
+  const message = rendered.message
 
   await safePatch('outbound_requests', {
     companyId: request.company_id,
@@ -700,6 +547,7 @@ export async function dispatchFacilityLookupEdifact(input: {
       response_payload: {
         ...(outbound.response_payload ?? {}),
         edielMessageId: message.id,
+        intentId: intent.id,
         gridOwnerInformationRequestId: request.id,
         operationId,
       },

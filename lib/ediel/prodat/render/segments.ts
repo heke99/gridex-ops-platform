@@ -61,5 +61,9 @@ export function prodatInstallationNadSegment(params: {
   const city = sanitizeProdatText(params.city)
   const postalCode = sanitizeProdatText(params.postalCode)
   const country = sanitizeProdatText(params.country) || 'SE'
-  return `NAD+IT+${sanitizeProdatText(params.meterPointId)}::9+++${address}+${city}++${postalCode}+${country}`
+  const meterPointId = sanitizeProdatText(params.meterPointId)
+  // No-placeholder: when there is no real object id, render an address-only
+  // installation party without a fabricated id/agency component.
+  const partyId = meterPointId ? `${meterPointId}::9` : ''
+  return `NAD+IT+${partyId}+++${address}+${city}++${postalCode}+${country}`
 }

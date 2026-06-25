@@ -115,7 +115,11 @@
     "gridex:automatic-customer-intake-foundation-regression": "node scripts/gridex-automatic-customer-intake-foundation-regression.cjs",
     "gridex:automatic-facility-lookup-edifact-dispatch-regression": "node scripts/gridex-automatic-facility-lookup-edifact-dispatch-regression.cjs",
     "gridex:customer-intake-completion-hardening-regression": "node scripts/gridex-customer-intake-completion-hardening-regression.cjs",
-    "gridex:customer-operations-runtime-hotfix-regression": "node scripts/gridex-customer-operations-runtime-hotfix-regression.cjs"
+    "gridex:customer-operations-runtime-hotfix-regression": "node scripts/gridex-customer-operations-runtime-hotfix-regression.cjs",
+    "gridex:ediel-message-intent-foundation-regression": "node scripts/gridex-ediel-message-intent-foundation-regression.cjs",
+    "gridex:z01-facility-no-placeholder-regression": "node scripts/gridex-z01-facility-no-placeholder-regression.cjs",
+    "gridex:application-reference-policy-regression": "node scripts/gridex-application-reference-policy-regression.cjs",
+    "gridex:ediel-intent-pipeline-regression": "npm run gridex:ediel-message-intent-foundation-regression && npm run gridex:z01-facility-no-placeholder-regression && npm run gridex:application-reference-policy-regression"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
