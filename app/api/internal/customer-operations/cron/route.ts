@@ -2,6 +2,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
 import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-operations/facilityLookupEdifactDispatch'
+import { resumeStuckEdielIntents } from '@/lib/ediel/intent/resumeStuckIntents'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -44,7 +45,12 @@ async function run(request: NextRequest) {
     const facilityLookupDispatch = await processReadyFacilityLookupEdifactDispatches({
       limit: Math.min(requestedLimit, 25),
     })
-    return NextResponse.json({ ok: true, result: { customerOperations, facilityLookupDispatch } })
+    // Resume validated intents that never reached the outbox (render crashed,
+    // route became ready later, interrupted run). Idempotent + tenant-safe.
+    const resumedIntents = await resumeStuckEdielIntents({
+      limit: Math.min(requestedLimit, 25),
+    })
+    return NextResponse.json({ ok: true, result: { customerOperations, facilityLookupDispatch, resumedIntents } })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[customer-operations-cron] failed', { traceId, error })

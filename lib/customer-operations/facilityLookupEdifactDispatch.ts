@@ -501,37 +501,53 @@ export async function dispatchFacilityLookupEdifact(input: {
     })
   }
 
-  const routeContext = await resolveCanonicalOutboundContext({
-    requestType: 'customer_masterdata',
-    gridOwner: gridOwner as never,
-    preferredRouteId: routeReadiness.communicationRouteId,
-    companyId: request.company_id,
-    environment,
-    messageStandard: 'edifact',
-  })
+  let intentId: string | null = null
+  let rendered: Awaited<ReturnType<typeof renderAndQueueFacilityLookupZ01>>
+  let routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
+  try {
+    routeContext = await resolveCanonicalOutboundContext({
+      requestType: 'customer_masterdata',
+      gridOwner: gridOwner as never,
+      preferredRouteId: routeReadiness.communicationRouteId,
+      companyId: request.company_id,
+      environment,
+      messageStandard: 'edifact',
+    })
 
-  const intent = await createFacilityLookupIntent({
-    actorUserId,
-    request,
-    routeContext,
-    routeProfileId: routeReadiness.routeProfileId,
-    operationId,
-  })
-  const rendered = await renderAndQueueFacilityLookupZ01({
-    intentId: intent.id,
-    actorUserId,
-    request,
-    routeContext,
-    outboundRequestId: outbound.id,
-    operationId,
-  })
+    const intent = await createFacilityLookupIntent({
+      actorUserId,
+      request,
+      routeContext,
+      routeProfileId: routeReadiness.routeProfileId,
+      operationId,
+    })
+    intentId = intent.id
+    rendered = await renderAndQueueFacilityLookupZ01({
+      intentId: intent.id,
+      actorUserId,
+      request,
+      routeContext,
+      outboundRequestId: outbound.id,
+      operationId,
+    })
+  } catch (error) {
+    // Unexpected error before/after intent creation must still leave a controlled
+    // blocked state on the request (never a silent dispatch_status='ready').
+    return markDispatchBlocked({
+      request,
+      actorUserId,
+      code: 'facility_lookup_dispatch_unexpected_error',
+      message: error instanceof Error ? error.message : String(error),
+      details: { intentId, outbound_request_id: outbound.id },
+    })
+  }
   if (rendered.status === 'blocked') {
     return markDispatchBlocked({
       request,
       actorUserId,
       code: rendered.blockingReasons[0]?.code ?? 'facility_lookup_intent_blocked',
       message: rendered.blockingReasons[0]?.message ?? 'Facility lookup-intent blockerades före rendering.',
-      details: { intentId: intent.id, blockingReasons: rendered.blockingReasons },
+      details: { intentId, blockingReasons: rendered.blockingReasons },
     })
   }
   const message = rendered.message
@@ -547,7 +563,7 @@ export async function dispatchFacilityLookupEdifact(input: {
       response_payload: {
         ...(outbound.response_payload ?? {}),
         edielMessageId: message.id,
-        intentId: intent.id,
+        intentId,
         gridOwnerInformationRequestId: request.id,
         operationId,
       },
