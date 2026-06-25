@@ -5,6 +5,7 @@ import {
   type AiBiListType,
   type AiBiParsedRow,
 } from '@/lib/ediel/aiBiImportParser'
+import { defaultRetentionUntil } from '@/lib/ediel/aiBiReconciliation'
 
 type MatchedMeteringPoint = {
   id: string
@@ -62,10 +63,15 @@ export async function importAiBiListCsv(input: {
       status: 'parsed',
       row_count: parsed.rows.length,
       raw_payload: input.rawCsv,
+      retention_until: defaultRetentionUntil(),
+      gdpr_basis: 'legitimate_interest_metering_reconciliation',
       metadata: {
         delimiter: parsed.delimiter,
         headers: parsed.headers,
         parser: 'gridcore_ai_bi_import_v1',
+        reconciliationOnly: true,
+        masterdataAutoOverwrite: false,
+        retentionDays: 365,
       },
       created_by: input.actorUserId ?? null,
     })

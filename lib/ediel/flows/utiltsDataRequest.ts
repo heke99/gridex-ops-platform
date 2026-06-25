@@ -1082,6 +1082,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   const draft = await buildUtiltsOutboundDraft({
     actorUserId,
     code: 'E73',
+    environment,
     communicationRouteId: routeContext.route.id,
     customerId: dataRequest.customer_id,
     siteId: dataRequest.site_id,
@@ -1242,6 +1243,7 @@ export async function prepareAndQueueUtiltsE66(params: {
   const draft = await buildUtiltsOutboundDraft({
     actorUserId,
     code: 'E66',
+    environment,
     communicationRouteId: routeContext.route.id,
     customerId: dataRequest.customer_id,
     siteId: dataRequest.site_id,

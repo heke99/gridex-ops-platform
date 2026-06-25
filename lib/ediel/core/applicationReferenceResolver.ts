@@ -41,10 +41,15 @@ function utiltsToken(input: ApplicationReferenceResolverInput): string {
   return code || 'UTILTS'
 }
 
+// Policy-driven Application Reference (PART 2.4 / PART 3).
+//
+// The Application Reference is owned by policy. A route profile may DECLARE an
+// expected Application Reference (so route configuration can be validated), but a
+// route profile must never OVERRIDE the policy value. The previous behaviour
+// (returning `routeProfile.applicationReference` unconditionally) is removed; the
+// route-declared value is now only used for mismatch detection via
+// `validateRouteDeclaredApplicationReference`.
 export function resolveApplicationReference(input: ApplicationReferenceResolverInput): string {
-  const routeValue = input.routeProfile?.applicationReference?.trim()
-  if (routeValue) return routeValue
-
   const family = upper(input.messageFamily)
   const role = roleToken(input)
 
@@ -53,4 +58,33 @@ export function resolveApplicationReference(input: ApplicationReferenceResolverI
   if (family === 'APERAK') return `23-${role}-APERAK`
   if (family === 'CONTRL') return `23-${role}-CONTRL`
   return `23-${role}-${family || 'EDIEL'}`
+}
+
+export type RouteDeclaredApplicationReferenceCheck = {
+  ok: boolean
+  policyApplicationReference: string
+  routeDeclaredApplicationReference: string | null
+  reason: string | null
+}
+
+// A route profile may declare an expected Application Reference. This validates
+// that the declaration agrees with policy. Mismatch must block sending; it must
+// never silently win over policy.
+export function validateRouteDeclaredApplicationReference(
+  input: ApplicationReferenceResolverInput,
+): RouteDeclaredApplicationReferenceCheck {
+  const policyValue = resolveApplicationReference(input)
+  const declared = input.routeProfile?.applicationReference?.trim() || null
+  if (!declared) {
+    return { ok: true, policyApplicationReference: policyValue, routeDeclaredApplicationReference: null, reason: null }
+  }
+  const ok = declared.toUpperCase() === policyValue.toUpperCase()
+  return {
+    ok,
+    policyApplicationReference: policyValue,
+    routeDeclaredApplicationReference: declared,
+    reason: ok
+      ? null
+      : `Route profile declarerar Application Reference ${declared} men policy kräver ${policyValue}. Route får inte åsidosätta policy.`,
+  }
 }

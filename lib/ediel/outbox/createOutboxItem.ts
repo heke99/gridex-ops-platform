@@ -11,6 +11,7 @@ export type CreateEdielOutboxItemInput = {
   status?: EdielOutboxStatus
   priority?: number
   lockKey?: string | null
+  intentId?: string | null
   payload?: Record<string, unknown> | null
 }
 
@@ -29,6 +30,7 @@ export async function createOutboxItem(input: CreateEdielOutboxItemInput): Promi
   const row = {
     company_id: input.message.company_id ?? null,
     ediel_message_id: input.message.id,
+    intent_id: input.intentId ?? input.message.intent_id ?? null,
     source_message_id: input.sourceMessageId ?? input.message.related_message_id ?? null,
     status: input.status ?? 'prepared',
     queued_at: (input.status ?? 'prepared') === 'queued' ? new Date().toISOString() : null,

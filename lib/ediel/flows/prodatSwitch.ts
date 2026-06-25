@@ -21,6 +21,8 @@ import {
 import { linkEdielMessage } from '@/lib/ediel/db'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
+import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
+import type { EdielIntentBusinessProcess } from '@/lib/ediel/intent/types'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import type {
@@ -229,6 +231,46 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     externalReference,
   })
 
+  // Mandatory intent in front of rendering. The intent records the validated
+  // business decision and links the resulting message/outbox via intent_id.
+  const businessProcess: EdielIntentBusinessProcess =
+    routeProcess === 'metering_access' ? 'metering_permission' : 'supplier_switch'
+  const meteringPointIdentifier =
+    String(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '').trim() || null
+  const intent = await createEdielMessageIntent({
+    actorUserId,
+    companyId: switchRequest.company_id ?? site.company_id ?? '',
+    environment: routeContext.environment,
+    market: 'electricity',
+    messageFamily: 'PRODAT',
+    messageCode: params.messageCode,
+    businessProcess,
+    direction: 'outbound',
+    senderEdielId: routeContext.senderEdielId,
+    senderSubaddress: routeContext.senderSubAddress ?? null,
+    receiverEdielId: routeContext.receiverEdielId,
+    receiverSubaddress: routeContext.receiverSubAddress ?? null,
+    applicationReference: routeContext.applicationReference ?? '',
+    routeProfileId: routeContext.route.id,
+    communicationRouteId: routeContext.route.id,
+    customerId: switchRequest.customer_id,
+    customerSiteId: switchRequest.site_id,
+    supplierSwitchRequestId: switchRequest.id,
+    meteringPointId: meteringPointIdentifier,
+    gridAreaCode: String(site.grid_area_code ?? gridOwner?.owner_code ?? '').trim() || null,
+    requestedEffectiveDate: switchRequest.requested_start_date ?? null,
+    interchangeReference: externalReference,
+    messageReference: externalReference,
+    transactionReference: draft.transactionReference ?? externalReference,
+    idempotencyKey: `prodat-${params.messageCode}:${switchRequest.id}:${externalReference}`,
+    payload: {
+      edielCode: params.messageCode,
+      requestType: switchRequest.request_type,
+      forceRegenerate: Boolean(params.forceRegenerate),
+    },
+  })
+  draft.intentId = intent.id
+
   const message = await finalizeOutboundDraft({
     actorUserId,
     requestType: routeProcess,
@@ -262,9 +304,11 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     messageId: message.id,
     outboundRequestId: outbound.id,
     externalReference,
+    intentId: intent.id,
     payload: {
       edielCode: params.messageCode,
       routeId: routeContext.route.id,
+      intentId: intent.id,
       messageFamily: draft.messageFamily,
       messageCode: draft.messageCode,
       messageVersion: draft.messageVersion ?? null,

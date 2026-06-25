@@ -210,6 +210,7 @@ export type EdielMessageRow = {
 
   communication_route_id: string | null;
   outbound_request_id: string | null;
+  intent_id?: string | null;
   inbound_email_message_id?: string | null;
   inbound_processing_job_id?: string | null;
   message_intent?: string | null;
@@ -545,6 +546,7 @@ export type CreateEdielMessageInput = {
   relatedMessageId?: string | null;
 
   communicationRouteId?: string | null;
+  intentId?: string | null;
   partyId?: string | null;
   partyAddressId?: string | null;
   transportSecurityMode?: EdielTransportSecurityMode | string | null;

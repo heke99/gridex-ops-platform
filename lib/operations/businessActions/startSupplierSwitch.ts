@@ -5,6 +5,8 @@ import {
   acquireBusinessActionIdempotencyKey,
   buildBusinessActionIdempotencyKey,
 } from '@/lib/operations/businessActions/idempotency'
+import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchScheduler'
+import { supabaseService } from '@/lib/supabase/service'
 
 export async function startSupplierSwitch(input: {
   actorUserId: string
@@ -17,6 +19,40 @@ export async function startSupplierSwitch(input: {
   const preflight = await actionPreflight({ ...input, actionType: 'start_supplier_switch' })
   const decision = decideBusinessAction('start_supplier_switch')
   if (!preflight.ok) return { ok: false, preflight, decision, message: 'Kan inte starta leverantörsbyte' }
+
+  // SupplierSwitchScheduler gate: no Z03 before the send window opens, no duplicate
+  // active switch, and no unresolved negative ACK.
+  const { data: switchRow } = await supabaseService
+    .from('supplier_switch_requests')
+    .select('id,company_id,requested_start_date,status,site_id,metering_point_id')
+    .eq('id', input.switchRequestId)
+    .maybeSingle()
+  if (switchRow) {
+    const row = switchRow as {
+      company_id?: string | null
+      requested_start_date?: string | null
+      status?: string | null
+      site_id?: string | null
+      metering_point_id?: string | null
+    }
+    const schedule = await evaluateSupplierSwitchSchedule({
+      switchRequestId: input.switchRequestId,
+      companyId: row.company_id ?? preflight.companyId ?? null,
+      requestedStartDate: row.requested_start_date ?? null,
+      status: row.status ?? null,
+      siteId: row.site_id ?? preflight.siteId ?? null,
+      meteringPointId: row.metering_point_id ?? preflight.meteringPointId ?? null,
+    })
+    if (!schedule.ok) {
+      return {
+        ok: false,
+        preflight,
+        decision,
+        schedule,
+        message: schedule.blockers[0]?.message ?? 'Leverantörsbytet kan inte skickas ännu.',
+      }
+    }
+  }
 
   const idempotency = await acquireBusinessActionIdempotencyKey({
     companyId: preflight.companyId,
