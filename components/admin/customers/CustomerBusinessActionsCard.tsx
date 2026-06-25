@@ -154,10 +154,7 @@ export default function CustomerBusinessActionsCard({
     visibility: isPlatformAdmin ? 'superadmin' : 'tenant',
   })
   const workflowPrimaryAction = workflow.primaryAction
-  const primaryAction =
-    actions.find((action) => action.id === workflowPrimaryAction) ??
-    actions.find((action) => action.primary) ??
-    null
+  const primaryAction = actions.find((action) => action.id === workflowPrimaryAction) ?? actions.find((action) => action.primary) ?? null
   const statusCards = buildCustomerBusinessStatusCards({ workflow, snapshot })
   const primarySite = snapshot.primarySite
   const primaryPoint = snapshot.primaryMeteringPoint
@@ -323,7 +320,7 @@ export default function CustomerBusinessActionsCard({
         {isPlatformAdmin ? (
           <details className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
             <summary className="cursor-pointer font-semibold text-slate-900">
-              Tekniska åtgärder och felsökning
+              Tekniska detaljer och felsökning
             </summary>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {Object.entries(workflow.technicalDetails).map(([key, value]) =>

@@ -683,6 +683,9 @@ function CustomerWorkspaceTabNav({
   const visibleTabs = visibleTabIds
     .map((id) => CUSTOMER_WORKSPACE_TABS.find((tab) => tab.id === id))
     .filter((tab): tab is (typeof CUSTOMER_WORKSPACE_TABS)[number] => Boolean(tab))
+    // The Ediel technical operations tab is superadmin-only; never expose it to
+    // tenant admins (PART 13: tenants must not see raw Ediel diagnostics).
+    .filter((tab) => isPlatformAdmin || tab.id !== "ediel-operations")
     .filter((tab) => canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin));
 
   return (
