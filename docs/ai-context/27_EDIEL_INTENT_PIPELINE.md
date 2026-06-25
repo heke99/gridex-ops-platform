@@ -56,12 +56,33 @@ allowed-missing case for the facility/metering identifier: the identifier is
 requested from the grid owner, modelled as `null` + `payload.allowedMissing`,
 never a placeholder string. If a real identifier exists on the site it is used.
 
+## Phase 2 (Batches 4–5)
+
+### Batch 4 — PRODAT support registry
+- `lib/ediel/prodat/prodatMessageSupportRegistry.ts` is the one central truth for
+  PRODAT support, derived from `PRODAT_CANONICAL_PROFILES` and reconciled with
+  `ACTIVE_PRODAT_ENGINE_CODES` and `SUPPORTED_PRODAT_BUSINESS_CODES`.
+- Each code has exactly one `supportStatus`
+  (`full|inbound_only|outbound_only|test_only|manual_review|unsupported`),
+  `businessProcesses`, `applicationReferencePolicyKey`, `fieldMatrixProfileId`,
+  `requiredFields`, allowed sender/receiver roles.
+- Z08 (rulebook profile, no engine builder) → `manual_review`. Unknown codes →
+  `unsupported`. The intent gate blocks `manual_review`/`unsupported` PRODAT codes.
+- `verifyProdatRegistryConsistency()` asserts registry/rulebook/field-rule agreement.
+- Regression: `gridex:prodat-support-registry-regression`.
+
+### Batch 5 — SupplierSwitchScheduler (Z03)
+- `lib/operations/supplierSwitchScheduler.ts` computes the Z03 send window
+  (`sendNotBefore` / `sendWindowOpensAt` / `sendWindowClosesAt`,
+  `SUPPLIER_SWITCH_WINDOW_OPEN_LEAD_DAYS`) and the guards: send-window-not-open,
+  duplicate-active-switch, unresolved-negative-ACK.
+- Integrated as a hard gate in `startSupplierSwitch` (blocks before queueing Z03).
+- Regression: `gridex:supplier-switch-scheduler-regression`.
+
 ## Scope / follow-up
 
-- Z03 supplier switch records an intent and stamps `intent_id`; full send-window /
-  legal-basis / duplicate-active-switch gating is Batch 5 (`SupplierSwitchScheduler`).
-- UTILTS, ESETT_XML, AcknowledgementEngine hardening, PRODAT support registry and
-  AI/BI reconciliation are Batches 4–9 (subsequent commits).
+- UTILTS completion, ESETT_XML, AcknowledgementEngine hardening and AI/BI
+  reconciliation are Batches 6–9 (subsequent commits).
 
 ## Commands
 

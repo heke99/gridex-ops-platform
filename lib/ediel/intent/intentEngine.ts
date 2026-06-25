@@ -10,6 +10,7 @@ import {
   collectPlaceholderViolations,
 } from '@/lib/ediel/intent/noPlaceholderGuard'
 import { validateApplicationReferencePolicy } from '@/lib/ediel/intent/applicationReferencePolicy'
+import { resolveProdatSupportStatus } from '@/lib/ediel/prodat/prodatMessageSupportRegistry'
 import type {
   CreateEdielMessageIntentInput,
   EdielIntentBlockingReason,
@@ -138,7 +139,25 @@ export function evaluateIntentValidation(
   checks.application_reference_policy = appref.ok
   blockingReasons.push(...appref.blockingReasons)
 
-  // 4) Tenant scope present (company_id resolved, not mailbox-only).
+  // 4) Message-code support: unsupported / unknown PRODAT codes go manual_review,
+  // never a permissive default.
+  if (String(input.messageFamily).toUpperCase() === 'PRODAT') {
+    const support = resolveProdatSupportStatus(input.messageCode)
+    checks.message_code_supported = support !== 'unsupported' && support !== 'manual_review'
+    if (!checks.message_code_supported) {
+      blockingReasons.push({
+        code: 'prodat_message_code_unsupported',
+        message: `PRODAT ${input.messageCode} har supportstatus ${support} och kan inte skickas automatiskt (manuell granskning krävs).`,
+        field: 'messageCode',
+        severity: 'block',
+        details: { supportStatus: support },
+      })
+    }
+  } else {
+    checks.message_code_supported = true
+  }
+
+  // 5) Tenant scope present (company_id resolved, not mailbox-only).
   checks.tenant_scope = Boolean(str(input.companyId))
   if (!checks.tenant_scope) {
     blockingReasons.push({

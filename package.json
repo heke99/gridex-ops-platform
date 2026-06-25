@@ -119,7 +119,9 @@
     "gridex:ediel-message-intent-foundation-regression": "node scripts/gridex-ediel-message-intent-foundation-regression.cjs",
     "gridex:z01-facility-no-placeholder-regression": "node scripts/gridex-z01-facility-no-placeholder-regression.cjs",
     "gridex:application-reference-policy-regression": "node scripts/gridex-application-reference-policy-regression.cjs",
-    "gridex:ediel-intent-pipeline-regression": "npm run gridex:ediel-message-intent-foundation-regression && npm run gridex:z01-facility-no-placeholder-regression && npm run gridex:application-reference-policy-regression"
+    "gridex:ediel-intent-pipeline-regression": "npm run gridex:ediel-message-intent-foundation-regression && npm run gridex:z01-facility-no-placeholder-regression && npm run gridex:application-reference-policy-regression",
+    "gridex:prodat-support-registry-regression": "node scripts/gridex-prodat-support-registry-regression.cjs",
+    "gridex:supplier-switch-scheduler-regression": "node scripts/gridex-supplier-switch-scheduler-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
