@@ -239,7 +239,6 @@ export function buildCustomerCardWorkflow(
   const facilityDispatchQueued = dispatchState
     ? dispatchState.state === "queued"
     : false;
-  const facilityDispatched = facilityDispatchSent || facilityDispatchQueued;
   const facilityDispatchControlledBlock = dispatchState
     ? dispatchState.state === "blocked" || dispatchState.state === "failed"
     : false;
