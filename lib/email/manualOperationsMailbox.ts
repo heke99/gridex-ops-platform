@@ -10,6 +10,17 @@
 //
 // Manual supplier-switch / power-of-attorney / facility-information e-mail MUST be
 // sent from the configured manual operations mailbox, never from ediel@gridex.se.
+//
+// OUTBOUND TRANSPORT (intentional, Option 1):
+//   * The manual mailbox here supplies the SENDER/REPLY-TO identity
+//     (leverantorsbyte@gridex.se) only.
+//   * Actual delivery is done by Resend (see manualEmailOutbox worker /
+//     getEmailProvider), NOT via the IMAP/SMTP credentials stored on the
+//     mailbox row.
+//   * Inbound replies are read from the Strato IMAP mailbox.
+//   * Therefore sent mail will NOT appear in the Strato "Sent" folder, and the
+//     stored SMTP settings are NOT used for outbound sending. Do not present
+//     them in the UI as if they were.
 
 import { supabaseService } from '@/lib/supabase/service'
 

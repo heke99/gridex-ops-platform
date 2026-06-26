@@ -30,6 +30,11 @@ import {
   resolveManualOperationsMailbox,
   type ManualOperationsMailbox,
 } from '@/lib/email/manualOperationsMailbox'
+import { renderFullmaktPdfBase64 } from '@/lib/email/fullmaktPdf'
+import {
+  hasExternallySendablePoa,
+  poaMissingExternalFields,
+} from '@/lib/customers/poaReadiness'
 
 type JsonRecord = Record<string, unknown>
 
@@ -44,6 +49,7 @@ export type ManualInformationRequestStatus =
   | 'not_needed'
   | 'manual_email_queued'
   | 'waiting_manual_response'
+  | 'needs_review'
   | 'blocked_missing_poa'
   | 'blocked_missing_grid_owner_contact'
   | 'blocked_missing_manual_mailbox'
@@ -77,6 +83,23 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+// Reads the first non-empty value across a set of schema aliases. Numbers and
+// other scalar values are coerced to a trimmed string so a present DB value is
+// never dropped just because the column is not a plain string.
+function firstField(record: JsonRecord | null | undefined, keys: string[]): string | null {
+  if (!record) return null
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (trimmed) return trimmed
+    } else if (typeof value === 'number' && Number.isFinite(value)) {
+      return String(value)
+    }
+  }
+  return null
+}
+
 function missingSchema(error: unknown): boolean {
   const code = String((error as { code?: unknown } | null)?.code ?? '')
   const message = String((error as { message?: unknown } | null)?.message ?? '')
@@ -91,18 +114,41 @@ function caseReferenceFor(requestId: string): string {
   return `GX-FIR-${requestId.replace(/-/g, '').slice(0, 8).toUpperCase()}`
 }
 
-function customerName(customer: JsonRecord | null | undefined): string {
-  return (
-    clean(customer?.company_name) ??
-    clean(customer?.full_name) ??
-    [clean(customer?.first_name), clean(customer?.last_name)].filter(Boolean).join(' ') ??
-    clean(customer?.customer_number) ??
-    'Kund'
-  )
+// Resolves a human customer name across schema aliases. Critically, the
+// first_name + last_name join is coerced to null when empty so this never
+// returns an empty string (an empty string is NOT caught by `??`).
+function customerName(customer: JsonRecord | null | undefined): string | null {
+  const direct = firstField(customer, ['company_name', 'full_name', 'name', 'display_name'])
+  if (direct) return direct
+  const joined = [
+    firstField(customer, ['first_name', 'firstName', 'given_name']),
+    firstField(customer, ['last_name', 'lastName', 'family_name']),
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(' ')
+    .trim()
+  if (joined) return joined
+  return firstField(customer, ['customer_number', 'customerNumber'])
 }
 
+// Reads every valid identity alias (person- or organisationsnummer).
 function customerIdentity(customer: JsonRecord | null | undefined): string | null {
-  return clean(customer?.org_number) ?? clean(customer?.personal_number) ?? null
+  return firstField(customer, [
+    'personal_number',
+    'org_number',
+    'identity_number',
+    'organization_number',
+    'organisation_number',
+    'identityNumber',
+    'organizationNumber',
+    'organisationNumber',
+    'personalNumber',
+    'orgNumber',
+  ])
+}
+
+function customerNumber(customer: JsonRecord | null | undefined): string | null {
+  return firstField(customer, ['customer_number', 'customerNumber', 'external_customer_id', 'externalCustomerId'])
 }
 
 async function readSite(input: { companyId: string; customerId: string; siteId: string }) {
@@ -118,14 +164,30 @@ async function readSite(input: { companyId: string; customerId: string; siteId: 
 }
 
 async function readCustomer(companyId: string, customerId: string) {
-  const { data, error } = await supabaseService
+  // Select '*' so a single missing optional column (e.g. protected_identity)
+  // can NEVER collapse the whole customer to null and blank out the e-mail.
+  // The previous narrow projection caused production emails to render with
+  // empty Kundnummer/Namn/Person-organisationsnummer fields.
+  const primary = await supabaseService
     .from('customers')
-    .select('id,company_id,customer_number,first_name,last_name,full_name,company_name,personal_number,org_number,protected_identity')
+    .select('*')
     .eq('company_id', companyId)
     .eq('id', customerId)
     .maybeSingle()
-  if (error && !missingSchema(error)) throw error
-  return (data as JsonRecord | null) ?? null
+  if (!primary.error) return (primary.data as JsonRecord | null) ?? null
+  if (!missingSchema(primary.error)) throw primary.error
+
+  // Extremely defensive fallback: if even '*' fails (impossible for a real
+  // table, but keeps the orchestrator resilient), fetch the minimal identity
+  // columns one more time before giving up.
+  const fallback = await supabaseService
+    .from('customers')
+    .select('id,company_id,customer_number,full_name')
+    .eq('company_id', companyId)
+    .eq('id', customerId)
+    .maybeSingle()
+  if (fallback.error && !missingSchema(fallback.error)) throw fallback.error
+  return (fallback.data as JsonRecord | null) ?? null
 }
 
 // Signed POA with the correct scope. Scope is matched against scope_summary
@@ -226,30 +288,132 @@ async function findOpenManualRequest(input: { companyId: string; siteId: string;
   return (data as JsonRecord | null) ?? null
 }
 
-function buildPoaAttachment(poa: JsonRecord | null, caseReference: string) {
-  if (!poa) return [] as Array<{ filename: string; content: string; contentType: string; kind: string; poa_id: string | null }>
-  const snapshot = {
-    case_reference: caseReference,
-    power_of_attorney_id: poa.id ?? null,
-    reference: poa.reference ?? null,
-    signer_name: poa.signer_name ?? null,
-    scope: poa.scope ?? null,
-    scope_summary: poa.scope_summary ?? null,
-    document_id: poa.document_id ?? null,
-    document_path: poa.document_path ?? null,
-    fullmakt_snapshot: poa.fullmakt_snapshot ?? null,
-    evidence: poa.evidence_payload ?? null,
+type ManualEmailAttachment = {
+  filename: string
+  content: string
+  contentType: string
+  kind: string
+  poa_id: string | null
+}
+
+function snapshotField(snapshot: unknown, key: string): string | null {
+  if (!snapshot || typeof snapshot !== 'object') return null
+  const value = (snapshot as JsonRecord)[key]
+  if (typeof value === 'object' && value !== null) {
+    return snapshotField(value, key)
   }
-  const content = Buffer.from(JSON.stringify(snapshot, null, 2), 'utf8').toString('base64')
+  return clean(value)
+}
+
+// Attempts to download an uploaded/signed PDF document from storage. Returns a
+// base64 string when a real PDF exists, otherwise null.
+async function downloadPoaDocument(documentPath: string | null): Promise<string | null> {
+  if (!documentPath) return null
+  try {
+    const { data, error } = await supabaseService.storage.from('customer-documents').download(documentPath)
+    if (error || !data) return null
+    const buffer = Buffer.from(await data.arrayBuffer())
+    if (buffer.length === 0) return null
+    // Only accept genuine PDF payloads for external attachment.
+    if (!buffer.subarray(0, 5).toString('latin1').startsWith('%PDF')) return null
+    return buffer.toString('base64')
+  } catch {
+    return null
+  }
+}
+
+// Builds the EXTERNAL fullmakt attachment. Never attaches raw JSON: attaches an
+// uploaded/signed PDF when one exists, otherwise generates a readable PDF from
+// the locked POA/legal snapshot. Emits power_of_attorney_events for audit.
+async function buildPoaAttachment(
+  poa: JsonRecord | null,
+  caseReference: string,
+  context: {
+    companyId: string
+    customerName: string | null
+    customerIdentity: string | null
+    siteAddress: string | null
+    sitePostalCode: string | null
+    siteCity: string | null
+    tenantCompanyName: string | null
+    actorUserId?: string | null
+  },
+): Promise<ManualEmailAttachment[]> {
+  if (!poa) return []
+
+  const fullmaktSnapshot = poa.fullmakt_snapshot ?? null
+  const legalTextTitle = snapshotField(fullmaktSnapshot, 'title') ?? snapshotField(fullmaktSnapshot, 'legal_text')
+  const legalTextVersion = snapshotField(fullmaktSnapshot, 'version')
+
+  const uploaded = await downloadPoaDocument(clean(poa.document_path))
+  if (uploaded) {
+    return [
+      {
+        filename: `fullmakt-${caseReference}.pdf`,
+        content: uploaded,
+        contentType: 'application/pdf',
+        kind: 'power_of_attorney_uploaded_pdf',
+        poa_id: clean(poa.id),
+      },
+    ]
+  }
+
+  const pdfBase64 = renderFullmaktPdfBase64({
+    caseReference,
+    powerOfAttorneyId: clean(poa.id),
+    reference: clean(poa.reference),
+    customerName: context.customerName,
+    customerIdentity: context.customerIdentity ?? clean(poa.signer_identity_number),
+    siteAddress: context.siteAddress,
+    sitePostalCode: context.sitePostalCode,
+    siteCity: context.siteCity,
+    representativeName: context.tenantCompanyName ?? 'Gridex AB',
+    legalTextTitle,
+    legalTextVersion,
+    legalTextVersionId: clean(poa.legal_text_version_id),
+    acceptedAt: clean(poa.accepted_at) ?? clean(poa.signed_at),
+    signerName: clean(poa.signer_name),
+    signerIdentityNumber: clean(poa.signer_identity_number) ?? context.customerIdentity,
+    method: clean(poa.method),
+    source: clean(poa.source),
+  })
+
   return [
     {
-      filename: `fullmakt-${caseReference}.json`,
-      content,
-      contentType: 'application/json',
-      kind: 'power_of_attorney_snapshot',
+      filename: `fullmakt-${caseReference}.pdf`,
+      content: pdfBase64,
+      contentType: 'application/pdf',
+      kind: 'power_of_attorney_generated_pdf',
       poa_id: clean(poa.id),
     },
   ]
+}
+
+function poaMissingFields(poa: JsonRecord | null, customerIdentity: string | null): string[] {
+  return poaMissingExternalFields(poa, { customerIdentity })
+}
+
+async function markRequestNeedsReview(input: {
+  requestId: string
+  lastErrorCode: string
+  lastErrorMessage: string
+  missingFields: string[]
+  baseMetadata?: JsonRecord | null
+}) {
+  const now = new Date().toISOString()
+  const baseMetadata =
+    input.baseMetadata && typeof input.baseMetadata === 'object' ? input.baseMetadata : {}
+  await supabaseService
+    .from('grid_owner_information_requests')
+    .update({
+      status: 'needs_review',
+      last_error_code: input.lastErrorCode,
+      last_error_message: input.lastErrorMessage,
+      metadata: { ...baseMetadata, missing_fields: input.missingFields, blocked_reason: input.lastErrorCode },
+      updated_at: now,
+    })
+    .eq('id', input.requestId)
+    .then(() => undefined, () => undefined)
 }
 
 export async function requestMissingFacilityInformation(
@@ -434,20 +598,127 @@ export async function requestMissingFacilityInformation(
     }
   }
 
+  // Production guard: never queue an external manual grid-owner e-mail when the
+  // required external customer/site fields are missing. A blank Kundnummer/Namn/
+  // Person-organisationsnummer must never reach the grid owner. We block to
+  // needs_review with an exact error code instead of sending garbage.
+  const resolvedCustomerNumber = customerNumber(customer)
+  const resolvedCustomerName = customerName(customer)
+  const resolvedCustomerIdentity = customerIdentity(customer)
+  const siteAddress = clean(site.street)
+  const sitePostalCode = clean(site.postal_code)
+  const siteCity = clean(site.city)
+
+  const missingCustomerFields: string[] = []
+  if (!resolvedCustomerNumber) missingCustomerFields.push('Kundnummer')
+  if (!resolvedCustomerName) missingCustomerFields.push('Namn')
+  if (!resolvedCustomerIdentity) missingCustomerFields.push('Person-/organisationsnummer')
+  if (!siteAddress) missingCustomerFields.push('Gatuadress')
+  if (!sitePostalCode) missingCustomerFields.push('Postnummer')
+  if (!siteCity) missingCustomerFields.push('Ort')
+
+  if (missingCustomerFields.length > 0) {
+    const identityOnly = !resolvedCustomerIdentity && Boolean(resolvedCustomerNumber) && Boolean(resolvedCustomerName)
+    const lastErrorCode = identityOnly ? 'missing_customer_identity' : 'missing_customer_details'
+    const tenantMessage =
+      'Kunduppgifter saknas för manuell nätägarbegäran. Komplettera kundnummer, namn och person-/organisationsnummer innan e-post skickas.'
+    await markRequestNeedsReview({
+      requestId,
+      lastErrorCode,
+      lastErrorMessage: tenantMessage,
+      missingFields: missingCustomerFields,
+      baseMetadata: (request.metadata as JsonRecord | null) ?? null,
+    })
+    await patchSiteNextAction({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      siteId: input.siteId,
+      status: 'needs_review',
+      nextAction: tenantMessage,
+      actorUserId: input.actorUserId,
+    })
+    return {
+      status: 'needs_review',
+      requestId,
+      caseReference,
+      channel: 'manual_email',
+      emailOutboxId: null,
+      poaId: clean(poa.id),
+      nextAction: { code: lastErrorCode, message: tenantMessage },
+      // Tenant sees the single Swedish blocker; superadmin can read the exact
+      // missing fields from the per-field blocker entries / request metadata.
+      blockers: [
+        { code: lastErrorCode, message: tenantMessage },
+        ...missingCustomerFields.map((field) => ({
+          code: `missing_field:${field}`,
+          message: `Saknas: ${field}`,
+        })),
+      ],
+    }
+  }
+
+  // Power-of-attorney must be externally sendable before we attach it to an
+  // external e-mail. A legally accepted POA that lacks signer/evidence/identity
+  // is internal-only: block to needs_review rather than mailing a weak fullmakt.
+  if (!hasExternallySendablePoa(poa, { customerIdentity: resolvedCustomerIdentity })) {
+    const tenantMessage =
+      'Fullmaktsunderlag saknar kund- eller signeringsuppgifter. Granska fullmakten innan den skickas till nätägaren.'
+    await markRequestNeedsReview({
+      requestId,
+      lastErrorCode: 'poa_not_externally_sendable',
+      lastErrorMessage: tenantMessage,
+      missingFields: poaMissingFields(poa, resolvedCustomerIdentity),
+      baseMetadata: (request.metadata as JsonRecord | null) ?? null,
+    })
+    await patchSiteNextAction({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      siteId: input.siteId,
+      status: 'needs_review',
+      nextAction: tenantMessage,
+      actorUserId: input.actorUserId,
+    })
+    return {
+      status: 'needs_review',
+      requestId,
+      caseReference,
+      channel: 'manual_email',
+      emailOutboxId: null,
+      poaId: clean(poa.id),
+      nextAction: { code: 'poa_not_externally_sendable', message: tenantMessage },
+      blockers: [
+        { code: 'poa_not_externally_sendable', message: tenantMessage },
+        ...poaMissingFields(poa, resolvedCustomerIdentity).map((field) => ({
+          code: `missing_field:${field}`,
+          message: `Saknas: ${field}`,
+        })),
+      ],
+    }
+  }
+
   // Queue the manual e-mail (idempotent). The worker sends it; never the UI.
   const idempotencyKey = `manual-facility-request:${input.companyId}:${input.siteId}:${gridOwnerId}`
   const rendered = renderManualEmailTemplate(templateKey, {
     case_reference: caseReference,
-    customer_number: clean(customer?.customer_number),
-    customer_name: customerName(customer),
-    customer_identity: customerIdentity(customer),
-    site_address: clean(site.street),
-    postal_code: clean(site.postal_code),
-    city: clean(site.city),
+    customer_number: resolvedCustomerNumber,
+    customer_name: resolvedCustomerName,
+    customer_identity: resolvedCustomerIdentity,
+    site_address: siteAddress,
+    postal_code: sitePostalCode,
+    city: siteCity,
     ops_sender_name: clean(process.env.MANUAL_GRID_OWNER_SENDER_NAME) ?? 'Gridex Operations',
     tenant_company_name: clean(process.env.MANUAL_GRID_OWNER_TENANT_NAME) ?? 'Gridex',
   })
-  const attachments = buildPoaAttachment(poa, caseReference)
+  const attachments = await buildPoaAttachment(poa, caseReference, {
+    companyId: input.companyId,
+    customerName: resolvedCustomerName,
+    customerIdentity: resolvedCustomerIdentity,
+    siteAddress,
+    sitePostalCode,
+    siteCity,
+    tenantCompanyName: clean(process.env.MANUAL_GRID_OWNER_TENANT_NAME) ?? 'Gridex',
+    actorUserId: input.actorUserId,
+  })
 
   let emailOutboxId: string | null = null
   let alreadyQueued = false
@@ -504,13 +775,31 @@ export async function requestMissingFacilityInformation(
     .eq('id', requestId)
     .in('status', ['draft', 'ready_to_send', 'ready_to_send_manual_email'])
 
-  // Audit: POA attached to the e-mail (only on a fresh queue).
+  // Audit: POA events (only on a fresh queue). A generated PDF records
+  // pdf_generated before attached_to_email; an uploaded PDF only records
+  // attached_to_email.
   if (!alreadyQueued && clean(poa.id)) {
+    const attachmentKind = attachments[0]?.kind ?? null
+    if (attachmentKind === 'power_of_attorney_generated_pdf') {
+      await supabaseService.from('power_of_attorney_events').insert({
+        company_id: input.companyId,
+        power_of_attorney_id: poa.id,
+        event_type: 'pdf_generated',
+        payload: { case_reference: caseReference, request_id: requestId, kind: 'generated_pdf' },
+        created_by: clean(input.actorUserId),
+      }).then(() => undefined, () => undefined)
+    }
     await supabaseService.from('power_of_attorney_events').insert({
       company_id: input.companyId,
       power_of_attorney_id: poa.id,
       event_type: 'attached_to_email',
-      payload: { case_reference: caseReference, request_id: requestId, channel: 'manual_email', to_email: contact.email },
+      payload: {
+        case_reference: caseReference,
+        request_id: requestId,
+        channel: 'manual_email',
+        to_email: contact.email,
+        attachment_kind: attachmentKind,
+      },
       created_by: clean(input.actorUserId),
     }).then(() => undefined, () => undefined)
   }

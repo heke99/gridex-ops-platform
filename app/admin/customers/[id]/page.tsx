@@ -1928,29 +1928,23 @@ export default async function CustomerAdminDetailPage({
   const customerCompanyId = tenantScope.isPlatformAdmin
     ? customer.company_id
     : tenantScope.companyId;
-  const needsEdielData =
-    ["overview", "switch-operations"].includes(activeTab) ||
-    (isPlatformAdmin && ["ediel-operations", "technical-details"].includes(activeTab));
-  const needsGridOwners =
-    needsEdielData ||
-    ["data-requests", "billing-metering", "sites", "metering-points", "technical-details"].includes(
-      activeTab,
-    );
-  const needsPriceAreas = ["sites", "metering-points", "technical-details"].includes(activeTab);
-  const needsContractOffers = activeTab === "profile";
-  const needsBillingMeteringData =
-    activeTab === "overview" || activeTab === "billing-metering" || activeTab === "technical-details";
-  const needsAnalyticsData =
-    activeTab === "overview" || activeTab === "analytics";
-  const needsPortalAccessData = activeTab === "portal-access" || activeTab === "technical-details";
-  const needsSwitchEvents = activeTab === "switch-operations" || activeTab === "technical-details";
-  const needsAuditLogs = activeTab === "audit" || activeTab === "technical-details";
-  const needsPowerScopes = activeTab === "authorization-documents" || activeTab === "technical-details";
-  const needsOpsMasterData = ["overview", "legal-readiness", "technical-details"].includes(
-    activeTab,
-  );
-  const needsCommunicationLogs =
-    activeTab === "communication" || activeTab === "technical-details" || needsOpsMasterData;
+  // Single operational page: the tenant view loads only the lightweight summary
+  // data it renders. All Ediel / audit / provider-heavy / analytics data is
+  // gated behind isPlatformAdmin and only powers the collapsed "Teknisk
+  // diagnostik" section, so the tenant page stays fast.
+  void activeTab;
+  const needsEdielData = isPlatformAdmin;
+  const needsGridOwners = true;
+  const needsPriceAreas = isPlatformAdmin;
+  const needsContractOffers = isPlatformAdmin;
+  const needsBillingMeteringData = true;
+  const needsAnalyticsData = isPlatformAdmin;
+  const needsPortalAccessData = isPlatformAdmin;
+  const needsSwitchEvents = isPlatformAdmin;
+  const needsAuditLogs = isPlatformAdmin;
+  const needsPowerScopes = isPlatformAdmin;
+  const needsOpsMasterData = true;
+  const needsCommunicationLogs = isPlatformAdmin;
   const emptyEdielData: CustomerEdielDataBundle = {
     communicationRoutes: [],
     routeProfiles: [],
@@ -2450,6 +2444,13 @@ export default async function CustomerAdminDetailPage({
           };
 
 
+  // Single operational page: tenant-safe sections always render; platform-only
+  // diagnostics render for platform admins (inside a collapsed advanced section).
+  const showOperationalSections = true as boolean;
+  // Standalone Ediel/communication/audit panels are folded into the collapsed
+  // "Teknisk diagnostik" section, so they no longer render on their own.
+  const showFoldedTechnicalPanels = false as boolean;
+
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -2518,13 +2519,33 @@ export default async function CustomerAdminDetailPage({
         </section>
       ) : null}
 
-      <CustomerWorkspaceTabNav
-        customerId={id}
-        activeTab={activeTab}
-        isPlatformAdmin={isPlatformAdmin}
-      />
+      <nav
+        aria-label="Snabbnavigering"
+        className="flex flex-wrap gap-2 rounded-3xl border border-slate-200 bg-white p-3 text-sm shadow-sm"
+      >
+        {[
+          { href: "#overview", label: "Översikt" },
+          { href: "#avtal", label: "Avtal & fullmakt" },
+          { href: "#anlaggning", label: "Anläggning & nätägare" },
+          { href: "#data-requests", label: "Uppgiftsbegäran" },
+          { href: "#leverantorsbyte", label: "Leverantörsbyte" },
+          { href: "#fakturering", label: "Fakturering" },
+          { href: "#anteckningar", label: "Anteckningar" },
+          ...(isPlatformAdmin
+            ? [{ href: "#tekniskt", label: "Teknisk diagnostik" }]
+            : []),
+        ].map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            className="rounded-full border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            {item.label}
+          </a>
+        ))}
+      </nav>
 
-      {activeTab === "overview" ? (
+      {showOperationalSections ? (
         <SectionAnchor
           id="overview"
           title="Översikt"
@@ -2550,7 +2571,8 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "legal-readiness" ? (
+      <span id="avtal" aria-hidden className="block scroll-mt-36" />
+      {showOperationalSections ? (
         <SectionAnchor
           id="legal-readiness"
           title="Juridik och godkännanden"
@@ -2567,7 +2589,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "profile" ? (
+      {isPlatformAdmin ? (
         <SectionAnchor
           id="profile"
           title="Profil och erbjudanden"
@@ -2583,7 +2605,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "portal-access" ? (
+      {isPlatformAdmin ? (
         <SectionAnchor
           id="portal-access"
           title="Kundportal"
@@ -2597,7 +2619,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "grid-owner-import" ? (
+      {isPlatformAdmin ? (
         <SectionAnchor
           id="grid-owner-import"
           title="Nätägarsynk"
@@ -2607,7 +2629,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "data-requests" ? (
+      {showOperationalSections ? (
         <SectionAnchor
           id="data-requests"
           title="Uppgiftsbegäran"
@@ -2627,7 +2649,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "authorization-documents" ? (
+      {isPlatformAdmin ? (
         <SectionAnchor
           id="authorization-documents"
           title="Fullmakt och komplett avtal"
@@ -2653,7 +2675,8 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "switch-operations" ? (
+      <span id="leverantorsbyte" aria-hidden className="block scroll-mt-36" />
+      {showOperationalSections ? (
         <SectionAnchor
           id="switch-operations"
           title="Leverantörsbyte"
@@ -2674,7 +2697,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin && activeTab === "ediel-operations" ? (
+      {showFoldedTechnicalPanels ? (
         <SectionAnchor
           id="ediel-operations"
           title="Ediel"
@@ -2696,7 +2719,8 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "billing-metering" ? (
+      <span id="fakturering" aria-hidden className="block scroll-mt-36" />
+      {showOperationalSections ? (
         <SectionAnchor
           id="billing-metering"
           title="Fakturering"
@@ -2717,7 +2741,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "analytics" ? (
+      {isPlatformAdmin ? (
         <SectionAnchor
           id="analytics"
           title="Statistik och prognos"
@@ -2807,7 +2831,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "contracts" ? (
+      {isPlatformAdmin ? (
         <SectionAnchor
           id="contracts"
           title="Avtal"
@@ -2820,7 +2844,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "contacts-addresses" ? (
+      {isPlatformAdmin ? (
         <SectionAnchor
           id="contacts-addresses"
           title="Kontakter och adresser"
@@ -2836,7 +2860,8 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "sites" ? (
+      <span id="anlaggning" aria-hidden className="block scroll-mt-36" />
+      {showOperationalSections ? (
         <SectionAnchor
           id="sites"
           title="Anläggning och nätägare"
@@ -2906,7 +2931,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "metering-points" ? (
+      {isPlatformAdmin ? (
         <SectionAnchor
           id="metering-points"
           title="Mätpunkter"
@@ -2932,7 +2957,8 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "notes" ? (
+      <span id="anteckningar" aria-hidden className="block scroll-mt-36" />
+      {showOperationalSections ? (
         <SectionAnchor
           id="notes"
           title="Anteckningar"
@@ -2942,82 +2968,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin && activeTab === "technical-details" ? (
-        <SectionAnchor
-          id="technical-details"
-          title="Tekniska detaljer"
-          description="Avancerad drift, externa referenser och felsökning. Standardvyn ovan är samma enkla kundkort som tenant använder."
-        >
-          <div className="space-y-6">
-            <CustomerWebsiteTraceabilityCard
-              customer={customer}
-              applications={websiteApplications as WebsiteApplicationAdminRow[]}
-              billingPartners={
-                billingPartnerCustomers as BillingPartnerCustomerSummary[]
-              }
-              isPlatformAdmin={isPlatformAdmin}
-            />
-            <CustomerFacilityWorkflowCard
-              customerId={id}
-              sites={sites}
-              meteringPoints={meteringPoints}
-              infoRequests={customerInfoRequests}
-              powersOfAttorney={poaRows}
-              documents={documentRows}
-              gridOwners={gridOwners}
-              snapshot={customerCardSnapshot}
-            />
-            <CustomerPortalDataChainCard
-              status={portalDataChain.status}
-              rows={portalDataChain.rows}
-            />
-            <CustomerOperationsReadinessStrip items={readinessItems} />
-            <CustomerDataRequestsCard
-              customerId={id}
-              sites={sites}
-              meteringPoints={meteringPoints}
-              gridOwners={gridOwners}
-              infoRequests={customerInfoRequests}
-              powersOfAttorney={poaRows}
-              documents={documentRows}
-              snapshot={customerCardSnapshot}
-              isPlatformAdmin={isPlatformAdmin}
-            />
-            <CustomerEdielOperationsCard
-              customerId={id}
-              sites={sites}
-              meteringPoints={meteringPoints}
-              gridOwners={gridOwners}
-              switchRequests={switchRequests}
-              dataRequests={dataRequests}
-              communicationRoutes={edielData.communicationRoutes}
-              routeProfiles={edielData.routeProfiles}
-              edielMessages={edielData.edielMessages}
-              recommendationRoutes={edielData.recommendationRoutes}
-              isPlatformAdmin={isPlatformAdmin}
-            />
-            <AuditSection
-              auditLogs={auditLogs}
-              sites={sites}
-              meteringPoints={meteringPoints}
-            />
-          </div>
-        </SectionAnchor>
-      ) : null}
-
-      {activeTab === "communication" ? (
-        <SectionAnchor
-          id="communication"
-          title="Kommunikation"
-          description="Kundens e-posthistorik."
-        >
-          <CustomerCommunicationSection
-            logs={communicationLogs as CommunicationLog[]}
-          />
-        </SectionAnchor>
-      ) : null}
-
-      {activeTab === "lifecycle-decisions" ? (
+      {isPlatformAdmin ? (
         <SectionAnchor
           id="lifecycle-decisions"
           title="Ånger och avvisning"
@@ -3032,18 +2983,68 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {activeTab === "audit" ? (
-        <SectionAnchor
-          id="audit"
-          title="Audit"
-          description="Senaste ändringar i kund, anläggningar och mätpunkter."
-        >
-          <AuditSection
-            auditLogs={auditLogs}
-            sites={sites}
-            meteringPoints={meteringPoints}
-          />
-        </SectionAnchor>
+      {/* Teknisk diagnostik: platform/superadmin only, collapsed by default.
+          Tenants never see raw Ediel/provider/webhook/audit details. */}
+      {isPlatformAdmin ? (
+        <>
+          <span id="tekniskt" aria-hidden className="block scroll-mt-36" />
+          <details className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <summary className="cursor-pointer px-6 py-4 text-base font-semibold text-slate-950">
+              Teknisk diagnostik (endast plattformsadmin)
+            </summary>
+            <div className="space-y-6 border-t border-slate-200 p-6">
+              <p className="text-sm text-slate-600">
+                Avancerad drift, externa referenser, Ediel, provider-ID:n,
+                webhook-händelser och audit. Standardvyn ovan är samma enkla
+                kundkort som tenant ser.
+              </p>
+              <CustomerWebsiteTraceabilityCard
+                customer={customer}
+                applications={websiteApplications as WebsiteApplicationAdminRow[]}
+                billingPartners={
+                  billingPartnerCustomers as BillingPartnerCustomerSummary[]
+                }
+                isPlatformAdmin={isPlatformAdmin}
+              />
+              <CustomerFacilityWorkflowCard
+                customerId={id}
+                sites={sites}
+                meteringPoints={meteringPoints}
+                infoRequests={customerInfoRequests}
+                powersOfAttorney={poaRows}
+                documents={documentRows}
+                gridOwners={gridOwners}
+                snapshot={customerCardSnapshot}
+              />
+              <CustomerPortalDataChainCard
+                status={portalDataChain.status}
+                rows={portalDataChain.rows}
+              />
+              <CustomerOperationsReadinessStrip items={readinessItems} />
+              <CustomerEdielOperationsCard
+                customerId={id}
+                sites={sites}
+                meteringPoints={meteringPoints}
+                gridOwners={gridOwners}
+                switchRequests={switchRequests}
+                dataRequests={dataRequests}
+                communicationRoutes={edielData.communicationRoutes}
+                routeProfiles={edielData.routeProfiles}
+                edielMessages={edielData.edielMessages}
+                recommendationRoutes={edielData.recommendationRoutes}
+                isPlatformAdmin={isPlatformAdmin}
+              />
+              <CustomerCommunicationSection
+                logs={communicationLogs as CommunicationLog[]}
+              />
+              <AuditSection
+                auditLogs={auditLogs}
+                sites={sites}
+                meteringPoints={meteringPoints}
+              />
+            </div>
+          </details>
+        </>
       ) : null}
     </div>
   );

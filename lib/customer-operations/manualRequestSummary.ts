@@ -22,13 +22,14 @@ export type ManualRequestSummary = {
   channelLabel: ManualRequestChannelLabel
   caseReference: string | null
   poaStatus: 'finns' | 'saknas' | 'utgången'
+  deliveryFailed: boolean
   sentAt: string | null
   updatedAt: string | null
 }
 
 // Columns that are safe for tenant card/list views (no provider/Ediel internals).
 const SUMMARY_COLUMNS =
-  'id,customer_site_id,request_type,status,channel,case_reference,requires_poa,poa_id,sent_at,due_at,created_at,updated_at'
+  'id,customer_site_id,request_type,status,channel,case_reference,requires_poa,poa_id,last_error_code,sent_at,due_at,created_at,updated_at'
 
 // Active (non-terminal) manual statuses worth surfacing on the card.
 const ACTIVE_STATUSES = [
@@ -59,30 +60,41 @@ function missingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist/i.test(message)
 }
 
+// Tenant-safe message shown when delivery to the grid owner failed/bounced.
+export const MANUAL_REQUEST_DELIVERY_FAILED_LABEL =
+  'E-post till nätägaren kunde inte levereras. Kontrollera kontaktväg.'
+
 // Tenant-safe, non-technical Swedish status labels for manual requests.
-export function manualRequestStatusLabel(status: string | null | undefined): string {
+// When `lastErrorCode` indicates a delivery failure, the tenant sees a single
+// clear contact-path message instead of the raw status.
+export function manualRequestStatusLabel(
+  status: string | null | undefined,
+  lastErrorCode?: string | null,
+): string {
+  if (clean(lastErrorCode) === 'delivery_failed') {
+    return MANUAL_REQUEST_DELIVERY_FAILED_LABEL
+  }
   switch (clean(status)) {
     case 'draft':
     case 'ready_to_send':
     case 'ready_to_send_manual_email':
-      return 'Redo att skicka begäran till nätägaren'
+      return 'Uppgiftsbegäran skapad'
     case 'manual_email_queued':
-      return 'Begäran köad för e-post'
+      return 'E-post köad'
     case 'manual_email_sent':
     case 'sent':
-      return 'Begäran skickad via e-post'
+      return 'E-post skickad'
     case 'waiting_manual_response':
     case 'waiting_response':
       return 'Väntar på svar från nätägaren'
     case 'manual_response_received':
-      return 'Svar mottaget'
     case 'manual_response_parsed':
-    case 'needs_review':
-      return 'Svar behöver granskas'
     case 'received':
-      return 'Anläggningsuppgifter mottagna'
+      return 'Svar mottaget'
+    case 'needs_review':
+      return 'Behöver granskning'
     case 'completed':
-      return 'Redo för leverantörsbyte'
+      return 'Uppgifter kompletterade'
     case 'blocked_missing_poa':
       return 'Fullmakt saknas'
     case 'blocked_missing_grid_owner_contact':
@@ -121,16 +133,18 @@ function poaStatusFor(row: JsonRecord): ManualRequestSummary['poaStatus'] {
 }
 
 function toSummary(row: JsonRecord): ManualRequestSummary {
+  const lastErrorCode = clean(row.last_error_code)
   return {
     id: String(row.id),
     customerSiteId: clean(row.customer_site_id),
     requestType: clean(row.request_type),
     status: clean(row.status),
-    statusLabel: manualRequestStatusLabel(clean(row.status)),
+    statusLabel: manualRequestStatusLabel(clean(row.status), lastErrorCode),
     channel: clean(row.channel),
     channelLabel: manualRequestChannelLabel(clean(row.channel)),
     caseReference: clean(row.case_reference),
     poaStatus: poaStatusFor(row),
+    deliveryFailed: lastErrorCode === 'delivery_failed',
     sentAt: clean(row.sent_at),
     updatedAt: clean(row.updated_at),
   }

@@ -59,7 +59,12 @@ async function advanceLinkedRequest(requestId: string | null) {
   const now = new Date().toISOString()
   await supabaseService
     .from('grid_owner_information_requests')
-    .update({ status: 'waiting_manual_response', sent_at: now, updated_at: now })
+    .update({
+      status: 'waiting_manual_response',
+      dispatch_status: 'waiting_response',
+      sent_at: now,
+      updated_at: now,
+    })
     .eq('id', requestId)
     .in('status', ['manual_email_queued', 'ready_to_send_manual_email', 'manual_email_sent'])
     .then(() => undefined, () => undefined)
@@ -163,10 +168,12 @@ export async function processManualEmailOutbox(input?: {
         .from('manual_email_outbox')
         .update({
           status: 'sent',
+          delivery_status: 'sent',
           provider_message_id: sent.providerMessageId,
           sent_at: new Date().toISOString(),
           attempts: Number(row.attempts ?? 0) + 1,
           last_error: null,
+          last_error_code: null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)

@@ -175,7 +175,7 @@ ok(read('vercel.json').includes('/api/internal/manual-inbound/cron'), 'manual in
 // 22) Check 3: tenant customer card reads manual request summaries (Swedish, no provider internals).
 const summary = read('lib/customer-operations/manualRequestSummary.ts')
 ok(summary.includes('listManualGridOwnerRequestSummaries') && summary.includes('grid_owner_information_requests'), 'manual request summary loader reads grid_owner_information_requests')
-ok(summary.includes('Begäran köad för e-post') && summary.includes('Begäran skickad via e-post') && summary.includes('Väntar på svar från nätägaren') && summary.includes('Svar mottaget') && summary.includes('Redo för leverantörsbyte'), 'manual summary maps tenant Swedish statuses')
+ok(summary.includes('E-post köad') && summary.includes('E-post skickad') && summary.includes('Väntar på svar från nätägaren') && summary.includes('Svar mottaget') && summary.includes('Uppgifter kompletterade') && summary.includes('Behöver granskning'), 'manual summary maps tenant Swedish statuses')
 ok(!summary.includes('provider_message_id') && !summary.includes('body_html') && !summary.includes('body_text') && !summary.includes('parsed_payload'), 'manual summary excludes provider/raw fields (lightweight + tenant-safe)')
 const customerPage = read('app/admin/customers/[id]/page.tsx')
 ok(customerPage.includes('listManualGridOwnerRequestSummaries') && customerPage.includes('manualRequests={manualRequestSummaries}'), 'customer card page loads + passes manual request summaries')

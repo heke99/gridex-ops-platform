@@ -2,6 +2,7 @@ import type { CustomerContractRow } from "@/lib/customer-contracts/types";
 import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types";
 import type { CustomerInfoRequestRow } from "@/lib/onboarding/infoRequests";
 import { hasMeteringPointIdentity } from "@/lib/customers/meteringIdentity";
+import { hasExternallySendablePoa } from "@/lib/customers/poaReadiness";
 import type {
   CustomerAuthorizationDocumentRow,
   PowerOfAttorneyRow,
@@ -40,6 +41,7 @@ export type CustomerCardSnapshot = {
   primarySite: CustomerSiteRow | null;
   primaryMeteringPoint: MeteringPointRow | null;
   hasAuthorization: boolean;
+  hasExternallySendablePoa: boolean;
   hasLegalAcceptance: boolean;
   hasFacilityId: boolean;
   hasMeteringPoint: boolean;
@@ -368,6 +370,12 @@ export function buildCustomerCardSnapshot(
     input.powersOfAttorney ?? [],
     documents,
   );
+  // Distinct from legal acceptance: a POA is only externally sendable to a grid
+  // owner when it carries customer identity, signer/evidence/method and a
+  // snapshot or document. "Fullmakt klar" for external use must use this.
+  const hasExternallySendable = (input.powersOfAttorney ?? []).some((poa) =>
+    hasExternallySendablePoa(poa as AnyRow),
+  );
   const hasFacilityId = truthy(primarySite?.facility_id);
   const hasMeteringPoint = hasMeteringPointIdentity(primaryMeteringPoint);
   const gridOwnerResolution = lower(
@@ -467,6 +475,7 @@ export function buildCustomerCardSnapshot(
     primarySite,
     primaryMeteringPoint,
     hasAuthorization,
+    hasExternallySendablePoa: hasExternallySendable,
     hasLegalAcceptance: legal.ok,
     hasFacilityId,
     hasMeteringPoint,
@@ -520,7 +529,11 @@ export function buildCustomerReadinessItems(
     {
       label: "Fullmakt",
       ok: snapshot.hasAuthorization,
-      detail: snapshot.hasAuthorization ? "Fullmakt finns" : "Fullmakt saknas",
+      detail: !snapshot.hasAuthorization
+        ? "Fullmakt saknas"
+        : snapshot.hasExternallySendablePoa
+          ? "Fullmakt klar för nätägarkommunikation"
+          : "Fullmakt finns (juridiskt), men saknar underlag för extern sändning",
     },
     {
       label: "Anläggning",
