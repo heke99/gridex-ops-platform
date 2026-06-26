@@ -76,7 +76,13 @@ export function verifyResendWebhook(
     throw new ResendWebhookError('missing_secret', 'RESEND_WEBHOOK_SECRET saknas i servermiljön.')
   }
   try {
-    return new Resend().webhooks.verify({
+    // The Resend SDK constructor requires an API key even though webhook
+    // verification only needs the signing secret (svix). Without a key the SDK
+    // throws "Missing API key" BEFORE checking the signature, which surfaces as
+    // a misleading "invalid signature". Pass the real key when present, else a
+    // verification-only placeholder.
+    const apiKey = process.env.RESEND_API_KEY?.trim() || 'verification-only'
+    return new Resend(apiKey).webhooks.verify({
       payload,
       headers,
       webhookSecret,
