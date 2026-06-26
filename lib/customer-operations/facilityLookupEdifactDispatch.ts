@@ -445,7 +445,9 @@ export async function dispatchFacilityLookupEdifact(input: {
       patch: {
         status: existingMessageId ? 'waiting_response' : 'ready_to_send',
         channel: 'ediel',
-        dispatch_status: existingMessageId ? 'queued' : 'outbound_created',
+        // 'ready' is the allowed dispatch_status (see grid_owner_information_requests_dispatch_status_check).
+        // The previous value here was not in the allowed set and violated the constraint.
+        dispatch_status: existingMessageId ? 'queued' : 'ready',
         communication_route_id: clean(existingOutbound.communication_route_id) ?? routeReadiness.communicationRouteId,
         ediel_route_profile_id: clean(existingOutbound.ediel_route_profile_id) ?? routeReadiness.routeProfileId,
         outbound_request_id: clean(existingOutbound.id),
