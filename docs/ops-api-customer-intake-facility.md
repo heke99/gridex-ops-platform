@@ -162,9 +162,24 @@ API:t accepterar ett **strukturerat** `powerOfAttorney`-objekt – inte bara `po
 
 Om `facility_id`/anläggnings-id saknas:
 
-- **Ingen PRODAT Z01 renderas och ingen `ediel_outbox` skapas.** Z01 blockeras före render (svenskt PRODAT-krav).
-- Om giltig fullmakt och nätägarkontakt finns skapas en **manuell e-postbegäran** till nätägaren (separat från Ediel) och svaret returnerar ett `manualInformationRequest`-block.
-- Saknas fullmakt returneras `nextAction.code = power_of_attorney_required`. Saknas nätägarkontakt returneras `grid_owner_contact_required`.
+- **Ingen PRODAT Z01 renderas och ingen `ediel_outbox` skapas.** Z01 blockeras före render (svenskt PRODAT-krav). Ingen `render_failed` skapas och inga tekniska EDIFACT-fel (LIN_MISSING / PROFILE_REQUIRED_SEGMENT_MISSING) visas för tenant.
+- Om giltig fullmakt, nätägarkontakt och en konfigurerad manuell brevlåda finns skapas en **manuell e-postbegäran** till nätägaren (separat från Ediel) och svaret returnerar ett `manualInformationRequest`-block.
+- Saknas fullmakt returneras `nextAction.code = power_of_attorney_required`. Saknas nätägarkontakt returneras `grid_owner_contact_required`. Saknas manuell brevlåda returneras `manual_mailbox_required`.
+
+### Brevlådor och kontaktvägar (separata begrepp)
+
+Tre olika begrepp blandas aldrig ihop:
+
+- **Manuell operationsbrevlåda** (`manual_communication_mailboxes`) = Gridex *avsändar*- och inkorgsbrevlåda för manuell nätägarkommunikation (leverantörsbyte, fullmakt, anläggningsuppgifter). Konfigureras av superadmin under `/admin/manual-mailboxes`. Standard är `leverantorsbyte@gridex.se` men adressen är konfigurerbar. Lösenord lagras aldrig i databasen – endast `env:`-referenser.
+- **Nätägarens kontaktvägar** (`grid_owner_contact_channels`) = *mottagaradresser* per nätägare och kanaltyp.
+- **Ediel-brevlådan** (`ediel_mailboxes`, `ediel@gridex.se`) = enbart Ediel/EDIFACT-transport (PRODAT/UTILTS/CONTRL/APERAK + Ediel IMAP/SMTP).
+
+Manuell e-post skickas **aldrig** från `ediel@gridex.se`. Om ingen manuell brevlåda är konfigurerad blockeras sändning med ett svenskt meddelande – det sker ingen tyst fallback till Ediel-brevlådan.
+
+### Asynkron sändning och inkommande svar
+
+- Manuell e-post skickas inte synkront i API-svaret. Orchestratorn köar en rad i `manual_email_outbox` (status `manual_email_queued`); en intern cron-arbetare (`/api/internal/manual-email/outbox/process`, skyddad med `CRON_SECRET`) skickar via konfigurerad avsändare. UI skickar aldrig e-post direkt.
+- Nätägarsvar tas emot antingen via webhook (`/api/webhooks/manual-inbound`) eller via IMAP-cron mot den manuella brevlådan (`/api/internal/manual-inbound/cron`, skyddad med `MANUAL_INBOUND_CRON_SECRET`/`CRON_SECRET`). Svar matchas mot öppen begäran via `GX-FIR`-ärendenummer; tenant härleds alltid från begäran, aldrig från brevlådan. Osäkra/ambiguösa svar auto-appliceras aldrig (status `needs_review`).
 
 ### Operativt svar (`nextAction` / `manualInformationRequest`)
 
@@ -185,6 +200,7 @@ Möjliga `nextAction.code`:
 
 - `power_of_attorney_required` – fullmakt skapades inte / saknas.
 - `grid_owner_contact_required` – nätägarens kontaktväg saknas.
+- `manual_mailbox_required` – ingen manuell operationsbrevlåda är konfigurerad (lägg till avsändaradress i superadmin).
 - `facility_identifier_requested` – manuell e-postbegäran köad (anläggnings-ID saknas).
 - `ready_for_switch` – allt klart, leverantörsbyte kan fortsätta.
 - `in_progress` – ansökan behandlas.
