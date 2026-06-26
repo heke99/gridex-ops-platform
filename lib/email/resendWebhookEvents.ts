@@ -16,26 +16,75 @@ type ResendWebhookHeaders = {
   signature: string
 }
 
+export type ResendWebhookDiagnosticCode =
+  | 'missing_secret'
+  | 'missing_headers'
+  | 'invalid_signature'
+  | 'event_processing_failed'
+
+export class ResendWebhookError extends Error {
+  code: ResendWebhookDiagnosticCode
+  constructor(code: ResendWebhookDiagnosticCode, message: string) {
+    super(message)
+    this.name = 'ResendWebhookError'
+    this.code = code
+  }
+}
+
 type ProcessResult = {
   ok: true
   eventType: string
   providerMessageId: string | null
   matchedLogId: string | null
+  matchedManualOutboxId: string | null
   tracked: boolean
+  known: boolean
+  // Non-fatal post-processing problems are reported here, never surfaced as an
+  // auth failure. The event is always stored once the signature is valid.
+  processingWarning: string | null
 }
 
-function readWebhookSecret() {
+const KNOWN_EVENT_TYPES = new Set([
+  'email.sent',
+  'email.delivered',
+  'email.delivery_delayed',
+  'email.bounced',
+  'email.complained',
+  'email.failed',
+  'email.suppressed',
+  'email.opened',
+  'email.clicked',
+  'email.scheduled',
+])
+
+export function getResendWebhookSecret(): string | null {
   const secret = process.env.RESEND_WEBHOOK_SECRET
-  if (!secret) throw new Error('RESEND_WEBHOOK_SECRET saknas i servermiljön.')
-  return secret
+  return typeof secret === 'string' && secret.trim() ? secret.trim() : null
 }
 
-export function verifyResendWebhook(payload: string, headers: ResendWebhookHeaders): WebhookEventPayload {
-  return new Resend().webhooks.verify({
-    payload,
-    headers,
-    webhookSecret: readWebhookSecret(),
-  })
+// Verifies the raw request body against RESEND_WEBHOOK_SECRET. Throws a typed
+// ResendWebhookError so the route can produce safe diagnostics that never leak
+// the secret. The header shape { id, timestamp, signature } is what the Resend
+// SDK expects (it maps to svix-id / svix-timestamp / svix-signature).
+export function verifyResendWebhook(
+  payload: string,
+  headers: ResendWebhookHeaders,
+  secret?: string,
+): WebhookEventPayload {
+  const webhookSecret = secret ?? getResendWebhookSecret()
+  if (!webhookSecret) {
+    throw new ResendWebhookError('missing_secret', 'RESEND_WEBHOOK_SECRET saknas i servermiljön.')
+  }
+  try {
+    return new Resend().webhooks.verify({
+      payload,
+      headers,
+      webhookSecret,
+    })
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'unknown'
+    throw new ResendWebhookError('invalid_signature', `Webhook-signaturen kunde inte verifieras (${detail}).`)
+  }
 }
 
 function emailIdFromEvent(event: WebhookEventPayload): string | null {
@@ -180,22 +229,186 @@ async function applyCommunicationStatus(event: WebhookEventPayload, log: Communi
   }
 }
 
+type ManualOutboxRow = {
+  id: string
+  company_id: string | null
+  request_id: string | null
+  status: string | null
+}
+
+// Maps a Resend email event to a manual_email_outbox delivery status update and
+// (on negative delivery) flags the linked grid-owner information request for
+// review so the tenant knows the contact path must be checked.
+async function applyManualOutboxStatus(
+  event: WebhookEventPayload,
+  providerMessageId: string | null,
+): Promise<string | null> {
+  if (!providerMessageId) return null
+
+  const { data, error } = await supabaseService
+    .from('manual_email_outbox')
+    .select('id,company_id,request_id,status')
+    .eq('provider_message_id', providerMessageId)
+    .maybeSingle()
+  if (error) {
+    // Table/column may be missing in older environments; never fail the webhook.
+    if (isMissingSchema(error)) return null
+    throw error
+  }
+  const row = (data as ManualOutboxRow | null) ?? null
+  if (!row) return null
+
+  const eventType = String(event.type)
+  const occurredAt = event.created_at ?? new Date().toISOString()
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  let negativeDelivery = false
+
+  switch (eventType) {
+    case 'email.sent':
+      update.delivery_status = 'sent'
+      break
+    case 'email.delivered':
+      update.delivery_status = 'delivered'
+      update.delivered_at = occurredAt
+      break
+    case 'email.delivery_delayed':
+      update.delivery_status = 'delivery_delayed'
+      break
+    case 'email.bounced':
+      update.delivery_status = 'bounced'
+      update.bounced_at = occurredAt
+      update.last_error_code = 'delivery_failed'
+      update.last_error = eventErrorMessage(event)
+      negativeDelivery = true
+      break
+    case 'email.complained':
+      update.delivery_status = 'complained'
+      update.complained_at = occurredAt
+      update.last_error_code = 'recipient_complaint'
+      update.last_error = eventErrorMessage(event)
+      negativeDelivery = true
+      break
+    case 'email.failed':
+    case 'email.suppressed':
+      update.delivery_status = eventType === 'email.suppressed' ? 'suppressed' : 'failed'
+      update.failed_at = occurredAt
+      update.last_error_code = 'delivery_failed'
+      update.last_error = eventErrorMessage(event)
+      negativeDelivery = true
+      break
+    default:
+      return row.id
+  }
+
+  const result = await supabaseService.from('manual_email_outbox').update(update).eq('id', row.id)
+  if (result.error && !isMissingSchema(result.error)) throw result.error
+
+  if (negativeDelivery && row.request_id) {
+    await flagRequestDeliveryFailed(row.request_id, eventErrorMessage(event))
+  }
+
+  return row.id
+}
+
+async function flagRequestDeliveryFailed(requestId: string, message: string | null) {
+  const now = new Date().toISOString()
+  const tenantMessage =
+    'E-post till nätägaren kunde inte levereras. Kontrollera kontaktväg.'
+
+  const { data, error } = await supabaseService
+    .from('grid_owner_information_requests')
+    .select('id,company_id,customer_id,customer_site_id,metadata')
+    .eq('id', requestId)
+    .maybeSingle()
+  if (error) {
+    if (isMissingSchema(error)) return
+    throw error
+  }
+  const request = (data as Record<string, unknown> | null) ?? null
+  if (!request) return
+
+  const baseMetadata =
+    request.metadata && typeof request.metadata === 'object' && !Array.isArray(request.metadata)
+      ? (request.metadata as Record<string, unknown>)
+      : {}
+
+  const update = await supabaseService
+    .from('grid_owner_information_requests')
+    .update({
+      status: 'needs_review',
+      dispatch_status: 'failed',
+      last_error_code: 'delivery_failed',
+      last_error_message: message ?? tenantMessage,
+      metadata: { ...baseMetadata, delivery_failed: true },
+      updated_at: now,
+    })
+    .eq('id', requestId)
+  if (update.error && !isMissingSchema(update.error)) throw update.error
+
+  const siteId = typeof request.customer_site_id === 'string' ? request.customer_site_id : null
+  const companyId = typeof request.company_id === 'string' ? request.company_id : null
+  if (siteId && companyId) {
+    await supabaseService
+      .from('customer_sites')
+      .update({ facility_data_status: 'needs_review', next_action: tenantMessage, updated_at: now })
+      .eq('company_id', companyId)
+      .eq('id', siteId)
+      .then(() => undefined, () => undefined)
+  }
+}
+
+function isMissingSchema(error: unknown): boolean {
+  const code = String((error as { code?: unknown } | null)?.code ?? '')
+  const message = String((error as { message?: unknown } | null)?.message ?? '')
+  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist/i.test(message)
+}
+
 export async function processResendWebhookEvent(
   event: WebhookEventPayload,
   headers: ResendWebhookHeaders
 ): Promise<ProcessResult> {
+  const eventType = String(event.type)
+  const known = KNOWN_EVENT_TYPES.has(eventType)
   const providerMessageId = emailIdFromEvent(event)
-  const log = await findCommunicationLog(providerMessageId)
 
+  let log: CommunicationLog | null = null
+  let processingWarning: string | null = null
+
+  try {
+    log = await findCommunicationLog(providerMessageId)
+  } catch (error) {
+    processingWarning = `communication_log_lookup_failed: ${error instanceof Error ? error.message : 'unknown'}`
+  }
+
+  // Always store the provider event idempotently first, even for unknown event
+  // types. Storage failure is the only thing that should bubble up.
   await storeProviderEvent({ event, headers, providerMessageId, log })
-  await applyCommunicationStatus(event, log)
+
+  // Post-processing (status application) must never turn a valid, stored event
+  // into an error response. Collect warnings instead.
+  let matchedManualOutboxId: string | null = null
+  if (known) {
+    try {
+      await applyCommunicationStatus(event, log)
+    } catch (error) {
+      processingWarning = `communication_status_failed: ${error instanceof Error ? error.message : 'unknown'}`
+    }
+    try {
+      matchedManualOutboxId = await applyManualOutboxStatus(event, providerMessageId)
+    } catch (error) {
+      processingWarning = `manual_outbox_status_failed: ${error instanceof Error ? error.message : 'unknown'}`
+    }
+  }
 
   return {
     ok: true,
-    eventType: String(event.type),
+    eventType,
     providerMessageId,
     matchedLogId: log?.id ?? null,
-    tracked: Boolean(log),
+    matchedManualOutboxId,
+    tracked: Boolean(log) || Boolean(matchedManualOutboxId),
+    known,
+    processingWarning,
   }
 }
 
