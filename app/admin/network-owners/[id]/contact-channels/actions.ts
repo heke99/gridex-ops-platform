@@ -36,6 +36,63 @@ function redirectWith(gridOwnerId: string, status: "success" | "error", message:
   redirect(`/admin/network-owners/${gridOwnerId}/contact-channels?${params.toString()}`);
 }
 
+type SaveChannelInput = {
+  gridOwnerId: string;
+  companyId: string | null;
+  channelType: string;
+  email: string | null;
+  phone: string | null;
+  label: string | null;
+  isEnabled: boolean;
+  isVerified: boolean;
+  userId: string;
+};
+
+// Safe create-or-update for one (grid_owner_id, channel_type, scope) row.
+// Uniqueness is enforced by PARTIAL unique indexes (WHERE company_id IS NULL /
+// IS NOT NULL) which PostgREST cannot target via ON CONFLICT. We therefore do an
+// explicit select -> update / insert and NEVER an unsafe upsert. Existing rows
+// for a channel are updated in place (one row per channel_type per scope).
+async function saveContactChannel(input: SaveChannelInput): Promise<void> {
+  const row = {
+    grid_owner_id: input.gridOwnerId,
+    company_id: input.companyId,
+    channel_type: input.channelType,
+    email: input.email,
+    phone: input.phone,
+    label: input.label,
+    is_enabled: input.isEnabled,
+    is_verified: input.isVerified,
+    source: input.companyId ? "tenant_override" : "platform_default",
+    updated_by: input.userId,
+    updated_at: new Date().toISOString(),
+  };
+
+  let existingQuery = supabaseService
+    .from("grid_owner_contact_channels")
+    .select("id")
+    .eq("grid_owner_id", input.gridOwnerId)
+    .eq("channel_type", input.channelType);
+  existingQuery = input.companyId
+    ? existingQuery.eq("company_id", input.companyId)
+    : existingQuery.is("company_id", null);
+  const existing = await existingQuery.maybeSingle();
+  if (existing.error) throw existing.error;
+
+  if (existing.data?.id) {
+    const { error } = await supabaseService
+      .from("grid_owner_contact_channels")
+      .update(row)
+      .eq("id", existing.data.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabaseService
+      .from("grid_owner_contact_channels")
+      .insert({ ...row, created_by: input.userId });
+    if (error) throw error;
+  }
+}
+
 // Creates or updates a grid-owner contact channel. company_id null = platform
 // default (visible to all tenants); company_id set = tenant override.
 export async function upsertGridOwnerContactChannelAction(formData: FormData): Promise<void> {
@@ -59,54 +116,78 @@ export async function upsertGridOwnerContactChannelAction(formData: FormData): P
     const companyIdRaw = value(formData, "company_id");
     const companyId = companyIdRaw && UUID_RE.test(companyIdRaw) ? companyIdRaw : null;
 
-    const row = {
-      grid_owner_id: gridOwnerId,
-      company_id: companyId,
-      channel_type: channelType,
+    await saveContactChannel({
+      gridOwnerId,
+      companyId,
+      channelType,
       email,
       phone,
       label: value(formData, "label"),
-      is_enabled: isEnabled,
-      is_verified: value(formData, "is_verified") === "on" || value(formData, "is_verified") === "true",
-      source: companyId ? "tenant_override" : "platform_default",
-      updated_by: userId,
-      updated_at: new Date().toISOString(),
-    };
-
-    // IMPORTANT: do NOT use a PostgREST on-conflict insert here. The uniqueness is
-    // enforced by PARTIAL unique indexes (WHERE company_id IS NULL / IS NOT NULL),
-    // which PostgREST cannot target via ON CONFLICT (no inferable constraint) and
-    // which raises a runtime "no unique or exclusion constraint matching the ON
-    // CONFLICT specification" error. Use an explicit select -> update / insert.
-    let existingQuery = supabaseService
-      .from("grid_owner_contact_channels")
-      .select("id")
-      .eq("grid_owner_id", gridOwnerId)
-      .eq("channel_type", channelType);
-    existingQuery = companyId
-      ? existingQuery.eq("company_id", companyId)
-      : existingQuery.is("company_id", null);
-    const existing = await existingQuery.maybeSingle();
-    if (existing.error) throw existing.error;
-
-    if (existing.data?.id) {
-      const { error } = await supabaseService
-        .from("grid_owner_contact_channels")
-        .update(row)
-        .eq("id", existing.data.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabaseService
-        .from("grid_owner_contact_channels")
-        .insert({ ...row, created_by: userId });
-      if (error) throw error;
-    }
+      isEnabled,
+      isVerified: value(formData, "is_verified") === "on" || value(formData, "is_verified") === "true",
+      userId,
+    });
   } catch (error) {
     redirectWith(gridOwnerId, "error", error instanceof Error ? error.message : "Kunde inte spara kontaktväg.");
   }
 
   revalidatePath(`/admin/network-owners/${gridOwnerId}/contact-channels`);
   redirectWith(gridOwnerId, "success", "Kontaktväg sparad.");
+}
+
+// Saves ONE e-mail to multiple purposes at once. Creates/updates one row per
+// selected channel_type using the safe per-channel select -> update / insert.
+// Platform defaults require platform admin (enforced); tenant overrides stay
+// tenant-scoped via company_id.
+export async function saveGridOwnerContactChannelsMultiAction(formData: FormData): Promise<void> {
+  const { userId } = await requirePlatformAdminActionAccess();
+  const gridOwnerId = requireUuid(value(formData, "grid_owner_id"), "Nätägare");
+
+  try {
+    const email = value(formData, "email");
+    const phone = value(formData, "phone");
+    if (!email && !phone) throw new Error("Ange minst e-post eller telefon.");
+    if (email && !EMAIL_RE.test(email)) throw new Error("Ogiltig e-postadress.");
+
+    const isEnabled = value(formData, "is_enabled") === "on" || value(formData, "is_enabled") === "true";
+    if (isEnabled && !email) throw new Error("Ange en giltig e-postadress innan kontaktvägarna aktiveras.");
+
+    // Accept either repeated "channel_types" entries or individual checkboxes.
+    const selected = new Set(
+      formData
+        .getAll("channel_types")
+        .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+        .filter((entry) => CHANNEL_TYPES.has(entry)),
+    );
+    for (const channelType of CHANNEL_TYPES) {
+      if (value(formData, `channel_type_${channelType}`) === "on") selected.add(channelType);
+    }
+    if (selected.size === 0) throw new Error("Välj minst ett användningsområde för kontaktvägen.");
+
+    const companyIdRaw = value(formData, "company_id");
+    const companyId = companyIdRaw && UUID_RE.test(companyIdRaw) ? companyIdRaw : null;
+    const label = value(formData, "label");
+    const isVerified = value(formData, "is_verified") === "on" || value(formData, "is_verified") === "true";
+
+    for (const channelType of selected) {
+      await saveContactChannel({
+        gridOwnerId,
+        companyId,
+        channelType,
+        email,
+        phone,
+        label,
+        isEnabled,
+        isVerified,
+        userId,
+      });
+    }
+  } catch (error) {
+    redirectWith(gridOwnerId, "error", error instanceof Error ? error.message : "Kunde inte spara kontaktvägar.");
+  }
+
+  revalidatePath(`/admin/network-owners/${gridOwnerId}/contact-channels`);
+  redirectWith(gridOwnerId, "success", "Kontaktvägar sparade.");
 }
 
 // Enables/disables an existing channel.

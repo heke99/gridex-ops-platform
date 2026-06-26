@@ -4,6 +4,7 @@ import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getGridOwnerById } from '@/lib/masterdata/db'
 import {
+  saveGridOwnerContactChannelsMultiAction,
   toggleGridOwnerContactChannelAction,
   upsertGridOwnerContactChannelAction,
 } from './actions'
@@ -138,6 +139,65 @@ export default async function GridOwnerContactChannelsPage({ params, searchParam
               </table>
             </div>
           )}
+        </section>
+
+        <section className="rounded-3xl border border-sky-200 bg-sky-50/60 p-4 text-sm text-sky-900 shadow-sm">
+          <h3 className="text-base font-bold text-sky-950">Så skickas och tas manuell e-post emot</h3>
+          <ul className="mt-2 list-disc space-y-1 pl-5 leading-6">
+            <li>Avsändare/svarsadress: <strong>leverantorsbyte@gridex.se</strong></li>
+            <li>Utgående transport: <strong>Resend</strong> (inte SMTP). IMAP/SMTP-inställningar nedan används inte för utgående utskick.</li>
+            <li>Inkommande svar: <strong>Strato IMAP</strong>.</li>
+            <li>Eftersom utskick går via Resend syns skickad post normalt inte i Stratos &quot;Skickat&quot;-mapp.</li>
+          </ul>
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-base font-bold text-slate-950">Spara en e-post för flera användningsområden</h3>
+          <p className="mt-1 text-sm text-slate-600">Ange en e-postadress och välj alla användningsområden den ska gälla för. En rad skapas/uppdateras per användningsområde (befintliga rader skrivs inte över oavsiktligt).</p>
+          <form action={saveGridOwnerContactChannelsMultiAction} className="mt-4 grid gap-3 md:grid-cols-2">
+            <input type="hidden" name="grid_owner_id" value={id} />
+            <label className="text-sm font-semibold text-slate-800">
+              E-post
+              <input name="email" type="email" placeholder="natagare@example.se" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+            </label>
+            <label className="text-sm font-semibold text-slate-800">
+              Bolags-ID (valfritt, för tenant-override)
+              <input name="company_id" placeholder="Lämna tomt för plattformsstandard" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+            </label>
+            <label className="text-sm font-semibold text-slate-800">
+              Telefon (valfritt)
+              <input name="phone" placeholder="+46..." className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+            </label>
+            <label className="text-sm font-semibold text-slate-800">
+              Etikett
+              <input name="label" placeholder="t.ex. Kundtjänst leverantörsbyte" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+            </label>
+            <fieldset className="md:col-span-2">
+              <legend className="text-sm font-semibold text-slate-800">Användningsområden</legend>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {CHANNEL_TYPES.map((entry) => (
+                  <label key={entry.value} className="flex items-center gap-2 text-sm text-slate-800">
+                    <input
+                      type="checkbox"
+                      name="channel_types"
+                      value={entry.value}
+                      defaultChecked={entry.value === 'facility_information_request' || entry.value === 'supplier_switch_manual'}
+                    />
+                    {entry.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+              <input type="checkbox" name="is_enabled" defaultChecked /> Aktiv
+            </label>
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+              <input type="checkbox" name="is_verified" /> Verifierad
+            </label>
+            <div className="md:col-span-2">
+              <button className="rounded-2xl bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">Spara för valda områden</button>
+            </div>
+          </form>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
