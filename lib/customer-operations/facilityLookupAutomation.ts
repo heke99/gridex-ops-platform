@@ -3,6 +3,19 @@ import { dispatchFacilityLookupEdifact } from '@/lib/customer-operations/facilit
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { supabaseService } from '@/lib/supabase/service'
+import { requestMissingFacilityInformation } from '@/lib/customer-operations/requestMissingFacilityInformation'
+
+// Default communication channel for a MISSING facility_id (anläggnings-id).
+//
+// Per the Swedish PRODAT requirements now used by Gridex, a PRODAT Z01 must not
+// be rendered/sent without anläggnings-id. The default channel for requesting
+// the missing identifier is therefore the manual e-mail pipeline (NOT Ediel).
+// The legacy Ediel facility-lookup dispatch path below is preserved and only
+// used when GRIDEX_FACILITY_LOOKUP_CHANNEL is explicitly set to 'ediel'.
+function resolveFacilityLookupChannel(): 'manual_email' | 'ediel' {
+  const configured = String(process.env.GRIDEX_FACILITY_LOOKUP_CHANNEL ?? '').trim().toLowerCase()
+  return configured === 'ediel' ? 'ediel' : 'manual_email'
+}
 
 export type FacilityLookupAutomationResult = {
   status:
@@ -143,6 +156,40 @@ export async function ensureFacilityLookupAutomation(input: {
       nextStep: 'Anläggningsuppgifter finns redan. Fortsätt med leverantörsbyte.',
       warnings: [],
       blockers: [],
+    }
+  }
+
+  // Missing facility_id: use the manual e-mail information request pipeline by
+  // default. PRODAT Z01 is blocked before render (Swedish PRODAT requirement);
+  // no ediel_outbox row is ever created from this path.
+  if (resolveFacilityLookupChannel() === 'manual_email') {
+    const manual = await requestMissingFacilityInformation({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      siteId: input.siteId,
+      actorUserId: input.actorUserId ?? null,
+      source: input.source ?? 'facility_lookup_automation',
+    })
+    const mappedStatus: FacilityLookupAutomationResult['status'] =
+      manual.status === 'manual_email_queued' || manual.status === 'waiting_manual_response'
+        ? 'waiting_response'
+        : manual.status === 'not_needed'
+          ? 'not_needed'
+          : manual.status === 'blocked_missing_poa' || manual.status === 'blocked_missing_grid_owner_contact'
+            ? 'blocked'
+            : 'needs_review'
+    return {
+      status: mappedStatus,
+      requestId: manual.requestId,
+      channel: manual.channel ?? 'manual_email',
+      routeId: null,
+      outboundRequestId: null,
+      edielMessageId: null,
+      operationId: input.operationId ?? null,
+      dispatchStatus: manual.status,
+      nextStep: manual.nextAction.message,
+      warnings: [],
+      blockers: manual.blockers.map((blocker) => ({ ...blocker, source: 'manual_information_orchestrator' })),
     }
   }
 

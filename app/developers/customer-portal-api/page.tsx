@@ -136,7 +136,7 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
       "personal_number": "YYYYMMDDXXXX"
     },
     "site": {
-      "facility_id": "735999888000000112",
+      "facility_id": null,
       "street": "Storgatan 1",
       "postal_code": "21122",
       "city": "Malmö",
@@ -155,9 +155,23 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
       "withdrawal": true,
       "power_of_attorney": true,
       "price_terms": true
+    },
+    "powerOfAttorney": {
+      "accepted": true,
+      "scope": ["supplier_switch", "facility_information_lookup"],
+      "signerName": "Anna Andersson",
+      "signerIdentityNumber": "YYYYMMDDXXXX",
+      "method": "website_acceptance",
+      "acceptedAt": "2026-06-26T09:00:00Z",
+      "textVersionId": "<legal_text_version_id>",
+      "ipAddress": "203.0.113.10",
+      "userAgent": "Mozilla/5.0 ..."
     }
   }'`
 
+// When facility_id is missing but a valid power of attorney exists, the API
+// blocks PRODAT Z01 (no ediel_outbox), queues a manual e-mail information
+// request to the grid owner and returns an operational nextAction.
 const applicationResponse = `{
   "data": {
     "customer_id": "uuid",
@@ -175,6 +189,10 @@ const applicationResponse = `{
     "status": "application_received",
     "missing_fields": [],
     "blocking_reasons": [],
+    "power_of_attorney_id": "uuid",
+    "power_of_attorney": { "status": "signed", "scope": ["supplier_switch", "facility_information_lookup"], "method": "website_acceptance" },
+    "nextAction": { "code": "facility_identifier_requested", "message": "Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post." },
+    "manualInformationRequest": { "status": "manual_email_queued", "case_reference": "GX-FIR-AB12CD34", "channel": "manual_email", "request_id": "uuid" },
     "next_step": "Granska ansökan och fortsätt enligt bolagets process.",
     "warnings": []
   }

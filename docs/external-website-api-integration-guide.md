@@ -121,6 +121,39 @@ OPS sparar:
 
 Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switch tills mätpunkt/nätägare är verifierade.
 
+## Kundansökan med strukturerad fullmakt
+
+`POST /api/v1/website/customer-applications` accepterar ett strukturerat `powerOfAttorney`-objekt och valfri `legalAcceptances`-lista:
+
+```json
+{
+  "external_customer_id": "WEB-...",
+  "customer": { "type": "consumer", "first_name": "Sara", "last_name": "Karlsson", "personal_identity_number": "19900101-1234", "email": "sara@example.se" },
+  "site": { "address": "Exempelgatan 1", "postal_code": "11434", "city": "Stockholm", "facility_id": null },
+  "contract": { "offer_reference": "offer_opaque_reference", "requested_start_date": "asap" },
+  "consents": { "terms": true, "privacy_policy": true, "withdrawal": true, "power_of_attorney": true, "price_terms": true },
+  "powerOfAttorney": {
+    "accepted": true,
+    "scope": ["supplier_switch", "facility_information_lookup"],
+    "signerName": "Sara Karlsson",
+    "signerIdentityNumber": "19900101-1234",
+    "method": "website_acceptance",
+    "acceptedAt": "2026-06-26T09:00:00Z",
+    "textVersionId": "<legal_text_version_id>",
+    "ipAddress": "203.0.113.10",
+    "userAgent": "Mozilla/5.0 ..."
+  }
+}
+```
+
+Regler:
+
+- Den juridiska texten laddas från `legal_text_versions` via `textVersionId` – frontend-text litas aldrig på.
+- En riktig `powers_of_attorney`-rad skapas med signer/scope/method/evidence/dokument samt händelser i `power_of_attorney_events`.
+- Saknas `facility_id` renderas **ingen PRODAT Z01** och **ingen `ediel_outbox`** skapas. Finns fullmakt + nätägarkontakt köas en **manuell e-postbegäran** och svaret innehåller `manualInformationRequest`.
+- Svaret returnerar operativ status via `nextAction` (`power_of_attorney_required`, `grid_owner_contact_required`, `facility_identifier_requested`, `ready_for_switch`, `in_progress`) – aldrig tekniska Ediel-detaljer.
+- Skicka `Idempotency-Key`; upprepade anrop/klick skapar inga dubbletter. Bolaget härleds från API-nyckeln, aldrig från payload.
+
 ## Scopes
 
 - `customer_portal.read` – hämta Mina sidor-data

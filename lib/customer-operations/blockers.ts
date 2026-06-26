@@ -7,6 +7,8 @@ export type CustomerOperationBlockerCode =
   | "missing_power_of_attorney"
   | "invalid_customer_site_snapshot"
   | "facility_or_metering_point_missing"
+  | "facility_identifier_required_for_prodat_z01"
+  | "blocked_missing_grid_owner_contact"
   | "environment_mismatch"
   | "environment_missing"
   | "ambiguous_sender_settings"
@@ -109,6 +111,22 @@ const BLOCKERS: Record<
       "PRODAT Z01 kan inte förberedas eftersom anläggnings-id eller mätpunkt saknas.",
     next_required_action:
       "Begär anläggningsuppgifter från nätägaren eller komplettera anläggnings-id/mätpunkt innan Z01 kan förberedas.",
+    issue_type: "data",
+    error_class: "business_blocker",
+  },
+  facility_identifier_required_for_prodat_z01: {
+    blocker_reason:
+      "Anläggnings-ID saknas. Begär uppgiften från nätägaren med kundens fullmakt eller komplettera kunden innan Ediel kan skickas.",
+    next_required_action:
+      "Begär anläggnings-ID från nätägaren via e-post med kundens fullmakt, eller komplettera anläggnings-ID på kunden.",
+    issue_type: "data",
+    error_class: "business_blocker",
+  },
+  blocked_missing_grid_owner_contact: {
+    blocker_reason:
+      "Kontaktväg till nätägaren saknas. Lägg till e-postadress innan begäran kan skickas.",
+    next_required_action:
+      "Lägg till en verifierad e-postadress för nätägaren innan begäran skickas.",
     issue_type: "data",
     error_class: "business_blocker",
   },
@@ -330,7 +348,10 @@ export function customerBlockerStatusLabel(code: unknown): string {
     case "production_send_locked":
       return "Uppgiftsbegäran blockerad av produktionslås";
     case "facility_or_metering_point_missing":
-      return "Anläggningsuppgifter saknas";
+    case "facility_identifier_required_for_prodat_z01":
+      return "Anläggnings-ID saknas";
+    case "blocked_missing_grid_owner_contact":
+      return "Kontaktväg till nätägaren saknas";
     case "grid_area_not_verified":
       return "Uppgiftsbegäran kräver granskning";
     case "certificate_missing":
@@ -342,4 +363,25 @@ export function customerBlockerStatusLabel(code: unknown): string {
     default:
       return "Uppgiftsbegäran kräver granskning";
   }
+}
+
+// Superadmin-only technical diagnostics. These are NEVER shown to tenants; the
+// tenant only ever sees the Swedish operational `blocker_reason`/status label.
+const SUPERADMIN_BLOCKER_DIAGNOSTICS: Partial<
+  Record<CustomerOperationBlockerCode, string>
+> = {
+  facility_identifier_required_for_prodat_z01:
+    "PRODAT Z01 blocked before render because Swedish PRODAT requirements require anläggnings-id/facility_id. Manual information request should be used.",
+  blocked_missing_grid_owner_contact:
+    "Manual e-mail blocked: no enabled grid_owner_contact_channels row (tenant override or platform default) for the required channel_type.",
+};
+
+export function customerBlockerSuperadminDiagnostic(
+  code: unknown,
+): string | null {
+  const normalized = normalizeBlockerCode(code);
+  if (!normalized) return null;
+  return SUPERADMIN_BLOCKER_DIAGNOSTICS[
+    normalized as CustomerOperationBlockerCode
+  ] ?? null;
 }
