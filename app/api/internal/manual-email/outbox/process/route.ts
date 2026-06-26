@@ -58,7 +58,19 @@ async function run(request: NextRequest, body: Record<string, unknown> = {}) {
 
   try {
     const result = await processManualEmailOutbox({ companyId, limit })
-    return NextResponse.json({ ok: true, source: 'manual_email_outbox_cron', companyId: companyId ?? null, result })
+    // Do not expose raw provider error strings publicly. Provider diagnostics
+    // stay in server logs and manual_email_outbox.last_error (superadmin only).
+    const summary = {
+      scanned: result.scanned,
+      claimed: result.claimed,
+      sent: result.sent,
+      failed: result.failed,
+      skipped: result.skipped,
+    }
+    if (result.errors.length > 0) {
+      console.error('[manual-email-outbox-cron] Provider errors', { count: result.errors.length, errors: result.errors })
+    }
+    return NextResponse.json({ ok: true, source: 'manual_email_outbox_cron', companyId: companyId ?? null, result: summary })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[manual-email-outbox-cron] Run failed', { traceId, error })

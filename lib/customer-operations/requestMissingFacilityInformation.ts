@@ -26,6 +26,10 @@ import {
   renderManualEmailTemplate,
   type ManualEmailTemplateKey,
 } from '@/lib/email/manualGridOwnerTemplates'
+import {
+  resolveManualOperationsMailbox,
+  type ManualOperationsMailbox,
+} from '@/lib/email/manualOperationsMailbox'
 
 type JsonRecord = Record<string, unknown>
 
@@ -42,6 +46,7 @@ export type ManualInformationRequestStatus =
   | 'waiting_manual_response'
   | 'blocked_missing_poa'
   | 'blocked_missing_grid_owner_contact'
+  | 'blocked_missing_manual_mailbox'
   | 'blocked'
 
 export type RequestMissingFacilityInformationInput = {
@@ -84,23 +89,6 @@ function isUniqueViolation(error: unknown): boolean {
 
 function caseReferenceFor(requestId: string): string {
   return `GX-FIR-${requestId.replace(/-/g, '').slice(0, 8).toUpperCase()}`
-}
-
-function resolveFromEmail(): string {
-  return (
-    clean(process.env.MANUAL_GRID_OWNER_FROM_EMAIL) ??
-    clean(process.env.RESEND_FROM_EMAIL) ??
-    clean(process.env.DEFAULT_FROM_EMAIL) ??
-    'no-reply@gridex.se'
-  )
-}
-
-function resolveReplyTo(): string | null {
-  return (
-    clean(process.env.MANUAL_GRID_OWNER_REPLY_TO) ??
-    clean(process.env.DEFAULT_REPLY_TO) ??
-    null
-  )
 }
 
 function customerName(customer: JsonRecord | null | undefined): string {
@@ -330,7 +318,7 @@ export async function requestMissingFacilityInformation(
     )
   }
 
-  // Grid owner manual contact channel gate.
+  // Grid owner manual contact channel gate (RECIPIENT address per grid owner).
   const contact = await findContactChannelEmail({ companyId: input.companyId, gridOwnerId, channelType })
   if (!contact) {
     return blocked(
@@ -339,6 +327,24 @@ export async function requestMissingFacilityInformation(
       'Kontaktväg till nätägaren saknas. Lägg till e-postadress innan begäran kan skickas.',
     )
   }
+
+  // Manual operations mailbox gate (Gridex SENDER mailbox). This is a distinct
+  // concept from grid_owner_contact_channels (recipient) and MUST NOT be the
+  // Ediel mailbox. If no manual mailbox is configured we block sending; we never
+  // silently fall back to ediel@gridex.se.
+  const manualMailbox: ManualOperationsMailbox | null = await resolveManualOperationsMailbox({
+    companyId: input.companyId,
+    channelType,
+  })
+  if (!manualMailbox) {
+    return blocked(
+      'blocked_missing_manual_mailbox',
+      'manual_mailbox_required',
+      'Manuell e-postbrevlåda saknas. Lägg till avsändaradress för leverantörsbyte/fullmakt i superadmin innan begäran kan skickas.',
+    )
+  }
+  const senderFromEmail = manualMailbox.fromEmail
+  const senderReplyTo = manualMailbox.replyToEmail ?? manualMailbox.fromEmail
 
   const now = new Date().toISOString()
   const requestedFields = ['facility_id', 'metering_point_id', 'grid_area_code', 'annual_consumption', 'current_supplier', 'notice_period', 'current_contract_end_date', 'metering_method', 'reporting_frequency']
@@ -359,8 +365,8 @@ export async function requestMissingFacilityInformation(
       requires_poa: true,
       poa_id: clean(poa.id),
       recipient_email: contact.email,
-      from_email: resolveFromEmail(),
-      reply_to: resolveReplyTo(),
+      from_email: senderFromEmail,
+      reply_to: senderReplyTo,
       created_by: clean(input.actorUserId),
       updated_by: clean(input.actorUserId),
       metadata: {
@@ -368,6 +374,8 @@ export async function requestMissingFacilityInformation(
         channel_type: channelType,
         contact_source: contact.source,
         protected_identity: protectedIdentity,
+        manual_mailbox_id: manualMailbox.id,
+        manual_mailbox_type: manualMailbox.mailboxType,
       },
       created_at: now,
       updated_at: now,
@@ -447,8 +455,8 @@ export async function requestMissingFacilityInformation(
     company_id: input.companyId,
     request_id: requestId,
     to_email: contact.email,
-    from_email: resolveFromEmail(),
-    reply_to: resolveReplyTo(),
+    from_email: senderFromEmail,
+    reply_to: senderReplyTo,
     subject: rendered.subject,
     body_html: rendered.bodyHtml,
     body_text: rendered.bodyText,
@@ -486,8 +494,8 @@ export async function requestMissingFacilityInformation(
       channel: 'manual_email',
       status: 'manual_email_queued',
       recipient_email: contact.email,
-      from_email: resolveFromEmail(),
-      reply_to: resolveReplyTo(),
+      from_email: senderFromEmail,
+      reply_to: senderReplyTo,
       poa_id: clean(poa.id),
       template_id: `${rendered.templateKey}.${rendered.templateVersion}`,
       updated_by: clean(input.actorUserId),

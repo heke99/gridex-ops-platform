@@ -15,6 +15,10 @@ const CHANNEL_TYPES = new Set([
   "escalation",
 ]);
 
+// Pragmatic e-mail format validation (server-side). The DB has no format check,
+// and an invalid recipient must never be selected for sending.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function value(formData: FormData, key: string): string | null {
   const raw = formData.get(key);
   if (typeof raw !== "string") return null;
@@ -44,6 +48,13 @@ export async function upsertGridOwnerContactChannelAction(formData: FormData): P
     const email = value(formData, "email");
     const phone = value(formData, "phone");
     if (!email && !phone) throw new Error("Ange minst e-post eller telefon.");
+    // Validate e-mail format before it can be enabled/selected for sending.
+    if (email && !EMAIL_RE.test(email)) throw new Error("Ogiltig e-postadress.");
+
+    const isEnabled = value(formData, "is_enabled") === "on" || value(formData, "is_enabled") === "true";
+    // A channel cannot be enabled without a valid e-mail address (manual sends
+    // require an e-mail recipient).
+    if (isEnabled && !email) throw new Error("Ange en giltig e-postadress innan kontaktvägen aktiveras.");
 
     const companyIdRaw = value(formData, "company_id");
     const companyId = companyIdRaw && UUID_RE.test(companyIdRaw) ? companyIdRaw : null;
@@ -55,18 +66,41 @@ export async function upsertGridOwnerContactChannelAction(formData: FormData): P
       email,
       phone,
       label: value(formData, "label"),
-      is_enabled: value(formData, "is_enabled") === "on" || value(formData, "is_enabled") === "true",
+      is_enabled: isEnabled,
       is_verified: value(formData, "is_verified") === "on" || value(formData, "is_verified") === "true",
       source: companyId ? "tenant_override" : "platform_default",
       updated_by: userId,
       updated_at: new Date().toISOString(),
     };
 
-    const onConflict = companyId ? "company_id,grid_owner_id,channel_type" : "grid_owner_id,channel_type";
-    const { error } = await supabaseService
+    // IMPORTANT: do NOT use a PostgREST on-conflict insert here. The uniqueness is
+    // enforced by PARTIAL unique indexes (WHERE company_id IS NULL / IS NOT NULL),
+    // which PostgREST cannot target via ON CONFLICT (no inferable constraint) and
+    // which raises a runtime "no unique or exclusion constraint matching the ON
+    // CONFLICT specification" error. Use an explicit select -> update / insert.
+    let existingQuery = supabaseService
       .from("grid_owner_contact_channels")
-      .upsert({ ...row, created_by: userId }, { onConflict });
-    if (error) throw error;
+      .select("id")
+      .eq("grid_owner_id", gridOwnerId)
+      .eq("channel_type", channelType);
+    existingQuery = companyId
+      ? existingQuery.eq("company_id", companyId)
+      : existingQuery.is("company_id", null);
+    const existing = await existingQuery.maybeSingle();
+    if (existing.error) throw existing.error;
+
+    if (existing.data?.id) {
+      const { error } = await supabaseService
+        .from("grid_owner_contact_channels")
+        .update(row)
+        .eq("id", existing.data.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseService
+        .from("grid_owner_contact_channels")
+        .insert({ ...row, created_by: userId });
+      if (error) throw error;
+    }
   } catch (error) {
     redirectWith(gridOwnerId, "error", error instanceof Error ? error.message : "Kunde inte spara kontaktväg.");
   }
