@@ -322,7 +322,10 @@ begin
       and (p_environment is null or coalesce(m.environment, 'test') = p_environment)
     order by j.created_at asc
     limit greatest(1, least(coalesce(p_limit, 50), 200))
-    for update skip locked
+    -- FOR UPDATE must target only inbound_processing_jobs: the LEFT JOIN makes
+    -- inbound_email_messages the nullable side of an outer join, which cannot be
+    -- locked ("FOR UPDATE cannot be applied to the nullable side of an outer join").
+    for update of j skip locked
   ), updated as (
     update public.inbound_processing_jobs j
        set status = 'processing',
