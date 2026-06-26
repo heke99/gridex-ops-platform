@@ -11,6 +11,7 @@
 import { randomUUID } from 'node:crypto'
 import { getEmailProvider } from '@/lib/email/providers'
 import type { EmailAttachment } from '@/lib/email/providers/types'
+import { isEdielReservedSender } from '@/lib/email/manualOperationsMailbox'
 import { supabaseService } from '@/lib/supabase/service'
 
 type JsonRecord = Record<string, unknown>
@@ -122,6 +123,28 @@ export async function processManualEmailOutbox(input?: {
         .update({ status: 'failed', last_error: 'missing_to_or_from_email', attempts: Number(row.attempts ?? 0) + 1, updated_at: new Date().toISOString() })
         .eq('id', id)
       result.failed += 1
+      continue
+    }
+
+    // The Ediel transport sender (ediel@gridex.se) must NEVER be used for manual
+    // e-mail. Refuse unless an explicit emergency override env flag is set
+    // (MANUAL_EMAIL_ALLOW_EDIEL_SENDER=true), which is surfaced in superadmin
+    // diagnostics. No silent fallback.
+    const allowEdielOverride = String(process.env.MANUAL_EMAIL_ALLOW_EDIEL_SENDER ?? '').trim().toLowerCase() === 'true'
+    if (isEdielReservedSender(fromEmail) && !allowEdielOverride) {
+      await supabaseService
+        .from('manual_email_outbox')
+        .update({
+          status: 'failed',
+          last_error: 'blocked_ediel_reserved_sender: manuell e-post får inte skickas från Ediel-brevlådan (ediel@gridex.se).',
+          attempts: Number(row.attempts ?? 0) + 1,
+          locked_at: null,
+          locked_by: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+      result.failed += 1
+      result.errors.push(`send ${id}: blocked_ediel_reserved_sender`)
       continue
     }
 
