@@ -508,10 +508,11 @@ export default function CustomerDataRequestsCard({
                       </span>
                     </div>
                     <p className="mt-3 text-slate-700">{status.description}</p>
-                    {blockerReason || blockerCode || nextAction ? (
+                    {blockerReason || (isPlatformAdmin && blockerCode) || nextAction ? (
                       <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
                         {blockerReason ? <div>{blockerReason}</div> : null}
-                        {blockerCode ? <div className="mt-1 font-mono">Blockerarkod: {blockerCode}</div> : null}
+                        {/* Raw blocker code is a technical detail: platform admin only. */}
+                        {isPlatformAdmin && blockerCode ? <div className="mt-1 font-mono">Blockerarkod: {blockerCode}</div> : null}
                         {issueType ? <div className="mt-1">Typ: {issueType}</div> : null}
                         {nextAction ? <div className="mt-1">Nästa åtgärd: {nextAction}</div> : null}
                       </div>

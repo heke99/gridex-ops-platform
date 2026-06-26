@@ -105,6 +105,9 @@ export default function CustomerLegalReadinessCard({
     (readiness.hasActivePowerOfAttorney ||
       hasPowerDocument ||
       readiness.hasPowerOfAttorneyAcceptance);
+  // Legal acceptance is not the same as a fullmakt that can be sent externally
+  // to a grid owner. Only mark "klar" for external use when sendable.
+  const hasExternallySendablePoa = snapshot?.hasExternallySendablePoa ?? false;
   const visibleBlockers = readiness.blockers.filter((blocker) => {
     const code = String(blocker.code ?? "").toLowerCase();
     if (hasPowerOfAttorney && code.includes("power")) return false;
@@ -157,11 +160,13 @@ export default function CustomerLegalReadinessCard({
         </ReadinessBox>
         <ReadinessBox
           title="Kan begära anläggningsuppgifter"
-          ok={hasPowerOfAttorney}
+          ok={hasExternallySendablePoa}
         >
-          {hasPowerOfAttorney
-            ? "Fullmakt finns. Systemet går vidare med nätägare/mätpunkt."
-            : "Fullmakt behöver kontrolleras."}
+          {hasExternallySendablePoa
+            ? "Fullmakt är klar för nätägarkommunikation."
+            : hasPowerOfAttorney
+              ? "Fullmakt finns juridiskt, men saknar kund-/signeringsuppgifter för extern sändning. Granska fullmakten."
+              : "Fullmakt behöver kontrolleras."}
         </ReadinessBox>
         <ReadinessBox title="Kan skicka kundmail" ok={legalLooksAccepted}>
           {legalLooksAccepted
