@@ -22,6 +22,8 @@ import {
   type FacilityLookupZ01RenderRequest,
 } from '@/lib/ediel/intent/renderers/facilityLookupZ01'
 import type { EdielIntentBlockingReason, EdielMessageIntent } from '@/lib/ediel/intent/types'
+import { assertProdatZ01Renderable } from '@/lib/ediel/profiles/prodatZ01Guard'
+import { supabaseService } from '@/lib/supabase/service'
 
 export type RenderGatewayResult =
   | {
@@ -89,6 +91,29 @@ function classifyRenderError(error: unknown): EdielIntentBlockingReason {
   }
 }
 
+// Reads the site facility_id for the Z01 renderability guard. A missing column
+// or row resolves to "not renderable" (treated as missing identifier), never a
+// throw, so the gateway always returns a controlled business blocker.
+async function ensureProdatZ01FacilityIdentifier(siteId: string | null) {
+  if (!siteId) {
+    return assertProdatZ01Renderable({ facilityId: null })
+  }
+  try {
+    const { data } = await supabaseService
+      .from('customer_sites')
+      .select('facility_id,normalized_facility_id')
+      .eq('id', siteId)
+      .maybeSingle()
+    const row = (data ?? null) as { facility_id?: unknown; normalized_facility_id?: unknown } | null
+    return assertProdatZ01Renderable({
+      facilityId: row?.facility_id ?? null,
+      normalizedFacilityId: row?.normalized_facility_id ?? null,
+    })
+  } catch {
+    return assertProdatZ01Renderable({ facilityId: null })
+  }
+}
+
 // Facility lookup PRODAT Z01. Customer operations call this instead of rendering.
 //
 // Controlled-failure guarantee: any thrown error during render/finalize/queue is
@@ -106,6 +131,39 @@ export async function renderAndQueueFacilityLookupZ01(params: {
   const gate = await loadValidatedIntent(params.intentId)
   if (!gate.ok) {
     return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: gate.reasons }
+  }
+
+  // Swedish PRODAT requirement: block PRODAT Z01 BEFORE render when
+  // anläggnings-id/facility_id is missing. This is an expected business state,
+  // not a technical render failure: we must not render, must not queue
+  // ediel_outbox, and must not set render_status='failed'. The manual e-mail
+  // information request pipeline is used instead.
+  const z01Gate = await ensureProdatZ01FacilityIdentifier(params.request.customer_site_id)
+  if (!z01Gate.renderable) {
+    const reason: EdielIntentBlockingReason = {
+      code: z01Gate.blocker.blocker_code,
+      message: z01Gate.blocker.blocker_reason,
+      severity: 'block',
+      details: {
+        source: 'prodat_z01_facility_guard',
+        superadmin_diagnostic: z01Gate.superadminDiagnostic,
+        use_manual_information_request: true,
+      },
+    }
+    await updateIntentLifecycle(params.intentId, {
+      validationStatus: 'blocked',
+      blockingReasons: [reason],
+      validationResult: {
+        ...(gate.intent.validationResult ?? {}),
+        prodatZ01FacilityGuard: {
+          blocked: true,
+          code: reason.code,
+          at: new Date().toISOString(),
+        },
+      },
+      actorUserId: params.actorUserId,
+    })
+    return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: [reason] }
   }
 
   try {

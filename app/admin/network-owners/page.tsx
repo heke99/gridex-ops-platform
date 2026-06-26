@@ -94,6 +94,13 @@ function GridOwnerTechnicalActionPanel({ owner }: { owner: Awaited<ReturnType<ty
       <p className="mt-3 text-xs leading-5 text-indigo-900">
         Sökningen markerar inte nätägaren som klar om certifikat saknas, är utgånget, har fel miljö eller inte matchar aktören. Då ska felet ligga kvar som åtgärd/review.
       </p>
+
+      <Link
+        href={`/admin/network-owners/${owner.id}/contact-channels`}
+        className="mt-4 inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+      >
+        Hantera manuella kontaktvägar
+      </Link>
     </section>
   )
 }

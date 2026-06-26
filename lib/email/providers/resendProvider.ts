@@ -225,6 +225,14 @@ export class ResendEmailProvider implements EmailProvider {
   async sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
     try {
       const resend = createResendClient()
+      const attachments =
+        input.attachments && input.attachments.length > 0
+          ? input.attachments.map((attachment) => ({
+              filename: attachment.filename,
+              content: attachment.content,
+              contentType: attachment.contentType ?? undefined,
+            }))
+          : undefined
       const response = await resend.emails.send({
         from: input.from,
         to: input.to,
@@ -232,6 +240,7 @@ export class ResendEmailProvider implements EmailProvider {
         html: input.html,
         text: input.text,
         replyTo: input.replyTo,
+        attachments,
         headers: input.idempotencyKey ? { 'Idempotency-Key': input.idempotencyKey } : undefined,
       } as never)
 

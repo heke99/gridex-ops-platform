@@ -126,12 +126,72 @@ Minsta rekommenderade payload:
     "power_of_attorney": true,
     "price_terms": true
   },
+  "legalAcceptances": [
+    { "type": "terms", "textVersionId": "<legal_text_version_id>", "acceptedAt": "2026-06-26T09:00:00Z" },
+    { "type": "privacy_policy", "textVersionId": "<legal_text_version_id>", "acceptedAt": "2026-06-26T09:00:00Z" }
+  ],
+  "powerOfAttorney": {
+    "accepted": true,
+    "scope": ["supplier_switch", "facility_information_lookup"],
+    "signerName": "Sara Karlsson",
+    "signerIdentityNumber": "19900101-1234",
+    "method": "website_acceptance",
+    "acceptedAt": "2026-06-26T09:00:00Z",
+    "textVersionId": "<legal_text_version_id>",
+    "ipAddress": "203.0.113.10",
+    "userAgent": "Mozilla/5.0 ..."
+  },
   "metadata": {
     "utm_source": "website",
     "landing_page": "/elavtal"
   }
 }
 ```
+
+### Strukturerad fullmakt (`powerOfAttorney`)
+
+API:t accepterar ett **strukturerat** `powerOfAttorney`-objekt – inte bara `power_of_attorney: true`. Reglerna:
+
+- Den juridiska texten laddas alltid från `legal_text_versions` via `textVersionId`. Frontend-text litas **aldrig** på.
+- Ett låst snapshot skapas och en riktig rad i `powers_of_attorney` skrivs med `signer_name`, `signer_identity_number`, `method`, `evidence_payload`, `scope`, `source = website_api`.
+- Ett oföränderligt fullmaktsdokument genereras och länkas via `document_id`.
+- Händelser skrivs i `power_of_attorney_events` (`created`, `accepted`, `pdf_generated`).
+- `consents.power_of_attorney: true` accepteras fortsatt för bakåtkompatibilitet, men ett strukturerat objekt rekommenderas.
+
+### Saknat anläggnings-ID (`facility_id`)
+
+Om `facility_id`/anläggnings-id saknas:
+
+- **Ingen PRODAT Z01 renderas och ingen `ediel_outbox` skapas.** Z01 blockeras före render (svenskt PRODAT-krav).
+- Om giltig fullmakt och nätägarkontakt finns skapas en **manuell e-postbegäran** till nätägaren (separat från Ediel) och svaret returnerar ett `manualInformationRequest`-block.
+- Saknas fullmakt returneras `nextAction.code = power_of_attorney_required`. Saknas nätägarkontakt returneras `grid_owner_contact_required`.
+
+### Operativt svar (`nextAction` / `manualInformationRequest`)
+
+Svaret innehåller endast **operativ status** – aldrig tekniska Ediel-detaljer:
+
+```json
+{
+  "applicationId": "...",
+  "customerId": "...",
+  "siteId": "...",
+  "powerOfAttorney": { "status": "signed", "scope": ["supplier_switch", "facility_information_lookup"], "method": "website_acceptance" },
+  "nextAction": { "code": "facility_identifier_requested", "message": "Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post." },
+  "manualInformationRequest": { "status": "manual_email_queued", "case_reference": "GX-FIR-AB12CD34", "channel": "manual_email", "request_id": "..." }
+}
+```
+
+Möjliga `nextAction.code`:
+
+- `power_of_attorney_required` – fullmakt skapades inte / saknas.
+- `grid_owner_contact_required` – nätägarens kontaktväg saknas.
+- `facility_identifier_requested` – manuell e-postbegäran köad (anläggnings-ID saknas).
+- `ready_for_switch` – allt klart, leverantörsbyte kan fortsätta.
+- `in_progress` – ansökan behandlas.
+
+### Idempotens
+
+Skicka `Idempotency-Key` på POST. Upprepade anrop (samma nyckel) eller upprepade klick skapar inte dubbletter: den öppna manuella begäran återanvänds och `manual_email_outbox` har en unik `idempotency_key`. Bolaget härleds alltid från API-klienten (autentiserad kontext), aldrig från payload.
 
 Processregler:
 
@@ -141,9 +201,9 @@ Processregler:
 4. Kundnummer sätts och `customer_number.assigned` skapas när numret faktiskt tilldelas.
 5. Anläggning och mätpunkt skapas när data finns.
 6. Kundavtal och låst avtalssnapshot skapas.
-7. Juridiska godkännanden och fullmakt sparas med snapshot.
+7. Juridiska godkännanden och strukturerad fullmakt sparas med snapshot, dokument och händelser.
 8. Anläggnings-/nätägardata resolveras när information finns.
-9. Åtgärdspunkter skapas om fullmakt, anläggningsdata eller verifierad nätägare saknas.
+9. Saknas anläggnings-ID blockeras Z01 och en manuell e-postbegäran köas (om fullmakt + kontakt finns); annars sätts `nextAction` till `power_of_attorney_required`/`grid_owner_contact_required`.
 10. Domain events skapas och webhook-leveranser köas.
 
 ## Kundevents från hemsida

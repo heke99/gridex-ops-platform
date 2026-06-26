@@ -30,6 +30,13 @@ export type VerifyDomainResult = {
   status: 'pending_dns' | 'verified' | 'failed'
 } & EmailProviderDomainReadiness
 
+export type EmailAttachment = {
+  filename: string
+  /** Base64-encoded content. */
+  content: string
+  contentType?: string | null
+}
+
 export type SendEmailInput = {
   from: string
   to: string | string[]
@@ -39,6 +46,8 @@ export type SendEmailInput = {
   text?: string
   /** Stable key used by the transport provider for safe reconciliation. */
   idempotencyKey?: string
+  /** Optional file attachments (e.g. power of attorney snapshot). */
+  attachments?: EmailAttachment[]
 }
 
 export type SendEmailResult = {

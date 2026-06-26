@@ -27,6 +27,10 @@ type FacilityLookupRequestRow = {
   facility_id: string | null
   metering_point_id: string | null
   requested_fields: string[] | null
+  case_reference: string | null
+  recipient_email: string | null
+  poa_id: string | null
+  sent_at: string | null
   created_at: string | null
   updated_at: string | null
   customer?: { customer_number?: string | null; full_name?: string | null; first_name?: string | null; last_name?: string | null; company_name?: string | null; email?: string | null } | null
@@ -45,6 +49,41 @@ function siteName(row: FacilityLookupRequestRow): string {
 
 function normalizeRequestedFields(value: string[] | null | undefined): string[] {
   return Array.isArray(value) ? value : []
+}
+
+// Tenant-facing operational status (Swedish). No technical Ediel/EDIFACT details.
+function operationalStatusLabel(status: string | null | undefined): string {
+  switch (status) {
+    case 'ready_to_send_manual_email': return 'Redo att skickas'
+    case 'manual_email_queued': return 'E-post köad'
+    case 'manual_email_sent': return 'E-post skickad'
+    case 'waiting_manual_response': return 'Väntar på svar'
+    case 'manual_response_received': return 'Svar mottaget'
+    case 'manual_response_parsed': return 'Svar tolkat'
+    case 'blocked_missing_poa': return 'Fullmakt saknas'
+    case 'blocked_missing_grid_owner_contact': return 'Kontaktväg saknas'
+    case 'completed': return 'Klar'
+    case 'needs_review': return 'Behöver granskning'
+    case 'waiting_response': return 'Väntar på svar'
+    case 'sent': return 'Skickad'
+    case 'ready_to_send': return 'Redo att skickas'
+    case 'cancelled': return 'Avbruten'
+    default: return 'Utkast'
+  }
+}
+
+// Operational channel label (Swedish). Manual e-mail vs Ediel vs manual review.
+function channelLabel(channel: string | null | undefined): string {
+  switch (channel) {
+    case 'manual_email':
+    case 'email': return 'E-post'
+    case 'ediel':
+    case 'ediel_prodat': return 'Ediel'
+    case 'manual_phone': return 'Telefon'
+    case 'ai_list': return 'AI-lista'
+    case 'manual_upload': return 'Manuell uppladdning'
+    default: return 'Manuell granskning'
+  }
 }
 
 export const dynamic = 'force-dynamic'
@@ -113,11 +152,18 @@ function FacilityLookupRequestCard({ request }: { request: FacilityLookupRequest
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-black text-slate-950">{customerName(request)}</h3>
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">{request.status ?? 'utkast'}</span>
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">{request.channel ?? 'manual'}</span>
-            {request.requires_poa ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900">Kräver fullmakt</span> : null}
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">{operationalStatusLabel(request.status)}</span>
+            <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-800">{channelLabel(request.channel)}</span>
+            {request.poa_id
+              ? <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">Fullmakt bifogas</span>
+              : request.requires_poa
+                ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900">Fullmakt saknas</span>
+                : null}
           </div>
           <p className="mt-2 text-sm text-slate-700">{siteName(request)}</p>
+          {request.case_reference ? (
+            <p className="mt-1 text-xs font-semibold text-slate-600">Ärendenummer: {request.case_reference}{request.sent_at ? ` · Skickad ${formatDate(request.sent_at)}` : ''}</p>
+          ) : null}
           <p className="mt-1 text-xs text-slate-500">
             Nätägare: {request.grid_owner?.name ?? request.grid_owner?.owner_code ?? 'saknas'} · Ediel ID: {request.grid_owner?.ediel_id ?? 'saknas'} · Nätområde: {request.grid_area_code ?? 'saknas'} · Elområde: {request.price_area ?? 'saknas'}
           </p>
@@ -229,11 +275,19 @@ export default async function FacilityRequestsPage() {
   const supabase = await createSupabaseServerClient()
   const queue = await listFacilityWorkQueue(supabase, companyId, { limit: 250 })
 
+  const ACTIVE_FACILITY_STATUSES = [
+    'draft', 'ready_to_send', 'sent', 'waiting_response', 'needs_review',
+    'ready_to_send_manual_email', 'manual_email_queued', 'manual_email_sent',
+    'waiting_manual_response', 'manual_response_received', 'manual_response_parsed',
+    'blocked_missing_poa', 'blocked_missing_grid_owner_contact',
+  ]
+  const ACTIVE_FACILITY_REQUEST_TYPES = ['facility_lookup', 'facility_identifier_lookup']
+
   let facilityRequestsQuery = supabase
     .from('grid_owner_information_requests')
-    .select('*, customer:customers(customer_number,full_name,first_name,last_name,company_name,email), site:customer_sites(street,postal_code,city,site_name), grid_owner:grid_owners(name,ediel_id,owner_code)')
-    .eq('request_type', 'facility_lookup')
-    .in('status', ['draft', 'ready_to_send', 'sent', 'waiting_response', 'needs_review'])
+    .select('id,company_id,customer_id,customer_site_id,grid_owner_id,grid_area_code,price_area,status,channel,requires_poa,facility_id,metering_point_id,requested_fields,case_reference,recipient_email,poa_id,sent_at,created_at,updated_at, customer:customers(customer_number,full_name,first_name,last_name,company_name,email), site:customer_sites(street,postal_code,city,site_name), grid_owner:grid_owners(name,ediel_id,owner_code)')
+    .in('request_type', ACTIVE_FACILITY_REQUEST_TYPES)
+    .in('status', ACTIVE_FACILITY_STATUSES)
     .order('updated_at', { ascending: false })
     .limit(100)
 
@@ -241,18 +295,18 @@ export default async function FacilityRequestsPage() {
 
   const { data: joinedFacilityRequestsData, error: joinedFacilityRequestsError } = await facilityRequestsQuery
 
-  let facilityRequestsData = joinedFacilityRequestsData
+  let facilityRequestsData: unknown[] = (joinedFacilityRequestsData ?? []) as unknown[]
   if (joinedFacilityRequestsError) {
     let fallbackQuery = supabase
       .from('grid_owner_information_requests')
-      .select('id,company_id,customer_id,customer_site_id,grid_owner_id,grid_area_code,price_area,status,channel,requires_poa,facility_id,metering_point_id,requested_fields,created_at,updated_at')
-      .eq('request_type', 'facility_lookup')
-      .in('status', ['draft', 'ready_to_send', 'sent', 'waiting_response', 'needs_review'])
+      .select('id,company_id,customer_id,customer_site_id,grid_owner_id,grid_area_code,price_area,status,channel,requires_poa,facility_id,metering_point_id,requested_fields,case_reference,recipient_email,poa_id,sent_at,created_at,updated_at')
+      .in('request_type', ACTIVE_FACILITY_REQUEST_TYPES)
+      .in('status', ACTIVE_FACILITY_STATUSES)
       .order('updated_at', { ascending: false })
       .limit(100)
     if (companyId) fallbackQuery = fallbackQuery.eq('company_id', companyId)
     const fallback = await fallbackQuery
-    facilityRequestsData = fallback.error ? [] : fallback.data
+    facilityRequestsData = fallback.error ? [] : ((fallback.data ?? []) as unknown[])
   }
 
   const facilityRequests = (facilityRequestsData ?? []) as unknown as FacilityLookupRequestRow[]

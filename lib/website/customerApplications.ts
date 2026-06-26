@@ -8,6 +8,7 @@ import { seedDefaultEmailTemplates } from '@/lib/email/emailTemplates'
 import { assessWebsiteApplicationReadiness, customerIntakeStatusForReadiness, type WebsiteApplicationReadiness } from '@/lib/website/applicationReview'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
+import { requestMissingFacilityInformation } from '@/lib/customer-operations/requestMissingFacilityInformation'
 import { resolvePublicContractOffer, type PublicContractOffer } from '@/lib/website/publicContracts'
 import type { EnergyResolverResult } from '@/lib/energy/types'
 import {
@@ -125,6 +126,28 @@ const ContractSchema = z.object({
   terms_version: OPTIONAL_TEXT,
 }).optional()
 
+// Structured power of attorney object accepted by the website API. The API must
+// NOT accept only `powerOfAttorney: true`; it accepts a structured object with
+// signer/scope/method/evidence. The frontend-provided legal text is never
+// trusted — the active legal/fullmakt text is loaded by textVersionId.
+const PowerOfAttorneySchema = z.object({
+  accepted: z.coerce.boolean().optional(),
+  scope: z.array(z.string()).optional(),
+  signerName: OPTIONAL_TEXT,
+  signer_name: OPTIONAL_TEXT,
+  signerIdentityNumber: OPTIONAL_TEXT,
+  signer_identity_number: OPTIONAL_TEXT,
+  method: OPTIONAL_TEXT,
+  acceptedAt: OPTIONAL_TEXT,
+  accepted_at: OPTIONAL_TEXT,
+  textVersionId: OPTIONAL_TEXT,
+  text_version_id: OPTIONAL_TEXT,
+  ipAddress: OPTIONAL_TEXT,
+  ip_address: OPTIONAL_TEXT,
+  userAgent: OPTIONAL_TEXT,
+  user_agent: OPTIONAL_TEXT,
+}).optional()
+
 const ApplicationSchema = z.object({
   offer_reference: OPTIONAL_TEXT,
   offerReference: OPTIONAL_TEXT,
@@ -162,8 +185,42 @@ const ApplicationSchema = z.object({
   metering_point: MeteringPointSchema,
   contract: ContractSchema,
   consents: z.record(z.unknown()).optional(),
+  legalAcceptances: z.array(z.record(z.unknown())).optional(),
+  legal_acceptances: z.array(z.record(z.unknown())).optional(),
+  powerOfAttorney: PowerOfAttorneySchema,
+  power_of_attorney: PowerOfAttorneySchema,
   metadata: z.record(z.unknown()).optional(),
 })
+
+type StructuredPowerOfAttorney = z.infer<typeof PowerOfAttorneySchema>
+
+// Normalizes the structured powerOfAttorney object (camel or snake case).
+function normalizeStructuredPoa(body: ApplicationInput): {
+  accepted: boolean
+  scope: string[]
+  signerName: string | null
+  signerIdentityNumber: string | null
+  method: string | null
+  acceptedAt: string | null
+  textVersionId: string | null
+  ipAddress: string | null
+  userAgent: string | null
+} | null {
+  const raw = (body.powerOfAttorney ?? body.power_of_attorney) as StructuredPowerOfAttorney | undefined
+  if (!raw) return null
+  const pick = (a: unknown, b: unknown) => (typeof a === 'string' && a.trim() ? a.trim() : typeof b === 'string' && b.trim() ? b.trim() : null)
+  return {
+    accepted: raw.accepted === true,
+    scope: Array.isArray(raw.scope) ? raw.scope.map((value) => String(value)) : [],
+    signerName: pick(raw.signerName, raw.signer_name),
+    signerIdentityNumber: pick(raw.signerIdentityNumber, raw.signer_identity_number),
+    method: pick(raw.method, null),
+    acceptedAt: pick(raw.acceptedAt, raw.accepted_at),
+    textVersionId: pick(raw.textVersionId, raw.text_version_id),
+    ipAddress: pick(raw.ipAddress, raw.ip_address),
+    userAgent: pick(raw.userAgent, raw.user_agent),
+  }
+}
 
 type ApplicationInput = z.infer<typeof ApplicationSchema>
 
@@ -305,6 +362,27 @@ async function persistCustomerLegalAcceptances(input: {
   if (error && !missingSchema(error)) throw error
 }
 
+// Loads a specific legal text version by id, scoped to the tenant. Used so the
+// website API binds the POA to the active legal text it references rather than
+// any text supplied by the frontend.
+async function loadLegalTextVersionById(
+  companyId: string,
+  textVersionId: string | null,
+): Promise<WebsiteLegalAcceptanceVersion | null> {
+  if (!textVersionId) return null
+  const { data, error } = await supabaseService
+    .from('legal_text_versions')
+    .select('id,type,version,title,body,published_at')
+    .eq('company_id', companyId)
+    .eq('id', textVersionId)
+    .maybeSingle()
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+  return (data as WebsiteLegalAcceptanceVersion | null) ?? null
+}
+
 async function ensureWebsitePowerOfAttorney(input: {
   companyId: string
   customerId: string
@@ -317,9 +395,13 @@ async function ensureWebsitePowerOfAttorney(input: {
   consents?: Record<string, unknown>
   requestAudit?: RequestAuditMetadata
   rawPayload: unknown
+  structuredPoa?: ReturnType<typeof normalizeStructuredPoa>
 }) {
   if (!consentAccepted(input.consents, ['power_of_attorney', 'poa_accepted', 'power_of_attorney_accepted'])) return null
-  const legal = input.legalVersions.find((row) => row.type === 'power_of_attorney')
+  // Never trust frontend legal text: prefer the explicitly referenced active
+  // legal version (textVersionId), then the published power_of_attorney version.
+  const referencedLegal = await loadLegalTextVersionById(input.companyId, input.structuredPoa?.textVersionId ?? null)
+  const legal = referencedLegal ?? input.legalVersions.find((row) => row.type === 'power_of_attorney')
   if (!legal) return null
 
   const now = new Date().toISOString()
@@ -340,6 +422,11 @@ async function ensureWebsitePowerOfAttorney(input: {
   if (existing.error && !missingSchema(existing.error)) throw existing.error
   if (existing.data?.id) return String(existing.data.id)
 
+  const poa = input.structuredPoa ?? null
+  const scopes = poa && poa.scope.length > 0 ? poa.scope : ['supplier_switch', 'facility_information_lookup']
+  const acceptedAt = poa?.acceptedAt ?? now
+  const method = poa?.method ?? 'website_acceptance'
+
   const snapshot = {
     legal_text: {
       id: legal.id,
@@ -352,7 +439,22 @@ async function ensureWebsitePowerOfAttorney(input: {
     public_offer: input.publicOffer,
     consents: input.consents ?? {},
     application_id: input.applicationId,
-    accepted_at: now,
+    accepted_at: acceptedAt,
+    scopes,
+  }
+
+  const evidencePayload = {
+    accepted: true,
+    accepted_at: acceptedAt,
+    method,
+    scopes,
+    signer_name: poa?.signerName ?? null,
+    signer_identity_number: poa?.signerIdentityNumber ?? null,
+    ip_address: poa?.ipAddress ?? input.requestAudit?.ipAddress ?? null,
+    user_agent: poa?.userAgent ?? input.requestAudit?.userAgent ?? null,
+    legal_text_version_id: legal.id,
+    legal_text_version: legal.version,
+    source: 'website_api',
   }
 
   const row = {
@@ -365,17 +467,24 @@ async function ensureWebsitePowerOfAttorney(input: {
     scope: 'supplier_switch',
     status: 'signed',
     signed_at: now,
-    accepted_at: now,
+    accepted_at: acceptedAt,
     valid_from: now.slice(0, 10),
     legal_text_version_id: legal.id,
     fullmakt_snapshot: snapshot,
-    accepted_ip: input.requestAudit?.ipAddress ?? null,
+    signer_name: poa?.signerName ?? null,
+    signer_identity_number: poa?.signerIdentityNumber ?? null,
+    method,
+    evidence_payload: evidencePayload,
+    source: 'website_api',
+    accepted_ip: poa?.ipAddress ?? input.requestAudit?.ipAddress ?? null,
     accepted_ip_hash: input.requestAudit?.ipHash ?? null,
-    accepted_user_agent: input.requestAudit?.userAgent ?? null,
+    accepted_user_agent: poa?.userAgent ?? input.requestAudit?.userAgent ?? null,
     accepted_source: 'website',
     reference: `POA-${input.applicationId}`,
     scope_summary: {
+      scopes,
       supplier_switch: true,
+      facility_information_lookup: scopes.includes('facility_information_lookup'),
       customer_site_id: input.customerSiteId,
       metering_point_id: input.meteringPointId,
       contract_id: input.contractId,
@@ -418,9 +527,78 @@ async function ensureWebsitePowerOfAttorney(input: {
       })
 
     if (scopeResult.error && !missingSchema(scopeResult.error)) throw scopeResult.error
+
+    // Immutable POA document snapshot (JSON) linked back onto the POA row.
+    const documentId = await createPowerOfAttorneyDocumentSnapshot({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      contractId: input.contractId,
+      customerSiteId: input.customerSiteId,
+      meteringPointId: input.meteringPointId,
+      powerOfAttorneyId,
+      reference: row.reference,
+      snapshot,
+      evidencePayload,
+    })
+    if (documentId) {
+      await supabaseService
+        .from('powers_of_attorney')
+        .update({ document_id: documentId, updated_at: new Date().toISOString() })
+        .eq('id', powerOfAttorneyId)
+        .then(() => undefined, () => undefined)
+    }
+
+    // Audit trail: created + accepted (+ pdf/document generated).
+    await supabaseService.from('power_of_attorney_events').insert([
+      { company_id: input.companyId, power_of_attorney_id: powerOfAttorneyId, event_type: 'created', payload: { application_id: input.applicationId, source: 'website_api' } },
+      { company_id: input.companyId, power_of_attorney_id: powerOfAttorneyId, event_type: 'accepted', payload: evidencePayload },
+      ...(documentId ? [{ company_id: input.companyId, power_of_attorney_id: powerOfAttorneyId, event_type: 'pdf_generated' as const, payload: { document_id: documentId } }] : []),
+    ]).then(() => undefined, () => undefined)
   }
 
   return powerOfAttorneyId
+}
+
+// Creates an immutable JSON document snapshot for a power of attorney and stores
+// it in customer_documents (best-effort; tolerant of missing schema).
+async function createPowerOfAttorneyDocumentSnapshot(input: {
+  companyId: string
+  customerId: string
+  contractId: string | null
+  customerSiteId: string | null
+  meteringPointId: string | null
+  powerOfAttorneyId: string
+  reference: string
+  snapshot: Record<string, unknown>
+  evidencePayload: Record<string, unknown>
+}): Promise<string | null> {
+  const documentRow = {
+    company_id: input.companyId,
+    customer_id: input.customerId,
+    customer_site_id: input.customerSiteId,
+    metering_point_id: input.meteringPointId,
+    contract_id: input.contractId,
+    power_of_attorney_id: input.powerOfAttorneyId,
+    document_type: 'power_of_attorney',
+    title: `Signerad fullmakt ${input.reference}`,
+    file_name: `fullmakt-${input.reference}.json`,
+    mime_type: 'application/json',
+    status: 'available',
+    source: 'website_customer_applications',
+    source_system: 'ops_powers_of_attorney',
+    raw_payload: { snapshot: input.snapshot, evidence: input.evidencePayload },
+  }
+  const { data, error } = await supabaseService
+    .from('customer_documents')
+    .insert(documentRow)
+    .select('id')
+    .maybeSingle()
+  if (error) {
+    if (missingSchema(error)) return null
+    // Document storage is non-fatal for the POA write path.
+    return null
+  }
+  return data?.id ? String(data.id) : null
 }
 
 type CustomerRow = {
@@ -455,6 +633,7 @@ type ErrorStage =
   | 'customer_intake_update'
   | 'energy_resolution'
   | 'grid_owner_information_request'
+  | 'manual_information_request'
   | 'manual_review'
 
 class WebsiteApplicationError extends Error {
@@ -2322,6 +2501,14 @@ export async function processWebsiteCustomerApplication(input: {
   }
 
   let body = parsed.data
+
+  // A structured powerOfAttorney.accepted=true satisfies the POA legal consent so
+  // the existing legal-acceptance gate and POA persistence run unchanged.
+  const structuredPoa = normalizeStructuredPoa(body)
+  if (structuredPoa?.accepted) {
+    body = { ...body, consents: { ...(body.consents ?? {}), power_of_attorney: true } }
+  }
+
   const externalCustomerId = clean(body.external_customer_id) ?? clean(body.customer_external_id)
   if (!externalCustomerId) {
     return failureResponse(validationError(
@@ -2644,10 +2831,16 @@ export async function processWebsiteCustomerApplication(input: {
       consents: body.consents,
       requestAudit: input.requestAudit,
       rawPayload: input.rawBody,
+      structuredPoa,
     }))
 
     if (powerOfAttorneyId) {
       responsePayload.power_of_attorney_id = powerOfAttorneyId
+      responsePayload.power_of_attorney = {
+        status: 'signed',
+        scope: structuredPoa && structuredPoa.scope.length > 0 ? structuredPoa.scope : ['supplier_switch', 'facility_information_lookup'],
+        method: structuredPoa?.method ?? 'website_acceptance',
+      }
       const applicationUpdateResult = await supabaseService
         .from('website_customer_applications')
         .update({
@@ -2724,6 +2917,50 @@ export async function processWebsiteCustomerApplication(input: {
         .eq('id', application.id)
         .eq('company_id', input.client.company_id)
     }
+
+    // Operational nextAction + (optional) manual information request block. These
+    // expose only operational status to the website/API caller — never technical
+    // Ediel diagnostics. When facility_id is missing and POA exists, the manual
+    // e-mail information request is queued (PRODAT Z01 is never rendered here).
+    const facilityMissing = Boolean(committedSiteId) && !site?.facility_id
+    let nextAction: { code: string; message: string }
+    let manualInformationRequest: Record<string, unknown> | null = null
+
+    if (!powerOfAttorneyId && facilityMissing) {
+      nextAction = { code: 'power_of_attorney_required', message: 'Fullmakt krävs innan anläggningsuppgifter kan begäras från nätägaren.' }
+    } else if (powerOfAttorneyId && facilityMissing) {
+      const manual = await stage('manual_information_request', () => requestMissingFacilityInformation({
+        companyId: input.client.company_id,
+        customerId: resolvedCustomerResult.customer.id,
+        siteId: committedSiteId as string,
+        actorUserId: null,
+        source: 'website_api',
+      }))
+      manualInformationRequest = {
+        status: manual.status,
+        case_reference: manual.caseReference,
+        channel: manual.channel,
+        request_id: manual.requestId,
+      }
+      nextAction = manual.nextAction
+    } else if (readiness.canStartSwitch) {
+      nextAction = { code: 'ready_for_switch', message: 'Ansökan är klar för leverantörsbyte.' }
+    } else {
+      nextAction = { code: 'in_progress', message: readiness.nextStep ?? 'Ansökan behandlas.' }
+    }
+
+    responsePayload.next_action = nextAction
+    responsePayload.nextAction = nextAction
+    if (manualInformationRequest) {
+      responsePayload.manual_information_request = manualInformationRequest
+      responsePayload.manualInformationRequest = manualInformationRequest
+    }
+    await supabaseService
+      .from('website_customer_applications')
+      .update({ response_payload: { ...responsePayload }, updated_at: new Date().toISOString() })
+      .eq('id', application.id)
+      .eq('company_id', input.client.company_id)
+      .then(() => undefined, () => undefined)
 
     await stage('application_workflow_transition', () => transitionCustomerApplicationWorkflow({
       companyId: input.client.company_id,
