@@ -26,6 +26,7 @@ import {
   tenantBusinessActionStatusLabel,
 } from '@/lib/customer-operations/customerBusinessActions'
 import { customerStatusToneClass } from '@/lib/customer-operations/customerActionRegistry'
+import type { ManualRequestSummary } from '@/lib/customer-operations/manualRequestSummary'
 
 export type Z01RepairEvent = {
   id: string
@@ -49,6 +50,22 @@ type Props = {
   isPlatformAdmin?: boolean
   z01RepairEvents?: Z01RepairEvent[]
   dispatchState?: EdielDispatchStateResult | null
+  manualRequests?: ManualRequestSummary[]
+}
+
+function manualRequestDate(value: string | null | undefined): string {
+  if (!value) return '—'
+  try {
+    return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium' }).format(new Date(value))
+  } catch {
+    return '—'
+  }
+}
+
+function poaStatusLabel(status: ManualRequestSummary['poaStatus']): string {
+  if (status === 'finns') return 'Fullmakt finns'
+  if (status === 'utgången') return 'Fullmakt utgången'
+  return 'Fullmakt saknas'
 }
 
 function pointLabel(point: MeteringPointRow | null): string {
@@ -123,6 +140,7 @@ export default function CustomerBusinessActionsCard({
   isPlatformAdmin = false,
   z01RepairEvents = [],
   dispatchState = null,
+  manualRequests = [],
 }: Props) {
   const snapshot =
     suppliedSnapshot ??
@@ -199,6 +217,36 @@ export default function CustomerBusinessActionsCard({
             </article>
           ))}
         </div>
+
+        {manualRequests.length > 0 ? (
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
+              Begäran till nätägare
+            </p>
+            <div className="mt-3 space-y-3">
+              {manualRequests.map((request) => (
+                <article
+                  key={request.id}
+                  className="rounded-2xl border border-slate-200 bg-white p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-slate-950">
+                      {request.statusLabel}
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {request.channelLabel}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+                    <span>{poaStatusLabel(request.poaStatus)}</span>
+                    {request.sentAt ? <span>Skickad: {manualRequestDate(request.sentAt)}</span> : null}
+                    {request.caseReference ? <span>Ärendenummer: {request.caseReference}</span> : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {primaryAction ? (
           <div className={`mt-6 rounded-3xl border p-5 ${primaryActionTone(primaryAction.status)}`}>

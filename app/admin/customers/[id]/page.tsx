@@ -71,6 +71,7 @@ import {
 } from "@/lib/cis/db";
 import { listCustomerInfoRequestsByCustomerId, listZ01RepairEventsByCustomerId } from "@/lib/onboarding/infoRequests";
 import { resolveEdielDispatchState } from "@/lib/ediel/intent/dispatchState";
+import { listManualGridOwnerRequestSummaries } from "@/lib/customer-operations/manualRequestSummary";
 import {
   listCustomerAuthorizationDocumentsByCustomerId,
   listCustomerBlockersByCustomerId,
@@ -2302,6 +2303,16 @@ export default async function CustomerAdminDetailPage({
       }).catch(() => null)
     : null;
 
+  // Tenant-safe manual grid-owner request summaries (from
+  // grid_owner_information_requests) so the customer card reflects the manual
+  // e-mail pipeline status, not only customer_info_requests.
+  const manualRequestSummaries = customerCompanyId
+    ? await listManualGridOwnerRequestSummaries({
+        companyId: customerCompanyId,
+        customerId: id,
+      }).catch(() => [])
+    : [];
+
   const hasSwitchData = sites.some((site) => {
     const siteMeteringPoints = meteringPoints.filter(
       (point) => point.site_id === site.id,
@@ -2533,6 +2544,7 @@ export default async function CustomerAdminDetailPage({
             isPlatformAdmin={isPlatformAdmin}
             z01RepairEvents={z01RepairEvents}
             dispatchState={customerDispatchState}
+            manualRequests={manualRequestSummaries}
           />
 
         </SectionAnchor>
