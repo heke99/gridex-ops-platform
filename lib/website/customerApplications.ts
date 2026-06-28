@@ -396,6 +396,11 @@ async function ensureWebsitePowerOfAttorney(input: {
   requestAudit?: RequestAuditMetadata
   rawPayload: unknown
   structuredPoa?: ReturnType<typeof normalizeStructuredPoa>
+  // Signer fallbacks resolved from the customer record so a POA submitted with
+  // only legacy consent still captures who signed it from the canonical
+  // identity columns. Required for the POA to become externally sendable.
+  signerNameFallback?: string | null
+  signerIdentityFallback?: string | null
 }) {
   if (!consentAccepted(input.consents, ['power_of_attorney', 'poa_accepted', 'power_of_attorney_accepted'])) return null
   // Never trust frontend legal text: prefer the explicitly referenced active
@@ -426,6 +431,11 @@ async function ensureWebsitePowerOfAttorney(input: {
   const scopes = poa && poa.scope.length > 0 ? poa.scope : ['supplier_switch', 'facility_information_lookup']
   const acceptedAt = poa?.acceptedAt ?? now
   const method = poa?.method ?? 'website_acceptance'
+  // Prefer the structured signer fields; otherwise fall back to the customer's
+  // canonical identity/name so a POA is not silently created without a signer.
+  const signerName = poa?.signerName ?? clean(input.signerNameFallback) ?? null
+  const signerIdentityNumber =
+    poa?.signerIdentityNumber ?? clean(input.signerIdentityFallback) ?? null
 
   const snapshot = {
     legal_text: {
@@ -448,8 +458,8 @@ async function ensureWebsitePowerOfAttorney(input: {
     accepted_at: acceptedAt,
     method,
     scopes,
-    signer_name: poa?.signerName ?? null,
-    signer_identity_number: poa?.signerIdentityNumber ?? null,
+    signer_name: signerName,
+    signer_identity_number: signerIdentityNumber,
     ip_address: poa?.ipAddress ?? input.requestAudit?.ipAddress ?? null,
     user_agent: poa?.userAgent ?? input.requestAudit?.userAgent ?? null,
     legal_text_version_id: legal.id,
@@ -471,8 +481,8 @@ async function ensureWebsitePowerOfAttorney(input: {
     valid_from: now.slice(0, 10),
     legal_text_version_id: legal.id,
     fullmakt_snapshot: snapshot,
-    signer_name: poa?.signerName ?? null,
-    signer_identity_number: poa?.signerIdentityNumber ?? null,
+    signer_name: signerName,
+    signer_identity_number: signerIdentityNumber,
     method,
     evidence_payload: evidencePayload,
     source: 'website_api',
@@ -541,18 +551,32 @@ async function ensureWebsitePowerOfAttorney(input: {
       evidencePayload,
     })
     if (documentId) {
+      // The website snapshot is an internal JSON record (application/json). It is
+      // never the external PDF attachment. We link it as document_id so the POA
+      // counts as "has snapshot", but we track it explicitly as the internal
+      // snapshot document so downstream code never emails JSON to a grid owner.
       await supabaseService
         .from('powers_of_attorney')
-        .update({ document_id: documentId, updated_at: new Date().toISOString() })
+        .update({
+          document_id: documentId,
+          metadata: {
+            ...row.metadata,
+            internal_snapshot_document_id: documentId,
+          },
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', powerOfAttorneyId)
         .then(() => undefined, () => undefined)
     }
 
-    // Audit trail: created + accepted (+ pdf/document generated).
+    // Audit trail: created + accepted (+ internal JSON snapshot created). The
+    // JSON snapshot is NOT a generated PDF, so it is recorded as
+    // `snapshot_created`. A real `pdf_generated` event is only emitted when an
+    // actual PDF is rendered for external grid-owner communication.
     await supabaseService.from('power_of_attorney_events').insert([
       { company_id: input.companyId, power_of_attorney_id: powerOfAttorneyId, event_type: 'created', payload: { application_id: input.applicationId, source: 'website_api' } },
       { company_id: input.companyId, power_of_attorney_id: powerOfAttorneyId, event_type: 'accepted', payload: evidencePayload },
-      ...(documentId ? [{ company_id: input.companyId, power_of_attorney_id: powerOfAttorneyId, event_type: 'pdf_generated' as const, payload: { document_id: documentId } }] : []),
+      ...(documentId ? [{ company_id: input.companyId, power_of_attorney_id: powerOfAttorneyId, event_type: 'snapshot_created' as const, payload: { document_id: documentId, mime_type: 'application/json', internal_snapshot: true } }] : []),
     ]).then(() => undefined, () => undefined)
   }
 
@@ -587,6 +611,9 @@ async function createPowerOfAttorneyDocumentSnapshot(input: {
     source: 'website_customer_applications',
     source_system: 'ops_powers_of_attorney',
     raw_payload: { snapshot: input.snapshot, evidence: input.evidencePayload },
+    // Mark explicitly as the internal JSON snapshot. External grid-owner email
+    // must attach a PDF (rendered or uploaded), never this JSON record.
+    metadata: { document_kind: 'json_snapshot', internal_snapshot: true, external_pdf: false },
   }
   const { data, error } = await supabaseService
     .from('customer_documents')
@@ -1064,8 +1091,26 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     last_name: raw.last_name ?? raw.lastName ?? rawCustomer.last_name ?? rawCustomer.lastName,
     full_name: raw.name ?? raw.full_name ?? raw.fullName ?? rawCustomer.full_name ?? rawCustomer.fullName ?? rawCustomer.name,
     company_name: raw.company_name ?? raw.companyName ?? rawCustomer.company_name ?? rawCustomer.companyName,
-    personal_number: raw.personal_number ?? raw.personalNumber ?? rawCustomer.personal_number ?? rawCustomer.personalNumber,
-    org_number: raw.org_number ?? raw.orgNumber ?? rawCustomer.org_number ?? rawCustomer.orgNumber,
+    // Private identity: accept every documented alias and collapse to the
+    // canonical personal_number column used by the platform.
+    personal_number:
+      raw.personal_number ?? raw.personalNumber ??
+      raw.personal_identity_number ?? raw.personalIdentityNumber ??
+      raw.identity_number ?? raw.identityNumber ?? raw.personnummer ??
+      rawCustomer.personal_number ?? rawCustomer.personalNumber ??
+      rawCustomer.personal_identity_number ?? rawCustomer.personalIdentityNumber ??
+      rawCustomer.identity_number ?? rawCustomer.identityNumber ?? rawCustomer.personnummer,
+    // Business identity: accept every documented alias and collapse to the
+    // canonical org_number column used by the platform.
+    org_number:
+      raw.org_number ?? raw.orgNumber ??
+      raw.organization_number ?? raw.organizationNumber ??
+      raw.organisation_number ?? raw.organisationNumber ??
+      raw.organisationsnummer ?? raw.orgnr ??
+      rawCustomer.org_number ?? rawCustomer.orgNumber ??
+      rawCustomer.organization_number ?? rawCustomer.organizationNumber ??
+      rawCustomer.organisation_number ?? rawCustomer.organisationNumber ??
+      rawCustomer.organisationsnummer ?? rawCustomer.orgnr,
     email: raw.email ?? rawCustomer.email,
     phone: raw.phone ?? rawCustomer.phone,
     invoice_email: raw.invoice_email ?? raw.invoiceEmail ?? rawCustomer.invoice_email ?? rawCustomer.invoiceEmail,
@@ -1454,6 +1499,12 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
       phone: clean(customer.phone),
       full_name: name ?? existing.full_name,
       company_name: clean(customer.company_name) ?? existing.company_name,
+      // Store identity in the canonical columns when the application provides it
+      // (under any documented alias). Only set when present so a later
+      // application never wipes an identity captured earlier. This is what makes
+      // POA externally sendable when identity was missing on first contact.
+      ...(digits(customer.personal_number) ? { personal_number: digits(customer.personal_number) } : {}),
+      ...(digits(customer.org_number) ? { org_number: digits(customer.org_number) } : {}),
       invoice_email: normalizedEmail(customer.invoice_email) ?? email ?? undefined,
       billing_street: clean(customer.billing_street) ?? undefined,
       billing_postal_code: clean(customer.billing_postal_code) ?? undefined,
@@ -2819,6 +2870,24 @@ export async function processWebsiteCustomerApplication(input: {
       requestAudit: input.requestAudit,
     }))
 
+    // Collected here and merged into the final response warnings later, because
+    // the main `warnings` array is assembled further down.
+    const poaWarnings: string[] = []
+    // Signer fallbacks from the canonical customer identity/name. These make a
+    // POA externally sendable even when the website only sent legacy consent.
+    const signerNameFallback = fullName(body.customer)
+    const signerIdentityFallback =
+      digits(body.customer.personal_number) ?? digits(body.customer.org_number) ?? null
+    const effectiveSignerName = structuredPoa?.signerName ?? signerNameFallback
+    const effectiveSignerIdentity = structuredPoa?.signerIdentityNumber ?? signerIdentityFallback
+    const effectiveSignerMethod = structuredPoa?.method ?? 'website_acceptance'
+    // A POA is only sendable to a grid owner when it carries a signer name,
+    // signer identity and a method. Legacy consent-only POAs without identity
+    // are legally accepted but NOT externally usable.
+    const poaExternallySendable = Boolean(
+      effectiveSignerName && effectiveSignerIdentity && effectiveSignerMethod,
+    )
+
     const powerOfAttorneyId = await stage('legal_acceptance', () => ensureWebsitePowerOfAttorney({
       companyId: input.client.company_id,
       customerId: resolvedCustomerResult.customer.id,
@@ -2832,6 +2901,8 @@ export async function processWebsiteCustomerApplication(input: {
       requestAudit: input.requestAudit,
       rawPayload: input.rawBody,
       structuredPoa,
+      signerNameFallback,
+      signerIdentityFallback,
     }))
 
     if (powerOfAttorneyId) {
@@ -2839,7 +2910,16 @@ export async function processWebsiteCustomerApplication(input: {
       responsePayload.power_of_attorney = {
         status: 'signed',
         scope: structuredPoa && structuredPoa.scope.length > 0 ? structuredPoa.scope : ['supplier_switch', 'facility_information_lookup'],
-        method: structuredPoa?.method ?? 'website_acceptance',
+        method: effectiveSignerMethod,
+        externally_sendable: poaExternallySendable,
+        // When the POA cannot be sent externally, fullmakt must be completed
+        // (signer identity/name) before automated grid-owner communication.
+        requires_completion: !poaExternallySendable,
+      }
+      if (!poaExternallySendable) {
+        poaWarnings.push(
+          'Fullmakten är registrerad men saknar signeringsuppgifter (namn/identitet) och kan inte skickas automatiskt till nätägaren. Komplettera fullmakten med strukturerad powerOfAttorney (signerName, signerIdentityNumber, method).',
+        )
       }
       const applicationUpdateResult = await supabaseService
         .from('website_customer_applications')
@@ -2977,7 +3057,7 @@ export async function processWebsiteCustomerApplication(input: {
       },
     }))
 
-    const warnings: string[] = [...readiness.warnings, ...(gridOwnerRequest?.warnings ?? [])]
+    const warnings: string[] = [...readiness.warnings, ...(gridOwnerRequest?.warnings ?? []), ...poaWarnings]
     let communicationResults: unknown[] = []
     let triggeredEmailEvents: string[] = []
 
