@@ -139,5 +139,25 @@ for (const token of [
   assert(profileActions.includes(token), `delete graph source covers ${token}`)
 }
 
+for (const token of [
+  'runBestEffortCustomerArchiveStep',
+  'getBestEffortArchiveIds',
+  'customer_sites.close',
+  'metering_points.close',
+  'customer_contracts.cancel',
+  'supplier_switch_requests.fail',
+  'audit.customer.archived',
+]) {
+  assert(profileActions.includes(token), `archive action is resilient around ${token}`)
+}
+
+const archiveFunctionStart = profileActions.indexOf('async function archiveCustomerImpl')
+const archiveFunctionEnd = profileActions.indexOf('const PROTECTED_DELETE_MESSAGE', archiveFunctionStart)
+const archiveFunction = profileActions.slice(archiveFunctionStart, archiveFunctionEnd)
+assert(archiveFunction.includes('status: "archived"'), 'archive action updates the customer row to archived')
+assert(archiveFunction.indexOf('if (updateError) throw updateError') < archiveFunction.indexOf('runBestEffortCustomerArchiveStep("customer_sites.close"'), 'customer archive write stays mandatory before best-effort cascade')
+assert(!archiveFunction.includes('if (sitesError) throw sitesError'), 'archive action no longer fails the whole action on customer_sites cascade error')
+assert(!archiveFunction.includes('if (pointsError) throw pointsError'), 'archive action no longer fails the whole action on metering_points cascade error')
+
 if (process.exitCode) process.exit(process.exitCode)
 console.log('Customer card tenant UX regression passed')

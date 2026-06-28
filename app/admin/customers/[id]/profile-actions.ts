@@ -99,6 +99,47 @@ function getNullableString(formData: FormData, key: string): string | null {
   return value || null;
 }
 
+function isDatabaseShapeError(error: unknown): boolean {
+  const maybe = error as { code?: string; message?: string } | null;
+  return Boolean(
+    maybe &&
+      (maybe.code === "42P01" ||
+        maybe.code === "42703" ||
+        maybe.code === "PGRST205" ||
+        /does not exist|schema cache|relation .* does not exist|column .* does not exist/i.test(
+          maybe.message ?? "",
+        )),
+  );
+}
+
+async function runBestEffortCustomerArchiveStep(
+  step: string,
+  fn: () => Promise<void>,
+): Promise<void> {
+  try {
+    await fn();
+  } catch (error) {
+    if (!isDatabaseShapeError(error)) {
+      console.warn(`[customer-archive] ${step} failed`, error);
+      return;
+    }
+
+    console.warn(`[customer-archive] ${step} skipped because schema differs`, error);
+  }
+}
+
+async function getBestEffortArchiveIds(
+  step: string,
+  fn: () => Promise<string[]>,
+): Promise<string[]> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`[customer-archive] ${step} lookup failed`, error);
+    return [];
+  }
+}
+
 function normalizeCustomerType(
   value: string | null | undefined,
 ): "private" | "business" | "association" {
@@ -1354,6 +1395,11 @@ async function archiveCustomerImpl(
   const nowIso = new Date().toISOString();
   const archiveReason = reason ?? "Arkiverad via kundkort.";
 
+  // The customer row itself is the only mandatory write. The linked rows below
+  // are best-effort lifecycle cleanup because older/live databases can differ in
+  // optional lifecycle columns, status checks or audit/usage tables. A warning on
+  // a side table must not make the UI claim that customer archiving failed after
+  // the customer has already been archived.
   const { data: customerAfter, error: updateError } = await supabaseService
     .from("customers")
     .update({
@@ -1362,6 +1408,7 @@ async function archiveCustomerImpl(
       archived_by: actorUserId,
       archive_reason: archiveReason,
       updated_at: nowIso,
+      updated_by: actorUserId,
     })
     .eq("id", customerId)
     .eq("company_id", companyId)
@@ -1370,122 +1417,156 @@ async function archiveCustomerImpl(
 
   if (updateError) throw updateError;
 
-  const { error: sitesError } = await supabaseService
-    .from("customer_sites")
-    .update({
-      status: "closed",
-      closed_at: nowIso,
-      closed_reason: archiveReason,
-      updated_by: actorUserId,
-    })
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId);
-
-  if (sitesError) throw sitesError;
-
-  const { data: siteRows, error: siteLookupError } = await supabaseService
-    .from("customer_sites")
-    .select("id")
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId);
-
-  if (siteLookupError) throw siteLookupError;
-  const siteIds = (siteRows ?? []).map((row: { id: string }) => row.id).filter(Boolean);
-
-  if (siteIds.length > 0) {
-    const { error: pointsError } = await supabaseService
-      .from("metering_points")
+  await runBestEffortCustomerArchiveStep("customer_sites.close", async () => {
+    const { error } = await supabaseService
+      .from("customer_sites")
       .update({
         status: "closed",
         closed_at: nowIso,
         closed_reason: archiveReason,
+        updated_at: nowIso,
         updated_by: actorUserId,
       })
       .eq("company_id", companyId)
-      .in("site_id", siteIds);
+      .eq("customer_id", customerId);
 
-    if (pointsError) throw pointsError;
-  }
+    if (error) throw error;
+  });
 
-  const { data: contractsToClose, error: contractsLookupError } = await supabaseService
-    .from("customer_contracts")
-    .select("id")
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId)
-    .in("status", ["draft", "pending_signature", "signed", "active"]);
-  if (contractsLookupError) throw contractsLookupError;
-  const contractIds = (contractsToClose ?? []).map((row: { id: string }) => row.id).filter(Boolean);
-  if (contractIds.length > 0) {
-    const { error: contractsUpdateError } = await supabaseService
-      .from("customer_contracts")
-      .update({
-        status: "cancelled",
-        ends_at: nowIso,
-        termination_reason: "other",
-        rejected_reason: archiveReason,
-        updated_by: actorUserId,
-      })
+  const siteIds = await getBestEffortArchiveIds("customer_sites", async () => {
+    const { data, error } = await supabaseService
+      .from("customer_sites")
+      .select("id")
       .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .in("id", contractIds);
-    if (contractsUpdateError) throw contractsUpdateError;
-  }
+      .eq("customer_id", customerId);
 
-  const { data: switchRows, error: switchLookupError } = await supabaseService
-    .from("supplier_switch_requests")
-    .select("id")
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId)
-    .in("status", ["draft", "queued", "submitted", "accepted", "cancellation_requested", "cancellation_sent", "manual_followup_required"]);
-  if (switchLookupError) throw switchLookupError;
-  const switchIds = (switchRows ?? []).map((row: { id: string }) => row.id).filter(Boolean);
-  if (switchIds.length > 0) {
-    const { error: switchUpdateError } = await supabaseService
-      .from("supplier_switch_requests")
-      .update({
-        status: "failed",
-        failed_at: nowIso,
-        failure_reason: archiveReason,
-        updated_by: actorUserId,
-      })
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .in("id", switchIds);
-    if (switchUpdateError) throw switchUpdateError;
-  }
+    if (error) throw error;
+    return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+  });
 
-  if (switchIds.length > 0) {
-    await logUsageEvent({
-      companyId,
-      actorUserId,
-      customerId,
-      entityType: "supplier_switch_request",
-      entityId: customerId,
-      eventKey: "switch.cancelled",
-      actionLabel: "Leverantörsbyte stoppat vid arkivering",
-      source: "customer_archive",
-      billable: true,
-      billableQuantity: switchIds.length,
-      billingUnit: "switch_request",
-      metadata: { reason: archiveReason, switchIds },
+  if (siteIds.length > 0) {
+    await runBestEffortCustomerArchiveStep("metering_points.close", async () => {
+      const { error } = await supabaseService
+        .from("metering_points")
+        .update({
+          status: "closed",
+          closed_at: nowIso,
+          closed_reason: archiveReason,
+          updated_at: nowIso,
+          updated_by: actorUserId,
+        })
+        .eq("company_id", companyId)
+        .in("site_id", siteIds);
+
+      if (error) throw error;
     });
   }
 
-  await insertAuditLog({
-    actorUserId,
-    entityType: "customer",
-    entityId: customerId,
-    action: "customer.archived",
-    label: "Arkiverade kund",
-    companyId,
-    oldValues: customerBefore,
-    newValues: customerAfter,
-    metadata: {
-      reason: archiveReason,
-      retainedData: true,
-      hardDelete: false,
-      cascadedToSitesAndMeteringPoints: true,
-    },
+  const contractIds = await getBestEffortArchiveIds("customer_contracts", async () => {
+    const { data, error } = await supabaseService
+      .from("customer_contracts")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("customer_id", customerId)
+      .in("status", ["draft", "pending_signature", "signed", "active"]);
+
+    if (error) throw error;
+    return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+  });
+
+  if (contractIds.length > 0) {
+    await runBestEffortCustomerArchiveStep("customer_contracts.cancel", async () => {
+      const { error } = await supabaseService
+        .from("customer_contracts")
+        .update({
+          status: "cancelled",
+          ends_at: nowIso,
+          termination_reason: "other",
+          rejected_reason: archiveReason,
+          updated_at: nowIso,
+          updated_by: actorUserId,
+        })
+        .eq("company_id", companyId)
+        .eq("customer_id", customerId)
+        .in("id", contractIds);
+
+      if (error) throw error;
+    });
+  }
+
+  const switchIds = await getBestEffortArchiveIds("supplier_switch_requests", async () => {
+    const { data, error } = await supabaseService
+      .from("supplier_switch_requests")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("customer_id", customerId)
+      .in("status", [
+        "draft",
+        "queued",
+        "submitted",
+        "accepted",
+        "cancellation_requested",
+        "cancellation_sent",
+        "manual_followup_required",
+      ]);
+
+    if (error) throw error;
+    return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+  });
+
+  if (switchIds.length > 0) {
+    await runBestEffortCustomerArchiveStep("supplier_switch_requests.fail", async () => {
+      const { error } = await supabaseService
+        .from("supplier_switch_requests")
+        .update({
+          status: "failed",
+          failed_at: nowIso,
+          failure_reason: archiveReason,
+          updated_at: nowIso,
+          updated_by: actorUserId,
+        })
+        .eq("company_id", companyId)
+        .eq("customer_id", customerId)
+        .in("id", switchIds);
+
+      if (error) throw error;
+    });
+
+    await runBestEffortCustomerArchiveStep("usage.switch.cancelled", async () => {
+      await logUsageEvent({
+        companyId,
+        actorUserId,
+        customerId,
+        entityType: "supplier_switch_request",
+        entityId: customerId,
+        eventKey: "switch.cancelled",
+        actionLabel: "Leverantörsbyte stoppat vid arkivering",
+        source: "customer_archive",
+        billable: true,
+        billableQuantity: switchIds.length,
+        billingUnit: "switch_request",
+        metadata: { reason: archiveReason, switchIds },
+      });
+    });
+  }
+
+  await runBestEffortCustomerArchiveStep("audit.customer.archived", async () => {
+    await insertAuditLog({
+      actorUserId,
+      entityType: "customer",
+      entityId: customerId,
+      action: "customer.archived",
+      label: "Arkiverade kund",
+      companyId,
+      oldValues: customerBefore,
+      newValues: customerAfter,
+      metadata: {
+        reason: archiveReason,
+        retainedData: true,
+        hardDelete: false,
+        cascadedToSitesAndMeteringPoints: true,
+      },
+    });
   });
 
   revalidatePath(`/admin/customers/${customerId}`);
