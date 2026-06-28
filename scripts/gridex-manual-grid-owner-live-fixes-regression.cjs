@@ -31,8 +31,32 @@ function loadModule(relative, mocks = {}) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
     fileName: filename,
   }).outputText
-  const localRequire = (name) =>
-    Object.prototype.hasOwnProperty.call(mocks, name) ? mocks[name] : require(name)
+  const localRequire = (name) => {
+    if (Object.prototype.hasOwnProperty.call(mocks, name)) return mocks[name]
+    try {
+      return require(name)
+    } catch (error) {
+      // The uploaded zip has no node_modules. The webhook module only needs the
+      // Resend import as a type/constructor placeholder in this fixture-level
+      // regression, so keep the behavior test runnable without installing deps.
+      if (name === 'resend') {
+        return {
+          Resend: class ResendMock {
+            constructor() {
+              this.webhooks = {
+                verify({ payload, headers, webhookSecret }) {
+                  if (!webhookSecret) throw new Error('missing secret')
+                  if (!headers?.signature || String(headers.signature).includes('AAAAAAAA')) throw new Error('invalid signature')
+                  return JSON.parse(payload)
+                },
+              }
+            }
+          },
+        }
+      }
+      throw error
+    }
+  }
   const moduleObj = { exports: {} }
   const sandbox = {
     exports: moduleObj.exports,
@@ -392,11 +416,11 @@ async function main() {
   const poaMigration = read('supabase/migrations/20260628120000_gridex_poa_event_and_outbox_status_backfill.sql')
   ok(poaMigration.includes("'snapshot_created'"), 'migration allows snapshot_created in power_of_attorney_events')
 
-  // Task D: identity aliases normalized to canonical columns + signer fallback.
+  // Task D: identity aliases normalized to canonical columns; website legacy consent must not inherit signer fallback.
   for (const alias of ['personal_identity_number', 'identity_number', 'personnummer', 'organisationsnummer', 'orgnr']) {
     ok(website.includes(alias), `website normalizes identity alias ${alias}`)
   }
-  ok(website.includes('signerIdentityFallback') && website.includes('signerNameFallback'), 'POA uses customer identity/name as signer fallback')
+  ok(!website.includes('signerIdentityFallback') && !website.includes('signerNameFallback'), 'POA does not use customer identity/name as signer fallback for website legacy consent')
   ok(website.includes('externally_sendable') && website.includes('requires_completion'), 'response exposes POA external-sendability flags (weak POA)')
 
   // Task H: a sent manual_email_outbox can never leave the request not_started.

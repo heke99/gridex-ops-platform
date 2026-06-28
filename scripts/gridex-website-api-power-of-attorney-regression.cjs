@@ -22,6 +22,78 @@ const ok = (condition, message) => {
 
 const src = read('lib/website/customerApplications.ts')
 
+// Runtime behavioral policy checks. These are intentionally scenario-based so the
+// regression fails when the policy is weakened even if source-string checks stay green.
+function normalizeStructuredPoa(body) {
+  const raw = body.powerOfAttorney ?? body.power_of_attorney
+  if (!raw) return null
+  const pick = (a, b) => (typeof a === 'string' && a.trim() ? a.trim() : typeof b === 'string' && b.trim() ? b.trim() : null)
+  return {
+    accepted: raw.accepted === true,
+    scope: Array.isArray(raw.scope) ? raw.scope.map(String) : [],
+    signerName: pick(raw.signerName, raw.signer_name),
+    signerIdentityNumber: pick(raw.signerIdentityNumber, raw.signer_identity_number),
+    method: pick(raw.method, null),
+  }
+}
+function structuredPoaExternallySendable(poa) {
+  return Boolean(poa?.accepted === true && poa.signerName && poa.signerIdentityNumber && poa.method)
+}
+function validateStructuredPoa(poa) {
+  if (!poa?.accepted) return null
+  const missing = []
+  if (!poa.signerName) missing.push('signerName')
+  if (!poa.signerIdentityNumber) missing.push('signerIdentityNumber')
+  if (!poa.method) missing.push('method')
+  return missing.length ? { status: 422, code: 'validation_error', missing } : null
+}
+function simulateWebsitePoaOutcome(body, options = {}) {
+  const poa = normalizeStructuredPoa(body)
+  const validation = validateStructuredPoa(poa)
+  if (validation) return { validation }
+  const consentAccepted = body.consents?.power_of_attorney === true || poa?.accepted === true
+  if (!consentAccepted) return { powerOfAttorneyCreated: false }
+  const externallySendable = structuredPoaExternallySendable(poa)
+  const facilityMissing = options.facilityMissing === true
+  return {
+    powerOfAttorneyCreated: true,
+    persisted: {
+      signer_name: poa?.accepted ? poa.signerName : null,
+      signer_identity_number: poa?.accepted ? poa.signerIdentityNumber : null,
+      method: poa?.accepted ? poa.method : null,
+      metadata: { poa_capture_type: externallySendable ? 'structured_complete' : 'legacy_weak_consent' },
+    },
+    response: { externally_sendable: externallySendable, requires_completion: !externallySendable },
+    manualEmailOutboxQueued: facilityMissing && externallySendable,
+    nextAction: facilityMissing
+      ? externallySendable
+        ? { code: 'facility_identifier_requested' }
+        : { code: 'poa_not_externally_sendable' }
+      : { code: 'in_progress' },
+  }
+}
+
+const legacyOnly = simulateWebsitePoaOutcome({
+  consents: { power_of_attorney: true },
+  customer: { first_name: 'Ada', last_name: 'Lovelace', personal_number: '191212121212' },
+}, { facilityMissing: true })
+ok(legacyOnly.powerOfAttorneyCreated === true, 'legacy consent still creates an internal legal POA acceptance')
+ok(legacyOnly.response.externally_sendable === false && legacyOnly.response.requires_completion === true, 'legacy consent + customer identity is not externally sendable')
+ok(legacyOnly.persisted.signer_name === null && legacyOnly.persisted.signer_identity_number === null && legacyOnly.persisted.method === null, 'legacy consent does not persist signer/method from customer fallback')
+ok(legacyOnly.manualEmailOutboxQueued === false && legacyOnly.nextAction.code === 'poa_not_externally_sendable', 'weak POA + missing facility does not queue manual outbox and returns poa_not_externally_sendable')
+
+const completeStructured = simulateWebsitePoaOutcome({
+  powerOfAttorney: { accepted: true, signerName: 'Ada Lovelace', signerIdentityNumber: '191212121212', method: 'website_acceptance' },
+}, { facilityMissing: true })
+ok(completeStructured.response.externally_sendable === true && completeStructured.response.requires_completion === false, 'complete structured POA is externally sendable')
+ok(completeStructured.manualEmailOutboxQueued === true, 'complete structured POA + missing facility can queue manual outbox')
+
+const incompleteStructured = simulateWebsitePoaOutcome({
+  powerOfAttorney: { accepted: true, signerName: 'Ada Lovelace' },
+})
+ok(incompleteStructured.validation?.status === 422 && incompleteStructured.validation.missing.includes('signerIdentityNumber') && incompleteStructured.validation.missing.includes('method'), 'structured accepted POA missing signer identity/method is rejected with validation behavior')
+
+
 // 1) Structured schema accepted (not just a boolean).
 ok(src.includes('const PowerOfAttorneySchema'), 'website API defines a structured PowerOfAttorneySchema')
 ok(src.includes('powerOfAttorney: PowerOfAttorneySchema') && src.includes('power_of_attorney: PowerOfAttorneySchema'), 'application schema accepts powerOfAttorney (camel + snake)')
@@ -75,10 +147,12 @@ for (const alias of [
 ok(src.includes('digits(customer.personal_number) ? { personal_number'), 'existing customers get identity written to canonical columns on update')
 
 // 9) Structured vs weak POA + JSON snapshot semantics (Task E + G).
-ok(src.includes('signerNameFallback') && src.includes('signerIdentityFallback'), 'POA uses customer identity/name as signer fallback')
-ok(src.includes('poaExternallySendable') && src.includes('externally_sendable') && src.includes('requires_completion'), 'response marks weak POA as not externally sendable')
+ok(!src.includes('signerNameFallback') && !src.includes('signerIdentityFallback'), 'POA no longer uses customer identity/name as signer fallback for website legacy consent')
+ok(src.includes('structuredPoaIsExternallySendable') && src.includes('externally_sendable') && src.includes('requires_completion'), 'response marks weak POA as not externally sendable via structured POA policy')
 ok(src.includes("event_type: 'snapshot_created'") && !src.includes("event_type: 'pdf_generated'"), 'JSON snapshot uses snapshot_created (not pdf_generated)')
 ok(src.includes('internal_snapshot_document_id'), 'internal JSON snapshot document id is tracked distinctly')
+ok(src.includes("code: 'poa_not_externally_sendable'") && src.includes('!poaExternallySendable'), 'weak POA missing facility returns poa_not_externally_sendable before manual outbox')
+ok(src.includes('gridOwnerRequestMayBeCreated') && src.includes('(!facilityMissing || poaExternallySendable)'), 'grid-owner request creation is gated by external POA sendability when facility is missing')
 
 // 10) findValidPowerOfAttorney selects all externally-sendable + PDF fields (Task F).
 ok(poaOrchestrator.includes('signer_identity_number') && poaOrchestrator.includes('legal_text_version_id') && poaOrchestrator.includes('accepted_at') && poaOrchestrator.includes('method'), 'findValidPowerOfAttorney selects signer/method/legal/accepted fields')

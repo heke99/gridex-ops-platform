@@ -194,8 +194,7 @@ const ApplicationSchema = z.object({
 
 type StructuredPowerOfAttorney = z.infer<typeof PowerOfAttorneySchema>
 
-// Normalizes the structured powerOfAttorney object (camel or snake case).
-function normalizeStructuredPoa(body: ApplicationInput): {
+type NormalizedStructuredPoa = {
   accepted: boolean
   scope: string[]
   signerName: string | null
@@ -205,7 +204,10 @@ function normalizeStructuredPoa(body: ApplicationInput): {
   textVersionId: string | null
   ipAddress: string | null
   userAgent: string | null
-} | null {
+}
+
+// Normalizes the structured powerOfAttorney object (camel or snake case).
+function normalizeStructuredPoa(body: ApplicationInput): NormalizedStructuredPoa | null {
   const raw = (body.powerOfAttorney ?? body.power_of_attorney) as StructuredPowerOfAttorney | undefined
   if (!raw) return null
   const pick = (a: unknown, b: unknown) => (typeof a === 'string' && a.trim() ? a.trim() : typeof b === 'string' && b.trim() ? b.trim() : null)
@@ -220,6 +222,27 @@ function normalizeStructuredPoa(body: ApplicationInput): {
     ipAddress: pick(raw.ipAddress, raw.ip_address),
     userAgent: pick(raw.userAgent, raw.user_agent),
   }
+}
+
+function structuredPoaIsExternallySendable(poa: NormalizedStructuredPoa | null): boolean {
+  return Boolean(poa?.accepted === true && poa.signerName && poa.signerIdentityNumber && poa.method)
+}
+
+function validateStructuredPoaForExternalSendability(poa: NormalizedStructuredPoa | null): WebsiteApplicationError | null {
+  if (!poa?.accepted) return null
+
+  const missing: Array<{ field: string; label: string }> = []
+  if (!poa.signerName) missing.push({ field: 'powerOfAttorney.signerName', label: 'signerName' })
+  if (!poa.signerIdentityNumber) missing.push({ field: 'powerOfAttorney.signerIdentityNumber', label: 'signerIdentityNumber' })
+  if (!poa.method) missing.push({ field: 'powerOfAttorney.method', label: 'method' })
+
+  if (missing.length === 0) return null
+
+  return validationError(
+    `Strukturerad fullmakt är markerad accepted=true men saknar ${missing.map((item) => item.label).join(', ')}. Skicka signerName, signerIdentityNumber och method eller skicka bara legacy consent som intern, icke sändbar accept.`,
+    missing[0]?.field ?? 'powerOfAttorney',
+    'Automatisk nätägarkommunikation kräver komplett strukturerad powerOfAttorney. Legacy consents.power_of_attorney=true blir aldrig externt sändbar.',
+  )
 }
 
 type ApplicationInput = z.infer<typeof ApplicationSchema>
@@ -395,12 +418,7 @@ async function ensureWebsitePowerOfAttorney(input: {
   consents?: Record<string, unknown>
   requestAudit?: RequestAuditMetadata
   rawPayload: unknown
-  structuredPoa?: ReturnType<typeof normalizeStructuredPoa>
-  // Signer fallbacks resolved from the customer record so a POA submitted with
-  // only legacy consent still captures who signed it from the canonical
-  // identity columns. Required for the POA to become externally sendable.
-  signerNameFallback?: string | null
-  signerIdentityFallback?: string | null
+  structuredPoa?: NormalizedStructuredPoa | null
 }) {
   if (!consentAccepted(input.consents, ['power_of_attorney', 'poa_accepted', 'power_of_attorney_accepted'])) return null
   // Never trust frontend legal text: prefer the explicitly referenced active
@@ -410,9 +428,10 @@ async function ensureWebsitePowerOfAttorney(input: {
   if (!legal) return null
 
   const now = new Date().toISOString()
+  const submittedStructuredPoaIsSendable = structuredPoaIsExternallySendable(input.structuredPoa ?? null)
   let existingQuery = supabaseService
     .from('powers_of_attorney')
-    .select('id')
+    .select('id,signer_name,signer_identity_number,method,evidence_payload,metadata')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('scope', 'supplier_switch')
@@ -425,17 +444,37 @@ async function ensureWebsitePowerOfAttorney(input: {
   const existing = await existingQuery.limit(1).maybeSingle()
 
   if (existing.error && !missingSchema(existing.error)) throw existing.error
-  if (existing.data?.id) return String(existing.data.id)
+  if (existing.data?.id) {
+    const existingEvidence = existing.data.evidence_payload as Record<string, unknown> | null | undefined
+    const existingMetadata = existing.data.metadata as Record<string, unknown> | null | undefined
+    const existingIsStructuredComplete =
+      existingEvidence?.capture_type === 'structured_complete' ||
+      existingEvidence?.externally_sendable_at_capture === true ||
+      existingMetadata?.poa_capture_type === 'structured_complete' ||
+      existingMetadata?.externally_sendable === true
+    const existingLooksSendable = Boolean(
+      clean(existing.data.signer_name) &&
+      clean(existing.data.signer_identity_number) &&
+      clean(existing.data.method) &&
+      existingIsStructuredComplete,
+    )
+    // Reuse weak/legacy rows for weak submissions, and reuse complete rows for
+    // complete submissions. If a customer later submits a complete structured
+    // POA after an older weak one, insert a fresh complete row instead of
+    // letting the weak row block external sendability.
+    if (!submittedStructuredPoaIsSendable || existingLooksSendable) return String(existing.data.id)
+  }
 
-  const poa = input.structuredPoa ?? null
+  const poa = input.structuredPoa?.accepted === true ? input.structuredPoa : null
+  const externallySendableAtCapture = structuredPoaIsExternallySendable(poa)
   const scopes = poa && poa.scope.length > 0 ? poa.scope : ['supplier_switch', 'facility_information_lookup']
   const acceptedAt = poa?.acceptedAt ?? now
-  const method = poa?.method ?? 'website_acceptance'
-  // Prefer the structured signer fields; otherwise fall back to the customer's
-  // canonical identity/name so a POA is not silently created without a signer.
-  const signerName = poa?.signerName ?? clean(input.signerNameFallback) ?? null
-  const signerIdentityNumber =
-    poa?.signerIdentityNumber ?? clean(input.signerIdentityFallback) ?? null
+  const method = poa?.method ?? null
+  // Legacy consent-only creates an internal legal acceptance only. It must not
+  // silently inherit signer name, identity number or method from the customer
+  // record, because that would make a weak consent look externally sendable.
+  const signerName = poa?.signerName ?? null
+  const signerIdentityNumber = poa?.signerIdentityNumber ?? null
 
   const snapshot = {
     legal_text: {
@@ -465,6 +504,9 @@ async function ensureWebsitePowerOfAttorney(input: {
     legal_text_version_id: legal.id,
     legal_text_version: legal.version,
     source: 'website_api',
+    externally_sendable_at_capture: externallySendableAtCapture,
+    requires_completion: !externallySendableAtCapture,
+    capture_type: externallySendableAtCapture ? 'structured_complete' : 'legacy_weak_consent',
   }
 
   const row = {
@@ -503,6 +545,9 @@ async function ensureWebsitePowerOfAttorney(input: {
       source: 'website_customer_applications',
       application_id: input.applicationId,
       raw_payload: input.rawPayload,
+      poa_capture_type: externallySendableAtCapture ? 'structured_complete' : 'legacy_weak_consent',
+      externally_sendable: externallySendableAtCapture,
+      requires_completion: !externallySendableAtCapture,
     },
     updated_at: now,
   }
@@ -2556,6 +2601,8 @@ export async function processWebsiteCustomerApplication(input: {
   // A structured powerOfAttorney.accepted=true satisfies the POA legal consent so
   // the existing legal-acceptance gate and POA persistence run unchanged.
   const structuredPoa = normalizeStructuredPoa(body)
+  const structuredPoaValidation = validateStructuredPoaForExternalSendability(structuredPoa)
+  if (structuredPoaValidation) return failureResponse(structuredPoaValidation)
   if (structuredPoa?.accepted) {
     body = { ...body, consents: { ...(body.consents ?? {}), power_of_attorney: true } }
   }
@@ -2873,20 +2920,11 @@ export async function processWebsiteCustomerApplication(input: {
     // Collected here and merged into the final response warnings later, because
     // the main `warnings` array is assembled further down.
     const poaWarnings: string[] = []
-    // Signer fallbacks from the canonical customer identity/name. These make a
-    // POA externally sendable even when the website only sent legacy consent.
-    const signerNameFallback = fullName(body.customer)
-    const signerIdentityFallback =
-      digits(body.customer.personal_number) ?? digits(body.customer.org_number) ?? null
-    const effectiveSignerName = structuredPoa?.signerName ?? signerNameFallback
-    const effectiveSignerIdentity = structuredPoa?.signerIdentityNumber ?? signerIdentityFallback
-    const effectiveSignerMethod = structuredPoa?.method ?? 'website_acceptance'
-    // A POA is only sendable to a grid owner when it carries a signer name,
-    // signer identity and a method. Legacy consent-only POAs without identity
-    // are legally accepted but NOT externally usable.
-    const poaExternallySendable = Boolean(
-      effectiveSignerName && effectiveSignerIdentity && effectiveSignerMethod,
-    )
+    // Only a complete structured powerOfAttorney accepted by the customer is
+    // externally sendable. Legacy consents.power_of_attorney=true remains an
+    // internal legal acceptance and must never inherit customer identity/name.
+    const poaExternallySendable = structuredPoaIsExternallySendable(structuredPoa)
+    const effectiveSignerMethod = structuredPoa?.method ?? null
 
     const powerOfAttorneyId = await stage('legal_acceptance', () => ensureWebsitePowerOfAttorney({
       companyId: input.client.company_id,
@@ -2901,8 +2939,6 @@ export async function processWebsiteCustomerApplication(input: {
       requestAudit: input.requestAudit,
       rawPayload: input.rawBody,
       structuredPoa,
-      signerNameFallback,
-      signerIdentityFallback,
     }))
 
     if (powerOfAttorneyId) {
@@ -2918,7 +2954,7 @@ export async function processWebsiteCustomerApplication(input: {
       }
       if (!poaExternallySendable) {
         poaWarnings.push(
-          'Fullmakten är registrerad men saknar signeringsuppgifter (namn/identitet) och kan inte skickas automatiskt till nätägaren. Komplettera fullmakten med strukturerad powerOfAttorney (signerName, signerIdentityNumber, method).',
+          'Fullmakten är registrerad som juridisk accept men är inte externt sändbar. Automatisk nätägarkommunikation kräver strukturerad powerOfAttorney med signerName, signerIdentityNumber och method.',
         )
       }
       const applicationUpdateResult = await supabaseService
@@ -2954,7 +2990,11 @@ export async function processWebsiteCustomerApplication(input: {
       },
     }))
 
-    const gridOwnerRequest = readiness.canRequestGridOwnerInformation
+    const committedSiteId = site?.id ?? null
+    const facilityMissing = Boolean(committedSiteId) && !site?.facility_id
+    const gridOwnerRequestMayBeCreated = readiness.canRequestGridOwnerInformation && (!facilityMissing || poaExternallySendable)
+
+    const gridOwnerRequest = gridOwnerRequestMayBeCreated
       ? await stage('grid_owner_information_request', () => ensureGridOwnerInformationRequest({
           companyId: input.client.company_id,
           customerId: resolvedCustomerResult.customer.id,
@@ -2967,7 +3007,6 @@ export async function processWebsiteCustomerApplication(input: {
         }))
       : null
 
-    const committedSiteId = site?.id ?? null
     if (committedSiteId && powerOfAttorneyId) {
       await stage('customer_data_automation', () => enqueueCustomerDataRequestAutomation({
         companyId: input.client.company_id,
@@ -3002,12 +3041,16 @@ export async function processWebsiteCustomerApplication(input: {
     // expose only operational status to the website/API caller — never technical
     // Ediel diagnostics. When facility_id is missing and POA exists, the manual
     // e-mail information request is queued (PRODAT Z01 is never rendered here).
-    const facilityMissing = Boolean(committedSiteId) && !site?.facility_id
     let nextAction: { code: string; message: string }
     let manualInformationRequest: Record<string, unknown> | null = null
 
     if (!powerOfAttorneyId && facilityMissing) {
       nextAction = { code: 'power_of_attorney_required', message: 'Fullmakt krävs innan anläggningsuppgifter kan begäras från nätägaren.' }
+    } else if (powerOfAttorneyId && facilityMissing && !poaExternallySendable) {
+      nextAction = {
+        code: 'poa_not_externally_sendable',
+        message: 'Fullmakten är registrerad men kan inte skickas automatiskt till nätägaren. Komplettera med signerName, signerIdentityNumber och method i strukturerad powerOfAttorney.',
+      }
     } else if (powerOfAttorneyId && facilityMissing) {
       const manual = await stage('manual_information_request', () => requestMissingFacilityInformation({
         companyId: input.client.company_id,

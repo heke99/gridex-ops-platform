@@ -178,13 +178,14 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
 // organisationsnummer, orgnr.
 //
 // Structured powerOfAttorney is required for AUTOMATIC grid-owner
-// communication: signerName + signerIdentityNumber + method (customer identity
-// is used as a fallback). A bare consents.power_of_attorney=true creates the
-// legal acceptance but a WEAK POA that is marked externally_sendable=false /
+// communication: powerOfAttorney.accepted=true + signerName +
+// signerIdentityNumber + method. Customer identity is not used as fallback for
+// new website POAs. A bare consents.power_of_attorney=true creates the legal
+// acceptance but a WEAK POA that is marked externally_sendable=false /
 // requires_completion=true and is never sent to the grid owner.
 //
-// When facility_id is missing but a valid power of attorney exists, the API
-// blocks PRODAT Z01 (no ediel_outbox), queues a manual e-mail information
+// When facility_id is missing but an externally sendable power of attorney exists,
+// the API blocks PRODAT Z01 (no ediel_outbox), queues a manual e-mail information
 // request to the grid owner and returns an operational nextAction. Possible
 // nextAction.code values: missing_customer_identity, missing_customer_details,
 // power_of_attorney_required, poa_not_externally_sendable,

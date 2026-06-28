@@ -22,6 +22,7 @@ const switchCard = read('components/admin/customers/CustomerSwitchOperationsCard
 const switchCreate = read('components/admin/customers/CustomerSwitchCreatePanel.tsx')
 const billing = read('components/admin/customers/CustomerBillingMeteringCard.tsx')
 const tenantView = read('lib/customer-operations/customerCardTenantView.ts')
+const profileActions = read('app/admin/customers/[id]/profile-actions.ts')
 
 for (const forbidden of [
   'Kundens arbetsyta',
@@ -78,6 +79,65 @@ assert(!tenantBillingBranch.includes('Export: mätvärden'), 'tenant billing bra
 assert(tenantView.includes('TenantCustomerCardView'), 'tenant customer card view model exists')
 assert(tenantView.includes('primaryAction'), 'tenant view model has one primary action')
 assert(tenantView.includes('processSteps'), 'tenant view model has process steps')
+
+
+// Behavioral delete-graph policy checks: protected history must force archive,
+// not hard delete, even for tables that were previously missed.
+function protectedDeleteMessageFor(graph) {
+  const protectedKeys = [
+    'contractIds',
+    'invoiceIds',
+    'switchRequestIds',
+    'edielMessageIds',
+    'partnerExportIds',
+    'gridOwnerInformationRequestIds',
+    'manualEmailOutboxIds',
+    'manualInboundMessageIds',
+    'powerOfAttorneyEventIds',
+    'powerOfAttorneyIds',
+    'customerDocumentIds',
+    'customerOperationEventIds',
+    'customerBlockerIds',
+    'communicationLogIds',
+    'communicationLogEventIds',
+  ]
+  return protectedKeys.some((key) => Array.isArray(graph[key]) && graph[key].length > 0) || graph.poaDocumentCount > 0
+    ? 'Kunden kunde inte raderas. Kunden har historik och ska arkiveras i stället.'
+    : null
+}
+function emptyDeleteGraph() {
+  return {
+    contractIds: [], invoiceIds: [], switchRequestIds: [], edielMessageIds: [], partnerExportIds: [],
+    gridOwnerInformationRequestIds: [], manualEmailOutboxIds: [], manualInboundMessageIds: [],
+    powerOfAttorneyEventIds: [], powerOfAttorneyIds: [], customerDocumentIds: [], customerOperationEventIds: [],
+    customerBlockerIds: [], communicationLogIds: [], communicationLogEventIds: [], poaDocumentCount: 0,
+  }
+}
+for (const [key, id] of [
+  ['customerDocumentIds', 'doc-1'],
+  ['customerOperationEventIds', 'event-1'],
+  ['customerBlockerIds', 'blocker-1'],
+  ['communicationLogIds', 'log-1'],
+  ['communicationLogEventIds', 'log-event-1'],
+]) {
+  const graph = emptyDeleteGraph()
+  graph[key] = [id]
+  assert(protectedDeleteMessageFor(graph) === 'Kunden kunde inte raderas. Kunden har historik och ska arkiveras i stället.', `hard delete blocks when ${key} exists`)
+}
+const noHistoryGraph = emptyDeleteGraph()
+assert(protectedDeleteMessageFor(noHistoryGraph) === null, 'hard delete policy allows empty protected-history graph')
+
+for (const token of [
+  'customerDocumentIds.length > 0',
+  'customerOperationEventIds.length > 0',
+  'customerBlockerIds.length > 0',
+  'communicationLogIds.length > 0',
+  'communicationLogEventIds.length > 0',
+  'selectRowsByColumnSafe("communication_logs"',
+  'selectRowsByColumnSafe("communication_log_events"',
+]) {
+  assert(profileActions.includes(token), `delete graph source covers ${token}`)
+}
 
 if (process.exitCode) process.exit(process.exitCode)
 console.log('Customer card tenant UX regression passed')

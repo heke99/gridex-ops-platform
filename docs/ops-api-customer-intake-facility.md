@@ -159,25 +159,26 @@ Företagsidentitet:  org_number, orgNumber, organization_number, organizationNum
                     organisation_number, organisationNumber, organisationsnummer, orgnr
 ```
 
-Identiteten används också som fallback för fullmaktens signeringsuppgifter (`signer_identity_number`/`signer_name`) när det strukturerade `powerOfAttorney`-objektet saknar dem.
+Kundidentiteten normaliseras för kundregistret och kan användas vid manuell/migrerad historik, men den används **inte** för att fylla i en ny website-fullmakt. En ny fullmakt blir externt sändbar först när `powerOfAttorney.accepted=true` innehåller `signerName`, `signerIdentityNumber` och `method`.
 
 ### Strukturerad fullmakt (`powerOfAttorney`)
 
 API:t accepterar ett **strukturerat** `powerOfAttorney`-objekt – inte bara `power_of_attorney: true`. Reglerna:
 
 - Den juridiska texten laddas alltid från `legal_text_versions` via `textVersionId`. Frontend-text litas **aldrig** på.
-- Ett låst snapshot skapas och en riktig rad i `powers_of_attorney` skrivs med `signer_name`, `signer_identity_number`, `method`, `evidence_payload`, `scope`, `source = website_api`.
-- För **automatisk** nätägarkommunikation krävs en strukturerad fullmakt med `signerName`, `signerIdentityNumber` och `method`. Saknas dessa (eller om endast `consents.power_of_attorney: true` skickas utan att kundidentitet kan härledas) skapas den juridiska accepten, men fullmakten markeras som **inte externt sändbar** (`externally_sendable: false`, `requires_completion: true`). En svag fullmakt skapas alltså aldrig som externt användbar.
+- Ett låst snapshot skapas och en riktig rad i `powers_of_attorney` skrivs med `evidence_payload`, `scope`, `source = website_api`. `signer_name`, `signer_identity_number` och `method` skrivs bara från en komplett strukturerad `powerOfAttorney`, aldrig från legacy-consent eller kundfallback.
+- För **automatisk** nätägarkommunikation krävs `powerOfAttorney.accepted=true` med `signerName`, `signerIdentityNumber` och `method`. Om ett strukturerat objekt skickas med `accepted=true` men saknar något av dessa fält returnerar API:t `422 validation_error`. Om endast `consents.power_of_attorney: true` skickas skapas juridisk accept/svag fullmakt, men den markeras alltid **inte externt sändbar** (`externally_sendable: false`, `requires_completion: true`).
 - Ett oföränderligt **JSON-snapshot** lagras internt i `customer_documents` (`mime_type application/json`) och länkas via `document_id`/`internal_snapshot_document_id`. Detta JSON-snapshot är **enbart internt** – extern e-post till nätägaren bifogar alltid en PDF (renderad eller uppladdad signerad PDF), aldrig JSON.
 - Händelser skrivs i `power_of_attorney_events`: `created`, `accepted` och `snapshot_created` (det interna JSON-snapshotet). `pdf_generated` skrivs **endast** när en riktig PDF genereras för extern kommunikation, följt av `attached_to_email`.
-- `consents.power_of_attorney: true` accepteras fortsatt för bakåtkompatibilitet (juridisk accept), men ett strukturerat objekt krävs för att fullmakten ska kunna skickas automatiskt till nätägaren.
+- `consents.power_of_attorney: true` accepteras fortsatt för bakåtkompatibilitet (juridisk accept), men legacy consent-only är **aldrig** externt sändbar. Kundidentitetsfallback får bara stödja äldre/manuellt migrerade kompletta POA-rader där signeringsnamn och metod redan finns; den får inte göra en ny website-legacy-consent sändbar.
 
 ### Saknat anläggnings-ID (`facility_id`)
 
 Om `facility_id`/anläggnings-id saknas:
 
 - **Ingen PRODAT Z01 renderas och ingen `ediel_outbox` skapas.** Z01 blockeras före render (svenskt PRODAT-krav). Ingen `render_failed` skapas och inga tekniska EDIFACT-fel (LIN_MISSING / PROFILE_REQUIRED_SEGMENT_MISSING) visas för tenant.
-- Om giltig fullmakt, nätägarkontakt och en konfigurerad manuell brevlåda finns skapas en **manuell e-postbegäran** till nätägaren (separat från Ediel) och svaret returnerar ett `manualInformationRequest`-block.
+- Om en **externt sändbar** fullmakt, nätägarkontakt och en konfigurerad manuell brevlåda finns skapas en **manuell e-postbegäran** till nätägaren (separat från Ediel) och svaret returnerar ett `manualInformationRequest`-block.
+- Om fullmakten bara är legacy/svag skapas ingen `manual_email_outbox`; svaret får `nextAction.code = poa_not_externally_sendable`.
 - Saknas fullmakt returneras `nextAction.code = power_of_attorney_required`. Saknas nätägarkontakt returneras `grid_owner_contact_required`. Saknas manuell brevlåda returneras `manual_mailbox_required`.
 
 ### Brevlådor och kontaktvägar (separata begrepp)

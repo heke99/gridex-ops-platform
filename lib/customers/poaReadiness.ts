@@ -63,16 +63,35 @@ export function hasPoaSnapshot(poa: PoaLike | null | undefined): boolean {
   )
 }
 
+function websiteApiPoaHasStructuredExternalCapture(poa: PoaLike | null | undefined): boolean {
+  if ((clean(poa?.source) ?? '').toLowerCase() !== 'website_api') return true
+
+  const evidence = poa?.evidence_payload as PoaLike | undefined
+  const metadata = poa?.metadata as PoaLike | undefined
+  const evidenceCaptureType = clean(evidence?.capture_type)
+  const metadataCaptureType = clean(metadata?.poa_capture_type)
+
+  return (
+    evidenceCaptureType === 'structured_complete' ||
+    metadataCaptureType === 'structured_complete' ||
+    evidence?.externally_sendable_at_capture === true ||
+    metadata?.externally_sendable === true
+  )
+}
+
 export function poaCustomerIdentity(
   poa: PoaLike | null | undefined,
   context?: { customerIdentity?: string | null },
 ): string | null {
-  return (
-    clean(poa?.signer_identity_number) ??
-    clean(context?.customerIdentity) ??
-    clean((poa?.evidence_payload as PoaLike | undefined)?.signer_identity_number) ??
-    null
-  )
+  const identityFromPoa = clean(poa?.signer_identity_number) ?? clean((poa?.evidence_payload as PoaLike | undefined)?.signer_identity_number)
+  if (identityFromPoa) return identityFromPoa
+
+  // Customer identity fallback is intentionally limited to old/admin/migrated
+  // complete POA rows. Website API rows must carry signerIdentityNumber on the
+  // structured POA itself; legacy consent-only is never externally sendable.
+  if ((clean(poa?.source) ?? '').toLowerCase() === 'website_api') return null
+
+  return clean(context?.customerIdentity)
 }
 
 // The POA is complete enough to send to a grid owner. Requires:
@@ -87,6 +106,7 @@ export function hasExternallySendablePoa(
 ): boolean {
   if (!poa) return false
   if (!hasLegalPoaAcceptance(poa)) return false
+  if (!websiteApiPoaHasStructuredExternalCapture(poa)) return false
   if (!poaCustomerIdentity(poa, context)) return false
   if (!clean(poa.signer_name)) return false
   if (!clean(poa.method)) return false
@@ -101,6 +121,7 @@ export function poaMissingExternalFields(
 ): string[] {
   const missing: string[] = []
   if (!hasLegalPoaAcceptance(poa)) missing.push('Juridiskt godkännande av fullmakt')
+  if (!websiteApiPoaHasStructuredExternalCapture(poa)) missing.push('Komplett strukturerad website-fullmakt')
   if (!poaCustomerIdentity(poa, context)) missing.push('Person-/organisationsnummer')
   if (!clean(poa?.signer_name)) missing.push('Undertecknarens namn')
   if (!clean(poa?.method)) missing.push('Signeringsmetod')

@@ -835,21 +835,41 @@ function isMissingSchemaError(
   return Boolean(error?.code && MISSING_SCHEMA_CODES.has(error.code));
 }
 
-async function selectIdsByColumnSafe(
+async function selectRowsByColumnSafe(
   table: string,
+  select: string,
   column: string,
   values: string[],
-): Promise<string[]> {
+): Promise<Array<Record<string, unknown>>> {
   if (values.length === 0) return [];
   const { data, error } = await supabaseService
     .from(table)
-    .select("id")
+    .select(select)
     .in(column, values);
   if (error) {
     if (isMissingSchemaError(error)) return [];
     throw error;
   }
-  return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+  return (data ?? []) as unknown as Array<Record<string, unknown>>;
+}
+
+function uniqueCleanStrings(values: unknown[]): string[] {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => (typeof value === "string" ? value.trim() : ""))
+        .filter(Boolean),
+    ),
+  );
+}
+
+async function selectIdsByColumnSafe(
+  table: string,
+  column: string,
+  values: string[],
+): Promise<string[]> {
+  const rows = await selectRowsByColumnSafe(table, "id", column, values);
+  return uniqueCleanStrings(rows.map((row) => row.id));
 }
 
 async function selectIdsByCustomerIdSafe(
@@ -906,6 +926,7 @@ async function deleteByCustomerIdSafe(
 async function collectManualFlowDeleteGraph(
   customerId: string,
   siteIds: string[],
+  meteringPointIds: string[],
 ) {
   const gridOwnerInformationRequestOrFilters = [
     `customer_id.eq.${customerId}`,
@@ -926,10 +947,17 @@ async function collectManualFlowDeleteGraph(
       .filter(Boolean);
   }
 
-  const manualEmailOutboxIds = await selectIdsByColumnSafe(
+  const manualEmailOutboxRows = await selectRowsByColumnSafe(
     "manual_email_outbox",
+    "id,provider_message_id",
     "request_id",
     gridOwnerInformationRequestIds,
+  );
+  const manualEmailOutboxIds = uniqueCleanStrings(
+    manualEmailOutboxRows.map((row) => row.id),
+  );
+  const manualEmailProviderMessageIds = uniqueCleanStrings(
+    manualEmailOutboxRows.map((row) => row.provider_message_id),
   );
   const manualInboundMessageIds = await selectIdsByColumnSafe(
     "manual_inbound_messages",
@@ -980,6 +1008,27 @@ async function collectManualFlowDeleteGraph(
     customerId,
   );
 
+  const communicationLogRows = [
+    ...(await selectRowsByColumnSafe("communication_logs", "id,provider_message_id", "customer_id", [customerId])),
+    ...(await selectRowsByColumnSafe("communication_logs", "id,provider_message_id", "site_id", siteIds)),
+    ...(await selectRowsByColumnSafe("communication_logs", "id,provider_message_id", "metering_point_id", meteringPointIds)),
+    ...(await selectRowsByColumnSafe("communication_logs", "id,provider_message_id", "provider_message_id", manualEmailProviderMessageIds)),
+  ];
+  const communicationLogIds = uniqueCleanStrings(
+    communicationLogRows.map((row) => row.id),
+  );
+  const communicationProviderMessageIds = uniqueCleanStrings([
+    ...manualEmailProviderMessageIds,
+    ...communicationLogRows.map((row) => row.provider_message_id),
+  ]);
+  const communicationLogEventRows = [
+    ...(await selectRowsByColumnSafe("communication_log_events", "id", "communication_log_id", communicationLogIds)),
+    ...(await selectRowsByColumnSafe("communication_log_events", "id", "provider_message_id", communicationProviderMessageIds)),
+  ];
+  const communicationLogEventIds = uniqueCleanStrings(
+    communicationLogEventRows.map((row) => row.id),
+  );
+
   return {
     gridOwnerInformationRequestIds,
     manualEmailOutboxIds,
@@ -990,6 +1039,8 @@ async function collectManualFlowDeleteGraph(
     poaDocumentCount,
     customerOperationEventIds,
     customerBlockerIds,
+    communicationLogIds,
+    communicationLogEventIds,
   };
 }
 
@@ -1151,7 +1202,7 @@ async function collectCustomerDeleteGraph(customerId: string) {
     .map((row: { id: string }) => row.id)
     .filter(Boolean);
 
-  const manualFlow = await collectManualFlowDeleteGraph(customerId, siteIds);
+  const manualFlow = await collectManualFlowDeleteGraph(customerId, siteIds, meteringPointIds);
 
   return {
     customer,
@@ -1455,9 +1506,9 @@ const PROTECTED_DELETE_MESSAGE =
 /**
  * Returns a controlled Swedish blocker message when the customer has protected
  * operational history (contracts, invoices, switches, Ediel, partner export,
- * or any manual grid-owner / POA history), otherwise null. Manual grid-owner
+ * or any manual grid-owner / POA / communication-log history), otherwise null. Manual grid-owner
  * data (information requests, manual email outbox, manual inbound, POA events /
- * documents) blocks permanent delete and routes the user to archive.
+ * documents, customer operation history, blockers and communication logs/events) blocks permanent delete and routes the user to archive.
  */
 function describeProtectedDeleteData(
   graph: Awaited<ReturnType<typeof collectCustomerDeleteGraph>>,
@@ -1473,6 +1524,11 @@ function describeProtectedDeleteData(
     graph.manualInboundMessageIds.length > 0 ||
     graph.powerOfAttorneyEventIds.length > 0 ||
     graph.powerOfAttorneyIds.length > 0 ||
+    graph.customerDocumentIds.length > 0 ||
+    graph.customerOperationEventIds.length > 0 ||
+    graph.customerBlockerIds.length > 0 ||
+    graph.communicationLogIds.length > 0 ||
+    graph.communicationLogEventIds.length > 0 ||
     graph.poaDocumentCount > 0;
 
   return hasProtected ? PROTECTED_DELETE_MESSAGE : null;
@@ -1554,6 +1610,8 @@ async function deleteCustomerForRecreateImpl(
         customerDocuments: graph.customerDocumentIds.length,
         customerOperationEvents: graph.customerOperationEventIds.length,
         customerBlockers: graph.customerBlockerIds.length,
+        communicationLogs: graph.communicationLogIds.length,
+        communicationLogEvents: graph.communicationLogEventIds.length,
       },
       storageSummary,
     },
@@ -1616,6 +1674,14 @@ async function deleteCustomerForRecreateImpl(
   // Manual grid-owner / POA flow tables (FK-safe order, tolerant of missing
   // schema). These also block hard delete above unless the row is genuine
   // test-only data that survived the protected-history check.
+  await deleteByIdsSafe(
+    "communication_log_events",
+    graph.communicationLogEventIds,
+  );
+  await deleteByIdsSafe(
+    "communication_logs",
+    graph.communicationLogIds,
+  );
   await deleteByColumnSafe(
     "manual_email_outbox",
     "request_id",
