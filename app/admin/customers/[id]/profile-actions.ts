@@ -14,6 +14,91 @@ import { addCustomerContractEvent } from "@/lib/customer-contracts/db";
 import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates";
 import { logAdminActionAndUsage, logUsageEvent } from "@/lib/audit/actionLogger";
 
+export type CustomerActionState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  code?: string;
+};
+
+export const IDLE_CUSTOMER_ACTION_STATE: CustomerActionState = {
+  status: "idle",
+};
+
+/**
+ * Expected business blocker raised by a customer-card action. These are turned
+ * into a controlled, Swedish action state instead of crashing the admin page
+ * through the Server Component error boundary.
+ */
+class CustomerActionError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "CustomerActionError";
+    this.code = code;
+  }
+}
+
+/**
+ * Next.js uses thrown errors with a `digest` for control flow (redirect /
+ * notFound). Those must always be re-thrown so navigation works.
+ */
+function isNextControlFlowError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const digest = (error as { digest?: unknown }).digest;
+  return (
+    typeof digest === "string" &&
+    (digest.startsWith("NEXT_REDIRECT") || digest === "NEXT_NOT_FOUND")
+  );
+}
+
+/**
+ * Wraps a customer-card mutation so expected business blockers and unexpected
+ * failures return a controlled Swedish action state. Redirects (successful
+ * delete) are re-thrown so Next can navigate away from the customer page.
+ */
+async function runCustomerCardAction(
+  impl: () => Promise<CustomerActionState>,
+): Promise<CustomerActionState> {
+  try {
+    return await impl();
+  } catch (error) {
+    if (isNextControlFlowError(error)) throw error;
+
+    if (error instanceof CustomerActionError) {
+      return { status: "error", code: error.code, message: error.message };
+    }
+
+    const rawMessage = error instanceof Error ? error.message : "";
+    if (rawMessage === "Endast platform admin kan utföra den här åtgärden.") {
+      return {
+        status: "error",
+        code: "forbidden",
+        message:
+          "Du saknar behörighet för permanent radering. Endast plattformsadmin kan radera kunder.",
+      };
+    }
+    if (
+      rawMessage === "Unauthorized" ||
+      rawMessage === "Forbidden" ||
+      rawMessage.startsWith("Du saknar behörighet")
+    ) {
+      return {
+        status: "error",
+        code: "forbidden",
+        message: "Du saknar behörighet för den här åtgärden.",
+      };
+    }
+
+    console.error("[customer-card-action] Unexpected error", error);
+    return {
+      status: "error",
+      code: "unexpected",
+      message:
+        "Åtgärden kunde inte slutföras just nu. Försök igen eller kontakta support om felet kvarstår.",
+    };
+  }
+}
+
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
 }
@@ -40,7 +125,7 @@ function normalizeOptionalString(
 
 function requireValue(value: string | null | undefined, message: string) {
   if (!normalizeOptionalString(value)) {
-    throw new Error(message);
+    throw new CustomerActionError("validation", message);
   }
 }
 
@@ -89,13 +174,20 @@ async function insertAuditLog(params: {
 }
 
 export async function saveCustomerProfileAction(
+  _prevState: CustomerActionState,
   formData: FormData,
-): Promise<void> {
+): Promise<CustomerActionState> {
+  return runCustomerCardAction(() => saveCustomerProfileImpl(formData));
+}
+
+async function saveCustomerProfileImpl(
+  formData: FormData,
+): Promise<CustomerActionState> {
   const actorUserId = await getActorUserId();
 
   const customerId = getString(formData, "customer_id");
   if (!customerId) {
-    throw new Error("customer_id saknas");
+    throw new CustomerActionError("missing_customer", "Kund-id saknas.");
   }
 
   const customerType = normalizeCustomerType(
@@ -259,6 +351,8 @@ export async function saveCustomerProfileAction(
   revalidatePath(`/admin/customers/${customerId}/profile`);
   revalidatePath("/admin/customers");
   revalidatePath("/admin/customers/segments");
+
+  return { status: "success", message: "Kundprofilen har sparats." };
 }
 
 function normalizeLifecycleMode(
@@ -291,8 +385,15 @@ function buildMoveOutNote(params: {
 }
 
 export async function closeCustomerLifecycleAction(
+  _prevState: CustomerActionState,
   formData: FormData,
-): Promise<void> {
+): Promise<CustomerActionState> {
+  return runCustomerCardAction(() => closeCustomerLifecycleImpl(formData));
+}
+
+async function closeCustomerLifecycleImpl(
+  formData: FormData,
+): Promise<CustomerActionState> {
   const actorUserId = await getActorUserId();
   const customerId = getString(formData, "customer_id");
   const confirmText = getString(formData, "confirm_close");
@@ -306,9 +407,12 @@ export async function closeCustomerLifecycleAction(
   const createFollowUpTask =
     getString(formData, "create_follow_up_task") === "on";
 
-  if (!customerId) throw new Error("customer_id saknas");
+  if (!customerId) {
+    throw new CustomerActionError("missing_customer", "Kund-id saknas.");
+  }
   if (confirmText !== "AVSLUTA") {
-    throw new Error(
+    throw new CustomerActionError(
+      "confirm_mismatch",
       "Skriv AVSLUTA för att bekräfta mjukt avslut/flytt av kunden.",
     );
   }
@@ -657,6 +761,14 @@ export async function closeCustomerLifecycleAction(
   revalidatePath("/admin/customers/segments");
   revalidatePath("/admin/operations");
   revalidatePath("/admin/controltower");
+
+  return {
+    status: "success",
+    message:
+      mode === "terminate"
+        ? "Kundrelationen har avslutats. Historiken sparas."
+        : "Flytt/avslut har registrerats. Historiken sparas.",
+  };
 }
 
 async function selectIds(
@@ -713,6 +825,181 @@ async function deleteByCustomerId(
     .delete()
     .eq("customer_id", customerId);
   if (error) throw error;
+}
+
+// Newer manual-flow tables (manual_email_outbox, grid_owner_information_requests,
+// power_of_attorney_events, ...) may not exist in every environment yet. The
+// tolerant helpers below treat missing schema as "no rows" but surface any real
+// error as a controlled admin message instead of crashing the page.
+const MISSING_SCHEMA_CODES = new Set([
+  "42P01", // undefined_table
+  "42703", // undefined_column
+  "PGRST204", // column not found in schema cache
+  "PGRST205", // table not found in schema cache
+]);
+
+function isMissingSchemaError(
+  error: { code?: string | null } | null | undefined,
+): boolean {
+  return Boolean(error?.code && MISSING_SCHEMA_CODES.has(error.code));
+}
+
+async function selectIdsByColumnSafe(
+  table: string,
+  column: string,
+  values: string[],
+): Promise<string[]> {
+  if (values.length === 0) return [];
+  const { data, error } = await supabaseService
+    .from(table)
+    .select("id")
+    .in(column, values);
+  if (error) {
+    if (isMissingSchemaError(error)) return [];
+    throw error;
+  }
+  return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+}
+
+async function selectIdsByCustomerIdSafe(
+  table: string,
+  customerId: string,
+): Promise<string[]> {
+  const { data, error } = await supabaseService
+    .from(table)
+    .select("id")
+    .eq("customer_id", customerId);
+  if (error) {
+    if (isMissingSchemaError(error)) return [];
+    throw error;
+  }
+  return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
+}
+
+async function deleteByIdsSafe(table: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabaseService.from(table).delete().in("id", ids);
+  if (error && !isMissingSchemaError(error)) throw error;
+}
+
+async function deleteByColumnSafe(
+  table: string,
+  column: string,
+  values: string[],
+): Promise<void> {
+  if (values.length === 0) return;
+  const { error } = await supabaseService
+    .from(table)
+    .delete()
+    .in(column, values);
+  if (error && !isMissingSchemaError(error)) throw error;
+}
+
+async function deleteByCustomerIdSafe(
+  table: string,
+  customerId: string,
+): Promise<void> {
+  const { error } = await supabaseService
+    .from(table)
+    .delete()
+    .eq("customer_id", customerId);
+  if (error && !isMissingSchemaError(error)) throw error;
+}
+
+/**
+ * Collects manual grid-owner / POA operational rows that live in tables added
+ * after the original delete flow. These are treated as protected history and
+ * block permanent delete (archive instead), but are also removed in FK-safe
+ * order for genuine test-only cleanup.
+ */
+async function collectManualFlowDeleteGraph(
+  customerId: string,
+  siteIds: string[],
+) {
+  const gridOwnerInformationRequestOrFilters = [
+    `customer_id.eq.${customerId}`,
+    ...siteIds.map((id) => `customer_site_id.eq.${id}`),
+  ];
+
+  let gridOwnerInformationRequestIds: string[] = [];
+  const { data: gridOwnerInformationRequestRows, error: gorError } =
+    await supabaseService
+      .from("grid_owner_information_requests")
+      .select("id")
+      .or(gridOwnerInformationRequestOrFilters.join(","));
+  if (gorError) {
+    if (!isMissingSchemaError(gorError)) throw gorError;
+  } else {
+    gridOwnerInformationRequestIds = (gridOwnerInformationRequestRows ?? [])
+      .map((row: { id: string }) => row.id)
+      .filter(Boolean);
+  }
+
+  const manualEmailOutboxIds = await selectIdsByColumnSafe(
+    "manual_email_outbox",
+    "request_id",
+    gridOwnerInformationRequestIds,
+  );
+  const manualInboundMessageIds = await selectIdsByColumnSafe(
+    "manual_inbound_messages",
+    "request_id",
+    gridOwnerInformationRequestIds,
+  );
+
+  const powerOfAttorneyIds = await selectIdsByCustomerIdSafe(
+    "powers_of_attorney",
+    customerId,
+  );
+  const powerOfAttorneyEventIds = await selectIdsByColumnSafe(
+    "power_of_attorney_events",
+    "power_of_attorney_id",
+    powerOfAttorneyIds,
+  );
+
+  let customerDocumentIds: string[] = [];
+  let poaDocumentCount = 0;
+  const { data: customerDocumentRows, error: documentError } =
+    await supabaseService
+      .from("customer_documents")
+      .select("id,document_type,mime_type")
+      .eq("customer_id", customerId);
+  if (documentError) {
+    if (!isMissingSchemaError(documentError)) throw documentError;
+  } else {
+    for (const row of customerDocumentRows ?? []) {
+      if (!row?.id) continue;
+      customerDocumentIds.push(row.id);
+      const documentType = String(row.document_type ?? "").toLowerCase();
+      const mimeType = String(row.mime_type ?? "").toLowerCase();
+      if (
+        documentType === "power_of_attorney" ||
+        mimeType === "application/pdf"
+      ) {
+        poaDocumentCount += 1;
+      }
+    }
+  }
+
+  const customerOperationEventIds = await selectIdsByCustomerIdSafe(
+    "customer_operation_events",
+    customerId,
+  );
+  const customerBlockerIds = await selectIdsByCustomerIdSafe(
+    "customer_blockers",
+    customerId,
+  );
+
+  return {
+    gridOwnerInformationRequestIds,
+    manualEmailOutboxIds,
+    manualInboundMessageIds,
+    powerOfAttorneyIds,
+    powerOfAttorneyEventIds,
+    customerDocumentIds,
+    poaDocumentCount,
+    customerOperationEventIds,
+    customerBlockerIds,
+  };
 }
 
 async function deleteStorageObjectsForCustomer(
@@ -873,6 +1160,8 @@ async function collectCustomerDeleteGraph(customerId: string) {
     .map((row: { id: string }) => row.id)
     .filter(Boolean);
 
+  const manualFlow = await collectManualFlowDeleteGraph(customerId, siteIds);
+
   return {
     customer,
     siteIds,
@@ -885,18 +1174,28 @@ async function collectCustomerDeleteGraph(customerId: string) {
     invoiceIds,
     edielMessageIds,
     edielTestRunIds,
+    ...manualFlow,
   };
 }
 
 
 export async function markCustomerAsTestDataAction(
+  _prevState: CustomerActionState,
   formData: FormData,
-): Promise<void> {
+): Promise<CustomerActionState> {
+  return runCustomerCardAction(() => markCustomerAsTestDataImpl(formData));
+}
+
+async function markCustomerAsTestDataImpl(
+  formData: FormData,
+): Promise<CustomerActionState> {
   const actorUserId = await getActorUserId();
   const customerId = getString(formData, "customer_id");
   const reason = getNullableString(formData, "reason") ?? "Markerad som testdata från kundkortet.";
 
-  if (!customerId) throw new Error("customer_id saknas");
+  if (!customerId) {
+    throw new CustomerActionError("missing_customer", "Kund-id saknas.");
+  }
 
   const { data: customerBefore, error: customerError } = await supabaseService
     .from("customers")
@@ -968,19 +1267,33 @@ export async function markCustomerAsTestDataAction(
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath("/admin/customers");
   revalidatePath("/admin/platform/data-cleanup");
+
+  return { status: "success", message: "Kunden har markerats som testdata." };
 }
 
 export async function archiveCustomerAction(
+  _prevState: CustomerActionState,
   formData: FormData,
-): Promise<void> {
+): Promise<CustomerActionState> {
+  return runCustomerCardAction(() => archiveCustomerImpl(formData));
+}
+
+async function archiveCustomerImpl(
+  formData: FormData,
+): Promise<CustomerActionState> {
   const actorUserId = await getActorUserId();
   const customerId = getString(formData, "customer_id");
   const reason = getNullableString(formData, "archive_reason");
   const confirmText = getString(formData, "confirm_archive");
 
-  if (!customerId) throw new Error("customer_id saknas");
+  if (!customerId) {
+    throw new CustomerActionError("missing_customer", "Kund-id saknas.");
+  }
   if (confirmText !== "ARKIVERA") {
-    throw new Error("Skriv ARKIVERA för att bekräfta arkivering.");
+    throw new CustomerActionError(
+      "confirm_mismatch",
+      "Skriv ARKIVERA för att bekräfta arkivering.",
+    );
   }
 
   const { data: customerBefore, error: customerError } = await supabaseService
@@ -1138,29 +1451,63 @@ export async function archiveCustomerAction(
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath("/admin/customers");
   revalidatePath("/admin/platform/data-cleanup");
+
+  return {
+    status: "success",
+    message: "Kunden har arkiverats. Historiken sparas för spårbarhet.",
+  };
 }
 
-function hasProtectedDeleteData(graph: Awaited<ReturnType<typeof collectCustomerDeleteGraph>>): boolean {
-  return (
+const PROTECTED_DELETE_MESSAGE =
+  "Kunden kunde inte raderas. Kunden har historik och ska arkiveras i stället.";
+
+/**
+ * Returns a controlled Swedish blocker message when the customer has protected
+ * operational history (contracts, invoices, switches, Ediel, partner export,
+ * or any manual grid-owner / POA history), otherwise null. Manual grid-owner
+ * data (information requests, manual email outbox, manual inbound, POA events /
+ * documents) blocks permanent delete and routes the user to archive.
+ */
+function describeProtectedDeleteData(
+  graph: Awaited<ReturnType<typeof collectCustomerDeleteGraph>>,
+): string | null {
+  const hasProtected =
     graph.contractIds.length > 0 ||
     graph.invoiceIds.length > 0 ||
     graph.switchRequestIds.length > 0 ||
     graph.edielMessageIds.length > 0 ||
-    graph.partnerExportIds.length > 0
-  );
+    graph.partnerExportIds.length > 0 ||
+    graph.gridOwnerInformationRequestIds.length > 0 ||
+    graph.manualEmailOutboxIds.length > 0 ||
+    graph.manualInboundMessageIds.length > 0 ||
+    graph.powerOfAttorneyEventIds.length > 0 ||
+    graph.powerOfAttorneyIds.length > 0 ||
+    graph.poaDocumentCount > 0;
+
+  return hasProtected ? PROTECTED_DELETE_MESSAGE : null;
 }
 
 export async function deleteCustomerForRecreateAction(
+  _prevState: CustomerActionState,
   formData: FormData,
-): Promise<void> {
+): Promise<CustomerActionState> {
+  return runCustomerCardAction(() => deleteCustomerForRecreateImpl(formData));
+}
+
+async function deleteCustomerForRecreateImpl(
+  formData: FormData,
+): Promise<CustomerActionState> {
   const platformGuard = await requirePlatformAdminActionAccess();
   const actorUserId = platformGuard.userId;
   const customerId = getString(formData, "customer_id");
   const confirmText = getString(formData, "confirm_delete");
 
-  if (!customerId) throw new Error("customer_id saknas");
+  if (!customerId) {
+    throw new CustomerActionError("missing_customer", "Kund-id saknas.");
+  }
   if (confirmText !== "RADERA") {
-    throw new Error(
+    throw new CustomerActionError(
+      "confirm_mismatch",
       "Skriv RADERA för att bekräfta permanent radering av kunden.",
     );
   }
@@ -1172,11 +1519,15 @@ export async function deleteCustomerForRecreateAction(
       : null;
 
   if (graph.customer.is_test_data !== true && String(graph.customer.source ?? "").toLowerCase().includes("test") === false) {
-    throw new Error("Permanent radering är endast tillåten för markerad testdata. Arkivera verkliga kunder i stället.");
+    throw new CustomerActionError(
+      "not_test_data",
+      "Permanent radering är endast tillåten för markerad testdata. Arkivera verkliga kunder i stället.",
+    );
   }
 
-  if (hasProtectedDeleteData(graph)) {
-    throw new Error("Kunden har avtal, fakturor, Ediel-meddelanden, partnerexport eller leverantörsbyte. Arkivera kunden i stället för att radera.");
+  const protectedReason = describeProtectedDeleteData(graph);
+  if (protectedReason) {
+    throw new CustomerActionError("protected_history", protectedReason);
   }
 
   const storageSummary = await deleteStorageObjectsForCustomer(customerId);
@@ -1204,6 +1555,14 @@ export async function deleteCustomerForRecreateAction(
         customerInvoices: graph.invoiceIds.length,
         edielMessages: graph.edielMessageIds.length,
         edielTestRuns: graph.edielTestRunIds.length,
+        gridOwnerInformationRequests: graph.gridOwnerInformationRequestIds.length,
+        manualEmailOutbox: graph.manualEmailOutboxIds.length,
+        manualInboundMessages: graph.manualInboundMessageIds.length,
+        powerOfAttorneys: graph.powerOfAttorneyIds.length,
+        powerOfAttorneyEvents: graph.powerOfAttorneyEventIds.length,
+        customerDocuments: graph.customerDocumentIds.length,
+        customerOperationEvents: graph.customerOperationEventIds.length,
+        customerBlockers: graph.customerBlockerIds.length,
       },
       storageSummary,
     },
@@ -1262,6 +1621,33 @@ export async function deleteCustomerForRecreateAction(
   await deleteByIds("outbound_requests", graph.outboundRequestIds);
   await deleteByCustomerId("outbound_requests", customerId);
   await deleteByCustomerId("supplier_switch_requests", customerId);
+
+  // Manual grid-owner / POA flow tables (FK-safe order, tolerant of missing
+  // schema). These also block hard delete above unless the row is genuine
+  // test-only data that survived the protected-history check.
+  await deleteByColumnSafe(
+    "manual_email_outbox",
+    "request_id",
+    graph.gridOwnerInformationRequestIds,
+  );
+  await deleteByColumnSafe(
+    "manual_inbound_messages",
+    "request_id",
+    graph.gridOwnerInformationRequestIds,
+  );
+  await deleteByIdsSafe(
+    "grid_owner_information_requests",
+    graph.gridOwnerInformationRequestIds,
+  );
+  await deleteByColumnSafe(
+    "power_of_attorney_events",
+    "power_of_attorney_id",
+    graph.powerOfAttorneyIds,
+  );
+  await deleteByCustomerIdSafe("customer_documents", customerId);
+  await deleteByCustomerIdSafe("customer_operation_events", customerId);
+  await deleteByCustomerIdSafe("customer_blockers", customerId);
+
   await deleteByCustomerId("customer_authorization_documents", customerId);
   await deleteByCustomerId("powers_of_attorney", customerId);
   await deleteByCustomerId("customer_operation_tasks", customerId);
