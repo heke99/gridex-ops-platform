@@ -149,10 +149,26 @@ Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switc
 Regler:
 
 - Den juridiska texten laddas från `legal_text_versions` via `textVersionId` – frontend-text litas aldrig på.
-- En riktig `powers_of_attorney`-rad skapas med signer/scope/method/evidence/dokument samt händelser i `power_of_attorney_events`.
+- En riktig `powers_of_attorney`-rad skapas med signer/scope/method/evidence/dokument samt händelser i `power_of_attorney_events` (`created`, `accepted`, `snapshot_created`). Det interna JSON-snapshotet skickas aldrig externt; nätägaren får alltid en PDF.
+- **Identitet och alias:** kundens identitet sparas alltid i `personal_number`/`org_number`. Accepterade alias för privat identitet: `personal_number`, `personalNumber`, `personal_identity_number`, `personalIdentityNumber`, `identity_number`, `identityNumber`, `personnummer`. För företag: `org_number`, `orgNumber`, `organization_number`, `organizationNumber`, `organisation_number`, `organisationNumber`, `organisationsnummer`, `orgnr`.
+- **Strukturerad fullmakt krävs för automatisk nätägarkommunikation.** För att fullmakten ska kunna skickas automatiskt krävs `signerName`, `signerIdentityNumber` och `method` (kundidentitet används som fallback). Endast `consents.power_of_attorney: true` ger en juridisk accept men en **svag** fullmakt som markeras `externally_sendable: false` / `requires_completion: true` och inte skickas externt.
 - Saknas `facility_id` renderas **ingen PRODAT Z01** och **ingen `ediel_outbox`** skapas. Finns fullmakt + nätägarkontakt köas en **manuell e-postbegäran** och svaret innehåller `manualInformationRequest`.
-- Svaret returnerar operativ status via `nextAction` (`power_of_attorney_required`, `grid_owner_contact_required`, `facility_identifier_requested`, `ready_for_switch`, `in_progress`) – aldrig tekniska Ediel-detaljer.
+- Svaret returnerar operativ status via `nextAction` – aldrig tekniska Ediel-detaljer. Koder: `missing_customer_identity`, `missing_customer_details`, `power_of_attorney_required`, `poa_not_externally_sendable`, `grid_owner_contact_required`, `manual_mailbox_required`, `facility_identifier_requested`, `ready_for_switch`, `in_progress`.
 - Skicka `Idempotency-Key`; upprepade anrop/klick skapar inga dubbletter. Bolaget härleds från API-nyckeln, aldrig från payload.
+
+## Interna cron-endpoints och Resend-webhook
+
+Manuell nätägarkommunikation drivs av interna cron-jobb och en leverans-webhook:
+
+```txt
+POST /api/internal/customer-operations/cron      Authorization: Bearer <CUSTOMER_OPERATION_CRON_SECRET|CRON_SECRET>
+POST /api/internal/manual-email/outbox/process    Authorization: Bearer <MANUAL_EMAIL_OUTBOX_CRON_SECRET|EMAIL_OUTBOX_CRON_SECRET|CRON_SECRET>
+POST /api/internal/manual-inbound/cron            Authorization: Bearer <MANUAL_INBOUND_CRON_SECRET|CRON_SECRET>
+```
+
+(Alla accepterar även `x-cron-secret`; manuell inbound även `x-manual-inbound-secret`.)
+
+Resend-webhook `POST /api/webhooks/resend` verifieras mot **rå** body + Svix-huvuden + `RESEND_WEBHOOK_SECRET`. Felklasser: `missing_headers` (400), `missing_secret` (500), `resend_webhook_invalid_signature` (401), `event_processing_failed` (500). Webhooken uppdaterar `manual_email_outbox.delivery_status`; negativ leverans sätter begäran till `needs_review`. Manuell `curl` utan Svix-huvuden misslyckas avsiktligt – använd Resend-dashboardens testevent och deploya om Vercel efter ändrad miljövariabel.
 
 ## Scopes
 

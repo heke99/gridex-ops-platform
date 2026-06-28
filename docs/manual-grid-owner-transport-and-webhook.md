@@ -53,15 +53,33 @@ The webhook updates both:
 
 - `communication_logs` (tenant transactional mail), and
 - `manual_email_outbox` (manual grid-owner mail) matched by
-  `provider_message_id`.
+  `provider_message_id`. Its `delivery_status` is set to one of `sent`,
+  `delivered`, `delivery_delayed`, `bounced`, `complained`, `failed`,
+  `suppressed`.
+
+When a manual outbox row is matched by `provider_message_id` but there is **no**
+`communication_log`, the stored provider event in `communication_log_events`
+still records `company_id` taken from the matched `manual_email_outbox` row, so
+the event is correctly attributed to a tenant.
 
 Tracked events: `email.sent`, `email.delivered`, `email.delivery_delayed`,
 `email.bounced`, `email.complained`, `email.failed`, `email.suppressed`.
 
 On `bounced` / `failed` / `complained` / `suppressed` the linked
 `grid_owner_information_requests` row is moved to `needs_review` with
-`last_error_code = delivery_failed`, and the site next action tells the operator
-to check the contact path.
+`last_error_code = delivery_failed`, and the tenant/operator message is:
+
+> E-post till nätägaren kunde inte levereras. Kontrollera kontaktväg.
+
+### Testing the webhook (by design)
+
+A manual `curl` **without** valid Svix signature headers
+(`webhook-id`/`webhook-timestamp`/`webhook-signature`) will fail with
+`401 resend_webhook_invalid_signature` **by design** — the raw-body signature
+check cannot pass without them. To test end-to-end, use the **Resend dashboard
+test event** for the exact endpoint. `RESEND_WEBHOOK_SECRET` must be the exact
+signing secret for that exact endpoint, and Vercel must be **redeployed** after
+changing the env var.
 
 ### Operational note (the live "Invalid webhook signature")
 

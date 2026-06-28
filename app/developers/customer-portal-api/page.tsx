@@ -169,9 +169,27 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
     }
   }'`
 
+// Identity aliases: the customer identity is always stored in the canonical
+// personal_number / org_number columns. Accepted private aliases:
+// personal_number, personalNumber, personal_identity_number,
+// personalIdentityNumber, identity_number, identityNumber, personnummer.
+// Accepted business aliases: org_number, orgNumber, organization_number,
+// organizationNumber, organisation_number, organisationNumber,
+// organisationsnummer, orgnr.
+//
+// Structured powerOfAttorney is required for AUTOMATIC grid-owner
+// communication: signerName + signerIdentityNumber + method (customer identity
+// is used as a fallback). A bare consents.power_of_attorney=true creates the
+// legal acceptance but a WEAK POA that is marked externally_sendable=false /
+// requires_completion=true and is never sent to the grid owner.
+//
 // When facility_id is missing but a valid power of attorney exists, the API
 // blocks PRODAT Z01 (no ediel_outbox), queues a manual e-mail information
-// request to the grid owner and returns an operational nextAction.
+// request to the grid owner and returns an operational nextAction. Possible
+// nextAction.code values: missing_customer_identity, missing_customer_details,
+// power_of_attorney_required, poa_not_externally_sendable,
+// grid_owner_contact_required, manual_mailbox_required,
+// facility_identifier_requested, ready_for_switch, in_progress.
 const applicationResponse = `{
   "data": {
     "customer_id": "uuid",
@@ -190,7 +208,7 @@ const applicationResponse = `{
     "missing_fields": [],
     "blocking_reasons": [],
     "power_of_attorney_id": "uuid",
-    "power_of_attorney": { "status": "signed", "scope": ["supplier_switch", "facility_information_lookup"], "method": "website_acceptance" },
+    "power_of_attorney": { "status": "signed", "scope": ["supplier_switch", "facility_information_lookup"], "method": "website_acceptance", "externally_sendable": true, "requires_completion": false },
     "nextAction": { "code": "facility_identifier_requested", "message": "Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post." },
     "manualInformationRequest": { "status": "manual_email_queued", "case_reference": "GX-FIR-AB12CD34", "channel": "manual_email", "request_id": "uuid" },
     "next_step": "Granska ansökan och fortsätt enligt bolagets process.",
@@ -336,6 +354,10 @@ X-Gridex-Timestamp: 1718532000
 X-Gridex-Signature: sha256=<signature>
 X-Gridex-Delivery-Id: delivery_123`
 
+const cronEndpoints = `POST /api/internal/customer-operations/cron     Authorization: Bearer <CUSTOMER_OPERATION_CRON_SECRET | CRON_SECRET>
+POST /api/internal/manual-email/outbox/process   Authorization: Bearer <MANUAL_EMAIL_OUTBOX_CRON_SECRET | EMAIL_OUTBOX_CRON_SECRET | CRON_SECRET>
+POST /api/internal/manual-inbound/cron           Authorization: Bearer <MANUAL_INBOUND_CRON_SECRET | CRON_SECRET>   (även x-manual-inbound-secret)`
+
 const webhookReceiver = `import { createHmac, timingSafeEqual } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -459,6 +481,10 @@ export default function CustomerPortalApiDocsPage() {
           <p>Planerade events som kan tillkomma senare:</p>
           <ul className="grid gap-1 md:grid-cols-2">{plannedWebhookEvents.map((event) => <li key={event} className="font-mono text-xs text-slate-500">{event}</li>)}</ul>
           <CodeBlock>{webhookReceiver}</CodeBlock>
+          <h3 className="mt-6 text-lg font-bold text-slate-900">Resend-leveranswebhook och interna cron-jobb</h3>
+          <p>Manuell nätägar-e-post levereransspåras via Resend-webhooken <code>POST /api/webhooks/resend</code>. Den verifieras mot <strong>rå</strong> request-body med Svix-huvuden och <code>RESEND_WEBHOOK_SECRET</code>. Felklasser: <code>missing_headers</code> (400), <code>missing_secret</code> (500), <code>resend_webhook_invalid_signature</code> (401) och <code>event_processing_failed</code> (500). En manuell <code>curl</code> utan giltiga Svix-huvuden misslyckas avsiktligt – använd Resend-dashboardens testevent och deploya om Vercel efter att miljövariabeln ändrats. <code>RESEND_WEBHOOK_SECRET</code> måste vara den exakta signeringshemligheten för exakt den endpoint som används.</p>
+          <p>Webhooken uppdaterar <code>manual_email_outbox.delivery_status</code> (<code>sent</code>/<code>delivered</code>/<code>delivery_delayed</code>/<code>bounced</code>/<code>complained</code>/<code>failed</code>/<code>suppressed</code>) och sätter den länkade begäran till <code>needs_review</code> vid negativ leverans. Interna cron-jobb skyddas med <code>Authorization: Bearer &lt;secret&gt;</code> eller <code>x-cron-secret</code>:</p>
+          <CodeBlock>{cronEndpoints}</CodeBlock>
         </Section>
 
         <Section title="10. Fel och idempotency">

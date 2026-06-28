@@ -148,15 +148,29 @@ Minsta rekommenderade payload:
 }
 ```
 
+### Identitet och accepterade alias
+
+Kundens identitet sparas alltid i de kanoniska kolumnerna `personal_number` (privat) och `org_number` (företag/förening). API:t normaliserar alla dokumenterade alias till dessa kolumner – både vid skapande och vid uppdatering av befintlig kund (en identitet som saknades vid första kontakten fylls i utan att skriva över en redan sparad identitet).
+
+```txt
+Privat identitet:   personal_number, personalNumber, personal_identity_number,
+                    personalIdentityNumber, identity_number, identityNumber, personnummer
+Företagsidentitet:  org_number, orgNumber, organization_number, organizationNumber,
+                    organisation_number, organisationNumber, organisationsnummer, orgnr
+```
+
+Identiteten används också som fallback för fullmaktens signeringsuppgifter (`signer_identity_number`/`signer_name`) när det strukturerade `powerOfAttorney`-objektet saknar dem.
+
 ### Strukturerad fullmakt (`powerOfAttorney`)
 
 API:t accepterar ett **strukturerat** `powerOfAttorney`-objekt – inte bara `power_of_attorney: true`. Reglerna:
 
 - Den juridiska texten laddas alltid från `legal_text_versions` via `textVersionId`. Frontend-text litas **aldrig** på.
 - Ett låst snapshot skapas och en riktig rad i `powers_of_attorney` skrivs med `signer_name`, `signer_identity_number`, `method`, `evidence_payload`, `scope`, `source = website_api`.
-- Ett oföränderligt fullmaktsdokument genereras och länkas via `document_id`.
-- Händelser skrivs i `power_of_attorney_events` (`created`, `accepted`, `pdf_generated`).
-- `consents.power_of_attorney: true` accepteras fortsatt för bakåtkompatibilitet, men ett strukturerat objekt rekommenderas.
+- För **automatisk** nätägarkommunikation krävs en strukturerad fullmakt med `signerName`, `signerIdentityNumber` och `method`. Saknas dessa (eller om endast `consents.power_of_attorney: true` skickas utan att kundidentitet kan härledas) skapas den juridiska accepten, men fullmakten markeras som **inte externt sändbar** (`externally_sendable: false`, `requires_completion: true`). En svag fullmakt skapas alltså aldrig som externt användbar.
+- Ett oföränderligt **JSON-snapshot** lagras internt i `customer_documents` (`mime_type application/json`) och länkas via `document_id`/`internal_snapshot_document_id`. Detta JSON-snapshot är **enbart internt** – extern e-post till nätägaren bifogar alltid en PDF (renderad eller uppladdad signerad PDF), aldrig JSON.
+- Händelser skrivs i `power_of_attorney_events`: `created`, `accepted` och `snapshot_created` (det interna JSON-snapshotet). `pdf_generated` skrivs **endast** när en riktig PDF genereras för extern kommunikation, följt av `attached_to_email`.
+- `consents.power_of_attorney: true` accepteras fortsatt för bakåtkompatibilitet (juridisk accept), men ett strukturerat objekt krävs för att fullmakten ska kunna skickas automatiskt till nätägaren.
 
 ### Saknat anläggnings-ID (`facility_id`)
 
@@ -178,8 +192,35 @@ Manuell e-post skickas **aldrig** från `ediel@gridex.se`. Om ingen manuell brev
 
 ### Asynkron sändning och inkommande svar
 
-- Manuell e-post skickas inte synkront i API-svaret. Orchestratorn köar en rad i `manual_email_outbox` (status `manual_email_queued`); en intern cron-arbetare (`/api/internal/manual-email/outbox/process`, skyddad med `CRON_SECRET`) skickar via konfigurerad avsändare. UI skickar aldrig e-post direkt.
-- Nätägarsvar tas emot antingen via webhook (`/api/webhooks/manual-inbound`) eller via IMAP-cron mot den manuella brevlådan (`/api/internal/manual-inbound/cron`, skyddad med `MANUAL_INBOUND_CRON_SECRET`/`CRON_SECRET`). Svar matchas mot öppen begäran via `GX-FIR`-ärendenummer; tenant härleds alltid från begäran, aldrig från brevlådan. Osäkra/ambiguösa svar auto-appliceras aldrig (status `needs_review`).
+- Manuell e-post skickas inte synkront i API-svaret. Orchestratorn köar en rad i `manual_email_outbox` (status `manual_email_queued`); en intern cron-arbetare skickar via konfigurerad avsändare. UI skickar aldrig e-post direkt.
+- När en `manual_email_outbox`-rad skickas (`status = sent`) sätts den länkade begäran till `status = waiting_manual_response` och `dispatch_status = waiting_response` med `sent_at`. En skickad rad lämnar **aldrig** begäran kvar med `dispatch_status = not_started` (en backfill reparerar historiska rader).
+- Nätägarsvar tas emot antingen via webhook (`/api/webhooks/manual-inbound`) eller via IMAP-cron mot den manuella brevlådan. Svar matchas mot öppen begäran via `GX-FIR`-ärendenummer; tenant härleds alltid från begäran, aldrig från brevlådan. Osäkra/ambiguösa svar auto-appliceras aldrig (status `needs_review`).
+
+### Interna cron-endpoints och autentisering
+
+Alla interna cron-endpoints kräver ett delat hemligt token via `Authorization: Bearer <token>` eller `x-cron-secret: <token>` (manuell inbound accepterar även `x-manual-inbound-secret`).
+
+```txt
+POST /api/internal/customer-operations/cron      CUSTOMER_OPERATION_CRON_SECRET | CRON_SECRET
+POST /api/internal/manual-email/outbox/process   MANUAL_EMAIL_OUTBOX_CRON_SECRET | EMAIL_OUTBOX_CRON_SECRET | CRON_SECRET
+POST /api/internal/manual-inbound/cron           MANUAL_INBOUND_CRON_SECRET | CRON_SECRET (även x-manual-inbound-secret)
+```
+
+Bolag (`company_id`) härleds alltid internt – manuell inbound avvisar `company_id`-override med 400.
+
+### Resend-webhook (leveransstatus) och felsökning
+
+Manuell e-post levereransspåras via Resend-webhooken `POST /api/webhooks/resend`.
+
+- Verifieras alltid mot **rå** request-body med Svix-huvuden (`webhook-id`/`webhook-timestamp`/`webhook-signature`) och `RESEND_WEBHOOK_SECRET`.
+- Felklasser (diagnostik):
+  - `missing_headers` (400) – Svix-huvuden saknas.
+  - `missing_secret` (500) – `RESEND_WEBHOOK_SECRET` saknas i miljön.
+  - `resend_webhook_invalid_signature` (401) – signaturen matchar inte.
+  - `event_processing_failed` (500) – signaturen var giltig men efterbearbetning misslyckades (returnerar **aldrig** 401 efter verifierad signatur).
+- Webhooken uppdaterar `manual_email_outbox.delivery_status` (`sent`/`delivered`/`delivery_delayed`/`bounced`/`complained`/`failed`/`suppressed`). Matchning sker på `provider_message_id`. Provider-eventet lagras i `communication_log_events` och får `company_id` från `manual_email_outbox` även när det inte finns någon `communication_log`.
+- Negativ leverans (`bounced`/`complained`/`failed`/`suppressed`) sätter den länkade begäran till `needs_review` med tenant-meddelandet: `E-post till nätägaren kunde inte levereras. Kontrollera kontaktväg.`
+- Manuell `curl` utan giltiga Svix-huvuden misslyckas **avsiktligt** (401). Använd Resend-dashboardens testevent. `RESEND_WEBHOOK_SECRET` måste vara den exakta signeringshemligheten för exakt den endpoint som används, och Vercel måste deployas om efter att miljövariabeln ändrats.
 
 ### Operativt svar (`nextAction` / `manualInformationRequest`)
 
@@ -198,7 +239,10 @@ Svaret innehåller endast **operativ status** – aldrig tekniska Ediel-detaljer
 
 Möjliga `nextAction.code`:
 
+- `missing_customer_identity` – kundens person-/organisationsnummer saknas och måste kompletteras innan fullmakt kan skickas externt.
+- `missing_customer_details` – kundnamn eller andra obligatoriska kunduppgifter saknas.
 - `power_of_attorney_required` – fullmakt skapades inte / saknas.
+- `poa_not_externally_sendable` – fullmakt finns men saknar signeringsuppgifter (namn/identitet/metod) och kan inte skickas automatiskt till nätägaren. Komplettera med strukturerad `powerOfAttorney`.
 - `grid_owner_contact_required` – nätägarens kontaktväg saknas.
 - `manual_mailbox_required` – ingen manuell operationsbrevlåda är konfigurerad (lägg till avsändaradress i superadmin).
 - `facility_identifier_requested` – manuell e-postbegäran köad (anläggnings-ID saknas).
@@ -263,9 +307,9 @@ Adminytor:
 ```txt
 /admin/facility-requests
 /admin/work-queue
-/admin/customers/[id]?tab=data-requests
-/admin/customers/[id]?tab=authorization-documents
-/admin/customers/[id]?tab=switch-operations
+/admin/customers/[id]#data-requests
+/admin/customers/[id]#avtal
+/admin/customers/[id]#leverantorsbyte
 ```
 
 Statusar:
