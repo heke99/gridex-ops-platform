@@ -200,7 +200,7 @@ async function findValidPowerOfAttorney(input: {
 }): Promise<JsonRecord | null> {
   const { data, error } = await supabaseService
     .from('powers_of_attorney')
-    .select('id,status,scope,scope_summary,site_id,customer_site_id,valid_until,fullmakt_snapshot,evidence_payload,document_id,signer_name,document_path,reference')
+    .select('id,status,scope,scope_summary,site_id,customer_site_id,valid_until,fullmakt_snapshot,evidence_payload,document_id,document_path,reference,signer_name,signer_identity_number,method,accepted_at,signed_at,legal_text_version_id,source')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .in('status', ['signed', 'active', 'accepted'])

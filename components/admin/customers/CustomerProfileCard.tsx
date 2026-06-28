@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useActionState, useMemo, useState } from 'react'
 import {
  archiveCustomerAction,
  closeCustomerLifecycleAction,
@@ -8,6 +8,36 @@ import {
  markCustomerAsTestDataAction,
  saveCustomerProfileAction,
 } from '@/app/admin/customers/[id]/profile-actions'
+import {
+ IDLE_CUSTOMER_ACTION_STATE,
+ type CustomerActionState,
+} from '@/app/admin/customers/[id]/customer-action-state'
+
+function ActionBanner({ state }: { state: CustomerActionState }) {
+ if (state.status === 'error') {
+ return (
+ <p
+ role="alert"
+ className="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"
+ >
+ {state.message ?? 'Åtgärden kunde inte slutföras.'}
+ </p>
+ )
+ }
+
+ if (state.status === 'success') {
+ return (
+ <p
+ role="status"
+ className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"
+ >
+ {state.message ?? 'Åtgärden slutfördes.'}
+ </p>
+ )
+ }
+
+ return null
+}
 
 type CustomerProfile = {
  id: string
@@ -41,6 +71,26 @@ export default function CustomerProfileCard({
 }) {
  const [customerType, setCustomerType] = useState(customer.customer_type ?? 'private')
 
+ const [saveState, saveAction] = useActionState(
+ saveCustomerProfileAction,
+ IDLE_CUSTOMER_ACTION_STATE,
+ )
+ const [lifecycleState, lifecycleAction] = useActionState(
+ closeCustomerLifecycleAction,
+ IDLE_CUSTOMER_ACTION_STATE,
+ )
+ const [testDataState, testDataAction] = useActionState(
+ markCustomerAsTestDataAction,
+ IDLE_CUSTOMER_ACTION_STATE,
+ )
+ const [archiveState, archiveAction] = useActionState(
+ archiveCustomerAction,
+ IDLE_CUSTOMER_ACTION_STATE,
+ )
+ const [deleteState, deleteAction] = useActionState(
+ deleteCustomerForRecreateAction,
+ IDLE_CUSTOMER_ACTION_STATE,
+ )
 
  const helperText = useMemo(() => {
  if (customerType === 'business') {
@@ -78,8 +128,11 @@ export default function CustomerProfileCard({
  </div>
  ) : null}
 
- <form action={saveCustomerProfileAction} className="mt-6 grid gap-4 md:grid-cols-2">
+ <form action={saveAction} className="mt-6 grid gap-4 md:grid-cols-2">
  <input type="hidden" name="customer_id" value={customer.id} />
+ <div className="md:col-span-2">
+ <ActionBanner state={saveState} />
+ </div>
 
  <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">Kundtyp</span>
@@ -238,7 +291,7 @@ export default function CustomerProfileCard({
  ) : null}
 
  <form
- action={closeCustomerLifecycleAction}
+ action={lifecycleAction}
  onSubmit={(event) => {
  if (!window.confirm('Registrera flytt/avslut? Kunden raderas inte, men aktiva flöden och avtal mjukt avslutas.')) {
  event.preventDefault()
@@ -247,6 +300,9 @@ export default function CustomerProfileCard({
  className="mt-5 grid gap-4 md:grid-cols-2"
  >
  <input type="hidden" name="customer_id" value={customer.id} />
+ <div className="md:col-span-2">
+ <ActionBanner state={lifecycleState} />
+ </div>
 
  <label className="grid gap-1 text-sm">
  <span className="text-emerald-900 ">Åtgärd</span>
@@ -309,8 +365,9 @@ export default function CustomerProfileCard({
  <p className="mt-1 text-sm leading-6 text-amber-900/80 ">
  Markera bara felaktiga testposter som testdata. Testkunder och testanläggningar ska döljas från ordinarie drift, fakturering och leverantörsbytesköer.
  </p>
- <form action={markCustomerAsTestDataAction} className="mt-4 grid gap-3">
+ <form action={testDataAction} className="mt-4 grid gap-3">
  <input type="hidden" name="customer_id" value={customer.id} />
+ <ActionBanner state={testDataState} />
  <label className="grid gap-1 text-sm">
  <span className="text-amber-950 ">Intern orsak</span>
  <input
@@ -331,7 +388,7 @@ export default function CustomerProfileCard({
  Använd arkivering för kunder som inte ska visas i ordinarie listor men där historik, avtal, fullmakter, mätvärden eller fakturaunderlag måste sparas.
  </p>
  <form
- action={archiveCustomerAction}
+ action={archiveAction}
  onSubmit={(event) => {
  if (!window.confirm('Arkivera kunden? Kunden raderas inte och historiken sparas.')) {
  event.preventDefault()
@@ -340,6 +397,7 @@ export default function CustomerProfileCard({
  className="mt-4 grid gap-3"
  >
  <input type="hidden" name="customer_id" value={customer.id} />
+ <ActionBanner state={archiveState} />
  <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">Orsak</span>
  <input
@@ -372,7 +430,7 @@ export default function CustomerProfileCard({
  Permanent radering är endast tillåten för testdata/felregistreringar som saknar avtal, fakturor, Ediel-meddelanden, partnerexport och leverantörsbyten. Verkliga kunder ska arkiveras eller anonymiseras enligt retention/GDPR-process.
  </p>
  <form
- action={deleteCustomerForRecreateAction}
+ action={deleteAction}
  onSubmit={(event) => {
  if (!window.confirm('Radera testkunden permanent? Detta kan inte ångras.')) {
  event.preventDefault()
@@ -381,6 +439,9 @@ export default function CustomerProfileCard({
  className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]"
  >
  <input type="hidden" name="customer_id" value={customer.id} />
+ <div className="md:col-span-2">
+ <ActionBanner state={deleteState} />
+ </div>
  <label className="grid gap-1 text-sm">
  <span className="text-red-700 ">Skriv RADERA för att bekräfta</span>
  <input

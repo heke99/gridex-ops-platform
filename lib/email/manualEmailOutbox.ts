@@ -54,9 +54,15 @@ function toAttachments(value: unknown): EmailAttachment[] {
     .filter((entry): entry is EmailAttachment => Boolean(entry))
 }
 
-async function advanceLinkedRequest(requestId: string | null) {
+async function advanceLinkedRequest(
+  requestId: string | null,
+  info?: { outboxId?: string | null; providerMessageId?: string | null },
+) {
   if (!requestId) return
   const now = new Date().toISOString()
+
+  // Primary transition: move the request into the manual waiting state when it
+  // is in one of the expected pre-send statuses.
   await supabaseService
     .from('grid_owner_information_requests')
     .update({
@@ -68,6 +74,46 @@ async function advanceLinkedRequest(requestId: string | null) {
     .eq('id', requestId)
     .in('status', ['manual_email_queued', 'ready_to_send_manual_email', 'manual_email_sent'])
     .then(() => undefined, () => undefined)
+
+  // Safety net: a sent outbox row must NEVER leave the linked request with
+  // dispatch_status = 'not_started', regardless of the request status value.
+  await supabaseService
+    .from('grid_owner_information_requests')
+    .update({
+      dispatch_status: 'waiting_response',
+      sent_at: now,
+      updated_at: now,
+    })
+    .eq('id', requestId)
+    .eq('dispatch_status', 'not_started')
+    .then(() => undefined, () => undefined)
+
+  // Record the outbox linkage / send info in request metadata (best-effort).
+  if (info?.outboxId || info?.providerMessageId) {
+    const { data: current } = await supabaseService
+      .from('grid_owner_information_requests')
+      .select('metadata')
+      .eq('id', requestId)
+      .maybeSingle()
+    const baseMetadata =
+      current && typeof current.metadata === 'object' && current.metadata !== null
+        ? (current.metadata as Record<string, unknown>)
+        : {}
+    await supabaseService
+      .from('grid_owner_information_requests')
+      .update({
+        metadata: {
+          ...baseMetadata,
+          manual_email_outbox_id: info.outboxId ?? baseMetadata.manual_email_outbox_id ?? null,
+          manual_email_provider_message_id:
+            info.providerMessageId ?? baseMetadata.manual_email_provider_message_id ?? null,
+          manual_email_sent_at: now,
+        },
+        updated_at: now,
+      })
+      .eq('id', requestId)
+      .then(() => undefined, () => undefined)
+  }
 }
 
 export async function processManualEmailOutbox(input?: {
@@ -177,7 +223,10 @@ export async function processManualEmailOutbox(input?: {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-      await advanceLinkedRequest(clean(row.request_id))
+      await advanceLinkedRequest(clean(row.request_id), {
+        outboxId: clean(id),
+        providerMessageId: clean(sent.providerMessageId),
+      })
       result.sent += 1
     } catch (sendError) {
       const attempts = Number(row.attempts ?? 0) + 1

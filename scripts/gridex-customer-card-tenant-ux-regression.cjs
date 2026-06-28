@@ -34,15 +34,18 @@ for (const forbidden of [
   assert(!page.includes(forbidden), `customer page does not contain ${forbidden}`)
 }
 
-assert(page.includes('"technical-details"'), 'platform technical details tab exists')
-assert(page.includes('const tenantTabs: CustomerWorkspaceTab[]'), 'tenant tabs are explicitly limited')
+assert(page.includes('"technical-details"'), 'platform technical details tab id exists for legacy mapping')
+assert(page.includes('TENANT_CUSTOMER_WORKSPACE_TAB_IDS'), 'tenant view is explicitly limited to a tenant tab id set')
 for (const tab of ['"overview"', '"legal-readiness"', '"sites"', '"switch-operations"', '"billing-metering"', '"notes"']) {
   assert(page.includes(tab), `tenant navigation includes ${tab}`)
 }
 assert(!page.includes('const groups = ["Start", "Drift", "Kunddata", "Historik"]'), 'tenant navigation no longer renders grouped workspace blocks')
 assert(!page.includes('CustomerWebsiteTraceabilityCard\n          customer={customer}\n          applications'), 'website traceability is not mounted before the customer tabs')
-assert(page.includes('activeTab === "technical-details"'), 'technical panels are isolated under technical details')
-assert(page.includes('title="Tekniska detaljer"'), 'technical details tab has a single diagnostic area')
+// One-page migration: technical diagnostics are isolated in a single collapsed
+// section under the #tekniskt anchor, gated to platform admins. There is no
+// tab-panel switching driving section visibility anymore.
+assert(page.includes('id="tekniskt"'), 'platform technical diagnostics live under the #tekniskt anchor')
+assert(page.includes('Teknisk diagnostik'), 'technical diagnostics are isolated in a single collapsed section')
 
 assert(registry.includes('targetTab?:'), 'action registry uses target tabs instead of raw href anchors')
 assert(!registry.includes("href: '#"), 'action registry does not use hash anchors')

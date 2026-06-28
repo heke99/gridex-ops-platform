@@ -148,6 +148,9 @@ async function storeProviderEvent(input: {
   headers: ResendWebhookHeaders
   providerMessageId: string | null
   log: CommunicationLog | null
+  // Fallback tenant when there is no communication_log (manual grid-owner email
+  // matched only by provider_message_id in manual_email_outbox).
+  fallbackCompanyId?: string | null
 }) {
   const { data: existing, error: existingError } = await supabaseService
     .from('communication_log_events')
@@ -162,7 +165,7 @@ async function storeProviderEvent(input: {
   const { error } = await supabaseService
     .from('communication_log_events')
     .insert({
-      company_id: input.log?.company_id ?? null,
+      company_id: input.log?.company_id ?? input.fallbackCompanyId ?? null,
       communication_log_id: input.log?.id ?? null,
       provider: 'resend',
       provider_message_id: input.providerMessageId,
@@ -242,26 +245,31 @@ type ManualOutboxRow = {
   status: string | null
 }
 
-// Maps a Resend email event to a manual_email_outbox delivery status update and
-// (on negative delivery) flags the linked grid-owner information request for
-// review so the tenant knows the contact path must be checked.
-async function applyManualOutboxStatus(
-  event: WebhookEventPayload,
+// Looks up the manual_email_outbox row for a provider message id. Tolerant of
+// missing schema so the webhook never fails in older environments.
+async function findManualOutboxByProviderMessageId(
   providerMessageId: string | null,
-): Promise<string | null> {
+): Promise<ManualOutboxRow | null> {
   if (!providerMessageId) return null
-
   const { data, error } = await supabaseService
     .from('manual_email_outbox')
     .select('id,company_id,request_id,status')
     .eq('provider_message_id', providerMessageId)
     .maybeSingle()
   if (error) {
-    // Table/column may be missing in older environments; never fail the webhook.
     if (isMissingSchema(error)) return null
     throw error
   }
-  const row = (data as ManualOutboxRow | null) ?? null
+  return (data as ManualOutboxRow | null) ?? null
+}
+
+// Maps a Resend email event to a manual_email_outbox delivery status update and
+// (on negative delivery) flags the linked grid-owner information request for
+// review so the tenant knows the contact path must be checked.
+async function applyManualOutboxStatus(
+  event: WebhookEventPayload,
+  row: ManualOutboxRow | null,
+): Promise<string | null> {
   if (!row) return null
 
   const eventType = String(event.type)
@@ -386,9 +394,24 @@ export async function processResendWebhookEvent(
     processingWarning = `communication_log_lookup_failed: ${error instanceof Error ? error.message : 'unknown'}`
   }
 
+  // Resolve the manual outbox row up-front so the stored provider event can be
+  // attributed to a company even when there is no communication_log.
+  let manualOutbox: ManualOutboxRow | null = null
+  try {
+    manualOutbox = await findManualOutboxByProviderMessageId(providerMessageId)
+  } catch (error) {
+    processingWarning = `manual_outbox_lookup_failed: ${error instanceof Error ? error.message : 'unknown'}`
+  }
+
   // Always store the provider event idempotently first, even for unknown event
   // types. Storage failure is the only thing that should bubble up.
-  await storeProviderEvent({ event, headers, providerMessageId, log })
+  await storeProviderEvent({
+    event,
+    headers,
+    providerMessageId,
+    log,
+    fallbackCompanyId: manualOutbox?.company_id ?? null,
+  })
 
   // Post-processing (status application) must never turn a valid, stored event
   // into an error response. Collect warnings instead.
@@ -400,7 +423,7 @@ export async function processResendWebhookEvent(
       processingWarning = `communication_status_failed: ${error instanceof Error ? error.message : 'unknown'}`
     }
     try {
-      matchedManualOutboxId = await applyManualOutboxStatus(event, providerMessageId)
+      matchedManualOutboxId = await applyManualOutboxStatus(event, manualOutbox)
     } catch (error) {
       processingWarning = `manual_outbox_status_failed: ${error instanceof Error ? error.message : 'unknown'}`
     }

@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+// Regression: real tenant simplification of the customer card.
+//
+// Proves the customer card is ONE structured anchor-based page (not tab-driven)
+// and that the tenant view never leaks technical Ediel/provider identifiers.
+
 const fs = require('fs')
 const path = require('path')
 
@@ -14,67 +19,57 @@ const assert = (condition, message) => {
 }
 
 const page = read('app/admin/customers/[id]/page.tsx')
-const business = read('components/admin/customers/CustomerBusinessActionsCard.tsx')
-const registry = read('lib/customer-operations/customerActionRegistry.ts')
-const actions = read('lib/customer-operations/customerBusinessActions.ts')
-const dataRequests = read('components/admin/customers/CustomerDataRequestsCard.tsx')
-const switchCard = read('components/admin/customers/CustomerSwitchOperationsCard.tsx')
-const switchCreate = read('components/admin/customers/CustomerSwitchCreatePanel.tsx')
-const billing = read('components/admin/customers/CustomerBillingMeteringCard.tsx')
+const anchors = read('lib/customer-operations/customerCardAnchors.ts')
+const legacyRedirect = read('components/admin/customers/CustomerCardLegacyTabRedirect.tsx')
 const tenantView = read('lib/customer-operations/customerCardTenantView.ts')
 
-for (const forbidden of [
-  'Kundens arbetsyta',
-  'Kundnummer och externa kopplingar',
-  'Kundrelation och externa kopplingar',
-  'Snabbstatus',
-  'OPS är master',
-  'Ops är master',
+// 1) One-page anchor navigation: all required anchors exist.
+for (const anchor of [
+  '#overview',
+  '#avtal',
+  '#anlaggning',
+  '#data-requests',
+  '#leverantorsbyte',
+  '#fakturering',
+  '#anteckningar',
+  '#tekniskt',
 ]) {
-  assert(!page.includes(forbidden), `customer page does not contain ${forbidden}`)
+  assert(page.includes(anchor), `quick navigation exposes ${anchor} anchor`)
 }
 
-assert(page.includes('"technical-details"'), 'platform technical details tab exists')
-assert(page.includes('const tenantTabs: CustomerWorkspaceTab[]'), 'tenant tabs are explicitly limited')
-for (const tab of ['"overview"', '"legal-readiness"', '"sites"', '"switch-operations"', '"billing-metering"', '"notes"']) {
-  assert(page.includes(tab), `tenant navigation includes ${tab}`)
+// 2) Tab navigation is no longer the primary UX.
+assert(!page.includes('function CustomerWorkspaceTabNav'), 'dead CustomerWorkspaceTabNav component is removed')
+assert(!page.includes('?tab='), 'customer page generates no ?tab= links (anchors only)')
+
+// 3) Legacy ?tab= deep links are mapped to anchors (not broken).
+assert(anchors.includes('customerCardAnchor'), 'shared anchor mapping helper exists')
+assert(anchors.includes('leverantorsbyte') && anchors.includes('anlaggning'), 'anchor map covers switch + facility anchors')
+assert(anchors.includes('supplier-switch') && anchors.includes('facility:'), 'anchor map maps legacy supplier-switch + facility tab ids')
+assert(page.includes('customerCardAnchor(') && page.includes('customerTabHref'), 'deep-link href resolves through the anchor map')
+assert(legacyRedirect.includes("searchParams.delete('tab')") && legacyRedirect.includes('scrollIntoView'), 'legacy ?tab= is mapped to an anchor and the param is cleaned')
+assert(page.includes('CustomerCardLegacyTabRedirect'), 'page mounts the legacy tab redirect helper')
+
+// 4) Heavy / technical data is gated to platform admins (tenant page stays light).
+for (const flag of [
+  'const needsEdielData = isPlatformAdmin',
+  'const needsAuditLogs = isPlatformAdmin',
+  'const needsCommunicationLogs = isPlatformAdmin',
+  'const needsPowerScopes = isPlatformAdmin',
+]) {
+  assert(page.includes(flag), `tenant page does not fetch heavy data: ${flag}`)
 }
-assert(!page.includes('const groups = ["Start", "Drift", "Kunddata", "Historik"]'), 'tenant navigation no longer renders grouped workspace blocks')
-assert(!page.includes('CustomerWebsiteTraceabilityCard\n          customer={customer}\n          applications'), 'website traceability is not mounted before the customer tabs')
-assert(page.includes('activeTab === "technical-details"'), 'technical panels are isolated under technical details')
-assert(page.includes('title="Tekniska detaljer"'), 'technical details tab has a single diagnostic area')
 
-assert(registry.includes('targetTab?:'), 'action registry uses target tabs instead of raw href anchors')
-assert(!registry.includes("href: '#"), 'action registry does not use hash anchors')
-assert(registry.includes("id: 'request_grid_owner_information'"), 'registry owns grid-owner information action')
-assert(registry.includes("id: 'start_supplier_switch'"), 'registry owns supplier switch action')
-assert(!actions.includes("'metering_values_ingestion'"), 'metering ingestion is not a tenant action')
-assert(!actions.includes("'billing_partner_export'"), 'billing partner export is not a tenant action')
-
-assert(business.includes('const primaryAction = actions.find'), 'business card resolves one primary action')
-assert(!business.includes('secondaryActions.length'), 'business card no longer renders secondary link groups for tenant')
-assert(!business.includes('href={card.href ??'), 'business status cards are not large clickable duplicate buttons')
-assert(!business.includes('businessActionPlan.filter((action) => action.showToTenant).map'), 'business card does not render all actions at once')
-
-assert(dataRequests.includes('isPlatformAdmin ? (') && dataRequests.includes('Avancerad uppgiftsbegäran'), 'advanced data request tools are platform-admin gated')
-assert(!page.includes('activeTab === "data-requests"') || page.includes('technical-details'), 'data requests are no longer part of tenant navigation')
-
-assert(switchCard.includes('allowTenantStartSwitch'), 'switch card respects the central decision before showing start form')
-assert(switchCard.includes('Leverantörsbyte kan startas när uppgifter från nätägare'), 'switch tab explains waiting state instead of showing duplicate start button')
-assert(!switchCreate.includes('Skapa switchärende'), 'switch create panel does not show Skapa switchärende')
-assert(!switchCreate.includes('Manuell / specialfall'), 'tenant switch form no longer exposes manual special-case direction')
-assert(!switchCreate.includes('Markera som vår leverantör'), 'tenant switch form hides supplier maintenance controls')
-
-const tenantBillingBranch = billing.slice(billing.indexOf('if (!isPlatformAdmin)'), billing.indexOf('return (\n <section className="grid gap-6', billing.indexOf('if (!isPlatformAdmin)')))
-assert(tenantBillingBranch.includes('Fakturering'), 'billing card keeps simple tenant billing title')
-assert(!tenantBillingBranch.includes('CustomerTimelinePanel'), 'tenant billing branch hides timeline panel')
-assert(!tenantBillingBranch.includes('CustomerBillingUnderlaysPanel'), 'tenant billing branch hides underlay detail panel')
-assert(!tenantBillingBranch.includes('Begär mätvärden'), 'tenant billing branch has no manual metering button')
-assert(!tenantBillingBranch.includes('Export: mätvärden'), 'tenant billing branch has no manual export button')
-
-assert(tenantView.includes('TenantCustomerCardView'), 'tenant customer card view model exists')
-assert(tenantView.includes('primaryAction'), 'tenant view model has one primary action')
-assert(tenantView.includes('processSteps'), 'tenant view model has process steps')
+// 5) No technical leakage in the tenant view model (operational sections).
+for (const leak of [
+  'provider_message_id',
+  'route_profile_id',
+  'UNB',
+  'UNH',
+  'smtp',
+  'imap',
+]) {
+  assert(!tenantView.includes(leak), `tenant view model has no technical token: ${leak}`)
+}
 
 if (process.exitCode) process.exit(process.exitCode)
-console.log('Customer card tenant UX regression passed')
+console.log('Customer card real tenant simplification regression passed')
