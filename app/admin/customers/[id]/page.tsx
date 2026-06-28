@@ -53,6 +53,8 @@ import CustomerSwitchOperationsCard from "@/components/admin/customers/CustomerS
 import CustomerContractsCard from "@/components/admin/customers/CustomerContractsCard";
 import CustomerContactsAddressesCard from "@/components/admin/customers/CustomerContactsAddressesCard";
 import CustomerProfileCard from "@/components/admin/customers/CustomerProfileCard";
+import CustomerCardLegacyTabRedirect from "@/components/admin/customers/CustomerCardLegacyTabRedirect";
+import { customerCardAnchor } from "@/lib/customer-operations/customerCardAnchors";
 import CustomerGridOwnerFileImportCard from "@/components/admin/customers/CustomerGridOwnerFileImportCard";
 import CustomerContractOfferEligibilityCard from "@/components/admin/customers/CustomerContractOfferEligibilityCard";
 import CustomerOperationsReadinessStrip from "@/components/admin/customers/CustomerOperationsReadinessStrip";
@@ -613,7 +615,9 @@ function customerTabHref(
   customerId: string,
   tab: CustomerWorkspaceTab,
 ): string {
-  return `/admin/customers/${customerId}?tab=${tab}`;
+  // The customer card is one structured page: deep links resolve to in-page
+  // anchors instead of tab query params.
+  return `/admin/customers/${customerId}#${customerCardAnchor(tab)}`;
 }
 
 function CustomerLookupProblem({
@@ -656,69 +660,6 @@ function CustomerLookupProblem({
         </div>
       </section>
     </div>
-  );
-}
-
-function CustomerWorkspaceTabNav({
-  customerId,
-  activeTab,
-  isPlatformAdmin,
-}: {
-  customerId: string;
-  activeTab: CustomerWorkspaceTab;
-  isPlatformAdmin: boolean;
-}) {
-  const tenantTabs: CustomerWorkspaceTab[] = [
-    "overview",
-    "legal-readiness",
-    "sites",
-    "switch-operations",
-    "billing-metering",
-    "notes",
-  ];
-  const platformTabs: CustomerWorkspaceTab[] = [
-    ...tenantTabs,
-    "technical-details",
-  ];
-  const visibleTabIds = isPlatformAdmin ? platformTabs : tenantTabs;
-  const visibleTabs = visibleTabIds
-    .map((id) => CUSTOMER_WORKSPACE_TABS.find((tab) => tab.id === id))
-    .filter((tab): tab is (typeof CUSTOMER_WORKSPACE_TABS)[number] => Boolean(tab))
-    // The Ediel technical operations tab is superadmin-only; never expose it to
-    // tenant admins (PART 13: tenants must not see raw Ediel diagnostics).
-    .filter((tab) => isPlatformAdmin || tab.id !== "ediel-operations")
-    .filter((tab) => canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin));
-
-  return (
-    <nav className="rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {visibleTabs.map((tab) => {
-            const isActive = tab.id === activeTab;
-            return (
-              <Link
-                key={tab.id}
-                href={customerTabHref(customerId, tab.id)}
-                title={tab.description}
-                className={`rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${
-                  isActive
-                    ? "border-emerald-300 bg-emerald-700 text-white shadow-sm "
-                    : "border-slate-300 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 "
-                }`}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
-        <Link
-          href="/admin/customers"
-          className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          Till kundregister
-        </Link>
-      </div>
-    </nav>
   );
 }
 
@@ -1633,7 +1574,7 @@ function CustomerWebsiteTraceabilityCard({
           </p>
         </div>
         <Link
-          href={`/admin/customers/${customer.id}?tab=communication`}
+          href={`/admin/customers/${customer.id}#tekniskt`}
           className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 "
         >
           Visa kommunikation
@@ -1855,6 +1796,11 @@ export default async function CustomerAdminDetailPage({
   const resolvedSearchParams = await searchParams;
   const editSiteId = resolvedSearchParams.editSite ?? null;
   const editMeteringPointId = resolvedSearchParams.editMeteringPoint ?? null;
+  const legacyTabParam =
+    typeof resolvedSearchParams.tab === "string" ? resolvedSearchParams.tab : null;
+  const legacyTabAnchor = legacyTabParam
+    ? customerCardAnchor(legacyTabParam)
+    : null;
   const requestedTab: CustomerWorkspaceTab = editSiteId
     ? "sites"
     : editMeteringPointId
@@ -2453,6 +2399,7 @@ export default async function CustomerAdminDetailPage({
 
   return (
     <div className="space-y-6">
+      <CustomerCardLegacyTabRedirect anchor={legacyTabAnchor} />
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
@@ -2915,7 +2862,7 @@ export default async function CustomerAdminDetailPage({
                     gridOwners={gridOwners}
                     priceAreas={priceAreas}
                     site={safeSelectedSite}
-                    cancelHref={`/admin/customers/${id}?tab=sites`}
+                    cancelHref={`/admin/customers/${id}#anlaggning`}
                   />
                   <CustomerSitesTable
                     customerId={id}
@@ -2944,7 +2891,7 @@ export default async function CustomerAdminDetailPage({
               gridOwners={gridOwners}
               priceAreas={priceAreas}
               meteringPoint={safeSelectedMeteringPoint}
-              cancelHref={`/admin/customers/${id}?tab=metering-points`}
+              cancelHref={`/admin/customers/${id}#anlaggning`}
             />
             <MeteringPointsTable
               customerId={id}
