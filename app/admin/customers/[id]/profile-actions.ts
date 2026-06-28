@@ -1373,10 +1373,9 @@ async function archiveCustomerImpl(
   const { error: sitesError } = await supabaseService
     .from("customer_sites")
     .update({
-      status: "archived",
-      archived_at: nowIso,
-      archived_by: actorUserId,
-      archive_reason: archiveReason,
+      status: "closed",
+      closed_at: nowIso,
+      closed_reason: archiveReason,
       updated_by: actorUserId,
     })
     .eq("company_id", companyId)
@@ -1397,10 +1396,9 @@ async function archiveCustomerImpl(
     const { error: pointsError } = await supabaseService
       .from("metering_points")
       .update({
-        status: "archived",
-        archived_at: nowIso,
-        archived_by: actorUserId,
-        archive_reason: archiveReason,
+        status: "closed",
+        closed_at: nowIso,
+        closed_reason: archiveReason,
         updated_by: actorUserId,
       })
       .eq("company_id", companyId)
