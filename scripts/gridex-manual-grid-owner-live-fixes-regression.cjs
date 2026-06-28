@@ -368,6 +368,67 @@ async function main() {
   ok(contactActions.includes('async function saveContactChannel') && !contactActions.includes('.upsert('), 'contact save uses safe select->update/insert (no unsafe upsert)')
   ok(contactActions.includes('requirePlatformAdminActionAccess'), 'platform defaults require platform admin')
 
+  // -------------------------------------------------------------------------
+  // 10) Post-live hardening: delete graph, POA select/events, outbox + webhook
+  // -------------------------------------------------------------------------
+  // Task F: findValidPowerOfAttorney selects every field needed by
+  // hasExternallySendablePoa and the PDF generator.
+  for (const field of [
+    'signer_identity_number',
+    'method',
+    'accepted_at',
+    'signed_at',
+    'legal_text_version_id',
+    'scope_summary',
+    'document_path',
+  ]) {
+    ok(orchestrator.includes(field), `findValidPowerOfAttorney select includes ${field}`)
+  }
+
+  // Task G: website POA records snapshot_created (not pdf_generated) for the JSON
+  // snapshot, and the migration allows the new event type.
+  ok(website.includes("event_type: 'snapshot_created'"), 'website JSON snapshot records snapshot_created event')
+  ok(website.includes('internal_snapshot_document_id'), 'website distinguishes the internal snapshot document id')
+  const poaMigration = read('supabase/migrations/20260628120000_gridex_poa_event_and_outbox_status_backfill.sql')
+  ok(poaMigration.includes("'snapshot_created'"), 'migration allows snapshot_created in power_of_attorney_events')
+
+  // Task D: identity aliases normalized to canonical columns + signer fallback.
+  for (const alias of ['personal_identity_number', 'identity_number', 'personnummer', 'organisationsnummer', 'orgnr']) {
+    ok(website.includes(alias), `website normalizes identity alias ${alias}`)
+  }
+  ok(website.includes('signerIdentityFallback') && website.includes('signerNameFallback'), 'POA uses customer identity/name as signer fallback')
+  ok(website.includes('externally_sendable') && website.includes('requires_completion'), 'response exposes POA external-sendability flags (weak POA)')
+
+  // Task H: a sent manual_email_outbox can never leave the request not_started.
+  const outbox = read('lib/email/manualEmailOutbox.ts')
+  ok(outbox.includes("dispatch_status: 'waiting_response'"), 'outbox advances request dispatch_status on send')
+  ok(outbox.includes(".eq('dispatch_status', 'not_started')"), 'outbox safety net repairs not_started after send')
+  ok(poaMigration.includes("coalesce(r.dispatch_status, 'not_started') = 'not_started'"), 'migration backfills sent outbox rows stuck at not_started')
+
+  // Task I: provider event stores company_id from the matched outbox even when
+  // there is no communication_log.
+  const webhookSrc = read('lib/email/resendWebhookEvents.ts')
+  ok(webhookSrc.includes('fallbackCompanyId') && webhookSrc.includes('findManualOutboxByProviderMessageId'), 'webhook attributes company_id from matched manual outbox')
+  ok(webhookSrc.includes('E-post till nätägaren kunde inte levereras. Kontrollera kontaktväg.'), 'negative delivery uses the required tenant message')
+
+  // Task A/B: delete/archive actions return controlled state and manual-flow
+  // history blocks permanent delete.
+  const profileActions = read('app/admin/customers/[id]/profile-actions.ts')
+  ok(profileActions.includes('CustomerActionState') && profileActions.includes('runCustomerCardAction'), 'customer actions return controlled action state')
+  ok(profileActions.includes('Kunden kunde inte raderas. Kunden har historik och ska arkiveras i stället.'), 'protected delete uses the required Swedish message')
+  ok(profileActions.includes('describeProtectedDeleteData'), 'delete uses a protected-history detector')
+  for (const table of [
+    'grid_owner_information_requests',
+    'manual_email_outbox',
+    'manual_inbound_messages',
+    'power_of_attorney_events',
+    'customer_documents',
+  ]) {
+    ok(profileActions.includes(table), `delete graph covers manual-flow table ${table}`)
+  }
+  ok(profileActions.includes('gridOwnerInformationRequestIds.length > 0') && profileActions.includes('manualEmailOutboxIds.length > 0'), 'manual grid-owner data blocks hard delete (protected detection)')
+  ok(profileActions.includes('isMissingSchemaError'), 'delete helpers tolerate missing schema/tables')
+
   if (failures > 0) {
     console.error(`\nManual grid-owner live fixes regression FAILED (${failures} failures)`)
     process.exit(1)
