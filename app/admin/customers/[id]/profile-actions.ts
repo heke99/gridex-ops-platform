@@ -13,16 +13,7 @@ import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { addCustomerContractEvent } from "@/lib/customer-contracts/db";
 import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates";
 import { logAdminActionAndUsage, logUsageEvent } from "@/lib/audit/actionLogger";
-
-export type CustomerActionState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  code?: string;
-};
-
-export const IDLE_CUSTOMER_ACTION_STATE: CustomerActionState = {
-  status: "idle",
-};
+import type { CustomerActionState } from "./customer-action-state";
 
 /**
  * Expected business blocker raised by a customer-card action. These are turned

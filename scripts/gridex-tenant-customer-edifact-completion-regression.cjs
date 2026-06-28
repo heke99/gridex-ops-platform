@@ -71,7 +71,13 @@ assert(/partial_geometry_coverage/.test(health) && /'ready'/.test(health), 'geod
 
 // Gap 6 — customer card role gating (already implemented; lock it)
 const customerCard = read('app/admin/customers/[id]/page.tsx')
-assert(/tab\.id !== "ediel-operations"/.test(customerCard), 'customer card hides Ediel technical operations tab from non-platform admins')
+// One-page migration: the tab nav was removed, but Ediel technical operations
+// stay platform-admin only via canShowCustomerWorkspaceTab and the platform-
+// gated "Teknisk diagnostik" section.
+assert(
+  /if \(tab === "ediel-operations"\)[\s\S]{0,80}return isPlatformAdmin/.test(customerCard),
+  'customer card keeps Ediel technical operations platform-admin only',
+)
 
 // Gap 9 — repair diagnostics
 assert(exists('supabase/migrations/20260622123000_operational_route_repair_diagnostics.sql'), 'operational route repair/diagnostics migration exists')

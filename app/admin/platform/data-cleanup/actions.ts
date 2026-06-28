@@ -5,12 +5,14 @@ import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import {
-  IDLE_CUSTOMER_ACTION_STATE,
   archiveCustomerAction,
   deleteCustomerForRecreateAction,
   markCustomerAsTestDataAction,
-  type CustomerActionState,
 } from '@/app/admin/customers/[id]/profile-actions'
+import {
+  IDLE_CUSTOMER_ACTION_STATE,
+  type CustomerActionState,
+} from '@/app/admin/customers/[id]/customer-action-state'
 
 function assertActionSucceeded(result: CustomerActionState) {
   if (result.status === 'error') {

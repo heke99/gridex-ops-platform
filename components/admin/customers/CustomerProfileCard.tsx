@@ -2,14 +2,16 @@
 
 import { useActionState, useMemo, useState } from 'react'
 import {
- IDLE_CUSTOMER_ACTION_STATE,
  archiveCustomerAction,
  closeCustomerLifecycleAction,
  deleteCustomerForRecreateAction,
  markCustomerAsTestDataAction,
  saveCustomerProfileAction,
- type CustomerActionState,
 } from '@/app/admin/customers/[id]/profile-actions'
+import {
+ IDLE_CUSTOMER_ACTION_STATE,
+ type CustomerActionState,
+} from '@/app/admin/customers/[id]/customer-action-state'
 
 function ActionBanner({ state }: { state: CustomerActionState }) {
  if (state.status === 'error') {
