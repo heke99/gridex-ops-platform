@@ -23,6 +23,25 @@ docs/ai-context/11_CURRENT_TASK.md
 supabase/migrations/20260612183000_ops_e_f_facility_work_queue_customer_cards.sql
 ```
 
+## Current status — Continuation hardening (intake/POA, customer-type, manual comms, portal, perf, docs)
+
+This batch is a continuation build (not a rebuild). It hardened the website
+customer-application intake (POA-required enforcement, dedicated
+`power_of_attorney` error stage/codes, idempotent-missing-POA, in-place
+partial/failed marking, `repairWebsiteCustomerApplication` + admin action,
+standard nested JSON error contract with `request_id`), canonicalized customer
+type via a shared `lib/customers/normalizeCustomerType.ts` + DB CHECK, ensured
+missing-facility intake uses the manual e-mail pipeline only (no parallel
+Ediel/Z01) with outbox-failure→request reconciliation, fixed the customer-portal
+invoice detail fallback, bounded two unbounded loaders, added loading skeletons,
+and rewrote/updated README + API docs.
+
+New migrations to apply: `20260629140000_website_application_partial_repaired_status.sql`,
+`20260629150000_customers_customer_type_canonicalization.sql`.
+
+Run after applying: build, typecheck, lint, `db:migrations:check`, `security:rbac`,
+and the website/legal/manual/customer-card regressions.
+
 ## Current status — OPS-J..N
 
 Remaining governance batch has been implemented at code level: platform admin owns pricing/agreement changes, customer-card lifecycle/testdata actions are audit/usage logged, platform cleanup page previews testdata candidates, and API docs are updated away from website-owned contract terms. Run SQL migration `20260612193000_ops_j_to_n_governance_audit_cleanup_docs.sql`, then build/regressions.

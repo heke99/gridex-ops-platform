@@ -154,7 +154,56 @@ Regler:
 - **Strukturerad fullmakt krävs för automatisk nätägarkommunikation.** För att fullmakten ska kunna skickas automatiskt krävs `powerOfAttorney.accepted=true` med `signerName`, `signerIdentityNumber` och `method`. Kundidentitet används inte som fallback för nya website-fullmakter. Ett strukturerat objekt med `accepted=true` men saknade signeringsfält returnerar `422 validation_error`. Endast `consents.power_of_attorney: true` ger en juridisk accept men en **svag** fullmakt som markeras `externally_sendable: false` / `requires_completion: true` och inte skickas externt.
 - Saknas `facility_id` renderas **ingen PRODAT Z01** och **ingen `ediel_outbox`** skapas. Finns en externt sändbar fullmakt + nätägarkontakt köas en **manuell e-postbegäran** och svaret innehåller `manualInformationRequest`.
 - Svaret returnerar operativ status via `nextAction` – aldrig tekniska Ediel-detaljer. Koder: `missing_customer_identity`, `missing_customer_details`, `power_of_attorney_required`, `poa_not_externally_sendable`, `grid_owner_contact_required`, `manual_mailbox_required`, `facility_identifier_requested`, `ready_for_switch`, `in_progress`.
-- Skicka `Idempotency-Key`; upprepade anrop/klick skapar inga dubbletter. Bolaget härleds från API-nyckeln, aldrig från payload.
+- **Fullmakt krävs när avtalet kräver det.** När det valda avtalet publicerar en `power_of_attorney`-version (`legal.power_of_attorney_required = true`) måste ett strukturerat `powerOfAttorney` med `accepted=true` skickas. Endast `consents.power_of_attorney: true` ger `422 power_of_attorney_missing`. `powerOfAttorney.accepted=false` ger `422 power_of_attorney_not_accepted`.
+- Skicka `Idempotency-Key`; upprepade anrop/klick skapar inga dubbletter. Bolaget härleds från API-nyckeln, aldrig från payload. Om ett tidigare anrop med samma `Idempotency-Key` lyckades utan fullmakt men det nya anropet innehåller `powerOfAttorney`, returneras `409 idempotent_application_missing_poa` (`error.action = retry_with_new_idempotency_key_or_repair`) — använd ny nyckel eller låt en admin reparera ansökan.
+
+## Kundtyp (kanoniska värden)
+
+Kundens identitet normaliseras alltid till `private` eller `business`. Följande
+alias accepteras inkommande och mappas automatiskt (annars `422 customer_type_invalid`):
+
+- `private` ← `private`, `privat`, `consumer`, `person`, `privatperson`, `individual`
+- `business` ← `business`, `company`, `foretag`, `företag`, `corporate`, `organization`, `organisation`, `enterprise`, `b2b`, `juridisk_person`
+
+Avtalstillgänglighet (`public_contract_offers.customer_type`) kan dessutom vara
+`both`, men det styr bara vilka erbjudanden som visas — inte kundens identitet.
+
+## Felformat (JSON-kontrakt)
+
+Alla API-fel returneras som JSON – aldrig som en HTML-sida. Standardformat:
+
+```json
+{
+  "error": {
+    "code": "power_of_attorney_missing",
+    "message": "Power of attorney is required for this contract.",
+    "stage": "power_of_attorney",
+    "field": "powerOfAttorney",
+    "request_id": "req_123"
+  }
+}
+```
+
+För bakåtkompatibilitet finns samma `code`, `field`, `error_stage`, `hint` och
+`request_id` även på toppnivå. Standardkoder för kundansökan:
+
+- `validation_error`
+- `unauthorized` / `api_scope_missing`
+- `public_contract_required` / `public_contract_not_available`
+- `customer_type_invalid`
+- `duplicate_facility_id` / `cross_tenant_facility_conflict`
+- `power_of_attorney_missing`
+- `power_of_attorney_not_accepted`
+- `power_of_attorney_version_missing`
+- `power_of_attorney_version_not_published`
+- `powers_of_attorney_schema_mismatch`
+- `idempotent_application_missing_poa`
+- `legal_acceptance_missing`
+- `website_application_failed` (internt fel)
+
+`error.stage` är ett av: `validation`, `customer_create`, `site_create`,
+`contract_create`, `legal_acceptance`, `power_of_attorney`, `facility_lookup`,
+`email_dispatch`, `public_contract_lookup`, `idempotency`, `internal_error`.
 
 
 ## Kundnummer, fakturering och Capway/Aptic
