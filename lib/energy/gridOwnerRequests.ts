@@ -150,6 +150,35 @@ async function existingOpenRequest(input: GridOwnerInformationRequestInput) {
   return data ?? null
 }
 
+// Detects an open MANUAL grid-owner information request for the same site. The
+// manual e-mail pipeline (requestMissingFacilityInformation) uses the request
+// type `facility_identifier_lookup` / channel `manual_email`. When such a
+// request is already open we must NOT create a parallel Ediel request for the
+// same facility lookup, otherwise the site would have two competing open
+// requests with different statuses.
+async function existingOpenManualRequest(input: GridOwnerInformationRequestInput) {
+  if (!input.customerSiteId) return null
+  const { data, error } = await supabaseService
+    .from('grid_owner_information_requests')
+    .select('id,status,channel')
+    .eq('company_id', input.companyId)
+    .eq('customer_site_id', input.customerSiteId)
+    .eq('channel', 'manual_email')
+    .in('status', [
+      'draft', 'ready_to_send', 'ready_to_send_manual_email', 'manual_email_queued',
+      'manual_email_sent', 'waiting_manual_response', 'manual_response_received', 'needs_review',
+    ])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+  return data ?? null
+}
+
 export async function ensureGridOwnerInformationRequest(input: GridOwnerInformationRequestInput): Promise<GridOwnerInformationRequestResult> {
   const warnings: string[] = []
   const gridAreaCode = normaliseGridAreaCode(input.gridAreaCode)
@@ -162,6 +191,20 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
       channel: null,
       nextStep: 'Nätområde eller nätägare saknas. Kör Energy Resolver eller granska ansökan manuellt först.',
       warnings: ['missing_grid_owner_context'],
+    }
+  }
+
+  // Missing-facility lookups belong to the manual e-mail pipeline. If a manual
+  // request is already open for this site, do not create a parallel Ediel
+  // request — the manual flow owns the conversation with the grid owner.
+  const manualOpen = await existingOpenManualRequest(input)
+  if (manualOpen) {
+    return {
+      requestId: null,
+      status: 'skipped',
+      channel: 'manual',
+      nextStep: 'En manuell nätägarbegäran pågår redan för anläggningen. Hantera den manuella förfrågan i stället för att skapa en Ediel-begäran.',
+      warnings: ['manual_request_in_progress'],
     }
   }
 

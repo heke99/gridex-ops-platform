@@ -3316,7 +3316,12 @@ export async function processWebsiteCustomerApplication(input: {
 
     const committedSiteId = site?.id ?? null
     const facilityMissing = Boolean(committedSiteId) && !site?.facility_id
-    const gridOwnerRequestMayBeCreated = readiness.canRequestGridOwnerInformation && (!facilityMissing || poaExternallySendable)
+    // Missing facility id must use MANUAL grid-owner communication only (handled
+    // in the nextAction block below via requestMissingFacilityInformation). It
+    // must never create the Ediel-channel grid_owner_information_request or the
+    // PRODAT Z01-first customer-data automation, which would race the manual
+    // request and produce a parallel open request for the same site.
+    const gridOwnerRequestMayBeCreated = readiness.canRequestGridOwnerInformation && !facilityMissing
 
     const gridOwnerRequest = gridOwnerRequestMayBeCreated
       ? await stage('grid_owner_information_request', () => ensureGridOwnerInformationRequest({
@@ -3331,7 +3336,7 @@ export async function processWebsiteCustomerApplication(input: {
         }))
       : null
 
-    if (committedSiteId && powerOfAttorneyId) {
+    if (committedSiteId && powerOfAttorneyId && !facilityMissing) {
       await stage('customer_data_automation', () => enqueueCustomerDataRequestAutomation({
         companyId: input.client.company_id,
         customerId: resolvedCustomerResult.customer.id,
