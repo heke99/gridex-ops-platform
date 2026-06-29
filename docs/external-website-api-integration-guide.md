@@ -177,8 +177,36 @@ POST /api/internal/manual-inbound/cron            Authorization: Bearer <MANUAL_
 
 Resend-webhook `POST /api/webhooks/resend` verifieras mot **rå** body + Svix-huvuden + `RESEND_WEBHOOK_SECRET`. Felklasser: `missing_headers` (400), `missing_secret` (500), `resend_webhook_invalid_signature` (401), `event_processing_failed` (500). Webhooken uppdaterar `manual_email_outbox.delivery_status`; negativ leverans sätter begäran till `needs_review`. Manuell `curl` utan Svix-huvuden misslyckas avsiktligt – använd Resend-dashboardens testevent och deploya om Vercel efter ändrad miljövariabel.
 
+## Juridik och fullmakt (legal bundle)
+
+OPS äger all juridik och fullmaktstext. Hämta tenantens juridiska krav via:
+
+- `GET /api/v1/website/public-contracts` – `legal`-objektet per avtal innehåller
+  `*_required`, `*_version_id` och `*_url` (publika OPS-länkar) för alla fem
+  juridiktyper inklusive `power_of_attorney`.
+- `GET /api/v1/website/legal-bundle` – fristående `{ tenant, legal }` (scope
+  `website_legal.read` eller `website_contracts.read`).
+
+Hemsidan ska:
+
+- läsa `power_of_attorney_required`, `power_of_attorney_version_id` och
+  `power_of_attorney_url` från OPS (gissa aldrig själv),
+- länka till `*_url` (OPS-hostade publika juridiksidor `/legal/{slug}/…`),
+- skicka tillbaka kundens acceptans som `powerOfAttorney` (camelCase) i
+  `POST /api/v1/website/customer-applications`,
+- aldrig generera egen fullmakts-/juridiktext.
+
+Svaret på en lyckad ansökan med fullmakt innehåller `power_of_attorney_id`,
+`power_of_attorney` (med `text_version_id` + `document_url`), `legal_acceptances`
+(id per typ) och `nextAction`. Saknas `power_of_attorney_id` när fullmakt krävs är
+svaret inte success.
+
+Se `docs/legal-power-of-attorney-platform.md` för fullständiga flöden, felkoder och
+fältbeskrivningar.
+
 ## Scopes
 
+- `website_legal.read` – hämta juridiskt paket (legal bundle)
 - `customer_portal.read` – hämta Mina sidor-data
 - `customer_portal.write` – skicka kompletteringar/sync
 - `customer_documents.read` – läsa dokument

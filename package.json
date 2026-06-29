@@ -105,6 +105,7 @@
     "gridex:manual-grid-owner-information-request-regression": "node scripts/gridex-manual-grid-owner-information-request-regression.cjs && node scripts/gridex-manual-grid-owner-live-fixes-regression.cjs",
     "gridex:manual-grid-owner-live-fixes-regression": "node scripts/gridex-manual-grid-owner-live-fixes-regression.cjs",
     "gridex:website-api-power-of-attorney-regression": "node scripts/gridex-website-api-power-of-attorney-regression.cjs",
+    "gridex:legal-poa-platform-hardening-regression": "node scripts/gridex-legal-poa-platform-hardening-regression.cjs",
     "gridex:inbound-facility-recognition-regression": "node scripts/gridex-inbound-facility-recognition-regression.cjs",
     "gridex:customer-process-next-step-regression": "node scripts/gridex-customer-process-next-step-regression.cjs",
     "gridex:route-readiness-process-sweep-regression": "node scripts/gridex-route-readiness-process-sweep-regression.cjs",
