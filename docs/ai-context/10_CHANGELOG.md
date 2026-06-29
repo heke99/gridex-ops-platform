@@ -2,6 +2,59 @@
 
 Use this file after every Cursor task.
 
+## 2026-06-29 — Continuation hardening: intake POA/errors, customer-type, manual comms, portal, docs
+
+### Website customer application intake (`lib/website/customerApplications.ts`, route)
+
+- New error stages `power_of_attorney`, `facility_lookup`, `email_dispatch`.
+- Structured `powerOfAttorney` is now **required** when the resolved contract
+  publishes a POA version (`power_of_attorney_required`) → `422 power_of_attorney_missing`.
+  `consents.power_of_attorney=true` alone is no longer sufficient.
+- Idempotent retry with a new `powerOfAttorney` over a prior result lacking one →
+  `409 idempotent_application_missing_poa` (`action: retry_with_new_idempotency_key_or_repair`).
+- Mid-pipeline failures (after the application row exists) now **update that row**
+  to `partial`/`failed` with `error_stage`/`error_code`/`error_message` and
+  `power_of_attorney_id = null` — no duplicate insert, no lingering false success.
+- `repairWebsiteCustomerApplication(applicationId)` helper + admin/platform-guarded
+  server action (`repairWebsiteApplicationPowerOfAttorneyAction`) to recreate a lost POA.
+- Route now returns the standard nested error contract
+  `{ error: { code, message, stage, field, request_id, action? } }` (legacy flat keys kept).
+- Migration `20260629140000`: allow `partial` and `repaired` application statuses.
+
+### Customer type canonicalization
+
+- New `lib/customers/normalizeCustomerType.ts` (single source of alias mapping);
+  website intake reuses it. Public-contracts filter, admin bulk import and external
+  intake now map business/association aliases correctly.
+- Migration `20260629150000`: normalize `customers.customer_type` and add CHECK
+  (`private|business|association`).
+
+### Manual grid-owner communication
+
+- Missing facility id routes through the manual e-mail pipeline only; website intake
+  no longer creates an Ediel grid-owner request or Z01-first automation in that case.
+- `ensureGridOwnerInformationRequest` skips when an open manual request exists for
+  the site (no parallel manual+Ediel rows).
+- Permanent `manual_email_outbox` failures move the linked request to
+  `needs_review`/`dispatch_status=failed` (request and outbox stay in sync).
+
+### Customer portal API
+
+- `GET /api/v1/customer/invoices/[id]` falls back to `invoice_export_items`/`pricing_runs`
+  like the list endpoint; adds `invoice_not_found` code.
+- Docs aligned (resolution order, full bundle sections, sub-endpoints, query params,
+  complete JSON error-code catalog); granular scopes marked planned.
+
+### Performance / docs
+
+- Bounded `listUnresolvedOutboundRequests` and `listAllGridOwnerDataRequests`;
+  added `loading.tsx` skeletons for `customers/[id]`, `messages`, `companies/[id]`.
+- Rewrote `README.md`; updated external-website + ops-intake API docs.
+
+### Verification
+
+- `npm run typecheck` and `npm run build` green; targeted regressions updated/added.
+
 ## 2026-06-29 — Legal + power of attorney pipeline hardening (OPS source of truth)
 
 ### Changed/added files

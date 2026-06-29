@@ -28,8 +28,12 @@ events.read
 ## Publicerade avtal
 
 ```http
-GET /api/v1/website/public-contracts?customer_type=consumer
+GET /api/v1/website/public-contracts?customer_type=private
 ```
+
+`customer_type` normaliseras: `private` (alias `consumer`/`person`/…) eller
+`business` (alias `company`/`organisation`/…). Avtal med `customer_type = both`
+visas oavsett. Tomt/okänt värde filtrerar inte på kundtyp.
 
 Returnerar bara publicerade och hemsideaktiva avtal för bolaget som API-nyckeln tillhör.
 
@@ -171,6 +175,10 @@ API:t accepterar ett **strukturerat** `powerOfAttorney`-objekt – inte bara `po
 - Ett oföränderligt **JSON-snapshot** lagras internt i `customer_documents` (`mime_type application/json`) och länkas via `document_id`/`internal_snapshot_document_id`. Detta JSON-snapshot är **enbart internt** – extern e-post till nätägaren bifogar alltid en PDF (renderad eller uppladdad signerad PDF), aldrig JSON.
 - Händelser skrivs i `power_of_attorney_events`: `created`, `accepted` och `snapshot_created` (det interna JSON-snapshotet). `pdf_generated` skrivs **endast** när en riktig PDF genereras för extern kommunikation, följt av `attached_to_email`.
 - `consents.power_of_attorney: true` accepteras fortsatt för bakåtkompatibilitet (juridisk accept), men legacy consent-only är **aldrig** externt sändbar. Kundidentitetsfallback får bara stödja äldre/manuellt migrerade kompletta POA-rader där signeringsnamn och metod redan finns; den får inte göra en ny website-legacy-consent sändbar.
+- **Fullmakt krävs när avtalet kräver det:** när det valda avtalet publicerar en `power_of_attorney`-version (`legal.power_of_attorney_required = true`) måste ett strukturerat `powerOfAttorney` med `accepted=true` skickas, annars `422 power_of_attorney_missing` (`error.stage = power_of_attorney`). `powerOfAttorney.accepted=false` ger `422 power_of_attorney_not_accepted`.
+- **Idempotens:** om en tidigare ansökan med samma `Idempotency-Key` lyckades utan fullmakt men det nya anropet innehåller `powerOfAttorney`, returneras `409 idempotent_application_missing_poa` (använd ny nyckel eller reparera via admin).
+- **Partiellt fel:** om kund/anläggning/avtal skapats men fullmakten misslyckas uppdateras ansökan in-place till status `partial`/`failed` med `error_stage = power_of_attorney`, `power_of_attorney_id = null` – ingen dubblettrad skapas och ingen falsk success kvarstår.
+- Alla API-fel returneras som JSON: `{ "error": { "code", "message", "stage", "field", "request_id" } }` – aldrig som HTML.
 
 ### Saknat anläggnings-ID (`facility_id`)
 

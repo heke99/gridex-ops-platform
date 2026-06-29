@@ -98,8 +98,12 @@ ok(
 )
 ok(publicLegal.includes('export function buildPublicLegalUrl'), 'buildPublicLegalUrl helper exists')
 
-// 7) Customer type normalization.
-ok(apps.includes('function normalizeCustomerType'), 'customer type normalization helper exists')
+// 7) Customer type normalization (now a shared helper used by the intake).
+ok(
+  fs.existsSync(path.join(root, 'lib/customers/normalizeCustomerType.ts')) &&
+    apps.includes("from '@/lib/customers/normalizeCustomerType'"),
+  'customer type normalization helper exists (shared module) and is used by intake',
+)
 {
   // Mirror the normalization logic and assert the documented aliases map.
   const privateAliases = new Set(['private', 'privat', 'consumer', 'person', 'privatperson', 'individual'])

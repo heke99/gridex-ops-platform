@@ -30,13 +30,51 @@ function requestAudit(request: NextRequest) {
   }
 }
 
+function readField(value: unknown, field: string): unknown {
+  if (!value || typeof value !== 'object') return null
+  return (value as Record<string, unknown>)[field] ?? null
+}
+
+// Builds the standard JSON error contract:
+//   { error: { code, message, stage, field, request_id, action? }, ... }
+// Legacy flat keys (code, error_stage, field, hint, details) are preserved
+// alongside the nested object for backward compatibility.
+function buildErrorBody(body: Record<string, unknown>, requestId: string) {
+  const message = typeof body.error === 'string' ? body.error : (typeof body.message === 'string' ? body.message : 'Begäran kunde inte behandlas.')
+  const stage = (readField(body, 'error_stage') as string | null) ?? (readField(body, 'stage') as string | null) ?? null
+  const action = readField(body, 'action') as string | null
+  return {
+    error: {
+      code: (body.code as string | undefined) ?? 'website_application_error',
+      message,
+      stage,
+      field: (body.field as string | null | undefined) ?? null,
+      request_id: requestId,
+      ...(action ? { action } : {}),
+    },
+    // Backward-compatible flat fields.
+    code: (body.code as string | undefined) ?? 'website_application_error',
+    message,
+    field: (body.field as string | null | undefined) ?? null,
+    hint: (body.hint as string | null | undefined) ?? null,
+    error_stage: stage,
+    ...(action ? { action } : {}),
+    details: (body.details as unknown) ?? null,
+    request_id: requestId,
+  }
+}
+
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
+  const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_applications.write'])
 
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
-    return customerPortalJson({ error: auth.error }, { status: auth.status })
+    return customerPortalJson(
+      buildErrorBody({ error: auth.error, code: auth.errorCode, error_stage: 'authorization' }, requestId),
+      { status: auth.status },
+    )
   }
 
   try {
@@ -44,12 +82,16 @@ export async function POST(request: NextRequest) {
     if (!parsed.ok) {
       const status = parsed.code === 'payload_too_large' ? 413 : 400
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: parsed.code })
-      return customerPortalJson({
-        error: parsed.code === 'payload_too_large'
-          ? 'Förfrågans innehåll är för stort.'
-          : 'Ogiltig JSON i förfrågan.',
-        code: parsed.code,
-      }, { status })
+      return customerPortalJson(
+        buildErrorBody({
+          error: parsed.code === 'payload_too_large'
+            ? 'Förfrågans innehåll är för stort.'
+            : 'Ogiltig JSON i förfrågan.',
+          code: parsed.code,
+          error_stage: 'validation',
+        }, requestId),
+        { status },
+      )
     }
     const body = (parsed.body ?? {}) as Record<string, unknown>
     const result = await processWebsiteCustomerApplication({
@@ -91,22 +133,25 @@ export async function POST(request: NextRequest) {
       metadata: applicationMetadata,
     })
 
-    return customerPortalJson(result.body, { status: result.status })
+    const responseBody = result.ok ? result.body : buildErrorBody(result.body as Record<string, unknown>, requestId)
+    return customerPortalJson(responseBody, { status: result.status })
   } catch (error) {
-    const traceId = randomUUID()
-    console.error('[website-customer-application] failed', { traceId, error })
+    console.error('[website-customer-application] failed', { requestId, error })
     await logIntegrationApiRequest({
       client: auth.client,
       request,
       statusCode: 500,
       startedAt,
       errorCode: 'website_application_failed',
-      metadata: { trace_id: traceId },
+      metadata: { request_id: requestId },
     })
-    return customerPortalJson({
-      error: 'Kundansökan kunde inte behandlas just nu.',
-      code: 'website_application_failed',
-      trace_id: traceId,
-    }, { status: 500 })
+    return customerPortalJson(
+      buildErrorBody({
+        error: 'Kundansökan kunde inte behandlas just nu.',
+        code: 'website_application_failed',
+        error_stage: 'internal_error',
+      }, requestId),
+      { status: 500 },
+    )
   }
 }

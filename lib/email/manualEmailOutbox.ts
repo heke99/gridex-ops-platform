@@ -116,6 +116,46 @@ async function advanceLinkedRequest(
   }
 }
 
+// When a manual outbox item fails permanently, the linked grid-owner request
+// must not stay stuck in a "queued/ready to send" state. Move it to needs_review
+// with dispatch_status=failed so it surfaces as an actionable item, keeping the
+// request status and the outbox status in sync.
+async function markLinkedRequestFailed(
+  requestId: string | null,
+  errorCode: string,
+  message: string,
+) {
+  if (!requestId) return
+  const now = new Date().toISOString()
+  const { data: current } = await supabaseService
+    .from('grid_owner_information_requests')
+    .select('metadata')
+    .eq('id', requestId)
+    .maybeSingle()
+  const baseMetadata =
+    current && typeof current.metadata === 'object' && current.metadata !== null
+      ? (current.metadata as Record<string, unknown>)
+      : {}
+  await supabaseService
+    .from('grid_owner_information_requests')
+    .update({
+      status: 'needs_review',
+      dispatch_status: 'failed',
+      dispatch_error_code: errorCode,
+      dispatch_error_message: message.slice(0, 500),
+      metadata: {
+        ...baseMetadata,
+        manual_email_failed_at: now,
+        manual_email_error_code: errorCode,
+      },
+      updated_at: now,
+    })
+    .eq('id', requestId)
+    // Only pull back requests that are still waiting on this outbound send.
+    .in('status', ['manual_email_queued', 'ready_to_send_manual_email', 'manual_email_sent', 'waiting_manual_response'])
+    .then(() => undefined, () => undefined)
+}
+
 export async function processManualEmailOutbox(input?: {
   companyId?: string | null
   limit?: number
@@ -171,8 +211,9 @@ export async function processManualEmailOutbox(input?: {
     if (!toEmail || !fromEmail) {
       await supabaseService
         .from('manual_email_outbox')
-        .update({ status: 'failed', last_error: 'missing_to_or_from_email', attempts: Number(row.attempts ?? 0) + 1, updated_at: new Date().toISOString() })
+        .update({ status: 'failed', delivery_status: 'failed', last_error: 'missing_to_or_from_email', last_error_code: 'missing_to_or_from_email', attempts: Number(row.attempts ?? 0) + 1, updated_at: new Date().toISOString() })
         .eq('id', id)
+      await markLinkedRequestFailed(clean(row.request_id), 'missing_to_or_from_email', 'Saknar avsändar- eller mottagaradress för manuell e-post.')
       result.failed += 1
       continue
     }
@@ -187,13 +228,16 @@ export async function processManualEmailOutbox(input?: {
         .from('manual_email_outbox')
         .update({
           status: 'failed',
+          delivery_status: 'failed',
           last_error: 'blocked_ediel_reserved_sender: manuell e-post får inte skickas från Ediel-brevlådan (ediel@gridex.se).',
+          last_error_code: 'blocked_ediel_reserved_sender',
           attempts: Number(row.attempts ?? 0) + 1,
           locked_at: null,
           locked_by: null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
+      await markLinkedRequestFailed(clean(row.request_id), 'blocked_ediel_reserved_sender', 'Manuell e-post blockerades eftersom avsändaren är Ediel-brevlådan.')
       result.failed += 1
       result.errors.push(`send ${id}: blocked_ediel_reserved_sender`)
       continue
@@ -231,18 +275,24 @@ export async function processManualEmailOutbox(input?: {
     } catch (sendError) {
       const attempts = Number(row.attempts ?? 0) + 1
       const message = sendError instanceof Error ? sendError.message : String(sendError)
+      const permanentlyFailed = attempts >= MAX_ATTEMPTS
       await supabaseService
         .from('manual_email_outbox')
         .update({
           // Re-queue for retry until max attempts, then fail.
-          status: attempts >= MAX_ATTEMPTS ? 'failed' : 'queued',
+          status: permanentlyFailed ? 'failed' : 'queued',
+          delivery_status: permanentlyFailed ? 'failed' : 'queued',
           attempts,
           last_error: message.slice(0, 500),
+          last_error_code: permanentlyFailed ? 'send_failed' : 'send_retry',
           locked_at: null,
           locked_by: null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
+      if (permanentlyFailed) {
+        await markLinkedRequestFailed(clean(row.request_id), 'send_failed', message)
+      }
       result.failed += 1
       result.errors.push(`send ${id}: ${message}`)
     }

@@ -12,6 +12,7 @@ import { requireOperationalCompanyId } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { runBatch2BAutomation } from "@/lib/operations/batch2bAutomation";
 import { parseCustomerImportFormData } from "@/lib/customers/importParser";
+import { normalizeCustomerIdentityType } from "@/lib/customers/normalizeCustomerType";
 import type {
   CustomerImportActionState,
   CustomerImportPreviewRow,
@@ -446,9 +447,10 @@ function formDataFlag(formData: FormData, key: string): boolean {
 }
 
 function normalizeCustomerType(value: string | null | undefined): CustomerType {
-  if (value === "business") return "business";
-  if (value === "association") return "association";
-  return "private";
+  // Shared alias-aware normalization so CSV imports that send aliases such as
+  // "company"/"organisation"/"consumer" map to the correct identity instead of
+  // silently collapsing every non-"business" value to "private".
+  return normalizeCustomerIdentityType(value);
 }
 
 function normalizeIntakeFlowType(

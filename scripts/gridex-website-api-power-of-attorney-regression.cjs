@@ -152,7 +152,10 @@ ok(src.includes('structuredPoaIsExternallySendable') && src.includes('externally
 ok(src.includes("event_type: 'snapshot_created'") && !src.includes("event_type: 'pdf_generated'"), 'JSON snapshot uses snapshot_created (not pdf_generated)')
 ok(src.includes('internal_snapshot_document_id'), 'internal JSON snapshot document id is tracked distinctly')
 ok(src.includes("code: 'poa_not_externally_sendable'") && src.includes('!poaExternallySendable'), 'weak POA missing facility returns poa_not_externally_sendable before manual outbox')
-ok(src.includes('gridOwnerRequestMayBeCreated') && src.includes('(!facilityMissing || poaExternallySendable)'), 'grid-owner request creation is gated by external POA sendability when facility is missing')
+// Missing facility now routes through the MANUAL pipeline only: the Ediel
+// grid-owner request must never be created when the facility id is missing
+// (continuation-hardening behaviour, replacing the old POA-sendability gate).
+ok(src.includes('gridOwnerRequestMayBeCreated') && src.includes('readiness.canRequestGridOwnerInformation && !facilityMissing'), 'Ediel grid-owner request is not created when facility is missing (manual pipeline owns it)')
 
 // 9b) Website intake schema hardening: optional DB columns must fall back to
 // controlled pending_review/repair status, not uncontrolled crashes.

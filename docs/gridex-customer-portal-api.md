@@ -36,12 +36,22 @@ Payload ska innehålla så många stabila kundnycklar som möjligt:
 
 OPS löser kund inom API-nyckelns tenant i denna ordning:
 
-1. `external_customer_id`
-2. `customer_number`
-3. länkad portal identity/account
+1. länkad portal identity/account (när `x-gridex-customer-portal-user-id` / `x-gridex-auth-user-id` skickas)
+2. `external_customer_id`
+3. `customer_number`
 4. unik `email`
 
+Identifierare kan skickas som JSON-body (POST `portal-bundle` och `sync`) eller som
+headers/query (GET-endpoints och övriga POST-subrutter), t.ex.
+`x-gridex-external-customer-id`, `x-gridex-customer-number`, `x-gridex-customer-email`.
+
 Om flera kunder matchar samma e-post returneras `409 ambiguous_customer_match` och tenant ska skicka `customer_number` eller `external_customer_id`.
+
+### Query-parametrar (portal-bundle)
+
+- `summary=true` – returnerar endast profil/status/datakvalitet
+- `include=contracts,sites,invoices,...` – begränsar vilka sektioner som laddas
+- `metering_values_limit`, `documents_limit`, `events_limit` – begränsar radantal per sektion
 
 ## Portal bundle response
 
@@ -66,6 +76,29 @@ Om flera kunder matchar samma e-post returneras `409 ambiguous_customer_match` o
   }
 }
 ```
+
+Det fullständiga svaret innehåller även `customer`, `contracts`, `sites`,
+`metering_points`, `invoices`, `metering_values`, `documents`,
+`legal_acceptances`, `powers_of_attorney`, `notifications`, `events`,
+`website_applications` och `bundle_status`. Vid delvis fel returneras 200 med
+tomma sektioner och `bundle_status.status = "partial"` (aldrig en HTML-sida).
+
+### Sub-endpoints
+
+Samtliga kräver `customer_portal.read` (GET) och identifierare via headers/query:
+
+- `GET /api/v1/customer/me`
+- `GET /api/v1/customer/contracts`
+- `GET /api/v1/customer/sites`
+- `GET /api/v1/customer/invoices`
+- `GET /api/v1/customer/invoices/{id}` – faller tillbaka till `invoice_export_items`/`pricing_runs` om ingen `customer_invoices`-rad finns
+- `GET /api/v1/customer/metering-values?from=&to=&facility_id=&limit=`
+- `GET /api/v1/customer/documents`
+- `GET /api/v1/customer/legal-acceptances`
+- `GET /api/v1/customer/powers-of-attorney`
+- `GET /api/v1/customer/events`, `GET /api/v1/customer/notifications`
+
+Skriv-endpoints (`POST /sync`, `/profile-update`, `/move-out`, `/notifications/read`) kräver `customer_portal.write`.
 
 ## Dokument, fullmakt och juridiska godkännanden
 
@@ -123,20 +156,29 @@ Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switc
 
 ## Scopes
 
+Alla customer-portal-rutter upprätthåller idag `customer_portal.read` (läs) och
+`customer_portal.write` (skriv). De finare scopes nedan är reserverade/planerade
+och kontrolleras ännu inte per rutt — ge `customer_portal.read`/`.write` (eller
+`*`) till nyckeln tills vidare.
+
 - `customer_portal.read` – hämta Mina sidor-data
-- `customer_portal.write` – skicka kompletteringar/sync
-- `customer_documents.read` – läsa dokument
-- `customer_documents.write` – synka dokument
-- `customer_notifications.read/write` – notiser
-- `customer_facility_data.write` – anläggningskomplettering
-- `customer_power_of_attorney.write` – fullmakt
+- `customer_portal.write` – skicka kompletteringar/sync, profil, move-out, notisläsning
+- `customer_documents.read/write` – (planerat) dokument
+- `customer_notifications.read/write` – (planerat) notiser
+- `customer_facility_data.write` – (planerat) anläggningskomplettering
+- `customer_power_of_attorney.write` – (planerat) fullmakt
 - `events.read` och `website_events.write` – händelser
 
 ## Felkoder
 
-- `401 invalid_api_token`
-- `403 api_scope_missing`
-- `404 customer_not_found`
+Fel returneras alltid som JSON `{ "error": "...", "code": "..." }`, aldrig som HTML.
+
+- `401 missing_api_token` / `401 invalid_api_token` / `401 api_token_expired`
+- `403 api_scope_missing` / `403 api_ip_not_allowed` / `403 api_origin_not_allowed`
+- `403 customer_portal_link_requires_sync` (första länkningen kräver två matchande nycklar eller en tidigare länk)
+- `404 customer_not_found` / `404 invoice_not_found`
 - `409 ambiguous_customer_match`
 - `422 missing_customer_identifier`
+- `429 rate_limited`
 - `500 customer_portal_internal_error`
+- `503 customer_portal_schema_missing`

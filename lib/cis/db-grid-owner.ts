@@ -45,8 +45,11 @@ export async function listAllGridOwnerDataRequests(options: {
 } = {}): Promise<GridOwnerDataRequestRow[]> {
   let requestQuery = supabaseService
     .from('grid_owner_data_requests')
+    // Bounded so an unbounded backlog cannot pull the whole table into memory
+    // before the in-JS query filter runs.
     .select('*')
     .order('created_at', { ascending: false })
+    .limit(1000)
 
   if (options.status && options.status !== 'all') {
     requestQuery = requestQuery.eq('status', options.status)
