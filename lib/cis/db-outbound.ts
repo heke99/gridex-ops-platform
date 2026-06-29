@@ -803,7 +803,10 @@ export async function listOutboundRequestsByCustomerId(
 
 export async function listUnresolvedOutboundRequests(options: {
   companyId?: string | null
+  limit?: number
 } = {}): Promise<OutboundRequestRow[]> {
+  // Bounded by default so an unbounded backlog cannot pull the whole table.
+  const limit = Math.min(Math.max(Number(options.limit ?? 500) || 500, 1), 2000)
   let query = supabaseService
     .from('outbound_requests')
     .select('*')
@@ -814,7 +817,7 @@ export async function listUnresolvedOutboundRequests(options: {
     query = query.eq('company_id', options.companyId)
   }
 
-  const { data, error } = await query.order('created_at', { ascending: false })
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(limit)
 
   if (error) throw error
   return (data ?? []) as OutboundRequestRow[]
