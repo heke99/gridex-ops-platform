@@ -282,6 +282,49 @@ function consentAccepted(consents: Record<string, unknown> | undefined, aliases:
   })
 }
 
+function hasStoredAcceptance(acceptanceIds: Record<string, string>, legalType: string) {
+  return typeof acceptanceIds[legalType] === 'string' && acceptanceIds[legalType].trim().length > 0
+}
+
+function contractLegalMailEvidenceReady(input: {
+  acceptanceIds: Record<string, string>
+  powerOfAttorneyRequired: boolean
+  powerOfAttorneyId?: string | null
+}) {
+  return Boolean(
+    hasStoredAcceptance(input.acceptanceIds, 'terms') &&
+    hasStoredAcceptance(input.acceptanceIds, 'privacy_policy') &&
+    hasStoredAcceptance(input.acceptanceIds, 'withdrawal') &&
+    hasStoredAcceptance(input.acceptanceIds, 'price_terms') &&
+    (!input.powerOfAttorneyRequired || (
+      hasStoredAcceptance(input.acceptanceIds, 'power_of_attorney') &&
+      typeof input.powerOfAttorneyId === 'string' &&
+      input.powerOfAttorneyId.trim().length > 0
+    ))
+  )
+}
+
+function resultList(value: unknown): Array<Record<string, unknown>> {
+  const items = Array.isArray(value) ? value : [value]
+  return items.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+}
+
+function emailTriggerSucceeded(value: unknown): boolean {
+  const items = resultList(value)
+  return items.length > 0 && items.every((item) => item.ok !== false)
+}
+
+function emailTriggerErrorText(value: unknown): string {
+  const values = resultList(value)
+    .map((item) => typeof item.error === 'string' ? item.error : typeof item.error === 'object' && item.error !== null && 'message' in item.error ? String((item.error as { message?: unknown }).message ?? '') : '')
+    .filter(Boolean)
+  return values.join(' | ')
+}
+
+function pushWarning(warnings: string[], warning: string) {
+  if (!warnings.includes(warning)) warnings.push(warning)
+}
+
 async function listPublishedWebsiteLegalVersions(companyId: string): Promise<WebsiteLegalAcceptanceVersion[] | null> {
   const { data, error } = await supabaseService
     .from('legal_text_versions')
@@ -3453,14 +3496,22 @@ export async function processWebsiteCustomerApplication(input: {
         await seedDefaultEmailTemplates(input.client.company_id).catch(() => null)
         await seedDefaultEmailEventRules(input.client.company_id).catch(() => null)
         const initialApplicationEmail = { eventKey: 'contract.application_received' as const }
-        const contractLifecycleMailReady = Boolean(contract?.id && readiness.canSendAgreementConfirmation)
+        const contractLegalMailReady = Boolean(
+          contract?.id &&
+          publicOffer &&
+          contractLegalMailEvidenceReady({
+            acceptanceIds: legalAcceptanceIds,
+            powerOfAttorneyRequired,
+            powerOfAttorneyId,
+          })
+        )
         triggeredEmailEvents = [
           initialApplicationEmail.eventKey,
-          ...(contractLifecycleMailReady ? ['contract.confirmation_sent', 'contract.cooling_off_sent'] : []),
+          ...(contractLegalMailReady ? ['contract.confirmation_sent', 'contract.cooling_off_sent'] : []),
         ]
 
-        communicationResults = await Promise.all(triggeredEmailEvents.map((eventKey) =>
-          triggerEmailEvent({
+        communicationResults = await Promise.all(triggeredEmailEvents.map(async (eventKey) => {
+          const result = await triggerEmailEvent({
             companyId: input.client.company_id,
             customerId: resolvedCustomerResult.customer.id,
             siteId: site?.id ?? null,
@@ -3477,14 +3528,35 @@ export async function processWebsiteCustomerApplication(input: {
               source: 'website_customer_applications',
             },
           }).catch((error) => [{ ok: false, eventKey, error: errorMessage(error) }])
-        ))
 
-        const flattenedResults = communicationResults.flatMap((item) => Array.isArray(item) ? item : [item]) as Array<{ ok?: boolean; error?: unknown }>
-        if (flattenedResults.some((result) => result?.ok === false)) {
-          warnings.push('confirmation_email_pending')
+          return {
+            eventKey,
+            ok: emailTriggerSucceeded(result),
+            result,
+          }
+        }))
+
+        const failedEmailResults = communicationResults
+          .filter((item): item is { eventKey: string; ok: boolean; result: unknown } => {
+            if (!item || typeof item !== 'object') return false
+            const candidate = item as { eventKey?: unknown; ok?: unknown; result?: unknown }
+            return typeof candidate.eventKey === 'string' && typeof candidate.ok === 'boolean'
+          })
+          .filter((item) => item.ok === false)
+        if (failedEmailResults.length > 0) {
+          pushWarning(warnings, 'communication_failed')
+          pushWarning(warnings, 'confirmation_email_pending')
+          if (failedEmailResults.some((item) => item.eventKey === 'contract.confirmation_sent' || item.eventKey === 'contract.cooling_off_sent')) {
+            pushWarning(warnings, 'legal_email_pending')
+          }
+          if (failedEmailResults.some((item) => /sender|avsändare|domain|domän|verified|verifierad/i.test(emailTriggerErrorText(item.result)))) {
+            pushWarning(warnings, 'legal_email_sender_not_verified')
+          }
         }
       } catch (error: unknown) {
-        warnings.push('confirmation_email_pending')
+        pushWarning(warnings, 'communication_failed')
+        pushWarning(warnings, 'confirmation_email_pending')
+        pushWarning(warnings, 'legal_email_pending')
         communicationResults = [{ ok: false, error: errorMessage(error), stage: 'communication_trigger' }]
       }
     }
@@ -3528,9 +3600,11 @@ export async function processWebsiteCustomerApplication(input: {
       }
 
       if (contract?.id) {
-        const contractLifecycleEvents = readiness.canSendAgreementConfirmation
-          ? ['contract.application_received', 'contract.confirmation_sent', 'contract.cooling_off_sent']
-          : ['contract.application_received']
+        // Website submission emits only the application lifecycle event here.
+        // Legal mail events with names ending in `_sent` are emitted after the
+        // actual communication_log is marked sent by the email outbox/provider
+        // webhook, never inferred from application creation or switch readiness.
+        const contractLifecycleEvents = ['contract.application_received']
         for (const eventType of contractLifecycleEvents) {
           await emitDomainEvent({
             companyId: input.client.company_id,
@@ -3554,7 +3628,8 @@ export async function processWebsiteCustomerApplication(input: {
         }
       }
     } catch (error) {
-      warnings.push('domain_event_pending')
+      pushWarning(warnings, 'domain_event_pending')
+      pushWarning(warnings, 'webhook_delivery_pending')
       await supabaseService
         .from('website_customer_applications')
         .update({ warnings, updated_at: new Date().toISOString() })

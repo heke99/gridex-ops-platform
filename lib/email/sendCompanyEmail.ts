@@ -38,6 +38,20 @@ function defaultEmailIdempotencyKey(input: SendCompanyEmailInput) {
     .join(':')
 }
 
+
+function metadataString(metadata: Record<string, unknown> | undefined, key: string) {
+  const value = metadata?.[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function communicationTraceFields(input: SendCompanyEmailInput) {
+  return {
+    customerNumber: metadataString(input.metadata, 'customer_number'),
+    externalCustomerId: metadataString(input.metadata, 'external_customer_id'),
+    contractId: metadataString(input.metadata, 'contract_id'),
+  }
+}
+
 function isLegalOrCritical(input: SendCompanyEmailInput) {
   if (input.legalOrCritical) return true
   return ['contract.confirmation_sent', 'contract.cooling_off_sent', 'switch.started', 'switch.confirmed', 'switch.action_required', 'customer.welcome_active']
@@ -83,6 +97,7 @@ async function isEventRuleEnabled(companyId: string, eventKey: string | null | u
 
 export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   const legalOrCritical = isLegalOrCritical(input)
+  const traceFields = communicationTraceFields(input)
   const idempotencyKey = defaultEmailIdempotencyKey(input)
   const existingLog = await findCommunicationLogByIdempotencyKey(input.companyId, idempotencyKey)
 
@@ -119,6 +134,7 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       status: 'failed',
       provider: 'resend',
       createdBy: input.createdBy ?? null,
+      ...traceFields,
       errorMessage: message,
       idempotencyKey,
       metadata: {
@@ -149,6 +165,7 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       status: 'cancelled',
       provider: 'resend',
       createdBy: input.createdBy ?? null,
+      ...traceFields,
       errorMessage: 'Automatiskt utskick är avstängt.',
       idempotencyKey,
       metadata: {
@@ -179,6 +196,7 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       status: 'failed',
       provider: 'resend',
       createdBy: input.createdBy ?? null,
+      ...traceFields,
       errorMessage: message,
       idempotencyKey,
       metadata: {
@@ -219,6 +237,7 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
     status: 'queued',
     provider: 'resend',
     createdBy: input.createdBy ?? null,
+    ...traceFields,
     idempotencyKey,
     metadata: {
       ...(input.metadata ?? {}),

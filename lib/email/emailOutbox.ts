@@ -5,6 +5,7 @@ import {
   markCommunicationSent,
 } from "./communicationLogs";
 import { getEmailProvider } from "./providers";
+import { emitCommunicationSentDomainEvents } from "./emailDomainEvents";
 
 type TenantEmailOutboxRow = {
   id: string;
@@ -171,6 +172,7 @@ export async function enqueueTenantEmail(
       redirect_url: clean(input.redirectUrl),
       request_id: input.requestId ?? null,
       trace_id: input.traceId ?? null,
+      provider_idempotency_key: providerIdempotencyKey,
       created_at: now,
       updated_at: now,
     })
@@ -270,7 +272,7 @@ async function markOutboxSent(
   if (error) throw error;
 
   if (row.communication_log_id && providerMessageId) {
-    await markCommunicationSent(
+    const sentLog = await markCommunicationSent(
       row.communication_log_id,
       providerMessageId,
     ).catch((error) => {
@@ -278,7 +280,11 @@ async function markOutboxSent(
         "[email-outbox] communication log sent update failed",
         safeError(error),
       );
+      return null;
     });
+    if (sentLog) {
+      await emitCommunicationSentDomainEvents(sentLog, { source: 'email_outbox' });
+    }
   }
 }
 

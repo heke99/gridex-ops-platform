@@ -217,6 +217,36 @@ const applicationResponse = `{
   }
 }`
 
+
+const applicationValidationErrors = `HTTP/1.1 422 Unprocessable Entity
+{
+  "error": {
+    "code": "legal_acceptance_missing",
+    "message": "Kunden måste godkänna allmänna villkor, integritetspolicy, ångerrätt, fullmakt och prisvillkor innan ansökan kan skickas.",
+    "stage": "legal_acceptance",
+    "field": "consents.terms",
+    "hint": "Visa alla juridiska checkboxar från OPS publicerade juridikpaket och skicka true för varje required consent."
+  }
+}
+
+Vanliga 422-koder:
+- public_contract_required
+- public_contract_not_available
+- legal_versions_missing
+- legal_acceptance_missing
+- power_of_attorney_missing
+- power_of_attorney_not_accepted
+- power_of_attorney_version_missing
+- validation_error
+
+Do not send duplicate legal emails: återanvänd samma Idempotency-Key vid retry av samma signerade ansökan. Skicka inte samma signerade juridiska submission med ny nyckel om ni inte avsiktligt vill skapa en ny ansökan.`
+
+const emailEventSemantics = `contract.application_received = ansökan mottagen och mottagningsmail köat/skickat för ansökan
+contract.confirmation_sent = faktisk avtalsbekräftelse har markerats skickad i communication_logs
+contract.cooling_off_sent = faktiskt ångerrättsmail har markerats skickat i communication_logs
+
+Viktigt: confirmation_sent och cooling_off_sent får aldrig härledas från application_received. De skapas först när respektive mail-logg faktiskt är skickad.`
+
 const portalBundlePayload = `{
   "email": "heke99@live.se",
   "customer_number": "DX-100023",
@@ -445,6 +475,9 @@ export default function CustomerPortalApiDocsPage() {
           <p>Kundansökan ska innehålla valt <code>offer_reference</code>, separata juridiska godkännanden och, när kunden redan är inloggad på hemsidan, webbens Supabase <code>session.user.id</code> som både <code>customer_portal_user_id</code> och <code>auth_user_id</code>. Systemet skapar kund, kundnummer, portal identity, avtal, avtalssnapshot, juridiska acceptanser, fullmakt och portal-account när flödet kräver det.</p>
           <CodeBlock>{applicationExample}</CodeBlock>
           <CodeBlock>{applicationResponse}</CodeBlock>
+          <h3 className="mt-6 text-lg font-bold text-slate-900">422-validering och juridiska retries</h3>
+          <p>Om avtal, juridiska versioner, acceptanser eller fullmakt saknas returneras <code>422</code> med stabil <code>error.code</code>, <code>stage</code> och <code>field</code>. Rätta payloaden och återanvänd samma <code>Idempotency-Key</code> för samma signerade ansökan.</p>
+          <CodeBlock>{applicationValidationErrors}</CodeBlock>
         </Section>
 
         <Section title="6. Obligatoriskt: Mina sidor-koppling">
@@ -479,6 +512,9 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{webhookPayload}</CodeBlock>
           <p>Aktiva/byggda events:</p>
           <ul className="grid gap-1 md:grid-cols-2">{activeWebhookEvents.map((event) => <li key={event} className="font-mono text-xs text-slate-800">{event}</li>)}</ul>
+          <h3 className="mt-6 text-lg font-bold text-slate-900">Mail- och webhook-semantik</h3>
+          <p>Juridiska webhookar ska spegla faktisk kommunikation. <code>contract.confirmation_sent</code> och <code>contract.cooling_off_sent</code> betyder att respektive mail-logg har markerats som skickad, inte bara att en ansökan skapats.</p>
+          <CodeBlock>{emailEventSemantics}</CodeBlock>
           <p>Planerade events som kan tillkomma senare:</p>
           <ul className="grid gap-1 md:grid-cols-2">{plannedWebhookEvents.map((event) => <li key={event} className="font-mono text-xs text-slate-500">{event}</li>)}</ul>
           <CodeBlock>{webhookReceiver}</CodeBlock>

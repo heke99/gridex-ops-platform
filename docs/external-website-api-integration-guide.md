@@ -156,6 +156,8 @@ Regler:
 - Svaret returnerar operativ status via `nextAction` – aldrig tekniska Ediel-detaljer. Koder: `missing_customer_identity`, `missing_customer_details`, `power_of_attorney_required`, `poa_not_externally_sendable`, `grid_owner_contact_required`, `manual_mailbox_required`, `facility_identifier_requested`, `ready_for_switch`, `in_progress`.
 - **Fullmakt krävs när avtalet kräver det.** När det valda avtalet publicerar en `power_of_attorney`-version (`legal.power_of_attorney_required = true`) måste ett strukturerat `powerOfAttorney` med `accepted=true` skickas. Endast `consents.power_of_attorney: true` ger `422 power_of_attorney_missing`. `powerOfAttorney.accepted=false` ger `422 power_of_attorney_not_accepted`.
 - Skicka `Idempotency-Key`; upprepade anrop/klick skapar inga dubbletter. Bolaget härleds från API-nyckeln, aldrig från payload. Om ett tidigare anrop med samma `Idempotency-Key` lyckades utan fullmakt men det nya anropet innehåller `powerOfAttorney`, returneras `409 idempotent_application_missing_poa` (`error.action = retry_with_new_idempotency_key_or_repair`) — använd ny nyckel eller låt en admin reparera ansökan.
+- **Do not send duplicate legal emails.** Återanvänd samma `Idempotency-Key` vid retry av samma signerade ansökan. Använd inte ny nyckel för samma juridiska submission om ni inte avsiktligt vill skapa en ny ansökan och nya juridiska mail.
+- `contract.confirmation_sent` och `contract.cooling_off_sent` betyder faktisk skickad mail-logg för respektive mall. De får inte härledas från `contract.application_received` eller från att ansökan bara skapats.
 
 ## Kundtyp (kanoniska värden)
 
@@ -169,6 +171,9 @@ Avtalstillgänglighet (`public_contract_offers.customer_type`) kan dessutom vara
 `both`, men det styr bara vilka erbjudanden som visas — inte kundens identitet.
 
 ## Felformat (JSON-kontrakt)
+
+Kundansökan returnerar `422 Unprocessable Entity` för valideringsfel som kunden/tenantens backend kan rätta, till exempel `public_contract_required`, `legal_versions_missing`, `legal_acceptance_missing`, `power_of_attorney_missing` och `power_of_attorney_not_accepted`.
+
 
 Alla API-fel returneras som JSON – aldrig som en HTML-sida. Standardformat:
 

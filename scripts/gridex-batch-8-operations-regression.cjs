@@ -7,6 +7,17 @@ function read(file) { return fs.readFileSync(path.join(root, file), 'utf8') }
 function assert(cond, msg) { if (!cond) { console.error('FAIL:', msg); process.exitCode = 1 } }
 
 const customerApplications = read('lib/website/customerApplications.ts')
+
+const resendWebhookEvents = read('lib/email/resendWebhookEvents.ts')
+assert(!resendWebhookEvents.includes(`log.event_key === 'contract.application_received'
+    ? ['contract.confirmation_sent', 'contract.cooling_off_sent']`), 'application_received provider webhook must not infer legal sent events')
+assert(resendWebhookEvents.includes("emitCommunicationSentDomainEvents(sentLog)"), 'Resend sent webhook must emit only actual sent communication domain events')
+const emailDomainEvents = read('lib/email/emailDomainEvents.ts')
+assert(emailDomainEvents.includes("'contract.confirmation_sent'") && emailDomainEvents.includes("'contract.cooling_off_sent'"), 'email sent domain events must be tied to canonical legal mail event keys')
+assert(!emailDomainEvents.includes("'contract.application_received'"), 'application_received must not emit confirmation/cooling legal sent events')
+assert(customerApplications.includes('contractLegalMailEvidenceReady'), 'website application must separate legal-mail readiness from switch readiness')
+assert(customerApplications.includes('legal_email_pending'), 'legal mail failures must have precise warnings')
+assert(customerApplications.includes("const contractLifecycleEvents = ['contract.application_received']"), 'website application must not emit confirmation/cooling sent webhooks before actual mail send')
 assert(customerApplications.includes('normalizeRawApplication'), 'customer applications must normalize simplified payloads')
 assert(customerApplications.includes('status: 422'), 'validation errors must return 422')
 assert(customerApplications.includes('error_stage'), 'customer applications must expose error_stage')
