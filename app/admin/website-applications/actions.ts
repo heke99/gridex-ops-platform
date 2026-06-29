@@ -6,6 +6,7 @@ import { requireAdminAccess, requireCompanyScopedActionAccess, isPlatformAdminCo
 import { supabaseService } from '@/lib/supabase/service'
 import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
 import { assessWebsiteApplicationReadiness, cleanReviewText, customerIntakeStatusForReadiness } from '@/lib/website/applicationReview'
+import { repairWebsiteCustomerApplication } from '@/lib/website/customerApplications'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { ensureGridOwnerInformationRequest, markFacilityDataReceived } from '@/lib/energy/gridOwnerRequests'
 import {
@@ -1000,5 +1001,38 @@ export async function updateWebsiteApplicationReviewAction(formData: FormData) {
 export async function checkWebsiteApplicationReadinessAction(formData: FormData) {
   const applicationId = text(formData, 'application_id') ?? ''
   await saveApplicationReview({ applicationId, formData, action: 'review.checked' })
+  redirect('/admin/website-applications')
+}
+
+// Admin/platform-guarded repair for an application that lost its power of
+// attorney during a partial/failed run. Re-creates the missing fullmakt from
+// the stored payload and re-points the application response payload + status.
+export async function repairWebsiteApplicationPowerOfAttorneyAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  if (!applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(applicationId)
+  const admin = await authorizeForCompany(application.company_id)
+
+  const result = await repairWebsiteCustomerApplication(applicationId)
+
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId: application.customer_id,
+    entityType: 'website_customer_application',
+    entityId: application.id,
+    action: 'website_application.repaired',
+    label: 'Reparerade fullmakt på kundansökan',
+    source: 'website_application_review',
+    billable: false,
+    metadata: {
+      repair_status: result.status,
+      repair_code: result.code ?? null,
+      power_of_attorney_id: result.powerOfAttorneyId ?? null,
+    },
+  })
+
+  revalidatePath('/admin/website-applications')
+  if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
   redirect('/admin/website-applications')
 }
