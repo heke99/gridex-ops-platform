@@ -105,6 +105,7 @@ function isDatabaseShapeError(error: unknown): boolean {
     maybe &&
       (maybe.code === "42P01" ||
         maybe.code === "42703" ||
+        maybe.code === "PGRST204" ||
         maybe.code === "PGRST205" ||
         /does not exist|schema cache|relation .* does not exist|column .* does not exist/i.test(
           maybe.message ?? "",
@@ -1354,6 +1355,59 @@ async function markCustomerAsTestDataImpl(
   return { status: "success", message: "Kunden har markerats som testdata." };
 }
 
+
+async function updateCustomerArchiveRow(
+  customerId: string,
+  companyId: string,
+  actorUserId: string,
+  nowIso: string,
+  archiveReason: string,
+): Promise<Record<string, unknown>> {
+  const fullPayload = {
+    status: "archived",
+    archived_at: nowIso,
+    archived_by: actorUserId,
+    archive_reason: archiveReason,
+    updated_at: nowIso,
+  };
+
+  const fullUpdate = await supabaseService
+    .from("customers")
+    .update(fullPayload)
+    .eq("id", customerId)
+    .eq("company_id", companyId)
+    .select("*")
+    .single();
+
+  if (!fullUpdate.error) {
+    return (fullUpdate.data ?? fullPayload) as unknown as Record<string, unknown>;
+  }
+
+  if (!isDatabaseShapeError(fullUpdate.error)) {
+    throw fullUpdate.error;
+  }
+
+  console.warn(
+    "[customer-archive] archive.customers.full_payload_failed; retrying minimal customer archive payload",
+    fullUpdate.error,
+  );
+
+  const minimalPayload = { status: "archived" };
+  const minimalUpdate = await supabaseService
+    .from("customers")
+    .update(minimalPayload)
+    .eq("id", customerId)
+    .eq("company_id", companyId)
+    .select("*")
+    .single();
+
+  if (minimalUpdate.error) {
+    throw minimalUpdate.error;
+  }
+
+  return (minimalUpdate.data ?? minimalPayload) as unknown as Record<string, unknown>;
+}
+
 export async function archiveCustomerAction(
   _prevState: CustomerActionState,
   formData: FormData,
@@ -1395,26 +1449,19 @@ async function archiveCustomerImpl(
   const nowIso = new Date().toISOString();
   const archiveReason = reason ?? "Arkiverad via kundkort.";
 
-  // The customer row itself is the only mandatory write. The linked rows below
-  // are best-effort lifecycle cleanup because older/live databases can differ in
-  // optional lifecycle columns, status checks or audit/usage tables. A warning on
-  // a side table must not make the UI claim that customer archiving failed after
-  // the customer has already been archived.
-  const { data: customerAfter, error: updateError } = await supabaseService
-    .from("customers")
-    .update({
-      status: "archived",
-      archived_at: nowIso,
-      archived_by: actorUserId,
-      archive_reason: archiveReason,
-      updated_at: nowIso,
-    })
-    .eq("id", customerId)
-    .eq("company_id", companyId)
-    .select("*")
-    .single();
-
-  if (updateError) throw updateError;
+  // The customer row itself is the only mandatory write. Older/live databases
+  // can lag optional audit columns such as archived_at/archived_by/archive_reason
+  // or PostgREST can keep a stale schema cache. We first write the full archive
+  // audit payload and fall back to the minimal guaranteed payload (status only)
+  // on schema-shape errors. The action must only fail if the customer cannot be
+  // marked archived at all.
+  const customerAfter = await updateCustomerArchiveRow(
+    customerId,
+    companyId,
+    actorUserId,
+    nowIso,
+    archiveReason,
+  );
 
   await runBestEffortCustomerArchiveStep("archive.customer_sites.close_failed", async () => {
     const { error } = await supabaseService
