@@ -3,6 +3,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { assessPublicOfferReadiness } from '@/lib/website/publicOfferReadiness'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { buildPublicLegalUrl, loadCompanySlugById } from '@/lib/legal/publicLegalDocuments'
+import { normalizeCustomerType } from '@/lib/customers/normalizeCustomerType'
 
 export type PublicLegalTextVersion = {
   id: string
@@ -173,9 +174,14 @@ function isCurrentlyValid(row: Pick<PublicContractOffer, 'valid_from' | 'valid_t
 }
 
 function customerTypeAllowed(offer: PublicContractOffer, customerType?: string | null): boolean {
-  if (!customerType || offer.customer_type === 'both') return true
-  if (customerType === 'business') return offer.customer_type === 'business'
-  return offer.customer_type === 'private'
+  // Normalize the inbound customer_type so aliases (company/organisation/consumer
+  // …) filter correctly instead of any non-'business' value collapsing to a
+  // private filter. 'both'/unknown/empty means "do not filter by customer type".
+  const normalized = normalizeCustomerType(customerType)
+  if (!normalized || normalized === 'both' || offer.customer_type === 'both') return true
+  if (normalized === 'business') return offer.customer_type === 'business'
+  if (normalized === 'private') return offer.customer_type === 'private'
+  return true
 }
 
 function offerFromSnapshot(row: PricePlanVersionRow): PublicContractOffer | null {

@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import { createCustomerContract, getContractOfferById } from "@/lib/customer-contracts/db";
+import { isBusinessCustomerType } from "@/lib/customers/normalizeCustomerType";
 
 type ExternalContractInput = {
   companySlug: string;
@@ -86,10 +87,9 @@ function validate(input: ExternalContractInput): string[] {
 export function parseExternalContractFormData(
   formData: FormData,
 ): ExternalContractInput {
-  const customerType =
-    clean(formData.get("customer_type")) === "business"
-      ? "business"
-      : "private";
+  const customerType = isBusinessCustomerType(clean(formData.get("customer_type")))
+    ? "business"
+    : "private";
   return {
     companySlug: clean(formData.get("company_slug")) ?? "",
     customerType,

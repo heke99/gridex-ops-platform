@@ -25,6 +25,7 @@ import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/
 import { ensureCustomerApplicationWorkflow, transitionCustomerApplicationWorkflow } from '@/lib/website/applicationWorkflow'
 import { commitApplicationProvisioning, failApplicationProvisioning } from '@/lib/website/provisioningSaga'
 import { buildPublicLegalUrl, loadCompanySlugById } from '@/lib/legal/publicLegalDocuments'
+import { normalizeCustomerType } from '@/lib/customers/normalizeCustomerType'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -1247,24 +1248,6 @@ function normalizedSiteType(value: unknown): 'consumption' | 'production' | 'com
 
 function hasAnyCleanValue(record: Record<string, unknown>, keys: string[]): boolean {
   return keys.some((key) => clean(record[key]))
-}
-
-// Normalizes the many customer-type aliases used by tenant websites and
-// external systems into the canonical 'private' | 'business' the platform uses.
-// Returns null for empty input (caller applies the default) and the original
-// lowercased token for unknown values so strict validation can reject it with a
-// precise error code rather than silently defaulting.
-function normalizeCustomerType(value: unknown): string | null {
-  const raw = typeof value === 'string' ? value.trim().toLowerCase() : ''
-  if (!raw) return null
-  const privateAliases = new Set(['private', 'privat', 'consumer', 'person', 'privatperson', 'individual'])
-  const businessAliases = new Set([
-    'business', 'company', 'foretag', 'företag', 'corporate', 'organization',
-    'organisation', 'enterprise', 'b2b', 'juridisk_person', 'juridisk person',
-  ])
-  if (privateAliases.has(raw)) return 'private'
-  if (businessAliases.has(raw)) return 'business'
-  return raw
 }
 
 function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
