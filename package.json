@@ -131,7 +131,8 @@
     "gridex:ai-bi-reconciliation-regression": "node scripts/gridex-ai-bi-reconciliation-regression.cjs",
     "gridex:esett-xml-regression": "node scripts/gridex-esett-xml-regression.cjs",
     "gridex:ediel-intent-pipeline-full-regression": "npm run gridex:ediel-intent-pipeline-regression && npm run gridex:prodat-support-registry-regression && npm run gridex:supplier-switch-scheduler-regression && npm run gridex:acknowledgement-engine-regression && npm run gridex:utilts-completion-regression && npm run gridex:ai-bi-reconciliation-regression && npm run gridex:esett-xml-regression",
-    "gridex:ediel-automation-metering-billing-regression": "node scripts/gridex-ediel-automation-metering-billing-regression.cjs"
+    "gridex:ediel-automation-metering-billing-regression": "node scripts/gridex-ediel-automation-metering-billing-regression.cjs",
+    "gridex:ops-continuation-hardening-regression": "node scripts/gridex-ops-continuation-hardening-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
