@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { REQUIRED_LEGAL_TEXT_TYPES, type LegalTextType, type LegalTextVersion } from '@/lib/opsMaster/readiness'
+import { copyPublishedTemplatesToCompany } from '@/lib/legal/platformLegalTemplates'
 
 export const GRIDEX_DEFAULT_LEGAL_VERSION = 'gridex-standard-2026-06'
 
@@ -48,6 +49,25 @@ export async function seedGridexDefaultLegalPackage(companyId: string, actorUser
   bundleId: string | null
   missingTypes: string[]
 }> {
+  try {
+    const result = await copyPublishedTemplatesToCompany({
+      companyId,
+      actorUserId: actorUserId ?? null,
+      onlyMissing: true,
+      publishNow: true,
+      source: 'gridex_default_rendered',
+    })
+
+    return {
+      insertedCount: result.inserted,
+      existingCount: result.skipped,
+      bundleId: null,
+      missingTypes: result.missingTemplates,
+    }
+  } catch (error) {
+    if (!isMissingSchema(error)) throw error
+  }
+
   const { data, error } = await supabaseService.rpc('gridex_seed_default_legal_package_for_company', {
     p_company_id: companyId,
     p_actor_user_id: actorUserId ?? null,
@@ -68,6 +88,7 @@ export async function seedGridexDefaultLegalPackage(companyId: string, actorUser
     missingTypes: Array.isArray(row?.missing_types) ? row.missing_types.map(String) : [],
   }
 }
+
 
 export async function getTenantLegalDefaultStatus(companyId: string): Promise<TenantLegalDefaultStatus> {
   const { data, error } = await supabaseService

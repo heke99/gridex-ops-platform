@@ -35,6 +35,16 @@ export default async function PlatformLegalReadinessPage() {
         workspaceMode="platform"
       />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
+        <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-black text-slate-950">Master legal templates</p>
+            <p className="mt-1 text-sm font-semibold text-slate-600">Create global templates, render tenant placeholders and bulk-generate missing tenant legal versions.</p>
+          </div>
+          <Link href="/admin/platform/legal-templates" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">
+            Open template editor
+          </Link>
+        </div>
+
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Bolag</p>
