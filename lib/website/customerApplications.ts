@@ -24,6 +24,7 @@ import { applyCustomerSiteAddressCandidate, createOrUpdateCustomerSiteFromAddres
 import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
 import { ensureCustomerApplicationWorkflow, transitionCustomerApplicationWorkflow } from '@/lib/website/applicationWorkflow'
 import { commitApplicationProvisioning, failApplicationProvisioning } from '@/lib/website/provisioningSaga'
+import { buildPublicLegalUrl, loadCompanySlugById } from '@/lib/legal/publicLegalDocuments'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -255,6 +256,7 @@ type WebsiteLegalAcceptanceVersion = {
   title: string
   body: string | null
   published_at: string | null
+  status?: string | null
 }
 
 const REQUIRED_WEBSITE_LEGAL_ACCEPTANCES: Array<{
@@ -301,7 +303,19 @@ async function assertWebsiteLegalAcceptances(input: {
   publicOffer: PublicContractOffer
 }): Promise<WebsiteLegalAcceptanceVersion[]> {
   const versions = await listPublishedWebsiteLegalVersions(input.companyId)
-  if (versions === null) return []
+  if (versions === null) {
+    // Legal evidence is mandatory for website applications. A schema mismatch
+    // that prevents OPS from reading published legal versions must fail clearly
+    // rather than silently skipping legal acceptances.
+    throw new WebsiteApplicationError({
+      message: 'Hemsidan kan inte ta emot avtal eftersom OPS inte kunde läsa publicerade juridiska versioner.',
+      status: 500,
+      code: 'legal_bundle_missing',
+      field: 'legal_text_versions',
+      stage: 'legal_acceptance',
+      hint: 'Kör senaste migration så att legal_text_versions finns och publicera juridiska versioner i bolagskortet.',
+    })
+  }
 
   const byType = new Map(versions.map((row) => [row.type, row]))
   const missingVersions = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.filter((item) => !byType.has(item.legalType))
@@ -341,8 +355,8 @@ async function persistCustomerLegalAcceptances(input: {
   consents?: Record<string, unknown>
   rawPayload: unknown
   requestAudit?: RequestAuditMetadata
-}) {
-  if (input.legalVersions.length === 0) return
+}): Promise<Record<string, string>> {
+  if (input.legalVersions.length === 0) return {}
   const now = new Date().toISOString()
   const rows = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.map((definition) => {
     const legal = input.legalVersions.find((row) => row.type === definition.legalType)
@@ -381,8 +395,38 @@ async function persistCustomerLegalAcceptances(input: {
     }
   }).filter(Boolean)
 
-  const { error } = await supabaseService.from('customer_legal_acceptances').insert(rows)
-  if (error && !missingSchema(error)) throw error
+  const { data, error } = await supabaseService
+    .from('customer_legal_acceptances')
+    .insert(rows)
+    .select('id,acceptance_type')
+  if (error) {
+    // Required legal evidence — a schema mismatch must fail clearly so we never
+    // persist a "complete" customer without recorded legal acceptances.
+    if (missingSchema(error)) {
+      throw new WebsiteApplicationError({
+        message: 'Juridiska godkännanden kunde inte sparas eftersom databasens schema för customer_legal_acceptances inte matchar.',
+        status: 500,
+        code: 'legal_bundle_missing',
+        field: 'customer_legal_acceptances',
+        stage: 'legal_acceptance',
+        hint: 'Kör senaste migration för customer_legal_acceptances och retrya ansökan.',
+        details: schemaErrorDetail(error),
+      })
+    }
+    throw error
+  }
+
+  // Map acceptance_type -> id, keyed back to the canonical legal type so the
+  // API response can expose legal_acceptances ids.
+  const acceptanceTypeToLegalType = new Map(
+    REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.map((item) => [item.acceptanceType, item.legalType]),
+  )
+  const ids: Record<string, string> = {}
+  for (const acceptanceRow of (data ?? []) as Array<{ id: string; acceptance_type: string }>) {
+    const legalType = acceptanceTypeToLegalType.get(acceptanceRow.acceptance_type)
+    if (legalType && acceptanceRow.id) ids[legalType] = String(acceptanceRow.id)
+  }
+  return ids
 }
 
 // Loads a specific legal text version by id, scoped to the tenant. Used so the
@@ -395,12 +439,22 @@ async function loadLegalTextVersionById(
   if (!textVersionId) return null
   const { data, error } = await supabaseService
     .from('legal_text_versions')
-    .select('id,type,version,title,body,published_at')
+    .select('id,type,version,title,body,published_at,status')
     .eq('company_id', companyId)
     .eq('id', textVersionId)
     .maybeSingle()
   if (error) {
-    if (missingSchema(error)) return null
+    if (missingSchema(error)) {
+      throw new WebsiteApplicationError({
+        message: 'Fullmaktsversionen kunde inte läsas eftersom databasens schema för legal_text_versions inte matchar.',
+        status: 500,
+        code: 'legal_bundle_missing',
+        field: 'legal_text_versions',
+        stage: 'legal_acceptance',
+        hint: 'Kör senaste migration för legal_text_versions och retrya ansökan.',
+        details: schemaErrorDetail(error),
+      })
+    }
     throw error
   }
   return (data as WebsiteLegalAcceptanceVersion | null) ?? null
@@ -423,9 +477,55 @@ async function ensureWebsitePowerOfAttorney(input: {
   if (!consentAccepted(input.consents, ['power_of_attorney', 'poa_accepted', 'power_of_attorney_accepted'])) return null
   // Never trust frontend legal text: prefer the explicitly referenced active
   // legal version (textVersionId), then the published power_of_attorney version.
-  const referencedLegal = await loadLegalTextVersionById(input.companyId, input.structuredPoa?.textVersionId ?? null)
+  const requestedVersionId = input.structuredPoa?.textVersionId ?? null
+  let referencedLegal: WebsiteLegalAcceptanceVersion | null = null
+  if (requestedVersionId) {
+    // loadLegalTextVersionById throws on schema mismatch, so a null result here
+    // means the supplied textVersionId does not belong to this tenant.
+    referencedLegal = await loadLegalTextVersionById(input.companyId, requestedVersionId)
+    if (!referencedLegal) {
+      throw new WebsiteApplicationError({
+        message: 'Angiven fullmaktsversion (textVersionId) tillhör inte detta bolag eller finns inte.',
+        status: 422,
+        code: 'power_of_attorney_version_tenant_mismatch',
+        field: 'powerOfAttorney.textVersionId',
+        stage: 'legal_acceptance',
+        hint: 'Skicka en textVersionId som tillhör samma bolag som API-nyckeln, eller utelämna fältet så används den publicerade fullmaktsversionen.',
+      })
+    }
+    if (referencedLegal.type !== 'power_of_attorney') {
+      throw new WebsiteApplicationError({
+        message: 'Angiven textVersionId refererar inte till en fullmaktsversion.',
+        status: 422,
+        code: 'power_of_attorney_version_missing',
+        field: 'powerOfAttorney.textVersionId',
+        stage: 'legal_acceptance',
+      })
+    }
+    if (referencedLegal.status && referencedLegal.status !== 'published') {
+      throw new WebsiteApplicationError({
+        message: 'Angiven fullmaktsversion är inte publicerad.',
+        status: 422,
+        code: 'power_of_attorney_version_not_published',
+        field: 'powerOfAttorney.textVersionId',
+        stage: 'legal_acceptance',
+        hint: 'Publicera fullmaktsversionen i bolagskortet innan kunder kan acceptera den.',
+      })
+    }
+  }
   const legal = referencedLegal ?? input.legalVersions.find((row) => row.type === 'power_of_attorney')
-  if (!legal) return null
+  if (!legal) {
+    // POA consent was given (gated above) but no published power_of_attorney
+    // legal version exists for this tenant. This must fail clearly.
+    throw new WebsiteApplicationError({
+      message: 'Det finns ingen publicerad fullmaktsversion för bolaget, men kunden har accepterat fullmakt.',
+      status: 422,
+      code: 'power_of_attorney_version_missing',
+      field: 'powerOfAttorney',
+      stage: 'legal_acceptance',
+      hint: 'Publicera en power_of_attorney-version i bolagskortet i OPS.',
+    })
+  }
 
   const now = new Date().toISOString()
   const submittedStructuredPoaIsSendable = structuredPoaIsExternallySendable(input.structuredPoa ?? null)
@@ -559,7 +659,20 @@ async function ensureWebsitePowerOfAttorney(input: {
     .maybeSingle()
 
   if (error) {
-    if (missingSchema(error)) return null
+    // Do NOT silently swallow schema mismatches here. A required power of
+    // attorney that cannot be persisted must fail the whole application so we
+    // never produce a "complete" customer without legal authorization.
+    if (missingSchema(error)) {
+      throw new WebsiteApplicationError({
+        message: 'Fullmakten kunde inte sparas eftersom databasens schema för powers_of_attorney inte matchar.',
+        status: 500,
+        code: 'powers_of_attorney_schema_mismatch',
+        field: 'powers_of_attorney',
+        stage: 'legal_acceptance',
+        hint: 'Kör senaste migration för powers_of_attorney och retrya ansökan från admin.',
+        details: schemaErrorDetail(error),
+      })
+    }
     throw error
   }
 
@@ -773,6 +886,16 @@ function missingSchema(error: unknown): boolean {
 
 function schemaRepairStatus(error: unknown): 'pending_review' | null {
   return missingSchema(error) ? 'pending_review' : null
+}
+
+// Builds a non-sensitive diagnostic detail from a database error. Only the
+// Postgres/PostgREST error code and a truncated message are surfaced — never
+// row data, identity numbers or payloads.
+function schemaErrorDetail(error: unknown): { db_code: string | null; db_message: string | null } {
+  const code = (error as { code?: string } | null)?.code ?? null
+  const rawMessage = (error as { message?: string } | null)?.message ?? null
+  const message = rawMessage ? rawMessage.slice(0, 300) : null
+  return { db_code: code, db_message: message }
 }
 
 function omitKeys<T extends Record<string, unknown>>(payload: T, keys: string[]): Record<string, unknown> {
@@ -1120,6 +1243,24 @@ function hasAnyCleanValue(record: Record<string, unknown>, keys: string[]): bool
   return keys.some((key) => clean(record[key]))
 }
 
+// Normalizes the many customer-type aliases used by tenant websites and
+// external systems into the canonical 'private' | 'business' the platform uses.
+// Returns null for empty input (caller applies the default) and the original
+// lowercased token for unknown values so strict validation can reject it with a
+// precise error code rather than silently defaulting.
+function normalizeCustomerType(value: unknown): string | null {
+  const raw = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  if (!raw) return null
+  const privateAliases = new Set(['private', 'privat', 'consumer', 'person', 'privatperson', 'individual'])
+  const businessAliases = new Set([
+    'business', 'company', 'foretag', 'företag', 'corporate', 'organization',
+    'organisation', 'enterprise', 'b2b', 'juridisk_person', 'juridisk person',
+  ])
+  if (privateAliases.has(raw)) return 'private'
+  if (businessAliases.has(raw)) return 'business'
+  return raw
+}
+
 function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
   const raw = isObject(rawBody) ? { ...rawBody } : {}
   const rawCustomer = isObject(raw.customer) ? { ...raw.customer } : {}
@@ -1135,7 +1276,10 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
   const nestedContract = isObject(raw.contract) ? { ...raw.contract } : null
 
   const customer = {
-    customer_type: raw.customer_type ?? rawCustomer.customer_type ?? 'private',
+    customer_type:
+      normalizeCustomerType(
+        raw.customer_type ?? rawCustomer.customer_type ?? raw.customerType ?? rawCustomer.customerType ?? raw.type ?? rawCustomer.type,
+      ) ?? 'private',
     first_name: raw.first_name ?? raw.firstName ?? rawCustomer.first_name ?? rawCustomer.firstName,
     last_name: raw.last_name ?? raw.lastName ?? rawCustomer.last_name ?? rawCustomer.lastName,
     full_name: raw.name ?? raw.full_name ?? raw.fullName ?? rawCustomer.full_name ?? rawCustomer.fullName ?? rawCustomer.name,
@@ -2645,6 +2789,21 @@ export async function processWebsiteCustomerApplication(input: {
   requestAudit?: RequestAuditMetadata
 }) {
   const normalizedRaw = normalizeRawApplication(input.rawBody)
+
+  // Reject unmappable customer types with a precise code instead of a generic
+  // Zod validation error. Empty values default to 'private' in normalization.
+  const normalizedCustomerType = (normalizedRaw.customer as Record<string, unknown> | undefined)?.customer_type
+  if (typeof normalizedCustomerType === 'string' && !['private', 'business'].includes(normalizedCustomerType)) {
+    return failureResponse(new WebsiteApplicationError({
+      message: `Kundtypen "${normalizedCustomerType}" stöds inte. Använd private eller business.`,
+      status: 422,
+      code: 'customer_type_invalid',
+      field: 'customer.customer_type',
+      stage: 'validation',
+      hint: 'Skicka customer.customer_type som private eller business. Aliasen consumer, company, företag och organization mappas automatiskt.',
+    }))
+  }
+
   const parsed = ApplicationSchema.safeParse(normalizedRaw)
   if (!parsed.success) {
     return failureResponse(new WebsiteApplicationError({
@@ -2661,6 +2820,19 @@ export async function processWebsiteCustomerApplication(input: {
   // A structured powerOfAttorney.accepted=true satisfies the POA legal consent so
   // the existing legal-acceptance gate and POA persistence run unchanged.
   const structuredPoa = normalizeStructuredPoa(body)
+  // If a structured powerOfAttorney object is supplied it must be accepted.
+  // (Legacy callers may instead send consents.power_of_attorney=true without the
+  // structured object — that remains valid and is not affected here.)
+  if (structuredPoa && structuredPoa.accepted !== true) {
+    return failureResponse(new WebsiteApplicationError({
+      message: 'powerOfAttorney.accepted måste vara true när en strukturerad fullmakt skickas med.',
+      status: 422,
+      code: 'power_of_attorney_not_accepted',
+      field: 'powerOfAttorney.accepted',
+      stage: 'legal_acceptance',
+      hint: 'Sätt powerOfAttorney.accepted=true när kunden har godkänt fullmakten, annars utelämna powerOfAttorney-objektet.',
+    }))
+  }
   const structuredPoaValidation = validateStructuredPoaForExternalSendability(structuredPoa)
   if (structuredPoaValidation) return failureResponse(structuredPoaValidation)
   if (structuredPoa?.accepted) {
@@ -2887,6 +3059,7 @@ export async function processWebsiteCustomerApplication(input: {
       external_customer_id: externalCustomerId,
       portal_identity_id: identity.id,
       customer_site_id: site?.id ?? null,
+      site_id: site?.id ?? null,
       metering_point_id: meteringPoint?.id ?? null,
       contract_id: contract?.id ?? null,
       contract_number: contract?.contract_number ?? null,
@@ -2965,7 +3138,7 @@ export async function processWebsiteCustomerApplication(input: {
       auditLog: [reviewAuditEvent('application_received', null, responsePayload)],
     }))
 
-    await stage('legal_acceptance', () => persistCustomerLegalAcceptances({
+    const legalAcceptanceIds = await stage('legal_acceptance', () => persistCustomerLegalAcceptances({
       companyId: input.client.company_id,
       customerId: resolvedCustomerResult.customer.id,
       contractId: contract?.id ?? null,
@@ -2976,6 +3149,9 @@ export async function processWebsiteCustomerApplication(input: {
       rawPayload: input.rawBody,
       requestAudit: input.requestAudit,
     }))
+    if (Object.keys(legalAcceptanceIds).length > 0) {
+      responsePayload.legal_acceptances = legalAcceptanceIds
+    }
 
     // Collected here and merged into the final response warnings later, because
     // the main `warnings` array is assembled further down.
@@ -3002,6 +3178,17 @@ export async function processWebsiteCustomerApplication(input: {
     }))
 
     if (powerOfAttorneyId) {
+      // The POA legal version id used: the customer-supplied textVersionId when
+      // provided (already validated to belong to this tenant and be a published
+      // power_of_attorney version), otherwise the published POA version.
+      const poaLegalVersionId =
+        structuredPoa?.textVersionId ??
+        legalAcceptanceVersions.find((version) => version.type === 'power_of_attorney')?.id ??
+        null
+      const tenantSlug = await loadCompanySlugById(input.client.company_id)
+      const poaDocumentUrl = tenantSlug && poaLegalVersionId
+        ? buildPublicLegalUrl(tenantSlug, 'power_of_attorney', poaLegalVersionId)
+        : null
       responsePayload.power_of_attorney_id = powerOfAttorneyId
       responsePayload.power_of_attorney = {
         status: 'signed',
@@ -3011,6 +3198,8 @@ export async function processWebsiteCustomerApplication(input: {
         // When the POA cannot be sent externally, fullmakt must be completed
         // (signer identity/name) before automated grid-owner communication.
         requires_completion: !poaExternallySendable,
+        text_version_id: poaLegalVersionId,
+        document_url: poaDocumentUrl,
       }
       if (!poaExternallySendable) {
         poaWarnings.push(
