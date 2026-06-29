@@ -106,6 +106,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'companies.manage', label: 'Alla bolag', href: '/admin/companies', description: 'Skapa, pausa och styra bolag', pageKey: 'companies.manage', platformOnly: true },
       { key: 'users.roles', label: 'Användare & roller', href: '/admin/users', description: 'Konton, roller och overrides', pageKey: 'users.list', platformOnly: true },
       { key: 'go_live', label: 'Go-live readiness', href: '/admin/platform/go-live', description: 'Produktionssättning och spärrar', pageKey: 'platform.go_live', platformOnly: true },
+      { key: 'legal_readiness', label: 'Juridisk readiness', href: '/admin/platform/legal-readiness', description: 'Juridik/fullmakt per bolag och misslyckade ansökningar', pageKey: 'platform.go_live', platformOnly: true },
     ],
   },
   {
