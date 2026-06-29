@@ -142,11 +142,11 @@ for (const token of [
 for (const token of [
   'runBestEffortCustomerArchiveStep',
   'getBestEffortArchiveIds',
-  'customer_sites.close',
-  'metering_points.close',
-  'customer_contracts.cancel',
-  'supplier_switch_requests.fail',
-  'audit.customer.archived',
+  'archive.customer_sites.close_failed',
+  'archive.metering_points.close_failed',
+  'archive.contracts.cancel_failed',
+  'archive.switch_requests.fail_failed',
+  'archive.audit_log_failed',
 ]) {
   assert(profileActions.includes(token), `archive action is resilient around ${token}`)
 }
@@ -155,7 +155,11 @@ const archiveFunctionStart = profileActions.indexOf('async function archiveCusto
 const archiveFunctionEnd = profileActions.indexOf('const PROTECTED_DELETE_MESSAGE', archiveFunctionStart)
 const archiveFunction = profileActions.slice(archiveFunctionStart, archiveFunctionEnd)
 assert(archiveFunction.includes('status: "archived"'), 'archive action updates the customer row to archived')
-assert(archiveFunction.indexOf('if (updateError) throw updateError') < archiveFunction.indexOf('runBestEffortCustomerArchiveStep("customer_sites.close"'), 'customer archive write stays mandatory before best-effort cascade')
+const customerArchivePayload = archiveFunction.slice(archiveFunction.indexOf('.from("customers")'), archiveFunction.indexOf('if (updateError) throw updateError'))
+assert(!customerArchivePayload.includes('updated_by'), 'archive customer payload does not send missing customers.updated_by')
+assert(customerArchivePayload.includes('archived_by') && customerArchivePayload.includes('archived_at') && customerArchivePayload.includes('archive_reason'), 'archive customer payload keeps archive audit fields')
+assert(archiveFunction.includes('ends_at: nowIso.slice(0, 10)'), 'archive contract cancellation writes date-only ends_at')
+assert(archiveFunction.indexOf('if (updateError) throw updateError') < archiveFunction.indexOf('runBestEffortCustomerArchiveStep("archive.customer_sites.close_failed"'), 'customer archive write stays mandatory before best-effort cascade')
 assert(!archiveFunction.includes('if (sitesError) throw sitesError'), 'archive action no longer fails the whole action on customer_sites cascade error')
 assert(!archiveFunction.includes('if (pointsError) throw pointsError'), 'archive action no longer fails the whole action on metering_points cascade error')
 

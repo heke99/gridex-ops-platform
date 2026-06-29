@@ -3264,7 +3264,6 @@ export async function registerCustomerLifecycleDecisionAction(
         archive_reason: reason,
         lifecycle_status_reason: reason,
         lifecycle_closed_at: now,
-        updated_by: actor.id,
       })
       .eq("id", customerId)
       .eq("company_id", customer.company_id);
@@ -3277,7 +3276,7 @@ export async function registerCustomerLifecycleDecisionAction(
         rejected_reason: decisionType === "rejected" ? reason : null,
         termination_reason:
           decisionType === "withdrawal" ? "customer_request" : "other",
-        ends_at: now,
+        ends_at: now.slice(0, 10),
         updated_by: actor.id,
       })
       .eq("id", scopeId)

@@ -96,6 +96,13 @@ if (fs.existsSync(path.join(root, 'lib/website/customerApplications.ts'))) {
   if (!content.includes("from('external_contract_intakes')")) fail('Website intake flow does not write external_contract_intakes')
 }
 
+if (fs.existsSync(path.join(root, 'lib/customer-intake/intakeEngine.ts'))) {
+  const content = read('lib/customer-intake/intakeEngine.ts')
+  if (!content.includes('missingSchema') || !content.includes('PGRST204')) fail('Customer intake does not classify schema-cache mismatches')
+  if (!content.includes('minimalIntakeValues')) fail('Customer intake lacks minimal fallback payloads for site/metering creation')
+  if (!content.includes("createOrUpdateSiteTenantSafe") || !content.includes("createOrUpdateMeteringPointTenantSafe")) fail('Customer intake core create helpers are missing')
+}
+
 if (fs.existsSync(path.join(root, 'supabase/migrations/20260611150000_launch_readiness_security_routes_stats.sql'))) {
   const migration = read('supabase/migrations/20260611150000_launch_readiness_security_routes_stats.sql')
   const requiredSql = [

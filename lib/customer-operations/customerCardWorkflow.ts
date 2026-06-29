@@ -506,8 +506,8 @@ export function buildCustomerCardWorkflow(
       // preparing/queueing the send. This is not "waiting for grid owner".
       primaryAction = "dispatch_in_progress";
       adminMessage = facilityDispatchQueued
-        ? "Nätägarbegäran är köad för Ediel-sändning. Ingen åtgärd krävs."
-        : "Nätägarbegäran förbereds för sändning. Ingen åtgärd krävs.";
+        ? "Nätägarbegäran är redo och köad för Ediel-sändning. Ingen åtgärd krävs."
+        : "Nätägarbegäran är redo och förbereds för sändning. Ingen åtgärd krävs.";
       nextRequiredAction = "Systemet köar och skickar begäran automatiskt.";
     }
   } else if (hasResponseForSwitch) {

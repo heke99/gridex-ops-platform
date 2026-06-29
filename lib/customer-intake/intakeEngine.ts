@@ -1,6 +1,20 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { calculateIntakeReadiness, type IntakeReadinessInput, type IntakeReadinessResult } from '@/lib/customer-intake/readinessEngine'
 
+function missingSchema(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+}
+
+function minimalIntakeValues(values: Record<string, unknown>, keys: string[]): Record<string, unknown> {
+  const output: Record<string, unknown> = {}
+  for (const key of keys) {
+    if (key in values) output[key] = values[key]
+  }
+  return output
+}
+
 export type IntakeApiClient = {
   id?: string | null
   company_id?: string | null
@@ -111,8 +125,20 @@ export async function createOrUpdateSiteTenantSafe(input: {
     .insert({ ...input.values, company_id: input.companyId })
     .select('*')
     .single()
-  if (error) throw error
-  return data as Record<string, unknown>
+  if (!error) return data as Record<string, unknown>
+  if (!missingSchema(error)) throw error
+
+  const fallbackPayload = {
+    ...minimalIntakeValues(input.values, ['customer_id', 'site_name', 'facility_id', 'status']),
+    company_id: input.companyId,
+  }
+  const fallback = await supabaseService
+    .from('customer_sites')
+    .insert(fallbackPayload)
+    .select('*')
+    .single()
+  if (fallback.error) throw fallback.error
+  return fallback.data as Record<string, unknown>
 }
 
 export async function createOrUpdateMeteringPointTenantSafe(input: {
@@ -137,8 +163,20 @@ export async function createOrUpdateMeteringPointTenantSafe(input: {
     .insert({ ...input.values, company_id: input.companyId })
     .select('*')
     .single()
-  if (error) throw error
-  return data as Record<string, unknown>
+  if (!error) return data as Record<string, unknown>
+  if (!missingSchema(error)) throw error
+
+  const fallbackPayload = {
+    ...minimalIntakeValues(input.values, ['customer_id', 'site_id', 'customer_site_id', 'metering_point_id', 'meter_point_id', 'status']),
+    company_id: input.companyId,
+  }
+  const fallback = await supabaseService
+    .from('metering_points')
+    .insert(fallbackPayload)
+    .select('*')
+    .single()
+  if (fallback.error) throw fallback.error
+  return fallback.data as Record<string, unknown>
 }
 
 export async function createLegalAcceptances(input: {

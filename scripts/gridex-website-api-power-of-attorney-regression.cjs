@@ -154,6 +154,13 @@ ok(src.includes('internal_snapshot_document_id'), 'internal JSON snapshot docume
 ok(src.includes("code: 'poa_not_externally_sendable'") && src.includes('!poaExternallySendable'), 'weak POA missing facility returns poa_not_externally_sendable before manual outbox')
 ok(src.includes('gridOwnerRequestMayBeCreated') && src.includes('(!facilityMissing || poaExternallySendable)'), 'grid-owner request creation is gated by external POA sendability when facility is missing')
 
+// 9b) Website intake schema hardening: optional DB columns must fall back to
+// controlled pending_review/repair status, not uncontrolled crashes.
+ok(src.includes('schemaRepairStatus') && src.includes("'PGRST204'"), 'website intake treats PostgREST schema-cache mismatches as repairable')
+ok(src.includes('customer_site_schema_mismatch') && src.includes('metering_point_schema_mismatch'), 'website intake returns explicit schema mismatch codes for site/metering fallback failures')
+ok(src.includes("const fallbackPayloads: Array<Record<string, unknown>>") && src.includes(".select('id')"), 'website site/metering fallback uses minimal guaranteed columns')
+ok(src.includes("businessStatus = schemaStatus") && src.includes("'pending_review'"), 'website partial/schema failures are recorded as pending_review for repair/retry')
+
 // 10) findValidPowerOfAttorney selects all externally-sendable + PDF fields (Task F).
 ok(poaOrchestrator.includes('signer_identity_number') && poaOrchestrator.includes('legal_text_version_id') && poaOrchestrator.includes('accepted_at') && poaOrchestrator.includes('method'), 'findValidPowerOfAttorney selects signer/method/legal/accepted fields')
 

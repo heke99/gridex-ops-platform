@@ -1408,7 +1408,6 @@ async function archiveCustomerImpl(
       archived_by: actorUserId,
       archive_reason: archiveReason,
       updated_at: nowIso,
-      updated_by: actorUserId,
     })
     .eq("id", customerId)
     .eq("company_id", companyId)
@@ -1417,7 +1416,7 @@ async function archiveCustomerImpl(
 
   if (updateError) throw updateError;
 
-  await runBestEffortCustomerArchiveStep("customer_sites.close", async () => {
+  await runBestEffortCustomerArchiveStep("archive.customer_sites.close_failed", async () => {
     const { error } = await supabaseService
       .from("customer_sites")
       .update({
@@ -1425,7 +1424,6 @@ async function archiveCustomerImpl(
         closed_at: nowIso,
         closed_reason: archiveReason,
         updated_at: nowIso,
-        updated_by: actorUserId,
       })
       .eq("company_id", companyId)
       .eq("customer_id", customerId);
@@ -1445,7 +1443,7 @@ async function archiveCustomerImpl(
   });
 
   if (siteIds.length > 0) {
-    await runBestEffortCustomerArchiveStep("metering_points.close", async () => {
+    await runBestEffortCustomerArchiveStep("archive.metering_points.close_failed", async () => {
       const { error } = await supabaseService
         .from("metering_points")
         .update({
@@ -1453,7 +1451,6 @@ async function archiveCustomerImpl(
           closed_at: nowIso,
           closed_reason: archiveReason,
           updated_at: nowIso,
-          updated_by: actorUserId,
         })
         .eq("company_id", companyId)
         .in("site_id", siteIds);
@@ -1475,16 +1472,15 @@ async function archiveCustomerImpl(
   });
 
   if (contractIds.length > 0) {
-    await runBestEffortCustomerArchiveStep("customer_contracts.cancel", async () => {
+    await runBestEffortCustomerArchiveStep("archive.contracts.cancel_failed", async () => {
       const { error } = await supabaseService
         .from("customer_contracts")
         .update({
           status: "cancelled",
-          ends_at: nowIso,
+          ends_at: nowIso.slice(0, 10),
           termination_reason: "other",
           rejected_reason: archiveReason,
           updated_at: nowIso,
-          updated_by: actorUserId,
         })
         .eq("company_id", companyId)
         .eq("customer_id", customerId)
@@ -1515,7 +1511,7 @@ async function archiveCustomerImpl(
   });
 
   if (switchIds.length > 0) {
-    await runBestEffortCustomerArchiveStep("supplier_switch_requests.fail", async () => {
+    await runBestEffortCustomerArchiveStep("archive.switch_requests.fail_failed", async () => {
       const { error } = await supabaseService
         .from("supplier_switch_requests")
         .update({
@@ -1523,7 +1519,6 @@ async function archiveCustomerImpl(
           failed_at: nowIso,
           failure_reason: archiveReason,
           updated_at: nowIso,
-          updated_by: actorUserId,
         })
         .eq("company_id", companyId)
         .eq("customer_id", customerId)
@@ -1532,7 +1527,7 @@ async function archiveCustomerImpl(
       if (error) throw error;
     });
 
-    await runBestEffortCustomerArchiveStep("usage.switch.cancelled", async () => {
+    await runBestEffortCustomerArchiveStep("archive.usage_event_failed", async () => {
       await logUsageEvent({
         companyId,
         actorUserId,
@@ -1550,7 +1545,7 @@ async function archiveCustomerImpl(
     });
   }
 
-  await runBestEffortCustomerArchiveStep("audit.customer.archived", async () => {
+  await runBestEffortCustomerArchiveStep("archive.audit_log_failed", async () => {
     await insertAuditLog({
       actorUserId,
       entityType: "customer",

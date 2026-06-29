@@ -156,6 +156,13 @@ Regler:
 - Svaret returnerar operativ status via `nextAction` – aldrig tekniska Ediel-detaljer. Koder: `missing_customer_identity`, `missing_customer_details`, `power_of_attorney_required`, `poa_not_externally_sendable`, `grid_owner_contact_required`, `manual_mailbox_required`, `facility_identifier_requested`, `ready_for_switch`, `in_progress`.
 - Skicka `Idempotency-Key`; upprepade anrop/klick skapar inga dubbletter. Bolaget härleds från API-nyckeln, aldrig från payload.
 
+
+## Kundnummer, fakturering och Capway/Aptic
+
+`customer_number` är OPS/tenantens stabila kundnummer och får inte blandas ihop med `external_customer_id`. Fakturapartner som Capway/Aptic ska kopplas via separata billing-/providerfält och metadata, till exempel `billing_customer_ref`, debtor-/provider-referenser och fakturaunderlagets egna id:n.
+
+När fakturaunderlag senare skickas till Capway/Aptic gäller regeln `debtRow amount = belopp exkl. moms`. Varje debtRow ska bära rätt momskod, till exempel `SE25` för svensk 25 procent moms. Webbansökan ska därför bara välja publicerat avtal/erbjudande från OPS; egna priser från hemsidan får inte bli juridisk eller faktureringsmässig sanning.
+
 ## Interna cron-endpoints och Resend-webhook
 
 Manuell nätägarkommunikation drivs av interna cron-jobb och en leverans-webhook:

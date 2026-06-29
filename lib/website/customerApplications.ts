@@ -768,7 +768,11 @@ function errorMessage(error: unknown): string {
 function missingSchema(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code ?? ''
   const message = (error as { message?: string } | null)?.message ?? ''
-  return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+}
+
+function schemaRepairStatus(error: unknown): 'pending_review' | null {
+  return missingSchema(error) ? 'pending_review' : null
 }
 
 function omitKeys<T extends Record<string, unknown>>(payload: T, keys: string[]): Record<string, unknown> {
@@ -1731,7 +1735,10 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
       .eq('company_id', companyId)
       .eq('customer_id', customerId)
       .eq('id', created.siteId)
-    if (enrichmentError) throw enrichmentError
+    if (enrichmentError && !missingSchema(enrichmentError)) throw enrichmentError
+    if (enrichmentError && missingSchema(enrichmentError)) {
+      console.warn('[website-applications] site enrichment skipped because schema differs', enrichmentError)
+    }
     return { id: created.siteId, facility_id: facilityId }
   }
 
@@ -1771,19 +1778,41 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
   if (error && !missingSchema(error)) throw error
   if (data) return data as { id: string; facility_id: string | null }
 
-  const fallback = await supabaseService
-    .from('customer_sites')
-    .insert({
+  const fallbackPayloads: Array<Record<string, unknown>> = [
+    {
       company_id: companyId,
       customer_id: customerId,
       site_name: clean(site.site_name) ?? 'Anläggning',
       facility_id: facilityId,
       status: 'active',
-    })
-    .select('id,facility_id')
-    .single()
-  if (fallback.error) throw fallback.error
-  return fallback.data as { id: string; facility_id: string | null }
+    },
+    {
+      company_id: companyId,
+      customer_id: customerId,
+      site_name: clean(site.site_name) ?? 'Anläggning',
+      status: 'active',
+    },
+  ]
+
+  let lastFallbackError: unknown = null
+  for (const payload of fallbackPayloads) {
+    const fallback = await supabaseService
+      .from('customer_sites')
+      .insert(payload)
+      .select('id')
+      .single()
+    if (fallback.data?.id) return { id: String(fallback.data.id), facility_id: facilityId }
+    if (fallback.error && !missingSchema(fallback.error)) throw fallback.error
+    lastFallbackError = fallback.error
+  }
+
+  throw new WebsiteApplicationError({
+    message: 'Kundansökan kunde inte skapa anläggning eftersom customer_sites-schemat inte matchar koden.',
+    status: 500,
+    code: 'customer_site_schema_mismatch',
+    stage: 'site_create',
+    details: lastFallbackError,
+  })
 }
 
 async function upsertMeteringPoint(companyId: string, customerId: string, site: { id: string; facility_id: string | null } | null, input: ApplicationInput) {
@@ -1829,7 +1858,7 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
       .or(`metering_point_id.eq.${meteringPointId},meter_point_id.eq.${meteringPointId}`)
       .limit(1)
       .maybeSingle()
-    if (fallbackExisting.error) throw fallbackExisting.error
+    if (fallbackExisting.error && !missingSchema(fallbackExisting.error)) throw fallbackExisting.error
     if (fallbackExisting.data?.id) {
       return {
         id: String(fallbackExisting.data.id),
@@ -1894,31 +1923,54 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
     }
   }
 
-  const fallback = await supabaseService
-    .from('metering_points')
-    .insert({
+  const fallbackPayloads: Array<Record<string, unknown>> = [
+    {
       company_id: companyId,
       customer_id: customerId,
       site_id: site.id,
+      metering_point_id: meteringPointId,
+      status: 'active',
+    },
+    {
+      company_id: companyId,
+      customer_id: customerId,
       customer_site_id: site.id,
       metering_point_id: meteringPointId,
+      status: 'active',
+    },
+    {
+      company_id: companyId,
+      customer_id: customerId,
+      site_id: site.id,
       meter_point_id: meteringPointId,
       status: 'active',
-      measurement_type: measurementType,
-      reading_frequency: readingFrequency,
-      is_settlement_relevant: true,
-      site_facility_id: siteFacilityId,
-      price_area_code: priceAreaCode,
-      start_date: startDate,
-      metadata,
-    })
-    .select('id,metering_point_id,meter_point_id')
-    .single()
-  if (fallback.error) throw fallback.error
-  return {
-    id: String(fallback.data.id),
-    metering_point_id: clean(fallback.data.metering_point_id) ?? clean(fallback.data.meter_point_id),
+    },
+  ]
+
+  let lastFallbackError: unknown = null
+  for (const payload of fallbackPayloads) {
+    const fallback = await supabaseService
+      .from('metering_points')
+      .insert(payload)
+      .select('id')
+      .single()
+    if (fallback.data?.id) {
+      return {
+        id: String(fallback.data.id),
+        metering_point_id: meteringPointId,
+      }
+    }
+    if (fallback.error && !missingSchema(fallback.error)) throw fallback.error
+    lastFallbackError = fallback.error
   }
+
+  throw new WebsiteApplicationError({
+    message: 'Kundansökan kunde inte skapa mätpunkt eftersom metering_points-schemat inte matchar koden.',
+    status: 500,
+    code: 'metering_point_schema_mismatch',
+    stage: 'metering_point_create',
+    details: lastFallbackError,
+  })
 }
 
 type WebsiteContractCreateResult = {
@@ -2441,7 +2493,16 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     })
     .select('id')
     .single()
-  if (fallback.error) throw fallback.error
+  if (fallback.error && !missingSchema(fallback.error)) throw fallback.error
+  if (fallback.error && missingSchema(fallback.error)) {
+    throw new WebsiteApplicationError({
+      message: 'Kundansökan kunde inte loggas eftersom website_customer_applications-schemat inte matchar koden.',
+      status: 500,
+      code: 'website_application_schema_mismatch',
+      stage: 'application_record_create',
+      details: fallback.error,
+    })
+  }
   const created = fallback.data as { id: string }
   await syncExternalContractIntakeRow({ ...input, applicationId: created.id })
   return created
@@ -3257,8 +3318,13 @@ export async function processWebsiteCustomerApplication(input: {
 
     const safeErrorMessage = operationalErrorMessage(appError)
     const controlledBusinessError = isControlledBusinessError(appError)
-    const businessStatus = controlledBusinessError ? controlledBusinessStatus(appError) : 'failed'
-    const businessNextStep = controlledBusinessError ? controlledBusinessNextStep(appError) : 'Tekniskt fel kräver åtgärd innan ansökan kan fortsätta.'
+    const schemaStatus = schemaRepairStatus(error) ?? schemaRepairStatus(appError)
+    const businessStatus = schemaStatus ?? (controlledBusinessError ? controlledBusinessStatus(appError) : 'failed')
+    const businessNextStep = schemaStatus
+      ? 'Teknisk admin behöver köra senaste migration/schema-fix och sedan reparera eller retrya ansökan från admin.'
+      : controlledBusinessError
+        ? controlledBusinessNextStep(appError)
+        : 'Tekniskt fel kräver åtgärd innan ansökan kan fortsätta.'
     const failedBlockingReasons = [
       ...readiness.blockingReasons,
       controlledBusinessError ? controlledBusinessBlockingReason(appError) : technicalBlockingReason(appError),
