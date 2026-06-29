@@ -19,10 +19,10 @@ const permissions = [
   ['Mina sidor – uppdatera kunddata', 'customer_portal.write', 'Skicka kompletteringar, flyttanmälan och profiländringar.'],
   ['Läsa händelser', 'events.read', 'Läsa händelser som skapats för bolaget.'],
   ['Skicka händelser från hemsidan', 'website_events.write', 'Skicka kundhändelser från hemsida eller kundportal.'],
-  ['Läsa kunddokument', 'customer_documents.read', 'Granulär behörighet för dokument i Mina sidor.'],
-  ['Synka kunddokument', 'customer_documents.write', 'Skicka signerade fullmakter, avtalsdokument och andra kunddokument till OPS.'],
-  ['Läsa kundnotiser', 'customer_notifications.read', 'Granulär behörighet för notiser i Mina sidor.'],
-  ['Uppdatera kundnotiser', 'customer_notifications.write', 'Granulär behörighet för att markera notiser som lästa.'],
+  ['Läsa kunddokument', 'customer_documents.read', 'Planerad granulär behörighet. Idag räcker customer_portal.read.'],
+  ['Synka kunddokument', 'customer_documents.write', 'Planerad granulär behörighet. Idag räcker customer_portal.write (t.ex. /sync).'],
+  ['Läsa kundnotiser', 'customer_notifications.read', 'Planerad granulär behörighet. Idag räcker customer_portal.read.'],
+  ['Uppdatera kundnotiser', 'customer_notifications.write', 'Planerad granulär behörighet. /notifications/read kräver idag customer_portal.write.'],
 ]
 
 const futurePermissions = [
