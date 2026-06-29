@@ -39,7 +39,6 @@ const HARD_BLOCK_STATUSES = new Set([
   'negative_aperak_received',
   'z02_rejected',
   'grid_owner_rejected_request',
-  'cross_tenant_facility_conflict',
   'protected_identity',
 ])
 
@@ -50,8 +49,8 @@ function isControlledFacilityStatus(status: string | null | undefined) {
 function facilityCorrectionCopy(status: string | null | undefined) {
   if (status === 'cross_tenant_facility_conflict') {
     return {
-      title: 'Anläggnings-ID finns i annat bolag',
-      message: 'Leverantörsbyte är stoppat. Plattformen visar inte kunddata från annat bolag och skapar säker manuell granskning.',
+      title: 'Anläggnings-ID behöver verifieras',
+      message: 'Kundrelationen får skapas separat, men automation ska vänta tills anläggning, startdatum och fullmakt är verifierade. Kunddata från annan tenant visas inte.',
       steps: ['Verifiera uppgiften med kunden.', 'Kontakta nätägaren om uppgiften fortfarande verkar rätt.', 'Kör ny readiness-check efter manuell granskning.'],
     }
   }

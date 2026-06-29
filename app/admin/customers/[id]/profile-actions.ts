@@ -289,6 +289,13 @@ async function saveCustomerProfileImpl(
 
   if (beforeError) throw beforeError;
 
+  if (String((before as Record<string, unknown>).status ?? '').toLowerCase() === "archived") {
+    throw new CustomerActionError(
+      "customer_archived_profile_locked",
+      "Arkiverad kund kan inte återaktiveras eller ändras via vanlig profil. Öppna arkivläget eller använd en separat återställningsåtgärd.",
+    );
+  }
+
   const companyId = await assertUserCanOperateCompany(
     actorUserId,
     typeof before.company_id === "string" ? before.company_id : null,

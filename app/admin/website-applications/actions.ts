@@ -277,18 +277,28 @@ async function applyFacilityConflictStatus(application: ApplicationRecord, paylo
     facilityId,
   })
 
-  const businessCode: FacilityBusinessErrorCode | null = conflicts.crossTenantExists
-    ? 'cross_tenant_facility_conflict'
-    : conflicts.sameTenant.length > 0
-      ? 'duplicate_facility_id'
-      : null
+  const businessCode: FacilityBusinessErrorCode | null = conflicts.sameTenant.length > 0
+    ? 'duplicate_facility_id'
+    : null
+
+  if (conflicts.crossTenantExists) {
+    const metadata = isRecord(payload.metadata) ? payload.metadata : {}
+    payload.metadata = {
+      ...metadata,
+      cross_tenant_facility_seen: true,
+      platform_only: true,
+      tenant_message: 'Anläggnings-ID behöver verifieras innan automation.',
+    }
+    site.cross_tenant_facility_seen = true
+    site.facility_review_note = 'Anläggnings-ID behöver verifieras innan automation.'
+  }
 
   if (!businessCode) {
     if (payload.facility_data_status === 'duplicate_facility_id' || payload.facility_data_status === 'cross_tenant_facility_conflict') {
       delete payload.facility_data_status
       delete site.facility_data_status
-      payload.site = site
     }
+    payload.site = site
     return null
   }
 

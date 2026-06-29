@@ -57,7 +57,7 @@ export function intakeStatusLabel(value: string | null | undefined): string {
     case 'z02_rejected': return 'Nätägaren kunde inte bekräfta uppgiften'
     case 'grid_owner_rejected_request': return 'Nätägaren avvisade begäran'
     case 'duplicate_facility_id': return 'Anläggnings-ID finns redan'
-    case 'cross_tenant_facility_conflict': return 'Anläggnings-ID finns hos annat bolag'
+    case 'cross_tenant_facility_conflict': return 'Anläggnings-ID behöver verifieras innan automation'
     case 'protected_identity': return 'Skyddad identitet kräver manuell process'
     default: return humanizeTechnicalValue(value)
   }

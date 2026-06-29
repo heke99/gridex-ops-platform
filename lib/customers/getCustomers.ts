@@ -45,8 +45,6 @@ const STATUS_COUNT_KEYS: Exclude<CustomerStatusFilter, 'all'>[] = [
   'moved',
   'terminated',
   'blocked',
-  'cancelled',
-  'rejected',
   'archived',
 ]
 const CUSTOMER_LIST_SELECT = [
@@ -101,9 +99,6 @@ export type CustomerFlagFilter =
   | 'ready_for_switch'
   | 'billing_ready'
   | 'test_customers'
-  | 'archived'
-  | 'cancelled'
-  | 'rejected'
 
 type GetCustomersOptions = {
   query?: string | null
@@ -135,8 +130,6 @@ export type CustomerStatusFilter =
   | 'moved'
   | 'terminated'
   | 'blocked'
-  | 'cancelled'
-  | 'rejected'
   | 'archived'
 
 export type CustomerStatusCounts = {
@@ -148,8 +141,6 @@ export type CustomerStatusCounts = {
   moved: number
   terminated: number
   blocked: number
-  cancelled: number
-  rejected: number
   archived: number
 }
 
@@ -258,9 +249,6 @@ function matchesFlag(row: CustomerListRow, flag: CustomerFlagFilter): boolean {
     return row.site_count > 0 && row.metering_point_count > 0 && row.contract_count > 0 && !row.has_missing_grid_owner
   }
   if (flag === 'test_customers') return row.is_test_data === true || String(row.source ?? '').toLowerCase().includes('test')
-  if (flag === 'archived') return row.status === 'archived'
-  if (flag === 'cancelled') return row.status === 'cancelled'
-  if (flag === 'rejected') return row.status === 'rejected'
   return true
 }
 
@@ -339,9 +327,7 @@ async function countCustomersByStatus(params: {
     moved: statusCounts[4] ?? 0,
     terminated: statusCounts[5] ?? 0,
     blocked: statusCounts[6] ?? 0,
-    cancelled: statusCounts[7] ?? 0,
-    rejected: statusCounts[8] ?? 0,
-    archived: statusCounts[9] ?? 0,
+    archived: statusCounts[7] ?? 0,
   }
 }
 
@@ -521,8 +507,6 @@ function emptyCounts(): CustomerStatusCounts {
     moved: 0,
     terminated: 0,
     blocked: 0,
-    cancelled: 0,
-    rejected: 0,
     archived: 0,
   }
 }
@@ -538,8 +522,6 @@ function buildCounts(rows: CustomerListRow[]): CustomerStatusCounts {
     if (row.status === 'moved') counts.moved += 1
     if (row.status === 'terminated') counts.terminated += 1
     if (row.status === 'blocked') counts.blocked += 1
-    if (row.status === 'cancelled') counts.cancelled += 1
-    if (row.status === 'rejected') counts.rejected += 1
     if (row.status === 'archived') counts.archived += 1
   }
   return counts
@@ -584,7 +566,7 @@ export async function listCustomersPage(options: {
     }
   }
 
-  const includeHiddenRows = status === 'archived' || flag === 'archived'
+  const includeHiddenRows = status === 'archived'
   const allRows = await hydrateDerivedCustomerData(await loadCustomerRows(companyId, status, includeHiddenRows), companyId)
   const searchedRows = allRows.filter((row) => matchesText(row, query))
   const counts = buildCounts(searchedRows.filter((row) => matchesCustomerType(row, customerType) && matchesFlag(row, flag)))

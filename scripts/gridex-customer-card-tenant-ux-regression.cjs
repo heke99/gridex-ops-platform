@@ -170,5 +170,27 @@ assert(archiveFunction.indexOf('if (updateError) throw updateError') < archiveFu
 assert(!archiveFunction.includes('if (sitesError) throw sitesError'), 'archive action no longer fails the whole action on customer_sites cascade error')
 assert(!archiveFunction.includes('if (pointsError) throw pointsError'), 'archive action no longer fails the whole action on metering_points cascade error')
 
+
+// Permanent archive + tenant isolation policy checks.
+const allMigrations = fs.readdirSync(path.join(root, 'supabase', 'migrations'))
+  .filter((file) => file.endsWith('.sql'))
+  .map((file) => fs.readFileSync(path.join(root, 'supabase', 'migrations', file), 'utf8'))
+  .join('\n')
+const customerList = read('lib/customers/getCustomers.ts')
+const customerListPage = read('app/admin/customers/page.tsx')
+const actionPreflight = read('lib/operations/businessActions/actionPreflight.ts')
+const profileCard = read('components/admin/customers/CustomerProfileCard.tsx')
+const platformArchivePagePath = 'app/admin/platform/customers/archived/page.tsx'
+const platformArchivePage = fs.existsSync(path.join(root, platformArchivePagePath)) ? read(platformArchivePagePath) : ''
+
+assert(allMigrations.includes('customers_status_check') && allMigrations.includes("'archived'::text"), 'customers_status_check migration includes archived')
+assert(allMigrations.includes('add column if not exists created_by uuid') && allMigrations.includes('add column if not exists updated_by uuid'), 'customers audit columns migration standardizes created_by/updated_by')
+assert(customerList.includes("HIDDEN_CUSTOMER_STATUSES = ['archived'") && customerList.includes("status === 'archived'"), 'customer list hides archived by default but supports status=archived')
+assert(!customerList.includes("| 'cancelled'\n  | 'rejected'"), 'customer status filter does not expose DB-rejected cancelled/rejected customer statuses')
+assert(!customerListPage.includes("flag: 'archived'") && !customerListPage.includes("flagFilter === 'archived'"), 'archive filter uses status=archived instead of flag=archived')
+assert(platformArchivePage.includes('requirePlatformAdminAccess') && platformArchivePage.includes(".eq('status', 'archived')") && platformArchivePage.includes("from('companies')"), 'superadmin platform archive view lists archived customers with tenant names')
+assert(actionPreflight.includes(".select('id, company_id, status") && actionPreflight.includes("code: 'customer_archived'"), 'action preflight blocks active operations for archived customers')
+assert(profileCard.includes('Denna kund är arkiverad. Historik är bevarad') && profileCard.includes('Arkiverad – profil låst') && profileCard.includes('Redan arkiverad'), 'archived customer profile is read-only for active operations')
+
 if (process.exitCode) process.exit(process.exitCode)
 console.log('Customer card tenant UX regression passed')

@@ -173,4 +173,17 @@ ok(extDoc.includes('poa_not_externally_sendable') && extDoc.includes('organisati
 // 12) Package script entry.
 ok(read('package.json').includes('gridex:website-api-power-of-attorney-regression'), 'package script exposes regression command')
 
+
+// Tenant-safe facility policy: same-tenant duplicate blocks, cross-tenant match is platform-only and must not block core customer creation.
+ok(src.includes('crossTenantFacilitySeen = conflicts.crossTenantExists'), 'website intake records cross-tenant facility as an internal signal')
+ok(!src.includes("code: 'cross_tenant_facility_conflict',\n        stage: 'site_create'"), 'website intake no longer throws cross_tenant_facility_conflict during site creation')
+ok(src.includes("code: 'duplicate_facility_id'") && src.includes('sameTenantConflict'), 'website intake still blocks same-tenant duplicate facility ids')
+ok(src.includes('cross_tenant_facility_seen') && src.includes('platform_only'), 'website intake persists cross-tenant facility signal as platform-only metadata')
+const facilityErrors = read('lib/energy/facilityDataErrors.ts')
+ok(facilityErrors.includes("status: 'manual_review'") && facilityErrors.includes('Andra tenants kunddata visas aldrig'), 'cross-tenant facility catalog is neutral and platform-review oriented')
+const reviewActions = read('app/admin/website-applications/actions.ts')
+ok(reviewActions.includes('cross_tenant_facility_seen') && reviewActions.includes('Anläggnings-ID behöver verifieras innan automation.'), 'website application review stores neutral cross-tenant facility signal')
+ok(!reviewActions.includes("? 'cross_tenant_facility_conflict'"), 'website application review does not classify cross-tenant facility as a hard customer-intake blocker')
+
+
 console.log('Website API power of attorney regression passed')

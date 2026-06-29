@@ -91,12 +91,12 @@ function humanFacilityIssue(status: ControlledFacilityStatus): ReviewIssue {
   if (status === "cross_tenant_facility_conflict") {
     return {
       field: "cross_tenant_facility_conflict",
-      label: "Anläggnings-ID finns i annan tenant",
-      severity: "blocking",
+      label: "Anläggnings-ID behöver verifieras",
+      severity: "warning",
       message:
-        "Samma anläggnings-ID verkar redan finnas i ett annat bolag. Kunddata från annan tenant visas inte och automation stoppas.",
+        "Anläggnings-ID behöver verifieras innan automation. Kunddata från annan tenant visas inte och kundrelationen ska hållas separat.",
       action:
-        "Skapa säker manuell granskning. Bekräfta uppgifterna med kunden och nätägaren innan ny readiness-check.",
+        "Tillåt separat kundintag men stoppa automation tills anläggning, startdatum och fullmakt är verifierade.",
     };
   }
   if (status === "duplicate_facility_id") {

@@ -116,6 +116,7 @@ async function safeLatestContractsByCustomerIds(
 
 function StatusBadge({ status }: { status: string | null }) {
  const styles: Record<string, string> = {
+ archived: 'border-slate-300 bg-slate-100 text-slate-700',
  active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
  draft: 'border-amber-200 bg-amber-50 text-amber-700',
  pending_verification: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -456,6 +457,7 @@ function normalizeStatusFilter(value: string | undefined): CustomerStatusFilter 
  case 'moved':
  case 'terminated':
  case 'blocked':
+ case 'archived':
  return value
  default:
  return 'all'
@@ -495,8 +497,8 @@ function normalizeCustomerFlagFilter(value: string | undefined): CustomerFlagFil
  case 'missing_authorization':
  case 'missing_grid_owner':
  case 'ready_for_switch':
- case 'cancelled':
- case 'rejected':
+ case 'billing_ready':
+ case 'test_customers':
  return value
  default:
  return 'all'
@@ -765,12 +767,6 @@ function customerFlagFilterLabel(value: CustomerFlagFilter): string {
  return 'faktureringsklara'
  case 'test_customers':
  return 'testkunder'
- case 'archived':
- return 'arkiverade kunder'
- case 'cancelled':
- return 'ångrade kunder'
- case 'rejected':
- return 'nekade kunder'
  case 'all':
  default:
  return 'alla kundflaggor'
@@ -793,10 +789,6 @@ function customerStatusLabel(value: string | null): string {
  return 'Avslutad'
  case 'blocked':
  return 'Blockerad'
- case 'cancelled':
- return 'Ångrad'
- case 'rejected':
- return 'Nekad'
  case 'archived':
  return 'Arkiverad'
  default:
@@ -1215,8 +1207,6 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  <option value="moved">Flyttad</option>
  <option value="terminated">Avslutad</option>
  <option value="blocked">Blockerad</option>
- <option value="cancelled">Ångrad</option>
- <option value="rejected">Nekad</option>
  <option value="archived">Arkiverad</option>
  </select>
  <select
@@ -1334,213 +1324,18 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  tone="danger"
  />
  <FilterChip
- label="Ångrade"
- count={pageResult.counts.cancelled}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: 'cancelled', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
- active={statusFilter === 'cancelled'}
- tone="danger"
- />
- <FilterChip
- label="Nekade"
- count={pageResult.counts.rejected}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: 'rejected', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
- active={statusFilter === 'rejected'}
- tone="warning"
- />
- <FilterChip
  label="Arkiverade"
  count={pageResult.counts.archived}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: 'archived', contract: contractFilter, customerType: customerTypeFilter, flag: flagFilter, page: 1 })}
+ href={buildCustomersHref({
+ q: query,
+ ops: opsFilter,
+ status: 'archived',
+ contract: contractFilter,
+ customerType: customerTypeFilter,
+ flag: flagFilter,
+ page: 1,
+ })}
  active={statusFilter === 'archived'}
- />
- </div>
-
- <div className="mt-5 flex flex-wrap gap-3">
- <FilterChip
- label="Alla kundtyper"
- count={pageResult.total}
- href={buildCustomersHref({
- q: query,
- ops: opsFilter,
- status: statusFilter,
- contract: contractFilter,
- customerType: 'all',
- flag: flagFilter,
- page: 1,
- })}
- active={customerTypeFilter === 'all'}
- />
- <FilterChip
- label="Privatpersoner"
- count={filteredCustomers.filter((customer) => customer.customer_type === 'private' || !customer.customer_type).length}
- href={buildCustomersHref({
- q: query,
- ops: opsFilter,
- status: statusFilter,
- contract: contractFilter,
- customerType: 'private',
- flag: flagFilter,
- page: 1,
- })}
- active={customerTypeFilter === 'private'}
- />
- <FilterChip
- label="Företag"
- count={filteredCustomers.filter((customer) => customer.customer_type === 'business').length}
- href={buildCustomersHref({
- q: query,
- ops: opsFilter,
- status: statusFilter,
- contract: contractFilter,
- customerType: 'business',
- flag: flagFilter,
- page: 1,
- })}
- active={customerTypeFilter === 'business'}
- />
- <FilterChip
- label="Föreningar"
- count={filteredCustomers.filter((customer) => customer.customer_type === 'association').length}
- href={buildCustomersHref({
- q: query,
- ops: opsFilter,
- status: statusFilter,
- contract: contractFilter,
- customerType: 'association',
- flag: flagFilter,
- page: 1,
- })}
- active={customerTypeFilter === 'association'}
- />
- </div>
-
- <div className="mt-5 flex flex-wrap gap-3">
- <FilterChip
- label="Alla flaggor"
- count={sortedCustomers.length}
- href={buildCustomersHref({
- q: query,
- ops: opsFilter,
- status: statusFilter,
- contract: contractFilter,
- customerType: customerTypeFilter,
- flag: 'all',
- page: 1,
- })}
- active={flagFilter === 'all'}
- />
- <FilterChip
- label="Möjliga dubbletter"
- count={sortedCustomers.filter((customer) => Boolean(customer.possible_duplicate)).length}
- href={buildCustomersHref({
- q: query,
- ops: opsFilter,
- status: statusFilter,
- contract: contractFilter,
- customerType: customerTypeFilter,
- flag: 'possible_duplicate',
- page: 1,
- })}
- active={flagFilter === 'possible_duplicate'}
- tone="warning"
- />
- <FilterChip
- label="Flera anläggningar"
- count={sortedCustomers.filter((customer) => customer.site_count > 1).length}
- href={buildCustomersHref({
- q: query,
- ops: opsFilter,
- status: statusFilter,
- contract: contractFilter,
- customerType: customerTypeFilter,
- flag: 'multi_site',
- page: 1,
- })}
- active={flagFilter === 'multi_site'}
- />
- <FilterChip
- label="Flera avtal"
- count={sortedCustomers.filter((customer) => customer.contract_count > 1).length}
- href={buildCustomersHref({
- q: query,
- ops: opsFilter,
- status: statusFilter,
- contract: contractFilter,
- customerType: customerTypeFilter,
- flag: 'multi_contract',
- page: 1,
- })}
- active={flagFilter === 'multi_contract'}
- />
- <FilterChip
- label="Samlingsfaktura"
- count={sortedCustomers.filter((customer) => Boolean(customer.consolidated_invoice)).length}
- href={buildCustomersHref({
- q: query,
- ops: opsFilter,
- status: statusFilter,
- contract: contractFilter,
- customerType: customerTypeFilter,
- flag: 'consolidated_invoice',
- page: 1,
- })}
- active={flagFilter === 'consolidated_invoice'}
- tone="info"
- />
- <FilterChip
- label="Saknar fullmakt"
- count={sortedCustomers.filter((customer) => !customer.has_signed_power_of_attorney).length}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'missing_authorization', page: 1 })}
- active={flagFilter === 'missing_authorization'}
- tone="warning"
- />
- <FilterChip
- label="Saknar nätägare"
- count={sortedCustomers.filter((customer) => Boolean(customer.has_missing_grid_owner)).length}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'missing_grid_owner', page: 1 })}
- active={flagFilter === 'missing_grid_owner'}
- tone="warning"
- />
- <FilterChip
- label="Redo för byte"
- count={sortedCustomers.filter((customer) => customer.site_count > 0 && customer.metering_point_count > 0 && Boolean(customer.has_signed_power_of_attorney) && !customer.has_missing_grid_owner).length}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'ready_for_switch', page: 1 })}
- active={flagFilter === 'ready_for_switch'}
- tone="success"
- />
- <FilterChip
- label="Faktureringsklara"
- count={sortedCustomers.filter((customer) => customer.site_count > 0 && customer.metering_point_count > 0 && customer.contract_count > 0 && !customer.has_missing_grid_owner).length}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'billing_ready', page: 1 })}
- active={flagFilter === 'billing_ready'}
- tone="success"
- />
- <FilterChip
- label="Testkunder"
- count={sortedCustomers.filter((customer) => customer.is_test_data === true || String(customer.source ?? '').toLowerCase().includes('test')).length}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'test_customers', page: 1 })}
- active={flagFilter === 'test_customers'}
- tone="warning"
- />
- <FilterChip
- label="Arkiverade"
- count={sortedCustomers.filter((customer) => customer.status === 'archived').length}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'archived', page: 1 })}
- active={flagFilter === 'archived'}
- />
- <FilterChip
- label="Ångrade"
- count={sortedCustomers.filter((customer) => customer.status === 'cancelled').length}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'cancelled', page: 1 })}
- active={flagFilter === 'cancelled'}
- tone="danger"
- />
- <FilterChip
- label="Nekade"
- count={sortedCustomers.filter((customer) => customer.status === 'rejected').length}
- href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter, customerType: customerTypeFilter, flag: 'rejected', page: 1 })}
- active={flagFilter === 'rejected'}
- tone="danger"
  />
  </div>
 

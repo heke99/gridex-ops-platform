@@ -40,7 +40,7 @@ export async function actionPreflight(input: {
   const scopedCompanyId = await requireOperationalCompanyId(input.actorUserId)
   const { data: customer, error: customerError } = await supabaseService
     .from('customers')
-    .select('id, company_id, full_name, email, personal_number, org_number')
+    .select('id, company_id, status, full_name, email, personal_number, org_number')
     .eq('id', input.customerId)
     .eq('company_id', scopedCompanyId)
     .maybeSingle()
@@ -75,6 +75,13 @@ export async function actionPreflight(input: {
   const meteringPoint = (meteringPoints ?? [])[0] as Record<string, unknown> | undefined
 
   const issues: BusinessActionPreflightIssue[] = []
+  if (String((customer as { status?: string | null }).status ?? '').toLowerCase() === 'archived') {
+    issues.push({
+      code: 'customer_archived',
+      label: 'Kunden är arkiverad. Historik kan läsas, men nya aktiva kundåtgärder är spärrade.',
+      blocking: true,
+    })
+  }
   if (!site?.id) issues.push({ code: 'site_missing', label: 'Anläggning saknas', blocking: true })
   const typedMeteringPoint = (meteringPoint as MeteringPointRow | undefined) ?? null
   if (!typedMeteringPoint) {

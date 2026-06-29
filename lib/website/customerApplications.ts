@@ -1639,18 +1639,11 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
   const site = input.site
   if (!site) return null
   const facilityId = normalizeFacilityId(site.facility_id)
+  let crossTenantFacilitySeen = false
 
   if (facilityId) {
     const conflicts = await findFacilityConflicts({ companyId, customerId, facilityId })
-    if (conflicts.crossTenantExists) {
-      throw new WebsiteApplicationError({
-        message: 'Anläggnings-ID finns i annan tenant. Systemet blockerar automation och visar inte annan tenants kunddata.',
-        status: 409,
-        code: 'cross_tenant_facility_conflict',
-        stage: 'site_create',
-        details: { facility_id: facilityId },
-      })
-    }
+    crossTenantFacilitySeen = conflicts.crossTenantExists
     const sameTenantConflict = conflicts.sameTenant[0]
     if (sameTenantConflict) {
       throw new WebsiteApplicationError({
@@ -1718,7 +1711,11 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
         source: 'website',
         sourceReference: null,
         claimedGridOwnerId: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
-        metadata: { source: 'website_customer_applications' },
+        metadata: {
+          source: 'website_customer_applications',
+          cross_tenant_facility_seen: crossTenantFacilitySeen,
+          platform_only: crossTenantFacilitySeen,
+        },
       },
     })
     const { error: enrichmentError } = await supabaseService
@@ -1766,6 +1763,8 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
       claimed_grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
       claimed_price_area_code: clean(site.price_area_code) ?? clean(site.price_area),
       energy_resolution: input.metadata?.energy_resolution ?? null,
+      cross_tenant_facility_seen: crossTenantFacilitySeen,
+      platform_only: crossTenantFacilitySeen,
     },
   }
 

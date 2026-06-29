@@ -92,6 +92,10 @@ export default function CustomerProfileCard({
  IDLE_CUSTOMER_ACTION_STATE,
  )
 
+ const isArchived = String(customer.status ?? '').toLowerCase() === 'archived' || Boolean(customer.archived_at)
+ const archivedFieldProps = isArchived ? { disabled: true, 'aria-disabled': true } : {}
+ const archivedInputClassName = isArchived ? `${inputClassName()} opacity-70 cursor-not-allowed` : inputClassName()
+
  const helperText = useMemo(() => {
  if (customerType === 'business') {
  return 'Företag sparas med företagsnamn och organisationsnummer. För- och efternamn används som kontaktperson.'
@@ -121,6 +125,11 @@ export default function CustomerProfileCard({
  {helperText}
  </div>
 
+ {isArchived ? (
+ <div className="mt-4 rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold leading-6 text-slate-800">
+ Denna kund är arkiverad. Historik är bevarad. Kunden visas inte i aktiv kundlista och aktiva kundåtgärder är spärrade.
+ </div>
+ ) : null}
  {(customer.is_test_data || customer.archived_at) ? (
  <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
  {customer.is_test_data ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">Testdata – exkludera från drift</span> : null}
@@ -140,7 +149,8 @@ export default function CustomerProfileCard({
  name="customer_type"
  value={customerType}
  onChange={(event) => setCustomerType(event.target.value)}
- className={inputClassName()}
+ className={archivedInputClassName}
+ {...archivedFieldProps}
  >
  <option value="private">Privat</option>
  <option value="business">Företag</option>
@@ -153,7 +163,8 @@ export default function CustomerProfileCard({
  <select
  name="status"
  defaultValue={customer.status ?? 'draft'}
- className={inputClassName()}
+ className={archivedInputClassName}
+ {...archivedFieldProps}
  >
  <option value="draft">Förbereds</option>
  <option value="pending_verification">Väntar verifiering</option>
@@ -162,6 +173,7 @@ export default function CustomerProfileCard({
  <option value="moved">Flyttad</option>
  <option value="terminated">Avslutad</option>
  <option value="blocked">Blockerad</option>
+ {isArchived ? <option value="archived">Arkiverad</option> : null}
  </select>
  </label>
 
@@ -173,7 +185,8 @@ export default function CustomerProfileCard({
  name="first_name"
  defaultValue={customer.first_name ?? ''}
  required
- className={inputClassName()}
+ className={archivedInputClassName}
+ {...archivedFieldProps}
  />
  </label>
 
@@ -185,7 +198,8 @@ export default function CustomerProfileCard({
  name="last_name"
  defaultValue={customer.last_name ?? ''}
  required
- className={inputClassName()}
+ className={archivedInputClassName}
+ {...archivedFieldProps}
  />
  </label>
 
@@ -198,7 +212,8 @@ export default function CustomerProfileCard({
  name="company_name"
  defaultValue={customer.company_name ?? ''}
  required
- className={inputClassName()}
+ className={archivedInputClassName}
+ {...archivedFieldProps}
  />
  </label>
  ) : (
@@ -211,7 +226,8 @@ export default function CustomerProfileCard({
  <input
  name="personal_number"
  defaultValue={customer.personal_number ?? ''}
- className={inputClassName()}
+ className={archivedInputClassName}
+ {...archivedFieldProps}
  />
  </label>
  ) : (
@@ -225,7 +241,8 @@ export default function CustomerProfileCard({
  name="org_number"
  defaultValue={customer.org_number ?? ''}
  required
- className={inputClassName()}
+ className={archivedInputClassName}
+ {...archivedFieldProps}
  />
  </label>
  ) : (
@@ -238,7 +255,8 @@ export default function CustomerProfileCard({
  name="email"
  type="email"
  defaultValue={customer.email ?? ''}
- className={inputClassName()}
+ className={archivedInputClassName}
+ {...archivedFieldProps}
  />
  </label>
 
@@ -247,7 +265,8 @@ export default function CustomerProfileCard({
  <input
  name="phone"
  defaultValue={customer.phone ?? ''}
- className={inputClassName()}
+ className={archivedInputClassName}
+ {...archivedFieldProps}
  />
  </label>
 
@@ -256,13 +275,14 @@ export default function CustomerProfileCard({
  <input
  name="apartment_number"
  defaultValue={customer.apartment_number ?? ''}
- className={inputClassName()}
+ className={archivedInputClassName}
+ {...archivedFieldProps}
  />
  </label>
 
  <div className="md:col-span-2 flex justify-end">
- <button className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ">
- Spara kundprofil
+ <button disabled={isArchived} className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60 ">
+ {isArchived ? 'Arkiverad – profil låst' : 'Spara kundprofil'}
  </button>
  </div>
  </form>
@@ -306,7 +326,7 @@ export default function CustomerProfileCard({
 
  <label className="grid gap-1 text-sm">
  <span className="text-emerald-900 ">Åtgärd</span>
- <select name="lifecycle_mode" className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 ">
+ <select name="lifecycle_mode" disabled={isArchived} className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 ">
  <option value="move_out">Kunden flyttar / leveransen upphör</option>
  <option value="terminate">Avsluta kundrelation manuellt</option>
  </select>
@@ -318,7 +338,8 @@ export default function CustomerProfileCard({
  name="move_out_date"
  type="date"
  defaultValue={new Date().toISOString().slice(0, 10)}
- className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 "
+ disabled={isArchived}
+ className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
  />
  </label>
 
@@ -328,12 +349,13 @@ export default function CustomerProfileCard({
  name="reason"
  rows={3}
  placeholder="Exempel: Kunden har anmält utflytt. Vänta på slutliga mätvärden och Z05LK från nätägare."
- className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-950 "
+ disabled={isArchived}
+ className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
  />
  </label>
 
  <label className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-white/80 px-4 py-3 text-sm text-slate-700 md:col-span-2">
- <input name="create_follow_up_task" type="checkbox" defaultChecked className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-700" />
+ <input name="create_follow_up_task" type="checkbox" defaultChecked disabled={isArchived} className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60" />
  <span>
  Skapa uppföljningsuppgift för att invänta nätägarens avslutsbekräftelse, Z05LK/UTILTS E66 där relevant och slutligt faktureringsunderlag.
  </span>
@@ -344,7 +366,8 @@ export default function CustomerProfileCard({
  <input
  name="confirm_close"
  placeholder="AVSLUTA"
- className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 "
+ disabled={isArchived}
+ className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
  />
  </label>
 
@@ -352,8 +375,8 @@ export default function CustomerProfileCard({
  <p className="text-xs leading-5 text-emerald-900/75 ">
  Permanent radering ska inte användas för verkliga kunder som flyttar. Den här åtgärden behåller historiken men stoppar aktiva flöden på ett spårbart sätt.
  </p>
- <button className="inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800">
- Registrera flytt / avslut
+ <button disabled={isArchived} className="inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">
+ {isArchived ? 'Arkiverad – avslut låst' : 'Registrera flytt / avslut'}
  </button>
  </div>
  </form>
@@ -390,6 +413,10 @@ export default function CustomerProfileCard({
  <form
  action={archiveAction}
  onSubmit={(event) => {
+ if (isArchived) {
+ event.preventDefault()
+ return
+ }
  if (!window.confirm('Arkivera kunden? Kunden raderas inte och historiken sparas.')) {
  event.preventDefault()
  }
@@ -404,7 +431,8 @@ export default function CustomerProfileCard({
  name="archive_reason"
  defaultValue={customer.archive_reason ?? ''}
  placeholder="Exempel: Testansökan avslutad eller kundrelation avslutad."
- className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-slate-950 "
+ disabled={isArchived}
+ className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
  />
  </label>
  <label className="grid gap-1 text-sm">
@@ -412,11 +440,12 @@ export default function CustomerProfileCard({
  <input
  name="confirm_archive"
  placeholder="ARKIVERA"
- className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-slate-950 "
+ disabled={isArchived}
+ className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
  />
  </label>
- <button className="inline-flex h-11 items-center justify-center rounded-2xl bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-950">
- Arkivera kund
+ <button disabled={isArchived} className="inline-flex h-11 items-center justify-center rounded-2xl bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-60">
+ {isArchived ? 'Redan arkiverad' : 'Arkivera kund'}
  </button>
  </form>
  </div>
