@@ -239,12 +239,21 @@ export async function savePowerOfAttorney(
     reference?: string | null;
     notes?: string | null;
     companyId?: string | null;
+    // Optional evidence fields, primarily for manual PDF / admin-recorded
+    // powers of attorney so they can be used for external grid-owner
+    // communication (signer + method + snapshot). All optional and additive.
+    method?: string | null;
+    signer_name?: string | null;
+    signer_identity_number?: string | null;
+    accepted_at?: string | null;
+    accepted_source?: string | null;
+    scopeSummary?: Record<string, unknown> | null;
   },
 ): Promise<PowerOfAttorneyRow> {
   const actorId = await getActorId(supabase);
   const companyId = await resolveCustomerCompanyId(supabase, input.customer_id, input.companyId);
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     customer_id: input.customer_id,
     site_id: input.site_id ?? null,
     scope: input.scope,
@@ -258,6 +267,14 @@ export async function savePowerOfAttorney(
     updated_by: actorId,
     company_id: companyId,
   };
+  // Only include evidence columns when provided so existing callers and schemas
+  // are unaffected.
+  if (input.method !== undefined) payload.method = input.method;
+  if (input.signer_name !== undefined) payload.signer_name = input.signer_name;
+  if (input.signer_identity_number !== undefined) payload.signer_identity_number = input.signer_identity_number;
+  if (input.accepted_at !== undefined) payload.accepted_at = input.accepted_at;
+  if (input.accepted_source !== undefined) payload.accepted_source = input.accepted_source;
+  if (input.scopeSummary !== undefined) payload.scope_summary = input.scopeSummary;
 
   if (input.id) {
     const { data, error } = await supabase

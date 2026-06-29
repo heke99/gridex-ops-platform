@@ -975,6 +975,16 @@ export async function uploadCustomerAuthorizationDocumentAction(
 
   const markAsSigned = toBoolean(formData, 'mark_as_signed')
   const syncToPowerOfAttorney = toBoolean(formData, 'sync_to_power_of_attorney')
+  // Manual-intake evidence so an uploaded signed PDF can later be used for
+  // external grid-owner communication (signer + method + snapshot).
+  const signerName = formValue(formData, 'signer_name') || null
+  const signerIdentityNumber = formValue(formData, 'signer_identity_number') || null
+  const signedDate = normalizeDateOrNull(formValue(formData, 'signed_date'))
+  const selectedPoaScopes = formData
+    .getAll('poa_scope')
+    .map((value) => String(value).trim())
+    .filter(Boolean)
+  const poaScopes = selectedPoaScopes.length > 0 ? selectedPoaScopes : ['supplier_switch', 'facility_information_lookup']
   const setAsActive = toBoolean(formData, 'set_as_active')
   const archivePreviousActive = toBoolean(formData, 'archive_previous_active')
   const autoCreateGridOwnerRequests = toBoolean(
@@ -1134,12 +1144,24 @@ export async function uploadCustomerAuthorizationDocumentAction(
   let savedPowerOfAttorneyId: string | null = null
 
   if (syncToPowerOfAttorney || documentType === 'power_of_attorney') {
+    const signedAtIso = markAsSigned ? (signedDate ?? new Date().toISOString()) : null
     const savedPowerOfAttorney = await savePowerOfAttorney(supabase, {
       customer_id: customerId,
       site_id: siteId,
       scope: 'supplier_switch',
       status: markAsSigned ? 'signed' : 'sent',
-      signed_at: markAsSigned ? new Date().toISOString() : null,
+      signed_at: signedAtIso,
+      accepted_at: signedAtIso,
+      accepted_source: 'admin_manual',
+      method: 'pdf_upload',
+      signer_name: signerName,
+      signer_identity_number: signerIdentityNumber,
+      scopeSummary: {
+        scopes: poaScopes,
+        supplier_switch: poaScopes.includes('supplier_switch'),
+        facility_information_lookup: poaScopes.includes('facility_information_lookup'),
+        source: 'manual_pdf_upload',
+      },
       valid_from: validFrom,
       valid_to: validTo,
       document_path: filePath,

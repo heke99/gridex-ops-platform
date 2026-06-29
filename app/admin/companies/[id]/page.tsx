@@ -34,6 +34,8 @@ import {
   updateEmailTemplateAction,
 } from './email-actions'
 import { archiveLegalTextVersionAction, createLegalTextVersionAction, publishLegalTextVersionAction, seedDefaultLegalPackageAction } from './legal-actions'
+import CopyPublicLegalLink from '@/components/admin/legal/CopyPublicLegalLink'
+import { buildPublicLegalUrl } from '@/lib/legal/publicLegalDocuments'
 
 export const dynamic = 'force-dynamic'
 
@@ -654,6 +656,12 @@ function CompanyLegalMasterSection({
                         <button className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-100">Arkivera</button>
                       </form>
                     ) : null}
+                    {version.status === 'published' && company.slug
+                      ? (() => {
+                          const publicUrl = buildPublicLegalUrl(company.slug, version.type, version.id)
+                          return publicUrl ? <CopyPublicLegalLink url={publicUrl} /> : null
+                        })()
+                      : null}
                   </div>
                 </td>
               </tr>

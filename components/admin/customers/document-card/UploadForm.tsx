@@ -229,6 +229,48 @@ export default function UploadForm({
  </label>
  </div>
 
+ {documentType === 'power_of_attorney' ? (
+ <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-3">
+ <label className="space-y-1 text-sm text-slate-700 ">
+ <span className="font-medium">Undertecknarens namn</span>
+ <input
+ name="signer_name"
+ placeholder="Namn på den som signerat fullmakten"
+ className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-700 "
+ />
+ </label>
+ <label className="space-y-1 text-sm text-slate-700 ">
+ <span className="font-medium">Person-/orgnummer</span>
+ <input
+ name="signer_identity_number"
+ placeholder="YYYYMMDDXXXX eller orgnr"
+ className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-700 "
+ />
+ </label>
+ <label className="space-y-1 text-sm text-slate-700 ">
+ <span className="font-medium">Signeringsdatum</span>
+ <input
+ name="signed_date"
+ type="date"
+ className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-700 "
+ />
+ </label>
+ <div className="md:col-span-3">
+ <span className="text-sm font-medium text-slate-700">Fullmaktens omfattning</span>
+ <div className="mt-2 flex flex-wrap gap-4">
+ <label className="flex items-center gap-2 text-sm text-slate-700">
+ <input name="poa_scope" type="checkbox" value="supplier_switch" defaultChecked />
+ <span>Leverantörsbyte</span>
+ </label>
+ <label className="flex items-center gap-2 text-sm text-slate-700">
+ <input name="poa_scope" type="checkbox" value="facility_information_lookup" defaultChecked />
+ <span>Inhämtning av anläggningsuppgifter</span>
+ </label>
+ </div>
+ </div>
+ </div>
+ ) : null}
+
  <label className="space-y-1 text-sm text-slate-700 ">
  <span className="font-medium">Anteckning</span>
  <textarea
