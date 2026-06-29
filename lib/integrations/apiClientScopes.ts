@@ -21,6 +21,16 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
     sortOrder: 10,
   },
   {
+    groupKey: 'website_legal',
+    label: 'Hämta juridik och fullmakt till hemsidan',
+    description: 'Hemsidan får läsa publicerade juridiska dokument och fullmaktskrav (legal bundle).',
+    category: 'website',
+    scopes: ['website_legal.read'],
+    recommendedDefault: true,
+    riskLevel: 'low',
+    sortOrder: 15,
+  },
+  {
     groupKey: 'website_applications',
     label: 'Skicka kundansökningar',
     description: 'Hemsidan får skicka in nya kunder och teckningar till kundplattformen.',
@@ -75,6 +85,7 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
 export const CUSTOMER_PORTAL_SCOPES = [
   'customer_portal.read',
   'customer_portal.write',
+  'website_legal.read',
   'website_applications.write',
   'website_events.write',
   'events.read',

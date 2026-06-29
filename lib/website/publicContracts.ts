@@ -2,6 +2,7 @@ import { createHmac } from 'crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { assessPublicOfferReadiness } from '@/lib/website/publicOfferReadiness'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { buildPublicLegalUrl, loadCompanySlugById } from '@/lib/legal/publicLegalDocuments'
 
 export type PublicLegalTextVersion = {
   id: string
@@ -47,7 +48,57 @@ export type PublicContractOffer = {
   valid_to: string | null
   sort_order: number
   legal_versions?: PublicLegalTextVersion[]
+  tenant_slug?: string | null
   metadata: Record<string, unknown>
+}
+
+// Builds the extended legal block exposed to tenant websites. OPS is the source
+// of truth: per type it returns whether acceptance is required, the published
+// version label, the version id, and a public OPS-hosted document URL. Existing
+// keys are preserved for backward compatibility.
+export function buildPublicLegalBlock(input: {
+  legalVersions: PublicLegalTextVersion[]
+  termsVersionFallback?: string | null
+  withdrawalVersionFallback?: string | null
+  tenantSlug?: string | null
+}): Record<string, unknown> {
+  const byType = new Map(input.legalVersions.map((version) => [version.type, version]))
+  const slug = input.tenantSlug ?? null
+
+  const versionLabel = (type: string, fallback?: string | null) => byType.get(type)?.version ?? fallback ?? null
+  const versionId = (type: string) => byType.get(type)?.id ?? null
+  const required = (type: string) => Boolean(byType.get(type))
+  const url = (type: string) => {
+    const id = versionId(type)
+    return slug && id ? buildPublicLegalUrl(slug, type, id) : null
+  }
+
+  return {
+    // Backward-compatible keys
+    terms_version: versionLabel('terms', input.termsVersionFallback),
+    privacy_policy_version: versionLabel('privacy_policy'),
+    withdrawal_version: versionLabel('withdrawal', input.withdrawalVersionFallback),
+    power_of_attorney_version: versionLabel('power_of_attorney'),
+    price_terms_version: versionLabel('price_terms'),
+    // Required flags
+    terms_required: required('terms'),
+    privacy_policy_required: required('privacy_policy'),
+    withdrawal_required: required('withdrawal'),
+    price_terms_required: required('price_terms'),
+    power_of_attorney_required: required('power_of_attorney'),
+    // Version ids
+    terms_version_id: versionId('terms'),
+    privacy_policy_version_id: versionId('privacy_policy'),
+    withdrawal_version_id: versionId('withdrawal'),
+    price_terms_version_id: versionId('price_terms'),
+    power_of_attorney_version_id: versionId('power_of_attorney'),
+    // Public OPS-hosted document URLs
+    terms_url: url('terms'),
+    privacy_policy_url: url('privacy_policy'),
+    withdrawal_url: url('withdrawal'),
+    price_terms_url: url('price_terms'),
+    power_of_attorney_url: url('power_of_attorney'),
+  }
 }
 
 type PricePlanRow = {
@@ -233,7 +284,12 @@ export function publicContractResponse(offer: PublicContractOffer) {
       ? offer.metadata.withdrawal_terms_version
       : offer.terms_version
   const legalVersions = offer.legal_versions ?? []
-  const legalVersionByType = new Map(legalVersions.map((version) => [version.type, version.version]))
+  const legalBlock = buildPublicLegalBlock({
+    legalVersions,
+    termsVersionFallback: offer.terms_version,
+    withdrawalVersionFallback: withdrawalVersion,
+    tenantSlug: offer.tenant_slug ?? null,
+  })
   const monthlyFee = offer.monthly_fee_sek === null ? null : { amount: offer.monthly_fee_sek, currency: 'SEK', unit: 'month' }
   const invoiceFee = offer.invoice_fee_sek === null ? null : { amount: offer.invoice_fee_sek, currency: 'SEK', unit: 'invoice' }
   const markup = (offer.spot_markup_ore_per_kwh ?? offer.markup_ore_per_kwh) === null
@@ -269,14 +325,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
       fixed_share: offer.fixed_weight_percent,
       public_price_text: offer.public_price_text ?? null,
     },
-    legal: {
-      terms_version: legalVersionByType.get('terms') ?? offer.terms_version,
-      privacy_policy_version: legalVersionByType.get('privacy_policy') ?? null,
-      withdrawal_version: legalVersionByType.get('withdrawal') ?? withdrawalVersion,
-      power_of_attorney_version: legalVersionByType.get('power_of_attorney') ?? null,
-      price_terms_version: legalVersionByType.get('price_terms') ?? null,
-      power_of_attorney_required: legalVersions.some((version) => version.type === 'power_of_attorney'),
-    },
+    legal: legalBlock,
     monthly_fee_sek: offer.monthly_fee_sek,
     invoice_fee_sek: offer.invoice_fee_sek,
     markup_ore_per_kwh: offer.markup_ore_per_kwh,
@@ -308,6 +357,56 @@ export function publicContractResponse(offer: PublicContractOffer) {
 
 
 const REQUIRED_PUBLIC_LEGAL_TYPES = ['terms', 'privacy_policy', 'withdrawal', 'power_of_attorney', 'price_terms'] as const
+
+export type WebsiteLegalBundle = {
+  tenant: {
+    id: string
+    name: string | null
+    org_number: string | null
+    brand_name: string | null
+    slug: string | null
+  }
+  legal: Record<string, unknown>
+  complete: boolean
+  missing_types: string[]
+}
+
+// Builds the standalone tenant legal bundle for the website API. Source of truth
+// is OPS: published, tenant-scoped legal versions + the tenant identity. Used by
+// GET /api/v1/website/legal-bundle.
+export async function buildWebsiteLegalBundle(client: IntegrationApiClient): Promise<WebsiteLegalBundle> {
+  const companyLegalVersions = await listPublishedLegalVersions(client.company_id)
+  const tenantSlug = await loadCompanySlugById(client.company_id)
+  const versions = companyLegalVersions ?? []
+  const presentTypes = new Set(versions.map((row) => row.type))
+  const missingTypes = REQUIRED_PUBLIC_LEGAL_TYPES.filter((type) => !presentTypes.has(type))
+
+  const legal = buildPublicLegalBlock({ legalVersions: versions, tenantSlug })
+
+  const { data } = await supabaseService
+    .from('companies')
+    .select('id,name,org_number,branding,metadata')
+    .eq('id', client.company_id)
+    .maybeSingle()
+  const row = (data ?? {}) as Record<string, unknown>
+  const branding = (row.branding as Record<string, unknown> | null) ?? null
+  const metadata = (row.metadata as Record<string, unknown> | null) ?? null
+  const brandName = [branding?.brand_name, branding?.display_name, branding?.name, metadata?.brand_name]
+    .find((value): value is string => typeof value === 'string' && value.trim().length > 0) ?? null
+
+  return {
+    tenant: {
+      id: client.company_id,
+      name: (row.name as string | null) ?? null,
+      org_number: (row.org_number as string | null) ?? null,
+      brand_name: brandName,
+      slug: tenantSlug,
+    },
+    legal,
+    complete: companyLegalVersions !== null && missingTypes.length === 0,
+    missing_types: companyLegalVersions === null ? [...REQUIRED_PUBLIC_LEGAL_TYPES] : missingTypes,
+  }
+}
 
 function hasAllRequiredLegalVersions(legalVersions: PublicLegalTextVersion[] | null): boolean {
   // Public contract offers must never fail open when legal text schema or
@@ -411,6 +510,7 @@ async function appendReadyOffer(input: {
   offer: PublicContractOffer
   companyLegalVersions: PublicLegalTextVersion[] | null
   customerType?: string | null
+  tenantSlug?: string | null
 }) {
   if (!isCurrentlyValid(input.offer) || !customerTypeAllowed(input.offer, input.customerType)) return
 
@@ -423,6 +523,7 @@ async function appendReadyOffer(input: {
   const withLegal = await offerWithLegalVersions({ offer: input.offer, companyLegalVersions: input.companyLegalVersions })
   if (!withLegal) return
 
+  withLegal.tenant_slug = input.tenantSlug ?? null
   withLegal.metadata = { ...withLegal.metadata, readiness_status: 'ready', readiness_blockers: [] }
   input.result.push(withLegal)
 }
@@ -432,6 +533,7 @@ export async function listPublicContractOffers(input: {
   customerType?: string | null
 }): Promise<PublicContractOffer[]> {
   const companyLegalVersions = await listPublishedLegalVersions(input.client.company_id)
+  const tenantSlug = await loadCompanySlugById(input.client.company_id)
   const primary = await supabaseService
     .from('public_contract_offers')
     .select('*')
@@ -447,7 +549,7 @@ export async function listPublicContractOffers(input: {
       .map(mapOfferRow)
 
     for (const offer of offers) {
-      await appendReadyOffer({ result, offer, companyLegalVersions, customerType: input.customerType })
+      await appendReadyOffer({ result, offer, companyLegalVersions, customerType: input.customerType, tenantSlug })
     }
     return result
   }
@@ -472,7 +574,7 @@ export async function listPublicContractOffers(input: {
     .filter((offer): offer is PublicContractOffer => Boolean(offer))
 
   for (const offer of offers) {
-    await appendReadyOffer({ result, offer, companyLegalVersions, customerType: input.customerType })
+    await appendReadyOffer({ result, offer, companyLegalVersions, customerType: input.customerType, tenantSlug })
   }
   return result.sort((a, b) => a.sort_order - b.sort_order || a.public_name.localeCompare(b.public_name, 'sv'))
 }

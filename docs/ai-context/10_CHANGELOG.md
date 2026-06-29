@@ -2,6 +2,54 @@
 
 Use this file after every Cursor task.
 
+## 2026-06-29 — Legal + power of attorney pipeline hardening (OPS source of truth)
+
+### Changed/added files
+
+- lib/website/customerApplications.ts (POA/legal schema mismatch hard-fail; tenant/publish version checks; customer-type normalization; legal_acceptances + POA document_url/text_version_id in response; site_id alias; new error codes)
+- lib/website/publicContracts.ts (buildPublicLegalBlock with *_required/*_version_id/*_url; buildWebsiteLegalBundle; tenant slug on offers)
+- lib/legal/publicLegalDocuments.ts (new — slug/type/version resolution, published-only loader, public URL builder)
+- lib/legal/legalReadinessOverview.ts (new — superadmin per-tenant readiness + failed-application aggregation)
+- lib/integrations/apiClientScopes.ts (website_legal.read)
+- lib/operations/db.ts (savePowerOfAttorney accepts method/signer/scope_summary/accepted_at)
+- app/api/v1/website/legal-bundle/route.ts (new)
+- app/legal/[slug]/[type]/[versionId]/page.tsx (new public legal document page)
+- app/admin/platform/legal-readiness/page.tsx (new superadmin overview) + lib/admin/navigation.ts
+- components/admin/customers/CustomerLegalReadinessCard.tsx (per-POA status panel)
+- components/admin/customers/document-card/UploadForm.tsx (manual PDF POA signer/date/scope)
+- components/admin/legal/CopyPublicLegalLink.tsx (new)
+- app/admin/customers/[id]/actions.ts, app/admin/customers/[id]/document-actions.ts (manual POA evidence)
+- app/admin/companies/[id]/page.tsx (copy public legal link)
+- supabase/migrations/20260629130000_legal_poa_hardening_indexes.sql (new)
+- scripts/gridex-legal-poa-platform-hardening-regression.cjs (new) + package.json
+- docs/legal-power-of-attorney-platform.md (new), docs/external-website-api-integration-guide.md
+
+### What changed
+
+- OPS is the single source of truth: public-contracts/legal-bundle expose required
+  flags, version ids and public OPS-hosted legal URLs (incl. power of attorney).
+- Required power of attorney / legal acceptances can no longer be silently skipped
+  on DB schema mismatch — they fail with precise codes and never produce a
+  "complete" customer without legal authorization.
+- Public, published-only, tenant-isolated legal document pages at /legal/{slug}/…
+- Manual PDF power of attorney intake captures signer/scope/date/method so it is
+  usable for facility lookup and supplier switch.
+- Superadmin legal readiness overview + failed-applications by error code/stage.
+- Customer types normalized (company/foretag/consumer/… → private|business).
+
+### Verification
+
+- npm run build (green), tsc app typecheck (green), eslint of changed source (clean).
+- gridex:legal-poa-platform-hardening-regression, gridex:website-api-power-of-attorney-regression,
+  customer-application-review, batch-7-website-foundation, website-application-customer-number-chain,
+  external-contract-intake, website-api-webhook regressions all pass.
+
+### Remaining manual steps
+
+- Apply migration 20260629130000 in Supabase.
+- Optionally grant existing website API keys the new website_legal.read scope
+  (legal-bundle also accepts website_contracts.read, so this is not required).
+
 ## 2026-06-15 — Multi-tenant branding & hardcoded-Gridex cleanup (review batch)
 
 ### Changed files

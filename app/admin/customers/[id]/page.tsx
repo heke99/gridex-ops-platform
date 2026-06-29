@@ -2532,6 +2532,8 @@ export default async function CustomerAdminDetailPage({
             documents={customerDocuments}
             timeline={customerOpsTimeline}
             snapshot={customerCardSnapshot}
+            powersOfAttorney={poaRows as unknown as Array<Record<string, unknown>>}
+            customerIdentity={customer.personal_number ?? customer.org_number ?? null}
           />
         </SectionAnchor>
       ) : null}
