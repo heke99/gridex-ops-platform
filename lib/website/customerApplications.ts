@@ -481,6 +481,17 @@ async function loadLegalTextVersionById(
   textVersionId: string | null,
 ): Promise<WebsiteLegalAcceptanceVersion | null> {
   if (!textVersionId) return null
+  if (!isUuid(textVersionId)) {
+    throw new WebsiteApplicationError({
+      message: 'Angiven fullmaktsversion (textVersionId) måste vara OPS legal_text_versions.id i UUID-format, inte ett versionsnamn.',
+      status: 422,
+      code: 'power_of_attorney_version_invalid',
+      field: 'powerOfAttorney.textVersionId',
+      stage: 'power_of_attorney',
+      hint: 'Hämta legal.power_of_attorney_version_id från GET /api/v1/website/public-contracts och skicka det som powerOfAttorney.textVersionId.',
+      details: { expected: 'uuid', received_format: 'version_label_or_invalid_uuid' },
+    })
+  }
   const { data, error } = await supabaseService
     .from('legal_text_versions')
     .select('id,type,version,title,body,published_at,status')
@@ -901,6 +912,19 @@ class WebsiteApplicationError extends Error {
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isUuid(value: string | null | undefined): value is string {
+  return typeof value === 'string' && UUID_RE.test(value)
+}
+
+function duplicateIdempotencyKey(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const details = (error as { details?: string } | null)?.details ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return code === '23505' && /website_customer_applications_company_idempotency_uidx|company_id, idempotency_key/i.test(`${details} ${message}`)
 }
 
 function normalizedEmail(value: unknown): string | null {
@@ -2647,7 +2671,28 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     .select('id')
     .single()
 
-  if (error && !missingSchema(error)) throw error
+  if (error && !missingSchema(error)) {
+    if (duplicateIdempotencyKey(error) && input.idempotencyKey) {
+      const { data: updated, error: updateError } = await supabaseService
+        .from('website_customer_applications')
+        .update({
+          ...row,
+          updated_at: new Date().toISOString(),
+          processed_at: input.status === 'failed' ? null : row.processed_at,
+        })
+        .eq('company_id', input.client.company_id)
+        .eq('idempotency_key', input.idempotencyKey)
+        .select('id')
+        .maybeSingle()
+      if (updateError && !missingSchema(updateError)) throw updateError
+      if (updated) {
+        const repaired = updated as { id: string }
+        await syncExternalContractIntakeRow({ ...input, applicationId: repaired.id })
+        return repaired
+      }
+    }
+    throw error
+  }
   if (data) {
     const created = data as { id: string }
     await syncExternalContractIntakeRow({ ...input, applicationId: created.id })
@@ -2671,7 +2716,37 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     })
     .select('id')
     .single()
-  if (fallback.error && !missingSchema(fallback.error)) throw fallback.error
+  if (fallback.error && !missingSchema(fallback.error)) {
+    if (duplicateIdempotencyKey(fallback.error) && input.idempotencyKey) {
+      const { data: updated, error: updateError } = await supabaseService
+        .from('website_customer_applications')
+        .update({
+          company_id: input.client.company_id,
+          api_client_id: input.client.id,
+          customer_id: input.customer?.id ?? null,
+          external_customer_id: input.externalCustomerId,
+          customer_number: input.customer?.customer_number ?? null,
+          source: clean((input.payload as { source?: unknown }).source) ?? 'external_website',
+          status: input.status,
+          idempotency_key: input.idempotencyKey ?? null,
+          payload: input.payload,
+          response_payload: input.responsePayload,
+          warnings: input.warnings ?? [],
+          updated_at: new Date().toISOString(),
+        })
+        .eq('company_id', input.client.company_id)
+        .eq('idempotency_key', input.idempotencyKey)
+        .select('id')
+        .maybeSingle()
+      if (updateError && !missingSchema(updateError)) throw updateError
+      if (updated) {
+        const repaired = updated as { id: string }
+        await syncExternalContractIntakeRow({ ...input, applicationId: repaired.id })
+        return repaired
+      }
+    }
+    throw fallback.error
+  }
   if (fallback.error && missingSchema(fallback.error)) {
     throw new WebsiteApplicationError({
       message: 'Kundansökan kunde inte loggas eftersom website_customer_applications-schemat inte matchar koden.',

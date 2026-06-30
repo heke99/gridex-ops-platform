@@ -103,6 +103,7 @@ ok(src.includes('legalAcceptances'), 'application schema accepts a legalAcceptan
 
 // 2) Legal text is loaded by id (never trust frontend text).
 ok(src.includes('loadLegalTextVersionById'), 'website API loads legal text version by id')
+ok(src.includes('power_of_attorney_version_invalid') && src.includes('UUID_RE'), 'website API rejects non-UUID powerOfAttorney.textVersionId before querying legal_text_versions')
 ok(src.includes('referencedLegal ?? input.legalVersions.find'), 'POA binds to referenced legal version, falling back to published version')
 
 // 3) Real POA row with evidence + provenance + scopes.

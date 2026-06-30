@@ -74,6 +74,7 @@ ok(
   /applicationRowId\s*\n?\s*\?\s*await markApplicationFailed\(/.test(apps),
   'catch updates the existing row via markApplicationFailed when present',
 )
+ok(apps.includes('duplicateIdempotencyKey') && apps.includes('website_customer_applications_company_idempotency_uidx'), 'failed application logging updates existing idempotency row instead of crashing on duplicate key')
 ok(/power_of_attorney_id:\s*null/.test(apps), 'failed application response clears power_of_attorney_id')
 ok(/const genericFailureStatus = applicationRowId \? 'partial' : 'failed'/.test(apps), 'mid-pipeline failure uses partial status')
 
