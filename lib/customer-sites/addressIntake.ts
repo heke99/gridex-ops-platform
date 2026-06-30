@@ -82,7 +82,7 @@ function sourceRank(source: CustomerSiteAddressSource): number {
 
 function missingSchema(error: unknown): boolean {
   const row = error as { code?: string; message?: string } | null
-  return ['42P01', '42703', 'PGRST205'].includes(row?.code ?? '') || /does not exist|schema cache|column .* does not exist/i.test(row?.message ?? '')
+  return ['42P01', '42703', 'PGRST202', 'PGRST204', 'PGRST205'].includes(row?.code ?? '') || /does not exist|schema cache|column .* does not exist|could not find the function/i.test(row?.message ?? '')
 }
 
 function asRecord(value: unknown): JsonRecord {
@@ -314,7 +314,18 @@ export async function createOrUpdateCustomerSiteFromAddress(input: {
         p_metadata: { created_from_address_source: input.address.source },
       })
       if (created.error) {
-        if (missingSchema(created.error)) throw new Error('Atomisk anläggningsprovisionering saknas. Kör den senaste OPS-migrationen innan ny anläggning kan skapas.')
+        if (missingSchema(created.error)) {
+          const detail = created.error as { code?: string; message?: string; details?: string; hint?: string }
+          const error = new Error('Atomisk anläggningsprovisionering kunde inte köras. Kontrollera att senaste OPS-migrationen är körd och att Supabase/PostgREST schema cache är uppdaterad.')
+          ;(error as Error & { code?: string; details?: Record<string, unknown> }).code = 'site_provisioning_function_unavailable'
+          ;(error as Error & { code?: string; details?: Record<string, unknown> }).details = {
+            db_code: detail?.code ?? null,
+            db_message: detail?.message ?? null,
+            db_details: detail?.details ?? null,
+            db_hint: detail?.hint ?? null,
+          }
+          throw error
+        }
         throw created.error
       }
       siteId = clean(created.data)

@@ -931,7 +931,7 @@ function errorMessage(error: unknown): string {
 function missingSchema(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code ?? ''
   const message = (error as { message?: string } | null)?.message ?? ''
-  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+  return ['42P01', '42703', 'PGRST202', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist|could not find the function/i.test(message)
 }
 
 function schemaRepairStatus(error: unknown): 'pending_review' | null {
@@ -1258,12 +1258,15 @@ async function stage<T>(stageName: ErrorStage, fn: () => Promise<T>): Promise<T>
     return await fn()
   } catch (error) {
     if (error instanceof WebsiteApplicationError) throw error
+    const coded = error as { code?: unknown; details?: unknown }
     throw new WebsiteApplicationError({
       message: errorMessage(error),
       status: 500,
-      code: 'internal_error',
+      code: typeof coded?.code === 'string' && coded.code ? coded.code : 'internal_error',
       stage: stageName,
-      details: { raw_error: errorMessage(error) },
+      details: typeof coded?.details === 'object' && coded.details !== null
+        ? { ...coded.details as Record<string, unknown>, raw_error: errorMessage(error) }
+        : { raw_error: errorMessage(error) },
     })
   }
 }
@@ -2725,7 +2728,7 @@ async function loadIdempotentApplication(companyId: string, idempotencyKey: stri
   if (!idempotencyKey) return null
   const { data, error } = await supabaseService
     .from('website_customer_applications')
-    .select('id,response_payload,payload,status,customer_id,customer_number,external_customer_id,customer_site_id,metering_point_id,error_stage,error_code,error_message')
+    .select('id,idempotency_key,response_payload,payload,status,customer_id,customer_number,external_customer_id,customer_site_id,metering_point_id,contract_id,error_stage,error_code,error_message,warnings')
     .eq('company_id', companyId)
     .eq('idempotency_key', idempotencyKey)
     .maybeSingle()
@@ -2733,6 +2736,7 @@ async function loadIdempotentApplication(companyId: string, idempotencyKey: stri
   if (error) throw error
   return data as {
     id: string
+    idempotency_key?: string | null
     response_payload: Record<string, unknown> | null
     payload?: Record<string, unknown> | null
     status: string
@@ -2741,6 +2745,8 @@ async function loadIdempotentApplication(companyId: string, idempotencyKey: stri
     external_customer_id: string | null
     customer_site_id?: string | null
     metering_point_id?: string | null
+    contract_id?: string | null
+    warnings?: string[] | null
     error_stage?: string | null
     error_code?: string | null
     error_message?: string | null
@@ -2822,6 +2828,63 @@ function isFailedIdempotentApplication(
     (requiresSiteAndMetering && !hasCompleteSiteAndMetering(existing)) ||
     (!hasSuccessIdentity && ['failed', 'rejected', 'cancelled'].includes(existing.status))
   )
+}
+
+
+function isRetryableFailedSiteProvisioningApplication(
+  existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>,
+  externalCustomerId: string,
+) {
+  const response = existing.response_payload ?? {}
+  const previousStage = existing.error_stage ?? clean(response.error_stage)
+  const previousCode = existing.error_code ?? clean(response.code)
+  const previousMessage = [existing.error_message, clean(response.error), clean(response.previous_error_message), clean(response.next_step)]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .join(' · ')
+
+  const sameExternalCustomer = (existing.external_customer_id ?? externalCustomerId) === externalCustomerId
+  const failedBeforeDurableResources = !existing.customer_site_id && !existing.metering_point_id && !existing.contract_id
+  const failedAtSiteCreate = previousStage === 'site_create'
+  const provisioningError = /site_provisioning|anläggningsprovisionering|customer_sites|schema cache|migration|atomisk/i.test(previousMessage)
+    || ['site_provisioning_function_unavailable', 'customer_site_schema_mismatch', 'incomplete_application', 'internal_error'].includes(previousCode ?? '')
+
+  return Boolean(
+    sameExternalCustomer &&
+    failedBeforeDurableResources &&
+    failedAtSiteCreate &&
+    provisioningError &&
+    ['failed', 'pending_review', 'partial'].includes(existing.status)
+  )
+}
+
+async function releaseRetryableFailedIdempotency(input: {
+  companyId: string
+  existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>
+  idempotencyKey: string
+}) {
+  const releasedKey = `${input.idempotencyKey}:failed:${input.existing.id}`
+  const responsePayload = {
+    ...(input.existing.response_payload ?? {}),
+    superseded_by_retry: true,
+    superseded_at: new Date().toISOString(),
+    original_idempotency_key: input.idempotencyKey,
+  }
+  const warnings = Array.from(new Set([...(input.existing.warnings ?? []), 'idempotency_released_for_site_provisioning_retry']))
+  const { error } = await supabaseService
+    .from('website_customer_applications')
+    .update({
+      idempotency_key: releasedKey,
+      response_payload: responsePayload,
+      warnings,
+      next_step: 'Tidigare misslyckat site_create-försök har frigjorts för ny idempotent retry.',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.existing.id)
+    .eq('company_id', input.companyId)
+    .eq('idempotency_key', input.idempotencyKey)
+
+  if (error) throw error
+  return releasedKey
 }
 
 function successResponse(data: Record<string, unknown>, warnings: string[] = []) {
@@ -2942,44 +3005,63 @@ export async function processWebsiteCustomerApplication(input: {
 
   try {
     const existingIdempotent = await stage('idempotency', () => loadIdempotentApplication(input.client.company_id, input.idempotencyKey ?? null))
+    let releasedFailedIdempotencyForRetry = false
     if (existingIdempotent) {
       if (isFailedIdempotentApplication(existingIdempotent, body)) {
-        const incomplete = expectsSiteOrMetering(body) && !hasCompleteSiteAndMetering(existingIdempotent)
-        return idempotentFailure(existingIdempotent, externalCustomerId, incomplete ? 'incomplete_application' : undefined)
-      }
-
-      // The previous application for this Idempotency-Key was treated as a
-      // success, but it produced no power of attorney. If the retry now carries
-      // an accepted structured powerOfAttorney we must not silently replay the
-      // old, incomplete success — the fullmakt would be lost. Block with a
-      // precise code so the caller can retry with a new key or trigger repair.
-      const previousHasPoa = Boolean(existingIdempotent.response_payload?.power_of_attorney_id)
-      if (!previousHasPoa && structuredPoa?.accepted === true) {
-        return failureResponse(new WebsiteApplicationError({
-          message: 'A previous application exists for this Idempotency-Key but no power of attorney was created.',
-          status: 409,
-          code: 'idempotent_application_missing_poa',
-          field: 'powerOfAttorney',
-          stage: 'power_of_attorney',
-          action: 'retry_with_new_idempotency_key_or_repair',
-          hint: 'Använd en ny Idempotency-Key, eller kör reparation av ansökan från admin för att skapa fullmakten.',
-          details: {
+        if (
+          input.idempotencyKey &&
+          isRetryableFailedSiteProvisioningApplication(existingIdempotent, externalCustomerId)
+        ) {
+          await stage('idempotency', () => releaseRetryableFailedIdempotency({
+            companyId: input.client.company_id,
+            existing: existingIdempotent,
+            idempotencyKey: input.idempotencyKey as string,
+          }))
+          console.warn('[website-applications] released failed site_create idempotency for retry', {
             application_id: existingIdempotent.id,
-            external_customer_id: existingIdempotent.external_customer_id ?? externalCustomerId,
-            action: 'retry_with_new_idempotency_key_or_repair',
-          },
-        }))
+            company_id: input.client.company_id,
+          })
+          releasedFailedIdempotencyForRetry = true
+        } else {
+          const incomplete = expectsSiteOrMetering(body) && !hasCompleteSiteAndMetering(existingIdempotent)
+          return idempotentFailure(existingIdempotent, externalCustomerId, incomplete ? 'incomplete_application' : undefined)
+        }
       }
 
-      return successResponse({
-        ...(existingIdempotent.response_payload ?? {}),
-        idempotent: true,
-        application_id: existingIdempotent.id,
-        customer_id: existingIdempotent.customer_id ?? (existingIdempotent.response_payload?.customer_id as string | undefined) ?? null,
-        customer_number: existingIdempotent.customer_number ?? (existingIdempotent.response_payload?.customer_number as string | undefined) ?? null,
-        external_customer_id: existingIdempotent.external_customer_id ?? externalCustomerId,
-        status: existingIdempotent.status,
-      })
+      if (!releasedFailedIdempotencyForRetry) {
+        // The previous application for this Idempotency-Key was treated as a
+        // success, but it produced no power of attorney. If the retry now carries
+        // an accepted structured powerOfAttorney we must not silently replay the
+        // old, incomplete success — the fullmakt would be lost. Block with a
+        // precise code so the caller can retry with a new key or trigger repair.
+        const previousHasPoa = Boolean(existingIdempotent.response_payload?.power_of_attorney_id)
+        if (!previousHasPoa && structuredPoa?.accepted === true) {
+          return failureResponse(new WebsiteApplicationError({
+            message: 'A previous application exists for this Idempotency-Key but no power of attorney was created.',
+            status: 409,
+            code: 'idempotent_application_missing_poa',
+            field: 'powerOfAttorney',
+            stage: 'power_of_attorney',
+            action: 'retry_with_new_idempotency_key_or_repair',
+            hint: 'Använd en ny Idempotency-Key, eller kör reparation av ansökan från admin för att skapa fullmakten.',
+            details: {
+              application_id: existingIdempotent.id,
+              external_customer_id: existingIdempotent.external_customer_id ?? externalCustomerId,
+              action: 'retry_with_new_idempotency_key_or_repair',
+            },
+          }))
+        }
+
+        return successResponse({
+          ...(existingIdempotent.response_payload ?? {}),
+          idempotent: true,
+          application_id: existingIdempotent.id,
+          customer_id: existingIdempotent.customer_id ?? (existingIdempotent.response_payload?.customer_id as string | undefined) ?? null,
+          customer_number: existingIdempotent.customer_number ?? (existingIdempotent.response_payload?.customer_number as string | undefined) ?? null,
+          external_customer_id: existingIdempotent.external_customer_id ?? externalCustomerId,
+          status: existingIdempotent.status,
+        })
+      }
     }
 
     const existingIdentity = await stage('customer_lookup', () => loadExistingIdentity(input.client.company_id, externalCustomerId))

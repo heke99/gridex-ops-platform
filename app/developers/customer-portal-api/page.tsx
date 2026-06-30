@@ -525,7 +525,8 @@ export default function CustomerPortalApiDocsPage() {
         </Section>
 
         <Section title="10. Fel och idempotency">
-          <p>Alla write-anrop ska skicka <code>Idempotency-Key</code>. Externa fel returneras som stabila koder, till exempel <code>missing_api_token</code>, <code>api_scope_missing</code>, <code>public_contract_not_available</code>, <code>legal_acceptance_missing</code> eller <code>idempotent_failed</code>. Visa kundvänlig text i slutkunds-UI och logga tekniska detaljer server-side.</p>
+          <p>Alla write-anrop ska skicka <code>Idempotency-Key</code>. Externa fel returneras som stabila koder, till exempel <code>missing_api_token</code>, <code>api_scope_missing</code>, <code>public_contract_not_available</code>, <code>legal_acceptance_missing</code> eller <code>idempotent_failed</code>. failed idempotency ger 409 idempotent_failed. Om tidigare försök föll innan anläggning/avtal skapades på <code>site_create</code> kan OPS frigöra den misslyckade nyckeln vid retry; annars ska klienten använda ny nyckel eller admin-repair. Visa kundvänlig text i slutkunds-UI och logga tekniska detaljer server-side.</p>
+          <p>Batch 8.1 live-schema alignment: inkommande mätpunkter provisioneras mot <code>public.metering_points</code>; <code>external_customer_id krävs</code> för stabil kundlänkning; mailinställningar stödjer <code>sender_email</code> och <code>reply_to_email</code>.</p>
         </Section>
       </div>
     </main>
