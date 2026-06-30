@@ -109,10 +109,21 @@ const publicContractsResponse = `{
       },
       "legal": {
         "terms_version": "2026-06",
+        "terms_version_id": "legal_terms_uuid",
+        "terms_url": "https://app.gridex.se/legal/.../terms/legal_terms_uuid",
         "privacy_policy_version": "2026-06",
+        "privacy_policy_version_id": "legal_privacy_uuid",
+        "privacy_policy_url": "https://app.gridex.se/legal/.../privacy/legal_privacy_uuid",
         "withdrawal_version": "2026-06",
+        "withdrawal_version_id": "legal_withdrawal_uuid",
+        "withdrawal_url": "https://app.gridex.se/legal/.../withdrawal/legal_withdrawal_uuid",
         "power_of_attorney_required": true,
-        "price_terms_version": "2026-06"
+        "power_of_attorney_version": "2026-06",
+        "power_of_attorney_version_id": "legal_poa_uuid",
+        "power_of_attorney_url": "https://app.gridex.se/legal/.../power-of-attorney/legal_poa_uuid",
+        "price_terms_version": "2026-06",
+        "price_terms_version_id": "legal_price_terms_uuid",
+        "price_terms_url": "https://app.gridex.se/legal/.../price-terms/legal_price_terms_uuid"
       },
       "valid_from": "2026-06-01",
       "valid_to": null
@@ -163,7 +174,7 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
       "signerIdentityNumber": "YYYYMMDDXXXX",
       "method": "website_acceptance",
       "acceptedAt": "2026-06-26T09:00:00Z",
-      "textVersionId": "<legal_text_version_id>",
+      "textVersionId": "legal_poa_uuid",
       "ipAddress": "203.0.113.10",
       "userAgent": "Mozilla/5.0 ..."
     }
@@ -177,12 +188,19 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
 // organizationNumber, organisation_number, organisationNumber,
 // organisationsnummer, orgnr.
 //
-// Structured powerOfAttorney is required for AUTOMATIC grid-owner
+// Juridikens source of truth är alltid OPS. Hemsidan ska visa juridiklänkarna
+// och versionerna från public-contracts/legal-bundle och skicka tillbaka
+// acceptans + version-ID. För fullmakt ska powerOfAttorney.textVersionId vara
+// legal.power_of_attorney_version_id från det publicerade avtalet. Skicka inte
+// egna juridiska texter, egna versionsnamn eller egen fullmaktstext som källa.
+//
+// Structured powerOfAttorney är obligatorisk för AUTOMATIC grid-owner
 // communication: powerOfAttorney.accepted=true + signerName +
-// signerIdentityNumber + method. Customer identity is not used as fallback for
-// new website POAs. A bare consents.power_of_attorney=true creates the legal
-// acceptance but a WEAK POA that is marked externally_sendable=false /
-// requires_completion=true and is never sent to the grid owner.
+// signerIdentityNumber + method + textVersionId från OPS. Customer identity är
+// inte fallback för nya website POAs. En bare consents.power_of_attorney=true
+// skapar legal acceptance men bara en WEAK POA som markeras
+// externally_sendable=false / requires_completion=true och skickas aldrig till
+// nätägaren.
 //
 // When facility_id is missing but an externally sendable power of attorney exists,
 // the API blocks PRODAT Z01 (no ediel_outbox), queues a manual e-mail information
@@ -239,7 +257,12 @@ Vanliga 422-koder:
 - power_of_attorney_version_missing
 - validation_error
 
-Do not send duplicate legal emails: återanvänd samma Idempotency-Key vid retry av samma signerade ansökan. Skicka inte samma signerade juridiska submission med ny nyckel om ni inte avsiktligt vill skapa en ny ansökan.`
+Idempotency och juridik:
+- Återanvänd samma Idempotency-Key vid retry av samma signerade ansökan när payloaden rättas.
+- failed idempotency kan ge 409 idempotent_failed om tidigare försök hamnade i ett icke-säkert partial-läge.
+- Om en tidigare idempotent ansökan saknar power_of_attorney_id men retry-payloaden innehåller komplett accepted powerOfAttorney reparerar OPS fullmakten inline och returnerar success.
+- Om inline-repair inte kan göras returneras idempotent_application_missing_poa med action retry_with_new_idempotency_key_or_repair.
+- Skicka inte samma signerade juridiska submission med ny nyckel om ni inte avsiktligt vill skapa en ny ansökan.`
 
 const emailEventSemantics = `contract.application_received = ansökan mottagen och mottagningsmail köat/skickat för ansökan
 contract.confirmation_sent = faktisk avtalsbekräftelse har markerats skickad i communication_logs
@@ -469,6 +492,7 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{publicContractsExample}</CodeBlock>
           <CodeBlock>{publicContractsResponse}</CodeBlock>
           <p>Hemsidan ska använda <code>offer_reference</code> från svaret när kunden tecknar avtal. Skicka inte egna priser eller fritextvillkor som juridisk sanning.</p>
+          <p>Juridiken i <code>legal</code> är OPS source of truth. Visa dokumentlänkarna från OPS och skicka tillbaka acceptans + version-ID. När fullmakt krävs ska <code>powerOfAttorney.textVersionId</code> vara <code>legal.power_of_attorney_version_id</code> från det publicerade avtalet.</p>
         </Section>
 
         <Section title="5. Skicka kundansökan">
@@ -476,7 +500,7 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{applicationExample}</CodeBlock>
           <CodeBlock>{applicationResponse}</CodeBlock>
           <h3 className="mt-6 text-lg font-bold text-slate-900">422-validering och juridiska retries</h3>
-          <p>Om avtal, juridiska versioner, acceptanser eller fullmakt saknas returneras <code>422</code> med stabil <code>error.code</code>, <code>stage</code> och <code>field</code>. Rätta payloaden och återanvänd samma <code>Idempotency-Key</code> för samma signerade ansökan.</p>
+          <p>Om avtal, juridiska versioner, acceptanser eller fullmakt saknas returneras <code>422</code> med stabil <code>error.code</code>, <code>stage</code> och <code>field</code>. Rätta payloaden och återanvänd samma <code>Idempotency-Key</code> för samma signerade ansökan. Om en tidigare idempotent ansökan saknar fullmakt men retry-payloaden innehåller komplett accepterad <code>powerOfAttorney</code>, reparerar OPS fullmakten inline och returnerar success.</p>
           <CodeBlock>{applicationValidationErrors}</CodeBlock>
         </Section>
 
@@ -525,7 +549,7 @@ export default function CustomerPortalApiDocsPage() {
         </Section>
 
         <Section title="10. Fel och idempotency">
-          <p>Alla write-anrop ska skicka <code>Idempotency-Key</code>. Externa fel returneras som stabila koder, till exempel <code>missing_api_token</code>, <code>api_scope_missing</code>, <code>public_contract_not_available</code>, <code>legal_acceptance_missing</code> eller <code>idempotent_failed</code>. failed idempotency ger 409 idempotent_failed. Om tidigare försök föll innan anläggning/avtal skapades på <code>site_create</code> kan OPS frigöra den misslyckade nyckeln vid retry; annars ska klienten använda ny nyckel eller admin-repair. Visa kundvänlig text i slutkunds-UI och logga tekniska detaljer server-side.</p>
+          <p>Alla write-anrop ska skicka <code>Idempotency-Key</code>. Externa fel returneras som stabila koder, till exempel <code>missing_api_token</code>, <code>api_scope_missing</code>, <code>public_contract_not_available</code>, <code>legal_acceptance_missing</code> eller <code>idempotent_failed</code>. failed idempotency ger 409 idempotent_failed. Om tidigare försök föll innan anläggning/avtal skapades på <code>site_create</code> kan OPS frigöra den misslyckade nyckeln vid retry. Om en tidigare idempotent ansökan saknar <code>power_of_attorney_id</code> men retry-payloaden har komplett accepterad <code>powerOfAttorney</code> skapar OPS fullmakten inline. Om inline-repair inte kan göras returneras <code>idempotent_application_missing_poa</code> med <code>retry_with_new_idempotency_key_or_repair</code>. Visa kundvänlig text i slutkunds-UI och logga tekniska detaljer server-side.</p>
           <p>Batch 8.1 live-schema alignment: inkommande mätpunkter provisioneras mot <code>public.metering_points</code>; <code>external_customer_id krävs</code> för stabil kundlänkning; mailinställningar stödjer <code>sender_email</code> och <code>reply_to_email</code>.</p>
         </Section>
       </div>

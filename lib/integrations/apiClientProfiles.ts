@@ -27,19 +27,35 @@ export const API_CLIENT_PROFILES: Record<ApiClientProfileKey, ApiClientProfile> 
   website_read_only: {
     key: 'website_read_only',
     label: 'Hemsida (endast läsning)',
-    defaultScopes: ['website_contracts.read'],
+    defaultScopes: ['website_contracts.read', 'website_legal.read'],
     requireAllowedOrigins: true,
   },
   website_signup: {
     key: 'website_signup',
     label: 'Hemsida (kundintag)',
-    defaultScopes: ['website_contracts.read', 'website_applications.write'],
+    defaultScopes: [
+      'website_contracts.read',
+      'website_legal.read',
+      'website_applications.write',
+      'website_events.write',
+      'events.read',
+      'customer_contact.write',
+      'customer_facility_data.write',
+      'customer_power_of_attorney.write',
+    ],
     requireAllowedOrigins: true,
   },
   customer_portal: {
     key: 'customer_portal',
     label: 'Kundportal',
-    defaultScopes: ['customer_portal.read', 'customer_portal.write'],
+    defaultScopes: [
+      'customer_portal.read',
+      'customer_portal.write',
+      'customer_documents.read',
+      'customer_documents.write',
+      'customer_notifications.read',
+      'customer_notifications.write',
+    ],
     requireAllowedOrigins: true,
   },
   events_webhooks: {

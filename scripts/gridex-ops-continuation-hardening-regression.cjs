@@ -4,8 +4,8 @@
 // Static source assertions (same style as the other gridex regressions) that
 // lock in the continuation-build behaviour:
 //  - website intake: power_of_attorney error stage/codes, required structured
-//    POA, idempotent-missing-POA, in-place partial/failed marking, repair helper,
-//    nested JSON error contract with request_id
+//    POA, idempotent-missing-POA inline repair, in-place partial/failed marking,
+//    admin repair helper, nested JSON error contract with request_id
 //  - shared customer-type normalization used by website/public-contracts/admin/external
 //  - missing-facility intake uses the manual pipeline only (no parallel Ediel/Z01)
 //  - manual outbox failure reconciles the linked request
@@ -36,9 +36,10 @@ const manualOutbox = read('lib/email/manualEmailOutbox.ts')
 ok(/\|\s*'power_of_attorney'/.test(apps), 'ErrorStage includes power_of_attorney')
 ok(/\|\s*'facility_lookup'/.test(apps), 'ErrorStage includes facility_lookup')
 ok(/\|\s*'email_dispatch'/.test(apps), 'ErrorStage includes email_dispatch')
-for (const code of ['power_of_attorney_missing', 'idempotent_application_missing_poa']) {
+for (const code of ['power_of_attorney_missing']) {
   ok(apps.includes(`code: '${code}'`), `intake defines ${code}`)
 }
+ok(apps.includes('idempotent_application_missing_poa'), 'intake keeps idempotent_application_missing_poa as repair fallback code')
 ok(apps.includes("await stage('power_of_attorney', () => ensureWebsitePowerOfAttorney("), 'POA persistence runs under the power_of_attorney stage')
 
 // 2) Structured POA required when the contract publishes a POA version.
@@ -51,12 +52,19 @@ ok(
   'intake requires accepted structured POA when contract requires it',
 )
 
-// 3) Idempotent retry with new POA but prior result lacking it -> 409.
+// 3) Idempotent retry with complete structured POA repairs a prior result lacking it.
 ok(
-  apps.includes('previousHasPoa') && apps.includes("code: 'idempotent_application_missing_poa'"),
-  'idempotent replay blocks when prior result has no power_of_attorney_id',
+  apps.includes('previousHasPoa') && apps.includes('repairMissingPoaOnIdempotentApplication'),
+  'idempotent replay attempts inline repair when prior result has no power_of_attorney_id',
 )
-ok(apps.includes("action: 'retry_with_new_idempotency_key_or_repair'"), 'idempotent-missing-poa returns a retry/repair action')
+ok(
+  apps.includes("repaired_reason: 'idempotent_missing_power_of_attorney'") && apps.includes('website_customer_applications_inline_repair'),
+  'idempotent missing POA repair is persisted and audited inline',
+)
+ok(
+  apps.includes("code: repaired?.code ?? 'idempotent_application_missing_poa'"),
+  'idempotent-missing-poa remains a fallback only when inline repair cannot complete',
+)
 
 // 4) Mid-pipeline failure updates the existing row instead of inserting a dup.
 ok(apps.includes('let applicationRowId: string | null = null'), 'intake tracks the created application row id')

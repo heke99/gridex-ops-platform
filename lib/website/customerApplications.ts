@@ -3031,19 +3031,32 @@ export async function processWebsiteCustomerApplication(input: {
       if (!releasedFailedIdempotencyForRetry) {
         // The previous application for this Idempotency-Key was treated as a
         // success, but it produced no power of attorney. If the retry now carries
-        // an accepted structured powerOfAttorney we must not silently replay the
-        // old, incomplete success — the fullmakt would be lost. Block with a
-        // precise code so the caller can retry with a new key or trigger repair.
+        // an accepted structured powerOfAttorney, repair the existing application
+        // inline and return success instead of forcing the website/customer into a
+        // 409 loop. Admin repair remains a fallback only when the incoming retry
+        // still lacks the legal data needed to create the POA.
         const previousHasPoa = Boolean(existingIdempotent.response_payload?.power_of_attorney_id)
         if (!previousHasPoa && structuredPoa?.accepted === true) {
+          const repaired = await stage('power_of_attorney', () => repairMissingPoaOnIdempotentApplication({
+            client: input.client,
+            existingApplication: existingIdempotent,
+            body,
+            rawBody: input.rawBody,
+            structuredPoa,
+            externalCustomerId,
+            requestAudit: input.requestAudit,
+          }))
+          if (repaired?.ok) {
+            return successResponse(repaired.data, repaired.warnings)
+          }
           return failureResponse(new WebsiteApplicationError({
-            message: 'A previous application exists for this Idempotency-Key but no power of attorney was created.',
+            message: repaired?.message ?? 'Fullmakten kunde inte skapas på den befintliga ansökan.',
             status: 409,
-            code: 'idempotent_application_missing_poa',
+            code: repaired?.code ?? 'idempotent_application_missing_poa',
             field: 'powerOfAttorney',
             stage: 'power_of_attorney',
             action: 'retry_with_new_idempotency_key_or_repair',
-            hint: 'Använd en ny Idempotency-Key, eller kör reparation av ansökan från admin för att skapa fullmakten.',
+            hint: 'Kontrollera att payloaden innehåller komplett powerOfAttorney med textVersionId från OPS publicerade juridik och kör sedan retry/admin-repair.',
             details: {
               application_id: existingIdempotent.id,
               external_customer_id: existingIdempotent.external_customer_id ?? externalCustomerId,
@@ -3926,6 +3939,243 @@ export async function processWebsiteCustomerApplication(input: {
     }
 
     return failureResponse(appError)
+  }
+}
+
+
+type MissingPoaInlineRepairResult = {
+  ok: boolean
+  code?: string
+  message?: string
+  data: Record<string, unknown>
+  warnings: string[]
+}
+
+// Inline self-healing for idempotent replays where the original successful
+// application row was missing its power_of_attorney_id. The public website API
+// must not force normal customers into an admin-repair/idempotency loop when
+// the retry payload already contains a complete accepted powerOfAttorney from
+// OPS legal documents. This is deliberately narrow: it only creates the missing
+// POA on the existing application and updates the stored response/payload.
+async function repairMissingPoaOnIdempotentApplication(input: {
+  client: IntegrationApiClient
+  existingApplication: {
+    id: string
+    response_payload: Record<string, unknown> | null
+    payload?: Record<string, unknown> | null
+    status: string
+    customer_id: string | null
+    customer_number: string | null
+    external_customer_id: string | null
+    customer_site_id?: string | null
+    metering_point_id?: string | null
+    contract_id?: string | null
+    warnings?: string[] | null
+  }
+  body: ApplicationInput
+  rawBody: unknown
+  structuredPoa: NormalizedStructuredPoa | null
+  externalCustomerId: string
+  requestAudit?: RequestAuditMetadata
+}): Promise<MissingPoaInlineRepairResult | null> {
+  const existing = input.existingApplication
+  const responsePayload = (existing.response_payload ?? {}) as Record<string, unknown>
+  const existingPoaId = clean(responsePayload.power_of_attorney_id)
+  const warnings = Array.isArray(existing.warnings) ? existing.warnings.map((warning) => String(warning)) : []
+
+  if (existingPoaId) {
+    return {
+      ok: true,
+      data: {
+        ...responsePayload,
+        idempotent: true,
+        repaired: false,
+        application_id: existing.id,
+        customer_id: existing.customer_id ?? (responsePayload.customer_id as string | undefined) ?? null,
+        customer_number: existing.customer_number ?? (responsePayload.customer_number as string | undefined) ?? null,
+        external_customer_id: existing.external_customer_id ?? input.externalCustomerId,
+        status: existing.status,
+      },
+      warnings,
+    }
+  }
+
+  if (!existing.customer_id) {
+    return {
+      ok: false,
+      code: 'customer_missing',
+      message: 'Ansökan saknar kund och kan inte repareras automatiskt.',
+      data: responsePayload,
+      warnings,
+    }
+  }
+
+  if (input.structuredPoa?.accepted !== true) {
+    return {
+      ok: false,
+      code: 'power_of_attorney_missing',
+      message: 'Retry-payloaden saknar accepterad strukturerad fullmakt.',
+      data: responsePayload,
+      warnings,
+    }
+  }
+
+  const selectedOfferReference = clean(input.body.offer_reference) ?? clean(input.body.offerReference) ?? clean(input.body.contract?.offer_reference) ?? clean(input.body.contract?.offerReference)
+  const selectedPricePlanVersionId = clean(input.body.price_plan_version_id) ?? clean(input.body.contract?.price_plan_version_id)
+  const selectedPricePlanId = clean(input.body.price_plan_id) ?? clean(input.body.contract?.price_plan_id)
+  const selectedContractOfferId = clean(input.body.contract_offer_id) ?? clean(input.body.contract?.contract_offer_id)
+  const selectedProductCode = clean(input.body.product_code) ?? clean(input.body.contract?.product_code)
+
+  const publicOffer = await resolvePublicContractOffer({
+    client: input.client,
+    offerReference: selectedOfferReference,
+    pricePlanVersionId: selectedPricePlanVersionId,
+    pricePlanId: selectedPricePlanId,
+    contractOfferId: selectedContractOfferId,
+    productCode: selectedProductCode,
+    customerType: input.body.customer.customer_type,
+  })
+
+  if (!publicOffer) {
+    return {
+      ok: false,
+      code: 'public_contract_not_available',
+      message: 'Avtalet kunde inte verifieras mot publicerade OPS-avtal och fullmakten kan inte repareras automatiskt.',
+      data: responsePayload,
+      warnings,
+    }
+  }
+
+  const legalVersions = await assertWebsiteLegalAcceptances({
+    companyId: input.client.company_id,
+    consents: input.body.consents,
+    publicOffer,
+  })
+
+  const { data: existingAcceptances, error: acceptanceLoadError } = await supabaseService
+    .from('customer_legal_acceptances')
+    .select('id')
+    .eq('company_id', input.client.company_id)
+    .eq('contract_application_id', existing.id)
+    .limit(1)
+  if (acceptanceLoadError && !missingSchema(acceptanceLoadError)) throw acceptanceLoadError
+
+  if ((!existingAcceptances || existingAcceptances.length === 0) && legalVersions.length > 0) {
+    await persistCustomerLegalAcceptances({
+      companyId: input.client.company_id,
+      customerId: existing.customer_id,
+      contractId: existing.contract_id ?? null,
+      applicationId: existing.id,
+      publicOffer,
+      legalVersions,
+      consents: input.body.consents,
+      rawPayload: input.rawBody,
+      requestAudit: input.requestAudit,
+    })
+  }
+
+  const powerOfAttorneyId = await ensureWebsitePowerOfAttorney({
+    companyId: input.client.company_id,
+    customerId: existing.customer_id,
+    contractId: existing.contract_id ?? null,
+    customerSiteId: existing.customer_site_id ?? null,
+    meteringPointId: existing.metering_point_id ?? null,
+    applicationId: existing.id,
+    publicOffer,
+    legalVersions,
+    consents: input.body.consents,
+    requestAudit: input.requestAudit,
+    rawPayload: input.rawBody,
+    structuredPoa: input.structuredPoa,
+  })
+
+  if (!powerOfAttorneyId) {
+    return {
+      ok: false,
+      code: 'power_of_attorney_missing',
+      message: 'Fullmakten kunde inte skapas på den befintliga ansökan.',
+      data: responsePayload,
+      warnings,
+    }
+  }
+
+  const poaExternallySendable = structuredPoaIsExternallySendable(input.structuredPoa)
+  const poaLegalVersionId =
+    input.structuredPoa?.textVersionId ??
+    legalVersions.find((version) => version.type === 'power_of_attorney')?.id ??
+    null
+  const tenantSlug = await loadCompanySlugById(input.client.company_id)
+  const poaDocumentUrl = tenantSlug && poaLegalVersionId
+    ? buildPublicLegalUrl(tenantSlug, 'power_of_attorney', poaLegalVersionId)
+    : null
+
+  const updatedResponsePayload: Record<string, unknown> = {
+    ...responsePayload,
+    power_of_attorney_id: powerOfAttorneyId,
+    power_of_attorney: {
+      status: 'signed',
+      scope: input.structuredPoa && input.structuredPoa.scope.length > 0 ? input.structuredPoa.scope : ['supplier_switch', 'facility_information_lookup'],
+      method: input.structuredPoa?.method ?? null,
+      externally_sendable: poaExternallySendable,
+      requires_completion: !poaExternallySendable,
+      text_version_id: poaLegalVersionId,
+      document_url: poaDocumentUrl,
+      repaired: true,
+    },
+    repaired_at: new Date().toISOString(),
+    repaired_reason: 'idempotent_missing_power_of_attorney',
+  }
+
+  const { error: updateError } = await supabaseService
+    .from('website_customer_applications')
+    .update({
+      payload: input.body,
+      raw_payload: input.rawBody,
+      response_payload: updatedResponsePayload,
+      error_stage: null,
+      error_code: null,
+      error_message: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', existing.id)
+    .eq('company_id', input.client.company_id)
+  if (updateError && !missingSchema(updateError)) throw updateError
+
+  await emitDomainEvent({
+    companyId: input.client.company_id,
+    eventType: 'website_application.repaired',
+    aggregateType: 'website_customer_application',
+    aggregateId: existing.id,
+    subjectCustomerId: existing.customer_id,
+    source: 'website_customer_applications_inline_repair',
+    idempotencyKey: `website-application-inline-repair:${input.client.company_id}:${existing.id}:${powerOfAttorneyId}`,
+    payload: {
+      application_id: existing.id,
+      power_of_attorney_id: powerOfAttorneyId,
+      externally_sendable: poaExternallySendable,
+      reason: 'idempotent_missing_power_of_attorney',
+    },
+  }).catch((eventError) => {
+    console.warn('[website-applications] inline POA repair audit event failed', eventError)
+  })
+
+  const repairedWarnings = poaExternallySendable
+    ? warnings
+    : [...warnings, 'Fullmakten är registrerad men måste kompletteras innan extern nätägarkommunikation.']
+
+  return {
+    ok: true,
+    data: {
+      ...updatedResponsePayload,
+      idempotent: true,
+      repaired: true,
+      application_id: existing.id,
+      customer_id: existing.customer_id,
+      customer_number: existing.customer_number ?? (responsePayload.customer_number as string | undefined) ?? null,
+      external_customer_id: existing.external_customer_id ?? input.externalCustomerId,
+      status: existing.status,
+    },
+    warnings: repairedWarnings,
   }
 }
 
