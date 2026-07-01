@@ -76,6 +76,26 @@ function missingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
 }
 
+
+function websiteApplicationDetailPath(applicationId: string): string {
+  return `/admin/website-applications/${applicationId}`
+}
+
+function safeReturnPath(formData: FormData, fallback: string): string {
+  const requested = text(formData, 'return_to')
+  if (requested && /^\/admin\/website-applications(?:\/|\?|$)/.test(requested)) {
+    return requested
+  }
+  return fallback
+}
+
+function revalidateWebsiteApplicationPaths(application: Pick<ApplicationRecord, 'id' | 'customer_id'>) {
+  revalidatePath('/admin/website-applications')
+  revalidatePath('/admin/customer-applications')
+  revalidatePath(websiteApplicationDetailPath(application.id))
+  if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
+}
+
 const WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE = 'website_application'
 const LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE = 'website_application_review'
 const WEBSITE_APPLICATION_CONTRACT_CHANNEL = 'external_website'
@@ -741,9 +761,7 @@ async function saveApplicationReview(input: { applicationId: string; formData: F
     })
   }
 
-  revalidatePath('/admin/website-applications')
-  revalidatePath('/admin/customer-applications')
-  if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
+  revalidateWebsiteApplicationPaths(application)
 }
 
 
@@ -850,9 +868,8 @@ export async function resolveWebsiteApplicationEnergyAction(formData: FormData) 
       confidence: resolution.confidence,
     },
   })
-  revalidatePath('/admin/website-applications')
-  if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
-  redirect('/admin/website-applications')
+  revalidateWebsiteApplicationPaths(application)
+  redirect(safeReturnPath(formData, '/admin/website-applications'))
 }
 
 export async function requestWebsiteApplicationGridOwnerInfoAction(formData: FormData) {
@@ -923,9 +940,8 @@ export async function requestWebsiteApplicationGridOwnerInfoAction(formData: For
     })
   }
 
-  revalidatePath('/admin/website-applications')
-  if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
-  redirect('/admin/website-applications?status=needs_facility_data')
+  revalidateWebsiteApplicationPaths(application)
+  redirect(safeReturnPath(formData, '/admin/website-applications?status=needs_facility_data'))
 }
 
 export async function markWebsiteApplicationFacilityDataReceivedAction(formData: FormData) {
@@ -987,21 +1003,20 @@ export async function markWebsiteApplicationFacilityDataReceivedAction(formData:
     billable: false,
     metadata: { facility_id: facilityId, metering_point_id: meteringPointId, readiness_status: readiness.status },
   })
-  revalidatePath('/admin/website-applications')
-  if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
-  redirect('/admin/website-applications')
+  revalidateWebsiteApplicationPaths(application)
+  redirect(safeReturnPath(formData, '/admin/website-applications'))
 }
 
 export async function updateWebsiteApplicationReviewAction(formData: FormData) {
   const applicationId = text(formData, 'application_id') ?? ''
   await saveApplicationReview({ applicationId, formData, action: 'review.updated' })
-  redirect('/admin/website-applications?status=needs_information')
+  redirect(safeReturnPath(formData, '/admin/website-applications?status=needs_information'))
 }
 
 export async function checkWebsiteApplicationReadinessAction(formData: FormData) {
   const applicationId = text(formData, 'application_id') ?? ''
   await saveApplicationReview({ applicationId, formData, action: 'review.checked' })
-  redirect('/admin/website-applications')
+  redirect(safeReturnPath(formData, '/admin/website-applications'))
 }
 
 // Admin/platform-guarded repair for an application that lost its power of
@@ -1032,7 +1047,6 @@ export async function repairWebsiteApplicationPowerOfAttorneyAction(formData: Fo
     },
   })
 
-  revalidatePath('/admin/website-applications')
-  if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
-  redirect('/admin/website-applications')
+  revalidateWebsiteApplicationPaths(application)
+  redirect(safeReturnPath(formData, '/admin/website-applications'))
 }
