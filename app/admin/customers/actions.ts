@@ -17,6 +17,11 @@ import {
   matchCustomerIdentity,
   type CustomerMatchSignal,
 } from "@/lib/customers/matchingService";
+import {
+  completeCustomerApplicationIntake,
+  failCustomerApplicationIntake,
+  getOrCreateCustomerApplicationIntake,
+} from "@/lib/intakes/customerApplicationIntakes";
 import type {
   CustomerImportActionState,
   CustomerImportPreviewRow,
@@ -3517,6 +3522,41 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
   }
 }
 
+const ADMIN_INTAKE_ROUTE = "admin/customers/intake";
+const ADMIN_INTAKE_IN_PROGRESS_STALE_MS = 10 * 60 * 1000;
+
+function buildAdminIntakeIdempotencyKey(
+  params: CreateCustomerGraphParams,
+): string {
+  // Deterministic key over the business-relevant intake fields so an
+  // accidental double submission of the same form never creates a second
+  // customer/site/contract graph, while a deliberately different intake
+  // (e.g. second site for the same customer) gets its own key.
+  const identity = [
+    params.customerType,
+    params.personalNumber ?? "",
+    params.orgNumber ?? "",
+    params.email ?? "",
+    params.phone ?? "",
+    params.firstName ?? "",
+    params.lastName ?? "",
+    params.companyName ?? "",
+    params.facilityId ?? "",
+    params.meterPointId ?? "",
+    params.street ?? "",
+    params.postalCode ?? "",
+    params.city ?? "",
+    params.siteName ?? "",
+    params.contractOfferId ?? "",
+    params.contractStartDate ?? "",
+    params.expectedStartDate ?? "",
+    params.duplicateResolution ?? "",
+    params.existingCustomerId ?? "",
+  ].join("|");
+  const digest = createHash("sha256").update(identity).digest("hex");
+  return `customer_create:${params.companyId}:${digest}`;
+}
+
 export async function createCustomerAction(
   _prevState: IntakeActionState,
   formData: FormData,
@@ -3527,6 +3567,62 @@ export async function createCustomerAction(
     const companyId = await requireOperationalCompanyId(actorUserId);
     await requireCompanyOperationalForWrites(companyId);
     let params = buildCreateCustomerParams(formData, actorUserId, companyId);
+
+    const idempotencyKey = buildAdminIntakeIdempotencyKey(params);
+    const { intake } = await getOrCreateCustomerApplicationIntake({
+      companyId,
+      apiClientId: null,
+      route: ADMIN_INTAKE_ROUTE,
+      method: "create",
+      idempotencyKey,
+      payload: { idempotencyKey },
+    });
+
+    if (intake && intake.status === "completed") {
+      const storedResult =
+        intake.result && typeof intake.result === "object"
+          ? (intake.result as Record<string, unknown>)
+          : {};
+      return {
+        status: "success",
+        message:
+          "Denna intagning är redan registrerad (idempotent återuppspelning). Ingen ny kund skapades.",
+        fieldErrors: {},
+        values: { country: "SE" },
+        createdCustomerId:
+          (typeof intake.customer_id === "string" ? intake.customer_id : null) ??
+          (typeof storedResult.customer_id === "string"
+            ? (storedResult.customer_id as string)
+            : null),
+        createdSiteId:
+          typeof storedResult.created_site_id === "string"
+            ? (storedResult.created_site_id as string)
+            : null,
+        createdMeteringPointId:
+          typeof storedResult.created_metering_point_id === "string"
+            ? (storedResult.created_metering_point_id as string)
+            : null,
+        duplicateWarnings: [],
+        duplicateReviewRequired: false,
+      };
+    }
+
+    if (
+      intake &&
+      intake.status !== "failed" &&
+      intake.status !== "completed" &&
+      Date.now() - new Date(intake.updated_at).getTime() <
+        ADMIN_INTAKE_IN_PROGRESS_STALE_MS
+    ) {
+      return {
+        status: "error",
+        message:
+          "En identisk intagning bearbetas redan. Vänta en stund och kontrollera kundlistan innan du försöker igen.",
+        fieldErrors: {},
+        values: getFormValues(formData),
+        createdCustomerId: null,
+      };
+    }
 
     const gridOwnerResolution = await resolveOrCreateGridOwnerForIntake({
       formData,
@@ -3553,7 +3649,38 @@ export async function createCustomerAction(
       currentSupplierOrgNumber: supplierResolution.orgNumber,
     };
 
-    const customer = await createCustomerGraph(params);
+    let customer: CustomerGraphResult;
+    try {
+      customer = await createCustomerGraph(params);
+    } catch (graphError) {
+      if (intake) {
+        await failCustomerApplicationIntake({
+          intakeId: intake.id,
+          companyId,
+          errorMessage:
+            graphError instanceof Error
+              ? graphError.message
+              : String(graphError),
+        }).catch(() => undefined);
+      }
+      throw graphError;
+    }
+
+    if (intake) {
+      await completeCustomerApplicationIntake({
+        intakeId: intake.id,
+        companyId,
+        customerId: typeof customer.id === "string" ? customer.id : null,
+        result: {
+          customer_id: customer.id ?? null,
+          customer_number: customer.customer_number ?? null,
+          created_site_id: customer.__createdSiteId ?? null,
+          created_metering_point_id: customer.__createdMeteringPointId ?? null,
+          created_power_of_attorney_id:
+            customer.__createdPowerOfAttorneyId ?? null,
+        },
+      }).catch(() => undefined);
+    }
 
     revalidatePath("/admin/customers");
     revalidatePath("/admin/customers/intake");
