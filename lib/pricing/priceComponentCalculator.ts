@@ -54,7 +54,14 @@ function fixedMonthlyQuantity(underlay: BillingUnderlayInput, component: PriceCo
   return Math.max(periodizationFactor(underlay, component), 0)
 }
 
+function isPercentOfSpot(component: PriceComponent): boolean {
+  const raw = `${component.calculationType ?? ''} ${component.unit ?? ''}`.toLowerCase()
+  return raw.includes('percent_of_spot')
+}
+
 function normalizedCalculationType(component: PriceComponent): string {
+  if (isPercentOfSpot(component)) return 'percent_of_spot'
+
   const unit = normalizePricingUnitForComponent({
     unit: component.unit,
     calculationType: component.calculationType,
@@ -75,6 +82,12 @@ export function calculatePriceComponents(input: {
   underlay: BillingUnderlayInput
   components: PriceComponent[]
   baseAmountExVat: number
+  /**
+   * The spot-sourced portion of the base amount (SEK ex VAT). Required for
+   * percent_of_spot components; when null/undefined those components are
+   * blocked with an explicit error instead of being silently skipped.
+   */
+  spotAmountExVat?: number | null
   vatRate: number
   startSortOrder?: number
 }): { lines: PricingPreviewLine[]; warnings: string[]; errors: string[] } {
@@ -118,6 +131,14 @@ export function calculatePriceComponents(input: {
     } else if (type === 'percentage') {
       amountExVat = input.baseAmountExVat * (component.amount / 100)
       unit = '%'
+    } else if (type === 'percent_of_spot') {
+      const spotAmount = input.spotAmountExVat
+      if (spotAmount === null || spotAmount === undefined || !Number.isFinite(spotAmount)) {
+        errors.push(`${component.name}: procent av spot kräver spotprisbas för perioden och elområdet.`)
+        continue
+      }
+      amountExVat = spotAmount * (component.amount / 100)
+      unit = '% av spot'
     } else if (type === 'discount_per_kwh') {
       if (quantityKwh === null || !Number.isFinite(quantityKwh)) {
         errors.push(`${component.name} kräver kWh för perioden.`)

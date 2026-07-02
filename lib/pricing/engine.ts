@@ -282,10 +282,18 @@ export async function calculatePricingPreviewForUnderlay(input: {
   warnings.push(...base.warnings)
   errors.push(...base.errors)
 
+  const spotAmountExVat = base.lines
+    .filter((line) => (line.metadata as Record<string, unknown> | undefined)?.source_type === 'spot')
+    .reduce((sum, line) => sum + line.amountExVat, 0)
+  const hasSpotBase = base.lines.some(
+    (line) => (line.metadata as Record<string, unknown> | undefined)?.source_type === 'spot'
+  )
+
   const component = calculatePriceComponents({
     underlay,
     components: config.priceComponents,
     baseAmountExVat: base.lines.reduce((sum, line) => sum + line.amountExVat, 0),
+    spotAmountExVat: hasSpotBase ? spotAmountExVat : null,
     vatRate: config.vatRate,
     startSortOrder: 100,
   })
