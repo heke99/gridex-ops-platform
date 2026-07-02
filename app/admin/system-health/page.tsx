@@ -3,6 +3,7 @@ import { isPlatformAdminContext, requireAdminPageAccess } from '@/lib/admin/guar
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { humanizeLaunchError, safeCount } from '@/lib/launch/readiness'
 import { supabaseService } from '@/lib/supabase/service'
+import { runProductionConsistencyChecks, type ReconciliationCheckResult } from '@/lib/ops/reconciliation'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,6 +70,7 @@ export default async function SystemHealthPage() {
     dbSecurityWarnings,
     failedJobs,
     errors,
+    reconciliation,
   ] = await Promise.all([
     safeCount('integration_api_requests', companyId, [{ column: 'status_code', operator: 'in', value: [400, 401, 403, 404, 409, 422, 429, 500] }]).catch(() => 0),
     safeCount('webhook_deliveries', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'dead_letter'] }]).catch(() => 0),
@@ -83,6 +85,11 @@ export default async function SystemHealthPage() {
     safeCount('gridex_launch_db_security_warnings_v', null, [{ column: 'severity', operator: 'in', value: ['critical', 'warning'] }]).catch(() => 0),
     safeCount('event_outbox', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'dead_letter', 'blocked'] }]).catch(() => 0),
     loadErrors(companyId, isPlatformAdmin),
+    runProductionConsistencyChecks({ companyId }).catch(() => ({
+      checks: [] as ReconciliationCheckResult[],
+      criticalCount: 0,
+      warningCount: 0,
+    })),
   ])
 
   return (
@@ -108,6 +115,44 @@ export default async function SystemHealthPage() {
         <Card label="Mailfel" value={emailFailures} hint="Kundmail och switch-notiser" danger />
         <Card label="DB-varningar" value={dbSecurityWarnings} hint="RLS, anon grants och security-definer" danger />
         <Card label="Failed jobs" value={failedJobs} hint="Outbox/jobb som behöver retry eller manuell åtgärd" danger />
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">Avstämningar (produktion)</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Konsistenskontroller för avtal, leverantörsbyten, fakturaunderlag och exporter. {reconciliation.criticalCount} kritiska och {reconciliation.warningCount} varningar just nu.
+        </p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-3 py-3">Status</th>
+                <th className="px-3 py-3">Kontroll</th>
+                <th className="px-3 py-3">Antal</th>
+                <th className="px-3 py-3">Beskrivning</th>
+                <th className="px-3 py-3">Exempel-id</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {reconciliation.checks.map((check) => (
+                <tr key={check.key} className={check.count > 0 ? (check.severity === 'critical' ? 'bg-red-50/50' : 'bg-amber-50/50') : ''}>
+                  <td className="px-3 py-3">
+                    <span className={`rounded-full border px-2 py-1 text-xs font-medium ${check.count > 0 ? tone(check.severity) : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+                      {check.error ? 'fel' : check.count > 0 ? check.severity : 'ok'}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 font-medium text-slate-900">{check.label}</td>
+                  <td className="px-3 py-3 text-slate-700">{check.error ? '–' : check.count}</td>
+                  <td className="px-3 py-3 text-slate-600">{check.error ? `Kontrollen kunde inte köras (${check.error}).` : check.description}</td>
+                  <td className="px-3 py-3 font-mono text-xs text-slate-500">{check.sampleIds.join(', ') || '–'}</td>
+                </tr>
+              ))}
+              {reconciliation.checks.length === 0 ? (
+                <tr><td colSpan={5} className="px-3 py-8 text-center text-slate-500">Avstämningarna kunde inte köras.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
