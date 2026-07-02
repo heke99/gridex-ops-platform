@@ -182,6 +182,8 @@ export function calculatePriceComponents(input: {
       sortOrder,
       metadata: {
         ...(component.metadata ?? {}),
+        component_type: component.componentType,
+        calculation_type: component.calculationType,
         input_amount: component.amount,
         input_unit: component.unit ?? component.calculationType ?? null,
         normalized_pricing_unit: normalizePricingUnitForComponent({ unit: component.unit, calculationType: component.calculationType, componentType: component.componentType }),
