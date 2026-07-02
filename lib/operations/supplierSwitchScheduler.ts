@@ -7,6 +7,7 @@
 // here are explicit and conservative (never guessed permissively).
 
 import { supabaseService } from '@/lib/supabase/service'
+import { OPEN_SUPPLIER_SWITCH_STATUSES } from '@/lib/operations/switchLifecycleBlocks'
 
 export type SupplierSwitchScheduleBlocker = { code: string; message: string }
 
@@ -18,20 +19,30 @@ export const SUPPLIER_SWITCH_WINDOW_OPEN_LEAD_DAYS = 45
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-// Active (in-progress) switch statuses for the duplicate-active-switch guard.
-export const ACTIVE_SUPPLIER_SWITCH_STATUSES = [
-  'draft',
+// Legacy/free-text statuses that have been observed on supplier_switch_requests
+// rows before the status model was consolidated. Kept so the duplicate guard
+// still catches historical in-progress rows.
+const LEGACY_ACTIVE_SUPPLIER_SWITCH_STATUSES = [
   'pending',
   'ready',
-  'queued',
   'prepared',
-  'submitted',
   'in_progress',
   'sent',
   'waiting_response',
   'awaiting_confirmation',
   'confirmed',
 ]
+
+// Active (in-progress) switch statuses for the duplicate-active-switch guard.
+// This is the union of the canonical open statuses (SupplierSwitchRequestStatus)
+// and legacy runtime statuses so the two status models can never disagree about
+// what counts as "already has an active switch".
+export const ACTIVE_SUPPLIER_SWITCH_STATUSES = Array.from(
+  new Set<string>([
+    ...OPEN_SUPPLIER_SWITCH_STATUSES,
+    ...LEGACY_ACTIVE_SUPPLIER_SWITCH_STATUSES,
+  ])
+)
 
 function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null
