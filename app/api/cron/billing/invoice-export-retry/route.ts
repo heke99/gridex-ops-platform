@@ -1,6 +1,7 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processDueInvoiceExportRetries } from '@/lib/integrations/billing/invoiceExportCore'
+import { processPendingInvoiceProviderEvents } from '@/lib/billing/providerEventProcessor'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,11 +36,14 @@ async function run(request: NextRequest) {
 
   try {
     const limitRaw = Number(clean(request.nextUrl.searchParams.get('limit')) ?? '50')
-    const result = await processDueInvoiceExportRetries({
-      companyId: clean(request.nextUrl.searchParams.get('company_id')),
+    const companyId = clean(request.nextUrl.searchParams.get('company_id'))
+    const retries = await processDueInvoiceExportRetries({
+      companyId,
       limit: Number.isFinite(limitRaw) ? limitRaw : 50,
     })
-    return NextResponse.json({ ok: true, ...result })
+    // Sweep provider events that were not fully processed at webhook receipt.
+    const providerEvents = await processPendingInvoiceProviderEvents({ companyId, limit: 200 })
+    return NextResponse.json({ ok: true, retries, providerEvents })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[invoice-export-retry-cron] failed', { traceId, error })
