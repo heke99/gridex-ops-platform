@@ -92,7 +92,7 @@ export async function createInvoiceExportRun(input: {
     }
   }
 
-  const itemRows = ((pricingRuns ?? []) as Record<string, unknown>[]).map((pricingRun) => {
+  const candidateRows = ((pricingRuns ?? []) as Record<string, unknown>[]).map((pricingRun) => {
     const customerId = stringValue(pricingRun.customer_id)
     return {
       company_id: input.companyId,
@@ -112,6 +112,25 @@ export async function createInvoiceExportRun(input: {
       metadata: { billing_month: input.billingMonth, customer_number: customerId ? customerNumbers.get(customerId) ?? null : null },
     }
   })
+
+  // Never reset items that already left the sendable pipeline (sent/credited/
+  // cancelled/rejected). Re-billing them requires an explicit credit path.
+  const alreadyExportedKeys = new Set<string>()
+  if (candidateRows.length > 0) {
+    const { data: existingItems, error: existingError } = await supabaseService
+      .from('invoice_export_items')
+      .select('idempotency_key,status')
+      .eq('company_id', input.companyId)
+      .eq('provider', provider)
+      .in('idempotency_key', candidateRows.map((row) => row.idempotency_key))
+    if (existingError && !missingRelation(existingError)) throw existingError
+    for (const row of (existingItems ?? []) as Record<string, unknown>[]) {
+      const key = stringValue(row.idempotency_key)
+      const status = String(row.status ?? '')
+      if (key && !['pending', 'failed', 'failed_retryable'].includes(status)) alreadyExportedKeys.add(key)
+    }
+  }
+  const itemRows = candidateRows.filter((row) => !alreadyExportedKeys.has(row.idempotency_key))
 
   if (itemRows.length > 0) {
     const { error: itemError } = await supabaseService
@@ -142,11 +161,15 @@ export async function createInvoiceExportRun(input: {
 
   await supabaseService
     .from('invoice_export_runs')
-    .update({ total_items: itemRows.length, updated_at: new Date().toISOString() })
+    .update({
+      total_items: itemRows.length,
+      metadata: { source: 'gridex_invoice_export_core', skipped_already_exported: alreadyExportedKeys.size },
+      updated_at: new Date().toISOString(),
+    })
     .eq('company_id', input.companyId)
     .eq('id', runId)
 
-  return { runId, itemCount: itemRows.length, readiness }
+  return { runId, itemCount: itemRows.length, skippedAlreadyExported: alreadyExportedKeys.size, readiness }
 }
 
 async function loadItemContext(companyId: string, item: Record<string, unknown>) {
@@ -253,6 +276,42 @@ type SendItemResult = {
   error?: string | null
 }
 
+// Attempted re-export of an already sent/credited invoice: refuse and raise a
+// work-queue task so an operator routes it through the credit/correction path.
+async function raiseInvoiceCorrectionTask(input: {
+  companyId: string
+  itemId: string
+  exportRunId: string
+  currentStatus: string
+  actorUserId?: string | null
+}) {
+  const { count, error: existingError } = await supabaseService
+    .from('customer_operation_tasks')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', input.companyId)
+    .eq('task_type', 'invoice_resend_blocked')
+    .eq('status', 'open')
+    .contains('metadata', { invoice_export_item_id: input.itemId })
+  if (!existingError && (count ?? 0) > 0) return
+
+  const { error } = await supabaseService.from('customer_operation_tasks').insert({
+    company_id: input.companyId,
+    task_type: 'invoice_resend_blocked',
+    status: 'open',
+    priority: 'high',
+    title: 'Omexport av skickad faktura blockerad',
+    description: `Fakturaexportpost ${input.itemId} är redan ${input.currentStatus} och kan inte skickas om. Skapa kredit eller korrigering om fakturan behöver göras om.`,
+    metadata: {
+      invoice_export_item_id: input.itemId,
+      export_run_id: input.exportRunId,
+      current_status: input.currentStatus,
+    },
+    created_by: input.actorUserId ?? null,
+    updated_by: input.actorUserId ?? null,
+  })
+  if (error) console.warn('[invoice-export] kunde inte skapa korrigeringstask', { itemId: input.itemId, error })
+}
+
 async function sendSingleInvoiceExportItem(input: {
   companyId: string
   exportRunId: string
@@ -266,6 +325,21 @@ async function sendSingleInvoiceExportItem(input: {
   const item = input.item
   const itemId = stringValue(item.id)
   if (!itemId) throw new Error('Exportposten saknar id.')
+
+  // Defense in depth: never re-send an already sent/credited invoice, even if
+  // a stale row slips past the status filter (races, manual calls).
+  const currentItemStatus = String(item.status ?? '')
+  if (!SENDABLE_ITEM_STATUSES.includes(currentItemStatus)) {
+    await raiseInvoiceCorrectionTask({
+      companyId: input.companyId,
+      itemId,
+      exportRunId: input.exportRunId,
+      currentStatus: currentItemStatus,
+      actorUserId: input.actorUserId,
+    })
+    return { itemId, status: currentItemStatus, errorCode: 'resend_blocked', error: 'Fakturan är redan skickad. Skapa kredit/korrigering för omexport.' }
+  }
+
   const idempotencyKey = stringValue(item.idempotency_key)
   const attemptNo = Math.max(0, Math.trunc(numberValue(item.attempt_count))) + 1
   const startedAt = new Date().toISOString()
