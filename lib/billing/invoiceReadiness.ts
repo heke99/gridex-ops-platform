@@ -31,6 +31,8 @@ function isMissingRelationError(error: unknown): boolean {
     maybe &&
       (maybe.code === '42P01' ||
         maybe.code === '42703' ||
+        maybe.code === '42883' ||
+        maybe.code === 'PGRST202' ||
         maybe.code === 'PGRST204' ||
         maybe.code === 'PGRST205' ||
         /does not exist|schema cache|relation .* does not exist|column .* does not exist/i.test(maybe.message ?? ''))
@@ -182,6 +184,16 @@ export async function unlockBillingPeriod(input: {
     .eq('billing_month', billingMonth)
     .in('lock_scope', ['billing_period', 'invoice_export'])
     .then(() => null)
+
+  // Locked pricing runs are DB-trigger protected; the only supported unlock path
+  // is this audited RPC. Tolerate its absence until Migration B has been applied.
+  const unlockRuns = await supabaseService.rpc('gridex_unlock_pricing_runs_for_month', {
+    p_company_id: input.companyId,
+    p_billing_month: billingMonth,
+    p_actor_user_id: input.actorUserId ?? null,
+    p_reason: input.reason ?? 'billing_period_unlocked',
+  })
+  if (unlockRuns.error && !isMissingRelationError(unlockRuns.error)) throw unlockRuns.error
 
   return data
 }
