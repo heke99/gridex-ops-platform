@@ -1,20 +1,11 @@
 import { parseCanonicalMessageRow } from '@/lib/ediel/core/canonicalMessage'
-import { supabaseService } from '@/lib/supabase/service'
+import { findCustomersByIdentifierValues } from '@/lib/customers/matchingService'
 import type { EdielMatchCandidate, EdielMatchInput } from '@/lib/ediel/matching/matchingTypes'
 import { cleanMatchText, confidenceFromScore, upperMatchText } from '@/lib/ediel/matching/matchingTypes'
 
 function referenceValue(input: EdielMatchInput, qualifier: string): string | null {
   const canonical = parseCanonicalMessageRow(input.message)
   return canonical.references.find((reference) => upperMatchText(reference.qualifier) === qualifier.toUpperCase())?.value ?? null
-}
-
-function safeOrText(values: string[], columns: string[]): string | null {
-  const parts: string[] = []
-  for (const value of values) {
-    const escaped = value.replace(/"/g, '\\"')
-    for (const column of columns) parts.push(`${column}.eq.${escaped}`)
-  }
-  return parts.length > 0 ? parts.join(',') : null
 }
 
 export async function matchCustomerForAutomation(input: EdielMatchInput): Promise<EdielMatchCandidate[]> {
@@ -26,22 +17,15 @@ export async function matchCustomerForAutomation(input: EdielMatchInput): Promis
 
   if (values.length === 0) return []
 
-  let query = supabaseService
-    .from('customers')
-    .select('id, company_id, customer_number, personal_number, org_number, email, full_name, company_name, status')
-    .limit(20)
+  const data = await findCustomersByIdentifierValues({
+    companyId: input.companyId ?? input.message.company_id ?? null,
+    values,
+    columns: ['id', 'customer_number', 'personal_number', 'org_number', 'email'],
+    select: 'id, company_id, customer_number, personal_number, org_number, email, full_name, company_name, status',
+    limit: 20,
+  })
 
-  if (input.companyId ?? input.message.company_id) {
-    query = query.eq('company_id', input.companyId ?? input.message.company_id)
-  }
-
-  const orText = safeOrText(values, ['id', 'customer_number', 'personal_number', 'org_number', 'email'])
-  if (orText) query = query.or(orText)
-
-  const { data, error } = await query
-  if (error) throw error
-
-  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
+  return (data as Array<Record<string, unknown>>).map((row) => {
     const score = cleanMatchText(row.id) === cleanMatchText(input.message.customer_id) ? 180 : 105
     return {
       entityType: 'customer',

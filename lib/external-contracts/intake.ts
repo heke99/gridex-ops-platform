@@ -5,6 +5,10 @@ import {
   getContractOfferById,
 } from "@/lib/customer-contracts/db";
 import { isBusinessCustomerType } from "@/lib/customers/normalizeCustomerType";
+import {
+  matchCustomerIdentity,
+  type CustomerMatchDecision,
+} from "@/lib/customers/matchingService";
 
 type ExternalContractInput = {
   companySlug: string;
@@ -65,16 +69,6 @@ function hashKey(input: ExternalContractInput): string {
   return createHash("sha256").update(parts).digest("hex");
 }
 
-function normalizeEmail(value: string | null): string | null {
-  const normalized = value?.trim().toLowerCase() ?? "";
-  return normalized.length > 0 ? normalized : null;
-}
-
-function normalizeDigits(value: string | null): string | null {
-  const normalized = value?.replace(/\D/g, "") ?? "";
-  return normalized.length > 0 ? normalized : null;
-}
-
 type ExistingCustomerRow = {
   id: string;
   status?: string | null;
@@ -101,62 +95,48 @@ type ExistingMeteringPointRow = {
   site_id?: string | null;
 };
 
-async function findFirstCustomerBy(
-  companyId: string,
-  column: string,
-  value: string | null,
-): Promise<ExistingCustomerRow | null> {
-  if (!value) return null;
-  const { data, error } = await supabaseService
-    .from("customers")
-    .select(
-      "id,status,first_name,last_name,full_name,company_name,email,phone,personal_number,org_number,source,metadata",
-    )
-    .eq("company_id", companyId)
-    .eq(column, value)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (error) {
-    const code = (error as { code?: string } | null)?.code ?? "";
-    if (["42703", "42P01", "PGRST204", "PGRST205"].includes(code)) return null;
-    throw error;
-  }
-  return ((data ?? []) as ExistingCustomerRow[])[0] ?? null;
-}
+const INTAKE_CUSTOMER_SELECT =
+  "id,status,first_name,last_name,full_name,company_name,email,phone,personal_number,org_number,source,metadata";
 
 async function findExistingCustomerForIntake(
   companyId: string,
   input: ExternalContractInput,
-): Promise<ExistingCustomerRow | null> {
-  const normalizedPersonal = normalizeDigits(input.personalNumber);
-  const normalizedOrg = normalizeDigits(input.orgNumber);
-  const normalizedEmail = normalizeEmail(input.email);
+): Promise<{
+  customer: ExistingCustomerRow | null;
+  matchDecision: CustomerMatchDecision;
+}> {
+  const matchDecision = await matchCustomerIdentity({
+    companyId,
+    personalNumber: input.personalNumber,
+    orgNumber: input.orgNumber,
+    email: input.email,
+    phone: input.phone,
+    select: INTAKE_CUSTOMER_SELECT,
+  });
 
-  return (
-    (await findFirstCustomerBy(
-      companyId,
-      "normalized_personal_number",
-      normalizedPersonal,
-    )) ??
-    (await findFirstCustomerBy(
-      companyId,
-      "personal_number",
-      input.personalNumber,
-    )) ??
-    (await findFirstCustomerBy(
-      companyId,
-      "normalized_org_number",
-      normalizedOrg,
-    )) ??
-    (await findFirstCustomerBy(companyId, "org_number", input.orgNumber)) ??
-    (await findFirstCustomerBy(
-      companyId,
-      "normalized_email",
-      normalizedEmail,
-    )) ??
-    (await findFirstCustomerBy(companyId, "email", input.email))
-  );
+  if (matchDecision.outcome === "matched") {
+    return {
+      customer: matchDecision.customer as ExistingCustomerRow,
+      matchDecision,
+    };
+  }
+
+  if (matchDecision.outcome === "ambiguous") {
+    // Preserve legacy linking (newest candidate) but let the caller record the
+    // ambiguity for review rather than silently merging.
+    const candidate =
+      matchDecision.candidates.find(
+        (entry) => entry.matchedBy === matchDecision.matchedBy,
+      )?.customer ??
+      matchDecision.candidates[0]?.customer ??
+      null;
+    return {
+      customer: (candidate as ExistingCustomerRow | null) ?? null,
+      matchDecision,
+    };
+  }
+
+  return { customer: null, matchDecision };
 }
 
 async function ensureCustomerForIntake(
@@ -165,7 +145,8 @@ async function ensureCustomerForIntake(
   displayName: string | null,
   issues: string[],
 ): Promise<string> {
-  const existing = await findExistingCustomerForIntake(companyId, input);
+  const { customer: existing, matchDecision } =
+    await findExistingCustomerForIntake(companyId, input);
   const now = new Date().toISOString();
 
   if (existing?.id) {
@@ -188,10 +169,14 @@ async function ensureCustomerForIntake(
         issues.length > 0 ? "needs_completion" : "ready_for_operations",
       intake_missing_fields: issues,
       intake_warnings: issues,
+      ...(matchDecision.needsReview
+        ? { possible_duplicate: true, duplicate_review_status: "pending" }
+        : {}),
       metadata: {
         ...metadata,
         last_external_contract_intake_at: now,
         external_contract_intake_matched_existing_customer: true,
+        customer_match: matchDecision.auditMetadata,
       },
       updated_at: now,
     };
@@ -260,7 +245,10 @@ async function ensureCustomerForIntake(
 
   const code = (error as { code?: string } | null)?.code ?? "";
   if (code === "23505") {
-    const repaired = await findExistingCustomerForIntake(companyId, input);
+    const { customer: repaired } = await findExistingCustomerForIntake(
+      companyId,
+      input,
+    );
     if (repaired?.id) return String(repaired.id);
   }
   if (["42703", "PGRST204", "PGRST205"].includes(code)) {

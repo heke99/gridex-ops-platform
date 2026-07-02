@@ -26,6 +26,7 @@ import { ensureCustomerApplicationWorkflow, transitionCustomerApplicationWorkflo
 import { commitApplicationProvisioning, failApplicationProvisioning } from '@/lib/website/provisioningSaga'
 import { buildPublicLegalUrl, loadCompanySlugById } from '@/lib/legal/publicLegalDocuments'
 import { normalizeCustomerType } from '@/lib/customers/normalizeCustomerType'
+import { matchCustomerIdentity, type CustomerMatchDecision } from '@/lib/customers/matchingService'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -1630,59 +1631,34 @@ async function loadExistingIdentity(companyId: string, externalCustomerId: strin
   return data as { id: string; customer_id: string | null; status: string } | null
 }
 
-async function findExistingCustomer(companyId: string, input: ApplicationInput): Promise<CustomerRow | null> {
-  const email = normalizedEmail(input.customer.email)
-  const customerId = digits(input.customer.personal_number ?? input.customer.org_number)
+async function findExistingCustomer(
+  companyId: string,
+  input: ApplicationInput
+): Promise<{ customer: CustomerRow | null; matchDecision: CustomerMatchDecision }> {
+  const matchDecision = await matchCustomerIdentity({
+    companyId,
+    personalNumber: clean(input.customer.personal_number),
+    orgNumber: clean(input.customer.org_number),
+    email: clean(input.customer.email),
+    phone: clean(input.customer.phone),
+    select: 'id,customer_number,email,full_name,company_name',
+  })
 
-  if (customerId) {
-    const { data, error } = await supabaseService
-      .from('customers')
-      .select('id,customer_number,email,full_name,company_name')
-      .eq('company_id', companyId)
-      .or(`personal_number.eq.${customerId},org_number.eq.${customerId},normalized_personal_number.eq.${customerId},normalized_org_number.eq.${customerId}`)
-      .limit(1)
-      .maybeSingle()
-    if (error && !missingSchema(error)) throw error
-    if (data) return data as CustomerRow
-
-    if (error && missingSchema(error)) {
-      const fallback = await supabaseService
-        .from('customers')
-        .select('id,customer_number,email,full_name,company_name')
-        .eq('company_id', companyId)
-        .or(`personal_number.eq.${customerId},org_number.eq.${customerId}`)
-        .limit(1)
-        .maybeSingle()
-      if (fallback.error) throw fallback.error
-      if (fallback.data) return fallback.data as CustomerRow
-    }
+  if (matchDecision.outcome === 'matched') {
+    return { customer: matchDecision.customer as CustomerRow, matchDecision }
   }
 
-  if (email) {
-    const { data, error } = await supabaseService
-      .from('customers')
-      .select('id,customer_number,email,full_name,company_name')
-      .eq('company_id', companyId)
-      .eq('normalized_email', email)
-      .limit(1)
-      .maybeSingle()
-    if (error && !missingSchema(error)) throw error
-    if (data) return data as CustomerRow
-
-    if (error && missingSchema(error)) {
-      const fallback = await supabaseService
-        .from('customers')
-        .select('id,customer_number,email,full_name,company_name')
-        .eq('company_id', companyId)
-        .eq('email', email)
-        .limit(1)
-        .maybeSingle()
-      if (fallback.error) throw fallback.error
-      if (fallback.data) return fallback.data as CustomerRow
-    }
+  if (matchDecision.outcome === 'ambiguous') {
+    // Legacy behavior linked to the most recent candidate; keep the link so
+    // repeat applications do not create duplicates, but the caller marks the
+    // customer for duplicate review instead of silently merging.
+    const candidate = matchDecision.candidates.find(
+      (entry) => entry.matchedBy === matchDecision.matchedBy
+    )?.customer ?? matchDecision.candidates[0]?.customer ?? null
+    return { customer: (candidate as CustomerRow | null) ?? null, matchDecision }
   }
 
-  return null
+  return { customer: null, matchDecision }
 }
 
 async function upsertPortalIdentity(input: {
@@ -1733,7 +1709,7 @@ async function upsertPortalIdentity(input: {
 }
 
 async function createOrUpdateCustomer(client: IntegrationApiClient, input: ApplicationInput): Promise<{ customer: CustomerRow; created: boolean; customerNumberAssigned: boolean }> {
-  const existing = await findExistingCustomer(client.company_id, input)
+  const { customer: existing, matchDecision } = await findExistingCustomer(client.company_id, input)
   const customer = input.customer
   const name = fullName(customer)
   const email = normalizedEmail(customer.email)
@@ -1764,7 +1740,14 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
       billing_country: clean(customer.billing_country) ?? 'SE',
       source: 'external_website',
       updated_at: now,
-      metadata: { source: 'website_customer_applications', api_client_id: client.id },
+      // Ambiguous identity matches must never be silently merged: flag the
+      // linked customer for duplicate review so it lands in the review queue.
+      ...(matchDecision.needsReview ? { possible_duplicate: true, duplicate_review_status: 'pending' } : {}),
+      metadata: {
+        source: 'website_customer_applications',
+        api_client_id: client.id,
+        customer_match: matchDecision.auditMetadata,
+      },
     }
 
     const { data, error } = await supabaseService
@@ -1808,7 +1791,11 @@ async function createOrUpdateCustomer(client: IntegrationApiClient, input: Appli
     billing_city: clean(customer.billing_city),
     billing_country: clean(customer.billing_country) ?? 'SE',
     source: 'external_website',
-    metadata: { source: 'website_customer_applications', api_client_id: client.id },
+    metadata: {
+      source: 'website_customer_applications',
+      api_client_id: client.id,
+      customer_match: matchDecision.auditMetadata,
+    },
   }
 
   const { data, error } = await supabaseService

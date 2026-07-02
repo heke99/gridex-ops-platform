@@ -13,6 +13,10 @@ import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { runBatch2BAutomation } from "@/lib/operations/batch2bAutomation";
 import { parseCustomerImportFormData } from "@/lib/customers/importParser";
 import { normalizeCustomerIdentityType } from "@/lib/customers/normalizeCustomerType";
+import {
+  matchCustomerIdentity,
+  type CustomerMatchSignal,
+} from "@/lib/customers/matchingService";
 import type {
   CustomerImportActionState,
   CustomerImportPreviewRow,
@@ -2012,43 +2016,75 @@ async function findMatchingMeteringPoints(params: {
   }
 }
 
+const INTAKE_IDENTITY_MATCH_PRESENTATION: Record<
+  CustomerMatchSignal,
+  {
+    field: IntakeDuplicateMatch["field"];
+    severity: IntakeDuplicateSeverity;
+    label: string;
+    matchType: string;
+  }
+> = {
+  personal_number: {
+    field: "personalNumber",
+    severity: "critical",
+    label: "Personnummer",
+    matchType: "personal_number",
+  },
+  org_number: {
+    field: "orgNumber",
+    severity: "critical",
+    label: "Organisationsnummer",
+    matchType: "org_number",
+  },
+  email: {
+    field: "email",
+    severity: "warning",
+    label: "E-post",
+    matchType: "email",
+  },
+  phone: {
+    field: "phone",
+    severity: "warning",
+    label: "Telefonnummer",
+    matchType: "phone",
+  },
+};
+
+async function findIntakeIdentityDuplicateMatches(
+  params: CreateCustomerGraphParams,
+): Promise<IntakeDuplicateMatch[]> {
+  try {
+    const decision = await matchCustomerIdentity({
+      companyId: params.companyId,
+      personalNumber: params.personalNumber,
+      orgNumber: params.orgNumber,
+      email: params.email,
+      phone: params.phone,
+      select: "id, customer_number, full_name, company_name, email, phone",
+    });
+
+    return decision.candidates.map((candidate) => {
+      const presentation = INTAKE_IDENTITY_MATCH_PRESENTATION[candidate.matchedBy];
+      const row = candidate.customer;
+      return {
+        field: presentation.field,
+        severity: presentation.severity,
+        customerId: typeof row.id === "string" ? row.id : null,
+        matchType: presentation.matchType,
+        message: `${presentation.label} matchar kund ${String(row.customer_number ?? row.full_name ?? row.company_name ?? row.email ?? row.id)} i detta bolag.`,
+      } satisfies IntakeDuplicateMatch;
+    });
+  } catch (error) {
+    if (databaseObjectMissing(error)) return [];
+    throw error;
+  }
+}
+
 async function findIntakeDuplicateMatches(
   params: CreateCustomerGraphParams,
 ): Promise<IntakeDuplicateMatch[]> {
-  const personOrOrgMatches = await Promise.all([
-    findMatchingCustomersByColumn({
-      companyId: params.companyId,
-      column: "email",
-      value: params.email,
-      severity: "warning",
-      field: "email",
-      label: "E-post",
-    }),
-    findMatchingCustomersByColumn({
-      companyId: params.companyId,
-      column: "phone",
-      value: params.phone,
-      severity: "warning",
-      field: "phone",
-      label: "Telefonnummer",
-    }),
-    findMatchingCustomersByColumn({
-      companyId: params.companyId,
-      column: "personal_number",
-      value: params.personalNumber,
-      severity: "critical",
-      field: "personalNumber",
-      label: "Personnummer",
-    }),
-    findMatchingCustomersByColumn({
-      companyId: params.companyId,
-      column: "org_number",
-      value: params.orgNumber,
-      severity: "critical",
-      field: "orgNumber",
-      label: "Organisationsnummer",
-    }),
-  ]);
+  const personOrOrgMatches = await findIntakeIdentityDuplicateMatches(params);
 
   const nameMatches = await (async () => {
     const displayName =
