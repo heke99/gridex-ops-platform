@@ -62,6 +62,11 @@ import {
 import { emitDomainEvent } from "@/lib/events/domainEvents";
 import { enqueueWebhookDeliveriesForEvent } from "@/lib/integrations/webhooks";
 import { getCompanyGoLiveSetupSummary } from "@/lib/ediel/platformGoLive";
+import {
+  applyCustomerSiteAddressCandidate,
+  computeCustomerSiteAddressHash,
+} from "@/lib/customer-sites/addressIntake";
+import { evaluateCustomerIntake } from "@/lib/customer-operations/customerIntakeOrchestrator";
 
 type CustomerType = "private" | "business" | "association";
 type SiteType = "consumption" | "production" | "mixed";
@@ -2762,6 +2767,7 @@ type CustomerGraphResult = CustomerGraphRow & {
   __duplicateWarnings: string[]
   __duplicateReviewRequired: boolean
   __createdNewCustomer: boolean
+  __reusedExistingSite: boolean
   __createdSiteId: string | null
   __createdMeteringPointId: string | null
   __createdGridOwnerId: string | null
@@ -3037,8 +3043,41 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
     );
 
     let siteId: string | null = null;
+    let reusedExistingSite = false;
 
-    if (shouldCreateSite) {
+    // Shared site dedupe: when attaching to an existing customer, an active
+    // site with the exact same normalized address must be reused rather than
+    // duplicated (same rule as website/external intake via addressIntake).
+    if (shouldCreateSite && shouldUseExistingCustomer) {
+      const addressHash = computeCustomerSiteAddressHash({
+        street: normalizedStreet,
+        postalCode: normalizedPostalCode,
+        city: normalizedCity,
+        country: normalizedCountry,
+        apartmentNumber: normalizedApartmentNumber,
+      });
+      if (addressHash.hash) {
+        const { data: existingSite, error: existingSiteError } =
+          await supabaseService
+            .from("customer_sites")
+            .select("id")
+            .eq("company_id", params.companyId)
+            .eq("customer_id", customer.id)
+            .eq("address_hash", addressHash.hash)
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle();
+        if (existingSiteError && !databaseObjectMissing(existingSiteError)) {
+          throw existingSiteError;
+        }
+        if (typeof existingSite?.id === "string") {
+          siteId = existingSite.id;
+          reusedExistingSite = true;
+        }
+      }
+    }
+
+    if (shouldCreateSite && !siteId) {
       const { data: site, error: siteError } = await supabaseService
         .from("customer_sites")
         .insert({
@@ -3094,6 +3133,31 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
       if (siteError) throw siteError;
       siteId = site.id;
       creationContext.siteId = site.id;
+
+      // Stamp the shared address hash/normalization + history so the site
+      // participates in the same dedupe/conflict pipeline as other channels.
+      await applyCustomerSiteAddressCandidate({
+        companyId: params.companyId,
+        customerId: String(customer.id),
+        siteId: String(site.id),
+        address: {
+          street: normalizedStreet,
+          postalCode: normalizedPostalCode,
+          city: normalizedCity,
+          country: normalizedCountry,
+          careOf: normalizedCareOf,
+          apartmentNumber: normalizedApartmentNumber,
+          source: "manual_intake",
+          sourceReference: "admin_customer_intake",
+          actorUserId: params.actorUserId,
+        },
+      }).catch((addressError) => {
+        console.warn(
+          "Site address normalization could not be applied during admin intake",
+          addressError,
+        );
+        return null;
+      });
     }
 
     if (siteId && normalizedMeterPointId) {
@@ -3504,11 +3568,29 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
       await enqueueWebhookDeliveriesForEvent(domainEvent).catch(() => 0);
     }
 
+    // Run the shared intake readiness orchestrator so admin-created customers
+    // get the same persisted intake decision/next-action state as website and
+    // external intake channels. Non-fatal: the graph is already committed.
+    await evaluateCustomerIntake({
+      companyId: params.companyId,
+      customerId: String(customer.id),
+      siteId,
+      actorUserId: params.actorUserId,
+      apply: true,
+    }).catch((orchestratorError) => {
+      console.warn(
+        "Shared intake orchestrator could not be evaluated after admin intake",
+        orchestratorError,
+      );
+      return null;
+    });
+
     return {
       ...customer,
       __duplicateWarnings: duplicateWarnings,
       __duplicateReviewRequired: duplicateReviewRequired,
       __createdNewCustomer: createdNewCustomer,
+      __reusedExistingSite: reusedExistingSite,
       __uploadedDocumentLabels: intakeDocumentUpload.uploadedLabels,
       __createdSiteId: creationContext.siteId,
       __createdMeteringPointId: creationContext.meteringPointId,
