@@ -147,10 +147,21 @@ function objectValue(value: unknown): Record<string, unknown> {
 }
 
 function offerReferenceSecret() {
-  return clean(process.env.WEBSITE_OFFER_REFERENCE_SECRET)
+  const configured = clean(process.env.WEBSITE_OFFER_REFERENCE_SECRET)
     ?? clean(process.env.NEXTAUTH_SECRET)
     ?? clean(process.env.SUPABASE_SERVICE_ROLE_KEY)
-    ?? 'gridex-public-offer-reference-v1'
+  if (configured) return configured
+
+  // Fail closed in production: a guessable hardcoded HMAC secret would let
+  // anyone forge offer references. Dev/test keeps the static fallback for
+  // convenience. Set WEBSITE_OFFER_REFERENCE_SECRET (preferred, decouples
+  // offer signing from service-role/key rotation).
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'WEBSITE_OFFER_REFERENCE_SECRET saknas i produktion. Sätt en dedikerad hemlighet för offer-referenser.'
+    )
+  }
+  return 'gridex-public-offer-reference-v1'
 }
 
 function base64Url(value: Buffer) {

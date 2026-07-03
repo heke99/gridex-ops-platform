@@ -13,6 +13,14 @@ import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 
 export const dynamic = 'force-dynamic'
 
+// Segment matching only needs these columns; selecting them (instead of *) keeps
+// this page cheap even for tenants with large contract/site/switch volumes.
+type SegmentContractRow = Pick<CustomerContractRow, 'customer_id' | 'status'>
+type SegmentSiteRow = Pick<CustomerSiteRow, 'customer_id' | 'status'>
+type SegmentSwitchRow = Pick<SupplierSwitchRequestRow, 'customer_id' | 'status' | 'request_type'>
+
+const SEGMENT_RELATED_ROW_LIMIT = 5000
+
 type SegmentKey = 'all' | 'signed' | 'pending_activation' | 'move' | 'switch'
 
 type PageProps = {
@@ -56,7 +64,7 @@ function buildHref(segment: SegmentKey, q: string): string {
  return `/admin/customers/segments${params.toString() ? `?${params.toString()}` : ''}`
 }
 
-function getSiteStatus(site: CustomerSiteRow): string | null {
+function getSiteStatus(site: SegmentSiteRow): string | null {
  return typeof site.status === 'string' ? site.status : null
 }
 
@@ -67,9 +75,9 @@ function isPendingActivationSiteStatus(status: string | null): boolean {
 function matchesSegment(params: {
  segment: SegmentKey
  customerId: string
- contracts: CustomerContractRow[]
- sites: CustomerSiteRow[]
- switchRequests: SupplierSwitchRequestRow[]
+ contracts: SegmentContractRow[]
+ sites: SegmentSiteRow[]
+ switchRequests: SegmentSwitchRow[]
 }): boolean {
  const { segment, customerId, contracts, sites, switchRequests } = params
 
@@ -112,9 +120,9 @@ function matchesSegment(params: {
 function countForSegment(
  segment: SegmentKey,
  customerIds: string[],
- contracts: CustomerContractRow[],
- sites: CustomerSiteRow[],
- switchRequests: SupplierSwitchRequestRow[]
+ contracts: SegmentContractRow[],
+ sites: SegmentSiteRow[],
+ switchRequests: SegmentSwitchRow[]
 ): number {
  return customerIds.filter((customerId) =>
  matchesSegment({
@@ -151,13 +159,25 @@ export default async function CustomerSegmentsPage({ searchParams }: PageProps) 
  supabase,
  ] = await Promise.all([
  customerIds.length > 0
- ? supabaseService.from('customer_contracts').select('*').in('customer_id', customerIds)
+ ? supabaseService
+ .from('customer_contracts')
+ .select('customer_id,status')
+ .in('customer_id', customerIds)
+ .limit(SEGMENT_RELATED_ROW_LIMIT)
  : Promise.resolve({ data: [], error: null }),
  customerIds.length > 0
- ? supabaseService.from('customer_sites').select('*').in('customer_id', customerIds)
+ ? supabaseService
+ .from('customer_sites')
+ .select('customer_id,status')
+ .in('customer_id', customerIds)
+ .limit(SEGMENT_RELATED_ROW_LIMIT)
  : Promise.resolve({ data: [], error: null }),
  customerIds.length > 0
- ? supabaseService.from('supplier_switch_requests').select('*').in('customer_id', customerIds)
+ ? supabaseService
+ .from('supplier_switch_requests')
+ .select('customer_id,status,request_type')
+ .in('customer_id', customerIds)
+ .limit(SEGMENT_RELATED_ROW_LIMIT)
  : Promise.resolve({ data: [], error: null }),
  createSupabaseServerClient(),
  ])
@@ -170,9 +190,9 @@ export default async function CustomerSegmentsPage({ searchParams }: PageProps) 
  data: { user },
  } = await supabase.auth.getUser()
 
- const typedContracts = (contracts ?? []) as CustomerContractRow[]
- const typedSites = (sites ?? []) as CustomerSiteRow[]
- const typedSwitches = (switchRequests ?? []) as SupplierSwitchRequestRow[]
+ const typedContracts = (contracts ?? []) as SegmentContractRow[]
+ const typedSites = (sites ?? []) as SegmentSiteRow[]
+ const typedSwitches = (switchRequests ?? []) as SegmentSwitchRow[]
 
  const filteredCustomers = customers.filter((customer) =>
  matchesSegment({

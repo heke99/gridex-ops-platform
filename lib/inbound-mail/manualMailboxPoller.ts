@@ -73,7 +73,7 @@ function envelopeAddress(list: unknown): { address: string | null; name: string 
 async function listActiveManualMailboxes(environment?: string | null): Promise<JsonRecord[]> {
   let query = supabaseService
     .from('manual_communication_mailboxes')
-    .select('id,environment,imap_host,imap_port,imap_username,imap_secret_reference,imap_folder,imap_secure,from_email,locked_at,locked_by')
+    .select('id,environment,imap_host,imap_port,imap_username,imap_secret_reference,imap_folder,imap_secure,from_email,locked_at,locked_by,poll_interval_minutes,last_polled_at')
     .eq('is_active', true)
     .not('imap_host', 'is', null)
   if (clean(environment)) query = query.eq('environment', clean(environment))
@@ -83,6 +83,19 @@ async function listActiveManualMailboxes(environment?: string | null): Promise<J
     throw error
   }
   return (data ?? []) as JsonRecord[]
+}
+
+// Respect poll_interval_minutes (default 5) so the 5-minute cron does not
+// hammer the IMAP provider for mailboxes configured with a longer interval.
+// Mirrors the Ediel poller's due-check. Missing/invalid data means "due".
+function isManualMailboxDueForPolling(mailbox: JsonRecord): boolean {
+  const lastPolledAt = clean(mailbox.last_polled_at)
+  if (!lastPolledAt) return true
+  const intervalMinutes = Number(mailbox.poll_interval_minutes)
+  const effectiveInterval = Number.isFinite(intervalMinutes) && intervalMinutes > 0 ? intervalMinutes : 5
+  const lastPolledTime = Date.parse(lastPolledAt)
+  if (Number.isNaN(lastPolledTime)) return true
+  return Date.now() - lastPolledTime >= effectiveInterval * 60_000
 }
 
 async function claimMailbox(mailboxId: string, workerId: string): Promise<boolean> {
@@ -117,6 +130,11 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
   const host = clean(mailbox.imap_host)
   const username = clean(mailbox.imap_username) ?? clean(mailbox.from_email)
   if (!host || !username) {
+    result.skipped += 1
+    return
+  }
+
+  if (!isManualMailboxDueForPolling(mailbox)) {
     result.skipped += 1
     return
   }

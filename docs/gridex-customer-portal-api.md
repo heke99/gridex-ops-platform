@@ -108,8 +108,12 @@ Tenant ska skicka godkända fullmakter, juridiska godkännanden och dokument til
 POST /api/v1/customer/sync
 Authorization: Bearer YOUR_GRIDEX_API_TOKEN
 Content-Type: application/json
-Idempotency-Key: tenant-sync-12345
 ```
+
+> `Idempotency-Key`-headern är valfri och utvärderas för närvarande inte av
+> `/sync`. Endpointen är i sig idempotent: OPS härleder stabila nycklar per
+> kund/typ/referens (`tenant-sync:{client}:{customer}:{type}:{ref}`) och gör
+> upserts, så att skicka samma payload flera gånger skapar inte dubbletter.
 
 ```json
 {

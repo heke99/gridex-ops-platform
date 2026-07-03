@@ -89,6 +89,8 @@ export async function resolveCanonicalOutboundContext(params: {
     gridOwner: (params.gridOwner ?? null) as never,
     preferredRouteId: params.preferredRouteId ?? null,
     companyId: params.companyId ?? null,
+    // DEPRECATED DEFAULT: see resolveCanonicalRouteContext — all runtime
+    // callers pass an explicit environment; new callers must do the same.
     environment: params.environment ?? 'test',
     messageStandard: params.messageStandard ?? 'edifact',
   })

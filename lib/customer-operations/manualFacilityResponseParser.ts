@@ -181,6 +181,11 @@ export async function applyManualFacilityResponse(input: {
       .then(() => undefined, () => undefined)
 
     if (customerId && siteId) {
+      // Stable idempotency: keyed on the inbound message identity so repeated
+      // parsing of the same reply does not create duplicate timeline events.
+      // Falls back to the timestamp only when no message identity exists
+      // (e.g. manual admin re-parse without a provider message id).
+      const inboundMessageIdentity = clean(input.rawPayload?.provider_message_id)
       await emitCustomerOperationEvent({
         companyId: input.companyId,
         customerId,
@@ -194,7 +199,7 @@ export async function applyManualFacilityResponse(input: {
         actionRequired: true,
         source: input.source ?? 'manual_facility_response_parser',
         payload: { request_id: requestId, confidence, reasons },
-        idempotencyKey: `manual_facility_request.needs_review:${requestId}:${now}`,
+        idempotencyKey: `manual_facility_request.needs_review:${requestId}:${inboundMessageIdentity ?? now}`,
       }).catch(() => undefined)
     }
 

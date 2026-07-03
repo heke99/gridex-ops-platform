@@ -221,18 +221,22 @@ export async function getPortalInvoiceDetail(
   if (invoiceError) throw invoiceError
   if (!invoice) return { invoice: null, lines: [], documents: [] }
 
+  // Bounded reads: real invoices have at most a handful of lines/documents; the
+  // caps only protect page load time against pathological data.
   const [linesResult, documentsResult] = await Promise.all([
     supabaseService
       .from('customer_invoice_lines')
       .select('*')
       .eq('invoice_id', invoiceId)
       .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: true })
+      .limit(500),
     supabaseService
       .from('customer_invoice_documents')
       .select('*')
       .eq('invoice_id', invoiceId)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(100),
   ])
 
   if (linesResult.error) throw linesResult.error
