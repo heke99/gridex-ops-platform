@@ -39,6 +39,15 @@ export async function resolveTenantFromInboundEdifact(params: {
   })
 }
 
+/**
+ * @deprecated Dead code path — no callers in the repository (verified
+ * 2026-07-03, production readiness audit M4). This is a parallel
+ * route-profile-only matcher that lacks the ambiguity/mailbox-mismatch guards
+ * of the canonical resolver. Do NOT wire this into new code; use
+ * `resolveInboundTenantFromIdentifiers` (lib/ediel/tenant/resolveInboundTenant)
+ * via `resolveInboundTenantForMessage` (lib/ediel/core/tenantResolver) instead.
+ * Kept only for backwards compatibility until removal is scheduled.
+ */
 export async function resolveTenantFromEdifact(params: {
   mailbox_id?: string | null
   environment: string

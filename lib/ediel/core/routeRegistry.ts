@@ -124,6 +124,11 @@ export async function resolveCanonicalRouteContext(params: {
   environment?: EdielEnvironment
   messageStandard?: EdielMessageStandard
 }): Promise<CanonicalRouteContext> {
+  // DEPRECATED DEFAULT: omitting `environment` silently resolves the TEST
+  // lane. Call-site audit (2026-07-03, production readiness audit M5) shows
+  // every runtime caller passes an explicit environment, so this default is
+  // never exercised today. New callers MUST pass environment explicitly —
+  // production flows rely on fail-closed environment separation.
   const environment = params.environment ?? 'test'
   const companyId = trimOrNull(params.companyId)
   const actor = await resolveCanonicalActorContext(environment, companyId)
