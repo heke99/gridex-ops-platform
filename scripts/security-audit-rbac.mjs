@@ -167,6 +167,27 @@ mustContain(
 );
 
 const reviewedServiceClientFiles = new Set([
+  // Reviewed 2026-07-03 (production readiness audit): each file guards access
+  // via requirePlatformAdminActionAccess / requirePlatformAdminAccess /
+  // requireAdminActionAccess / requireAdminPageKeyAccess (+ tenant read scope
+  // where applicable) before any supabaseService usage.
+  "app/admin/companies/[id]/company-profile-actions.ts",
+  "app/admin/companies/[id]/email-automation-actions.ts",
+  "app/admin/companies/[id]/legal-actions.ts",
+  "app/admin/customers/[id]/business-actions.ts",
+  "app/admin/ediel/auto-readiness/actions.ts",
+  "app/admin/ediel/auto-readiness/page.tsx",
+  "app/admin/facility-requests/actions.ts",
+  "app/admin/manual-mailboxes/actions.ts",
+  "app/admin/manual-mailboxes/page.tsx",
+  "app/admin/messages/[id]/page.tsx",
+  "app/admin/messages/page.tsx",
+  "app/admin/network-owners/[id]/contact-channels/actions.ts",
+  "app/admin/platform/companies/[companyId]/testing/page.tsx",
+  "app/admin/platform/customers/archived/page.tsx",
+  "app/admin/platform/ediel/messages/page.tsx",
+  "app/admin/platform/legal-templates/actions.ts",
+  "app/admin/website-applications/[id]/page.tsx",
   "app/admin/audit/page.tsx",
   "app/admin/agreements/grid-owners/actions.ts",
   "app/admin/agreements/grid-owners/documents/route.ts",
