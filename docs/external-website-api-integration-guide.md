@@ -38,11 +38,12 @@ Payload ska innehålla så många stabila kundnycklar som möjligt:
 }
 ```
 
-OPS löser kund inom API-nyckelns tenant i denna ordning:
+OPS löser kund inom API-nyckelns tenant i denna ordning
+(implementerad i `lib/customer-portal/customerResolver.ts`):
 
-1. `external_customer_id`
-2. `customer_number`
-3. länkad portal identity/account
+1. länkad portal identity/account (när `auth_user_id`/portal user id skickas)
+2. `external_customer_id`
+3. `customer_number`
 4. unik `email`
 
 Om flera kunder matchar samma e-post returneras `409 ambiguous_customer_match` och tenant ska skicka `customer_number` eller `external_customer_id`.
