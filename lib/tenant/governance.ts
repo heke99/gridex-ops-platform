@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { mapWithConcurrency } from '@/lib/performance/mapWithConcurrency'
 
 export type CompanyOperationalStatus =
   | 'active'
@@ -295,6 +296,16 @@ export async function getCompanyDeleteBlockers(companyId: string): Promise<Gover
   return counts.filter((item) => item.count > 0)
 }
 
+// History tables whose per-company counts are NOT already computed by
+// getCompanyGovernanceSummary. The other HISTORY_TABLES counts are reused from
+// the summary to avoid duplicate exact-count queries per company.
+const EXTRA_DELETE_BLOCKER_TABLES = new Set([
+  'customer_authorization_documents',
+  'powers_of_attorney',
+  'supplier_switch_requests',
+  'grid_owner_data_requests',
+])
+
 export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<GovernanceCompany> {
   const companyId = company.id
   const [
@@ -311,7 +322,7 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
     blockedBillingUnderlays,
     latestAuditAt,
     latestEdielAt,
-    deleteBlockers,
+    extraBlockerCounts,
   ] = await Promise.all([
     safeCount('company_memberships', [
       { column: 'company_id', value: companyId },
@@ -338,8 +349,33 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
     ]),
     latestTimestamp('audit_logs', companyId),
     latestTimestamp('ediel_messages', companyId),
-    getCompanyDeleteBlockers(companyId),
+    Promise.all(
+      HISTORY_TABLES.filter((item) => EXTRA_DELETE_BLOCKER_TABLES.has(item.table)).map(
+        async (item) => ({
+          ...item,
+          count: await safeCount(item.table, [{ column: 'company_id', value: companyId }]),
+        })
+      )
+    ),
   ])
+
+  // Rebuild the delete-blocker list in HISTORY_TABLES order, reusing already
+  // computed counts for the overlapping tables (same values as before, ~7 fewer
+  // count queries per company).
+  const reusedCounts: Record<string, number> = {
+    customers,
+    customer_contracts: contracts,
+    ediel_messages: edielMessages,
+    metering_values: meteringValues,
+    billing_underlays: billingUnderlays,
+    partner_exports: partnerExports,
+    outbound_requests: outboundRequests,
+  }
+  const extraByTable = new Map(extraBlockerCounts.map((item) => [item.table, item.count]))
+  const deleteBlockers: GovernanceCount[] = HISTORY_TABLES.map((item) => ({
+    ...item,
+    count: reusedCounts[item.table] ?? extraByTable.get(item.table) ?? 0,
+  })).filter((item) => item.count > 0)
 
   return {
     id: company.id,
@@ -375,16 +411,27 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
   }
 }
 
+// Upper bound for the governance overview. Each company summary fans out into
+// ~19 count/timestamp queries, so both the list and the fan-out concurrency are
+// bounded to protect the database connection pool on large platforms.
+const GOVERNANCE_COMPANY_LIST_LIMIT = 200
+const GOVERNANCE_SUMMARY_CONCURRENCY = 5
+
 export async function listCompanyGovernanceSummaries(): Promise<GovernanceCompany[]> {
   const { data, error } = await supabaseService
     .from('companies')
     .select('id, name, slug, org_number, customer_number_prefix, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at')
     .neq('status', 'deleted_test_only')
     .order('created_at', { ascending: false })
+    .limit(GOVERNANCE_COMPANY_LIST_LIMIT)
 
   if (error) throw error
 
-  return Promise.all(((data as CompanyRow[] | null) ?? []).map(getCompanyGovernanceSummary))
+  return mapWithConcurrency(
+    ((data as CompanyRow[] | null) ?? []),
+    GOVERNANCE_SUMMARY_CONCURRENCY,
+    getCompanyGovernanceSummary
+  )
 }
 
 export async function requireCompanyOperationalForWrites(companyId: string): Promise<CompanyRow> {

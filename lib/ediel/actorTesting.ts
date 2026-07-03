@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { isMissingRelationError } from '@/lib/tenant/scope'
+import { mapWithConcurrency } from '@/lib/performance/mapWithConcurrency'
 import type { EdielTestRunStatus, EdielTestSuite } from '@/lib/ediel/types'
 
 export type ActorTestStatus = 'not_started' | 'running' | 'passed' | 'failed' | 'blocked' | 'manual_verified'
@@ -351,22 +352,38 @@ async function safeCount(table: string, filters: Array<{ column: string; value: 
   }
 }
 
-async function listResultsForCompanies(companyIds: string[]): Promise<ActorTestResultRow[]> {
+// Columns without the potentially large raw_payload blob. Multi-company list
+// views never render raw payloads; only the per-company evidence view does.
+const ACTOR_TEST_RESULT_LIST_COLUMNS =
+  'id,company_id,test_key,test_name,test_id,package_key,message_family,message_code,direction,status,latest_run_at,passed_at,failure_reason,portal_status,contrl_message_id,aperak_message_id,utilts_err_message_id,evidence,ediel_test_run_id,created_at,updated_at'
+
+// Runaway guard: ~30 required test cases per company; even 200 companies stay
+// far below this. Ordering is updated_at DESC so a truncation would only drop
+// the stalest rows.
+const ACTOR_TEST_RESULT_LIST_LIMIT = 10000
+
+async function listResultsForCompanies(
+  companyIds: string[],
+  options: { includeRawPayload?: boolean } = {}
+): Promise<ActorTestResultRow[]> {
   if (companyIds.length === 0) return []
 
   try {
     const { data, error } = await supabaseService
       .from('actor_test_results')
-      .select('*')
+      .select(options.includeRawPayload ? '*' : ACTOR_TEST_RESULT_LIST_COLUMNS)
       .in('company_id', companyIds)
       .order('updated_at', { ascending: false })
+      .limit(ACTOR_TEST_RESULT_LIST_LIMIT)
 
     if (error) {
       if (isMissingRelationError(error)) return []
       throw error
     }
 
-    return (data ?? []) as unknown as ActorTestResultRow[]
+    const rows = (data ?? []) as unknown as ActorTestResultRow[]
+    if (options.includeRawPayload) return rows
+    return rows.map((row) => ({ ...row, raw_payload: row.raw_payload ?? null }))
   } catch (error) {
     if (isMissingRelationError(error)) return []
     throw error
@@ -777,6 +794,8 @@ export async function listActorTestingSummaries(options: {
     .select(COMPANY_SELECT_COLUMNS)
     .neq('status', 'deleted_test_only')
     .order('created_at', { ascending: false })
+    // Bounded list: each summary fans out into several count queries per company.
+    .limit(200)
 
   if (options.companyIds && options.companyIds.length > 0) {
     query = query.in('id', options.companyIds)
@@ -798,7 +817,10 @@ export async function listActorTestingSummaries(options: {
     resultsByCompany.set(result.company_id, list)
   }
 
-  return Promise.all(companies.map((company) => buildSummary(company, resultsByCompany.get(company.id) ?? [])))
+  // Each summary runs several count queries; bound the fan-out concurrency.
+  return mapWithConcurrency(companies, 5, (company) =>
+    buildSummary(company, resultsByCompany.get(company.id) ?? [])
+  )
 }
 
 export async function getActorTestingSummary(companyId: string): Promise<ActorTestingSummary | null> {
@@ -811,7 +833,8 @@ export async function getActorTestingSummary(companyId: string): Promise<ActorTe
   if (error) throw error
   if (!data) return null
 
-  const results = await listResultsForCompanies([companyId])
+  // Single-company view: keep raw payloads for the evidence page.
+  const results = await listResultsForCompanies([companyId], { includeRawPayload: true })
   return buildSummary(data as unknown as ActorTestingCompanyRow, results)
 }
 
