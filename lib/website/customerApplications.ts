@@ -921,6 +921,14 @@ function isUuid(value: string | null | undefined): value is string {
   return typeof value === 'string' && UUID_RE.test(value)
 }
 
+// Like clean(), but only returns values safe to write into uuid columns.
+// Non-UUID inputs (e.g. human-readable version names) are dropped instead of
+// crashing the insert with `invalid input syntax for type uuid`.
+function cleanUuid(value: unknown): string | null {
+  const cleaned = clean(value)
+  return isUuid(cleaned) ? cleaned : null
+}
+
 function duplicateIdempotencyKey(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code ?? ''
   const details = (error as { details?: string } | null)?.details ?? ''
@@ -2175,9 +2183,13 @@ type WebsiteContractCreateResult = {
 
 function selectedOfferFields(offer: PublicContractOffer | null, contract: ApplicationInput['contract']) {
   return {
-    pricePlanId: offer?.price_plan_id ?? clean(contract?.price_plan_id),
-    pricePlanVersionId: offer?.price_plan_version_id ?? clean(contract?.price_plan_version_id),
-    contractOfferId: offer?.id ?? clean(contract?.contract_offer_id),
+    // Client-supplied fallbacks are UUID-gated: these values are written to
+    // uuid columns (customer_contracts / contract_price_snapshots /
+    // website_customer_applications). Version *names* like "2026-06-12-v1"
+    // previously caused `invalid input syntax for type uuid` 500s mid-flow.
+    pricePlanId: offer?.price_plan_id ?? cleanUuid(contract?.price_plan_id),
+    pricePlanVersionId: offer?.price_plan_version_id ?? cleanUuid(contract?.price_plan_version_id),
+    contractOfferId: offer?.id ?? cleanUuid(contract?.contract_offer_id),
     campaignVersionId: offer?.campaign_version_id ?? null,
     contractName: offer?.public_name ?? clean(contract?.contract_name) ?? 'Elavtal',
     contractType: offer?.contract_type ?? clean(contract?.contract_type) ?? 'variable_monthly',
@@ -2386,7 +2398,9 @@ async function createContract(
     binding_months: contract?.binding_months ?? null,
     notice_months: contract?.notice_months ?? null,
     campaign_code: clean(contract?.campaign_code) ?? null,
-    price_version: selected.pricePlanVersionId ?? clean(contract?.price_version) ?? null,
+    // price_version is a text column: keep a human-readable version name here
+    // even when it is not a UUID (UUID-gated out of price_plan_version_id).
+    price_version: selected.pricePlanVersionId ?? clean(contract?.price_version) ?? clean(contract?.price_plan_version_id) ?? null,
     terms_version: selected.termsVersion,
     optional_fee_lines: feeLines,
     agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
@@ -2574,7 +2588,9 @@ async function syncExternalContractIntakeRow(input: CreateApplicationRowInput & 
     city: clean(site.city),
     move_in_date: clean(site.move_in_date) ?? null,
     price_area_code: input.priceAreaCode ?? clean(site.price_area_code) ?? clean(payload.price_area_code),
-    contract_offer_id: input.pricePlanVersionId ?? clean(payload.contract_offer_id) ?? clean(contract.price_plan_version_id) ?? clean(payload.price_plan_version_id),
+    // external_contract_intakes.contract_offer_id is a uuid column — only
+    // UUID-shaped identifiers may be written here.
+    contract_offer_id: cleanUuid(input.pricePlanVersionId) ?? cleanUuid(payload.contract_offer_id) ?? cleanUuid(contract.price_plan_version_id) ?? cleanUuid(payload.price_plan_version_id),
     requested_start_date: input.requestedStartDate ?? clean(contract.requested_start_date) ?? clean(payload.requested_start_date),
     created_customer_id: input.customer?.id ?? null,
     created_site_id: input.customerSiteId ?? null,
