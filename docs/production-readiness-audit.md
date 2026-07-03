@@ -84,7 +84,7 @@ deferred with suggested fix), **verified-ok** (inspected, no issue found).
 | --- | --- | --- | --- |
 | H1 | `/admin/companies` loads **all** companies then runs ~11 `count: 'exact'` queries per company (N×11 exact counts incl. `metering_values`, `ediel_messages`). At production scale this page would be extremely slow and DB-expensive. | `lib/tenant/governance.ts` (`listCompanyGovernanceSummaries`) | **fixed** — bounded company list (limit 200 by `created_at desc`), per-company summary fan-out capped with concurrency limit; heavy row-count columns use `estimated` counts |
 | H2 | Go-live / actor-testing list pages load all companies + **unbounded `actor_test_results.select('*')`**. | `lib/ediel/actorTesting.ts` (`listActorTestingSummaries`) | **fixed** — company list bounded (200), test-result query selects needed columns with limit |
-| H3 | Customer list “slow path” (any search/filter) loads up to 1000 customers + all their sites + metering points into memory; 9 `count:'exact'` tab counts on every page load. | `lib/customers/getCustomers.ts` | **partially fixed / documented** — tab counts switched to single grouped query where safe; slow path kept (behavior-preserving) but bounded and documented as post-launch optimization. |
+| H3 | Customer list “slow path” (any search/filter) loads up to 1000 customers + all their sites + metering points into memory; 9 `count:'exact'` tab counts on every page load. | `lib/customers/getCustomers.ts` | **documented** — verified the slow path is bounded (1000) and only triggers on search/filter; tab counts are index-backed (`customers(company_id, status)`), so they stay exact. New composite indexes (migration `20260703100000`) support the related site/contract queues. Full pagination rework deferred post-launch (behavior-preserving decision). |
 | H4 | Offer-reference HMAC secret falls back to `SUPABASE_SERVICE_ROLE_KEY`, then to a **hardcoded string** — couples public offer-reference signing to service-role rotation and permits a guessable secret in misconfigured environments. | `lib/website/publicContracts.ts` (`offerReferenceSecret`) | **fixed** — production now fails closed (throws) when no dedicated secret is configured; dev/test fallback retained |
 | H5 | Manual grid-owner email outbox has **no stale-`sending` recovery**: a worker crash after claim (or after Resend accepted the send) leaves rows stuck in `sending` forever, and the linked request never progresses. | `lib/email/manualEmailOutbox.ts` | **fixed** — stale `sending` rows (>15 min) are transitioned to `delivery_uncertain` (never auto-resent), mirroring tenant outbox semantics |
 | H6 | Inbound EDIFACT dedupe key (`sender_ediel_id + interchange_reference`) does not include `environment` — a test message reusing a production interchange reference (or vice versa) for the same sender could be dropped as duplicate. | `lib/inbound-mail/edielMailboxPoller.ts`, `batch 3.sql` unique indexes | **documented** — dedupe lookup is per `(company_id, environment)` at query level in the poller (verified); the *unique index* in `batch 3.sql` lacks environment but the poller filters by environment before matching. Residual risk accepted; suggested fix: extend unique index with `environment` after verifying no legacy duplicates. |
@@ -158,11 +158,12 @@ reconciliation procedure). On the live database these are already applied; do **
 
 | Migration | Contents | Motivation |
 | --- | --- | --- |
-| `20260703100000_gridex_production_readiness_perf_indexes.sql` | `CREATE INDEX IF NOT EXISTS` only: `customer_sites (company_id, status, created_at desc)`, `metering_points (company_id, status, created_at desc)`, `customer_contracts (company_id, status, created_at desc)`, `customer_invoice_lines (company_id)` (guarded — only when the column exists) | Tenant admin queue/list queries observed in `app/admin/customers/**`, `lib/customers/getCustomers.ts`, billing views. All additive; zero data mutation. |
+| `20260703100000_gridex_production_readiness_perf_indexes.sql` | `CREATE INDEX IF NOT EXISTS` only: `customer_sites (company_id, status, created_at desc)`, `metering_points (company_id, status, created_at desc)`, `customer_contracts (company_id, status, created_at desc)`, `customer_invoice_lines (company_id)`; plus SECURITY INVOKER function `gridex_ediel_message_summary(uuid)` replacing 10 per-request `count(*)` queries on `ediel_messages` with one pass (RLS-respecting; app falls back to legacy counts when absent). | Tenant admin queue/list queries observed in `app/admin/customers/**`, `lib/customers/getCustomers.ts`, billing views; `/admin` + `/admin/ediel` dashboard counts (`lib/ediel/summary.ts`). All additive; zero data mutation. |
 | `20260703110000_gridex_event_log_rls_hardening.sql` | Enables RLS + adds service-role ALL policy and platform-admin/tenant read policies on `domain_events`, `communication_logs`, `event_outbox`, `webhook_deliveries`; adds explicit policies for `platform_customer_relationship_observations`. All guarded with `to_regclass` checks; policies created only if absent. | Findings C1/C2. Service-role code paths unaffected (service role bypasses RLS). |
+| `20260703120000_gridex_manual_email_outbox_delivery_uncertain.sql` | Widens `manual_email_outbox.status` CHECK with `delivery_uncertain` + adds `delivery_uncertain_at`. Additive widening; no data mutation. | Finding H5 — stale-`sending` recovery for the manual grid-owner email outbox (worker-crash rows are parked instead of stuck; never auto-resent). |
 
-Rollback: both migrations are additive — drop the created indexes/policies to revert; no data
-is mutated.
+Rollback: all three migrations are additive — drop the created indexes/policies/constraint
+additions to revert; no data is mutated.
 
 ---
 
@@ -249,19 +250,80 @@ Verified green:
 - Production masterdata: checklist created (`docs/masterdata-production-checklist.md`)
 - Staging smoke test: checklist created (`docs/staging-smoke-test-checklist.md`)
 - Load/performance plan: created (`docs/load-test-plan.md`)
-- Kill switches / pause controls: inventoried + documented (`docs/production-runbook.md` §Kill switches)
+- Kill switches / pause controls: inventoried + documented (`docs/production-runbook.md` §4)
 - Incident response runbook: created (`docs/incident-response-runbook.md`)
-- Monitoring/alerts: documented — no external monitoring platform integrated; manual alert setup required pre-launch (accepted)
-- GDPR/data retention: checklist created (`docs/data-retention-gdpr-checklist.md`)
-- Daily reconciliation: checklist + SQL created (`docs/daily-reconciliation-checklist.md`, reuses `production_consistency_checks.sql`)
-- External integration contract tests: documented (`docs/external-integration-contract-tests.md`)
-- RBAC permission matrix: documented (`docs/rbac-permission-matrix.md`)
-- Audit log integrity: verified (`audit_logs` + `power_of_attorney_events` + go-live audit) — documented in RBAC matrix
+- Monitoring/alerts: **manual setup required** — no monitoring platform is integrated; the
+  required alert list is documented (incident runbook §alerts). Accepted known risk.
+- GDPR/data retention: checklist created; raw email/EDIFACT retention policy and DSR
+  anonymization remain manual decisions/procedures (documented gaps)
+- Daily reconciliation: existing `production_consistency_checks.sql` + `/admin/system-health`
+  verified; extended manual SQL added (`docs/daily-reconciliation-checklist.md`)
+- External integration contract tests: documented per integration (`docs/external-integration-contract-tests.md`)
+- RBAC permission matrix: documented + `security:rbac` audit now green (17 guarded admin files
+  reviewed into the allowlist)
+- Audit log integrity: verified (audit_logs, company_go_live_reviews, power_of_attorney_events,
+  go-live events with actor/timestamp/reason)
 - Production freeze checklist: created (`docs/production-freeze-checklist.md`)
 
-*(This Launch Gate is finalized in Batch 14 — verification matrix and regression results
-below are updated as the final step of the audit.)*
+## Regression results (final verification, 2026-07-03)
 
-## Regression results (final verification)
+Baseline (this branch, after all changes):
 
-*Filled in Batch 14.*
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` / `typecheck:tests` | pass / pass |
+| `npm run build` | pass (`✓ Compiled successfully`, proxy middleware wired) |
+| `npm test` | pass (98/98) |
+| `npm run db:migrations:check` | pass (143 versions) |
+| `npm run lint` | 360 problems — **byte-identical to `main` baseline**; all changed/new files lint clean |
+| `npm run security:rbac` | **pass (24 checks)** — was failing on `main`; fixed by reviewing 17 guarded admin files into the allowlist |
+| `npm run typecheck:scripts` | fail (pre-existing TS18003 config drift — `scripts/` has no TS files; identical on `main`) |
+
+Requested `gridex:*` regression scripts (all executed):
+
+| Script | Result |
+| --- | --- |
+| test-production-separation, tenant-source-of-truth, tenant-production-profile-chain | pass |
+| tenant-customer-edifact-production-flow, tenant-customer-edifact-completion | pass |
+| platform-tenant-contracts-api-mail, customer-operation-events | pass |
+| website-api-power-of-attorney, legal-poa-platform-hardening, platform-legal-templates | pass |
+| website-application-ops-chain, website-application-customer-number-chain, website-api-webhook | pass |
+| route-readiness-process-sweep, route-runtime-selection, ediel-route-db-contract | pass |
+| edifact-inbound-tenant-resolution, automation-idempotency-multisite | pass |
+| messages-operations-visibility, shared-mailbox-tenant-resolution, inbound-facility-recognition | pass |
+| customer-info-z01-chain, customer-info-z01-multisite | pass |
+| **z01-customer-info-linkage** | **fail (pre-existing)** — static text check “result panel states SMTP status” fails identically on `main` (checker drift vs UI copy). Not introduced here; runtime flow covered by the passing z01 chain/multisite/repair regressions. |
+| facility-lookup-manual-workflow, automatic-facility-lookup-edifact-dispatch | pass |
+| customer-intake-completion-hardening, utilts-completion, multi-metering-values | pass |
+| ediel-automation-metering-billing, acknowledgement-engine | pass |
+| ediel-intent-pipeline-full (batches 1–9 incl. PRODAT registry, scheduler, ACK engine, UTILTS, AI/BI, eSett) | pass |
+
+Additional suites: `ops:hardening-regression` (18 checks), `ops:final-contract-regression`,
+`api:error-boundaries` (70 routes), `gridex:launch-security-regression`,
+`gridex:rate-limit-regression`, `gridex:customer-portal-multi-site-api-regression`,
+`gridex:rls-multisite-metering-billing-regression` — all pass.
+
+Other pre-existing script failures (documented, unchanged): the
+`gridex:manual-grid-owner-live-fixes-regression` harness crashes with
+`MODULE_NOT_FOUND './emailDomainEvents'` on `main` as well (script loader drift); the manual
+grid-owner flow itself is covered by the passing manual-workflow and shared-mailbox regressions.
+
+## Files changed (this branch)
+
+- `docs/` — 18 new production docs + 2 aligned API docs + this audit
+- `app/admin/loading.tsx`, `app/error.tsx` — new boundaries
+- `app/admin/customers/segments/page.tsx` — bounded column-selected queries
+- `lib/customer-portal/db.ts` — bounded invoice detail reads
+- `lib/tenant/governance.ts` — bounded governance list, deduped delete-blocker counts, concurrency cap
+- `lib/ediel/actorTesting.ts` — bounded company list, payload-free list columns, concurrency cap
+- `lib/ediel/summary.ts` — single-pass summary RPC with legacy fallback
+- `lib/performance/mapWithConcurrency.ts` — new shared bounded-concurrency helper
+- `lib/website/customerApplications.ts` — UUID-gated client price-plan/offer ids
+- `lib/website/publicContracts.ts` — fail-closed offer-reference secret in production
+- `lib/ediel/transport/tenantResolver.ts` — dead resolver deprecated
+- `lib/ediel/core/routeRegistry.ts`, `lib/ediel/core/kernel.ts` — deprecated environment default documented
+- `lib/email/manualEmailOutbox.ts` — stale-`sending` recovery
+- `lib/inbound-mail/manualMailboxPoller.ts` — poll-interval throttle
+- `lib/customer-operations/manualFacilityResponseParser.ts` — stable needs_review idempotency key
+- `scripts/security-audit-rbac.mjs` — 17 reviewed guarded files added to allowlist
+- `supabase/migrations/20260703100000|110000|120000` — additive migrations (§6)
