@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateBillingMonthInvoiceReadiness, lockBillingPeriodForInvoiceExport } from '@/lib/billing/invoiceReadiness'
 import { resolveCapwayConnectionConfig } from '@/lib/integrations/billing/capway/auth'
@@ -7,6 +8,11 @@ import { buildPurchasePayload } from '@/lib/integrations/billing/capway/purchase
 import { shouldRequestPurchaseAfterCreate } from '@/lib/integrations/billing/capway/statusMapper'
 import type { CapwayEnvironment, CapwayFinancingMode } from '@/lib/integrations/billing/capway/types'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
+import {
+  classifyInvoiceExportError,
+  computeNextRetryAt,
+  INVOICE_EXPORT_MAX_ATTEMPTS,
+} from '@/lib/integrations/billing/exportErrorClassification'
 
 function stringValue(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -86,7 +92,7 @@ export async function createInvoiceExportRun(input: {
     }
   }
 
-  const itemRows = ((pricingRuns ?? []) as Record<string, unknown>[]).map((pricingRun) => {
+  const candidateRows = ((pricingRuns ?? []) as Record<string, unknown>[]).map((pricingRun) => {
     const customerId = stringValue(pricingRun.customer_id)
     return {
       company_id: input.companyId,
@@ -106,6 +112,25 @@ export async function createInvoiceExportRun(input: {
       metadata: { billing_month: input.billingMonth, customer_number: customerId ? customerNumbers.get(customerId) ?? null : null },
     }
   })
+
+  // Never reset items that already left the sendable pipeline (sent/credited/
+  // cancelled/rejected). Re-billing them requires an explicit credit path.
+  const alreadyExportedKeys = new Set<string>()
+  if (candidateRows.length > 0) {
+    const { data: existingItems, error: existingError } = await supabaseService
+      .from('invoice_export_items')
+      .select('idempotency_key,status')
+      .eq('company_id', input.companyId)
+      .eq('provider', provider)
+      .in('idempotency_key', candidateRows.map((row) => row.idempotency_key))
+    if (existingError && !missingRelation(existingError)) throw existingError
+    for (const row of (existingItems ?? []) as Record<string, unknown>[]) {
+      const key = stringValue(row.idempotency_key)
+      const status = String(row.status ?? '')
+      if (key && !['pending', 'failed', 'failed_retryable'].includes(status)) alreadyExportedKeys.add(key)
+    }
+  }
+  const itemRows = candidateRows.filter((row) => !alreadyExportedKeys.has(row.idempotency_key))
 
   if (itemRows.length > 0) {
     const { error: itemError } = await supabaseService
@@ -136,11 +161,15 @@ export async function createInvoiceExportRun(input: {
 
   await supabaseService
     .from('invoice_export_runs')
-    .update({ total_items: itemRows.length, updated_at: new Date().toISOString() })
+    .update({
+      total_items: itemRows.length,
+      metadata: { source: 'gridex_invoice_export_core', skipped_already_exported: alreadyExportedKeys.size },
+      updated_at: new Date().toISOString(),
+    })
     .eq('company_id', input.companyId)
     .eq('id', runId)
 
-  return { runId, itemCount: itemRows.length, readiness }
+  return { runId, itemCount: itemRows.length, skippedAlreadyExported: alreadyExportedKeys.size, readiness }
 }
 
 async function loadItemContext(companyId: string, item: Record<string, unknown>) {
@@ -170,6 +199,340 @@ async function loadItemContext(companyId: string, item: Record<string, unknown>)
   }
 }
 
+function requestHash(payload: unknown): string {
+  return createHash('sha256').update(JSON.stringify(payload ?? {})).digest('hex')
+}
+
+// Attempts audit is best-effort: tolerate the table missing until Migration C
+// (20260702130000) has been applied.
+async function recordExportAttempt(input: {
+  companyId: string
+  itemId: string
+  exportRunId: string | null
+  attemptNo: number
+  idempotencyKey: string | null
+  requestHash: string | null
+  httpStatus: number | null
+  outcome: string
+  errorCode: string | null
+  responseExcerpt: string | null
+  startedAt: string
+}) {
+  const { error } = await supabaseService.from('invoice_export_attempts').insert({
+    company_id: input.companyId,
+    invoice_export_item_id: input.itemId,
+    export_run_id: input.exportRunId,
+    attempt_no: input.attemptNo,
+    idempotency_key: input.idempotencyKey,
+    request_hash: input.requestHash,
+    http_status: input.httpStatus,
+    outcome: input.outcome,
+    error_code: input.errorCode,
+    response_excerpt: input.responseExcerpt,
+    started_at: input.startedAt,
+    finished_at: new Date().toISOString(),
+  })
+  if (error && !missingRelation(error)) {
+    console.error('[invoice-export] failed to record export attempt', { itemId: input.itemId, error })
+  }
+}
+
+// Statuses that may still be sent (initially or via retry). Terminal statuses
+// (sent, credited, cancelled, rejected, disputed) must never be re-sent.
+const SENDABLE_ITEM_STATUSES = ['pending', 'failed', 'failed_retryable']
+
+// Migration C adds attempt_count/next_retry_at/error_code and the extended
+// status taxonomy. Until it is applied, retry updates fall back to the legacy
+// column set (and legacy 'failed' status) so exports keep working.
+const RETRY_COLUMNS = ['attempt_count', 'last_attempt_at', 'next_retry_at', 'error_code'] as const
+const LEGACY_STATUS_FALLBACK: Record<string, string> = {
+  rejected: 'failed',
+  configuration_error: 'failed',
+  failed_retryable: 'failed',
+  needs_review: 'failed',
+}
+
+async function updateExportItemWithFallback(companyId: string, itemId: string, payload: Record<string, unknown>) {
+  const { error } = await supabaseService.from('invoice_export_items').update(payload).eq('company_id', companyId).eq('id', itemId)
+  if (!error) return
+  if (!missingRelation(error) && error.code !== '23514') throw error
+
+  const legacy: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(payload)) {
+    if (!(RETRY_COLUMNS as readonly string[]).includes(key)) legacy[key] = value
+  }
+  if (typeof legacy.status === 'string' && LEGACY_STATUS_FALLBACK[legacy.status]) {
+    legacy.status = LEGACY_STATUS_FALLBACK[legacy.status]
+  }
+  const { error: legacyError } = await supabaseService.from('invoice_export_items').update(legacy).eq('company_id', companyId).eq('id', itemId)
+  if (legacyError) throw legacyError
+}
+
+type SendItemResult = {
+  itemId: string
+  status: string
+  invoiceGuid?: string | null
+  errorCode?: string | null
+  error?: string | null
+}
+
+// Attempted re-export of an already sent/credited invoice: refuse and raise a
+// work-queue task so an operator routes it through the credit/correction path.
+async function raiseInvoiceCorrectionTask(input: {
+  companyId: string
+  itemId: string
+  exportRunId: string
+  currentStatus: string
+  actorUserId?: string | null
+}) {
+  const { count, error: existingError } = await supabaseService
+    .from('customer_operation_tasks')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', input.companyId)
+    .eq('task_type', 'invoice_resend_blocked')
+    .eq('status', 'open')
+    .contains('metadata', { invoice_export_item_id: input.itemId })
+  if (!existingError && (count ?? 0) > 0) return
+
+  const { error } = await supabaseService.from('customer_operation_tasks').insert({
+    company_id: input.companyId,
+    task_type: 'invoice_resend_blocked',
+    status: 'open',
+    priority: 'high',
+    title: 'Omexport av skickad faktura blockerad',
+    description: `Fakturaexportpost ${input.itemId} är redan ${input.currentStatus} och kan inte skickas om. Skapa kredit eller korrigering om fakturan behöver göras om.`,
+    metadata: {
+      invoice_export_item_id: input.itemId,
+      export_run_id: input.exportRunId,
+      current_status: input.currentStatus,
+    },
+    created_by: input.actorUserId ?? null,
+    updated_by: input.actorUserId ?? null,
+  })
+  if (error) console.warn('[invoice-export] kunde inte skapa korrigeringstask', { itemId: input.itemId, error })
+}
+
+async function sendSingleInvoiceExportItem(input: {
+  companyId: string
+  exportRunId: string
+  billingMonth: string
+  item: Record<string, unknown>
+  config: Awaited<ReturnType<typeof resolveCapwayConnectionConfig>>
+  client: CapwayApticClient
+  financingMode: CapwayFinancingMode
+  actorUserId?: string | null
+}): Promise<SendItemResult> {
+  const item = input.item
+  const itemId = stringValue(item.id)
+  if (!itemId) throw new Error('Exportposten saknar id.')
+
+  // Defense in depth: never re-send an already sent/credited invoice, even if
+  // a stale row slips past the status filter (races, manual calls).
+  const currentItemStatus = String(item.status ?? '')
+  if (!SENDABLE_ITEM_STATUSES.includes(currentItemStatus)) {
+    await raiseInvoiceCorrectionTask({
+      companyId: input.companyId,
+      itemId,
+      exportRunId: input.exportRunId,
+      currentStatus: currentItemStatus,
+      actorUserId: input.actorUserId,
+    })
+    return { itemId, status: currentItemStatus, errorCode: 'resend_blocked', error: 'Fakturan är redan skickad. Skapa kredit/korrigering för omexport.' }
+  }
+
+  const idempotencyKey = stringValue(item.idempotency_key)
+  const attemptNo = Math.max(0, Math.trunc(numberValue(item.attempt_count))) + 1
+  const startedAt = new Date().toISOString()
+  let payloadHash: string | null = null
+
+  try {
+    const context = await loadItemContext(input.companyId, item)
+    const payload = buildCapwayInvoicePayload({
+      config: input.config,
+      company: context.company,
+      customer: context.customer,
+      pricingRun: context.pricingRun,
+      pricingLines: context.lines,
+      underlay: context.underlay,
+      financingMode: input.financingMode,
+    })
+    payloadHash = requestHash(payload)
+    const response = await input.client.createInvoices([payload])
+    const invoiceGuid = response.invoiceGuids?.[0] ?? null
+    let purchaseResponse: Record<string, unknown> | null = null
+    if (invoiceGuid && shouldRequestPurchaseAfterCreate(input.financingMode)) {
+      purchaseResponse = await input.client.postPurchase(invoiceGuid, buildPurchasePayload({ financingMode: input.financingMode, note: `Gridex export ${input.exportRunId}` }))
+      await supabaseService.from('invoice_purchase_events').insert({
+        company_id: input.companyId,
+        invoice_export_item_id: itemId,
+        event_type: 'purchase_requested',
+        purchase_status: 'requested',
+        finance_status: input.financingMode,
+        payload: purchaseResponse,
+        created_by: input.actorUserId ?? null,
+      })
+    }
+
+    await updateExportItemWithFallback(input.companyId, itemId, {
+      status: 'sent',
+      customer_number: stringValue(context.customer.customer_number),
+      provider_customer_id: stringValue(payload.customer.customerReference),
+      provider_debtor_id: stringValue(payload.customer.customerReference),
+      provider_invoice_guid: invoiceGuid,
+      provider_imp_stock_id: response.impStockId ?? null,
+      request_payload: payload,
+      response_payload: { create_invoice: response, purchase: purchaseResponse },
+      sent_at: new Date().toISOString(),
+      attempt_count: attemptNo,
+      last_attempt_at: startedAt,
+      next_retry_at: null,
+      error_code: null,
+      error_payload: {},
+      updated_at: new Date().toISOString(),
+    })
+
+    await recordExportAttempt({
+      companyId: input.companyId,
+      itemId,
+      exportRunId: input.exportRunId,
+      attemptNo,
+      idempotencyKey,
+      requestHash: payloadHash,
+      httpStatus: 200,
+      outcome: 'sent',
+      errorCode: null,
+      responseExcerpt: null,
+      startedAt,
+    })
+
+    await emitDomainEvent({
+      companyId: input.companyId,
+      eventType: 'invoice.sent',
+      aggregateType: 'invoice_export_item',
+      aggregateId: itemId,
+      subjectCustomerId: stringValue(context.customer.id),
+      actorUserId: input.actorUserId ?? null,
+      source: 'billing_invoice_export',
+      payload: {
+        customer_number: stringValue(context.customer.customer_number),
+        invoice_guid: invoiceGuid,
+        export_run_id: input.exportRunId,
+        billing_month: input.billingMonth,
+        amount_ex_vat: numberValue(item.amount_ex_vat),
+        amount_inc_vat: numberValue(item.amount_inc_vat),
+        status: 'sent',
+      },
+      idempotencyKey: `invoice-sent:${itemId}:${invoiceGuid ?? 'no-provider-id'}`,
+    }).catch(() => null)
+
+    return { itemId, status: 'sent', invoiceGuid }
+  } catch (error) {
+    const classification = classifyInvoiceExportError(error)
+    let status: string = classification.outcome
+    let errorCode = classification.errorCode
+    let nextRetryAt: string | null = null
+
+    // 409 conflict: if a previous attempt already produced a provider invoice
+    // (same idempotency key), the invoice exists at the provider - treat as sent.
+    if (classification.errorCode === 'provider_conflict' && stringValue(item.provider_invoice_guid)) {
+      status = 'sent'
+      errorCode = 'provider_conflict_resolved_as_sent'
+    }
+
+    if (status === 'failed_retryable') {
+      if (attemptNo >= INVOICE_EXPORT_MAX_ATTEMPTS) {
+        status = 'failed'
+        errorCode = 'retry_exhausted'
+      } else {
+        nextRetryAt = computeNextRetryAt(attemptNo)
+      }
+    }
+
+    await updateExportItemWithFallback(input.companyId, itemId, {
+      status,
+      error_code: errorCode,
+      error_payload: {
+        message: classification.message,
+        error_code: errorCode,
+        http_status: classification.httpStatus,
+        attempt_no: attemptNo,
+      },
+      attempt_count: attemptNo,
+      last_attempt_at: startedAt,
+      next_retry_at: nextRetryAt,
+      ...(status === 'sent' ? { sent_at: new Date().toISOString() } : {}),
+      updated_at: new Date().toISOString(),
+    })
+
+    await recordExportAttempt({
+      companyId: input.companyId,
+      itemId,
+      exportRunId: input.exportRunId,
+      attemptNo,
+      idempotencyKey,
+      requestHash: payloadHash,
+      httpStatus: classification.httpStatus,
+      // The attempt records the raw classification; the item's final status may
+      // differ (retry exhausted -> failed, resolved 409 -> sent).
+      outcome: classification.outcome === 'failed_retryable' && status === 'failed' ? 'failed' : classification.outcome,
+      errorCode,
+      responseExcerpt: classification.responseExcerpt,
+      startedAt,
+    })
+
+    // Only dead-letter terminal failures; retryable items stay in the retry queue.
+    if (status !== 'failed_retryable' && status !== 'sent') {
+      await supabaseService.from('invoice_dead_letters').insert({
+        company_id: input.companyId,
+        provider: 'capway_aptic',
+        export_run_id: input.exportRunId,
+        export_item_id: itemId,
+        error_message: classification.message,
+        payload: { item, error_code: errorCode, http_status: classification.httpStatus },
+      })
+    }
+
+    return { itemId, status, errorCode, error: classification.message }
+  }
+}
+
+async function finalizeExportRunStatus(input: {
+  companyId: string
+  exportRunId: string
+  billingMonth: string
+  actorUserId?: string | null
+}) {
+  const { data: allItems, error } = await supabaseService
+    .from('invoice_export_items')
+    .select('id,status')
+    .eq('company_id', input.companyId)
+    .eq('export_run_id', input.exportRunId)
+    .limit(10_000)
+  if (error) throw error
+
+  const rows = (allItems ?? []) as Record<string, unknown>[]
+  const sent = rows.filter((row) => ['sent', 'credited'].includes(String(row.status))).length
+  const retryable = rows.filter((row) => String(row.status) === 'failed_retryable').length
+  const failedFinal = rows.filter((row) => ['failed', 'rejected', 'configuration_error', 'needs_review'].includes(String(row.status))).length
+  const pending = rows.filter((row) => String(row.status) === 'pending').length
+  const unresolved = retryable + failedFinal + pending
+
+  const finalStatus = unresolved > 0 ? (sent > 0 ? 'partial_failed' : 'failed') : 'sent'
+  await supabaseService.from('invoice_export_runs').update({
+    status: finalStatus,
+    sent_items: sent,
+    failed_items: retryable + failedFinal,
+    finished_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('company_id', input.companyId).eq('id', input.exportRunId)
+
+  if (sent > 0 && unresolved === 0) {
+    await lockBillingPeriodForInvoiceExport({ companyId: input.companyId, billingMonth: input.billingMonth, exportRunId: input.exportRunId, actorUserId: input.actorUserId })
+  }
+
+  return { finalStatus, sent, failed: retryable + failedFinal }
+}
+
 export async function sendInvoiceExportRun(input: {
   companyId: string
   exportRunId: string
@@ -196,112 +559,142 @@ export async function sendInvoiceExportRun(input: {
     .select('*')
     .eq('company_id', input.companyId)
     .eq('export_run_id', input.exportRunId)
-    .in('status', ['pending', 'failed'])
+    .in('status', SENDABLE_ITEM_STATUSES)
     .limit(1000)
   if (itemError) throw itemError
 
-  let sent = 0
-  let failed = 0
-  const results: Array<Record<string, unknown>> = []
+  const results: SendItemResult[] = []
   await supabaseService.from('invoice_export_runs').update({ status: 'processing', started_at: new Date().toISOString() }).eq('company_id', input.companyId).eq('id', input.exportRunId)
 
   for (const item of (items ?? []) as Record<string, unknown>[]) {
-    const itemId = stringValue(item.id)
-    if (!itemId) continue
-    try {
-      const context = await loadItemContext(input.companyId, item)
-      const payload = buildCapwayInvoicePayload({
-        config,
-        company: context.company,
-        customer: context.customer,
-        pricingRun: context.pricingRun,
-        pricingLines: context.lines,
-        underlay: context.underlay,
-        financingMode,
-      })
-      const response = await client.createInvoices([payload])
-      const invoiceGuid = response.invoiceGuids?.[0] ?? null
-      let purchaseResponse: Record<string, unknown> | null = null
-      if (invoiceGuid && shouldRequestPurchaseAfterCreate(financingMode)) {
-        purchaseResponse = await client.postPurchase(invoiceGuid, buildPurchasePayload({ financingMode, note: `Gridex export ${input.exportRunId}` }))
-        await supabaseService.from('invoice_purchase_events').insert({
-          company_id: input.companyId,
-          invoice_export_item_id: itemId,
-          event_type: 'purchase_requested',
-          purchase_status: 'requested',
-          finance_status: financingMode,
-          payload: purchaseResponse,
-          created_by: input.actorUserId ?? null,
-        })
-      }
+    if (!stringValue(item.id)) continue
+    results.push(await sendSingleInvoiceExportItem({
+      companyId: input.companyId,
+      exportRunId: input.exportRunId,
+      billingMonth,
+      item,
+      config,
+      client,
+      financingMode,
+      actorUserId: input.actorUserId,
+    }))
+  }
 
-      await supabaseService.from('invoice_export_items').update({
-        status: 'sent',
-        customer_number: stringValue(context.customer.customer_number),
-        provider_customer_id: stringValue(payload.customer.customerReference),
-        provider_debtor_id: stringValue(payload.customer.customerReference),
-        provider_invoice_guid: invoiceGuid,
-        provider_imp_stock_id: response.impStockId ?? null,
-        request_payload: payload,
-        response_payload: { create_invoice: response, purchase: purchaseResponse },
-        sent_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq('company_id', input.companyId).eq('id', itemId)
-      await emitDomainEvent({
-        companyId: input.companyId,
-        eventType: 'invoice.sent',
-        aggregateType: 'invoice_export_item',
-        aggregateId: itemId,
-        subjectCustomerId: stringValue(context.customer.id),
-        actorUserId: input.actorUserId ?? null,
-        source: 'billing_invoice_export',
-        payload: {
-          customer_number: stringValue(context.customer.customer_number),
-          invoice_guid: invoiceGuid,
-          export_run_id: input.exportRunId,
-          billing_month: billingMonth,
-          amount_ex_vat: numberValue(item.amount_ex_vat),
-          amount_inc_vat: numberValue(item.amount_inc_vat),
-          status: 'sent',
-        },
-        idempotencyKey: `invoice-sent:${itemId}:${invoiceGuid ?? 'no-provider-id'}`,
-      }).catch(() => null)
-      sent += 1
-      results.push({ itemId, status: 'sent', invoiceGuid })
-    } catch (error) {
-      failed += 1
-      const message = error instanceof Error ? error.message : 'Okänt Capway-fel'
-      await supabaseService.from('invoice_export_items').update({
-        status: 'failed',
-        error_payload: { message },
-        updated_at: new Date().toISOString(),
-      }).eq('company_id', input.companyId).eq('id', itemId)
-      await supabaseService.from('invoice_dead_letters').insert({
-        company_id: input.companyId,
-        provider: 'capway_aptic',
-        export_run_id: input.exportRunId,
-        export_item_id: itemId,
-        error_message: message,
-        payload: item,
-      })
-      results.push({ itemId, status: 'failed', error: message })
+  const summary = await finalizeExportRunStatus({
+    companyId: input.companyId,
+    exportRunId: input.exportRunId,
+    billingMonth,
+    actorUserId: input.actorUserId,
+  })
+
+  return { exportRunId: input.exportRunId, status: summary.finalStatus, sent: summary.sent, failed: summary.failed, results }
+}
+
+// Retry worker: re-sends failed_retryable items whose backoff window has
+// elapsed, reusing the SAME idempotency key persisted on each item so the
+// provider-side dedupe holds across attempts.
+export async function processDueInvoiceExportRetries(input: {
+  companyId?: string | null
+  limit?: number
+} = {}) {
+  const limit = Math.min(Math.max(input.limit ?? 50, 1), 200)
+  let query = supabaseService
+    .from('invoice_export_items')
+    .select('*')
+    .eq('status', 'failed_retryable')
+    .lte('next_retry_at', new Date().toISOString())
+    .order('next_retry_at', { ascending: true })
+    .limit(limit)
+  if (input.companyId) query = query.eq('company_id', input.companyId)
+
+  const { data: dueItems, error } = await query
+  if (error) {
+    if (missingRelation(error)) return { processed: 0, sent: 0, failed: 0, results: [] as SendItemResult[] }
+    throw error
+  }
+
+  const items = (dueItems ?? []) as Record<string, unknown>[]
+  if (items.length === 0) return { processed: 0, sent: 0, failed: 0, results: [] as SendItemResult[] }
+
+  // Group by (company, run) so config/client resolution happens once per run.
+  const groups = new Map<string, { companyId: string; exportRunId: string; items: Record<string, unknown>[] }>()
+  for (const item of items) {
+    const companyId = stringValue(item.company_id)
+    const exportRunId = stringValue(item.export_run_id)
+    if (!companyId || !exportRunId) continue
+    const key = `${companyId}:${exportRunId}`
+    const group = groups.get(key) ?? { companyId, exportRunId, items: [] }
+    group.items.push(item)
+    groups.set(key, group)
+  }
+
+  const results: SendItemResult[] = []
+  for (const group of groups.values()) {
+    const { data: run, error: runError } = await supabaseService
+      .from('invoice_export_runs')
+      .select('environment,financing_mode,billing_month')
+      .eq('company_id', group.companyId)
+      .eq('id', group.exportRunId)
+      .maybeSingle()
+    if (runError || !run) {
+      console.error('[invoice-export-retry] export run missing', { exportRunId: group.exportRunId, error: runError })
+      continue
     }
+    const runRow = run as Record<string, unknown>
+    const environment = (stringValue(runRow.environment) as CapwayEnvironment) ?? 'test'
+    const financingMode = (stringValue(runRow.financing_mode) as CapwayFinancingMode) ?? 'invoice_service'
+    const billingMonth = stringValue(runRow.billing_month)
+    if (!billingMonth) continue
+
+    let config: Awaited<ReturnType<typeof resolveCapwayConnectionConfig>>
+    try {
+      config = await resolveCapwayConnectionConfig({ companyId: group.companyId, environment })
+    } catch (configError) {
+      // Connection no longer configured: mark items so they stop being retried.
+      const classification = classifyInvoiceExportError(configError)
+      for (const item of group.items) {
+        const itemId = stringValue(item.id)
+        if (!itemId) continue
+        await updateExportItemWithFallback(group.companyId, itemId, {
+          status: 'configuration_error',
+          error_code: classification.errorCode,
+          error_payload: { message: classification.message, error_code: classification.errorCode },
+          next_retry_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        results.push({ itemId, status: 'configuration_error', errorCode: classification.errorCode, error: classification.message })
+      }
+      continue
+    }
+    const client = new CapwayApticClient(config)
+
+    for (const item of group.items) {
+      results.push(await sendSingleInvoiceExportItem({
+        companyId: group.companyId,
+        exportRunId: group.exportRunId,
+        billingMonth,
+        item,
+        config,
+        client,
+        financingMode,
+        actorUserId: null,
+      }))
+    }
+
+    await finalizeExportRunStatus({
+      companyId: group.companyId,
+      exportRunId: group.exportRunId,
+      billingMonth,
+      actorUserId: null,
+    })
   }
 
-  const finalStatus = failed > 0 ? (sent > 0 ? 'partial_failed' : 'failed') : 'sent'
-  await supabaseService.from('invoice_export_runs').update({
-    status: finalStatus,
-    sent_items: sent,
-    failed_items: failed,
-    finished_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }).eq('company_id', input.companyId).eq('id', input.exportRunId)
-
-  if (sent > 0 && failed === 0) {
-    await lockBillingPeriodForInvoiceExport({ companyId: input.companyId, billingMonth, exportRunId: input.exportRunId, actorUserId: input.actorUserId })
+  return {
+    processed: results.length,
+    sent: results.filter((row) => row.status === 'sent').length,
+    failed: results.filter((row) => row.status !== 'sent').length,
+    results,
   }
-
-  return { exportRunId: input.exportRunId, status: finalStatus, sent, failed, results }
 }
 
 export async function getInvoiceExportRun(input: { companyId: string; exportRunId: string }) {
@@ -317,9 +710,24 @@ export async function getInvoiceExportRun(input: { companyId: string; exportRunI
 export async function resetFailedInvoiceExportItems(input: { companyId: string; exportRunId: string }) {
   const { error } = await supabaseService
     .from('invoice_export_items')
+    .update({
+      status: 'pending',
+      error_payload: {},
+      error_code: null,
+      next_retry_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('company_id', input.companyId)
+    .eq('export_run_id', input.exportRunId)
+    .in('status', ['failed', 'failed_retryable', 'configuration_error', 'needs_review'])
+  if (!error) return
+  if (!missingRelation(error)) throw error
+
+  const { error: legacyError } = await supabaseService
+    .from('invoice_export_items')
     .update({ status: 'pending', error_payload: {}, updated_at: new Date().toISOString() })
     .eq('company_id', input.companyId)
     .eq('export_run_id', input.exportRunId)
     .eq('status', 'failed')
-  if (error) throw error
+  if (legacyError) throw legacyError
 }

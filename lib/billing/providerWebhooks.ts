@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { supabaseService } from '@/lib/supabase/service'
+import { processPendingInvoiceProviderEvents } from '@/lib/billing/providerEventProcessor'
 
 export type BillingProviderWebhookResult = {
   provider: string
@@ -189,6 +190,12 @@ export async function receiveBillingProviderWebhook(input: {
 
   if (status !== 'rejected') {
     await recordInvoiceProviderEvent({ provider, companyId, eventType, eventId, idempotencyKey, payload })
+    // Close the loop immediately: update matched invoice_export_items and the
+    // portal invoice mirror. Best-effort - the cron sweep picks up leftovers.
+    await processPendingInvoiceProviderEvents({ companyId, limit: 25 }).catch((processError) => {
+      console.error('[billing-webhook] provider event processing failed', { provider, eventId, error: processError })
+      return null
+    })
   }
 
   if (companyId && status !== 'rejected') {

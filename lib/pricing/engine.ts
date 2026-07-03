@@ -159,8 +159,37 @@ function underlayToInput(companyId: string, underlay: Record<string, unknown>, c
   }
 }
 
+// Marks previous active runs for the underlay as superseded so that the partial
+// unique index pricing_runs_active_per_underlay_uidx (one success/locked run per
+// company+underlay) holds. Locked runs are never superseded here: a locked run
+// means the period is closed and re-pricing must go through the unlock path.
+async function supersedePreviousPricingRuns(companyId: string, billingUnderlayId: string) {
+  const { data: lockedRuns, error: lockedError } = await supabaseService
+    .from('pricing_runs')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('billing_underlay_id', billingUnderlayId)
+    .eq('status', 'locked')
+    .limit(1)
+  if (lockedError) throw lockedError
+  if ((lockedRuns ?? []).length > 0) {
+    throw new Error('Prisberäkningen för underlaget är låst. Lås upp fakturaperioden innan du räknar om priset.')
+  }
+
+  const { error: supersedeError } = await supabaseService
+    .from('pricing_runs')
+    .update({ status: 'superseded' })
+    .eq('company_id', companyId)
+    .eq('billing_underlay_id', billingUnderlayId)
+    .eq('status', 'success')
+  if (supersedeError) throw supersedeError
+}
+
 async function persistPricingRun(companyId: string, result: PricingPreviewResult, underlay: BillingUnderlayInput) {
   const status = result.status === 'success' ? 'success' : result.status
+  if (underlay.billingUnderlayId) {
+    await supersedePreviousPricingRuns(companyId, underlay.billingUnderlayId)
+  }
   const { data: run, error } = await supabaseService
     .from('pricing_runs')
     .insert({
@@ -282,10 +311,18 @@ export async function calculatePricingPreviewForUnderlay(input: {
   warnings.push(...base.warnings)
   errors.push(...base.errors)
 
+  const spotAmountExVat = base.lines
+    .filter((line) => (line.metadata as Record<string, unknown> | undefined)?.source_type === 'spot')
+    .reduce((sum, line) => sum + line.amountExVat, 0)
+  const hasSpotBase = base.lines.some(
+    (line) => (line.metadata as Record<string, unknown> | undefined)?.source_type === 'spot'
+  )
+
   const component = calculatePriceComponents({
     underlay,
     components: config.priceComponents,
     baseAmountExVat: base.lines.reduce((sum, line) => sum + line.amountExVat, 0),
+    spotAmountExVat: hasSpotBase ? spotAmountExVat : null,
     vatRate: config.vatRate,
     startSortOrder: 100,
   })

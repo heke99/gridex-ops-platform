@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { finalizeStuckZ01GridOwnerDataRequest, dryRunZ01Finalizer } from '@/lib/customer-operations/z01Finalizer'
 import type { EdielEnvironment } from '@/lib/ediel/types'
@@ -80,7 +81,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, dryRun: false, result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error ?? 'Okänt fel.')
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    return internalApiError({
+      context: 'z01-repair',
+      error,
+      code: 'z01_repair_failed',
+      message: 'Z01-reparationen kunde inte slutföras. Se serverloggen med trace_id.',
+    })
   }
 }

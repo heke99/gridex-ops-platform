@@ -14,6 +14,7 @@ type PartnerInvoiceLineInput = {
 }
 
 export type PartnerInvoiceUpsertInput = {
+  companyId: string
   customerId: string
   agreementId?: string | null
   billingUnderlayId?: string | null
@@ -59,6 +60,7 @@ export async function upsertPartnerCustomerInvoice(input: PartnerInvoiceUpsertIn
     .from('customer_invoices')
     .upsert(
       {
+        company_id: input.companyId,
         customer_id: input.customerId,
         agreement_id: input.agreementId ?? null,
         billing_underlay_id: input.billingUnderlayId ?? null,
@@ -82,7 +84,7 @@ export async function upsertPartnerCustomerInvoice(input: PartnerInvoiceUpsertIn
         raw_payload: input.rawPayload ?? {},
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'partner_invoice_reference' }
+      { onConflict: 'company_id,partner_invoice_reference' }
     )
     .select('*')
     .single()

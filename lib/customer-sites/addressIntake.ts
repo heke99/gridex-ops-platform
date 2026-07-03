@@ -68,6 +68,19 @@ function normalizedAddress(input: CustomerSiteAddressInput) {
   return { street, postalCode, city, country, careOf, apartmentNumber, complete, normalized, hash }
 }
 
+// Shared address-hash computation so all intake channels (website, admin,
+// external contracts) dedupe sites on the exact same normalization.
+export function computeCustomerSiteAddressHash(input: {
+  street?: unknown
+  postalCode?: unknown
+  city?: unknown
+  country?: unknown
+  apartmentNumber?: unknown
+}): { hash: string | null; normalized: string | null; complete: boolean } {
+  const address = normalizedAddress({ ...input, source: 'manual_intake' })
+  return { hash: address.hash, normalized: address.normalized, complete: address.complete }
+}
+
 function sourceRank(source: CustomerSiteAddressSource): number {
   switch (source) {
     case 'grid_owner_response': return 70

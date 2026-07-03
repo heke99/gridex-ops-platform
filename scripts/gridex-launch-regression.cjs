@@ -86,7 +86,7 @@ if (fs.existsSync(path.join(root, 'app/admin/ediel/route-readiness/page.tsx'))) 
 
 if (fs.existsSync(path.join(root, 'lib/admin/websiteIntegrationOps.ts'))) {
   const content = read('lib/admin/websiteIntegrationOps.ts')
-  if (!content.includes("from('external_contract_intakes')")) fail('Website application admin listing does not read external_contract_intakes')
+  if (!/from\(['"]external_contract_intakes['"]\)/.test(content)) fail('Website application admin listing does not read external_contract_intakes')
   if (!content.includes('listLegacyWebsiteApplications')) fail('Legacy application fallback was removed instead of safely bridged')
 }
 

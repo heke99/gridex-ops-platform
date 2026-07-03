@@ -12,10 +12,7 @@ import {
 } from "@/lib/cis/db";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { createPartnerExport } from "@/lib/cis/db-data";
-import {
-  calculatePricingForBillingUnderlay,
-  listPricingComponentRules,
-} from "@/lib/billing/pricingEngine";
+import { calculateUnderlayPricingWithCore } from "@/lib/pricing/underlayPricingAdapter";
 import { buildXlsxWorkbook } from "@/lib/billing/xlsx";
 import {
   GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
@@ -196,17 +193,6 @@ async function listLatestBillableContractsByUnderlayIds(params: {
 }
 
 
-function isFirstContractPeriod(params: {
-  contract?: CustomerContractRow | null;
-  year: number | null;
-  month: number | null;
-}) {
-  if (!params.contract?.starts_at || !params.year || !params.month) return false;
-  const start = new Date(params.contract.starts_at);
-  if (Number.isNaN(start.getTime())) return false;
-  return start.getFullYear() === params.year && start.getMonth() + 1 === params.month;
-}
-
 function contractTextField(contract: CustomerContractRow | null, key: string): string | null {
   if (!contract) return null;
   const value = (contract as unknown as Record<string, unknown>)[key];
@@ -321,12 +307,11 @@ export async function createBillingExportRun(input: {
 }) {
   await requireCompanyOperationalForWrites(input.companyId);
 
-  const [underlays, meterValues, partnerExports, pricingRules] =
+  const [underlays, meterValues, partnerExports] =
     await Promise.all([
       listAllBillingUnderlays({ companyId: input.companyId, status: "all" }),
       listAllMeteringValues({ companyId: input.companyId }),
       listAllPartnerExports({ companyId: input.companyId, status: "all" }),
-      listPricingComponentRules(input.companyId),
     ]);
 
   const [year, month] = input.periodMonth
@@ -347,18 +332,16 @@ export async function createBillingExportRun(input: {
     meterValues,
     partnerExports,
   });
-  const items = periodUnderlays.map((underlay) => {
+  const items = [];
+  for (const underlay of periodUnderlays) {
     const result = readiness.get(underlay.id);
     const contract = contractsByUnderlay.get(underlay.id) ?? null;
-    const pricing = calculatePricingForBillingUnderlay({
-      underlay,
-      rules: pricingRules,
-      contract,
-      isFirstPeriod: isFirstContractPeriod({
-        contract,
-        year: underlay.underlay_year,
-        month: underlay.underlay_month,
-      }),
+    // Single Pricing Core: same engine and persisted pricing_run as the
+    // pricing preview, so billing/export can never disagree with preview.
+    const pricing = await calculateUnderlayPricingWithCore({
+      companyId: input.companyId,
+      billingUnderlayId: underlay.id,
+      persist: true,
     });
     const pricingWarnings = pricing.warnings.map((warning) => ({
       code: "pricing_warning",
@@ -366,6 +349,14 @@ export async function createBillingExportRun(input: {
       title: "Prismotor behöver granskning",
       description: warning,
     }));
+    const pricingBlockers = pricing.status === "success"
+      ? []
+      : (pricing.errors.length > 0 ? pricing.errors : ["Prisberäkningen misslyckades."]).map((message) => ({
+          code: "pricing_failed",
+          severity: "blocked",
+          title: "Prisberäkning blockerad",
+          description: message,
+        }));
     const missingContractIssue = !contract
       ? [{
           code: "missing_contract",
@@ -374,18 +365,18 @@ export async function createBillingExportRun(input: {
           description: "Faktureringsraden saknar kopplat avtal/kampanj och får inte exporteras automatiskt.",
         }]
       : [];
-    const blockerReasons = [...(result?.issues ?? []), ...pricingWarnings, ...missingContractIssue];
+    const blockerReasons = [...(result?.issues ?? []), ...pricingWarnings, ...pricingBlockers, ...missingContractIssue];
     const invoiceSnapshot = buildInvoiceSnapshot({ underlay, contract });
     const itemIdempotencySeed = `billing:${input.companyId}:${underlay.id}:${input.periodMonth}`;
 
-    return {
+    items.push({
       company_id: input.companyId,
       billing_underlay_id: underlay.id,
       contract_id: contract?.id ?? null,
       customer_id: underlay.customer_id,
       site_id: underlay.site_id,
       metering_point_id: underlay.metering_point_id,
-      status: result?.isExportable && contract ? "ready" : "blocked",
+      status: result?.isExportable && contract && pricing.status === "success" ? "ready" : "blocked",
       readiness_status: result?.status ?? "blocked",
       blocker_reasons: blockerReasons,
       pricing_line_items: pricing.lines,
@@ -415,8 +406,8 @@ export async function createBillingExportRun(input: {
           exportFormat: input.exportFormat,
         },
       },
-    };
-  });
+    });
+  }
 
   const rowsReady = items.filter((item) => item.status === "ready").length;
   const rowsBlocked = items.filter((item) => item.status === "blocked").length;
@@ -445,7 +436,7 @@ export async function createBillingExportRun(input: {
       adapter_key: GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
       payload_version: "billing_export_v4c",
       retry_policy: { maxAttempts: 3, strategy: "manual_retry" },
-      metadata: { pricingRules: pricingRules.length, partnerAdapter: GRIDEX_BILLING_PARTNER_ADAPTER_KEY },
+      metadata: { pricingEngine: "pricing_core_v1", partnerAdapter: GRIDEX_BILLING_PARTNER_ADAPTER_KEY },
     })
     .select("*")
     .single();

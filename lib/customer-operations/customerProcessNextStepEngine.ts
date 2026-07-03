@@ -5,6 +5,7 @@ import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutoma
 import { finalizeStuckZ01GridOwnerDataRequest } from '@/lib/customer-operations/z01Finalizer'
 import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProcessEvents'
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
+import { checkSupplierSwitchReadiness, persistSwitchReadinessSnapshot } from '@/lib/customer-operations/switchReadiness'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 
 type JsonRecord = Record<string, unknown>
@@ -189,10 +190,17 @@ async function tryPrepareSupplierSwitch(input: {
     return { switchRequestId: existing.id, alreadyOpen: true }
   }
 
-  const powersOfAttorney = await listPowersOfAttorneyByCustomerId(supabaseService, input.customerId, { companyId: input.companyId })
-  const readiness = evaluateSiteSwitchReadiness({ site: input.site, meteringPoints: [input.meteringPoint], powersOfAttorney })
+  // Unified readiness gate: site data, POA, grid owner verification, EDIEL
+  // route, lifecycle blocks and duplicate-switch guards in one evaluation.
+  const unified = await checkSupplierSwitchReadiness({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId: input.site.id,
+  })
+  const readiness = unified.siteReadiness ?? evaluateSiteSwitchReadiness({ site: input.site, meteringPoints: [input.meteringPoint], powersOfAttorney: await listPowersOfAttorneyByCustomerId(supabaseService, input.customerId, { companyId: input.companyId }) })
   await syncOperationTasksFromReadiness(supabaseService, readiness)
-  if (!readiness.isReady || !readiness.candidateMeteringPointId) {
+
+  if (!unified.ready || !readiness.candidateMeteringPointId) {
     await emitCustomerProcessEvent({
       companyId: input.companyId,
       customerId: input.customerId,
@@ -201,27 +209,17 @@ async function tryPrepareSupplierSwitch(input: {
       operationId: input.operationId ?? null,
       eventType: 'supplier_switch.blocked',
       title: 'Leverantörsbyte kan inte startas ännu',
-      message: `Komplettera först: ${readiness.issues.map((issue) => issue.title).join(', ') || 'readiness'}`,
+      message: `Komplettera först: ${unified.blockers.map((blocker) => blocker.message).join(', ') || 'readiness'}`,
       actorUserId: input.actorUserId,
       status: 'blocked',
       severity: 'error',
       actionRequired: true,
       source: 'customer_process_next_step_engine',
-      payload: { readiness },
+      payload: { readiness: unified.readinessSnapshot },
       idempotencyKey: `supplier_switch.blocked:${input.companyId}:${input.site.id}:readiness`,
     })
     return null
   }
-
-  const routeReadiness = await evaluateCustomerProcessRouteReadiness({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    siteId: input.site.id,
-    gridOwnerId: input.meteringPoint.grid_owner_id ?? input.site.grid_owner_id ?? null,
-    process: 'supplier_switch',
-    actorUserId: input.actorUserId,
-  })
-  if (!routeReadiness.ready) return null
 
   await emitCustomerProcessEvent({
     companyId: input.companyId,
@@ -249,6 +247,12 @@ async function tryPrepareSupplierSwitch(input: {
     automationKey: `facility_data_received:${input.companyId}:${input.site.id}`,
     companyId: input.companyId,
   })
+
+  await persistSwitchReadinessSnapshot({
+    switchRequestId: request.id,
+    companyId: input.companyId,
+    snapshot: unified.readinessSnapshot,
+  }).catch(() => undefined)
 
   const automation = await ensureInitialSwitchEdielAutomation({
     actorUserId: input.actorUserId,

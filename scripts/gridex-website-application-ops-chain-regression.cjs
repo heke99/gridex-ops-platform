@@ -42,8 +42,15 @@ expect(
   /async function ensureCustomerForIntake/.test(intake),
   'external intake uses ensureCustomerForIntake instead of blind customer insert'
 )
+// The normalized-identity lookups moved into the shared matching service
+// (lib/customers/matchingService.ts); the intake must delegate to it.
+const matchingService = read('lib/customers/matchingService.ts')
 expect(
-  /findExistingCustomerForIntake/.test(intake) && /normalized_email/.test(intake) && /normalized_personal_number/.test(intake) && /normalized_org_number/.test(intake),
+  /findExistingCustomerForIntake/.test(intake) &&
+    /matchCustomerIdentity/.test(intake) &&
+    /normalized_email/.test(matchingService) &&
+    /normalized_personal_number/.test(matchingService) &&
+    /normalized_org_number/.test(matchingService),
   'external intake deduplicates by normalized email, personnummer, and orgnummer'
 )
 expect(

@@ -148,10 +148,57 @@ export async function resolvePricingConfiguration(input: {
   if (greenFeeValue !== null && greenFeeMode === 'sek_per_kwh') contractPriceComponents.push({ componentType: 'green_energy_fee', name: 'Grön el enligt avtal', calculationType: 'per_kwh', amount: greenFeeValue, unit: 'sek_per_kwh', vatApplicable: true, periodizationMode: 'none', priority: 300 })
   if (greenFeeValue !== null && greenFeeMode === 'sek_month') contractPriceComponents.push({ componentType: 'green_energy_fee', name: 'Grön el enligt avtal', calculationType: 'fixed_monthly', amount: greenFeeValue, unit: 'sek_month', vatApplicable: true, periodizationMode: 'none', priority: 300 })
 
+  // Contract-level extras previously only handled by the legacy billing engine:
+  // campaign discount, admin fee, start fee (first billing period only) and
+  // free-form optional fee lines. These must keep billing output identical when
+  // the export/billing paths run through the Pricing Core.
+  const discountValue = numberValue(input.contract?.discount_value)
+  const discountUnit = stringValue(input.contract?.discount_unit) ?? 'sek_month'
+  if (discountValue !== null) {
+    if (discountUnit === 'ore_per_kwh') {
+      contractPriceComponents.push({ componentType: 'campaign_discount', name: 'Kampanjrabatt', calculationType: 'discount_per_kwh', amount: Math.abs(discountValue), unit: 'ore_per_kwh', vatApplicable: true, periodizationMode: 'none', priority: 400 })
+    } else {
+      contractPriceComponents.push({ componentType: 'campaign_discount', name: 'Kampanjrabatt', calculationType: 'discount_fixed', amount: Math.abs(discountValue), unit: discountUnit, vatApplicable: true, periodizationMode: 'none', priority: 400 })
+    }
+  }
+
+  const adminFee = numberValue(input.contract?.admin_fee_sek)
+  if (adminFee !== null) {
+    contractPriceComponents.push({ componentType: 'admin_fee', name: 'Administrativ avgift', calculationType: 'fixed_monthly', amount: adminFee, unit: 'sek_month', vatApplicable: true, periodizationMode: 'none', priority: 410 })
+  }
+
+  const startFee = numberValue(input.contract?.start_fee_sek)
+  const contractStart = stringValue(input.contract?.starts_at) ?? stringValue(input.contract?.actual_start_at) ?? stringValue(input.contract?.contract_start_date)
+  const isFirstBillingPeriod = Boolean(
+    contractStart && contractStart >= input.underlay.periodStart && contractStart < input.underlay.periodEnd
+  )
+  if (startFee !== null && isFirstBillingPeriod) {
+    contractPriceComponents.push({ componentType: 'start_fee', name: 'Startavgift', calculationType: 'fixed_once', amount: startFee, unit: 'sek_once', vatApplicable: true, periodizationMode: 'none', priority: 420 })
+  }
+
+  const optionalLines = Array.isArray(input.contract?.optional_fee_lines) ? input.contract?.optional_fee_lines as unknown[] : []
+  for (const [index, rawLine] of optionalLines.entries()) {
+    if (!isObject(rawLine)) continue
+    const label = stringValue(rawLine.label) ?? `Övrig avgift ${index + 1}`
+    const amount = numberValue(rawLine.amount)
+    if (amount === null) continue
+    const unit = stringValue(rawLine.unit) ?? 'sek'
+    contractPriceComponents.push({
+      componentType: 'custom_addon',
+      name: label,
+      calculationType: unit === 'ore_per_kwh' ? 'ore_per_kwh' : 'fixed_monthly',
+      amount,
+      unit,
+      vatApplicable: true,
+      periodizationMode: 'none',
+      priority: 430 + index,
+    })
+  }
+
   if (hasFrozenPriceSnapshot) {
     return {
       baseComponents,
-      priceComponents,
+      priceComponents: filterComponentsForPeriod(priceComponents, input.underlay.periodStart),
       vatRate: numberValue(snapshot.vat_rate) ?? numberValue(input.contract?.vat_rate) ?? 0.25,
       warnings,
     }
@@ -171,12 +218,71 @@ export async function resolvePricingConfiguration(input: {
     .map(normalizePriceComponent)
     .filter((row): row is PriceComponent => Boolean(row))
 
+  // Legacy tenant-level rules (pricing_component_rules) were previously only
+  // applied by lib/billing/pricingEngine.ts. Merge active rules here so the
+  // Pricing Core is the single calculation path; dedupe against modern
+  // price_components on (componentType, name).
+  const legacyRuleComponents = await loadLegacyPricingComponentRules(input.companyId, warnings)
+  const seenComponentKeys = new Set(
+    [...contractPriceComponents, ...dbComponents, ...priceComponents].map(componentDedupeKey)
+  )
+  const mergedLegacyComponents = legacyRuleComponents.filter((component) => {
+    const key = componentDedupeKey(component)
+    if (seenComponentKeys.has(key)) return false
+    seenComponentKeys.add(key)
+    return true
+  })
+
   const vatRate = numberValue(input.contract?.vat_rate) ?? 0.25
 
   return {
     baseComponents,
-    priceComponents: [...contractPriceComponents, ...dbComponents, ...priceComponents],
+    priceComponents: filterComponentsForPeriod(
+      [...contractPriceComponents, ...dbComponents, ...mergedLegacyComponents, ...priceComponents],
+      input.underlay.periodStart
+    ),
     vatRate,
     warnings,
+  }
+}
+
+function componentDedupeKey(component: PriceComponent): string {
+  return `${component.componentType}:${component.name.trim().toLowerCase()}`
+}
+
+function filterComponentsForPeriod(components: PriceComponent[], periodStart: string): PriceComponent[] {
+  return components.filter((component) => {
+    if (component.validFrom && periodStart < component.validFrom) return false
+    if (component.validTo && periodStart > component.validTo) return false
+    return true
+  })
+}
+
+async function loadLegacyPricingComponentRules(companyId: string, warnings: string[]): Promise<PriceComponent[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from('pricing_component_rules')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .order('priority', { ascending: true })
+      .limit(200)
+
+    if (error) {
+      if (['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) return []
+      throw error
+    }
+
+    return ((data ?? []) as Record<string, unknown>[])
+      .filter((row) => {
+        // Offer-scoped rules apply only via the offer/contract snapshot path.
+        const scope = stringValue(row.contract_offer_id)
+        return !scope
+      })
+      .map(normalizePriceComponent)
+      .filter((row): row is PriceComponent => Boolean(row))
+  } catch {
+    warnings.push('Prisregler (pricing_component_rules) kunde inte läsas och ingick inte i beräkningen.')
+    return []
   }
 }

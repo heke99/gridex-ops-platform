@@ -13,6 +13,15 @@ import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { runBatch2BAutomation } from "@/lib/operations/batch2bAutomation";
 import { parseCustomerImportFormData } from "@/lib/customers/importParser";
 import { normalizeCustomerIdentityType } from "@/lib/customers/normalizeCustomerType";
+import {
+  matchCustomerIdentity,
+  type CustomerMatchSignal,
+} from "@/lib/customers/matchingService";
+import {
+  completeCustomerApplicationIntake,
+  failCustomerApplicationIntake,
+  getOrCreateCustomerApplicationIntake,
+} from "@/lib/intakes/customerApplicationIntakes";
 import type {
   CustomerImportActionState,
   CustomerImportPreviewRow,
@@ -53,6 +62,11 @@ import {
 import { emitDomainEvent } from "@/lib/events/domainEvents";
 import { enqueueWebhookDeliveriesForEvent } from "@/lib/integrations/webhooks";
 import { getCompanyGoLiveSetupSummary } from "@/lib/ediel/platformGoLive";
+import {
+  applyCustomerSiteAddressCandidate,
+  computeCustomerSiteAddressHash,
+} from "@/lib/customer-sites/addressIntake";
+import { evaluateCustomerIntake } from "@/lib/customer-operations/customerIntakeOrchestrator";
 
 type CustomerType = "private" | "business" | "association";
 type SiteType = "consumption" | "production" | "mixed";
@@ -2012,43 +2026,75 @@ async function findMatchingMeteringPoints(params: {
   }
 }
 
+const INTAKE_IDENTITY_MATCH_PRESENTATION: Record<
+  CustomerMatchSignal,
+  {
+    field: IntakeDuplicateMatch["field"];
+    severity: IntakeDuplicateSeverity;
+    label: string;
+    matchType: string;
+  }
+> = {
+  personal_number: {
+    field: "personalNumber",
+    severity: "critical",
+    label: "Personnummer",
+    matchType: "personal_number",
+  },
+  org_number: {
+    field: "orgNumber",
+    severity: "critical",
+    label: "Organisationsnummer",
+    matchType: "org_number",
+  },
+  email: {
+    field: "email",
+    severity: "warning",
+    label: "E-post",
+    matchType: "email",
+  },
+  phone: {
+    field: "phone",
+    severity: "warning",
+    label: "Telefonnummer",
+    matchType: "phone",
+  },
+};
+
+async function findIntakeIdentityDuplicateMatches(
+  params: CreateCustomerGraphParams,
+): Promise<IntakeDuplicateMatch[]> {
+  try {
+    const decision = await matchCustomerIdentity({
+      companyId: params.companyId,
+      personalNumber: params.personalNumber,
+      orgNumber: params.orgNumber,
+      email: params.email,
+      phone: params.phone,
+      select: "id, customer_number, full_name, company_name, email, phone",
+    });
+
+    return decision.candidates.map((candidate) => {
+      const presentation = INTAKE_IDENTITY_MATCH_PRESENTATION[candidate.matchedBy];
+      const row = candidate.customer;
+      return {
+        field: presentation.field,
+        severity: presentation.severity,
+        customerId: typeof row.id === "string" ? row.id : null,
+        matchType: presentation.matchType,
+        message: `${presentation.label} matchar kund ${String(row.customer_number ?? row.full_name ?? row.company_name ?? row.email ?? row.id)} i detta bolag.`,
+      } satisfies IntakeDuplicateMatch;
+    });
+  } catch (error) {
+    if (databaseObjectMissing(error)) return [];
+    throw error;
+  }
+}
+
 async function findIntakeDuplicateMatches(
   params: CreateCustomerGraphParams,
 ): Promise<IntakeDuplicateMatch[]> {
-  const personOrOrgMatches = await Promise.all([
-    findMatchingCustomersByColumn({
-      companyId: params.companyId,
-      column: "email",
-      value: params.email,
-      severity: "warning",
-      field: "email",
-      label: "E-post",
-    }),
-    findMatchingCustomersByColumn({
-      companyId: params.companyId,
-      column: "phone",
-      value: params.phone,
-      severity: "warning",
-      field: "phone",
-      label: "Telefonnummer",
-    }),
-    findMatchingCustomersByColumn({
-      companyId: params.companyId,
-      column: "personal_number",
-      value: params.personalNumber,
-      severity: "critical",
-      field: "personalNumber",
-      label: "Personnummer",
-    }),
-    findMatchingCustomersByColumn({
-      companyId: params.companyId,
-      column: "org_number",
-      value: params.orgNumber,
-      severity: "critical",
-      field: "orgNumber",
-      label: "Organisationsnummer",
-    }),
-  ]);
+  const personOrOrgMatches = await findIntakeIdentityDuplicateMatches(params);
 
   const nameMatches = await (async () => {
     const displayName =
@@ -2721,6 +2767,7 @@ type CustomerGraphResult = CustomerGraphRow & {
   __duplicateWarnings: string[]
   __duplicateReviewRequired: boolean
   __createdNewCustomer: boolean
+  __reusedExistingSite: boolean
   __createdSiteId: string | null
   __createdMeteringPointId: string | null
   __createdGridOwnerId: string | null
@@ -2996,8 +3043,41 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
     );
 
     let siteId: string | null = null;
+    let reusedExistingSite = false;
 
-    if (shouldCreateSite) {
+    // Shared site dedupe: when attaching to an existing customer, an active
+    // site with the exact same normalized address must be reused rather than
+    // duplicated (same rule as website/external intake via addressIntake).
+    if (shouldCreateSite && shouldUseExistingCustomer) {
+      const addressHash = computeCustomerSiteAddressHash({
+        street: normalizedStreet,
+        postalCode: normalizedPostalCode,
+        city: normalizedCity,
+        country: normalizedCountry,
+        apartmentNumber: normalizedApartmentNumber,
+      });
+      if (addressHash.hash) {
+        const { data: existingSite, error: existingSiteError } =
+          await supabaseService
+            .from("customer_sites")
+            .select("id")
+            .eq("company_id", params.companyId)
+            .eq("customer_id", customer.id)
+            .eq("address_hash", addressHash.hash)
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle();
+        if (existingSiteError && !databaseObjectMissing(existingSiteError)) {
+          throw existingSiteError;
+        }
+        if (typeof existingSite?.id === "string") {
+          siteId = existingSite.id;
+          reusedExistingSite = true;
+        }
+      }
+    }
+
+    if (shouldCreateSite && !siteId) {
       const { data: site, error: siteError } = await supabaseService
         .from("customer_sites")
         .insert({
@@ -3053,6 +3133,31 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
       if (siteError) throw siteError;
       siteId = site.id;
       creationContext.siteId = site.id;
+
+      // Stamp the shared address hash/normalization + history so the site
+      // participates in the same dedupe/conflict pipeline as other channels.
+      await applyCustomerSiteAddressCandidate({
+        companyId: params.companyId,
+        customerId: String(customer.id),
+        siteId: String(site.id),
+        address: {
+          street: normalizedStreet,
+          postalCode: normalizedPostalCode,
+          city: normalizedCity,
+          country: normalizedCountry,
+          careOf: normalizedCareOf,
+          apartmentNumber: normalizedApartmentNumber,
+          source: "manual_intake",
+          sourceReference: "admin_customer_intake",
+          actorUserId: params.actorUserId,
+        },
+      }).catch((addressError) => {
+        console.warn(
+          "Site address normalization could not be applied during admin intake",
+          addressError,
+        );
+        return null;
+      });
     }
 
     if (siteId && normalizedMeterPointId) {
@@ -3463,11 +3568,29 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
       await enqueueWebhookDeliveriesForEvent(domainEvent).catch(() => 0);
     }
 
+    // Run the shared intake readiness orchestrator so admin-created customers
+    // get the same persisted intake decision/next-action state as website and
+    // external intake channels. Non-fatal: the graph is already committed.
+    await evaluateCustomerIntake({
+      companyId: params.companyId,
+      customerId: String(customer.id),
+      siteId,
+      actorUserId: params.actorUserId,
+      apply: true,
+    }).catch((orchestratorError) => {
+      console.warn(
+        "Shared intake orchestrator could not be evaluated after admin intake",
+        orchestratorError,
+      );
+      return null;
+    });
+
     return {
       ...customer,
       __duplicateWarnings: duplicateWarnings,
       __duplicateReviewRequired: duplicateReviewRequired,
       __createdNewCustomer: createdNewCustomer,
+      __reusedExistingSite: reusedExistingSite,
       __uploadedDocumentLabels: intakeDocumentUpload.uploadedLabels,
       __createdSiteId: creationContext.siteId,
       __createdMeteringPointId: creationContext.meteringPointId,
@@ -3481,6 +3604,41 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
   }
 }
 
+const ADMIN_INTAKE_ROUTE = "admin/customers/intake";
+const ADMIN_INTAKE_IN_PROGRESS_STALE_MS = 10 * 60 * 1000;
+
+function buildAdminIntakeIdempotencyKey(
+  params: CreateCustomerGraphParams,
+): string {
+  // Deterministic key over the business-relevant intake fields so an
+  // accidental double submission of the same form never creates a second
+  // customer/site/contract graph, while a deliberately different intake
+  // (e.g. second site for the same customer) gets its own key.
+  const identity = [
+    params.customerType,
+    params.personalNumber ?? "",
+    params.orgNumber ?? "",
+    params.email ?? "",
+    params.phone ?? "",
+    params.firstName ?? "",
+    params.lastName ?? "",
+    params.companyName ?? "",
+    params.facilityId ?? "",
+    params.meterPointId ?? "",
+    params.street ?? "",
+    params.postalCode ?? "",
+    params.city ?? "",
+    params.siteName ?? "",
+    params.contractOfferId ?? "",
+    params.contractStartDate ?? "",
+    params.expectedStartDate ?? "",
+    params.duplicateResolution ?? "",
+    params.existingCustomerId ?? "",
+  ].join("|");
+  const digest = createHash("sha256").update(identity).digest("hex");
+  return `customer_create:${params.companyId}:${digest}`;
+}
+
 export async function createCustomerAction(
   _prevState: IntakeActionState,
   formData: FormData,
@@ -3491,6 +3649,62 @@ export async function createCustomerAction(
     const companyId = await requireOperationalCompanyId(actorUserId);
     await requireCompanyOperationalForWrites(companyId);
     let params = buildCreateCustomerParams(formData, actorUserId, companyId);
+
+    const idempotencyKey = buildAdminIntakeIdempotencyKey(params);
+    const { intake } = await getOrCreateCustomerApplicationIntake({
+      companyId,
+      apiClientId: null,
+      route: ADMIN_INTAKE_ROUTE,
+      method: "create",
+      idempotencyKey,
+      payload: { idempotencyKey },
+    });
+
+    if (intake && intake.status === "completed") {
+      const storedResult =
+        intake.result && typeof intake.result === "object"
+          ? (intake.result as Record<string, unknown>)
+          : {};
+      return {
+        status: "success",
+        message:
+          "Denna intagning är redan registrerad (idempotent återuppspelning). Ingen ny kund skapades.",
+        fieldErrors: {},
+        values: { country: "SE" },
+        createdCustomerId:
+          (typeof intake.customer_id === "string" ? intake.customer_id : null) ??
+          (typeof storedResult.customer_id === "string"
+            ? (storedResult.customer_id as string)
+            : null),
+        createdSiteId:
+          typeof storedResult.created_site_id === "string"
+            ? (storedResult.created_site_id as string)
+            : null,
+        createdMeteringPointId:
+          typeof storedResult.created_metering_point_id === "string"
+            ? (storedResult.created_metering_point_id as string)
+            : null,
+        duplicateWarnings: [],
+        duplicateReviewRequired: false,
+      };
+    }
+
+    if (
+      intake &&
+      intake.status !== "failed" &&
+      intake.status !== "completed" &&
+      Date.now() - new Date(intake.updated_at).getTime() <
+        ADMIN_INTAKE_IN_PROGRESS_STALE_MS
+    ) {
+      return {
+        status: "error",
+        message:
+          "En identisk intagning bearbetas redan. Vänta en stund och kontrollera kundlistan innan du försöker igen.",
+        fieldErrors: {},
+        values: getFormValues(formData),
+        createdCustomerId: null,
+      };
+    }
 
     const gridOwnerResolution = await resolveOrCreateGridOwnerForIntake({
       formData,
@@ -3517,7 +3731,38 @@ export async function createCustomerAction(
       currentSupplierOrgNumber: supplierResolution.orgNumber,
     };
 
-    const customer = await createCustomerGraph(params);
+    let customer: CustomerGraphResult;
+    try {
+      customer = await createCustomerGraph(params);
+    } catch (graphError) {
+      if (intake) {
+        await failCustomerApplicationIntake({
+          intakeId: intake.id,
+          companyId,
+          errorMessage:
+            graphError instanceof Error
+              ? graphError.message
+              : String(graphError),
+        }).catch(() => undefined);
+      }
+      throw graphError;
+    }
+
+    if (intake) {
+      await completeCustomerApplicationIntake({
+        intakeId: intake.id,
+        companyId,
+        customerId: typeof customer.id === "string" ? customer.id : null,
+        result: {
+          customer_id: customer.id ?? null,
+          customer_number: customer.customer_number ?? null,
+          created_site_id: customer.__createdSiteId ?? null,
+          created_metering_point_id: customer.__createdMeteringPointId ?? null,
+          created_power_of_attorney_id:
+            customer.__createdPowerOfAttorneyId ?? null,
+        },
+      }).catch(() => undefined);
+    }
 
     revalidatePath("/admin/customers");
     revalidatePath("/admin/customers/intake");

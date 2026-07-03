@@ -336,6 +336,7 @@ export async function listPortalInvoices(context: PortalCustomerContext, route =
       .select('id,billing_underlay_id,status,total_ex_vat,vat_amount,total_inc_vat,billing_period_start,billing_period_end,created_at')
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
+      .in('status', ['success', 'locked'])
       .order('created_at', { ascending: false })
       .limit(100) as ListResult,
   ])

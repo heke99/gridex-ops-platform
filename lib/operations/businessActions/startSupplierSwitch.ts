@@ -6,6 +6,10 @@ import {
   buildBusinessActionIdempotencyKey,
 } from '@/lib/operations/businessActions/idempotency'
 import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchScheduler'
+import {
+  checkSupplierSwitchReadiness,
+  persistSwitchReadinessSnapshot,
+} from '@/lib/customer-operations/switchReadiness'
 import { supabaseService } from '@/lib/supabase/service'
 
 export async function startSupplierSwitch(input: {
@@ -24,12 +28,13 @@ export async function startSupplierSwitch(input: {
   // active switch, and no unresolved negative ACK.
   const { data: switchRow } = await supabaseService
     .from('supplier_switch_requests')
-    .select('id,company_id,requested_start_date,status,site_id,metering_point_id')
+    .select('id,company_id,customer_id,requested_start_date,status,site_id,metering_point_id')
     .eq('id', input.switchRequestId)
     .maybeSingle()
   if (switchRow) {
     const row = switchRow as {
       company_id?: string | null
+      customer_id?: string | null
       requested_start_date?: string | null
       status?: string | null
       site_id?: string | null
@@ -50,6 +55,39 @@ export async function startSupplierSwitch(input: {
         decision,
         schedule,
         message: schedule.blockers[0]?.message ?? 'Leverantörsbytet kan inte skickas ännu.',
+      }
+    }
+
+    // Unified readiness re-validation before dispatch: site data, POA, grid
+    // owner verification, EDIEL route and lifecycle blocks in one gate. The
+    // snapshot is persisted on the switch request as proof of what was checked.
+    const readinessCompanyId = row.company_id ?? preflight.companyId ?? null
+    const readinessSiteId = row.site_id ?? preflight.siteId ?? input.siteId ?? null
+    if (readinessCompanyId && readinessSiteId) {
+      const readiness = await checkSupplierSwitchReadiness({
+        companyId: readinessCompanyId,
+        customerId: row.customer_id ?? input.customerId,
+        siteId: readinessSiteId,
+        switchRequestId: input.switchRequestId,
+        requestedStartDate: row.requested_start_date ?? null,
+        // Manual/admin dispatch: normal-priority data gaps (current supplier,
+        // move-in date) warn instead of block; critical gaps still block.
+        treatNormalIssuesAsBlockers: false,
+      })
+      await persistSwitchReadinessSnapshot({
+        switchRequestId: input.switchRequestId,
+        companyId: readinessCompanyId,
+        snapshot: readiness.readinessSnapshot,
+      }).catch(() => undefined)
+      if (!readiness.ready) {
+        return {
+          ok: false,
+          preflight,
+          decision,
+          readiness,
+          message:
+            readiness.blockers[0]?.message ?? 'Leverantörsbytet är inte redo att skickas.',
+        }
       }
     }
   }

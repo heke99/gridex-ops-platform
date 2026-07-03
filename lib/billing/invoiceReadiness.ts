@@ -1,4 +1,8 @@
 import { supabaseService } from '@/lib/supabase/service'
+import {
+  companyAllowsEstimatedMeteringValues,
+  evaluateMeteringCompletenessForMonth,
+} from '@/lib/metering/validation'
 
 export type InvoiceReadinessStatus = 'ready' | 'blocked'
 export type BillingPeriodLockStatus = 'open' | 'locked' | 'exported' | 'closed' | 'reopened'
@@ -27,6 +31,8 @@ function isMissingRelationError(error: unknown): boolean {
     maybe &&
       (maybe.code === '42P01' ||
         maybe.code === '42703' ||
+        maybe.code === '42883' ||
+        maybe.code === 'PGRST202' ||
         maybe.code === 'PGRST204' ||
         maybe.code === 'PGRST205' ||
         /does not exist|schema cache|relation .* does not exist|column .* does not exist/i.test(maybe.message ?? ''))
@@ -179,6 +185,16 @@ export async function unlockBillingPeriod(input: {
     .in('lock_scope', ['billing_period', 'invoice_export'])
     .then(() => null)
 
+  // Locked pricing runs are DB-trigger protected; the only supported unlock path
+  // is this audited RPC. Tolerate its absence until Migration B has been applied.
+  const unlockRuns = await supabaseService.rpc('gridex_unlock_pricing_runs_for_month', {
+    p_company_id: input.companyId,
+    p_billing_month: billingMonth,
+    p_actor_user_id: input.actorUserId ?? null,
+    p_reason: input.reason ?? 'billing_period_unlocked',
+  })
+  if (unlockRuns.error && !isMissingRelationError(unlockRuns.error)) throw unlockRuns.error
+
   return data
 }
 
@@ -216,7 +232,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
 
   const underlayResult = await supabaseService
     .from('billing_underlays')
-    .select('id,status,readiness_status,total_kwh,contract_id,pricing_snapshot_id,calculated_total_sek_inc_vat')
+    .select('id,status,readiness_status,total_kwh,contract_id,pricing_snapshot_id,calculated_total_sek_inc_vat,metering_point_id')
     .eq('company_id', input.companyId)
     .eq('underlay_year', year)
     .eq('underlay_month', month)
@@ -242,6 +258,33 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   const missingSnapshot = underlays.filter((row) => !row.contract_id || !row.pricing_snapshot_id)
   if (missingSnapshot.length > 0) {
     issues.push({ code: 'missing_contract_or_snapshot', message: `${missingSnapshot.length} underlag saknar avtal eller prissnapshot.`, severity: 'blocked' })
+  }
+
+  // Metering completeness gate: final invoicing requires complete,
+  // non-overlapping and (unless the tenant explicitly allows it) non-estimated
+  // metering coverage for every billed metering point in the period.
+  let meteringCompleteness: Awaited<ReturnType<typeof evaluateMeteringCompletenessForMonth>> | null = null
+  const meteringPoints = underlays
+    .map((row) => ({
+      meteringPointId: typeof row.metering_point_id === 'string' ? row.metering_point_id : '',
+      expectedKwh: typeof row.total_kwh === 'number' ? row.total_kwh : typeof row.total_kwh === 'string' ? Number(row.total_kwh) : null,
+    }))
+    .filter((entry) => entry.meteringPointId)
+  if (meteringPoints.length > 0) {
+    const allowEstimated = await companyAllowsEstimatedMeteringValues(input.companyId)
+    meteringCompleteness = await evaluateMeteringCompletenessForMonth({
+      companyId: input.companyId,
+      billingMonth,
+      meteringPoints,
+      allowEstimatedValues: allowEstimated,
+    })
+    for (const issue of meteringCompleteness.issues) {
+      issues.push({
+        code: issue.code,
+        message: issue.meteringPointId ? `${issue.message} (mätpunkt ${issue.meteringPointId})` : issue.message,
+        severity: issue.severity,
+      })
+    }
   }
 
   const totalKwh = underlays.reduce((sum, row) => {
@@ -273,6 +316,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     readyUnderlayCount: underlays.length - blockedUnderlays.length,
     pricedUnderlayCount: underlays.length - missingPricing.length,
     totalKwh,
+    meteringCompleteness,
     issues,
   }
 }
