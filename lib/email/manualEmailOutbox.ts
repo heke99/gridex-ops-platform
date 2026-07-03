@@ -156,6 +156,39 @@ async function markLinkedRequestFailed(
     .then(() => undefined, () => undefined)
 }
 
+const STALE_SENDING_MINUTES = 15
+
+// Recovery for worker crashes: a row claimed as 'sending' whose lock is older
+// than STALE_SENDING_MINUTES is moved to 'delivery_uncertain' (the provider may
+// already have accepted the send, so it must NEVER be auto-resent). Mirrors the
+// tenant email outbox semantics. Degrades to a no-op before migration
+// 20260703120000 widens the status CHECK constraint.
+async function recoverStaleManualSendingRows(companyId: string | null): Promise<void> {
+  const cutoff = new Date(Date.now() - STALE_SENDING_MINUTES * 60 * 1000).toISOString()
+  const now = new Date().toISOString()
+  let staleQuery = supabaseService
+    .from('manual_email_outbox')
+    .update({
+      status: 'delivery_uncertain',
+      last_error: 'delivery_uncertain_after_stale_sending_lock',
+      last_error_code: 'delivery_uncertain',
+      delivery_uncertain_at: now,
+      locked_at: null,
+      locked_by: null,
+      updated_at: now,
+    })
+    .eq('status', 'sending')
+    .lt('locked_at', cutoff)
+  if (companyId) staleQuery = staleQuery.eq('company_id', companyId)
+
+  const { error } = await staleQuery
+  if (error && !missingSchema(error)) {
+    // Constraint not widened yet (pre-migration) or transient failure: leave
+    // rows untouched rather than corrupting status.
+    console.warn('manual_email_outbox stale sending recovery skipped:', error.message)
+  }
+}
+
 export async function processManualEmailOutbox(input?: {
   companyId?: string | null
   limit?: number
@@ -163,6 +196,8 @@ export async function processManualEmailOutbox(input?: {
   const limit = Math.min(Math.max(Number(input?.limit ?? 25) || 25, 1), 100)
   const result: ProcessManualEmailOutboxResult = { scanned: 0, claimed: 0, sent: 0, failed: 0, skipped: 0, errors: [] }
   const workerId = `manual-email:${randomUUID()}`
+
+  await recoverStaleManualSendingRows(clean(input?.companyId))
 
   let query = supabaseService
     .from('manual_email_outbox')
