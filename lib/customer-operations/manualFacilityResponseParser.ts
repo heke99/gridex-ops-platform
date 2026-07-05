@@ -37,12 +37,6 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function missingSchema(error: unknown): boolean {
-  const code = String((error as { code?: unknown } | null)?.code ?? '')
-  const message = String((error as { message?: unknown } | null)?.message ?? '')
-  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist/i.test(message)
-}
-
 const PRICE_AREAS = new Set(['SE1', 'SE2', 'SE3', 'SE4'])
 
 // Swedish facility/anläggnings-id (GSRN) is an 18-digit numeric, commonly

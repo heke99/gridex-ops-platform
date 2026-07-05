@@ -102,7 +102,10 @@ const parser = read('lib/customer-operations/manualFacilityResponseParser.ts')
 ok(parser.includes('needs_review') && parser.includes("outcome: 'applied'"), 'parser supports both safe apply and needs_review outcomes')
 ok(parser.includes('protected_identity'), 'parser blocks auto-apply for protected identity')
 ok(parser.includes('manually_verified_by_grid_owner'), 'parser marks facility data as manually verified by grid owner')
-ok(parser.includes('evaluateAndRunNextCustomerStep'), 'parser triggers the next-step engine after a safe apply')
+// The parser now routes safe applies through the ONE canonical facility
+// completion path (completeFacilityLookupAndRunNextSteps), which clears
+// blockers, refreshes the intake orchestrator and runs the next-step engine.
+ok(parser.includes('completeFacilityLookupAndRunNextSteps'), 'parser triggers the canonical completion + next-step engine after a safe apply')
 ok(parser.includes('isValidFacilityId') && parser.includes('confidence'), 'parser validates facility id format + confidence before applying')
 
 // 11) Tenant UI (Swedish operational status, channel, case_reference, POA) — no technical Ediel detail.
