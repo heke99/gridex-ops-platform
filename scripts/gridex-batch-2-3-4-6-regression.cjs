@@ -50,7 +50,9 @@ const portalApi = read('lib/customer-portal/apiData.ts')
 assert(portalApi.includes('external_customer_id krävs'), 'Batch 6 external customer id guard missing')
 assert(portalApi.includes('tenant_portal_customer_links'), 'Batch 6 portal link resolution missing')
 assert(portalApi.includes('customer_portal_api_access_logs'), 'Batch 6 portal access audit missing')
-const externalSync = read('lib/customer-portal/externalSync.ts')
+// externalSync.ts was removed (dead legacy path); the live identity linking
+// happens in customerResolver.ts.
+const externalSync = read('lib/customer-portal/customerResolver.ts')
 assert(externalSync.includes('customer_portal_identities'), 'Batch 6 sync must create portal identity rows')
 
 const contractsRoute = read('app/api/v1/customer/contracts/route.ts')

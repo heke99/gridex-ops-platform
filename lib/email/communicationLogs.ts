@@ -225,18 +225,33 @@ export async function markCommunicationBounced(logId: string, errorMessage: stri
 }
 
 export async function markCommunicationComplained(logId: string, errorMessage: string, occurredAt: string) {
+  // Complaints get their own timestamp — bounced_at must only ever mean
+  // bounce, otherwise reporting conflates the two failure modes.
   const { data, error } = await supabaseService
     .from('communication_logs')
     .update({
       status: 'complained',
       error_message: errorMessage,
-      bounced_at: occurredAt,
+      complained_at: occurredAt,
     })
     .eq('id', logId)
     .select('*')
     .single()
 
-  if (error) throw error
+  if (error) {
+    // Pre-migration schema without complained_at: keep the status transition.
+    if (error.code === '42703' || error.code === 'PGRST204') {
+      const { data: fallback, error: fallbackError } = await supabaseService
+        .from('communication_logs')
+        .update({ status: 'complained', error_message: errorMessage })
+        .eq('id', logId)
+        .select('*')
+        .single()
+      if (fallbackError) throw fallbackError
+      return fallback as CommunicationLog
+    }
+    throw error
+  }
   return data as CommunicationLog
 }
 

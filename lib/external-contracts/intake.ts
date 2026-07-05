@@ -1,3 +1,12 @@
+// Purpose separation (flow consolidation decision):
+// The OPS-hosted public form (/teckna-avtal) is a MANUAL-REVIEW intake — it
+// creates draft customers/contracts plus a review task, and every submission
+// must pass an operator before any operational flow starts. Tenant websites
+// integrate through the canonical website API
+// (lib/website/customerApplications.ts), which owns published offers, legal
+// acceptances, POA and price snapshots. This module must never grow into a
+// second automated signup pipeline; if /teckna-avtal ever needs automated
+// provisioning it has to call the canonical processor instead.
 import { createHash } from "crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import {

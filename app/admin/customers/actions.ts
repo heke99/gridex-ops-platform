@@ -3860,7 +3860,7 @@ async function insertImportRow(params: {
   importBatchId: string | null | undefined;
   companyId: string;
   rowNumber: number;
-  status: CustomerImportPreviewRowStatus | "failed";
+  status: CustomerImportPreviewRowStatus | "failed" | "skipped";
   row: Record<string, string>;
   customerId?: string | null;
   errorMessage?: string | null;
@@ -4570,8 +4570,82 @@ export async function bulkCreateCustomersAction(formData: FormData) {
         continue;
       }
 
-      const customer = await createCustomerGraph(params);
+      // Per-row intake idempotency: re-running the same import (double
+      // submission, retry after partial failure) must never create the same
+      // customer twice. Same ledger as the single-intake form.
+      const idempotencyKey = buildAdminIntakeIdempotencyKey(params);
+      const { intake: rowIntake } = await getOrCreateCustomerApplicationIntake({
+        companyId,
+        apiClientId: null,
+        route: "admin/customers/import",
+        method: "create",
+        idempotencyKey,
+        payload: { idempotencyKey, importBatchId: importBatch?.id ?? null, rowNumber },
+      });
+
+      if (rowIntake && rowIntake.status === "completed") {
+        const storedResult =
+          rowIntake.result && typeof rowIntake.result === "object"
+            ? (rowIntake.result as Record<string, unknown>)
+            : {};
+        const existingCustomerId =
+          (typeof rowIntake.customer_id === "string" ? rowIntake.customer_id : null) ??
+          (typeof storedResult.customer_id === "string" ? (storedResult.customer_id as string) : null);
+        review += 1;
+        await insertImportRow({
+          importBatchId: importBatch?.id,
+          companyId,
+          rowNumber,
+          status: "skipped",
+          row,
+          customerId: existingCustomerId,
+          warnings: [...warnings, "Raden är redan importerad (idempotent återuppspelning)."],
+          missingFields,
+          uncertainFields,
+          duplicateWarnings,
+          confidence,
+        });
+        continue;
+      }
+
+      let customer: Awaited<ReturnType<typeof createCustomerGraph>>;
+      try {
+        customer = await createCustomerGraph(params);
+      } catch (graphError) {
+        if (rowIntake) {
+          await failCustomerApplicationIntake({
+            intakeId: rowIntake.id,
+            companyId,
+            errorMessage: graphError instanceof Error ? graphError.message : "Okänt fel",
+          }).catch(() => undefined);
+        }
+        throw graphError;
+      }
       created += 1;
+
+      if (rowIntake) {
+        await completeCustomerApplicationIntake({
+          intakeId: rowIntake.id,
+          companyId,
+          customerId: customer.id,
+          result: { customer_id: customer.id, import_batch_id: importBatch?.id ?? null, row_number: rowNumber },
+        }).catch(() => undefined);
+      }
+
+      // Per-customer audit entry: the batch summary alone cannot answer who
+      // created a specific customer from which import row.
+      await insertAuditLog({
+        actorUserId,
+        companyId,
+        entityType: "customer",
+        entityId: customer.id,
+        action: "customer_created_from_import",
+        metadata: {
+          importBatchId: importBatch?.id ?? null,
+          rowNumber,
+          source: "customer_bulk_import",
+        },
+      }).catch(() => undefined);
 
       await insertImportRow({
         importBatchId: importBatch?.id,
@@ -4684,10 +4758,6 @@ function importUniqueKey(row: Record<string, string>): string {
     row.meter_point_id ||
     ""
   );
-}
-
-function normalizeLookupValue(value: string | null | undefined): string {
-  return (value ?? "").trim().toLowerCase();
 }
 
 function rowValue(row: Record<string, string>, ...keys: string[]): string {
@@ -4856,46 +4926,36 @@ export async function previewCustomerImportAction(
       parsedImport,
     });
 
-    const duplicateKeys = parsedImport.rows
-      .map((row) => normalizeLookupValue(importUniqueKey(row)))
-      .filter(Boolean)
-      .slice(0, 200);
-
-    const existingKeys = new Set<string>();
-    if (duplicateKeys.length > 0) {
-      const { data: existingCustomers } = await supabaseService
-        .from("customers")
-        .select("email,personal_number,org_number")
-        .eq("company_id", companyId)
-        .or(
-          duplicateKeys
-            .flatMap((key) => [
-              `email.ilike.${key}`,
-              `personal_number.eq.${key}`,
-              `org_number.eq.${key}`,
-            ])
-            .join(","),
-        );
-
-      for (const customer of existingCustomers ?? []) {
-        for (const value of [
-          customer.email,
-          customer.personal_number,
-          customer.org_number,
-        ]) {
-          if (value) existingKeys.add(normalizeLookupValue(String(value)));
+    // Preview dedupe uses the SAME canonical matcher as the intake flow
+    // (matchCustomerIdentity), so a row classified ready_to_create here can
+    // never be flagged as a duplicate by the create path.
+    const previewRows = parsedImport.rows.slice(0, 50);
+    const duplicateWarningsByIndex = new Map<number, string[]>();
+    for (let index = 0; index < previewRows.length; index += 1) {
+      const row = previewRows[index];
+      try {
+        const decision = await matchCustomerIdentity({
+          companyId,
+          personalNumber: row.personal_number ?? null,
+          orgNumber: row.org_number ?? null,
+          email: row.email ?? null,
+          phone: row.phone ?? null,
+          select: "id, customer_number, full_name, company_name, email",
+        });
+        if (decision.candidates.length > 0) {
+          duplicateWarningsByIndex.set(index, [
+            "Möjlig dubblett hittades i kundregistret.",
+          ]);
         }
+      } catch (matchError) {
+        if (!databaseObjectMissing(matchError)) throw matchError;
       }
     }
 
-    const rows: CustomerImportPreviewRow[] = parsedImport.rows
-      .slice(0, 50)
+    const rows: CustomerImportPreviewRow[] = previewRows
       .map((row, index) => {
         const uniqueKey = importUniqueKey(row);
-        const duplicateWarnings =
-          uniqueKey && existingKeys.has(normalizeLookupValue(uniqueKey))
-            ? ["Möjlig dubblett hittades i kundregistret."]
-            : [];
+        const duplicateWarnings = duplicateWarningsByIndex.get(index) ?? [];
         const missingFields = importRowMissingFields(row);
         const uncertainFields = importRowUncertainFields(row);
         const warnings = [...importRowWarnings(row), ...duplicateWarnings];

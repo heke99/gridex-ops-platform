@@ -304,8 +304,28 @@ export async function createBillingExportRun(input: {
   periodMonth: string;
   targetSystem: string;
   exportFormat: string;
+  /**
+   * Run-level idempotency (automation callers): when a run with this key
+   * already exists it is returned instead of creating a duplicate. Backed by
+   * ux_billing_export_runs_company_idempotency.
+   */
+  idempotencyKey?: string | null;
 }) {
   await requireCompanyOperationalForWrites(input.companyId);
+
+  const idempotencyKey = input.idempotencyKey?.trim() || null;
+  if (idempotencyKey) {
+    const { data: existingRun, error: existingError } = await supabaseService
+      .from("billing_export_runs")
+      .select("*")
+      .eq("company_id", input.companyId)
+      .eq("idempotency_key", idempotencyKey)
+      .maybeSingle();
+    if (existingError && !["42703", "PGRST204", "PGRST205"].includes(existingError.code ?? "")) {
+      throw existingError;
+    }
+    if (existingRun) return existingRun as BillingExportRunRow;
+  }
 
   const [underlays, meterValues, partnerExports] =
     await Promise.all([
@@ -436,12 +456,26 @@ export async function createBillingExportRun(input: {
       adapter_key: GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
       payload_version: "billing_export_v4c",
       retry_policy: { maxAttempts: 3, strategy: "manual_retry" },
+      idempotency_key: idempotencyKey,
       metadata: { pricingEngine: "pricing_core_v1", partnerAdapter: GRIDEX_BILLING_PARTNER_ADAPTER_KEY },
     })
     .select("*")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // Lost a concurrent race on the idempotency index: reuse the winner.
+    if (idempotencyKey && error.code === "23505") {
+      const { data: winner, error: winnerError } = await supabaseService
+        .from("billing_export_runs")
+        .select("*")
+        .eq("company_id", input.companyId)
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+      if (winnerError) throw winnerError;
+      if (winner) return winner as BillingExportRunRow;
+    }
+    throw error;
+  }
 
   if (items.length > 0) {
     const { data: insertedItems, error: itemError } = await supabaseService
