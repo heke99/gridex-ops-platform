@@ -140,7 +140,9 @@ async function latestGridOwnerInformationRequest(input: { companyId: string; cus
     .select('*')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
-    .eq('request_type', 'facility_lookup')
+    // Both lookup channels count: Ediel ('facility_lookup') and the default
+    // manual e-mail pipeline ('facility_identifier_lookup').
+    .in('request_type', ['facility_lookup', 'facility_identifier_lookup'])
     .order('created_at', { ascending: false })
     .limit(1)
   if (input.siteId) query = query.eq('customer_site_id', input.siteId)

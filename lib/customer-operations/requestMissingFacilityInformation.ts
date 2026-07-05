@@ -288,6 +288,28 @@ async function findOpenManualRequest(input: { companyId: string; siteId: string;
   return (data as JsonRecord | null) ?? null
 }
 
+// Mirror of the Ediel-side guard (lib/energy/gridOwnerRequests.ts): when an
+// Ediel facility lookup is already open for the site, the manual pipeline must
+// not open a second, competing conversation with the grid owner.
+async function findOpenEdielFacilityLookup(input: { companyId: string; siteId: string }) {
+  const { data, error } = await supabaseService
+    .from('grid_owner_information_requests')
+    .select('id,status,request_type,channel')
+    .eq('company_id', input.companyId)
+    .eq('customer_site_id', input.siteId)
+    .eq('request_type', 'facility_lookup')
+    .neq('channel', 'manual_email')
+    .in('status', ['draft', 'ready_to_send', 'sent', 'waiting_response'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+  return (data as JsonRecord | null) ?? null
+}
+
 type ManualEmailAttachment = {
   filename: string
   content: string
@@ -512,6 +534,17 @@ export async function requestMissingFacilityInformation(
 
   const now = new Date().toISOString()
   const requestedFields = ['facility_id', 'metering_point_id', 'grid_area_code', 'annual_consumption', 'current_supplier', 'notice_period', 'current_contract_end_date', 'metering_method', 'reporting_frequency']
+
+  // An open Ediel facility lookup owns the grid-owner conversation for this
+  // site: do not open a parallel manual request.
+  const openEdielLookup = await findOpenEdielFacilityLookup({ companyId: input.companyId, siteId: input.siteId })
+  if (openEdielLookup) {
+    return blocked(
+      'blocked',
+      'ediel_facility_lookup_in_progress',
+      'En Ediel-baserad anläggningsförfrågan pågår redan för anläggningen. Invänta svaret i stället för att skicka en manuell begäran.',
+    )
+  }
 
   // Create or reuse the manual information request (idempotent per open site/type).
   let request = await findOpenManualRequest({ companyId: input.companyId, siteId: input.siteId, requestType })

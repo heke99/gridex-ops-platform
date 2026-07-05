@@ -2,6 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { GridOwnerInformationRequestInput, GridOwnerInformationRequestResult, PriceArea } from '@/lib/energy/types'
 import { normaliseGridAreaCode } from '@/lib/energy/resolver'
 import { evaluateGridOwnerBusinessApproval } from '@/lib/ediel/gridOwnerBusinessApproval'
+import { resolvePlatformGridOwnerByAnyId } from '@/lib/grid-owners/platformGridOwnerResolver'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -84,18 +85,14 @@ async function findContactRoute(input: GridOwnerInformationRequestInput) {
 async function findActorRoute(input: GridOwnerInformationRequestInput) {
   if (!input.gridOwnerId) return null
 
-  const owner = await supabaseService
-    .from('platform_grid_owners')
-    .select('id,name,ediel_id')
-    .eq('id', input.gridOwnerId)
-    .maybeSingle()
+  // input.gridOwnerId can be either a platform_grid_owners.id or an OPS
+  // grid_owners.id (customer_sites store the OPS id) — resolve across both.
+  const owner = await resolvePlatformGridOwnerByAnyId({
+    gridOwnerId: input.gridOwnerId,
+    select: 'id,name,ediel_id',
+  })
 
-  if (owner.error) {
-    if (missingSchema(owner.error)) return null
-    throw owner.error
-  }
-
-  const edielId = clean(owner.data?.ediel_id)
+  const edielId = clean(owner?.ediel_id)
   if (!edielId) return null
 
   const identifier = await supabaseService
@@ -381,79 +378,6 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
   }
 }
 
-export async function markFacilityDataReceived(input: {
-  companyId: string
-  customerId?: string | null
-  customerSiteId?: string | null
-  customerApplicationId?: string | null
-  requestId?: string | null
-  facilityId?: string | null
-  meteringPointId?: string | null
-  receivedPayload?: Record<string, unknown>
-  actorUserId?: string | null
-}) {
-  const now = new Date().toISOString()
-  const facilityId = clean(input.facilityId)
-  const meteringPointId = clean(input.meteringPointId)
-
-  if (input.requestId) {
-    const requestResult = await supabaseService
-      .from('grid_owner_information_requests')
-      .update({
-        status: 'received',
-        facility_id: facilityId,
-        metering_point_id: meteringPointId,
-        received_payload: input.receivedPayload ?? {},
-        received_at: now,
-        updated_at: now,
-      })
-      .eq('id', input.requestId)
-      .eq('company_id', input.companyId)
-    if (requestResult.error && !missingSchema(requestResult.error)) throw requestResult.error
-  }
-
-  if (input.customerSiteId) {
-    const siteResult = await supabaseService
-      .from('customer_sites')
-      .update({
-        facility_id: facilityId ?? undefined,
-        facility_data_verified_at: now,
-        updated_at: now,
-      })
-      .eq('id', input.customerSiteId)
-      .eq('company_id', input.companyId)
-    if (siteResult.error && !missingSchema(siteResult.error)) throw siteResult.error
-  }
-
-  if (input.customerSiteId && meteringPointId) {
-    const meterResult = await supabaseService
-      .from('metering_points')
-      .update({ facility_data_verified_at: now, updated_at: now })
-      .eq('company_id', input.companyId)
-      .eq('customer_site_id', input.customerSiteId)
-      .or(`metering_point_id.eq.${meteringPointId},ediel_metering_point_id.eq.${meteringPointId},meter_point_id.eq.${meteringPointId}`)
-    if (meterResult.error && !missingSchema(meterResult.error)) throw meterResult.error
-  }
-
-  const resolutionResult = await supabaseService
-    .from('customer_site_resolution')
-    .update({ resolution_status: 'facility_verified', facility_data_verified_at: now, verified_by: clean(input.actorUserId), updated_at: now })
-    .eq('company_id', input.companyId)
-    .eq('customer_site_id', input.customerSiteId ?? '')
-  if (resolutionResult.error && !missingSchema(resolutionResult.error)) throw resolutionResult.error
-
-  if (input.customerApplicationId) {
-    const appResult = await supabaseService
-      .from('website_customer_applications')
-      .update({ status: 'facility_data_received', facility_data_verified_at: now, updated_at: now })
-      .eq('id', input.customerApplicationId)
-      .eq('company_id', input.companyId)
-    if (appResult.error && !missingSchema(appResult.error)) throw appResult.error
-  }
-
-  return {
-    ok: true,
-    status: 'facility_data_received' as const,
-    nextStep: 'Kör readiness-kontroll. Om fullmakt, avtal, nätområde och startläge är klara kan leverantörsbyte startas.',
-  }
-}
+// The legacy markFacilityDataReceived helper was removed: facility completion
+// has exactly one implementation — completeFacilityLookup in
+// lib/facility/facilityLookupWorkflow.ts (via completeFacilityLookupAndRunNextSteps).

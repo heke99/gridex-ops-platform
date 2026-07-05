@@ -35,22 +35,27 @@ async function findExisting(input: UpsertFacilityMeteringPointInput): Promise<Js
   const meter = text(input.meteringPointId)
   const facility = text(input.facilityId)
 
-  let base = supabaseService
+  // Scope the lookup to the site (both schema aliases) so the match is exact:
+  // an unbounded company-wide read could miss the site's row entirely and
+  // create duplicate metering points.
+  const { data, error } = await supabaseService
     .from('metering_points')
     .select('*')
     .eq('company_id', input.companyId)
-    .limit(10)
+    .or(`site_id.eq.${input.customerSiteId},customer_site_id.eq.${input.customerSiteId}`)
+    .order('created_at', { ascending: false })
+    .limit(50)
 
-  const { data, error } = await base
   if (error) {
     if (isMissingSchema(error)) return null
     throw error
   }
 
-  const rows = ((data ?? []) as JsonRecord[]).filter((row) => {
-    const siteMatches = row.site_id === input.customerSiteId || row.customer_site_id === input.customerSiteId
-    const customerMatches = !row.customer_id || row.customer_id === input.customerId
-    if (!siteMatches || !customerMatches) return false
+  const rows = ((data ?? []) as JsonRecord[]).filter(
+    (row) => !row.customer_id || row.customer_id === input.customerId
+  )
+
+  const identifierMatch = rows.find((row) => {
     const ids = [
       row.id,
       row.meter_point_id,
@@ -62,8 +67,15 @@ async function findExisting(input: UpsertFacilityMeteringPointInput): Promise<Js
     ].map(text)
     return Boolean((meter && ids.includes(meter)) || (facility && ids.includes(facility)))
   })
+  if (identifierMatch) return identifierMatch
 
-  return rows[0] ?? null
+  // A site row that has no metering identifiers yet is the same logical point
+  // waiting for its identifier — upgrade it instead of inserting a duplicate.
+  const unidentified = rows.find((row) => {
+    const ids = [row.meter_point_id, row.metering_point_id, row.ediel_metering_point_id, row.ediel_reference].map(text)
+    return ids.every((value) => !value)
+  })
+  return unidentified ?? null
 }
 
 function buildBasePayload(input: UpsertFacilityMeteringPointInput): JsonRecord {
@@ -112,6 +124,7 @@ async function safeUpdate(id: string, payload: JsonRecord): Promise<JsonRecord |
       .from('metering_points')
       .update(variant)
       .eq('id', id)
+      .eq('company_id', String(payload.company_id))
       .select('*')
       .maybeSingle()
     if (!error) return (data as JsonRecord | null) ?? null
