@@ -140,6 +140,12 @@ export type CustomerPortalBranding = {
 
 export type CustomerPortalContext = {
   userEmail: string | null
+  /**
+   * The single tenant the portal session is scoped to. A portal session never
+   * mixes data from several companies even when the auth user has linked
+   * customer accounts in more than one tenant.
+   */
+  companyId: string | null
   customerIds: string[]
   customers: CustomerPortalCustomerRow[]
   branding: CustomerPortalBranding
