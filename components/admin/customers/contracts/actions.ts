@@ -552,7 +552,7 @@ export async function updateContractAction(formData: FormData) {
   const { companyId } = await loadCustomerTenantContext(customerId, guard)
   await assertContractTenant({ companyId, customerId, contractId })
 
-  const before = await getCustomerContractById(contractId)
+  const before = await getCustomerContractById(contractId, { companyId })
   if (!before || before.customer_id !== customerId || before.company_id !== companyId) {
     throw new Error('Kundavtalet kunde inte hittas')
   }

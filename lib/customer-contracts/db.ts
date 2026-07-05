@@ -345,12 +345,18 @@ export async function listCustomerIdsByLatestContractBucket(options: {
 
 export async function getCustomerContractById(
   id: string,
+  options: { companyId?: string | null } = {},
 ): Promise<CustomerContractRow | null> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from("customer_contracts")
     .select("*")
-    .eq("id", id)
-    .maybeSingle();
+    .eq("id", id);
+
+  // Fail-closed tenant scoping: callers that know the tenant must pass it so a
+  // contract id from another company can never be read through this helper.
+  if (options.companyId) query = query.eq("company_id", options.companyId);
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) throw error;
   return (data as CustomerContractRow | null) ?? null;
@@ -746,6 +752,17 @@ export async function addCustomerContractEvent(input: {
 
   if (error) throw error;
 
+  // Contract status side effects always stay inside the event's tenant scope
+  // when the caller knows the company.
+  const scopedContractUpdate = (patch: Record<string, unknown>) => {
+    let query = supabaseService
+      .from("customer_contracts")
+      .update(patch)
+      .eq("id", input.customerContractId);
+    if (input.companyId) query = query.eq("company_id", input.companyId);
+    return query;
+  };
+
   if (input.eventType === "signed" || input.eventType === "activated") {
     const patch =
       input.eventType === "activated"
@@ -759,55 +776,48 @@ export async function addCustomerContractEvent(input: {
             updated_by: input.actorUserId ?? null,
           };
 
-    const { error: updateError } = await supabaseService
-      .from("customer_contracts")
-      .update(patch)
-      .eq("id", input.customerContractId);
+    const { error: updateError } = await scopedContractUpdate(patch);
 
     if (updateError) throw updateError;
   }
 
   if (input.eventType === "terminated" || input.eventType === "cancelled") {
-    const { error: updateError } = await supabaseService
-      .from("customer_contracts")
-      .update({
-        status: input.eventType === "terminated" ? "terminated" : "cancelled",
-        updated_by: input.actorUserId ?? null,
-      })
-      .eq("id", input.customerContractId);
+    const { error: updateError } = await scopedContractUpdate({
+      status: input.eventType === "terminated" ? "terminated" : "cancelled",
+      updated_by: input.actorUserId ?? null,
+    });
 
     if (updateError) throw updateError;
   }
 
   if (input.eventType === "termination_notice_received") {
-    const { data: current, error: currentError } = await supabaseService
+    let currentQuery = supabaseService
       .from("customer_contracts")
       .select(
         "starts_at, ends_at, binding_months, notice_months, status, auto_renew_enabled, auto_renew_term_months, termination_reason",
       )
-      .eq("id", input.customerContractId)
-      .maybeSingle();
+      .eq("id", input.customerContractId);
+    if (input.companyId) currentQuery = currentQuery.eq("company_id", input.companyId);
+
+    const { data: current, error: currentError } = await currentQuery.maybeSingle();
 
     if (currentError) throw currentError;
 
-    const { error: updateError } = await supabaseService
-      .from("customer_contracts")
-      .update({
-        termination_notice_date: eventPayload.happened_at,
-        ends_at: deriveContractEndsAt({
-          startsAt: current?.starts_at ?? null,
-          endsAt: current?.ends_at ?? null,
-          bindingMonths: current?.binding_months ?? null,
-          noticeMonths: current?.notice_months ?? null,
-          terminationNoticeDate: eventPayload.happened_at,
-          terminationReason: current?.termination_reason ?? null,
-          autoRenewEnabled: current?.auto_renew_enabled ?? null,
-          autoRenewTermMonths: current?.auto_renew_term_months ?? null,
-          status: current?.status ?? null,
-        }),
-        updated_by: input.actorUserId ?? null,
-      })
-      .eq("id", input.customerContractId);
+    const { error: updateError } = await scopedContractUpdate({
+      termination_notice_date: eventPayload.happened_at,
+      ends_at: deriveContractEndsAt({
+        startsAt: current?.starts_at ?? null,
+        endsAt: current?.ends_at ?? null,
+        bindingMonths: current?.binding_months ?? null,
+        noticeMonths: current?.notice_months ?? null,
+        terminationNoticeDate: eventPayload.happened_at,
+        terminationReason: current?.termination_reason ?? null,
+        autoRenewEnabled: current?.auto_renew_enabled ?? null,
+        autoRenewTermMonths: current?.auto_renew_term_months ?? null,
+        status: current?.status ?? null,
+      }),
+      updated_by: input.actorUserId ?? null,
+    });
 
     if (updateError) throw updateError;
   }

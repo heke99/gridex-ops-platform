@@ -2377,6 +2377,7 @@ function calculateIntakeQualityScore(
 }
 
 async function updateCustomerIntakeQuality(params: {
+  companyId: string;
   customerId: string;
   missingData: string[];
   qualityScore: number;
@@ -2398,7 +2399,8 @@ async function updateCustomerIntakeQuality(params: {
     const { error } = await supabaseService
       .from("customers")
       .update(payload)
-      .eq("id", params.customerId);
+      .eq("id", params.customerId)
+      .eq("company_id", params.companyId);
 
     if (error && !databaseObjectMissing(error) && error.code !== "42703") {
       console.warn("Customer intake quality could not be updated", error);
@@ -3448,6 +3450,7 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
     });
 
     await updateCustomerIntakeQuality({
+      companyId: params.companyId,
       customerId: customer.id,
       missingData,
       qualityScore: intakeQualityScore,
