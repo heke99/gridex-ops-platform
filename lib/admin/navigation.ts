@@ -52,7 +52,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kund, intag och avtal',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
-      { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/external-contract-intakes', description: 'Externa kundansökningar från hemsida/API', pageKey: 'customers.list' },
+      { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/website-applications', description: 'Externa kundansökningar från hemsida/API', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, avtal och anläggning', pageKey: 'customers.intake' },
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Kund-/anläggningsuppgifter och kompletteringar', pageKey: 'customer.info_requests' },
       { key: 'facility_requests', label: 'Anläggningsuppgifter', href: '/admin/facility-requests', description: 'Saknade anläggnings-ID, mätpunkter och nätägaruppgifter', pageKey: 'operations.tasks' },
@@ -78,9 +78,18 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     title: 'Inställningar',
     description: 'Bolagets egna inställningar',
     items: [
-      { key: 'network_owners.company_mode', label: 'Nätägare', href: '/admin/network-owners', description: 'Central verifiering av nätägare, routes, subadresser och certifikat', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'company_settings', label: 'Inställningar', href: '/admin/company-settings', description: 'Kontaktuppgifter och bolagsprofil', pageKey: 'company.settings' },
       { key: 'audit', label: 'Revisionslogg', href: '/admin/audit', description: 'Spårbarhet för behörigt scope', pageKey: 'audit.log' },
+    ],
+  },
+  {
+    key: 'whitelabel',
+    title: 'White-label',
+    description: 'Egna bolag, go-live och aktörstester',
+    items: [
+      { key: 'whitelabel.companies', label: 'Mina bolag', href: '/admin/whitelabel/companies', description: 'Bolag under din white-label-plattform', requiredPermissions: ['whitelabel.read'] },
+      { key: 'whitelabel.go_live', label: 'Go-live', href: '/admin/whitelabel/go-live', description: 'Produktionsförberedelser per bolag', requiredPermissions: ['whitelabel.read'] },
+      { key: 'whitelabel.actor_testing', label: 'Aktörstester', href: '/admin/whitelabel/actor-testing', description: 'Teststatus för dina bolag', requiredPermissions: ['whitelabel.read'] },
     ],
   },
 ]
@@ -115,7 +124,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kundregister, intag och prisvillkor',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
-      { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/external-contract-intakes', description: 'Externa kundansökningar från hemsida/API, blockerare och redo-kontroll', pageKey: 'customers.list' },
+      { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/website-applications', description: 'Externa kundansökningar från hemsida/API, blockerare och redo-kontroll', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, anläggning och fullmakt', pageKey: 'customers.intake' },
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog och kampanjer', pageKey: 'contracts.catalog' },
       { key: 'pricing', label: 'Prismotor', href: '/admin/pricing', description: 'Påslag, avgifter och komponentregler', pageKey: 'pricing.engine' },
@@ -132,6 +141,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'metering', label: 'Mätvärdesåtkomst', href: '/admin/metering', description: 'Mätvärden och tillstånd', pageKey: 'metering.workspace' },
       { key: 'analytics', label: 'Analytics', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag och exportberedskap', pageKey: 'billing.workspace' },
+      { key: 'partner_exports', label: 'Partnerexporter', href: '/admin/partner-exports', description: 'Exportkö och status mot faktureringspartner', pageKey: 'partner_exports.workspace' },
       { key: 'data_quality', label: 'Datakvalitet', href: '/admin/data-quality', description: 'Datakvalitet, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
     ],
   },
@@ -166,6 +176,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'grid_owner_agreements', label: 'Nätägaravtal', href: '/admin/agreements/grid-owners', description: 'Avtal och referenskrav per nätägare', platformOnly: true },
       { key: 'ediel_settings', label: 'Application Reference', href: '/admin/ediel/settings', description: 'Aktörsidentitet, subadresser och regler', pageKey: 'ediel.routes', platformOnly: true },
       { key: 'platform_runtime', label: 'Routebeslut', href: '/admin/platform/ediel/runtime', description: 'Beslutslogg och skyddsregler', pageKey: 'platform.ediel.runtime', platformOnly: true },
+      { key: 'partner_routes', label: 'Partnerroutes (CIS)', href: '/admin/integrations/routes', description: 'Kommunikationsvägar för partner-/CIS-integrationer', platformOnly: true },
     ],
   },
   {
@@ -175,6 +186,8 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     items: [
       { key: 'inbound_mail.workspace', label: 'Mailboxar', href: '/admin/inbound-mail', description: 'Inkommande mail, parserresultat och osäkra matchningar', platformOnly: true },
       { key: 'inbound_mail.diagnostics', label: 'Diagnostik', href: '/admin/inbound-mail/diagnostics', description: 'Smoke tests för parser, tabeller och cron-secret', platformOnly: true },
+      { key: 'manual_mailboxes', label: 'Manuella mailboxar', href: '/admin/manual-mailboxes', description: 'Avsändaradresser för manuell nätägarkommunikation (leverantörsbyte@)', platformOnly: true },
+      { key: 'manual_requests', label: 'Manuella förfrågningar', href: '/admin/manual-requests', description: 'Diagnostik för manuella nätägarförfrågningar, utkorg och inkommande svar', platformOnly: true },
       { key: 'outbound_unresolved', label: 'Osäkra matchningar', href: '/admin/outbound/unresolved', description: 'Meddelanden som kräver manuell granskning', pageKey: 'outbound.unresolved' },
     ],
   },
@@ -186,6 +199,8 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'roles', label: 'RBAC', href: '/admin/roles', description: 'Roller och behörigheter', pageKey: 'roles.catalog', platformOnly: true },
       { key: 'audit', label: 'Audit logs', href: '/admin/audit', description: 'Revision och spårbarhet', pageKey: 'audit.log' },
       { key: 'api_clients', label: 'API-klienter', href: '/admin/platform/api-clients', description: 'Tokens och scopes för Gridex hemsida och externa portaler', pageKey: 'platform.security', platformOnly: true },
+      { key: 'webhook_deliveries', label: 'Webhook-leveranser', href: '/admin/webhooks/deliveries', description: 'Leveranslogg, omsändning och testevent för tenantwebhookar', platformOnly: true },
+      { key: 'white_labels', label: 'White-label-plattformar', href: '/admin/platform/white-labels', description: 'Plattformar, medlemskap och white-label-administratörer', platformOnly: true },
       { key: 'data_cleanup', label: 'Datahantering', href: '/admin/platform/data-cleanup', description: 'Arkivera och rensa testdata säkert', pageKey: 'platform.security', platformOnly: true },
       { key: 'security', label: 'Produktionsskydd', href: '/admin/platform/security', description: 'Tenant-isolering och systemdiagnostik', pageKey: 'platform.security', platformOnly: true },
       { key: 'system_health', label: 'Systemstatus', href: '/admin/system-health', description: 'Driftstatus för API, Ediel, webhooks, routes och fakturering', pageKey: 'platform.security', platformOnly: true },

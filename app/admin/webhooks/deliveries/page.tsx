@@ -26,7 +26,10 @@ function payloadString(payload: Record<string, unknown> | null | undefined, key:
 }
 
 export default async function WebhookDeliveriesPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
-  const access = await requireAdminPageAccess({ anyOf: ['customers.read', 'billing_underlay.read', 'customers.write'] })
+  // Webhook deliveries are an integration surface (payloads, endpoints,
+  // signatures) — only users with the integrations permissions should see it,
+  // not every operator with customer read access.
+  const access = await requireAdminPageAccess({ anyOf: ['integrations.read', 'integrations.write'] })
   const tenantScope = await resolveAdminTenantReadScope(access)
   const resolved = searchParams ? await searchParams : {}
   const status = typeof resolved.status === 'string' ? resolved.status : null

@@ -384,9 +384,11 @@ export function buildDocumentTimelineItems(params: {
         })
       }
       if (switchEdielMessageId) {
+        // Tenant-accessible business message view (never the platform-only
+        // Ediel workspace).
         links.push({
-          label: `Marknadsmeddelande ${switchEdielMessageId}`,
-          href: '/admin/ediel/messages',
+          label: 'Meddelande till nätägaren',
+          href: '/admin/messages',
         })
       }
 

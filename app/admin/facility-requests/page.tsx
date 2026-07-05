@@ -137,7 +137,7 @@ function EmptyState() {
 }
 
 
-function FacilityLookupRequestCard({ request }: { request: FacilityLookupRequestRow }) {
+function FacilityLookupRequestCard({ request, showTechnicalLinks = false }: { request: FacilityLookupRequestRow; showTechnicalLinks?: boolean }) {
   const missingFields = normalizeRequestedFields(request.requested_fields).filter((field) => {
     if (field === 'facility_id') return !request.facility_id
     if (field === 'metering_point_id') return !request.metering_point_id
@@ -210,7 +210,8 @@ function FacilityLookupRequestCard({ request }: { request: FacilityLookupRequest
             <div className="mt-3 flex flex-wrap gap-2">
               <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800">Spara uppgifter</button>
               {request.customer_id ? <Link href={`/admin/customers/${request.customer_id}?tab=data-requests`} className="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-900 hover:bg-white">Öppna kund</Link> : null}
-              <Link href="/admin/ediel/route-readiness" className="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-900 hover:bg-white">Route readiness</Link>
+              {/* Route readiness är en plattformsteknisk vy — visas aldrig för tenantoperatörer. */}
+              {showTechnicalLinks ? <Link href="/admin/ediel/route-readiness" className="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-900 hover:bg-white">Route readiness</Link> : null}
             </div>
           </form>
         </div>
@@ -350,7 +351,7 @@ export default async function FacilityRequestsPage() {
               <p className="mt-1 text-sm text-slate-600">Hantera manuell skickning och registrera svar från nätägaren. Inga Ediel- eller SMTP-utskick sker från dessa knappar.</p>
             </div>
             <div className="grid gap-4">
-              {facilityRequests.map((request) => <FacilityLookupRequestCard key={request.id} request={request} />)}
+              {facilityRequests.map((request) => <FacilityLookupRequestCard key={request.id} request={request} showTechnicalLinks={isPlatformAdmin} />)}
             </div>
           </section>
         ) : null}

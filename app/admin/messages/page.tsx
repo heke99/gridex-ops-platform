@@ -3,6 +3,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess, isPlatformAdminContext } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { supabaseService } from '@/lib/supabase/service'
+import { gridexBusinessMessageLabel } from '@/lib/ediel/businessLabels'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 export const dynamic = 'force-dynamic'
@@ -396,7 +397,13 @@ export default async function MessagesPage({ searchParams }: PageProps) {
               const isFailed = row.status === 'failed'
               const isZ01 = (row.request_type ?? '').startsWith('customer_masterdata') ||
                 (String(row.message_family ?? '').toUpperCase() === 'PRODAT' && String(row.message_code ?? '').toUpperCase() === 'Z01')
-              const typeLabel = isZ01 ? 'Uppgiftsbegäran / PRODAT Z01' : (row.request_type ?? 'Outbound')
+              const typeLabel = isZ01
+                ? isPlatformAdmin
+                  ? 'Uppgiftsbegäran / PRODAT Z01'
+                  : 'Uppgiftsbegäran till nätägare'
+                : isPlatformAdmin
+                  ? (row.request_type ?? 'Outbound')
+                  : 'Utgående kommunikation'
               return (
                 <div
                   key={`outbound-${row.id}`}
@@ -451,7 +458,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <Pill text="Uppgiftsbegäran" tone="border-orange-200 bg-orange-100 text-orange-800" />
-                      <Pill text={row.request_scope ?? 'PRODAT Z01'} />
+                      {isPlatformAdmin ? <Pill text={row.request_scope ?? 'PRODAT Z01'} /> : null}
                       <Pill text={row.status === 'pending' ? 'Väntar på finalisering' : row.status === 'draft' ? 'Förbereds' : 'I kö'} tone="border-amber-200 bg-amber-100 text-amber-800" />
                     </div>
                     <span className="text-xs text-slate-400">{formatDate(row.created_at)}</span>
@@ -502,7 +509,18 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                         text={directionLabel(message.direction)}
                         tone={directionTone(message.direction)}
                       />
-                      <Pill text={`${message.message_family ?? '—'} ${message.message_code ?? ''}`.trim()} />
+                      {/* Tenants see business language; raw EDIFACT family/code
+                          is a platform-admin detail. */}
+                      <Pill
+                        text={
+                          isPlatformAdmin
+                            ? `${message.message_family ?? '—'} ${message.message_code ?? ''}`.trim()
+                            : gridexBusinessMessageLabel(
+                                { family: message.message_family, code: message.message_code },
+                                'tenant',
+                              )
+                        }
+                      />
                       <Pill
                         text={statusLabel(message.status)}
                         tone={statusTone(message.status)}
