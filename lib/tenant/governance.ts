@@ -18,6 +18,7 @@ export type UserOperationalStatus =
   | 'locked_security'
 
 export type GovernanceEventAction =
+  | 'SUPERADMIN_COMPANY_CREATED'
   | 'SUPERADMIN_COMPANY_PAUSED'
   | 'SUPERADMIN_COMPANY_REACTIVATED'
   | 'SUPERADMIN_COMPANY_SUSPENDED'

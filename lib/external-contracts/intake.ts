@@ -9,6 +9,7 @@
 // provisioning it has to call the canonical processor instead.
 import { createHash } from "crypto";
 import { supabaseService } from "@/lib/supabase/service";
+import { logUsageEvent } from "@/lib/audit/actionLogger";
 import {
   createCustomerContract,
   getContractOfferById,
@@ -813,6 +814,26 @@ export async function createExternalContractIntake(
         updated_at: new Date().toISOString(),
       })
       .eq("id", intakeId);
+
+    // Auditability: the public form previously produced no audit/usage trail
+    // at all. No actor (public submission) — the intake row is the entity.
+    await logUsageEvent({
+      companyId,
+      entityType: "external_contract_intake",
+      entityId: intakeId,
+      eventKey:
+        issues.length > 0
+          ? "external_contract_intake.needs_review"
+          : "external_contract_intake.created",
+      actionLabel: "Ansökan via teckna-avtal",
+      source: "teckna_avtal",
+      metadata: {
+        customer_id: customerId,
+        contract_id: contractId,
+        case_id: caseId,
+        issue_count: issues.length,
+      },
+    });
   } catch (error) {
     await supabaseService
       .from("external_contract_intakes")

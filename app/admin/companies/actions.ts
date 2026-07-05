@@ -411,7 +411,7 @@ export async function createCompanyAction(
     }
 
     await logTenantGovernanceEvent({
-      action: 'SUPERADMIN_COMPANY_REACTIVATED',
+      action: 'SUPERADMIN_COMPANY_CREATED',
       actorUserId,
       companyId: company.id,
       reason: 'Bolag skapades',

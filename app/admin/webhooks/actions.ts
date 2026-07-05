@@ -18,7 +18,7 @@ function redirectBack(path: string, message?: string) {
 export async function sendWebhookTestEventAction(formData: FormData) {
   const companyId = text(formData, 'company_id')
   const subscriptionId = text(formData, 'subscription_id')
-  await requireCompanyScopedActionAccess(companyId, { anyOf: ['integrations.write'] })
+  const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['integrations.write'] })
 
   const event = await emitDomainEvent({
     companyId,
@@ -46,6 +46,7 @@ export async function sendWebhookTestEventAction(formData: FormData) {
 
   await supabaseService.from('audit_logs').insert({
     company_id: companyId,
+    actor_user_id: admin.userId,
     action: 'webhook.test_event_created',
     entity_type: 'webhook_subscription',
     entity_id: subscriptionId || null,

@@ -108,14 +108,17 @@ async function getActor() {
 
 async function insertAuditLog(params: {
   actorUserId: string
+  companyId?: string | null
   entityType: string
   entityId: string
   action: string
   newValues?: unknown
   metadata?: unknown
 }) {
+  // company_id makes the entry visible in the tenant-scoped audit view.
   const { error } = await supabaseService.from('audit_logs').insert({
     actor_user_id: params.actorUserId,
+    company_id: params.companyId ?? null,
     entity_type: params.entityType,
     entity_id: params.entityId,
     action: params.action,
@@ -549,6 +552,7 @@ export async function updatePartnerExportStatusAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId: (saved as { company_id?: string | null }).company_id ?? null,
     entityType: 'partner_export',
     entityId: saved.id,
     action: 'partner_export_status_updated',
