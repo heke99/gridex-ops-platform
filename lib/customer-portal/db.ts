@@ -517,6 +517,59 @@ export async function listPortalCompletions(
   return (data ?? []) as CustomerPortalCompletionRow[]
 }
 
+// Creates the ops case for a portal completion and binds it via
+// linked_case_id. Used by both the native portal UI and the customer portal
+// API (profile-update / move-out) so completions never become dead-end rows.
+export async function createPortalCompletionCase(input: {
+  companyId: string
+  customerId: string
+  siteId?: string | null
+  completionId: string
+  completionType: string
+  payload: Record<string, unknown>
+  source?: string
+}): Promise<string | null> {
+  const { data: caseRow, error: caseError } = await supabaseService
+    .from('customer_cases')
+    .insert({
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      site_id: input.siteId ?? null,
+      case_type: 'technical_blocker',
+      status: 'action_required',
+      priority: 'normal',
+      title:
+        input.completionType === 'move_out'
+          ? 'Kund har anmält utflytt via portalen'
+          : 'Kund har kompletterat uppgifter i portalen',
+      description:
+        'Kunden har skickat in uppgifter via kundportalen som inte kunde tillämpas automatiskt. Granska payload och uppdatera kund/anläggning/mätpunkt innan flödet fortsätter.',
+      reason_category: 'portal_completion',
+      next_action: 'Granska portalkompletteringen och uppdatera rätt masterdatafält.',
+      source: input.source ?? 'customer_portal_api',
+      metadata: { completionId: input.completionId, completionType: input.completionType, payload: input.payload },
+    })
+    .select('id')
+    .maybeSingle()
+
+  if (caseError) {
+    if (missingPortalDataSchema(caseError)) return null
+    throw caseError
+  }
+
+  const caseId = (caseRow as { id?: string } | null)?.id ?? null
+  if (!caseId) return null
+
+  const { error: linkError } = await supabaseService
+    .from('customer_portal_completions')
+    .update({ linked_case_id: caseId, updated_at: new Date().toISOString() })
+    .eq('id', input.completionId)
+    .eq('company_id', input.companyId)
+  if (linkError && !missingPortalDataSchema(linkError)) throw linkError
+
+  return caseId
+}
+
 export async function submitPortalCompletion(input: {
   context: CustomerPortalContext
   customerId: string
@@ -556,37 +609,16 @@ export async function submitPortalCompletion(input: {
 
   const completionId = (completion as { id: string }).id
 
-  const { data: caseRow, error: caseError } = await supabaseService
-    .from('customer_cases')
-    .insert({
-      company_id: companyId,
-      customer_id: input.customerId,
-      case_type: 'technical_blocker',
-      status: 'action_required',
-      priority: 'normal',
-      title: 'Kund har kompletterat uppgifter i portalen',
-      description: 'Kunden har skickat in kompletterande uppgifter. Granska payload och uppdatera kund/anläggning/mätpunkt innan flödet fortsätter.',
-      reason_category: 'portal_completion',
-      next_action: 'Granska portalkompletteringen och uppdatera rätt masterdatafält.',
-      source: 'customer_portal',
-      metadata: { completionId, payload: input.payload },
-    })
-    .select('id')
-    .single()
-
-  if (caseError) throw caseError
-
-  const caseId = (caseRow as { id: string }).id
-
   // Bind the completion to its ops case so operators can navigate both ways
   // and the completion never becomes a dead-end row.
-  const { error: linkError } = await supabaseService
-    .from('customer_portal_completions')
-    .update({ linked_case_id: caseId, updated_at: new Date().toISOString() })
-    .eq('id', completionId)
-    .eq('company_id', companyId)
-
-  if (linkError && !missingPortalDataSchema(linkError)) throw linkError
+  await createPortalCompletionCase({
+    companyId,
+    customerId: input.customerId,
+    completionId,
+    completionType: input.completionType,
+    payload: input.payload,
+    source: 'customer_portal',
+  })
 
   return completionId
 }

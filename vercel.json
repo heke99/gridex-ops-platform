@@ -59,6 +59,22 @@
     {
       "path": "/api/cron/billing/invoice-export-retry",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/analytics/daily",
+      "schedule": "45 3 * * *"
+    },
+    {
+      "path": "/api/cron/analytics/monthly",
+      "schedule": "50 4 1 * *"
+    },
+    {
+      "path": "/api/cron/forecast/run",
+      "schedule": "5 4 * * 1"
+    },
+    {
+      "path": "/api/cron/data-quality/scan",
+      "schedule": "25 3 * * *"
     }
   ]
 }

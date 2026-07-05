@@ -4,6 +4,7 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { humanizeLaunchError, safeCount } from '@/lib/launch/readiness'
 import { supabaseService } from '@/lib/supabase/service'
 import { runProductionConsistencyChecks, type ReconciliationCheckResult } from '@/lib/ops/reconciliation'
+import { requeueUncertainEmailAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +33,42 @@ function Card({ label, value, hint, danger = false }: { label: string; value: nu
       <div className="mt-1 text-xs text-slate-500">{hint}</div>
     </div>
   )
+}
+
+type UncertainEmailRow = {
+  id: string
+  company_id: string | null
+  to_email?: string | null
+  recipient_email?: string | null
+  subject?: string | null
+  delivery_uncertain_at?: string | null
+  last_error?: string | null
+}
+
+// Platform-operator recovery list: delivery_uncertain rows have no automatic
+// retry by design (the provider may already have accepted the interrupted
+// send) — an operator reviews and requeues them here.
+async function loadUncertainEmails(): Promise<Array<UncertainEmailRow & { kind: 'tenant' | 'manual' }>> {
+  const [tenant, manual] = await Promise.all([
+    supabaseService
+      .from('tenant_email_outbox')
+      .select('id,company_id,to_email,subject,delivery_uncertain_at,last_error')
+      .eq('status', 'delivery_uncertain')
+      .order('delivery_uncertain_at', { ascending: true })
+      .limit(20)
+      .then((result) => (result.error ? [] : ((result.data ?? []) as UncertainEmailRow[]))),
+    supabaseService
+      .from('manual_email_outbox')
+      .select('id,company_id,recipient_email,subject,delivery_uncertain_at,last_error')
+      .eq('status', 'delivery_uncertain')
+      .order('delivery_uncertain_at', { ascending: true })
+      .limit(20)
+      .then((result) => (result.error ? [] : ((result.data ?? []) as UncertainEmailRow[]))),
+  ])
+  return [
+    ...tenant.map((row) => ({ ...row, kind: 'tenant' as const })),
+    ...manual.map((row) => ({ ...row, kind: 'manual' as const })),
+  ]
 }
 
 async function loadErrors(companyId: string | null, isPlatformAdmin: boolean) {
@@ -83,7 +120,13 @@ export default async function SystemHealthPage() {
     safeCount('platform_actor_import_issues', null, [{ column: 'status', operator: 'eq', value: 'open' }]).catch(() => 0),
     safeCount('communication_logs', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'bounced'] }]).catch(() => 0),
     safeCount('gridex_launch_db_security_warnings_v', null, [{ column: 'severity', operator: 'in', value: ['critical', 'warning'] }]).catch(() => 0),
-    safeCount('event_outbox', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'dead_letter', 'blocked'] }]).catch(() => 0),
+    // Real stuck-job sources: e-mail outboxes with failed/uncertain deliveries.
+    // (The legacy event_outbox queue had no processor and was removed from the
+    // emit path — counting it here only produced a permanently red metric.)
+    Promise.all([
+      safeCount('tenant_email_outbox', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'delivery_uncertain'] }]).catch(() => 0),
+      safeCount('manual_email_outbox', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'delivery_uncertain'] }]).catch(() => 0),
+    ]).then(([tenantOutbox, manualOutbox]) => tenantOutbox + manualOutbox),
     loadErrors(companyId, isPlatformAdmin),
     runProductionConsistencyChecks({ companyId }).catch(() => ({
       checks: [] as ReconciliationCheckResult[],
@@ -91,6 +134,8 @@ export default async function SystemHealthPage() {
       warningCount: 0,
     })),
   ])
+
+  const uncertainEmails = isPlatformAdmin ? await loadUncertainEmails() : []
 
   return (
     <main className="space-y-6">
@@ -116,6 +161,36 @@ export default async function SystemHealthPage() {
         <Card label="DB-varningar" value={dbSecurityWarnings} hint="RLS, anon grants och security-definer" danger />
         <Card label="Failed jobs" value={failedJobs} hint="Outbox/jobb som behöver retry eller manuell åtgärd" danger />
       </section>
+
+      {isPlatformAdmin && uncertainEmails.length > 0 ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-950">Osäkra e-postleveranser</h2>
+          <p className="mt-1 text-sm text-amber-900">
+            Utskick som avbröts efter att transporten kan ha accepterat dem. Granska transportloggen och köa om — providerns idempotensnyckel förhindrar dubbelutskick.
+          </p>
+          <div className="mt-3 divide-y divide-amber-200/60">
+            {uncertainEmails.map((row) => (
+              <div key={`${row.kind}:${row.id}`} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+                <div>
+                  <div className="font-medium text-slate-900">
+                    {row.subject ?? '(utan ämne)'} · {row.to_email ?? row.recipient_email ?? 'okänd mottagare'}
+                  </div>
+                  <div className="text-xs text-slate-600">
+                    {row.kind === 'tenant' ? 'Kundmail' : 'Manuell nätägarmail'} · osäker sedan {row.delivery_uncertain_at ?? 'okänt'}
+                  </div>
+                </div>
+                <form action={requeueUncertainEmailAction}>
+                  <input type="hidden" name="outbox_id" value={row.id} />
+                  <input type="hidden" name="outbox_kind" value={row.kind} />
+                  <button type="submit" className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white">
+                    Köa om efter granskning
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">Avstämningar (produktion)</h2>
