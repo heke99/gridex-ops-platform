@@ -1331,6 +1331,11 @@ export async function uploadCustomerAuthorizationDocumentAction(
           switchRequestId: switchResult.switchRequestId,
         })
 
+        if (edielResult.blocked) {
+          automationDecision.warnings.push(
+            `Ediel Z03 väntar: ${edielResult.blockers[0]?.message ?? 'sändfönster/readiness blockerar utskicket.'}`
+          )
+        }
         switchEdielMessageId = edielResult.message?.id ?? null
         if (!switchOutboundId && edielResult.outboundRequestId) {
           switchOutboundId = edielResult.outboundRequestId
@@ -1637,6 +1642,11 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
           switchRequestId: switchResult.switchRequestId,
         })
 
+        if (edielResult.blocked) {
+          automationDecision.warnings.push(
+            `Ediel Z03 väntar: ${edielResult.blockers[0]?.message ?? 'sändfönster/readiness blockerar utskicket.'}`
+          )
+        }
         switchEdielMessageId = edielResult.message?.id ?? null
         if (!switchOutboundId && edielResult.outboundRequestId) {
           switchOutboundId = edielResult.outboundRequestId

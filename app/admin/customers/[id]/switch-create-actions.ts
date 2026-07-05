@@ -612,7 +612,11 @@ export async function createDynamicSupplierSwitchRequestAction(
 
   if (existingOpenRequest) {
     revalidatePath(`/admin/customers/${customerId}`);
-    return;
+    // Surface the duplicate instead of silently returning — the operator must
+    // know why no new switch was created.
+    throw new Error(
+      "Det finns redan ett öppet leverantörsbyte för anläggningen. Hantera det pågående bytet i stället för att skapa ett nytt.",
+    );
   }
 
   const [meteringPoints, powersOfAttorney] = await Promise.all([

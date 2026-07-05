@@ -6,12 +6,25 @@ import { findOpenOutboundBySource } from '@/lib/cis/db'
 import { createSupplierSwitchEvent, getSupplierSwitchRequestById } from '@/lib/operations/db'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { prepareAndQueueEdielZ03, prepareAndQueueEdielZ05, prepareAndQueueEdielZ09 } from '@/lib/ediel/orchestrator'
+import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchScheduler'
+import {
+  checkSupplierSwitchReadiness,
+  persistSwitchReadinessSnapshot,
+} from '@/lib/customer-operations/switchReadiness'
 
 export type EnsureSwitchAutomationInput = {
   actorUserId: string
   switchRequestId: string
   communicationRouteId?: string | null
+  /**
+   * Skips the schedule + readiness gate when the SAME operation already ran it
+   * (e.g. the next-step engine validates readiness right before dispatch). The
+   * reason is recorded on the switch event trail — never pass user input here.
+   */
+  gateAlreadyChecked?: { by: string } | null
 }
+
+export type SwitchDispatchBlocker = { code: string; message: string }
 
 export type ContinueSwitchAutomationInput = {
   actorUserId: string
@@ -153,6 +166,65 @@ export async function ensureInitialSwitchEdielAutomation(
 
   await ensureSwitchAutomationReadiness(input)
 
+  // Single dispatch policy: every Z03 path (admin "Prepare Z03", POA-upload
+  // automation, next-step engine) passes the same send-window + readiness gate
+  // that startSupplierSwitch enforces. Previously this path was ungated.
+  if (!input.gateAlreadyChecked) {
+    const blockers: SwitchDispatchBlocker[] = []
+
+    const schedule = await evaluateSupplierSwitchSchedule({
+      switchRequestId: context.switchRequest.id,
+      companyId: context.switchRequest.company_id ?? null,
+      requestedStartDate: context.switchRequest.requested_start_date ?? null,
+      status: context.switchRequest.status ?? null,
+      siteId: context.switchRequest.site_id ?? null,
+      meteringPointId: context.switchRequest.metering_point_id ?? null,
+    })
+    if (!schedule.ok) blockers.push(...schedule.blockers)
+
+    const readinessCompanyId = context.switchRequest.company_id ?? null
+    const readinessSiteId = context.switchRequest.site_id ?? null
+    if (readinessCompanyId && readinessSiteId && context.switchRequest.customer_id) {
+      const readiness = await checkSupplierSwitchReadiness({
+        companyId: readinessCompanyId,
+        customerId: context.switchRequest.customer_id,
+        siteId: readinessSiteId,
+        switchRequestId: context.switchRequest.id,
+        requestedStartDate: context.switchRequest.requested_start_date ?? null,
+        treatNormalIssuesAsBlockers: false,
+      })
+      await persistSwitchReadinessSnapshot({
+        switchRequestId: context.switchRequest.id,
+        companyId: readinessCompanyId,
+        snapshot: readiness.readinessSnapshot,
+      }).catch(() => undefined)
+      if (!readiness.ready) blockers.push(...readiness.blockers)
+    }
+
+    if (blockers.length > 0) {
+      await createAutomationEvent({
+        actorUserId: input.actorUserId,
+        switchRequestId: context.switchRequest.id,
+        message: 'Z03 blockerades av sändfönster/readiness-kontrollen.',
+        payload: { blockers },
+      })
+      return {
+        alreadyQueued: false,
+        blocked: true as const,
+        blockers,
+        outboundRequestId: null,
+        message: null,
+      }
+    }
+  } else {
+    await createAutomationEvent({
+      actorUserId: input.actorUserId,
+      switchRequestId: context.switchRequest.id,
+      message: `Z03-gate hoppades över: kontroll redan utförd av ${input.gateAlreadyChecked.by}.`,
+      payload: { gateAlreadyCheckedBy: input.gateAlreadyChecked.by },
+    })
+  }
+
   const existingOutbound = await findOpenOutboundBySource({
     sourceType: 'supplier_switch_request',
     sourceId: context.switchRequest.id,
@@ -185,6 +257,8 @@ export async function ensureInitialSwitchEdielAutomation(
 
       return {
         alreadyQueued: true,
+        blocked: false as const,
+        blockers: [] as SwitchDispatchBlocker[],
         outboundRequestId: existingOutbound.id,
         message: null,
       }
@@ -221,6 +295,8 @@ export async function ensureInitialSwitchEdielAutomation(
 
   return {
     alreadyQueued: false,
+    blocked: false as const,
+    blockers: [] as SwitchDispatchBlocker[],
     outboundRequestId: message.outbound_request_id ?? null,
     message,
   }
@@ -271,61 +347,6 @@ export async function continueSwitchEdielAutomation(
   return message
 }
 
-export async function syncInboundProdatToSwitchStatus(params: {
-  actorUserId: string
-  switchRequestId: string
-  edielMessageId: string
-  messageCode: string
-  parsedPayload?: Record<string, unknown> | null
-}) {
-  const switchRequest = await getSupplierSwitchRequestById(supabaseService, params.switchRequestId)
-  if (!switchRequest) {
-    throw new Error('Switch request hittades inte')
-  }
-
-  const nextStatus =
-    params.messageCode === 'Z04'
-      ? 'accepted'
-      : params.messageCode === 'Z05'
-        ? 'completed'
-        : switchRequest.status
-
-  const payload = {
-    ...(ensureJson(switchRequest.validation_snapshot)),
-    lastInboundProdat: {
-      edielMessageId: params.edielMessageId,
-      messageCode: params.messageCode,
-      parsedPayload: ensureJson(params.parsedPayload),
-      syncedAt: new Date().toISOString(),
-    },
-  }
-
-  const { error } = await supabaseService
-    .from('supplier_switch_requests')
-    .update({
-      status: nextStatus,
-      validation_snapshot: payload,
-      updated_at: new Date().toISOString(),
-      updated_by: params.actorUserId,
-    })
-    .eq('id', switchRequest.id)
-
-  if (error) throw error
-
-  await createAutomationEvent({
-    actorUserId: params.actorUserId,
-    switchRequestId: switchRequest.id,
-    message: `Inbound PRODAT ${params.messageCode} synkad mot switch status.`,
-    payload: {
-      edielMessageId: params.edielMessageId,
-      oldStatus: switchRequest.status,
-      newStatus: nextStatus,
-    },
-  })
-
-  return {
-    switchRequestId: switchRequest.id,
-    oldStatus: switchRequest.status,
-    newStatus: nextStatus,
-  }
-}
+// The legacy syncInboundProdatToSwitchStatus helper was removed. Inbound PRODAT
+// switch status transitions have exactly one writer:
+// applyInboundBusinessStateMachine in lib/ediel/flows/inboundBusinessStateMachine.ts.

@@ -15,11 +15,8 @@ import {
 import { runInboundEdielMailEngine } from "@/lib/inbound-mail/edielMailboxPoller";
 import { ensureActorUserId } from "@/lib/ediel/flows/shared";
 import { formatErrorMessage } from "@/lib/errors";
-import {
-  createSupplierSwitchEvent,
-  updateSupplierSwitchRequestStatus,
-} from "@/lib/operations/db";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupplierSwitchEvent } from "@/lib/operations/db";
+import { supabaseService } from "@/lib/supabase/service";
 import {
   findMatchingSupplierSwitchRequest,
   matchMeteringPointForEdielMessage,
@@ -662,28 +659,9 @@ async function processInboundProdatMessage(params: {
     return;
   }
 
-  const supabase = await createSupabaseServerClient();
-
-  if (params.message.message_code === "Z04") {
-    await updateSupplierSwitchRequestStatus(supabase, {
-      requestId: canonicalLinks.matchedSwitch.id,
-      status: "accepted",
-      externalReference:
-        params.message.external_reference ??
-        canonicalLinks.matchedSwitch.external_reference,
-    });
-  }
-
-  if (params.message.message_code === "Z05") {
-    await updateSupplierSwitchRequestStatus(supabase, {
-      requestId: canonicalLinks.matchedSwitch.id,
-      status: "completed",
-      externalReference:
-        params.message.external_reference ??
-        canonicalLinks.matchedSwitch.external_reference,
-    });
-  }
-
+  // Switch status transitions for inbound PRODAT have exactly ONE writer:
+  // applyInboundBusinessStateMachine below. The previous inline Z04/Z05
+  // updates here duplicated the write and wrongly completed switches on Z05.
   const businessState = await applyInboundBusinessStateMachine({
     actorUserId: params.actorUserId,
     message: params.message,
@@ -729,7 +707,7 @@ async function processInboundProdatMessage(params: {
   });
   const ackSnapshot = await readCanonicalAckSnapshot(params.message.id);
 
-  await createSupplierSwitchEvent(supabase, {
+  await createSupplierSwitchEvent(supabaseService, {
     switchRequestId: canonicalLinks.matchedSwitch.id,
     eventType: "ediel_inbound_processed",
     eventStatus: "success",

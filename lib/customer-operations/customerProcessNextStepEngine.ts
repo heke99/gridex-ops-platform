@@ -259,6 +259,27 @@ async function tryPrepareSupplierSwitch(input: {
     switchRequestId: request.id,
   })
 
+  if (automation.blocked) {
+    await emitCustomerProcessEvent({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      customerSiteId: input.site.id,
+      meteringPointId: input.meteringPoint.id,
+      operationId: input.operationId ?? null,
+      eventType: 'supplier_switch.blocked',
+      title: 'Leverantörsbyte skapat men Z03 väntar',
+      message: automation.blockers[0]?.message ?? 'Sändfönster/readiness blockerar Z03-utskicket ännu.',
+      actorUserId: input.actorUserId,
+      status: 'blocked',
+      severity: 'warning',
+      actionRequired: false,
+      source: 'customer_process_next_step_engine',
+      payload: { supplier_switch_request_id: request.id, blockers: automation.blockers },
+      idempotencyKey: `supplier_switch.dispatch_blocked:${request.id}`,
+    })
+    return { switchRequestId: request.id, alreadyOpen: false }
+  }
+
   await emitCustomerProcessEvent({
     companyId: input.companyId,
     customerId: input.customerId,

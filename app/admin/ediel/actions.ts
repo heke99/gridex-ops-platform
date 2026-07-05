@@ -1425,6 +1425,10 @@ export async function sendEdielMessageAction(formData: FormData) {
 
     revalidateEdiel(edielMessageId);
     await revalidateRelatedMessage(edielMessageId);
+
+    // Surface the failure to the operator instead of silently redirecting —
+    // the error event above keeps the full context on the message timeline.
+    throw new Error(`Skicket stoppades: ${errorMessage}`);
   }
 
   redirect(`/admin/ediel/messages/${edielMessageId}`);

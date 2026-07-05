@@ -173,11 +173,18 @@ export async function prepareInitialSwitchEdielFromCustomerAction(
   }
   await assertCompanyAccessForGuard(switchRequest.company_id, guard);
 
-  await ensureInitialSwitchEdielAutomation({
+  const automation = await ensureInitialSwitchEdielAutomation({
     actorUserId: actor.id,
     switchRequestId: switchRequest.id,
     communicationRouteId: formValue(formData, "communication_route_id"),
   });
+
+  if (automation.blocked) {
+    throw new Error(
+      automation.blockers[0]?.message ??
+        "Z03 kan inte skickas ännu: sändfönster eller readiness blockerar utskicket.",
+    );
+  }
 
   revalidatePath(`/admin/customers/${switchRequest.customer_id}`);
   revalidatePath("/admin/ediel");
@@ -220,11 +227,17 @@ export async function continueSwitchEdielAutomationFromCustomerAction(
   await assertCompanyAccessForGuard(switchRequest.company_id, guard);
 
   if (step === "Z03") {
-    await ensureInitialSwitchEdielAutomation({
+    const automation = await ensureInitialSwitchEdielAutomation({
       actorUserId: actor.id,
       switchRequestId: switchRequest.id,
       communicationRouteId: formValue(formData, "communication_route_id"),
     });
+    if (automation.blocked) {
+      throw new Error(
+        automation.blockers[0]?.message ??
+          "Z03 kan inte skickas ännu: sändfönster eller readiness blockerar utskicket.",
+      );
+    }
   } else {
     await continueSwitchEdielAutomation({
       actorUserId: actor.id,
