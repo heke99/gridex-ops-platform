@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
+import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { requireRoleIdByKeyOrName } from '@/lib/rbac/resolveRoleId'
 import { assertSupabaseAdminHealth } from '@/lib/supabase/adminHealth'
 import {
@@ -48,11 +49,15 @@ async function getCurrentActorUserId(): Promise<string | null> {
 }
 
 async function insertActiveUserRole(input: { userId: string; roleId: string }) {
+  // Platform-level role rows have company_id = null. Tenant-scoped role rows
+  // (created by the company invite flow) always carry a company_id and must
+  // never be touched from the platform users screen.
   const existing = await supabaseService
     .from('user_roles')
     .select('id')
     .eq('user_id', input.userId)
     .eq('role_id', input.roleId)
+    .is('company_id', null)
     .limit(1)
     .maybeSingle()
 
@@ -73,6 +78,7 @@ async function insertActiveUserRole(input: { userId: string; roleId: string }) {
     .insert({
       user_id: input.userId,
       role_id: input.roleId,
+      company_id: null,
       status: 'active',
       is_active: true,
     })
@@ -337,14 +343,40 @@ export async function setUserRoleAction(
 
     const resolvedRoleId = await resolveRoleId({ roleId, roleKey })
 
+    const { data: previousRoles, error: previousError } = await supabaseService
+      .from('user_roles')
+      .select('id,role_id,role,status,is_active')
+      .eq('user_id', userId)
+      .is('company_id', null)
+
+    if (previousError) throw previousError
+
+    // Only replace the user's platform-level roles (company_id IS NULL).
+    // Tenant-scoped roles managed via company invites must survive platform
+    // role changes.
     const { error: deleteError } = await supabaseService
       .from('user_roles')
       .delete()
       .eq('user_id', userId)
+      .is('company_id', null)
 
     if (deleteError) throw deleteError
 
     await insertActiveUserRole({ userId, roleId: resolvedRoleId })
+
+    const actorUserId = await getCurrentActorUserId()
+    if (actorUserId) {
+      await logAdminActionAndUsage({
+        actorUserId,
+        entityType: 'user',
+        entityId: userId,
+        action: 'PLATFORM_USER_ROLE_CHANGED',
+        label: 'Plattformsroll uppdaterad',
+        oldValues: { platform_roles: previousRoles ?? [] },
+        newValues: { role_id: resolvedRoleId },
+        source: 'admin_users',
+      }).catch(() => undefined)
+    }
 
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
@@ -421,6 +453,19 @@ export async function setUserPermissionOverridesAction(
       if (insertError) throw insertError
     }
 
+    const actorUserId = await getCurrentActorUserId()
+    if (actorUserId) {
+      await logAdminActionAndUsage({
+        actorUserId,
+        entityType: 'user',
+        entityId: userId,
+        action: 'PLATFORM_USER_PERMISSION_OVERRIDES_CHANGED',
+        label: 'Individuella behörigheter uppdaterade',
+        newValues: { allow: allowKeys, deny: denyKeys },
+        source: 'admin_users',
+      }).catch(() => undefined)
+    }
+
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
 
@@ -452,6 +497,18 @@ export async function deactivateUserAccessAction(
       .eq('user_id', userId)
 
     if (permissionDeleteError) throw permissionDeleteError
+
+    const actorUserId = await getCurrentActorUserId()
+    if (actorUserId) {
+      await logAdminActionAndUsage({
+        actorUserId,
+        entityType: 'user',
+        entityId: userId,
+        action: 'PLATFORM_USER_ACCESS_REVOKED',
+        label: 'Intern access borttagen',
+        source: 'admin_users',
+      }).catch(() => undefined)
+    }
 
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)

@@ -420,6 +420,20 @@ const PERMISSION_CATALOG: BehörighetCatalogItem[] = [
     risk: 'high',
   },
   {
+    key: 'integrations.read',
+    label: 'Läsa integrationer',
+    description: 'Kan läsa webhookar och integrationsinställningar för bolaget.',
+    area: 'Integrationer',
+    risk: 'medium',
+  },
+  {
+    key: 'integrations.write',
+    label: 'Ändra integrationer',
+    description: 'Kan hantera webhookar och integrationsinställningar för bolaget.',
+    area: 'Integrationer',
+    risk: 'high',
+  },
+  {
     key: 'reports.read',
     label: 'Läsa rapporter',
     description: 'Kan läsa rapporter.',
