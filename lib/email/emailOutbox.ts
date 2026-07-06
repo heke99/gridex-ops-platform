@@ -430,6 +430,42 @@ export async function processTenantEmailOutbox(
   return result;
 }
 
+/**
+ * Operator-approved recovery for delivery_uncertain rows. Requeues the row so
+ * the normal outbox worker picks it up again. Safe against double delivery:
+ * the provider idempotency key is stable per outbox row
+ * (tenant-email:{companyId}:{outboxId}), so Resend deduplicates if the
+ * interrupted attempt actually went out.
+ */
+export async function requeueUncertainTenantEmail(input: {
+  outboxId: string
+  companyId?: string | null
+  actorUserId: string
+}) {
+  const now = new Date().toISOString();
+  let query = supabaseService
+    .from("tenant_email_outbox")
+    .update({
+      status: "queued",
+      last_error: null,
+      failure_reason: null,
+      delivery_uncertain_at: null,
+      next_attempt_at: now,
+      locked_at: null,
+      locked_by: null,
+      lock_token: null,
+      updated_at: now,
+    })
+    .eq("id", input.outboxId)
+    .eq("status", "delivery_uncertain");
+  if (input.companyId) query = query.eq("company_id", input.companyId);
+
+  const { data, error } = await query.select("id").maybeSingle();
+  if (error) throw error;
+  if (!data) return { ok: false as const, error: "Utskicket är inte i osäkert leveransläge längre." };
+  return { ok: true as const, outboxId: String((data as { id: string }).id) };
+}
+
 export async function sendTenantEmailNow(outboxId: string) {
   const { data, error } = await supabaseService
     .from("tenant_email_outbox")

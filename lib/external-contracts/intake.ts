@@ -1,5 +1,15 @@
+// Purpose separation (flow consolidation decision):
+// The OPS-hosted public form (/teckna-avtal) is a MANUAL-REVIEW intake — it
+// creates draft customers/contracts plus a review task, and every submission
+// must pass an operator before any operational flow starts. Tenant websites
+// integrate through the canonical website API
+// (lib/website/customerApplications.ts), which owns published offers, legal
+// acceptances, POA and price snapshots. This module must never grow into a
+// second automated signup pipeline; if /teckna-avtal ever needs automated
+// provisioning it has to call the canonical processor instead.
 import { createHash } from "crypto";
 import { supabaseService } from "@/lib/supabase/service";
+import { logUsageEvent } from "@/lib/audit/actionLogger";
 import {
   createCustomerContract,
   getContractOfferById,
@@ -528,6 +538,16 @@ export async function createExternalContractIntake(
   let caseId: string | null = null;
   let infoRequestId: string | null = null;
 
+  // Idempotent replay: operational artifacts created by an earlier (partial)
+  // run are reused instead of duplicated.
+  if (existing?.id && shouldReplayExisting) {
+    caseId =
+      (existing as { created_case_id?: string | null }).created_case_id ?? null;
+    infoRequestId =
+      (existing as { created_info_request_id?: string | null })
+        .created_info_request_id ?? null;
+  }
+
   try {
     customerId = await ensureCustomerForIntake(
       companyId,
@@ -719,63 +739,67 @@ export async function createExternalContractIntake(
       contractId = contract.id;
     }
 
-    const { data: infoRequest } = await supabaseService
-      .from("customer_info_requests")
-      .insert({
-        company_id: companyId,
-        customer_id: customerId,
-        site_id: siteId,
-        metering_point_id: meteringPointId,
-        request_type: "external_contract_onboarding",
-        target_party_type: "customer",
-        status: issues.length > 0 ? "manual_review_required" : "draft",
-        requested_data_categories: [
-          "identity",
-          "site",
-          "metering_point",
-          "authorization",
-        ],
-        verified_payload: {},
-        notes:
-          "Skapad från extern avtalsingång. Granska innan Ediel/outbound skickas.",
-        automation_origin: "external_contract_intake",
-        automation_key: `external-contract-intake:${intakeId}`,
-      })
-      .select("id")
-      .maybeSingle();
-    infoRequestId = (infoRequest as { id?: string } | null)?.id ?? null;
+    if (!infoRequestId) {
+      const { data: infoRequest } = await supabaseService
+        .from("customer_info_requests")
+        .insert({
+          company_id: companyId,
+          customer_id: customerId,
+          site_id: siteId,
+          metering_point_id: meteringPointId,
+          request_type: "external_contract_onboarding",
+          target_party_type: "customer",
+          status: issues.length > 0 ? "manual_review_required" : "draft",
+          requested_data_categories: [
+            "identity",
+            "site",
+            "metering_point",
+            "authorization",
+          ],
+          verified_payload: {},
+          notes:
+            "Skapad från extern avtalsingång. Granska innan Ediel/outbound skickas.",
+          automation_origin: "external_contract_intake",
+          automation_key: `external-contract-intake:${intakeId}`,
+        })
+        .select("id")
+        .maybeSingle();
+      infoRequestId = (infoRequest as { id?: string } | null)?.id ?? null;
+    }
 
-    const { data: operationTask } = await supabaseService
-      .from("customer_operation_tasks")
-      .insert({
-        company_id: companyId,
-        customer_id: customerId,
-        site_id: siteId,
-        metering_point_id: meteringPointId,
-        task_type: "external_contract_intake_review",
-        status: "open",
-        priority: issues.length > 0 ? "high" : "normal",
-        title: "Ansökan från hemsida mottagen",
-        description:
-          issues.length > 0
-            ? `Ansökan behöver kompletteras: ${issues.join(" ")}`
-            : "Ansökan är mottagen från hemsida/API och ska granskas innan operativt flöde fortsätter.",
-        metadata: {
-          contractId,
-          reasonCategory: "external_contract_intake",
-          nextAction:
-            "Granska kund, anläggning, mätpunkt, avtal och fullmakt. Starta därefter onboarding/Ediel-flöde.",
-          source: "external_contract_intake",
-          blockerSourceTable: "external_contract_intakes",
-          blockerSourceId: intakeId,
-          linkedExternalIntakeId: intakeId,
-          issues,
-          intakeId,
-        },
-      })
-      .select("id")
-      .maybeSingle();
-    caseId = (operationTask as { id?: string } | null)?.id ?? null;
+    if (!caseId) {
+      const { data: operationTask } = await supabaseService
+        .from("customer_operation_tasks")
+        .insert({
+          company_id: companyId,
+          customer_id: customerId,
+          site_id: siteId,
+          metering_point_id: meteringPointId,
+          task_type: "external_contract_intake_review",
+          status: "open",
+          priority: issues.length > 0 ? "high" : "normal",
+          title: "Ansökan från hemsida mottagen",
+          description:
+            issues.length > 0
+              ? `Ansökan behöver kompletteras: ${issues.join(" ")}`
+              : "Ansökan är mottagen från hemsida/API och ska granskas innan operativt flöde fortsätter.",
+          metadata: {
+            contractId,
+            reasonCategory: "external_contract_intake",
+            nextAction:
+              "Granska kund, anläggning, mätpunkt, avtal och fullmakt. Starta därefter onboarding/Ediel-flöde.",
+            source: "external_contract_intake",
+            blockerSourceTable: "external_contract_intakes",
+            blockerSourceId: intakeId,
+            linkedExternalIntakeId: intakeId,
+            issues,
+            intakeId,
+          },
+        })
+        .select("id")
+        .maybeSingle();
+      caseId = (operationTask as { id?: string } | null)?.id ?? null;
+    }
 
     await supabaseService
       .from("external_contract_intakes")
@@ -790,6 +814,26 @@ export async function createExternalContractIntake(
         updated_at: new Date().toISOString(),
       })
       .eq("id", intakeId);
+
+    // Auditability: the public form previously produced no audit/usage trail
+    // at all. No actor (public submission) — the intake row is the entity.
+    await logUsageEvent({
+      companyId,
+      entityType: "external_contract_intake",
+      entityId: intakeId,
+      eventKey:
+        issues.length > 0
+          ? "external_contract_intake.needs_review"
+          : "external_contract_intake.created",
+      actionLabel: "Ansökan via teckna-avtal",
+      source: "teckna_avtal",
+      metadata: {
+        customer_id: customerId,
+        contract_id: contractId,
+        case_id: caseId,
+        issue_count: issues.length,
+      },
+    });
   } catch (error) {
     await supabaseService
       .from("external_contract_intakes")

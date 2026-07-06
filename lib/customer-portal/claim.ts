@@ -317,6 +317,7 @@ export async function claimPortalCustomerAction(
   const lastName = text(formData.get('last_name'))
   const fullName = text(formData.get('full_name'))
   const installationId = text(formData.get('installation_id'))
+  const companySlug = text(formData.get('company_slug')).toLowerCase()
 
   const inputSnapshot = {
     email: inputEmail || authEmail,
@@ -325,6 +326,7 @@ export async function claimPortalCustomerAction(
     fullName,
     personalNumberLast4: normalizeDigits(personalNumber).slice(-4) || null,
     installationId,
+    companySlug: companySlug || null,
   }
 
   if (!authEmail || !personalNumber || !installationId || (!fullName && (!firstName || !lastName))) {
@@ -334,13 +336,33 @@ export async function claimPortalCustomerAction(
     }
   }
 
+  // Tenant scoping: when the customer arrives via a tenant-specific link
+  // (?bolag=<slug>) the candidate lookup is restricted to that company so a
+  // personnummer can never match another tenant's customer register.
+  let scopedCompanyId: string | null = null
+  if (companySlug) {
+    const { data: company, error: companyError } = await supabaseService
+      .from('companies')
+      .select('id')
+      .eq('slug', companySlug)
+      .maybeSingle()
+
+    if (companyError) throw companyError
+    if (!company) return { ok: false, message: DEFAULT_ERROR }
+    scopedCompanyId = String((company as { id: string }).id)
+  }
+
   const pnVariants = personalNumberVariants(personalNumber)
 
-  const { data: candidates, error: candidateError } = await supabaseService
+  let candidateQuery = supabaseService
     .from('customers')
     .select('id,company_id,customer_type,first_name,last_name,full_name,company_name,email,personal_number,customer_number')
     .in('personal_number', pnVariants)
-    .limit(5)
+    .limit(10)
+
+  if (scopedCompanyId) candidateQuery = candidateQuery.eq('company_id', scopedCompanyId)
+
+  const { data: candidates, error: candidateError } = await candidateQuery
 
   if (candidateError) throw candidateError
 
@@ -365,6 +387,20 @@ export async function claimPortalCustomerAction(
 
     return { ok: false, message: DEFAULT_ERROR }
   }
+
+  type CandidateEvaluation = {
+    customer: CustomerCandidate
+    emailMatched: boolean
+    nameMatched: boolean
+    personalNumberMatched: boolean
+    installationMatch: Awaited<ReturnType<typeof findMatchingInstallation>>
+    matchSnapshot: Record<string, unknown>
+  }
+
+  // Evaluate every candidate before linking so that a personnummer that exists
+  // in several tenants (or duplicated within one tenant) can never be linked to
+  // an arbitrary first row. Linking requires exactly one full match.
+  const evaluations: CandidateEvaluation[] = []
 
   for (const customer of rows) {
     const { data: contactsData, error: contactsError } = await supabaseService
@@ -397,100 +433,144 @@ export async function claimPortalCustomerAction(
       installationId,
     })
 
-    const matchSnapshot = {
-      customerId: customer.id,
-      customerNumber: customer.customer_number,
+    evaluations.push({
+      customer,
       emailMatched,
       nameMatched,
       personalNumberMatched,
-      installationMatched: installationMatch.ok,
-      matchedSiteId: installationMatch.site?.id ?? null,
-      matchedMeteringPointId: installationMatch.meteringPoint?.id ?? null,
-    }
+      installationMatch,
+      matchSnapshot: {
+        customerId: customer.id,
+        customerNumber: customer.customer_number,
+        emailMatched,
+        nameMatched,
+        personalNumberMatched,
+        installationMatched: installationMatch.ok,
+        matchedSiteId: installationMatch.site?.id ?? null,
+        matchedMeteringPointId: installationMatch.meteringPoint?.id ?? null,
+      },
+    })
+  }
 
-    if (emailMatched && nameMatched && personalNumberMatched && installationMatch.ok) {
-      const now = new Date().toISOString()
+  const fullMatches = evaluations.filter(
+    (evaluation) =>
+      evaluation.emailMatched &&
+      evaluation.nameMatched &&
+      evaluation.personalNumberMatched &&
+      evaluation.installationMatch.ok
+  )
 
-      const { error: accountError } = await supabaseService
-        .from('customer_portal_accounts')
-        .upsert(
-          {
-            company_id: customer.company_id,
-            user_id: user.id,
-            user_email: authEmail,
-            customer_id: customer.id,
-            role: 'owner',
-            is_active: true,
-            activated_at: now,
-            verified_at: now,
-            match_method: 'self_claim_strict_identity',
-            verified_identity_snapshot: {
-              ...matchSnapshot,
-              userEmail: authEmail,
-              personalNumberLast4: normalizeDigits(personalNumber).slice(-4),
-              inputName: fullName || [firstName, lastName].filter(Boolean).join(' '),
-              inputInstallationId: installationId,
-            },
-            updated_at: now,
-          },
-          { onConflict: 'user_id,customer_id' }
-        )
-
-      if (accountError) throw accountError
-
+  if (fullMatches.length > 1) {
+    for (const evaluation of fullMatches) {
       await insertClaim({
         userId: user.id,
         userEmail: authEmail,
-        companyId: customer.company_id,
-        customerId: customer.id,
-        status: 'approved',
+        companyId: evaluation.customer.company_id,
+        customerId: evaluation.customer.id,
+        status: 'rejected',
         personalNumber,
         inputSnapshot,
-        matchSnapshot,
+        matchSnapshot: evaluation.matchSnapshot,
         flags: {
-          emailMatched,
-          nameMatched,
-          personalNumberMatched,
-          installationMatched: installationMatch.ok,
+          emailMatched: evaluation.emailMatched,
+          nameMatched: evaluation.nameMatched,
+          personalNumberMatched: evaluation.personalNumberMatched,
+          installationMatched: evaluation.installationMatch.ok,
         },
-        matchedSiteId: installationMatch.site?.id ?? null,
-        matchedMeteringPointId: installationMatch.meteringPoint?.id ?? null,
+        matchedSiteId: evaluation.installationMatch.site?.id ?? null,
+        matchedMeteringPointId: evaluation.installationMatch.meteringPoint?.id ?? null,
+        failureReason: 'Flera kundkort matchade alla säkerhetsvillkor. Kopplingen kräver manuell hantering.',
       })
-
-      await insertPortalEvent({
-        customerId: customer.id,
-        companyId: customer.company_id,
-        userId: user.id,
-        userEmail: authEmail,
-        eventType: 'portal_account_verified',
-        message: 'Kundportal kopplades automatiskt via personnummer, e-post, namn och anläggnings-ID.',
-        metadata: matchSnapshot,
-      })
-
-      revalidatePath('/portal')
-      revalidatePath('/portal/fakturor')
-      revalidatePath('/portal/forbrukning')
-      revalidatePath('/portal/anlaggningar')
-      redirect('/portal?kopplad=1')
     }
+
+    return { ok: false, message: DEFAULT_ERROR }
+  }
+
+  if (fullMatches.length === 1) {
+    const { customer, matchSnapshot, installationMatch } = fullMatches[0]
+    const now = new Date().toISOString()
+
+    const { error: accountError } = await supabaseService
+      .from('customer_portal_accounts')
+      .upsert(
+        {
+          company_id: customer.company_id,
+          user_id: user.id,
+          user_email: authEmail,
+          customer_id: customer.id,
+          role: 'owner',
+          is_active: true,
+          activated_at: now,
+          verified_at: now,
+          match_method: 'self_claim_strict_identity',
+          verified_identity_snapshot: {
+            ...matchSnapshot,
+            userEmail: authEmail,
+            personalNumberLast4: normalizeDigits(personalNumber).slice(-4),
+            inputName: fullName || [firstName, lastName].filter(Boolean).join(' '),
+            inputInstallationId: installationId,
+          },
+          updated_at: now,
+        },
+        { onConflict: 'user_id,customer_id' }
+      )
+
+    if (accountError) throw accountError
 
     await insertClaim({
       userId: user.id,
       userEmail: authEmail,
       companyId: customer.company_id,
       customerId: customer.id,
-      status: 'rejected',
+      status: 'approved',
       personalNumber,
       inputSnapshot,
       matchSnapshot,
       flags: {
-        emailMatched,
-        nameMatched,
-        personalNumberMatched,
-        installationMatched: installationMatch.ok,
+        emailMatched: true,
+        nameMatched: true,
+        personalNumberMatched: true,
+        installationMatched: true,
       },
       matchedSiteId: installationMatch.site?.id ?? null,
       matchedMeteringPointId: installationMatch.meteringPoint?.id ?? null,
+    })
+
+    await insertPortalEvent({
+      customerId: customer.id,
+      companyId: customer.company_id,
+      userId: user.id,
+      userEmail: authEmail,
+      eventType: 'portal_account_verified',
+      message: 'Kundportal kopplades automatiskt via personnummer, e-post, namn och anläggnings-ID.',
+      metadata: matchSnapshot,
+    })
+
+    revalidatePath('/portal')
+    revalidatePath('/portal/fakturor')
+    revalidatePath('/portal/forbrukning')
+    revalidatePath('/portal/anlaggningar')
+    redirect('/portal?kopplad=1')
+  }
+
+  for (const evaluation of evaluations) {
+    await insertClaim({
+      userId: user.id,
+      userEmail: authEmail,
+      companyId: evaluation.customer.company_id,
+      customerId: evaluation.customer.id,
+      status: 'rejected',
+      personalNumber,
+      inputSnapshot,
+      matchSnapshot: evaluation.matchSnapshot,
+      flags: {
+        emailMatched: evaluation.emailMatched,
+        nameMatched: evaluation.nameMatched,
+        personalNumberMatched: evaluation.personalNumberMatched,
+        installationMatched: evaluation.installationMatch.ok,
+      },
+      matchedSiteId: evaluation.installationMatch.site?.id ?? null,
+      matchedMeteringPointId: evaluation.installationMatch.meteringPoint?.id ?? null,
       failureReason: 'Ett eller flera säkerhetsvillkor matchade inte.',
     })
   }

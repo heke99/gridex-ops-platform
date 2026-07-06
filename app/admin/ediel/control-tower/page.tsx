@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { requireAdminPageKeyAccess, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
@@ -212,6 +212,11 @@ function IncidentList({ title, items }: { title: string; items: EdielOpsIncident
 }
 
 export default async function EdielControlTowerPage() {
+  // Technical Ediel diagnostics (ACK chains, duplicates, route blockers) are a
+  // platform surface. Tenant operators work from the business views
+  // (work queue, customer card, /admin/messages) and never see raw
+  // EDIFACT/route internals.
+  await requirePlatformAdminAccess()
   const context = await requireAdminPageKeyAccess('ediel.control_tower')
   const tenantScope = await resolveAdminTenantReadScope(context)
   const companyScope = await getOperationalCompanyScope(context.userId)

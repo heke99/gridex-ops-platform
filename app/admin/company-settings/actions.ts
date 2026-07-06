@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
+import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { getCompanyById } from '@/lib/tenant/governance'
 import { grantCompanyUserAccess } from '@/lib/auth/companyUserAccess'
 import {
@@ -60,7 +61,7 @@ export async function updateCompanySettingsAction(
     const companyId = normalizeText(formData.get('company_id'))
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
 
-    await assertCanManageCompany(companyId)
+    const admin = await assertCanManageCompany(companyId)
     const currentCompany = await getCompanyById(companyId)
     if (!currentCompany) return { ok: false, message: 'Bolaget hittades inte.' }
 
@@ -146,6 +147,28 @@ export async function updateCompanySettingsAction(
       .eq('id', companyId)
 
     if (error) throw error
+
+    await logAdminActionAndUsage({
+      companyId,
+      actorUserId: admin.userId,
+      entityType: 'company',
+      entityId: companyId,
+      action: 'company_settings_updated',
+      label: 'Bolagsinställningar sparade',
+      oldValues: {
+        name: currentCompany.name,
+        org_number: currentCompany.org_number ?? null,
+        customer_number_prefix: currentCompany.customer_number_prefix ?? null,
+        operating_environment: currentCompany.operating_environment ?? null,
+      },
+      newValues: {
+        name,
+        org_number: orgNumber,
+        customer_number_prefix: customerNumberPrefix,
+        operating_environment: operatingEnvironment,
+      },
+      source: 'company_settings',
+    }).catch(() => undefined)
 
     revalidatePath('/admin/company-settings')
     revalidatePath('/admin/companies')

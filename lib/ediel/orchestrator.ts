@@ -53,6 +53,7 @@ import { assertCompanyCanSendProductionEdiel } from '@/lib/ediel/productionReadi
 import { isProductionShadowMessage, markProductionShadowPrepared } from '@/lib/ediel/productionShadow'
 import { recordEdielExchangeLog } from '@/lib/ediel/operations/exchangeLog'
 import { assertEdielSendContextConsistency } from '@/lib/ediel/sendContextConsistency'
+import { supabaseService } from '@/lib/supabase/service'
 
 export type {
   AckFamily,
@@ -420,6 +421,39 @@ export async function sendQueuedEdielMessage(params: {
     actorUserId,
     smtpMimeMode: sendConsistency.resolvedSmtpMimeMode,
   })
+
+  // Outbox/direct-send bridge: the message was just sent over SMTP outside the
+  // outbox worker. Any open ediel_outbox row for the same message must be
+  // superseded so the cron can never send the message a second time.
+  try {
+    const { data: supersededRows, error: supersededError } = await supabaseService
+      .from('ediel_outbox')
+      .update({
+        status: 'superseded',
+        last_error: 'Superseded: meddelandet skickades direkt (manuellt/AGT) utanför outbox-kön.',
+        updated_at: new Date().toISOString(),
+        updated_by: actorUserId,
+      })
+      .eq('ediel_message_id', message.id)
+      .in('status', ['draft', 'prepared', 'queued', 'sending'])
+      .select('id')
+
+    if (!supersededError && Array.isArray(supersededRows) && supersededRows.length > 0) {
+      await createEdielMessageEvent({
+        actorUserId,
+        edielMessageId: message.id,
+        eventType: 'manual_note',
+        eventStatus: 'info',
+        message: 'Öppna outbox-poster markerades som superseded efter direkt skick.',
+        payload: {
+          phase: 'direct_send_outbox_bridge',
+          supersededOutboxIds: supersededRows.map((row) => (row as { id?: unknown }).id ?? null),
+        },
+      }).catch(() => null)
+    }
+  } catch {
+    // Bridge is best-effort: a failure here must not mask a successful send.
+  }
 
   await recordEdielExchangeLog({
     companyId: message.company_id ?? null,

@@ -351,3 +351,56 @@ export async function processPendingInvoiceProviderEvents(input: {
     results,
   }
 }
+
+/**
+ * Re-sweeps needs_review provider events that may have become resolvable —
+ * e.g. the invoice_export_item now exists or its GUID was linked after the
+ * webhook arrived. Previously needs_review was a permanent dead letter: no
+ * cron and no UI ever touched those rows again.
+ *
+ * Idempotent: unresolvable events simply stay needs_review.
+ */
+export async function retryReviewableInvoiceProviderEvents(input: {
+  companyId?: string | null
+  limit?: number
+  maxAgeDays?: number
+} = {}) {
+  const limit = Math.min(Math.max(input.limit ?? 50, 1), 200)
+  const maxAgeDays = Math.min(Math.max(input.maxAgeDays ?? 30, 1), 365)
+  const cutoff = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000).toISOString()
+
+  let query = supabaseService
+    .from('invoice_provider_events')
+    .select('*')
+    .eq('status', 'needs_review')
+    .not('provider_invoice_guid', 'is', null)
+    .gte('received_at', cutoff)
+    .order('received_at', { ascending: true })
+    .limit(limit)
+  if (input.companyId) query = query.eq('company_id', input.companyId)
+
+  const { data, error } = await query
+  if (error) {
+    if (missingRelation(error)) return { processed: 0, stillNeedsReview: 0, failed: 0, results: [] as ProcessEventResult[] }
+    throw error
+  }
+
+  const events = (data ?? []) as Record<string, unknown>[]
+  const results: ProcessEventResult[] = []
+  for (const event of events) {
+    try {
+      results.push(await processSingleEvent(event))
+    } catch (processError) {
+      const eventId = String(event.id)
+      console.error('[invoice-provider-events] review retry failed', { eventId, error: processError })
+      results.push({ eventId, outcome: 'skipped', reason: processError instanceof Error ? processError.message : 'unknown_error' })
+    }
+  }
+
+  return {
+    processed: results.filter((row) => row.outcome === 'processed').length,
+    stillNeedsReview: results.filter((row) => row.outcome === 'needs_review').length,
+    failed: results.filter((row) => row.outcome === 'skipped').length,
+    results,
+  }
+}

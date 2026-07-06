@@ -1,4 +1,8 @@
 import { supabaseService } from '@/lib/supabase/service'
+import {
+  normalizeIdentityDigits,
+  normalizeMatchEmail,
+} from '@/lib/customers/matchingService'
 
 export type DuplicateCustomerCandidate = {
   id: string
@@ -19,7 +23,11 @@ export type DuplicateCustomerGroup = {
   candidates: DuplicateCustomerCandidate[]
 }
 
-function normalize(value: string | null | undefined): string | null {
+// Name grouping keeps a loose normalization (diacritics/spacing insensitive);
+// identity fields use the SAME normalization as the canonical matcher
+// (lib/customers/matchingService.ts) so this page and the intake dedupe can
+// never disagree about what counts as the same identity.
+function normalizeName(value: string | null | undefined): string | null {
   const cleaned = String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9åäö@.]+/gi, '')
   return cleaned || null
 }
@@ -62,10 +70,10 @@ export async function listDuplicateCustomerGroups(companyId: string | null): Pro
   const byName = new Map<string, DuplicateCustomerCandidate[]>()
 
   for (const row of rows) {
-    const email = normalize(row.email)
-    const personal = normalize(row.personal_number)
-    const org = normalize(row.org_number)
-    const name = normalize(displayName(row))
+    const email = normalizeMatchEmail(row.email)
+    const personal = normalizeIdentityDigits(row.personal_number)
+    const org = normalizeIdentityDigits(row.org_number)
+    const name = normalizeName(displayName(row))
     if (email) byEmail.set(email, [...(byEmail.get(email) ?? []), row])
     if (personal) byPersonal.set(personal, [...(byPersonal.get(personal) ?? []), row])
     if (org) byOrg.set(org, [...(byOrg.get(org) ?? []), row])

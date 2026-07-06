@@ -73,27 +73,13 @@ export async function emitDomainEvent(input: DomainEventInput): Promise<DomainEv
   }
 
   const event = data as DomainEventRow
+  // webhook_deliveries is the ONE live fan-out pipeline (dispatched by
+  // /api/internal/webhooks/dispatch). The legacy event_outbox dual-write was
+  // removed: nothing ever processed those rows, so they only accumulated as
+  // misleading "stuck jobs" in system health.
   await enqueueWebhookDeliveriesForEvent(event).catch((webhookError) => {
     console.warn('[domain-events] webhook enqueue failed', webhookError)
   })
-
-  try {
-    const { error: outboxError } = await supabaseService
-      .from('event_outbox')
-      .upsert({
-        company_id: input.companyId,
-        domain_event_id: event.id,
-        destination_type: 'webhook',
-        destination_key: 'all_active_webhooks',
-        payload: { event_id: event.id, event_type: event.event_type },
-      }, { onConflict: 'domain_event_id,destination_type,destination_key' })
-
-    if (outboxError) {
-      console.warn('[domain-events] event outbox enqueue skipped', outboxError)
-    }
-  } catch (outboxError) {
-    console.warn('[domain-events] event outbox enqueue failed', outboxError)
-  }
 
   return event
 }

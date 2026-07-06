@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
 import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-operations/facilityLookupEdifactDispatch'
 import { resumeStuckEdielIntents } from '@/lib/ediel/intent/resumeStuckIntents'
+import { expireOverduePowersOfAttorney } from '@/lib/operations/powerOfAttorneyExpiry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -50,7 +51,10 @@ async function run(request: NextRequest) {
     const resumedIntents = await resumeStuckEdielIntents({
       limit: Math.min(requestedLimit, 25),
     })
-    return NextResponse.json({ ok: true, result: { customerOperations, facilityLookupDispatch, resumedIntents } })
+    // Persist POA expiry: previously only evaluated at read time, leaving rows
+    // 'signed' forever in the admin UI and audit trail.
+    const poaExpiry = await expireOverduePowersOfAttorney({ limit: 100 })
+    return NextResponse.json({ ok: true, result: { customerOperations, facilityLookupDispatch, resumedIntents, poaExpiry } })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[customer-operations-cron] failed', { traceId, error })

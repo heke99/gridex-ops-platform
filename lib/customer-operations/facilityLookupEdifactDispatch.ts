@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { createOutboundRequest } from '@/lib/cis/db'
+import { resolvePlatformGridOwnerByAnyId } from '@/lib/grid-owners/platformGridOwnerResolver'
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
@@ -95,18 +96,12 @@ async function readFacilityLookupRequest(input: { companyId: string; requestId: 
 }
 
 async function readGridOwner(gridOwnerId: string | null | undefined): Promise<JsonRecord | null> {
-  const id = clean(gridOwnerId)
-  if (!id) return null
-  const { data, error } = await supabaseService
-    .from('platform_grid_owners')
-    .select('id,name,ediel_id,owner_code,platform_market_actor_id')
-    .eq('id', id)
-    .maybeSingle()
-  if (error) {
-    if (missingSchema(error)) return null
-    throw error
-  }
-  return (data as JsonRecord | null) ?? null
+  // Requests/sites may carry the OPS grid_owners.id while Ediel routing needs
+  // the platform row — resolve across both namespaces via ops_grid_owner_id.
+  return resolvePlatformGridOwnerByAnyId({
+    gridOwnerId: clean(gridOwnerId),
+    select: 'id,name,ediel_id,owner_code,platform_market_actor_id',
+  })
 }
 
 async function findExistingDispatchForRequest(request: FacilityLookupRequestRow): Promise<JsonRecord | null> {

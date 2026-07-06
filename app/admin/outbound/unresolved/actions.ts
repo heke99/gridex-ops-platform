@@ -54,6 +54,7 @@ async function getActor() {
 
 async function insertAuditLog(params: {
   actorUserId: string
+  companyId?: string | null
   entityType: string
   entityId: string
   action: string
@@ -61,8 +62,10 @@ async function insertAuditLog(params: {
   oldValues?: unknown
   newValues?: unknown
 }) {
+  // Always carry company_id so tenant-scoped audit views can see the entry.
   const { error } = await supabaseService.from('audit_logs').insert({
     actor_user_id: params.actorUserId,
+    company_id: params.companyId ?? null,
     entity_type: params.entityType,
     entity_id: params.entityId,
     action: params.action,
@@ -185,6 +188,7 @@ export async function rerunUnresolvedRouteResolutionAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId: before.company_id ?? saved.company_id ?? null,
     entityType: 'outbound_request',
     entityId: saved.id,
     action: 'outbound_request_route_resolution_reran',
@@ -323,6 +327,7 @@ export async function assignRouteToUnresolvedOutboundAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId: before.company_id ?? saved.company_id ?? null,
     entityType: 'outbound_request',
     entityId: saved.id,
     action: 'outbound_request_route_assigned_manually',
@@ -397,6 +402,7 @@ export async function rerunAllUnresolvedRouteResolutionsAction(): Promise<void> 
 
     await insertAuditLog({
       actorUserId: actor.id,
+      companyId: row.company_id ?? saved.company_id ?? null,
       entityType: 'outbound_request',
       entityId: saved.id,
       action: 'outbound_request_route_resolution_reran_bulk',
@@ -415,6 +421,7 @@ export async function rerunAllUnresolvedRouteResolutionsAction(): Promise<void> 
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId: scopedCompanyId ?? null,
     entityType: 'outbound_request',
     entityId: actor.id,
     action: 'outbound_unresolved_route_resolution_reran_bulk_summary',

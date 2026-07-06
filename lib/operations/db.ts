@@ -277,12 +277,15 @@ export async function savePowerOfAttorney(
   if (input.scopeSummary !== undefined) payload.scope_summary = input.scopeSummary;
 
   if (input.id) {
-    const { data, error } = await supabase
+    // Tenant guard: an update by id must stay inside the customer's company so
+    // a mistaken/forged id can never mutate another tenant's power of attorney.
+    let updateQuery = supabase
       .from("powers_of_attorney")
       .update(payload)
-      .eq("id", input.id)
-      .select("*")
-      .single();
+      .eq("id", input.id);
+    if (companyId) updateQuery = updateQuery.eq("company_id", companyId);
+
+    const { data, error } = await updateQuery.select("*").single();
 
     if (error) throw error;
     return data as PowerOfAttorneyRow;

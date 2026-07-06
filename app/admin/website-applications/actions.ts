@@ -8,7 +8,8 @@ import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
 import { assessWebsiteApplicationReadiness, cleanReviewText, customerIntakeStatusForReadiness } from '@/lib/website/applicationReview'
 import { repairWebsiteCustomerApplication } from '@/lib/website/customerApplications'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
-import { ensureGridOwnerInformationRequest, markFacilityDataReceived } from '@/lib/energy/gridOwnerRequests'
+import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
+import { completeFacilityLookupAndRunNextSteps } from '@/lib/customer-operations/facilityResponseOrchestrator'
 import {
   findFacilityConflicts,
   mapFacilityBusinessError,
@@ -187,6 +188,48 @@ async function authorizeForCompany(companyId: string) {
   const admin = await requireAdminAccess()
   if (isPlatformAdminContext(admin)) return admin
   return requireCompanyScopedActionAccess(companyId, WRITE_PERMISSIONS)
+}
+
+// Fallback for applications without a linked grid-owner lookup request: apply
+// received facility identifiers directly to the site graph. Request-backed
+// applications go through completeFacilityLookupAndRunNextSteps instead.
+async function applyFacilityDataWithoutLookupRequest(input: {
+  companyId: string
+  customerSiteId: string | null
+  facilityId: string | null
+  meteringPointId: string | null
+  actorUserId: string
+}) {
+  if (!input.customerSiteId) return
+  const now = new Date().toISOString()
+
+  const siteResult = await supabaseService
+    .from('customer_sites')
+    .update({
+      ...(input.facilityId ? { facility_id: input.facilityId } : {}),
+      facility_data_verified_at: now,
+      updated_at: now,
+    })
+    .eq('id', input.customerSiteId)
+    .eq('company_id', input.companyId)
+  if (siteResult.error && !missingSchema(siteResult.error)) throw siteResult.error
+
+  if (input.meteringPointId) {
+    const meterResult = await supabaseService
+      .from('metering_points')
+      .update({ facility_data_verified_at: now, updated_at: now })
+      .eq('company_id', input.companyId)
+      .eq('customer_site_id', input.customerSiteId)
+      .or(`metering_point_id.eq.${input.meteringPointId},ediel_metering_point_id.eq.${input.meteringPointId},meter_point_id.eq.${input.meteringPointId}`)
+    if (meterResult.error && !missingSchema(meterResult.error)) throw meterResult.error
+  }
+
+  const resolutionResult = await supabaseService
+    .from('customer_site_resolution')
+    .update({ resolution_status: 'facility_verified', facility_data_verified_at: now, verified_by: input.actorUserId, updated_at: now })
+    .eq('company_id', input.companyId)
+    .eq('customer_site_id', input.customerSiteId)
+  if (resolutionResult.error && !missingSchema(resolutionResult.error)) throw resolutionResult.error
 }
 
 async function loadApplication(applicationId: string): Promise<ApplicationRecord> {
@@ -956,17 +999,29 @@ export async function markWebsiteApplicationFacilityDataReceivedAction(formData:
   const meteringPointId = cleanReviewText(metering.metering_point_id) ?? cleanReviewText(metering.meter_point_id) ?? cleanReviewText(metering.ediel_metering_point_id)
   if (!facilityId && !meteringPointId) throw new Error('Ange anläggnings-ID eller mätpunkt innan uppgifterna markeras mottagna.')
 
-  await markFacilityDataReceived({
-    companyId: application.company_id,
-    customerId: application.customer_id,
-    customerSiteId: application.customer_site_id,
-    customerApplicationId: application.id,
-    requestId: application.grid_owner_information_request_id,
-    facilityId,
-    meteringPointId,
-    receivedPayload: { source: 'admin_review', facilityId, meteringPointId },
-    actorUserId: admin.userId,
-  })
+  if (application.grid_owner_information_request_id) {
+    // Canonical completion path: completes the lookup request, writes site +
+    // metering data, clears blockers and runs the next-step engine.
+    await completeFacilityLookupAndRunNextSteps({
+      companyId: application.company_id,
+      requestId: application.grid_owner_information_request_id,
+      actorUserId: admin.userId,
+      source: 'manual',
+      facilityId,
+      meteringPointId,
+      rawPayload: { source: 'admin_review', facility_id: facilityId, metering_point_id: meteringPointId },
+    })
+  } else {
+    // No linked lookup request: apply the received identifiers directly to the
+    // site graph (same effect as the request-backed path, minus the request).
+    await applyFacilityDataWithoutLookupRequest({
+      companyId: application.company_id,
+      customerSiteId: application.customer_site_id,
+      facilityId,
+      meteringPointId,
+      actorUserId: admin.userId,
+    })
+  }
 
   payload.facility_data_verified = true
   payload.resolution_status = 'facility_verified'

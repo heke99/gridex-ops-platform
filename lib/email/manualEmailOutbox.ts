@@ -189,6 +189,39 @@ async function recoverStaleManualSendingRows(companyId: string | null): Promise<
   }
 }
 
+/**
+ * Operator-approved recovery for delivery_uncertain manual e-mails. Requeues
+ * the row for the ordinary outbox worker. Safe against double delivery: the
+ * row's idempotency_key is forwarded to the provider, so a send that actually
+ * went out during the interrupted attempt is deduplicated.
+ */
+export async function requeueUncertainManualEmail(input: {
+  outboxId: string
+  companyId?: string | null
+  actorUserId: string
+}) {
+  const now = new Date().toISOString()
+  let query = supabaseService
+    .from('manual_email_outbox')
+    .update({
+      status: 'queued',
+      last_error: null,
+      last_error_code: null,
+      delivery_uncertain_at: null,
+      locked_at: null,
+      locked_by: null,
+      updated_at: now,
+    })
+    .eq('id', input.outboxId)
+    .eq('status', 'delivery_uncertain')
+  if (clean(input.companyId)) query = query.eq('company_id', clean(input.companyId))
+
+  const { data, error } = await query.select('id').maybeSingle()
+  if (error) throw error
+  if (!data) return { ok: false as const, error: 'Utskicket är inte i osäkert leveransläge längre.' }
+  return { ok: true as const, outboxId: String((data as { id: string }).id) }
+}
+
 export async function processManualEmailOutbox(input?: {
   companyId?: string | null
   limit?: number

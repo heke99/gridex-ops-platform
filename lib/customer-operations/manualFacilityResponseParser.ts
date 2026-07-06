@@ -8,7 +8,7 @@
 
 import { supabaseService } from '@/lib/supabase/service'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
-import { evaluateAndRunNextCustomerStep } from '@/lib/customer-operations/customerProcessNextStepEngine'
+import { completeFacilityLookupAndRunNextSteps } from '@/lib/customer-operations/facilityResponseOrchestrator'
 
 type JsonRecord = Record<string, unknown>
 
@@ -35,12 +35,6 @@ export type ManualFacilityParseResult = {
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function missingSchema(error: unknown): boolean {
-  const code = String((error as { code?: unknown } | null)?.code ?? '')
-  const message = String((error as { message?: unknown } | null)?.message ?? '')
-  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist/i.test(message)
 }
 
 const PRICE_AREAS = new Set(['SE1', 'SE2', 'SE3', 'SE4'])
@@ -206,88 +200,61 @@ export async function applyManualFacilityResponse(input: {
     return { outcome: 'needs_review', confidence, extracted: input.extracted, reasons }
   }
 
-  // Safe apply: update site, optionally metering point, complete request.
-  const sitePatch: JsonRecord = {
-    facility_id: facilityId,
-    facility_data_status: 'manually_verified_by_grid_owner',
-    facility_data_verified_at: now,
-    updated_at: now,
-    updated_by: clean(input.actorUserId),
-  }
-  if (gridAreaCode) sitePatch.grid_area_code = gridAreaCode
-  if (clean(input.extracted.price_area_code)) sitePatch.price_area_code = clean(input.extracted.price_area_code)
-
-  const siteUpdate = await supabaseService
-    .from('customer_sites')
-    .update(sitePatch)
-    .eq('company_id', input.companyId)
-    .eq('id', siteId as string)
-  if (siteUpdate.error && !missingSchema(siteUpdate.error)) throw siteUpdate.error
-
-  // Upsert metering point when a metering point id was provided.
-  const meteringPointId = clean(input.extracted.metering_point_id)
-  if (meteringPointId && siteId && customerId) {
-    const existing = await supabaseService
-      .from('metering_points')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('site_id', siteId)
-      .limit(1)
-      .maybeSingle()
-    if (existing.data?.id) {
-      await supabaseService
-        .from('metering_points')
-        .update({
-          metering_point_id: meteringPointId,
-          meter_point_id: meteringPointId,
-          grid_area_code: gridAreaCode,
-          facility_data_status: 'manually_verified_by_grid_owner',
-          facility_data_verified_at: now,
-          updated_at: now,
-        })
-        .eq('id', existing.data.id)
-        .then(() => undefined, () => undefined)
-    } else {
-      await supabaseService
-        .from('metering_points')
-        .insert({
-          company_id: input.companyId,
-          customer_id: customerId,
-          site_id: siteId,
-          customer_site_id: siteId,
-          metering_point_id: meteringPointId,
-          meter_point_id: meteringPointId,
-          grid_area_code: gridAreaCode,
-          status: 'active',
-          facility_data_status: 'manually_verified_by_grid_owner',
-          facility_data_verified_at: now,
-        })
-        .then(() => undefined, () => undefined)
-    }
-  }
-
+  // Safe apply: persist parse evidence first (columns the canonical workflow
+  // does not manage), then run the ONE facility completion path shared with
+  // inbound Z02 and admin manual completion. That path completes the request,
+  // updates site + metering point, clears customer_info_requests blockers,
+  // refreshes the intake orchestrator and runs the next-step engine.
   await supabaseService
     .from('grid_owner_information_requests')
     .update({
-      status: 'completed',
-      facility_id: facilityId,
-      received_payload: input.rawPayload ?? {},
       parsed_payload: parsedPayload,
       confidence_score: confidence,
       facility_verification_status: 'manually_verified_by_grid_owner',
-      received_at: now,
-      completed_at: now,
       updated_at: now,
     })
     .eq('id', requestId)
+    .eq('company_id', input.companyId)
     .then(() => undefined, () => undefined)
 
-  if (clean(input.request.dispatch_status) !== null) {
+  const meteringPointId = clean(input.extracted.metering_point_id)
+
+  let nextStepDecision: string | null = null
+  try {
+    const completion = await completeFacilityLookupAndRunNextSteps({
+      companyId: input.companyId,
+      requestId,
+      actorUserId: input.actorUserId ?? null,
+      source: 'system',
+      facilityId,
+      meteringPointId,
+      gridAreaCode,
+      priceAreaCode: clean(input.extracted.price_area_code),
+      note: 'Automatiskt tolkat svar från nätägarens e-post.',
+      rawPayload: { ...(input.rawPayload ?? {}), extracted: input.extracted as unknown as JsonRecord },
+    })
+    nextStepDecision = completion.supplierSwitchResult?.decision ?? completion.intakeDecision?.state ?? null
+  } catch (error) {
+    // Completion failed (e.g. request/site linkage issue): fall back to
+    // needs_review so an operator can finish manually — never half-applied.
     await supabaseService
       .from('grid_owner_information_requests')
-      .update({ dispatch_status: 'completed' })
+      .update({
+        status: 'needs_review',
+        received_payload: input.rawPayload ?? {},
+        parsed_payload: { ...parsedPayload, applied: false, completion_error: error instanceof Error ? error.message : 'unknown' },
+        received_at: now,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', requestId)
+      .eq('company_id', input.companyId)
       .then(() => undefined, () => undefined)
+    return {
+      outcome: 'needs_review',
+      confidence,
+      extracted: input.extracted,
+      reasons: ['completion_failed'],
+    }
   }
 
   if (customerId && siteId) {
@@ -305,24 +272,6 @@ export async function applyManualFacilityResponse(input: {
       payload: { request_id: requestId, confidence, facility_id: facilityId, grid_area_code: gridAreaCode },
       idempotencyKey: `manual_facility_request.applied:${requestId}`,
     }).catch(() => undefined)
-  }
-
-  // Run the shared next-step readiness engine now that facility data exists.
-  let nextStepDecision: string | null = null
-  if (customerId && siteId) {
-    try {
-      const next = await evaluateAndRunNextCustomerStep({
-        companyId: input.companyId,
-        customerId,
-        siteId,
-        trigger: 'facility_data_received',
-        actorUserId: input.actorUserId ?? null,
-        source: 'system',
-      })
-      nextStepDecision = next.decision
-    } catch {
-      nextStepDecision = null
-    }
   }
 
   return { outcome: 'applied', confidence, extracted: input.extracted, reasons: [], nextStepDecision }

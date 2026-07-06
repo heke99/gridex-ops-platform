@@ -1,5 +1,6 @@
 import { supabaseService } from "@/lib/supabase/service";
 import { getBaseAppUrl } from "@/lib/auth/urls";
+import { createCommunicationLog } from "@/lib/email/communicationLogs";
 import { getEffectiveSender } from "@/lib/email/companyEmailSettings";
 import {
   enqueueTenantEmail,
@@ -168,10 +169,29 @@ export async function queueTenantEmail(input: {
     getEffectiveSender(input.companyId, { requireSendReady: true }),
   ]);
 
+  // Unified communication audit: tenant-template mail (cases, withdrawals,
+  // profile flows) gets a communication_logs row just like event mail, so the
+  // customer card communication tab shows the complete history. Best-effort —
+  // a log failure must never block the actual send.
+  const communicationLog = await createCommunicationLog({
+    companyId: input.companyId,
+    customerId: input.customerId ?? null,
+    templateKey: input.emailType,
+    recipientEmail: input.toEmail,
+    senderEmail: sender.senderEmail,
+    replyToEmail: sender.replyTo ?? branding.supportEmail ?? null,
+    subject: input.subject,
+    senderMode: sender.mode,
+    status: 'queued',
+    createdBy: input.actorUserId ?? null,
+    metadata: { source: 'tenant_template_email', customer_case_id: input.customerCaseId ?? null },
+  }).catch(() => null);
+
   return enqueueTenantEmail({
     companyId: input.companyId,
     customerId: input.customerId ?? null,
     customerCaseId: input.customerCaseId ?? null,
+    communicationLogId: communicationLog?.id ?? null,
     emailType: input.emailType,
     to: input.toEmail,
     from: sender.from,

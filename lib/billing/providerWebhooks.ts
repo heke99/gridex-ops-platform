@@ -161,7 +161,13 @@ export async function receiveBillingProviderWebhook(input: {
   const eventId = inferEventId(payload)
   const companyId = inferCompanyId(payload, input.headers)
   const idempotencyKey = input.headers.get('idempotency-key') ?? (eventId ? `${provider}:${eventId}` : null)
-  const status: BillingProviderWebhookResult['status'] = signatureValid === false ? 'rejected' : companyId ? 'received' : 'needs_review'
+
+  // Fail closed in production: an unauthenticated POST must never mutate
+  // financial state. Without a configured webhook secret (signatureValid ===
+  // null) the event is stored for diagnostics but rejected from processing.
+  const missingSecretInProduction = signatureValid === null && process.env.NODE_ENV === 'production'
+  const status: BillingProviderWebhookResult['status'] =
+    signatureValid === false || missingSecretInProduction ? 'rejected' : companyId ? 'received' : 'needs_review'
 
   const row = {
     provider,

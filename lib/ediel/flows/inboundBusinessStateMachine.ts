@@ -8,6 +8,7 @@ export type InboundBusinessOutcome =
   | 'supplier_switch_accepted'
   | 'supplier_switch_completed'
   | 'supplier_switch_changed'
+  | 'supplier_switch_review_required'
   | 'metering_values_received'
   | 'business_rejection'
   | 'technical_rejection'
@@ -164,7 +165,10 @@ function outcomeForMessage(message: EdielMessageRow): InboundBusinessOutcome {
   if (family === 'UTILTS' && code === 'E66') return 'metering_values_received'
   if (family === 'PRODAT' && code === 'Z02') return 'grid_owner_information_received'
   if (family === 'PRODAT' && code === 'Z04') return 'supplier_switch_accepted'
-  if (family === 'PRODAT' && code === 'Z05') return 'supplier_switch_completed'
+  // PRODAT Z05 is a move-in/leveransstart notification, NOT a switch
+  // completion confirmation. An inbound Z05 on a matched switch is parked for
+  // operator review instead of silently completing the switch.
+  if (family === 'PRODAT' && code === 'Z05') return 'supplier_switch_review_required'
   if (family === 'PRODAT' && ['Z06', 'Z10'].includes(code)) return 'supplier_switch_changed'
   return 'ignored'
 }
@@ -173,6 +177,7 @@ function tenantMessageForOutcome(outcome: InboundBusinessOutcome, message: Ediel
   if (outcome === 'grid_owner_information_received') return 'Svar från nätägaren mottaget.'
   if (outcome === 'supplier_switch_accepted') return 'Leverantörsbytet är bekräftat.'
   if (outcome === 'supplier_switch_completed') return 'Leveransförändringen är mottagen.'
+  if (outcome === 'supplier_switch_review_required') return 'Meddelande om leveransstart/inflyttning mottaget. Granska innan leverantörsbytet markeras klart.'
   if (outcome === 'supplier_switch_changed') return 'Ändrade anläggningsuppgifter är mottagna och behöver granskas innan masterdata uppdateras.'
   if (outcome === 'metering_values_received') return 'Mätvärden är mottagna och behandlas för fakturering.'
   if (outcome === 'business_rejection') return 'Mottagaren har avvisat meddelandet. Åtgärd krävs.'
@@ -190,7 +195,7 @@ export async function applyInboundBusinessStateMachine(input: {
 }): Promise<InboundBusinessStateResult> {
   const outcome = outcomeForMessage(input.message)
   const updated: string[] = []
-  const reviewRequired = ['supplier_switch_changed', 'business_rejection', 'technical_rejection', 'metering_values_error', 'manual_review_required'].includes(outcome)
+  const reviewRequired = ['supplier_switch_changed', 'supplier_switch_review_required', 'business_rejection', 'technical_rejection', 'metering_values_error', 'manual_review_required'].includes(outcome)
   const tenantMessage = tenantMessageForOutcome(outcome, input.message)
   const companyId = input.message.company_id ?? text(readPayloadRecord(input.message).resolved_company_id) ?? null
 
@@ -227,6 +232,29 @@ export async function applyInboundBusinessStateMachine(input: {
     }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
     const supplyPeriodId = await ensureSupplyPeriodFromSwitch({ message: input.message, status: 'active' })
     if (supplyPeriodId) updated.push('customer_supply_periods')
+  }
+
+  if (outcome === 'supplier_switch_review_required' && input.matchedSwitchRequestId) {
+    if (await safeUpdate('supplier_switch_requests', {
+      status: 'manual_followup_required',
+      external_reference: input.message.external_reference ?? undefined,
+      updated_at: new Date().toISOString(),
+    }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
+    await safeInsert('customer_cases', {
+      company_id: companyId,
+      customer_id: input.message.customer_id ?? null,
+      customer_site_id: input.message.site_id ?? null,
+      supplier_switch_request_id: input.matchedSwitchRequestId,
+      case_type: 'supplier_switch_review',
+      status: 'open',
+      priority: 'normal',
+      title: 'Leveransstart mottagen – granska leverantörsbytet',
+      description: 'Nätägaren har skickat ett meddelande om leveransstart/inflyttning (PRODAT Z05). Granska och bekräfta att leverantörsbytet ska markeras som klart.',
+      reason_category: 'ediel_inbound_review',
+      next_action: 'Granska meddelandet och bekräfta leveransstart på kundkortet.',
+      source: 'ediel_inbound_state_machine',
+      metadata: { source_ediel_message_id: input.message.id, message_code: 'Z05' },
+    })
   }
 
   if (outcome === 'business_rejection' || outcome === 'technical_rejection' || outcome === 'metering_values_error') {

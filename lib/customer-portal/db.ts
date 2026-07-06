@@ -22,7 +22,9 @@ import { buildPortalCustomerStatus, displayNameFromCustomer } from '@/lib/custom
 
 type PortalAccountLookupRow = {
   customer_id: string
+  company_id: string | null
   is_active: boolean
+  activated_at: string | null
 }
 
 const DEFAULT_PORTAL_BRANDING: CustomerPortalBranding = {
@@ -45,9 +47,7 @@ function isValidHexColor(value: string | null): boolean {
 }
 
 // Resolves the tenant brand the signed-in customer belongs to so that the
-// customer portal never shows another company's brand. When the portal account
-// spans several companies (rare) we fall back to neutral, brand-agnostic copy
-// instead of leaking a specific company name.
+// customer portal never shows another company's brand.
 async function resolveCustomerPortalBranding(companyIds: string[]): Promise<CustomerPortalBranding> {
   const distinct = Array.from(new Set(companyIds.filter(Boolean)))
   if (distinct.length !== 1) return DEFAULT_PORTAL_BRANDING
@@ -127,23 +127,20 @@ export const getCustomerPortalContext = cache(async function getCustomerPortalCo
 
   const { data: accountRows, error: accountError } = await supabaseService
     .from('customer_portal_accounts')
-    .select('customer_id,is_active')
+    .select('customer_id,company_id,is_active,activated_at')
     .eq('user_id', user.id)
     .eq('is_active', true)
+    .order('activated_at', { ascending: false, nullsFirst: false })
 
   if (accountError) throw accountError
 
-  const customerIds = Array.from(
-    new Set(
-      ((accountRows ?? []) as PortalAccountLookupRow[])
-        .map((row) => row.customer_id)
-        .filter(Boolean)
-    )
-  )
+  const accounts = ((accountRows ?? []) as PortalAccountLookupRow[]).filter((row) => Boolean(row.customer_id))
+  const linkedCustomerIds = Array.from(new Set(accounts.map((row) => row.customer_id)))
 
-  if (customerIds.length === 0) {
+  if (linkedCustomerIds.length === 0) {
     return {
       userEmail: user.email ?? null,
+      companyId: null,
       customerIds: [],
       customers: [],
       branding: DEFAULT_PORTAL_BRANDING,
@@ -155,18 +152,37 @@ export const getCustomerPortalContext = cache(async function getCustomerPortalCo
     .select(
       'id,company_id,customer_number,customer_type,status,first_name,last_name,full_name,company_name,email,phone'
     )
-    .in('id', customerIds)
+    .in('id', linkedCustomerIds)
     .order('created_at', { ascending: false })
 
   if (customerError) throw customerError
 
-  const rows = (customerRows ?? []) as Array<CustomerPortalCustomerRow & { company_id?: string | null }>
-  const branding = await resolveCustomerPortalBranding(
-    rows.map((row) => row.company_id ?? '').filter(Boolean)
-  )
+  const allRows = (customerRows ?? []) as Array<CustomerPortalCustomerRow & { company_id?: string | null }>
+  const companyByCustomerId = new Map(allRows.map((row) => [row.id, row.company_id ?? null]))
+
+  // A portal session is always scoped to exactly one tenant. If the auth user
+  // has linked customers in several companies (rare), the most recently
+  // activated account decides the active tenant; the other tenants' data is
+  // never mixed into the same session.
+  let activeCompanyId: string | null = null
+  for (const account of accounts) {
+    const candidate = account.company_id ?? companyByCustomerId.get(account.customer_id) ?? null
+    if (candidate) {
+      activeCompanyId = String(candidate)
+      break
+    }
+  }
+
+  const rows = activeCompanyId
+    ? allRows.filter((row) => String(row.company_id ?? '') === activeCompanyId)
+    : allRows
+  const customerIds = rows.map((row) => row.id)
+
+  const branding = await resolveCustomerPortalBranding(activeCompanyId ? [activeCompanyId] : [])
 
   return {
     userEmail: user.email ?? null,
+    companyId: activeCompanyId,
     customerIds,
     customers: rows,
     branding,
@@ -185,11 +201,12 @@ export function assertPortalAccessToCustomer(
 export async function listPortalInvoices(
   context: CustomerPortalContext
 ): Promise<CustomerInvoiceRow[]> {
-  if (context.customerIds.length === 0) return []
+  if (context.customerIds.length === 0 || !context.companyId) return []
 
   const { data, error } = await supabaseService
     .from('customer_invoices')
     .select('*')
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('issued_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
@@ -207,7 +224,7 @@ export async function getPortalInvoiceDetail(
   lines: CustomerInvoiceLineRow[]
   documents: CustomerInvoiceDocumentRow[]
 }> {
-  if (context.customerIds.length === 0) {
+  if (context.customerIds.length === 0 || !context.companyId) {
     return { invoice: null, lines: [], documents: [] }
   }
 
@@ -215,6 +232,7 @@ export async function getPortalInvoiceDetail(
     .from('customer_invoices')
     .select('*')
     .eq('id', invoiceId)
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .maybeSingle()
 
@@ -252,13 +270,14 @@ export async function getPortalInvoiceDetail(
 export async function listPortalSites(
   context: CustomerPortalContext
 ): Promise<CustomerPortalSiteRow[]> {
-  if (context.customerIds.length === 0) return []
+  if (context.customerIds.length === 0 || !context.companyId) return []
 
   const { data, error } = await supabaseService
     .from('customer_sites')
     .select(
       'id,customer_id,site_name,facility_id,street,postal_code,city,grid_owner_id,price_area_code,status,annual_consumption_kwh'
     )
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('created_at', { ascending: false })
     .limit(100)
@@ -289,13 +308,14 @@ export async function listPortalMeteringValues(
     limit?: number
   } = {}
 ): Promise<CustomerPortalMeteringValueRow[]> {
-  if (context.customerIds.length === 0) return []
+  if (context.customerIds.length === 0 || !context.companyId) return []
 
   const { data, error } = await supabaseService
     .from('metering_values')
     .select(
       'id,customer_id,site_id,metering_point_id,source_request_id,grid_owner_id,reading_type,value_kwh,quality_code,read_at,period_start,period_end,source_system,created_at'
     )
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('period_start', { ascending: false, nullsFirst: false })
     .order('read_at', { ascending: false })
@@ -329,11 +349,12 @@ export function summarizeConsumptionByMonth(
 
 
 async function listPortalPowersOfAttorneyForDashboard(context: CustomerPortalContext): Promise<Array<Record<string, unknown>>> {
-  if (context.customerIds.length === 0) return []
+  if (context.customerIds.length === 0 || !context.companyId) return []
 
   const { data, error } = await supabaseService
     .from('powers_of_attorney')
     .select('id,customer_id,site_id,metering_point_id,scope,status,signed_at,valid_from,valid_to,reference,metadata,created_at')
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('created_at', { ascending: false })
     .limit(100)
@@ -346,11 +367,12 @@ async function listPortalPowersOfAttorneyForDashboard(context: CustomerPortalCon
 }
 
 async function listPortalLegalAcceptancesForDashboard(context: CustomerPortalContext): Promise<Array<Record<string, unknown>>> {
-  if (context.customerIds.length === 0) return []
+  if (context.customerIds.length === 0 || !context.companyId) return []
 
   const { data, error } = await supabaseService
     .from('customer_legal_acceptances')
     .select('id,customer_id,contract_id,contract_application_id,acceptance_type,legal_text_version_id,accepted_at,source,metadata,created_at')
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('accepted_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
@@ -364,11 +386,12 @@ async function listPortalLegalAcceptancesForDashboard(context: CustomerPortalCon
 }
 
 async function listPortalWebsiteApplicationsForDashboard(context: CustomerPortalContext): Promise<Array<Record<string, unknown>>> {
-  if (context.customerIds.length === 0) return []
+  if (context.customerIds.length === 0 || !context.companyId) return []
 
   const { data, error } = await supabaseService
     .from('website_customer_applications')
     .select('id,customer_id,customer_site_id,metering_point_id,contract_id,status,grid_area_code,grid_owner_id,price_area_code,resolution_status,facility_data_verified_at,payload,response_payload,warnings,created_at,updated_at')
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('created_at', { ascending: false })
     .limit(20)
@@ -425,11 +448,12 @@ export async function getPortalDashboardData() {
 export async function listPortalContracts(
   context: CustomerPortalContext
 ): Promise<CustomerPortalContractRow[]> {
-  if (context.customerIds.length === 0) return []
+  if (context.customerIds.length === 0 || !context.companyId) return []
 
   const { data, error } = await supabaseService
     .from('customer_contracts')
     .select('id,company_id,customer_id,site_id,contract_name,contract_type,status,starts_at,ends_at,signed_at,monthly_fee_sek,spot_markup_ore_per_kwh,variable_fee_ore_per_kwh,fixed_price_ore_per_kwh,green_fee_mode,green_fee_value,binding_months,notice_months,created_at')
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('created_at', { ascending: false })
     .limit(100)
@@ -441,11 +465,12 @@ export async function listPortalContracts(
 export async function listPortalCases(
   context: CustomerPortalContext
 ): Promise<CustomerPortalCaseRow[]> {
-  if (context.customerIds.length === 0) return []
+  if (context.customerIds.length === 0 || !context.companyId) return []
 
   const { data, error } = await supabaseService
     .from('customer_cases')
     .select('id,customer_id,site_id,metering_point_id,case_type,status,priority,title,description,reason_category,next_action,created_at,updated_at')
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('updated_at', { ascending: false })
     .limit(100)
@@ -457,11 +482,12 @@ export async function listPortalCases(
 export async function listPortalInfoRequests(
   context: CustomerPortalContext
 ): Promise<CustomerPortalInfoRequestRow[]> {
-  if (context.customerIds.length === 0) return []
+  if (context.customerIds.length === 0 || !context.companyId) return []
 
   const { data, error } = await supabaseService
     .from('customer_info_requests')
     .select('id,customer_id,site_id,metering_point_id,request_type,target_party_type,status,requested_data_categories,notes,created_at,updated_at')
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('updated_at', { ascending: false })
     .limit(100)
@@ -473,11 +499,12 @@ export async function listPortalInfoRequests(
 export async function listPortalCompletions(
   context: CustomerPortalContext
 ): Promise<CustomerPortalCompletionRow[]> {
-  if (context.customerIds.length === 0) return []
+  if (context.customerIds.length === 0 || !context.companyId) return []
 
   const { data, error } = await supabaseService
     .from('customer_portal_completions')
     .select('id,customer_id,completion_type,status,submitted_payload,created_at,updated_at')
+    .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('created_at', { ascending: false })
     .limit(100)
@@ -488,6 +515,59 @@ export async function listPortalCompletions(
     throw error
   }
   return (data ?? []) as CustomerPortalCompletionRow[]
+}
+
+// Creates the ops case for a portal completion and binds it via
+// linked_case_id. Used by both the native portal UI and the customer portal
+// API (profile-update / move-out) so completions never become dead-end rows.
+export async function createPortalCompletionCase(input: {
+  companyId: string
+  customerId: string
+  siteId?: string | null
+  completionId: string
+  completionType: string
+  payload: Record<string, unknown>
+  source?: string
+}): Promise<string | null> {
+  const { data: caseRow, error: caseError } = await supabaseService
+    .from('customer_cases')
+    .insert({
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      site_id: input.siteId ?? null,
+      case_type: 'technical_blocker',
+      status: 'action_required',
+      priority: 'normal',
+      title:
+        input.completionType === 'move_out'
+          ? 'Kund har anmält utflytt via portalen'
+          : 'Kund har kompletterat uppgifter i portalen',
+      description:
+        'Kunden har skickat in uppgifter via kundportalen som inte kunde tillämpas automatiskt. Granska payload och uppdatera kund/anläggning/mätpunkt innan flödet fortsätter.',
+      reason_category: 'portal_completion',
+      next_action: 'Granska portalkompletteringen och uppdatera rätt masterdatafält.',
+      source: input.source ?? 'customer_portal_api',
+      metadata: { completionId: input.completionId, completionType: input.completionType, payload: input.payload },
+    })
+    .select('id')
+    .maybeSingle()
+
+  if (caseError) {
+    if (missingPortalDataSchema(caseError)) return null
+    throw caseError
+  }
+
+  const caseId = (caseRow as { id?: string } | null)?.id ?? null
+  if (!caseId) return null
+
+  const { error: linkError } = await supabaseService
+    .from('customer_portal_completions')
+    .update({ linked_case_id: caseId, updated_at: new Date().toISOString() })
+    .eq('id', input.completionId)
+    .eq('company_id', input.companyId)
+  if (linkError && !missingPortalDataSchema(linkError)) throw linkError
+
+  return caseId
 }
 
 export async function submitPortalCompletion(input: {
@@ -508,6 +588,9 @@ export async function submitPortalCompletion(input: {
   if (customerError) throw customerError
   const companyId = (customer as { company_id?: string | null } | null)?.company_id
   if (!companyId) throw new Error('Kundens bolagskoppling saknas.')
+  if (input.context.companyId && String(companyId) !== input.context.companyId) {
+    throw new Error('Du har inte åtkomst till den här kunden.')
+  }
 
   const { data: completion, error } = await supabaseService
     .from('customer_portal_completions')
@@ -524,19 +607,18 @@ export async function submitPortalCompletion(input: {
 
   if (error) throw error
 
-  await supabaseService.from('customer_cases').insert({
-    company_id: companyId,
-    customer_id: input.customerId,
-    case_type: 'technical_blocker',
-    status: 'action_required',
-    priority: 'normal',
-    title: 'Kund har kompletterat uppgifter i portalen',
-    description: 'Kunden har skickat in kompletterande uppgifter. Granska payload och uppdatera kund/anläggning/mätpunkt innan flödet fortsätter.',
-    reason_category: 'portal_completion',
-    next_action: 'Granska portalkompletteringen och uppdatera rätt masterdatafält.',
+  const completionId = (completion as { id: string }).id
+
+  // Bind the completion to its ops case so operators can navigate both ways
+  // and the completion never becomes a dead-end row.
+  await createPortalCompletionCase({
+    companyId,
+    customerId: input.customerId,
+    completionId,
+    completionType: input.completionType,
+    payload: input.payload,
     source: 'customer_portal',
-    metadata: { completionId: (completion as { id: string }).id, payload: input.payload },
   })
 
-  return (completion as { id: string }).id
+  return completionId
 }

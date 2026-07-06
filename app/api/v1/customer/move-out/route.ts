@@ -6,6 +6,7 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
+import { createPortalCompletionCase } from '@/lib/customer-portal/db'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,6 +60,19 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) throw error
+
+    // Not auto-applied (no site id): create the ops case so the move-out
+    // request reaches an operator instead of dying in the completions table.
+    if (!siteId) {
+      await createPortalCompletionCase({
+        companyId: context.client.company_id,
+        customerId: context.identity.customer_id,
+        completionId: String(data.id),
+        completionType: 'move_out',
+        payload,
+      }).catch(() => null)
+    }
+
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { completion_id: data.id, customer_site_id: siteId, move_out_date: moveOutDate } })
     return customerPortalJson({ data })
   } catch (error) {

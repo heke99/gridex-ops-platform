@@ -151,6 +151,9 @@ export async function runMonthlyBillingAutomationForCompany(input: {
       periodMonth: billingMonth,
       targetSystem: input.targetSystem ?? 'billing_partner',
       exportFormat: input.exportFormat ?? 'json',
+      // Run-level idempotency: a re-fired monthly cron reuses the month's run
+      // instead of creating a duplicate.
+      idempotencyKey: `monthly-billing:${input.companyId}:${billingMonth}:${input.targetSystem ?? 'billing_partner'}:${input.exportFormat ?? 'json'}`,
     })
 
     const queuedResult = await queueReadyBillingExportRunItems({

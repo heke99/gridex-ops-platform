@@ -86,6 +86,24 @@ async function hasSignedPowerOfAttorney(input: { companyId: string; customerId: 
   })
 }
 
+// customers.intake_status only accepts the intake lifecycle vocabulary
+// (customers_intake_status_check). Raw facility-automation statuses are mapped
+// to that vocabulary; the site keeps the raw status in facility_data_status.
+function intakeStatusForAutomationStatus(status: string): string {
+  switch (status) {
+    case 'facility_lookup_ready_to_send':
+    case 'ready_to_send':
+      return 'facility_lookup_ready_to_send'
+    case 'waiting_response':
+      return 'facility_lookup_waiting_response'
+    case 'needs_review':
+    case 'blocked':
+      return 'needs_admin_review'
+    default:
+      return 'needs_facility_lookup'
+  }
+}
+
 async function patchCustomerIntakeStatus(input: {
   companyId: string
   customerId: string
@@ -96,7 +114,7 @@ async function patchCustomerIntakeStatus(input: {
 }) {
   const now = new Date().toISOString()
   const customerPatch = {
-    intake_status: input.status,
+    intake_status: intakeStatusForAutomationStatus(input.status),
     next_action: input.nextAction,
     updated_at: now,
   }

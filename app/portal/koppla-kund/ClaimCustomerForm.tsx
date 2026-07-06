@@ -8,11 +8,18 @@ const initialState: PortalClaimActionState = {
   message: '',
 }
 
-export default function ClaimCustomerForm({ userEmail }: { userEmail: string | null }) {
+export default function ClaimCustomerForm({
+  userEmail,
+  companySlug,
+}: {
+  userEmail: string | null
+  companySlug?: string | null
+}) {
   const [state, formAction, isPending] = useActionState(claimPortalCustomerAction, initialState)
 
   return (
     <form action={formAction} className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+      {companySlug ? <input type="hidden" name="company_slug" value={companySlug} /> : null}
       <div>
         <h2 className="text-xl font-semibold text-slate-950">Koppla ditt kundkonto</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">

@@ -5,13 +5,21 @@ import ClaimCustomerForm from './ClaimCustomerForm'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PortalClaimCustomerPage() {
+export default async function PortalClaimCustomerPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+
+  const params = (await searchParams) ?? {}
+  const rawSlug = params.bolag
+  const companySlug = typeof rawSlug === 'string' ? rawSlug.trim().toLowerCase() : ''
 
   return (
     <div className="space-y-6">
@@ -34,7 +42,7 @@ export default async function PortalClaimCustomerPage() {
         </div>
       </section>
 
-      <ClaimCustomerForm userEmail={user.email ?? null} />
+      <ClaimCustomerForm userEmail={user.email ?? null} companySlug={companySlug || null} />
     </div>
   )
 }

@@ -1,9 +1,9 @@
-import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
+import { reprocessInvoiceProviderEventsAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +19,8 @@ export default async function BillingIntegrationsPage() {
   const connections = await safeListRows('billing_provider_connections', scope?.companyId ?? null, '*', 80)
   const runs = await safeListRows('invoice_export_runs', scope?.companyId ?? null, '*', 40)
   const deadLetters = await safeListRows('invoice_dead_letters', scope?.companyId ?? null, '*', 20)
+  const reviewEvents = (await safeListRows('invoice_provider_events', scope?.companyId ?? null, '*', 200))
+    .filter((row) => String(row.status ?? '') === 'needs_review')
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -54,8 +56,35 @@ export default async function BillingIntegrationsPage() {
             <div className="border-b px-6 py-5"><h2 className="text-lg font-semibold">Senaste fakturaexporter</h2><p className="mt-1 text-sm text-slate-700">Här visas exportkörningar mot Capway/Aptic och andra fakturapartners.</p></div>
             <div className="divide-y">
               {runs.length === 0 ? <div className="p-6 text-sm text-slate-600">Inga exportkörningar finns ännu.</div> : null}
-              {runs.map((row) => <div key={String(row.id)} className="p-6 text-sm"><div className="flex items-center justify-between gap-3"><div className="font-semibold">{fmt(row.billing_month)} · {fmt(row.provider)}</div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>{fmt(row.status)}</span></div><div className="mt-2 text-slate-600">Poster: {fmt(row.total_items)} · skickade: {fmt(row.sent_items)} · fel: {fmt(row.failed_items)}</div><Link className="mt-3 inline-flex font-semibold text-emerald-700" href={`/api/internal/invoice-exports/${row.id}`}>API-status</Link></div>)}
+              {runs.map((row) => <div key={String(row.id)} className="p-6 text-sm"><div className="flex items-center justify-between gap-3"><div className="font-semibold">{fmt(row.billing_month)} · {fmt(row.provider)}</div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>{fmt(row.status)}</span></div><div className="mt-2 text-slate-600">Poster: {fmt(row.total_items)} · skickade: {fmt(row.sent_items)} · fel: {fmt(row.failed_items)}</div><div className="mt-2 font-mono text-xs text-slate-400">Körning {String(row.id)}</div></div>)}
             </div>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-5">
+            <div>
+              <h2 className="text-lg font-semibold">Providerhändelser som kräver granskning</h2>
+              <p className="mt-1 text-sm text-slate-700">Webhookhändelser som inte kunde matchas mot en fakturaexport automatiskt. Ombearbetning matchar om händelser där underliggande data har kommit på plats.</p>
+            </div>
+            <form action={reprocessInvoiceProviderEventsAction}>
+              <button type="submit" className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+                Ombearbeta händelser
+              </button>
+            </form>
+          </div>
+          <div className="divide-y">
+            {reviewEvents.length === 0 ? <div className="p-6 text-sm text-slate-600">Inga händelser väntar på granskning.</div> : null}
+            {reviewEvents.slice(0, 25).map((row) => (
+              <div key={String(row.id)} className="p-6 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-semibold">{fmt(row.event_type)} · {fmt(row.provider)}</div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>{fmt(row.status)}</span>
+                </div>
+                <div className="mt-2 text-slate-600">Faktura-GUID: {fmt(row.provider_invoice_guid) || 'saknas'} · mottagen {fmt(row.received_at)}</div>
+              </div>
+            ))}
+            {reviewEvents.length > 25 ? <div className="p-4 text-xs text-slate-500">Visar 25 av {reviewEvents.length} händelser.</div> : null}
           </div>
         </section>
       </main>

@@ -66,6 +66,15 @@ function normalizePriceArea(value: unknown): 'SE1' | 'SE2' | 'SE3' | 'SE4' | nul
   return area === 'SE1' || area === 'SE2' || area === 'SE3' || area === 'SE4' ? area : null
 }
 
+// Both facility lookup channels use the same completion workflow:
+// 'facility_lookup' (Ediel/PRODAT Z01) and 'facility_identifier_lookup'
+// (default manual grid-owner e-mail pipeline).
+export const FACILITY_LOOKUP_REQUEST_TYPES = ['facility_lookup', 'facility_identifier_lookup'] as const
+
+export function isFacilityLookupRequestType(value: unknown): boolean {
+  return FACILITY_LOOKUP_REQUEST_TYPES.includes(String(value ?? '') as (typeof FACILITY_LOOKUP_REQUEST_TYPES)[number])
+}
+
 async function loadFacilityRequest(companyId: string, requestId: string): Promise<FacilityLookupRequestRow> {
   const { data, error } = await supabaseService
     .from('grid_owner_information_requests')
@@ -76,7 +85,7 @@ async function loadFacilityRequest(companyId: string, requestId: string): Promis
   if (error) throw error
   if (!data) throw new Error('Anläggningsbegäran hittades inte för bolaget.')
   const row = data as FacilityLookupRequestRow
-  if (String(row.request_type ?? '') !== 'facility_lookup') {
+  if (!isFacilityLookupRequestType(row.request_type)) {
     throw new Error('Begäran är inte en anläggningsuppgiftsbegäran.')
   }
   return row

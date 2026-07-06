@@ -529,29 +529,9 @@ export async function listPortalMeteringPoints(context: PortalCustomerContext, s
   ])
 }
 
-export async function createPortalRequest(context: PortalCustomerContext, input: {
-  type: 'profile_update' | 'move_out'
-  payload: Record<string, unknown>
-  route: string
-}) {
-  await logPortalAccess({ context, route: input.route, action: input.type })
-  const row = {
-    company_id: context.companyId,
-    customer_id: context.customerId,
-    external_customer_id: context.externalCustomerId,
-    request_type: input.type,
-    status: 'submitted',
-    payload: input.payload,
-    source: 'customer_portal_api',
-  }
-  const { data, error } = await supabaseService.from('customer_portal_requests').insert(row).select('*').maybeSingle()
-  if (error) {
-    if (!isMissingSchemaError(error)) throw error
-    return row
-  }
-  return data ?? row
-}
-
+// Note: the unused createPortalRequest helper (writing customer_portal_requests,
+// a table nothing read) was removed. Profile updates / move-outs are recorded
+// as customer_portal_completions with linked ops cases.
 
 const LEGAL_ACCEPTANCE_SELECT = 'id,acceptance_type,legal_text_version_id,contract_id,contract_application_id,accepted_at,source,snapshot,metadata,created_at'
 const LEGAL_ACCEPTANCE_LEGACY_SELECT = 'id,acceptance_type,legal_text_version_id,contract_id,contract_application_id,accepted_at,snapshot,metadata,created_at'

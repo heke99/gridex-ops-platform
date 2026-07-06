@@ -8,6 +8,7 @@ import {
 } from '@/lib/customer-portal/externalApi'
 import { applyCustomerSiteAddressCandidate } from '@/lib/customer-sites/addressIntake'
 import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
+import { createPortalCompletionCase } from '@/lib/customer-portal/db'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -82,6 +83,20 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) throw error
+
+    // Not auto-applied: put the completion on the ops queue like the native
+    // portal does, so it never becomes an unprocessed dead-end row.
+    if (!addressResult) {
+      await createPortalCompletionCase({
+        companyId: context.client.company_id,
+        customerId: context.identity.customer_id,
+        siteId,
+        completionId: String(data.id),
+        completionType: 'profile_update',
+        payload,
+      }).catch(() => null)
+    }
+
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { completion_id: data.id, address_result: addressResult } })
     return customerPortalJson({ data: { ...data, address_result: addressResult } })
   } catch (error) {
