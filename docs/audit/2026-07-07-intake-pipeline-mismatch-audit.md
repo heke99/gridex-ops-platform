@@ -210,8 +210,62 @@ Detection (report first, mutate only with explicit `--apply`):
 
 ---
 
-## 5. Confirmations
+## 5. Implementation report (Batches 2–17, completed)
+
+All batches were implemented on `cursor/pipeline-mismatch-audit-a8df` (one commit per batch). Verification: `npm run build` passes, vitest 98/98 passes, all 19 new regressions pass, and the full 138-script regression sweep produces failures **byte-identical to `main`** (14 pre-existing failures, all requiring live-DB env or with pre-existing module resolution issues; nothing new broke).
+
+### 5.1 What changed per finding class
+
+| Class | Fix | Where |
+|---|---|---|
+| Explicit input loss (LKA/SE4 class) | Explicit valid input wins; resolver enriches only, never nulls/overwrites; partial-address inserts persist grid columns; `postal_suggested` no longer downgrades sites | `customerApplications.ts` (merge/upsertSite/normalize), `lib/energy/resolver.ts` |
+| Grid owner ID namespace | `normalizeGridOwnerIdToOps` bridges platform→OPS; website + manual intake normalize before write; unmappable ids dropped with precise warnings | `platformGridOwnerResolver.ts`, `customerApplications.ts`, `app/admin/customers/actions.ts` |
+| POA/authorization chain | Shared idempotent helpers (`ensureCustomerAuthorizationDocument`, `ensureAuthorizationScopes`, `ensureAuthorizationDocumentFromPowerOfAttorney`, `resolveAuthorizationDocumentIdForPowerOfAttorney`); manual intake creates scopes; switch + Z01 chains carry `authorization_document_id` down to message payloads | `lib/legal/authorizationChain.ts`, `operations/db.ts`, `prodatSwitch.ts`, `prodatCustomerMasterdata.ts` |
+| Parallel Z01 entry points | `evaluateSiteFacilityIdentity` gate at enqueue (customer card/profile-update/portal sync) AND inside the worker; missing identity redirects to `resumeCustomerIntake` (manual path) — no CIR/GODR/outbound created | `automation.ts`, `customerIntakeOrchestrator.ts`, `app/admin/customers/[id]/actions.ts` |
+| Z01 hard guards | L1 dispatch gate before GODR creation; L2 `createOutboundRequest` never queues facility-less masterdata (failed + blockers); L3 intent validation blocks; L5 resume refuses revival + draft sweep; DB trigger `gridex_validate_outbound_payload` demotes any active facility-less row | `infoRequests.ts`, `db-outbound.ts`, `intentEngine.ts`, `resumeStuckIntents.ts`, migration `20260707120000` |
+| Split-brain outbound | Every early exit in `prepareAndQueueProdatZ01FromDataRequest` persists status=failed + blocking_reasons on the row (`blockOutboundRowDirect`); dispatch events mirror real status | `prodatCustomerMasterdata.ts`, `db-outbound.ts` |
+| Route profile namespace | `route_profile_id` never assigned a communication route id (switch + facility dispatch); missing profile = controlled intent blocker; blocked intents stop the switch flow pre-render | `prodatSwitch.ts`, `facilityLookupEdifactDispatch.ts` |
+| RenderGateway | `renderAndQueueCustomerMasterdataZ01` — masterdata renders only via the gateway with controlled failure; idempotent intent reuse re-validates stale rows | `renderGateway.ts`, `intentEngine.ts` |
+| Worker/cron safety | Failures persist PG code/details/hint + stage + IDs + retryability; terminal states keep last_error; resume sweep claims intents (compare-and-set); DB idempotency (tenant-scoped manual outbox key, intent NOT NULL keys, inbound provider id unique); timing-safe spot cron | `automation.ts`, `resumeStuckIntents.ts`, migration `20260707120000` |
+| Facility-missing manual path | Persisted `blocked_missing_*` request rows (request_id always available); request-scoped outbox idempotency; truthful queued→sent site states; `delivery_uncertain` flags request; facility-only replies accepted via site grid-area context; work-queue covers manual lifecycle | `requestMissingFacilityInformation.ts`, `manualEmailOutbox.ts`, `manualFacilityResponseParser.ts`, `blockers.ts`, work-queue |
+| Recipient resolution | `recipient_resolution` metadata on outbox + request + events (mode/selected/actual/environment/verified); env-gated `MANUAL_GRID_OWNER_SAFE_RECIPIENT`; production override = loud warning | `requestMissingFacilityInformation.ts`, migration `20260707130000` |
+| Communication truth | `communication_logs` declared canonical; orphan `customer_communications` write removed (confirmation flows through `triggerEmailEvent`); API distinguishes queued/sent/failed per event; "SMTP skickad" step requires dispatch proof | `sendCustomerConfirmation.ts`, `customerApplications.ts`, `customerCardWorkflow.ts` |
+| Price plan mapping | Offer UUIDs merged into body pre-readiness (kills `price_plan_id_not_verified_uuid` false positive); readiness stops treating `offer_reference` as a plan id; contract creation fails closed (`public_offer_price_plan_mapping_invalid`) | `customerApplications.ts`, `applicationReview.ts` |
+| Tenant UI | Simplified six-step Swedish timeline wired (`buildTenantCustomerCardView`); truthful facility card ("Klar" needs metering point); tenant registry hides `is_test_data` by default | `CustomerBusinessActionsCard.tsx`, `customerCardTenantView.ts`, `customerActionRegistry.ts`, `getCustomers.ts` |
+| Superadmin UI | Recipient resolution panel, production safe-override banner, dirty-test-data banner, safe resend idempotency; Z01 repair + technical details preserved | `CustomerBusinessActionsCard.tsx`, `manualRequestSummary.ts`, `email-actions.ts` |
+| Diagnostics | `scripts/gridex/inspectCustomerFlow.ts` (schema-aware, full pipeline); system-health uses `to_email`; clean-flow live regression with unique customers | `scripts/gridex/*`, `system-health/page.tsx` |
+
+### 5.2 Migrations (SQL)
+
+- `supabase/migrations/20260707120000_gridex_pipeline_hardening_guards.sql` — tenant-scoped `manual_email_outbox` idempotency index; `ediel_message_intents.idempotency_key` backfill (`legacy:<id>`) + NOT NULL; partial unique on `manual_inbound_messages.provider_message_id` (skips with NOTICE if historical duplicates exist); `gridex_validate_outbound_payload` BEFORE trigger on `outbound_requests` (customer_masterdata only, demotes facility-less active rows to failed + blockers). Additive; no RLS/audit/security changes.
+- `supabase/migrations/20260707130000_gridex_manual_email_recipient_resolution.sql` — adds `manual_email_outbox.recipient_resolution jsonb`. Additive.
+
+### 5.3 Repair script — what it changes, what it refuses to touch
+
+`npm run gridex:repair-missing-facility-z01` (`scripts/gridex/repairMissingFacilityZ01Rows.ts`), **dry-run by default**, `--apply` to mutate, `--company <uuid>` to scope:
+
+- **Changes with `--apply`:** unsent split-brain `outbound_requests` (customer_masterdata, queued/prepared/ready, no facility identity, no linked message/outbox) → `failed` + `facility_or_metering_point_missing` + `request_facility_information`, payload/audit preserved with `repaired_by_script` provenance. Unrendered facility-less masterdata intents → `validation_status='blocked'` with the same blocker (render/outbox statuses untouched). `customer_sites.grid_owner_id` in the platform namespace → remapped via `platform_grid_owners.ops_grid_owner_id` when a mapping exists.
+- **Refuses to touch:** any row linked to a rendered or sent `ediel_message`/`ediel_outbox` (reported as `REPORT_ONLY_high_risk` for manual review); rows with dirty markers (`manual_test_patch`, `manual_sql`, `route_materialized_manually`) are reported, never mutated; nothing is ever deleted.
+
+### 5.4 New regression commands
+
+`gridex:explicit-input-preservation-regression`, `gridex:masterdata-id-mapping-regression`, `gridex:poa-authorization-chain-regression`, `gridex:manual-pdf-website-shared-orchestrator-regression`, `gridex:facility-missing-path-hardening-regression`, `gridex:z01-missing-facility-outbound-blocker-regression`, `gridex:resume-stuck-intents-missing-facility-blocker-regression`, `gridex:z01-payload-route-context-regression`, `gridex:ediel-intent-outbox-bridge-regression`, `gridex:cron-idempotency-and-locking-regression`, `gridex:communication-source-of-truth-regression`, `gridex:customer-communication-status-regression`, `gridex:manual-email-recipient-resolution-regression`, `gridex:price-plan-offer-mapping-regression`, `gridex:tenant-ui-simplified-status-regression`, `gridex:superadmin-diagnostics-ui-regression`, `gridex:tenant-superadmin-status-visibility-regression`, `gridex:schema-aware-customer-flow-diagnostics-regression`, `gridex:dirty-test-data-detection-regression`. Live (env-gated): `gridex:clean-website-flow-regression` / `gridex:website-missing-facility-manual-request-regression`. Tooling: `gridex:inspect-customer-flow`, `gridex:repair-missing-facility-z01`.
+
+### 5.5 Remaining risks and follow-ups
+
+1. Run `gridex:repair-missing-facility-z01` (dry-run first) against production to block the observed split-brain rows (customer DX-100026 class) and review any high-risk sent rows it reports.
+2. Apply the two new migrations; the inbound provider-id unique index and the open-switch unique index (pre-existing conditional) skip with a NOTICE if duplicates exist — clean up and re-run if noticed.
+3. `evaluateCustomerProcessRouteReadiness` still hardcodes `environment: 'production'` (audit SW-4, P1) — left untouched because changing environment selection for switch readiness needs a per-tenant decision; blockers now surface precisely either way.
+4. Tenant-visible customer e-mail summary (audit UI-3) intentionally not added: an existing regression pins the tenant page to not fetch communication logs (performance decision). Revisit with a lightweight aggregate if tenants need mail visibility.
+5. Switch readiness does not yet gate on `structuredPoaIsExternallySendable` or price plan validity (audit SW-3/SW-7); intake-side fail-closed price mapping reduces the exposure, but adding both gates to `checkSupplierSwitchReadiness` is the natural next step.
+6. `customer_communications`/`customer_communication_events`/`customer_communication_templates` remain as unused tables (no writers after this change); a deprecation migration (comment or rename) can follow once ops confirms nothing external reads them.
+7. The clean-flow live regression requires staging env vars (`GRIDEX_WEBSITE_API_BASE_URL`, `GRIDEX_WEBSITE_API_KEY`, Supabase service creds) and a configured `MANUAL_GRID_OWNER_SAFE_RECIPIENT`; wire it into a staging pipeline.
+
+## 6. Confirmations
 
 - The audit searched the full mismatch class (explicit-input overwrite, ID namespace mixing, table drift, status truth gaps, worker/resume revival, idempotency, diagnostics schema-guessing, tenant/superadmin visibility) — not only LKA/SE4 or the listed examples.
-- Preserved-good-behavior inventory: manual facility email happy path (queue→Resend→webhooks), route masterdata + materialization regressions, EDIEL outbox sender + claim RPC (SKIP LOCKED), inbound handling, audit triggers (batch4e), legal/POA validation gates, tenant email outbox with idempotency + dead-letter. None of these are weakened by planned fixes.
-- `DX-100026`, `manual_test_patch`, `route_materialized_manually` do not appear in code — they are DB-data artifacts; handled via detection/diagnostics, not code deletion.
+- Preserved-good-behavior inventory: manual facility email happy path (queue→Resend→webhooks), route masterdata + materialization regressions, EDIEL outbox sender + claim RPC (SKIP LOCKED), inbound handling, audit triggers (batch4e), legal/POA validation gates, tenant email outbox with idempotency + dead-letter. None of these were weakened by the fixes (verified by the unchanged pre-existing regression baseline).
+- `DX-100026`, `manual_test_patch`, `route_materialized_manually` do not appear in code — they are DB-data artifacts; handled via detection/diagnostics (inspector + repair script), not code deletion.
+- Tenant UI was simplified (six-step Swedish business timeline, truthful status cards, test rows hidden); superadmin UI still exposes technical IDs, recipient resolution, blockers, Z01 repair and dirty-data warnings.
+- No broad unrelated rewrites: 61 files changed, all within the audited pipeline, tooling and their regressions; no RLS/audit/security triggers or POA/legal validation weakened; no parallel systems introduced (the orphan `customer_communications` write path was removed, not duplicated).
+- No real external EDIEL/SMTP messages are sent by any test: all new regressions are static except the env-gated clean-flow script, which targets staging and asserts the safe-recipient metadata.
