@@ -36,6 +36,7 @@
     "gridex:communication-source-of-truth-regression": "node scripts/gridex-communication-source-of-truth-regression.cjs",
     "gridex:customer-communication-status-regression": "node scripts/gridex-communication-source-of-truth-regression.cjs",
     "gridex:manual-email-recipient-resolution-regression": "node scripts/gridex-manual-email-recipient-resolution-regression.cjs",
+    "gridex:price-plan-offer-mapping-regression": "node scripts/gridex-price-plan-offer-mapping-regression.cjs",
     "gridex:actor-registry-intake-hardening-regression": "node scripts/gridex-actor-registry-intake-hardening-regression.cjs",
     "gridex:launch-security-regression": "node scripts/gridex-launch-regression.cjs launch-security-regression",
     "gridex:db-ui-compatibility-regression": "node scripts/gridex-launch-regression.cjs db-ui-compatibility-regression",

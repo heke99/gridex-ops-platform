@@ -2637,6 +2637,26 @@ async function createContract(
   const contract = input.contract
   if (!contract && !publicOffer && !readiness.canCreateContract) return null
   const selected = selectedOfferFields(publicOffer, contract)
+
+  // Fail closed on broken offer -> price plan mapping: a resolved public offer
+  // MUST carry price_plan_id and price_plan_version_id UUIDs. A contract
+  // written without that linkage would silently detach billing/pricing from
+  // the published offer and later block supplier switch with a vague error.
+  if (publicOffer && (!isUuid(selected.pricePlanId) || !isUuid(selected.pricePlanVersionId))) {
+    throw new WebsiteApplicationError({
+      message: 'Det publicerade avtalet saknar giltig prisplan (price_plan_id/price_plan_version_id). Ansökan blockeras tills prisplanskopplingen är åtgärdad.',
+      status: 422,
+      code: 'public_offer_price_plan_mapping_invalid',
+      field: 'offer_reference',
+      stage: 'contract_create',
+      hint: 'Kontrollera att public_contract_offers-raden pekar på en aktiv price_plans/price_plan_versions-rad (UUID) och publicera om avtalet.',
+      details: {
+        contract_offer_id: selected.contractOfferId,
+        price_plan_id: selected.pricePlanId,
+        price_plan_version_id: selected.pricePlanVersionId,
+      },
+    })
+  }
   const requestedStartDate = readiness.requestedStartDate
     ?? clean(contract?.requested_start_date)
     ?? clean(contract?.requestedStartDate)
@@ -3558,6 +3578,23 @@ export async function processWebsiteCustomerApplication(input: {
         consents: body.consents,
         publicOffer: selectedPublicOffer,
       }))
+      // The resolved public offer is the price-plan source of truth:
+      // offer_reference -> price_plan_id UUID -> price_plan_version_id UUID.
+      // Merge the resolved UUIDs into the application body BEFORE readiness is
+      // assessed, so a valid offer never produces price_plan blockers or the
+      // price_plan_id_not_verified_uuid warning.
+      body = {
+        ...body,
+        price_plan_id: selectedPublicOffer.price_plan_id ?? body.price_plan_id,
+        price_plan_version_id: selectedPublicOffer.price_plan_version_id ?? body.price_plan_version_id,
+        contract: body.contract
+          ? {
+              ...body.contract,
+              price_plan_id: selectedPublicOffer.price_plan_id ?? body.contract.price_plan_id,
+              price_plan_version_id: selectedPublicOffer.price_plan_version_id ?? body.contract.price_plan_version_id,
+            }
+          : body.contract,
+      }
     }
 
     // When the resolved public contract publishes a power_of_attorney legal
