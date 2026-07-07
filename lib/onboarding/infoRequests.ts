@@ -4,6 +4,7 @@ import { createGridOwnerDataRequest } from "@/lib/cis/db-data";
 import { createOutboundRequest } from "@/lib/cis/db-outbound";
 import { prepareAndQueueProdatZ01FromDataRequest } from "@/lib/ediel/flows/prodatCustomerMasterdata";
 import { resolveCustomerInfoOperationEnvironment } from "@/lib/ediel/customerInfoEnvironmentResolver";
+import { evaluateSiteFacilityIdentity } from "@/lib/customer-operations/customerIntakeOrchestrator";
 import { normalizeUuidOrNull, requireUuid } from "@/lib/validation/uuid";
 import {
   makeCustomerOperationBlocker,
@@ -1259,6 +1260,30 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       blockerCode: "grid_area_not_verified",
       eventType: "blocked_missing_z01_anchors",
     });
+  }
+
+  // HARD FACILITY GUARD (layer 1 of the Z01 chain): a site/metering point UUID
+  // is not enough — the external facility id or metering identity must exist
+  // before ANY grid_owner_data_request/outbound row is created for
+  // customer_masterdata. Missing identity must go through the manual
+  // grid-owner information path, never a queued/prepared Z01.
+  if (requestNeedsGridOwnerAuthorization(request) && request.site_id) {
+    const facilityIdentity = await evaluateSiteFacilityIdentity({
+      companyId,
+      customerId: request.customer_id,
+      siteId: request.site_id,
+    });
+    if (facilityIdentity.siteExists && !facilityIdentity.facilityReady) {
+      return blockCustomerInfoRequest({
+        request,
+        companyId,
+        actorUserId,
+        blockerReason:
+          "Anläggnings-ID/mätpunkts-ID saknas. PRODAT Z01 får inte förberedas — uppgifterna begärs från nätägaren via den manuella vägen först.",
+        blockerCode: "facility_or_metering_point_missing",
+        eventType: "blocked_missing_facility_identity",
+      });
+    }
   }
 
   const environmentResolution = await resolveCustomerInfoOperationEnvironment({

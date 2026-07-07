@@ -193,7 +193,9 @@ export async function ensureFacilityLookupAutomation(input: {
         ? 'waiting_response'
         : manual.status === 'not_needed'
           ? 'not_needed'
-          : manual.status === 'blocked_missing_poa' || manual.status === 'blocked_missing_grid_owner_contact'
+          : manual.status === 'blocked_missing_poa' ||
+              manual.status === 'blocked_missing_grid_owner_contact' ||
+              manual.status === 'blocked_missing_manual_mailbox'
             ? 'blocked'
             : 'needs_review'
     return {

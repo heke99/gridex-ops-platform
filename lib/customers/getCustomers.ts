@@ -536,6 +536,10 @@ export async function listCustomersPage(options: {
   companyId?: string | null
   customerType?: CustomerTypeFilter
   flag?: CustomerFlagFilter
+  // Tenant registries hide test/dirty rows by default: is_test_data customers
+  // only appear when explicitly requested (flag=test_customers) or when the
+  // caller (platform diagnostics) opts in.
+  excludeTestData?: boolean
 } = {}): Promise<CustomerListPageResult> {
   const query = (options.query ?? '').trim()
   const page = Math.max(options.page ?? 1, 1)
@@ -545,8 +549,9 @@ export async function listCustomersPage(options: {
   const customerType = options.customerType ?? 'all'
   const flag = options.flag ?? 'all'
   const companyId = options.companyId ?? null
+  const excludeTestData = Boolean(options.excludeTestData) && flag !== 'test_customers'
 
-  if (canUsePagedCustomerQuery({ query, contractFilter, flag })) {
+  if (!excludeTestData && canUsePagedCustomerQuery({ query, contractFilter, flag })) {
     const pagedRows = await loadPagedCustomerRows({
       page,
       pageSize,
@@ -567,7 +572,10 @@ export async function listCustomersPage(options: {
   }
 
   const includeHiddenRows = status === 'archived'
-  const allRows = await hydrateDerivedCustomerData(await loadCustomerRows(companyId, status, includeHiddenRows), companyId)
+  const hydratedRows = await hydrateDerivedCustomerData(await loadCustomerRows(companyId, status, includeHiddenRows), companyId)
+  const allRows = excludeTestData
+    ? hydratedRows.filter((row) => !matchesFlag(row, 'test_customers'))
+    : hydratedRows
   const searchedRows = allRows.filter((row) => matchesText(row, query))
   const counts = buildCounts(searchedRows.filter((row) => matchesCustomerType(row, customerType) && matchesFlag(row, flag)))
   const filteredRows = searchedRows.filter(

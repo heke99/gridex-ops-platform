@@ -24,12 +24,17 @@ assert(/meter_point_id/.test(prereq) && /ediel_reference/.test(prereq), 'preflig
 
 const preflightIndex = prodat.indexOf('const z01Prerequisites = await evaluateZ01Prerequisites')
 const preparedIndex = prodat.indexOf("status: \"prepared\"", preflightIndex)
-const draftIndex = prodat.indexOf('const draft = await buildProdatZ01Draft')
+// Rendering moved into the sanctioned RenderGateway (renderAndQueueCustomerMasterdataZ01):
+// the flow no longer builds the EDIFACT draft inline, but the draft build must
+// still only happen after the prepared decision — now inside the gateway call.
+const renderIndex = prodat.indexOf('renderAndQueueCustomerMasterdataZ01({', preflightIndex)
 assert(preflightIndex !== -1, 'prodat flow runs Z01 preflight')
 assert(preparedIndex !== -1, 'prodat flow still persists prepared state after preflight')
-assert(draftIndex !== -1, 'prodat flow still builds the EDIFACT draft')
+assert(renderIndex !== -1, 'prodat flow renders via the sanctioned RenderGateway')
 assert(preflightIndex < preparedIndex, 'preflight runs before outbound is marked prepared')
-assert(preparedIndex < draftIndex, 'EDIFACT draft build still happens after prepared decision in the valid path')
+assert(preparedIndex < renderIndex, 'EDIFACT render (gateway) still happens after prepared decision in the valid path')
+const gateway = read('lib/ediel/intent/renderGateway.ts')
+assert(gateway.includes('buildProdatZ01Draft'), 'RenderGateway builds the EDIFACT draft for customer_masterdata')
 assert(/payload_preflight_status: \"blocked\"/.test(prodat), 'blocked preflight writes payload_preflight_status=blocked')
 assert(/status: \"failed\"/.test(prodat) && /failureReason: blocker\.blocker_reason/.test(prodat), 'missing identifier sets outbound failed, not prepared')
 assert(/message: null/.test(prodat) && /prepared: false/.test(prodat), 'missing identifier returns no message and prepared=false')

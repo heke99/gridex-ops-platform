@@ -59,7 +59,10 @@ async function loadUncertainEmails(): Promise<Array<UncertainEmailRow & { kind: 
       .then((result) => (result.error ? [] : ((result.data ?? []) as UncertainEmailRow[]))),
     supabaseService
       .from('manual_email_outbox')
-      .select('id,company_id,recipient_email,subject,delivery_uncertain_at,last_error')
+      // Schema truth: the manual outbox recipient column is to_email
+      // (recipient_email does not exist on this table and made this health
+      // query fail silently).
+      .select('id,company_id,to_email,subject,delivery_uncertain_at,last_error')
       .eq('status', 'delivery_uncertain')
       .order('delivery_uncertain_at', { ascending: true })
       .limit(20)

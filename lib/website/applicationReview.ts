@@ -551,13 +551,15 @@ export function assessWebsiteApplicationReadiness(
       resolutionStatus === "facility_verified" ||
       Boolean(facilityId && meteringPointId && gridAreaCode && priceArea));
 
+  // price_plan_id candidates carry ONLY real price plan UUID fields. An
+  // offer_reference is a signed public-offer token, not a price plan id —
+  // treating it as one produced false price_plan blockers and the spurious
+  // price_plan_id_not_verified_uuid warning for perfectly valid offers.
   const pricePlanId = firstText(input, [
     "price_plan_id",
     "pricePlanId",
     "price_plan_version_id",
     "pricePlanVersionId",
-    "offer_reference",
-    "contract.offer_reference",
     "contract.price_plan_id",
     "contract.pricePlanId",
     "contract.price_plan_version_id",
@@ -566,9 +568,15 @@ export function assessWebsiteApplicationReadiness(
     "metadata.price_plan_version_id",
     "metadata.contract_display_snapshot.price_plan_id",
     "metadata.contract_display_snapshot.price_plan_version_id",
-    "metadata.contract_display_snapshot.offer_reference",
     "metadata.pricing_preview_snapshot.contract.price_plan_id",
     "metadata.pricing_preview_snapshot.contract.price_plan_version_id",
+  ]);
+  const offerReference = firstText(input, [
+    "offer_reference",
+    "offerReference",
+    "contract.offer_reference",
+    "contract.offerReference",
+    "metadata.contract_display_snapshot.offer_reference",
     "metadata.pricing_preview_snapshot.contract.offer_reference",
   ]);
   const pricePlanDefinition = firstText(input, [
@@ -583,7 +591,11 @@ export function assessWebsiteApplicationReadiness(
     "metadata.pricing_preview_snapshot.contract.name",
     "metadata.pricing_preview_snapshot.contract.contractType",
   ]);
-  const hasValidPricePlan = Boolean(isUuid(pricePlanId) || pricePlanDefinition);
+  // A submitted offer_reference counts as a valid price plan source at
+  // readiness time: the intake flow resolves it to price_plan_id /
+  // price_plan_version_id UUIDs (and fails the application with a precise
+  // error if it cannot).
+  const hasValidPricePlan = Boolean(isUuid(pricePlanId) || offerReference || pricePlanDefinition);
   const requestedStartMode = readRequestedStartMode(input);
   const requestedStartDate = readRequestedStartDate(input);
   const calculatedEarliestStartDate = readCalculatedEarliestStartDate(input);

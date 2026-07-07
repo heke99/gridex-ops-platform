@@ -75,6 +75,32 @@ async function advanceLinkedRequest(
     .in('status', ['manual_email_queued', 'ready_to_send_manual_email', 'manual_email_sent'])
     .then(() => undefined, () => undefined)
 
+  // The site/customer "waiting for grid owner" state is only truthful once the
+  // e-mail is actually sent, so it is advanced here (send confirmation), not at
+  // queue time.
+  const { data: requestRow } = await supabaseService
+    .from('grid_owner_information_requests')
+    .select('company_id,customer_id,customer_site_id')
+    .eq('id', requestId)
+    .maybeSingle()
+  const linked = requestRow as { company_id?: string | null; customer_id?: string | null; customer_site_id?: string | null } | null
+  if (linked?.company_id && linked.customer_site_id) {
+    await supabaseService
+      .from('customer_sites')
+      .update({ facility_data_status: 'waiting_manual_response', next_action: 'Väntar på svar från nätägaren.', updated_at: now })
+      .eq('company_id', linked.company_id)
+      .eq('id', linked.customer_site_id)
+      .then(() => undefined, () => undefined)
+    if (linked.customer_id) {
+      await supabaseService
+        .from('customers')
+        .update({ next_action: 'Väntar på svar från nätägaren.', updated_at: now })
+        .eq('company_id', linked.company_id)
+        .eq('id', linked.customer_id)
+        .then(() => undefined, () => undefined)
+    }
+  }
+
   // Safety net: a sent outbox row must NEVER leave the linked request with
   // dispatch_status = 'not_started', regardless of the request status value.
   await supabaseService
@@ -181,11 +207,32 @@ async function recoverStaleManualSendingRows(companyId: string | null): Promise<
     .lt('locked_at', cutoff)
   if (companyId) staleQuery = staleQuery.eq('company_id', companyId)
 
-  const { error } = await staleQuery
+  const { data: recovered, error } = await staleQuery.select('id,request_id')
   if (error && !missingSchema(error)) {
     // Constraint not widened yet (pre-migration) or transient failure: leave
     // rows untouched rather than corrupting status.
     console.warn('manual_email_outbox stale sending recovery skipped:', error.message)
+    return
+  }
+
+  // The linked grid-owner request must reflect the uncertain send instead of
+  // silently staying in manual_email_queued / waiting: operators need the
+  // needs_review + send_uncertain signal to decide on a safe requeue.
+  for (const row of (recovered ?? []) as Array<{ id: string; request_id: string | null }>) {
+    if (!row.request_id) continue
+    await supabaseService
+      .from('grid_owner_information_requests')
+      .update({
+        status: 'needs_review',
+        dispatch_status: 'failed',
+        dispatch_error_code: 'send_uncertain',
+        dispatch_error_message:
+          'Det är oklart om det manuella e-postmeddelandet skickades. Kontrollera leveransstatus innan nytt utskick.',
+        updated_at: now,
+      })
+      .eq('id', row.request_id)
+      .in('status', ['manual_email_queued', 'ready_to_send_manual_email', 'manual_email_sent', 'waiting_manual_response'])
+      .then(() => undefined, () => undefined)
   }
 }
 

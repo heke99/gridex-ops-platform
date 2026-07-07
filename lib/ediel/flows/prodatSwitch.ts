@@ -19,6 +19,7 @@ import {
   type ProdatSwitchCode,
 } from '@/lib/ediel/prodat'
 import { linkEdielMessage } from '@/lib/ediel/db'
+import { resolveAuthorizationDocumentIdForPowerOfAttorney } from '@/lib/legal/authorizationChain'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
 import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
@@ -200,6 +201,19 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     ? makeTgtRetryReference(params.messageCode, switchRequest.id)
     : switchRequest.external_reference ?? defaultExternalReference(params.messageCode, switchRequest.id)
 
+  // Propagate the legal authorization chain through the switch outbound and
+  // intent. Older switch rows may predate authorization_document_id, so fall
+  // back to resolving it from the POA.
+  const switchCompanyId = switchRequest.company_id ?? site.company_id ?? null
+  const authorizationDocumentId =
+    switchRequest.authorization_document_id ??
+    (switchRequest.power_of_attorney_id && switchCompanyId
+      ? await resolveAuthorizationDocumentIdForPowerOfAttorney({
+          companyId: switchCompanyId,
+          powerOfAttorneyId: switchRequest.power_of_attorney_id,
+        }).catch(() => null)
+      : null)
+
   const outbound = await findOrCreateSwitchOutbound({
     actorUserId,
     switchRequestId: switchRequest.id,
@@ -216,6 +230,8 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
       requestType: switchRequest.request_type,
       requestedStartDate: switchRequest.requested_start_date,
       communicationRouteId: routeContext.route.id,
+      authorization_document_id: authorizationDocumentId,
+      power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
       forceRegenerate: Boolean(params.forceRegenerate),
       forceCreateNewAttempt,
     },
@@ -230,6 +246,12 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     gridOwner,
     externalReference,
   })
+  // Keep the legal chain traceable on the rendered message itself.
+  draft.parsedPayload = {
+    ...(draft.parsedPayload ?? {}),
+    authorization_document_id: authorizationDocumentId,
+    power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
+  }
 
   // Mandatory intent in front of rendering. The intent records the validated
   // business decision and links the resulting message/outbox via intent_id.
@@ -251,7 +273,10 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     receiverEdielId: routeContext.receiverEdielId,
     receiverSubaddress: routeContext.receiverSubAddress ?? null,
     applicationReference: routeContext.applicationReference ?? '',
-    routeProfileId: routeContext.route.id,
+    // route_profile_id must reference ediel_route_profiles.id — never the
+    // communication route id (different namespace). Missing profile ->
+    // controlled intent blocker rather than a wrong-namespace UUID.
+    routeProfileId: routeContext.routeDecision.edielRouteProfileId ?? '',
     communicationRouteId: routeContext.route.id,
     customerId: switchRequest.customer_id,
     customerSiteId: switchRequest.site_id,
@@ -266,10 +291,23 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     payload: {
       edielCode: params.messageCode,
       requestType: switchRequest.request_type,
+      authorization_document_id: authorizationDocumentId,
+      power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
       forceRegenerate: Boolean(params.forceRegenerate),
     },
   })
   draft.intentId = intent.id
+
+  // The intent is the validated business decision in front of rendering. A
+  // blocked intent (missing route profile, facility identity, application
+  // reference policy, ...) must stop the flow here — rendering/queueing anyway
+  // would produce an outbox send that contradicts the intent status.
+  if (intent.validationStatus === 'blocked') {
+    const firstBlocker = intent.blockingReasons?.[0]
+    throw new Error(
+      `Ediel-intent för ${params.messageCode} blockerades före rendering: ${firstBlocker?.message ?? firstBlocker?.code ?? 'intent-validering misslyckades'}`,
+    )
+  }
 
   const message = await finalizeOutboundDraft({
     actorUserId,

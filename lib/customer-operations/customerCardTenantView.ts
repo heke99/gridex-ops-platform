@@ -17,6 +17,7 @@ export type TenantCustomerCardView = {
     id: string
     label: string
     status: TenantCustomerProcessStatus
+    explanation: string
   }>
   primaryAction: {
     id: string
@@ -61,26 +62,59 @@ export function buildTenantCustomerCardView(params: {
     'wait_for_grid_owner',
   ].includes(workflow.primaryAction)
 
+  const legalDone = snapshot.hasAuthorization && snapshot.hasContract
+  const facilityDone = snapshot.hasFacilityId && snapshot.hasMeteringPoint && snapshot.hasGridOwner
+
   return {
     processSteps: [
-      { id: 'customer', label: 'Kund mottagen', status: 'done' },
+      {
+        id: 'customer',
+        label: 'Kund mottagen',
+        status: 'done',
+        explanation: 'Ansökan är mottagen och kunden är skapad.',
+      },
       {
         id: 'legal',
         label: 'Avtal och fullmakt',
-        status: stepStatus(snapshot.hasAuthorization && snapshot.hasContract, workflow.primaryAction === 'request_data'),
+        status: stepStatus(legalDone, workflow.primaryAction === 'request_data'),
+        explanation: legalDone
+          ? 'Avtal och fullmakt är klara.'
+          : 'Avtal och signerad fullmakt behöver vara klara innan nästa steg.',
       },
       {
         id: 'facility',
         label: 'Uppgifter från nätägare',
-        status: stepStatus(snapshot.hasFacilityId && snapshot.hasMeteringPoint && snapshot.hasGridOwner, facilityInProgress, isBlocked),
+        status: stepStatus(facilityDone, facilityInProgress, isBlocked),
+        explanation: facilityDone
+          ? 'Anläggningsuppgifter finns.'
+          : isBlocked
+            ? workflow.blockerAdminMessage ?? 'Uppgifterna kan inte hämtas just nu. Se nästa steg.'
+            : dispatchSent
+              ? 'Vi väntar på svar från nätägaren.'
+              : facilityInProgress
+                ? 'Uppgifter begärs från nätägaren.'
+                : 'Anläggningsuppgifter saknas ännu.',
       },
       {
         id: 'switch',
         label: 'Leverantörsbyte',
         status: stepStatus(false, workflow.primaryAction === 'create_supplier_switch'),
+        explanation: workflow.primaryAction === 'create_supplier_switch'
+          ? 'Allt underlag är klart. Leverantörsbytet kan startas.'
+          : 'Leverantörsbyte kan inte starta förrän anläggningsuppgifter finns.',
       },
-      { id: 'delivery', label: 'Leverans aktiv', status: 'waiting' },
-      { id: 'billing', label: 'Fakturering', status: 'waiting' },
+      {
+        id: 'delivery',
+        label: 'Leverans aktiv',
+        status: 'waiting',
+        explanation: 'Startar när leverantörsbytet är bekräftat.',
+      },
+      {
+        id: 'billing',
+        label: 'Fakturering',
+        status: 'waiting',
+        explanation: 'Startar automatiskt när leverans och mätvärden är klara.',
+      },
     ],
     primaryAction:
       workflow.primaryAction === 'create_supplier_switch'

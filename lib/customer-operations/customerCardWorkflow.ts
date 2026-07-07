@@ -663,9 +663,19 @@ export function buildCustomerCardWorkflow(
   });
   steps.push({
     id: "smtp_sent",
-    label: "SMTP skickad",
-    explanation: facilityDispatchSent || isWaiting ? "Utskicket är skickat eller inväntar kvittens." : "Utskicket är inte skickat ännu.",
-    status: facilityDispatchSent || isWaiting ? "done" : facilityDispatchQueued ? "current" : "not_started",
+    // This step covers ONLY the EDIEL SMTP transport (Strato), never
+    // customer/tenant Resend mail or the manual grid-owner e-mail (which have
+    // their own steps above). "done" requires actual dispatch proof from the
+    // outbox dispatch state — a waiting business status is not a send receipt.
+    label: "EDIEL-utskick (SMTP)",
+    explanation: facilityDispatchSent
+      ? "EDIEL-meddelandet är skickat via outbox."
+      : facilityDispatchQueued
+        ? "EDIEL-meddelandet är köat i outbox men inte skickat ännu."
+        : isWaiting
+          ? "Väntar på kvittens. Utskicket bekräftas av outbox-status, inte av väntestatus."
+          : "EDIEL-utskicket är inte skickat ännu.",
+    status: facilityDispatchSent ? "done" : facilityDispatchQueued ? "current" : isWaiting ? "waiting" : "not_started",
   });
   steps.push({
     id: "ack_status",

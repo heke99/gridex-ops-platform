@@ -12,6 +12,15 @@ type JsonRecord = Record<string, unknown>
 
 export type ManualRequestChannelLabel = 'E-post' | 'Ediel' | 'Manuell granskning'
 
+export type ManualRequestRecipientResolution = {
+  mode: string | null
+  selectedToEmail: string | null
+  actualGridOwnerContactEmail: string | null
+  environment: string | null
+  contactVerified: boolean
+  productionSafeOverrideWarning: boolean
+}
+
 export type ManualRequestSummary = {
   id: string
   customerSiteId: string | null
@@ -25,6 +34,9 @@ export type ManualRequestSummary = {
   deliveryFailed: boolean
   sentAt: string | null
   updatedAt: string | null
+  // Superadmin diagnostics only (never populated for tenant views): who the
+  // e-mail was actually addressed to and why.
+  recipientResolution?: ManualRequestRecipientResolution | null
 }
 
 // Columns that are safe for tenant card/list views (no provider/Ediel internals).
@@ -150,22 +162,55 @@ function toSummary(row: JsonRecord): ManualRequestSummary {
   }
 }
 
+function recipientResolutionFromMetadata(metadata: unknown): ManualRequestRecipientResolution | null {
+  const record = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? (metadata as JsonRecord) : null
+  const resolution = record?.recipient_resolution && typeof record.recipient_resolution === 'object'
+    ? (record.recipient_resolution as JsonRecord)
+    : null
+  if (!resolution) return null
+  return {
+    mode: clean(resolution.resolution_mode),
+    selectedToEmail: clean(resolution.selected_to_email),
+    actualGridOwnerContactEmail: clean(resolution.actual_grid_owner_contact_email),
+    environment: clean(resolution.environment),
+    contactVerified: resolution.contact_verified === true,
+    productionSafeOverrideWarning: resolution.production_safe_override_warning === true,
+  }
+}
+
 // Loads tenant-safe manual request summaries for a customer (company-scoped).
+// `includeRecipientResolution` is superadmin diagnostics only: it additionally
+// reads metadata.recipient_resolution so operators can see WHICH address was
+// used and WHY (real grid-owner contact vs safe override).
 export async function listManualGridOwnerRequestSummaries(input: {
   companyId: string
   customerId: string
+  includeRecipientResolution?: boolean
 }): Promise<ManualRequestSummary[]> {
-  const { data, error } = await supabaseService
-    .from('grid_owner_information_requests')
-    .select(SUMMARY_COLUMNS)
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .in('status', ACTIVE_STATUSES)
-    .order('updated_at', { ascending: false })
-    .limit(50)
-  if (error) {
-    if (missingSchema(error)) return []
-    throw error
+  const runQuery = async (columns: string): Promise<{ data: JsonRecord[] | null; error: unknown }> => {
+    const result = await supabaseService
+      .from('grid_owner_information_requests')
+      .select(columns)
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .in('status', ACTIVE_STATUSES)
+      .order('updated_at', { ascending: false })
+      .limit(50)
+    return { data: (result.data as unknown as JsonRecord[] | null) ?? null, error: result.error }
   }
-  return ((data ?? []) as JsonRecord[]).map(toSummary)
+
+  let result = await runQuery(input.includeRecipientResolution ? `${SUMMARY_COLUMNS},metadata` : SUMMARY_COLUMNS)
+  if (result.error && input.includeRecipientResolution && missingSchema(result.error)) {
+    result = await runQuery(SUMMARY_COLUMNS)
+  }
+  if (result.error) {
+    if (missingSchema(result.error)) return []
+    throw result.error
+  }
+  return (result.data ?? []).map((row) => ({
+    ...toSummary(row),
+    ...(input.includeRecipientResolution
+      ? { recipientResolution: recipientResolutionFromMetadata(row.metadata) }
+      : {}),
+  }))
 }

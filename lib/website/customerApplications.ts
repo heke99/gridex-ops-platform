@@ -8,6 +8,7 @@ import { seedDefaultEmailTemplates } from '@/lib/email/emailTemplates'
 import { assessWebsiteApplicationReadiness, customerIntakeStatusForReadiness, type WebsiteApplicationReadiness } from '@/lib/website/applicationReview'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
+import { normalizeGridOwnerIdToOps } from '@/lib/grid-owners/platformGridOwnerResolver'
 import { processWebsiteApplicationIntake, type CustomerIntakeDecision } from '@/lib/customer-operations/customerIntakeOrchestrator'
 import { resolvePublicContractOffer, type PublicContractOffer } from '@/lib/website/publicContracts'
 import type { EnergyResolverResult } from '@/lib/energy/types'
@@ -313,6 +314,22 @@ function resultList(value: unknown): Array<Record<string, unknown>> {
 function emailTriggerSucceeded(value: unknown): boolean {
   const items = resultList(value)
   return items.length > 0 && items.every((item) => item.ok !== false)
+}
+
+// Truthful per-event dispatch status derived from the actual
+// communication_logs rows created by the trigger (the source of truth) —
+// never from the mere absence of an exception. 'queued' means a log +
+// outbox row exists; 'sent' only when the provider already confirmed it.
+function emailDispatchStatus(value: unknown): 'sent' | 'queued' | 'skipped' | 'failed' {
+  const items = resultList(value)
+  const statuses = items.map((item) => {
+    const log = (item as { log?: { status?: unknown } }).log
+    return typeof log?.status === 'string' ? log.status : null
+  })
+  if (statuses.some((status) => status === 'sent' || status === 'delivered')) return 'sent'
+  if (statuses.some((status) => status === 'queued')) return 'queued'
+  if (items.some((item) => item.skipped === true)) return 'skipped'
+  return 'failed'
 }
 
 function emailTriggerErrorText(value: unknown): string {
@@ -1362,23 +1379,44 @@ function explicitGridOwnerIdFromInput(input: ApplicationInput): string | null {
   return clean(input.site?.grid_owner_id) ?? clean(input.site?.gridOwnerId) ?? clean(input.grid_owner_id) ?? clean(input.network_owner_id)
 }
 
-function mergeResolverWithExplicitInput(input: ApplicationInput, resolution: EnergyResolverResult): EnergyResolverResult {
+const VALID_PRICE_AREAS = new Set(['SE1', 'SE2', 'SE3', 'SE4'])
+
+function isValidExplicitPriceArea(value: string | null): value is string {
+  return Boolean(value && VALID_PRICE_AREAS.has(value.toUpperCase()))
+}
+
+// Central merge rule for explicit vs resolved energy context:
+// explicit valid submitted input always wins; the resolver (Papilite/geo/master
+// lookup) may only enrich values that are missing. A resolver failure or a
+// diverging resolver result must never null or replace valid explicit input.
+// Explicit grid owner ids are pre-normalized to the OPS grid_owners namespace
+// (customer_sites.grid_owner_id must never store platform_grid_owners.id).
+function mergeResolverWithExplicitInput(
+  input: ApplicationInput,
+  resolution: EnergyResolverResult,
+  explicitGridOwner?: { opsGridOwnerId: string | null; warnings: string[] },
+): EnergyResolverResult {
   const explicitGridAreaCode = explicitGridAreaCodeFromInput(input)
-  const explicitPriceAreaCode = explicitPriceAreaCodeFromInput(input)
-  const explicitGridOwnerId = explicitGridOwnerIdFromInput(input)
+  const explicitPriceAreaCodeRaw = explicitPriceAreaCodeFromInput(input)
+  const explicitPriceAreaCode = isValidExplicitPriceArea(explicitPriceAreaCodeRaw) ? explicitPriceAreaCodeRaw.toUpperCase() : null
+  const gridAreaDisagrees = Boolean(explicitGridAreaCode && resolution.gridAreaCode && resolution.gridAreaCode !== explicitGridAreaCode)
+  const priceAreaDisagrees = Boolean(explicitPriceAreaCode && resolution.priceArea && resolution.priceArea !== explicitPriceAreaCode)
   return {
     ...resolution,
-    gridAreaCode: resolution.gridAreaCode ?? explicitGridAreaCode,
-    priceArea: resolution.priceArea ?? (explicitPriceAreaCode as EnergyResolverResult['priceArea'] | null),
-    gridOwnerId: resolution.gridOwnerId ?? explicitGridOwnerId,
+    gridAreaCode: explicitGridAreaCode ?? resolution.gridAreaCode,
+    priceArea: (explicitPriceAreaCode as EnergyResolverResult['priceArea'] | null) ?? resolution.priceArea,
+    gridOwnerId: explicitGridOwner?.opsGridOwnerId ?? resolution.gridOwnerId,
     sourceChain: Array.from(new Set([
       ...(explicitGridAreaCode ? ['input.explicit_grid_area_code'] : []),
       ...resolution.sourceChain,
     ])),
     warnings: Array.from(new Set([
       ...resolution.warnings,
+      ...(explicitGridOwner?.warnings ?? []),
       ...(resolution.gridAreaCode || !explicitGridAreaCode ? [] : ['explicit_grid_area_code_preserved_without_master_match']),
       ...(resolution.priceArea || !explicitPriceAreaCode ? [] : ['explicit_price_area_code_preserved']),
+      ...(gridAreaDisagrees ? ['resolver_grid_area_disagrees_with_explicit_input'] : []),
+      ...(priceAreaDisagrees ? ['resolver_price_area_disagrees_with_explicit_input'] : []),
     ])),
   }
 }
@@ -1390,7 +1428,10 @@ function enrichApplicationWithEnergyResolution(input: ApplicationInput, resoluti
     : undefined
   return {
     ...input,
-    grid_owner_id: resolution.gridOwnerId ?? explicitGridOwnerIdFromInput(input) ?? undefined,
+    // grid_owner_id intentionally never falls back to the raw explicit input:
+    // the merged resolution already carries the OPS-normalized owner id, and a
+    // raw explicit id could reference the platform_grid_owners namespace.
+    grid_owner_id: resolution.gridOwnerId ?? undefined,
     grid_area_code: resolution.gridAreaCode ?? explicitGridAreaCodeFromInput(input) ?? undefined,
     price_area_code: resolution.priceArea ?? explicitPriceAreaCodeFromInput(input) ?? undefined,
     resolution_status: resolution.resolutionStatus,
@@ -1400,7 +1441,7 @@ function enrichApplicationWithEnergyResolution(input: ApplicationInput, resoluti
     site: input.site ? {
       ...input.site,
       grid_area_code: resolution.gridAreaCode ?? explicitGridAreaCodeFromInput(input) ?? undefined,
-      grid_owner_id: resolution.gridOwnerId ?? explicitGridOwnerIdFromInput(input) ?? undefined,
+      grid_owner_id: resolution.gridOwnerId ?? undefined,
       grid_owner_verification_status: resolution.gridOwnerVerificationStatus ?? undefined,
       price_area_code: resolution.priceArea ?? explicitPriceAreaCodeFromInput(input) ?? undefined,
       latitude: resolution.coordinates?.latitude ?? undefined,
@@ -1449,7 +1490,14 @@ async function runEnergyResolution(input: {
     requestedStartDate: clean(body.requested_start_date) ?? clean(body.contract?.requested_start_date) ?? clean(body.contract?.starts_at),
     metadata: body.metadata ?? {},
   })
-  const resolved = mergeResolverWithExplicitInput(body, resolution)
+  const explicitGridOwnerNormalization = await normalizeGridOwnerIdToOps({
+    gridOwnerId: explicitGridOwnerIdFromInput(body),
+    companyId: input.companyId,
+  })
+  const resolved = mergeResolverWithExplicitInput(body, resolution, {
+    opsGridOwnerId: explicitGridOwnerNormalization.opsGridOwnerId,
+    warnings: explicitGridOwnerNormalization.warnings,
+  })
   return { body: enrichApplicationWithEnergyResolution(body, resolved), resolution: resolved }
 }
 
@@ -1679,6 +1727,8 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
         city: firstDefined(nestedSite?.city, explicitSiteAddress ? raw.city : undefined, explicitSiteAddress ? rawAddress.city : undefined),
         country: firstDefined(nestedSite?.country, explicitSiteAddress ? raw.country : undefined, explicitSiteAddress ? rawAddress.country : undefined),
         price_area_code: firstDefined(nestedSite?.price_area_code, nestedSite?.priceAreaCode, nestedSite?.price_area, nestedSite?.priceArea, raw.price_area_code, raw.priceAreaCode, raw.price_area, raw.priceArea),
+        grid_area_code: firstDefined(nestedSite?.grid_area_code, nestedSite?.gridAreaCode, raw.grid_area_code, raw.gridAreaCode),
+        grid_owner_id: firstDefined(nestedSite?.grid_owner_id, nestedSite?.gridOwnerId, raw.grid_owner_id, raw.gridOwnerId, raw.network_owner_id),
         move_in_date: firstDefined(nestedSite?.move_in_date, nestedSite?.moveInDate, raw.move_in_date, raw.moveInDate, raw.start_date, raw.startDate),
         annual_consumption_kwh: firstDefined(
           nestedSite?.annual_consumption_kwh,
@@ -2201,6 +2251,10 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
     return { id: created.siteId, facility_id: facilityId }
   }
 
+  // Explicit/enriched grid context must be persisted on the site columns even
+  // when the address is incomplete. Previously these were forced to null and
+  // only kept in metadata.claimed_*, which lost valid submitted values
+  // (e.g. grid_area_code/price_area_code) for downstream route resolution.
   const fullPayload = {
     company_id: companyId,
     customer_id: customerId,
@@ -2208,10 +2262,10 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
     facility_id: facilityId,
     site_type: clean(site.site_type) ?? 'consumption',
     status: 'active',
-    price_area_code: null,
-    grid_area_code: null,
-    grid_owner_id: null,
-    grid_owner_verification_status: null,
+    price_area_code: clean(site.price_area_code) ?? clean(site.price_area),
+    grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
+    grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
+    grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus),
     move_in_date: clean(site.move_in_date),
     annual_consumption_kwh: site.annual_consumption_kwh ?? null,
     street: clean(site.street),
@@ -2583,6 +2637,26 @@ async function createContract(
   const contract = input.contract
   if (!contract && !publicOffer && !readiness.canCreateContract) return null
   const selected = selectedOfferFields(publicOffer, contract)
+
+  // Fail closed on broken offer -> price plan mapping: a resolved public offer
+  // MUST carry price_plan_id and price_plan_version_id UUIDs. A contract
+  // written without that linkage would silently detach billing/pricing from
+  // the published offer and later block supplier switch with a vague error.
+  if (publicOffer && (!isUuid(selected.pricePlanId) || !isUuid(selected.pricePlanVersionId))) {
+    throw new WebsiteApplicationError({
+      message: 'Det publicerade avtalet saknar giltig prisplan (price_plan_id/price_plan_version_id). Ansökan blockeras tills prisplanskopplingen är åtgärdad.',
+      status: 422,
+      code: 'public_offer_price_plan_mapping_invalid',
+      field: 'offer_reference',
+      stage: 'contract_create',
+      hint: 'Kontrollera att public_contract_offers-raden pekar på en aktiv price_plans/price_plan_versions-rad (UUID) och publicera om avtalet.',
+      details: {
+        contract_offer_id: selected.contractOfferId,
+        price_plan_id: selected.pricePlanId,
+        price_plan_version_id: selected.pricePlanVersionId,
+      },
+    })
+  }
   const requestedStartDate = readiness.requestedStartDate
     ?? clean(contract?.requested_start_date)
     ?? clean(contract?.requestedStartDate)
@@ -3504,6 +3578,23 @@ export async function processWebsiteCustomerApplication(input: {
         consents: body.consents,
         publicOffer: selectedPublicOffer,
       }))
+      // The resolved public offer is the price-plan source of truth:
+      // offer_reference -> price_plan_id UUID -> price_plan_version_id UUID.
+      // Merge the resolved UUIDs into the application body BEFORE readiness is
+      // assessed, so a valid offer never produces price_plan blockers or the
+      // price_plan_id_not_verified_uuid warning.
+      body = {
+        ...body,
+        price_plan_id: selectedPublicOffer.price_plan_id ?? body.price_plan_id,
+        price_plan_version_id: selectedPublicOffer.price_plan_version_id ?? body.price_plan_version_id,
+        contract: body.contract
+          ? {
+              ...body.contract,
+              price_plan_id: selectedPublicOffer.price_plan_id ?? body.contract.price_plan_id,
+              price_plan_version_id: selectedPublicOffer.price_plan_version_id ?? body.contract.price_plan_version_id,
+            }
+          : body.contract,
+      }
     }
 
     // When the resolved public contract publishes a power_of_attorney legal
@@ -3554,6 +3645,8 @@ export async function processWebsiteCustomerApplication(input: {
           source: 'website',
           sourceReference: input.idempotencyKey ?? null,
           claimedGridOwnerId: clean(siteAddress.grid_owner_id) ?? clean(siteAddress.gridOwnerId),
+          claimedGridAreaCode: clean(siteAddress.grid_area_code) ?? clean(siteAddress.gridAreaCode),
+          claimedPriceAreaCode: clean(siteAddress.price_area_code) ?? clean(siteAddress.price_area),
           metadata: { application_source: clean(body.source) ?? 'website' },
         },
       }))
@@ -3965,6 +4058,10 @@ export async function processWebsiteCustomerApplication(input: {
           return {
             eventKey,
             ok: emailTriggerSucceeded(result),
+            // Explicit queued/sent/failed per event: the event key names
+            // (e.g. contract.confirmation_sent) describe the BUSINESS event,
+            // not the delivery state. Integrators must read dispatch_status.
+            dispatch_status: emailDispatchStatus(result),
             result,
           }
         }))
@@ -4079,11 +4176,24 @@ export async function processWebsiteCustomerApplication(input: {
         .then(() => null)
     }
 
+    const communicationStatusOf = (statuses: string[]) => communicationResults
+      .filter((item): item is { eventKey: string; dispatch_status?: string } =>
+        Boolean(item) && typeof item === 'object' && typeof (item as { eventKey?: unknown }).eventKey === 'string')
+      .filter((item) => statuses.includes(String(item.dispatch_status ?? '')))
+      .map((item) => item.eventKey)
+
     return successResponse({
       ...responsePayload,
       application_id: application.id,
       communication: {
-        triggered: email ? triggeredEmailEvents : [],
+        // 'triggered' lists events where an email row actually exists in the
+        // source of truth (communication_logs), not events that merely were
+        // attempted. queued/sent/failed break the state down truthfully.
+        triggered: email ? communicationStatusOf(['queued', 'sent']) : [],
+        queued: email ? communicationStatusOf(['queued']) : [],
+        sent: email ? communicationStatusOf(['sent']) : [],
+        failed: email ? communicationStatusOf(['failed']) : [],
+        source_of_truth: 'communication_logs',
         results: communicationResults,
       },
     }, warnings)

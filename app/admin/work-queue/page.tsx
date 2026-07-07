@@ -402,7 +402,13 @@ export default async function AdminWorkQueuePage() {
       'grid_owner_information_requests',
       companyId,
       'id, customer_id, customer_site_id, operation_id, request_type, status, dispatch_status, dispatch_error_code, dispatch_error_message, channel, outbound_request_id, ediel_message_id, created_at, updated_at',
-      [{ column: 'status', op: 'in', value: ['draft', 'ready_to_send', 'needs_review', 'failed', 'waiting_response'] }],
+      [{ column: 'status', op: 'in', value: [
+        'draft', 'ready_to_send', 'needs_review', 'failed', 'waiting_response',
+        // Manual e-mail pipeline lifecycle + persisted configuration blockers
+        // must appear in the work queue, not only the Ediel statuses.
+        'ready_to_send_manual_email', 'manual_email_queued', 'manual_email_sent', 'waiting_manual_response',
+        'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
+      ] }],
       customerIds,
       80,
     ),

@@ -193,6 +193,26 @@ export function evaluateIntentValidation(
     })
   }
 
+  // 6) HARD FACILITY GUARD (layer 3 of the Z01 chain): customer_masterdata and
+  // supplier_switch intents must carry a facility id or metering point
+  // identity. Without one the intent is BLOCKED (never draft/validated), so no
+  // resume worker can revive it into a render/send. facility_lookup is exempt —
+  // its purpose is to obtain the missing identity.
+  const businessProcess = String(input.businessProcess ?? '').toLowerCase()
+  if (businessProcess === 'customer_masterdata' || businessProcess === 'supplier_switch') {
+    const hasFacilityIdentity = Boolean(str(input.facilityId) || str(input.meteringPointId))
+    checks.facility_identity_present = hasFacilityIdentity
+    if (!hasFacilityIdentity) {
+      blockingReasons.push({
+        code: 'facility_or_metering_point_missing',
+        message:
+          'Anläggnings-ID/mätpunkts-ID saknas. Intent blockeras – begär anläggningsuppgifter från nätägaren innan meddelandet kan förberedas.',
+        severity: 'block',
+        details: { required_admin_action: 'request_facility_information' },
+      })
+    }
+  }
+
   const ok = blockingReasons.filter((r) => (r.severity ?? 'block') === 'block').length === 0
   return {
     ok,
@@ -249,14 +269,37 @@ export async function createEdielMessageIntent(
   const validation = evaluateIntentValidation(input)
   const actorUserId = str(input.actorUserId) ?? 'system'
 
-  // Idempotency: a prior intent with the same business key is reused.
+  // Idempotency: a prior intent with the same business key is reused — but
+  // never blindly. A stale row (e.g. legacy validation_status='draft' or a row
+  // whose inputs have since changed) is re-validated before reuse so a
+  // pre-hardening intent can never slip back into the pipeline unvalidated.
   if (str(input.companyId) && str(input.environment) && str(input.idempotencyKey)) {
     const existing = await findExistingIntent({
       companyId: input.companyId,
       environment: input.environment,
       idempotencyKey: input.idempotencyKey,
     })
-    if (existing) return existing
+    if (existing) {
+      const alreadyRenderedOrQueued = Boolean(existing.edielMessageId) || existing.outboxStatus !== 'not_queued'
+      if (!alreadyRenderedOrQueued) {
+        const revalidation = evaluateIntentValidation(existing)
+        if (revalidation.status !== existing.validationStatus) {
+          await updateIntentLifecycle(existing.id, {
+            validationStatus: revalidation.status,
+            validationResult: { ...revalidation, source: 'idempotent_reuse_revalidation' } as unknown as Record<string, unknown>,
+            blockingReasons: revalidation.blockingReasons,
+            actorUserId,
+          })
+          return {
+            ...existing,
+            validationStatus: revalidation.status,
+            blockingReasons: revalidation.blockingReasons,
+            validationResult: revalidation as unknown as Record<string, unknown>,
+          }
+        }
+      }
+      return existing
+    }
   }
 
   const row = {

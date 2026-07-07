@@ -211,6 +211,43 @@ function decision(input: Omit<CustomerIntakeDecision, 'warnings'> & { warnings?:
   return { ...input, warnings: input.warnings ?? [] }
 }
 
+export type SiteFacilityIdentity = {
+  siteId: string | null
+  siteExists: boolean
+  facilityReady: boolean
+  facilityId: string | null
+  meteringPointIdentity: string | null
+}
+
+/**
+ * Canonical facility-identity gate shared by every entry point that may lead
+ * to PRODAT Z01 / customer_masterdata. A site is facility-ready only when it
+ * carries an external facility id or the metering point carries an external
+ * metering identity. Missing identity must route to the manual grid-owner
+ * information request path — never to a queued Z01/outbound.
+ */
+export async function evaluateSiteFacilityIdentity(input: {
+  companyId: string
+  customerId: string
+  siteId?: string | null
+}): Promise<SiteFacilityIdentity> {
+  const site = await latestSite(input)
+  const siteId = clean(site?.id)
+  const meteringPoint = siteId ? await latestMeteringPoint({ ...input, siteId }) : null
+  const facilityId = clean(site?.facility_id) ?? clean(site?.normalized_facility_id)
+  const meteringPointIdentity =
+    clean(meteringPoint?.metering_point_id) ??
+    clean(meteringPoint?.ediel_metering_point_id) ??
+    clean(meteringPoint?.meter_point_id)
+  return {
+    siteId,
+    siteExists: Boolean(site && siteId),
+    facilityReady: hasText(facilityId, meteringPointIdentity),
+    facilityId,
+    meteringPointIdentity,
+  }
+}
+
 export async function evaluateCustomerIntake(input: {
   companyId: string
   customerId: string
@@ -291,7 +328,7 @@ export async function evaluateCustomerIntake(input: {
         source: 'customer_intake_orchestrator',
       })
       referencesBase.gridOwnerInformationRequestId = manual.requestId
-      const waiting = ['manual_email_queued', 'waiting_response', 'sent'].includes(manual.status)
+      const waiting = ['manual_email_queued', 'manual_email_sent', 'waiting_manual_response', 'waiting_response', 'sent'].includes(manual.status)
       const blocked = manual.blockers.length > 0 || manual.status.startsWith('blocked') || manual.status === 'needs_review'
       const result = decision({
         state: waiting

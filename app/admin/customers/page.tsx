@@ -910,16 +910,19 @@ export default async function AdminCustomersPage({
  )
  }
 
- const pageResult = await listCustomersPage({
- query,
- page,
- pageSize: PAGE_SIZE,
- status: statusFilter,
- contractFilter,
- customerType: customerTypeFilter,
- flag: flagFilter,
- companyId: scopedCompanyId,
- })
+  const pageResult = await listCustomersPage({
+    query,
+    page,
+    pageSize: PAGE_SIZE,
+    status: statusFilter,
+    contractFilter,
+    customerType: customerTypeFilter,
+    flag: flagFilter,
+    companyId: scopedCompanyId,
+    // Tenants never see test/dirty rows in the normal registry; platform
+    // admins see everything (and can filter with flag=test_customers).
+    excludeTestData: !tenantScope.isPlatformAdmin,
+  })
 
  const customers = pageResult.rows
 

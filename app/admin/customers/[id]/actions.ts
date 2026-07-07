@@ -1599,6 +1599,21 @@ function customerOperationActionError(error: unknown, fallback: string): Custome
 }
 
 function customerDataRequestActionState(job: Awaited<ReturnType<typeof enqueueCustomerDataRequestAutomation>>, customerId: string): CustomerOperationActionState {
+  if (job.redirectedToManualFacilityRequest) {
+    const decision = job.intakeDecision;
+    const waiting = decision?.nextAction === "wait_for_grid_owner";
+    return {
+      ok: waiting,
+      status: waiting ? "started" : "warning",
+      title: waiting
+        ? "Anläggningsuppgifter begärs från nätägaren"
+        : "Anläggningsuppgifter saknas",
+      message: decision?.adminMessage
+        ?? "Anläggnings-ID saknas. Uppgifter begärs från nätägaren via e-post innan uppgiftsbegäran kan skickas.",
+      jobId: typeof job.id === "string" ? job.id : undefined,
+      actionUrl: `/admin/customers/${customerId}?tab=sites`,
+    };
+  }
   if (!job.duplicate) {
     return {
       ok: true,
@@ -1710,12 +1725,15 @@ export async function startAutomaticOnboardingAction(
     });
 
     // Cron fortsätter idempotent om den omedelbara körningen inte hinner slutföra steget.
-    after(() =>
-      processCustomerOperationJobs({
-        workerId: `customer-card:${job.id}`,
-        limit: 1,
-      }).catch((error) => console.error("[customer-operation] background start failed", error)),
-    );
+    // Vid redirect till manuell nätägarbegäran finns inget jobb att processa.
+    if (!job.redirectedToManualFacilityRequest) {
+      after(() =>
+        processCustomerOperationJobs({
+          workerId: `customer-card:${job.id}`,
+          limit: 1,
+        }).catch((error) => console.error("[customer-operation] background start failed", error)),
+      );
+    }
 
     revalidatePath(`/admin/customers/${customerId}`);
     revalidatePath("/admin/events");
@@ -1764,17 +1782,32 @@ export async function requestSupplierSwitchAutomationAction(
       actorUserId: guard.userId,
     });
 
-    after(() =>
-      processCustomerOperationJobs({
-        workerId: `customer-switch:${job.id}`,
-        limit: 1,
-      }).catch((error) => console.error("[customer-operation] switch background start failed", error)),
-    );
+    if (!job.redirectedToManualFacilityRequest) {
+      after(() =>
+        processCustomerOperationJobs({
+          workerId: `customer-switch:${job.id}`,
+          limit: 1,
+        }).catch((error) => console.error("[customer-operation] switch background start failed", error)),
+      );
+    }
 
     revalidatePath(`/admin/customers/${customerId}`);
     revalidatePath("/admin/events");
     revalidatePath("/admin/work-queue");
     revalidatePath("/admin/operations/switches");
+
+    if (job.redirectedToManualFacilityRequest) {
+      return {
+        ok: false,
+        status: "blocked",
+        title: "Leverantörsbyte kan inte starta ännu",
+        message:
+          job.intakeDecision?.adminMessage ??
+          "Leverantörsbyte kan inte starta förrän anläggningsuppgifter finns. Uppgifter begärs från nätägaren.",
+        jobId: typeof job.id === "string" ? job.id : undefined,
+        actionUrl: `/admin/customers/${customerId}?tab=sites`,
+      };
+    }
 
     return {
       ok: true,

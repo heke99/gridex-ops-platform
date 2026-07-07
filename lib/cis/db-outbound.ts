@@ -13,6 +13,7 @@ import { findBestCommunicationRoute } from './db-routes'
 import { decideCommunicationRoute, routeDecisionPayload } from '@/lib/routes/routeDecisionEngine'
 import type { BusinessProcess } from '@/lib/routes/routeDecisionTypes'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
+import { makeCustomerOperationBlocker } from '@/lib/customer-operations/blockers'
 import {
   buildBatchKey,
   buildContractPayload,
@@ -29,6 +30,10 @@ import {
   normalizeQuery,
 } from './db-shared'
 
+
+function hasTextValue(...values: unknown[]): boolean {
+  return values.some((value) => typeof value === 'string' && value.trim().length > 0)
+}
 
 function businessProcessFromRequestType(requestType: OutboundRequestType): BusinessProcess {
   if (requestType === 'customer_masterdata' || requestType === 'customer_masterdata_request') return 'customer_masterdata'
@@ -216,6 +221,25 @@ export async function createOutboundRequest(input: {
   const gridOwnerId = input.gridOwnerId ?? context.meteringPoint?.grid_owner_id ?? context.site?.grid_owner_id ?? null
   const authorizationDocumentId = input.authorizationDocumentId ?? (typeof input.payload?.authorization_document_id === 'string' ? input.payload.authorization_document_id : null)
   const businessProcess = businessProcessFromRequestType(input.requestType)
+
+  // HARD FACILITY GUARD (layer 2 of the Z01 chain): a customer_masterdata
+  // outbound must NEVER become 'queued' when both the site facility id and the
+  // metering point identity are missing. This is the DB row every downstream
+  // worker keys off — a queued row here without facility identity is exactly
+  // the split-brain state observed in production.
+  const siteWithNormalized = context.site as (typeof context.site & { normalized_facility_id?: string | null }) | null
+  const facilityIdentityMissing =
+    businessProcess === 'customer_masterdata' &&
+    !hasTextValue(
+      siteWithNormalized?.facility_id,
+      siteWithNormalized?.normalized_facility_id,
+      context.meteringPoint?.meter_point_id,
+      context.meteringPoint?.ediel_reference,
+      context.meteringPoint?.site_facility_id,
+    )
+  const facilityBlocker = facilityIdentityMissing
+    ? makeCustomerOperationBlocker('facility_or_metering_point_missing')
+    : null
   const routeDecision = await decideCommunicationRoute({
     companyId,
     customerId: input.customerId,
@@ -312,7 +336,7 @@ export async function createOutboundRequest(input: {
     request_type: input.requestType,
     source_type: input.sourceType ?? 'manual',
     source_id: input.sourceId ?? null,
-    status: routeDecision.decisionStatus === 'blocked' ? 'failed' as const : 'queued' as const,
+    status: facilityIdentityMissing || routeDecision.decisionStatus === 'blocked' ? 'failed' as const : 'queued' as const,
     channel_type: channelType,
     agreement_id: routeDecision.gridOwnerAccessAgreementId,
     grid_owner_access_agreement_id: routeDecision.gridOwnerAccessAgreementId,
@@ -328,8 +352,16 @@ export async function createOutboundRequest(input: {
     receiver_ediel_id: routeDecision.receiverEdielId,
     receiver_sub_address: routeDecision.receiverSubAddress,
     ack_policy: routeDecision.ackPolicy,
-    blocking_reasons: routeDecision.blockingReasons,
-    required_admin_actions: routeDecision.requiredAdminActions,
+    blocking_reasons: [
+      ...(facilityBlocker
+        ? [{ code: 'facility_or_metering_point_missing', message: facilityBlocker.blocker_reason }]
+        : []),
+      ...routeDecision.blockingReasons,
+    ],
+    required_admin_actions: [
+      ...(facilityIdentityMissing ? ['request_facility_information'] : []),
+      ...routeDecision.requiredAdminActions,
+    ],
     route_decision_payload: routeDecisionPayload(routeDecision),
     payload: mergeJsonObjects(enrichedPayload, { route_decision: routeDecisionPayload(routeDecision) }),
     period_start: input.periodStart ?? null,
@@ -341,9 +373,11 @@ export async function createOutboundRequest(input: {
     automation_key: input.automationKey ?? null,
     created_by: input.actorUserId,
     updated_by: input.actorUserId,
-    failure_reason: routeDecision.decisionStatus === 'blocked'
-      ? routeDecision.blockingReasons.map((reason) => reason.message).join(' | ')
-      : null,
+    failure_reason: facilityIdentityMissing
+      ? [facilityBlocker?.blocker_reason, ...routeDecision.blockingReasons.map((reason) => reason.message)].filter(Boolean).join(' | ')
+      : routeDecision.decisionStatus === 'blocked'
+        ? routeDecision.blockingReasons.map((reason) => reason.message).join(' | ')
+        : null,
   }
 
   const { data, error } = await supabaseService
@@ -420,14 +454,20 @@ export async function createOutboundRequest(input: {
 
   const row = data as OutboundRequestRow
 
+  // The dispatch event must mirror the actual row status: a blocked/failed
+  // outbound must never be logged as "köad".
   await createOutboundDispatchEvent({
     actorUserId: input.actorUserId,
     outboundRequestId: row.id,
-    eventType: 'queued',
+    eventType: row.status === 'failed' ? 'failed' : 'queued',
     eventStatus: row.status,
-    message: route
-      ? 'Outbound request köad med vald route.'
-      : 'Outbound request köad utan route. Kräver manuell hantering.',
+    message: row.status === 'failed'
+      ? facilityIdentityMissing
+        ? 'Outbound request blockerad: anläggnings-ID/mätpunkts-ID saknas. Begär uppgifter från nätägaren först.'
+        : 'Outbound request blockerad av route-beslut. Kräver åtgärd innan utskick.'
+      : route
+        ? 'Outbound request köad med vald route.'
+        : 'Outbound request köad utan route. Kräver manuell hantering.',
     payload: {
       routeId: route?.id ?? input.communicationRouteId ?? null,
       routeSelectedExplicitly: Boolean(input.communicationRouteId),
@@ -436,6 +476,7 @@ export async function createOutboundRequest(input: {
       targetEmail: route?.target_email ?? null,
       routeDecision: routeDecisionPayload(routeDecision),
       operationId: input.operationId ?? null,
+      ...(facilityBlocker ? { facility_blocker: facilityBlocker } : {}),
     },
   })
 

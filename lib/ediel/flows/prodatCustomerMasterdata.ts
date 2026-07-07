@@ -12,7 +12,6 @@ import type {
   OutboundRequestRow,
 } from "@/lib/cis/types";
 import { updateGridOwnerDataRequestStatus } from "@/lib/cis/db-data";
-import { linkEdielMessage } from "@/lib/ediel/db";
 import { resolveCanonicalOutboundContext } from "@/lib/ediel/core/kernel";
 import { isEdielPortalParty } from "@/lib/ediel/core/productionGuards";
 import {
@@ -54,13 +53,12 @@ import {
   createEdielMessageIntent,
   updateIntentLifecycle,
 } from "@/lib/ediel/intent/intentEngine";
+import { renderAndQueueCustomerMasterdataZ01 } from "@/lib/ediel/intent/renderGateway";
 import {
   ensureActorUserId,
-  finalizeOutboundDraft,
   findOrCreateDataRequestOutbound,
   getGridOwnerDataRequestById,
   makeServerClient,
-  queuePreparedEdielMessage,
   resolveOutboundRuntimeEnvironment,
 } from "@/lib/ediel/flows/shared";
 
@@ -399,6 +397,44 @@ async function persistOutboundRouteDecision(params: {
   }
 }
 
+// Direct row-level guard for early exits where no RouteDecisionOutput exists
+// yet: a customer_masterdata outbound must never remain 'queued'/'prepared'
+// with empty blocking_reasons when preparation stops.
+async function blockOutboundRowDirect(params: {
+  actorUserId: string;
+  outboundId: string;
+  blocker: CustomerOperationBlocker;
+  source: string;
+}): Promise<void> {
+  const { error } = await supabaseService
+    .from("outbound_requests")
+    .update({
+      status: "failed",
+      failure_reason: params.blocker.blocker_reason,
+      blocking_reasons: [
+        {
+          code: params.blocker.blocker_code,
+          message: params.blocker.blocker_reason,
+          severity: "blocking",
+          source: params.source,
+        },
+      ],
+      required_admin_actions: [params.blocker.next_required_action],
+      updated_by: params.actorUserId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", params.outboundId)
+    .in("status", ["queued", "prepared"]);
+  if (
+    error &&
+    !["42703", "PGRST204", "PGRST205"].includes(
+      String((error as { code?: string }).code ?? ""),
+    )
+  ) {
+    throw error;
+  }
+}
+
 async function findVerifiedPlatformActorRoute(input: {
   actorId?: string | null;
   messageFamily: string;
@@ -448,7 +484,10 @@ async function findCompanyMarketPartyRoute(input: {
   return text((data as { id?: string } | null)?.id);
 }
 
-function buildProdatZ01Draft(params: {
+// Exported for the RenderGateway customer_masterdata renderer: the gateway is
+// the only sanctioned place that turns a validated intent into a rendered and
+// queued message.
+export function buildProdatZ01Draft(params: {
   actorUserId: string;
   routeContext: RouteContext;
   dataRequest: GridOwnerDataRequestRow;
@@ -597,6 +636,12 @@ function buildProdatZ01Draft(params: {
         meterPointId,
         gridOwnerEdielId: params.gridOwner?.ediel_id ?? null,
         gridOwnerOwnerCode: params.gridOwner?.owner_code ?? null,
+        // The legal authorization chain must be traceable on the rendered
+        // message (powers_of_attorney -> customer_authorization_documents ->
+        // ... -> ediel_messages metadata), not only on upstream request rows.
+        authorization_document_id: params.dataRequest.authorization_document_id ?? null,
+        power_of_attorney_id:
+          (params.dataRequest.request_payload?.power_of_attorney_id as string | null | undefined) ?? null,
         prodatEngine: rendered.diagnostics,
         prodatAckExpectation: rendered.ackExpectation ?? null,
       },
@@ -671,6 +716,12 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
             "Koppla begäran till rätt bolag innan EDIFACT förbereds.",
         },
       );
+      await blockOutboundRowDirect({
+        actorUserId,
+        outboundId: outbound.id,
+        blocker,
+        source: "prepare_prodat_z01_company_missing",
+      });
       return {
         dataRequest,
         outbound,
@@ -717,6 +768,12 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
           environmentResolution.productionSendLockStatus,
         route_resolution_status: environmentResolution.blocker.blocker_code,
       };
+      await blockOutboundRowDirect({
+        actorUserId,
+        outboundId: outbound.id,
+        blocker: environmentResolution.blocker,
+        source: "prepare_prodat_z01_environment_blocked",
+      });
       return {
         dataRequest,
         outbound,
@@ -825,6 +882,15 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       sender_settings_id: null,
       production_send_lock_status: null,
     };
+    // The outbound row itself must never stay 'queued' with empty
+    // blocking_reasons on this early exit — that is exactly the split-brain
+    // state a resume worker could later mistake for a sendable request.
+    await blockOutboundRowDirect({
+      actorUserId,
+      outboundId: outbound.id,
+      blocker,
+      source: "prepare_prodat_z01_missing_route",
+    });
     await tryUpdateGridOwnerDataRequestStatus(
       {
         actorUserId,
@@ -852,7 +918,19 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
 
     return {
       dataRequest,
-      outbound,
+      outbound: {
+        ...outbound,
+        status: "failed",
+        blocking_reasons: [
+          {
+            code: blocker.blocker_code,
+            message: blocker.blocker_reason,
+            severity: "blocking",
+            source: "prepare_prodat_z01_missing_route",
+          },
+        ],
+        required_admin_actions: [blocker.next_required_action],
+      } as OutboundRequestRow,
       message: null,
       prepared: false,
       blockerReason: blocker.blocker_reason,
@@ -1255,8 +1333,11 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     customerSiteId: dataRequest.site_id,
     customerInfoRequestId: customerInfoRequestIdFromDataRequest(dataRequest),
     operationId,
-    facilityId: facilityIdFromDataRequest(dataRequest),
-    meteringPointId: dataRequest.metering_point_id,
+    // Live prerequisite evidence wins: the prerequisites read the current
+    // customer_sites/metering_points rows, while the request payload can be a
+    // stale snapshot from when the request was created.
+    facilityId: z01Prerequisites.facilityId ?? facilityIdFromDataRequest(dataRequest),
+    meteringPointId: z01Prerequisites.meteringPointId ?? dataRequest.metering_point_id,
     gridAreaCode: gridAreaCodeFromDataRequest(dataRequest),
     interchangeReference: externalReference,
     messageReference: externalReference,
@@ -1343,93 +1424,79 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     };
   }
 
-  const draft = await buildProdatZ01Draft({
+  // All rendering/finalize/queue now goes through the sanctioned RenderGateway
+  // (same controlled-failure semantics as facility lookup): a throw during
+  // render is recorded on the intent instead of leaving a half-linked message.
+  const renderResult = await renderAndQueueCustomerMasterdataZ01({
+    intentId: intent.id,
     actorUserId,
-    routeContext,
     dataRequest,
     gridOwner,
+    routeContext,
+    outboundRequestId: outbound.id,
+    operationId,
     externalReference,
     transactionReference,
     messageVersion,
+    routeProfileId,
   });
 
-  const message = await finalizeOutboundDraft({
-    actorUserId,
-    requestType: "customer_masterdata",
-    routeContext,
-    draft,
-    outboundRequestId: outbound.id,
-    duplicateCheck: {
-      sourceType: "grid_owner_data_request",
-      sourceId: dataRequest.id,
-      receiverEdielId: routeContext.receiverEdielId,
-      messageFamily: "PRODAT",
-      messageCode: "Z01",
-      messageVersion,
-    },
-  });
+  if (renderResult.status === "blocked") {
+    const firstBlocker = renderResult.blockingReasons[0];
+    const blockerReason =
+      firstBlocker?.message ?? "Z01 kunde inte renderas/köas via RenderGateway.";
+    const blockerCode = firstBlocker?.code ?? "render_failed";
+    await persistOutboundRouteDecision({
+      actorUserId,
+      outboundId: outbound.id,
+      decision: routeContext.routeDecision,
+      environment,
+      status: "failed",
+      failureReason: blockerReason,
+      blockingReasons: renderResult.blockingReasons as unknown as Array<Record<string, unknown>>,
+      extraPayload: { intent_id: intent.id, render_gateway_status: "blocked" },
+    });
+    await tryUpdateGridOwnerDataRequestStatus(
+      {
+        actorUserId,
+        requestId: dataRequest.id,
+        status: "pending",
+        externalReference,
+        responsePayload: {
+          ...(dataRequest.response_payload ?? {}),
+          outboundRequestId: outbound.id,
+          intentId: intent.id,
+          prodatCode: "Z01",
+          blockedReason: blockerReason,
+          blockerCode,
+          operation_id: operationId,
+        },
+        notes: blockerReason,
+      },
+      {
+        phase: "z01_render_gateway_blocked",
+        blockerCode,
+        outboundRequestId: outbound.id,
+        intentId: intent.id,
+      },
+    );
+    return {
+      dataRequest,
+      outbound: { ...outbound, status: "failed" } as OutboundRequestRow,
+      message: null,
+      prepared: false,
+      blockerReason,
+      blockerCode,
+      blockerDetails: {
+        blocker_code: blockerCode,
+        blocker_reason: blockerReason,
+        next_required_action:
+          "Åtgärda render-blockeraren och kör om kundautomation.",
+      } as CustomerOperationBlocker,
+    };
+  }
 
-  await linkEdielMessage({
-    actorUserId,
-    edielMessageId: message.id,
-    outboundRequestId: outbound.id,
-    gridOwnerDataRequestId: dataRequest.id,
-    customerId: dataRequest.customer_id,
-    siteId: dataRequest.site_id,
-    meteringPointId: dataRequest.metering_point_id,
-    gridOwnerId: dataRequest.grid_owner_id,
-    communicationRouteId: routeContext.route.id,
-  });
-
-  const messagePatch: Record<string, unknown> = {
-    intent_id: intent.id,
-    route_profile_id: routeProfileId,
-  };
-  if (operationId) messagePatch.operation_id = operationId;
-  const { error: messageUpdateError } = await supabaseService
-    .from("ediel_messages")
-    .update(messagePatch)
-    .eq("id", message.id);
-  if (
-    messageUpdateError &&
-    !["42703", "PGRST204", "PGRST205"].includes(
-      String((messageUpdateError as { code?: string }).code ?? ""),
-    )
-  )
-    throw messageUpdateError;
-
-  await updateIntentLifecycle(intent.id, {
-    renderStatus: "rendered",
-    edielMessageId: message.id,
-    outboundRequestId: outbound.id,
-    actorUserId,
-  });
-
-  await queuePreparedEdielMessage({
-    actorUserId,
-    messageId: message.id,
-    outboundRequestId: outbound.id,
-    externalReference,
-    intentId: intent.id,
-    payload: {
-      edielCode: "Z01",
-      routeId: routeContext.route.id,
-      routeProfileId,
-      operationId,
-      intentId: intent.id,
-      gridOwnerDataRequestId: dataRequest.id,
-      messageFamily: "PRODAT",
-      messageCode: "Z01",
-      messageVersion,
-    },
-  });
-
-  await updateIntentLifecycle(intent.id, {
-    outboxStatus: "queued",
-    edielMessageId: message.id,
-    outboundRequestId: outbound.id,
-    actorUserId,
-  });
+  const message = renderResult.message;
 
   await updateGridOwnerDataRequestStatus({
     actorUserId,
