@@ -15,6 +15,10 @@ import { parseCustomerImportFormData } from "@/lib/customers/importParser";
 import { normalizeCustomerIdentityType } from "@/lib/customers/normalizeCustomerType";
 import { normalizeGridOwnerIdToOps } from "@/lib/grid-owners/platformGridOwnerResolver";
 import {
+  ensureAuthorizationDocumentFromPowerOfAttorney,
+  ensureAuthorizationScopes,
+} from "@/lib/legal/authorizationChain";
+import {
   matchCustomerIdentity,
   type CustomerMatchSignal,
 } from "@/lib/customers/matchingService";
@@ -1443,6 +1447,29 @@ async function maybeCreatePowerOfAttorneyFromIntake(params: {
       return null;
     }
 
+    // A signed POA must produce the full authorization chain
+    // (customer_authorization_documents + authorization_scopes) exactly like
+    // the website intake does. Without scopes the Z01/data-request dispatch
+    // blocks with missing_authorization even though the POA is signed.
+    if (data?.id && normalizedStatus === "signed") {
+      await ensureAuthorizationDocumentFromPowerOfAttorney({
+        companyId: params.companyId,
+        customerId: params.customerId,
+        powerOfAttorneyId: String(data.id),
+        actorUserId: params.actorUserId,
+        siteId: params.siteId,
+        source: "manual_customer_intake",
+        validFrom: params.validFrom,
+        validTo: params.validTo,
+      }).catch((chainError) => {
+        console.warn(
+          "Authorization chain from intake POA could not be ensured",
+          chainError,
+        );
+        return null;
+      });
+    }
+
     return data?.id ?? null;
   } catch (error) {
     if (!databaseObjectMissing(error)) {
@@ -1559,6 +1586,30 @@ async function uploadCustomerIntakeDocuments(params: {
 
     result.uploadedDocumentIds.push(document.id);
     result.uploadedLabels.push("signerad fullmakt");
+
+    // Complete the authorization chain for the uploaded signed POA:
+    // active authorization_scopes + powers_of_attorney.document_id pointing at
+    // the authorization document, matching the website intake guarantees.
+    await ensureAuthorizationScopes({
+      companyId: params.companyId,
+      customerId: params.customerId,
+      authorizationDocumentId: String(document.id),
+      actorUserId: params.actorUserId,
+      powerOfAttorneyId: poa.id,
+      validFrom: params.authorizationValidFrom,
+      validTo: params.authorizationValidTo,
+      evidenceNote: "Signerad fullmakt uppladdad i kundintaget.",
+    }).catch((scopeError) => {
+      console.warn("Authorization scopes for uploaded intake POA could not be ensured", scopeError);
+      return null;
+    });
+    await supabaseService
+      .from("powers_of_attorney")
+      .update({ document_id: document.id, updated_at: new Date().toISOString() })
+      .eq("company_id", params.companyId)
+      .eq("id", poa.id)
+      .is("document_id", null)
+      .then(() => undefined, () => undefined);
 
     await insertAuditLog({
       actorUserId: params.actorUserId,

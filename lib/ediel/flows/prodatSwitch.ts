@@ -19,6 +19,7 @@ import {
   type ProdatSwitchCode,
 } from '@/lib/ediel/prodat'
 import { linkEdielMessage } from '@/lib/ediel/db'
+import { resolveAuthorizationDocumentIdForPowerOfAttorney } from '@/lib/legal/authorizationChain'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
 import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
@@ -200,6 +201,19 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     ? makeTgtRetryReference(params.messageCode, switchRequest.id)
     : switchRequest.external_reference ?? defaultExternalReference(params.messageCode, switchRequest.id)
 
+  // Propagate the legal authorization chain through the switch outbound and
+  // intent. Older switch rows may predate authorization_document_id, so fall
+  // back to resolving it from the POA.
+  const switchCompanyId = switchRequest.company_id ?? site.company_id ?? null
+  const authorizationDocumentId =
+    switchRequest.authorization_document_id ??
+    (switchRequest.power_of_attorney_id && switchCompanyId
+      ? await resolveAuthorizationDocumentIdForPowerOfAttorney({
+          companyId: switchCompanyId,
+          powerOfAttorneyId: switchRequest.power_of_attorney_id,
+        }).catch(() => null)
+      : null)
+
   const outbound = await findOrCreateSwitchOutbound({
     actorUserId,
     switchRequestId: switchRequest.id,
@@ -216,6 +230,8 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
       requestType: switchRequest.request_type,
       requestedStartDate: switchRequest.requested_start_date,
       communicationRouteId: routeContext.route.id,
+      authorization_document_id: authorizationDocumentId,
+      power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
       forceRegenerate: Boolean(params.forceRegenerate),
       forceCreateNewAttempt,
     },
@@ -230,6 +246,12 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     gridOwner,
     externalReference,
   })
+  // Keep the legal chain traceable on the rendered message itself.
+  draft.parsedPayload = {
+    ...(draft.parsedPayload ?? {}),
+    authorization_document_id: authorizationDocumentId,
+    power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
+  }
 
   // Mandatory intent in front of rendering. The intent records the validated
   // business decision and links the resulting message/outbox via intent_id.
@@ -266,6 +288,8 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     payload: {
       edielCode: params.messageCode,
       requestType: switchRequest.request_type,
+      authorization_document_id: authorizationDocumentId,
+      power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
       forceRegenerate: Boolean(params.forceRegenerate),
     },
   })

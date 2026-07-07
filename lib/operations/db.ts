@@ -3,6 +3,7 @@ import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types";
 import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness";
 import { resolveOwnElectricitySupplier } from "@/lib/masterdata/selfSupplier";
 import { calculateEarliestSwitchStartDate } from "@/lib/operations/switchStartDate";
+import { resolveAuthorizationDocumentIdForPowerOfAttorney } from "@/lib/legal/authorizationChain";
 import {
   assertNoActiveSwitchLifecycleBlock,
   OPEN_SUPPLIER_SWITCH_STATUSES,
@@ -1460,12 +1461,29 @@ export async function createSupplierSwitchRequest(
   const effectiveRequestedStartDate =
     params.requestedStartDate ?? startDateCalculation.effectiveStartDate;
 
+  // The authorization chain must not be dropped at switch creation: when the
+  // caller does not pass an authorization document explicitly, resolve it from
+  // the POA so supplier_switch_requests.authorization_document_id and the
+  // downstream outbound/intent chain always carry the legal reference.
+  const resolvedCompanyId =
+    params.companyId ??
+    params.site.company_id ??
+    params.meteringPoint.company_id ??
+    null;
+  let authorizationDocumentId = params.authorizationDocumentId ?? null;
+  if (!authorizationDocumentId && params.readiness.latestPowerOfAttorneyId && resolvedCompanyId) {
+    authorizationDocumentId = await resolveAuthorizationDocumentIdForPowerOfAttorney({
+      companyId: resolvedCompanyId,
+      powerOfAttorneyId: params.readiness.latestPowerOfAttorneyId,
+    }).catch(() => null);
+  }
+
   const insertPayload = {
     customer_id: params.readiness.customerId,
     site_id: params.site.id,
     metering_point_id: params.meteringPoint.id,
     power_of_attorney_id: params.readiness.latestPowerOfAttorneyId,
-    authorization_document_id: params.authorizationDocumentId ?? null,
+    authorization_document_id: authorizationDocumentId,
     request_type: params.requestType,
     status: "queued" as const,
     requested_start_date: effectiveRequestedStartDate,

@@ -597,6 +597,12 @@ function buildProdatZ01Draft(params: {
         meterPointId,
         gridOwnerEdielId: params.gridOwner?.ediel_id ?? null,
         gridOwnerOwnerCode: params.gridOwner?.owner_code ?? null,
+        // The legal authorization chain must be traceable on the rendered
+        // message (powers_of_attorney -> customer_authorization_documents ->
+        // ... -> ediel_messages metadata), not only on upstream request rows.
+        authorization_document_id: params.dataRequest.authorization_document_id ?? null,
+        power_of_attorney_id:
+          (params.dataRequest.request_payload?.power_of_attorney_id as string | null | undefined) ?? null,
         prodatEngine: rendered.diagnostics,
         prodatAckExpectation: rendered.ackExpectation ?? null,
       },

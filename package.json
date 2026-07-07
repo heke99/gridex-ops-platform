@@ -24,6 +24,7 @@
     "gridex:energy-resolver-regression": "node scripts/energy-resolver-grid-owner-regression.cjs",
     "gridex:explicit-input-preservation-regression": "node scripts/gridex-explicit-input-preservation-regression.cjs",
     "gridex:masterdata-id-mapping-regression": "node scripts/gridex-masterdata-id-mapping-regression.cjs",
+    "gridex:poa-authorization-chain-regression": "node scripts/gridex-poa-authorization-chain-regression.cjs",
     "gridex:actor-registry-intake-hardening-regression": "node scripts/gridex-actor-registry-intake-hardening-regression.cjs",
     "gridex:launch-security-regression": "node scripts/gridex-launch-regression.cjs launch-security-regression",
     "gridex:db-ui-compatibility-regression": "node scripts/gridex-launch-regression.cjs db-ui-compatibility-regression",
