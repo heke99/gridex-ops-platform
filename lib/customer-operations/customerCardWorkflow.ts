@@ -19,6 +19,7 @@ import type {
 } from "@/lib/operations/types";
 import { gridexBlockerLabel } from "@/lib/ediel/businessLabels";
 import type { EdielDispatchStateResult } from "@/lib/ediel/intent/dispatchState";
+import type { ManualRequestSummary } from "@/lib/customer-operations/manualRequestSummary";
 
 export type WorkflowStepStatus =
   | "done"
@@ -164,6 +165,24 @@ function infoRequestToStepStatus(
   return "current";
 }
 
+function manualRequestStepStatus(status: string | null | undefined): WorkflowStepStatus {
+  const value = asString(status);
+  if (!value) return "not_started";
+  if (["completed", "manual_response_parsed", "received"].includes(value)) return "done";
+  if (["manual_response_received", "waiting_manual_response", "waiting_response", "manual_email_sent", "sent"].includes(value)) return "waiting";
+  if (["manual_email_queued", "ready_to_send_manual_email", "ready_to_send", "draft"].includes(value)) return "current";
+  if (value.startsWith("blocked") || value === "needs_review" || value === "failed") return "blocked";
+  return "current";
+}
+
+function requestOrNotStarted(condition: boolean, current: WorkflowStepStatus = "current"): WorkflowStepStatus {
+  return condition ? current : "not_started";
+}
+
+function doneWhen(condition: boolean, fallback: WorkflowStepStatus): WorkflowStepStatus {
+  return condition ? "done" : fallback;
+}
+
 export type CustomerCardWorkflowInput = {
   customerId: string;
   snapshot: CustomerCardSnapshot;
@@ -173,6 +192,7 @@ export type CustomerCardWorkflowInput = {
   contracts: CustomerContractRow[];
   switchRequests: SupplierSwitchRequestRow[];
   powersOfAttorney: PowerOfAttorneyRow[];
+  manualRequests?: ManualRequestSummary[];
   isPlatformAdmin: boolean;
   // Single source of truth for outbound dispatch (intent → outbox → message).
   // When provided, "waiting for grid owner" is derived from a real queued/sent
@@ -202,6 +222,34 @@ export function buildCustomerCardWorkflow(
         "waiting_response",
       ].includes(String(r.status ?? "")),
     ) ?? null;
+
+  const latestManualRequest = input.manualRequests?.[0] ?? null;
+  const manualStatus = latestManualRequest?.status ?? null;
+  const manualStep = manualRequestStepStatus(manualStatus);
+  const hasManualRequest = Boolean(latestManualRequest);
+  const manualEmailQueued = [
+    "manual_email_queued",
+    "manual_email_sent",
+    "waiting_manual_response",
+    "waiting_response",
+    "manual_response_received",
+    "manual_response_parsed",
+    "completed",
+  ].includes(manualStatus ?? "");
+  const manualEmailSent = [
+    "manual_email_sent",
+    "waiting_manual_response",
+    "waiting_response",
+    "manual_response_received",
+    "manual_response_parsed",
+    "completed",
+  ].includes(manualStatus ?? "");
+  const manualResponseReceived = [
+    "manual_response_received",
+    "manual_response_parsed",
+    "received",
+    "completed",
+  ].includes(manualStatus ?? "");
 
   const infoStatus = openInfoRequest?.status ?? null;
   const blockerCode = asString(openInfoRequest?.blocker_code);
@@ -475,6 +523,166 @@ export function buildCustomerCardWorkflow(
       : hasResponseForSwitch
         ? "current"
         : "not_started",
+  });
+
+  // Batch 11: Detailed operational chain. Tenant users see plain, safe labels;
+  // platform admins get IDs through `messageId`/technical details. These extra
+  // steps make the full flow visible without exposing raw EDIEL/provider payloads.
+  steps.push({
+    id: "application_received",
+    label: "Ansökan mottagen",
+    explanation: "Ansökan eller kundintag finns i systemet.",
+    status: "done",
+  });
+  steps.push({
+    id: "site_created",
+    label: "Anläggning skapad",
+    explanation: snapshot.primarySite ? "Anläggningen är skapad på kunden." : "Anläggning saknas på kunden.",
+    status: snapshot.primarySite ? "done" : "blocked",
+  });
+  steps.push({
+    id: "contract_created",
+    label: "Avtal skapat",
+    explanation: snapshot.hasContract ? "Avtal finns på kunden." : "Avtal saknas eller är inte kopplat.",
+    status: snapshot.hasContract ? "done" : "blocked",
+  });
+  steps.push({
+    id: "poa_signed",
+    label: "Fullmakt signerad",
+    explanation: snapshot.hasAuthorization ? "Signerad fullmakt finns." : "Signerad fullmakt saknas.",
+    status: snapshot.hasAuthorization ? "done" : "blocked",
+  });
+  steps.push({
+    id: "authorization_document",
+    label: "Authorization document",
+    explanation: snapshot.hasExternallySendablePoa
+      ? "Fullmakten kan skickas externt till nätägaren."
+      : "Fullmakten behöver strukturerad signerare/dokumentkedja innan extern begäran.",
+    status: snapshot.hasExternallySendablePoa ? "done" : snapshot.hasAuthorization ? "current" : "blocked",
+  });
+  steps.push({
+    id: "grid_area_resolved",
+    label: "Nätområde löst",
+    explanation: snapshot.hasGridArea ? "Nätområde/elområde är sparat." : "Nätområde saknas eller behöver verifieras.",
+    status: snapshot.hasGridArea ? "done" : "current",
+  });
+  steps.push({
+    id: "grid_owner_resolved",
+    label: "Nätägare löst",
+    explanation: snapshot.hasGridOwner ? "Nätägare är kopplad till anläggningen." : "Nätägare saknas eller behöver verifieras.",
+    status: snapshot.hasGridOwner ? "done" : "blocked",
+  });
+  steps.push({
+    id: "manual_information_request",
+    label: "Manuell nätägarbegäran",
+    explanation: latestManualRequest
+      ? latestManualRequest.statusLabel
+      : "Ingen manuell nätägarbegäran finns ännu.",
+    status: hasManualRequest ? manualStep : requestOrNotStarted(!snapshot.hasFacilityId && snapshot.hasAuthorization && snapshot.hasGridOwner),
+    messageId: isPlatformAdmin ? latestManualRequest?.id ?? null : null,
+  });
+  steps.push({
+    id: "manual_email",
+    label: "E-post till nätägare",
+    explanation: manualEmailSent
+      ? "E-post är skickad till nätägaren."
+      : manualEmailQueued
+        ? "E-post är köad för utskick till nätägaren."
+        : "E-post är inte köad ännu.",
+    status: manualEmailSent ? "done" : manualEmailQueued ? "current" : requestOrNotStarted(hasManualRequest),
+  });
+  steps.push({
+    id: "grid_owner_response",
+    label: "Nätägarsvar mottaget",
+    explanation: manualResponseReceived || responseReceived
+      ? "Svar från nätägaren är mottaget."
+      : isWaiting || manualEmailSent
+        ? "Vi väntar på svar från nätägaren."
+        : "Svar är inte väntat ännu.",
+    status: manualResponseReceived || responseReceived ? "done" : isWaiting || manualEmailSent ? "waiting" : "not_started",
+  });
+  steps.push({
+    id: "facility_updated",
+    label: "Anläggnings-ID uppdaterat",
+    explanation: snapshot.hasFacilityId && snapshot.hasMeteringPoint
+      ? "Anläggnings-ID och mätpunkt finns på kunden."
+      : snapshot.hasFacilityId
+        ? "Anläggnings-ID finns, men mätpunkt behöver kontrolleras."
+        : "Anläggnings-ID saknas fortfarande.",
+    status: snapshot.hasFacilityId && snapshot.hasMeteringPoint ? "done" : snapshot.hasFacilityId ? "current" : "not_started",
+  });
+  steps.push({
+    id: "customer_info_request",
+    label: "Customer info request",
+    explanation: openInfoRequest ? "Customer info request finns." : "Customer info request är inte skapad ännu.",
+    status: openInfoRequest ? infoRequestToStepStatus(infoStatus) : "not_started",
+    messageId: isPlatformAdmin ? openInfoRequest?.id ?? null : null,
+  });
+  steps.push({
+    id: "grid_owner_data_request",
+    label: "Grid owner data request",
+    explanation: gridOwnerDataRequestId ? "Grid owner data request finns." : "Grid owner data request är inte skapad ännu.",
+    status: doneWhen(Boolean(gridOwnerDataRequestId), openInfoRequest ? "current" : "not_started"),
+    messageId: isPlatformAdmin ? gridOwnerDataRequestId : null,
+  });
+  steps.push({
+    id: "route_selected",
+    label: "Route vald",
+    explanation: communicationRouteId || edielRouteProfileId
+      ? "Kommunikationsroute och route profile är valda."
+      : "Route är inte vald ännu.",
+    status: communicationRouteId || edielRouteProfileId ? "done" : outboundExists ? "blocked" : "not_started",
+    messageId: isPlatformAdmin ? edielRouteProfileId ?? communicationRouteId : null,
+  });
+  steps.push({
+    id: "ediel_intent",
+    label: "EDIEL intent",
+    explanation: dispatchState && dispatchState.state !== "none"
+      ? `Intent/outbox-status: ${dispatchState.state}.`
+      : "EDIEL intent är inte skapad ännu.",
+    status: dispatchState && dispatchState.state !== "none"
+      ? dispatchState.state === "blocked" || dispatchState.state === "failed" ? "blocked" : "current"
+      : "not_started",
+  });
+  steps.push({
+    id: "ediel_rendered",
+    label: "EDIEL message rendered",
+    explanation: edielMessageId ? "EDIEL-meddelande är renderat." : "EDIEL-meddelande är inte renderat ännu.",
+    status: edielMessageId ? "done" : outboundExists || Boolean(dispatchState && dispatchState.state !== "none") ? "current" : "not_started",
+    messageId: isPlatformAdmin ? edielMessageId : null,
+  });
+  steps.push({
+    id: "outbox_queued",
+    label: "Outbox queued",
+    explanation: facilityDispatchQueued || facilityDispatchSent
+      ? "Meddelandet är köat/skickat via outbox."
+      : outboundExists
+        ? "Outbound finns men är inte köad som skickad ännu."
+        : "Outbox är inte skapad ännu.",
+    status: facilityDispatchSent ? "done" : facilityDispatchQueued ? "current" : outboundExists ? "current" : "not_started",
+  });
+  steps.push({
+    id: "smtp_sent",
+    label: "SMTP skickad",
+    explanation: facilityDispatchSent || isWaiting ? "Utskicket är skickat eller inväntar kvittens." : "Utskicket är inte skickat ännu.",
+    status: facilityDispatchSent || isWaiting ? "done" : facilityDispatchQueued ? "current" : "not_started",
+  });
+  steps.push({
+    id: "ack_status",
+    label: "CONTRL/APERAK status",
+    explanation: responseReceived ? "Svar/kvittens är mottagen." : "Kvittens inväntas när meddelandet är skickat.",
+    status: responseReceived ? "done" : isWaiting ? "waiting" : "not_started",
+  });
+  steps.push({
+    id: "supplier_switch",
+    label: "Leverantörsbyte",
+    explanation: hasPendingSwitch
+      ? "Leverantörsbyte är skapat eller pågår."
+      : hasResponseForSwitch || snapshot.hasFacilityId
+        ? "Redo att bedöma leverantörsbyte."
+        : "Leverantörsbyte startar först när anläggningsdata är klar.",
+    status: hasPendingSwitch ? "current" : hasResponseForSwitch ? "current" : snapshot.hasFacilityId ? "not_started" : "not_started",
+    messageId: isPlatformAdmin ? activeSwitchRequest?.id ?? null : null,
   });
 
   // Primary action

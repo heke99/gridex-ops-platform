@@ -66,7 +66,10 @@ import {
   applyCustomerSiteAddressCandidate,
   computeCustomerSiteAddressHash,
 } from "@/lib/customer-sites/addressIntake";
-import { evaluateCustomerIntake } from "@/lib/customer-operations/customerIntakeOrchestrator";
+import {
+  processManualCustomerIntake,
+  processPdfCustomerIntake,
+} from "@/lib/customer-operations/customerIntakeOrchestrator";
 
 type CustomerType = "private" | "business" | "association";
 type SiteType = "consumption" | "production" | "mixed";
@@ -3571,15 +3574,21 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
       await enqueueWebhookDeliveriesForEvent(domainEvent).catch(() => 0);
     }
 
-    // Run the shared intake readiness orchestrator so admin-created customers
-    // get the same persisted intake decision/next-action state as website and
-    // external intake channels. Non-fatal: the graph is already committed.
-    await evaluateCustomerIntake({
+    // Run the shared intake orchestrator so admin-created customers use the
+    // exact same post-commit state machine as website/PDF intake. This is the
+    // batch-4 handoff point: if facility_id is missing but grid owner + POA are
+    // ready, the orchestrator creates/reuses the manual grid-owner information
+    // request instead of leaving the customer in a passive review state.
+    const hasUploadedEvidence = intakeDocumentUpload.uploadedLabels.length > 0;
+    const runSharedIntake = hasUploadedEvidence
+      ? processPdfCustomerIntake
+      : processManualCustomerIntake;
+
+    await runSharedIntake({
       companyId: params.companyId,
       customerId: String(customer.id),
       siteId,
       actorUserId: params.actorUserId,
-      apply: true,
     }).catch((orchestratorError) => {
       console.warn(
         "Shared intake orchestrator could not be evaluated after admin intake",

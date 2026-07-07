@@ -8,7 +8,7 @@ import { seedDefaultEmailTemplates } from '@/lib/email/emailTemplates'
 import { assessWebsiteApplicationReadiness, customerIntakeStatusForReadiness, type WebsiteApplicationReadiness } from '@/lib/website/applicationReview'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
-import { requestMissingFacilityInformation } from '@/lib/customer-operations/requestMissingFacilityInformation'
+import { processWebsiteApplicationIntake, type CustomerIntakeDecision } from '@/lib/customer-operations/customerIntakeOrchestrator'
 import { resolvePublicContractOffer, type PublicContractOffer } from '@/lib/website/publicContracts'
 import type { EnergyResolverResult } from '@/lib/energy/types'
 import {
@@ -1050,6 +1050,8 @@ type ErrorStage =
   | 'application_workflow'
   | 'application_workflow_transition'
   | 'customer_data_automation'
+  | 'customer_intake_orchestrator'
+  | 'manual_information_request_summary'
   | 'communication_trigger'
   | 'domain_event_create'
   | 'webhook_queue'
@@ -1151,6 +1153,43 @@ function missingSchema(error: unknown): boolean {
 
 function schemaRepairStatus(error: unknown): 'pending_review' | null {
   return missingSchema(error) ? 'pending_review' : null
+}
+
+function websiteNextActionFromIntake(decision: CustomerIntakeDecision): { code: string; message: string } {
+  const blocker = decision.blockers[0] ?? null
+  if (decision.nextAction === 'wait_for_grid_owner' || decision.state === 'facility_lookup_waiting_response') {
+    return { code: 'facility_identifier_requested', message: 'Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post.' }
+  }
+  if (decision.nextAction === 'request_facility_data' || decision.state === 'needs_facility_lookup') {
+    return { code: 'facility_identifier_required', message: decision.customerMessage || 'Anläggnings-ID saknas. Uppgifter behöver begäras från nätägaren.' }
+  }
+  if (decision.nextAction === 'start_supplier_switch' || decision.state === 'ready_for_supplier_switch') {
+    return { code: 'ready_for_switch', message: decision.customerMessage || 'Ansökan är klar för leverantörsbyte.' }
+  }
+  if (blocker?.code) {
+    return { code: blocker.code, message: blocker.message || decision.customerMessage || 'Ansökan behöver granskas innan vi kan gå vidare.' }
+  }
+  return { code: decision.nextAction, message: decision.customerMessage || decision.adminMessage || 'Ansökan behandlas.' }
+}
+
+async function loadWebsiteManualInformationRequest(requestId: string | null): Promise<Record<string, unknown> | null> {
+  if (!requestId) return null
+  const { data, error } = await supabaseService
+    .from('grid_owner_information_requests')
+    .select('id,status,case_reference,channel')
+    .eq('id', requestId)
+    .maybeSingle()
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+  if (!data) return null
+  return {
+    status: clean((data as Record<string, unknown>).status),
+    case_reference: clean((data as Record<string, unknown>).case_reference),
+    channel: clean((data as Record<string, unknown>).channel),
+    request_id: clean((data as Record<string, unknown>).id),
+  }
 }
 
 // Builds a non-sensitive diagnostic detail from a database error. Only the
@@ -3822,20 +3861,16 @@ export async function processWebsiteCustomerApplication(input: {
         message: 'Fullmakten är registrerad men kan inte skickas automatiskt till nätägaren. Komplettera med signerName, signerIdentityNumber och method i strukturerad powerOfAttorney.',
       }
     } else if (powerOfAttorneyId && facilityMissing) {
-      const manual = await stage('manual_information_request', () => requestMissingFacilityInformation({
+      const intakeDecision = await stage('customer_intake_orchestrator', () => processWebsiteApplicationIntake({
         companyId: input.client.company_id,
         customerId: resolvedCustomerResult.customer.id,
         siteId: committedSiteId as string,
         actorUserId: null,
-        source: 'website_api',
       }))
-      manualInformationRequest = {
-        status: manual.status,
-        case_reference: manual.caseReference,
-        channel: manual.channel,
-        request_id: manual.requestId,
-      }
-      nextAction = manual.nextAction
+      manualInformationRequest = await stage('manual_information_request_summary', () =>
+        loadWebsiteManualInformationRequest(intakeDecision.references.gridOwnerInformationRequestId),
+      )
+      nextAction = websiteNextActionFromIntake(intakeDecision)
     } else if (readiness.canStartSwitch) {
       nextAction = { code: 'ready_for_switch', message: 'Ansökan är klar för leverantörsbyte.' }
     } else {

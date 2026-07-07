@@ -162,6 +162,7 @@ export default function CustomerBusinessActionsCard({
     contracts,
     switchRequests,
     powersOfAttorney,
+    manualRequests,
     isPlatformAdmin,
     dispatchState,
   })
