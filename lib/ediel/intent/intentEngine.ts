@@ -269,14 +269,37 @@ export async function createEdielMessageIntent(
   const validation = evaluateIntentValidation(input)
   const actorUserId = str(input.actorUserId) ?? 'system'
 
-  // Idempotency: a prior intent with the same business key is reused.
+  // Idempotency: a prior intent with the same business key is reused — but
+  // never blindly. A stale row (e.g. legacy validation_status='draft' or a row
+  // whose inputs have since changed) is re-validated before reuse so a
+  // pre-hardening intent can never slip back into the pipeline unvalidated.
   if (str(input.companyId) && str(input.environment) && str(input.idempotencyKey)) {
     const existing = await findExistingIntent({
       companyId: input.companyId,
       environment: input.environment,
       idempotencyKey: input.idempotencyKey,
     })
-    if (existing) return existing
+    if (existing) {
+      const alreadyRenderedOrQueued = Boolean(existing.edielMessageId) || existing.outboxStatus !== 'not_queued'
+      if (!alreadyRenderedOrQueued) {
+        const revalidation = evaluateIntentValidation(existing)
+        if (revalidation.status !== existing.validationStatus) {
+          await updateIntentLifecycle(existing.id, {
+            validationStatus: revalidation.status,
+            validationResult: { ...revalidation, source: 'idempotent_reuse_revalidation' } as unknown as Record<string, unknown>,
+            blockingReasons: revalidation.blockingReasons,
+            actorUserId,
+          })
+          return {
+            ...existing,
+            validationStatus: revalidation.status,
+            blockingReasons: revalidation.blockingReasons,
+            validationResult: revalidation as unknown as Record<string, unknown>,
+          }
+        }
+      }
+      return existing
+    }
   }
 
   const row = {

@@ -12,7 +12,6 @@ import type {
   OutboundRequestRow,
 } from "@/lib/cis/types";
 import { updateGridOwnerDataRequestStatus } from "@/lib/cis/db-data";
-import { linkEdielMessage } from "@/lib/ediel/db";
 import { resolveCanonicalOutboundContext } from "@/lib/ediel/core/kernel";
 import { isEdielPortalParty } from "@/lib/ediel/core/productionGuards";
 import {
@@ -54,13 +53,12 @@ import {
   createEdielMessageIntent,
   updateIntentLifecycle,
 } from "@/lib/ediel/intent/intentEngine";
+import { renderAndQueueCustomerMasterdataZ01 } from "@/lib/ediel/intent/renderGateway";
 import {
   ensureActorUserId,
-  finalizeOutboundDraft,
   findOrCreateDataRequestOutbound,
   getGridOwnerDataRequestById,
   makeServerClient,
-  queuePreparedEdielMessage,
   resolveOutboundRuntimeEnvironment,
 } from "@/lib/ediel/flows/shared";
 
@@ -486,7 +484,10 @@ async function findCompanyMarketPartyRoute(input: {
   return text((data as { id?: string } | null)?.id);
 }
 
-function buildProdatZ01Draft(params: {
+// Exported for the RenderGateway customer_masterdata renderer: the gateway is
+// the only sanctioned place that turns a validated intent into a rendered and
+// queued message.
+export function buildProdatZ01Draft(params: {
   actorUserId: string;
   routeContext: RouteContext;
   dataRequest: GridOwnerDataRequestRow;
@@ -1423,93 +1424,79 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     };
   }
 
-  const draft = await buildProdatZ01Draft({
+  // All rendering/finalize/queue now goes through the sanctioned RenderGateway
+  // (same controlled-failure semantics as facility lookup): a throw during
+  // render is recorded on the intent instead of leaving a half-linked message.
+  const renderResult = await renderAndQueueCustomerMasterdataZ01({
+    intentId: intent.id,
     actorUserId,
-    routeContext,
     dataRequest,
     gridOwner,
+    routeContext,
+    outboundRequestId: outbound.id,
+    operationId,
     externalReference,
     transactionReference,
     messageVersion,
+    routeProfileId,
   });
 
-  const message = await finalizeOutboundDraft({
-    actorUserId,
-    requestType: "customer_masterdata",
-    routeContext,
-    draft,
-    outboundRequestId: outbound.id,
-    duplicateCheck: {
-      sourceType: "grid_owner_data_request",
-      sourceId: dataRequest.id,
-      receiverEdielId: routeContext.receiverEdielId,
-      messageFamily: "PRODAT",
-      messageCode: "Z01",
-      messageVersion,
-    },
-  });
+  if (renderResult.status === "blocked") {
+    const firstBlocker = renderResult.blockingReasons[0];
+    const blockerReason =
+      firstBlocker?.message ?? "Z01 kunde inte renderas/köas via RenderGateway.";
+    const blockerCode = firstBlocker?.code ?? "render_failed";
+    await persistOutboundRouteDecision({
+      actorUserId,
+      outboundId: outbound.id,
+      decision: routeContext.routeDecision,
+      environment,
+      status: "failed",
+      failureReason: blockerReason,
+      blockingReasons: renderResult.blockingReasons as unknown as Array<Record<string, unknown>>,
+      extraPayload: { intent_id: intent.id, render_gateway_status: "blocked" },
+    });
+    await tryUpdateGridOwnerDataRequestStatus(
+      {
+        actorUserId,
+        requestId: dataRequest.id,
+        status: "pending",
+        externalReference,
+        responsePayload: {
+          ...(dataRequest.response_payload ?? {}),
+          outboundRequestId: outbound.id,
+          intentId: intent.id,
+          prodatCode: "Z01",
+          blockedReason: blockerReason,
+          blockerCode,
+          operation_id: operationId,
+        },
+        notes: blockerReason,
+      },
+      {
+        phase: "z01_render_gateway_blocked",
+        blockerCode,
+        outboundRequestId: outbound.id,
+        intentId: intent.id,
+      },
+    );
+    return {
+      dataRequest,
+      outbound: { ...outbound, status: "failed" } as OutboundRequestRow,
+      message: null,
+      prepared: false,
+      blockerReason,
+      blockerCode,
+      blockerDetails: {
+        blocker_code: blockerCode,
+        blocker_reason: blockerReason,
+        next_required_action:
+          "Åtgärda render-blockeraren och kör om kundautomation.",
+      } as CustomerOperationBlocker,
+    };
+  }
 
-  await linkEdielMessage({
-    actorUserId,
-    edielMessageId: message.id,
-    outboundRequestId: outbound.id,
-    gridOwnerDataRequestId: dataRequest.id,
-    customerId: dataRequest.customer_id,
-    siteId: dataRequest.site_id,
-    meteringPointId: dataRequest.metering_point_id,
-    gridOwnerId: dataRequest.grid_owner_id,
-    communicationRouteId: routeContext.route.id,
-  });
-
-  const messagePatch: Record<string, unknown> = {
-    intent_id: intent.id,
-    route_profile_id: routeProfileId,
-  };
-  if (operationId) messagePatch.operation_id = operationId;
-  const { error: messageUpdateError } = await supabaseService
-    .from("ediel_messages")
-    .update(messagePatch)
-    .eq("id", message.id);
-  if (
-    messageUpdateError &&
-    !["42703", "PGRST204", "PGRST205"].includes(
-      String((messageUpdateError as { code?: string }).code ?? ""),
-    )
-  )
-    throw messageUpdateError;
-
-  await updateIntentLifecycle(intent.id, {
-    renderStatus: "rendered",
-    edielMessageId: message.id,
-    outboundRequestId: outbound.id,
-    actorUserId,
-  });
-
-  await queuePreparedEdielMessage({
-    actorUserId,
-    messageId: message.id,
-    outboundRequestId: outbound.id,
-    externalReference,
-    intentId: intent.id,
-    payload: {
-      edielCode: "Z01",
-      routeId: routeContext.route.id,
-      routeProfileId,
-      operationId,
-      intentId: intent.id,
-      gridOwnerDataRequestId: dataRequest.id,
-      messageFamily: "PRODAT",
-      messageCode: "Z01",
-      messageVersion,
-    },
-  });
-
-  await updateIntentLifecycle(intent.id, {
-    outboxStatus: "queued",
-    edielMessageId: message.id,
-    outboundRequestId: outbound.id,
-    actorUserId,
-  });
+  const message = renderResult.message;
 
   await updateGridOwnerDataRequestStatus({
     actorUserId,

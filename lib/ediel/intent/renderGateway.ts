@@ -237,3 +237,147 @@ export async function renderAndQueueFacilityLookupZ01(params: {
     return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: [reason] }
   }
 }
+
+// Customer masterdata PRODAT Z01. The business flow
+// (prepareAndQueueProdatZ01FromDataRequest) creates the intent, resolves route
+// context and prerequisites, then calls this gateway instead of rendering
+// inline. Same controlled-failure guarantee as the facility lookup renderer:
+// a blocked/failed render is always recorded on the intent, never a silent
+// throw that leaves not_rendered/not_queued with empty blocking_reasons.
+//
+// Facility gate: customer_masterdata accepts facility id OR metering point
+// identity (the canonical business rule); the intent validation gate already
+// blocked intents missing both, and loadValidatedIntent re-checks it here.
+export async function renderAndQueueCustomerMasterdataZ01(params: {
+  intentId: string
+  actorUserId: string
+  dataRequest: {
+    id: string
+    customer_id: string
+    site_id: string | null
+    metering_point_id: string | null
+    grid_owner_id: string | null
+  } & Record<string, unknown>
+  gridOwner: Record<string, unknown> | null
+  routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
+  outboundRequestId: string
+  operationId: string | null
+  externalReference: string
+  transactionReference: string
+  messageVersion: string
+  routeProfileId: string
+}): Promise<RenderGatewayResult> {
+  const gate = await loadValidatedIntent(params.intentId)
+  if (!gate.ok) {
+    return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: gate.reasons }
+  }
+
+  try {
+    // Dynamic import at call time: the business flow imports this gateway, so a
+    // static import back into the flow module would create a cycle.
+    const { buildProdatZ01Draft } = await import('@/lib/ediel/flows/prodatCustomerMasterdata')
+    const { linkEdielMessage } = await import('@/lib/ediel/db')
+
+    const draft = await buildProdatZ01Draft({
+      actorUserId: params.actorUserId,
+      routeContext: params.routeContext,
+      dataRequest: params.dataRequest as never,
+      gridOwner: params.gridOwner as never,
+      externalReference: params.externalReference,
+      transactionReference: params.transactionReference,
+      messageVersion: params.messageVersion,
+    })
+    draft.intentId = params.intentId
+
+    const message = await finalizeOutboundDraft({
+      actorUserId: params.actorUserId,
+      requestType: 'customer_masterdata',
+      routeContext: params.routeContext,
+      draft,
+      outboundRequestId: params.outboundRequestId,
+      duplicateCheck: {
+        sourceType: 'grid_owner_data_request',
+        sourceId: params.dataRequest.id,
+        receiverEdielId: params.routeContext.receiverEdielId,
+        messageFamily: 'PRODAT',
+        messageCode: 'Z01',
+        messageVersion: params.messageVersion,
+      },
+    })
+
+    await linkEdielMessage({
+      actorUserId: params.actorUserId,
+      edielMessageId: message.id,
+      outboundRequestId: params.outboundRequestId,
+      gridOwnerDataRequestId: params.dataRequest.id,
+      customerId: params.dataRequest.customer_id,
+      siteId: params.dataRequest.site_id,
+      meteringPointId: params.dataRequest.metering_point_id,
+      gridOwnerId: params.dataRequest.grid_owner_id,
+      communicationRouteId: params.routeContext.route.id,
+    })
+
+    const messagePatch: Record<string, unknown> = {
+      intent_id: params.intentId,
+      route_profile_id: params.routeProfileId,
+    }
+    if (params.operationId) messagePatch.operation_id = params.operationId
+    const { error: messageUpdateError } = await supabaseService
+      .from('ediel_messages')
+      .update(messagePatch)
+      .eq('id', message.id)
+    if (
+      messageUpdateError &&
+      !['42703', 'PGRST204', 'PGRST205'].includes(String((messageUpdateError as { code?: string }).code ?? ''))
+    ) {
+      throw messageUpdateError
+    }
+
+    await updateIntentLifecycle(params.intentId, {
+      renderStatus: 'rendered',
+      edielMessageId: message.id,
+      outboundRequestId: params.outboundRequestId,
+      actorUserId: params.actorUserId,
+    })
+
+    await queuePreparedEdielMessage({
+      actorUserId: params.actorUserId,
+      messageId: message.id,
+      outboundRequestId: params.outboundRequestId,
+      externalReference: params.externalReference,
+      intentId: params.intentId,
+      payload: {
+        edielCode: 'Z01',
+        routeId: params.routeContext.route.id,
+        routeProfileId: params.routeProfileId,
+        operationId: params.operationId,
+        intentId: params.intentId,
+        gridOwnerDataRequestId: params.dataRequest.id,
+        messageFamily: 'PRODAT',
+        messageCode: 'Z01',
+        messageVersion: params.messageVersion,
+      },
+    })
+
+    await updateIntentLifecycle(params.intentId, {
+      outboxStatus: 'queued',
+      edielMessageId: message.id,
+      outboundRequestId: params.outboundRequestId,
+      actorUserId: params.actorUserId,
+    })
+
+    return { status: 'queued', intentId: params.intentId, message, blockingReasons: [] }
+  } catch (error) {
+    const reason = classifyRenderError(error)
+    await updateIntentLifecycle(params.intentId, {
+      renderStatus: 'failed',
+      blockingReasons: [...gate.intent.blockingReasons ?? [], reason],
+      validationResult: {
+        ...(gate.intent.validationResult ?? {}),
+        renderError: { code: reason.code, message: reason.message, at: new Date().toISOString() },
+      },
+      actorUserId: params.actorUserId,
+    })
+    return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: [reason] }
+  }
+}
