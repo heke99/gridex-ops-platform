@@ -9,6 +9,7 @@ export type CustomerOperationBlockerCode =
   | "facility_or_metering_point_missing"
   | "facility_identifier_required_for_prodat_z01"
   | "blocked_missing_grid_owner_contact"
+  | "blocked_missing_manual_mailbox"
   | "environment_mismatch"
   | "environment_missing"
   | "ambiguous_sender_settings"
@@ -129,6 +130,14 @@ const BLOCKERS: Record<
       "Lägg till en verifierad e-postadress för nätägaren innan begäran skickas.",
     issue_type: "data",
     error_class: "business_blocker",
+  },
+  blocked_missing_manual_mailbox: {
+    blocker_reason:
+      "Manuell e-postbrevlåda (avsändaradress) saknas för bolaget.",
+    next_required_action:
+      "Konfigurera en manuell avsändarbrevlåda i superadmin innan begäran kan skickas.",
+    issue_type: "route",
+    error_class: "configuration_blocker",
   },
   environment_mismatch: {
     blocker_reason:
@@ -352,6 +361,8 @@ export function customerBlockerStatusLabel(code: unknown): string {
       return "Anläggnings-ID saknas";
     case "blocked_missing_grid_owner_contact":
       return "Kontaktväg till nätägaren saknas";
+    case "blocked_missing_manual_mailbox":
+      return "Manuell e-postbrevlåda saknas";
     case "grid_area_not_verified":
       return "Uppgiftsbegäran kräver granskning";
     case "certificate_missing":

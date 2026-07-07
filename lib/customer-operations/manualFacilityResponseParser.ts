@@ -147,18 +147,28 @@ export async function applyManualFacilityResponse(input: {
   const existingFacility = clean(site?.facility_id)
   const conflict = Boolean(existingFacility && facilityId && existingFacility !== facilityId)
 
+  // Grid owners commonly reply with only the anläggnings-ID. When the reply
+  // omits the grid area but the site already carries a validated one, merge
+  // from site context instead of forcing a manual review of a valid reply.
+  const siteGridAreaCode = clean(site?.grid_area_code)
+  const effectiveGridAreaCode = isValidGridAreaCode(gridAreaCode) ? gridAreaCode : siteGridAreaCode
+  const effectiveConfidence = Math.max(
+    confidence,
+    scoreManualFacilityPayload({ ...input.extracted, grid_area_code: effectiveGridAreaCode ?? input.extracted.grid_area_code }),
+  )
+
   if (!input.senderCredible) reasons.push('sender_not_credible')
   if (protectedIdentity) reasons.push('protected_identity')
   if (!isValidFacilityId(facilityId)) reasons.push('facility_id_invalid_or_missing')
-  if (!isValidGridAreaCode(gridAreaCode)) reasons.push('grid_area_code_unknown')
+  if (!isValidGridAreaCode(gridAreaCode) && !isValidGridAreaCode(effectiveGridAreaCode)) reasons.push('grid_area_code_unknown')
   if (conflict) reasons.push('facility_id_conflict')
   if (!site) reasons.push('site_not_found')
-  if (confidence < 0.7) reasons.push('low_confidence')
+  if (effectiveConfidence < 0.7) reasons.push('low_confidence')
 
   const safe = reasons.length === 0
 
   const now = new Date().toISOString()
-  const parsedPayload = { ...input.extracted, confidence, applied: safe }
+  const parsedPayload = { ...input.extracted, confidence: effectiveConfidence, applied: safe, grid_area_code_source: effectiveGridAreaCode && !isValidGridAreaCode(gridAreaCode) ? 'site_context' : 'reply' }
 
   if (!safe) {
     await supabaseService
@@ -167,7 +177,7 @@ export async function applyManualFacilityResponse(input: {
         status: 'needs_review',
         received_payload: input.rawPayload ?? {},
         parsed_payload: parsedPayload,
-        confidence_score: confidence,
+        confidence_score: effectiveConfidence,
         received_at: now,
         updated_at: now,
       })
@@ -209,7 +219,7 @@ export async function applyManualFacilityResponse(input: {
     .from('grid_owner_information_requests')
     .update({
       parsed_payload: parsedPayload,
-      confidence_score: confidence,
+      confidence_score: effectiveConfidence,
       facility_verification_status: 'manually_verified_by_grid_owner',
       updated_at: now,
     })
@@ -228,7 +238,7 @@ export async function applyManualFacilityResponse(input: {
       source: 'system',
       facilityId,
       meteringPointId,
-      gridAreaCode,
+      gridAreaCode: effectiveGridAreaCode,
       priceAreaCode: clean(input.extracted.price_area_code),
       note: 'Automatiskt tolkat svar från nätägarens e-post.',
       rawPayload: { ...(input.rawPayload ?? {}), extracted: input.extracted as unknown as JsonRecord },

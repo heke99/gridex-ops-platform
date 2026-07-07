@@ -277,6 +277,11 @@ async function findOpenManualRequest(input: { companyId: string; siteId: string;
     .in('status', [
       'draft', 'ready_to_send', 'ready_to_send_manual_email', 'manual_email_queued',
       'manual_email_sent', 'waiting_manual_response', 'manual_response_received', 'needs_review',
+      // Persisted configuration blockers are open requests too: when the gate
+      // passes later (POA signed, contact added, mailbox configured) the same
+      // request row must be reused and advanced instead of colliding with the
+      // open-request unique index.
+      'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
     ])
     .order('created_at', { ascending: false })
     .limit(1)
@@ -461,6 +466,98 @@ export async function requestMissingFacilityInformation(
     blockers: [{ code, message }],
   })
 
+  // Configuration blockers (missing POA/contact/mailbox) are persisted as
+  // request rows so the API/UI always receives a request_id and the blocker is
+  // auditable — an ephemeral in-memory blocker leaves "waiting" UIs with
+  // nothing to point at. The row is reused and advanced when the gate passes.
+  const blockedPersisted = async (input2: {
+    status: 'blocked_missing_poa' | 'blocked_missing_grid_owner_contact' | 'blocked_missing_manual_mailbox'
+    code: string
+    message: string
+    gridOwnerId: string
+    gridAreaCode: string | null
+    poaId?: string | null
+  }): Promise<RequestMissingFacilityInformationResult> => {
+    const now2 = new Date().toISOString()
+    let request = await findOpenManualRequest({ companyId: input.companyId, siteId: input.siteId, requestType })
+    if (!request) {
+      const inserted = await supabaseService
+        .from('grid_owner_information_requests')
+        .insert({
+          company_id: input.companyId,
+          customer_id: input.customerId,
+          customer_site_id: input.siteId,
+          grid_owner_id: input2.gridOwnerId,
+          grid_area_code: input2.gridAreaCode,
+          request_type: requestType,
+          channel: 'manual_email',
+          status: input2.status,
+          requires_poa: true,
+          poa_id: clean(input2.poaId),
+          last_error_code: input2.code,
+          last_error_message: input2.message,
+          created_by: clean(input.actorUserId),
+          updated_by: clean(input.actorUserId),
+          metadata: {
+            source: input.source ?? 'manual_information_orchestrator',
+            channel_type: channelType,
+            blocked_reason: input2.code,
+          },
+          created_at: now2,
+          updated_at: now2,
+        })
+        .select('*')
+        .maybeSingle()
+      if (inserted.error) {
+        if (isUniqueViolation(inserted.error)) {
+          request = await findOpenManualRequest({ companyId: input.companyId, siteId: input.siteId, requestType })
+        } else if (missingSchema(inserted.error)) {
+          request = null
+        } else {
+          throw inserted.error
+        }
+      } else {
+        request = (inserted.data as JsonRecord | null) ?? null
+      }
+    } else {
+      // Only move pre-send/blocked rows into the (possibly different) blocked
+      // status; never downgrade a queued/waiting conversation.
+      await supabaseService
+        .from('grid_owner_information_requests')
+        .update({
+          status: input2.status,
+          last_error_code: input2.code,
+          last_error_message: input2.message,
+          updated_by: clean(input.actorUserId),
+          updated_at: now2,
+        })
+        .eq('id', String(request.id))
+        .in('status', ['draft', 'ready_to_send', 'ready_to_send_manual_email', 'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox'])
+        .then(() => undefined, () => undefined)
+    }
+    const requestId = request ? String(request.id) : null
+    let caseReference = request ? clean(request.case_reference) : null
+    if (requestId && !caseReference) {
+      caseReference = caseReferenceFor(requestId)
+      await supabaseService
+        .from('grid_owner_information_requests')
+        .update({ case_reference: caseReference, updated_at: new Date().toISOString() })
+        .eq('id', requestId)
+        .is('case_reference', null)
+        .then(() => undefined, () => undefined)
+    }
+    return {
+      status: input2.status,
+      requestId,
+      caseReference,
+      channel: 'manual_email',
+      emailOutboxId: null,
+      poaId: clean(input2.poaId),
+      nextAction: { code: input2.code, message: input2.message },
+      blockers: [{ code: input2.code, message: input2.message }],
+    }
+  }
+
   const site = await readSite(input)
   if (!site) {
     return blocked('blocked', 'customer_site_missing', 'Anläggning saknas. Komplettera kundkortet innan nätägaruppgifter kan begäras.')
@@ -497,21 +594,26 @@ export async function requestMissingFacilityInformation(
     requiredScope,
   })
   if (!poa) {
-    return blocked(
-      'blocked_missing_poa',
-      'power_of_attorney_required',
-      'Fullmakt saknas. Skicka fullmaktsbegäran till kunden innan uppgifter kan begäras.',
-    )
+    return blockedPersisted({
+      status: 'blocked_missing_poa',
+      code: 'power_of_attorney_required',
+      message: 'Fullmakt saknas. Skicka fullmaktsbegäran till kunden innan uppgifter kan begäras.',
+      gridOwnerId,
+      gridAreaCode: clean(site.grid_area_code),
+    })
   }
 
   // Grid owner manual contact channel gate (RECIPIENT address per grid owner).
   const contact = await findContactChannelEmail({ companyId: input.companyId, gridOwnerId, channelType })
   if (!contact) {
-    return blocked(
-      'blocked_missing_grid_owner_contact',
-      'grid_owner_contact_required',
-      'Kontaktväg till nätägaren saknas. Lägg till e-postadress innan begäran kan skickas.',
-    )
+    return blockedPersisted({
+      status: 'blocked_missing_grid_owner_contact',
+      code: 'grid_owner_contact_required',
+      message: 'Kontaktväg till nätägaren saknas. Lägg till e-postadress innan begäran kan skickas.',
+      gridOwnerId,
+      gridAreaCode: clean(site.grid_area_code),
+      poaId: clean(poa.id),
+    })
   }
 
   // Manual operations mailbox gate (Gridex SENDER mailbox). This is a distinct
@@ -523,11 +625,14 @@ export async function requestMissingFacilityInformation(
     channelType,
   })
   if (!manualMailbox) {
-    return blocked(
-      'blocked_missing_manual_mailbox',
-      'manual_mailbox_required',
-      'Manuell e-postbrevlåda saknas. Lägg till avsändaradress för leverantörsbyte/fullmakt i superadmin innan begäran kan skickas.',
-    )
+    return blockedPersisted({
+      status: 'blocked_missing_manual_mailbox',
+      code: 'manual_mailbox_required',
+      message: 'Manuell e-postbrevlåda saknas. Lägg till avsändaradress för leverantörsbyte/fullmakt i superadmin innan begäran kan skickas.',
+      gridOwnerId,
+      gridAreaCode: clean(site.grid_area_code),
+      poaId: clean(poa.id),
+    })
   }
   const senderFromEmail = manualMailbox.fromEmail
   const senderReplyTo = manualMailbox.replyToEmail ?? manualMailbox.fromEmail
@@ -730,7 +835,11 @@ export async function requestMissingFacilityInformation(
   }
 
   // Queue the manual e-mail (idempotent). The worker sends it; never the UI.
-  const idempotencyKey = `manual-facility-request:${input.companyId}:${input.siteId}:${gridOwnerId}`
+  // The key is scoped to the request (type + id): retries of the same open
+  // request are deduplicated, while a different request type for the same
+  // site/grid owner — or a new request after the previous one completed — can
+  // queue its own e-mail.
+  const idempotencyKey = `manual-facility-request:${input.companyId}:${input.siteId}:${gridOwnerId}:${requestType}:${requestId}`
   const rendered = renderManualEmailTemplate(templateKey, {
     case_reference: caseReference,
     customer_number: resolvedCustomerNumber,
@@ -791,7 +900,10 @@ export async function requestMissingFacilityInformation(
     emailOutboxId = clean(queued.data?.id)
   }
 
-  // Advance the request to manual_email_queued (idempotent; reuse keeps status).
+  // Advance the request to manual_email_queued (idempotent; already-waiting
+  // conversations keep their status). Requests parked in needs_review or a
+  // persisted blocked_missing_* state advance too: all gates passed and an
+  // e-mail row is now queued, so leaving the old blocker status would lie.
   await supabaseService
     .from('grid_owner_information_requests')
     .update({
@@ -801,12 +913,17 @@ export async function requestMissingFacilityInformation(
       from_email: senderFromEmail,
       reply_to: senderReplyTo,
       poa_id: clean(poa.id),
+      last_error_code: null,
+      last_error_message: null,
       template_id: `${rendered.templateKey}.${rendered.templateVersion}`,
       updated_by: clean(input.actorUserId),
       updated_at: new Date().toISOString(),
     })
     .eq('id', requestId)
-    .in('status', ['draft', 'ready_to_send', 'ready_to_send_manual_email'])
+    .in('status', [
+      'draft', 'ready_to_send', 'ready_to_send_manual_email', 'needs_review',
+      'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
+    ])
 
   // Audit: POA events (only on a fresh queue). A generated PDF records
   // pdf_generated before attached_to_email; an uploaded PDF only records
@@ -842,12 +959,15 @@ export async function requestMissingFacilityInformation(
     message: 'Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post.',
   }
 
+  // Truthful status: at this point the e-mail is QUEUED, not sent. The manual
+  // e-mail worker advances site/customer to waiting_manual_response when the
+  // provider confirms the send (advanceLinkedRequest).
   await patchSiteNextAction({
     companyId: input.companyId,
     customerId: input.customerId,
     siteId: input.siteId,
-    status: 'waiting_manual_response',
-    nextAction: 'Väntar på svar från nätägaren.',
+    status: 'manual_email_queued',
+    nextAction: 'Begäran är skapad och e-post skickas strax till nätägaren.',
     actorUserId: input.actorUserId,
   })
 
@@ -857,9 +977,9 @@ export async function requestMissingFacilityInformation(
     customerSiteId: input.siteId,
     actorUserId: input.actorUserId ?? null,
     eventType: 'manual_facility_request.queued',
-    title: 'Begäran skickad via e-post',
-    message: 'Anläggningsuppgifter har begärts från nätägaren via e-post.',
-    status: 'waiting_response',
+    title: 'Begäran köad för utskick',
+    message: 'Anläggningsuppgifter begärs från nätägaren via e-post. Utskicket sker strax.',
+    status: 'queued',
     severity: 'info',
     source: input.source ?? 'manual_information_orchestrator',
     payload: {

@@ -328,7 +328,7 @@ export async function evaluateCustomerIntake(input: {
         source: 'customer_intake_orchestrator',
       })
       referencesBase.gridOwnerInformationRequestId = manual.requestId
-      const waiting = ['manual_email_queued', 'waiting_response', 'sent'].includes(manual.status)
+      const waiting = ['manual_email_queued', 'manual_email_sent', 'waiting_manual_response', 'waiting_response', 'sent'].includes(manual.status)
       const blocked = manual.blockers.length > 0 || manual.status.startsWith('blocked') || manual.status === 'needs_review'
       const result = decision({
         state: waiting
