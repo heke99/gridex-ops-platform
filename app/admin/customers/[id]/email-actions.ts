@@ -40,6 +40,11 @@ export async function resendCustomerEmailAction(formData: FormData) {
     if (error) throw error
     if (!log?.template_key || !log.recipient_email) throw new Error('Loggen saknar mall eller mottagare.')
 
+    // Explicit resend-scoped idempotency: keyed on the original log id plus a
+    // per-minute bucket, so a double-click cannot duplicate the mail while a
+    // deliberate later resend still goes out. Without this the default key
+    // could either dedupe forever or replace the original log's history.
+    const resendBucket = new Date().toISOString().slice(0, 16)
     await sendCompanyEmail({
       companyId: tenant.companyId,
       customerId,
@@ -47,6 +52,12 @@ export async function resendCustomerEmailAction(formData: FormData) {
       templateKey: log.template_key,
       to: log.recipient_email,
       variables: {},
+      idempotencyKey: `resend:${log.id}:${resendBucket}`,
+      metadata: {
+        resend_of_communication_log_id: log.id,
+        resend_requested_by: guard.userId,
+        source: 'resend_customer_email_action',
+      },
     })
 
     revalidatePath(`/admin/customers/${customerId}`)

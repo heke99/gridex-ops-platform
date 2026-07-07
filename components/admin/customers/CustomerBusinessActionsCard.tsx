@@ -52,6 +52,22 @@ type Props = {
   z01RepairEvents?: Z01RepairEvent[]
   dispatchState?: EdielDispatchStateResult | null
   manualRequests?: ManualRequestSummary[]
+  isTestData?: boolean
+}
+
+function recipientResolutionModeLabel(mode: string | null): string {
+  switch (mode) {
+    case 'real_grid_owner_contact':
+      return 'Riktig nätägarkontakt'
+    case 'safe_recipient_override':
+      return 'Säker intern mottagare (override)'
+    case 'manual_override':
+      return 'Manuellt vald mottagare'
+    case 'missing_contact':
+      return 'Kontakt saknas'
+    default:
+      return 'Okänd mottagarupplösning'
+  }
 }
 
 function manualRequestDate(value: string | null | undefined): string {
@@ -142,6 +158,7 @@ export default function CustomerBusinessActionsCard({
   z01RepairEvents = [],
   dispatchState = null,
   manualRequests = [],
+  isTestData = false,
 }: Props) {
   const snapshot =
     suppliedSnapshot ??
@@ -192,8 +209,33 @@ export default function CustomerBusinessActionsCard({
         status: step.status,
       }))
 
+  const productionSafeOverride = manualRequests.some(
+    (request) => request.recipientResolution?.productionSafeOverrideWarning === true,
+  )
+
   return (
     <section className="space-y-4">
+      {isPlatformAdmin && isTestData ? (
+        <div className="rounded-2xl border border-orange-300 bg-orange-50 p-4 text-sm text-orange-950">
+          <p className="font-semibold">Testdata</p>
+          <p className="mt-1 leading-6">
+            Kunden är markerad som test-/dirty-data (is_test_data). Rader från den här kunden får inte
+            användas som bevis för produktionsflödet och är dolda i tenantens normala kundregister.
+          </p>
+        </div>
+      ) : null}
+
+      {isPlatformAdmin && productionSafeOverride ? (
+        <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-950">
+          <p className="font-semibold">Produktionsutskick med säker intern mottagare</p>
+          <p className="mt-1 leading-6">
+            Minst en manuell nätägarbegäran i produktion skickades till en intern säker adress
+            (MANUAL_GRID_OWNER_SAFE_RECIPIENT) i stället för nätägarens riktiga kontakt. Nätägaren har
+            alltså INTE fått begäran.
+          </p>
+        </div>
+      ) : null}
+
       <CustomerProcessTimeline
         steps={timelineSteps}
         showTechnical={isPlatformAdmin}
@@ -257,6 +299,34 @@ export default function CustomerBusinessActionsCard({
                     {request.sentAt ? <span>Skickad: {manualRequestDate(request.sentAt)}</span> : null}
                     {request.caseReference ? <span>Ärendenummer: {request.caseReference}</span> : null}
                   </div>
+                  {isPlatformAdmin && request.recipientResolution ? (
+                    <div
+                      className={`mt-2 rounded-xl px-3 py-2 text-xs ${
+                        request.recipientResolution.productionSafeOverrideWarning
+                          ? 'bg-red-50 text-red-900'
+                          : 'bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <span className="font-semibold">
+                        Mottagare: {recipientResolutionModeLabel(request.recipientResolution.mode)}
+                      </span>
+                      {request.recipientResolution.selectedToEmail ? (
+                        <span className="ml-2">Vald: {request.recipientResolution.selectedToEmail}</span>
+                      ) : null}
+                      {request.recipientResolution.actualGridOwnerContactEmail &&
+                      request.recipientResolution.actualGridOwnerContactEmail !== request.recipientResolution.selectedToEmail ? (
+                        <span className="ml-2">
+                          Nätägarens kontakt: {request.recipientResolution.actualGridOwnerContactEmail}
+                        </span>
+                      ) : null}
+                      {request.recipientResolution.environment ? (
+                        <span className="ml-2">Miljö: {request.recipientResolution.environment}</span>
+                      ) : null}
+                      {!request.recipientResolution.contactVerified ? (
+                        <span className="ml-2">Kontakt ej verifierad</span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </article>
               ))}
             </div>

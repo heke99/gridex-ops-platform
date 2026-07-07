@@ -2250,6 +2250,9 @@ export default async function CustomerAdminDetailPage({
     ? await listManualGridOwnerRequestSummaries({
         companyId: customerCompanyId,
         customerId: id,
+        // Superadmin diagnostics: recipient resolution (real contact vs safe
+        // override) is never loaded for tenant views.
+        includeRecipientResolution: isPlatformAdmin,
       }).catch(() => [])
     : [];
 
@@ -2513,6 +2516,7 @@ export default async function CustomerAdminDetailPage({
             z01RepairEvents={z01RepairEvents}
             dispatchState={customerDispatchState}
             manualRequests={manualRequestSummaries}
+            isTestData={customer.is_test_data === true}
           />
 
         </SectionAnchor>
