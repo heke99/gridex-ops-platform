@@ -628,7 +628,7 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
   if (input.customerSiteId) {
     const current = await supabaseService
       .from('customer_sites')
-      .select('resolution_status,address_status,facility_data_status')
+      .select('resolution_status,address_status,facility_data_status,grid_owner_id,grid_area_code,price_area_code')
       .eq('id', input.customerSiteId)
       .eq('company_id', input.companyId)
       .maybeSingle()
@@ -636,13 +636,23 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
       if (missingSchema(current.error)) requireResolverSchema('customer_sites.energy_resolution_columns', current.error)
       throw current.error
     }
-    const currentStatus = String((current.data as Record<string, unknown> | null)?.resolution_status ?? '').toLowerCase()
+    const currentRow = (current.data ?? null) as Record<string, unknown> | null
+    const currentStatus = String(currentRow?.resolution_status ?? '').toLowerCase()
     const protectedManualVerification = ['manual_verified', 'facility_verified'].includes(currentStatus) && !resolved.automationAllowed
     if (!protectedManualVerification) {
+      // Enrichment-only rule: the resolver may fill missing grid context but
+      // must never null or replace an existing explicit/verified value. A
+      // postal_suggested (uncertain) resolution therefore never downgrades
+      // already stored grid_owner_id/grid_area_code/price_area_code.
+      const currentGridOwnerId = clean(currentRow?.grid_owner_id as string | null | undefined)
+      const currentGridAreaCode = clean(currentRow?.grid_area_code as string | null | undefined)
+      const currentPriceAreaCode = clean(currentRow?.price_area_code as string | null | undefined)
+      const resolvedGridOwnerId = resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridOwnerId)
+      const resolvedGridAreaCode = resolved.resolutionStatus === 'postal_suggested' ? null : clean(resolved.gridAreaCode)
       const siteUpdate: Record<string, unknown> = {
-        grid_owner_id: resolved.resolutionStatus === 'postal_suggested' ? null : resolved.gridOwnerId,
-        grid_area_code: resolved.resolutionStatus === 'postal_suggested' ? null : resolved.gridAreaCode,
-        price_area_code: resolved.priceArea,
+        grid_owner_id: currentGridOwnerId ?? resolvedGridOwnerId,
+        grid_area_code: currentGridAreaCode ?? resolvedGridAreaCode,
+        price_area_code: currentPriceAreaCode ?? resolved.priceArea,
         resolution_id: data.id,
         resolution_status: resolved.resolutionStatus,
         resolution_confidence: resolved.confidence,

@@ -1362,15 +1362,28 @@ function explicitGridOwnerIdFromInput(input: ApplicationInput): string | null {
   return clean(input.site?.grid_owner_id) ?? clean(input.site?.gridOwnerId) ?? clean(input.grid_owner_id) ?? clean(input.network_owner_id)
 }
 
+const VALID_PRICE_AREAS = new Set(['SE1', 'SE2', 'SE3', 'SE4'])
+
+function isValidExplicitPriceArea(value: string | null): value is string {
+  return Boolean(value && VALID_PRICE_AREAS.has(value.toUpperCase()))
+}
+
+// Central merge rule for explicit vs resolved energy context:
+// explicit valid submitted input always wins; the resolver (Papilite/geo/master
+// lookup) may only enrich values that are missing. A resolver failure or a
+// diverging resolver result must never null or replace valid explicit input.
 function mergeResolverWithExplicitInput(input: ApplicationInput, resolution: EnergyResolverResult): EnergyResolverResult {
   const explicitGridAreaCode = explicitGridAreaCodeFromInput(input)
-  const explicitPriceAreaCode = explicitPriceAreaCodeFromInput(input)
+  const explicitPriceAreaCodeRaw = explicitPriceAreaCodeFromInput(input)
+  const explicitPriceAreaCode = isValidExplicitPriceArea(explicitPriceAreaCodeRaw) ? explicitPriceAreaCodeRaw.toUpperCase() : null
   const explicitGridOwnerId = explicitGridOwnerIdFromInput(input)
+  const gridAreaDisagrees = Boolean(explicitGridAreaCode && resolution.gridAreaCode && resolution.gridAreaCode !== explicitGridAreaCode)
+  const priceAreaDisagrees = Boolean(explicitPriceAreaCode && resolution.priceArea && resolution.priceArea !== explicitPriceAreaCode)
   return {
     ...resolution,
-    gridAreaCode: resolution.gridAreaCode ?? explicitGridAreaCode,
-    priceArea: resolution.priceArea ?? (explicitPriceAreaCode as EnergyResolverResult['priceArea'] | null),
-    gridOwnerId: resolution.gridOwnerId ?? explicitGridOwnerId,
+    gridAreaCode: explicitGridAreaCode ?? resolution.gridAreaCode,
+    priceArea: (explicitPriceAreaCode as EnergyResolverResult['priceArea'] | null) ?? resolution.priceArea,
+    gridOwnerId: (isUuid(explicitGridOwnerId) ? explicitGridOwnerId : null) ?? resolution.gridOwnerId ?? explicitGridOwnerId,
     sourceChain: Array.from(new Set([
       ...(explicitGridAreaCode ? ['input.explicit_grid_area_code'] : []),
       ...resolution.sourceChain,
@@ -1379,6 +1392,8 @@ function mergeResolverWithExplicitInput(input: ApplicationInput, resolution: Ene
       ...resolution.warnings,
       ...(resolution.gridAreaCode || !explicitGridAreaCode ? [] : ['explicit_grid_area_code_preserved_without_master_match']),
       ...(resolution.priceArea || !explicitPriceAreaCode ? [] : ['explicit_price_area_code_preserved']),
+      ...(gridAreaDisagrees ? ['resolver_grid_area_disagrees_with_explicit_input'] : []),
+      ...(priceAreaDisagrees ? ['resolver_price_area_disagrees_with_explicit_input'] : []),
     ])),
   }
 }
@@ -1679,6 +1694,8 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
         city: firstDefined(nestedSite?.city, explicitSiteAddress ? raw.city : undefined, explicitSiteAddress ? rawAddress.city : undefined),
         country: firstDefined(nestedSite?.country, explicitSiteAddress ? raw.country : undefined, explicitSiteAddress ? rawAddress.country : undefined),
         price_area_code: firstDefined(nestedSite?.price_area_code, nestedSite?.priceAreaCode, nestedSite?.price_area, nestedSite?.priceArea, raw.price_area_code, raw.priceAreaCode, raw.price_area, raw.priceArea),
+        grid_area_code: firstDefined(nestedSite?.grid_area_code, nestedSite?.gridAreaCode, raw.grid_area_code, raw.gridAreaCode),
+        grid_owner_id: firstDefined(nestedSite?.grid_owner_id, nestedSite?.gridOwnerId, raw.grid_owner_id, raw.gridOwnerId, raw.network_owner_id),
         move_in_date: firstDefined(nestedSite?.move_in_date, nestedSite?.moveInDate, raw.move_in_date, raw.moveInDate, raw.start_date, raw.startDate),
         annual_consumption_kwh: firstDefined(
           nestedSite?.annual_consumption_kwh,
@@ -2201,6 +2218,10 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
     return { id: created.siteId, facility_id: facilityId }
   }
 
+  // Explicit/enriched grid context must be persisted on the site columns even
+  // when the address is incomplete. Previously these were forced to null and
+  // only kept in metadata.claimed_*, which lost valid submitted values
+  // (e.g. grid_area_code/price_area_code) for downstream route resolution.
   const fullPayload = {
     company_id: companyId,
     customer_id: customerId,
@@ -2208,10 +2229,10 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
     facility_id: facilityId,
     site_type: clean(site.site_type) ?? 'consumption',
     status: 'active',
-    price_area_code: null,
-    grid_area_code: null,
-    grid_owner_id: null,
-    grid_owner_verification_status: null,
+    price_area_code: clean(site.price_area_code) ?? clean(site.price_area),
+    grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
+    grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
+    grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus),
     move_in_date: clean(site.move_in_date),
     annual_consumption_kwh: site.annual_consumption_kwh ?? null,
     street: clean(site.street),
@@ -3554,6 +3575,8 @@ export async function processWebsiteCustomerApplication(input: {
           source: 'website',
           sourceReference: input.idempotencyKey ?? null,
           claimedGridOwnerId: clean(siteAddress.grid_owner_id) ?? clean(siteAddress.gridOwnerId),
+          claimedGridAreaCode: clean(siteAddress.grid_area_code) ?? clean(siteAddress.gridAreaCode),
+          claimedPriceAreaCode: clean(siteAddress.price_area_code) ?? clean(siteAddress.price_area),
           metadata: { application_source: clean(body.source) ?? 'website' },
         },
       }))
