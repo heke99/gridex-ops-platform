@@ -19,6 +19,8 @@ type StuckIntentRow = {
   grid_owner_information_request_id: string | null
   supplier_switch_request_id: string | null
   customer_info_request_id: string | null
+  message_family: string | null
+  message_code: string | null
   communication_route_id: string | null
   operation_id: string | null
   payload: Record<string, unknown> | null
@@ -63,6 +65,69 @@ function gridOwnerDataRequestIdFromIntent(row: StuckIntentRow): string | null {
   )
 }
 
+function normalizeProdatSwitchCode(value: string | null, process: string):
+  | 'Z03'
+  | 'Z04'
+  | 'Z05'
+  | 'Z06'
+  | 'Z09'
+  | 'Z10'
+  | 'Z13'
+  | 'Z14'
+  | 'Z15'
+  | 'Z18'
+  | null {
+  const code = String(value ?? '').trim().toUpperCase()
+  if (code === 'Z03' || code === 'Z04' || code === 'Z05' || code === 'Z06' || code === 'Z09' || code === 'Z10' || code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18') {
+    return code
+  }
+  if (process === 'supplier_switch') return 'Z03'
+  if (process === 'metering_permission' || process === 'metering_access') return 'Z13'
+  return null
+}
+
+function normalizeUtiltsCode(value: string | null): 'E73' | 'E66' | null {
+  const code = String(value ?? '').trim().toUpperCase()
+  if (code === 'E73' || code === 'E66') return code
+  if (!code) return 'E73'
+  return null
+}
+
+function numberFromPayload(payload: Record<string, unknown>, key: string): number | null {
+  const value = payload[key]
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value.replace(',', '.'))
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+async function linkResumeResultToIntent(params: {
+  row: StuckIntentRow
+  actorUserId: string | null
+  message: { id?: string | null; outbound_request_id?: string | null } | null | undefined
+}): Promise<void> {
+  const messageId = text(params.message?.id)
+  const outboundRequestId = text(params.message?.outbound_request_id)
+
+  if (messageId) {
+    const { error } = await supabaseService
+      .from('ediel_messages')
+      .update({ intent_id: params.row.id, updated_by: params.actorUserId ?? 'system' })
+      .eq('id', messageId)
+    if (error && !isMissingSchema(error)) throw error
+  }
+
+  await updateIntentLifecycle(params.row.id, {
+    renderStatus: messageId ? 'rendered' : 'failed',
+    outboxStatus: messageId ? 'queued' : 'failed',
+    edielMessageId: messageId ?? null,
+    outboundRequestId: outboundRequestId ?? null,
+    actorUserId: params.actorUserId,
+  })
+}
+
 async function markUnsupportedOrMalformedIntent(params: {
   row: StuckIntentRow
   actorUserId: string | null
@@ -93,9 +158,9 @@ export type ResumeStuckIntentsResult = {
 }
 
 // Finds validated outbound intents that never reached the outbox and re-runs the
-// process-specific dispatcher. Facility lookup and customer masterdata are fully
-// resumable now; other outbound business processes are deliberately marked with
-// a controlled blocker until their render gateways are wired in.
+// process-specific dispatcher. The dispatcher covers active outbound business
+// processes and records controlled blockers when a persisted intent is malformed
+// instead of leaving it invisible at not_rendered/not_queued.
 export async function resumeStuckEdielIntents(input: {
   companyId?: string | null
   limit?: number
@@ -113,6 +178,8 @@ export async function resumeStuckEdielIntents(input: {
         'grid_owner_information_request_id',
         'supplier_switch_request_id',
         'customer_info_request_id',
+        'message_family',
+        'message_code',
         'communication_route_id',
         'operation_id',
         'payload',
@@ -184,6 +251,42 @@ export async function resumeStuckEdielIntents(input: {
         continue
       }
 
+      if (process === 'supplier_switch' || process === 'metering_permission' || process === 'metering_access') {
+        const switchRequestId = text(row.supplier_switch_request_id)
+        const messageCode = normalizeProdatSwitchCode(text(row.message_code), process)
+        if (!switchRequestId) {
+          await markUnsupportedOrMalformedIntent({
+            row,
+            actorUserId,
+            code: 'supplier_switch_request_id_missing',
+            message: `${process}-intent saknar supplier_switch_request_id och kan inte återupptas.`,
+          })
+          blocked += 1
+          continue
+        }
+        if (!messageCode) {
+          await markUnsupportedOrMalformedIntent({
+            row,
+            actorUserId,
+            code: 'supplier_switch_message_code_unsupported',
+            message: `${process}-intent har message_code=${row.message_code ?? 'null'} och kan inte återupptas automatiskt.`,
+          })
+          blocked += 1
+          continue
+        }
+        const { prepareAndQueueProdatSwitch } = await import('@/lib/ediel/flows/prodatSwitch')
+        const message = await prepareAndQueueProdatSwitch({
+          actorUserId: actorUserId ?? 'system',
+          switchRequestId,
+          messageCode,
+          communicationRouteId: row.communication_route_id,
+          environment: intentEnvironment(row.environment) ?? undefined,
+        })
+        await linkResumeResultToIntent({ row, actorUserId, message })
+        resumed += 1
+        continue
+      }
+
       if (process === 'customer_masterdata') {
         const gridOwnerDataRequestId = gridOwnerDataRequestIdFromIntent(row)
         if (!gridOwnerDataRequestId) {
@@ -209,6 +312,53 @@ export async function resumeStuckEdielIntents(input: {
         if (result.prepared) resumed += 1
         else if (result.blockerCode || result.blockerReason) blocked += 1
         else skipped += 1
+        continue
+      }
+
+      if (process === 'meter_values' || process === 'metering_values' || process === 'timeseries_request' || process === 'billing_underlay') {
+        const gridOwnerDataRequestId = gridOwnerDataRequestIdFromIntent(row)
+        const messageCode = normalizeUtiltsCode(text(row.message_code))
+        const payload = asRecord(row.payload)
+        if (!gridOwnerDataRequestId) {
+          await markUnsupportedOrMalformedIntent({
+            row,
+            actorUserId,
+            code: 'grid_owner_data_request_id_missing',
+            message: `${process}-intent saknar grid_owner_data_request_id och kan inte återupptas.`,
+          })
+          blocked += 1
+          continue
+        }
+        if (!messageCode) {
+          await markUnsupportedOrMalformedIntent({
+            row,
+            actorUserId,
+            code: 'utilts_message_code_unsupported',
+            message: `${process}-intent har message_code=${row.message_code ?? 'null'} och kan inte återupptas automatiskt.`,
+          })
+          blocked += 1
+          continue
+        }
+        const { prepareAndQueueUtiltsE73, prepareAndQueueUtiltsE66 } = await import('@/lib/ediel/flows/utiltsDataRequest')
+        const message = messageCode === 'E66'
+          ? await prepareAndQueueUtiltsE66({
+              actorUserId: actorUserId ?? 'system',
+              gridOwnerDataRequestId,
+              communicationRouteId: row.communication_route_id,
+              environment: intentEnvironment(row.environment),
+              quantity: numberFromPayload(payload, 'quantity') ?? numberFromPayload(payload, 'valueKwh'),
+              periodStart: text(payload.periodStart) ?? text(payload.period_start),
+              periodEnd: text(payload.periodEnd) ?? text(payload.period_end),
+              registrationTime: text(payload.registrationTime) ?? text(payload.registration_time),
+            })
+          : await prepareAndQueueUtiltsE73({
+              actorUserId: actorUserId ?? 'system',
+              gridOwnerDataRequestId,
+              communicationRouteId: row.communication_route_id,
+              environment: intentEnvironment(row.environment),
+            })
+        await linkResumeResultToIntent({ row, actorUserId, message })
+        resumed += 1
         continue
       }
 
