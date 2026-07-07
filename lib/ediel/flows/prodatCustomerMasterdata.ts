@@ -399,6 +399,44 @@ async function persistOutboundRouteDecision(params: {
   }
 }
 
+// Direct row-level guard for early exits where no RouteDecisionOutput exists
+// yet: a customer_masterdata outbound must never remain 'queued'/'prepared'
+// with empty blocking_reasons when preparation stops.
+async function blockOutboundRowDirect(params: {
+  actorUserId: string;
+  outboundId: string;
+  blocker: CustomerOperationBlocker;
+  source: string;
+}): Promise<void> {
+  const { error } = await supabaseService
+    .from("outbound_requests")
+    .update({
+      status: "failed",
+      failure_reason: params.blocker.blocker_reason,
+      blocking_reasons: [
+        {
+          code: params.blocker.blocker_code,
+          message: params.blocker.blocker_reason,
+          severity: "blocking",
+          source: params.source,
+        },
+      ],
+      required_admin_actions: [params.blocker.next_required_action],
+      updated_by: params.actorUserId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", params.outboundId)
+    .in("status", ["queued", "prepared"]);
+  if (
+    error &&
+    !["42703", "PGRST204", "PGRST205"].includes(
+      String((error as { code?: string }).code ?? ""),
+    )
+  ) {
+    throw error;
+  }
+}
+
 async function findVerifiedPlatformActorRoute(input: {
   actorId?: string | null;
   messageFamily: string;
@@ -677,6 +715,12 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
             "Koppla begäran till rätt bolag innan EDIFACT förbereds.",
         },
       );
+      await blockOutboundRowDirect({
+        actorUserId,
+        outboundId: outbound.id,
+        blocker,
+        source: "prepare_prodat_z01_company_missing",
+      });
       return {
         dataRequest,
         outbound,
@@ -723,6 +767,12 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
           environmentResolution.productionSendLockStatus,
         route_resolution_status: environmentResolution.blocker.blocker_code,
       };
+      await blockOutboundRowDirect({
+        actorUserId,
+        outboundId: outbound.id,
+        blocker: environmentResolution.blocker,
+        source: "prepare_prodat_z01_environment_blocked",
+      });
       return {
         dataRequest,
         outbound,
@@ -831,6 +881,15 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       sender_settings_id: null,
       production_send_lock_status: null,
     };
+    // The outbound row itself must never stay 'queued' with empty
+    // blocking_reasons on this early exit — that is exactly the split-brain
+    // state a resume worker could later mistake for a sendable request.
+    await blockOutboundRowDirect({
+      actorUserId,
+      outboundId: outbound.id,
+      blocker,
+      source: "prepare_prodat_z01_missing_route",
+    });
     await tryUpdateGridOwnerDataRequestStatus(
       {
         actorUserId,
@@ -858,7 +917,19 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
 
     return {
       dataRequest,
-      outbound,
+      outbound: {
+        ...outbound,
+        status: "failed",
+        blocking_reasons: [
+          {
+            code: blocker.blocker_code,
+            message: blocker.blocker_reason,
+            severity: "blocking",
+            source: "prepare_prodat_z01_missing_route",
+          },
+        ],
+        required_admin_actions: [blocker.next_required_action],
+      } as OutboundRequestRow,
       message: null,
       prepared: false,
       blockerReason: blocker.blocker_reason,
@@ -1261,8 +1332,11 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     customerSiteId: dataRequest.site_id,
     customerInfoRequestId: customerInfoRequestIdFromDataRequest(dataRequest),
     operationId,
-    facilityId: facilityIdFromDataRequest(dataRequest),
-    meteringPointId: dataRequest.metering_point_id,
+    // Live prerequisite evidence wins: the prerequisites read the current
+    // customer_sites/metering_points rows, while the request payload can be a
+    // stale snapshot from when the request was created.
+    facilityId: z01Prerequisites.facilityId ?? facilityIdFromDataRequest(dataRequest),
+    meteringPointId: z01Prerequisites.meteringPointId ?? dataRequest.metering_point_id,
     gridAreaCode: gridAreaCodeFromDataRequest(dataRequest),
     interchangeReference: externalReference,
     messageReference: externalReference,

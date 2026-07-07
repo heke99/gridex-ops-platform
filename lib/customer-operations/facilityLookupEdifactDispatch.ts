@@ -239,7 +239,10 @@ async function createFacilityLookupIntent(input: {
     // Validate (never override) the route-declared Application Reference against
     // policy at creation: a misconfigured DGI route becomes a controlled blocker.
     routeProfile: { applicationReference: input.routeContext.applicationReference ?? null },
-    routeProfileId: input.routeProfileId ?? input.routeContext.route.id,
+    // route_profile_id must always be an ediel_route_profiles.id. Falling back
+    // to the communication route id would mix ID namespaces; a missing profile
+    // becomes a controlled required_intent_metadata_missing blocker instead.
+    routeProfileId: input.routeProfileId ?? '',
     communicationRouteId: input.routeContext.route.id,
     customerId: input.request.customer_id,
     customerSiteId: input.request.customer_site_id,

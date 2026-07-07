@@ -273,7 +273,10 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     receiverEdielId: routeContext.receiverEdielId,
     receiverSubaddress: routeContext.receiverSubAddress ?? null,
     applicationReference: routeContext.applicationReference ?? '',
-    routeProfileId: routeContext.route.id,
+    // route_profile_id must reference ediel_route_profiles.id — never the
+    // communication route id (different namespace). Missing profile ->
+    // controlled intent blocker rather than a wrong-namespace UUID.
+    routeProfileId: routeContext.routeDecision.edielRouteProfileId ?? '',
     communicationRouteId: routeContext.route.id,
     customerId: switchRequest.customer_id,
     customerSiteId: switchRequest.site_id,
@@ -294,6 +297,17 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     },
   })
   draft.intentId = intent.id
+
+  // The intent is the validated business decision in front of rendering. A
+  // blocked intent (missing route profile, facility identity, application
+  // reference policy, ...) must stop the flow here — rendering/queueing anyway
+  // would produce an outbox send that contradicts the intent status.
+  if (intent.validationStatus === 'blocked') {
+    const firstBlocker = intent.blockingReasons?.[0]
+    throw new Error(
+      `Ediel-intent för ${params.messageCode} blockerades före rendering: ${firstBlocker?.message ?? firstBlocker?.code ?? 'intent-validering misslyckades'}`,
+    )
+  }
 
   const message = await finalizeOutboundDraft({
     actorUserId,

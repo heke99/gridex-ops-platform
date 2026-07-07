@@ -30,6 +30,7 @@
     "gridex:repair-missing-facility-z01": "node --experimental-strip-types scripts/gridex/repairMissingFacilityZ01Rows.ts",
     "gridex:z01-missing-facility-outbound-blocker-regression": "node scripts/gridex-z01-missing-facility-outbound-blocker-regression.cjs",
     "gridex:resume-stuck-intents-missing-facility-blocker-regression": "node scripts/gridex-z01-missing-facility-outbound-blocker-regression.cjs",
+    "gridex:z01-payload-route-context-regression": "node scripts/gridex-z01-payload-route-context-regression.cjs",
     "gridex:actor-registry-intake-hardening-regression": "node scripts/gridex-actor-registry-intake-hardening-regression.cjs",
     "gridex:launch-security-regression": "node scripts/gridex-launch-regression.cjs launch-security-regression",
     "gridex:db-ui-compatibility-regression": "node scripts/gridex-launch-regression.cjs db-ui-compatibility-regression",
