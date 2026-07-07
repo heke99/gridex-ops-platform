@@ -23,6 +23,8 @@ type StuckIntentRow = {
   message_code: string | null
   communication_route_id: string | null
   operation_id: string | null
+  facility_id: string | null
+  metering_point_id: string | null
   payload: Record<string, unknown> | null
   validation_status: string | null
   render_status: string | null
@@ -182,6 +184,8 @@ export async function resumeStuckEdielIntents(input: {
         'message_code',
         'communication_route_id',
         'operation_id',
+        'facility_id',
+        'metering_point_id',
         'payload',
         'validation_status',
         'render_status',
@@ -225,6 +229,27 @@ export async function resumeStuckEdielIntents(input: {
     seen.add(dedupeKey)
 
     try {
+      // HARD FACILITY GUARD (resume layer): a customer_masterdata or
+      // supplier_switch intent without facility/metering identity must never be
+      // revived into a render/send. Mark it blocked with the canonical reason
+      // so it becomes visible with a required admin action instead of being
+      // silently retried on every sweep.
+      if (
+        (process === 'customer_masterdata' || process === 'supplier_switch') &&
+        !text(row.facility_id) &&
+        !text(row.metering_point_id)
+      ) {
+        await markUnsupportedOrMalformedIntent({
+          row,
+          actorUserId,
+          code: 'facility_or_metering_point_missing',
+          message:
+            'Anläggnings-ID/mätpunkts-ID saknas på intentet. Begär anläggningsuppgifter från nätägaren innan meddelandet kan återupptas.',
+        })
+        blocked += 1
+        continue
+      }
+
       if (process === 'facility_lookup') {
         const requestId = text(row.grid_owner_information_request_id)
         if (!requestId) {
@@ -375,5 +400,58 @@ export async function resumeStuckEdielIntents(input: {
     }
   }
 
-  return { candidates: rows.length, resumed, blocked, skipped, errors }
+  // Draft sweep: intents stuck at validation_status='draft' (legacy rows or
+  // interrupted creates) are invisible to the resume filter above and would
+  // otherwise idle forever. Re-run the validation gate: a valid draft becomes
+  // 'validated' (picked up by the next sweep), an invalid one becomes 'blocked'
+  // with explicit blocking reasons. No render/send happens in this pass.
+  const draftSweep = await sweepDraftIntents({ companyId: input.companyId ?? null, limit, errors })
+  blocked += draftSweep.blocked
+
+  return { candidates: rows.length + draftSweep.candidates, resumed, blocked, skipped, errors }
+}
+
+async function sweepDraftIntents(input: {
+  companyId: string | null
+  limit: number
+  errors: string[]
+}): Promise<{ candidates: number; blocked: number }> {
+  let query = supabaseService
+    .from('ediel_message_intents')
+    .select('id')
+    .eq('validation_status', 'draft')
+    .eq('direction', 'outbound')
+    .is('ediel_message_id', null)
+    .eq('outbox_status', 'not_queued')
+    .order('updated_at', { ascending: true })
+    .limit(input.limit)
+  if (input.companyId) query = query.eq('company_id', input.companyId)
+
+  const { data, error } = await query
+  if (error) {
+    if (isMissingSchema(error)) return { candidates: 0, blocked: 0 }
+    input.errors.push(`draft_sweep: ${error.message}`)
+    return { candidates: 0, blocked: 0 }
+  }
+
+  const ids = ((data ?? []) as Array<{ id: string }>).map((row) => row.id)
+  let blocked = 0
+  for (const id of ids) {
+    try {
+      const { getEdielMessageIntentById, evaluateIntentValidation } = await import('@/lib/ediel/intent/intentEngine')
+      const intent = await getEdielMessageIntentById(id)
+      if (!intent) continue
+      const validation = evaluateIntentValidation(intent)
+      await updateIntentLifecycle(id, {
+        actorUserId: 'system',
+        validationStatus: validation.status,
+        blockingReasons: validation.blockingReasons,
+        validationResult: { ...validation, source: 'resume_draft_sweep' } as unknown as Record<string, unknown>,
+      })
+      if (validation.status === 'blocked') blocked += 1
+    } catch (sweepError) {
+      input.errors.push(`draft_sweep:${id}: ${sweepError instanceof Error ? sweepError.message : String(sweepError)}`)
+    }
+  }
+  return { candidates: ids.length, blocked }
 }

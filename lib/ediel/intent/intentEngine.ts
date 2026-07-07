@@ -193,6 +193,26 @@ export function evaluateIntentValidation(
     })
   }
 
+  // 6) HARD FACILITY GUARD (layer 3 of the Z01 chain): customer_masterdata and
+  // supplier_switch intents must carry a facility id or metering point
+  // identity. Without one the intent is BLOCKED (never draft/validated), so no
+  // resume worker can revive it into a render/send. facility_lookup is exempt —
+  // its purpose is to obtain the missing identity.
+  const businessProcess = String(input.businessProcess ?? '').toLowerCase()
+  if (businessProcess === 'customer_masterdata' || businessProcess === 'supplier_switch') {
+    const hasFacilityIdentity = Boolean(str(input.facilityId) || str(input.meteringPointId))
+    checks.facility_identity_present = hasFacilityIdentity
+    if (!hasFacilityIdentity) {
+      blockingReasons.push({
+        code: 'facility_or_metering_point_missing',
+        message:
+          'Anläggnings-ID/mätpunkts-ID saknas. Intent blockeras – begär anläggningsuppgifter från nätägaren innan meddelandet kan förberedas.',
+        severity: 'block',
+        details: { required_admin_action: 'request_facility_information' },
+      })
+    }
+  }
+
   const ok = blockingReasons.filter((r) => (r.severity ?? 'block') === 'block').length === 0
   return {
     ok,
