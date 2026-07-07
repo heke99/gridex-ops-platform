@@ -18,7 +18,8 @@ import {
   type CustomerCardSnapshot,
 } from '@/lib/customers/customerCardSnapshot'
 import { meteringPointIdentityLabel } from '@/lib/customers/meteringIdentity'
-import { buildCustomerCardWorkflow } from '@/lib/customer-operations/customerCardWorkflow'
+import { buildCustomerCardWorkflow, type CustomerWorkflowStep } from '@/lib/customer-operations/customerCardWorkflow'
+import { buildTenantCustomerCardView } from '@/lib/customer-operations/customerCardTenantView'
 import type { EdielDispatchStateResult } from '@/lib/ediel/intent/dispatchState'
 import {
   buildCustomerBusinessActionPlan,
@@ -178,10 +179,23 @@ export default function CustomerBusinessActionsCard({
   const primarySite = snapshot.primarySite
   const primaryPoint = snapshot.primaryMeteringPoint
 
+  // Tenants see the simplified business timeline (Swedish, six steps, no
+  // internal pipeline stages). The full technical step chain (intents, outbox,
+  // EDIEL SMTP, CONTRL/APERAK) is superadmin-only. Both views derive from the
+  // same backend workflow/snapshot source of truth.
+  const timelineSteps: CustomerWorkflowStep[] = isPlatformAdmin
+    ? workflow.workflowSteps
+    : buildTenantCustomerCardView({ snapshot, workflow, dispatchState }).processSteps.map((step) => ({
+        id: step.id,
+        label: step.label,
+        explanation: step.explanation,
+        status: step.status,
+      }))
+
   return (
     <section className="space-y-4">
       <CustomerProcessTimeline
-        steps={workflow.workflowSteps}
+        steps={timelineSteps}
         showTechnical={isPlatformAdmin}
       />
 

@@ -121,6 +121,9 @@ export function buildCustomerStatusCards(input: {
 }): CustomerStatusCard[] {
   const { workflow, snapshot } = input
   const hasFacility = snapshot.hasFacilityId && snapshot.hasGridOwner
+  // "Klar" requires the metering point too: facility id + grid owner without a
+  // metering point previously showed "Kontrolleras" and implied completeness.
+  const facilityComplete = hasFacility && snapshot.hasMeteringPoint
   const facilityLookupInProgress = ['request_data', 'continue_data_request', 'approve_and_send', 'dispatch_in_progress', 'wait_for_grid_owner'].includes(workflow.primaryAction)
   const blocker = workflow.primaryAction === 'review_blocker'
 
@@ -138,13 +141,21 @@ export function buildCustomerStatusCards(input: {
     {
       id: 'facility',
       label: 'Anläggning och nätägare',
-      value: hasFacility ? 'Kontrolleras' : facilityLookupInProgress ? 'Hämtas' : 'Saknas',
-      description: hasFacility
-        ? 'Anläggnings- och nätägaruppgifter finns på kundkortet.'
-        : facilityLookupInProgress
-          ? 'Systemet hämtar anläggnings-ID och mätpunkt från nätägaren.'
-          : 'Systemet behöver uppgifter från nätägaren eller komplettering på kundkortet.',
-      tone: hasFacility ? 'ok' : blocker ? 'blocked' : 'waiting',
+      value: facilityComplete
+        ? 'Klar'
+        : hasFacility
+          ? 'Mätpunkt saknas'
+          : facilityLookupInProgress
+            ? 'Hämtas'
+            : 'Saknas',
+      description: facilityComplete
+        ? 'Anläggnings-, mätpunkts- och nätägaruppgifter finns på kundkortet.'
+        : hasFacility
+          ? 'Anläggnings-ID och nätägare finns, men mätpunkt behöver kompletteras.'
+          : facilityLookupInProgress
+            ? 'Systemet hämtar anläggnings-ID och mätpunkt från nätägaren.'
+            : 'Systemet behöver uppgifter från nätägaren eller komplettering på kundkortet.',
+      tone: facilityComplete ? 'ok' : blocker ? 'blocked' : 'waiting',
       targetTab: 'sites',
     },
     switchStatus(workflow),
