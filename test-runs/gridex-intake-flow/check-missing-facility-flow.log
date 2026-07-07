@@ -1,0 +1,98 @@
+
+# 1. Customer
+[
+  {
+    "id": "dc454984-e5f6-444a-a880-bc23bbcda981",
+    "customer_number": "DX-100026",
+    "email": "test+curl-missing-facility-20260707164309@example.com",
+    "created_at": "2026-07-06T13:20:35.102059+00:00"
+  }
+]
+
+# 2. Customer site - ska ha LKA/SE4 och sakna facility
+{
+  "error": {
+    "code": "42703",
+    "details": null,
+    "hint": null,
+    "message": "column customer_sites.metering_point_id does not exist"
+  }
+}
+
+# 3. Power of attorney
+{
+  "error": {
+    "code": "42703",
+    "details": null,
+    "hint": null,
+    "message": "column powers_of_attorney.externally_sendable does not exist"
+  }
+}
+
+# 4. Authorization documents
+[
+  {
+    "id": "fdfb67b8-a978-4fd5-b695-1ccec76e5977",
+    "customer_id": "dc454984-e5f6-444a-a880-bc23bbcda981",
+    "power_of_attorney_id": "154e5f2b-44d8-48d6-9923-b1910ffd9c98",
+    "status": "uploaded",
+    "document_type": "power_of_attorney",
+    "created_at": "2026-07-07T09:51:59.879686+00:00"
+  }
+]
+
+# 5. Authorization scopes
+[
+  {
+    "id": "b99a4435-de7b-4eec-a554-4567aa71079c",
+    "customer_id": "dc454984-e5f6-444a-a880-bc23bbcda981",
+    "authorization_document_id": "fdfb67b8-a978-4fd5-b695-1ccec76e5977",
+    "scope_type": "website_power_of_attorney",
+    "status": "active",
+    "created_at": "2026-07-07T09:26:16.945365+00:00"
+  }
+]
+
+# 6. Manual grid owner information request
+{
+  "error": {
+    "code": "42703",
+    "details": null,
+    "hint": null,
+    "message": "column grid_owner_information_requests.site_id does not exist"
+  }
+}
+
+# 7. Manual email outbox
+{
+  "error": {
+    "code": "42703",
+    "details": null,
+    "hint": null,
+    "message": "column manual_email_outbox.recipient_email does not exist"
+  }
+}
+
+# 8. EDIEL intents - ska helst vara tomt eller ingen skickad Z01
+[
+  {
+    "id": "3c0ae61c-1a1f-47c9-b6f4-f03463ceae57",
+    "business_process": "customer_masterdata",
+    "message_code": "Z01",
+    "render_status": "not_rendered",
+    "outbox_status": "not_queued",
+    "ediel_message_id": null,
+    "outbound_request_id": "7ab906f5-5de6-42b9-b209-738e2ef844ca",
+    "created_at": "2026-07-07T10:49:40.293622+00:00"
+  }
+]
+
+# 9. Customer communications
+{
+  "error": {
+    "code": "PGRST205",
+    "details": null,
+    "hint": "Perhaps you meant the table 'public.customer_communications'",
+    "message": "Could not find the table 'public.customer_communication_logs' in the schema cache"
+  }
+}
