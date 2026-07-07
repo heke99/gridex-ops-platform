@@ -28,6 +28,7 @@ import {
 } from '@/lib/email/manualGridOwnerTemplates'
 import {
   resolveManualOperationsMailbox,
+  resolveManualMailboxEnvironment,
   type ManualOperationsMailbox,
 } from '@/lib/email/manualOperationsMailbox'
 import { renderFullmaktPdfBase64 } from '@/lib/email/fullmaktPdf'
@@ -245,10 +246,10 @@ async function findContactChannelEmail(input: {
   companyId: string
   gridOwnerId: string
   channelType: ManualInformationChannelType
-}): Promise<{ email: string; source: string } | null> {
+}): Promise<{ email: string; source: string; contactChannelId: string | null; isVerified: boolean } | null> {
   const { data, error } = await supabaseService
     .from('grid_owner_contact_channels')
-    .select('email,company_id,source,is_enabled,is_verified')
+    .select('id,email,company_id,source,is_enabled,is_verified')
     .eq('grid_owner_id', input.gridOwnerId)
     .eq('channel_type', input.channelType)
     .eq('is_enabled', true)
@@ -264,7 +265,79 @@ async function findContactChannelEmail(input: {
     .sort((a, b) => (a.company_id ? 0 : 1) - (b.company_id ? 0 : 1))
   const chosen = sorted[0]
   if (!chosen) return null
-  return { email: String(chosen.email), source: String(chosen.source ?? 'manual_admin') }
+  return {
+    email: String(chosen.email),
+    source: String(chosen.source ?? 'manual_admin'),
+    contactChannelId: clean(chosen.id),
+    isVerified: chosen.is_verified === true,
+  }
+}
+
+export type ManualRecipientResolutionMode =
+  | 'real_grid_owner_contact'
+  | 'safe_recipient_override'
+  | 'manual_override'
+  | 'missing_contact'
+
+export type ManualRecipientResolution = {
+  resolution_mode: ManualRecipientResolutionMode
+  selected_to_email: string | null
+  actual_grid_owner_contact_email: string | null
+  contact_source_table: string | null
+  contact_source_id: string | null
+  contact_source: string | null
+  contact_verified: boolean
+  environment: 'test' | 'production'
+  reason: string
+  production_safe_override_warning: boolean
+  externally_sendable: boolean
+}
+
+// Explicit recipient resolution: production + real operation uses the actual
+// grid owner contact unless a safe-recipient override is explicitly
+// configured. The chosen recipient and WHY it was chosen is always recorded on
+// the outbox row and the request, so a test/staging safe recipient can never
+// be mistaken for a real grid-owner send (and vice versa).
+function resolveManualRecipient(contact: {
+  email: string
+  source: string
+  contactChannelId: string | null
+  isVerified: boolean
+}): ManualRecipientResolution {
+  const environment = resolveManualMailboxEnvironment()
+  const safeRecipientOverride = clean(process.env.MANUAL_GRID_OWNER_SAFE_RECIPIENT)
+  if (safeRecipientOverride) {
+    return {
+      resolution_mode: 'safe_recipient_override',
+      selected_to_email: safeRecipientOverride,
+      actual_grid_owner_contact_email: contact.email,
+      contact_source_table: 'grid_owner_contact_channels',
+      contact_source_id: contact.contactChannelId,
+      contact_source: contact.source,
+      contact_verified: contact.isVerified,
+      environment,
+      reason: environment === 'production'
+        ? 'MANUAL_GRID_OWNER_SAFE_RECIPIENT är satt i PRODUKTION: utskicket går till intern säker adress i stället för nätägarens riktiga kontakt.'
+        : 'MANUAL_GRID_OWNER_SAFE_RECIPIENT är satt: test-/staging-utskick går till intern säker adress.',
+      production_safe_override_warning: environment === 'production',
+      externally_sendable: false,
+    }
+  }
+  return {
+    resolution_mode: 'real_grid_owner_contact',
+    selected_to_email: contact.email,
+    actual_grid_owner_contact_email: contact.email,
+    contact_source_table: 'grid_owner_contact_channels',
+    contact_source_id: contact.contactChannelId,
+    contact_source: contact.source,
+    contact_verified: contact.isVerified,
+    environment,
+    reason: contact.isVerified
+      ? 'Verifierad kontaktväg för nätägaren används.'
+      : 'Nätägarens kontaktväg används men är inte markerad som verifierad.',
+    production_safe_override_warning: false,
+    externally_sendable: true,
+  }
 }
 
 async function findOpenManualRequest(input: { companyId: string; siteId: string; requestType: string }) {
@@ -864,10 +937,12 @@ export async function requestMissingFacilityInformation(
 
   let emailOutboxId: string | null = null
   let alreadyQueued = false
-  const outboxInsert = {
+  const recipientResolution = resolveManualRecipient(contact)
+  const selectedToEmail = recipientResolution.selected_to_email ?? contact.email
+  const outboxInsert: Record<string, unknown> = {
     company_id: input.companyId,
     request_id: requestId,
-    to_email: contact.email,
+    to_email: selectedToEmail,
     from_email: senderFromEmail,
     reply_to: senderReplyTo,
     subject: rendered.subject,
@@ -878,12 +953,24 @@ export async function requestMissingFacilityInformation(
     provider: 'resend',
     idempotency_key: idempotencyKey,
     queued_at: now,
+    recipient_resolution: recipientResolution,
   }
-  const queued = await supabaseService
+  let queued = await supabaseService
     .from('manual_email_outbox')
     .insert(outboxInsert)
     .select('id')
     .maybeSingle()
+  if (queued.error && missingSchema(queued.error)) {
+    // Pre-migration schema without recipient_resolution: queue anyway (the
+    // resolution is still recorded on the request metadata below).
+    const fallbackInsert = { ...outboxInsert }
+    delete fallbackInsert.recipient_resolution
+    queued = await supabaseService
+      .from('manual_email_outbox')
+      .insert(fallbackInsert)
+      .select('id')
+      .maybeSingle()
+  }
   if (queued.error) {
     if (isUniqueViolation(queued.error)) {
       alreadyQueued = true
@@ -909,13 +996,17 @@ export async function requestMissingFacilityInformation(
     .update({
       channel: 'manual_email',
       status: 'manual_email_queued',
-      recipient_email: contact.email,
+      recipient_email: selectedToEmail,
       from_email: senderFromEmail,
       reply_to: senderReplyTo,
       poa_id: clean(poa.id),
       last_error_code: null,
       last_error_message: null,
       template_id: `${rendered.templateKey}.${rendered.templateVersion}`,
+      metadata: {
+        ...((request.metadata as JsonRecord | null) ?? {}),
+        recipient_resolution: recipientResolution,
+      },
       updated_by: clean(input.actorUserId),
       updated_at: new Date().toISOString(),
     })
@@ -986,10 +1077,11 @@ export async function requestMissingFacilityInformation(
       request_id: requestId,
       case_reference: caseReference,
       channel: 'manual_email',
-      to_email: contact.email,
+      to_email: selectedToEmail,
       email_outbox_id: emailOutboxId,
       poa_id: clean(poa.id),
       already_queued: alreadyQueued,
+      recipient_resolution: recipientResolution,
     },
     idempotencyKey: `manual_facility_request.queued:${input.companyId}:${input.siteId}:${idempotencyKey}`,
   }).catch(() => undefined)
@@ -1002,7 +1094,14 @@ export async function requestMissingFacilityInformation(
     emailOutboxId,
     poaId: clean(poa.id),
     nextAction,
-    blockers: [],
+    // A production safe-recipient override is a visible warning, never silent:
+    // the mail did NOT go to the real grid owner.
+    blockers: recipientResolution.production_safe_override_warning
+      ? [{
+          code: 'production_safe_recipient_override',
+          message: 'VARNING: Produktionsutskicket gick till intern säker adress (MANUAL_GRID_OWNER_SAFE_RECIPIENT), inte till nätägarens riktiga kontakt.',
+        }]
+      : [],
   }
 }
 
