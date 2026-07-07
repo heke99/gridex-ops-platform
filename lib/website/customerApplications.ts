@@ -316,6 +316,22 @@ function emailTriggerSucceeded(value: unknown): boolean {
   return items.length > 0 && items.every((item) => item.ok !== false)
 }
 
+// Truthful per-event dispatch status derived from the actual
+// communication_logs rows created by the trigger (the source of truth) —
+// never from the mere absence of an exception. 'queued' means a log +
+// outbox row exists; 'sent' only when the provider already confirmed it.
+function emailDispatchStatus(value: unknown): 'sent' | 'queued' | 'skipped' | 'failed' {
+  const items = resultList(value)
+  const statuses = items.map((item) => {
+    const log = (item as { log?: { status?: unknown } }).log
+    return typeof log?.status === 'string' ? log.status : null
+  })
+  if (statuses.some((status) => status === 'sent' || status === 'delivered')) return 'sent'
+  if (statuses.some((status) => status === 'queued')) return 'queued'
+  if (items.some((item) => item.skipped === true)) return 'skipped'
+  return 'failed'
+}
+
 function emailTriggerErrorText(value: unknown): string {
   const values = resultList(value)
     .map((item) => typeof item.error === 'string' ? item.error : typeof item.error === 'object' && item.error !== null && 'message' in item.error ? String((item.error as { message?: unknown }).message ?? '') : '')
@@ -4005,6 +4021,10 @@ export async function processWebsiteCustomerApplication(input: {
           return {
             eventKey,
             ok: emailTriggerSucceeded(result),
+            // Explicit queued/sent/failed per event: the event key names
+            // (e.g. contract.confirmation_sent) describe the BUSINESS event,
+            // not the delivery state. Integrators must read dispatch_status.
+            dispatch_status: emailDispatchStatus(result),
             result,
           }
         }))
@@ -4119,11 +4139,24 @@ export async function processWebsiteCustomerApplication(input: {
         .then(() => null)
     }
 
+    const communicationStatusOf = (statuses: string[]) => communicationResults
+      .filter((item): item is { eventKey: string; dispatch_status?: string } =>
+        Boolean(item) && typeof item === 'object' && typeof (item as { eventKey?: unknown }).eventKey === 'string')
+      .filter((item) => statuses.includes(String(item.dispatch_status ?? '')))
+      .map((item) => item.eventKey)
+
     return successResponse({
       ...responsePayload,
       application_id: application.id,
       communication: {
-        triggered: email ? triggeredEmailEvents : [],
+        // 'triggered' lists events where an email row actually exists in the
+        // source of truth (communication_logs), not events that merely were
+        // attempted. queued/sent/failed break the state down truthfully.
+        triggered: email ? communicationStatusOf(['queued', 'sent']) : [],
+        queued: email ? communicationStatusOf(['queued']) : [],
+        sent: email ? communicationStatusOf(['sent']) : [],
+        failed: email ? communicationStatusOf(['failed']) : [],
+        source_of_truth: 'communication_logs',
         results: communicationResults,
       },
     }, warnings)

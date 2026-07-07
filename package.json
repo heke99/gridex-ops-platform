@@ -33,6 +33,8 @@
     "gridex:z01-payload-route-context-regression": "node scripts/gridex-z01-payload-route-context-regression.cjs",
     "gridex:ediel-intent-outbox-bridge-regression": "node scripts/gridex-ediel-intent-outbox-bridge-regression.cjs",
     "gridex:cron-idempotency-and-locking-regression": "node scripts/gridex-cron-idempotency-and-locking-regression.cjs",
+    "gridex:communication-source-of-truth-regression": "node scripts/gridex-communication-source-of-truth-regression.cjs",
+    "gridex:customer-communication-status-regression": "node scripts/gridex-communication-source-of-truth-regression.cjs",
     "gridex:actor-registry-intake-hardening-regression": "node scripts/gridex-actor-registry-intake-hardening-regression.cjs",
     "gridex:launch-security-regression": "node scripts/gridex-launch-regression.cjs launch-security-regression",
     "gridex:db-ui-compatibility-regression": "node scripts/gridex-launch-regression.cjs db-ui-compatibility-regression",
