@@ -20,6 +20,11 @@ import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
 import { ensureFacilityLookupAutomation } from '@/lib/customer-operations/facilityLookupAutomation'
+import {
+  evaluateSiteFacilityIdentity,
+  resumeCustomerIntake,
+  type CustomerIntakeDecision,
+} from '@/lib/customer-operations/customerIntakeOrchestrator'
 import type { MeteringPointRow } from '@/lib/masterdata/types'
 import { normalizeUuidOrNull, requireUuid } from '@/lib/validation/uuid'
 import {
@@ -485,6 +490,69 @@ export async function enqueueCustomerDataRequestAutomation(input: {
     meteringPointId: normalizeUuidOrNull(input.meteringPointId, 'metering_point_id'),
     operationId: normalizeUuidOrNull(input.operationId, 'operation_id'),
   }
+
+  // Hard facility gate shared with the intake orchestrator: when the site has
+  // no external facility/metering identity, the ONLY correct path is the
+  // manual grid-owner information request. The Z01/customer_masterdata job
+  // must not be enqueued at all (it would create customer_info_requests /
+  // grid_owner_data_requests / outbound_requests without a facility).
+  const facilityIdentity = await evaluateSiteFacilityIdentity({
+    companyId: normalized.companyId,
+    customerId: normalized.customerId,
+    siteId: normalized.siteId,
+  })
+  if (facilityIdentity.siteExists && !facilityIdentity.facilityReady) {
+    const intakeDecision = await resumeCustomerIntake({
+      companyId: normalized.companyId,
+      customerId: normalized.customerId,
+      siteId: normalized.siteId,
+      actorUserId: normalized.actorUserId ?? null,
+    })
+    const requestId = intakeDecision.references.gridOwnerInformationRequestId
+    await emitCustomerOperationEvent({
+      companyId: normalized.companyId,
+      customerId: normalized.customerId,
+      actorUserId: normalized.actorUserId,
+      eventType: 'customer_data.redirected_to_facility_request',
+      title: 'Anläggningsuppgifter saknas',
+      message: intakeDecision.customerMessage,
+      customerSiteId: normalized.siteId,
+      meteringPointId: normalized.meteringPointId,
+      operationId: normalized.operationId,
+      status: intakeDecision.nextAction === 'wait_for_grid_owner' ? 'waiting_response' : 'needs_review',
+      actionUrl: `/admin/customers/${normalized.customerId}?tab=sites`,
+      payload: {
+        redirect: 'manual_facility_information_request',
+        grid_owner_information_request_id: requestId,
+        intake_state: intakeDecision.state,
+        next_action: intakeDecision.nextAction,
+        blockers: intakeDecision.blockers,
+        site_id: normalized.siteId,
+        operation_id: normalized.operationId,
+      },
+      idempotencyKey: `customer_data.redirected_to_facility_request:${normalized.siteId}:${requestId ?? 'none'}:${intakeDecision.state}`,
+    })
+    return {
+      id: requestId ?? normalized.siteId,
+      duplicate: false,
+      operationId: normalized.operationId ?? normalized.siteId,
+      traceId: null as string | null,
+      status: null as CustomerOperationJobStatus | null,
+      result: {
+        redirect: 'manual_facility_information_request',
+        grid_owner_information_request_id: requestId,
+        intake_state: intakeDecision.state,
+        next_action: intakeDecision.nextAction,
+        customer_message: intakeDecision.customerMessage,
+        admin_message: intakeDecision.adminMessage,
+        blockers: intakeDecision.blockers,
+      } as Record<string, unknown>,
+      lastError: null as string | null,
+      redirectedToManualFacilityRequest: true,
+      intakeDecision,
+    }
+  }
+
   const siteSnapshot = await captureSiteOperationSnapshot(normalized)
   const job = await enqueue({
     ...normalized,
@@ -528,7 +596,7 @@ export async function enqueueCustomerDataRequestAutomation(input: {
     })
   }
 
-  return job
+  return { ...job, redirectedToManualFacilityRequest: false, intakeDecision: null as CustomerIntakeDecision | null }
 }
 
 export async function enqueueSupplierSwitchAutomation(input: {
@@ -548,6 +616,68 @@ export async function enqueueSupplierSwitchAutomation(input: {
     meteringPointId: normalizeUuidOrNull(input.meteringPointId, 'metering_point_id'),
     operationId: normalizeUuidOrNull(input.operationId, 'operation_id'),
   }
+
+  // Supplier switch must never start without a facility/metering identity.
+  // Redirect to the manual facility information path instead of enqueueing a
+  // switch job that can only block downstream.
+  const facilityIdentity = await evaluateSiteFacilityIdentity({
+    companyId: normalized.companyId,
+    customerId: normalized.customerId,
+    siteId: normalized.siteId,
+  })
+  if (facilityIdentity.siteExists && !facilityIdentity.facilityReady) {
+    const intakeDecision = await resumeCustomerIntake({
+      companyId: normalized.companyId,
+      customerId: normalized.customerId,
+      siteId: normalized.siteId,
+      actorUserId: normalized.actorUserId ?? null,
+    })
+    const requestId = intakeDecision.references.gridOwnerInformationRequestId
+    await emitCustomerOperationEvent({
+      companyId: normalized.companyId,
+      customerId: normalized.customerId,
+      actorUserId: normalized.actorUserId,
+      eventType: 'supplier_switch.blocked_missing_facility',
+      title: 'Leverantörsbyte kan inte starta',
+      message: 'Leverantörsbyte kan inte starta förrän anläggningsuppgifter finns. Uppgifter begärs från nätägaren.',
+      customerSiteId: normalized.siteId,
+      meteringPointId: normalized.meteringPointId,
+      operationId: normalized.operationId,
+      status: 'needs_review',
+      actionUrl: `/admin/customers/${normalized.customerId}?tab=sites`,
+      payload: {
+        redirect: 'manual_facility_information_request',
+        grid_owner_information_request_id: requestId,
+        intake_state: intakeDecision.state,
+        next_action: intakeDecision.nextAction,
+        blockers: intakeDecision.blockers,
+        site_id: normalized.siteId,
+        operation_id: normalized.operationId,
+      },
+      idempotencyKey: `supplier_switch.blocked_missing_facility:${normalized.siteId}:${requestId ?? 'none'}:${intakeDecision.state}`,
+    })
+    return {
+      id: requestId ?? normalized.siteId,
+      duplicate: false,
+      operationId: normalized.operationId ?? normalized.siteId,
+      traceId: null as string | null,
+      status: null as CustomerOperationJobStatus | null,
+      result: {
+        redirect: 'manual_facility_information_request',
+        reason_code: 'facility_or_metering_point_missing',
+        grid_owner_information_request_id: requestId,
+        intake_state: intakeDecision.state,
+        next_action: intakeDecision.nextAction,
+        customer_message: intakeDecision.customerMessage,
+        admin_message: intakeDecision.adminMessage,
+        blockers: intakeDecision.blockers,
+      } as Record<string, unknown>,
+      lastError: null as string | null,
+      redirectedToManualFacilityRequest: true,
+      intakeDecision,
+    }
+  }
+
   const siteSnapshot = await captureSiteOperationSnapshot(normalized)
   const job = await enqueue({
     ...normalized,
@@ -591,7 +721,7 @@ export async function enqueueSupplierSwitchAutomation(input: {
     })
   }
 
-  return job
+  return { ...job, redirectedToManualFacilityRequest: false, intakeDecision: null as CustomerIntakeDecision | null }
 }
 
 export async function enqueueInboundGridOwnerResponseAutomation(input: {
@@ -907,6 +1037,64 @@ async function processCustomerDataRequest(job: JobRow): Promise<JobOutcome> {
   }
   const actorUserId = automationActorId(job.created_by)
   const operationId = job.operation_id ?? job.id
+
+  // Hard worker-level facility gate (mirrors the enqueue gate so already
+  // queued jobs cannot create Z01/customer_masterdata rows either): missing
+  // facility/metering identity must route to the manual grid-owner path and
+  // stop. No customer_info_requests, grid_owner_data_requests or
+  // outbound_requests may be created on this branch.
+  const facilityIdentity = await evaluateSiteFacilityIdentity({
+    companyId: job.company_id,
+    customerId: job.customer_id,
+    siteId: job.customer_site_id,
+  })
+  if (facilityIdentity.siteExists && !facilityIdentity.facilityReady) {
+    const intakeDecision = await resumeCustomerIntake({
+      companyId: job.company_id,
+      customerId: job.customer_id,
+      siteId: job.customer_site_id,
+      actorUserId,
+    })
+    const waiting = intakeDecision.nextAction === 'wait_for_grid_owner'
+    await emitCustomerOperationEvent({
+      companyId: job.company_id,
+      customerId: job.customer_id,
+      actorUserId,
+      eventType: waiting ? 'customer_data.facility_lookup_ready' : 'customer_data.facility_lookup_needs_review',
+      title: waiting ? 'Anläggningsuppgifter begärda från nätägaren' : 'Anläggningsuppgifter saknas',
+      message: intakeDecision.customerMessage,
+      customerSiteId: job.customer_site_id,
+      meteringPointId: job.metering_point_id,
+      customerOperationJobId: job.id,
+      operationId,
+      actionUrl: `/admin/customers/${job.customer_id}?tab=sites`,
+      payload: {
+        redirect: 'manual_facility_information_request',
+        grid_owner_information_request_id: intakeDecision.references.gridOwnerInformationRequestId,
+        intake_state: intakeDecision.state,
+        next_action: intakeDecision.nextAction,
+        blockers: intakeDecision.blockers,
+        operation_id: operationId,
+      },
+      status: waiting ? 'waiting_response' : 'needs_review',
+      idempotencyKey: `customer-data-facility-gate:${job.id}:${intakeDecision.state}`,
+    })
+    return {
+      status: waiting ? 'waiting_response' : 'needs_review',
+      result: {
+        redirect: 'manual_facility_information_request',
+        reason: 'facility_or_metering_point_missing',
+        reason_code: 'facility_or_metering_point_missing',
+        blocker_reason: 'Anläggnings-ID/mätpunkts-ID saknas. Manuell nätägarbegäran används i stället för Z01.',
+        next_required_action: 'request_facility_information',
+        grid_owner_information_request_id: intakeDecision.references.gridOwnerInformationRequestId,
+        intake_state: intakeDecision.state,
+        intake_next_action: intakeDecision.nextAction,
+        blockers: intakeDecision.blockers,
+      },
+    }
+  }
+
   const resolved = await resolveCustomerSiteGridOwner({
     companyId: job.company_id,
     customerId: job.customer_id,
