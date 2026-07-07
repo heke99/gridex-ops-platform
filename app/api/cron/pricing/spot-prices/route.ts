@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { ensureSpotPricesForBillingMonth, normalizeSpotAutoImportAreas, normalizeSpotAutoImportMonth } from '@/lib/pricing/spot/spotImportScheduler'
@@ -6,11 +7,22 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function isAuthorized(request: NextRequest): boolean {
-  const configuredSecret = process.env.PRICING_CRON_SECRET ?? process.env.CRON_SECRET
-  if (!configuredSecret) return false
+  const expected = [process.env.PRICING_CRON_SECRET, process.env.CRON_SECRET]
+    .map((value) => (typeof value === 'string' && value.trim() ? value.trim() : null))
+    .filter((value): value is string => Boolean(value))
+  if (expected.length === 0) return false
+
   const authorization = request.headers.get('authorization') ?? ''
-  const bearer = authorization.startsWith('Bearer ') ? authorization.slice('Bearer '.length) : null
-  return bearer === configuredSecret || request.headers.get('x-cron-secret') === configuredSecret
+  const token = authorization.toLowerCase().startsWith('bearer ')
+    ? authorization.slice('bearer '.length).trim()
+    : (request.headers.get('x-cron-secret') ?? '').trim()
+  if (!token) return false
+
+  return expected.some((secret) => {
+    const left = Buffer.from(token)
+    const right = Buffer.from(secret)
+    return left.length === right.length && timingSafeEqual(left, right)
+  })
 }
 
 function parseForce(request: NextRequest): boolean {

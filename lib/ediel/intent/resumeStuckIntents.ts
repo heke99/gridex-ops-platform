@@ -30,6 +30,7 @@ type StuckIntentRow = {
   render_status: string | null
   outbox_status: string | null
   created_by: string | null
+  updated_at: string | null
 }
 
 function isMissingSchema(error: unknown): boolean {
@@ -191,6 +192,7 @@ export async function resumeStuckEdielIntents(input: {
         'render_status',
         'outbox_status',
         'created_by',
+        'updated_at',
       ].join(','),
     )
     .eq('validation_status', 'validated')
@@ -227,6 +229,29 @@ export async function resumeStuckEdielIntents(input: {
       continue
     }
     seen.add(dedupeKey)
+
+    // Optimistic claim: two concurrent sweeps must not resume the same intent.
+    // The claim is an updated_at compare-and-set on the exact stuck state; the
+    // loser sees zero updated rows and skips this cycle.
+    if (row.updated_at) {
+      const claim = await supabaseService
+        .from('ediel_message_intents')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', row.id)
+        .eq('validation_status', 'validated')
+        .eq('outbox_status', 'not_queued')
+        .eq('updated_at', row.updated_at)
+        .select('id')
+      if (claim.error && !isMissingSchema(claim.error)) {
+        errors.push(`${row.id}: claim failed: ${claim.error.message}`)
+        skipped += 1
+        continue
+      }
+      if (!claim.error && (claim.data ?? []).length === 0) {
+        skipped += 1
+        continue
+      }
+    }
 
     try {
       // HARD FACILITY GUARD (resume layer): a customer_masterdata or

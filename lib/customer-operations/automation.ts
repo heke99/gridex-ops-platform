@@ -1847,16 +1847,49 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
         const message = error instanceof Error ? error.message : 'Kundautomation misslyckades.'
         const terminal = job.attempts >= job.max_attempts
         const reviewTerminal = terminal && job.job_type === 'request_customer_data'
+        // Preserve the real database/provider error: Postgres code, details and
+        // hint plus the full stage/ID context. Collapsing to Error.message made
+        // production failures undebuggable ("Kundautomation misslyckades").
+        const pgError = error as { code?: unknown; details?: unknown; hint?: unknown } | null
+        const technicalError = {
+          stage: job.job_type,
+          code: clean(pgError?.code as string | null) ?? null,
+          message,
+          details: clean(pgError?.details as string | null) ?? null,
+          hint: clean(pgError?.hint as string | null) ?? null,
+          company_id: job.company_id,
+          customer_id: job.customer_id,
+          site_id: job.customer_site_id,
+          metering_point_id: job.metering_point_id,
+          job_id: job.id,
+          operation_id: job.operation_id ?? job.id,
+          worker_id: input.workerId,
+          attempt: job.attempts,
+          max_attempts: job.max_attempts,
+          retryable: !terminal,
+          next_retry_at: terminal ? null : retryAt(job.attempts),
+          last_attempted_at: nowIso(),
+          environment: process.env.NODE_ENV ?? null,
+          error_class: 'technical_error',
+          required_admin_action: terminal ? 'review_operation_failure' : null,
+        }
         await updateJob(job, {
           status: reviewTerminal ? 'needs_review' : terminal ? 'failed' : 'queued',
-          result: reviewTerminal ? blockerResult('technical_error', { blocker_reason: message }) : undefined,
+          result: terminal
+            ? {
+                ...blockerResult('technical_error', { blocker_reason: message }),
+                technical_error: technicalError,
+              }
+            : undefined,
           stale_reason: null,
           run_after: terminal ? nowIso() : retryAt(job.attempts),
           locked_at: null,
           locked_by: null,
           lock_token: null,
           heartbeat_at: null,
-          last_error: reviewTerminal ? null : message,
+          // Terminal states keep the last error too: an operator must see WHY
+          // the job ended in needs_review/failed without digging into logs.
+          last_error: message,
           completed_at: terminal ? nowIso() : null,
         })
         if (terminal) {
@@ -1872,7 +1905,12 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
             operationId: job.operation_id ?? job.id,
             status: reviewTerminal ? 'needs_review' : 'failed',
             actionUrl: `/admin/customers/${job.customer_id}`,
-            payload: { job_type: job.job_type, error: message, terminal_status: reviewTerminal ? 'needs_review' : 'failed' },
+            payload: {
+              job_type: job.job_type,
+              error: message,
+              terminal_status: reviewTerminal ? 'needs_review' : 'failed',
+              technical_error: technicalError,
+            },
             idempotencyKey: `operation-terminal:${job.id}:${reviewTerminal ? 'needs_review' : 'failed'}`,
           })
         }
