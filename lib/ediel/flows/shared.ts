@@ -139,6 +139,7 @@ export async function findOrCreateSwitchOutbound(params: {
     sourceId: params.switchRequestId,
     externalReference: params.externalReference,
     replaceOpenSupplierSwitchAttempt: Boolean(params.forceCreateNewAttempt),
+    authorizationDocumentId: (params.payload?.authorization_document_id as string | null | undefined) ?? null,
     payload: params.payload,
     environment: params.environment ?? null,
     failOnMissingEnvironment: params.failOnMissingEnvironment ?? false,
@@ -200,7 +201,12 @@ export async function findOrCreateDataRequestOutbound(params: {
     periodEnd: params.dataRequest.requested_period_end,
     externalReference: params.dataRequest.external_reference,
     operationId: params.operationId ?? params.dataRequest.operation_id ?? null,
-    payload: params.payload,
+    authorizationDocumentId: params.dataRequest.authorization_document_id ?? (params.payload?.authorization_document_id as string | null | undefined) ?? null,
+    payload: {
+      ...(params.dataRequest.request_payload ?? {}),
+      ...params.payload,
+      authorization_document_id: params.dataRequest.authorization_document_id ?? params.payload?.authorization_document_id ?? null,
+    },
     environment: params.environment ?? null,
     failOnMissingEnvironment: params.failOnMissingEnvironment ?? false,
   })

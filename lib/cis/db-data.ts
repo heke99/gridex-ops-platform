@@ -219,6 +219,8 @@ export async function createGridOwnerDataRequest(input: {
   automationOrigin?: string | null
   automationKey?: string | null
   operationId?: string | null
+  authorizationDocumentId?: string | null
+  requestPayload?: Record<string, unknown> | null
 }): Promise<GridOwnerDataRequestRow> {
   const context = await getCustomerExportContext({
     customerId: input.customerId,
@@ -229,13 +231,14 @@ export async function createGridOwnerDataRequest(input: {
   const companyId = requireContextCompanyId(context, 'Skapa nätägarbegäran')
   await requireCompanyOperationalForWrites(companyId)
 
-  const requestPayload = mergeJsonObjects({}, {
+  const requestPayload = mergeJsonObjects(input.requestPayload ?? {}, {
     company_id: companyId,
     request_scope: input.requestScope,
     requested_period_start: input.requestedPeriodStart ?? null,
     requested_period_end: input.requestedPeriodEnd ?? null,
     external_reference: input.externalReference ?? null,
     operation_id: input.operationId ?? null,
+    authorization_document_id: input.authorizationDocumentId ?? null,
     ...buildCustomerIdentityPayload(context),
     ...buildSitePayload(context.site),
     ...buildMeteringPointPayload(context.meteringPoint),
@@ -277,6 +280,7 @@ export async function createGridOwnerDataRequest(input: {
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,
     grid_owner_id: input.gridOwnerId ?? null,
+    authorization_document_id: input.authorizationDocumentId ?? null,
     request_scope: input.requestScope,
     status: 'pending' as const,
     requested_period_start: input.requestedPeriodStart ?? null,

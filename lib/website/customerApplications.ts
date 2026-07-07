@@ -618,7 +618,29 @@ async function ensureWebsitePowerOfAttorney(input: {
     // complete submissions. If a customer later submits a complete structured
     // POA after an older weak one, insert a fresh complete row instead of
     // letting the weak row block external sendability.
-    if (!submittedStructuredPoaIsSendable || existingLooksSendable) return String(existing.data.id)
+    if (!submittedStructuredPoaIsSendable || existingLooksSendable) {
+      const existingPowerOfAttorneyId = String(existing.data.id)
+      await ensureWebsiteAuthorizationChainFromPowerOfAttorney({
+        companyId: input.companyId,
+        customerId: input.customerId,
+        contractId: input.contractId,
+        customerSiteId: input.customerSiteId,
+        meteringPointId: input.meteringPointId,
+        powerOfAttorneyId: existingPowerOfAttorneyId,
+        applicationId: input.applicationId,
+        reference: `POA-${input.applicationId}`,
+        scopes: input.structuredPoa?.scope?.length ? input.structuredPoa.scope : ['supplier_switch', 'facility_information_lookup'],
+        legal,
+        snapshot: {
+          source: 'website_customer_applications',
+          application_id: input.applicationId,
+          reused_power_of_attorney_id: existingPowerOfAttorneyId,
+          legal_text: { id: legal.id, type: legal.type, version: legal.version, title: legal.title },
+        },
+        evidencePayload: { reused: true, legal_text_version_id: legal.id, source: 'website_api' },
+      })
+      return existingPowerOfAttorneyId
+    }
   }
 
   const poa = input.structuredPoa?.accepted === true ? input.structuredPoa : null
@@ -764,17 +786,34 @@ async function ensureWebsitePowerOfAttorney(input: {
       snapshot,
       evidencePayload,
     })
-    if (documentId) {
-      // The website snapshot is an internal JSON record (application/json). It is
-      // never the external PDF attachment. We link it as document_id so the POA
-      // counts as "has snapshot", but we track it explicitly as the internal
-      // snapshot document so downstream code never emails JSON to a grid owner.
+    const authorizationDocumentId = await ensureWebsiteAuthorizationChainFromPowerOfAttorney({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      contractId: input.contractId,
+      customerSiteId: input.customerSiteId,
+      meteringPointId: input.meteringPointId,
+      powerOfAttorneyId,
+      applicationId: input.applicationId,
+      reference: row.reference,
+      scopes,
+      legal,
+      snapshot,
+      evidencePayload,
+      internalSnapshotDocumentId: documentId,
+    })
+
+    if (authorizationDocumentId || documentId) {
+      // The operational document_id must point at the authorization document chain
+      // used by customer_info_requests/grid_owner_data_requests/outbound_requests.
+      // The old customer_documents JSON snapshot is retained only as internal audit
+      // metadata and must never be mailed to a grid owner as the POA attachment.
       await supabaseService
         .from('powers_of_attorney')
         .update({
-          document_id: documentId,
+          document_id: authorizationDocumentId ?? documentId,
           metadata: {
             ...row.metadata,
+            authorization_document_id: authorizationDocumentId,
             internal_snapshot_document_id: documentId,
           },
           updated_at: new Date().toISOString(),
@@ -840,6 +879,149 @@ async function createPowerOfAttorneyDocumentSnapshot(input: {
     return null
   }
   return data?.id ? String(data.id) : null
+}
+
+async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
+  companyId: string
+  customerId: string
+  contractId: string | null
+  customerSiteId: string | null
+  meteringPointId: string | null
+  powerOfAttorneyId: string
+  applicationId: string
+  reference: string
+  scopes: string[]
+  legal: WebsiteLegalAcceptanceVersion
+  snapshot: Record<string, unknown>
+  evidencePayload: Record<string, unknown>
+  internalSnapshotDocumentId?: string | null
+}): Promise<string | null> {
+  const now = new Date().toISOString()
+  const existing = await supabaseService
+    .from('customer_authorization_documents')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('power_of_attorney_id', input.powerOfAttorneyId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (existing.error && !missingSchema(existing.error)) throw existing.error
+
+  let authorizationDocumentId = existing.data?.id ? String(existing.data.id) : null
+  if (!authorizationDocumentId) {
+    const baseRow: Record<string, unknown> = {
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      site_id: input.customerSiteId,
+      metering_point_id: input.meteringPointId,
+      customer_contract_id: input.contractId,
+      power_of_attorney_id: input.powerOfAttorneyId,
+      document_type: 'power_of_attorney',
+      status: 'uploaded',
+      title: `Signerad fullmakt ${input.reference}`,
+      file_name: `fullmakt-${input.reference}.json`,
+      mime_type: 'application/json',
+      reference: input.reference,
+      notes: 'Website POA snapshot bound to operational authorization chain.',
+      uploaded_at: now,
+      metadata: {
+        source: 'website_customer_applications',
+        application_id: input.applicationId,
+        legal_text_version_id: input.legal.id,
+        legal_text_version: input.legal.version,
+        scopes: input.scopes,
+        snapshot: input.snapshot,
+        evidence: input.evidencePayload,
+        internal_snapshot_document_id: input.internalSnapshotDocumentId ?? null,
+      },
+    }
+
+    let inserted = await supabaseService
+      .from('customer_authorization_documents')
+      .insert(baseRow)
+      .select('id')
+      .maybeSingle()
+
+    if (inserted.error && missingSchema(inserted.error)) {
+      const fallbackRow = { ...baseRow }
+      delete fallbackRow.customer_contract_id
+      inserted = await supabaseService
+        .from('customer_authorization_documents')
+        .insert(fallbackRow)
+        .select('id')
+        .maybeSingle()
+    }
+
+    if (inserted.error) {
+      if (missingSchema(inserted.error)) {
+        throw new WebsiteApplicationError({
+          message: 'Fullmaktens authorization document kunde inte sparas eftersom customer_authorization_documents saknas eller har fel schema.',
+          status: 500,
+          code: 'customer_authorization_document_schema_mismatch',
+          field: 'customer_authorization_documents',
+          stage: 'power_of_attorney',
+          hint: 'Kör senaste migration för customer_authorization_documents och authorization_scopes innan ansökan retryas.',
+          details: schemaErrorDetail(inserted.error),
+        })
+      }
+      throw inserted.error
+    }
+    authorizationDocumentId = inserted.data?.id ? String(inserted.data.id) : null
+  }
+
+  if (authorizationDocumentId) {
+    const existingScope = await supabaseService
+      .from('authorization_scopes')
+      .select('id')
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('authorization_document_id', authorizationDocumentId)
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle()
+    if (existingScope.error && !missingSchema(existingScope.error)) throw existingScope.error
+
+    if (!existingScope.data?.id) {
+      const scopeInsert = await supabaseService
+        .from('authorization_scopes')
+        .insert({
+          company_id: input.companyId,
+          customer_id: input.customerId,
+          authorization_document_id: authorizationDocumentId,
+          scope_type: 'supplier_switch_data',
+          status: 'active',
+          covers_grid_owner_data: true,
+          covers_current_supplier_contract: true,
+          covers_metering_data: true,
+          valid_from: now.slice(0, 10),
+          evidence_note: 'Signerad website-fullmakt verifierad och kopplad till uppgifts-/leverantörsbytesflödet.',
+          metadata: {
+            source: 'website_customer_applications',
+            application_id: input.applicationId,
+            power_of_attorney_id: input.powerOfAttorneyId,
+            authorization_document_id: authorizationDocumentId,
+            scopes: input.scopes,
+          },
+        })
+      if (scopeInsert.error) {
+        if (missingSchema(scopeInsert.error)) {
+          throw new WebsiteApplicationError({
+            message: 'Fullmaktens authorization scope kunde inte sparas eftersom authorization_scopes saknas eller har fel schema.',
+            status: 500,
+            code: 'authorization_scope_schema_mismatch',
+            field: 'authorization_scopes',
+            stage: 'power_of_attorney',
+            hint: 'Kör senaste migration för authorization_scopes innan ansökan retryas.',
+            details: schemaErrorDetail(scopeInsert.error),
+          })
+        }
+        throw scopeInsert.error
+      }
+    }
+  }
+
+  return authorizationDocumentId
 }
 
 type CustomerRow = {
@@ -1129,6 +1311,39 @@ function requestedStartModeFromInput(input: ApplicationInput): 'earliest_possibl
   return raw === 'specific_date' ? 'specific_date' : 'earliest_possible'
 }
 
+function explicitGridAreaCodeFromInput(input: ApplicationInput): string | null {
+  return clean(input.site?.grid_area_code) ?? clean(input.site?.gridAreaCode) ?? clean(input.metering_point?.grid_area_code) ?? clean(input.metering_point?.gridAreaCode) ?? clean(input.grid_area_code) ?? clean(input.gridAreaCode)
+}
+
+function explicitPriceAreaCodeFromInput(input: ApplicationInput): string | null {
+  return clean(input.site?.price_area_code) ?? clean(input.site?.price_area) ?? clean(input.metering_point?.price_area_code) ?? clean(input.metering_point?.price_area) ?? clean(input.price_area_code) ?? clean(input.priceAreaCode)
+}
+
+function explicitGridOwnerIdFromInput(input: ApplicationInput): string | null {
+  return clean(input.site?.grid_owner_id) ?? clean(input.site?.gridOwnerId) ?? clean(input.grid_owner_id) ?? clean(input.network_owner_id)
+}
+
+function mergeResolverWithExplicitInput(input: ApplicationInput, resolution: EnergyResolverResult): EnergyResolverResult {
+  const explicitGridAreaCode = explicitGridAreaCodeFromInput(input)
+  const explicitPriceAreaCode = explicitPriceAreaCodeFromInput(input)
+  const explicitGridOwnerId = explicitGridOwnerIdFromInput(input)
+  return {
+    ...resolution,
+    gridAreaCode: resolution.gridAreaCode ?? explicitGridAreaCode,
+    priceArea: resolution.priceArea ?? (explicitPriceAreaCode as EnergyResolverResult['priceArea'] | null),
+    gridOwnerId: resolution.gridOwnerId ?? explicitGridOwnerId,
+    sourceChain: Array.from(new Set([
+      ...(explicitGridAreaCode ? ['input.explicit_grid_area_code'] : []),
+      ...resolution.sourceChain,
+    ])),
+    warnings: Array.from(new Set([
+      ...resolution.warnings,
+      ...(resolution.gridAreaCode || !explicitGridAreaCode ? [] : ['explicit_grid_area_code_preserved_without_master_match']),
+      ...(resolution.priceArea || !explicitPriceAreaCode ? [] : ['explicit_price_area_code_preserved']),
+    ])),
+  }
+}
+
 function enrichApplicationWithEnergyResolution(input: ApplicationInput, resolution: EnergyResolverResult): ApplicationInput {
   const requestedStartMode = requestedStartModeFromInput(input)
   const calculatedStart = requestedStartMode === 'earliest_possible'
@@ -1136,19 +1351,19 @@ function enrichApplicationWithEnergyResolution(input: ApplicationInput, resoluti
     : undefined
   return {
     ...input,
-    grid_owner_id: resolution.gridOwnerId ?? undefined,
-    grid_area_code: resolution.gridAreaCode ?? undefined,
-    price_area_code: resolution.priceArea ?? undefined,
+    grid_owner_id: resolution.gridOwnerId ?? explicitGridOwnerIdFromInput(input) ?? undefined,
+    grid_area_code: resolution.gridAreaCode ?? explicitGridAreaCodeFromInput(input) ?? undefined,
+    price_area_code: resolution.priceArea ?? explicitPriceAreaCodeFromInput(input) ?? undefined,
     resolution_status: resolution.resolutionStatus,
     grid_owner_verification_status: resolution.gridOwnerVerificationStatus ?? undefined,
     requested_start_mode: requestedStartMode,
     calculated_earliest_start_date: calculatedStart,
     site: input.site ? {
       ...input.site,
-      grid_area_code: resolution.gridAreaCode ?? undefined,
-      grid_owner_id: resolution.gridOwnerId ?? undefined,
+      grid_area_code: resolution.gridAreaCode ?? explicitGridAreaCodeFromInput(input) ?? undefined,
+      grid_owner_id: resolution.gridOwnerId ?? explicitGridOwnerIdFromInput(input) ?? undefined,
       grid_owner_verification_status: resolution.gridOwnerVerificationStatus ?? undefined,
-      price_area_code: resolution.priceArea ?? undefined,
+      price_area_code: resolution.priceArea ?? explicitPriceAreaCodeFromInput(input) ?? undefined,
       latitude: resolution.coordinates?.latitude ?? undefined,
       longitude: resolution.coordinates?.longitude ?? undefined,
       sweref99_x: resolution.coordinates?.sweref99X ?? undefined,
@@ -1156,8 +1371,8 @@ function enrichApplicationWithEnergyResolution(input: ApplicationInput, resoluti
     } : input.site,
     metering_point: input.metering_point ? {
       ...input.metering_point,
-      grid_area_code: resolution.gridAreaCode ?? input.metering_point.grid_area_code ?? input.metering_point.gridAreaCode,
-      price_area_code: resolution.priceArea ?? input.metering_point.price_area_code ?? input.metering_point.price_area,
+      grid_area_code: resolution.gridAreaCode ?? explicitGridAreaCodeFromInput(input) ?? input.metering_point.grid_area_code ?? input.metering_point.gridAreaCode,
+      price_area_code: resolution.priceArea ?? explicitPriceAreaCodeFromInput(input) ?? input.metering_point.price_area_code ?? input.metering_point.price_area,
     } : input.metering_point,
     contract: input.contract ? {
       ...input.contract,
@@ -1188,14 +1403,15 @@ async function runEnergyResolution(input: {
     postalCode: clean(body.site?.postal_code),
     city: clean(body.site?.city),
     country: clean(body.site?.country) ?? 'SE',
-    gridAreaCode: null,
+    gridAreaCode: explicitGridAreaCodeFromInput(body),
     facilityId: clean(body.site?.facility_id),
     meteringPointId: clean(body.metering_point?.metering_point_id) ?? clean(body.metering_point?.meter_point_id) ?? clean(body.metering_point?.ediel_metering_point_id) ?? clean(body.metering_point?.anlage_id),
     requestedStartMode: requestedStartModeFromInput(body),
     requestedStartDate: clean(body.requested_start_date) ?? clean(body.contract?.requested_start_date) ?? clean(body.contract?.starts_at),
     metadata: body.metadata ?? {},
   })
-  return { body: enrichApplicationWithEnergyResolution(body, resolution), resolution }
+  const resolved = mergeResolverWithExplicitInput(body, resolution)
+  return { body: enrichApplicationWithEnergyResolution(body, resolved), resolution: resolved }
 }
 
 
@@ -1866,7 +2082,10 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
       const enrichment = {
         site_name: clean(site.site_name) ?? undefined,
         site_type: clean(site.site_type) ?? undefined,
-        // Resolver values are the only values allowed to populate operational grid owner/area fields.
+        grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode) ?? undefined,
+        price_area_code: clean(site.price_area_code) ?? clean(site.price_area) ?? undefined,
+        grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId) ?? undefined,
+        grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus) ?? undefined,
         move_in_date: clean(site.move_in_date) ?? undefined,
         annual_consumption_kwh: site.annual_consumption_kwh ?? undefined,
         street: clean(site.street) ?? undefined,
@@ -1909,6 +2128,8 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
         source: 'website',
         sourceReference: null,
         claimedGridOwnerId: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
+        claimedGridAreaCode: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
+        claimedPriceAreaCode: clean(site.price_area_code) ?? clean(site.price_area),
         metadata: {
           source: 'website_customer_applications',
           cross_tenant_facility_seen: crossTenantFacilitySeen,
@@ -1923,6 +2144,10 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
         facility_id: facilityId,
         site_type: clean(site.site_type) ?? 'consumption',
         status: 'active',
+        grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
+        price_area_code: clean(site.price_area_code) ?? clean(site.price_area),
+        grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
+        grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus),
         move_in_date: clean(site.move_in_date),
         annual_consumption_kwh: site.annual_consumption_kwh ?? null,
         updated_at: new Date().toISOString(),

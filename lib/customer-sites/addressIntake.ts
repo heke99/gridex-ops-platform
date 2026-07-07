@@ -22,6 +22,8 @@ export type CustomerSiteAddressInput = {
   sourceReference?: string | null
   actorUserId?: string | null
   claimedGridOwnerId?: string | null
+  claimedGridAreaCode?: string | null
+  claimedPriceAreaCode?: string | null
   metadata?: Record<string, unknown>
 }
 
@@ -247,6 +249,8 @@ export async function applyCustomerSiteAddressCandidate(input: {
   const metadata = {
     ...asRecord(current.metadata),
     claimed_grid_owner_id: clean(input.address.claimedGridOwnerId),
+    claimed_grid_area_code: clean(input.address.claimedGridAreaCode),
+    claimed_price_area_code: clean(input.address.claimedPriceAreaCode),
     address_candidate_metadata: input.address.metadata ?? {},
   }
   const atomicCommit = await supabaseService.rpc('gridex_commit_customer_site_address', {
@@ -324,7 +328,13 @@ export async function createOrUpdateCustomerSiteFromAddress(input: {
         p_address_normalized: address.normalized,
         p_address_hash: address.hash,
         p_source: input.address.source,
-        p_metadata: { created_from_address_source: input.address.source },
+        p_metadata: {
+          created_from_address_source: input.address.source,
+          claimed_grid_owner_id: clean(input.address.claimedGridOwnerId),
+          claimed_grid_area_code: clean(input.address.claimedGridAreaCode),
+          claimed_price_area_code: clean(input.address.claimedPriceAreaCode),
+          address_candidate_metadata: input.address.metadata ?? {},
+        },
       })
       if (created.error) {
         if (missingSchema(created.error)) {

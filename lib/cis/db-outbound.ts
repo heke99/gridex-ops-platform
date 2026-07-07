@@ -199,6 +199,7 @@ export async function createOutboundRequest(input: {
   automationOrigin?: string | null
   automationKey?: string | null
   operationId?: string | null
+  authorizationDocumentId?: string | null
   replaceOpenSupplierSwitchAttempt?: boolean
   environment?: EdielEnvironment | null
   failOnMissingEnvironment?: boolean
@@ -213,6 +214,7 @@ export async function createOutboundRequest(input: {
   await requireCompanyOperationalForWrites(companyId)
 
   const gridOwnerId = input.gridOwnerId ?? context.meteringPoint?.grid_owner_id ?? context.site?.grid_owner_id ?? null
+  const authorizationDocumentId = input.authorizationDocumentId ?? (typeof input.payload?.authorization_document_id === 'string' ? input.payload.authorization_document_id : null)
   const businessProcess = businessProcessFromRequestType(input.requestType)
   const routeDecision = await decideCommunicationRoute({
     companyId,
@@ -228,7 +230,7 @@ export async function createOutboundRequest(input: {
     environment: input.environment ?? null,
     failOnMissingEnvironment: input.failOnMissingEnvironment ?? false,
     preferredRouteId: input.communicationRouteId ?? null,
-    authorizationDocumentId: input.payload?.authorization_document_id as string | undefined,
+    authorizationDocumentId: authorizationDocumentId ?? undefined,
     payload: input.payload ?? {},
     actorUserId: input.actorUserId,
   })
@@ -288,6 +290,7 @@ export async function createOutboundRequest(input: {
     period_end: input.periodEnd ?? null,
     external_reference: input.externalReference ?? null,
     operation_id: input.operationId ?? null,
+    authorization_document_id: authorizationDocumentId,
     // Persist the intended environment so later repair/reuse never crosses the
     // test/production boundary (read back in repairOutboundRequestCommunicationRoute).
     environment: input.environment ?? null,
@@ -305,6 +308,7 @@ export async function createOutboundRequest(input: {
     metering_point_id: input.meteringPointId ?? null,
     grid_owner_id: gridOwnerId,
     communication_route_id: route?.id ?? input.communicationRouteId ?? null,
+    authorization_document_id: authorizationDocumentId,
     request_type: input.requestType,
     source_type: input.sourceType ?? 'manual',
     source_id: input.sourceId ?? null,

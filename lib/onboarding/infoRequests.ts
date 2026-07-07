@@ -1308,6 +1308,13 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     automationOrigin: "customer_info_request",
     automationKey,
     operationId,
+    authorizationDocumentId: request.authorization_document_id,
+    requestPayload: {
+      authorization_document_id: request.authorization_document_id,
+      customer_info_request_id: request.id,
+      verified_payload: request.verified_payload ?? {},
+      requested_data_categories: request.requested_data_categories ?? [],
+    },
   });
 
   const linkNow = await supabaseService
@@ -1594,6 +1601,11 @@ export async function queueMeteringPermissionForZ13(input: {
     notes: "Skapad från mätvärdestillstånd/Z13-flöde.",
     automationOrigin: "metering_permission",
     automationKey,
+    authorizationDocumentId: permission.authorization_document_id,
+    requestPayload: {
+      authorization_document_id: permission.authorization_document_id,
+      metering_permission_id: permission.id,
+    },
   });
 
   const outbound = await createOutboundRequest({
@@ -1611,7 +1623,9 @@ export async function queueMeteringPermissionForZ13(input: {
       permission.case_reference ?? gridOwnerDataRequest.external_reference,
     automationOrigin: "metering_permission_z13",
     automationKey: `outbound:${automationKey}`,
+    authorizationDocumentId: permission.authorization_document_id,
     payload: {
+      authorization_document_id: permission.authorization_document_id,
       prodatCode: "Z13",
       expectedResponse: "PRODAT Z14 V/VH eller Z14N",
       meteringPermissionId: permission.id,
