@@ -8,6 +8,7 @@ import { seedDefaultEmailTemplates } from '@/lib/email/emailTemplates'
 import { assessWebsiteApplicationReadiness, customerIntakeStatusForReadiness, type WebsiteApplicationReadiness } from '@/lib/website/applicationReview'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
+import { normalizeGridOwnerIdToOps } from '@/lib/grid-owners/platformGridOwnerResolver'
 import { processWebsiteApplicationIntake, type CustomerIntakeDecision } from '@/lib/customer-operations/customerIntakeOrchestrator'
 import { resolvePublicContractOffer, type PublicContractOffer } from '@/lib/website/publicContracts'
 import type { EnergyResolverResult } from '@/lib/energy/types'
@@ -1372,24 +1373,30 @@ function isValidExplicitPriceArea(value: string | null): value is string {
 // explicit valid submitted input always wins; the resolver (Papilite/geo/master
 // lookup) may only enrich values that are missing. A resolver failure or a
 // diverging resolver result must never null or replace valid explicit input.
-function mergeResolverWithExplicitInput(input: ApplicationInput, resolution: EnergyResolverResult): EnergyResolverResult {
+// Explicit grid owner ids are pre-normalized to the OPS grid_owners namespace
+// (customer_sites.grid_owner_id must never store platform_grid_owners.id).
+function mergeResolverWithExplicitInput(
+  input: ApplicationInput,
+  resolution: EnergyResolverResult,
+  explicitGridOwner?: { opsGridOwnerId: string | null; warnings: string[] },
+): EnergyResolverResult {
   const explicitGridAreaCode = explicitGridAreaCodeFromInput(input)
   const explicitPriceAreaCodeRaw = explicitPriceAreaCodeFromInput(input)
   const explicitPriceAreaCode = isValidExplicitPriceArea(explicitPriceAreaCodeRaw) ? explicitPriceAreaCodeRaw.toUpperCase() : null
-  const explicitGridOwnerId = explicitGridOwnerIdFromInput(input)
   const gridAreaDisagrees = Boolean(explicitGridAreaCode && resolution.gridAreaCode && resolution.gridAreaCode !== explicitGridAreaCode)
   const priceAreaDisagrees = Boolean(explicitPriceAreaCode && resolution.priceArea && resolution.priceArea !== explicitPriceAreaCode)
   return {
     ...resolution,
     gridAreaCode: explicitGridAreaCode ?? resolution.gridAreaCode,
     priceArea: (explicitPriceAreaCode as EnergyResolverResult['priceArea'] | null) ?? resolution.priceArea,
-    gridOwnerId: (isUuid(explicitGridOwnerId) ? explicitGridOwnerId : null) ?? resolution.gridOwnerId ?? explicitGridOwnerId,
+    gridOwnerId: explicitGridOwner?.opsGridOwnerId ?? resolution.gridOwnerId,
     sourceChain: Array.from(new Set([
       ...(explicitGridAreaCode ? ['input.explicit_grid_area_code'] : []),
       ...resolution.sourceChain,
     ])),
     warnings: Array.from(new Set([
       ...resolution.warnings,
+      ...(explicitGridOwner?.warnings ?? []),
       ...(resolution.gridAreaCode || !explicitGridAreaCode ? [] : ['explicit_grid_area_code_preserved_without_master_match']),
       ...(resolution.priceArea || !explicitPriceAreaCode ? [] : ['explicit_price_area_code_preserved']),
       ...(gridAreaDisagrees ? ['resolver_grid_area_disagrees_with_explicit_input'] : []),
@@ -1405,7 +1412,10 @@ function enrichApplicationWithEnergyResolution(input: ApplicationInput, resoluti
     : undefined
   return {
     ...input,
-    grid_owner_id: resolution.gridOwnerId ?? explicitGridOwnerIdFromInput(input) ?? undefined,
+    // grid_owner_id intentionally never falls back to the raw explicit input:
+    // the merged resolution already carries the OPS-normalized owner id, and a
+    // raw explicit id could reference the platform_grid_owners namespace.
+    grid_owner_id: resolution.gridOwnerId ?? undefined,
     grid_area_code: resolution.gridAreaCode ?? explicitGridAreaCodeFromInput(input) ?? undefined,
     price_area_code: resolution.priceArea ?? explicitPriceAreaCodeFromInput(input) ?? undefined,
     resolution_status: resolution.resolutionStatus,
@@ -1415,7 +1425,7 @@ function enrichApplicationWithEnergyResolution(input: ApplicationInput, resoluti
     site: input.site ? {
       ...input.site,
       grid_area_code: resolution.gridAreaCode ?? explicitGridAreaCodeFromInput(input) ?? undefined,
-      grid_owner_id: resolution.gridOwnerId ?? explicitGridOwnerIdFromInput(input) ?? undefined,
+      grid_owner_id: resolution.gridOwnerId ?? undefined,
       grid_owner_verification_status: resolution.gridOwnerVerificationStatus ?? undefined,
       price_area_code: resolution.priceArea ?? explicitPriceAreaCodeFromInput(input) ?? undefined,
       latitude: resolution.coordinates?.latitude ?? undefined,
@@ -1464,7 +1474,14 @@ async function runEnergyResolution(input: {
     requestedStartDate: clean(body.requested_start_date) ?? clean(body.contract?.requested_start_date) ?? clean(body.contract?.starts_at),
     metadata: body.metadata ?? {},
   })
-  const resolved = mergeResolverWithExplicitInput(body, resolution)
+  const explicitGridOwnerNormalization = await normalizeGridOwnerIdToOps({
+    gridOwnerId: explicitGridOwnerIdFromInput(body),
+    companyId: input.companyId,
+  })
+  const resolved = mergeResolverWithExplicitInput(body, resolution, {
+    opsGridOwnerId: explicitGridOwnerNormalization.opsGridOwnerId,
+    warnings: explicitGridOwnerNormalization.warnings,
+  })
   return { body: enrichApplicationWithEnergyResolution(body, resolved), resolution: resolved }
 }
 

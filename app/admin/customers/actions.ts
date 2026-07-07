@@ -13,6 +13,7 @@ import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { runBatch2BAutomation } from "@/lib/operations/batch2bAutomation";
 import { parseCustomerImportFormData } from "@/lib/customers/importParser";
 import { normalizeCustomerIdentityType } from "@/lib/customers/normalizeCustomerType";
+import { normalizeGridOwnerIdToOps } from "@/lib/grid-owners/platformGridOwnerResolver";
 import {
   matchCustomerIdentity,
   type CustomerMatchSignal,
@@ -2804,7 +2805,22 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
   const normalizedSiteName = normalizeOptionalString(params.siteName);
   const normalizedFacilityId = normalizeOptionalString(params.facilityId);
   const normalizedMeterPointId = normalizeOptionalString(params.meterPointId);
-  const normalizedGridOwnerId = normalizeOptionalString(params.gridOwnerId);
+  const submittedGridOwnerId = normalizeOptionalString(params.gridOwnerId);
+  // customer_sites.grid_owner_id must always reference OPS grid_owners.id.
+  // Submitted ids in the platform_grid_owners namespace are bridged via
+  // ops_grid_owner_id; unmappable ids are dropped with a warning instead of
+  // storing a wrong-namespace id.
+  const gridOwnerNormalization = await normalizeGridOwnerIdToOps({
+    gridOwnerId: submittedGridOwnerId,
+    companyId: params.companyId,
+  });
+  const normalizedGridOwnerId = gridOwnerNormalization.opsGridOwnerId;
+  if (submittedGridOwnerId && !normalizedGridOwnerId) {
+    console.warn(
+      "[admin-customer-intake] submitted grid_owner_id could not be mapped to OPS grid_owners namespace",
+      { submittedGridOwnerId, source: gridOwnerNormalization.source, warnings: gridOwnerNormalization.warnings },
+    );
+  }
   const normalizedGridAreaCode = normalizeOptionalString(params.gridAreaCode);
   const normalizedMoveInDate = normalizeOptionalString(params.moveInDate);
   const normalizedCurrentSupplierId = normalizeOptionalString(params.currentSupplierId);

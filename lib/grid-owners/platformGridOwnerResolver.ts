@@ -52,3 +52,52 @@ export async function resolvePlatformGridOwnerByAnyId(input: {
   }
   return (byOpsId.data as unknown as JsonRecord | null) ?? null
 }
+
+export type OpsGridOwnerNormalization = {
+  opsGridOwnerId: string | null
+  source: 'ops' | 'platform_mapped' | 'platform_unmapped' | 'unknown' | 'none'
+  warnings: string[]
+}
+
+/**
+ * Normalizes any submitted grid owner id to the OPS namespace.
+ *
+ * customer_sites.grid_owner_id must ALWAYS reference grid_owners.id (OPS).
+ * Callers can receive a platform_grid_owners.id from external input; that id
+ * must be bridged via platform_grid_owners.ops_grid_owner_id, never written
+ * directly. Unknown or unmappable ids resolve to null with a precise warning
+ * so downstream readiness surfaces the correct blocker instead of storing a
+ * wrong-namespace id.
+ */
+export async function normalizeGridOwnerIdToOps(input: {
+  gridOwnerId: string | null | undefined
+  companyId?: string | null
+}): Promise<OpsGridOwnerNormalization> {
+  const id = typeof input.gridOwnerId === 'string' && input.gridOwnerId.trim() ? input.gridOwnerId.trim() : null
+  if (!id) return { opsGridOwnerId: null, source: 'none', warnings: [] }
+
+  let opsQuery = supabaseService.from('grid_owners').select('id').eq('id', id)
+  if (input.companyId) opsQuery = opsQuery.eq('company_id', input.companyId)
+  const ops = await opsQuery.maybeSingle()
+  if (ops.error && !missingSchema(ops.error)) throw ops.error
+  if (ops.data) return { opsGridOwnerId: id, source: 'ops', warnings: [] }
+
+  const platform = await supabaseService
+    .from('platform_grid_owners')
+    .select('id,ops_grid_owner_id')
+    .eq('id', id)
+    .maybeSingle()
+  if (platform.error && !missingSchema(platform.error)) throw platform.error
+  const platformRow = platform.data as { id?: string; ops_grid_owner_id?: string | null } | null
+  if (platformRow?.id) {
+    const opsId = typeof platformRow.ops_grid_owner_id === 'string' && platformRow.ops_grid_owner_id.trim()
+      ? platformRow.ops_grid_owner_id.trim()
+      : null
+    if (opsId) {
+      return { opsGridOwnerId: opsId, source: 'platform_mapped', warnings: ['explicit_platform_grid_owner_id_mapped_to_ops'] }
+    }
+    return { opsGridOwnerId: null, source: 'platform_unmapped', warnings: ['platform_to_ops_grid_owner_mapping_missing'] }
+  }
+
+  return { opsGridOwnerId: null, source: 'unknown', warnings: ['explicit_grid_owner_id_not_in_ops_masterdata'] }
+}
