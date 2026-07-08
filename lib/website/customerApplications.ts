@@ -1,3 +1,4 @@
+//lib/website/customerApplications.ts
 import { z } from 'zod'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
