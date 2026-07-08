@@ -927,6 +927,39 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
 
   let authorizationDocumentId = existing.data?.id ? String(existing.data.id) : null
   if (!authorizationDocumentId) {
+    const snapshotJson = JSON.stringify({
+      source: 'website_customer_applications',
+      application_id: input.applicationId,
+      power_of_attorney_id: input.powerOfAttorneyId,
+      reference: input.reference,
+      snapshot: input.snapshot,
+      evidence: input.evidencePayload,
+      legal_text_version_id: input.legal.id,
+      legal_text_version: input.legal.version,
+      scopes: input.scopes,
+    }, null, 2)
+    const filePath = `companies/${input.companyId}/customers/${input.customerId}/authorizations/${input.powerOfAttorneyId}.json`
+    const fileSizeBytes = new TextEncoder().encode(snapshotJson).byteLength
+    const uploadIdempotencyKey = `website-poa:${input.companyId}:${input.applicationId}:${input.powerOfAttorneyId}`
+
+    const uploadResult = await supabaseService.storage
+      .from('customer-documents')
+      .upload(filePath, snapshotJson, {
+        contentType: 'application/json',
+        upsert: true,
+      })
+
+    if (uploadResult.error) {
+      throw new WebsiteApplicationError({
+        message: 'Fullmaktens JSON-snapshot kunde inte sparas i storage.',
+        status: 500,
+        code: 'power_of_attorney_snapshot_storage_failed',
+        field: 'customer_authorization_documents.file_path',
+        stage: 'power_of_attorney',
+        details: schemaErrorDetail(uploadResult.error),
+      })
+    }
+
     const baseRow: Record<string, unknown> = {
       company_id: input.companyId,
       customer_id: input.customerId,
@@ -939,9 +972,13 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
       title: `Signerad fullmakt ${input.reference}`,
       file_name: `fullmakt-${input.reference}.json`,
       mime_type: 'application/json',
+      file_size_bytes: fileSizeBytes,
+      storage_bucket: 'customer-documents',
+      file_path: filePath,
       reference: input.reference,
       notes: 'Website POA snapshot bound to operational authorization chain.',
       uploaded_at: now,
+      upload_idempotency_key: uploadIdempotencyKey,
       metadata: {
         source: 'website_customer_applications',
         application_id: input.applicationId,
@@ -963,6 +1000,9 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
     if (inserted.error && missingSchema(inserted.error)) {
       const fallbackRow = { ...baseRow }
       delete fallbackRow.customer_contract_id
+      delete fallbackRow.metering_point_id
+      delete fallbackRow.file_size_bytes
+      delete fallbackRow.upload_idempotency_key
       inserted = await supabaseService
         .from('customer_authorization_documents')
         .insert(fallbackRow)
@@ -1058,6 +1098,7 @@ type ErrorStage =
   | 'portal_identity_create'
   | 'portal_user_link'
   | 'site_create'
+  | 'site_canonical_patch'
   | 'metering_point_create'
   | 'contract_create'
   | 'contract_snapshot_create'
@@ -1377,6 +1418,102 @@ function explicitPriceAreaCodeFromInput(input: ApplicationInput): string | null 
 
 function explicitGridOwnerIdFromInput(input: ApplicationInput): string | null {
   return clean(input.site?.grid_owner_id) ?? clean(input.site?.gridOwnerId) ?? clean(input.grid_owner_id) ?? clean(input.network_owner_id)
+}
+
+
+function normalizePriceAreaCode(value: unknown): string | null {
+  return clean(value)?.toUpperCase() ?? null
+}
+
+function explicitSiteGridAreaCode(input: ApplicationInput): string | null {
+  return clean(input.site?.grid_area_code) ?? clean(input.site?.gridAreaCode) ?? clean(input.grid_area_code) ?? clean(input.gridAreaCode) ?? clean(input.metering_point?.grid_area_code) ?? clean(input.metering_point?.gridAreaCode)
+}
+
+function explicitSitePriceAreaCode(input: ApplicationInput): string | null {
+  return normalizePriceAreaCode(clean(input.site?.price_area_code) ?? clean(input.site?.price_area) ?? clean(input.price_area_code) ?? clean(input.priceAreaCode) ?? clean(input.metering_point?.price_area_code) ?? clean(input.metering_point?.price_area))
+}
+
+function explicitSiteGridOwnerId(input: ApplicationInput): string | null {
+  return clean(input.site?.grid_owner_id) ?? clean(input.site?.gridOwnerId) ?? clean(input.grid_owner_id) ?? clean(input.network_owner_id)
+}
+
+function requestedSiteMoveInDate(input: ApplicationInput): string | null {
+  return clean(input.site?.move_in_date) ?? clean(input.contract?.requested_start_date) ?? clean(input.contract?.requestedStartDate) ?? clean(input.contract?.starts_at) ?? clean(input.requested_start_date)
+}
+
+function requestedAnnualConsumption(input: ApplicationInput): number | null {
+  const siteValue = input.site?.annual_consumption_kwh
+  const meteringValue = input.metering_point?.estimated_annual_consumption_kwh
+  return typeof siteValue === 'number' && Number.isFinite(siteValue)
+    ? siteValue
+    : typeof meteringValue === 'number' && Number.isFinite(meteringValue)
+      ? meteringValue
+      : null
+}
+
+function stripUndefined(input: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined))
+}
+
+function websiteSiteCanonicalFields(input: ApplicationInput, options: { facilityId?: string | null; status?: string } = {}): Record<string, unknown> {
+  const gridAreaCode = explicitSiteGridAreaCode(input)
+  const priceAreaCode = explicitSitePriceAreaCode(input)
+  const gridOwnerId = explicitSiteGridOwnerId(input)
+  const moveInDate = requestedSiteMoveInDate(input)
+  const annualConsumption = requestedAnnualConsumption(input)
+  const site = input.site
+
+  return stripUndefined({
+    site_name: clean(site?.site_name) ?? undefined,
+    facility_id: options.facilityId ?? undefined,
+    site_type: clean(site?.site_type) ?? 'consumption',
+    status: options.status ?? 'active',
+    grid_area_code: gridAreaCode ?? undefined,
+    price_area_code: priceAreaCode ?? undefined,
+    bidding_zone_code: priceAreaCode ?? undefined,
+    grid_owner_id: gridOwnerId ?? undefined,
+    selected_grid_owner_id: gridOwnerId ?? undefined,
+    move_in_date: moveInDate ?? undefined,
+    annual_consumption_kwh: annualConsumption ?? undefined,
+    street: clean(site?.street) ?? undefined,
+    postal_code: clean(site?.postal_code) ?? undefined,
+    city: clean(site?.city) ?? undefined,
+    country: clean(site?.country) ?? undefined,
+    updated_at: new Date().toISOString(),
+  })
+}
+
+async function patchWebsiteSiteCanonicalFields(companyId: string, customerId: string, siteId: string, input: ApplicationInput, facilityId: string | null): Promise<void> {
+  const patch = websiteSiteCanonicalFields(input, { facilityId, status: 'active' })
+  if (Object.keys(patch).length <= 1) return
+
+  const result = await supabaseService
+    .from('customer_sites')
+    .update(patch)
+    .eq('company_id', companyId)
+    .eq('customer_id', customerId)
+    .eq('id', siteId)
+
+  if (!result.error) return
+  if (!missingSchema(result.error)) throw result.error
+
+  // Compatibility fallback for older environments: keep the columns proven to
+  // exist in production and drop newer optional columns if PostgREST schema cache
+  // is stale. Never drop grid_area_code/price_area_code/move_in_date/consumption.
+  const fallback = { ...patch }
+  delete fallback.selected_grid_owner_id
+  delete fallback.bidding_zone_code
+  const fallbackResult = await supabaseService
+    .from('customer_sites')
+    .update(fallback)
+    .eq('company_id', companyId)
+    .eq('customer_id', customerId)
+    .eq('id', siteId)
+
+  if (fallbackResult.error && !missingSchema(fallbackResult.error)) throw fallbackResult.error
+  if (fallbackResult.error && missingSchema(fallbackResult.error)) {
+    console.warn('[website-applications] canonical site patch skipped because customer_sites schema differs', fallbackResult.error)
+  }
 }
 
 const VALID_PRICE_AREAS = new Set(['SE1', 'SE2', 'SE3', 'SE4'])
@@ -2168,31 +2305,7 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
       .maybeSingle()
     if (existingError) throw existingError
     if (existing?.id) {
-      const enrichment = {
-        site_name: clean(site.site_name) ?? undefined,
-        site_type: clean(site.site_type) ?? undefined,
-        grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode) ?? undefined,
-        price_area_code: clean(site.price_area_code) ?? clean(site.price_area) ?? undefined,
-        grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId) ?? undefined,
-        grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus) ?? undefined,
-        move_in_date: clean(site.move_in_date) ?? undefined,
-        annual_consumption_kwh: site.annual_consumption_kwh ?? undefined,
-        street: clean(site.street) ?? undefined,
-        postal_code: clean(site.postal_code) ?? undefined,
-        city: clean(site.city) ?? undefined,
-        country: clean(site.country) ?? undefined,
-        updated_at: new Date().toISOString(),
-      }
-      const cleaned = Object.fromEntries(Object.entries(enrichment).filter(([, value]) => value !== undefined))
-      if (Object.keys(cleaned).length > 1) {
-        const siteUpdateResult = await supabaseService
-          .from('customer_sites')
-          .update(cleaned)
-          .eq('company_id', companyId)
-          .eq('id', existing.id)
-
-        if (siteUpdateResult.error && !missingSchema(siteUpdateResult.error)) throw siteUpdateResult.error
-      }
+      await patchWebsiteSiteCanonicalFields(companyId, customerId, String(existing.id), input, facilityId)
       return existing as { id: string; facility_id: string | null }
     }
   }
@@ -2226,28 +2339,7 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
         },
       },
     })
-    const { error: enrichmentError } = await supabaseService
-      .from('customer_sites')
-      .update({
-        site_name: clean(site.site_name) ?? 'Anläggning',
-        facility_id: facilityId,
-        site_type: clean(site.site_type) ?? 'consumption',
-        status: 'active',
-        grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
-        price_area_code: clean(site.price_area_code) ?? clean(site.price_area),
-        grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
-        grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus),
-        move_in_date: clean(site.move_in_date),
-        annual_consumption_kwh: site.annual_consumption_kwh ?? null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('company_id', companyId)
-      .eq('customer_id', customerId)
-      .eq('id', created.siteId)
-    if (enrichmentError && !missingSchema(enrichmentError)) throw enrichmentError
-    if (enrichmentError && missingSchema(enrichmentError)) {
-      console.warn('[website-applications] site enrichment skipped because schema differs', enrichmentError)
-    }
+    await patchWebsiteSiteCanonicalFields(companyId, customerId, created.siteId, input, facilityId)
     return { id: created.siteId, facility_id: facilityId }
   }
 
@@ -2258,26 +2350,18 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
   const fullPayload = {
     company_id: companyId,
     customer_id: customerId,
+    ...websiteSiteCanonicalFields(input, { facilityId, status: 'active' }),
     site_name: clean(site.site_name) ?? 'Anläggning',
     facility_id: facilityId,
     site_type: clean(site.site_type) ?? 'consumption',
     status: 'active',
-    price_area_code: clean(site.price_area_code) ?? clean(site.price_area),
-    grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
-    grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
-    grid_owner_verification_status: clean(site.grid_owner_verification_status) ?? clean(site.gridOwnerVerificationStatus),
-    move_in_date: clean(site.move_in_date),
-    annual_consumption_kwh: site.annual_consumption_kwh ?? null,
-    street: clean(site.street),
-    postal_code: clean(site.postal_code),
-    city: clean(site.city),
     country: clean(site.country) ?? 'SE',
     metadata: {
       source: 'website_customer_applications',
       address_source: 'website',
-      claimed_grid_owner_id: clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
-      claimed_grid_area_code: clean(site.grid_area_code) ?? clean(site.gridAreaCode),
-      claimed_price_area_code: clean(site.price_area_code) ?? clean(site.price_area),
+      claimed_grid_owner_id: explicitSiteGridOwnerId(input),
+      claimed_grid_area_code: explicitSiteGridAreaCode(input),
+      claimed_price_area_code: explicitSitePriceAreaCode(input),
       energy_resolution: input.metadata?.energy_resolution ?? null,
       cross_tenant_facility_seen: crossTenantFacilitySeen,
       platform_only: crossTenantFacilitySeen,
@@ -2387,7 +2471,7 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
   const startDate = clean(metering?.start_date) ?? clean(metering?.installation_date) ?? clean(input.site?.move_in_date)
   const installationDate = clean(metering?.installation_date) ?? startDate
   const annualConsumption = metering?.estimated_annual_consumption_kwh ?? input.site?.annual_consumption_kwh ?? null
-  const priceAreaCode = null
+  const priceAreaCode = explicitSitePriceAreaCode(input)
   const siteFacilityId = clean(metering?.site_facility_id) ?? clean(metering?.anlage_id) ?? site.facility_id ?? null
   const metadata = {
     source: 'website_customer_applications',
@@ -2419,7 +2503,7 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
     metadata: {
       ...metadata,
       claimed_grid_area_code: clean(metering?.grid_area_code) ?? clean(metering?.gridAreaCode),
-      claimed_price_area_code: clean(metering?.price_area_code) ?? clean(input.site?.price_area_code),
+      claimed_price_area_code: priceAreaCode,
     },
     updated_at: new Date().toISOString(),
   }
@@ -3651,8 +3735,18 @@ export async function processWebsiteCustomerApplication(input: {
         },
       }))
       // Do not start external automation here. Contract, immutable legal
-      // acceptances and the application record must exist first.
+      // acceptances and the application record must exist first. The address RPC
+      // is allowed to mark address resolution as needs_review, but it must not
+      // erase explicit website grid/price/move-in values. Patch canonical site
+      // fields back after the atomic address write for older deployed RPCs.
       void addressResult
+      await stage('site_canonical_patch', () => patchWebsiteSiteCanonicalFields(
+        input.client.company_id,
+        resolvedCustomerResult.customer.id,
+        siteId,
+        body,
+        site.facility_id ?? normalizeFacilityId(body.site?.facility_id),
+      ))
     }
 
     meteringPoint = readiness.canCreateMeteringPoint
