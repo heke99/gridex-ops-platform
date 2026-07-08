@@ -101,6 +101,31 @@ function firstField(record: JsonRecord | null | undefined, keys: string[]): stri
   return null
 }
 
+function jsonObject(value: unknown): JsonRecord | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : null
+}
+
+function nestedField(record: JsonRecord | null | undefined, keys: string[]): string | null {
+  let cursor: unknown = record
+  for (const key of keys) {
+    const object = jsonObject(cursor)
+    if (!object) return null
+    cursor = object[key]
+  }
+  return clean(cursor)
+}
+
+function normalizePriceArea(value: unknown): string | null {
+  return clean(value)?.toUpperCase() ?? null
+}
+
+function resolveRequestPriceArea(site: JsonRecord | null | undefined): string | null {
+  return normalizePriceArea(firstField(site, ['price_area_code', 'price_area', 'bidding_zone_code']))
+    ?? normalizePriceArea(nestedField(site, ['metadata', 'energy_resolution', 'priceArea']))
+    ?? normalizePriceArea(nestedField(site, ['metadata', 'energy_resolution', 'price_area']))
+    ?? normalizePriceArea(nestedField(site, ['metadata', 'claimed_price_area_code']))
+}
+
 function missingSchema(error: unknown): boolean {
   const code = String((error as { code?: unknown } | null)?.code ?? '')
   const message = String((error as { message?: unknown } | null)?.message ?? '')
@@ -549,6 +574,7 @@ export async function requestMissingFacilityInformation(
     message: string
     gridOwnerId: string
     gridAreaCode: string | null
+    priceArea?: string | null
     poaId?: string | null
   }): Promise<RequestMissingFacilityInformationResult> => {
     const now2 = new Date().toISOString()
@@ -562,6 +588,7 @@ export async function requestMissingFacilityInformation(
           customer_site_id: input.siteId,
           grid_owner_id: input2.gridOwnerId,
           grid_area_code: input2.gridAreaCode,
+          price_area: input2.priceArea ?? null,
           request_type: requestType,
           channel: 'manual_email',
           status: input2.status,
@@ -599,6 +626,9 @@ export async function requestMissingFacilityInformation(
         .from('grid_owner_information_requests')
         .update({
           status: input2.status,
+          grid_owner_id: input2.gridOwnerId,
+          grid_area_code: input2.gridAreaCode,
+          price_area: input2.priceArea ?? null,
           last_error_code: input2.code,
           last_error_message: input2.message,
           updated_by: clean(input.actorUserId),
@@ -652,6 +682,7 @@ export async function requestMissingFacilityInformation(
   }
 
   const gridOwnerId = clean(site.grid_owner_id) ?? clean(site.selected_grid_owner_id)
+  const requestPriceArea = resolveRequestPriceArea(site)
   if (!gridOwnerId) {
     return blocked('blocked', 'grid_owner_missing', 'Nätägare saknas. Verifiera nätområde/nätägare innan uppgifter kan begäras.')
   }
@@ -673,6 +704,7 @@ export async function requestMissingFacilityInformation(
       message: 'Fullmakt saknas. Skicka fullmaktsbegäran till kunden innan uppgifter kan begäras.',
       gridOwnerId,
       gridAreaCode: clean(site.grid_area_code),
+      priceArea: requestPriceArea,
     })
   }
 
@@ -685,6 +717,7 @@ export async function requestMissingFacilityInformation(
       message: 'Kontaktväg till nätägaren saknas. Lägg till e-postadress innan begäran kan skickas.',
       gridOwnerId,
       gridAreaCode: clean(site.grid_area_code),
+      priceArea: requestPriceArea,
       poaId: clean(poa.id),
     })
   }
@@ -704,6 +737,7 @@ export async function requestMissingFacilityInformation(
       message: 'Manuell e-postbrevlåda saknas. Lägg till avsändaradress för leverantörsbyte/fullmakt i superadmin innan begäran kan skickas.',
       gridOwnerId,
       gridAreaCode: clean(site.grid_area_code),
+      priceArea: requestPriceArea,
       poaId: clean(poa.id),
     })
   }
@@ -726,6 +760,22 @@ export async function requestMissingFacilityInformation(
 
   // Create or reuse the manual information request (idempotent per open site/type).
   let request = await findOpenManualRequest({ companyId: input.companyId, siteId: input.siteId, requestType })
+  if (request) {
+    const patchedGridAreaCode = clean(request.grid_area_code) ?? clean(site.grid_area_code)
+    const patchedPriceArea = normalizePriceArea(request.price_area) ?? requestPriceArea
+    await supabaseService
+      .from('grid_owner_information_requests')
+      .update({
+        grid_owner_id: clean(request.grid_owner_id) ?? gridOwnerId,
+        grid_area_code: patchedGridAreaCode,
+        price_area: patchedPriceArea,
+        updated_by: clean(input.actorUserId),
+        updated_at: now,
+      })
+      .eq('id', String(request.id))
+      .then(() => undefined, () => undefined)
+    request = { ...request, grid_owner_id: clean(request.grid_owner_id) ?? gridOwnerId, grid_area_code: patchedGridAreaCode, price_area: patchedPriceArea }
+  }
   if (!request) {
     const insert = {
       company_id: input.companyId,
@@ -733,6 +783,7 @@ export async function requestMissingFacilityInformation(
       customer_site_id: input.siteId,
       grid_owner_id: gridOwnerId,
       grid_area_code: clean(site.grid_area_code),
+      price_area: requestPriceArea,
       request_type: requestType,
       channel: 'manual_email',
       status: protectedIdentity ? 'needs_review' : 'ready_to_send_manual_email',
@@ -996,6 +1047,9 @@ export async function requestMissingFacilityInformation(
     .update({
       channel: 'manual_email',
       status: 'manual_email_queued',
+      grid_owner_id: clean(request.grid_owner_id) ?? gridOwnerId,
+      grid_area_code: clean(request.grid_area_code) ?? clean(site.grid_area_code),
+      price_area: normalizePriceArea(request.price_area) ?? requestPriceArea,
       recipient_email: selectedToEmail,
       from_email: senderFromEmail,
       reply_to: senderReplyTo,

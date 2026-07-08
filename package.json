@@ -159,7 +159,8 @@
     "gridex:ediel-automation-metering-billing-regression": "node scripts/gridex-ediel-automation-metering-billing-regression.cjs",
     "gridex:ops-continuation-hardening-regression": "node scripts/gridex-ops-continuation-hardening-regression.cjs",
     "gridex:platform-legal-templates-regression": "node scripts/gridex-platform-legal-templates-regression.cjs",
-    "gridex:website-application-ops-chain-regression": "node scripts/gridex-website-application-ops-chain-regression.cjs"
+    "gridex:website-application-ops-chain-regression": "node scripts/gridex-website-application-ops-chain-regression.cjs",
+    "gridex:website-application-canonical-dispatch-regression": "node scripts/gridex-website-application-canonical-dispatch-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

@@ -19,6 +19,31 @@ function normalisePriceArea(value: unknown): PriceArea | null {
   return area === 'SE1' || area === 'SE2' || area === 'SE3' || area === 'SE4' ? area : null
 }
 
+function compactRecord(input: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined))
+}
+
+async function patchRequestCanonicalContext(input: {
+  requestId: string
+  companyId: string
+  gridOwnerId?: string | null
+  gridAreaCode?: string | null
+  priceArea?: PriceArea | null
+}) {
+  const patch = compactRecord({
+    grid_owner_id: clean(input.gridOwnerId) ?? undefined,
+    grid_area_code: normaliseGridAreaCode(input.gridAreaCode) ?? undefined,
+    price_area: input.priceArea ?? undefined,
+    updated_at: new Date().toISOString(),
+  })
+  if (Object.keys(patch).length <= 1) return
+  await supabaseService
+    .from('grid_owner_information_requests')
+    .update(patch)
+    .eq('id', input.requestId)
+    .eq('company_id', input.companyId)
+    .then(() => undefined, () => undefined)
+}
 
 async function findOperationalRouteReadiness(input: GridOwnerInformationRequestInput) {
   if (!input.gridOwnerId) return null
@@ -157,7 +182,7 @@ async function existingOpenManualRequest(input: GridOwnerInformationRequestInput
   if (!input.customerSiteId) return null
   const { data, error } = await supabaseService
     .from('grid_owner_information_requests')
-    .select('id,status,channel')
+    .select('id,status,channel,grid_owner_id,grid_area_code,price_area')
     .eq('company_id', input.companyId)
     .eq('customer_site_id', input.customerSiteId)
     .eq('channel', 'manual_email')
@@ -196,6 +221,13 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
   // request — the manual flow owns the conversation with the grid owner.
   const manualOpen = await existingOpenManualRequest(input)
   if (manualOpen) {
+    await patchRequestCanonicalContext({
+      requestId: String(manualOpen.id),
+      companyId: input.companyId,
+      gridOwnerId: clean(manualOpen.grid_owner_id) ?? input.gridOwnerId,
+      gridAreaCode: normaliseGridAreaCode(manualOpen.grid_area_code) ?? gridAreaCode,
+      priceArea: normalisePriceArea(manualOpen.price_area) ?? priceArea,
+    })
     return {
       requestId: null,
       status: 'skipped',
@@ -208,6 +240,13 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
   const operationalRoute = await findOperationalRouteReadiness(input)
   const existing = await existingOpenRequest(input)
   if (existing) {
+    await patchRequestCanonicalContext({
+      requestId: String(existing.id),
+      companyId: input.companyId,
+      gridOwnerId: clean(existing.grid_owner_id) ?? input.gridOwnerId,
+      gridAreaCode: normaliseGridAreaCode(existing.grid_area_code) ?? gridAreaCode,
+      priceArea: normalisePriceArea(existing.price_area) ?? priceArea,
+    })
     if (operationalRoute?.ready && !['sent', 'waiting_response', 'received', 'completed'].includes(String(existing.status ?? ''))) {
       const now = new Date().toISOString()
       const metadata = metadataWithOperationalRoute({
@@ -221,6 +260,9 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
         .update({
           status: 'ready_to_send',
           channel: 'ediel',
+          grid_owner_id: clean(existing.grid_owner_id) ?? clean(input.gridOwnerId),
+          grid_area_code: normaliseGridAreaCode(existing.grid_area_code) ?? gridAreaCode,
+          price_area: normalisePriceArea(existing.price_area) ?? priceArea,
           template_id: 'facility_lookup.prodat_z01',
           actor_route_id: operationalRoute.approval.routeReadiness?.platform_actor_route_id ?? existing.actor_route_id ?? null,
           communication_route_id: operationalRoute.approval.communicationRouteId,

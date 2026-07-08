@@ -1438,6 +1438,24 @@ function explicitSiteGridOwnerId(input: ApplicationInput): string | null {
   return clean(input.site?.grid_owner_id) ?? clean(input.site?.gridOwnerId) ?? clean(input.grid_owner_id) ?? clean(input.network_owner_id)
 }
 
+function explicitMeteringGridAreaCode(input: ApplicationInput): string | null {
+  return clean(input.metering_point?.grid_area_code)
+    ?? clean(input.metering_point?.gridAreaCode)
+    ?? explicitSiteGridAreaCode(input)
+}
+
+function explicitMeteringPriceAreaCode(input: ApplicationInput): string | null {
+  return normalizePriceAreaCode(
+    clean(input.metering_point?.price_area_code)
+      ?? clean(input.metering_point?.price_area)
+      ?? explicitSitePriceAreaCode(input)
+  )
+}
+
+function explicitMeteringGridOwnerId(input: ApplicationInput): string | null {
+  return explicitSiteGridOwnerId(input)
+}
+
 function requestedSiteMoveInDate(input: ApplicationInput): string | null {
   return clean(input.site?.move_in_date) ?? clean(input.contract?.requested_start_date) ?? clean(input.contract?.requestedStartDate) ?? clean(input.contract?.starts_at) ?? clean(input.requested_start_date)
 }
@@ -2415,11 +2433,85 @@ async function upsertSite(companyId: string, customerId: string, input: Applicat
   })
 }
 
+async function patchMeteringPointCanonicalFields(input: {
+  companyId: string
+  customerId: string
+  meteringPointId: string
+  siteId: string
+  application: ApplicationInput
+  facilityId?: string | null
+}): Promise<void> {
+  const priceAreaCode = explicitMeteringPriceAreaCode(input.application)
+  const gridAreaCode = explicitMeteringGridAreaCode(input.application)
+  const gridOwnerId = explicitMeteringGridOwnerId(input.application)
+  const startDate = clean(input.application.metering_point?.start_date)
+    ?? clean(input.application.metering_point?.installation_date)
+    ?? requestedSiteMoveInDate(input.application)
+  const annualConsumption = requestedAnnualConsumption(input.application)
+  const siteFacilityId = clean(input.application.metering_point?.site_facility_id)
+    ?? clean(input.application.metering_point?.anlage_id)
+    ?? input.facilityId
+    ?? null
+
+  const patch = stripUndefined({
+    site_id: input.siteId,
+    customer_site_id: input.siteId,
+    metering_point_id: input.meteringPointId,
+    meter_point_id: input.meteringPointId,
+    ediel_metering_point_id: input.meteringPointId,
+    anlage_id: clean(input.application.metering_point?.anlage_id) ?? siteFacilityId ?? undefined,
+    site_facility_id: siteFacilityId ?? undefined,
+    grid_area_code: gridAreaCode ?? undefined,
+    price_area_code: priceAreaCode ?? undefined,
+    bidding_zone_code: priceAreaCode ?? undefined,
+    grid_owner_id: gridOwnerId ?? undefined,
+    estimated_annual_consumption_kwh: annualConsumption ?? undefined,
+    start_date: startDate ?? undefined,
+    installation_date: (clean(input.application.metering_point?.installation_date) ?? startDate) ?? undefined,
+    updated_at: new Date().toISOString(),
+  })
+
+  const result = await supabaseService
+    .from('metering_points')
+    .update(patch)
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('id', input.meteringPointId)
+
+  if (!result.error) return
+  if (!missingSchema(result.error)) throw result.error
+
+  // Compatibility fallback for environments that have not yet reloaded optional
+  // canonical columns. Keep the proven legacy identifiers instead of silently
+  // returning an unpatched row; the migration below adds the canonical columns.
+  const fallback = { ...patch }
+  delete fallback.grid_area_code
+  delete fallback.grid_owner_id
+  delete fallback.bidding_zone_code
+  delete fallback.anlage_id
+  delete fallback.site_facility_id
+  delete fallback.estimated_annual_consumption_kwh
+  const fallbackResult = await supabaseService
+    .from('metering_points')
+    .update(fallback)
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('id', input.meteringPointId)
+  if (fallbackResult.error && !missingSchema(fallbackResult.error)) throw fallbackResult.error
+  if (fallbackResult.error && missingSchema(fallbackResult.error)) {
+    console.warn('[website-applications] metering point canonical patch skipped because metering_points schema differs', fallbackResult.error)
+  }
+}
+
 async function upsertMeteringPoint(companyId: string, customerId: string, site: { id: string; facility_id: string | null } | null, input: ApplicationInput) {
   const metering = input.metering_point
   const meteringPointId = clean(metering?.metering_point_id)
     ?? clean(metering?.meter_point_id)
     ?? clean(metering?.ediel_metering_point_id)
+    ?? clean(metering?.anlage_id)
+    ?? clean(metering?.site_facility_id)
+    ?? clean(input.site?.facility_id)
+    ?? site?.facility_id
     ?? null
   if (!meteringPointId || !site?.id) return null
 
@@ -2442,9 +2534,17 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
 
   if (existingError && !missingSchema(existingError)) throw existingError
   if (existing?.id) {
+    await patchMeteringPointCanonicalFields({
+      companyId,
+      customerId,
+      meteringPointId: String(existing.id),
+      siteId: site.id,
+      application: input,
+      facilityId: site.facility_id,
+    })
     return {
       id: String(existing.id),
-      metering_point_id: clean(existing.metering_point_id) ?? clean(existing.meter_point_id) ?? clean(existing.ediel_metering_point_id),
+      metering_point_id: clean(existing.metering_point_id) ?? clean(existing.meter_point_id) ?? clean(existing.ediel_metering_point_id) ?? meteringPointId,
     }
   }
 
@@ -2460,20 +2560,30 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
       .maybeSingle()
     if (fallbackExisting.error && !missingSchema(fallbackExisting.error)) throw fallbackExisting.error
     if (fallbackExisting.data?.id) {
+      await patchMeteringPointCanonicalFields({
+        companyId,
+        customerId,
+        meteringPointId: String(fallbackExisting.data.id),
+        siteId: site.id,
+        application: input,
+        facilityId: site.facility_id,
+      })
       return {
         id: String(fallbackExisting.data.id),
-        metering_point_id: clean(fallbackExisting.data.metering_point_id) ?? clean(fallbackExisting.data.meter_point_id),
+        metering_point_id: clean(fallbackExisting.data.metering_point_id) ?? clean(fallbackExisting.data.meter_point_id) ?? meteringPointId,
       }
     }
   }
 
   const readingFrequency = clean(metering?.reading_frequency) ?? 'monthly'
   const measurementType = clean(metering?.measurement_type) ?? 'consumption'
-  const startDate = clean(metering?.start_date) ?? clean(metering?.installation_date) ?? clean(input.site?.move_in_date)
+  const startDate = clean(metering?.start_date) ?? clean(metering?.installation_date) ?? requestedSiteMoveInDate(input)
   const installationDate = clean(metering?.installation_date) ?? startDate
-  const annualConsumption = metering?.estimated_annual_consumption_kwh ?? input.site?.annual_consumption_kwh ?? null
-  const priceAreaCode = explicitSitePriceAreaCode(input)
-  const siteFacilityId = clean(metering?.site_facility_id) ?? clean(metering?.anlage_id) ?? site.facility_id ?? null
+  const annualConsumption = requestedAnnualConsumption(input)
+  const priceAreaCode = explicitMeteringPriceAreaCode(input)
+  const gridAreaCode = explicitMeteringGridAreaCode(input)
+  const gridOwnerId = explicitMeteringGridOwnerId(input)
+  const siteFacilityId = clean(metering?.site_facility_id) ?? clean(metering?.anlage_id) ?? site.facility_id ?? clean(input.site?.facility_id) ?? null
   const metadata = {
     source: 'website_customer_applications',
     source_metadata: input.metadata ?? {},
@@ -2493,7 +2603,10 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
     metering_type: 'consumption',
     measurement_type: measurementType,
     reading_frequency: readingFrequency,
+    grid_area_code: gridAreaCode,
     price_area_code: priceAreaCode,
+    bidding_zone_code: priceAreaCode,
+    grid_owner_id: gridOwnerId,
     start_date: startDate,
     installation_date: installationDate,
     is_settlement_relevant: true,
@@ -2503,7 +2616,8 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
     estimated_annual_consumption_kwh: annualConsumption,
     metadata: {
       ...metadata,
-      claimed_grid_area_code: clean(metering?.grid_area_code) ?? clean(metering?.gridAreaCode),
+      claimed_grid_owner_id: gridOwnerId,
+      claimed_grid_area_code: gridAreaCode,
       claimed_price_area_code: priceAreaCode,
     },
     updated_at: new Date().toISOString(),
@@ -2519,30 +2633,50 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
   if (data) {
     return {
       id: String(data.id),
-      metering_point_id: clean(data.metering_point_id) ?? clean(data.meter_point_id) ?? clean(data.ediel_metering_point_id),
+      metering_point_id: clean(data.metering_point_id) ?? clean(data.meter_point_id) ?? clean(data.ediel_metering_point_id) ?? meteringPointId,
     }
   }
 
+  const fallbackBase = {
+    grid_area_code: gridAreaCode,
+    price_area_code: priceAreaCode,
+    bidding_zone_code: priceAreaCode,
+    grid_owner_id: gridOwnerId,
+    customer_site_id: site.id,
+    site_id: site.id,
+    anlage_id: clean(metering?.anlage_id) ?? siteFacilityId,
+    site_facility_id: siteFacilityId,
+    estimated_annual_consumption_kwh: annualConsumption,
+    start_date: startDate,
+    installation_date: installationDate,
+  }
   const fallbackPayloads: Array<Record<string, unknown>> = [
-    {
+    stripUndefined({
       company_id: companyId,
       customer_id: customerId,
-      site_id: site.id,
+      ...fallbackBase,
       metering_point_id: meteringPointId,
       status: 'active',
-    },
-    {
+    }),
+    stripUndefined({
       company_id: companyId,
       customer_id: customerId,
-      customer_site_id: site.id,
+      ...fallbackBase,
       metering_point_id: meteringPointId,
       status: 'active',
-    },
-    {
+    }),
+    stripUndefined({
       company_id: companyId,
       customer_id: customerId,
-      site_id: site.id,
+      ...fallbackBase,
       meter_point_id: meteringPointId,
+      status: 'active',
+    }),
+    {
+      company_id: companyId,
+      customer_id: customerId,
+      site_id: site.id,
+      metering_point_id: meteringPointId,
       status: 'active',
     },
   ]
@@ -2555,6 +2689,14 @@ async function upsertMeteringPoint(companyId: string, customerId: string, site: 
       .select('id')
       .single()
     if (fallback.data?.id) {
+      await patchMeteringPointCanonicalFields({
+        companyId,
+        customerId,
+        meteringPointId: String(fallback.data.id),
+        siteId: site.id,
+        application: input,
+        facilityId: site.facility_id,
+      })
       return {
         id: String(fallback.data.id),
         metering_point_id: meteringPointId,
@@ -4129,9 +4271,15 @@ export async function processWebsiteCustomerApplication(input: {
             powerOfAttorneyId,
           })
         )
+        const canDispatchFinalAgreementMail = Boolean(
+          readiness.canSendAgreementConfirmation === true &&
+          contractLegalMailReady &&
+          !facilityMissing &&
+          applicationStatus === 'ready_for_switch'
+        )
         triggeredEmailEvents = [
           initialApplicationEmail.eventKey,
-          ...(contractLegalMailReady ? ['contract.confirmation_sent', 'contract.cooling_off_sent'] : []),
+          ...(canDispatchFinalAgreementMail ? ['contract.confirmation_sent', 'contract.cooling_off_sent'] : []),
         ]
 
         communicationResults = await Promise.all(triggeredEmailEvents.map(async (eventKey) => {
@@ -4184,7 +4332,11 @@ export async function processWebsiteCustomerApplication(input: {
       } catch (error: unknown) {
         pushWarning(warnings, 'communication_failed')
         pushWarning(warnings, 'confirmation_email_pending')
-        pushWarning(warnings, 'legal_email_pending')
+        // Do not claim legal agreement mail is pending when the readiness gate
+        // says final agreement confirmation/cooling-off must not be sent yet.
+        if (readiness.canSendAgreementConfirmation === true && !facilityMissing && applicationStatus === 'ready_for_switch') {
+          pushWarning(warnings, 'legal_email_pending')
+        }
         communicationResults = [{ ok: false, error: errorMessage(error), stage: 'communication_trigger' }]
       }
     }

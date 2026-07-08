@@ -51,10 +51,11 @@ if (fullPayloadIdx === -1) {
       failures.push(`upsertSite partial-address insert still nulls explicit value: "${forbidden}" in ${apps}`)
     }
   }
-  for (const required of ['grid_area_code: clean(site.grid_area_code)', 'price_area_code: clean(site.price_area_code)', 'grid_owner_id: clean(site.grid_owner_id)']) {
-    if (!block.includes(required)) {
-      failures.push(`upsertSite partial-address insert must persist explicit value: "${required}" in ${apps}`)
-    }
+  const usesCanonicalHelper = block.includes('...websiteSiteCanonicalFields(input')
+  const directRequired = ['grid_area_code: clean(site.grid_area_code)', 'price_area_code: clean(site.price_area_code)', 'grid_owner_id: clean(site.grid_owner_id)']
+  const directValuesPresent = directRequired.every((required) => block.includes(required))
+  if (!usesCanonicalHelper && !directValuesPresent) {
+    failures.push(`upsertSite partial-address insert must persist explicit canonical grid values directly or via websiteSiteCanonicalFields in ${apps}`)
   }
 }
 
