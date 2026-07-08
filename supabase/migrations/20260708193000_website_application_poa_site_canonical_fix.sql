@@ -389,6 +389,55 @@ revoke all on function public.gridex_commit_customer_site_address(uuid, uuid, uu
 revoke all on function public.gridex_commit_customer_site_address(uuid, uuid, uuid, text, text, text, text, text, text, text, text, text, text, jsonb, uuid) from authenticated;
 grant execute on function public.gridex_commit_customer_site_address(uuid, uuid, uuid, text, text, text, text, text, text, text, text, text, text, jsonb, uuid) to service_role;
 
+
+
+-- Defensive DB hardening: every authorization document must have a non-null
+-- file_path. This protects production even if an older/parallel application
+-- path inserts a website-generated POA snapshot without file_path.
+create or replace function public.gridex_fill_customer_authorization_document_file_path()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  v_company text;
+  v_customer text;
+  v_poa_or_doc text;
+begin
+  if new.file_path is null or btrim(new.file_path) = '' then
+    v_company := coalesce(new.company_id::text, 'unknown-company');
+    v_customer := coalesce(new.customer_id::text, 'unknown-customer');
+    v_poa_or_doc := coalesce(
+      new.power_of_attorney_id::text,
+      nullif(regexp_replace(coalesce(new.reference, ''), '^POA-', ''), ''),
+      new.id::text
+    );
+
+    new.storage_bucket := coalesce(nullif(btrim(new.storage_bucket), ''), 'customer-documents');
+    new.file_path := concat('companies/', v_company, '/customers/', v_customer, '/authorizations/', v_poa_or_doc, '.json');
+  end if;
+
+  if (new.file_name is null or btrim(new.file_name) = '') and new.document_type = 'power_of_attorney' then
+    new.file_name := concat('fullmakt-', coalesce(nullif(new.reference, ''), new.power_of_attorney_id::text, new.id::text), '.json');
+  end if;
+
+  return new;
+end;
+$$;
+
+do $$
+begin
+  if to_regclass('public.customer_authorization_documents') is not null then
+    drop trigger if exists gridex_customer_authorization_documents_file_path_biut
+      on public.customer_authorization_documents;
+
+    create trigger gridex_customer_authorization_documents_file_path_biut
+      before insert or update on public.customer_authorization_documents
+      for each row
+      execute function public.gridex_fill_customer_authorization_document_file_path();
+  end if;
+end $$;
+
 do $$
 begin
   perform pg_notify('pgrst', 'reload schema');
