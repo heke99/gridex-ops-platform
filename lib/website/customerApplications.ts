@@ -3740,12 +3740,14 @@ export async function processWebsiteCustomerApplication(input: {
       // erase explicit website grid/price/move-in values. Patch canonical site
       // fields back after the atomic address write for older deployed RPCs.
       void addressResult
+      const currentSite = site as { id: string; facility_id: string | null }
+      const canonicalPatchFacilityId = normalizeFacilityId(currentSite.facility_id) ?? normalizeFacilityId(body.site?.facility_id)
       await stage('site_canonical_patch', () => patchWebsiteSiteCanonicalFields(
         input.client.company_id,
         resolvedCustomerResult.customer.id,
         siteId,
         body,
-        site.facility_id ?? normalizeFacilityId(body.site?.facility_id),
+        canonicalPatchFacilityId,
       ))
     }
 
