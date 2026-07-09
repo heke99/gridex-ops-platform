@@ -189,6 +189,8 @@ export type SupplierSwitchRequestRow = {
   updated_by: string | null;
   automation_origin: string | null;
   automation_key: string | null;
+  metadata?: Record<string, unknown> | null;
+  customer_site_id?: string | null;
   paused_at?: string | null;
   paused_by?: string | null;
   pause_reason?: string | null;

@@ -6,6 +6,8 @@
 - [ ] All migrations applied on staging; every `NOTICE` reviewed
 - [ ] Staging smoke test passed end-to-end (`docs/staging-smoke-test-checklist.md`)
 - [ ] Env checklist verified on Vercel production (`docs/env-production-checklist.md`)
+- [ ] Supabase Auth leaked password protection enabled (or explicitly attested) and
+      security advisors reviewed (`docs/security/supabase-advisors-hardening.md`)
 - [ ] Masterdata checklist verified per tenant (`docs/masterdata-production-checklist.md`)
 - [ ] Email deliverability verified (`docs/email-production-checklist.md`)
 - [ ] Backup point-in-time-recovery confirmed enabled (`docs/backup-restore-checklist.md`)
