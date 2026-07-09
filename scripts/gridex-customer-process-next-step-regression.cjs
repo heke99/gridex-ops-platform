@@ -10,7 +10,15 @@ ok(engine.includes('clearFacilityBlocker') && engine.includes('facility_or_meter
 ok(engine.includes('evaluateCustomerProcessRouteReadiness'), 'engine checks route readiness before next steps')
 ok(engine.includes('finalizeStuckZ01GridOwnerDataRequest') && engine.includes('z01.preparing'), 'engine prepares Z01 through existing finalizer')
 ok(engine.includes('findOpenSupplierSwitchRequestForSite'), 'engine checks duplicate open supplier switch requests')
-ok(engine.includes('createSupplierSwitchRequest') && engine.includes('ensureInitialSwitchEdielAutomation'), 'engine uses existing supplier switch and Ediel automation')
+// Switch creation is delegated to the shared orchestration core (same
+// find-or-create used by website intake), which calls createSupplierSwitchRequest.
+const sharedOrchestration = read('lib/customer-operations/supplierSwitchOrchestration.ts')
+ok(
+  engine.includes('ensureSupplierSwitchRequestForReadySite') &&
+    sharedOrchestration.includes('createSupplierSwitchRequest') &&
+    engine.includes('ensureInitialSwitchEdielAutomation'),
+  'engine uses existing supplier switch and Ediel automation'
+)
 ok(!/sendEmail|sendEdielEmail|sendCompanyEmail|sendSmtp/i.test(engine), 'next-step engine does not send SMTP directly')
 ok(events.includes('supplier_switch.requested') && events.includes('z01.prepared') && events.includes('facility_data.verified'), 'tenant timeline event codes cover facility/Z01/switch')
 if(process.exitCode) process.exit(1)
