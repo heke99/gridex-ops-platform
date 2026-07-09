@@ -13,6 +13,15 @@ Complete inventory from code (grep of `process.env.*`, 2026-07-03). All are
 
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` — server-only; verified not referenced by any client component
 
+## Supabase Auth project settings (dashboard, not env vars)
+
+- [ ] **Enable leaked password protection** (Auth → Providers → Password →
+      "Prevent use of leaked passwords", HaveIBeenPwned check). This is a
+      Supabase project setting and cannot be configured from SQL or repo code
+      (advisor `auth_leaked_password_protection`). Must be enabled — or
+      explicitly attested by the platform admin — before go-live. See
+      `docs/security/supabase-advisors-hardening.md`.
+
 ## Cron / internal auth
 
 - [ ] `CRON_SECRET` — Vercel-injected; required for all cron routes
