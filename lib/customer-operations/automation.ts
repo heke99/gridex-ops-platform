@@ -29,8 +29,15 @@ import type { MeteringPointRow } from '@/lib/masterdata/types'
 import { normalizeUuidOrNull, requireUuid } from '@/lib/validation/uuid'
 import {
   makeCustomerOperationBlocker,
+  routeIssueCodeToCustomerBlocker,
   type CustomerOperationBlocker,
 } from '@/lib/customer-operations/blockers'
+import {
+  AUTOMATION_USER_REQUIRED_ADMIN_ACTION,
+  isAutomationConfigurationError,
+  missingAutomationUserJobResult,
+  resolveAutomationActorId,
+} from '@/lib/customer-operations/automationConfig'
 
 export type CustomerOperationJobType =
   | 'request_customer_data'
@@ -78,7 +85,10 @@ type JobRow = {
 }
 
 type JobOutcome = {
-  status: Exclude<CustomerOperationJobStatus, 'queued' | 'running'>
+  // 'queued' is allowed for deliberate rescheduling (e.g. supplier switch send
+  // window not open yet): the job goes back to the queue with runAfter set to
+  // the moment automation may continue, without consuming manual review.
+  status: Exclude<CustomerOperationJobStatus, 'running'>
   result?: JsonRecord
   runAfter?: string | null
 }
@@ -88,9 +98,9 @@ function clean(value: unknown): string | null {
 }
 
 function automationActorId(value: unknown): string {
-  const actor = normalizeUuidOrNull(value, 'created_by') ?? normalizeUuidOrNull(process.env.GRIDEX_AUTOMATION_USER_ID, 'GRIDEX_AUTOMATION_USER_ID')
-  if (!actor) throw new Error('GRIDEX_AUTOMATION_USER_ID saknas för automatisk Ediel-åtgärd.')
-  return actor
+  // Throws the typed AutomationConfigurationError (non-retryable) when neither
+  // the job's created_by nor GRIDEX_AUTOMATION_USER_ID resolves to a UUID.
+  return resolveAutomationActorId(value)
 }
 
 function addressFingerprint(value: JsonRecord): string {
@@ -327,6 +337,7 @@ function operationTitle(type: CustomerOperationJobType): string {
 function operationOutcomeMessage(status: JobOutcome['status'], result: JsonRecord | undefined): string {
   if (status === 'completed') return 'Automationssteget är klart.'
   if (status === 'waiting_response') return 'Automationssteget väntar på svar.'
+  if (status === 'queued') return 'Automationssteget är schemalagt och fortsätter automatiskt.'
   const reason =
     clean(result?.reason_code) ??
     clean(result?.stale_reason) ??
@@ -340,7 +351,7 @@ function operationOutcomeMessage(status: JobOutcome['status'], result: JsonRecor
 
 function operationEventStatus(
   status: JobOutcome['status'],
-): 'waiting_response' | 'completed' | 'needs_review' | 'failed' | 'skipped' | 'cancelled' | 'blocked' {
+): 'queued' | 'waiting_response' | 'completed' | 'needs_review' | 'failed' | 'skipped' | 'cancelled' | 'blocked' {
   return status === 'delivery_uncertain' ? 'needs_review' : status
 }
 
@@ -607,6 +618,14 @@ export async function enqueueSupplierSwitchAutomation(input: {
   meteringPointId?: string | null
   operationId?: string | null
   source?: string | null
+  /**
+   * Extra business context merged into the job payload (e.g. application_id,
+   * supplier_switch_request_id, contract_id, requested_start_date, grid data).
+   * Never affects the idempotency key: the canonical active-job key stays
+   * `supplier-switch:{customerId}:{siteId}` so retries and parallel entry
+   * points can never enqueue duplicate active switch jobs for a site.
+   */
+  payloadContext?: JsonRecord | null
 }) {
   const normalized = {
     ...input,
@@ -683,7 +702,11 @@ export async function enqueueSupplierSwitchAutomation(input: {
     ...normalized,
     jobType: 'start_supplier_switch',
     idempotencyKey: `supplier-switch:${normalized.customerId}:${normalized.siteId}`,
-    payload: { requestedFrom: normalized.source ?? 'customer_card', site_snapshot: siteSnapshot },
+    payload: {
+      ...(input.payloadContext ?? {}),
+      requestedFrom: normalized.source ?? 'customer_card',
+      site_snapshot: siteSnapshot,
+    },
     requestSnapshot: siteSnapshot,
     priority: 30,
   })
@@ -1654,6 +1677,117 @@ async function processInboundResponse(job: JobRow): Promise<JobOutcome> {
   return { status: 'completed', result }
 }
 
+type DispatchBlockerEntry = { code: string; message: string; source?: string }
+
+type SupplierSwitchDispatchClassification = {
+  blockers: DispatchBlockerEntry[]
+  routeBlocked: boolean
+  scheduleWindowOnly: boolean
+  sendNotBefore: string | null
+  primary: (CustomerOperationBlocker & { route_resolution_status?: string; route_resolution_reason?: string }) | null
+}
+
+const ROUTE_BLOCKER_ISSUE_TYPES = new Set(['route', 'certificate', 'production_approval'])
+
+/**
+ * Classifies a failed startSupplierSwitch result into exact blockers instead of
+ * a generic technical/needs-review outcome:
+ *  - route/config family (route_profile_missing, environment_not_resolved,
+ *    sender_ediel_id_missing, certificate_missing, production_send_locked, ...)
+ *    => blocked with route_resolution_status + admin next action,
+ *  - send window not open (and nothing else) => reschedule automatically,
+ *  - anything else => needs_review with the exact readiness/preflight issues.
+ */
+function classifySupplierSwitchDispatch(started: {
+  preflight?: { issues?: Array<{ code?: unknown; label?: unknown; blocking?: unknown }> } | null
+  readiness?: { blockers?: Array<{ code?: unknown; message?: unknown; source?: unknown }> } | null
+  schedule?: { blockers?: Array<{ code?: unknown; message?: unknown }>; window?: { sendNotBefore?: unknown } } | null
+  message?: string | null
+}): SupplierSwitchDispatchClassification {
+  const blockers: DispatchBlockerEntry[] = []
+
+  for (const issue of started.preflight?.issues ?? []) {
+    if (issue?.blocking === false) continue
+    const code = clean(issue?.code) ?? 'preflight_blocked'
+    blockers.push({ code, message: clean(issue?.label) ?? code, source: 'preflight' })
+  }
+  for (const blocker of started.readiness?.blockers ?? []) {
+    const code = clean(blocker?.code) ?? 'readiness_blocked'
+    blockers.push({ code, message: clean(blocker?.message) ?? code, source: clean(blocker?.source) ?? 'readiness' })
+  }
+  for (const blocker of started.schedule?.blockers ?? []) {
+    const code = clean(blocker?.code) ?? 'schedule_blocked'
+    blockers.push({ code, message: clean(blocker?.message) ?? code, source: 'scheduler' })
+  }
+  if (blockers.length === 0 && clean(started.message)) {
+    blockers.push({ code: 'supplier_switch_dispatch_blocked', message: clean(started.message) as string })
+  }
+
+  const isKnownRouteFamilyCode = (code: string) =>
+    ROUTE_BLOCKER_ISSUE_TYPES.has(makeCustomerOperationBlocker(code).issue_type)
+
+  const routeEntry = blockers.find(
+    (entry) => entry.source === 'route_readiness' || isKnownRouteFamilyCode(entry.code),
+  ) ?? null
+
+  let primary: SupplierSwitchDispatchClassification['primary'] = null
+  if (routeEntry) {
+    const mappedCode = isKnownRouteFamilyCode(routeEntry.code)
+      ? routeEntry.code
+      : routeIssueCodeToCustomerBlocker(routeEntry.code)
+    primary = {
+      ...makeCustomerOperationBlocker(mappedCode, { blocker_reason: routeEntry.message }),
+      route_resolution_status: 'blocked',
+      route_resolution_reason: routeEntry.message,
+    }
+  }
+
+  const scheduleWindowOnly =
+    blockers.length > 0 &&
+    blockers.every((entry) => entry.code === 'supplier_switch_send_window_not_open')
+
+  return {
+    blockers,
+    routeBlocked: Boolean(routeEntry),
+    scheduleWindowOnly,
+    sendNotBefore: clean(started.schedule?.window?.sendNotBefore),
+    primary,
+  }
+}
+
+/**
+ * Records the current dispatch blocker on the switch request metadata so the
+ * queue view state is explainable for tenant/superadmin without digging into
+ * job results. Best-effort: never fails the job.
+ */
+async function persistSupplierSwitchBlockerMetadata(input: {
+  companyId: string
+  switchRequestId: string
+  blocker: JsonRecord | null
+}): Promise<void> {
+  try {
+    const { data, error } = await supabaseService
+      .from('supplier_switch_requests')
+      .select('metadata')
+      .eq('id', input.switchRequestId)
+      .eq('company_id', input.companyId)
+      .maybeSingle()
+    if (error) throw error
+    const metadata = record(data?.metadata)
+    const { error: updateError } = await supabaseService
+      .from('supplier_switch_requests')
+      .update({
+        metadata: { ...metadata, dispatch_blocker: input.blocker },
+        updated_at: nowIso(),
+      })
+      .eq('id', input.switchRequestId)
+      .eq('company_id', input.companyId)
+    if (updateError) throw updateError
+  } catch (error) {
+    if (!missingSchema(error)) console.warn('[customer-operation] switch blocker metadata skipped', error)
+  }
+}
+
 async function normalizeVerifiedMeteringPointIdentity(input: {
   companyId: string
   point: MeteringPointRow | null
@@ -1720,13 +1854,15 @@ async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
   }
 
   const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, { companyId: job.company_id, customerId: job.customer_id, siteId })
+  const jobPayload = record(job.payload)
+  const requestedStartDate = clean(jobPayload.requested_start_date) ?? site.move_in_date ?? null
   const requestType: SupplierSwitchRequestType = site.move_in_date ? 'move_in' : 'switch'
   const request = existing ?? await createSupplierSwitchRequest(supabaseService, {
     readiness,
     site,
     meteringPoint: candidate,
     requestType,
-    requestedStartDate: site.move_in_date ?? null,
+    requestedStartDate,
     companyId: job.company_id,
     automationOrigin: 'customer_operation_job',
     automationKey: `customer-operation:${job.customer_id}:${siteId}:${candidate.id}`,
@@ -1747,8 +1883,144 @@ async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
     idempotencyKey: `customer-operation-start:${request.id}`,
   })
   if (!started.ok) {
-    return { status: 'needs_review', result: { switch_request_id: request.id, preflight: started.preflight } }
+    const classification = classifySupplierSwitchDispatch(started as unknown as Parameters<typeof classifySupplierSwitchDispatch>[0])
+
+    // Send window not open (and nothing else wrong): this is scheduling, not a
+    // failure. The switch request stays open/queued and the job automatically
+    // resumes when the window opens — no manual review, no burned attempts.
+    if (classification.scheduleWindowOnly && !classification.routeBlocked) {
+      const resumeAt = classification.sendNotBefore ?? retryAt(job.attempts)
+      await emitCustomerOperationEvent({
+        companyId: job.company_id,
+        customerId: job.customer_id,
+        actorUserId,
+        eventType: 'supplier_switch.scheduled',
+        title: 'Leverantörsbyte schemalagt',
+        message: classification.blockers[0]?.message ?? 'Leverantörsbytet skickas automatiskt när sändfönstret öppnar.',
+        customerSiteId: siteId,
+        meteringPointId: candidate.id,
+        customerOperationJobId: job.id,
+        operationId,
+        status: 'waiting_response',
+        severity: 'info',
+        actionRequired: false,
+        actionUrl: `/admin/customers/${job.customer_id}?tab=supplier-switch`,
+        payload: {
+          supplier_switch_request_id: request.id,
+          send_not_before: classification.sendNotBefore,
+          blockers: classification.blockers,
+          operation_id: operationId,
+        },
+        idempotencyKey: `supplier-switch-scheduled:${request.id}:${classification.sendNotBefore ?? 'window'}`,
+      })
+      return {
+        status: 'queued',
+        runAfter: resumeAt,
+        result: {
+          supplier_switch_request_id: request.id,
+          reason: 'supplier_switch_send_window_not_open',
+          reason_code: 'supplier_switch_send_window_not_open',
+          send_not_before: classification.sendNotBefore,
+          blockers: classification.blockers,
+        },
+      }
+    }
+
+    // Route/configuration family (route_profile_missing, environment_not_resolved,
+    // sender_ediel_id_missing, certificate_missing, production_send_locked, ...):
+    // block with the EXACT blocker + admin next action instead of a generic
+    // technical/needs-review outcome. The switch request row remains open so the
+    // customer stays visible in company_switch_queue_v.
+    if (classification.routeBlocked && classification.primary) {
+      const primary = classification.primary
+      await persistSupplierSwitchBlockerMetadata({
+        companyId: job.company_id,
+        switchRequestId: String(request.id),
+        blocker: {
+          ...primary,
+          blockers: classification.blockers,
+          blocked_at: nowIso(),
+          operation_id: operationId,
+        },
+      })
+      await emitCustomerOperationEvent({
+        companyId: job.company_id,
+        customerId: job.customer_id,
+        actorUserId,
+        eventType: 'supplier_switch.route_blocked',
+        title: 'Leverantörsbyte blockerat av route-konfiguration',
+        message: primary.blocker_reason,
+        customerSiteId: siteId,
+        meteringPointId: candidate.id,
+        customerOperationJobId: job.id,
+        operationId,
+        status: 'blocked',
+        severity: 'error',
+        actionRequired: true,
+        actionUrl: `/admin/ediel/route-readiness`,
+        payload: {
+          supplier_switch_request_id: request.id,
+          ...primary,
+          blockers: classification.blockers,
+          operation_id: operationId,
+        },
+        idempotencyKey: `supplier-switch-route-blocked:${request.id}:${primary.blocker_code}`,
+      })
+      return {
+        status: 'blocked',
+        result: {
+          switch_request_id: request.id,
+          supplier_switch_request_id: request.id,
+          ...primary,
+          reason: primary.reason_code,
+          blockers: classification.blockers,
+          preflight: started.preflight,
+        },
+      }
+    }
+
+    // Remaining business/data blockers: exact issues, manual review.
+    await emitCustomerOperationEvent({
+      companyId: job.company_id,
+      customerId: job.customer_id,
+      actorUserId,
+      eventType: 'supplier_switch.blocked',
+      title: 'Leverantörsbyte kan inte skickas ännu',
+      message: classification.blockers.map((entry) => entry.message).join(', ') || 'Leverantörsbytet är inte redo att skickas.',
+      customerSiteId: siteId,
+      meteringPointId: candidate.id,
+      customerOperationJobId: job.id,
+      operationId,
+      status: 'needs_review',
+      severity: 'warning',
+      actionRequired: true,
+      actionUrl: `/admin/customers/${job.customer_id}?tab=supplier-switch`,
+      payload: {
+        supplier_switch_request_id: request.id,
+        blockers: classification.blockers,
+        operation_id: operationId,
+      },
+      idempotencyKey: `supplier-switch-dispatch-blocked:${job.id}:${classification.blockers[0]?.code ?? 'unknown'}`,
+    })
+    return {
+      status: 'needs_review',
+      result: {
+        switch_request_id: request.id,
+        supplier_switch_request_id: request.id,
+        reason: classification.blockers[0]?.code ?? 'supplier_switch_dispatch_blocked',
+        reason_code: classification.blockers[0]?.code ?? 'supplier_switch_dispatch_blocked',
+        blockers: classification.blockers,
+        preflight: started.preflight,
+      },
+    }
   }
+
+  // Successful dispatch clears any previously recorded dispatch blocker.
+  await persistSupplierSwitchBlockerMetadata({
+    companyId: job.company_id,
+    switchRequestId: String(request.id),
+    blocker: null,
+  })
 
   await emitCustomerOperationEvent({
     companyId: job.company_id,
@@ -1845,6 +2117,64 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
         return { outcome, error: null as string | null, terminal: false }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Kundautomation misslyckades.'
+
+        // Missing/invalid GRIDEX_AUTOMATION_USER_ID is a configuration error,
+        // not a technical error: fail fast on the FIRST attempt with a clear,
+        // non-retryable admin-action blocker instead of burning max_attempts.
+        if (isAutomationConfigurationError(error)) {
+          const configurationResult = {
+            ...missingAutomationUserJobResult({
+              stage: job.job_type,
+              company_id: job.company_id,
+              customer_id: job.customer_id,
+              site_id: job.customer_site_id,
+              metering_point_id: job.metering_point_id,
+              job_id: job.id,
+              operation_id: job.operation_id ?? job.id,
+              worker_id: input.workerId,
+              attempt: job.attempts,
+              max_attempts: job.max_attempts,
+              last_attempted_at: nowIso(),
+            }),
+          }
+          await updateJob(job, {
+            status: 'needs_review',
+            result: configurationResult,
+            stale_reason: null,
+            run_after: nowIso(),
+            locked_at: null,
+            locked_by: null,
+            lock_token: null,
+            heartbeat_at: null,
+            last_error: message,
+            completed_at: nowIso(),
+          })
+          await emitCustomerOperationEvent({
+            companyId: job.company_id,
+            customerId: job.customer_id,
+            eventType: 'automation.configuration_missing',
+            title: 'Automationskonfiguration saknas',
+            message: 'GRIDEX_AUTOMATION_USER_ID saknas eller är ogiltigt. Automatiska Ediel-/leverantörsbytessteg kan inte köras förrän plattformsadministratören konfigurerar automationskontot.',
+            customerSiteId: job.customer_site_id,
+            meteringPointId: job.metering_point_id,
+            customerOperationJobId: job.id,
+            operationId: job.operation_id ?? job.id,
+            status: 'needs_review',
+            severity: 'critical',
+            actionRequired: true,
+            actionUrl: `/admin/customers/${job.customer_id}`,
+            payload: {
+              job_type: job.job_type,
+              error: message,
+              terminal_status: 'needs_review',
+              ...configurationResult,
+              required_admin_action: AUTOMATION_USER_REQUIRED_ADMIN_ACTION,
+            },
+            idempotencyKey: `automation-configuration-missing:${job.id}`,
+          })
+          return { outcome: null, error: `${job.id}: ${message}`, terminal: true }
+        }
+
         const terminal = job.attempts >= job.max_attempts
         const reviewTerminal = terminal && job.job_type === 'request_customer_data'
         // Preserve the real database/provider error: Postgres code, details and

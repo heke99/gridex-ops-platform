@@ -1,11 +1,17 @@
 import { supabaseService } from '@/lib/supabase/service'
-import { findCustomerSiteById, listMeteringPointsForSite, listPowersOfAttorneyByCustomerId, findOpenSupplierSwitchRequestForSite, createSupplierSwitchRequest, syncOperationTasksFromReadiness } from '@/lib/operations/db'
+import { findCustomerSiteById, listMeteringPointsForSite, listPowersOfAttorneyByCustomerId, findOpenSupplierSwitchRequestForSite, syncOperationTasksFromReadiness } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutomation'
 import { finalizeStuckZ01GridOwnerDataRequest } from '@/lib/customer-operations/z01Finalizer'
 import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProcessEvents'
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { checkSupplierSwitchReadiness, persistSwitchReadinessSnapshot } from '@/lib/customer-operations/switchReadiness'
+import { ensureSupplierSwitchRequestForReadySite } from '@/lib/customer-operations/supplierSwitchOrchestration'
+import {
+  isAutomationConfigurationError,
+  makeMissingAutomationUserBlocker,
+  resolveAutomationActorId,
+} from '@/lib/customer-operations/automationConfig'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 
 type JsonRecord = Record<string, unknown>
@@ -237,16 +243,42 @@ async function tryPrepareSupplierSwitch(input: {
     idempotencyKey: `supplier_switch.preparing:${input.companyId}:${input.site.id}`,
   })
 
-  const request = await createSupplierSwitchRequest(supabaseService, {
-    readiness,
-    site: input.site,
-    meteringPoint: input.meteringPoint,
-    requestType: 'switch',
-    requestedStartDate: null,
+  // Same find-or-create core as the website intake orchestration, so
+  // missing-facility completion produces identical supplier_switch_requests
+  // rows (metadata, requested start date from move-in, request_created event)
+  // and can never duplicate an open switch for the site.
+  const ensured = await ensureSupplierSwitchRequestForReadySite({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId: input.site.id,
+    meteringPointId: input.meteringPoint.id,
+    actorUserId: input.actorUserId,
+    operationId: input.operationId ?? null,
     automationOrigin: 'customer_process_next_step_engine',
     automationKey: `facility_data_received:${input.companyId}:${input.site.id}`,
-    companyId: input.companyId,
+    source: 'customer_process_next_step_engine',
   })
+  if (!ensured.ok || !ensured.request) {
+    await emitCustomerProcessEvent({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      customerSiteId: input.site.id,
+      meteringPointId: input.meteringPoint.id,
+      operationId: input.operationId ?? null,
+      eventType: 'supplier_switch.blocked',
+      title: 'Leverantörsbyte kan inte startas ännu',
+      message: `Komplettera först: ${ensured.blockers.map((blocker) => blocker.message).join(', ') || 'readiness'}`,
+      actorUserId: input.actorUserId,
+      status: 'blocked',
+      severity: 'error',
+      actionRequired: true,
+      source: 'customer_process_next_step_engine',
+      payload: { blockers: ensured.blockers },
+      idempotencyKey: `supplier_switch.blocked:${input.companyId}:${input.site.id}:${ensured.blockers[0]?.code ?? 'ensure'}`,
+    })
+    return null
+  }
+  const request = ensured.request
 
   await persistSwitchReadinessSnapshot({
     switchRequestId: request.id,
@@ -310,7 +342,40 @@ export async function evaluateAndRunNextCustomerStep(input: {
   source?: 'manual' | 'ediel_inbound' | 'system'
   skipZ01Finalization?: boolean
 }): Promise<CustomerProcessNextStepResult> {
-  const actorUserId = input.actorUserId ?? 'system'
+  // System-triggered runs (inbound mail/EDIEL, orchestrators) must use the
+  // configured automation account — the literal string 'system' is not a UUID
+  // and broke downstream Z01/Z03 actor validation. Missing config is a typed,
+  // non-retryable blocker instead of a crash.
+  let actorUserId: string
+  try {
+    actorUserId = resolveAutomationActorId(input.actorUserId)
+  } catch (error) {
+    if (isAutomationConfigurationError(error)) {
+      const blocker = makeMissingAutomationUserBlocker()
+      await emitCustomerProcessEvent({
+        companyId: input.companyId,
+        customerId: input.customerId,
+        customerSiteId: input.siteId ?? null,
+        operationId: input.operationId ?? null,
+        eventType: 'automation.configuration_missing',
+        title: 'Automationskonfiguration saknas',
+        message: blocker.blocker_reason,
+        actorUserId: null,
+        status: 'needs_review',
+        severity: 'critical',
+        actionRequired: true,
+        source: 'customer_process_next_step_engine',
+        payload: { ...blocker, trigger: input.trigger },
+        idempotencyKey: `automation.configuration_missing:${input.companyId}:${input.siteId ?? input.customerId}:${input.trigger}`,
+      })
+      return {
+        decision: 'blocked',
+        actionTaken: null,
+        blockers: [{ code: blocker.blocker_code, message: blocker.blocker_reason }],
+      }
+    }
+    throw error
+  }
   const blockers: CustomerProcessNextStepResult['blockers'] = []
   if (!input.siteId) {
     return { decision: 'manual_review', actionTaken: null, blockers: [{ code: 'site_missing', message: 'Anläggning saknas för nästa steg.' }] }

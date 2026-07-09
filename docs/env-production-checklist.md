@@ -49,6 +49,22 @@ Complete inventory from code (grep of `process.env.*`, 2026-07-03). All are
       `EDIEL_EXPISOFT_LDAP_TIMEOUT_MS`
 - [ ] `EDIEL_ACTOR_EDIEL_ID`, `EDIEL_AUTOMATION_ACTOR_USER_ID`,
       `GRIDEX_AUTOMATION_USER_ID`
+      — `GRIDEX_AUTOMATION_USER_ID` MUST be the UUID of an existing
+      `auth.users` row (a dedicated service/automation account, e.g.
+      `automation@<company-domain>`). It is used as `created_by`/actor for
+      automatic EDIEL and supplier-switch operations
+      (`customer_operation_jobs.created_by` has a foreign key to
+      `auth.users(id)`; note that `public.profiles` does not exist in this
+      schema). If the value is missing or invalid, automation jobs fail fast
+      with the non-retryable configuration blocker `missing_automation_user`
+      (`error_class = configuration_error`,
+      `required_admin_action = configure_GRIDEX_AUTOMATION_USER_ID`) instead
+      of consuming retry attempts. The customer-operations cron also
+      validates the value on every run
+      (`validateAutomationUserConfig` in `lib/customer-operations/automationConfig.ts`).
+      The account should be a platform-admin service account (row in
+      `admin_users`/`user_roles`) so `assertUserCanOperateCompany` allows it
+      to run automatic operations for every tenant.
 - [ ] Environment defaults: `GRIDEX_EDIEL_ENVIRONMENT`,
       `GRIDEX_CUSTOMER_DATA_EDIEL_ENVIRONMENT`, `GRIDEX_MANUAL_OPS_ENVIRONMENT`
       — must be `production` in the production deployment

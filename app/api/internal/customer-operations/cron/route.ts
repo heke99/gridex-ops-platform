@@ -1,6 +1,7 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
+import { validateAutomationUserConfig } from '@/lib/customer-operations/automationConfig'
 import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-operations/facilityLookupEdifactDispatch'
 import { resumeStuckEdielIntents } from '@/lib/ediel/intent/resumeStuckIntents'
 import { expireOverduePowersOfAttorney } from '@/lib/operations/powerOfAttorneyExpiry'
@@ -39,6 +40,17 @@ async function run(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
   try {
     const requestedLimit = limit(request.nextUrl.searchParams.get('limit'))
+    // Runtime validation of the automation actor config. A broken config must
+    // be loudly visible on every cron run, but must not stop unrelated job
+    // processing — jobs that need the actor fail fast with a typed
+    // missing_automation_user configuration blocker instead of retrying.
+    const automationUserConfig = await validateAutomationUserConfig()
+    if (!automationUserConfig.ok) {
+      console.error('[customer-operations-cron] automation user configuration invalid', {
+        issue: automationUserConfig.issue,
+        message: automationUserConfig.message,
+      })
+    }
     const customerOperations = await processCustomerOperationJobs({
       workerId: `customer-operations-cron:${new Date().toISOString()}`,
       limit: requestedLimit,
@@ -54,7 +66,19 @@ async function run(request: NextRequest) {
     // Persist POA expiry: previously only evaluated at read time, leaving rows
     // 'signed' forever in the admin UI and audit trail.
     const poaExpiry = await expireOverduePowersOfAttorney({ limit: 100 })
-    return NextResponse.json({ ok: true, result: { customerOperations, facilityLookupDispatch, resumedIntents, poaExpiry } })
+    return NextResponse.json({
+      ok: true,
+      result: {
+        customerOperations,
+        facilityLookupDispatch,
+        resumedIntents,
+        poaExpiry,
+        automationUserConfig: {
+          ok: automationUserConfig.ok,
+          issue: automationUserConfig.issue,
+        },
+      },
+    })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[customer-operations-cron] failed', { traceId, error })

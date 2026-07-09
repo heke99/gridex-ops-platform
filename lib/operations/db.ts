@@ -457,10 +457,25 @@ async function getSupplierSwitchRequestByAutomationKey(
   supabase: SupabaseClient,
   automationKey: string,
 ): Promise<SupplierSwitchRequestRow | null> {
+  // Prefer the open request; a completed/cancelled historical row may share
+  // the same automation key (uniqueness is enforced for open statuses only).
+  const openResult = await supabase
+    .from("supplier_switch_requests")
+    .select("*")
+    .eq("automation_key", automationKey)
+    .in("status", OPEN_SUPPLIER_SWITCH_STATUSES)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (openResult.error) throw openResult.error;
+  if (openResult.data) return openResult.data as SupplierSwitchRequestRow;
+
   const { data, error } = await supabase
     .from("supplier_switch_requests")
     .select("*")
     .eq("automation_key", automationKey)
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) throw error;
@@ -1427,6 +1442,8 @@ export async function createSupplierSwitchRequest(
     automationOrigin?: string | null;
     automationKey?: string | null;
     companyId?: string | null;
+    externalReference?: string | null;
+    metadata?: Record<string, unknown> | null;
   },
 ): Promise<SupplierSwitchRequestRow> {
   const actorId = await getActorId(supabase);
@@ -1481,6 +1498,10 @@ export async function createSupplierSwitchRequest(
   const insertPayload = {
     customer_id: params.readiness.customerId,
     site_id: params.site.id,
+    // Keep the legacy alias column coherent: several read paths (e.g. the
+    // customer intake orchestrator's open-switch detection) filter on
+    // customer_site_id, which ediel_rules.sql backfilled from site_id.
+    customer_site_id: params.site.id,
     metering_point_id: params.meteringPoint.id,
     power_of_attorney_id: params.readiness.latestPowerOfAttorneyId,
     authorization_document_id: authorizationDocumentId,
@@ -1525,6 +1546,8 @@ export async function createSupplierSwitchRequest(
     },
     automation_origin: params.automationOrigin ?? null,
     automation_key: params.automationKey ?? null,
+    external_reference: params.externalReference ?? null,
+    metadata: params.metadata ?? {},
     created_by: actorId,
     updated_by: actorId,
     company_id: params.companyId ?? null,

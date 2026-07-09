@@ -21,6 +21,7 @@ export type CustomerOperationBlockerCode =
   | "environment_not_resolved"
   | "environment_ambiguous"
   | "stale_response_requires_review"
+  | "missing_automation_user"
   | "technical_error"
   | "temporary_provider_error"
   | "send_uncertain";
@@ -36,6 +37,7 @@ export type CustomerOperationIssueType =
 export type CustomerOperationErrorClass =
   | "business_blocker"
   | "configuration_blocker"
+  | "configuration_error"
   | "technical_error"
   | "temporary_provider_error"
   | "send_uncertain";
@@ -223,6 +225,14 @@ const BLOCKERS: Record<
     issue_type: "data",
     error_class: "business_blocker",
   },
+  missing_automation_user: {
+    blocker_reason:
+      "GRIDEX_AUTOMATION_USER_ID saknas för automatisk Ediel-åtgärd.",
+    next_required_action:
+      "Configure GRIDEX_AUTOMATION_USER_ID for automatic EDIEL/supplier switch operations",
+    issue_type: "technical",
+    error_class: "configuration_error",
+  },
   technical_error: {
     blocker_reason: "Ett tekniskt fel stoppade automationen.",
     next_required_action:
@@ -356,6 +366,8 @@ export function customerBlockerStatusLabel(code: unknown): string {
       return "Uppgiftsbegäran blockerad av route-konfiguration";
     case "production_send_locked":
       return "Uppgiftsbegäran blockerad av produktionslås";
+    case "missing_automation_user":
+      return "Automation blockerad av saknad konfiguration";
     case "facility_or_metering_point_missing":
     case "facility_identifier_required_for_prodat_z01":
       return "Anläggnings-ID saknas";

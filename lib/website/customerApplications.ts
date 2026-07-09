@@ -24,6 +24,7 @@ import { getBaseAppUrl } from '@/lib/auth/urls'
 import { ensureCustomerPortalUserLink } from '@/lib/customer-portal/customerResolver'
 import { applyCustomerSiteAddressCandidate, createOrUpdateCustomerSiteFromAddress } from '@/lib/customer-sites/addressIntake'
 import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
+import { ensureSupplierSwitchForReadyCustomer } from '@/lib/customer-operations/supplierSwitchOrchestration'
 import { ensureCustomerApplicationWorkflow, transitionCustomerApplicationWorkflow } from '@/lib/website/applicationWorkflow'
 import { commitApplicationProvisioning, failApplicationProvisioning } from '@/lib/website/provisioningSaga'
 import { buildPublicLegalUrl, loadCompanySlugById } from '@/lib/legal/publicLegalDocuments'
@@ -1109,6 +1110,7 @@ type ErrorStage =
   | 'application_workflow'
   | 'application_workflow_transition'
   | 'customer_data_automation'
+  | 'supplier_switch_orchestration'
   | 'customer_intake_orchestrator'
   | 'manual_information_request_summary'
   | 'communication_trigger'
@@ -4160,6 +4162,71 @@ export async function processWebsiteCustomerApplication(input: {
       }))
     }
 
+    // Automatic supplier switch orchestration. When intake ends ready_for_switch
+    // with can_start_switch=true (facility, metering point, contract, signed POA
+    // and a requested start/move-in date all exist), the switch request is
+    // created immediately (customer appears in company_switch_queue_v) and the
+    // canonical start_supplier_switch job is enqueued. Route/preflight then
+    // decides Z03 dispatch vs. an exact blocker. The helper is NON-THROWING:
+    // the application is already durably committed at this point, so
+    // orchestration issues surface as warnings/events — never a failed intake.
+    const supplierSwitchWarnings: string[] = []
+    let supplierSwitchOrchestration: Awaited<ReturnType<typeof ensureSupplierSwitchForReadyCustomer>> | null = null
+    const siteMoveInDate = clean(body.site?.move_in_date)
+    const supplierSwitchStartDate = readiness.requestedStartDate ?? siteMoveInDate
+    if (
+      applicationStatus === 'ready_for_switch' &&
+      readiness.canStartSwitch === true &&
+      committedSiteId &&
+      !facilityMissing &&
+      meteringPoint?.id &&
+      contract?.id &&
+      powerOfAttorneyId &&
+      supplierSwitchStartDate
+    ) {
+      supplierSwitchOrchestration = await stage('supplier_switch_orchestration', () => ensureSupplierSwitchForReadyCustomer({
+        companyId: input.client.company_id,
+        customerId: resolvedCustomerResult.customer.id,
+        siteId: committedSiteId,
+        meteringPointId: meteringPoint?.id ?? null,
+        actorUserId: null,
+        operationId: workflow.operationId,
+        applicationId: application.id,
+        source: 'website_customer_applications',
+        requestedStartDate: supplierSwitchStartDate,
+        externalReference: externalCustomerId,
+        context: {
+          externalCustomerId,
+          contractId: contract?.id ?? null,
+          powerOfAttorneyId,
+          requestedStartDate: readiness.requestedStartDate,
+          requestedStartMode: readiness.requestedStartMode,
+          moveInDate: siteMoveInDate,
+          facilityId: clean(site?.facility_id),
+          gridOwnerId: energyResolution.resolution.gridOwnerId,
+          gridAreaCode: readiness.gridAreaCode,
+          priceAreaCode: readiness.priceArea,
+          // Canonical site patch sets bidding_zone_code from the price area.
+          biddingZoneCode: readiness.priceArea,
+        },
+      }))
+
+      if (supplierSwitchOrchestration.ok) {
+        responsePayload.supplier_switch_request_id = supplierSwitchOrchestration.supplierSwitchRequestId
+        responsePayload.supplier_switch_job_id = supplierSwitchOrchestration.jobId
+        responsePayload.supplier_switch_requested_start_date = supplierSwitchOrchestration.requestedStartDate
+        responsePayload.supplier_switch_status = supplierSwitchOrchestration.created
+          ? 'created'
+          : supplierSwitchOrchestration.reusedExisting
+            ? 'already_open'
+            : 'queued'
+      } else {
+        supplierSwitchWarnings.push('supplier_switch_orchestration_pending')
+        responsePayload.supplier_switch_status = 'pending_review'
+        responsePayload.supplier_switch_blockers = supplierSwitchOrchestration.blockers
+      }
+    }
+
     if (gridOwnerRequest?.requestId) {
       await supabaseService
         .from('website_customer_applications')
@@ -4238,7 +4305,7 @@ export async function processWebsiteCustomerApplication(input: {
       },
     }))
 
-    const warnings: string[] = [...readiness.warnings, ...(gridOwnerRequest?.warnings ?? []), ...poaWarnings]
+    const warnings: string[] = [...readiness.warnings, ...(gridOwnerRequest?.warnings ?? []), ...poaWarnings, ...supplierSwitchWarnings]
     let communicationResults: unknown[] = []
     let triggeredEmailEvents: string[] = []
 
