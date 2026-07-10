@@ -1,4 +1,5 @@
 //lib/website/customerApplications.ts
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
@@ -36,6 +37,17 @@ const OPTIONAL_TEXT = z.preprocess(
   z.string().optional()
 )
 
+const OPTIONAL_BOOLEAN = z.preprocess((value) => {
+  if (value === undefined || value === null || value === '') return undefined
+  if (value === true || value === false) return value
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'true') return true
+    if (normalized === 'false') return false
+  }
+  return value
+}, z.boolean().optional())
+
 const CustomerSchema = z.object({
   customer_type: z.enum(['private', 'business']).default('private'),
   first_name: OPTIONAL_TEXT,
@@ -69,6 +81,28 @@ const SiteSchema = z.object({
   gridOwnerId: OPTIONAL_TEXT,
   grid_owner_verification_status: OPTIONAL_TEXT,
   gridOwnerVerificationStatus: OPTIONAL_TEXT,
+  bidding_zone_code: OPTIONAL_TEXT,
+  biddingZoneCode: OPTIONAL_TEXT,
+  current_supplier_id: OPTIONAL_TEXT,
+  currentSupplierId: OPTIONAL_TEXT,
+  current_supplier_name: OPTIONAL_TEXT,
+  currentSupplierName: OPTIONAL_TEXT,
+  current_supplier_org_number: OPTIONAL_TEXT,
+  currentSupplierOrgNumber: OPTIONAL_TEXT,
+  current_supplier_ediel_id: OPTIONAL_TEXT,
+  currentSupplierEdielId: OPTIONAL_TEXT,
+  current_supplier_unknown: OPTIONAL_BOOLEAN,
+  currentSupplierUnknown: OPTIONAL_BOOLEAN,
+  current_supplier_contract_status: OPTIONAL_TEXT,
+  currentSupplierContractStatus: OPTIONAL_TEXT,
+  current_supplier_contract_end_date: OPTIONAL_TEXT,
+  currentSupplierContractEndDate: OPTIONAL_TEXT,
+  current_supplier_notice_period: OPTIONAL_TEXT,
+  currentSupplierNoticePeriod: OPTIONAL_TEXT,
+  current_supplier_termination_fee: z.coerce.number().optional(),
+  currentSupplierTerminationFee: z.coerce.number().optional(),
+  current_supplier_response_status: OPTIONAL_TEXT,
+  currentSupplierResponseStatus: OPTIONAL_TEXT,
   latitude: z.coerce.number().optional(),
   longitude: z.coerce.number().optional(),
   sweref99_x: z.coerce.number().optional(),
@@ -89,6 +123,10 @@ const MeteringPointSchema = z.object({
   price_area: OPTIONAL_TEXT,
   grid_area_code: OPTIONAL_TEXT,
   gridAreaCode: OPTIONAL_TEXT,
+  grid_owner_id: OPTIONAL_TEXT,
+  gridOwnerId: OPTIONAL_TEXT,
+  bidding_zone_code: OPTIONAL_TEXT,
+  biddingZoneCode: OPTIONAL_TEXT,
   start_date: OPTIONAL_TEXT,
   installation_date: OPTIONAL_TEXT,
   estimated_annual_consumption_kwh: z.coerce.number().optional(),
@@ -137,7 +175,7 @@ const ContractSchema = z.object({
 // signer/scope/method/evidence. The frontend-provided legal text is never
 // trusted — the active legal/fullmakt text is loaded by textVersionId.
 const PowerOfAttorneySchema = z.object({
-  accepted: z.coerce.boolean().optional(),
+  accepted: OPTIONAL_BOOLEAN,
   scope: z.array(z.string()).optional(),
   signerName: OPTIONAL_TEXT,
   signer_name: OPTIONAL_TEXT,
@@ -167,6 +205,26 @@ const ApplicationSchema = z.object({
   grid_owner_id: OPTIONAL_TEXT,
   network_owner_id: OPTIONAL_TEXT,
   electricity_supplier_id: OPTIONAL_TEXT,
+  current_supplier_id: OPTIONAL_TEXT,
+  currentSupplierId: OPTIONAL_TEXT,
+  current_supplier_name: OPTIONAL_TEXT,
+  currentSupplierName: OPTIONAL_TEXT,
+  current_supplier_org_number: OPTIONAL_TEXT,
+  currentSupplierOrgNumber: OPTIONAL_TEXT,
+  current_supplier_ediel_id: OPTIONAL_TEXT,
+  currentSupplierEdielId: OPTIONAL_TEXT,
+  current_supplier_unknown: OPTIONAL_BOOLEAN,
+  currentSupplierUnknown: OPTIONAL_BOOLEAN,
+  current_supplier_contract_status: OPTIONAL_TEXT,
+  currentSupplierContractStatus: OPTIONAL_TEXT,
+  current_supplier_contract_end_date: OPTIONAL_TEXT,
+  currentSupplierContractEndDate: OPTIONAL_TEXT,
+  current_supplier_notice_period: OPTIONAL_TEXT,
+  currentSupplierNoticePeriod: OPTIONAL_TEXT,
+  current_supplier_termination_fee: z.coerce.number().optional(),
+  currentSupplierTerminationFee: z.coerce.number().optional(),
+  current_supplier_response_status: OPTIONAL_TEXT,
+  currentSupplierResponseStatus: OPTIONAL_TEXT,
   price_plan_id: OPTIONAL_TEXT,
   price_plan_version_id: OPTIONAL_TEXT,
   contract_offer_id: OPTIONAL_TEXT,
@@ -252,6 +310,373 @@ function validateStructuredPoaForExternalSendability(poa: NormalizedStructuredPo
 }
 
 type ApplicationInput = z.infer<typeof ApplicationSchema>
+
+const IDEMPOTENCY_KEY_MIN_LENGTH = 8
+const IDEMPOTENCY_KEY_MAX_LENGTH = 200
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._~:+-]+$/
+const REQUESTED_START_MODES = new Set(['earliest_possible', 'specific_date'])
+const REPLAYABLE_COMMITTED_STATUSES = new Set([
+  'received',
+  'application_received',
+  'customer_created',
+  'customer_matched',
+  'contract_created',
+  'confirmation_pending',
+  'confirmation_sent',
+  'cooling_off_sent',
+  'webhook_pending',
+  'completed',
+  'linked_existing_customer',
+  'needs_address_resolution',
+  'address_resolved',
+  'grid_area_resolved',
+  'needs_facility_data',
+  'information_request_ready',
+  'information_request_sent',
+  'waiting_grid_owner_response',
+  'facility_data_received',
+  'needs_information',
+  'pending_validation',
+  'pending_review',
+  'manual_review',
+  'ready_for_switch',
+  'switch_requested',
+  'switch_confirmed',
+  'active',
+  'repaired',
+])
+const BUSINESS_CONFLICT_STATUSES = new Set(['processing', ...REPLAYABLE_COMMITTED_STATUSES])
+const COMMITTED_SITE_REQUIRED_STATUSES = new Set([
+  'needs_address_resolution',
+  'address_resolved',
+  'grid_area_resolved',
+  'needs_facility_data',
+  'information_request_ready',
+  'information_request_sent',
+  'waiting_grid_owner_response',
+  'facility_data_received',
+  'ready_for_switch',
+  'switch_requested',
+  'switch_confirmed',
+  'active',
+  'repaired',
+])
+const COMMITTED_METERING_REQUIRED_STATUSES = new Set([
+  'facility_data_received',
+  'ready_for_switch',
+  'switch_requested',
+  'switch_confirmed',
+  'active',
+])
+const COMMITTED_CONTRACT_REQUIRED_STATUSES = new Set([
+  'contract_created',
+  'confirmation_pending',
+  'confirmation_sent',
+  'cooling_off_sent',
+  'webhook_pending',
+  'completed',
+  'ready_for_switch',
+  'switch_requested',
+  'switch_confirmed',
+  'active',
+])
+
+function stableJson(value: unknown): string {
+  if (value === undefined) return 'null'
+  if (value === null || typeof value !== 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map((item) => stableJson(item)).join(',')}]`
+  const record = value as Record<string, unknown>
+  return `{${Object.keys(record)
+    .filter((key) => record[key] !== undefined)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`)
+    .join(',')}}`
+}
+
+function applicationPayloadHash(value: unknown): string {
+  return createHash('sha256').update(stableJson(value)).digest('hex')
+}
+
+function normalizedBusinessToken(value: unknown): string | null {
+  const text = clean(value)
+  return text ? text.toLowerCase().replace(/\s+/g, ' ').trim() : null
+}
+
+function normalizedFacilityToken(value: unknown): string | null {
+  const text = clean(value)
+  return text ? text.replace(/\s+/g, '').toUpperCase() : null
+}
+
+/**
+ * Stable business identity used to prevent a second parallel application for
+ * the same external customer/site/offer/start event under a new idempotency
+ * key. Mutable completion data (supplier details, POA evidence, metadata) is
+ * deliberately excluded so it cannot create a second business process.
+ */
+function applicationBusinessKeyHash(input: ApplicationInput, externalCustomerId: string): string | null {
+  const site = input.site
+  const metering = input.metering_point
+  const contract = input.contract
+  const facilityId = normalizedFacilityToken(site?.facility_id ?? metering?.site_facility_id ?? metering?.anlage_id)
+  const meteringPointId = normalizedFacilityToken(
+    metering?.metering_point_id ?? metering?.meter_point_id ?? metering?.ediel_metering_point_id,
+  )
+  const address = [site?.street, site?.postal_code, site?.city]
+    .map(normalizedBusinessToken)
+    .filter((value): value is string => Boolean(value))
+    .join('|') || null
+  const siteIdentity = facilityId
+    ? `facility:${facilityId}`
+    : meteringPointId
+      ? `metering:${meteringPointId}`
+      : address
+        ? `address:${address}`
+        : null
+  if (!siteIdentity) return null
+
+  const offerIdentity = normalizedBusinessToken(
+    input.offer_reference ?? input.offerReference ?? contract?.offer_reference ?? contract?.offerReference ??
+    input.contract_offer_id ?? contract?.contract_offer_id ?? input.price_plan_version_id ?? contract?.price_plan_version_id ??
+    input.product_code ?? contract?.product_code ?? input.price_plan_id ?? contract?.price_plan_id,
+  ) ?? 'unspecified-offer'
+  const requestedStartDate = clean(
+    input.requested_start_date ?? contract?.requested_start_date ?? contract?.requestedStartDate ??
+    contract?.starts_at ?? site?.move_in_date,
+  ) ?? 'unspecified-start'
+
+  return applicationPayloadHash({
+    external_customer_id: externalCustomerId,
+    site_identity: siteIdentity,
+    offer_identity: offerIdentity,
+    requested_start_date: requestedStartDate,
+  })
+}
+
+function validIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parsed = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+}
+
+function validIsoTimestamp(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(Date.parse(value))
+}
+
+function nestedRecord(value: unknown, key: string): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const nested = (value as Record<string, unknown>)[key]
+  return nested && typeof nested === 'object' && !Array.isArray(nested) ? nested as Record<string, unknown> : null
+}
+
+function validateApplicationDates(input: Record<string, unknown>): WebsiteApplicationError | null {
+  const site = nestedRecord(input, 'site')
+  const metering = nestedRecord(input, 'metering_point')
+  const contract = nestedRecord(input, 'contract')
+  const dateFields: Array<[string, unknown]> = [
+    ['requested_start_date', input.requested_start_date],
+    ['confirmed_start_date', input.confirmed_start_date],
+    ['actual_start_date', input.actual_start_date],
+    ['calculated_earliest_start_date', input.calculated_earliest_start_date],
+    ['current_supplier_contract_end_date', input.current_supplier_contract_end_date],
+    ['site.move_in_date', site?.move_in_date],
+    ['site.current_supplier_contract_end_date', site?.current_supplier_contract_end_date],
+    ['metering_point.start_date', metering?.start_date],
+    ['metering_point.installation_date', metering?.installation_date],
+    ['contract.starts_at', contract?.starts_at],
+    ['contract.expected_start_at', contract?.expected_start_at],
+    ['contract.requested_start_date', contract?.requested_start_date],
+    ['contract.confirmed_start_date', contract?.confirmed_start_date],
+    ['contract.actual_start_date', contract?.actual_start_date],
+    ['contract.calculated_earliest_start_date', contract?.calculated_earliest_start_date],
+  ]
+  for (const [field, value] of dateFields) {
+    const text = clean(value)
+    if (text && !validIsoDate(text)) {
+      return new WebsiteApplicationError({
+        message: `${field} måste vara ett giltigt kalenderdatum i formatet YYYY-MM-DD.`,
+        status: 422,
+        code: 'date_invalid',
+        field,
+        stage: 'validation',
+        hint: 'Skicka datum som exempelvis 2026-07-15.',
+      })
+    }
+  }
+
+  const poa = nestedRecord(input, 'powerOfAttorney') ?? nestedRecord(input, 'power_of_attorney')
+  const acceptedAt = clean(poa?.acceptedAt) ?? clean(poa?.accepted_at)
+  if (acceptedAt && !validIsoTimestamp(acceptedAt)) {
+    return new WebsiteApplicationError({
+      message: 'powerOfAttorney.acceptedAt måste vara en giltig ISO 8601-tidsstämpel.',
+      status: 422,
+      code: 'timestamp_invalid',
+      field: 'powerOfAttorney.acceptedAt',
+      stage: 'validation',
+      hint: 'Skicka exempelvis 2026-07-10T08:30:00Z.',
+    })
+  }
+  const signedAt = clean(contract?.signed_at)
+  if (signedAt && !validIsoTimestamp(signedAt)) {
+    return new WebsiteApplicationError({
+      message: 'contract.signed_at måste vara en giltig ISO 8601-tidsstämpel.',
+      status: 422,
+      code: 'timestamp_invalid',
+      field: 'contract.signed_at',
+      stage: 'validation',
+      hint: 'Skicka exempelvis 2026-07-10T08:30:00Z.',
+    })
+  }
+  return null
+}
+
+function validateRequestedStartMode(input: Record<string, unknown>): WebsiteApplicationError | null {
+  const contract = nestedRecord(input, 'contract')
+  const raw = clean(input.requested_start_mode) ?? clean(input.requestedStartMode) ?? clean(contract?.requested_start_mode) ?? clean(contract?.requestedStartMode)
+  if (!raw) return null
+  const normalized = raw.toLowerCase()
+  if (!REQUESTED_START_MODES.has(normalized)) {
+    return new WebsiteApplicationError({
+      message: `requested_start_mode "${raw}" stöds inte.`,
+      status: 422,
+      code: 'requested_start_mode_invalid',
+      field: 'requested_start_mode',
+      stage: 'validation',
+      hint: 'Använd earliest_possible eller specific_date.',
+    })
+  }
+  return null
+}
+
+function validateIdempotencyKey(value: string | null | undefined): WebsiteApplicationError | null {
+  if (!value) {
+    return new WebsiteApplicationError({
+      message: 'Idempotency-Key krävs för kundansökningar.',
+      status: 400,
+      code: 'idempotency_key_required',
+      field: 'Idempotency-Key',
+      stage: 'idempotency',
+      hint: 'Skicka en stabil unik nyckel och återanvänd den endast för exakt samma payload.',
+    })
+  }
+  if (value.length < IDEMPOTENCY_KEY_MIN_LENGTH || value.length > IDEMPOTENCY_KEY_MAX_LENGTH || !IDEMPOTENCY_KEY_PATTERN.test(value)) {
+    return new WebsiteApplicationError({
+      message: 'Idempotency-Key har ogiltigt format.',
+      status: 400,
+      code: 'idempotency_key_invalid',
+      field: 'Idempotency-Key',
+      stage: 'idempotency',
+      hint: `Använd ${IDEMPOTENCY_KEY_MIN_LENGTH}-${IDEMPOTENCY_KEY_MAX_LENGTH} tecken: bokstäver, siffror, punkt, understreck, kolon, plus, tilde eller bindestreck.`,
+    })
+  }
+  return null
+}
+
+const TOP_LEVEL_PAYLOAD_FIELDS = new Set([
+  'actual_start_date','address','addressLine1','addressType','address_line1','address_type',
+  'anlage_id','anlaggningId','annualConsumptionKwh','annual_consumption_kwh','authUserId','auth_user_id',
+  'biddingZoneCode','bidding_zone_code','billingAddressSameAsSite','billingCity','billingCountry','billingPostalCode',
+  'billingStreet','billing_address_same_as_site','billing_city','billing_country','billing_postal_code','billing_street',
+  'bindingMonths','binding_months','calculatedEarliestStartDate','calculated_earliest_start_date','campaignCode','campaign_code',
+  'channel','city','companyName','company_name','confirmed_start_date','consents',
+  'contract','contractName','contractNumber','contractOfferId','contractType','contract_name',
+  'contract_number','contract_offer_id','contract_type','country','currentSupplierContractEndDate','currentSupplierContractStatus',
+  'currentSupplierEdielId','currentSupplierId','currentSupplierName','currentSupplierNoticePeriod','currentSupplierOrgNumber','currentSupplierResponseStatus',
+  'currentSupplierTerminationFee','currentSupplierUnknown','current_supplier_contract_end_date','current_supplier_contract_status','current_supplier_ediel_id','current_supplier_id',
+  'current_supplier_name','current_supplier_notice_period','current_supplier_org_number','current_supplier_response_status','current_supplier_termination_fee','current_supplier_unknown',
+  'customer','customerPortalUserId','customerType','customer_external_id','customer_portal_user_id','customer_type',
+  'edielMeteringPointId','ediel_metering_point_id','electricity_supplier_id','email','estimatedAnnualConsumptionKwh','estimated_annual_consumption_kwh',
+  'externalAccountId','externalCustomerId','external_account_id','external_customer_id','facilityId','facility_id',
+  'firstName','first_name','fixedPriceOrePerKwh','fixed_price_ore_per_kwh','fullName','full_name',
+  'greenFeeMode','greenFeeValue','green_fee_mode','green_fee_value','gridAreaCode','gridOwnerId',
+  'gridOwnerVerificationStatus','grid_area_code','grid_owner_id','grid_owner_verification_status','identityNumber','identity_number',
+  'installationDate','installation_date','invoiceEmail','invoiceFeeSek','invoice_email','invoice_fee_sek',
+  'lastName','last_name','legalAcceptances','legal_acceptances','markupOrePerKwh','markup_ore_per_kwh',
+  'measurement_type','metadata','meterPointId','meter_point_id','meteringPointId','metering_point',
+  'metering_point_id','monthlyFeeSek','monthly_fee_sek','moveInDate','move_in_date','name',
+  'network_owner_id','noticeMonths','notice_months','offerReference','offer_reference','orgNumber',
+  'org_number','organisationNumber','organisation_number','organisationsnummer','organizationNumber','organization_number',
+  'orgnr','personalIdentityNumber','personalNumber','personal_identity_number','personal_number','personnummer',
+  'phone','postalCode','postal_code','powerOfAttorney','power_of_attorney','priceArea',
+  'priceAreaCode','pricePlanId','pricePlanVersionId','price_area','price_area_code','price_plan_id',
+  'price_plan_version_id','price_version','productCode','productName','product_code','product_name',
+  'reading_frequency','requestedStartDate','requestedStartMode','requested_start_date','requested_start_mode','resolutionStatus',
+  'resolution_status','site','siteFacilityId','siteName','siteType','site_facility_id',
+  'site_name','site_type','source','spotMarkupOrePerKwh','spot_markup_ore_per_kwh','startDate',
+  'start_date','startsAt','starts_at','street','streetAddress','street_address',
+  'termsVersion','terms_version','type','variableFeeOrePerKwh','variable_fee_ore_per_kwh','webAuthUserId',
+  'web_auth_user_id','website','zip',
+])
+
+const NESTED_PAYLOAD_FIELDS: Record<string, Set<string>> = {
+  customer: new Set([
+    'customer_type','customerType','type','first_name','firstName','last_name','lastName','full_name','fullName','name',
+    'company_name','companyName','personal_number','personalNumber','personal_identity_number','personalIdentityNumber',
+    'identity_number','identityNumber','personnummer','org_number','orgNumber','organization_number','organizationNumber',
+    'organisation_number','organisationNumber','organisationsnummer','orgnr','email','phone','invoice_email','invoiceEmail',
+    'billing_street','billingStreet','billing_postal_code','billingPostalCode','billing_city','billingCity','billing_country','billingCountry',
+  ]),
+  site: new Set([
+    'facility_id','facilityId','site_facility_id','siteFacilityId','anlage_id','anlaggningId','site_name','siteName','site_type','siteType',
+    'street','address','postal_code','postalCode','city','country','price_area_code','priceAreaCode','price_area','priceArea',
+    'bidding_zone_code','biddingZoneCode','grid_area_code','gridAreaCode','grid_owner_id','gridOwnerId',
+    'grid_owner_verification_status','gridOwnerVerificationStatus','current_supplier_id','currentSupplierId',
+    'current_supplier_name','currentSupplierName','current_supplier_org_number','currentSupplierOrgNumber',
+    'current_supplier_ediel_id','currentSupplierEdielId','current_supplier_unknown','currentSupplierUnknown',
+    'current_supplier_contract_status','currentSupplierContractStatus','current_supplier_contract_end_date','currentSupplierContractEndDate',
+    'current_supplier_notice_period','currentSupplierNoticePeriod','current_supplier_termination_fee','currentSupplierTerminationFee',
+    'current_supplier_response_status','currentSupplierResponseStatus','latitude','longitude','sweref99_x','sweref99X','sweref99_y','sweref99Y',
+    'move_in_date','moveInDate','annual_consumption_kwh','annualConsumptionKwh',
+  ]),
+  metering_point: new Set([
+    'metering_point_id','meteringPointId','meter_point_id','meterPointId','ediel_metering_point_id','edielMeteringPointId',
+    'anlage_id','anlaggningId','site_facility_id','siteFacilityId','reading_frequency','readingFrequency','measurement_type','measurementType',
+    'price_area_code','priceAreaCode','price_area','priceArea','bidding_zone_code','biddingZoneCode','grid_area_code','gridAreaCode',
+    'grid_owner_id','gridOwnerId','start_date','startDate','installation_date','installationDate',
+    'estimated_annual_consumption_kwh','estimatedAnnualConsumptionKwh',
+  ]),
+  contract: new Set([
+    'offer_reference','offerReference','contract_name','contractName','contract_type','contractType','contract_number','contractNumber',
+    'price_plan_id','pricePlanId','price_plan_version_id','pricePlanVersionId','contract_offer_id','contractOfferId','product_code','productCode',
+    'starts_at','startsAt','expected_start_at','expectedStartAt','requested_start_date','requestedStartDate',
+    'confirmed_start_date','confirmedStartDate','actual_start_date','actualStartDate','requested_start_mode','requestedStartMode',
+    'calculated_earliest_start_date','calculatedEarliestStartDate','signed_at','signedAt','monthly_fee_sek','monthlyFeeSek',
+    'invoice_fee_sek','invoiceFeeSek','markup_ore_per_kwh','markupOrePerKwh','spot_markup_ore_per_kwh','spotMarkupOrePerKwh',
+    'variable_fee_ore_per_kwh','variableFeeOrePerKwh','fixed_price_ore_per_kwh','fixedPriceOrePerKwh','green_fee_mode','greenFeeMode',
+    'green_fee_value','greenFeeValue','binding_months','bindingMonths','notice_months','noticeMonths','campaign_code','campaignCode',
+    'price_version','priceVersion','terms_version','termsVersion',
+  ]),
+  powerOfAttorney: new Set([
+    'accepted','scope','signerName','signer_name','signerIdentityNumber','signer_identity_number','method','acceptedAt','accepted_at',
+    'textVersionId','text_version_id','ipAddress','ip_address','userAgent','user_agent',
+  ]),
+  power_of_attorney: new Set([
+    'accepted','scope','signerName','signer_name','signerIdentityNumber','signer_identity_number','method','acceptedAt','accepted_at',
+    'textVersionId','text_version_id','ipAddress','ip_address','userAgent','user_agent',
+  ]),
+}
+
+function validateNestedPayloadFields(rawBody: unknown): WebsiteApplicationError | null {
+  if (!isObject(rawBody)) return null
+  const unknownFields: string[] = Object.keys(rawBody)
+    .filter((key) => !TOP_LEVEL_PAYLOAD_FIELDS.has(key))
+  for (const [container, allowed] of Object.entries(NESTED_PAYLOAD_FIELDS)) {
+    const value = rawBody[container]
+    if (!isObject(value)) continue
+    for (const key of Object.keys(value)) {
+      if (!allowed.has(key)) unknownFields.push(`${container}.${key}`)
+    }
+  }
+  if (unknownFields.length === 0) return null
+  return new WebsiteApplicationError({
+    message: 'Payloaden innehåller okända eller felplacerade fält.',
+    status: 422,
+    code: 'unknown_field',
+    field: unknownFields[0],
+    stage: 'validation',
+    hint: 'Flytta fältet till dokumenterad plats eller ta bort det. API:t ignorerar inte längre okända affärskritiska nested-fält.',
+    details: { fields: unknownFields },
+  })
+}
 
 
 type WebsiteLegalAcceptanceVersion = {
@@ -1181,6 +1606,13 @@ function duplicateIdempotencyKey(error: unknown): boolean {
   return code === '23505' && /website_customer_applications_company_idempotency_uidx|company_id, idempotency_key/i.test(`${details} ${message}`)
 }
 
+function duplicateBusinessKey(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const details = (error as { details?: string } | null)?.details ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return code === '23505' && /website_customer_applications_company_business_event_uidx|company_id, business_key_hash/i.test(`${details} ${message}`)
+}
+
 function normalizedEmail(value: unknown): string | null {
   return clean(value)?.toLowerCase() ?? null
 }
@@ -1455,7 +1887,7 @@ function explicitMeteringPriceAreaCode(input: ApplicationInput): string | null {
 }
 
 function explicitMeteringGridOwnerId(input: ApplicationInput): string | null {
-  return explicitSiteGridOwnerId(input)
+  return clean(input.metering_point?.grid_owner_id) ?? clean(input.metering_point?.gridOwnerId) ?? explicitSiteGridOwnerId(input)
 }
 
 function requestedSiteMoveInDate(input: ApplicationInput): string | null {
@@ -1483,6 +1915,16 @@ function websiteSiteCanonicalFields(input: ApplicationInput, options: { facility
   const moveInDate = requestedSiteMoveInDate(input)
   const annualConsumption = requestedAnnualConsumption(input)
   const site = input.site
+  const currentSupplierId = clean(site?.current_supplier_id) ?? clean(site?.currentSupplierId) ?? clean(input.current_supplier_id) ?? clean(input.currentSupplierId)
+  const currentSupplierName = clean(site?.current_supplier_name) ?? clean(site?.currentSupplierName) ?? clean(input.current_supplier_name) ?? clean(input.currentSupplierName)
+  const currentSupplierOrgNumber = clean(site?.current_supplier_org_number) ?? clean(site?.currentSupplierOrgNumber) ?? clean(input.current_supplier_org_number) ?? clean(input.currentSupplierOrgNumber)
+  const currentSupplierEdielId = clean(site?.current_supplier_ediel_id) ?? clean(site?.currentSupplierEdielId) ?? clean(input.current_supplier_ediel_id) ?? clean(input.currentSupplierEdielId)
+  const currentSupplierUnknown = site?.current_supplier_unknown ?? site?.currentSupplierUnknown ?? input.current_supplier_unknown ?? input.currentSupplierUnknown
+  const currentSupplierContractStatus = clean(site?.current_supplier_contract_status) ?? clean(site?.currentSupplierContractStatus) ?? clean(input.current_supplier_contract_status) ?? clean(input.currentSupplierContractStatus)
+  const currentSupplierContractEndDate = clean(site?.current_supplier_contract_end_date) ?? clean(site?.currentSupplierContractEndDate) ?? clean(input.current_supplier_contract_end_date) ?? clean(input.currentSupplierContractEndDate)
+  const currentSupplierNoticePeriod = clean(site?.current_supplier_notice_period) ?? clean(site?.currentSupplierNoticePeriod) ?? clean(input.current_supplier_notice_period) ?? clean(input.currentSupplierNoticePeriod)
+  const currentSupplierTerminationFee = site?.current_supplier_termination_fee ?? site?.currentSupplierTerminationFee ?? input.current_supplier_termination_fee ?? input.currentSupplierTerminationFee
+  const currentSupplierResponseStatus = clean(site?.current_supplier_response_status) ?? clean(site?.currentSupplierResponseStatus) ?? clean(input.current_supplier_response_status) ?? clean(input.currentSupplierResponseStatus)
 
   return stripUndefined({
     site_name: clean(site?.site_name) ?? undefined,
@@ -1496,6 +1938,16 @@ function websiteSiteCanonicalFields(input: ApplicationInput, options: { facility
     selected_grid_owner_id: gridOwnerId ?? undefined,
     move_in_date: moveInDate ?? undefined,
     annual_consumption_kwh: annualConsumption ?? undefined,
+    current_supplier_id: currentSupplierId ?? undefined,
+    current_supplier_name: currentSupplierName ?? undefined,
+    current_supplier_org_number: currentSupplierOrgNumber ?? undefined,
+    current_supplier_ediel_id: currentSupplierEdielId ?? undefined,
+    current_supplier_unknown: typeof currentSupplierUnknown === 'boolean' ? currentSupplierUnknown : undefined,
+    current_supplier_contract_status: currentSupplierContractStatus ?? undefined,
+    current_supplier_contract_end_date: currentSupplierContractEndDate ?? undefined,
+    current_supplier_notice_period: currentSupplierNoticePeriod ?? undefined,
+    current_supplier_termination_fee: typeof currentSupplierTerminationFee === 'number' && Number.isFinite(currentSupplierTerminationFee) ? currentSupplierTerminationFee : undefined,
+    current_supplier_response_status: currentSupplierResponseStatus ?? undefined,
     street: clean(site?.street) ?? undefined,
     postal_code: clean(site?.postal_code) ?? undefined,
     city: clean(site?.city) ?? undefined,
@@ -1870,6 +2322,10 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
       ] : []),
       'move_in_date',
       'moveInDate',
+      'current_supplier_id',
+      'currentSupplierId',
+      'current_supplier_name',
+      'currentSupplierName',
     ]) ||
     firstDefined(raw.annual_consumption_kwh, raw.annualConsumptionKwh, raw.estimated_annual_consumption_kwh, raw.estimatedAnnualConsumptionKwh) !== undefined
   )
@@ -1884,9 +2340,19 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
         postal_code: firstDefined(nestedSite?.postal_code, nestedSite?.postalCode, explicitSiteAddress ? raw.postal_code : undefined, explicitSiteAddress ? raw.postalCode : undefined, explicitSiteAddress ? raw.zip : undefined, explicitSiteAddress ? rawAddress.postal_code : undefined),
         city: firstDefined(nestedSite?.city, explicitSiteAddress ? raw.city : undefined, explicitSiteAddress ? rawAddress.city : undefined),
         country: firstDefined(nestedSite?.country, explicitSiteAddress ? raw.country : undefined, explicitSiteAddress ? rawAddress.country : undefined),
-        price_area_code: firstDefined(nestedSite?.price_area_code, nestedSite?.priceAreaCode, nestedSite?.price_area, nestedSite?.priceArea, raw.price_area_code, raw.priceAreaCode, raw.price_area, raw.priceArea),
+        price_area_code: firstDefined(nestedSite?.price_area_code, nestedSite?.priceAreaCode, nestedSite?.price_area, nestedSite?.priceArea, nestedSite?.bidding_zone_code, nestedSite?.biddingZoneCode, raw.price_area_code, raw.priceAreaCode, raw.price_area, raw.priceArea, raw.bidding_zone_code, raw.biddingZoneCode),
         grid_area_code: firstDefined(nestedSite?.grid_area_code, nestedSite?.gridAreaCode, raw.grid_area_code, raw.gridAreaCode),
         grid_owner_id: firstDefined(nestedSite?.grid_owner_id, nestedSite?.gridOwnerId, raw.grid_owner_id, raw.gridOwnerId, raw.network_owner_id),
+        current_supplier_id: firstDefined(nestedSite?.current_supplier_id, nestedSite?.currentSupplierId, raw.current_supplier_id, raw.currentSupplierId, raw.electricity_supplier_id),
+        current_supplier_name: firstDefined(nestedSite?.current_supplier_name, nestedSite?.currentSupplierName, raw.current_supplier_name, raw.currentSupplierName),
+        current_supplier_org_number: firstDefined(nestedSite?.current_supplier_org_number, nestedSite?.currentSupplierOrgNumber, raw.current_supplier_org_number, raw.currentSupplierOrgNumber),
+        current_supplier_ediel_id: firstDefined(nestedSite?.current_supplier_ediel_id, nestedSite?.currentSupplierEdielId, raw.current_supplier_ediel_id, raw.currentSupplierEdielId),
+        current_supplier_unknown: firstDefined(nestedSite?.current_supplier_unknown, nestedSite?.currentSupplierUnknown, raw.current_supplier_unknown, raw.currentSupplierUnknown),
+        current_supplier_contract_status: firstDefined(nestedSite?.current_supplier_contract_status, nestedSite?.currentSupplierContractStatus, raw.current_supplier_contract_status, raw.currentSupplierContractStatus),
+        current_supplier_contract_end_date: firstDefined(nestedSite?.current_supplier_contract_end_date, nestedSite?.currentSupplierContractEndDate, raw.current_supplier_contract_end_date, raw.currentSupplierContractEndDate),
+        current_supplier_notice_period: firstDefined(nestedSite?.current_supplier_notice_period, nestedSite?.currentSupplierNoticePeriod, raw.current_supplier_notice_period, raw.currentSupplierNoticePeriod),
+        current_supplier_termination_fee: firstDefined(nestedSite?.current_supplier_termination_fee, nestedSite?.currentSupplierTerminationFee, raw.current_supplier_termination_fee, raw.currentSupplierTerminationFee),
+        current_supplier_response_status: firstDefined(nestedSite?.current_supplier_response_status, nestedSite?.currentSupplierResponseStatus, raw.current_supplier_response_status, raw.currentSupplierResponseStatus),
         move_in_date: firstDefined(nestedSite?.move_in_date, nestedSite?.moveInDate, raw.move_in_date, raw.moveInDate, raw.start_date, raw.startDate),
         annual_consumption_kwh: firstDefined(
           nestedSite?.annual_consumption_kwh,
@@ -1925,11 +2391,19 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
         measurement_type: firstDefined(nestedMeteringPoint?.measurement_type, raw.measurement_type),
         price_area_code: firstDefined(
           nestedMeteringPoint?.price_area_code,
+          nestedMeteringPoint?.priceAreaCode,
           nestedMeteringPoint?.price_area,
+          nestedMeteringPoint?.bidding_zone_code,
+          nestedMeteringPoint?.biddingZoneCode,
           raw.price_area_code,
+          raw.priceAreaCode,
           raw.price_area,
+          raw.bidding_zone_code,
+          raw.biddingZoneCode,
           site?.price_area_code
         ),
+        grid_area_code: firstDefined(nestedMeteringPoint?.grid_area_code, nestedMeteringPoint?.gridAreaCode, raw.grid_area_code, raw.gridAreaCode, site?.grid_area_code),
+        grid_owner_id: firstDefined(nestedMeteringPoint?.grid_owner_id, nestedMeteringPoint?.gridOwnerId, raw.grid_owner_id, raw.gridOwnerId, raw.network_owner_id, site?.grid_owner_id),
         start_date: firstDefined(nestedMeteringPoint?.start_date, nestedMeteringPoint?.startDate, raw.start_date, raw.startDate, site?.move_in_date),
         installation_date: firstDefined(nestedMeteringPoint?.installation_date, nestedMeteringPoint?.installationDate, raw.installation_date, raw.installationDate, raw.start_date, raw.startDate, site?.move_in_date),
         estimated_annual_consumption_kwh: firstDefined(
@@ -1987,6 +2461,16 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     external_account_id: firstDefined(raw.external_account_id, raw.externalAccountId, raw.auth_user_id, raw.authUserId, raw.customer_portal_user_id, raw.customerPortalUserId, raw.web_auth_user_id, raw.webAuthUserId),
     auth_user_id: firstDefined(raw.auth_user_id, raw.authUserId, raw.web_auth_user_id, raw.webAuthUserId),
     customer_portal_user_id: firstDefined(raw.customer_portal_user_id, raw.customerPortalUserId, raw.web_auth_user_id, raw.webAuthUserId, raw.auth_user_id, raw.authUserId),
+    current_supplier_id: firstDefined(raw.current_supplier_id, raw.currentSupplierId, raw.electricity_supplier_id, site?.current_supplier_id),
+    current_supplier_name: firstDefined(raw.current_supplier_name, raw.currentSupplierName, site?.current_supplier_name),
+    current_supplier_org_number: firstDefined(raw.current_supplier_org_number, raw.currentSupplierOrgNumber, site?.current_supplier_org_number),
+    current_supplier_ediel_id: firstDefined(raw.current_supplier_ediel_id, raw.currentSupplierEdielId, site?.current_supplier_ediel_id),
+    current_supplier_unknown: firstDefined(raw.current_supplier_unknown, raw.currentSupplierUnknown, site?.current_supplier_unknown),
+    current_supplier_contract_status: firstDefined(raw.current_supplier_contract_status, raw.currentSupplierContractStatus, site?.current_supplier_contract_status),
+    current_supplier_contract_end_date: firstDefined(raw.current_supplier_contract_end_date, raw.currentSupplierContractEndDate, site?.current_supplier_contract_end_date),
+    current_supplier_notice_period: firstDefined(raw.current_supplier_notice_period, raw.currentSupplierNoticePeriod, site?.current_supplier_notice_period),
+    current_supplier_termination_fee: firstDefined(raw.current_supplier_termination_fee, raw.currentSupplierTerminationFee, site?.current_supplier_termination_fee),
+    current_supplier_response_status: firstDefined(raw.current_supplier_response_status, raw.currentSupplierResponseStatus, site?.current_supplier_response_status),
     customer,
     site,
     metering_point: meteringPoint,
@@ -3090,6 +3574,9 @@ type CreateApplicationRowInput = {
   rawPayload?: unknown
   responsePayload: Record<string, unknown>
   idempotencyKey?: string | null
+  payloadHash?: string | null
+  businessKeyHash?: string | null
+  applicationId?: string | null
   status: string
   warnings?: unknown[]
   errorStage?: string | null
@@ -3208,6 +3695,8 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     source: clean((input.payload as { source?: unknown }).source) ?? 'external_website',
     status: input.status,
     idempotency_key: input.idempotencyKey ?? null,
+    payload_hash: input.payloadHash ?? applicationPayloadHash(input.payload),
+    business_key_hash: input.businessKeyHash ?? null,
     payload: input.payload,
     raw_payload: input.rawPayload ?? input.payload,
     response_payload: input.responsePayload,
@@ -3235,6 +3724,27 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     processed_at: input.status === 'failed' ? null : new Date().toISOString(),
   }
 
+  if (input.applicationId) {
+    const { data: updated, error: updateError } = await supabaseService
+      .from('website_customer_applications')
+      .update({ ...row, updated_at: new Date().toISOString() })
+      .eq('id', input.applicationId)
+      .eq('company_id', input.client.company_id)
+      .eq('idempotency_key', input.idempotencyKey ?? '')
+      .select('id')
+      .maybeSingle()
+    if (updateError) throw updateError
+    if (!updated?.id) throw new WebsiteApplicationError({
+      message: 'Den reserverade idempotensraden kunde inte slutföras.',
+      status: 409,
+      code: 'idempotency_reservation_lost',
+      stage: 'idempotency',
+    })
+    const completed = updated as { id: string }
+    await syncExternalContractIntakeRow({ ...input, applicationId: completed.id })
+    return completed
+  }
+
   const { data, error } = await supabaseService
     .from('website_customer_applications')
     .insert(row)
@@ -3243,22 +3753,12 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
 
   if (error && !missingSchema(error)) {
     if (duplicateIdempotencyKey(error) && input.idempotencyKey) {
-      const { data: updated, error: updateError } = await supabaseService
-        .from('website_customer_applications')
-        .update({
-          ...row,
-          updated_at: new Date().toISOString(),
-          processed_at: input.status === 'failed' ? null : row.processed_at,
-        })
-        .eq('company_id', input.client.company_id)
-        .eq('idempotency_key', input.idempotencyKey)
-        .select('id')
-        .maybeSingle()
-      if (updateError && !missingSchema(updateError)) throw updateError
-      if (updated) {
-        const repaired = updated as { id: string }
-        await syncExternalContractIntakeRow({ ...input, applicationId: repaired.id })
-        return repaired
+      const winner = await loadIdempotentApplication(input.client.company_id, input.idempotencyKey)
+      if (winner) {
+        const expectedHash = input.payloadHash ?? applicationPayloadHash(input.payload)
+        const winnerPayloadHash = storedApplicationPayloadHash(winner)
+        if (winnerPayloadHash && winnerPayloadHash !== expectedHash) throw idempotencyPayloadMismatchError(winner, expectedHash)
+        return { id: winner.id }
       }
     }
     throw error
@@ -3280,6 +3780,8 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
       source: clean((input.payload as { source?: unknown }).source) ?? 'external_website',
       status: input.status,
       idempotency_key: input.idempotencyKey ?? null,
+      payload_hash: input.payloadHash ?? applicationPayloadHash(input.payload),
+      business_key_hash: input.businessKeyHash ?? null,
       payload: input.payload,
       response_payload: input.responsePayload,
       warnings: input.warnings ?? [],
@@ -3288,31 +3790,12 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     .single()
   if (fallback.error && !missingSchema(fallback.error)) {
     if (duplicateIdempotencyKey(fallback.error) && input.idempotencyKey) {
-      const { data: updated, error: updateError } = await supabaseService
-        .from('website_customer_applications')
-        .update({
-          company_id: input.client.company_id,
-          api_client_id: input.client.id,
-          customer_id: input.customer?.id ?? null,
-          external_customer_id: input.externalCustomerId,
-          customer_number: input.customer?.customer_number ?? null,
-          source: clean((input.payload as { source?: unknown }).source) ?? 'external_website',
-          status: input.status,
-          idempotency_key: input.idempotencyKey ?? null,
-          payload: input.payload,
-          response_payload: input.responsePayload,
-          warnings: input.warnings ?? [],
-          updated_at: new Date().toISOString(),
-        })
-        .eq('company_id', input.client.company_id)
-        .eq('idempotency_key', input.idempotencyKey)
-        .select('id')
-        .maybeSingle()
-      if (updateError && !missingSchema(updateError)) throw updateError
-      if (updated) {
-        const repaired = updated as { id: string }
-        await syncExternalContractIntakeRow({ ...input, applicationId: repaired.id })
-        return repaired
+      const winner = await loadIdempotentApplication(input.client.company_id, input.idempotencyKey)
+      if (winner) {
+        const expectedHash = input.payloadHash ?? applicationPayloadHash(input.payload)
+        const winnerPayloadHash = storedApplicationPayloadHash(winner)
+        if (winnerPayloadHash && winnerPayloadHash !== expectedHash) throw idempotencyPayloadMismatchError(winner, expectedHash)
+        return { id: winner.id }
       }
     }
     throw fallback.error
@@ -3373,7 +3856,7 @@ async function loadIdempotentApplication(companyId: string, idempotencyKey: stri
   if (!idempotencyKey) return null
   const { data, error } = await supabaseService
     .from('website_customer_applications')
-    .select('id,idempotency_key,response_payload,payload,status,customer_id,customer_number,external_customer_id,customer_site_id,metering_point_id,contract_id,error_stage,error_code,error_message,warnings')
+    .select('id,idempotency_key,payload_hash,business_key_hash,response_payload,payload,status,customer_id,customer_number,external_customer_id,customer_site_id,metering_point_id,contract_id,error_stage,error_code,error_message,warnings,created_at,updated_at')
     .eq('company_id', companyId)
     .eq('idempotency_key', idempotencyKey)
     .maybeSingle()
@@ -3382,6 +3865,8 @@ async function loadIdempotentApplication(companyId: string, idempotencyKey: stri
   return data as {
     id: string
     idempotency_key?: string | null
+    payload_hash?: string | null
+    business_key_hash?: string | null
     response_payload: Record<string, unknown> | null
     payload?: Record<string, unknown> | null
     status: string
@@ -3395,7 +3880,15 @@ async function loadIdempotentApplication(companyId: string, idempotencyKey: stri
     error_stage?: string | null
     error_code?: string | null
     error_message?: string | null
+    created_at?: string | null
+    updated_at?: string | null
   } | null
+}
+
+function storedApplicationPayloadHash(
+  existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>,
+): string | null {
+  return existing.payload_hash ?? (existing.payload ? applicationPayloadHash(existing.payload) : null)
 }
 
 function expectsSiteOrMetering(input: ApplicationInput | Record<string, unknown> | null | undefined): boolean {
@@ -3459,19 +3952,31 @@ function isFailedIdempotentApplication(
   currentInput?: ApplicationInput
 ) {
   const response = existing.response_payload ?? {}
-  if (['needs_information', 'manual_review', 'pending_review', 'pending_validation', 'ready_for_switch'].includes(existing.status)) {
+  const responseCode = clean(response.code)
+  const hasCustomer = Boolean(existing.customer_id && (existing.customer_number ?? clean(response.customer_number)))
+  const hasSite = Boolean(existing.customer_site_id ?? clean(response.customer_site_id))
+  const hasMetering = Boolean(existing.metering_point_id ?? clean(response.metering_point_id))
+  const hasContract = Boolean(existing.contract_id ?? clean(response.contract_id))
+
+  if (REPLAYABLE_COMMITTED_STATUSES.has(existing.status)) {
+    // A committed business status is replayable only when the durable resources
+    // expected for that exact state still exist. needs_facility_data deliberately
+    // requires a site but not a metering point; ready/switch/active states require
+    // the complete customer/site/metering/contract chain.
+    if (!hasCustomer) return true
+    if (COMMITTED_SITE_REQUIRED_STATUSES.has(existing.status) && !hasSite) return true
+    if (COMMITTED_METERING_REQUIRED_STATUSES.has(existing.status) && !hasMetering) return true
+    if (COMMITTED_CONTRACT_REQUIRED_STATUSES.has(existing.status) && !hasContract) return true
     return false
   }
-  const responseCode = clean(response.code)
-  const hasSuccessIdentity = Boolean(existing.customer_id && (existing.customer_number ?? clean(response.customer_number)))
-  const requiresSiteAndMetering = expectsSiteOrMetering(currentInput) || expectsSiteOrMetering(existing.payload)
 
+  const requiresSiteAndMetering = expectsSiteOrMetering(currentInput) || expectsSiteOrMetering(existing.payload)
   return (
     existing.status === 'failed' ||
     Boolean(existing.error_stage || existing.error_code || existing.error_message) ||
     responseCode === 'internal_error' ||
     (requiresSiteAndMetering && !hasCompleteSiteAndMetering(existing)) ||
-    (!hasSuccessIdentity && ['failed', 'rejected', 'cancelled'].includes(existing.status))
+    (!hasCustomer && ['failed', 'rejected', 'cancelled'].includes(existing.status))
   )
 }
 
@@ -3532,6 +4037,221 @@ async function releaseRetryableFailedIdempotency(input: {
   return releasedKey
 }
 
+function idempotencyPayloadMismatchError(
+  existing: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>>,
+  incomingPayloadHash: string,
+) {
+  return new WebsiteApplicationError({
+    message: 'Samma Idempotency-Key har redan använts med en annan payload.',
+    status: 409,
+    code: 'idempotency_key_payload_mismatch',
+    field: 'Idempotency-Key',
+    stage: 'idempotency',
+    hint: 'Återanvänd nyckeln endast för exakt samma normaliserade ansökan. Använd en ny nyckel för en ny affärshändelse.',
+    details: {
+      application_id: existing.id,
+      previous_status: existing.status,
+      stored_payload_hash: storedApplicationPayloadHash(existing),
+      incoming_payload_hash: incomingPayloadHash,
+    },
+  })
+}
+
+async function loadEquivalentCommittedApplication(input: {
+  companyId: string
+  externalCustomerId: string
+  payloadHash: string
+  idempotencyKey: string
+}) {
+  const { data, error } = await supabaseService
+    .from('website_customer_applications')
+    .select('id,idempotency_key,status,customer_id,customer_number,customer_site_id,metering_point_id,contract_id,created_at')
+    .eq('company_id', input.companyId)
+    .eq('external_customer_id', input.externalCustomerId)
+    .eq('payload_hash', input.payloadHash)
+    .neq('idempotency_key', input.idempotencyKey)
+    .in('status', Array.from(REPLAYABLE_COMMITTED_STATUSES))
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data as {
+    id: string
+    idempotency_key: string | null
+    status: string
+    customer_id: string | null
+    customer_number: string | null
+    customer_site_id: string | null
+    metering_point_id: string | null
+    contract_id: string | null
+    created_at: string
+  } | null
+}
+
+function duplicateApplicationError(existing: NonNullable<Awaited<ReturnType<typeof loadEquivalentCommittedApplication>>>) {
+  return new WebsiteApplicationError({
+    message: 'En identisk kundansökan finns redan under en annan Idempotency-Key.',
+    status: 409,
+    code: 'duplicate_application',
+    field: 'Idempotency-Key',
+    stage: 'idempotency',
+    hint: 'Återanvänd den ursprungliga Idempotency-Key för replay. Skicka en ny affärsmässigt ändrad payload endast när en ny ansökan verkligen ska skapas.',
+    details: {
+      application_id: existing.id,
+      previous_status: existing.status,
+      previous_idempotency_key: existing.idempotency_key,
+      customer_id: existing.customer_id,
+      customer_number: existing.customer_number,
+      customer_site_id: existing.customer_site_id,
+      metering_point_id: existing.metering_point_id,
+      contract_id: existing.contract_id,
+      created_at: existing.created_at,
+    },
+  })
+}
+
+async function loadConflictingBusinessApplication(input: {
+  companyId: string
+  externalCustomerId: string
+  businessKeyHash: string
+  idempotencyKey: string
+}) {
+  const { data, error } = await supabaseService
+    .from('website_customer_applications')
+    .select('id,idempotency_key,payload_hash,status,customer_id,customer_number,customer_site_id,metering_point_id,contract_id,created_at')
+    .eq('company_id', input.companyId)
+    .eq('business_key_hash', input.businessKeyHash)
+    .neq('idempotency_key', input.idempotencyKey)
+    .in('status', Array.from(BUSINESS_CONFLICT_STATUSES))
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  const direct = data as {
+    id: string
+    idempotency_key: string | null
+    payload_hash: string | null
+    status: string
+    customer_id: string | null
+    customer_number: string | null
+    customer_site_id: string | null
+    metering_point_id: string | null
+    contract_id: string | null
+    created_at: string
+  } | null
+  if (direct) return direct
+
+  // Compatibility for rows committed before business_key_hash was introduced.
+  // Compare a bounded set of prior normalized payloads and opportunistically
+  // backfill the hash when the same business event is found.
+  const legacy = await supabaseService
+    .from('website_customer_applications')
+    .select('id,idempotency_key,payload_hash,payload,status,customer_id,customer_number,customer_site_id,metering_point_id,contract_id,created_at')
+    .eq('company_id', input.companyId)
+    .eq('external_customer_id', input.externalCustomerId)
+    .neq('idempotency_key', input.idempotencyKey)
+    .in('status', Array.from(REPLAYABLE_COMMITTED_STATUSES))
+    .order('created_at', { ascending: false })
+    .limit(25)
+  if (legacy.error) throw legacy.error
+
+  for (const row of legacy.data ?? []) {
+    if (!row.payload || typeof row.payload !== 'object' || Array.isArray(row.payload)) continue
+    const rowBusinessKeyHash = applicationBusinessKeyHash(row.payload as ApplicationInput, input.externalCustomerId)
+    if (rowBusinessKeyHash !== input.businessKeyHash) continue
+    await supabaseService
+      .from('website_customer_applications')
+      .update({ business_key_hash: rowBusinessKeyHash, updated_at: new Date().toISOString() })
+      .eq('id', row.id)
+      .eq('company_id', input.companyId)
+      .then(() => undefined, () => undefined)
+    return row as unknown as NonNullable<typeof direct>
+  }
+  return null
+}
+
+function applicationBusinessConflictError(
+  existing: NonNullable<Awaited<ReturnType<typeof loadConflictingBusinessApplication>>>,
+) {
+  const processing = existing.status === 'processing'
+  return new WebsiteApplicationError({
+    message: processing
+      ? 'En ansökan för samma kund, anläggning, erbjudande och startdatum behandlas redan.'
+      : 'En aktiv eller committed ansökan finns redan för samma kund, anläggning, erbjudande och startdatum.',
+    status: 409,
+    code: processing ? 'application_business_in_progress' : 'application_business_conflict',
+    field: 'Idempotency-Key',
+    stage: 'idempotency',
+    action: processing ? 'retry_original_application' : 'resume_or_update_existing_application',
+    hint: processing
+      ? 'Vänta tills den första requesten är slutförd och gör replay med dess ursprungliga Idempotency-Key.'
+      : 'Komplettera eller reparera den befintliga ansökan i stället för att skapa en parallell site/contract/POA/switch-kedja.',
+    details: {
+      application_id: existing.id,
+      previous_status: existing.status,
+      previous_idempotency_key: existing.idempotency_key,
+      customer_id: existing.customer_id,
+      customer_number: existing.customer_number,
+      customer_site_id: existing.customer_site_id,
+      metering_point_id: existing.metering_point_id,
+      contract_id: existing.contract_id,
+      created_at: existing.created_at,
+    },
+  })
+}
+
+async function reserveWebsiteApplicationIdempotency(input: {
+  client: IntegrationApiClient
+  externalCustomerId: string
+  idempotencyKey: string
+  payloadHash: string
+  businessKeyHash: string | null
+  payload: ApplicationInput
+  rawPayload: unknown
+}): Promise<
+  | { acquired: true; application: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>> }
+  | { acquired: false; application: NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>> }
+  | { acquired: false; businessConflict: NonNullable<Awaited<ReturnType<typeof loadConflictingBusinessApplication>>> }
+> {
+  const { data, error } = await supabaseService
+    .from('website_customer_applications')
+    .insert({
+      company_id: input.client.company_id,
+      api_client_id: input.client.id,
+      external_customer_id: input.externalCustomerId,
+      source: clean(input.payload.source) ?? 'external_website',
+      status: 'processing',
+      idempotency_key: input.idempotencyKey,
+      payload_hash: input.payloadHash,
+      business_key_hash: input.businessKeyHash,
+      payload: input.payload,
+      raw_payload: input.rawPayload,
+      response_payload: { status: 'processing', idempotent: false },
+      warnings: [],
+      processed_at: null,
+    })
+    .select('id,idempotency_key,payload_hash,business_key_hash,response_payload,payload,status,customer_id,customer_number,external_customer_id,customer_site_id,metering_point_id,contract_id,error_stage,error_code,error_message,warnings,created_at,updated_at')
+    .single()
+
+  if (!error && data) return { acquired: true, application: data as NonNullable<Awaited<ReturnType<typeof loadIdempotentApplication>>> }
+  if (duplicateIdempotencyKey(error)) {
+    const winner = await loadIdempotentApplication(input.client.company_id, input.idempotencyKey)
+    if (!winner) throw error
+    return { acquired: false, application: winner }
+  }
+  if (input.businessKeyHash && duplicateBusinessKey(error)) {
+    const conflict = await loadConflictingBusinessApplication({
+      companyId: input.client.company_id,
+      externalCustomerId: input.externalCustomerId,
+      businessKeyHash: input.businessKeyHash,
+      idempotencyKey: input.idempotencyKey,
+    })
+    if (!conflict) throw error
+    return { acquired: false, businessConflict: conflict }
+  }
+  throw error
+}
+
 function successResponse(data: Record<string, unknown>, warnings: string[] = []) {
   return {
     ok: true as const,
@@ -3567,7 +4287,18 @@ export async function processWebsiteCustomerApplication(input: {
   idempotencyKey?: string | null
   requestAudit?: RequestAuditMetadata
 }) {
+  const idempotencyKey = input.idempotencyKey?.trim() ?? null
+  const idempotencyValidation = validateIdempotencyKey(idempotencyKey)
+  if (idempotencyValidation) return failureResponse(idempotencyValidation)
+
+  const nestedFieldValidation = validateNestedPayloadFields(input.rawBody)
+  if (nestedFieldValidation) return failureResponse(nestedFieldValidation)
+
   const normalizedRaw = normalizeRawApplication(input.rawBody)
+  const startModeValidation = validateRequestedStartMode(normalizedRaw)
+  if (startModeValidation) return failureResponse(startModeValidation)
+  const dateValidation = validateApplicationDates(normalizedRaw)
+  if (dateValidation) return failureResponse(dateValidation)
 
   // Reject unmappable customer types with a precise code instead of a generic
   // Zod validation error. Empty values default to 'private' in normalization.
@@ -3595,6 +4326,19 @@ export async function processWebsiteCustomerApplication(input: {
   }
 
   let body = parsed.data
+  const normalizedRequestedStartMode = (
+    clean(body.requested_start_mode) ?? clean(body.requestedStartMode) ??
+    clean(body.contract?.requested_start_mode) ?? clean(body.contract?.requestedStartMode)
+  )?.toLowerCase() ?? null
+  if (normalizedRequestedStartMode) {
+    body = {
+      ...body,
+      requested_start_mode: normalizedRequestedStartMode,
+      contract: body.contract
+        ? { ...body.contract, requested_start_mode: normalizedRequestedStartMode }
+        : body.contract,
+    }
+  }
 
   // A structured powerOfAttorney.accepted=true satisfies the POA legal consent so
   // the existing legal-acceptance gate and POA persistence run unchanged.
@@ -3617,6 +4361,7 @@ export async function processWebsiteCustomerApplication(input: {
   if (structuredPoa?.accepted) {
     body = { ...body, consents: { ...(body.consents ?? {}), power_of_attorney: true } }
   }
+  const payloadHash = applicationPayloadHash(body)
 
   const externalCustomerId = clean(body.external_customer_id) ?? clean(body.customer_external_id)
   if (!externalCustomerId) {
@@ -3633,6 +4378,7 @@ export async function processWebsiteCustomerApplication(input: {
       'Skicka email under customer.email eller som top-level email.'
     ))
   }
+  const businessKeyHash = applicationBusinessKeyHash(body, externalCustomerId)
 
   let readiness = assessWebsiteApplicationReadiness(body)
   let customerResult: { customer: CustomerRow; created: boolean; customerNumberAssigned: boolean } | null = null
@@ -3649,9 +4395,24 @@ export async function processWebsiteCustomerApplication(input: {
   let applicationRowId: string | null = null
 
   try {
-    const existingIdempotent = await stage('idempotency', () => loadIdempotentApplication(input.client.company_id, input.idempotencyKey ?? null))
+    const existingIdempotent = await stage('idempotency', () => loadIdempotentApplication(input.client.company_id, idempotencyKey))
     let releasedFailedIdempotencyForRetry = false
     if (existingIdempotent) {
+      const existingPayloadHash = storedApplicationPayloadHash(existingIdempotent)
+      if (existingPayloadHash && existingPayloadHash !== payloadHash) {
+        return failureResponse(idempotencyPayloadMismatchError(existingIdempotent, payloadHash))
+      }
+      if (existingIdempotent.status === 'processing') {
+        return failureResponse(new WebsiteApplicationError({
+          message: 'En ansökan med samma Idempotency-Key behandlas redan.',
+          status: 409,
+          code: 'idempotency_in_progress',
+          field: 'Idempotency-Key',
+          stage: 'idempotency',
+          hint: 'Gör retry med samma nyckel efter att den pågående requesten har slutförts.',
+          details: { application_id: existingIdempotent.id },
+        }))
+      }
       if (isFailedIdempotentApplication(existingIdempotent, body)) {
         if (
           input.idempotencyKey &&
@@ -3718,9 +4479,73 @@ export async function processWebsiteCustomerApplication(input: {
           customer_number: existingIdempotent.customer_number ?? (existingIdempotent.response_payload?.customer_number as string | undefined) ?? null,
           external_customer_id: existingIdempotent.external_customer_id ?? externalCustomerId,
           status: existingIdempotent.status,
-        })
+        }, existingIdempotent.warnings ?? [])
       }
     }
+
+    const equivalentCommittedApplication = await stage('idempotency', () => loadEquivalentCommittedApplication({
+      companyId: input.client.company_id,
+      externalCustomerId,
+      payloadHash,
+      idempotencyKey: idempotencyKey as string,
+    }))
+    if (equivalentCommittedApplication) {
+      return failureResponse(duplicateApplicationError(equivalentCommittedApplication))
+    }
+
+    if (businessKeyHash) {
+      const conflictingBusinessApplication = await stage('idempotency', () => loadConflictingBusinessApplication({
+        companyId: input.client.company_id,
+        externalCustomerId,
+        businessKeyHash,
+        idempotencyKey: idempotencyKey as string,
+      }))
+      if (conflictingBusinessApplication) {
+        return failureResponse(applicationBusinessConflictError(conflictingBusinessApplication))
+      }
+    }
+
+    const reservation = await stage('idempotency', () => reserveWebsiteApplicationIdempotency({
+      client: input.client,
+      externalCustomerId,
+      idempotencyKey: idempotencyKey as string,
+      payloadHash,
+      businessKeyHash,
+      payload: body,
+      rawPayload: input.rawBody,
+    }))
+    if ('businessConflict' in reservation) {
+      return failureResponse(applicationBusinessConflictError(reservation.businessConflict))
+    }
+    if (!reservation.acquired) {
+      const winnerPayloadHash = storedApplicationPayloadHash(reservation.application)
+      if (winnerPayloadHash && winnerPayloadHash !== payloadHash) {
+        return failureResponse(idempotencyPayloadMismatchError(reservation.application, payloadHash))
+      }
+      if (reservation.application.status === 'processing') {
+        return failureResponse(new WebsiteApplicationError({
+          message: 'En ansökan med samma Idempotency-Key behandlas redan.',
+          status: 409,
+          code: 'idempotency_in_progress',
+          field: 'Idempotency-Key',
+          stage: 'idempotency',
+          details: { application_id: reservation.application.id },
+        }))
+      }
+      if (isFailedIdempotentApplication(reservation.application, body)) {
+        return idempotentFailure(reservation.application, externalCustomerId)
+      }
+      return successResponse({
+        ...(reservation.application.response_payload ?? {}),
+        idempotent: true,
+        application_id: reservation.application.id,
+        customer_id: reservation.application.customer_id ?? null,
+        customer_number: reservation.application.customer_number ?? null,
+        external_customer_id: reservation.application.external_customer_id ?? externalCustomerId,
+        status: reservation.application.status,
+      }, reservation.application.warnings ?? [])
+    }
+    applicationRowId = reservation.application.id
 
     const existingIdentity = await stage('customer_lookup', () => loadExistingIdentity(input.client.company_id, externalCustomerId))
     if (existingIdentity?.customer_id) {
@@ -4006,7 +4831,10 @@ export async function processWebsiteCustomerApplication(input: {
       payload: body,
       rawPayload: input.rawBody,
       responsePayload,
-      idempotencyKey: input.idempotencyKey ?? null,
+      idempotencyKey,
+      payloadHash,
+      businessKeyHash,
+      applicationId: applicationRowId,
       status: applicationStatus,
       warnings: readiness.warnings,
       missingFields: readiness.missingFields,
@@ -4220,7 +5048,12 @@ export async function processWebsiteCustomerApplication(input: {
           supplierSwitchWarnings.push('supplier_switch_pending_review')
           responsePayload.supplier_switch_status = 'pending_review'
           responsePayload.supplier_switch_blockers = supplierSwitchOrchestration.blockers
+          responsePayload.can_create_supplier_switch_request = true
+          responsePayload.can_dispatch_supplier_switch = false
+          responsePayload.can_start_switch = false
         } else {
+          responsePayload.can_create_supplier_switch_request = true
+          responsePayload.can_dispatch_supplier_switch = true
           responsePayload.supplier_switch_status = supplierSwitchOrchestration.created
             ? 'created'
             : supplierSwitchOrchestration.reusedExisting
@@ -4231,6 +5064,9 @@ export async function processWebsiteCustomerApplication(input: {
         supplierSwitchWarnings.push('supplier_switch_orchestration_pending')
         responsePayload.supplier_switch_status = 'pending_review'
         responsePayload.supplier_switch_blockers = supplierSwitchOrchestration.blockers
+        responsePayload.can_create_supplier_switch_request = false
+        responsePayload.can_dispatch_supplier_switch = false
+        responsePayload.can_start_switch = false
       }
     }
 
@@ -4278,6 +5114,11 @@ export async function processWebsiteCustomerApplication(input: {
         loadWebsiteManualInformationRequest(intakeDecision.references.gridOwnerInformationRequestId),
       )
       nextAction = websiteNextActionFromIntake(intakeDecision)
+    } else if (supplierSwitchOrchestration?.blockers?.length) {
+      const blocker = supplierSwitchOrchestration.blockers[0]
+      nextAction = blocker.code === 'current_supplier_missing'
+        ? { code: 'current_supplier_required', message: 'Registrera nuvarande elleverantör för att fortsätta leverantörsbytet.' }
+        : { code: blocker.code, message: blocker.message }
     } else if (readiness.canStartSwitch) {
       nextAction = { code: 'ready_for_switch', message: 'Ansökan är klar för leverantörsbyte.' }
     } else {
@@ -4506,7 +5347,7 @@ export async function processWebsiteCustomerApplication(input: {
       .filter((item) => statuses.includes(String(item.dispatch_status ?? '')))
       .map((item) => item.eventKey)
 
-    return successResponse({
+    const finalResponsePayload = {
       ...responsePayload,
       application_id: application.id,
       communication: {
@@ -4518,9 +5359,31 @@ export async function processWebsiteCustomerApplication(input: {
         sent: email ? communicationStatusOf(['sent']) : [],
         failed: email ? communicationStatusOf(['failed']) : [],
         source_of_truth: 'communication_logs',
+        snapshot_persisted: true,
         results: communicationResults,
       },
-    }, warnings)
+    }
+    let snapshotPersisted = false
+    let snapshotError: unknown = null
+    for (let attempt = 0; attempt < 2 && !snapshotPersisted; attempt += 1) {
+      const snapshotUpdate = await supabaseService
+        .from('website_customer_applications')
+        .update({ response_payload: finalResponsePayload, warnings, updated_at: new Date().toISOString() })
+        .eq('id', application.id)
+        .eq('company_id', input.client.company_id)
+      snapshotError = snapshotUpdate.error
+      snapshotPersisted = !snapshotUpdate.error
+    }
+    if (!snapshotPersisted) {
+      pushWarning(warnings, 'response_snapshot_persist_failed')
+      finalResponsePayload.communication.snapshot_persisted = false
+      console.warn('[website-applications] final response snapshot could not be persisted', {
+        application_id: application.id,
+        error: snapshotError,
+      })
+    }
+
+    return successResponse(finalResponsePayload, warnings)
   } catch (error) {
     const appError = error instanceof WebsiteApplicationError
       ? error
@@ -4612,7 +5475,9 @@ export async function processWebsiteCustomerApplication(input: {
         can_send_agreement_confirmation: false,
         can_activate_customer: false,
       },
-      idempotencyKey: input.idempotencyKey ?? null,
+      idempotencyKey,
+      payloadHash,
+      businessKeyHash,
       status: businessStatus,
       errorStage: appError.stage,
       errorCode: appError.code,

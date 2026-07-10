@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Static regression for the website customer-application production fixes.
 // This guards the real `/api/v1/website/customer-applications` code path from
 // regressing back to metadata-only canonical fields or final legal e-mail
@@ -78,9 +79,10 @@ expect(
   /add column if not exists bidding_zone_code text/.test(migration) &&
     /update public\.metering_points/.test(migration) &&
     /update public\.grid_owner_information_requests/.test(migration) &&
-    /create or replace function public\.gridex_metering_points_canonical_defaults/.test(migration) &&
-    /create or replace function public\.gridex_grid_owner_information_request_defaults/.test(migration),
-  'migration backfills and guards metering_points + grid_owner_information_requests canonical columns',
+    /metering_points_customer_site_canonical_idx/.test(migration) &&
+    /grid_owner_information_requests_price_area_idx/.test(migration) &&
+    /No trigger DDL here by design/.test(migration),
+  'migration backfills and indexes canonical metering/request columns without unsafe trigger DDL',
 )
 
 if (failures > 0) {

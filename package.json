@@ -162,7 +162,8 @@
     "gridex:website-application-ops-chain-regression": "node scripts/gridex-website-application-ops-chain-regression.cjs",
     "gridex:website-supplier-switch-automation-regression": "node scripts/gridex-website-supplier-switch-automation-regression.cjs",
     "gridex:supabase-advisors-hardening-regression": "node scripts/gridex-supabase-advisors-hardening-regression.cjs",
-    "gridex:website-application-canonical-dispatch-regression": "node scripts/gridex-website-application-canonical-dispatch-regression.cjs"
+    "gridex:website-application-canonical-dispatch-regression": "node scripts/gridex-website-application-canonical-dispatch-regression.cjs",
+    "gridex:website-application-idempotency-hardening-regression": "node scripts/gridex-website-application-idempotency-hardening-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

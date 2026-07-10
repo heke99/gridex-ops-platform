@@ -86,6 +86,7 @@ import {
   processCustomerOperationJobs,
   resolveCustomerSiteGridOwner,
 } from "@/lib/customer-operations/automation";
+import { reconcileSupplierSwitchAfterCustomerDataChange } from "@/lib/customer-operations/supplierSwitchOrchestration";
 import {
   normalizeUuidOrNull,
   UuidValidationError,
@@ -116,6 +117,47 @@ function normalizePriceAreaOrNull(
 function normalizeDateOrNull(value: string | null): string | null {
   if (!value) return null;
   return value;
+}
+
+async function reconcileSupplierSwitchesForCustomerSites(params: {
+  companyId: string;
+  customerId: string;
+  siteId?: string | null;
+  actorUserId: string;
+  source: string;
+}) {
+  let siteIds = params.siteId ? [params.siteId] : [];
+  if (siteIds.length === 0) {
+    const { data, error } = await supabaseService
+      .from("customer_sites")
+      .select("id")
+      .eq("company_id", params.companyId)
+      .eq("customer_id", params.customerId);
+    if (error) throw error;
+    siteIds = (data ?? [])
+      .map((row) => (typeof row.id === "string" ? row.id : null))
+      .filter((id): id is string => Boolean(id));
+  }
+
+  const results = [];
+  for (const siteId of siteIds) {
+    const result = await reconcileSupplierSwitchAfterCustomerDataChange({
+      companyId: params.companyId,
+      customerId: params.customerId,
+      siteId,
+      actorUserId: params.actorUserId,
+      source: params.source,
+    }).catch((error) => {
+      console.warn("Supplier switch reconcile after customer legal data change failed", {
+        customerId: params.customerId,
+        siteId,
+        error,
+      });
+      return null;
+    });
+    results.push({ siteId, result });
+  }
+  return results;
 }
 
 function validateHistoricalMeteringPeriod(params: {
@@ -785,6 +827,16 @@ export async function saveCustomerSiteAction(
     customerId,
     siteId: savedSite.id,
   });
+  const supplierSwitchReconcile = await reconcileSupplierSwitchAfterCustomerDataChange({
+    companyId,
+    customerId,
+    siteId: savedSite.id,
+    actorUserId: actor.id,
+    source: "customer_site_saved",
+  }).catch((error) => {
+    console.warn("Supplier switch reconcile after site save failed", error);
+    return null;
+  });
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -800,6 +852,7 @@ export async function saveCustomerSiteAction(
       siteFlowType,
       addressResult,
       readiness,
+      supplierSwitchReconcile,
     },
   });
 
@@ -911,6 +964,17 @@ export async function saveMeteringPointAction(
     customerId,
     siteId: savedMeteringPoint.site_id,
   });
+  const supplierSwitchReconcile = await reconcileSupplierSwitchAfterCustomerDataChange({
+    companyId,
+    customerId,
+    siteId: savedMeteringPoint.site_id,
+    meteringPointId: savedMeteringPoint.id,
+    actorUserId: actor.id,
+    source: "metering_point_saved",
+  }).catch((error) => {
+    console.warn("Supplier switch reconcile after metering point save failed", error);
+    return null;
+  });
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -928,6 +992,7 @@ export async function saveMeteringPointAction(
       readiness,
       edielMeteringMethod,
       edielMeteringMethodSync,
+      supplierSwitchReconcile,
     },
   });
 
@@ -1031,6 +1096,15 @@ export async function createPowerOfAttorneyAction(
         siteId: saved.site_id,
       })
     : await syncCustomerOperationsForCustomer(supabase, customerId);
+  const supplierSwitchReconcile = saved.status === "signed"
+    ? await reconcileSupplierSwitchesForCustomerSites({
+        companyId,
+        customerId,
+        siteId: saved.site_id,
+        actorUserId: actor.id,
+        source: "power_of_attorney_signed",
+      })
+    : [];
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -1042,6 +1116,7 @@ export async function createPowerOfAttorneyAction(
       customerId,
       siteId: saved.site_id,
       syncSummary,
+      supplierSwitchReconcile,
     },
   });
 
@@ -1167,6 +1242,15 @@ export async function uploadCustomerAuthorizationDocumentAction(
         siteId,
       })
     : await syncCustomerOperationsForCustomer(supabase, customerId);
+  const supplierSwitchReconcile = savedPowerOfAttorneyId && markAsSigned
+    ? await reconcileSupplierSwitchesForCustomerSites({
+        companyId,
+        customerId,
+        siteId,
+        actorUserId: actor.id,
+        source: "power_of_attorney_document_signed",
+      })
+    : [];
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -1180,6 +1264,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
       documentType,
       linkedPowerOfAttorneyId: savedPowerOfAttorneyId,
       syncSummary,
+      supplierSwitchReconcile,
     },
   });
 
@@ -2886,6 +2971,16 @@ export async function registerCurrentSupplierResponseAction(
     customerId,
     siteId,
   });
+  const supplierSwitchReconcile = await reconcileSupplierSwitchAfterCustomerDataChange({
+    companyId,
+    customerId,
+    siteId,
+    actorUserId: actor.id,
+    source: "current_supplier_response_registered",
+  }).catch((error) => {
+    console.warn("Supplier switch reconcile after supplier response failed", error);
+    return null;
+  });
 
   if (
     ["binding_period", "termination_fee", "blocked"].includes(responseStatus)
@@ -2920,6 +3015,7 @@ export async function registerCurrentSupplierResponseAction(
       requestId,
       response: responsePayload,
       syncSummary,
+      supplierSwitchReconcile,
     },
   });
 

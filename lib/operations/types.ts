@@ -167,6 +167,7 @@ export type SupplierSwitchRequestRow = {
   current_supplier_id?: string | null;
   current_supplier_name: string | null;
   current_supplier_org_number: string | null;
+  current_supplier_ediel_id?: string | null;
   current_supplier_unknown?: boolean | null;
   current_supplier_contract_status?: string | null;
   current_supplier_contract_end_date?: string | null;

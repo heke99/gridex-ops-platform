@@ -158,6 +158,69 @@ OPS sparar:
 
 Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switch tills mätpunkt/nätägare är verifierade.
 
+## Website customer applications
+
+```http
+POST /api/v1/website/customer-applications
+Authorization: Bearer YOUR_GRIDEX_API_TOKEN
+Content-Type: application/json
+Idempotency-Key: website-order-12345
+```
+
+`Idempotency-Key` är obligatorisk för denna endpoint. Den ska vara 8–200 tecken och får innehålla bokstäver, siffror, punkt, understreck, kolon, plus, tilde och bindestreck. Nyckeln reserveras innan kund/site/avtal/fullmakt skapas, vilket stoppar samtidiga dubletter.
+
+### Idempotency-regler
+
+- samma nyckel + exakt samma normaliserade payload: replay av den committed responsen
+- samma nyckel + annan payload: `409 idempotency_key_payload_mismatch`
+- samma nyckel medan första requesten behandlas: `409 idempotency_in_progress`
+- identisk committed ansökan med ny nyckel: `409 duplicate_application`
+- samma externa kund + anläggning + erbjudande + startdatum behandlas redan under annan nyckel: `409 application_business_in_progress`
+- samma externa kund + anläggning + erbjudande + startdatum har redan en aktiv/committed ansökan: `409 application_business_conflict`
+- tidigare misslyckat/partiellt försök: `409 idempotent_failed` om det inte är ett uttryckligen retrybart tekniskt site-provisioneringsfel
+- replay innehåller samma `warnings` och sparade `communication`-snapshot som originalet
+
+Använd alltså inte samma nyckel för en rättad eller affärsmässigt ändrad payload. En ny affärshändelse ska ha en ny nyckel och ett annat affärs-ID (annan anläggning, annat erbjudande eller annat startdatum). Komplettering av en redan committed ansökan ska göras på befintlig ansökan; API:t skapar inte en parallell site/contract/POA/switch-kedja.
+
+### Startdatum och fältvalidering
+
+`requested_start_mode` accepterar:
+
+- `earliest_possible`
+- `specific_date`
+
+Datumfält ska vara verkliga kalenderdatum i `YYYY-MM-DD`. `powerOfAttorney.acceptedAt` ska vara en ISO 8601-tidsstämpel. Okända eller felplacerade top-level- och nested-fält ger `422 unknown_field` och ignoreras inte tyst.
+
+### Nuvarande leverantör och switchstatus
+
+Nuvarande leverantör kan skickas på `site` (eller motsvarande dokumenterade top-level-alias):
+
+```json
+{
+  "site": {
+    "current_supplier_id": "uuid-or-null",
+    "current_supplier_name": "Nuvarande Energi AB",
+    "current_supplier_org_number": "5560000000",
+    "current_supplier_ediel_id": "12345",
+    "current_supplier_unknown": false,
+    "current_supplier_contract_status": "active",
+    "current_supplier_contract_end_date": "2026-08-31",
+    "current_supplier_notice_period": "1 month",
+    "current_supplier_termination_fee": 0,
+    "current_supplier_response_status": "confirmed"
+  }
+}
+```
+
+Svaret skiljer på:
+
+- `can_create_supplier_switch_request`: tillräckligt underlag för att skapa en durable switchrad
+- `can_dispatch_supplier_switch`: switchen får gå vidare till route/preflight/EDIEL
+- `supplier_switch_status`: exempelvis `created`, `already_open` eller `pending_review`
+- `supplier_switch_blockers`: konkreta affärsblockerare
+
+När exempelvis `current_supplier_missing` kompletteras återanvänds den öppna switchraden, dess hanterade affärsblockering rensas och status sätts tillbaka till `queued`. Om switchraden ännu inte finns kan reconcile skapa den när site, mätpunkt och signerad fullmakt blivit kompletta. Separata juridiska/livscykelblockeringar rensas inte automatiskt. `current_supplier_ediel_id` snapshotas både på `customer_sites` och `supplier_switch_requests`.
+
 ## Scopes
 
 Alla customer-portal-rutter upprätthåller idag `customer_portal.read` (läs) och
@@ -182,6 +245,10 @@ Fel returneras alltid som JSON `{ "error": "...", "code": "..." }`, aldrig som H
 - `403 customer_portal_link_requires_sync` (första länkningen kräver två matchande nycklar eller en tidigare länk)
 - `404 customer_not_found` / `404 invoice_not_found`
 - `409 ambiguous_customer_match`
+- `400 idempotency_key_required` / `400 idempotency_key_invalid`
+- `409 idempotency_key_payload_mismatch` / `409 idempotency_in_progress`
+- `409 duplicate_application` / `409 application_business_in_progress` / `409 application_business_conflict` / `409 idempotent_failed`
+- `422 requested_start_mode_invalid` / `422 date_invalid` / `422 timestamp_invalid` / `422 unknown_field`
 - `422 missing_customer_identifier`
 - `429 rate_limited`
 - `500 customer_portal_internal_error`

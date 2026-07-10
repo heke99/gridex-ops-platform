@@ -152,10 +152,14 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
       "postal_code": "21122",
       "city": "Malmö",
       "price_area_code": "SE4",
-      "move_in_date": "2026-07-01"
+      "move_in_date": "2026-07-01",
+      "current_supplier_name": "Nuvarande Energi AB",
+      "current_supplier_org_number": "5560000000",
+      "current_supplier_ediel_id": "12345"
     },
     "contract": {
       "offer_reference": "offer_...",
+      "requested_start_mode": "specific_date",
       "requested_start_date": "2026-07-01"
     },
     "customer_portal_user_id": "<gridex-web-supabase-session-user-id>",
@@ -255,14 +259,22 @@ Vanliga 422-koder:
 - power_of_attorney_missing
 - power_of_attorney_not_accepted
 - power_of_attorney_version_missing
+- requested_start_mode_invalid
+- date_invalid
+- timestamp_invalid
+- unknown_field
 - validation_error
 
-Idempotency och juridik:
-- Återanvänd samma Idempotency-Key vid retry av samma signerade ansökan när payloaden rättas.
-- failed idempotency kan ge 409 idempotent_failed om tidigare försök hamnade i ett icke-säkert partial-läge.
-- Om en tidigare idempotent ansökan saknar power_of_attorney_id men retry-payloaden innehåller komplett accepted powerOfAttorney reparerar OPS fullmakten inline och returnerar success.
-- Om inline-repair inte kan göras returneras idempotent_application_missing_poa med action retry_with_new_idempotency_key_or_repair.
-- Skicka inte samma signerade juridiska submission med ny nyckel om ni inte avsiktligt vill skapa en ny ansökan.`
+Idempotency:
+- Idempotency-Key är obligatorisk för POST /api/v1/website/customer-applications och ska vara 8–200 tillåtna tecken.
+- Återanvänd samma nyckel endast med exakt samma normaliserade payload.
+- Samma nyckel + annan payload ger 409 idempotency_key_payload_mismatch.
+- Samma nyckel medan första requesten pågår ger 409 idempotency_in_progress.
+- Identisk committed ansökan med en ny nyckel ger 409 duplicate_application.
+- Samma kund/anläggning/erbjudande/startdatum som redan behandlas under annan nyckel ger 409 application_business_in_progress.
+- Samma affärshändelse som redan är aktiv/committed ger 409 application_business_conflict.
+- Replay av en committed status returnerar samma warnings och communication-snapshot som originalsvaret.
+- Rätta en ogiltig payload innan första godkända requesten, eller använd en ny nyckel efter ett avslutat fel enligt den returnerade action/hint.`
 
 const emailEventSemantics = `contract.application_received = ansökan mottagen och mottagningsmail köat/skickat för ansökan
 contract.confirmation_sent = faktisk avtalsbekräftelse har markerats skickad i communication_logs
@@ -500,7 +512,9 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{applicationExample}</CodeBlock>
           <CodeBlock>{applicationResponse}</CodeBlock>
           <h3 className="mt-6 text-lg font-bold text-slate-900">422-validering och juridiska retries</h3>
-          <p>Om avtal, juridiska versioner, acceptanser eller fullmakt saknas returneras <code>422</code> med stabil <code>error.code</code>, <code>stage</code> och <code>field</code>. Rätta payloaden och återanvänd samma <code>Idempotency-Key</code> för samma signerade ansökan. Om en tidigare idempotent ansökan saknar fullmakt men retry-payloaden innehåller komplett accepterad <code>powerOfAttorney</code>, reparerar OPS fullmakten inline och returnerar success.</p>
+          <p>Om avtal, juridiska versioner, acceptanser, datum eller fullmakt saknas/är ogiltiga returneras <code>422</code> med stabil <code>error.code</code>, <code>stage</code> och <code>field</code>. <code>requested_start_mode</code> accepterar endast <code>earliest_possible</code> eller <code>specific_date</code>; datum ska vara <code>YYYY-MM-DD</code> och <code>powerOfAttorney.acceptedAt</code> ska vara ISO 8601. Okända top-level- och nested-fält returnerar <code>unknown_field</code> i stället för att ignoreras.</p>
+          <p><code>Idempotency-Key</code> är obligatorisk för kundansökan. Återanvänd nyckeln endast med exakt samma normaliserade payload. En ändrad payload ger <code>409 idempotency_key_payload_mismatch</code>, en pågående request ger <code>409 idempotency_in_progress</code>, en identisk committed ansökan under ny nyckel ger <code>409 duplicate_application</code>, en parallell pågående affärshändelse ger <code>409 application_business_in_progress</code> och en redan aktiv/committed affärshändelse ger <code>409 application_business_conflict</code>.</p>
+          <p>Nuvarande leverantör kan skickas under <code>site.current_supplier_name</code>, <code>current_supplier_id</code>, <code>current_supplier_org_number</code>, <code>current_supplier_ediel_id</code> och kompletterande avtalsfält. Leverantörs-ID:t snapshotas på både site och switch request. Svaret skiljer på <code>can_create_supplier_switch_request</code> och <code>can_dispatch_supplier_switch</code>. En skapad men blockerad switch returnerar <code>supplier_switch_status=pending_review</code> och en konkret <code>nextAction</code>. När site, mätpunkt, nuvarande leverantör eller signerad fullmakt kompletteras körs reconcile och en saknad/öppen switch kan skapas eller återupptas.</p>
           <CodeBlock>{applicationValidationErrors}</CodeBlock>
         </Section>
 
@@ -549,7 +563,7 @@ export default function CustomerPortalApiDocsPage() {
         </Section>
 
         <Section title="10. Fel och idempotency">
-          <p>Alla write-anrop ska skicka <code>Idempotency-Key</code>. Externa fel returneras som stabila koder, till exempel <code>missing_api_token</code>, <code>api_scope_missing</code>, <code>public_contract_not_available</code>, <code>legal_acceptance_missing</code> eller <code>idempotent_failed</code>. failed idempotency ger 409 idempotent_failed. Om tidigare försök föll innan anläggning/avtal skapades på <code>site_create</code> kan OPS frigöra den misslyckade nyckeln vid retry. Om en tidigare idempotent ansökan saknar <code>power_of_attorney_id</code> men retry-payloaden har komplett accepterad <code>powerOfAttorney</code> skapar OPS fullmakten inline. Om inline-repair inte kan göras returneras <code>idempotent_application_missing_poa</code> med <code>retry_with_new_idempotency_key_or_repair</code>. Visa kundvänlig text i slutkunds-UI och logga tekniska detaljer server-side.</p>
+          <p>Alla write-anrop bör skicka <code>Idempotency-Key</code>; för <code>POST /api/v1/website/customer-applications</code> är den obligatorisk och valideras till 8–200 tecken. Samma nyckel är låst till samma normaliserade payload via SHA-256. Stabil idempotency-respons: <code>idempotency_key_required</code> (400), <code>idempotency_key_invalid</code> (400), <code>idempotency_key_payload_mismatch</code> (409), <code>idempotency_in_progress</code> (409), <code>duplicate_application</code> (409), <code>application_business_in_progress</code> (409), <code>application_business_conflict</code> (409) och <code>idempotent_failed</code> (409). En committed replay returnerar den sparade responsen inklusive warnings och communication. Ett avslutat misslyckat försök får endast retryas enligt returnerad hint; komplettering ska göras på befintlig ansökan och en verkligt ny affärshändelse ska använda ny nyckel samt annan site/offer/start-identitet.</p>
           <p>Batch 8.1 live-schema alignment: inkommande mätpunkter provisioneras mot <code>public.metering_points</code>; <code>external_customer_id krävs</code> för stabil kundlänkning; mailinställningar stödjer <code>sender_email</code> och <code>reply_to_email</code>.</p>
         </Section>
       </div>

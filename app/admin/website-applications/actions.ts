@@ -300,7 +300,14 @@ function mergePayload(current: Record<string, unknown> | null, formData: FormDat
     site.grid_owner_id = gridOwnerId
   }
   if (networkOwnerId) base.network_owner_id = networkOwnerId
-  if (electricitySupplierId) base.electricity_supplier_id = electricitySupplierId
+  if (electricitySupplierId) {
+    // Legacy admin field: treat electricity_supplier_id as the current supplier
+    // for website intake. The incoming supplier is resolved from the tenant and
+    // must never be supplied by an external payload.
+    base.current_supplier_id = electricitySupplierId
+    site.current_supplier_id = electricitySupplierId
+    delete base.electricity_supplier_id
+  }
   if (pricePlanId) base.price_plan_id = pricePlanId
   if (requestedStartDate) base.requested_start_date = requestedStartDate
   if (confirmedStartDate) base.confirmed_start_date = confirmedStartDate

@@ -35,6 +35,16 @@ function missingSchema(error: unknown): boolean {
  * still appear in company_switch_queue_v so tenant/superadmin can complete the
  * missing supplier data from the switch queue.
  */
+const MANAGED_SWITCH_REVIEW_BLOCKER_CODES = new Set<string>([
+  'current_supplier_missing',
+  'move_in_date_missing',
+  'current_supplier_response_pending',
+  'current_supplier_manual_review',
+  'current_supplier_binding_period',
+  'current_supplier_termination_fee',
+  'current_supplier_blocked',
+])
+
 const SUPPLIER_SWITCH_CREATION_BLOCKER_CODES = new Set<string>([
   'power_of_attorney_missing',
   'power_of_attorney_not_signed',
@@ -45,6 +55,26 @@ const SUPPLIER_SWITCH_CREATION_BLOCKER_CODES = new Set<string>([
   'price_area_missing',
   'facility_or_metering_point_missing',
 ])
+
+function currentSupplierResponseReviewBlockers(site: CustomerSiteRow): SupplierSwitchOrchestrationBlocker[] {
+  const status = clean(site.current_supplier_response_status)?.toLowerCase()
+  const blockers: SupplierSwitchOrchestrationBlocker[] = []
+  if (status === 'waiting_response') {
+    blockers.push({ code: 'current_supplier_response_pending', message: 'Svar från nuvarande leverantör inväntas.' })
+  } else if (status === 'manual_review') {
+    blockers.push({ code: 'current_supplier_manual_review', message: 'Nuvarande leverantör kräver manuell granskning före byte.' })
+  } else if (status === 'binding_period') {
+    blockers.push({ code: 'current_supplier_binding_period', message: 'Bindningstid måste kontrolleras innan leverantörsbytet skickas.' })
+  } else if (status === 'termination_fee') {
+    blockers.push({ code: 'current_supplier_termination_fee', message: 'Brytavgift måste hanteras innan leverantörsbytet skickas.' })
+  } else if (status === 'blocked') {
+    blockers.push({ code: 'current_supplier_blocked', message: 'Nuvarande leverantör har blockerat automatiskt leverantörsbyte.' })
+  }
+  if ((site.current_supplier_termination_fee ?? 0) > 0 && !blockers.some((blocker) => blocker.code === 'current_supplier_termination_fee')) {
+    blockers.push({ code: 'current_supplier_termination_fee', message: 'Registrerad brytavgift måste hanteras innan leverantörsbytet skickas.' })
+  }
+  return blockers
+}
 
 function splitReadinessIssuesForSwitchRequestCreation(input: {
   readiness: SwitchReadinessResult
@@ -259,6 +289,11 @@ export async function ensureSupplierSwitchRequestForReadySite(
     readiness,
     requestedStartDate,
   })
+  for (const blocker of currentSupplierResponseReviewBlockers(site)) {
+    if (!reviewBlockers.some((existingBlocker) => existingBlocker.code === blocker.code)) {
+      reviewBlockers.push(blocker)
+    }
+  }
 
   if (creationBlockers.length > 0) {
     return {
@@ -276,16 +311,169 @@ export async function ensureSupplierSwitchRequestForReadySite(
 
   const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, { companyId, customerId, siteId })
   if (existing) {
+    const existingMetadata = existing.metadata && typeof existing.metadata === 'object'
+      ? existing.metadata
+      : {}
+    const previousBusinessBlockers = Array.isArray(existingMetadata.supplier_switch_blockers)
+      ? existingMetadata.supplier_switch_blockers
+      : []
+    const previousBusinessBlockerCodes = new Set(
+      previousBusinessBlockers
+        .map((blocker) => clean((blocker as JsonRecord | null)?.code))
+        .filter((code): code is string => Boolean(code)),
+    )
+    const previousPendingReviewReason = clean(existingMetadata.pending_review_reason)
+    if (previousPendingReviewReason) previousBusinessBlockerCodes.add(previousPendingReviewReason)
+
+    const lifecycleBlockSource = clean(existing.lifecycle_block_source)
+    const previousManagedBusinessReview = Array.from(previousBusinessBlockerCodes)
+      .some((code) => MANAGED_SWITCH_REVIEW_BLOCKER_CODES.has(code))
+    const lifecycleManagedByBusinessRule = Boolean(
+      (lifecycleBlockSource &&
+        (previousBusinessBlockerCodes.has(lifecycleBlockSource) || MANAGED_SWITCH_REVIEW_BLOCKER_CODES.has(lifecycleBlockSource))) ||
+      (!existing.lifecycle_blocked && previousManagedBusinessReview),
+    )
+    const lifecycleBlockedByManagedBusinessRule = Boolean(
+      existing.lifecycle_blocked && lifecycleManagedByBusinessRule,
+    )
+    const unrelatedLifecycleBlock = Boolean(
+      existing.lifecycle_blocked && !lifecycleBlockedByManagedBusinessRule,
+    )
+    const effectiveBlockers = [...reviewBlockers]
+    if (unrelatedLifecycleBlock) {
+      effectiveBlockers.push({
+        code: lifecycleBlockSource ?? 'lifecycle_blocked',
+        message: 'Leverantörsbytet har en separat livscykelblockering som måste hanteras innan utskick.',
+      })
+    }
+
+    const shouldBlockForBusinessReview = reviewBlockers.length > 0
+    const shouldClearManagedBusinessBlock = !shouldBlockForBusinessReview && !unrelatedLifecycleBlock && Boolean(
+      lifecycleManagedByBusinessRule ||
+      (existing.status === 'manual_followup_required' && previousManagedBusinessReview),
+    )
+    const nextStatus = unrelatedLifecycleBlock
+      ? existing.status
+      : shouldBlockForBusinessReview
+        ? 'manual_followup_required'
+        : shouldClearManagedBusinessBlock || existing.status === 'manual_followup_required'
+          ? 'queued'
+          : existing.status
+
+    const nextMetadata: JsonRecord = {
+      ...existingMetadata,
+      ...contextMetadata({
+        source: input.source,
+        context,
+        site,
+        meteringPoint: candidate,
+        requestedStartDate: existing.requested_start_date ?? requestedStartDate,
+      }),
+      supplier_switch_blockers: reviewBlockers,
+      pending_review_reason: reviewBlockers[0]?.code ?? null,
+    }
+
+    const updatePayload: JsonRecord = {
+      status: nextStatus,
+      metering_point_id: candidate.id,
+      customer_site_id: site.id,
+      requested_start_date: existing.requested_start_date ?? requestedStartDate,
+      current_supplier_id: site.current_supplier_id ?? null,
+      current_supplier_name: site.current_supplier_name ?? null,
+      current_supplier_org_number: site.current_supplier_org_number ?? null,
+      current_supplier_ediel_id: site.current_supplier_ediel_id ?? null,
+      current_supplier_unknown: Boolean(site.current_supplier_unknown),
+      current_supplier_contract_status: site.current_supplier_contract_status ?? null,
+      current_supplier_contract_end_date: site.current_supplier_contract_end_date ?? null,
+      current_supplier_notice_period: site.current_supplier_notice_period ?? null,
+      current_supplier_termination_fee: site.current_supplier_termination_fee ?? null,
+      current_supplier_response_status: site.current_supplier_response_status ?? null,
+      grid_owner_id: candidate.grid_owner_id ?? site.grid_owner_id ?? null,
+      price_area_code: candidate.price_area_code ?? site.price_area_code ?? null,
+      validation_snapshot: {
+        ...(existing.validation_snapshot ?? {}),
+        isReady: readiness.isReady && reviewBlockers.length === 0,
+        issues: readiness.issues,
+        candidateMeteringPointId: readiness.candidateMeteringPointId,
+        latestPowerOfAttorneyId: readiness.latestPowerOfAttorneyId,
+        businessBlockers: reviewBlockers,
+        currentSupplier: {
+          id: site.current_supplier_id ?? null,
+          name: site.current_supplier_name ?? null,
+          orgNumber: site.current_supplier_org_number ?? null,
+          edielId: site.current_supplier_ediel_id ?? null,
+          unknown: Boolean(site.current_supplier_unknown),
+          contractStatus: site.current_supplier_contract_status ?? null,
+          contractEndDate: site.current_supplier_contract_end_date ?? null,
+          noticePeriod: site.current_supplier_notice_period ?? null,
+          terminationFee: site.current_supplier_termination_fee ?? null,
+          responseStatus: site.current_supplier_response_status ?? null,
+        },
+        reconciledAt: new Date().toISOString(),
+      },
+      metadata: nextMetadata,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (shouldBlockForBusinessReview && !unrelatedLifecycleBlock) {
+      updatePayload.lifecycle_blocked = true
+      updatePayload.lifecycle_block_source = reviewBlockers[0]?.code ?? null
+      updatePayload.paused_at = existing.paused_at ?? new Date().toISOString()
+      updatePayload.paused_by = input.actorUserId ?? existing.paused_by ?? null
+      updatePayload.pause_reason = reviewBlockers[0]?.message ?? 'Komplettering krävs före leverantörsbyte.'
+    } else if (shouldClearManagedBusinessBlock) {
+      updatePayload.lifecycle_blocked = false
+      updatePayload.lifecycle_block_source = null
+      updatePayload.paused_at = null
+      updatePayload.paused_by = null
+      updatePayload.pause_reason = null
+    }
+
+    const { data: updatedData, error: updateError } = await supabaseService
+      .from('supplier_switch_requests')
+      .update(updatePayload)
+      .eq('id', existing.id)
+      .eq('company_id', companyId)
+      .select('*')
+      .single()
+    if (updateError) throw updateError
+    const updated = updatedData as SupplierSwitchRequestRow
+
+    if (shouldClearManagedBusinessBlock) {
+      await emitCustomerOperationEvent({
+        companyId,
+        customerId,
+        actorUserId: input.actorUserId ?? null,
+        eventType: 'supplier_switch.unblocked',
+        title: 'Leverantörsbyte återupptaget',
+        message: 'Tidigare kompletteringsblockering är löst. Leverantörsbytet har lagts tillbaka i kön.',
+        customerSiteId: siteId,
+        meteringPointId: candidate.id,
+        operationId: normalizeUuidOrNull(input.operationId, 'operation_id'),
+        status: 'queued',
+        severity: 'info',
+        actionRequired: false,
+        source: input.source,
+        actionUrl: `/admin/customers/${customerId}?tab=supplier-switch`,
+        payload: {
+          supplier_switch_request_id: updated.id,
+          resolved_block_source: lifecycleBlockSource,
+          requested_start_date: updated.requested_start_date ?? requestedStartDate,
+        },
+        idempotencyKey: `supplier_switch.unblocked:${updated.id}:${lifecycleBlockSource ?? 'business_review'}`,
+      })
+    }
+
     return {
       ok: true,
       created: false,
       reusedExisting: true,
-      request: existing,
+      request: updated,
       site,
       meteringPoint: candidate,
       readiness,
-      requestedStartDate: existing.requested_start_date ?? requestedStartDate,
-      blockers: reviewBlockers,
+      requestedStartDate: updated.requested_start_date ?? requestedStartDate,
+      blockers: effectiveBlockers,
     }
   }
 
@@ -368,6 +556,101 @@ export async function ensureSupplierSwitchRequestForReadySite(
     readiness,
     requestedStartDate: request.requested_start_date ?? requestedStartDate,
     blockers: reviewBlockers,
+  }
+}
+
+
+export type ReconcileSupplierSwitchAfterCustomerDataChangeInput = {
+  companyId: string
+  customerId: string
+  siteId: string
+  meteringPointId?: string | null
+  actorUserId?: string | null
+  operationId?: string | null
+  source: string
+}
+
+/**
+ * Re-evaluates supplier-switch readiness after site, metering, POA or supplier
+ * data changes. It resumes an open durable request, or creates the first
+ * request once earlier creation blockers have been resolved.
+ */
+export async function reconcileSupplierSwitchAfterCustomerDataChange(
+  input: ReconcileSupplierSwitchAfterCustomerDataChangeInput,
+): Promise<SupplierSwitchOrchestrationResult> {
+  const companyId = requireUuid(input.companyId, 'company_id')
+  const customerId = requireUuid(input.customerId, 'customer_id')
+  const siteId = requireUuid(input.siteId, 'customer_site_id')
+  const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, { companyId, customerId, siteId })
+
+  const ensured = await ensureSupplierSwitchRequestForReadySite({
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId: input.meteringPointId ?? existing?.metering_point_id ?? null,
+    actorUserId: input.actorUserId ?? null,
+    operationId: input.operationId ?? null,
+    automationOrigin: 'customer_data_change_reconcile',
+    automationKey: existing?.automation_key ?? `customer_site_${siteId}_supplier_switch`,
+    source: input.source,
+    requestedStartDate: existing?.requested_start_date ?? null,
+    externalReference: existing?.external_reference ?? null,
+    context: {
+      requestedStartDate: existing?.requested_start_date ?? null,
+      applicationId: clean(existing?.metadata?.application_id),
+      externalCustomerId: clean(existing?.metadata?.external_customer_id),
+      contractId: clean(existing?.metadata?.contract_id),
+      powerOfAttorneyId: clean(existing?.metadata?.power_of_attorney_id),
+    },
+  })
+
+  if (!ensured.ok || !ensured.request) return blockedResult(ensured.blockers)
+  if (ensured.blockers.length > 0) {
+    return {
+      ok: true,
+      created: ensured.created,
+      reusedExisting: ensured.reusedExisting,
+      supplierSwitchRequestId: ensured.request.id,
+      jobId: null,
+      jobDuplicate: false,
+      requestedStartDate: ensured.requestedStartDate,
+      blockers: ensured.blockers,
+      blockedBeforeDispatch: true,
+    }
+  }
+
+  const job = await enqueueSupplierSwitchAutomation({
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId: ensured.meteringPoint?.id ?? input.meteringPointId ?? existing?.metering_point_id ?? null,
+    actorUserId: input.actorUserId ?? null,
+    operationId: input.operationId ?? null,
+    source: input.source,
+    payloadContext: {
+      supplier_switch_request_id: ensured.request.id,
+      customer_id: customerId,
+      customer_site_id: siteId,
+      site_id: siteId,
+      metering_point_id: ensured.meteringPoint?.id ?? existing?.metering_point_id ?? null,
+      requested_start_date: ensured.requestedStartDate,
+      grid_owner_id: ensured.meteringPoint?.grid_owner_id ?? ensured.site?.grid_owner_id ?? null,
+      grid_area_code: ensured.site?.grid_area_code ?? null,
+      price_area_code: ensured.meteringPoint?.price_area_code ?? ensured.site?.price_area_code ?? null,
+      source: input.source,
+      idempotency_context: `supplier_switch_reconcile:${ensured.request.id}`,
+    },
+  })
+
+  return {
+    ok: true,
+    created: ensured.created,
+    reusedExisting: ensured.reusedExisting,
+    supplierSwitchRequestId: ensured.request.id,
+    jobId: job.id,
+    jobDuplicate: Boolean(job.duplicate),
+    requestedStartDate: ensured.requestedStartDate,
+    blockers: [],
   }
 }
 
