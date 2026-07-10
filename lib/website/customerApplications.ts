@@ -4215,11 +4215,18 @@ export async function processWebsiteCustomerApplication(input: {
         responsePayload.supplier_switch_request_id = supplierSwitchOrchestration.supplierSwitchRequestId
         responsePayload.supplier_switch_job_id = supplierSwitchOrchestration.jobId
         responsePayload.supplier_switch_requested_start_date = supplierSwitchOrchestration.requestedStartDate
-        responsePayload.supplier_switch_status = supplierSwitchOrchestration.created
-          ? 'created'
-          : supplierSwitchOrchestration.reusedExisting
-            ? 'already_open'
-            : 'queued'
+
+        if (supplierSwitchOrchestration.blockers.length > 0) {
+          supplierSwitchWarnings.push('supplier_switch_pending_review')
+          responsePayload.supplier_switch_status = 'pending_review'
+          responsePayload.supplier_switch_blockers = supplierSwitchOrchestration.blockers
+        } else {
+          responsePayload.supplier_switch_status = supplierSwitchOrchestration.created
+            ? 'created'
+            : supplierSwitchOrchestration.reusedExisting
+              ? 'already_open'
+              : 'queued'
+        }
       } else {
         supplierSwitchWarnings.push('supplier_switch_orchestration_pending')
         responsePayload.supplier_switch_status = 'pending_review'

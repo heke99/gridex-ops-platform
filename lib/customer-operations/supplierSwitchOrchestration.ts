@@ -27,6 +27,57 @@ function missingSchema(error: unknown): boolean {
 }
 
 /**
+ * Readiness issues are not all equal. Some mean we cannot even create a
+ * durable supplier_switch_requests row (missing legal/site/metering identity),
+ * while others are business/review blockers that should stop dispatch only.
+ *
+ * current_supplier_missing is intentionally NOT in this set: the customer must
+ * still appear in company_switch_queue_v so tenant/superadmin can complete the
+ * missing supplier data from the switch queue.
+ */
+const SUPPLIER_SWITCH_CREATION_BLOCKER_CODES = new Set<string>([
+  'power_of_attorney_missing',
+  'power_of_attorney_not_signed',
+  'metering_point_missing',
+  'meter_point_id_missing',
+  'grid_owner_missing',
+  'grid_area_missing',
+  'price_area_missing',
+  'facility_or_metering_point_missing',
+])
+
+function splitReadinessIssuesForSwitchRequestCreation(input: {
+  readiness: SwitchReadinessResult
+  requestedStartDate: string | null
+}): {
+  creationBlockers: SupplierSwitchOrchestrationBlocker[]
+  reviewBlockers: SupplierSwitchOrchestrationBlocker[]
+} {
+  const creationBlockers: SupplierSwitchOrchestrationBlocker[] = []
+  const reviewBlockers: SupplierSwitchOrchestrationBlocker[] = []
+
+  for (const issue of input.readiness.issues) {
+    const blocker = { code: issue.code, message: issue.title }
+
+    // A requested start date supplied by the website payload/context is enough
+    // to create the switch request. Dispatch can still block later if market
+    // timing/preflight says it is not sendable yet.
+    if (issue.code === 'move_in_date_missing' && input.requestedStartDate) {
+      reviewBlockers.push(blocker)
+      continue
+    }
+
+    if (SUPPLIER_SWITCH_CREATION_BLOCKER_CODES.has(issue.code)) {
+      creationBlockers.push(blocker)
+    } else {
+      reviewBlockers.push(blocker)
+    }
+  }
+
+  return { creationBlockers, reviewBlockers }
+}
+
+/**
  * Business context carried from the website customer application (or another
  * intake source) into the supplier switch request metadata and the switch job
  * payload. All fields are optional; unknown values are simply omitted.
@@ -63,6 +114,7 @@ export type SupplierSwitchOrchestrationResult = {
   jobDuplicate: boolean
   requestedStartDate: string | null
   blockers: SupplierSwitchOrchestrationBlocker[]
+  blockedBeforeDispatch?: boolean
 }
 
 function blockedResult(blockers: SupplierSwitchOrchestrationBlocker[]): SupplierSwitchOrchestrationResult {
@@ -130,6 +182,7 @@ export type EnsureSupplierSwitchRequestResult = {
   readiness: SwitchReadinessResult | null
   requestedStartDate: string | null
   blockers: SupplierSwitchOrchestrationBlocker[]
+  blockedBeforeDispatch?: boolean
 }
 
 /**
@@ -201,7 +254,13 @@ export async function ensureSupplierSwitchRequestForReadySite(
     }
   }
 
-  if (!readiness.isReady) {
+  const requestedStartDate = clean(input.requestedStartDate) ?? clean(context.requestedStartDate) ?? clean(site.move_in_date) ?? null
+  const { creationBlockers, reviewBlockers } = splitReadinessIssuesForSwitchRequestCreation({
+    readiness,
+    requestedStartDate,
+  })
+
+  if (creationBlockers.length > 0) {
     return {
       ok: false,
       created: false,
@@ -210,12 +269,10 @@ export async function ensureSupplierSwitchRequestForReadySite(
       site,
       meteringPoint: candidate,
       readiness,
-      requestedStartDate: null,
-      blockers: readiness.issues.map((issue) => ({ code: issue.code, message: issue.title })),
+      requestedStartDate,
+      blockers: creationBlockers,
     }
   }
-
-  const requestedStartDate = clean(input.requestedStartDate) ?? clean(context.requestedStartDate) ?? clean(site.move_in_date) ?? null
 
   const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, { companyId, customerId, siteId })
   if (existing) {
@@ -228,7 +285,7 @@ export async function ensureSupplierSwitchRequestForReadySite(
       meteringPoint: candidate,
       readiness,
       requestedStartDate: existing.requested_start_date ?? requestedStartDate,
-      blockers: [],
+      blockers: reviewBlockers,
     }
   }
 
@@ -243,6 +300,10 @@ export async function ensureSupplierSwitchRequestForReadySite(
     automationOrigin: input.automationOrigin,
     automationKey: input.automationKey,
     externalReference: clean(input.externalReference) ?? clean(context.externalCustomerId),
+    initialStatus: reviewBlockers.length > 0 ? 'manual_followup_required' : 'queued',
+    businessBlockers: reviewBlockers,
+    lifecycleBlocked: reviewBlockers.length > 0,
+    lifecycleBlockSource: reviewBlockers[0]?.code ?? null,
     metadata: contextMetadata({
       source: input.source,
       context,
@@ -270,19 +331,22 @@ export async function ensureSupplierSwitchRequestForReadySite(
     actorUserId: input.actorUserId ?? null,
     eventType: 'supplier_switch.request_created',
     title: 'Leverantörsbyte skapat',
-    message: requestedStartDate
-      ? `Leverantörsbyte är skapat och planeras utifrån önskat startdatum ${requestedStartDate}.`
-      : 'Leverantörsbyte är skapat och planeras utifrån tidigast möjliga startdatum.',
+    message: reviewBlockers.length > 0
+      ? `Leverantörsbyte är skapat men väntar på komplettering: ${reviewBlockers.map((blocker) => blocker.message).join(', ')}.`
+      : requestedStartDate
+        ? `Leverantörsbyte är skapat och planeras utifrån önskat startdatum ${requestedStartDate}.`
+        : 'Leverantörsbyte är skapat och planeras utifrån tidigast möjliga startdatum.',
     customerSiteId: siteId,
     meteringPointId: candidate.id,
     operationId,
-    status: 'queued',
-    severity: 'info',
-    actionRequired: false,
+    status: reviewBlockers.length > 0 ? 'needs_review' : 'queued',
+    severity: reviewBlockers.length > 0 ? 'warning' : 'info',
+    actionRequired: reviewBlockers.length > 0,
     source: input.source,
     actionUrl: `/admin/customers/${customerId}?tab=supplier-switch`,
     payload: {
       supplier_switch_request_id: request.id,
+      blockers: reviewBlockers,
       automation_origin: input.automationOrigin,
       automation_key: input.automationKey,
       requested_start_date: requestedStartDate,
@@ -303,7 +367,7 @@ export async function ensureSupplierSwitchRequestForReadySite(
     meteringPoint: candidate,
     readiness,
     requestedStartDate: request.requested_start_date ?? requestedStartDate,
-    blockers: [],
+    blockers: reviewBlockers,
   }
 }
 
@@ -381,6 +445,44 @@ export async function ensureSupplierSwitchForReadyCustomer(
         idempotencyKey: `supplier_switch.orchestration_blocked:${input.applicationId}:${ensured.blockers[0]?.code ?? 'unknown'}`,
       })
       return blockedResult(ensured.blockers)
+    }
+
+    if (ensured.blockers.length > 0) {
+      await emitCustomerOperationEvent({
+        companyId: input.companyId,
+        customerId: input.customerId,
+        actorUserId: input.actorUserId ?? null,
+        eventType: 'supplier_switch.blocked',
+        title: 'Leverantörsbyte väntar på komplettering',
+        message: `Komplettera först: ${ensured.blockers.map((blocker) => blocker.message).join(', ')}`,
+        customerSiteId: input.siteId,
+        meteringPointId: ensured.meteringPoint?.id ?? input.meteringPointId ?? null,
+        operationId: normalizeUuidOrNull(input.operationId, 'operation_id'),
+        status: 'needs_review',
+        severity: 'warning',
+        actionRequired: true,
+        source,
+        actionUrl: `/admin/customers/${input.customerId}?tab=supplier-switch`,
+        payload: {
+          application_id: input.applicationId,
+          supplier_switch_request_id: ensured.request.id,
+          blockers: ensured.blockers,
+          site_id: input.siteId,
+        },
+        idempotencyKey: `supplier_switch.blocked:${ensured.request.id}:${ensured.blockers[0]?.code ?? 'unknown'}`,
+      })
+
+      return {
+        ok: true,
+        created: ensured.created,
+        reusedExisting: ensured.reusedExisting,
+        supplierSwitchRequestId: ensured.request.id,
+        jobId: null,
+        jobDuplicate: false,
+        requestedStartDate: ensured.requestedStartDate,
+        blockers: ensured.blockers,
+        blockedBeforeDispatch: true,
+      }
     }
 
     const context = input.context ?? {}

@@ -90,6 +90,33 @@ expect(
   'helper refuses to create a switch without facility/metering identity'
 )
 expect(
+  orchestration.includes('SUPPLIER_SWITCH_CREATION_BLOCKER_CODES') &&
+    !/SUPPLIER_SWITCH_CREATION_BLOCKER_CODES[\s\S]{0,500}'current_supplier_missing'/.test(orchestration),
+  'current_supplier_missing is not a switch-request creation blocker'
+)
+expect(
+  orchestration.includes('splitReadinessIssuesForSwitchRequestCreation') &&
+    /reviewBlockers/.test(orchestration) &&
+    /creationBlockers/.test(orchestration),
+  'readiness issues are split into creation blockers and review/send blockers'
+)
+expect(
+  !/if \(!readiness\.isReady\) \{[\s\S]{0,500}request: null/.test(orchestration),
+  'readiness.isReady is not used as a blanket gate before supplier_switch_requests creation'
+)
+expect(
+  /initialStatus: reviewBlockers\.length > 0 \? 'manual_followup_required' : 'queued'/.test(orchestration) &&
+    /businessBlockers: reviewBlockers/.test(orchestration) &&
+    /lifecycleBlockSource: reviewBlockers\[0\]\?\.code/.test(orchestration),
+  'review blockers create manual_followup_required switch requests with lifecycle blocker metadata'
+)
+expect(
+  orchestration.includes('if (ensured.blockers.length > 0) {') &&
+    /if \(ensured\.blockers\.length > 0\) \{[\s\S]{0,2000}jobId: null/.test(orchestration) &&
+    /blockedBeforeDispatch: true/.test(orchestration),
+  'business-blocked switch requests are created but do not enqueue start_supplier_switch/EDIEL dispatch'
+)
+expect(
   orchestration.includes("eventType: 'supplier_switch.request_created'"),
   'supplier_switch.request_created operation event is emitted'
 )
@@ -241,6 +268,24 @@ expect(
 expect(
   /externalReference\?: string \| null;\s*metadata\?: Record<string, unknown> \| null;/.test(operationsDb),
   'createSupplierSwitchRequest accepts external_reference and metadata'
+)
+expect(
+  /initialStatus\?: SupplierSwitchRequestStatus/.test(operationsDb) &&
+    /businessBlockers\?: Array<\{ code: string; message: string \}>/.test(operationsDb) &&
+    /lifecycleBlockSource\?: string \| null/.test(operationsDb),
+  'createSupplierSwitchRequest accepts status and business blocker fields'
+)
+expect(
+  /status: initialStatus/.test(operationsDb) &&
+    /lifecycle_blocked: params\.lifecycleBlocked \?\? Boolean\(primaryBusinessBlocker\)/.test(operationsDb) &&
+    /lifecycle_block_source: params\.lifecycleBlockSource \?\? primaryBusinessBlocker\?\.code/.test(operationsDb),
+  'blocked switch requests are persisted with manual status and lifecycle block source for company_switch_queue_v visibility'
+)
+expect(
+  /supplier_switch_blockers: businessBlockers/.test(operationsDb) &&
+    /pending_review_reason: primaryBusinessBlocker\?\.code/.test(operationsDb) &&
+    /businessBlockers,/.test(operationsDb),
+  'business blockers are stored in metadata and validation_snapshot'
 )
 
 // 9. Schema correctness (Error 7) ---------------------------------------------------

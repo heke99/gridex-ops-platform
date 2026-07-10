@@ -1444,6 +1444,10 @@ export async function createSupplierSwitchRequest(
     companyId?: string | null;
     externalReference?: string | null;
     metadata?: Record<string, unknown> | null;
+    initialStatus?: SupplierSwitchRequestStatus;
+    businessBlockers?: Array<{ code: string; message: string }>;
+    lifecycleBlocked?: boolean;
+    lifecycleBlockSource?: string | null;
   },
 ): Promise<SupplierSwitchRequestRow> {
   const actorId = await getActorId(supabase);
@@ -1495,6 +1499,11 @@ export async function createSupplierSwitchRequest(
     }).catch(() => null);
   }
 
+  const businessBlockers = params.businessBlockers ?? [];
+  const primaryBusinessBlocker = businessBlockers[0] ?? null;
+  const initialStatus: SupplierSwitchRequestStatus =
+    params.initialStatus ?? (primaryBusinessBlocker ? "manual_followup_required" : "queued");
+
   const insertPayload = {
     customer_id: params.readiness.customerId,
     site_id: params.site.id,
@@ -1506,7 +1515,7 @@ export async function createSupplierSwitchRequest(
     power_of_attorney_id: params.readiness.latestPowerOfAttorneyId,
     authorization_document_id: authorizationDocumentId,
     request_type: params.requestType,
-    status: "queued" as const,
+    status: initialStatus,
     requested_start_date: effectiveRequestedStartDate,
     current_supplier_id: params.site.current_supplier_id ?? null,
     current_supplier_name: params.site.current_supplier_name,
@@ -1543,11 +1552,18 @@ export async function createSupplierSwitchRequest(
         responseStatus: params.site.current_supplier_response_status ?? null,
       },
       startDateCalculation,
+      businessBlockers,
     },
+    lifecycle_blocked: params.lifecycleBlocked ?? Boolean(primaryBusinessBlocker),
+    lifecycle_block_source: params.lifecycleBlockSource ?? primaryBusinessBlocker?.code ?? null,
     automation_origin: params.automationOrigin ?? null,
     automation_key: params.automationKey ?? null,
     external_reference: params.externalReference ?? null,
-    metadata: params.metadata ?? {},
+    metadata: {
+      ...(params.metadata ?? {}),
+      supplier_switch_blockers: businessBlockers,
+      pending_review_reason: primaryBusinessBlocker?.code ?? null,
+    },
     created_by: actorId,
     updated_by: actorId,
     company_id: params.companyId ?? null,
@@ -1580,13 +1596,16 @@ export async function createSupplierSwitchRequest(
     switchRequestId: request.id,
     eventType: "created",
     eventStatus: "success",
-    message: "Switchärende skapat och köat för vidare handläggning.",
+    message: primaryBusinessBlocker
+      ? `Switchärende skapat men väntar på komplettering: ${primaryBusinessBlocker.message}.`
+      : "Switchärende skapat och köat för vidare handläggning.",
     payload: {
       requestType: params.requestType,
       requestedStartDate: params.requestedStartDate,
       incomingSupplierName,
       incomingSupplierOrgNumber,
       ownSupplierResolution: ownSupplierLookup.resolution,
+      businessBlockers,
     },
     companyId: params.companyId ?? null,
   });
