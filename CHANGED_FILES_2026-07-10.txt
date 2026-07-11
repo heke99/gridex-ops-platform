@@ -1,0 +1,22 @@
+Gridex OPS – ändrade och tillagda filer
+Datum: 2026-07-10
+
+IMPLEMENTATION_NOTES_2026-07-10.md
+__tests__/contract-pricing-snapshot.test.ts
+app/admin/customers/[id]/actions.ts
+app/admin/customers/[id]/page.tsx
+app/admin/pricing/portfolio-prices/PortfolioPricePreviewForm.tsx
+app/admin/pricing/portfolio-prices/actions.ts
+app/admin/pricing/portfolio-prices/page.tsx
+app/api/v1/website/quote/route.ts
+app/developers/customer-portal-api/page.tsx
+components/admin/customers/CustomerBusinessActionsCard.tsx
+components/admin/customers/CustomerProfileCard.tsx
+lib/customer-operations/customerCardTenantView.ts
+lib/operations/switchLifecycleBlocks.ts
+lib/pricing/contractSnapshot.ts
+lib/pricing/offerQuote.ts
+lib/pricing/priceSourceResolver.ts
+lib/website/customerApplications.ts
+scripts/gridex-superadmin-diagnostics-ui-regression.cjs
+supabase/migrations/20260710190000_customer_card_pricing_portfolio_hardening.sql

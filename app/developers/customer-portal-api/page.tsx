@@ -33,6 +33,7 @@ const futurePermissions = [
 
 const endpoints = [
   ['GET', '/api/v1/website/public-contracts', 'website_contracts.read', 'Hämta publicerade avtal som hemsidan får visa.'],
+  ['POST', '/api/v1/website/quote', 'website_contracts.read', 'Beräkna månad/år för publicerat spot-, fast-, portfölj- eller mixavtal med OPS prismotor.'],
   ['POST', '/api/v1/website/customer-applications', 'website_applications.write', 'Skapa kundansökan, avtalssnapshot och juridiska godkännanden.'],
   ['POST', '/api/v1/website/customer-events', 'website_events.write', 'Skicka kundhändelser från hemsidan. Supportärenden ska inte skickas hit.'],
   ['POST', '/api/v1/events', 'website_events.write', 'Alias för att skicka kundhändelser från hemsidan.'],

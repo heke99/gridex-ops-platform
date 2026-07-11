@@ -27,12 +27,12 @@ mustInclude(card, 'Säker intern mottagare (override)', 'override mode labelled 
 mustInclude(card, 'Produktionsutskick med säker intern mottagare', 'production safe-override warning banner')
 
 // Dirty test data warning (superadmin only).
-mustInclude(card, 'isPlatformAdmin && isTestData', 'test data banner gated to platform admins')
+mustInclude(card, 'isPlatformAdmin && showTechnicalDiagnostics && isTestData', 'test data banner gated to the separate platform diagnostics view')
 mustInclude(card, 'får inte\n            användas som bevis för produktionsflödet', 'banner explains dirty rows are not production proof')
 mustInclude(page, 'isTestData={customer.is_test_data === true}', 'page feeds the flag from the customer row')
 
 // Z01 repair panel + technical details remain superadmin capabilities.
-mustInclude(card, 'isPlatformAdmin && (workflow.canRunRepair || workflow.canContinueFinalization)', 'Z01 repair panel intact')
+mustInclude(card, 'isPlatformAdmin && showTechnicalDiagnostics && (workflow.canRunRepair || workflow.canContinueFinalization)', 'Z01 repair panel isolated to platform diagnostics')
 mustInclude(card, 'Tekniska detaljer och felsökning', 'technical detail expansion intact')
 
 // Resend action uses explicit resend-scoped idempotency + provenance.

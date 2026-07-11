@@ -46,6 +46,11 @@ export function buildTenantCustomerCardView(params: {
   snapshot: CustomerCardSnapshot
   workflow: CustomerCardWorkflow
   dispatchState?: EdielDispatchStateResult | null
+  switchCompleted?: boolean
+  switchInProgress?: boolean
+  deliveryActive?: boolean
+  billingReady?: boolean
+  billingInProgress?: boolean
 }): TenantCustomerCardView {
   const { snapshot, workflow } = params
   const isBlocked = workflow.primaryAction === 'review_blocker'
@@ -64,6 +69,11 @@ export function buildTenantCustomerCardView(params: {
 
   const legalDone = snapshot.hasAuthorization && snapshot.hasContract
   const facilityDone = snapshot.hasFacilityId && snapshot.hasMeteringPoint && snapshot.hasGridOwner
+  const switchCompleted = params.switchCompleted === true
+  const switchInProgress = params.switchInProgress === true
+  const deliveryActive = params.deliveryActive === true || switchCompleted
+  const billingReady = params.billingReady === true
+  const billingInProgress = params.billingInProgress === true
 
   return {
     processSteps: [
@@ -98,22 +108,40 @@ export function buildTenantCustomerCardView(params: {
       {
         id: 'switch',
         label: 'Leverantörsbyte',
-        status: stepStatus(false, workflow.primaryAction === 'create_supplier_switch'),
-        explanation: workflow.primaryAction === 'create_supplier_switch'
-          ? 'Allt underlag är klart. Leverantörsbytet kan startas.'
-          : 'Leverantörsbyte kan inte starta förrän anläggningsuppgifter finns.',
+        status: switchCompleted
+          ? 'done'
+          : switchInProgress
+            ? 'current'
+            : stepStatus(false, workflow.primaryAction === 'create_supplier_switch'),
+        explanation: switchCompleted
+          ? 'Leverantörsbytet är bekräftat.'
+          : switchInProgress
+            ? 'Leverantörsbytet pågår.'
+            : !facilityDone
+              ? 'Leverantörsbyte kan inte starta förrän anläggningsuppgifter finns.'
+              : workflow.primaryAction === 'create_supplier_switch'
+                ? 'Allt underlag är klart. Leverantörsbytet kan startas.'
+                : 'Startar när nödvändiga kund- och anläggningsuppgifter är klara.',
       },
       {
         id: 'delivery',
-        label: 'Leverans aktiv',
-        status: 'waiting',
-        explanation: 'Startar när leverantörsbytet är bekräftat.',
+        label: 'Leverans',
+        status: deliveryActive ? 'done' : switchCompleted ? 'current' : 'waiting',
+        explanation: deliveryActive
+          ? 'Elleveransen är aktiv.'
+          : switchCompleted
+            ? 'Leveransstart inväntas eller behöver bekräftas.'
+            : 'Startar när leverantörsbytet är bekräftat.',
       },
       {
         id: 'billing',
         label: 'Fakturering',
-        status: 'waiting',
-        explanation: 'Startar automatiskt när leverans och mätvärden är klara.',
+        status: billingReady ? 'done' : billingInProgress ? 'current' : 'waiting',
+        explanation: billingReady
+          ? 'Fakturaunderlag finns och kan hanteras.'
+          : billingInProgress
+            ? 'Mätvärden eller fakturaunderlag behandlas.'
+            : 'Startar när leverans och mätvärden är klara.',
       },
     ],
     primaryAction:

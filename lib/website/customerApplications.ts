@@ -31,6 +31,7 @@ import { commitApplicationProvisioning, failApplicationProvisioning } from '@/li
 import { buildPublicLegalUrl, loadCompanySlugById } from '@/lib/legal/publicLegalDocuments'
 import { normalizeCustomerType } from '@/lib/customers/normalizeCustomerType'
 import { matchCustomerIdentity, type CustomerMatchDecision } from '@/lib/customers/matchingService'
+import { assertCanonicalSnapshot, buildCanonicalContractSnapshot } from '@/lib/pricing/contractSnapshot'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -3251,24 +3252,25 @@ async function createContractPriceSnapshot(input: {
   metadata?: Record<string, unknown>
 }) {
   const selected = selectedOfferFields(input.offer, input.contract)
-  const baseSnapshot = input.offer ? [
-    {
-      source: 'public_contract_offer',
-      product_code: input.offer.product_code,
-      billing_model: input.offer.billing_model,
-      contract_type: input.offer.contract_type,
-      valid_from: input.offer.valid_from,
-      valid_to: input.offer.valid_to,
-    },
-  ] : []
-  const feeSnapshot = [
-    { code: 'monthly_fee', label: 'Månadsavgift', amount: selected.monthlyFeeSek, unit: 'SEK/month' },
-    { code: 'invoice_fee', label: 'Fakturaavgift', amount: selected.invoiceFeeSek, unit: 'SEK/invoice' },
-    { code: 'spot_markup', label: 'Påslag', amount: selected.spotMarkupOrePerKwh ?? selected.markupOrePerKwh, unit: 'ore/kWh' },
-    { code: 'variable_fee', label: 'Rörlig avgift', amount: selected.variableFeeOrePerKwh, unit: 'ore/kWh' },
-    { code: 'fixed_price', label: 'Fastpris', amount: selected.fixedPriceOrePerKwh, unit: 'ore/kWh' },
-    { code: 'green_fee', label: 'Grön el', amount: selected.greenFeeValue, unit: selected.greenFeeMode ?? 'none' },
-  ].filter((item) => item.amount !== null && item.amount !== undefined)
+  const canonicalSnapshot = buildCanonicalContractSnapshot({
+    contractType: selected.contractType,
+    billingModel: selected.billingModel,
+    productCode: selected.productCode,
+    monthlyFeeSek: selected.monthlyFeeSek,
+    invoiceFeeSek: selected.invoiceFeeSek,
+    markupOrePerKwh: selected.markupOrePerKwh,
+    spotMarkupOrePerKwh: selected.spotMarkupOrePerKwh,
+    variableFeeOrePerKwh: selected.variableFeeOrePerKwh,
+    fixedPriceOrePerKwh: selected.fixedPriceOrePerKwh,
+    greenFeeMode: selected.greenFeeMode,
+    greenFeeValue: selected.greenFeeValue,
+    spotWeightPercent: input.offer?.spot_weight_percent ?? null,
+    portfolioWeightPercent: input.offer?.portfolio_weight_percent ?? null,
+    fixedWeightPercent: input.offer?.fixed_weight_percent ?? null,
+    validFrom: input.readiness.requestedStartDate ?? input.offer?.valid_from ?? null,
+    validTo: input.offer?.valid_to ?? null,
+  })
+  assertCanonicalSnapshot(canonicalSnapshot)
 
   const snapshotJson = {
     source: 'website_customer_applications',
@@ -3286,11 +3288,16 @@ async function createContractPriceSnapshot(input: {
     terms_version: selected.termsVersion,
     public_price_text: input.offer?.public_price_text ?? null,
     terms_url: input.offer?.terms_url ?? null,
+    pricing_model: canonicalSnapshot.pricingModel,
+    snapshot_schema: 'gridex_contract_pricing_v2',
+    vat_rate: canonicalSnapshot.vatRate,
     mix: {
       spot_weight_percent: input.offer?.spot_weight_percent ?? null,
       portfolio_weight_percent: input.offer?.portfolio_weight_percent ?? null,
       fixed_weight_percent: input.offer?.fixed_weight_percent ?? null,
     },
+    base_price_components_snapshot: canonicalSnapshot.basePriceComponents,
+    price_components_snapshot: canonicalSnapshot.priceComponents,
     requested_start_date: input.readiness.requestedStartDate,
     requested_start_mode: input.readiness.requestedStartMode,
     calculated_earliest_start_date: input.readiness.calculatedEarliestStartDate,
@@ -3318,9 +3325,9 @@ async function createContractPriceSnapshot(input: {
       source: 'website_customer_applications',
       price_plan_version_id: selected.pricePlanVersionId,
       campaign_version_id: selected.campaignVersionId,
-      pricing_model: selected.billingModel ?? selected.contractType ?? 'spot',
-      base_price_components_snapshot: baseSnapshot,
-      price_components_snapshot: feeSnapshot,
+      pricing_model: canonicalSnapshot.pricingModel,
+      base_price_components_snapshot: canonicalSnapshot.basePriceComponents,
+      price_components_snapshot: canonicalSnapshot.priceComponents,
       snapshot_json: snapshotJson,
       valid_from: input.readiness.requestedStartDate ?? null,
       valid_to: input.offer?.valid_to ?? null,
@@ -3329,7 +3336,16 @@ async function createContractPriceSnapshot(input: {
     .single()
 
   if (error) {
-    if (missingSchema(error)) return null
+    if (missingSchema(error)) {
+      throw new WebsiteApplicationError({
+        message: 'Avtalets prissnapshot kunde inte skapas eftersom databasschemat saknar nödvändiga prisfält.',
+        status: 500,
+        code: 'contract_price_snapshot_schema_missing',
+        stage: 'contract_snapshot_create',
+        hint: 'Kör senaste prismotor- och kontraktsmigrationer innan webbavtal tillåts.',
+        details: error,
+      })
+    }
     throw error
   }
 
@@ -3482,39 +3498,28 @@ async function createContract(
     updated_at: now,
   }
 
-  const fallbackPayloads = [
-    fullPayload,
-    omitKeys(fullPayload, [
-      'metadata',
-      'optional_fee_lines',
-      'expected_start_at',
-      'requested_start_date',
-      'confirmed_start_date',
-      'actual_start_date',
-      'agreement_channel',
-      'campaign_code',
-      'price_version',
-      'terms_version',
-      'invoice_fee_sek',
-      'markup_ore_per_kwh',
-      'price_plan_id',
-      'price_plan_version_id',
-    ]),
-    {
-      company_id: companyId,
-      customer_id: customerId,
-      site_id: siteId,
-      customer_site_id: siteId,
-      metering_point_id: meteringPointId,
-      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
-      status: contractStatus,
-      contract_number: contractNumber,
-      contract_name: selected.contractName,
-      contract_type: selected.contractType,
-      starts_at: requestedStartDate,
-      updated_at: now,
-    },
-  ]
+  // Public website offers are commercially binding. Never fall back to a
+  // reduced payload that drops price-plan/version linkage or frozen fees.
+  // Legacy/manual intake may still use the schema-compatibility fallbacks.
+  const fallbackPayloads = publicOffer
+    ? [fullPayload]
+    : [
+        fullPayload,
+        omitKeys(fullPayload, [
+          'metadata',
+          'optional_fee_lines',
+          'expected_start_at',
+          'requested_start_date',
+          'confirmed_start_date',
+          'actual_start_date',
+          'agreement_channel',
+          'campaign_code',
+          'price_version',
+          'terms_version',
+          'invoice_fee_sek',
+          'markup_ore_per_kwh',
+        ]),
+      ]
 
   let firstError: unknown = null
   let lastError: unknown = null
@@ -3527,7 +3532,7 @@ async function createContract(
 
     if (!fallback.error && fallback.data) {
       const created = fallback.data as WebsiteContractCreateResult
-      created.contract_price_snapshot_id = await createContractPriceSnapshot({
+      const snapshotId = await createContractPriceSnapshot({
         companyId,
         customerId,
         contractId: created.id,
@@ -3539,6 +3544,21 @@ async function createContract(
         consents: input.consents,
         metadata: input.metadata,
       })
+      if (!snapshotId) {
+        throw new WebsiteApplicationError({
+          message: 'Kundavtalet saknar ett komplett prissnapshot och kan inte slutföras.',
+          status: 500,
+          code: 'contract_price_snapshot_missing',
+          stage: 'contract_snapshot_create',
+        })
+      }
+      const { error: snapshotLinkError } = await supabaseService
+        .from('customer_contracts')
+        .update({ contract_price_snapshot_id: snapshotId, updated_at: new Date().toISOString() })
+        .eq('company_id', companyId)
+        .eq('id', created.id)
+      if (snapshotLinkError && !missingSchema(snapshotLinkError)) throw snapshotLinkError
+      created.contract_price_snapshot_id = snapshotId
       return created
     }
 

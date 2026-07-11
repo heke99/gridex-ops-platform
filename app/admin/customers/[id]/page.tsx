@@ -55,6 +55,8 @@ import CustomerContactsAddressesCard from "@/components/admin/customers/Customer
 import CustomerProfileCard from "@/components/admin/customers/CustomerProfileCard";
 import CustomerCardLegacyTabRedirect from "@/components/admin/customers/CustomerCardLegacyTabRedirect";
 import { customerCardAnchor } from "@/lib/customer-operations/customerCardAnchors";
+import { buildCustomerCardWorkflow } from "@/lib/customer-operations/customerCardWorkflow";
+import { buildTenantCustomerCardView } from "@/lib/customer-operations/customerCardTenantView";
 import CustomerGridOwnerFileImportCard from "@/components/admin/customers/CustomerGridOwnerFileImportCard";
 import CustomerContractOfferEligibilityCard from "@/components/admin/customers/CustomerContractOfferEligibilityCard";
 import CustomerOperationsReadinessStrip from "@/components/admin/customers/CustomerOperationsReadinessStrip";
@@ -507,8 +509,8 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
   },
   {
     id: "profile",
-    label: "Profil",
-    description: "Kundprofil och erbjudanden.",
+    label: "Kunduppgifter",
+    description: "Identitet, kontaktuppgifter och adresser.",
     group: "Kunddata",
   },
   {
@@ -576,10 +578,12 @@ const CUSTOMER_WORKSPACE_TABS: Array<{
 const TENANT_CUSTOMER_WORKSPACE_TAB_IDS = new Set<CustomerWorkspaceTab>([
   "overview",
   "legal-readiness",
+  "profile",
   "sites",
-  "switch-operations",
   "billing-metering",
   "notes",
+  "communication",
+  "lifecycle-decisions",
 ]);
 
 const CUSTOMER_WORKSPACE_TAB_IDS = new Set<CustomerWorkspaceTab>(
@@ -615,9 +619,7 @@ function customerTabHref(
   customerId: string,
   tab: CustomerWorkspaceTab,
 ): string {
-  // The customer card is one structured page: deep links resolve to in-page
-  // anchors instead of tab query params.
-  return `/admin/customers/${customerId}#${customerCardAnchor(tab)}`;
+  return `/admin/customers/${customerId}?tab=${encodeURIComponent(tab)}#${customerCardAnchor(tab)}`;
 }
 
 function CustomerLookupProblem({
@@ -1053,104 +1055,172 @@ function LifecycleDecisionSection({
   meteringPoints: MeteringPointRow[];
   contracts: CustomerContractRow[];
 }) {
-  return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900 ">
-          Ånger och avvisad kund
-        </h2>
-        <p className="mt-1 text-sm text-slate-700 ">
-          Registrera ånger eller nekad kund på rätt nivå. Beslutet skapar
-          ärende, audit och kan blockera fakturering utan att radera historik.
-        </p>
-      </div>
-      <form
-        action={registerCustomerLifecycleDecisionAction}
-        className="mt-5 grid gap-4 md:grid-cols-2"
-      >
-        <input type="hidden" name="customer_id" value={customerId} />
+  const activeContract =
+    contracts.find((contract) => ["active", "signed", "pending_signature"].includes(contract.status)) ??
+    contracts[0] ??
+    null;
+
+  const targetOptions = () => (
+    <>
+      <option value="customer:">Hela kundprocessen</option>
+      {contracts.length > 0 ? (
+        <optgroup label="Avtal">
+          {contracts.map((contract) => (
+            <option key={`contract-${contract.id}`} value={`contract:${contract.id}`}>
+              {contract.contract_name} · {contract.status}
+            </option>
+          ))}
+        </optgroup>
+      ) : null}
+      {sites.length > 0 ? (
+        <optgroup label="Anläggningar">
+          {sites.map((site) => (
+            <option key={`site-${site.id}`} value={`site:${site.id}`}>
+              {site.site_name} · {site.facility_id ?? "utan anläggnings-id"}
+            </option>
+          ))}
+        </optgroup>
+      ) : null}
+      {meteringPoints.length > 0 ? (
+        <optgroup label="Mätpunkter">
+          {meteringPoints.map((point) => (
+            <option key={`point-${point.id}`} value={`metering_point:${point.id}`}>
+              {point.meter_point_id} · {point.status}
+            </option>
+          ))}
+        </optgroup>
+      ) : null}
+    </>
+  );
+
+  const form = (input: {
+    decisionType: "withdrawal" | "cancelled" | "rejected";
+    title: string;
+    description: string;
+    reasonPlaceholder: string;
+    buttonLabel: string;
+    confirmationLabel: string;
+    defaultTarget: string;
+    tone: string;
+  }) => (
+    <form
+      action={registerCustomerLifecycleDecisionAction}
+      className={`rounded-3xl border p-5 ${input.tone}`}
+    >
+      <input type="hidden" name="customer_id" value={customerId} />
+      <input type="hidden" name="decision_type" value={input.decisionType} />
+      <input type="hidden" name="block_billing" value="true" />
+      <h3 className="font-semibold text-slate-950">{input.title}</h3>
+      <p className="mt-1 text-sm leading-6 text-slate-700">{input.description}</p>
+
+      <div className="mt-4 grid gap-3">
         <label className="grid gap-1 text-sm">
-          <span className="text-slate-700 ">Beslut</span>
+          <span className="font-medium text-slate-700">Gäller</span>
           <select
-            name="decision_type"
-            defaultValue="withdrawal"
-            className="rounded-2xl border border-slate-300 px-4 py-3"
+            name="scope_target"
+            defaultValue={input.defaultTarget}
+            className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
           >
-            <option value="withdrawal">Ånger / avbrutet av kund</option>
-            <option value="rejected">Nekad / avvisad kund</option>
+            {targetOptions()}
           </select>
         </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-slate-700">Mottaget datum</span>
+            <input
+              type="datetime-local"
+              name="received_at"
+              defaultValue={new Date().toISOString().slice(0, 16)}
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
+            />
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-slate-700">Kanal</span>
+            <select
+              name="received_channel"
+              defaultValue="phone"
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
+            >
+              <option value="phone">Telefon</option>
+              <option value="email">E-post</option>
+              <option value="web_form">Formulär</option>
+              <option value="letter">Brev</option>
+              <option value="other">Annat</option>
+            </select>
+          </label>
+        </div>
         <label className="grid gap-1 text-sm">
-          <span className="text-slate-700 ">Nivå</span>
-          <select
-            name="scope_type"
-            defaultValue="customer"
-            className="rounded-2xl border border-slate-300 px-4 py-3"
-          >
-            <option value="customer">Hela kunden</option>
-            <option value="contract">Specifikt avtal</option>
-            <option value="site">Specifik anläggning</option>
-            <option value="metering_point">Specifik mätpunkt</option>
-          </select>
-        </label>
-        <label className="grid gap-1 text-sm md:col-span-2">
-          <span className="text-slate-700 ">
-            Välj avtal/anläggning/mätpunkt om beslutet inte gäller hela kunden
-          </span>
-          <select
-            name="scope_id"
-            defaultValue=""
-            className="rounded-2xl border border-slate-300 px-4 py-3"
-          >
-            <option value="">Hela kunden eller välj relevant objekt</option>
-            <optgroup label="Avtal">
-              {contracts.map((contract) => (
-                <option key={`contract-${contract.id}`} value={contract.id}>
-                  {contract.contract_name} · {contract.status}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Anläggningar">
-              {sites.map((site) => (
-                <option key={`site-${site.id}`} value={site.id}>
-                  {site.site_name} · {site.facility_id ?? "utan anläggnings-id"}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Mätpunkter">
-              {meteringPoints.map((point) => (
-                <option key={`point-${point.id}`} value={point.id}>
-                  {point.meter_point_id} · {point.status}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-        </label>
-        <label className="grid gap-1 text-sm md:col-span-2">
-          <span className="text-slate-700 ">Orsak</span>
+          <span className="font-medium text-slate-700">Orsak</span>
           <textarea
             name="reason"
             rows={3}
             required
-            placeholder="Beskriv varför flödet stoppas, t.ex. ånger efter signering, bindningstid hos gammal leverantör eller fel anläggningsdata."
-            className="rounded-2xl border border-slate-300 px-4 py-3"
+            placeholder={input.reasonPlaceholder}
+            className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
           />
         </label>
-        <label className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900 md:col-span-2">
-          <input
-            type="checkbox"
-            name="block_billing"
-            defaultChecked
-            className="mt-1"
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-slate-700">Intern anteckning</span>
+          <textarea
+            name="notes"
+            rows={2}
+            placeholder="Valfri intern information. Visas inte för kunden."
+            className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
           />
-          <span>
-            Blockera fakturering/export på vald nivå tills ärendet är löst.
-          </span>
         </label>
-        <button className="rounded-2xl bg-red-700 px-4 py-3 text-sm font-semibold text-white hover:bg-red-800 md:col-span-2">
-          Registrera beslut och skapa ärende
+        <label className="flex items-start gap-3 rounded-2xl border border-slate-300 bg-white p-3 text-sm text-slate-700">
+          <input type="checkbox" name="confirmed" value="true" required className="mt-1" />
+          <span>{input.confirmationLabel}</span>
+        </label>
+        <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+          {input.buttonLabel}
         </button>
-      </form>
+      </div>
+    </form>
+  );
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">Ånger och avslut</h2>
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
+          Ånger, operativt avbrott och avvisning är separata beslut. Systemet
+          behåller historiken, stoppar relevanta flöden och skapar ett tydligt
+          kundärende. Vid ånger köas även tenantens bekräftelsemejl.
+        </p>
+      </div>
+      <div className="mt-5 grid gap-4 xl:grid-cols-3">
+        {form({
+          decisionType: "withdrawal",
+          title: "Registrera ånger",
+          description: "Använd när kunden uttryckligen använder sin ångerrätt.",
+          reasonPlaceholder: "Exempel: Kunden ångrade avtalet via telefon inom ångerfristen.",
+          buttonLabel: "Registrera ånger",
+          confirmationLabel: "Jag bekräftar att kunden uttryckligen har ångrat avtalet och att relevanta flöden ska stoppas.",
+          defaultTarget: activeContract ? `contract:${activeContract.id}` : "customer:",
+          tone: "border-amber-200 bg-amber-50/70",
+        })}
+        {form({
+          decisionType: "cancelled",
+          title: "Avbryt process",
+          description: "Använd för dubblett, felaktig ansökan eller när processen inte ska fortsätta.",
+          reasonPlaceholder: "Exempel: Dubblettansökan eller kunden vill inte fortsätta innan avtal ingåtts.",
+          buttonLabel: "Avbryt process",
+          confirmationLabel: "Jag bekräftar att vald process ska stoppas utan att historiken raderas.",
+          defaultTarget: "customer:",
+          tone: "border-slate-200 bg-slate-50",
+        })}
+        {form({
+          decisionType: "rejected",
+          title: "Avvisa ansökan",
+          description: "Använd när Gridex eller tenantbolaget fattar ett avslagsbeslut.",
+          reasonPlaceholder: "Exempel: Avtalet kan inte levereras för vald anläggning.",
+          buttonLabel: "Registrera avvisning",
+          confirmationLabel: "Jag bekräftar att detta är ett avslagsbeslut och att vald process ska blockeras.",
+          defaultTarget: "customer:",
+          tone: "border-red-200 bg-red-50/70",
+        })}
+      </div>
     </section>
   );
 }
@@ -1676,7 +1746,58 @@ function CustomerWebsiteTraceabilityCard({
   );
 }
 
-function CustomerCommunicationSection({ logs }: { logs: CommunicationLog[] }) {
+function CustomerCommunicationSection({
+  logs,
+  isPlatformAdmin = false,
+}: {
+  logs: CommunicationLog[];
+  isPlatformAdmin?: boolean;
+}) {
+  if (!isPlatformAdmin) {
+    return (
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">Kommunikation</h2>
+        <p className="mt-1 text-sm text-slate-700">Skickade, köade och misslyckade kundmeddelanden i ett enkelt flöde.</p>
+        <div className="mt-5 space-y-3">
+          {logs.length === 0 ? (
+            <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Ingen kommunikation loggad ännu.</p>
+          ) : null}
+          {logs.slice(0, 25).map((log) => (
+            <article key={log.id} className="rounded-2xl border border-slate-200 p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="font-semibold text-slate-950">{log.subject ?? log.event_key ?? log.template_key ?? "Kundmeddelande"}</p>
+                  <p className="mt-1 text-sm text-slate-600">Till {log.recipient_email} · {formatDateTime(log.created_at)}</p>
+                </div>
+                <span className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                  log.status === "sent" || log.status === "delivered"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : log.status === "failed"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-amber-100 text-amber-900"
+                }`}>
+                  {log.status === "sent" || log.status === "delivered"
+                    ? "Skickad"
+                    : log.status === "failed"
+                      ? "Misslyckades"
+                      : log.status === "queued"
+                        ? "Köad"
+                        : log.status}
+                </span>
+              </div>
+              {log.error_message ? <p className="mt-2 text-sm text-red-700">{log.error_message}</p> : null}
+              <form action={resendCustomerEmailAction} className="mt-3">
+                <input type="hidden" name="customer_id" value={log.customer_id ?? ""} />
+                <input type="hidden" name="log_id" value={log.id} />
+                <button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Skicka igen</button>
+              </form>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
       <div>
@@ -1874,23 +1995,25 @@ export default async function CustomerAdminDetailPage({
   const customerCompanyId = tenantScope.isPlatformAdmin
     ? customer.company_id
     : tenantScope.companyId;
-  // Single operational page: the tenant view loads only the lightweight summary
-  // data it renders. All Ediel / audit / provider-heavy / analytics data is
-  // gated behind isPlatformAdmin and only powers the collapsed "Teknisk
-  // diagnostik" section, so the tenant page stays fast.
-  void activeTab;
-  const needsEdielData = isPlatformAdmin;
-  const needsGridOwners = true;
-  const needsPriceAreas = isPlatformAdmin;
-  const needsContractOffers = isPlatformAdmin;
-  const needsBillingMeteringData = true;
-  const needsAnalyticsData = isPlatformAdmin;
-  const needsPortalAccessData = isPlatformAdmin;
-  const needsSwitchEvents = isPlatformAdmin;
-  const needsAuditLogs = isPlatformAdmin;
-  const needsPowerScopes = isPlatformAdmin;
-  const needsOpsMasterData = true;
-  const needsCommunicationLogs = isPlatformAdmin;
+  // Load only the data required by the selected workspace tab. The overview
+  // keeps a lightweight cross-process summary; provider-heavy diagnostics are
+  // only loaded on the dedicated platform diagnostics tab.
+  const needsEdielData = isPlatformAdmin && ["overview", "switch-operations", "ediel-operations", "technical-details"].includes(activeTab);
+  const needsGridOwners = ["overview", "sites", "data-requests", "switch-operations", "technical-details"].includes(activeTab);
+  const needsPriceAreas = isPlatformAdmin && ["sites", "metering-points", "technical-details"].includes(activeTab);
+  const needsContractOffers = isPlatformAdmin && ["profile", "contracts", "technical-details"].includes(activeTab);
+  const needsBillingMeteringData = ["overview", "billing-metering", "technical-details"].includes(activeTab);
+  const needsAnalyticsData = isPlatformAdmin && activeTab === "analytics";
+  const needsPortalAccessData = isPlatformAdmin && activeTab === "portal-access";
+  const needsSwitchEvents = isPlatformAdmin && ["switch-operations", "technical-details"].includes(activeTab);
+  const needsAuditLogs = isPlatformAdmin && ["audit", "technical-details"].includes(activeTab);
+  const needsPowerScopes = isPlatformAdmin && ["authorization-documents", "legal-readiness", "technical-details"].includes(activeTab);
+  const needsOpsMasterData = ["overview", "legal-readiness", "technical-details"].includes(activeTab);
+  const needsCommunicationLogs = ["communication", "technical-details"].includes(activeTab) && (isPlatformAdmin || activeTab === "communication");
+  const needsNotes = ["notes", "technical-details"].includes(activeTab);
+  const needsGridOwnerDataRequests = ["overview", "billing-metering", "switch-operations", "data-requests", "technical-details"].includes(activeTab);
+  const needsWebsiteTraceability = isPlatformAdmin && activeTab === "technical-details";
+  const needsZ01RepairEvents = isPlatformAdmin && activeTab === "technical-details";
   const emptyEdielData: CustomerEdielDataBundle = {
     communicationRoutes: [],
     routeProfiles: [],
@@ -1929,12 +2052,16 @@ export default async function CustomerAdminDetailPage({
     listCustomerSitesByCustomerId(supabase, id, {
       companyId: customerCompanyId,
     }),
-    listCustomerInternalNotesByCustomerId(id, { companyId: customerCompanyId }),
-    listGridOwnerDataRequestsByCustomerId(id, {
-      companyId: customerCompanyId,
-      limit:
-        needsBillingMeteringData || ["ediel-operations", "technical-details"].includes(activeTab) ? 50 : 10,
-    }),
+    needsNotes
+      ? listCustomerInternalNotesByCustomerId(id, { companyId: customerCompanyId })
+      : Promise.resolve([]),
+    needsGridOwnerDataRequests
+      ? listGridOwnerDataRequestsByCustomerId(id, {
+          companyId: customerCompanyId,
+          limit:
+            needsBillingMeteringData || ["ediel-operations", "technical-details"].includes(activeTab) ? 50 : 10,
+        })
+      : Promise.resolve([]),
     needsBillingMeteringData
       ? listMeteringValuesByCustomerId(id, {
           companyId: customerCompanyId,
@@ -2002,10 +2129,10 @@ export default async function CustomerAdminDetailPage({
     needsCommunicationLogs && customerCompanyId
       ? getCustomerCommunicationLogs(customerCompanyId, id)
       : Promise.resolve([]),
-    customerCompanyId
+    needsWebsiteTraceability && customerCompanyId
       ? listWebsiteApplicationsForCustomer(customerCompanyId, id)
       : Promise.resolve([]),
-    customerCompanyId
+    needsWebsiteTraceability && customerCompanyId
       ? listBillingPartnerCustomersForCustomer(customerCompanyId, id)
       : Promise.resolve([]),
     needsOpsMasterData && customerCompanyId
@@ -2025,7 +2152,7 @@ export default async function CustomerAdminDetailPage({
   const contacts = (contactsResponse.data ?? []) as CustomerContactRow[];
   const addresses = (addressesResponse.data ?? []) as CustomerAddressRow[];
   const poaRows = powersOfAttorney as PowerOfAttorneyRow[];
-  const z01RepairEvents = customerCompanyId
+  const z01RepairEvents = needsZ01RepairEvents && customerCompanyId
     ? await listZ01RepairEventsByCustomerId({ companyId: customerCompanyId, customerId: id })
     : [];
   const documentRows =
@@ -2252,9 +2379,43 @@ export default async function CustomerAdminDetailPage({
         customerId: id,
         // Superadmin diagnostics: recipient resolution (real contact vs safe
         // override) is never loaded for tenant views.
-        includeRecipientResolution: isPlatformAdmin,
+        includeRecipientResolution: isPlatformAdmin && activeTab === "technical-details",
       }).catch(() => [])
     : [];
+
+  const customerWorkflow = buildCustomerCardWorkflow({
+    customerId: id,
+    snapshot: customerCardSnapshot,
+    sites,
+    meteringPoints,
+    infoRequests: customerInfoRequests,
+    contracts: customerContracts as CustomerContractRow[],
+    switchRequests,
+    powersOfAttorney: poaRows,
+    manualRequests: manualRequestSummaries,
+    isPlatformAdmin,
+    dispatchState: customerDispatchState,
+  });
+  const switchCompleted = switchRequests.some((request) => request.status === "completed");
+  const switchInProgress = switchRequests.some((request) =>
+    ["queued", "validated", "ready_to_send", "submitted", "waiting_response", "accepted"].includes(String(request.status ?? "")),
+  );
+  const billingReady = billingUnderlays.some((row) =>
+    ["ready_for_invoice", "invoiced", "exported"].includes(String((row as Record<string, unknown>).invoice_readiness_status ?? (row as Record<string, unknown>).status ?? "")),
+  );
+  const billingInProgress = billingUnderlays.some((row) =>
+    ["draft", "collecting", "validated", "ready", "price_preview_ready"].includes(String((row as Record<string, unknown>).status ?? "")),
+  );
+  const tenantCustomerView = buildTenantCustomerCardView({
+    snapshot: customerCardSnapshot,
+    workflow: customerWorkflow,
+    dispatchState: customerDispatchState,
+    switchCompleted,
+    switchInProgress,
+    deliveryActive: switchCompleted && (customerContracts as CustomerContractRow[]).some((contract) => contract.status === "active"),
+    billingReady,
+    billingInProgress,
+  });
 
   const hasSwitchData = sites.some((site) => {
     const siteMeteringPoints = meteringPoints.filter(
@@ -2376,78 +2537,48 @@ export default async function CustomerAdminDetailPage({
       "partially_received",
     ].includes(String(request.status ?? "").toLowerCase()),
   );
-  const nextCustomerStep =
-    customerCardSnapshot.recommendedAction === "request_switch"
-      ? {
-          label: "Begär leverantörsbyte",
-          href: customerTabHref(id, "switch-operations"),
-        }
-      : customerCardSnapshot.recommendedAction === "follow_up"
-        ? {
-            label: "Följ upp uppgifter",
-            href: customerTabHref(id, "sites"),
-          }
-        : {
-            label: "Begär uppgifter",
-            href: customerTabHref(id, "overview"),
-          };
-
-
-  // Single operational page: tenant-safe sections always render; platform-only
-  // diagnostics render for platform admins (inside a collapsed advanced section).
-  const showOperationalSections = true as boolean;
-  // Standalone Ediel/communication/audit panels are folded into the collapsed
-  // "Teknisk diagnostik" section, so they no longer render on their own.
-  const showFoldedTechnicalPanels = false as boolean;
+  const showFoldedTechnicalPanels = isPlatformAdmin && activeTab === "ediel-operations";
 
   return (
     <div className="space-y-6">
       <CustomerCardLegacyTabRedirect anchor={legacyTabAnchor} />
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-700">Kundkort</p>
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
-                {customerName}
-              </h1>
-              <span
-                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
-                  customer.status,
-                )}`}
-              >
-                {customerStatusLabel(customer.status)}
-              </span>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-700">
-              <span className="rounded-full bg-slate-100 px-3 py-1">
-                Kundnummer: {customer.customer_number ?? "—"}
-              </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1">
-                {displayEmail ?? "Ingen e-post"}
-              </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1">
-                {displayPhone ?? "Ingen telefon"}
-              </span>
-            </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-slate-700">Kundkort</p>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+              {customerName}
+            </h1>
+            <span
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusTone(
+                customer.status,
+              )}`}
+            >
+              {customerStatusLabel(customer.status)}
+            </span>
           </div>
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 lg:max-w-xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-              Nästa steg
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-950">
-              {nextCustomerStep.label}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-700">
-              {customerCardSnapshot.nextStepDescription}
-            </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-700">
+            <span className="rounded-full bg-slate-100 px-3 py-1">
+              Kundnummer: {customer.customer_number ?? "—"}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1">
+              {displayEmail ?? "Ingen e-post"}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1">
+              {displayPhone ?? "Ingen telefon"}
+            </span>
+            {activeCustomerContract ? (
+              <span className="rounded-full bg-slate-100 px-3 py-1">
+                {activeCustomerContract.contract_name}
+              </span>
+            ) : null}
           </div>
         </div>
       </section>
 
-      <CustomerBlockersBanner
-        blockers={customerBlockers as CustomerBlockerRow[]}
-      />
+      {isPlatformAdmin && activeTab === "technical-details" ? (
+        <CustomerBlockersBanner blockers={customerBlockers as CustomerBlockerRow[]} />
+      ) : null}
 
       {customer.status === "archived" ? (
         <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
@@ -2470,32 +2601,28 @@ export default async function CustomerAdminDetailPage({
       ) : null}
 
       <nav
-        aria-label="Snabbnavigering"
+        aria-label="Kundkortets delar"
         className="flex flex-wrap gap-2 rounded-3xl border border-slate-200 bg-white p-3 text-sm shadow-sm"
       >
-        {[
-          { href: "#overview", label: "Översikt" },
-          { href: "#avtal", label: "Avtal & fullmakt" },
-          { href: "#anlaggning", label: "Anläggning & nätägare" },
-          { href: "#data-requests", label: "Uppgiftsbegäran" },
-          { href: "#leverantorsbyte", label: "Leverantörsbyte" },
-          { href: "#fakturering", label: "Fakturering" },
-          { href: "#anteckningar", label: "Anteckningar" },
-          ...(isPlatformAdmin
-            ? [{ href: "#tekniskt", label: "Teknisk diagnostik" }]
-            : []),
-        ].map((item) => (
-          <a
-            key={item.href}
-            href={item.href}
-            className="rounded-full border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            {item.label}
-          </a>
-        ))}
+        {CUSTOMER_WORKSPACE_TABS
+          .filter((tab) => canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin))
+          .map((tab) => (
+            <Link
+              key={tab.id}
+              href={customerTabHref(id, tab.id)}
+              aria-current={activeTab === tab.id ? "page" : undefined}
+              className={`rounded-full border px-3 py-1.5 font-semibold transition ${
+                activeTab === tab.id
+                  ? "border-emerald-700 bg-emerald-700 text-white"
+                  : "border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          ))}
       </nav>
 
-      {showOperationalSections ? (
+      {activeTab === "overview" ? (
         <SectionAnchor
           id="overview"
           title="Översikt"
@@ -2516,6 +2643,7 @@ export default async function CustomerAdminDetailPage({
             z01RepairEvents={z01RepairEvents}
             dispatchState={customerDispatchState}
             manualRequests={manualRequestSummaries}
+            billingUnderlays={billingUnderlays as Array<Record<string, unknown>>}
             isTestData={customer.is_test_data === true}
           />
 
@@ -2523,7 +2651,7 @@ export default async function CustomerAdminDetailPage({
       ) : null}
 
       <span id="avtal" aria-hidden className="block scroll-mt-36" />
-      {showOperationalSections ? (
+      {activeTab === "legal-readiness" ? (
         <SectionAnchor
           id="legal-readiness"
           title="Juridik och godkännanden"
@@ -2542,23 +2670,34 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin ? (
+      {activeTab === "profile" ? (
         <SectionAnchor
           id="profile"
-          title="Profil och erbjudanden"
-          description="Kundens profil, status och kvalificerade avtalsmöjligheter."
+          title="Kunduppgifter"
+          description="Kundens identitet, kontaktuppgifter och adresser. Avancerade livscykelverktyg ligger separat."
         >
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <CustomerProfileCard customer={customer} />
-            <CustomerContractOfferEligibilityCard
+          <section className="grid gap-6">
+            <div className={isPlatformAdmin ? "grid gap-6 xl:grid-cols-2" : "grid gap-6"}>
+              <CustomerProfileCard customer={customer} showLifecycleTools={isPlatformAdmin} />
+              {isPlatformAdmin ? (
+                <CustomerContractOfferEligibilityCard
+                  customerType={normalizedCustomerType}
+                  offers={contractOffers}
+                />
+              ) : null}
+            </div>
+            <CustomerContactsAddressesCard
+              customerId={id}
               customerType={normalizedCustomerType}
-              offers={contractOffers}
+              contacts={contacts}
+              addresses={addresses}
+              sites={sites}
             />
           </section>
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin ? (
+      {isPlatformAdmin && activeTab === "portal-access" ? (
         <SectionAnchor
           id="portal-access"
           title="Kundportal"
@@ -2572,7 +2711,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin ? (
+      {isPlatformAdmin && activeTab === "grid-owner-import" ? (
         <SectionAnchor
           id="grid-owner-import"
           title="Nätägarsynk"
@@ -2582,7 +2721,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {showOperationalSections ? (
+      {isPlatformAdmin && activeTab === "data-requests" ? (
         <SectionAnchor
           id="data-requests"
           title="Uppgiftsbegäran"
@@ -2602,7 +2741,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin ? (
+      {isPlatformAdmin && activeTab === "authorization-documents" ? (
         <SectionAnchor
           id="authorization-documents"
           title="Fullmakt och komplett avtal"
@@ -2629,7 +2768,7 @@ export default async function CustomerAdminDetailPage({
       ) : null}
 
       <span id="leverantorsbyte" aria-hidden className="block scroll-mt-36" />
-      {showOperationalSections ? (
+      {isPlatformAdmin && activeTab === "switch-operations" ? (
         <SectionAnchor
           id="switch-operations"
           title="Leverantörsbyte"
@@ -2650,7 +2789,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {showFoldedTechnicalPanels ? (
+      {isPlatformAdmin && showFoldedTechnicalPanels ? (
         <SectionAnchor
           id="ediel-operations"
           title="Ediel"
@@ -2673,7 +2812,7 @@ export default async function CustomerAdminDetailPage({
       ) : null}
 
       <span id="fakturering" aria-hidden className="block scroll-mt-36" />
-      {showOperationalSections ? (
+      {activeTab === "billing-metering" ? (
         <SectionAnchor
           id="billing-metering"
           title="Fakturering"
@@ -2694,7 +2833,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin ? (
+      {isPlatformAdmin && activeTab === "analytics" ? (
         <SectionAnchor
           id="analytics"
           title="Statistik och prognos"
@@ -2784,7 +2923,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin ? (
+      {isPlatformAdmin && activeTab === "contracts" ? (
         <SectionAnchor
           id="contracts"
           title="Avtal"
@@ -2797,7 +2936,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin ? (
+      {isPlatformAdmin && activeTab === "contacts-addresses" ? (
         <SectionAnchor
           id="contacts-addresses"
           title="Kontakter och adresser"
@@ -2814,7 +2953,7 @@ export default async function CustomerAdminDetailPage({
       ) : null}
 
       <span id="anlaggning" aria-hidden className="block scroll-mt-36" />
-      {showOperationalSections ? (
+      {activeTab === "sites" ? (
         <SectionAnchor
           id="sites"
           title="Anläggning och nätägare"
@@ -2884,7 +3023,7 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin ? (
+      {isPlatformAdmin && activeTab === "metering-points" ? (
         <SectionAnchor
           id="metering-points"
           title="Mätpunkter"
@@ -2911,7 +3050,7 @@ export default async function CustomerAdminDetailPage({
       ) : null}
 
       <span id="anteckningar" aria-hidden className="block scroll-mt-36" />
-      {showOperationalSections ? (
+      {activeTab === "notes" ? (
         <SectionAnchor
           id="notes"
           title="Anteckningar"
@@ -2921,7 +3060,21 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin ? (
+
+      {activeTab === "communication" ? (
+        <SectionAnchor
+          id="communication"
+          title="Kommunikation"
+          description="Se vad som är köat, skickat eller misslyckat utan tekniska leverantörs-id:n."
+        >
+          <CustomerCommunicationSection
+            logs={communicationLogs as CommunicationLog[]}
+            isPlatformAdmin={isPlatformAdmin}
+          />
+        </SectionAnchor>
+      ) : null}
+
+      {activeTab === "lifecycle-decisions" ? (
         <SectionAnchor
           id="lifecycle-decisions"
           title="Ånger och avvisning"
@@ -2938,7 +3091,7 @@ export default async function CustomerAdminDetailPage({
 
       {/* Teknisk diagnostik: platform/superadmin only, collapsed by default.
           Tenants never see raw Ediel/provider/webhook/audit details. */}
-      {isPlatformAdmin ? (
+      {isPlatformAdmin && activeTab === "technical-details" ? (
         <>
           <span id="tekniskt" aria-hidden className="block scroll-mt-36" />
           <details className="rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -2948,9 +3101,28 @@ export default async function CustomerAdminDetailPage({
             <div className="space-y-6 border-t border-slate-200 p-6">
               <p className="text-sm text-slate-600">
                 Avancerad drift, externa referenser, Ediel, provider-ID:n,
-                webhook-händelser och audit. Standardvyn ovan är samma enkla
-                kundkort som tenant ser.
+                webhook-händelser och audit. Den vanliga kundvyn innehåller
+                endast affärsstatus och handläggaråtgärder.
               </p>
+              <CustomerBusinessActionsCard
+                customerId={id}
+                companyId={customerCompanyId ?? undefined}
+                sites={sites}
+                meteringPoints={meteringPoints}
+                powersOfAttorney={poaRows}
+                documents={documentRows}
+                infoRequests={customerInfoRequests}
+                contracts={customerContracts as CustomerContractRow[]}
+                switchRequests={switchRequests}
+                snapshot={customerCardSnapshot}
+                isPlatformAdmin
+                z01RepairEvents={z01RepairEvents}
+                dispatchState={customerDispatchState}
+                manualRequests={manualRequestSummaries}
+                billingUnderlays={billingUnderlays as Array<Record<string, unknown>>}
+                isTestData={customer.is_test_data === true}
+                showTechnicalDiagnostics
+              />
               <CustomerWebsiteTraceabilityCard
                 customer={customer}
                 applications={websiteApplications as WebsiteApplicationAdminRow[]}
@@ -2989,6 +3161,7 @@ export default async function CustomerAdminDetailPage({
               />
               <CustomerCommunicationSection
                 logs={communicationLogs as CommunicationLog[]}
+                isPlatformAdmin
               />
               <AuditSection
                 auditLogs={auditLogs}

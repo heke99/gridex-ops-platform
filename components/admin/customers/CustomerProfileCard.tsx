@@ -66,8 +66,10 @@ function inputClassName() {
 
 export default function CustomerProfileCard({
  customer,
+ showLifecycleTools = true,
 }: {
  customer: CustomerProfile
+ showLifecycleTools?: boolean
 }) {
  const [customerType, setCustomerType] = useState(customer.customer_type ?? 'private')
 
@@ -287,6 +289,8 @@ export default function CustomerProfileCard({
  </div>
  </form>
 
+ {showLifecycleTools ? (
+ <>
  <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 ">
  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
  <div>
@@ -486,6 +490,8 @@ export default function CustomerProfileCard({
  </div>
  </form>
  </div>
+ </>
+ ) : null}
  </section>
  )
 }

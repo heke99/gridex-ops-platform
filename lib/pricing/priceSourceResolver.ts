@@ -19,25 +19,46 @@ function stringValue(value: unknown): string | null {
 }
 
 function normalizeBaseComponent(row: Record<string, unknown>): BasePriceComponent | null {
-  const sourceType = stringValue(row.source_type)
+  const sourceType = stringValue(row.source_type) ?? stringValue(row.sourceType)
   if (sourceType !== 'spot' && sourceType !== 'fixed' && sourceType !== 'portfolio' && sourceType !== 'manual') return null
-  const weight = numberValue(row.weight_percent)
+  const weight = numberValue(row.weight_percent) ?? numberValue(row.weightPercent)
   return {
     sourceType,
     weightPercent: weight ?? 100,
-    fixedPriceSekPerKwh: numberValue(row.fixed_price_sek_per_kwh),
+    fixedPriceSekPerKwh: numberValue(row.fixed_price_sek_per_kwh) ?? numberValue(row.fixedPriceSekPerKwh),
     label: stringValue(row.label),
-    validFrom: stringValue(row.valid_from),
-    validTo: stringValue(row.valid_to),
+    validFrom: stringValue(row.valid_from) ?? stringValue(row.validFrom),
+    validTo: stringValue(row.valid_to) ?? stringValue(row.validTo),
     metadata: isObject(row.metadata) ? row.metadata : {},
   }
 }
 
+function legacyComponentShape(row: Record<string, unknown>): {
+  componentType: string | null
+  calculationType: string | null
+  unit: string | null
+} {
+  const code = (stringValue(row.code) ?? '').toLowerCase()
+  const rawUnit = (stringValue(row.unit) ?? '').toLowerCase()
+  if (code === 'fixed_price') return { componentType: null, calculationType: null, unit: null }
+  if (code === 'monthly_fee') return { componentType: 'fixed_monthly_fee', calculationType: 'fixed_monthly', unit: 'sek_month' }
+  if (code === 'invoice_fee') return { componentType: 'invoice_fee', calculationType: 'fixed_once', unit: 'sek_invoice' }
+  if (code === 'spot_markup') return { componentType: 'spot_markup', calculationType: 'ore_per_kwh', unit: 'ore_per_kwh' }
+  if (code === 'variable_fee') return { componentType: 'variable_fee', calculationType: 'ore_per_kwh', unit: 'ore_per_kwh' }
+  if (code === 'green_fee') {
+    if (rawUnit === 'sek_month') return { componentType: 'green_energy_fee', calculationType: 'fixed_monthly', unit: 'sek_month' }
+    if (rawUnit === 'ore_per_kwh' || rawUnit === 'ore/kwh') return { componentType: 'green_energy_fee', calculationType: 'ore_per_kwh', unit: 'ore_per_kwh' }
+    return { componentType: 'green_energy_fee', calculationType: 'per_kwh', unit: rawUnit || 'sek_per_kwh' }
+  }
+  return { componentType: null, calculationType: null, unit: null }
+}
+
 function normalizePriceComponent(row: Record<string, unknown>): PriceComponent | null {
-  const name = stringValue(row.name) ?? stringValue(row.component_label)
+  const legacy = legacyComponentShape(row)
+  const name = stringValue(row.name) ?? stringValue(row.component_label) ?? stringValue(row.label)
   const amount = numberValue(row.amount) ?? numberValue(row.value_amount)
-  const calculationType = stringValue(row.calculation_type) ?? stringValue(row.calculation_unit)
-  const componentType = stringValue(row.component_type)
+  const calculationType = stringValue(row.calculation_type) ?? stringValue(row.calculation_unit) ?? legacy.calculationType
+  const componentType = stringValue(row.component_type) ?? legacy.componentType
   if (!name || amount === null || !calculationType || !componentType) return null
   return {
     componentType,
@@ -45,7 +66,7 @@ function normalizePriceComponent(row: Record<string, unknown>): PriceComponent |
     description: stringValue(row.description),
     calculationType,
     amount,
-    unit: stringValue(row.unit) ?? calculationType,
+    unit: stringValue(row.unit) ?? legacy.unit ?? calculationType,
     vatApplicable: typeof row.vat_applicable === 'boolean' ? row.vat_applicable : true,
     invoiceLineVisible: typeof row.invoice_line_visible === 'boolean' ? row.invoice_line_visible : true,
     periodizationMode: stringValue(row.periodization_mode),
@@ -54,6 +75,78 @@ function normalizePriceComponent(row: Record<string, unknown>): PriceComponent |
     validTo: stringValue(row.valid_to),
     metadata: isObject(row.metadata) ? row.metadata : {},
   }
+}
+
+function baseComponentsFromLegacySnapshot(snapshot: Record<string, unknown>): BasePriceComponent[] {
+  const hasSnapshotEvidence = [
+    snapshot.pricing_model,
+    snapshot.billing_model,
+    snapshot.contract_type,
+    snapshot.public_offer,
+    snapshot.mix,
+    snapshot.snapshot_schema,
+  ].some((value) => value !== null && value !== undefined)
+  if (!hasSnapshotEvidence) return []
+  const contractType = `${stringValue(snapshot.pricing_model) ?? ''} ${stringValue(snapshot.billing_model) ?? ''} ${stringValue(snapshot.contract_type) ?? ''}`.toLowerCase()
+  const mix = isObject(snapshot.mix) ? snapshot.mix : {}
+  const spotWeight = numberValue(mix.spot_weight_percent) ?? numberValue(snapshot.spot_weight_percent) ?? 0
+  const portfolioWeight = numberValue(mix.portfolio_weight_percent) ?? numberValue(snapshot.portfolio_weight_percent) ?? 0
+  const fixedWeight = numberValue(mix.fixed_weight_percent) ?? numberValue(snapshot.fixed_weight_percent) ?? 0
+  const publicOffer = isObject(snapshot.public_offer) ? snapshot.public_offer : {}
+  const fixedOre = numberValue(snapshot.fixed_price_ore_per_kwh)
+    ?? numberValue(publicOffer.fixed_price_ore_per_kwh)
+
+  if (/mixed|mix|hybrid/.test(contractType)) {
+    const rows: BasePriceComponent[] = []
+    if (spotWeight > 0) rows.push({ sourceType: 'spot', weightPercent: spotWeight, label: 'Rörlig spotandel' })
+    if (portfolioWeight > 0) rows.push({ sourceType: 'portfolio', weightPercent: portfolioWeight, label: 'Portföljandel' })
+    if (fixedWeight > 0) rows.push({ sourceType: 'fixed', weightPercent: fixedWeight, fixedPriceSekPerKwh: fixedOre !== null ? fixedOre / 100 : null, label: 'Fastprisandel' })
+    return rows
+  }
+  if (/portfolio|portfölj/.test(contractType)) return [{ sourceType: 'portfolio', weightPercent: 100, label: 'Portföljpris' }]
+  if (/fixed|fast/.test(contractType)) return [{ sourceType: 'fixed', weightPercent: 100, fixedPriceSekPerKwh: fixedOre !== null ? fixedOre / 100 : null, label: 'Fastpris' }]
+  return [{ sourceType: 'spot', weightPercent: 100, label: 'Spotpris' }]
+}
+
+function databaseShapeError(error: unknown): boolean {
+  const candidate = error as { code?: string; message?: string } | null
+  return Boolean(
+    candidate &&
+      (['42703', '42P01', 'PGRST204', 'PGRST205'].includes(String(candidate.code ?? '')) ||
+        /does not exist|schema cache|column .* not found/i.test(candidate.message ?? '')),
+  )
+}
+
+async function loadPortfolioMonthlyPrice(input: {
+  companyId: string
+  priceArea: PriceArea
+  billingMonth: string
+}) {
+  const current = await supabaseService
+    .from('portfolio_monthly_prices')
+    .select('price_ex_vat_sek_per_kwh,status,version_number')
+    .eq('company_id', input.companyId)
+    .eq('price_area', input.priceArea)
+    .eq('billing_month', input.billingMonth)
+    .in('status', ['confirmed', 'locked'])
+    .is('superseded_at', null)
+    .order('version_number', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!current.error || current.error.code === 'PGRST116') return current
+  if (!databaseShapeError(current.error)) return current
+
+  // Deployment compatibility while the versioning migration is being applied.
+  // The old unique schema already guarantees at most one tenant/area/month row.
+  return supabaseService
+    .from('portfolio_monthly_prices')
+    .select('price_ex_vat_sek_per_kwh,status')
+    .eq('company_id', input.companyId)
+    .eq('price_area', input.priceArea)
+    .eq('billing_month', input.billingMonth)
+    .in('status', ['confirmed', 'locked'])
+    .maybeSingle()
 }
 
 export async function resolveBasePriceSourceValues(input: {
@@ -72,14 +165,7 @@ export async function resolveBasePriceSourceValues(input: {
       .eq('billing_month', input.billingMonth)
       .in('status', ['complete', 'locked'])
       .maybeSingle(),
-    supabaseService
-      .from('portfolio_monthly_prices')
-      .select('price_ex_vat_sek_per_kwh,status')
-      .eq('company_id', input.companyId)
-      .eq('price_area', input.priceArea)
-      .eq('billing_month', input.billingMonth)
-      .in('status', ['confirmed', 'locked'])
-      .maybeSingle(),
+    loadPortfolioMonthlyPrice(input),
   ])
 
   if (spot.error && spot.error.code !== 'PGRST116') throw spot.error
@@ -113,9 +199,12 @@ export async function resolvePricingConfiguration(input: {
       ? snapshot.price_components
       : []
 
-  const baseComponents = snapshotBase
+  const normalizedSnapshotBase = snapshotBase
     .map((row) => (isObject(row) ? normalizeBaseComponent(row) : null))
     .filter((row): row is BasePriceComponent => Boolean(row))
+  const baseComponents = normalizedSnapshotBase.length > 0
+    ? normalizedSnapshotBase
+    : baseComponentsFromLegacySnapshot(snapshot)
 
   const priceComponents = snapshotComponents
     .map((row) => (isObject(row) ? normalizePriceComponent(row) : null))

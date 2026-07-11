@@ -52,7 +52,9 @@ type Props = {
   z01RepairEvents?: Z01RepairEvent[]
   dispatchState?: EdielDispatchStateResult | null
   manualRequests?: ManualRequestSummary[]
+  billingUnderlays?: Array<Record<string, unknown>>
   isTestData?: boolean
+  showTechnicalDiagnostics?: boolean
 }
 
 function recipientResolutionModeLabel(mode: string | null): string {
@@ -158,7 +160,9 @@ export default function CustomerBusinessActionsCard({
   z01RepairEvents = [],
   dispatchState = null,
   manualRequests = [],
+  billingUnderlays = [],
   isTestData = false,
+  showTechnicalDiagnostics = false,
 }: Props) {
   const snapshot =
     suppliedSnapshot ??
@@ -195,14 +199,33 @@ export default function CustomerBusinessActionsCard({
   const statusCards = buildCustomerBusinessStatusCards({ workflow, snapshot })
   const primarySite = snapshot.primarySite
   const primaryPoint = snapshot.primaryMeteringPoint
+  const switchCompleted = switchRequests.some((request) => request.status === 'completed')
+  const switchInProgress = switchRequests.some((request) =>
+    ['queued', 'validated', 'ready_to_send', 'submitted', 'waiting_response', 'accepted'].includes(String(request.status ?? '')),
+  )
+  const billingReady = billingUnderlays.some((row) =>
+    ['ready_for_invoice', 'invoiced', 'exported'].includes(String(row.invoice_readiness_status ?? row.status ?? '')),
+  )
+  const billingInProgress = billingUnderlays.some((row) =>
+    ['draft', 'collecting', 'validated', 'ready', 'price_preview_ready'].includes(String(row.status ?? '')),
+  )
+  const tenantView = buildTenantCustomerCardView({
+    snapshot,
+    workflow,
+    dispatchState,
+    switchCompleted,
+    switchInProgress,
+    deliveryActive: switchCompleted && contracts.some((contract) => contract.status === 'active'),
+    billingReady,
+    billingInProgress,
+  })
 
-  // Tenants see the simplified business timeline (Swedish, six steps, no
-  // internal pipeline stages). The full technical step chain (intents, outbox,
-  // EDIEL SMTP, CONTRL/APERAK) is superadmin-only. Both views derive from the
-  // same backend workflow/snapshot source of truth.
-  const timelineSteps: CustomerWorkflowStep[] = isPlatformAdmin
+  // The operational customer card always uses the same six business steps.
+  // Raw intent/outbox/SMTP/ACK stages only render when the separate technical
+  // diagnostics mode is explicitly requested.
+  const timelineSteps: CustomerWorkflowStep[] = isPlatformAdmin && showTechnicalDiagnostics
     ? workflow.workflowSteps
-    : buildTenantCustomerCardView({ snapshot, workflow, dispatchState }).processSteps.map((step) => ({
+    : tenantView.processSteps.map((step) => ({
         id: step.id,
         label: step.label,
         explanation: step.explanation,
@@ -215,7 +238,7 @@ export default function CustomerBusinessActionsCard({
 
   return (
     <section className="space-y-4">
-      {isPlatformAdmin && isTestData ? (
+      {isPlatformAdmin && showTechnicalDiagnostics && isTestData ? (
         <div className="rounded-2xl border border-orange-300 bg-orange-50 p-4 text-sm text-orange-950">
           <p className="font-semibold">Testdata</p>
           <p className="mt-1 leading-6">
@@ -225,7 +248,7 @@ export default function CustomerBusinessActionsCard({
         </div>
       ) : null}
 
-      {isPlatformAdmin && productionSafeOverride ? (
+      {isPlatformAdmin && showTechnicalDiagnostics && productionSafeOverride ? (
         <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-950">
           <p className="font-semibold">Produktionsutskick med säker intern mottagare</p>
           <p className="mt-1 leading-6">
@@ -238,44 +261,88 @@ export default function CustomerBusinessActionsCard({
 
       <CustomerProcessTimeline
         steps={timelineSteps}
-        showTechnical={isPlatformAdmin}
+        showTechnical={isPlatformAdmin && showTechnicalDiagnostics}
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-              Kundprocess
+              Nästa steg
             </p>
             <h2 className="mt-2 text-xl font-semibold text-slate-950">
-              {workflow.adminMessage}
+              {primaryAction?.label ?? workflow.adminMessage}
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              {workflow.nextRequiredAction ??
-                'Här ser du var kunden befinner sig, vad som händer nu och vad som kräver åtgärd.'}
+              {primaryAction?.description ??
+                workflow.nextRequiredAction ??
+                'Ingen manuell åtgärd krävs just nu.'}
             </p>
+            {primaryAction?.status === 'blocked' && workflow.blockerAdminMessage ? (
+              <p className="mt-2 text-sm font-semibold text-amber-900">
+                {workflow.blockerAdminMessage}
+              </p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                {siteLabel(primarySite)}
+              </span>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                {pointLabel(primaryPoint)}
+              </span>
+            </div>
           </div>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
-            {siteLabel(primarySite)} · {pointLabel(primaryPoint)}
-          </span>
+
+          {primaryAction ? (
+            <div className={`min-w-[220px] rounded-2xl border p-4 ${primaryActionTone(primaryAction.status)}`}>
+              {primaryAction.kind ? (
+                <CustomerOperationAutomationForm
+                  kind={primaryAction.kind}
+                  customerId={customerId}
+                  siteId={primarySite?.id}
+                  meteringPointId={primaryPoint?.id}
+                  idleLabel={primaryAction.label}
+                  pendingLabel="Startar…"
+                />
+              ) : (
+                <span className="inline-flex rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm">
+                  {tenantBusinessActionStatusLabel(primaryAction.status)}
+                </span>
+              )}
+            </div>
+          ) : null}
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {statusCards.map((card) => (
-            <article
-              key={card.id}
-              className={`rounded-2xl border p-4 ${customerStatusToneClass(card.tone)}`}
-            >
-              <div className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">
-                {card.label}
-              </div>
-              <div className="mt-2 text-lg font-semibold">{card.value}</div>
-              <p className="mt-2 text-xs leading-5 opacity-90">{card.description}</p>
-            </article>
-          ))}
-        </div>
+        {manualRequests.length > 0 && !showTechnicalDiagnostics ? (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+            <div>
+              <span className="font-semibold text-slate-950">Senaste uppgiftsbegäran:</span>{' '}
+              <span className="text-slate-700">{manualRequests[0]?.statusLabel}</span>
+            </div>
+            {manualRequests[0]?.sentAt ? (
+              <span className="text-xs font-semibold text-slate-600">Skickad {manualRequestDate(manualRequests[0].sentAt)}</span>
+            ) : null}
+          </div>
+        ) : null}
 
-        {manualRequests.length > 0 ? (
+        {isPlatformAdmin && showTechnicalDiagnostics ? (
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {statusCards.map((card) => (
+              <article
+                key={card.id}
+                className={`rounded-2xl border p-4 ${customerStatusToneClass(card.tone)}`}
+              >
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">
+                  {card.label}
+                </div>
+                <div className="mt-2 text-lg font-semibold">{card.value}</div>
+                <p className="mt-2 text-xs leading-5 opacity-90">{card.description}</p>
+              </article>
+            ))}
+          </div>
+        ) : null}
+
+        {manualRequests.length > 0 && isPlatformAdmin && showTechnicalDiagnostics ? (
           <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
               Begäran till nätägare
@@ -333,44 +400,7 @@ export default function CustomerBusinessActionsCard({
           </div>
         ) : null}
 
-        {primaryAction ? (
-          <div className={`mt-6 rounded-3xl border p-5 ${primaryActionTone(primaryAction.status)}`}>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-80">
-                  Nästa steg
-                </p>
-                <h3 className="mt-1 text-lg font-semibold">{primaryAction.label}</h3>
-                <p className="mt-2 max-w-2xl text-sm leading-6 opacity-90">
-                  {primaryAction.description}
-                </p>
-                {primaryAction.status === 'blocked' && workflow.blockerAdminMessage ? (
-                  <p className="mt-2 text-sm font-semibold opacity-95">
-                    {workflow.blockerAdminMessage}
-                  </p>
-                ) : null}
-              </div>
-              <div className="min-w-[220px]">
-                {primaryAction.kind ? (
-                  <CustomerOperationAutomationForm
-                    kind={primaryAction.kind}
-                    customerId={customerId}
-                    siteId={primarySite?.id}
-                    meteringPointId={primaryPoint?.id}
-                    idleLabel={primaryAction.label}
-                    pendingLabel="Startar…"
-                  />
-                ) : (
-                  <span className="inline-flex rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm">
-                    {tenantBusinessActionStatusLabel(primaryAction.status)}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {isPlatformAdmin && (workflow.canRunRepair || workflow.canContinueFinalization) ? (
+        {isPlatformAdmin && showTechnicalDiagnostics && (workflow.canRunRepair || workflow.canContinueFinalization) ? (
           <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
             <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]">
@@ -434,7 +464,7 @@ export default function CustomerBusinessActionsCard({
           </div>
         ) : null}
 
-        {isPlatformAdmin && z01RepairEvents.length > 0 ? (
+        {isPlatformAdmin && showTechnicalDiagnostics && z01RepairEvents.length > 0 ? (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
             <p className="font-semibold text-slate-950">Senaste Z01-reparation</p>
             <ul className="mt-2 space-y-2">
@@ -450,7 +480,7 @@ export default function CustomerBusinessActionsCard({
           </div>
         ) : null}
 
-        {isPlatformAdmin ? (
+        {isPlatformAdmin && showTechnicalDiagnostics ? (
           <details className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
             <summary className="cursor-pointer font-semibold text-slate-900">
               Tekniska detaljer och felsökning

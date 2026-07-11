@@ -2,6 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CustomerCaseRow, CustomerCaseType } from '@/lib/customer-cases/types'
 import type { SupplierSwitchRequestRow, SupplierSwitchRequestStatus } from '@/lib/operations/types'
 
+type LifecycleDecisionType = 'withdrawal' | 'cancelled' | 'rejected'
+
 export type SwitchLifecycleBlock = {
   source: 'customer_lifecycle_decision' | 'customer_operation_task' | 'customer_case'
   id: string
@@ -9,7 +11,7 @@ export type SwitchLifecycleBlock = {
   customerId: string
   siteId: string | null
   meteringPointId: string | null
-  decisionType: 'withdrawal' | 'rejected'
+  decisionType: LifecycleDecisionType
   title: string
   reason: string
   createdAt: string | null
@@ -40,8 +42,9 @@ const BLOCKING_TASK_TYPES = new Set<string>([
   'external_contract_intake_review',
 ])
 
-function lifecycleDecisionTypeForTask(taskType: string | null | undefined): 'withdrawal' | 'rejected' | null {
+function lifecycleDecisionTypeForTask(taskType: string | null | undefined): LifecycleDecisionType | null {
   if (taskType === 'customer_withdrawal_followup') return 'withdrawal'
+  if (taskType === 'supplier_switch_aborted') return 'cancelled'
   if (BLOCKING_TASK_TYPES.has(String(taskType ?? ''))) return 'rejected'
   return null
 }
@@ -94,7 +97,7 @@ function statusAfterLifecycleBlock(params: {
     return 'cancelled_before_start'
   }
 
-  if (params.block.decisionType === 'withdrawal') {
+  if (params.block.decisionType === 'withdrawal' || params.block.decisionType === 'cancelled') {
     return 'cancellation_requested'
   }
 
@@ -105,8 +108,9 @@ export function isSwitchBlockingCaseType(caseType: string | null | undefined): b
   return BLOCKING_CASE_TYPES.has(String(caseType ?? '') as CustomerCaseType)
 }
 
-export function lifecycleDecisionTypeForCase(caseType: string | null | undefined): 'withdrawal' | 'rejected' | null {
+export function lifecycleDecisionTypeForCase(caseType: string | null | undefined): LifecycleDecisionType | null {
   if (caseType === 'withdrawal') return 'withdrawal'
+  if (caseType === 'onboarding_aborted' || caseType === 'supplier_switch_aborted') return 'cancelled'
   if (isSwitchBlockingCaseType(caseType)) return 'rejected'
   return null
 }
@@ -160,6 +164,10 @@ export async function createLifecycleDecisionFromCase(
       scope_id: scopeId,
       reason: `Kundärende ${caseRow.id}: ${caseRow.title}`,
       billing_blocked: true,
+      received_at: caseRow.withdrawal_requested_at ?? caseRow.created_at,
+      received_channel: typeof caseRow.metadata?.receivedChannel === 'string' ? caseRow.metadata.receivedChannel : null,
+      notes: typeof caseRow.metadata?.notes === 'string' ? caseRow.metadata.notes : null,
+      source_customer_case_id: caseRow.id,
       created_by: actorUserId,
     })
     .select('id')
@@ -187,7 +195,7 @@ export async function findActiveSwitchLifecycleBlock(
       .from('customer_lifecycle_decisions')
       .select('id, company_id, customer_id, decision_type, scope_type, scope_id, reason, created_at')
       .eq('customer_id', params.customerId)
-      .in('decision_type', ['withdrawal', 'rejected'])
+      .in('decision_type', ['withdrawal', 'cancelled', 'rejected'])
       .order('created_at', { ascending: false })
       .limit(20)
 
@@ -207,8 +215,8 @@ export async function findActiveSwitchLifecycleBlock(
           customerId: String(row.customer_id),
           siteId: scopeType === 'site' ? scopeId : null,
           meteringPointId: scopeType === 'metering_point' ? scopeId : null,
-          decisionType: row.decision_type === 'withdrawal' ? 'withdrawal' : 'rejected',
-          title: row.decision_type === 'withdrawal' ? 'Ånger registrerad' : 'Kund nekad/blockerad',
+          decisionType: row.decision_type === 'withdrawal' ? 'withdrawal' : row.decision_type === 'cancelled' ? 'cancelled' : 'rejected',
+          title: row.decision_type === 'withdrawal' ? 'Ånger registrerad' : row.decision_type === 'cancelled' ? 'Process avbruten' : 'Kund nekad/blockerad',
           reason: String(row.reason ?? 'Kundens livscykel blockerar leverantörsbyte.'),
           createdAt: row.created_at ? String(row.created_at) : null,
         }
@@ -392,7 +400,7 @@ export function switchLifecycleBlockFromCase(caseRow: CustomerCaseRow): SwitchLi
     siteId: caseRow.site_id,
     meteringPointId: caseRow.metering_point_id,
     decisionType,
-    title: caseRow.case_type === 'withdrawal' ? 'Ånger registrerad' : 'Kund nekad/blockerad',
+    title: caseRow.case_type === 'withdrawal' ? 'Ånger registrerad' : caseRow.case_type === 'onboarding_aborted' || caseRow.case_type === 'supplier_switch_aborted' ? 'Process avbruten' : 'Kund nekad/blockerad',
     reason: caseRow.reason_category ?? caseRow.description ?? caseRow.title,
     createdAt: caseRow.created_at,
   }

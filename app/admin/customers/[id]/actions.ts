@@ -92,6 +92,7 @@ import {
   UuidValidationError,
 } from "@/lib/validation/uuid";
 import { customerBlockerStatusLabel } from "@/lib/customer-operations/blockers";
+import { createCustomerCase } from "@/lib/customer-cases/db";
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -3373,24 +3374,55 @@ export async function registerCustomerLifecycleDecisionAction(
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
   const actor = { id: guard.userId };
   const customerId = formValue(formData, "customer_id") ?? "";
-  const decisionType =
-    formValue(formData, "decision_type") === "rejected"
-      ? "rejected"
-      : "withdrawal";
-  const scopeType = formValue(formData, "scope_type") || "customer";
-  const scopeId = formValue(formData, "scope_id") || null;
-  const reason =
-    formValue(formData, "reason")?.trim() ||
-    (decisionType === "withdrawal"
-      ? "Kunden har ångrat flödet."
-      : "Kunden är nekad/avvisad.");
+  const requestedDecision = formValue(formData, "decision_type");
+  const decisionType: "withdrawal" | "cancelled" | "rejected" =
+    requestedDecision === "cancelled"
+      ? "cancelled"
+      : requestedDecision === "rejected"
+        ? "rejected"
+        : "withdrawal";
+  const encodedTarget = formValue(formData, "scope_target");
+  const [encodedScope, encodedScopeId] = encodedTarget?.split(":", 2) ?? [];
+  const requestedScope = encodedScope || formValue(formData, "scope_type") || "customer";
+  const scopeType = ["customer", "contract", "site", "metering_point"].includes(
+    requestedScope,
+  )
+    ? requestedScope
+    : "customer";
+  const scopeId = (encodedScopeId || formValue(formData, "scope_id"))?.trim() || null;
+  const receivedAt =
+    normalizeDateOrNull(formValue(formData, "received_at")) ??
+    new Date().toISOString();
+  const requestedChannel = formValue(formData, "received_channel") ?? "other";
+  const receivedChannel = ["phone", "email", "web_form", "letter", "other"].includes(
+    requestedChannel,
+  )
+    ? requestedChannel
+    : "other";
+  const notes = formValue(formData, "notes")?.trim() || null;
+  const defaultReason =
+    decisionType === "withdrawal"
+      ? "Kunden har använt sin ångerrätt."
+      : decisionType === "cancelled"
+        ? "Kundprocessen har avbrutits."
+        : "Kunden eller ansökan har avvisats.";
+  const reason = formValue(formData, "reason")?.trim() || defaultReason;
   const blockBilling = toBoolean(formData, "block_billing");
 
   if (!customerId) throw new Error("Kund saknas.");
+  if (!toBoolean(formData, "confirmed")) {
+    throw new Error("Bekräfta beslutet innan det registreras.");
+  }
+  if (scopeType !== "customer" && !scopeId) {
+    throw new Error("Välj vilket avtal, vilken anläggning eller mätpunkt beslutet gäller.");
+  }
+
   const { customer, companyId } = await requireCustomerMutationContext(
     customerId,
     guard,
   );
+
+  let contractContext: Record<string, unknown> | null = null;
   if (scopeType === "site") {
     await assertCustomerSiteTenant({ companyId, customerId, siteId: scopeId });
   } else if (scopeType === "metering_point") {
@@ -3401,15 +3433,133 @@ export async function registerCustomerLifecycleDecisionAction(
     });
   } else if (scopeType === "contract") {
     await assertContractTenant({ companyId, customerId, contractId: scopeId });
+    const { data, error } = await supabaseService
+      .from("customer_contracts")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("customer_id", customerId)
+      .eq("id", scopeId!)
+      .maybeSingle();
+    if (error && !isDatabaseShapeError(error)) throw error;
+    contractContext = (data as Record<string, unknown> | null) ?? null;
   }
-  const nextStatus = "archived";
-  const now = new Date().toISOString();
 
+  let switchContext: Record<string, unknown> | null = null;
+  try {
+    let query = supabaseService
+      .from("supplier_switch_requests")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (scopeType === "site" && scopeId) query = query.eq("site_id", scopeId);
+    if (scopeType === "metering_point" && scopeId) {
+      query = query.eq("metering_point_id", scopeId);
+    }
+    const { data, error } = await query.maybeSingle();
+    if (error && !isDatabaseShapeError(error)) throw error;
+    switchContext = (data as Record<string, unknown> | null) ?? null;
+  } catch (error) {
+    if (!isDatabaseShapeError(error)) throw error;
+  }
+
+  const stringField = (row: Record<string, unknown> | null, ...keys: string[]) => {
+    for (const key of keys) {
+      const value = row?.[key];
+      if (typeof value === "string" && value.trim()) return value;
+    }
+    return null;
+  };
+  const siteId =
+    scopeType === "site"
+      ? scopeId
+      : stringField(contractContext, "site_id", "customer_site_id") ??
+        stringField(switchContext, "site_id");
+  const meteringPointId =
+    scopeType === "metering_point"
+      ? scopeId
+      : stringField(contractContext, "metering_point_id") ??
+        stringField(switchContext, "metering_point_id");
+  const agreementChannel = stringField(
+    contractContext,
+    "agreement_channel",
+    "source_type",
+  );
+  const agreementCreatedAt = stringField(
+    contractContext,
+    "signed_at",
+    "created_at",
+  );
+  const deliveryStartAt = stringField(
+    contractContext,
+    "actual_start_date",
+    "actual_start_at",
+    "starts_at",
+  );
+  const prodatSentAt = stringField(
+    switchContext,
+    "submitted_at",
+    "sent_at",
+    "dispatched_at",
+  );
+
+  const caseType =
+    decisionType === "withdrawal"
+      ? "withdrawal"
+      : decisionType === "cancelled"
+        ? "onboarding_aborted"
+        : "rejected_customer";
+  const title =
+    decisionType === "withdrawal"
+      ? "Ånger registrerad"
+      : decisionType === "cancelled"
+        ? "Kundprocess avbruten"
+        : "Kund eller ansökan avvisad";
+
+  const customerCase = await createCustomerCase({
+    companyId,
+    customerId,
+    siteId,
+    meteringPointId,
+    customerContractId: scopeType === "contract" ? scopeId : null,
+    supplierSwitchRequestId: stringField(switchContext, "id"),
+    caseType,
+    priority: "high",
+    title,
+    description: reason,
+    reasonCategory: decisionType,
+    agreementChannel,
+    isDistanceAgreement: Boolean(
+      agreementChannel && /website|web|online|digital|distance/i.test(agreementChannel),
+    ),
+    agreementCreatedAt,
+    withdrawalRequestedAt: decisionType === "withdrawal" ? receivedAt : null,
+    deliveryStartAt,
+    prodatSentAt,
+    nextAction:
+      decisionType === "withdrawal"
+        ? "Bekräfta ångern och kontrollera att byte, utskick och fakturering har stoppats."
+        : "Kontrollera att endast rätt kundprocess har stoppats och dokumentera eventuell återstart.",
+    source: "customer_card_lifecycle_action",
+    metadata: {
+      scopeType,
+      scopeId,
+      decisionType,
+      receivedAt,
+      receivedChannel,
+      notes,
+      blockBilling,
+    },
+    actorUserId: actor.id,
+  });
+
+  const now = new Date().toISOString();
   if (scopeType === "customer") {
     const { error } = await supabaseService
       .from("customers")
       .update({
-        status: nextStatus,
+        status: "archived",
         archived_at: now,
         archived_by: actor.id,
         archive_reason: reason,
@@ -3417,22 +3567,27 @@ export async function registerCustomerLifecycleDecisionAction(
         lifecycle_closed_at: now,
       })
       .eq("id", customerId)
-      .eq("company_id", customer.company_id);
+      .eq("company_id", companyId);
     if (error) throw error;
   } else if (scopeType === "contract" && scopeId) {
     const { error } = await supabaseService
       .from("customer_contracts")
       .update({
-        status: "cancelled",
+        status: decisionType === "withdrawal" ? "cancelled_by_customer" : "cancelled",
+        withdrawal_requested_at: decisionType === "withdrawal" ? receivedAt : null,
         rejected_reason: decisionType === "rejected" ? reason : null,
         termination_reason:
-          decisionType === "withdrawal" ? "customer_request" : "other",
+          decisionType === "withdrawal"
+            ? "customer_withdrawal"
+            : decisionType === "cancelled"
+              ? "customer_request"
+              : "other",
         ends_at: now.slice(0, 10),
         updated_by: actor.id,
       })
       .eq("id", scopeId)
       .eq("customer_id", customerId)
-      .eq("company_id", customer.company_id);
+      .eq("company_id", companyId);
     if (error && !isDatabaseShapeError(error)) throw error;
   } else if (scopeType === "site" && scopeId) {
     const { error } = await supabaseService
@@ -3445,7 +3600,7 @@ export async function registerCustomerLifecycleDecisionAction(
       })
       .eq("id", scopeId)
       .eq("customer_id", customerId)
-      .eq("company_id", customer.company_id);
+      .eq("company_id", companyId);
     if (error && !isDatabaseShapeError(error)) throw error;
   } else if (scopeType === "metering_point" && scopeId) {
     const { error } = await supabaseService
@@ -3457,145 +3612,81 @@ export async function registerCustomerLifecycleDecisionAction(
         updated_by: actor.id,
       })
       .eq("id", scopeId)
-      .eq("company_id", customer.company_id);
+      .eq("company_id", companyId);
     if (error && !isDatabaseShapeError(error)) throw error;
   }
 
-  const cancelledSwitchRequests =
-    await cancelOpenSwitchRequestsForLifecycleDecision({
-      companyId: customer.company_id,
-      customerId,
-      scopeType,
-      scopeId,
-      reason,
-      actorUserId: actor.id,
-    });
-
-  if (blockBilling) {
-    await blockBillingForLifecycleDecision({
-      companyId: customer.company_id,
-      customerId,
-      scopeType,
-      scopeId,
-      reason,
-      actorUserId: actor.id,
-    });
-  }
-
-  await insertLifecycleFollowUpTask({
-    actorUserId: actor.id,
-    companyId: customer.company_id,
-    customerId,
-    scopeType,
-    scopeId,
-    decisionType,
-    reason,
-    billingBlocked: blockBilling,
-  });
-
-  await supabaseService
-    .from("customer_lifecycle_decisions")
-    .insert({
-      company_id: customer.company_id,
-      customer_id: customerId,
-      decision_type: decisionType,
-      scope_type: scopeType,
-      scope_id: scopeId,
-      reason,
-      billing_blocked: blockBilling,
-      created_by: actor.id,
-    })
-    .then((result: { error: unknown }) => {
-      if (result.error && !isDatabaseShapeError(result.error))
-        throw result.error;
-    });
-
+  const entityLabel =
+    scopeType === "customer"
+      ? "kund"
+      : scopeType === "contract"
+        ? "avtal"
+        : scopeType === "site"
+          ? "anläggning"
+          : "mätpunkt";
   const usageMetadata = {
     customerId,
+    customerCaseId: customerCase.id,
     scopeType,
     scopeId,
     reason,
     decisionType,
-    cancelledSwitchRequests,
+    receivedAt,
+    receivedChannel,
   };
   await logUsageEvent({
-    companyId: customer.company_id,
+    companyId,
     actorUserId: actor.id,
     customerId,
-    entityType: "customer",
-    entityId: customerId,
-    eventKey: "customer.archived",
+    entityType: scopeType === "contract" ? "customer_contract" : "customer",
+    entityId: scopeId ?? customerId,
+    eventKey:
+      decisionType === "withdrawal"
+        ? "contract.withdrawn"
+        : decisionType === "cancelled"
+          ? "customer_process.cancelled"
+          : "customer.rejected",
     actionLabel:
       decisionType === "withdrawal"
-        ? "Kund ångrad och arkiverad"
-        : "Kund avvisad och arkiverad",
+        ? `Ånger registrerad för ${entityLabel}`
+        : decisionType === "cancelled"
+          ? `Process avbruten för ${entityLabel}`
+          : `${entityLabel[0].toUpperCase()}${entityLabel.slice(1)} avvisad`,
     source: "customer_lifecycle_decision",
     billable: true,
     billingUnit: "admin_action",
     metadata: usageMetadata,
   });
-  if (decisionType === "withdrawal") {
-    await logUsageEvent({
-      companyId: customer.company_id,
-      actorUserId: actor.id,
-      customerId,
-      entityType:
-        scopeType === "contract" && scopeId ? "customer_contract" : "customer",
-      entityId: scopeId ?? customerId,
-      eventKey: "contract.withdrawn",
-      actionLabel: "Avtal eller ansökan ångrad",
-      source: "customer_lifecycle_decision",
-      billable: true,
-      billingUnit: "admin_action",
-      metadata: usageMetadata,
-    });
-  }
-  if (cancelledSwitchRequests > 0) {
-    await logUsageEvent({
-      companyId: customer.company_id,
-      actorUserId: actor.id,
-      customerId,
-      entityType: "supplier_switch_request",
-      entityId: customerId,
-      eventKey: "switch.cancelled",
-      actionLabel: "Leverantörsbyte stoppat",
-      source: "customer_lifecycle_decision",
-      billable: true,
-      billableQuantity: cancelledSwitchRequests,
-      billingUnit: "switch_request",
-      metadata: usageMetadata,
-    });
-  }
-  if (blockBilling) {
-    await logUsageEvent({
-      companyId: customer.company_id,
-      actorUserId: actor.id,
-      customerId,
-      entityType: "customer",
-      entityId: customerId,
-      eventKey: "billing.blocked",
-      actionLabel: "Fakturering spärrad",
-      source: "customer_lifecycle_decision",
-      billable: false,
-      metadata: usageMetadata,
-    });
-  }
 
   await insertAuditLog({
     actorUserId: actor.id,
     entityType: "customer_lifecycle_decision",
-    entityId: customerId,
+    entityId: customerCase.id,
     action:
       decisionType === "withdrawal"
         ? "customer_withdrawal_registered"
-        : "customer_rejection_registered",
+        : decisionType === "cancelled"
+          ? "customer_process_cancelled"
+          : "customer_rejection_registered",
     oldValues: customer,
-    newValues: { decisionType, scopeType, scopeId, reason, blockBilling },
+    newValues: {
+      customerCaseId: customerCase.id,
+      decisionType,
+      scopeType,
+      scopeId,
+      reason,
+      blockBilling,
+      receivedAt,
+      receivedChannel,
+      notes,
+    },
     metadata: { customerId, scopeType, scopeId },
   });
 
   revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath(`/admin/customers/${customerId}?tab=lifecycle-decisions`);
   revalidatePath("/admin/customers");
+  revalidatePath("/admin/customer-cases");
   revalidatePath("/admin/billing/export-center");
 }
 
