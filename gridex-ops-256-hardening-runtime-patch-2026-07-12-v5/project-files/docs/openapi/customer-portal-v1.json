@@ -1,0 +1,2258 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gridex Customer Portal and Website API",
+    "version": "2026-07-12",
+    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. company_id accepteras aldrig som fri tenantväljare."
+  },
+  "servers": [
+    {
+      "url": "https://app.gridex.se"
+    }
+  ],
+  "paths": {
+    "/api/v1/customer-portal/sync": {
+      "post": {
+        "operationId": "postApiV1CustomerPortalSync",
+        "summary": "Länka extern portalidentitet till en entydig kund.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_sync.write"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_sync.write"
+        ],
+        "x-idempotency-required": true,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/contracts": {
+      "get": {
+        "operationId": "getApiV1CustomerContracts",
+        "summary": "Hämta kundens avtal.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_contracts.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_contracts.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/documents": {
+      "get": {
+        "operationId": "getApiV1CustomerDocuments",
+        "summary": "Hämta kundens dokument.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_documents.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_documents.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/events": {
+      "get": {
+        "operationId": "getApiV1CustomerEvents",
+        "summary": "Hämta kundens händelser.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_events.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_events.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/invoices/{id}": {
+      "get": {
+        "operationId": "getApiV1CustomerInvoicesId}",
+        "summary": "Hämta en tenant- och kundbunden faktura.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_invoices.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_invoices.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/invoices": {
+      "get": {
+        "operationId": "getApiV1CustomerInvoices",
+        "summary": "Hämta kundens fakturor.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_invoices.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_invoices.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/legal-acceptances": {
+      "get": {
+        "operationId": "getApiV1CustomerLegalAcceptances",
+        "summary": "Hämta juridiska godkännanden.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_legal.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_legal.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/me": {
+      "get": {
+        "operationId": "getApiV1CustomerMe",
+        "summary": "Hämta kundprofil.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_profile.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_profile.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/metering-values": {
+      "get": {
+        "operationId": "getApiV1CustomerMeteringValues",
+        "summary": "Hämta kanoniska mätvärden.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_metering.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_metering.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/move-out": {
+      "post": {
+        "operationId": "postApiV1CustomerMoveOut",
+        "summary": "Registrera utflyttning med verkligt kalenderdatum.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_facility_data.write"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_facility_data.write"
+        ],
+        "x-idempotency-required": true,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/notifications/read": {
+      "post": {
+        "operationId": "postApiV1CustomerNotificationsRead",
+        "summary": "Markera exakt angivna notiser som lästa.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_notifications.write"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_notifications.write"
+        ],
+        "x-idempotency-required": true,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/notifications": {
+      "get": {
+        "operationId": "getApiV1CustomerNotifications",
+        "summary": "Hämta kundnotiser.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_notifications.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_notifications.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/portal-bundle": {
+      "get": {
+        "operationId": "getApiV1CustomerPortalBundle",
+        "summary": "Hämta kundportalpaket via headers/query.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_profile.read",
+              "customer_sites.read",
+              "customer_contracts.read",
+              "customer_invoices.read",
+              "customer_metering.read",
+              "customer_legal.read",
+              "customer_events.read",
+              "customer_documents.read",
+              "customer_notifications.read",
+              "customer_power_of_attorney.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_profile.read",
+          "customer_sites.read",
+          "customer_contracts.read",
+          "customer_invoices.read",
+          "customer_metering.read",
+          "customer_legal.read",
+          "customer_events.read",
+          "customer_documents.read",
+          "customer_notifications.read",
+          "customer_power_of_attorney.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postApiV1CustomerPortalBundle",
+        "summary": "Hämta kundportalpaket via JSON-body.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_profile.read",
+              "customer_sites.read",
+              "customer_contracts.read",
+              "customer_invoices.read",
+              "customer_metering.read",
+              "customer_legal.read",
+              "customer_events.read",
+              "customer_documents.read",
+              "customer_notifications.read",
+              "customer_power_of_attorney.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_profile.read",
+          "customer_sites.read",
+          "customer_contracts.read",
+          "customer_invoices.read",
+          "customer_metering.read",
+          "customer_legal.read",
+          "customer_events.read",
+          "customer_documents.read",
+          "customer_notifications.read",
+          "customer_power_of_attorney.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/powers-of-attorney": {
+      "get": {
+        "operationId": "getApiV1CustomerPowersOfAttorney",
+        "summary": "Hämta fullmakter.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_power_of_attorney.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_power_of_attorney.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/profile-update": {
+      "post": {
+        "operationId": "postApiV1CustomerProfileUpdate",
+        "summary": "Uppdatera kontakt- eller anläggningsuppgifter.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_contact.write",
+              "customer_facility_data.write"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_contact.write",
+          "customer_facility_data.write"
+        ],
+        "x-idempotency-required": true,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/sites": {
+      "get": {
+        "operationId": "getApiV1CustomerSites",
+        "summary": "Hämta anläggningar och mätpunkter.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_sites.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_sites.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/customer/sync": {
+      "post": {
+        "operationId": "postApiV1CustomerSync",
+        "summary": "Synka dokument, fullmakter, juridik och anläggningsdata.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_sync.write"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_sync.write"
+        ],
+        "x-idempotency-required": true,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "getApiV1Events",
+        "summary": "Hämta tenantens domänhändelser.",
+        "security": [
+          {
+            "bearerAuth": [
+              "events.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "events.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postApiV1Events",
+        "summary": "Skicka kundhändelse från hemsida eller portal.",
+        "security": [
+          {
+            "bearerAuth": [
+              "website_events.write"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "website_events.write"
+        ],
+        "x-idempotency-required": true,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/website/customer-applications": {
+      "post": {
+        "operationId": "postApiV1WebsiteCustomerApplications",
+        "summary": "Skapa idempotent kundansökan.",
+        "security": [
+          {
+            "bearerAuth": [
+              "website_applications.write"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "website_applications.write"
+        ],
+        "x-idempotency-required": true,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/website/customer-events": {
+      "post": {
+        "operationId": "postApiV1WebsiteCustomerEvents",
+        "summary": "Skicka kundhändelse från hemsida.",
+        "security": [
+          {
+            "bearerAuth": [
+              "website_events.write"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "website_events.write"
+        ],
+        "x-idempotency-required": true,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/website/legal-bundle": {
+      "get": {
+        "operationId": "getApiV1WebsiteLegalBundle",
+        "summary": "Hämta publicerat juridikpaket.",
+        "security": [
+          {
+            "bearerAuth": [
+              "website_legal.read",
+              "website_contracts.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "website_legal.read",
+          "website_contracts.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/website/public-contracts": {
+      "get": {
+        "operationId": "getApiV1WebsitePublicContracts",
+        "summary": "Hämta publicerade och teckningsbara erbjudanden.",
+        "security": [
+          {
+            "bearerAuth": [
+              "website_contracts.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "website_contracts.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/website/quote": {
+      "post": {
+        "operationId": "postApiV1WebsiteQuote",
+        "summary": "Beräkna offert för publicerat erbjudande utan mutation.",
+        "security": [
+          {
+            "bearerAuth": [
+              "website_contracts.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "website_contracts.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Gridex API token"
+      }
+    },
+    "parameters": {
+      "RequestId": {
+        "name": "x-request-id",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 200,
+          "pattern": "^[A-Za-z0-9._:+~-]+$"
+        }
+      },
+      "ExternalCustomerId": {
+        "name": "x-gridex-external-customer-id",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "CustomerNumber": {
+        "name": "x-gridex-customer-number",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "CustomerEmail": {
+        "name": "x-gridex-customer-email",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "email"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Ogiltig JSON eller validering.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
+              "properties": {
+                "error": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "stage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "field": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hint": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "request_id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Token saknas eller är ogiltig.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
+              "properties": {
+                "error": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "stage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "field": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hint": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "request_id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Scope, IP eller origin tillåts inte.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
+              "properties": {
+                "error": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "stage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "field": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hint": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "request_id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Tvetydig matchning eller idempotenskonflikt.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
+              "properties": {
+                "error": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "stage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "field": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hint": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "request_id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Unprocessable": {
+        "description": "Affärsvalidering misslyckades.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
+              "properties": {
+                "error": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "stage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "field": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hint": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "request_id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Rate limit överskriden.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
+              "properties": {
+                "error": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "stage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "field": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hint": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "request_id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Internt fel utan databasdetaljer.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
+              "properties": {
+                "error": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "stage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "field": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hint": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "request_id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "error",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "stage": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "field": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "hint": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

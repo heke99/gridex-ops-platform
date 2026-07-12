@@ -1,6 +1,11 @@
 import { supabaseService } from '@/lib/supabase/service'
+import type { MeteringValueRow } from '@/lib/cis/types'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { isPriceArea, type PriceArea } from '@/lib/pricing/types'
+import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+
+export type MeteringDirection = 'consumption' | 'production' | 'net_consumption' | 'net_production'
+export type MeteringUnit = 'Wh' | 'kWh' | 'MWh'
 
 export type NormalizedMeteringValueInput = {
   companyId: string
@@ -9,13 +14,22 @@ export type NormalizedMeteringValueInput = {
   siteId?: string | null
   meteringPointId?: string | null
   facilityId?: string | null
+  gridOwnerId?: string | null
+  sourceRequestId?: string | null
   priceArea?: PriceArea | string | null
   gridArea?: string | null
   periodStart: string
   periodEnd: string
+  readAt?: string | null
   resolution?: string | null
   quantityKwh: number
   qualityStatus?: string | null
+  readingType?: 'consumption' | 'production' | 'estimated' | 'adjustment'
+  direction?: MeteringDirection
+  unit?: MeteringUnit
+  registerCode?: string | null
+  productCode?: string | null
+  correctionReason?: string | null
   sourceType: 'ediel_utilts' | 'brp_import' | 'manual' | 'api' | string
   sourceMessageId?: string | null
   sourceTransactionReference?: string | null
@@ -25,230 +39,196 @@ export type NormalizedMeteringValueInput = {
 }
 
 export type NormalizeResult =
-  | { status: 'stored'; meteringValueId: string; normalizedMeteringValueId?: string | null; warnings: string[] }
+  | { status: 'stored'; meteringValueId: string; normalizedMeteringValueId: string; meteringValue: MeteringValueRow; warnings: string[] }
   | { status: 'needs_review' | 'blocked_duplicate'; warnings: string[]; reason: string }
 
 function nonEmpty(value: string | null | undefined): string | null {
   return value && value.trim() ? value.trim() : null
 }
 
-async function resolveMeteringPoint(input: NormalizedMeteringValueInput): Promise<{ meteringPointId: string | null; customerId: string | null; siteId: string | null; customerSiteId: string | null; warnings: string[] }> {
+function strictTimestamp(value: string, field: string): string {
+  const parsed = new Date(value)
+  if (!value || Number.isNaN(parsed.getTime())) throw new Error(`invalid_${field}`)
+  return parsed.toISOString()
+}
+
+function readText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+async function resolveMeteringPoint(input: NormalizedMeteringValueInput): Promise<{
+  meteringPointId: string | null
+  customerId: string | null
+  siteId: string | null
+  customerSiteId: string | null
+  warnings: string[]
+}> {
   const warnings: string[] = []
   const explicitPoint = nonEmpty(input.meteringPointId)
-  if (explicitPoint) {
-    const { data, error } = await supabaseService
-      .from('metering_points')
-      .select('id, customer_id, site_id, customer_site_id, price_area, grid_area')
-      .eq('company_id', input.companyId)
-      .eq('id', explicitPoint)
-      .maybeSingle()
-    if (error && error.code !== 'PGRST116') throw error
-    if (!data) return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Mätpunkt hittades inte inom bolaget.'] }
-    const row = data as Record<string, unknown>
-    return {
-      meteringPointId: String(row.id),
-      customerId: nonEmpty(input.customerId) ?? (typeof row.customer_id === 'string' ? row.customer_id : null),
-      siteId: nonEmpty(input.siteId) ?? (typeof row.site_id === 'string' ? row.site_id : null),
-      customerSiteId: nonEmpty(input.customerSiteId) ?? (typeof row.customer_site_id === 'string' ? row.customer_site_id : null),
-      warnings,
-    }
-  }
-
   const facilityId = nonEmpty(input.facilityId)
-  if (!facilityId) {
-    return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Varken mätpunkt eller anläggnings-id finns i mätdata.'] }
+
+  let query = supabaseService
+    .from('metering_points')
+    .select('id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,normalized_metering_point_id,facility_id,site_facility_id,status')
+    .eq('company_id', input.companyId)
+    .limit(3)
+
+  if (explicitPoint) {
+    query = query.eq('id', explicitPoint)
+  } else if (facilityId) {
+    const escaped = facilityId.replace(/"/g, '\\"')
+    query = query.or([
+      `meter_point_id.eq.${escaped}`,
+      `metering_point_id.eq.${escaped}`,
+      `normalized_metering_point_id.eq.${escaped}`,
+      `facility_id.eq.${escaped}`,
+      `site_facility_id.eq.${escaped}`,
+    ].join(','))
+  } else {
+    return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Varken kanoniskt mätpunkts-id eller anläggnings-id finns i mätdata.'] }
   }
 
-  const { data, error } = await supabaseService
-    .from('metering_points')
-    .select('id, customer_id, site_id, customer_site_id')
-    .eq('company_id', input.companyId)
-    .or(`meter_point_id.eq.${facilityId},metering_point_id.eq.${facilityId},facility_id.eq.${facilityId}`)
-    .limit(2)
+  const { data, error } = await query
   if (error) throw error
-
-  const rows = (data ?? []) as Record<string, unknown>[]
-  if (rows.length === 0) return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Anläggning kunde inte matchas till unik mätpunkt inom bolaget.'] }
-  if (rows.length > 1) return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Anläggnings-id matchade flera mätpunkter inom bolaget.'] }
+  const rows = (data ?? []) as Array<Record<string, unknown>>
+  if (rows.length === 0) return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Mätpunkt hittades inte entydigt inom bolaget.'] }
+  if (rows.length > 1) return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Identifieraren matchade flera mätpunkter inom bolaget.'] }
 
   const row = rows[0]
+  const canonicalCustomerId = readText(row.customer_id)
+  const canonicalSiteId = readText(row.site_id)
+  const canonicalCustomerSiteId = readText(row.customer_site_id)
+  if (!canonicalCustomerId) {
+    return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Mätpunkten saknar kanonisk kundkoppling.'] }
+  }
+  if (input.customerId && input.customerId !== canonicalCustomerId) {
+    return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Angiven kund tillhör inte den kanoniska mätpunkten.'] }
+  }
+  if (input.siteId && canonicalSiteId && input.siteId !== canonicalSiteId) {
+    return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Angiven anläggning tillhör inte den kanoniska mätpunkten.'] }
+  }
+  if (input.customerSiteId && canonicalCustomerSiteId && input.customerSiteId !== canonicalCustomerSiteId) {
+    return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Angiven customer_site tillhör inte den kanoniska mätpunkten.'] }
+  }
+
   return {
     meteringPointId: String(row.id),
-    customerId: nonEmpty(input.customerId) ?? (typeof row.customer_id === 'string' ? row.customer_id : null),
-    siteId: nonEmpty(input.siteId) ?? (typeof row.site_id === 'string' ? row.site_id : null),
-    customerSiteId: nonEmpty(input.customerSiteId) ?? (typeof row.customer_site_id === 'string' ? row.customer_site_id : null),
+    customerId: canonicalCustomerId,
+    siteId: canonicalSiteId ?? canonicalCustomerSiteId,
+    customerSiteId: canonicalCustomerSiteId ?? canonicalSiteId,
     warnings,
   }
 }
 
-// Projects an already-ingested metering_values row into normalized_metering_values
-// without re-writing metering_values. Used by the inbound UTILTS path (which writes
-// metering_values via ingestMeteringValue) so billing underlay generation — which
-// prefers normalized rows — sees UTILTS data. Idempotent: duplicate rows (unique
-// dedupe index) are ignored, so re-processing the same UTILTS message never double
-// counts consumption.
+function canonicalKey(input: NormalizedMeteringValueInput, meteringPointId: string, periodStart: string, periodEnd: string): string {
+  return [
+    input.companyId,
+    meteringPointId,
+    periodStart,
+    periodEnd,
+    nonEmpty(input.registerCode) ?? 'default-register',
+    nonEmpty(input.productCode) ?? 'default-product',
+    input.direction ?? (input.readingType === 'production' ? 'production' : 'consumption'),
+    input.unit ?? 'kWh',
+  ].join('|')
+}
+
+/**
+ * Legacy compatibility only. New ingestion paths must use normalizeAndStoreMeteringValue,
+ * which writes both representations in one database transaction.
+ */
 export async function projectMeteringValueToNormalized(input: {
   companyId: string
   meteringValueId: string
-  customerId?: string | null
-  customerSiteId?: string | null
-  siteId?: string | null
-  meteringPointId: string
-  facilityId?: string | null
-  priceArea?: PriceArea | string | null
-  gridArea?: string | null
-  periodStart: string | null
-  periodEnd: string | null
-  resolution?: string | null
-  quantityKwh: number
-  qualityStatus?: string | null
-  sourceType: 'ediel_utilts' | 'brp_import' | 'manual' | 'api' | string
-  sourceMessageId?: string | null
-  sourceTransactionReference?: string | null
-  sourceLineReference?: string | null
-  rawPayload?: Record<string, unknown>
-  createdBy?: string | null
 }): Promise<{ status: 'stored' | 'duplicate' | 'skipped'; normalizedMeteringValueId?: string | null }> {
-  if (!input.companyId || !nonEmpty(input.meteringPointId)) return { status: 'skipped' }
-  if (!Number.isFinite(input.quantityKwh)) return { status: 'skipped' }
-  const periodStart = nonEmpty(input.periodStart)
-  const periodEnd = nonEmpty(input.periodEnd)
-  if (!periodStart || !periodEnd) return { status: 'skipped' }
-  const priceArea = isPriceArea(input.priceArea ?? undefined) ? input.priceArea : null
-
+  await assertPlatformSchemaReady()
   const { data, error } = await supabaseService
     .from('normalized_metering_values')
-    .insert({
-      company_id: input.companyId,
-      customer_id: input.customerId ?? null,
-      customer_site_id: input.customerSiteId ?? null,
-      site_id: input.siteId ?? null,
-      metering_point_id: input.meteringPointId,
-      facility_id: input.facilityId ?? null,
-      price_area: priceArea,
-      grid_area: input.gridArea ?? null,
-      period_start: periodStart,
-      period_end: periodEnd,
-      resolution: input.resolution ?? null,
-      quantity_kwh: input.quantityKwh,
-      quality_status: input.qualityStatus ?? null,
-      source_type: input.sourceType,
-      source_message_id: input.sourceMessageId ?? null,
-      source_transaction_reference: input.sourceTransactionReference ?? null,
-      source_line_reference: input.sourceLineReference ?? null,
-      source_metering_value_id: input.meteringValueId,
-      raw_payload: input.rawPayload ?? {},
-      status: 'stored',
-      created_by: input.createdBy ?? null,
-    })
     .select('id')
-    .single()
-
-  if (error) {
-    // 23505 = unique violation (duplicate already normalized) → idempotent no-op.
-    const code = String((error as { code?: unknown }).code ?? '')
-    if (code === '23505') return { status: 'duplicate' }
-    // Missing table/column (older schema) → skip silently; metering_values still saved.
-    if (['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code)) return { status: 'skipped' }
-    throw error
-  }
-
-  return { status: 'stored', normalizedMeteringValueId: (data as { id: string }).id }
+    .eq('company_id', input.companyId)
+    .eq('source_metering_value_id', input.meteringValueId)
+    .eq('revision_status', 'current')
+    .limit(2)
+  if (error) throw error
+  if ((data ?? []).length > 1) throw new Error('normalized_metering_projection_ambiguous')
+  const id = readText((data?.[0] as Record<string, unknown> | undefined)?.id)
+  return id ? { status: 'duplicate', normalizedMeteringValueId: id } : { status: 'skipped' }
 }
 
 export async function normalizeAndStoreMeteringValue(input: NormalizedMeteringValueInput): Promise<NormalizeResult> {
+  await assertPlatformSchemaReady()
   const warnings: string[] = []
   if (!input.companyId) return { status: 'needs_review', reason: 'company_id saknas.', warnings }
   if (!Number.isFinite(input.quantityKwh)) return { status: 'needs_review', reason: 'kWh-värde saknas eller är ogiltigt.', warnings }
 
+  let periodStart: string
+  let periodEnd: string
+  try {
+    periodStart = strictTimestamp(input.periodStart, 'period_start')
+    periodEnd = strictTimestamp(input.periodEnd, 'period_end')
+  } catch (error) {
+    return { status: 'needs_review', reason: error instanceof Error ? error.message : 'invalid_metering_period', warnings }
+  }
+  if (periodStart >= periodEnd) return { status: 'needs_review', reason: 'Mätperiodens slut måste ligga efter start.', warnings }
+
   const resolved = await resolveMeteringPoint(input)
   warnings.push(...resolved.warnings)
-  if (!resolved.meteringPointId) {
+  if (!resolved.meteringPointId || !resolved.customerId) {
     return { status: 'needs_review', reason: warnings[0] ?? 'Mätpunkt kunde inte matchas säkert.', warnings }
   }
 
   const priceArea = isPriceArea(input.priceArea ?? undefined) ? input.priceArea : null
-  const canonicalDedupeKey = [
-    input.companyId,
-    resolved.meteringPointId,
-    input.periodStart,
-    input.periodEnd,
-    input.sourceType,
-    nonEmpty(input.sourceTransactionReference) ?? nonEmpty(input.sourceLineReference) ?? 'no-source-ref',
-  ].join('|')
+  const direction = input.direction ?? (input.readingType === 'production' ? 'production' : 'consumption')
+  const unit = input.unit ?? 'kWh'
+  const dedupeKey = canonicalKey(input, resolved.meteringPointId, periodStart, periodEnd)
 
-  const { data: existing, error: existingError } = await supabaseService
-    .from('metering_values')
-    .select('id')
-    .eq('company_id', input.companyId)
-    .eq('canonical_dedupe_key', canonicalDedupeKey)
-    .maybeSingle()
-  if (existingError && existingError.code !== 'PGRST116') throw existingError
-  if (existing) return { status: 'blocked_duplicate', reason: 'Mätvärdet finns redan för samma mätpunkt och period.', warnings }
-
-  const { data: meterValue, error } = await supabaseService
-    .from('metering_values')
-    .insert({
+  const { data, error } = await supabaseService.rpc('gridex_ingest_metering_value_atomic', {
+    p_payload: {
       company_id: input.companyId,
       customer_id: resolved.customerId,
-      site_id: resolved.siteId ?? resolved.customerSiteId,
-      customer_site_id: resolved.customerSiteId,
-      metering_point_id: resolved.meteringPointId,
-      reading_type: 'consumption',
-      value_kwh: input.quantityKwh,
-      quality_code: input.qualityStatus ?? null,
-      read_at: input.periodEnd,
-      period_start: input.periodStart,
-      period_end: input.periodEnd,
-      source_system: input.sourceType,
-      raw_payload: {
-        ...(input.rawPayload ?? {}),
-        facility_id: input.facilityId ?? null,
-        price_area: priceArea,
-        grid_area: input.gridArea ?? null,
-        resolution: input.resolution ?? null,
-        source_transaction_reference: input.sourceTransactionReference ?? null,
-        source_line_reference: input.sourceLineReference ?? null,
-      },
-      source_ediel_message_id: input.sourceMessageId ?? null,
-      canonical_dedupe_key: canonicalDedupeKey,
-      created_by: input.createdBy ?? null,
-    })
-    .select('id')
-    .single()
-  if (error) throw error
-
-  let normalizedId: string | null = null
-  const { data: normalized, error: normalizedError } = await supabaseService
-    .from('normalized_metering_values')
-    .insert({
-      company_id: input.companyId,
-      customer_id: resolved.customerId,
-      customer_site_id: resolved.customerSiteId,
       site_id: resolved.siteId,
+      customer_site_id: resolved.customerSiteId,
       metering_point_id: resolved.meteringPointId,
       facility_id: input.facilityId ?? null,
-      price_area: priceArea,
-      grid_area: input.gridArea ?? null,
-      period_start: input.periodStart,
-      period_end: input.periodEnd,
-      resolution: input.resolution ?? null,
-      quantity_kwh: input.quantityKwh,
-      quality_status: input.qualityStatus ?? null,
-      source_type: input.sourceType,
-      source_message_id: input.sourceMessageId ?? null,
+      grid_owner_id: input.gridOwnerId ?? null,
+      source_request_id: input.sourceRequestId ?? null,
+      reading_type: input.readingType ?? (direction.includes('production') ? 'production' : 'consumption'),
+      direction,
+      unit,
+      value_kwh: input.quantityKwh,
+      quality_code: input.qualityStatus ?? null,
+      read_at: strictTimestamp(input.readAt ?? periodEnd, 'read_at'),
+      period_start: periodStart,
+      period_end: periodEnd,
+      source_system: input.sourceType,
+      source_ediel_message_id: input.sourceMessageId ?? null,
       source_transaction_reference: input.sourceTransactionReference ?? null,
       source_line_reference: input.sourceLineReference ?? null,
-      source_metering_value_id: (meterValue as { id: string }).id,
+      price_area: priceArea,
+      grid_area: input.gridArea ?? null,
+      resolution: input.resolution ?? null,
+      register_code: input.registerCode ?? null,
+      product_code: input.productCode ?? null,
+      canonical_dedupe_key: dedupeKey,
+      correction_reason: input.correctionReason ?? null,
       raw_payload: input.rawPayload ?? {},
-      status: 'stored',
       created_by: input.createdBy ?? null,
-    })
-    .select('id')
-    .single()
+    },
+  })
+  if (error) throw error
+  const meterValue = data as MeteringValueRow | null
+  if (!meterValue?.id) throw new Error('atomic_metering_ingest_missing_result')
 
-  if (!normalizedError) normalizedId = (normalized as { id: string }).id
-  else warnings.push('Mätvärdet sparades i metering_values men inte i normalized_metering_values. Kontrollera att senaste migrationen är körd.')
+  const { data: normalizedRows, error: normalizedError } = await supabaseService
+    .from('normalized_metering_values')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('source_metering_value_id', meterValue.id)
+    .eq('revision_status', 'current')
+    .limit(2)
+  if (normalizedError) throw normalizedError
+  if ((normalizedRows ?? []).length !== 1) throw new Error('atomic_metering_projection_missing_or_ambiguous')
+  const normalizedMeteringValueId = String((normalizedRows as Array<{ id: string }>)[0].id)
 
   await emitDomainEvent({
     companyId: input.companyId,
@@ -259,21 +239,26 @@ export async function normalizeAndStoreMeteringValue(input: NormalizedMeteringVa
     actorUserId: input.createdBy ?? null,
     source: input.sourceType,
     payload: {
-      metering_value_id: (meterValue as { id: string }).id,
-      normalized_metering_value_id: normalizedId,
+      metering_value_id: meterValue.id,
+      normalized_metering_value_id: normalizedMeteringValueId,
       metering_point_id: resolved.meteringPointId,
       customer_site_id: resolved.customerSiteId,
       facility_id: input.facilityId ?? null,
       price_area: priceArea,
-      period_start: input.periodStart,
-      period_end: input.periodEnd,
+      period_start: periodStart,
+      period_end: periodEnd,
       resolution: input.resolution ?? null,
       quantity_kwh: input.quantityKwh,
       source_type: input.sourceType,
+      direction,
+      unit,
+      register_code: input.registerCode ?? null,
+      product_code: input.productCode ?? null,
+      revision_number: meterValue.revision_number ?? 1,
       status: 'stored',
     },
-    idempotencyKey: `metering-values-updated:${(meterValue as { id: string }).id}`,
-  }).catch(() => null)
+    idempotencyKey: `metering-values-updated:${meterValue.id}`,
+  })
 
-  return { status: 'stored', meteringValueId: (meterValue as { id: string }).id, normalizedMeteringValueId: normalizedId, warnings }
+  return { status: 'stored', meteringValueId: meterValue.id, normalizedMeteringValueId, meteringValue, warnings }
 }
