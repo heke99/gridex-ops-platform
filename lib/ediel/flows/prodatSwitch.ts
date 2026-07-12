@@ -172,12 +172,19 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     params.switchRequestId
   )
 
+  const companyId = switchRequest.company_id ?? site.company_id ?? null
+  if (!companyId) {
+    throw new Error(
+      'PRODAT switch stoppades: switchärendet och anläggningen saknar company_id.'
+    )
+  }
+
   const routeProcess = routeProcessForCode(params.messageCode)
   const routeContext = await resolveDecisionBackedOutboundContext({
     requestType: routeProcess,
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
-    companyId: switchRequest.company_id ?? site.company_id ?? null,
+    companyId,
     customerId: switchRequest.customer_id,
     siteId: switchRequest.site_id,
     meteringPointId: switchRequest.metering_point_id,
@@ -204,7 +211,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
   // Propagate the legal authorization chain through the switch outbound and
   // intent. Older switch rows may predate authorization_document_id, so fall
   // back to resolving it from the POA.
-  const switchCompanyId = switchRequest.company_id ?? site.company_id ?? null
+  const switchCompanyId = companyId
   const authorizationDocumentId =
     switchRequest.authorization_document_id ??
     (switchRequest.power_of_attorney_id && switchCompanyId
@@ -261,7 +268,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     String(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '').trim() || null
   const intent = await createEdielMessageIntent({
     actorUserId,
-    companyId: switchRequest.company_id ?? site.company_id ?? '',
+    companyId,
     environment: routeContext.environment,
     market: 'electricity',
     messageFamily: 'PRODAT',

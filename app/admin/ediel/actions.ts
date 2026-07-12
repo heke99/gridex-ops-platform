@@ -3725,14 +3725,13 @@ export async function createProdatDraftAction(formData: FormData) {
   if (!site) throw new Error("Anläggning saknas för switchärendet");
 
   const companyId = switchRequest.company_id ?? site.company_id ?? null;
-  if (companyId) {
-    await assertUserCanOperateCompany(context.userId, companyId);
-    await requireCompanyOperationalForWrites(companyId);
-  } else if (!isPlatformAdminContext(context)) {
+  if (!companyId) {
     throw new Error(
-      "Switchärendet saknar tenantkoppling och kan bara hanteras av platform admin.",
+      "Switchärendet saknar tenantkoppling. Koppla ärendet eller anläggningen till rätt bolag innan EDIFACT byggs.",
     );
   }
+  await assertUserCanOperateCompany(context.userId, companyId);
+  await requireCompanyOperationalForWrites(companyId);
 
   const meteringPoint = await getMeteringPointById(
     supabase,

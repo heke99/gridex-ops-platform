@@ -997,7 +997,11 @@ export async function prepareAndQueueUtiltsE73(params: {
   const dataRequest = await getGridOwnerDataRequestById(params.gridOwnerDataRequestId)
 
   if (!dataRequest) throw new Error('Grid owner data request hittades inte')
-  if (dataRequest.company_id) await requireCompanyOperationalForWrites(dataRequest.company_id)
+  const companyId = dataRequest.company_id
+  if (!companyId) {
+    throw new Error('UTILTS E73 stoppades: nätägarbegäran saknar company_id.')
+  }
+  await requireCompanyOperationalForWrites(companyId)
 
   const site = dataRequest.site_id ? await getCustomerSiteById(supabase, dataRequest.site_id) : null
   const meteringPoint = dataRequest.metering_point_id
@@ -1016,7 +1020,7 @@ export async function prepareAndQueueUtiltsE73(params: {
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
-    companyId: dataRequest.company_id ?? null,
+    companyId,
     customerId: dataRequest.customer_id,
     siteId: dataRequest.site_id,
     meteringPointId: dataRequest.metering_point_id,
@@ -1158,7 +1162,11 @@ export async function prepareAndQueueUtiltsE66(params: {
   const dataRequest = await getGridOwnerDataRequestById(params.gridOwnerDataRequestId)
 
   if (!dataRequest) throw new Error('Grid owner data request hittades inte')
-  if (dataRequest.company_id) await requireCompanyOperationalForWrites(dataRequest.company_id)
+  const companyId = dataRequest.company_id
+  if (!companyId) {
+    throw new Error('UTILTS E66 stoppades: nätägarbegäran saknar company_id.')
+  }
+  await requireCompanyOperationalForWrites(companyId)
 
   const site = dataRequest.site_id ? await getCustomerSiteById(supabase, dataRequest.site_id) : null
   const meteringPoint = dataRequest.metering_point_id
@@ -1177,7 +1185,7 @@ export async function prepareAndQueueUtiltsE66(params: {
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
-    companyId: dataRequest.company_id ?? null,
+    companyId,
     customerId: dataRequest.customer_id,
     siteId: dataRequest.site_id,
     meteringPointId: dataRequest.metering_point_id,

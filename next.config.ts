@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '5mb',
     },
+    cpus: 1,
+    memoryBasedWorkersCount: false,
+    parallelServerCompiles: false,
+    parallelServerBuildTraces: false,
+    webpackBuildWorker: true,
+    webpackMemoryOptimizations: true,
   },
   async redirects() {
     return [

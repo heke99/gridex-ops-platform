@@ -685,6 +685,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   }
 
   const operationId = params.operationId ?? dataRequest.operation_id ?? null;
+  const companyId = dataRequest.company_id;
 
   const gridOwner = dataRequest.grid_owner_id
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
@@ -692,52 +693,53 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   const actorId = gridOwner?.platform_market_actor_id ?? null;
 
   let requestedEnvironment = params.environment ?? null;
+  if (!companyId) {
+    const outbound = await findOrCreateDataRequestOutbound({
+      actorUserId,
+      requestType: "customer_masterdata",
+      communicationRouteId: null,
+      dataRequest,
+      operationId,
+      payload: {
+        edielCode: "Z01",
+        queuedFrom: "prepare_prodat_z01_customer_masterdata",
+        requestScope: dataRequest.request_scope,
+        operation_id: operationId,
+        blockerCode: "operational_route_missing",
+      },
+    });
+    const blocker = makeCustomerOperationBlocker(
+      "operational_route_missing",
+      {
+        blocker_reason: "Bolagskoppling saknas på nätägarbegäran.",
+        next_required_action:
+          "Koppla begäran till rätt bolag innan EDIFACT förbereds.",
+      },
+    );
+    await blockOutboundRowDirect({
+      actorUserId,
+      outboundId: outbound.id,
+      blocker,
+      source: "prepare_prodat_z01_company_missing",
+    });
+    return {
+      dataRequest,
+      outbound,
+      message: null,
+      prepared: false,
+      blockerReason: blocker.blocker_reason,
+      blockerCode: blocker.blocker_code,
+      blockerDetails: {
+        ...blocker,
+        route_resolution_status: "company_missing",
+      },
+    };
+  }
+
   if (!requestedEnvironment && !params.communicationRouteId) {
-    if (!dataRequest.company_id) {
-      const outbound = await findOrCreateDataRequestOutbound({
-        actorUserId,
-        requestType: "customer_masterdata",
-        communicationRouteId: null,
-        dataRequest,
-        operationId,
-        payload: {
-          edielCode: "Z01",
-          queuedFrom: "prepare_prodat_z01_customer_masterdata",
-          requestScope: dataRequest.request_scope,
-          operation_id: operationId,
-          blockerCode: "operational_route_missing",
-        },
-      });
-      const blocker = makeCustomerOperationBlocker(
-        "operational_route_missing",
-        {
-          blocker_reason: "Bolagskoppling saknas på nätägarbegäran.",
-          next_required_action:
-            "Koppla begäran till rätt bolag innan EDIFACT förbereds.",
-        },
-      );
-      await blockOutboundRowDirect({
-        actorUserId,
-        outboundId: outbound.id,
-        blocker,
-        source: "prepare_prodat_z01_company_missing",
-      });
-      return {
-        dataRequest,
-        outbound,
-        message: null,
-        prepared: false,
-        blockerReason: blocker.blocker_reason,
-        blockerCode: blocker.blocker_code,
-        blockerDetails: {
-          ...blocker,
-          route_resolution_status: "company_missing",
-        },
-      };
-    }
     const environmentResolution = await resolveCustomerInfoOperationEnvironment(
       {
-        companyId: dataRequest.company_id,
+        companyId,
         messageFamily: "PRODAT",
         messageCode: "Z01",
       },
@@ -808,10 +810,9 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   const materializedRoute =
     !params.communicationRouteId &&
     platformActorRouteId &&
-    dataRequest.company_id &&
     dataRequest.grid_owner_id
       ? await materializeCompanyGridOwnerRoute({
-          companyId: dataRequest.company_id,
+          companyId,
           gridOwnerId: dataRequest.grid_owner_id,
           platformActorRouteId,
           messageFamily: "PRODAT",
@@ -875,7 +876,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       company_market_party_route_id:
         materializedRoute?.companyMarketPartyRouteId ??
         (await findCompanyMarketPartyRoute({
-          companyId: dataRequest.company_id ?? null,
+          companyId,
           actorId,
           messageFamily: "PRODAT",
         })),
@@ -951,7 +952,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
       requestType: "customer_masterdata",
       gridOwner,
       preferredRouteId: outbound.communication_route_id,
-      companyId: dataRequest.company_id ?? null,
+      companyId,
       customerId: dataRequest.customer_id,
       siteId: dataRequest.site_id,
       meteringPointId: dataRequest.metering_point_id,
@@ -1004,7 +1005,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         error.decision.communicationRouteId ?? outbound.communication_route_id,
       ediel_route_profile_id: error.decision.edielRouteProfileId,
       company_market_party_route_id: await findCompanyMarketPartyRoute({
-        companyId: dataRequest.company_id ?? null,
+        companyId,
         actorId,
         messageFamily: "PRODAT",
       }),
@@ -1082,7 +1083,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   }
 
   const z01Prerequisites = await evaluateZ01Prerequisites({
-    companyId: dataRequest.company_id ?? "",
+    companyId,
     customerId: dataRequest.customer_id,
     siteId: dataRequest.site_id,
     meteringPointId: dataRequest.metering_point_id,
@@ -1114,7 +1115,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
         outbound.ediel_route_profile_id ??
         null,
       company_market_party_route_id: await findCompanyMarketPartyRoute({
-        companyId: dataRequest.company_id ?? null,
+        companyId,
         actorId,
         messageFamily: "PRODAT",
       }),
@@ -1315,7 +1316,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
 
   const intent = await createEdielMessageIntent({
     actorUserId,
-    companyId: dataRequest.company_id ?? "",
+    companyId,
     environment: routeContext.environment,
     market: "electricity",
     messageFamily: "PRODAT",
