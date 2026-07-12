@@ -1024,7 +1024,7 @@ async function collectManualFlowDeleteGraph(
     powerOfAttorneyIds,
   );
 
-  const customerDocumentIds: string[] = [];
+  let customerDocumentIds: string[] = [];
   let poaDocumentCount = 0;
   const { data: customerDocumentRows, error: documentError } =
     await supabaseService

@@ -260,5 +260,5 @@ export async function normalizeAndStoreMeteringValue(input: NormalizedMeteringVa
     idempotencyKey: `metering-values-updated:${meterValue.id}`,
   })
 
-  return { status: 'stored', meteringValueId: meterValue.id, normalizedMeteringValueId, meteringValue: meterValue, warnings }
+  return { status: 'stored', meteringValueId: meterValue.id, normalizedMeteringValueId, meteringValue, warnings }
 }

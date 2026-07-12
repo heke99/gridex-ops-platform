@@ -41,7 +41,11 @@ export default async function EdielUnresolvedPage() {
     return decision.includes('manual') || row.can_auto_send === false
   })
   const failedOutbox = dashboard.outboxItems.filter((row) => ['failed', 'blocked'].includes(String(row.status ?? '').toLowerCase()))
-  const criticalSlaCount = dashboard.metrics.slaCritical
+  const criticalSla = dashboard.slaTimers.filter((row) => {
+    const status = String(row.status ?? '').toLowerCase()
+    const dueAt = typeof row.due_at === 'string' ? Date.parse(row.due_at) : NaN
+    return ['critical', 'expired'].includes(status) || (!Number.isNaN(dueAt) && dueAt <= Date.now())
+  })
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -57,7 +61,7 @@ export default async function EdielUnresolvedPage() {
           <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950"><p className="text-xs font-black uppercase tracking-[0.18em]">Unresolved</p><p className="mt-2 text-3xl font-black">{unresolved.length}</p></div>
           <div className="rounded-3xl border border-amber-200 bg-white p-5 text-slate-950"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Manual decisions</p><p className="mt-2 text-3xl font-black">{traceManualReviews.length}</p></div>
           <Link href="/admin/ediel/outbox" className="rounded-3xl border border-red-200 bg-red-50 p-5 text-red-950"><p className="text-xs font-black uppercase tracking-[0.18em]">Outbox stopp</p><p className="mt-2 text-3xl font-black">{failedOutbox.length}</p></Link>
-          <Link href="/admin/ediel/automation" className="rounded-3xl border border-red-200 bg-white p-5 text-slate-950"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">SLA kritisk</p><p className="mt-2 text-3xl font-black">{criticalSlaCount}</p></Link>
+          <Link href="/admin/ediel/automation" className="rounded-3xl border border-red-200 bg-white p-5 text-slate-950"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">SLA kritisk</p><p className="mt-2 text-3xl font-black">{criticalSla.length}</p></Link>
         </section>
 
         {dashboard.warnings.length > 0 ? <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-950">{dashboard.warnings.join(' · ')}</section> : null}

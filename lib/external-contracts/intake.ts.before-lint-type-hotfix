@@ -335,7 +335,7 @@ async function findExistingExternalContract(input: {
   meteringPointId: string | null;
   requestedStartDate: string | null;
 }): Promise<string | null> {
-  const query = supabaseService
+  let query = supabaseService
     .from("customer_contracts")
     .select(
       "id,site_id,customer_site_id,metering_point_id,starts_at,requested_start_date",

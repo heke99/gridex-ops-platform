@@ -17,8 +17,11 @@ function isMissingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST205', 'PGRST204'].includes(code) || /does not exist|schema cache|column .* does not exist/i.test(message)
 }
 
-async function safeMaybe(table: string, select: string, build: (q: any) => any): Promise<Record<string, unknown> | null> {
-  const query = build(supabaseService.from(table).select(select))
+type QueryResponse = { data: unknown; error: unknown }
+type MaybeSingleQuery = { maybeSingle: () => PromiseLike<QueryResponse> }
+type ListQuery = PromiseLike<QueryResponse>
+
+async function safeMaybe(query: MaybeSingleQuery): Promise<Record<string, unknown> | null> {
   const { data, error } = await query.maybeSingle()
   if (error) {
     if (isMissingSchema(error)) return null
@@ -27,8 +30,7 @@ async function safeMaybe(table: string, select: string, build: (q: any) => any):
   return (data ?? null) as Record<string, unknown> | null
 }
 
-async function safeList(table: string, select: string, build: (q: any) => any): Promise<Array<Record<string, unknown>>> {
-  const query = build(supabaseService.from(table).select(select))
+async function safeList(query: ListQuery): Promise<Array<Record<string, unknown>>> {
   const { data, error } = await query
   if (error) {
     if (isMissingSchema(error)) return []
@@ -38,27 +40,50 @@ async function safeList(table: string, select: string, build: (q: any) => any): 
 }
 
 export async function prepareLegalPayloadForGridOwner(input: LegalPayloadInput): Promise<LegalPayload> {
-  const powerOfAttorney = await safeMaybe('powers_of_attorney', '*', (q) => {
-    q = q.eq('company_id', input.companyId).eq('customer_id', input.customerId).eq('status', 'signed').order('accepted_at', { ascending: false }).order('created_at', { ascending: false })
-    if (input.siteId) q = q.or(`customer_site_id.eq.${input.siteId},site_id.eq.${input.siteId}`)
-    return q.limit(1)
-  })
+  let powerOfAttorneyQuery = supabaseService
+    .from('powers_of_attorney')
+    .select('*')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('status', 'signed')
+    .order('accepted_at', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (input.siteId) {
+    powerOfAttorneyQuery = powerOfAttorneyQuery.or(`customer_site_id.eq.${input.siteId},site_id.eq.${input.siteId}`)
+  }
+  const powerOfAttorney = await safeMaybe(powerOfAttorneyQuery.limit(1))
 
-  const document = await safeMaybe('customer_documents', '*', (q) => {
-    q = q.eq('company_id', input.companyId).eq('customer_id', input.customerId).eq('document_type', 'power_of_attorney').in('status', ['available', 'uploaded', 'signed', 'active']).order('created_at', { ascending: false })
-    if (input.siteId) q = q.or(`customer_site_id.eq.${input.siteId},customer_site_id.is.null`)
-    return q.limit(1)
-  })
+  let documentQuery = supabaseService
+    .from('customer_documents')
+    .select('*')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('document_type', 'power_of_attorney')
+    .in('status', ['available', 'uploaded', 'signed', 'active'])
+    .order('created_at', { ascending: false })
+  if (input.siteId) {
+    documentQuery = documentQuery.or(`customer_site_id.eq.${input.siteId},customer_site_id.is.null`)
+  }
+  const document = await safeMaybe(documentQuery.limit(1))
 
-  const legalAcceptances = await safeList('customer_legal_acceptances', 'id,legal_text_version_id,accepted_at,created_at,metadata', (q) =>
-    q.eq('company_id', input.companyId).eq('customer_id', input.customerId).order('accepted_at', { ascending: false }).limit(50)
+  const legalAcceptances = await safeList(
+    supabaseService
+      .from('customer_legal_acceptances')
+      .select('id,legal_text_version_id,accepted_at,created_at,metadata')
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .order('accepted_at', { ascending: false })
+      .limit(50),
   )
 
-  const contract = await safeMaybe('customer_contracts', '*', (q) => {
-    q = q.eq('company_id', input.companyId).eq('customer_id', input.customerId).order('created_at', { ascending: false })
-    if (input.contractId) q = q.eq('id', input.contractId)
-    return q.limit(1)
-  })
+  let contractQuery = supabaseService
+    .from('customer_contracts')
+    .select('*')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .order('created_at', { ascending: false })
+  if (input.contractId) contractQuery = contractQuery.eq('id', input.contractId)
+  const contract = await safeMaybe(contractQuery.limit(1))
 
   const missing: string[] = []
   if (!powerOfAttorney && !document) missing.push('fullmakt')

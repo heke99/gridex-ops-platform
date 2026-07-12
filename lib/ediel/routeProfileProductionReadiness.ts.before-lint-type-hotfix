@@ -239,7 +239,7 @@ async function findBestRecipientCertificate(params: {
   }
 
   if (!params.receiverEdielId) return null
-  const query = supabaseService
+  let query = supabaseService
     .from('ediel_certificates')
     .select('*')
     .eq('owner_ediel_id', params.receiverEdielId)

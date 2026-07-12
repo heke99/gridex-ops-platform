@@ -492,10 +492,8 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
     previous = data as Record<string, unknown>
   }
 
-  const previousLegalBundleId = typeof previous?.legal_bundle_id === 'string' ? previous.legal_bundle_id : null
-  const previousPriceBookId = typeof previous?.price_book_id === 'string' ? previous.price_book_id : null
-  let legalBundleId = submittedLegalBundleId ?? previousLegalBundleId
-  let priceBookId = submittedPriceBookId ?? previousPriceBookId
+  let legalBundleId = submittedLegalBundleId ?? ((previous as any)?.legal_bundle_id ?? null)
+  let priceBookId = submittedPriceBookId ?? ((previous as any)?.price_book_id ?? null)
 
   let readinessStatus: string | null = null
   let readinessBlockers: string[] = []
