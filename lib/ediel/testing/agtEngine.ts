@@ -10,7 +10,7 @@ import {
 } from '@/lib/ediel/ack'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
-import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
+import { getEdielAgtSupplierRuntime } from '@/lib/ediel/testing/agtRuntime'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   attachEdielMessageToTestRun,
@@ -30,7 +30,7 @@ import {
   isEdielAgtRunApprovalVersion,
   type EdielAgtExpectedStep,
   type EdielAgtTestCaseDefinition,
-} from '@/lib/ediel/agtRegistry'
+} from '@/lib/ediel/testing/agtRegistry'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import type {
   CreateEdielMessageInput,

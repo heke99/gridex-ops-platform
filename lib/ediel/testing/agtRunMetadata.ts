@@ -1,7 +1,7 @@
 // lib/ediel/agtRunMetadata.ts
 
 import type { EdielTestRunRow } from '@/lib/ediel/types'
-import type { EdielAgtTestCaseDefinition } from '@/lib/ediel/agtRegistry'
+import type { EdielAgtTestCaseDefinition } from '@/lib/ediel/testing/agtRegistry'
 
 export type EdielAgtRunMetadataSource = 'portal_report' | 'portal_testdata' | 'operator' | 'system_default' | 'unknown'
 

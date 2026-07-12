@@ -26,7 +26,3 @@ export function parseUnh(segment: EdifactTokenizedSegment | null | undefined, un
     messageTypeToken: token || null,
   }
 }
-
-export function serializeUnh(input: { messageReference: string; messageTypeToken: string }): string {
-  return `UNH+${input.messageReference}+${input.messageTypeToken}`
-}

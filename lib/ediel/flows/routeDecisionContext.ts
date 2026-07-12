@@ -60,7 +60,7 @@ export async function resolveDecisionBackedOutboundContext(params: {
   messageCode?: string | null
   gridOwner?: GridOwnerRow | null
   preferredRouteId?: string | null
-  companyId?: string | null
+  companyId: string
   customerId?: string | null
   siteId?: string | null
   meteringPointId?: string | null
@@ -75,7 +75,7 @@ export async function resolveDecisionBackedOutboundContext(params: {
 }): Promise<DecisionBackedOutboundContext> {
   const businessProcess = params.businessProcess ?? (params.requestType as BusinessProcess)
   const decision = await resolveEdielRoute({
-    companyId: params.companyId ?? null,
+    companyId: params.companyId,
     customerId: params.customerId ?? null,
     siteId: params.siteId ?? null,
     meteringPointId: params.meteringPointId ?? null,
@@ -113,14 +113,14 @@ export async function resolveDecisionBackedOutboundContext(params: {
     requestType: params.requestType,
     gridOwner: params.gridOwner ?? null,
     preferredRouteId: decision.communicationRouteId,
-    companyId: params.companyId ?? null,
+    companyId: params.companyId,
     environment: params.environment,
     messageStandard: params.messageStandard ?? 'edifact',
   })
 
   return {
     ...canonical,
-    companyId: params.companyId ?? canonical.companyId,
+    companyId: params.companyId,
     senderEdielId: decision.senderEdielId ?? canonical.senderEdielId,
     senderSubAddress: decision.senderSubAddress ?? canonical.senderSubAddress,
     receiverEdielId: decision.receiverEdielId ?? canonical.receiverEdielId,

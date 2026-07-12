@@ -14,7 +14,7 @@ import type { EdielMessageRow } from "@/lib/ediel/types";
 import {
   getEdielTgtTestCases,
   type EdielTgtTestCaseDefinition,
-} from "@/lib/ediel/tgtRegistry";
+} from "@/lib/ediel/testing/tgtRegistry";
 import type {
   EdielProdatCandidateIssue,
   EdielProdatProductionCandidate,

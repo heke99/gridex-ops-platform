@@ -1,6 +1,6 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { fieldRulesForMessage, validateFieldMatrixPayload, type RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
-import type { RegistryFieldRuleResult } from '@/lib/ediel/rulebook/fieldRuleRegistry'
+import type { RegistryFieldRuleResult, RegistryRulePackSnapshot } from '@/lib/ediel/rulebook/fieldRuleRegistry'
 import type { EdielDirection, EdielEnvironment } from '@/lib/ediel/types'
 import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import {
@@ -27,8 +27,10 @@ export type RulebookValidationInput = {
   direction?: EdielDirection | 'both' | null
   environment?: EdielEnvironment | 'all' | null
   version?: string | null
+  companyId?: string | null
   fieldRules?: readonly RulebookFieldRule[] | null
   fieldRuleSource?: 'static' | 'registry'
+  rulePackSnapshot?: RegistryRulePackSnapshot | null
 }
 
 export type RulebookValidationResult = {
@@ -41,6 +43,7 @@ export type RulebookValidationResult = {
   parsed: ParsedRulebookMessage | null
   issues: EdielRulebookIssue[]
   fieldRuleSource: 'static' | 'registry'
+  rulePackSnapshot: RegistryRulePackSnapshot | null
 }
 
 function issue(input: EdielRulebookIssue): EdielRulebookIssue {
@@ -161,6 +164,7 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
     parsed,
     issues,
     fieldRuleSource: input.fieldRuleSource ?? 'static',
+    rulePackSnapshot: input.rulePackSnapshot ?? null,
   }
 }
 
@@ -177,7 +181,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
     roleCode: input.roleCode,
   })
 
-  let registry: RegistryFieldRuleResult = { rules: [], source: 'static' }
+  let registry: RegistryFieldRuleResult = { rules: [], source: 'static', rulePack: null }
   if (family && code) {
     const { loadRegistryFieldRules } = await import('@/lib/ediel/rulebook/fieldRuleRegistry')
     registry = await loadRegistryFieldRules({
@@ -187,6 +191,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
       direction: input.direction ?? null,
       environment: input.environment ?? null,
       version: input.version ?? null,
+      companyId: input.companyId ?? null,
     })
   }
 
@@ -198,6 +203,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
     roleCode,
     fieldRules: registry.source === 'registry' ? registry.rules : input.fieldRules,
     fieldRuleSource: registry.source,
+    rulePackSnapshot: registry.rulePack,
   })
 }
 

@@ -1,4 +1,4 @@
-// lib/ediel/prodat/builders/generic.ts
+// lib/ediel/prodat/builders/profileRenderer.ts
 
 import type {
   ProdatEnginePortalSnapshot,
@@ -57,14 +57,14 @@ function portalDate102(portalData: ProdatEnginePortalSnapshot, key: string): str
   return prodatDate102(portalString(portalData, key))
 }
 
-function normalizeReasonForTransaction(value?: string | null, fallback: string | null = 'Z22'): string | null {
+function normalizeReasonForTransaction(value?: string | null): string | null {
   const normalized = sanitizeProdatText(value).toUpperCase()
   if (normalized === 'LK' || normalized === 'Z23') return 'Z23'
   if (normalized === 'L' || normalized === 'Z22') return 'Z22'
   if (normalized === 'F' || normalized === 'Z06F' || normalized === 'Z09F' || normalized === 'E64') return 'E64'
   if (normalized === 'G' || normalized === 'Z06G' || normalized === 'Z09G' || normalized === 'E32') return 'E32'
   if (normalized === 'D' || normalized === 'Z09D' || normalized === 'Z70') return 'Z70'
-  return normalized || fallback
+  return normalized || null
 }
 
 function isPermissionMessageCode(code: string): boolean {
@@ -76,69 +76,11 @@ function isHistoricalPermissionReason(value?: string | null): boolean {
   return normalized === 'S18' || normalized === 'VH' || normalized === 'Z13VH' || normalized === 'Z14VH'
 }
 
-function defaultPermissionReasonForCode(code: string): string | null {
-  // Production/SaaS-regel: Z13 är en tillståndsbegäran och måste bära
-  // transaktionstyp i CCI++Z13/CAV. Om kundspecifik data inte skickar ett
-  // explicit värde används standarden för korrekt Z13V. Övriga
-  // tillståndsflöden får inte ärva leverantörsbytes-defaulten Z22.
-  if (code === 'Z13' || code === 'Z18') return 'S17'
-  return null
-}
-
-function resolvePermissionReasonForCode(code: string, explicitValue?: string | null): string | null {
+function resolvePermissionReasonForCode(explicitValue?: string | null): string | null {
   const normalized = sanitizeProdatToken(explicitValue ?? null, 12)
   if (normalized === 'VH' || normalized === 'Z13VH' || normalized === 'Z14VH') return 'S18'
   if (normalized === 'V' || normalized === 'Z13V' || normalized === 'Z14V' || normalized === 'Z18V') return 'S17'
-  return normalizeReasonForTransaction(explicitValue, defaultPermissionReasonForCode(code))
-}
-
-function defaultPermissionInstallationDirection(code: string): string | null {
-  // Fält 513 (Riktning / Type of Metering Point) skickas som SG14/CCI+Z22.
-  // När masterdata saknar värde i ett SaaS-/TGT-flöde använder vi Combined
-  // som säker fallback för Z13.
-  if (code === 'Z13') return 'E19'
-  return null
-}
-
-function resolvePermissionInstallationDirection(code: string, explicitValue?: string | null): string | null {
-  const normalized = sanitizeProdatToken(explicitValue ?? null, 12)
-  return normalized || defaultPermissionInstallationDirection(code)
-}
-
-function defaultPermissionPurpose(code: string, reasonForTransaction?: string | null): string | null {
-  if (code !== 'Z13') return null
-  if (reasonForTransaction === 'S18') return 'B72'
-  return 'B71'
-}
-
-function defaultTestReportingFrequency(code: string, mode?: 'test' | 'production'): string | null {
-  if (mode !== 'test') return null
-  if (code === 'Z13') return 'D'
-  return null
-}
-
-function defaultTestEnergyProductId(code: string, mode?: 'test' | 'production'): string | null {
-  if (mode !== 'test') return null
-  if (code === 'Z13') return '8716867000030'
-  return null
-}
-
-function defaultPermissionStatus(code: string, mode?: 'test' | 'production'): string | null {
-  if (mode !== 'test') return null
-  if (code === 'Z15') return 'A75'
-  return null
-}
-
-function defaultPermissionEndReason(code: string, mode?: 'test' | 'production'): string | null {
-  if (mode !== 'test') return null
-  if (code === 'Z15') return 'B79'
-  if (code === 'Z18') return 'B80'
-  return null
-}
-
-function resolvePermissionPurpose(code: string, explicitValue?: string | null, reasonForTransaction?: string | null): string | null {
-  const normalized = sanitizeProdatToken(explicitValue ?? null, 12)
-  return normalized || defaultPermissionPurpose(code, reasonForTransaction)
+  return normalizeReasonForTransaction(explicitValue)
 }
 
 function resolveMeteringMethod(portalData: ProdatEnginePortalSnapshot, fallback?: string | null): string | null {
@@ -146,7 +88,7 @@ function resolveMeteringMethod(portalData: ProdatEnginePortalSnapshot, fallback?
   return sanitizeProdatToken(override ?? portalString(portalData, 'meteringMethod') ?? fallback ?? null, 12)
 }
 
-export function buildGenericProdatSegments(input: {
+export function buildProfiledProdatSegments(input: {
   context: ProdatEngineProductionContext
   portalSnapshot?: ProdatEnginePortalSnapshot
   generatedAt?: Date
@@ -169,16 +111,18 @@ export function buildGenericProdatSegments(input: {
     ? 'S18'
     : portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? input.variant ?? null
   const reasonForTransaction = isPermissionMessage
-    ? resolvePermissionReasonForCode(context.code, explicitReasonForTransaction)
-    : normalizeReasonForTransaction(explicitReasonForTransaction, 'Z22')
+    ? resolvePermissionReasonForCode(explicitReasonForTransaction)
+    : normalizeReasonForTransaction(explicitReasonForTransaction)
   const isHistoricalPermission = isHistoricalPermissionReason(reasonForTransaction ?? input.variant ?? null)
   const meteringMethod = resolveMeteringMethod(portalData, context.meteringMethod)
-  const installationDirection = isPermissionMessage
-    ? resolvePermissionInstallationDirection(context.code, portalString(portalData, 'installationDirection') ?? context.installationDirection ?? null)
-    : sanitizeProdatToken(portalString(portalData, 'installationDirection') ?? context.installationDirection ?? null, 12)
-  const permissionPurpose = isPermissionMessage
-    ? resolvePermissionPurpose(context.code, portalString(portalData, 'permissionPurpose') ?? context.permissionPurpose ?? null, reasonForTransaction)
-    : sanitizeProdatToken(portalString(portalData, 'permissionPurpose') ?? context.permissionPurpose ?? null, 12)
+  const installationDirection = sanitizeProdatToken(
+    portalString(portalData, 'installationDirection') ?? context.installationDirection ?? null,
+    12,
+  )
+  const permissionPurpose = sanitizeProdatToken(
+    portalString(portalData, 'permissionPurpose') ?? context.permissionPurpose ?? null,
+    12,
+  )
 
   // Production rule (no-placeholder): never fabricate an object identifier such as
   // 'UNKNOWN'. When no real facility/metering point id exists the object id is
@@ -218,18 +162,19 @@ export function buildGenericProdatSegments(input: {
 
   const startDate203 = prodatDate203AtStartOfDay(startDate)
   if (context.code === 'Z18') {
-    const permissionCreatedAt =
-      prodatDate203(portalString(portalData, 'permissionTimestamp') ?? context.permissionTimestamp ?? startDate) ??
-      prodatNowDate203(input.generatedAt)
-    const reportingEndDate =
-      prodatDate203(
-        portalString(portalData, 'permissionEndDate') ??
-        portalString(portalData, 'agreementEndDateTime') ??
-        context.permissionEndDate ??
-        context.startDate,
-      ) ?? permissionCreatedAt
-    segments.push(`DTM+693:${permissionCreatedAt}:203`)
-    segments.push(`DTM+164:${reportingEndDate}:203`)
+    const permissionCreatedAt = prodatDate203(
+      portalString(portalData, 'permissionTimestamp') ?? context.permissionTimestamp,
+    )
+    const reportingEndDate = prodatDate203(
+      portalString(portalData, 'permissionEndDate') ?? context.permissionEndDate,
+    )
+    if (permissionCreatedAt) segments.push(`DTM+693:${permissionCreatedAt}:203`)
+    if (reportingEndDate) segments.push(`DTM+164:${reportingEndDate}:203`)
+  } else if (context.code === 'Z08') {
+    const closureDate = prodatDate203AtStartOfDay(
+      portalString(portalData, 'endDate') ?? context.endDate ?? context.permissionEndDate,
+    )
+    if (closureDate) segments.push(`DTM+93:${closureDate}:203`)
   } else if ((context.code === 'Z13' || context.code === 'Z14') && startDate203) {
     // PRODAT 26.A fält 302/321: tillståndsflöden använder rapportstart
     // och, för historiska mätvärden, rapportslut. De ska inte renderas som
@@ -250,12 +195,18 @@ export function buildGenericProdatSegments(input: {
     segments.push('CCI++Z04', isPermissionMessage ? prodatCav(meteringMethod) : `CAV+${meteringMethod}`)
   }
 
-  const reportingFrequency = sanitizeProdatToken(portalString(portalData, 'reportingFrequency') ?? context.reportingFrequency ?? defaultTestReportingFrequency(context.code, input.mode), 12)
+  const reportingFrequency = sanitizeProdatToken(
+    portalString(portalData, 'reportingFrequency') ?? context.reportingFrequency ?? null,
+    12,
+  )
   if (isPermissionMessage && reportingFrequency) {
     segments.push('CCI++Z12', prodatCavValue1(reportingFrequency, 12))
   }
 
-  const energyProductId = sanitizeProdatToken(portalString(portalData, 'energyProductId') ?? context.energyProductId ?? defaultTestEnergyProductId(context.code, input.mode), 35)
+  const energyProductId = sanitizeProdatToken(
+    portalString(portalData, 'energyProductId') ?? context.energyProductId ?? null,
+    35,
+  )
   if (isPermissionMessage && energyProductId) {
     // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7111,
     // med GS1 som kodlisteansvarig. Det ska inte renderas som PIA i permission-flöden.
@@ -266,7 +217,10 @@ export function buildGenericProdatSegments(input: {
     segments.push('CCI++Z22', prodatCav(installationDirection))
   }
 
-  const permissionStatus = sanitizeProdatToken(portalString(portalData, 'permissionStatus') ?? context.permissionStatus ?? defaultPermissionStatus(context.code, input.mode), 12)
+  const permissionStatus = sanitizeProdatToken(
+    portalString(portalData, 'permissionStatus') ?? context.permissionStatus ?? null,
+    12,
+  )
   if (isPermissionMessage && permissionStatus) {
     segments.push('CCI++Z23', prodatCav(permissionStatus))
   }
@@ -275,9 +229,20 @@ export function buildGenericProdatSegments(input: {
     segments.push('CCI++Z24', prodatCav(permissionPurpose))
   }
 
-  const permissionEndReason = sanitizeProdatToken(portalString(portalData, 'permissionEndReason') ?? context.permissionEndReason ?? defaultPermissionEndReason(context.code, input.mode), 12)
+  const permissionEndReason = sanitizeProdatToken(
+    portalString(portalData, 'permissionEndReason') ?? context.permissionEndReason ?? null,
+    12,
+  )
   if (isPermissionMessage && permissionEndReason) {
     segments.push('CCI++Z25', prodatCav(permissionEndReason))
+  }
+
+  const contractClosureReason = sanitizeProdatToken(
+    portalString(portalData, 'contractClosureReason') ?? context.contractClosureReason ?? null,
+    12,
+  )
+  if (context.code === 'Z08' && contractClosureReason) {
+    segments.push('CCI++Z25', prodatCav(contractClosureReason))
   }
 
   segments.push(`RFF+LI:${lineItemReference}`)
@@ -303,7 +268,7 @@ export function buildGenericProdatSegments(input: {
     address: portalString(portalData, 'customerAddress') ?? context.customerAddress ?? null,
     city: portalString(portalData, 'customerCity') ?? context.customerCity ?? null,
     postalCode: portalString(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null,
-    country: portalString(portalData, 'customerCountry') ?? context.customerCountry ?? 'SE',
+    country: portalString(portalData, 'customerCountry') ?? context.customerCountry ?? null,
     }))
   }
 
@@ -313,7 +278,7 @@ export function buildGenericProdatSegments(input: {
       address: portalString(portalData, 'siteAddress') ?? context.siteAddress ?? null,
       city: portalString(portalData, 'siteCity') ?? context.siteCity ?? null,
       postalCode: portalString(portalData, 'sitePostalCode') ?? context.sitePostalCode ?? null,
-      country: portalString(portalData, 'siteCountry') ?? context.siteCountry ?? 'SE',
+      country: portalString(portalData, 'siteCountry') ?? context.siteCountry ?? null,
     }))
   }
 
@@ -328,7 +293,7 @@ export function buildGenericProdatSegments(input: {
     ackExpectation: deriveProdatAckExpectation(context.code),
     diagnostics: {
       engine: 'prodat',
-      renderer: input.renderer ?? 'prodat.engine.buildGenericProdatSegments',
+      renderer: input.renderer ?? 'prodat.engine.buildProfiledProdatSegments',
       code: context.code,
       variant: input.variant ?? null,
       mode: input.mode,

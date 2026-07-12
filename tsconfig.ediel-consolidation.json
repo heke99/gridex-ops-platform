@@ -1,0 +1,52 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "noEmit": true,
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "lib/ediel/core/edifactEnvelopeCodec.ts",
+    "lib/ediel/core/edifactSerializer.ts",
+    "lib/ediel/core/unb.ts",
+    "lib/ediel/messages.ts",
+    "lib/ediel/ack/canonicalAckEngine.ts",
+    "lib/ediel/core/ackPolicy.ts",
+    "lib/ediel/ackDecision.ts",
+    "lib/ediel/prodat/**/*.ts",
+    "lib/ediel/stateMachines/**/*.ts",
+    "lib/ediel/flows/inboundBusinessStateMachine.ts",
+    "lib/ediel/rulebook/utiltsRulebook.ts",
+    "lib/ediel/utilts/profiles.ts",
+    "lib/ediel/utilts/utiltsMessageSupportRegistry.ts",
+    "lib/ediel/utiltsEngine.ts",
+    "lib/cis/db-routes.ts",
+    "lib/ediel/core/routeRegistry.ts",
+    "lib/billing/billingGate.ts",
+    "lib/billing/meterValueBillingMatcher.ts",
+    "lib/billing/underlayEngine.ts",
+    "lib/ediel/outbox/**/*.ts",
+    "lib/ediel/transport/index.ts",
+    "lib/ediel/testing/utiltsAckOverrides.ts",
+    "lib/ediel/rulebook/fieldRuleRegistry.ts",
+    "lib/ediel/rulebook/validator.ts",
+    "lib/ediel/core/kernel.ts",
+    "lib/ediel/db.ts",
+    "lib/ediel/types.ts",
+    "lib/ediel/ack/**/*.ts",
+    "lib/ediel/repair/**/*.ts",
+    "lib/ediel/verification/**/*.ts",
+    "lib/ediel/security/privateCertificateStore.ts",
+    "lib/ediel/productionReadiness.ts",
+    "lib/ediel/core/unt.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "scripts",
+    "supabase"
+  ]
+}

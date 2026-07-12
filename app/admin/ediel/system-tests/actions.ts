@@ -1,5 +1,7 @@
 "use server";
 
+import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
@@ -48,7 +50,6 @@ import {
   sendQueuedEdielMessage,
 } from "@/lib/ediel/orchestrator";
 import {
-  applyUtiltsTgtAckPlanOverride,
   runUtiltsRuntimeForMessage,
   serializeUtiltsRuntimeUtiltsErrMessageText,
 } from "@/lib/ediel/utiltsEngine";
@@ -59,12 +60,12 @@ import type {
 import {
   getEdielTgtTestCaseByCode,
   getEdielTgtTestCases,
-} from "@/lib/ediel/tgtRegistry";
+} from "@/lib/ediel/testing/tgtRegistry";
 import {
   autoAttachImportedMessageToActiveTgtRun,
   runTgtAutopilotForRun,
-} from "@/lib/ediel/tgtAutopilot";
-import { inferTgtTestCaseCodeForInboundTestData } from "@/lib/ediel/core/tgtAutoMatcher";
+} from "@/lib/ediel/testing/tgtAutopilot";
+import { inferTgtTestCaseCodeForInboundTestData } from "@/lib/ediel/testing/tgtAutoMatcher";
 import type {
   EdielMessageRow,
   EdielTestRoleCode,
@@ -83,7 +84,7 @@ import {
   compareEngineDecisionWithExpected,
   selectRuleProfile,
 } from "@/lib/ediel/rulebook/ruleProfileSelector";
-import { resolveAndStoreProdatAperakErrors } from "@/lib/ediel/core/aperakErrorRuleRegistry";
+import { resolveAndStoreProdatAperakErrors } from "@/lib/ediel/testing/aperakErrorRuleRegistry";
 
 function formString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
@@ -1495,7 +1496,7 @@ async function resolveSystemTestAckDecision(params: {
 
   if (String(sourceMessage.message_family ?? "").toUpperCase() === "UTILTS") {
     const runtime = runUtiltsRuntimeForMessage(sourceMessage);
-    const ackPlan = applyUtiltsTgtAckPlanOverride({
+    const ackPlan = applyUtiltsTestAckPlanOverride({
       runtime,
       testCaseCode: params.testCaseCode ?? null,
     });

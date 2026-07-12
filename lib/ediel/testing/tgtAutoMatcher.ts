@@ -1,8 +1,8 @@
 // lib/ediel/core/tgtAutoMatcher.ts
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
-import type { EdielTgtDynamicTestDataSummary } from '@/lib/ediel/tgtTestDataStore'
+import type { EdielTgtCaseTestData } from '@/lib/ediel/testing/tgtTestData'
+import type { EdielTgtDynamicTestDataSummary } from '@/lib/ediel/testing/tgtTestDataStore'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 
 function normalize(value: string | null | undefined): string {

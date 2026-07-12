@@ -13,7 +13,3 @@ export function parseUnz(segment: EdifactTokenizedSegment | null | undefined): P
     interchangeReference: segment.elements[2] || null,
   }
 }
-
-export function serializeUnz(input: { messageCount: number; interchangeReference: string }): string {
-  return `UNZ+${input.messageCount}+${input.interchangeReference}`
-}

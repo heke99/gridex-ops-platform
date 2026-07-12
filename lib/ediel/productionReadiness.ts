@@ -4,6 +4,7 @@ import type { EdielMessageRow } from "@/lib/ediel/types";
 import { ACTOR_TEST_CASES } from "@/lib/ediel/actorTesting";
 import { evaluateCertificateStatus } from "@/lib/ediel/security/certificateStatus";
 import { getLatestSystemClockHealth } from "@/lib/ediel/operations/runtimeHealth";
+import { EdifactEnvelopeCodec } from "@/lib/ediel/core/edifactEnvelopeCodec";
 
 export type ProductionReadinessStatus =
   | "ready"
@@ -1724,7 +1725,20 @@ export async function runProductionDryRun(
     edifactPreview:
       readiness.summary.edielId &&
       readiness.summary.activeProductionRouteProfileId
-        ? `UNB+UNOC:3+${readiness.summary.edielId}:14+DYNAMIC_GRID_OWNER:14+YYYYMMDD:HHMM+DRYRUN++++PRODUCTION'`
+        ? EdifactEnvelopeCodec.encode({
+            sender: readiness.summary.edielId,
+            receiver: "DYNAMIC_GRID_OWNER",
+            senderSubAddress: readiness.summary.senderSubAddress,
+            receiverSubAddress: readiness.summary.receiverSubAddress,
+            interchangeReference: "DRYRUN",
+            applicationReference: "DDQ",
+            environment: "production",
+            messages: [{
+              messageReference: "DRYRUN-1",
+              messageTypeToken: "PRODAT:D:97A:UN:E2SE6A",
+              businessSegments: ["BGM+Z01+DRYRUN+9"],
+            }],
+          })
         : null,
   };
 

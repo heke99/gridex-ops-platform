@@ -3,16 +3,16 @@
 import type { EdielAperakApplicationError } from "@/lib/ediel/ack";
 import { parseEdifactMessageFacts } from "@/lib/ediel/core/edifactSegments";
 import { parseProdatMessage } from "@/lib/ediel/prodat/parser";
-import { resolveTgtExpectedProdatContext } from "@/lib/ediel/prodat/expectedContext";
-import { validateParsedProdatAgainstExpected, type ProdatValidationIssue } from "@/lib/ediel/prodat/validators";
+import { resolveTgtExpectedProdatContext } from "@/lib/ediel/testing/prodatExpectedContext";
+import { validateParsedProdatAgainstExpected, type ProdatValidationIssue } from "@/lib/ediel/testing/prodatValidators";
 import {
   compareInboundPayloadToTgtTestData,
   tgtTestDataHasSameNewAndOldMeterNumber,
   tgtTestDataLooksLikeConstantMissing,
   type EdielTgtPayloadComparisonIssue,
-} from "@/lib/ediel/core/tgtAutoMatcher";
+} from "@/lib/ediel/testing/tgtAutoMatcher";
 import type { EdielMessageRow } from "@/lib/ediel/types";
-import type { EdielTgtCaseTestData } from "@/lib/ediel/tgtTestData";
+import type { EdielTgtCaseTestData } from "@/lib/ediel/testing/tgtTestData";
 import { supabaseService } from "@/lib/supabase/service";
 
 export type EdielAperakValidationIssue = {

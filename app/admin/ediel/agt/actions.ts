@@ -25,7 +25,7 @@ import {
 import {
   createEdielSupplierAgtOutboundCommand,
   createEdielSupplierAgtResponsesForInbound,
-} from "@/lib/ediel/agtEngine";
+} from "@/lib/ediel/testing/agtEngine";
 import type {
   EdielMessageRow,
   EdielRouteProfileAckMode,
@@ -40,10 +40,10 @@ import {
   isEdielAgtRunApprovalVersion,
   type EdielAgtExpectedStep,
   type EdielAgtTestCaseDefinition,
-} from "@/lib/ediel/agtRegistry";
+} from "@/lib/ediel/testing/agtRegistry";
 import { pollAndIngestEdielMailbox } from "@/lib/ediel/orchestrator";
 import { registerEdielFile } from "@/lib/ediel/fileEngine";
-import { getEdielAgtSupplierRuntime } from "@/lib/ediel/agtRuntime";
+import { getEdielAgtSupplierRuntime } from "@/lib/ediel/testing/agtRuntime";
 import { saveEdielSystemTestSettings } from "@/lib/ediel/systemTestSettings";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 

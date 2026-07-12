@@ -14,9 +14,9 @@ import {
   getEdielTgtTestCaseByCode,
   type EdielTgtExpectedStep,
   type EdielTgtRunEvaluation,
-} from "@/lib/ediel/tgtRegistry";
-import { buildEdielTgtDraft } from "@/lib/ediel/tgtEdifact";
-import { getEdielTgtDynamicTestDataForCase } from "@/lib/ediel/tgtTestDataStore";
+} from "@/lib/ediel/testing/tgtRegistry";
+import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact";
+import { getEdielTgtDynamicTestDataForCase } from "@/lib/ediel/testing/tgtTestDataStore";
 import { supabaseService } from "@/lib/supabase/service";
 import {
   requireEdielSystemTestRuntimeContext,

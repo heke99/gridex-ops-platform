@@ -44,6 +44,7 @@ import {
 } from '@/lib/ediel/partyRegistry'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { sendEdielEmail } from '@/lib/email/sendEdielEmail'
+import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 
 const execFileAsync = promisify(execFile)
 
@@ -974,9 +975,7 @@ function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string, fallba
   const uci = segments.find((segment) => segment.toUpperCase().startsWith('UCI+')) ?? null
   const rffSegments = segments.filter((segment) => segment.toUpperCase().startsWith('RFF+'))
 
-  const unbParts = unb?.split('+') ?? []
-  const senderParts = unbParts[2]?.split(':') ?? []
-  const receiverParts = unbParts[3]?.split(':') ?? []
+  const envelope = EdifactEnvelopeCodec.decode(rawPayload)
   const unhMessage = unh?.split('+')[2] ?? null
   const unhParts = unhMessage?.split(':') ?? []
   const bgmParts = bgm?.split('+') ?? []
@@ -1010,12 +1009,12 @@ function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string, fallba
         ? family
         : bgmParts[1]?.split(':')[0]?.trim() || fallbackCode,
     messageVersion: unhMessage,
-    senderEdielId: senderParts[0]?.trim() || null,
-    senderSubAddress: senderParts[2]?.trim() || null,
-    receiverEdielId: receiverParts[0]?.trim() || null,
-    receiverSubAddress: receiverParts[2]?.trim() || null,
-    interchangeReference: unbParts[5]?.trim() || null,
-    applicationReference: unbParts[7]?.trim() || null,
+    senderEdielId: envelope.sender,
+    senderSubAddress: envelope.senderSubAddress,
+    receiverEdielId: envelope.receiver,
+    receiverSubAddress: envelope.receiverSubAddress,
+    interchangeReference: envelope.interchangeReference,
+    applicationReference: envelope.applicationReference,
     externalReference,
     transactionReference: canonicalTransactionReference,
     parsedPayload: {
@@ -1023,6 +1022,8 @@ function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string, fallba
       segmentCount: segments.length,
       unb,
       unh,
+      envelopeEnvironment: envelope.environment,
+      testIndicator: envelope.testIndicator,
       bgm,
       uci,
       rff: rffSegments,

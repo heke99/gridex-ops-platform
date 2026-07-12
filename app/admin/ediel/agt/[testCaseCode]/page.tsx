@@ -9,11 +9,11 @@ import {
   listEdielTestRunMessages,
   listEdielTestRuns,
 } from "@/lib/ediel/db";
-import { getEdielAgtSupplierRuntime } from "@/lib/ediel/agtRuntime";
+import { getEdielAgtSupplierRuntime } from "@/lib/ediel/testing/agtRuntime";
 import {
   getEdielAgtSupplier2026ACase,
   type EdielAgtTestCaseDefinition,
-} from "@/lib/ediel/agtRegistry";
+} from "@/lib/ediel/testing/agtRegistry";
 import type {
   EdielMessageRow,
   EdielTestRunMessageRow,

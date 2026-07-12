@@ -4,8 +4,8 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { validateEdifactSyntax, type EdielSyntaxIssue } from '@/lib/ediel/core/syntaxValidator'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
-import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
-import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
+import type { EdielTgtCaseTestData } from '@/lib/ediel/testing/tgtTestData'
+import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/testing/tgtAutoMatcher'
 import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from '@/lib/ediel/utiltsEngine'
 
 export type EdielAckDecisionKind =

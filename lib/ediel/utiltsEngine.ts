@@ -2,8 +2,8 @@
 
 import type { EdielAckOutcome, EdielMessageRow } from '@/lib/ediel/types'
 import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts'
-import { inferTgtTestCaseCodeForInboundTestData } from '@/lib/ediel/core/tgtAutoMatcher'
 import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
+import { validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
 
 export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v5-object-first-reason-codes'
 
@@ -12,10 +12,15 @@ export type UtiltsRuntimeMessageCode =
   | 'S02'
   | 'S03'
   | 'S04'
+  | 'S05'
+  | 'S06'
+  | 'S07'
   | 'E30'
   | 'E31'
   | 'E66'
+  | 'E72'
   | 'E73'
+  | 'E74'
   | 'ERR'
 
 export type UtiltsValidationSeverity = 'error' | 'warning' | 'info'
@@ -133,132 +138,20 @@ const KNOWN_UTILTS_CODES = new Set<UtiltsRuntimeMessageCode>([
   'S02',
   'S03',
   'S04',
+  'S05',
+  'S06',
+  'S07',
   'E30',
   'E31',
   'E66',
+  'E72',
   'E73',
+  'E74',
   'ERR',
 ])
 
 const CURRENT_UTILTS_VERSION = 'E5SE5A'
 const PREVIOUS_ACCEPTED_UTILTS_VERSIONS = new Set(['E5SE1B', 'E5SE9B'])
-
-const AGT_UE_UTILTS_ERR_ALLOWED_CODES = ['E10', 'E14', 'E49', 'E55', 'E61'] as const
-
-type UtiltsAgtContextCode = 'UE1' | 'UE2'
-
-type UtiltsErrCodeSelection = {
-  code: string
-  reason: string
-}
-
-function normalizeUtiltsTestContext(value: string | null | undefined): string | null {
-  const normalized = String(value ?? '').trim().toUpperCase()
-  return normalized.length > 0 ? normalized : null
-}
-
-function isAgtUeUtiltsContext(testCaseCode: string | null | undefined): testCaseCode is UtiltsAgtContextCode {
-  const normalized = normalizeUtiltsTestContext(testCaseCode)
-  return normalized === 'UE1' || normalized === 'UE2'
-}
-
-function allowedAgtUeUtiltsErrCodes(): string[] {
-  return [...AGT_UE_UTILTS_ERR_ALLOWED_CODES]
-}
-
-function issueCodeText(issues: readonly UtiltsValidationIssue[]): string {
-  return issues.map((issue) => `${issue.code} ${issue.title} ${issue.description} ${issue.utiltsErrCode ?? ''}`).join(' ').toUpperCase()
-}
-
-function selectAgtUeUtiltsErrCode(params: {
-  runtime: UtiltsRuntimeResult
-  testCaseCode: UtiltsAgtContextCode
-}): UtiltsErrCodeSelection {
-  const allowed = new Set(allowedAgtUeUtiltsErrCodes())
-  const existing = params.runtime.ackPlan.utiltsErrCodes.find((code) => allowed.has(String(code).toUpperCase()))
-  if (existing) {
-    return {
-      code: existing,
-      reason: `${params.testCaseCode}: befintlig UTILTS_ERR-kod ${existing} är tillåten enligt AGT UE1/UE2-matrisen.`,
-    }
-  }
-
-  const text = issueCodeText(params.runtime.validation.issues)
-  const hasUnknownGridArea = text.includes('UNKNOWN_GRID_AREA') || text.includes('OKANT NATOMRADE') || text.includes('OKÄNT NÄTOMRÅDE')
-  if (hasUnknownGridArea) {
-    return {
-      code: 'E49',
-      reason: `${params.testCaseCode}: okänt nätområde ska mappas till E49 när AGT tillåter E49.`,
-    }
-  }
-
-  const hasUnknownOrUnprocessableMeteringPoint =
-    text.includes('UNKNOWN_METERING_POINT') ||
-    text.includes('OKAND ANLAGGNING') ||
-    text.includes('OKÄND ANLÄGGNING') ||
-    Boolean(params.runtime.facts.meterPointId)
-
-  if (hasUnknownOrUnprocessableMeteringPoint) {
-    return {
-      code: 'E10',
-      reason: `${params.testCaseCode}: Edielportalen skickar E66 med uppgifter som aktörens produktionsapplikation inte kan processa; okänd/ej processbar mätpunkt mappas till E10 i AGT UE1/UE2.`,
-    }
-  }
-
-  return {
-    code: 'E14',
-    reason: `${params.testCaseCode}: AGT UE1/UE2 kräver negativ UTILTS_ERR men runtime-felet matchade ingen mer specifik tillåten kod; E14 används som säker övrig orsak.`,
-  }
-}
-
-function remapUtiltsErrDetailsForAgtUe(params: {
-  runtime: UtiltsRuntimeResult
-  testCaseCode: UtiltsAgtContextCode
-}): { details: UtiltsRuntimeUtiltsErrDetail[]; codes: string[]; reason: string } {
-  const selection = selectAgtUeUtiltsErrCode(params)
-  const allowed = new Set(allowedAgtUeUtiltsErrCodes())
-  const sourceDetails = params.runtime.ackPlan.utiltsErrDetails.length > 0
-    ? params.runtime.ackPlan.utiltsErrDetails
-    : functionalUtiltsErrDetailsFromIssues(params.runtime.validation.issues)
-
-  const fallbackReference = firstUtiltsTgtAckReference(params.runtime.facts)
-  const references = sourceDetails.length > 0
-    ? sourceDetails
-    : [{ code: selection.code, referenceQualifier: 'TN', referenceNumber: fallbackReference, lineItemReference: fallbackReference }]
-
-  const seen = new Set<string>()
-  const details = references.map((detail) => {
-    const incoming = sanitizeRuntimeToken(String(detail.code ?? '').toUpperCase(), 8)
-    const code = incoming && allowed.has(incoming) ? incoming : selection.code
-    const referenceNumber = sanitizeRuntimeToken(detail.referenceNumber ?? detail.lineItemReference ?? fallbackReference, 35)
-    const lineItemReference = sanitizeRuntimeToken(detail.lineItemReference ?? detail.referenceNumber ?? referenceNumber, 35)
-    return {
-      code,
-      referenceQualifier: sanitizeRuntimeToken(detail.referenceQualifier ?? 'TN', 12) ?? 'TN',
-      referenceNumber,
-      lineItemReference,
-    }
-  }).filter((detail) => {
-    const key = `${detail.code}|${detail.referenceNumber ?? ''}|${detail.lineItemReference ?? ''}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-
-  const finalDetails = details.length > 0 ? details : [{
-    code: selection.code,
-    referenceQualifier: 'TN',
-    referenceNumber: fallbackReference,
-    lineItemReference: fallbackReference,
-  }]
-
-  return {
-    details: finalDetails,
-    codes: Array.from(new Set(finalDetails.map((detail) => detail.code))).filter(Boolean),
-    reason: `${selection.reason} Tillåtna AGT-koder: ${allowedAgtUeUtiltsErrCodes().join('|')}. Produktion behåller E87 när faktisk period/upplösning/antal observationer är felet.`,
-  }
-}
-
 
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
@@ -695,18 +588,6 @@ function monthsBetweenPeriod(start: string | null, end: string | null): number |
   return Number.isFinite(diff) && diff > 0 ? diff : null
 }
 
-function isKnownTgtUnknownMeteringPoint(meterPointId: string | null): boolean {
-  // TGT U1.2.2 uses this object to force a processability error. Keep it as a
-  // portal fixture rule, not as generic production master-data. In production,
-  // the same E10 decision should come from the real metering point registry.
-  return meterPointId === '735999888000003025'
-}
-
-function isKnownTgtUnknownGridArea(gridAreaId: string | null): boolean {
-  // TGT U1.4.2 uses XYZ to force unknown metering grid area.
-  return String(gridAreaId ?? '').toUpperCase() === 'XYZ'
-}
-
 function sanitizeRuntimeToken(value?: string | null, maxLength = 35): string | null {
   const trimmed = value?.trim()
   if (!trimmed) return null
@@ -919,108 +800,6 @@ function groupRegistrationIsBeforeLatestMeterReadingDate(group: UtiltsTransactio
   return Number.isFinite(latestMeterReadingTime) && registration < latestMeterReadingTime
 }
 
-function findTgtCaseCodeInValue(value: unknown): string | null {
-  if (typeof value === 'string') {
-    const upper = value.toUpperCase()
-    return upper.match(/U\d+\.\d+\.\d+B?/)?.[0] ?? upper.match(/U\d+\.\d+B?/)?.[0] ?? upper.match(/U\d+\.\d+/)?.[0] ?? null
-  }
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const hit = findTgtCaseCodeInValue(item)
-      if (hit) return hit
-    }
-    return null
-  }
-  if (value && typeof value === 'object') {
-    for (const item of Object.values(value as Record<string, unknown>)) {
-      const hit = findTgtCaseCodeInValue(item)
-      if (hit) return hit
-    }
-  }
-  return null
-}
-
-function looksLikeEdielPortalUtiltsE66TgtMessage(message: EdielMessageRow): boolean {
-  if (String(message.message_family ?? '').toUpperCase() !== 'UTILTS') return false
-  if (String(message.message_code ?? '').toUpperCase() !== 'E66') return false
-
-  const raw = String(message.raw_payload ?? '').toUpperCase()
-  const meta = [
-    message.application_reference,
-    message.external_reference,
-    message.transaction_reference,
-    JSON.stringify(message.parsed_payload ?? {}),
-    JSON.stringify(message.validation_report ?? {}),
-  ].filter(Boolean).join(' ').toUpperCase()
-  const sender = String(message.sender_ediel_id ?? '')
-  const receiver = String(message.receiver_ediel_id ?? '')
-
-  return (
-    raw.includes('23-DDQ-E66-S') ||
-    raw.includes('23-DDQ-E66-T') ||
-    raw.includes('23-DGI-E66-S') ||
-    raw.includes('23-DGI-E66-T') ||
-    meta.includes('23-DDQ-E66-S') ||
-    meta.includes('23-DDQ-E66-T') ||
-    meta.includes('23-DGI-E66-S') ||
-    meta.includes('23-DGI-E66-T') ||
-    meta.includes('TESTKUND') ||
-    meta.includes('EDIELPORTAL') ||
-    (sender === '91100' && receiver === '92825') ||
-    (sender === '92825' && receiver === '91100')
-  )
-}
-
-function extractTgtCaseCodeFromMessage(message?: EdielMessageRow | null): string | null {
-  if (!message) return null
-
-  const explicit = findTgtCaseCodeInValue({
-    parsedPayload: message.parsed_payload,
-    validationReport: message.validation_report,
-    failureReason: message.failure_reason,
-    subject: message.subject,
-    fileName: message.file_name,
-    externalReference: message.external_reference,
-    transactionReference: message.transaction_reference,
-    correlationReference: message.correlation_reference,
-  })
-  if (explicit) return explicit.toUpperCase()
-
-  if (String(message.environment ?? '').toLowerCase() === 'test' || looksLikeEdielPortalUtiltsE66TgtMessage(message)) {
-    try {
-      const inferred = inferTgtTestCaseCodeForInboundTestData({
-        message,
-        rawText: [
-          message.raw_payload,
-          message.application_reference,
-          message.external_reference,
-          message.transaction_reference,
-          JSON.stringify(message.parsed_payload ?? {}),
-          JSON.stringify(message.validation_report ?? {}),
-        ].filter(Boolean).join(' '),
-      })
-      return inferred ? inferred.toUpperCase() : null
-    } catch {
-      return null
-    }
-  }
-
-  return null
-}
-
-function tgtIssue(input: {
-  kind: UtiltsValidationIssueKind
-  code: string
-  title: string
-  description: string
-  aperakErcCode?: string | null
-  aperakFieldCode?: string | null
-  aperakText?: string | null
-  utiltsErrCode?: string | null
-}): UtiltsValidationIssue {
-  return buildIssue({ severity: 'error', referenceQualifier: 'ACW', referenceNumber: null, lineItemReference: null, ...input })
-}
-
 function rebuildUtiltsValidation(issues: UtiltsValidationIssue[]): UtiltsRuntimeValidation {
   const syntaxOk = !issues.some((issue) => issue.severity === 'error' && issue.kind === 'syntax')
   const hasFunctionalErrors = issues.some((issue) => issue.severity === 'error' && issue.kind === 'functional')
@@ -1119,7 +898,7 @@ function promoteE66SchMissingReadingToFunctionalIssues(params: {
   return rebuildUtiltsValidation([...remainingIssues, ...functionalIssues])
 }
 
-function applyUtiltsTgtU2ValidationOverride(params: {
+function applyUtiltsProcessabilityClassification(params: {
   message?: EdielMessageRow | null
   validation: UtiltsRuntimeValidation
 }): UtiltsRuntimeValidation {
@@ -1323,19 +1102,6 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
         }))
       }
 
-      if (isKnownTgtUnknownMeteringPoint(parseLocValueFromGroup(group, 'LOC+172'))) {
-        issues.push(buildIssue({
-          severity: 'error',
-          kind: 'functional',
-          code: 'UTILTS_S02_UNKNOWN_METERING_POINT',
-          title: 'Okänd anläggning',
-          description: 'Anläggningsid kunde inte identifieras.',
-          utiltsErrCode: 'E10',
-          referenceQualifier: 'TN',
-          referenceNumber: transactionReference,
-          lineItemReference: transactionReference,
-        }))
-      }
     }
   }
 
@@ -1346,19 +1112,6 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
       const gridAreaId = parseLocValueFromGroup(group, 'LOC+239') ?? facts.gridAreaId
       const label = code === 'E31' ? 'E31' : 'S03'
 
-      if (isKnownTgtUnknownGridArea(gridAreaId)) {
-        issues.push(buildIssue({
-          severity: 'error',
-          kind: 'functional',
-          code: `UTILTS_${label}_UNKNOWN_GRID_AREA`,
-          title: 'Okänt nätområde',
-          description: 'Nätområdesid kunde inte identifieras.',
-          utiltsErrCode: 'E49',
-          referenceQualifier: 'TN',
-          referenceNumber: transactionReference,
-          lineItemReference: transactionReference,
-        }))
-      }
 
       if (groupQuantities.length === 0) {
         issues.push(buildIssue({
@@ -1475,7 +1228,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
         // Do not reject all non-interval E66 energy-only transactions as a
         // mandatory-field error. The portal's correct E66-SCH/periodic cases can
         // legitimately carry billing energy without meter-reading QTY rows.
-        // True TGT anvisningsfel is decided from selected/imported testdata and
+        // Test-specific expected outcomes are decided outside the production kernel;
         // real functional faults are still caught by the processability checks
         // above. Keep this as a diagnostic warning so operators can inspect it
         // without turning a correct U3.1.1 into APERAK 313/ERC 41.
@@ -1483,6 +1236,8 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
       }
     }
   }
+
+  issues.push(...validateCanonicalUtiltsProfile(facts))
 
   const syntaxOk = !issues.some((issue) => issue.severity === 'error' && issue.kind === 'syntax')
   const hasFunctionalErrors = issues.some((issue) => issue.severity === 'error' && issue.kind === 'functional')
@@ -1546,8 +1301,8 @@ function functionalUtiltsErrDetailsFromIssues(issues: readonly UtiltsValidationI
     // transaction already has a more specific functional rejection, keep the
     // specific reason and avoid sending an extra SG5 block for the same
     // timeseries. This matches UTILTS_ERR production behaviour and prevents
-    // portal TGT cases from receiving duplicate reason_for_answer values for
-    // the same test customer.
+    // validation cases from receiving duplicate reason_for_answer values for
+    // the same transaction.
     if (code === 'E87' && codesForReference && Array.from(codesForReference).some((otherCode) => otherCode !== 'E87')) {
       continue
     }
@@ -1589,121 +1344,6 @@ export function serializeUtiltsRuntimeUtiltsErrMessageText(plan: UtiltsRuntimeAc
 }
 
 
-function normalizeUtiltsTgtCaseCode(value: string | null | undefined): string | null {
-  const normalized = String(value ?? '').trim().toUpperCase()
-  return normalized.length > 0 ? normalized : null
-}
-
-function firstUtiltsTgtAckReference(facts: UtiltsRuntimeFacts): string | null {
-  const candidates = [
-    facts.transactions.find((transaction) => transaction.transactionId)?.transactionId ?? null,
-    facts.transactionId,
-    facts.transactionReference,
-    referenceValue(facts.references, 'ACW', 'TN', 'AES', 'DM'),
-    facts.documentReference,
-    facts.messageReference,
-  ]
-
-  for (const candidate of candidates) {
-    const sanitized = sanitizeRuntimeToken(candidate, 35)
-    if (sanitized) return sanitized
-  }
-
-  return null
-}
-
-function tgtU3GuideAperakErrors(facts: UtiltsRuntimeFacts): UtiltsAperakApplicationError[] {
-  const reference = firstUtiltsTgtAckReference(facts)
-  return [
-    {
-      ercCode: '41',
-      fieldCode: '512',
-      text: 'MANDATORY FIELD MISSING',
-      referenceQualifier: 'ACW',
-      referenceNumber: reference,
-      lineItemReference: reference,
-    },
-  ]
-}
-
-export function applyUtiltsTgtAckPlanOverride(params: {
-  runtime: UtiltsRuntimeResult
-  testCaseCode?: string | null
-}): UtiltsRuntimeAckPlan {
-  const testCaseCode = normalizeUtiltsTgtCaseCode(params.testCaseCode)
-  const base = params.runtime.ackPlan
-
-  if (isAgtUeUtiltsContext(testCaseCode)) {
-    const mapped = remapUtiltsErrDetailsForAgtUe({
-      runtime: params.runtime,
-      testCaseCode,
-    })
-
-    return {
-      ...base,
-      shouldSendContrl: true,
-      contrlOutcome: 'positive',
-      shouldSendAperak: false,
-      aperakOutcome: null,
-      shouldSendUtiltsErr: true,
-      utiltsErrDetails: mapped.details,
-      utiltsErrCodes: mapped.codes.length > 0 ? mapped.codes : ['E14'],
-      aperakApplicationErrors: [],
-      reason: mapped.reason,
-    }
-  }
-
-  if (testCaseCode === 'U3.1.1' || testCaseCode === 'U3.1.2') {
-    return {
-      ...base,
-      shouldSendContrl: true,
-      contrlOutcome: 'positive',
-      shouldSendAperak: true,
-      aperakOutcome: 'positive',
-      shouldSendUtiltsErr: false,
-      utiltsErrDetails: [],
-      utiltsErrCodes: [],
-      aperakApplicationErrors: [],
-      reason:
-        testCaseCode === 'U3.1.1'
-          ? 'TGT U3.1.1 korrekt E66-SCH för energitjänsteföretag ska ge positiv APERAK.'
-          : 'TGT U3.1.2 korrekt E66-kvart för energitjänsteföretag ska ge positiv APERAK.',
-    }
-  }
-
-  if (testCaseCode === 'U3.2.1') {
-    return {
-      ...base,
-      shouldSendContrl: true,
-      contrlOutcome: 'positive',
-      shouldSendAperak: true,
-      aperakOutcome: 'negative',
-      shouldSendUtiltsErr: false,
-      utiltsErrDetails: [],
-      utiltsErrCodes: [],
-      aperakApplicationErrors: tgtU3GuideAperakErrors(params.runtime.facts),
-      reason: 'TGT U3.2.1 UTILTS-E66 kvart anvisningsfel ska ge negativ APERAK.',
-    }
-  }
-
-  if (testCaseCode === 'U3.2.2') {
-    return {
-      ...base,
-      shouldSendContrl: true,
-      contrlOutcome: 'positive',
-      shouldSendAperak: false,
-      aperakOutcome: null,
-      shouldSendUtiltsErr: true,
-      utiltsErrDetails: base.utiltsErrDetails,
-      utiltsErrCodes: base.utiltsErrCodes.length > 0 ? base.utiltsErrCodes : ['E14'],
-      aperakApplicationErrors: [],
-      reason: 'TGT U3.2.2 UTILTS-E66 kvart funktionsfel ska ge UTILTS_ERR.',
-    }
-  }
-
-  return base
-}
-
 export function decideUtiltsRuntimeAckPlan(params: {
   message: EdielMessageRow
   facts: UtiltsRuntimeFacts
@@ -1727,13 +1367,13 @@ export function decideUtiltsRuntimeAckPlan(params: {
     return {
       shouldSendContrl: true,
       contrlOutcome: 'positive',
-      shouldSendAperak: false,
-      aperakOutcome: null,
+      shouldSendAperak: true,
+      aperakOutcome: 'positive',
       shouldSendUtiltsErr: false,
       utiltsErrDetails: [],
       utiltsErrCodes: [],
       aperakApplicationErrors: [],
-      reason: 'Inbound UTILTS-ERR ska endast syntaxkvitteras med CONTRL.',
+      reason: 'Inbound UTILTS-ERR syntaxkvitteras med CONTRL och applikationskvitteras med positiv APERAK.',
     }
   }
 
@@ -1892,7 +1532,7 @@ export function runUtiltsRuntimeForMessage(message: EdielMessageRow): UtiltsRunt
   const facts = parseUtiltsRuntimeFacts(rawPayload)
   const normalizedPayload = normalizeUtiltsRuntimePayload(facts, message)
   const baseValidation = validateUtiltsFacts(facts, message)
-  const validation = applyUtiltsTgtU2ValidationOverride({ message, validation: baseValidation })
+  const validation = applyUtiltsProcessabilityClassification({ message, validation: baseValidation })
   const ackPlan = decideUtiltsRuntimeAckPlan({ message, facts, validation })
 
   return {

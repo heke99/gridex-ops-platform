@@ -8,7 +8,7 @@ import type {
   EdielTgtExcelBlock,
   EdielTgtExcelColumn,
   EdielTgtExcelField,
-} from '@/lib/ediel/tgtTestData'
+} from '@/lib/ediel/testing/tgtTestData'
 
 export type EdielTgtDynamicTestDataRow = {
   id: string

@@ -22,14 +22,14 @@ import {
  type EdielTgtRunEvaluation,
  type EdielTgtStepMatch,
  type EdielTgtTestCaseDefinition,
-} from '@/lib/ediel/tgtRegistry'
+} from '@/lib/ediel/testing/tgtRegistry'
 import {
  getEdielTgtTestDataForCase,
  type EdielTgtCaseTestData,
  type EdielTgtCaseTestDataGroup,
-} from '@/lib/ediel/tgtTestData'
-import type { EdielTgtDynamicTestDataSummary } from '@/lib/ediel/tgtTestDataStore'
-import { getEdielTgtDraftOptionsForCase } from '@/lib/ediel/tgtEdifact'
+} from '@/lib/ediel/testing/tgtTestData'
+import type { EdielTgtDynamicTestDataSummary } from '@/lib/ediel/testing/tgtTestDataStore'
+import { getEdielTgtDraftOptionsForCase } from '@/lib/ediel/testing/tgtEdifact'
 import { edielCodeLabel } from '@/lib/ediel/codeLabels'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 

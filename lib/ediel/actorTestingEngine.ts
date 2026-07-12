@@ -23,11 +23,11 @@ import {
 import {
   createEdielSupplierAgtOutboundCommand,
   createEdielSupplierAgtResponsesForInbound,
-} from '@/lib/ediel/agtEngine'
+} from '@/lib/ediel/testing/agtEngine'
 import {
   inferEdielAgtCaseForInboundMessage,
   type EdielAgtExpectedStep,
-} from '@/lib/ediel/agtRegistry'
+} from '@/lib/ediel/testing/agtRegistry'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 
 type MaybeString = string | null | undefined

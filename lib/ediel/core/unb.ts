@@ -1,5 +1,6 @@
-import { firstCompositeComponent, splitComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 
 export type ParsedUnb = {
   syntaxIdentifier: string | null
@@ -14,29 +15,25 @@ export type ParsedUnb = {
   testIndicator: string | null
 }
 
-function subAddress(composite: string | null | undefined, una: EdifactServiceStringAdvice): string | null {
-  const parts = splitComposite(composite, una)
-  return parts[2]?.trim() || null
-}
-
 export function parseUnb(segment: EdifactTokenizedSegment | null | undefined, una: EdifactServiceStringAdvice): ParsedUnb | null {
   if (!segment || segment.tag !== 'UNB') return null
-  const datetime = splitComposite(segment.elements[4], una)
-
+  const raw = `${una.raw}${segment.raw}${una.segmentTerminator}`
+  const parsed = EdifactEnvelopeCodec.decode(raw)
   return {
     syntaxIdentifier: segment.elements[1] ?? null,
-    sender: firstCompositeComponent(segment.elements[2], una),
-    senderSubAddress: subAddress(segment.elements[2], una),
-    receiver: firstCompositeComponent(segment.elements[3], una),
-    receiverSubAddress: subAddress(segment.elements[3], una),
-    date: datetime[0] ?? null,
-    time: datetime[1] ?? null,
-    interchangeReference: segment.elements[5] || null,
-    applicationReference: segment.elements[7] || null,
-    testIndicator: segment.elements[9] || null,
+    sender: parsed.sender,
+    senderSubAddress: parsed.senderSubAddress,
+    receiver: parsed.receiver,
+    receiverSubAddress: parsed.receiverSubAddress,
+    date: parsed.date,
+    time: parsed.time,
+    interchangeReference: parsed.interchangeReference,
+    applicationReference: parsed.applicationReference,
+    testIndicator: parsed.testIndicator,
   }
 }
 
+/** @deprecated Use EdifactEnvelopeCodec.encode. Kept only for source compatibility. */
 export function serializeUnb(input: {
   sender: string
   receiver: string
@@ -48,18 +45,16 @@ export function serializeUnb(input: {
   applicationReference?: string | null
   testIndicator?: string | number | null
 }): string {
-  const sender = input.senderSubAddress ? `${input.sender}:ZZ:${input.senderSubAddress}` : `${input.sender}:ZZ`
-  const receiver = input.receiverSubAddress ? `${input.receiver}:ZZ:${input.receiverSubAddress}` : `${input.receiver}:ZZ`
-  return [
-    'UNB',
-    'UNOC:3',
-    sender,
-    receiver,
-    `${input.date}:${input.time}`,
-    input.interchangeReference,
-    '',
-    input.applicationReference ?? '',
-    '',
-    input.testIndicator ?? '0',
-  ].join('+')
+  const raw = EdifactEnvelopeCodec.encode({
+    sender: input.sender,
+    receiver: input.receiver,
+    interchangeReference: input.interchangeReference,
+    senderSubAddress: input.senderSubAddress,
+    receiverSubAddress: input.receiverSubAddress,
+    applicationReference: input.applicationReference,
+    environment: EdifactEnvelopeCodec.environmentFromLegacyTestFlag(input.testIndicator),
+    createdAt: new Date(),
+    messages: [{ messageReference: '1', messageTypeToken: 'DUMMY:D:00A:UN', businessSegments: [] }],
+  })
+  return EdifactEnvelopeCodec.decode(raw).segments.find((item) => item.tag === 'UNB')?.raw ?? ''
 }

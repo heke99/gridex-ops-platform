@@ -32,6 +32,7 @@ export async function prepareAndQueueAiList(params: {
   const site = await getCustomerSiteById(supabase, params.siteId)
 
   if (!site) throw new Error('Anläggning hittades inte för AI-list export')
+  if (!site.company_id) throw new Error('Anläggningen saknar tenant/company_id; AI-list export blockeras.')
 
   const meteringPoint = params.meteringPointId
     ? await getMeteringPointById(supabase, params.meteringPointId)
@@ -50,7 +51,7 @@ export async function prepareAndQueueAiList(params: {
     requestType: 'meter_values',
     gridOwner,
     preferredRouteId: params.communicationRouteId ?? null,
-    companyId: site.company_id ?? null,
+    companyId: site.company_id,
     environment,
     messageStandard: 'ai_list',
   })
@@ -65,7 +66,7 @@ export async function prepareAndQueueAiList(params: {
 
   const draft = await buildAiListOutboundDraft({
     actorUserId,
-    companyId: site.company_id ?? null,
+    companyId: site.company_id,
     listType: params.listType,
     senderEdielId: routeContext.senderEdielId,
     senderName: routeContext.senderName,

@@ -7,9 +7,9 @@ import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/
 import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
 import { getActiveEdielActorSettings } from '@/lib/ediel/config'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
-import { getEdielAgtSupplierRuntime } from '@/lib/ediel/agtRuntime'
+import { getEdielAgtSupplierRuntime } from '@/lib/ediel/testing/agtRuntime'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
-import { EDIEL_AGT_SUPPLIER_2026A_CASES } from '@/lib/ediel/agtRegistry'
+import { EDIEL_AGT_SUPPLIER_2026A_CASES } from '@/lib/ediel/testing/agtRegistry'
 
 export const dynamic = 'force-dynamic'
 

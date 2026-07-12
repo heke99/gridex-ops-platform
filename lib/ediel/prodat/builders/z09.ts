@@ -5,7 +5,7 @@ import type {
   ProdatEngineProductionContext,
   ProdatEngineRenderResult,
 } from '@/lib/ediel/prodat/types'
-import { buildGenericProdatSegments } from '@/lib/ediel/prodat/builders/generic'
+import { buildProfiledProdatSegments } from '@/lib/ediel/prodat/builders/profileRenderer'
 
 function normalize(value?: string | null): string {
   return String(value ?? '').trim().toUpperCase()
@@ -123,7 +123,7 @@ export function buildZ09Segments(input: {
   selectedVersion?: string | null
   acceptedVersions?: string[]
 }): ProdatEngineRenderResult {
-  const result = buildGenericProdatSegments({
+  const result = buildProfiledProdatSegments({
     ...input,
     renderer: 'prodat.builders.z09.buildZ09Segments',
   })

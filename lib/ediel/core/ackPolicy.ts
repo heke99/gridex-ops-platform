@@ -6,10 +6,9 @@ import {
   getEdielRouteRuntimeByCommunicationRouteId,
 } from '@/lib/ediel/config'
 import { listAckMessagesForSource } from '@/lib/ediel/db'
-import {
-  EDIEL_ACK_DEADLINE_MINUTES,
-  deriveSpecDrivenAckDefaults,
-} from '@/lib/ediel/specRegistry'
+import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
+import { canonicalAckRequirements } from '@/lib/ediel/ack/canonicalAckEngine'
+import { loadCanonicalAckRulePack } from '@/lib/ediel/ack/ackRulePackRegistry'
 
 export type AckOutcome = 'positive' | 'negative'
 export type AckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
@@ -65,9 +64,6 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow) {
     throw new Error('CONTRL ska registreras och kopplas, inte kvitteras med nytt ack.')
   }
 
-  if (sourceMessage.message_family === 'UTILTS_ERR') {
-    throw new Error('UTILTS-ERR ska registreras och kopplas, inte få APERAK-svar.')
-  }
 }
 
 function addAckDeadlineMinutes(baseTime?: string | null): string | null {
@@ -150,11 +146,27 @@ async function resolveRuleDefaults(sourceMessage: EdielMessageRow) {
       date: refDate,
     }))
 
+  const ackRulePack = await loadCanonicalAckRulePack({
+    family: sourceMessage.message_family,
+    code: sourceMessage.message_code,
+    companyId: sourceMessage.company_id,
+    environment: sourceMessage.environment,
+    version: sourceMessage.message_version,
+  })
+  const canonical = {
+    requiresContrl: ackRulePack.rule.technicalAck === 'CONTRL',
+    requiresAperak: ackRulePack.rule.applicationAck === 'APERAK' || ackRulePack.rule.applicationAck === 'transactional',
+    supportsNegativeAperak: ackRulePack.rule.negativeApplicationResponse === 'APERAK' || ackRulePack.rule.negativeApplicationResponse === 'APERAK_OR_UTILTS_ERR',
+    supportsUtiltsErr: ackRulePack.rule.negativeApplicationResponse === 'UTILTS_ERR' || ackRulePack.rule.negativeApplicationResponse === 'APERAK_OR_UTILTS_ERR',
+  }
+
   return {
-    requiresContrl: resolved?.requires_contrl ?? sourceMessage.requires_contrl === true,
-    requiresAperak: resolved?.requires_aperak ?? sourceMessage.requires_aperak === true,
-    supportsNegativeResponse:
-      resolved?.supports_negative_response ?? sourceMessage.message_family === 'UTILTS',
+    requiresContrl: canonical.requiresContrl,
+    requiresAperak: canonical.requiresAperak,
+    supportsNegativeResponse: canonical.supportsNegativeAperak || canonical.supportsUtiltsErr,
+    supportsNegativeAperak: canonical.supportsNegativeAperak,
+    supportsUtiltsErr: canonical.supportsUtiltsErr,
+    ruleId: ackRulePack.snapshot.ruleId ?? resolved?.id ?? null,
   }
 }
 
@@ -173,8 +185,7 @@ export async function getAutomaticAckPolicy(
 
   const canSendAperak =
     sourceMessage.message_family !== 'APERAK' &&
-    sourceMessage.message_family !== 'CONTRL' &&
-    sourceMessage.message_family !== 'UTILTS_ERR'
+    sourceMessage.message_family !== 'CONTRL'
 
   const shouldSendPositiveAperak =
     canSendAperak &&
@@ -187,12 +198,12 @@ export async function getAutomaticAckPolicy(
   const shouldSendNegativeAperak =
     canSendAperak &&
     routeAckMode !== 'none' &&
-    ruleDefaults.supportsNegativeResponse
+    ruleDefaults.supportsNegativeAperak
 
   const shouldSendUtiltsErr =
     routeAckMode !== 'none' &&
     sourceMessage.message_family === 'UTILTS' &&
-    ruleDefaults.supportsNegativeResponse
+    ruleDefaults.supportsUtiltsErr
 
   return {
     shouldSendContrl,
@@ -368,87 +379,12 @@ export function deriveEdielAckDefaults(params: {
   aperakStatus: 'pending' | 'not_required'
   utiltsErrStatus: 'not_required'
 } {
-  const specDefaults = deriveSpecDrivenAckDefaults({
-    family: params.family,
-    code: params.code,
-  })
-
-  if (specDefaults) {
-    return specDefaults as {
-      requiresContrl: boolean
-      requiresAperak: boolean
-      contrlStatus: 'pending' | 'not_required'
-      aperakStatus: 'pending' | 'not_required'
-      utiltsErrStatus: 'not_required'
-    }
-  }
-
-  const family = params.family.toUpperCase()
-  const code = params.code.toUpperCase()
-
-  if (family === 'AI_LIST') {
-    return {
-      requiresContrl: false,
-      requiresAperak: false,
-      contrlStatus: 'not_required',
-      aperakStatus: 'not_required',
-      utiltsErrStatus: 'not_required',
-    }
-  }
-
-  if (family === 'CONTRL' || family === 'UTILTS_ERR') {
-    return {
-      requiresContrl: false,
-      requiresAperak: false,
-      contrlStatus: 'not_required',
-      aperakStatus: 'not_required',
-      utiltsErrStatus: 'not_required',
-    }
-  }
-
-  if (family === 'APERAK') {
-    return {
-      requiresContrl: true,
-      requiresAperak: false,
-      contrlStatus: 'pending',
-      aperakStatus: 'not_required',
-      utiltsErrStatus: 'not_required',
-    }
-  }
-
-  if (family === 'UTILTS') {
-    const requiresAperak =
-      code === 'E66' ||
-      code === 'E73' ||
-      code === 'S01' ||
-      code === 'S02' ||
-      code === 'S03' ||
-      code === 'S04'
-
-    return {
-      requiresContrl: true,
-      requiresAperak,
-      contrlStatus: 'pending',
-      aperakStatus: requiresAperak ? 'pending' : 'not_required',
-      utiltsErrStatus: 'not_required',
-    }
-  }
-
-  if (family === 'PRODAT') {
-    return {
-      requiresContrl: true,
-      requiresAperak: true,
-      contrlStatus: 'pending',
-      aperakStatus: 'pending',
-      utiltsErrStatus: 'not_required',
-    }
-  }
-
+  const requirements = canonicalAckRequirements(params)
   return {
-    requiresContrl: true,
-    requiresAperak: false,
-    contrlStatus: 'pending',
-    aperakStatus: 'not_required',
+    requiresContrl: requirements.requiresContrl,
+    requiresAperak: requirements.requiresAperak,
+    contrlStatus: requirements.requiresContrl ? 'pending' : 'not_required',
+    aperakStatus: requirements.requiresAperak ? 'pending' : 'not_required',
     utiltsErrStatus: 'not_required',
   }
 }

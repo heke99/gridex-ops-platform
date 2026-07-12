@@ -1,5 +1,7 @@
 "use server";
 
+import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAnyPermissionServer } from "@/lib/auth/requirePermissionServer";
@@ -53,10 +55,9 @@ import {
   updateEdielMessageStatus,
   updateEdielTestRunStatus,
 } from "@/lib/ediel/db";
-import { runEdielSelfTest } from "@/lib/ediel/selftest";
+import { runEdielSelfTest } from "@/lib/ediel/testing/selftest";
 import { buildInboundUtiltsMessageInput } from "@/lib/ediel/utilts";
 import {
-  applyUtiltsTgtAckPlanOverride,
   runUtiltsRuntimeForMessage,
   serializeUtiltsRuntimeUtiltsErrMessageText,
 } from "@/lib/ediel/utiltsEngine";
@@ -90,45 +91,45 @@ import {
   registerEdielFile,
   type EdielFileEngineMode,
 } from "@/lib/ediel/fileEngine";
-import { getEdielTgtTestCaseByCode } from "@/lib/ediel/tgtRegistry";
+import { getEdielTgtTestCaseByCode } from "@/lib/ediel/testing/tgtRegistry";
 import {
   getEdielTgtTestDataForCase,
   type EdielTgtCaseTestData,
-} from "@/lib/ediel/tgtTestData";
-import { buildEdielTgtDraft } from "@/lib/ediel/tgtEdifact";
+} from "@/lib/ediel/testing/tgtTestData";
+import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact";
 import {
   getEdielTgtDynamicTestDataForCase,
   listEdielTgtDynamicTestData,
   upsertEdielTgtDynamicTestData,
   type EdielTgtDynamicTestDataSummary,
-} from "@/lib/ediel/tgtTestDataStore";
-import { resolveRecommendedAckForInboundMessage } from "@/lib/ediel/core/ackDecisionEngine";
+} from "@/lib/ediel/testing/tgtTestDataStore";
+import { resolveRecommendedAckForInboundMessage } from "@/lib/ediel/testing/ackDecisionEngine";
 import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight";
-import { validateL7PayloadPreflight } from "@/lib/ediel/agtRunMetadata";
+import { validateL7PayloadPreflight } from "@/lib/ediel/testing/agtRunMetadata";
 import {
   effectiveTgtTestCaseCodeForMessageRow,
   fieldValuesFromTgtTestData,
   findBestTgtTestDataForMessage,
   findExactTgtTestDataForMessage,
   scoreTgtTestDataForMessage,
-} from "@/lib/ediel/core/tgtAutoMatcher";
+} from "@/lib/ediel/testing/tgtAutoMatcher";
 import { parseEdifactMessageFacts } from "@/lib/ediel/core/edifactSegments";
 import { parseProdatMessage } from "@/lib/ediel/prodat/parser";
 import { supabaseService } from "@/lib/supabase/service";
 import {
   validateProdatPermissionMessage,
   type ProdatPermissionContext,
-} from "@/lib/ediel/prodat/permissionEngine";
+} from "@/lib/ediel/testing/prodatPermissionEngine";
 import {
   attachAperakErrorDetailsToMessage,
   resolveAndStoreProdatAperakErrors,
-} from "@/lib/ediel/core/aperakErrorRuleRegistry";
-import { parseEdielTgtUploadedTestDataFile } from "@/lib/ediel/tgtTestDataFileImport";
+} from "@/lib/ediel/testing/aperakErrorRuleRegistry";
+import { parseEdielTgtUploadedTestDataFile } from "@/lib/ediel/testing/tgtTestDataFileImport";
 import {
   autoAttachImportedMessageToActiveTgtRun,
   createMockPortalMessageForNextStep,
   runTgtAutopilotForRun,
-} from "@/lib/ediel/tgtAutopilot";
+} from "@/lib/ediel/testing/tgtAutopilot";
 import { processEdielOperationalMessage } from "@/lib/ediel/operationalBridge";
 import { processInboundEdielMessage } from "@/lib/ediel/flows/inboundProcessing";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
@@ -138,9 +139,9 @@ import {
   createEdielSupplierAgtOutboundCommand,
   createEdielSupplierAgtResponsesForInbound,
   createEdielSupplierAgtRun,
-} from "@/lib/ediel/agtEngine";
+} from "@/lib/ediel/testing/agtEngine";
 import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustomer";
-import { getEdielAgtSupplierRuntime } from "@/lib/ediel/agtRuntime";
+import { getEdielAgtSupplierRuntime } from "@/lib/ediel/testing/agtRuntime";
 import {
   getEdielSystemTestSettings,
   requireEdielSystemTestRuntimeContext,
@@ -2389,7 +2390,7 @@ async function resolveUtiltsErrMessageTextForAckAction(
   }
 
   const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
-  const ackPlan = applyUtiltsTgtAckPlanOverride({
+  const ackPlan = applyUtiltsTestAckPlanOverride({
     runtime,
     testCaseCode: params.testCaseCode ?? null,
   });
@@ -2527,7 +2528,7 @@ async function resolveBackendAperakDecision(params: {
 
   if (params.sourceMessage.message_family === "UTILTS") {
     const runtime = runUtiltsRuntimeForMessage(params.sourceMessage);
-    const ackPlan = applyUtiltsTgtAckPlanOverride({
+    const ackPlan = applyUtiltsTestAckPlanOverride({
       runtime,
       testCaseCode: params.testCaseCode ?? null,
     });
@@ -3661,7 +3662,7 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
       ? runUtiltsRuntimeForMessage(sourceMessage)
       : null;
   const ackPlan = runtime
-    ? applyUtiltsTgtAckPlanOverride({ runtime, testCaseCode })
+    ? applyUtiltsTestAckPlanOverride({ runtime, testCaseCode })
     : null;
   const resolvedMessageText =
     messageText ??

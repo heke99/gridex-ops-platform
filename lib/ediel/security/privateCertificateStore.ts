@@ -211,7 +211,7 @@ export async function loadInboundPrivateCertificates(input: {
     .in('usage', ['inbound_private', 'sender_signing'])
 
   if (input.environment) query = query.eq('environment', input.environment)
-  if (input.companyId) query = query.or(`company_id.eq.${input.companyId},company_id.is.null`)
+  if (input.companyId) query = query.eq('company_id', input.companyId)
 
   const { data, error } = await query.limit(50)
   if (error) {
@@ -254,8 +254,11 @@ export async function loadInboundPrivateCertificates(input: {
   }
 
   const fallback = envFallbackProfile(input.environment)
-  if (fallback && !profiles.some((profile) => profile.fingerprintSha256 === fallback.fingerprintSha256)) {
+  const fallbackMatchesTenant = !input.companyId || fallback?.companyId === input.companyId
+  if (fallback && fallbackMatchesTenant && !profiles.some((profile) => profile.fingerprintSha256 === fallback.fingerprintSha256)) {
     profiles.push(fallback)
+  } else if (fallback && input.companyId && !fallbackMatchesTenant) {
+    warnings.push('Env-fallback för S/MIME ignorerades eftersom EDIEL_SMIME_CERT_COMPANY_ID inte matchar aktuell tenant.')
   }
 
   return { profiles, warnings }

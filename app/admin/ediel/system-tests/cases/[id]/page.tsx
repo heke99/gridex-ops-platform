@@ -22,7 +22,7 @@ import {
   type EdielTgtExpectedStep,
   type EdielTgtRunEvaluation,
   type EdielTgtTestCaseDefinition,
-} from "@/lib/ediel/tgtRegistry";
+} from "@/lib/ediel/testing/tgtRegistry";
 import { createEdielTgtRunFromTemplateAction } from "@/app/admin/ediel/actions";
 import { isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages";
 import {

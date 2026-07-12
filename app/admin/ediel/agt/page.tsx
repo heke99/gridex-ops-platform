@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
 import { listEdielTestRuns } from "@/lib/ediel/db";
-import { getEdielAgtSupplierRuntime } from "@/lib/ediel/agtRuntime";
+import { getEdielAgtSupplierRuntime } from "@/lib/ediel/testing/agtRuntime";
 import { getEdielSystemTestSettings } from "@/lib/ediel/systemTestSettings";
-import { EDIEL_AGT_SUPPLIER_2026A_CASES } from "@/lib/ediel/agtRegistry";
+import { EDIEL_AGT_SUPPLIER_2026A_CASES } from "@/lib/ediel/testing/agtRegistry";
 import {
   createAgtSupplierTestRunAction,
   createAgtSupplierOutboundCommandAction,

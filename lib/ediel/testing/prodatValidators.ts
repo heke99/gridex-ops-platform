@@ -1,7 +1,7 @@
 // lib/ediel/prodat/validator.ts
 
 import type { ParsedProdatLineItem, ParsedProdatMessage } from '@/lib/ediel/prodat/parser'
-import type { ExpectedProdatContext, ExpectedProdatObject } from '@/lib/ediel/prodat/expectedContext'
+import type { ExpectedProdatContext, ExpectedProdatObject } from '@/lib/ediel/testing/prodatExpectedContext'
 
 export type ProdatValidationIssueType =
   | 'facility_not_identified'

@@ -13,7 +13,7 @@ import {
   evaluateEdielTgtRun,
   getEdielTgtTestCases,
   type EdielTgtTestCaseDefinition,
-} from "@/lib/ediel/tgtRegistry";
+} from "@/lib/ediel/testing/tgtRegistry";
 import { createEdielTgtRunFromTemplateAction } from "@/app/admin/ediel/actions";
 import { saveSimpleSystemTestCompanySetupAction } from "@/app/admin/ediel/system-tests/actions";
 import {

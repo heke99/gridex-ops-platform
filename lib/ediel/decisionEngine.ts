@@ -1,5 +1,6 @@
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
 import {
   compareEngineDecisionWithExpected,
   selectRuleProfile,
@@ -9,7 +10,6 @@ import {
 } from '@/lib/ediel/rulebook/ruleProfileSelector'
 import { validateProdatBusinessRules } from '@/lib/ediel/prodat/prodatBusinessRules'
 import {
-  applyUtiltsTgtAckPlanOverride,
   runUtiltsRuntimeForMessage,
   serializeUtiltsRuntimeUtiltsErrMessageText,
 } from '@/lib/ediel/utiltsEngine'
@@ -422,7 +422,7 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
   const runtime = runUtiltsRuntimeForMessage(input.message)
 
   if ((input.testKind === 'AGT' || testCase.startsWith('UE')) && ['UE1', 'UE2'].includes(testCase) && input.message.message_family === 'UTILTS') {
-    const ackPlan = applyUtiltsTgtAckPlanOverride({ runtime, testCaseCode: testCase })
+    const ackPlan = applyUtiltsTestAckPlanOverride({ runtime, testCaseCode: testCase })
     const comparison = compareEngineDecisionWithExpected({
       actualFamily: 'UTILTS_ERR',
       actualOutcome: 'negative',

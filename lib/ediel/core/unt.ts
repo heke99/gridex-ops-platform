@@ -20,7 +20,3 @@ export function countSegmentsUnhToUnt(segments: readonly EdifactTokenizedSegment
   if (unhIndex < 0 || untIndex < unhIndex) return null
   return untIndex - unhIndex + 1
 }
-
-export function serializeUnt(input: { segmentCount: number; messageReference: string }): string {
-  return `UNT+${input.segmentCount}+${input.messageReference}`
-}

@@ -50,16 +50,6 @@ export type CanonicalRouteContext = {
   routeSelectionSource: 'explicit_route' | 'auto_route'
 }
 
-function isProdatRouteRequestType(value: CanonicalRouteRequestType): boolean {
-  return value === 'supplier_switch' || value === 'customer_masterdata' || value === 'metering_access'
-}
-
-function defaultApplicationReferenceForRequestType(value: CanonicalRouteRequestType): string | null {
-  if (value === 'metering_access') return '23-DGI-PRODAT'
-  if (value === 'supplier_switch' || value === 'customer_masterdata') return '23-DDQ-PRODAT'
-  return null
-}
-
 function trimOrNull(value?: string | null): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
@@ -120,17 +110,13 @@ export async function resolveCanonicalRouteContext(params: {
   requestType: CanonicalRouteRequestType
   gridOwner?: GridOwnerRow | null
   preferredRouteId?: string | null
-  companyId?: string | null
-  environment?: EdielEnvironment
+  companyId: string
+  environment: EdielEnvironment
   messageStandard?: EdielMessageStandard
 }): Promise<CanonicalRouteContext> {
-  // DEPRECATED DEFAULT: omitting `environment` silently resolves the TEST
-  // lane. Call-site audit (2026-07-03, production readiness audit M5) shows
-  // every runtime caller passes an explicit environment, so this default is
-  // never exercised today. New callers MUST pass environment explicitly —
-  // production flows rely on fail-closed environment separation.
-  const environment = params.environment ?? 'test'
+  const environment = params.environment
   const companyId = trimOrNull(params.companyId)
+  if (!companyId) throw new Error('canonical_route_company_required')
   const actor = await resolveCanonicalActorContext(environment, companyId)
   const resolvedRoute = await resolveCommunicationRoute({
     requestType: params.requestType,
@@ -188,13 +174,16 @@ export async function resolveCanonicalRouteContext(params: {
   // route must carry that value explicitly; we do not synthesize subaddress.
   const mailbox = trimOrNull(routeRuntime?.mailbox) ?? actor.mailbox
   const applicationReference =
-    trimOrNull(routeRuntime?.application_reference) ??
-    (isProdatRouteRequestType(params.requestType)
-      ? defaultApplicationReferenceForRequestType(params.requestType)
-      : null) ??
-    actor.defaultApplicationReference
+    trimOrNull(routeRuntime?.application_reference) ?? actor.defaultApplicationReference
+
+  if (route.company_id !== companyId) {
+    throw new Error(`canonical_route_tenant_mismatch:${route.id}`)
+  }
 
   if (environment === 'production') {
+    if (!applicationReference) {
+      throw new Error(`production_application_reference_required:${route.id}`)
+    }
     const normalizedApplicationReference = String(applicationReference ?? '').toUpperCase()
     const normalizedReceiverEmail = String(route.target_email ?? '').toLowerCase()
 
@@ -234,7 +223,7 @@ export async function resolveCanonicalRouteContext(params: {
         }. Runtime-profilen gav receiver ${receiverEdielId}, subaddress ${receiverMessageSubAddress ?? receiverSubAddress ?? 'ingen'}, mailbox ${mailbox ?? '—'} application reference ${applicationReference ?? '—'} och ack_mode ${ackMode}.`
 
   return {
-    companyId: companyId ?? route.company_id ?? null,
+    companyId,
     actor,
     route,
     routeRuntime,

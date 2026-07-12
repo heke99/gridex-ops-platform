@@ -7,12 +7,6 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
 
-function isMissingSchema(error: unknown): boolean {
-  const code = String((error as { code?: unknown } | null)?.code ?? '')
-  const message = String((error as { message?: unknown } | null)?.message ?? '')
-  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
-}
-
 function isProtectedOutboundFamily(message: EdielMessageRow): boolean {
   return message.direction === 'outbound' && (message.message_family === 'PRODAT' || message.message_family === 'UTILTS')
 }
@@ -40,10 +34,7 @@ export async function getEdielOutboundReadinessBlocker(message: EdielMessageRow)
     .eq('ediel_id', receiverEdielId)
     .limit(2)
 
-  if (error) {
-    if (isMissingSchema(error)) return null
-    throw error
-  }
+  if (error) throw error
 
   const rows = (data ?? []) as Array<{
     can_use_for_prodat?: boolean | null

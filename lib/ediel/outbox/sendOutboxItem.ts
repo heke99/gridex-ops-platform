@@ -1,9 +1,9 @@
-import { randomUUID } from 'crypto'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 import { supabaseService } from '@/lib/supabase/service'
 import { getEdielOutboundReadinessBlocker } from '@/lib/ediel/outbox/readinessGuard'
 import { evaluateEdielRouteContract } from '@/lib/ediel/outbox/routeContract'
+import { claimEdielOutboxItem } from '@/lib/ediel/outbox/claimOutboxItems'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -36,63 +36,13 @@ async function assertNoActiveSendLock(params: {
     .eq('company_id', params.companyId)
     .limit(50)
 
-  if (error) {
-    const code = String((error as { code?: unknown }).code ?? '')
-    const message = String(error.message ?? '')
-    if (code === '42P01' || /does not exist/i.test(message) || /Could not find/i.test(message)) return null
-    throw error
-  }
+  if (error) throw error
 
   const lockRows = Array.isArray(data) ? (data as unknown as Array<Record<string, unknown>>) : []
   const activeLock = lockRows.find((row) => lockIsActive(row) && lockMatchesEnvironment(row, params.environment))
   if (!activeLock) return null
 
   return clean(activeLock.locked_reason) ?? clean(activeLock.lock_key) ?? 'active_ediel_send_lock'
-}
-
-function schemaCompatibilityError(error: unknown): boolean {
-  const record = error && typeof error === 'object' ? error as Record<string, unknown> : {}
-  const code = String(record.code ?? '')
-  const message = String(record.message ?? record.details ?? '')
-  return code === 'PGRST204' || code === '42703' || /column .* does not exist|schema cache|Could not find/i.test(message)
-}
-
-async function claimForDirectSend(params: {
-  outboxItemId: string
-  workerId: string
-  actorUserId: string
-}): Promise<{ item: Record<string, unknown> | null; sendAttemptId: string | null; error?: string | null }> {
-  const sendAttemptId = randomUUID()
-  const now = new Date().toISOString()
-  const { data, error } = await supabaseService
-    .from('ediel_outbox')
-    .update({
-      status: 'sending',
-      locked_at: now,
-      locked_by: params.workerId,
-      current_send_attempt_id: sendAttemptId,
-      attempts: 1,
-      updated_by: params.actorUserId,
-      updated_at: now,
-    })
-    .eq('id', params.outboxItemId)
-    .in('status', ['prepared', 'queued'])
-    .select('*')
-    .maybeSingle()
-
-  if (error) {
-    if (!schemaCompatibilityError(error)) throw error
-    const { data: fallbackItem, error: fallbackError } = await supabaseService
-      .from('ediel_outbox')
-      .select('*')
-      .eq('id', params.outboxItemId)
-      .maybeSingle()
-    if (fallbackError) throw fallbackError
-    return { item: (fallbackItem as Record<string, unknown> | null) ?? null, sendAttemptId: null }
-  }
-
-  if (!data) return { item: null, sendAttemptId, error: 'outbox_item_not_claimed' }
-  return { item: data as Record<string, unknown>, sendAttemptId }
 }
 
 async function updateOutboxStatus(params: {
@@ -108,28 +58,13 @@ async function updateOutboxStatus(params: {
 
   if (params.sendAttemptId) query = query.eq('current_send_attempt_id', params.sendAttemptId)
   else if (params.workerId) query = query.eq('locked_by', params.workerId)
+  else throw new Error('ediel_outbox_status_update_requires_claim_identity')
 
-  const { error } = await query
-  if (error) {
-    if (!schemaCompatibilityError(error)) throw error
-    const compatibilityPayload = { ...params.payload }
-    delete compatibilityPayload.locked_at
-    delete compatibilityPayload.locked_by
-    delete compatibilityPayload.current_send_attempt_id
-    delete compatibilityPayload.smtp_message_id
-    delete compatibilityPayload.transport_channel
-    delete compatibilityPayload.receiver_ediel_id
-    delete compatibilityPayload.receiver_subaddress
-    delete compatibilityPayload.certificate_fingerprint
-    delete compatibilityPayload.route_contract_fingerprint
-    delete compatibilityPayload.route_contract_snapshot
-    const { error: fallbackError } = await supabaseService
-      .from('ediel_outbox')
-      .update(compatibilityPayload)
-      .eq('id', params.outboxItemId)
-    if (fallbackError) throw fallbackError
-  }
+  const { data, error } = await query.select('id').maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('ediel_outbox_claim_lost_before_status_update')
 }
+
 
 export async function sendOutboxItem(params: {
   actorUserId: string
@@ -159,10 +94,13 @@ export async function sendOutboxItem(params: {
       return { status: 'blocked', messageId: null, error: 'outbox_item_not_claimed_by_worker' }
     }
   } else {
-    const claimed = await claimForDirectSend({ outboxItemId: params.outboxItemId, workerId, actorUserId: params.actorUserId })
-    if (claimed.error) return { status: 'blocked', messageId: null, error: claimed.error }
-    item = claimed.item
-    sendAttemptId = claimed.sendAttemptId
+    const claimed = await claimEdielOutboxItem({
+      outboxItemId: params.outboxItemId,
+      workerId,
+      actorUserId: params.actorUserId,
+    })
+    item = claimed as Record<string, unknown> | null
+    sendAttemptId = clean(claimed?.current_send_attempt_id)
     if (!item) return { status: 'blocked', messageId: null, error: 'outbox_item_not_found_or_already_processing' }
   }
 

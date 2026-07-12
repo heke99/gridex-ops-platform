@@ -452,6 +452,40 @@ export function resolveRecommendedAckForInboundMessage(params: {
     }
   }
 
+  if (syntaxIssue) {
+    if (!hasFinalContrl) {
+      return {
+        action: 'send_ack',
+        title: 'Syntaxfel upptäckt · skicka negativ CONTRL',
+        description: 'Syntaxfel stoppar all efterföljande kvittenshantering.',
+        tone: 'red',
+        reasonCode: 'syntax_error_negative_contrl',
+        ackFamily: 'CONTRL',
+        outcome: 'negative',
+        messageText: syntaxIssue,
+        applicationErrors: null,
+        canAutoSend: true,
+        reasonItems: [syntaxIssue, 'Negativ CONTRL ska skickas före APERAK eller affärssvar.'],
+        diagnostics,
+      }
+    }
+
+    return {
+      action: 'none',
+      title: 'Syntaxfel är kvitterat',
+      description: 'Vänta på en korrigerad omsändning från motparten.',
+      tone: 'yellow',
+      reasonCode: 'syntax_error_negative_contrl_done',
+      ackFamily: null,
+      outcome: null,
+      messageText: null,
+      applicationErrors: null,
+      canAutoSend: false,
+      reasonItems: ['Negativ CONTRL finns redan som slutlig kvittens.'],
+      diagnostics,
+    }
+  }
+
   if (message.message_family === 'APERAK') {
     if (!hasFinalContrl) {
       return {
@@ -491,7 +525,7 @@ export function resolveRecommendedAckForInboundMessage(params: {
       return {
         action: 'send_ack',
         title: 'Skicka positiv CONTRL på UTILTS-ERR',
-        description: 'Inkommande UTILTS-ERR ska tekniskt kvitteras med CONTRL.',
+        description: 'Inkommande UTILTS-ERR ska först tekniskt kvitteras med CONTRL.',
         tone: 'blue',
         reasonCode: 'incoming_utilts_err_contrl_required',
         ackFamily: 'CONTRL',
@@ -499,9 +533,41 @@ export function resolveRecommendedAckForInboundMessage(params: {
         messageText: null,
         applicationErrors: null,
         canAutoSend: true,
-        reasonItems: ['UTILTS-ERR besvaras inte med APERAK.'],
+        reasonItems: ['Canonical ACK-matris: UTILTS-ERR → CONTRL → APERAK.'],
         diagnostics,
       }
+    }
+
+    if (!hasFinalAperak) {
+      return {
+        action: 'send_ack',
+        title: 'Skicka positiv APERAK på UTILTS-ERR',
+        description: 'Efter positiv CONTRL ska UTILTS-ERR applikationskvitteras med APERAK.',
+        tone: 'blue',
+        reasonCode: 'business_positive_aperak_required',
+        ackFamily: 'APERAK',
+        outcome: 'positive',
+        messageText: null,
+        applicationErrors: null,
+        canAutoSend: true,
+        reasonItems: ['Canonical ACK-matris: UTILTS-ERR → CONTRL + APERAK.'],
+        diagnostics,
+      }
+    }
+
+    return {
+      action: 'none',
+      title: 'Kvittensflöde klart',
+      description: 'UTILTS-ERR har både teknisk och applikationskvittens.',
+      tone: 'green',
+      reasonCode: 'aperak_done',
+      ackFamily: null,
+      outcome: null,
+      messageText: null,
+      applicationErrors: null,
+      canAutoSend: false,
+      reasonItems: ['Ingen dubbelkvittens skickas.'],
+      diagnostics,
     }
   }
 
@@ -522,43 +588,6 @@ export function resolveRecommendedAckForInboundMessage(params: {
     }
   }
 
-  if (syntaxIssue) {
-    if (!hasFinalContrl) {
-      return {
-        action: 'send_ack',
-        title: 'Syntaxfel upptäckt · skicka negativ CONTRL',
-        description: 'Syntaxfel stoppar affärsvalidering. GridCore ska skicka negativ CONTRL och ingen APERAK.',
-        tone: 'red',
-        reasonCode: 'syntax_error_negative_contrl',
-        ackFamily: 'CONTRL',
-        outcome: 'negative',
-        messageText: syntaxIssue,
-        applicationErrors: null,
-        canAutoSend: true,
-        reasonItems: [
-          syntaxIssue,
-          'Negativ CONTRL ska ge UCI action code 4.',
-          'APERAK skickas inte innan syntaxen är accepterad.',
-        ],
-        diagnostics,
-      }
-    }
-
-    return {
-      action: 'none',
-      title: 'Syntaxfel är kvitterat',
-      description: 'Vänta på omsändning från motparten. Omsändning utan syntaxfel går vidare till positiv CONTRL och APERAK.',
-      tone: 'yellow',
-      reasonCode: 'syntax_error_negative_contrl_done',
-      ackFamily: null,
-      outcome: null,
-      messageText: null,
-      applicationErrors: null,
-      canAutoSend: false,
-      reasonItems: ['Negativ CONTRL finns redan som slutlig kvittens.'],
-      diagnostics,
-    }
-  }
 
   if (!hasFinalContrl) {
     return {

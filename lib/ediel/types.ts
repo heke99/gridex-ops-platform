@@ -209,6 +209,11 @@ export type EdielMessageRow = {
   related_message_id: string | null;
 
   communication_route_id: string | null;
+  rule_profile_key?: string | null;
+  rule_profile_version_id?: string | null;
+  rule_profile_version?: string | null;
+  rule_pack_checksum?: string | null;
+  rule_pack_snapshot?: Record<string, unknown> | null;
   outbound_request_id: string | null;
   intent_id?: string | null;
   inbound_email_message_id?: string | null;
@@ -546,6 +551,11 @@ export type CreateEdielMessageInput = {
   relatedMessageId?: string | null;
 
   communicationRouteId?: string | null;
+  ruleProfileKey?: string | null;
+  ruleProfileVersionId?: string | null;
+  ruleProfileVersion?: string | null;
+  rulePackChecksum?: string | null;
+  rulePackSnapshot?: Record<string, unknown> | null;
   intentId?: string | null;
   partyId?: string | null;
   partyAddressId?: string | null;

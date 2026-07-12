@@ -5,7 +5,7 @@ import type {
   ProdatEngineProductionContext,
   ProdatEngineRenderResult,
 } from '@/lib/ediel/prodat/types'
-import { buildGenericProdatSegments } from '@/lib/ediel/prodat/builders/generic'
+import { buildProfiledProdatSegments } from '@/lib/ediel/prodat/builders/profileRenderer'
 
 export function buildZ13Segments(input: {
   context: ProdatEngineProductionContext
@@ -17,7 +17,7 @@ export function buildZ13Segments(input: {
   selectedVersion?: string | null
   acceptedVersions?: string[]
 }): ProdatEngineRenderResult {
-  return buildGenericProdatSegments({
+  return buildProfiledProdatSegments({
     ...input,
     renderer: 'prodat.builders.z13.buildZ13Segments',
   })

@@ -25,20 +25,10 @@ export type UtiltsMessageSupport = {
 
 // Codes explicitly in scope per the hardening brief.
 export const UTILTS_MESSAGE_SUPPORT: UtiltsMessageSupport[] = [
-  { messageCode: 'E66', supportStatus: 'full', businessProcesses: ['metering_values', 'timeseries_request'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Metering values request/response; built outbound and parsed inbound.' },
-  { messageCode: 'E73', supportStatus: 'outbound_only', businessProcesses: ['timeseries_request'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Data request; built outbound.' },
-  { messageCode: 'E31', supportStatus: 'inbound_only', businessProcesses: ['metering_values'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Schedule/aggregated values; parsed inbound.' },
-  { messageCode: 'S02', supportStatus: 'inbound_only', businessProcesses: ['metering_values'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Measurement series; parsed inbound.' },
-  { messageCode: 'S03', supportStatus: 'inbound_only', businessProcesses: ['metering_values'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Measurement series; parsed inbound.' },
-  { messageCode: 'S01', supportStatus: 'manual_review', businessProcesses: ['metering_values'], applicationReferencePolicyKey: null, note: 'Rulebook profile only; no specific parser/builder yet.' },
-  { messageCode: 'S04', supportStatus: 'manual_review', businessProcesses: ['metering_values'], applicationReferencePolicyKey: null, note: 'Rulebook profile only; no specific parser/builder yet.' },
-  { messageCode: 'S05', supportStatus: 'manual_review', businessProcesses: ['metering_values'], applicationReferencePolicyKey: null, note: 'Not yet implemented; route to manual review.' },
-  { messageCode: 'S06', supportStatus: 'manual_review', businessProcesses: ['metering_values'], applicationReferencePolicyKey: null, note: 'Not yet implemented; route to manual review.' },
-  { messageCode: 'S07', supportStatus: 'manual_review', businessProcesses: ['metering_values'], applicationReferencePolicyKey: null, note: 'Not yet implemented; route to manual review.' },
-  { messageCode: 'E30', supportStatus: 'manual_review', businessProcesses: ['metering_values'], applicationReferencePolicyKey: null, note: 'Not yet implemented; route to manual review.' },
-  { messageCode: 'E72', supportStatus: 'manual_review', businessProcesses: ['metering_values'], applicationReferencePolicyKey: null, note: 'Not yet implemented; route to manual review.' },
-  { messageCode: 'E74', supportStatus: 'manual_review', businessProcesses: ['metering_values'], applicationReferencePolicyKey: null, note: 'Not yet implemented; route to manual review.' },
-  { messageCode: 'ERR', supportStatus: 'full', businessProcesses: ['acknowledgement'], applicationReferencePolicyKey: null, note: 'UTILTS functional error; built and parsed.' },
+  { messageCode: 'E66', supportStatus: 'full', businessProcesses: ['metering_values', 'timeseries_request'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Canonical profile, outbound request and transaction-aware inbound processing.' },
+  { messageCode: 'E73', supportStatus: 'outbound_only', businessProcesses: ['timeseries_request'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Canonical data-request profile and outbound builder.' },
+  ...['S01','S02','S03','S04','S05','S06','S07','E30','E31','E72','E74'].map((messageCode) => ({ messageCode, supportStatus: 'inbound_only' as const, businessProcesses: ['metering_values'], applicationReferencePolicyKey: '23-DDQ-UTILTS', note: 'Canonical profile with transaction-level inbound validation, correction and DST rules.' })),
+  { messageCode: 'ERR', supportStatus: 'full', businessProcesses: ['acknowledgement'], applicationReferencePolicyKey: null, note: 'Canonical UTILTS functional-error profile.' },
 ]
 
 export function getUtiltsMessageSupport(code: string | null | undefined): UtiltsMessageSupport | null {
@@ -67,7 +57,7 @@ export function verifyUtiltsRegistryConsistency(): { ok: boolean; issues: Utilts
     seen.add(entry.messageCode)
   }
   // Every canonical rulebook profile code must be classified.
-  for (const code of ['E66', 'E31', 'S01', 'S02', 'S03', 'S04']) {
+  for (const code of ['S01','S02','S03','S04','S05','S06','S07','E30','E31','E66','E72','E73','E74','ERR']) {
     if (!getUtiltsMessageSupport(code)) issues.push({ code, issue: 'canonical profile code missing from support registry' })
   }
   return { ok: issues.length === 0, issues }

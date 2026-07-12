@@ -64,15 +64,6 @@ export function isLegacyOutboundWaitingForCounterparty(
   return isLegacyOutboundActuallySent(row)
 }
 
-function isMissingSchema(error: unknown): boolean {
-  const code = String((error as { code?: unknown } | null)?.code ?? '')
-  const message = String((error as { message?: unknown } | null)?.message ?? '')
-  return (
-    ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) ||
-    /schema cache|does not exist|column .* does not exist/i.test(message)
-  )
-}
-
 // Marks a legacy outbound_requests row as superseded by the intent pipeline so it
 // is never re-interpreted as a live send. This is additive metadata only; it does
 // not delete or hard-fail the row (no destructive action).
@@ -89,10 +80,7 @@ export async function markLegacyOutboundSupersededByIntent(input: {
     .eq('company_id', input.companyId)
     .eq('id', input.outboundRequestId)
     .maybeSingle()
-  if (error) {
-    if (isMissingSchema(error)) return
-    throw error
-  }
+  if (error) throw error
   const row = (data as LegacyOutboundRow | null) ?? null
   if (!row) return
 
@@ -125,5 +113,5 @@ export async function markLegacyOutboundSupersededByIntent(input: {
     .update(patch)
     .eq('company_id', input.companyId)
     .eq('id', input.outboundRequestId)
-  if (updateError && !isMissingSchema(updateError)) throw updateError
+  if (updateError) throw updateError
 }

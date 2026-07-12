@@ -177,7 +177,6 @@ export function renderAperakEdiel(params: {
 
   const segments = isUtiltsSource
     ? [
-        'UNH+1+APERAK:D:04A:UN:E5SE5A',
         `BGM+${utiltsBgmCode}+${sanitizeEdifactToken(params.externalReference) ?? 'APERAK'}+9`,
         `DTM+137:${swedishDateTime()}:203`,
         'DTM+735:?+0100:406',
@@ -187,7 +186,6 @@ export function renderAperakEdiel(params: {
         'NAD+DDQ',
       ]
     : [
-        'UNH+1+APERAK:D:96A:UN:E2SE6A',
         `BGM+++${bgmFunction}`,
         `DTM+137:${swedishDateTime()}:203`,
       ]

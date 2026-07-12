@@ -3,6 +3,7 @@ import { isPriceArea } from '@/lib/pricing/types'
 import { assertBillingPeriodOpen } from '@/lib/billing/invoiceReadiness'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { stockholmLocalToUtc, stockholmMonthBounds } from '@/lib/time/stockholm'
+import { evaluateBillingGate } from '@/lib/billing/billingGate'
 
 type JsonRecord = Record<string, unknown>
 
@@ -84,6 +85,8 @@ async function loadNormalizedValues(companyId: string, start: string, end: strin
       .eq('company_id', companyId)
       .eq('revision_status', 'current')
       .eq('billing_status', 'billable')
+      .eq('billing_gate_status', 'eligible')
+      .not('supply_period_id', 'is', null)
       .gte('period_start', start)
       .lt('period_start', end)
       .order('period_start', { ascending: true })
@@ -266,6 +269,26 @@ export async function generateBillingUnderlaysForMonth(input: {
       const snapshot = await loadSnapshot(input.companyId, contractId, entry.start)
       if (contract && !snapshot) warnings.push('Prissnapshot saknas för avtalet och fakturasegmentet.')
 
+      for (const row of segmentRows) {
+        if (text(row.supply_period_id) !== text(period.id)) {
+          warnings.push(`Mätvärde ${text(row.id) ?? 'utan id'} har annan eller saknad leveransperiod än fakturasegmentet.`)
+        }
+        const gate = evaluateBillingGate({
+          normalizedValue: row,
+          supplyPeriod: period,
+          supplyPeriodCandidateCount: 1,
+          contract,
+          contractCandidateCount: contract ? 1 : 0,
+          allowEstimatedValues: false,
+        })
+        if (!gate.eligible) {
+          for (const gateReason of gate.reasons) warnings.push(`${gateReason.code}: ${gateReason.message}`)
+        }
+        if (text(object(row.billing_gate_snapshot).status) !== 'eligible') {
+          warnings.push(`Mätvärde ${text(row.id) ?? 'utan id'} saknar en sparad eligible billing-gate-snapshot.`)
+        }
+      }
+
       const directionSet = new Set(segmentRows.map((row) => text(row.direction) ?? 'consumption'))
       if ([...directionSet].some((direction) => !['consumption', 'net_consumption'].includes(direction))) {
         warnings.push('Produktions- och förbrukningsvärden får inte blandas i ett kundfakturaunderlag.')
@@ -327,7 +350,15 @@ export async function generateBillingUnderlaysForMonth(input: {
         resolution: text(row.resolution),
         status: ready ? 'ready_for_pricing' : 'needs_review',
         warnings: readinessIssues(uniqueWarnings),
-        metadata: { source_row_id: text(row.id), raw_payload: object(row.raw_payload) },
+        metadata: {
+          source_row_id: text(row.id),
+          source_metering_value_id: text(row.source_metering_value_id),
+          source_message_id: text(row.source_message_id),
+          revision_number: row.revision_number ?? null,
+          previous_value_id: text(row.previous_value_id),
+          billing_gate_snapshot: object(row.billing_gate_snapshot),
+          raw_payload: object(row.raw_payload),
+        },
       }))
 
       const underlay = {
@@ -362,6 +393,13 @@ export async function generateBillingUnderlaysForMonth(input: {
           source_row_ids: segmentRows.map((row) => text(row.id)),
           supply_period_id: text(period.id),
           generated_from: 'normalized_metering_values',
+          lineage: segmentRows.map((row) => ({
+            normalized_metering_value_id: text(row.id),
+            source_metering_value_id: text(row.source_metering_value_id),
+            source_message_id: text(row.source_message_id),
+            supply_period_id: text(row.supply_period_id),
+            revision_number: row.revision_number ?? null,
+          })),
           timezone: 'Europe/Stockholm',
         },
         pricing_snapshot: snapshotJson,

@@ -2,13 +2,19 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { MeteringValueRow } from '@/lib/cis/types'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { stockholmDateForInstant } from '@/lib/time/stockholm'
+import { evaluateBillingGate, type BillingGateStatus } from '@/lib/billing/billingGate'
 
-type BillingMatchStatus = 'billable_pending' | 'unmatched_for_billing' | 'billing_conflict'
+type CanonicalBillingStatus = 'pending_match' | 'billable' | 'blocked' | 'conflict'
+
+function canonicalStatus(gateStatus: BillingGateStatus): CanonicalBillingStatus {
+  if (gateStatus === 'eligible') return 'billable'
+  return gateStatus
+}
 
 async function createBillingUnresolvedItem(params: {
   companyId: string
   sourceMessageId?: string | null
-  issueType: 'billing_period_missing' | 'billing_period_conflict'
+  issueType: 'billing_period_missing' | 'billing_period_conflict' | 'billing_gate_blocked'
   severity: 'warning' | 'critical'
   identifiers: Record<string, unknown>
 }) {
@@ -36,17 +42,28 @@ async function createBillingUnresolvedItem(params: {
   if (error) throw error
 }
 
-async function updateMeterValueBillingStatus(params: {
+async function persistBillingGate(params: {
   meterValueId: string
+  normalizedValueId: string
   companyId: string
-  status: BillingMatchStatus
+  status: CanonicalBillingStatus
+  gateStatus: BillingGateStatus
+  gateReasons: Array<{ code: string; message: string }>
+  gateSnapshot: Record<string, unknown>
   customerId?: string | null
+  supplyPeriodId?: string | null
+  sourceMessageId?: string | null
 }) {
+  const now = new Date().toISOString()
   const meterUpdate = await supabaseService
     .from('metering_values')
     .update({
       customer_id: params.customerId ?? undefined,
       billing_status: params.status,
+      billing_gate_status: params.gateStatus,
+      billing_gate_reasons: params.gateReasons,
+      billing_gate_snapshot: params.gateSnapshot,
+      billing_gate_evaluated_at: now,
     })
     .eq('id', params.meterValueId)
     .eq('company_id', params.companyId)
@@ -56,8 +73,18 @@ async function updateMeterValueBillingStatus(params: {
 
   const normalizedUpdate = await supabaseService
     .from('normalized_metering_values')
-    .update({ billing_status: params.status, updated_at: new Date().toISOString() })
-    .eq('source_metering_value_id', params.meterValueId)
+    .update({
+      customer_id: params.customerId ?? undefined,
+      supply_period_id: params.supplyPeriodId ?? null,
+      source_message_id: params.sourceMessageId ?? undefined,
+      billing_status: params.status,
+      billing_gate_status: params.gateStatus,
+      billing_gate_reasons: params.gateReasons,
+      billing_gate_snapshot: params.gateSnapshot,
+      billing_gate_evaluated_at: now,
+      updated_at: now,
+    })
+    .eq('id', params.normalizedValueId)
     .eq('company_id', params.companyId)
     .eq('revision_status', 'current')
     .select('id')
@@ -68,102 +95,129 @@ async function updateMeterValueBillingStatus(params: {
 export async function updateMeterValueBillingReadiness(params: {
   meterValue: MeteringValueRow
   sourceMessageId?: string | null
-}): Promise<BillingMatchStatus> {
+  allowEstimatedValues?: boolean
+}): Promise<CanonicalBillingStatus> {
   await assertPlatformSchemaReady()
   const companyId = params.meterValue.company_id ?? null
   const meteringPointId = params.meterValue.metering_point_id
   const periodStartRaw = params.meterValue.period_start
   const periodEndRaw = params.meterValue.period_end
+  if (!companyId) return 'pending_match'
 
-  if (!companyId || !meteringPointId || !periodStartRaw || !periodEndRaw) {
-    if (companyId) {
-      await updateMeterValueBillingStatus({ meterValueId: params.meterValue.id, companyId, status: 'unmatched_for_billing' })
-    }
-    return 'unmatched_for_billing'
+  const normalizedResponse = await supabaseService
+    .from('normalized_metering_values')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('source_metering_value_id', params.meterValue.id)
+    .eq('revision_status', 'current')
+    .limit(2)
+  if (normalizedResponse.error) throw normalizedResponse.error
+  const normalizedRows = (normalizedResponse.data ?? []) as Array<Record<string, unknown>>
+  if (normalizedRows.length !== 1) throw new Error(normalizedRows.length > 1 ? 'normalized_metering_current_revision_conflict' : 'normalized_metering_current_revision_missing')
+  const normalizedValue = normalizedRows[0]
+  const normalizedValueId = String(normalizedValue.id)
+
+  if (!meteringPointId || !periodStartRaw || !periodEndRaw) {
+    const gate = evaluateBillingGate({ normalizedValue, allowEstimatedValues: params.allowEstimatedValues })
+    await persistBillingGate({
+      meterValueId: params.meterValue.id,
+      normalizedValueId,
+      companyId,
+      status: canonicalStatus(gate.status),
+      gateStatus: gate.status,
+      gateReasons: gate.reasons,
+      gateSnapshot: gate.snapshot,
+      sourceMessageId: params.sourceMessageId ?? params.meterValue.source_ediel_message_id ?? null,
+    })
+    return canonicalStatus(gate.status)
   }
 
   const periodStart = stockholmDateForInstant(periodStartRaw)
   const periodEnd = stockholmDateForInstant(new Date(new Date(periodEndRaw).getTime() - 1))
-  const { data: periods, error: periodsError } = await supabaseService
+  const periodsResponse = await supabaseService
     .from('customer_supply_periods')
-    .select('id,company_id,customer_id,contract_id,metering_point_id,start_date,end_date,status')
+    .select('*')
     .eq('company_id', companyId)
     .eq('metering_point_id', meteringPointId)
     .in('status', ['active', 'confirmed_by_grid_owner'])
     .lte('start_date', periodStart)
     .or(`end_date.is.null,end_date.gte.${periodEnd}`)
     .limit(3)
-  if (periodsError) throw periodsError
+  if (periodsResponse.error) throw periodsResponse.error
+  const periods = (periodsResponse.data ?? []) as Array<Record<string, unknown>>
+  const period = periods.length === 1 ? periods[0] : null
 
-  if (!periods || periods.length === 0) {
-    await updateMeterValueBillingStatus({ meterValueId: params.meterValue.id, companyId, status: 'unmatched_for_billing' })
-    await createBillingUnresolvedItem({
-      companyId,
-      sourceMessageId: params.sourceMessageId,
-      issueType: 'billing_period_missing',
-      severity: 'warning',
-      identifiers: { meteringPointId, periodStart, periodEnd, meterValueId: params.meterValue.id },
-    })
-    return 'unmatched_for_billing'
+  const contractId = typeof period?.contract_id === 'string' ? period.contract_id : null
+  const customerId = typeof period?.customer_id === 'string' ? period.customer_id : null
+  let contracts: Array<Record<string, unknown>> = []
+  if (contractId && customerId) {
+    const contractResponse = await supabaseService
+      .from('customer_contracts')
+      .select('*')
+      .eq('id', contractId)
+      .eq('company_id', companyId)
+      .eq('customer_id', customerId)
+      .eq('metering_point_id', meteringPointId)
+      .limit(2)
+    if (contractResponse.error) throw contractResponse.error
+    contracts = (contractResponse.data ?? []) as Array<Record<string, unknown>>
   }
 
-  if (periods.length > 1) {
-    await updateMeterValueBillingStatus({ meterValueId: params.meterValue.id, companyId, status: 'billing_conflict' })
+  const sourceMessageId = params.sourceMessageId ?? params.meterValue.source_ediel_message_id ?? (typeof normalizedValue.source_message_id === 'string' ? normalizedValue.source_message_id : null)
+  let sourceMessage: Record<string, unknown> | null = null
+  if (sourceMessageId) {
+    const sourceResponse = await supabaseService
+      .from('ediel_messages')
+      .select('id,company_id,message_family,message_code,status,validated_at,processing_status')
+      .eq('id', sourceMessageId)
+      .eq('company_id', companyId)
+      .maybeSingle()
+    if (sourceResponse.error) throw sourceResponse.error
+    sourceMessage = (sourceResponse.data as Record<string, unknown> | null) ?? null
+  }
+
+  const gate = evaluateBillingGate({
+    normalizedValue: { ...normalizedValue, source_message_id: sourceMessageId },
+    supplyPeriod: period,
+    supplyPeriodCandidateCount: periods.length,
+    contract: contracts.length === 1 ? contracts[0] : null,
+    contractCandidateCount: contracts.length,
+    sourceMessage,
+    allowEstimatedValues: params.allowEstimatedValues,
+  })
+  const status = canonicalStatus(gate.status)
+
+  await persistBillingGate({
+    meterValueId: params.meterValue.id,
+    normalizedValueId,
+    companyId,
+    status,
+    gateStatus: gate.status,
+    gateReasons: gate.reasons,
+    gateSnapshot: gate.snapshot,
+    customerId,
+    supplyPeriodId: typeof period?.id === 'string' ? period.id : null,
+    sourceMessageId,
+  })
+
+  if (!gate.eligible) {
+    const issueType = periods.length > 1 ? 'billing_period_conflict' : periods.length === 0 ? 'billing_period_missing' : 'billing_gate_blocked'
     await createBillingUnresolvedItem({
       companyId,
-      sourceMessageId: params.sourceMessageId,
-      issueType: 'billing_period_conflict',
-      severity: 'critical',
+      sourceMessageId,
+      issueType,
+      severity: gate.status === 'conflict' ? 'critical' : 'warning',
       identifiers: {
+        meterValueId: params.meterValue.id,
+        normalizedValueId,
         meteringPointId,
         periodStart,
         periodEnd,
-        meterValueId: params.meterValue.id,
-        supplyPeriodIds: periods.map((row: { id: string }) => row.id),
+        supplyPeriodIds: periods.map((row) => row.id),
+        reasonCodes: gate.reasons.map((entry) => entry.code),
       },
     })
-    return 'billing_conflict'
   }
 
-  const period = periods[0] as { id: string; customer_id?: string | null; contract_id?: string | null }
-  if (!period.customer_id || !period.contract_id) {
-    await updateMeterValueBillingStatus({
-      meterValueId: params.meterValue.id,
-      companyId,
-      status: 'unmatched_for_billing',
-      customerId: period.customer_id ?? null,
-    })
-    return 'unmatched_for_billing'
-  }
-
-  const { data: contracts, error: contractError } = await supabaseService
-    .from('customer_contracts')
-    .select('id,company_id,customer_id,metering_point_id,status,starts_at,ends_at')
-    .eq('id', period.contract_id)
-    .eq('company_id', companyId)
-    .eq('customer_id', period.customer_id)
-    .eq('metering_point_id', meteringPointId)
-    .in('status', ['signed', 'active'])
-    .lte('starts_at', periodStart)
-    .or(`ends_at.is.null,ends_at.gte.${periodEnd}`)
-    .limit(2)
-  if (contractError) throw contractError
-
-  if ((contracts ?? []).length !== 1) {
-    await updateMeterValueBillingStatus({
-      meterValueId: params.meterValue.id,
-      companyId,
-      status: (contracts ?? []).length > 1 ? 'billing_conflict' : 'unmatched_for_billing',
-      customerId: period.customer_id,
-    })
-    return (contracts ?? []).length > 1 ? 'billing_conflict' : 'unmatched_for_billing'
-  }
-
-  await updateMeterValueBillingStatus({
-    meterValueId: params.meterValue.id,
-    companyId,
-    status: 'billable_pending',
-    customerId: period.customer_id,
-  })
-  return 'billable_pending'
+  return status
 }

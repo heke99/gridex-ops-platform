@@ -1,7 +1,7 @@
 import {
   listEdielSupplierAgt2026Cases,
   type EdielAgtTestCaseDefinition,
-} from '@/lib/ediel/agtRegistry'
+} from '@/lib/ediel/testing/agtRegistry'
 
 export type EdielEngineSuite = 'PRODAT' | 'UTILTS'
 export type EdielEngineMode = 'test' | 'production'

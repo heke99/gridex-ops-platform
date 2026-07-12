@@ -8,7 +8,7 @@ import {
   EDIEL_TGT_TESTSYSTEM_EMAIL,
   GRIDEX_TGT_EDIEL_ID,
 } from '@/lib/ediel/fileEngine'
-import { getEdielTgtTestDataForCase } from '@/lib/ediel/tgtTestData'
+import { getEdielTgtTestDataForCase } from '@/lib/ediel/testing/tgtTestData'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 
 type AnyRow = Record<string, unknown>

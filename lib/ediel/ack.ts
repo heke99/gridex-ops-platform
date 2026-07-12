@@ -270,8 +270,12 @@ function ensureInboundEdifactSource(sourceMessage: EdielMessageRow, ackFamily: A
     throw new Error('Inkommande APERAK får endast besvaras med CONTRL, aldrig med APERAK.')
   }
 
-  if (sourceMessage.message_family === 'UTILTS_ERR' && ackFamily !== 'CONTRL') {
-    throw new Error('Inkommande UTILTS-ERR får inte besvaras med APERAK.')
+  if (
+    sourceMessage.message_family === 'UTILTS_ERR' &&
+    ackFamily !== 'CONTRL' &&
+    ackFamily !== 'APERAK'
+  ) {
+    throw new Error('Inkommande UTILTS-ERR får endast besvaras med CONTRL och APERAK.')
   }
 }
 
@@ -409,7 +413,7 @@ function buildAperakSegments(params: {
     utiltsAcknowledgementReference: params.relatedTransactionReference ?? null,
   })
 
-  return rendered.segments
+  return rendered.segments.filter((segment) => !segment.toUpperCase().startsWith('UNH+'))
 }
 
 type UtiltsErrSourceGroup = {
@@ -773,7 +777,6 @@ function buildUtiltsErrSegments(params: {
   const sourceCode = sanitizeEdifactToken(String(params.sourceMessage.message_code ?? 'UTILTS'), 8) ?? 'UTILTS'
 
   const segments: Array<string | null> = [
-    'UNH+1+UTILTS:D:02B:UN:E5SE5A',
     `BGM+ERR:SVK:260+${buildUtiltsErrDocumentReference()}+9+AB`,
     `DTM+137:${swedishDateTime()}:203`,
     'DTM+735:?+0100:406',

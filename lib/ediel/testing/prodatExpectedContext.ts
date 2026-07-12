@@ -1,6 +1,6 @@
 // lib/ediel/prodat/expectedContext.ts
 
-import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
+import type { EdielTgtCaseTestData } from '@/lib/ediel/testing/tgtTestData'
 import type { ParsedProdatMessage } from '@/lib/ediel/prodat/parser'
 
 export type ExpectedProdatObject = {

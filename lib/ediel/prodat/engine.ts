@@ -12,6 +12,7 @@ import { buildZ03Segments } from '@/lib/ediel/prodat/builders/z03'
 import { buildZ04Segments } from '@/lib/ediel/prodat/builders/z04'
 import { buildZ05Segments } from '@/lib/ediel/prodat/builders/z05'
 import { buildZ06Segments } from '@/lib/ediel/prodat/builders/z06'
+import { buildZ08Segments } from '@/lib/ediel/prodat/builders/z08'
 import { buildZ09Segments } from '@/lib/ediel/prodat/builders/z09'
 import { buildZ10Segments } from '@/lib/ediel/prodat/builders/z10'
 import { buildZ13Segments } from '@/lib/ediel/prodat/builders/z13'
@@ -20,6 +21,7 @@ import { buildZ15Segments } from '@/lib/ediel/prodat/builders/z15'
 import { buildZ18Segments } from '@/lib/ediel/prodat/builders/z18'
 import { deriveProdatAckExpectation } from '@/lib/ediel/prodat/registry'
 import { buildRulebookMessageDecision } from '@/lib/ediel/rulebook/messageBuilder'
+import { validateProdatProfile } from '@/lib/ediel/prodat/profiles'
 
 export type {
   ProdatEngineAckExpectation,
@@ -36,6 +38,17 @@ export type {
   ProdatEngineVersionContext,
 } from '@/lib/ediel/prodat/types'
 
+
+export class ProdatRenderValidationError extends Error {
+  readonly issues: ProdatEngineRenderResult['issues']
+
+  constructor(input: ProdatEngineInput, issues: ProdatEngineRenderResult['issues']) {
+    super(`prodat_render_blocked:${input.code}:${issues.map((issue) => issue.code).join(',')}`)
+    this.name = 'ProdatRenderValidationError'
+    this.issues = issues
+  }
+}
+
 const BUILDERS = {
   Z01: buildZ01Segments,
   Z02: buildZ02Segments,
@@ -43,6 +56,7 @@ const BUILDERS = {
   Z04: buildZ04Segments,
   Z05: buildZ05Segments,
   Z06: buildZ06Segments,
+  Z08: buildZ08Segments,
   Z09: buildZ09Segments,
   Z10: buildZ10Segments,
   Z13: buildZ13Segments,
@@ -65,6 +79,12 @@ export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult
     code: input.code,
     applicationReference: input.route.applicationReference ?? undefined,
   })
+  const profileValidation = validateProdatProfile({
+    code: input.code,
+    subtype: input.variant,
+    version: input.version.selectedVersion,
+    context: input.context,
+  })
   const result = builder({
     context: input.context,
     portalSnapshot: input.portalSnapshot ?? null,
@@ -76,10 +96,11 @@ export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult
     acceptedVersions: input.version.acceptedVersions ?? [],
   })
 
-  return withAckExpectation({
+  const rendered = withAckExpectation({
     ...result,
     issues: [
       ...result.issues,
+      ...profileValidation.issues,
       ...rulebookDecision.issues.map((issue) => ({
         severity: issue.severity,
         code: issue.code,
@@ -89,11 +110,19 @@ export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult
     ],
     diagnostics: {
       ...result.diagnostics,
+      profileKey: profileValidation.profile?.key ?? null,
       rulebookProcessGroup: rulebookDecision.processGroup,
       rulebookApplicationReference: rulebookDecision.applicationReference,
       rulebookIssues: rulebookDecision.issues as unknown as Array<Record<string, unknown>>,
     },
   }, input.code)
+
+  const blockingIssues = rendered.issues.filter((issue) => issue.severity === 'error')
+  if (input.mode === 'production' && blockingIssues.length > 0) {
+    throw new ProdatRenderValidationError(input, blockingIssues)
+  }
+
+  return rendered
 }
 
 /**

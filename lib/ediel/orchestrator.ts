@@ -568,11 +568,13 @@ export async function inspectManualRouteRuntime(params: {
   requestType: 'supplier_switch' | 'customer_masterdata' | 'meter_values' | 'billing_underlay'
   gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
   preferredRouteId?: string | null
+  companyId: string
 }) {
   return resolveCanonicalOutboundContext({
     requestType: params.requestType,
     gridOwner: params.gridOwner ?? null,
     preferredRouteId: params.preferredRouteId ?? null,
+    companyId: params.companyId,
     environment: 'test',
     messageStandard: 'edifact',
   })

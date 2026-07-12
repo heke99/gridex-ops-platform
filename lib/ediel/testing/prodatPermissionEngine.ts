@@ -3,7 +3,7 @@
 import { parseEdifactMessageFacts, type EdifactSegment } from '@/lib/ediel/core/edifactSegments'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
-import type { EdielTgtCaseTestData } from '@/lib/ediel/tgtTestData'
+import type { EdielTgtCaseTestData } from '@/lib/ediel/testing/tgtTestData'
 import { supabaseService } from '@/lib/supabase/service'
 
 

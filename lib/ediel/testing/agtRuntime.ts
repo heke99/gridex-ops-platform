@@ -4,7 +4,7 @@ import {
   EDIEL_AGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_AGT_TGT_SYSTEM_SUPPLIER_ID,
   getEdielAgtRouteName,
-} from '@/lib/ediel/agtRegistry'
+} from '@/lib/ediel/testing/agtRegistry'
 import { getEdielSystemTestSettings, type EdielSystemTestSettings } from '@/lib/ediel/systemTestSettings'
 
 type CommunicationRouteLite = {

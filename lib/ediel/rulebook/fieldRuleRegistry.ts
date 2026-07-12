@@ -37,6 +37,10 @@ type RegistryFieldRuleRow = Record<string, unknown> & {
   enabled?: boolean | null
   dependency_note?: string | null
   rule_payload?: RegistryRulePayload | null
+  profile_key?: string | null
+  rule_profile_version_id?: string | null
+  profile_version?: string | null
+  rule_pack_checksum?: string | null
 }
 
 export type RegistryFieldRuleScope = {
@@ -46,11 +50,20 @@ export type RegistryFieldRuleScope = {
   direction?: EdielDirection | 'both' | null
   environment?: EdielEnvironment | 'all' | null
   version?: string | null
+  companyId?: string | null
+}
+
+export type RegistryRulePackSnapshot = {
+  profileKey: string
+  profileVersionId: string
+  version: string
+  checksum: string
 }
 
 export type RegistryFieldRuleResult = {
   rules: RulebookFieldRule[]
   source: 'registry' | 'static'
+  rulePack: RegistryRulePackSnapshot | null
 }
 
 type FieldMetadata = {
@@ -292,21 +305,43 @@ export function deriveEdielRoleCode(input: {
 }
 
 export async function loadRegistryFieldRules(scope: RegistryFieldRuleScope): Promise<RegistryFieldRuleResult> {
-  const { data, error } = await supabaseService
-    .from('ediel_field_rules')
-    .select('*')
-    .eq('message_family', normalize(scope.family))
-    .in('message_code', [normalize(scope.code), '*'])
+  const { data, error } = await supabaseService.rpc('resolve_ediel_rule_pack_fields', {
+    p_message_family: normalize(scope.family),
+    p_message_code: normalize(scope.code),
+    p_role_code: optionalString(scope.roleCode),
+    p_direction: optionalString(scope.direction),
+    p_environment: optionalString(scope.environment),
+    p_requested_version: optionalString(scope.version),
+    p_company_id: optionalString(scope.companyId),
+  })
 
   if (error) {
-    const message = String(error.message ?? '')
-    if (message.includes('does not exist') || message.includes('schema cache')) {
-      return { rules: [], source: 'static' }
-    }
-    throw error
+    const allowTestFallback = process.env.NODE_ENV === 'test' && process.env.EDIEL_ALLOW_STATIC_RULES_IN_TESTS === '1'
+    if (allowTestFallback) return { rules: [], source: 'static', rulePack: null }
+    throw new Error(`ediel_rule_pack_resolution_failed:${String(error.message ?? error)}`)
   }
 
   const rows = ((data ?? []) as RegistryFieldRuleRow[]).filter((row) => rowMatchesScope(row, scope))
-  const rules = sortRuleRows(rows, scope).map((row) => ruleFromRow(row, scope))
-  return { rules, source: rules.length > 0 ? 'registry' : 'static' }
+  if (rows.length === 0) {
+    const allowTestFallback = process.env.NODE_ENV === 'test' && process.env.EDIEL_ALLOW_STATIC_RULES_IN_TESTS === '1'
+    if (allowTestFallback) return { rules: [], source: 'static', rulePack: null }
+    throw new Error(`ediel_active_rule_pack_missing:${normalize(scope.family)}:${normalize(scope.code)}`)
+  }
+
+  const first = rows[0]
+  const profileKey = optionalString(first.profile_key)
+  const profileVersionId = optionalString(first.rule_profile_version_id)
+  const version = optionalString(first.profile_version ?? first.version ?? first.version_code)
+  const checksum = optionalString(first.rule_pack_checksum)
+  if (!profileKey || !profileVersionId || !version || !checksum) {
+    throw new Error(`ediel_rule_pack_snapshot_incomplete:${normalize(scope.family)}:${normalize(scope.code)}`)
+  }
+
+  const fieldRows = rows.filter((row) => normalize(row.field_key) !== '__PROFILE__')
+  const rules = sortRuleRows(fieldRows, scope).map((row) => ruleFromRow(row, scope))
+  return {
+    rules,
+    source: 'registry',
+    rulePack: { profileKey, profileVersionId, version, checksum },
+  }
 }

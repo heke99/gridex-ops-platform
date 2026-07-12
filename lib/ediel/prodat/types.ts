@@ -9,6 +9,7 @@ export type ProdatEngineCode =
   | 'Z04'
   | 'Z05'
   | 'Z06'
+  | 'Z08'
   | 'Z09'
   | 'Z10'
   | 'Z13'
@@ -56,6 +57,7 @@ export type ProdatEngineProductionContext = {
   meterPointId: string
   gridAreaId?: string | null
   startDate?: string | null
+  endDate?: string | null
   customerAddress?: string | null
   customerCity?: string | null
   customerPostalCode?: string | null
@@ -65,6 +67,7 @@ export type ProdatEngineProductionContext = {
   sitePostalCode?: string | null
   siteCountry?: string | null
   reasonForTransaction?: string | null
+  contractClosureReason?: string | null
   meteringMethod?: string | null
   reportingFrequency?: string | null
   installationDirection?: string | null
@@ -122,6 +125,7 @@ export type ProdatEngineDiagnostics = {
   segmentCountBeforeEnvelope: number
   routeDecisionReason?: string | null
   selectedVersion?: string | null
+  profileKey?: string | null
   acceptedVersions?: string[]
   rulebookProcessGroup?: string | null
   rulebookApplicationReference?: string | null

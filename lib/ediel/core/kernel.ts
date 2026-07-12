@@ -80,7 +80,7 @@ export async function resolveCanonicalOutboundContext(params: {
   requestType: CanonicalRouteRequestType
   gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
   preferredRouteId?: string | null
-  companyId?: string | null
+  companyId: string
   environment?: EdielEnvironment
   messageStandard?: EdielMessageStandard
 }) {
@@ -88,7 +88,7 @@ export async function resolveCanonicalOutboundContext(params: {
     requestType: params.requestType,
     gridOwner: (params.gridOwner ?? null) as never,
     preferredRouteId: params.preferredRouteId ?? null,
-    companyId: params.companyId ?? null,
+    companyId: params.companyId,
     // DEPRECATED DEFAULT: see resolveCanonicalRouteContext — all runtime
     // callers pass an explicit environment; new callers must do the same.
     environment: params.environment ?? 'test',
@@ -302,7 +302,7 @@ async function assertOutboundDraftAllowedByFieldRules(params: {
   draft: CreateEdielMessageInput
   messageVersion?: string | null
 }) {
-  if (!params.draft.rawPayload) return
+  if (!params.draft.rawPayload) throw new Error('outbound_ediel_raw_payload_required')
 
   const validation = await validateRulebookMessageWithRegistry({
     family: params.draft.messageFamily,
@@ -314,16 +314,20 @@ async function assertOutboundDraftAllowedByFieldRules(params: {
     direction: 'outbound',
     environment: params.draft.environment ?? null,
     version: params.messageVersion ?? params.draft.messageVersion ?? null,
+    companyId: params.draft.companyId ?? null,
   })
 
-  if (validation.fieldRuleSource !== 'registry') return
+  if (validation.fieldRuleSource !== 'registry' || !validation.rulePackSnapshot) {
+    throw new Error(`outbound_ediel_rule_pack_snapshot_missing:${params.draft.messageFamily}:${params.draft.messageCode}`)
+  }
   const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)
-  if (blocking.length === 0) return
-
-  const first = blocking[0]
-  throw new Error(
-    `Outbound ${params.draft.messageFamily} ${params.draft.messageCode} blockerades av importerad Ediel-regel: ${first.code} - ${first.description}`
-  )
+  if (blocking.length > 0) {
+    const first = blocking[0]
+    throw new Error(
+      `Outbound ${params.draft.messageFamily} ${params.draft.messageCode} blockerades av aktivt Ediel-regelpaket: ${first.code} - ${first.description}`
+    )
+  }
+  return validation.rulePackSnapshot
 }
 
 export async function finalizeCanonicalOutboundDraft(params: {
@@ -401,10 +405,24 @@ export async function finalizeCanonicalOutboundDraft(params: {
     testFlag: params.draft.testFlag ?? params.routeContext.actor.testFlag,
   }
 
-  await assertOutboundDraftAllowedByFieldRules({
+  const rulePackSnapshot = await assertOutboundDraftAllowedByFieldRules({
     draft: baseInput,
     messageVersion: resolvedVersion ?? params.duplicateCheck.messageVersion ?? null,
   })
+
+  const canonicalInput: CreateEdielMessageInput = {
+    ...baseInput,
+    ruleProfileKey: rulePackSnapshot.profileKey,
+    ruleProfileVersionId: rulePackSnapshot.profileVersionId,
+    ruleProfileVersion: rulePackSnapshot.version,
+    rulePackChecksum: rulePackSnapshot.checksum,
+    rulePackSnapshot: {
+      ...rulePackSnapshot,
+      resolvedAt: new Date().toISOString(),
+      family: messageFamily,
+      code: messageCode,
+    },
+  }
 
   return createCanonicalOutboundMessage({
     actorUserId,
@@ -420,7 +438,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
       periodStart: params.duplicateCheck.periodStart ?? null,
       periodEnd: params.duplicateCheck.periodEnd ?? null,
     },
-    baseInput,
+    baseInput: canonicalInput,
   })
 }
 
@@ -540,7 +558,7 @@ export async function createCanonicalAckMessage(params: {
       }
     : baseRefs
 
-  const input = {
+  const input: CreateEdielMessageInput = {
     ...params.draft,
     actorUserId,
     companyId: params.draft.companyId ?? params.sourceMessage.company_id ?? null,
@@ -554,8 +572,26 @@ export async function createCanonicalAckMessage(params: {
     ackOutcome: params.outcome ?? params.draft.ackOutcome ?? null,
   }
 
+  const rulePackSnapshot = await assertOutboundDraftAllowedByFieldRules({
+    draft: input,
+    messageVersion: input.messageVersion ?? null,
+  })
+  const canonicalAckInput: CreateEdielMessageInput = {
+    ...input,
+    ruleProfileKey: rulePackSnapshot.profileKey,
+    ruleProfileVersionId: rulePackSnapshot.profileVersionId,
+    ruleProfileVersion: rulePackSnapshot.version,
+    rulePackChecksum: rulePackSnapshot.checksum,
+    rulePackSnapshot: {
+      ...rulePackSnapshot,
+      resolvedAt: new Date().toISOString(),
+      family: params.ackFamily,
+      code: String(input.messageCode),
+    },
+  }
+
   try {
-    return await createEdielMessage(input)
+    return await createEdielMessage(canonicalAckInput)
   } catch (error) {
     if (isPostgresUniqueViolation(error) && sequenceToken) {
       const existing = allowSequencedAperak

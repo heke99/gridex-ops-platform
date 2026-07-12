@@ -11,7 +11,7 @@ import {
   isEdielAgtRunApprovalVersion,
   listEdielSupplierAgt2026Cases,
   type EdielAgtTestCaseDefinition,
-} from "@/lib/ediel/agtRegistry";
+} from "@/lib/ediel/testing/agtRegistry";
 import type { EdielMessageRow, EdielTestRunRow } from "@/lib/ediel/types";
 
 type BadgeTone = "slate" | "emerald" | "amber" | "red";

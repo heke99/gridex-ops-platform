@@ -108,8 +108,8 @@ assert(automation.includes("facility_data_status: verifiedGridOwnerId"), 'inboun
 // 8) Inbound UTILTS meter values are normalized without double counting
 // ---------------------------------------------------------------------------
 assert(normalize.includes('export async function projectMeteringValueToNormalized'), 'metering layer can project a meter value to normalized rows')
-assert(normalize.includes("code === '23505'") && normalize.includes("return { status: 'duplicate' }"), 'normalized projection is idempotent (duplicate => no double count)')
-assert(utilts.includes('projectMeteringValueToNormalized('), 'inbound UTILTS path projects meter values into normalized_metering_values')
+assert(normalize.includes("rpc('gridex_ingest_metering_value_atomic'") && normalize.includes('canonical_dedupe_key'), 'normalized projection is idempotent through the atomic canonical ingest RPC')
+assert(utilts.includes('normalizeAndStoreMeteringValue('), 'inbound UTILTS path uses atomic metering normalization and projection')
 
 // ---------------------------------------------------------------------------
 // 9) Billing underlay / invoice readiness blocks on missing prerequisites

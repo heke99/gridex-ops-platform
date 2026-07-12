@@ -1,12 +1,13 @@
 // lib/ediel/flows/utiltsDataRequest.ts
 
+import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
 import {
   getCustomerSiteById,
   getGridOwnerById,
   getMeteringPointById,
 } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
-import { applyUtiltsTgtAckPlanOverride, runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import {
   createEdielMessageEvent,
   getEdielMessageById,
@@ -1362,7 +1363,7 @@ export async function processInboundUtiltsMessage(params: {
   }
 
   const runtime = runUtiltsRuntimeForMessage(runtimeSourceMessage)
-  const ackPlan = applyUtiltsTgtAckPlanOverride({
+  const ackPlan = applyUtiltsTestAckPlanOverride({
     runtime,
     testCaseCode: runtimeTestCaseCode,
   })

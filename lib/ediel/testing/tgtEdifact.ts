@@ -15,11 +15,11 @@ import {
 import {
   getEdielTgtTestCaseByCode,
   type EdielTgtExpectedStep,
-} from "@/lib/ediel/tgtRegistry";
+} from "@/lib/ediel/testing/tgtRegistry";
 import {
   getEdielTgtTestDataForCase,
   type EdielTgtCaseTestData,
-} from "@/lib/ediel/tgtTestData";
+} from "@/lib/ediel/testing/tgtTestData";
 import type { EdielSystemTestRuntimeContext } from "@/lib/ediel/systemTestSettings";
 
 export type EdielTgtDraftValidationIssue = {

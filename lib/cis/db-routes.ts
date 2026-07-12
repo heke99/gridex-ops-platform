@@ -8,6 +8,7 @@ export async function listCommunicationRoutes(options: {
   routeScope?: string | null
   routeType?: string | null
   query?: string | null
+  includePlatformGlobal?: boolean
 } = {}): Promise<CommunicationRouteRow[]> {
   let queryBuilder = supabaseService
     .from('communication_routes')
@@ -17,7 +18,11 @@ export async function listCommunicationRoutes(options: {
   const resolvedScope = options.routeScope ?? options.scope ?? null
 
   if (options.companyId) {
-    queryBuilder = queryBuilder.or(`company_id.is.null,company_id.eq.${options.companyId}`)
+    queryBuilder = options.includePlatformGlobal === true
+      ? queryBuilder.or(`company_id.is.null,company_id.eq.${options.companyId}`)
+      : queryBuilder.eq('company_id', options.companyId)
+  } else if (options.includePlatformGlobal !== true) {
+    queryBuilder = queryBuilder.not('company_id', 'is', null)
   }
 
   if (resolvedScope && resolvedScope !== 'all') {
@@ -118,41 +123,30 @@ export async function findBestCommunicationRoute(params: {
   requestType: OutboundRequestType
   gridOwnerId?: string | null
 }): Promise<CommunicationRouteRow | null> {
-  const selectUniqueTier = (rows: CommunicationRouteRow[], label: string): CommunicationRouteRow | null => {
-    const tenantRows = params.companyId
-      ? rows.filter((row) => row.company_id === params.companyId)
-      : []
-    const globalRows = rows.filter((row) => row.company_id === null)
-    const selected = tenantRows.length > 0 ? tenantRows : globalRows
-    if (selected.length > 1) {
-      throw new Error(`communication_route_ambiguous:${label}:${selected.map((row) => row.id).join(',')}`)
-    }
-    return selected[0] ?? null
-  }
+  const companyId = String(params.companyId ?? '').trim()
+  if (!companyId) throw new Error('communication_route_company_required')
 
   const load = async (gridOwnerId: string | null): Promise<CommunicationRouteRow[]> => {
     let query = supabaseService
       .from('communication_routes')
       .select('*')
+      .eq('company_id', companyId)
       .eq('route_scope', params.requestType)
       .eq('is_active', true)
 
     query = gridOwnerId ? query.eq('grid_owner_id', gridOwnerId) : query.is('grid_owner_id', null)
-    if (params.companyId) {
-      query = query.or(`company_id.is.null,company_id.eq.${params.companyId}`)
-    } else {
-      query = query.is('company_id', null)
-    }
-
     const { data, error } = await query.order('updated_at', { ascending: false }).limit(20)
     if (error) throw error
-    return (data ?? []) as CommunicationRouteRow[]
+    const rows = (data ?? []) as CommunicationRouteRow[]
+    if (rows.length > 1) {
+      throw new Error(`communication_route_ambiguous:${gridOwnerId ? 'grid_owner' : 'generic'}:${rows.map((row) => row.id).join(',')}`)
+    }
+    return rows
   }
 
   if (params.gridOwnerId) {
-    const exact = selectUniqueTier(await load(params.gridOwnerId), 'grid_owner')
-    if (exact) return exact
+    const exact = await load(params.gridOwnerId)
+    if (exact[0]) return exact[0]
   }
-
-  return selectUniqueTier(await load(null), 'generic')
+  return (await load(null))[0] ?? null
 }
