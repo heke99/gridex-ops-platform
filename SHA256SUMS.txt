@@ -1,0 +1,5 @@
+37130a5e4c23cfe7358e2da812dea4e4a89551074c93df925625e43d09f15551  ./PATCH_README.md
+69e53481e22af6cf6e419312ea8bd781701243d78c24eb6e1aaa1070ba2969d4  ./docs/openapi/customer-portal-v1.json
+9f93fdb6fedf81ad62dd894520fb132aad39718343dec791191b9c3fa64fa89a  ./scripts/gridex-hardening-static-audit.cjs
+51714ab540984a2fb3b198471a906e48a257cc0e23e4032876400231d2e3b73d  ./scripts/migration-history-manifest.json
+63210462eb4843f8b898ac2d9237dfc983d78f06d7ec9ccffc2e9fefb328f33f  ./supabase/migrations/20260712100000_gridex_end_to_end_integrity_hardening.sql
