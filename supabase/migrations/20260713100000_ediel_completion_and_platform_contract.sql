@@ -1164,9 +1164,58 @@ revoke all on function public.gridex_register_late_metering_correction(uuid,uuid
 grant execute on function public.gridex_register_late_metering_correction(uuid,uuid,uuid,uuid,text,text) to service_role;
 
 
+-- Compatibility: some environments applied the Ediel completion migration
+-- without the preceding end-to-end hardening migration. Keep this migration
+-- self-contained so the policy backfill never references a missing relation.
+create table if not exists public.market_process_policies (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete cascade,
+  process_code text not null,
+  environment text not null default 'production' check(environment in ('test','production')),
+  valid_from date not null,
+  valid_to date,
+  policy_version text not null,
+  policy jsonb not null default '{}'::jsonb,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check(valid_to is null or valid_to >= valid_from),
+  check(jsonb_typeof(policy)='object')
+);
+
+create unique index if not exists market_process_policies_unique_version_uidx
+  on public.market_process_policies(
+    coalesce(company_id,'00000000-0000-0000-0000-000000000000'::uuid),
+    process_code,
+    environment,
+    valid_from,
+    policy_version
+  );
+create index if not exists market_process_policies_active_lookup_idx
+  on public.market_process_policies(process_code,environment,is_active,valid_from,valid_to,company_id);
+alter table public.market_process_policies enable row level security;
+revoke all on public.market_process_policies from anon,authenticated;
+grant select,insert,update,delete on public.market_process_policies to service_role;
+
+insert into public.market_process_policies(
+  company_id,process_code,environment,valid_from,policy_version,policy,is_active
+)
+select null,'supplier_switch','production','2026-01-01','SE-SWITCH-2026-01',
+  '{"send_window_open_lead_days":45,"send_window_close_offset_days":0,"market_lead_days":14,"calendar":"Europe/Stockholm","day_mode":"calendar_days"}'::jsonb,
+  true
+where not exists (
+  select 1
+  from public.market_process_policies
+  where company_id is null
+    and process_code='supplier_switch'
+    and environment='production'
+    and policy_version='SE-SWITCH-2026-01'
+);
+
 update public.market_process_policies
-set policy = jsonb_set(policy,'{day_mode}',to_jsonb('calendar_days'::text),true), updated_at=now()
-where process_code='supplier_switch' and not (policy ? 'day_mode');
+set policy = jsonb_set(coalesce(policy,'{}'::jsonb),'{day_mode}',to_jsonb('calendar_days'::text),true),
+    updated_at=now()
+where process_code='supplier_switch' and not (coalesce(policy,'{}'::jsonb) ? 'day_mode');
 
 -- ---------------------------------------------------------------------------
 -- 9. Final deployment gate. Must remain the final statement before COMMIT.
