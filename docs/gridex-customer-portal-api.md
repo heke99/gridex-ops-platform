@@ -2,6 +2,8 @@
 
 Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
+Dokumentationsversion: `2026-07-13.2`.
+
 ## Grundmodell
 
 Tenantens hemsida/Mina sidor äger inloggningssessionen. OPS är master för kund, kundnummer, avtal, anläggningar, fullmakter, juridiska godkännanden, dokument, status och processflöden.
@@ -172,6 +174,14 @@ Idempotency-Key: website-order-12345
 ```
 
 `Idempotency-Key` är obligatorisk för denna endpoint. Den ska vara 8–200 tecken och får innehålla bokstäver, siffror, punkt, understreck, kolon, plus, tilde och bindestreck. Nyckeln reserveras innan kund/site/avtal/fullmakt skapas, vilket stoppar samtidiga dubletter.
+
+### Publiceringsdiagnostik och signeringsrespons
+
+- `GET /api/v1/website/public-contracts?customer_type=private&diagnostics=1` returnerar tenant-scopade publiceringsblockerare för server-side felsökning.
+- `offer_reference` är enda avtalsväljaren. Motstridiga legacyfält ger `422 offer_selector_mismatch`.
+- Efter lyckad serververifiering returneras `contract_status = signed`, `signed_at`, `withdrawal_deadline_at` och `signature_snapshot_sha256`.
+- `signature_snapshot_sha256` är SHA-256 över OPS frysta signeringssnapshot och genereras endast av servern.
+- `can_send_agreement_confirmation` visar att exakt fem erbjudandebundna juridiska accepter finns och att avtalsbekräftelsen får köas. Fältet är oberoende av `can_start_switch`.
 
 ### Idempotency-regler
 

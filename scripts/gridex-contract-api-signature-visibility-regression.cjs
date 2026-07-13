@@ -35,6 +35,7 @@ const poaPos = applications.indexOf('ensureWebsitePowerOfAttorney', dispatchPos)
 check(dispatchPos > -1 && poaPos > dispatchPos, 'Avtalsmejl köas före operativ POA/nätägar-/switchhantering')
 check(/buildAgreementPdfAttachment\([\s\S]*body:\s*version\.body/.test(applications), 'Avtals-PDF innehåller frysta juridiska texter')
 check(/agreementConfirmationEligible[\s\S]*responsePayload\.can_send_agreement_confirmation\s*=\s*agreementConfirmationEligible/.test(applications), 'API-svaret kopplar avtalsbekräftelse till juridisk signering, inte switch')
+check(/responsePayload\.signature_snapshot_sha256\s*=\s*contract\.signature_snapshot_sha256/.test(applications), 'Kundansökan returnerar serverns signeringshash')
 has('lib/website/applicationReview.ts', /canSendAgreementConfirmation\s*=\s*Boolean\([\s\S]*privacyAccepted[\s\S]*withdrawalAccepted[\s\S]*priceTermsAccepted/, 'Readiness kräver fem juridiska accepter men inte anläggnings- eller switchstatus')
 
 const publicContracts = read('lib/website/publicContracts.ts')
@@ -64,8 +65,13 @@ check(/attachments/.test(outbox) && /getEmailProvider/.test(outbox), 'PDF-bilago
 const portalData = read('lib/customer-portal/apiData.ts')
 check(/public_contract_offer_id/.test(portalData) && /offer_reference/.test(portalData) && /signature_snapshot_sha256/.test(portalData), 'Kundportalens avtal exponerar kanonisk offer- och signaturkoppling')
 
+const docsPage = read('app/developers/customer-portal-api/page.tsx')
+for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_selector_mismatch', 'signature_snapshot_sha256', '2026-07-13.2']) {
+  check(docsPage.includes(term), `Publika dokumentationssidan innehåller ${term}`)
+}
 const docs = read('docs/openapi/customer-portal-v1.json')
 check(/offer_selector_mismatch/.test(docs) && /diagnostics/.test(docs), 'OpenAPI dokumenterar strikt offer_reference och diagnostik')
+check(/signature_snapshot_sha256/.test(docs) && /2026-07-13\.2/.test(docs), 'OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion')
 
 if (failed) process.exit(1)
 console.log('Gridex contract API/signature/visibility regression passed.')

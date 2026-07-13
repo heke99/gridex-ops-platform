@@ -173,6 +173,7 @@ Regler:
 - Avtalet slutmarkeras server-side som `signed` först när alla fem exakta accepter finns med samma servergenererade acceptanstid. Klientens `signed_at` eller `acceptedAt` bestämmer inte avtalets juridiska tidpunkt.
 - Direkt efter signering köas avtalsbekräftelsen med en fryst PDF samt ångerrättsmail; nätägaruppslagning och leverantörsbyte får inte fördröja detta.
 - `can_send_agreement_confirmation` betyder att de fem juridiska accepter­na och avtalet är redo för bekräftelse. Fältet är frikopplat från `can_start_switch`; saknad anläggning, nätägare eller bekräftat startdatum får därför inte sätta det till `false` efter lyckad signering.
+- `signature_snapshot_sha256` returneras efter serververifierad signering och är SHA-256 över det frysta signeringssnapshotet. Värdet skapas av OPS och får inte skickas in av klienten.
 - I den direkta responsen är `contract.confirmation_sent` och `contract.cooling_off_sent` event-/mallnycklar. Läs `communication.queued/sent/failed` för verklig status. Webhook med samma `*_sent`-namn skickas först efter providerbekräftad sändning.
 
 ## Kundtyp (kanoniska värden)

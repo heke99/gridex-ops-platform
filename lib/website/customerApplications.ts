@@ -5318,6 +5318,7 @@ export async function processWebsiteCustomerApplication(input: {
       responsePayload.contract_status = contract.status
       responsePayload.signed_at = contract.signed_at ?? agreementAcceptedAt
       responsePayload.withdrawal_deadline_at = contract.withdrawal_deadline_at ?? null
+      responsePayload.signature_snapshot_sha256 = contract.signature_snapshot_sha256 ?? null
       responsePayload.public_contract_offer_id = publicOffer.id
       responsePayload.offer_reference = selectedOfferReference
     }

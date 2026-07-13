@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-13",
+    "version": "2026-07-13.2",
     "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs endast med opak offer_reference och slutmarkeras server-side mot exakta offer-bundna juridikversioner."
   },
   "servers": [
@@ -2590,6 +2590,14 @@
                   "null"
                 ],
                 "format": "date-time"
+              },
+              "signature_snapshot_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "SHA-256 över det frysta servergenererade signeringssnapshotet. Kan användas för verifiering och support; klienten får aldrig skicka eller bestämma värdet."
               },
               "can_send_agreement_confirmation": {
                 "type": "boolean",

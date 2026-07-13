@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600
 
 const baseUrl = 'https://app.gridex.se'
+const documentationVersion = '2026-07-13.2'
 
 const permissions = [
   ['Läsa avtal på hemsidan', 'website_contracts.read', 'Hämta publicerade elavtal för rätt bolag.'],
@@ -215,6 +216,7 @@ const applicationResponse = `{
     "contract_status": "signed",
     "signed_at": "2026-06-26T09:00:01.123Z",
     "withdrawal_deadline_at": "2026-07-10T09:00:01.123Z",
+    "signature_snapshot_sha256": "4d7f...64_hex_characters...9a2c",
     "can_send_agreement_confirmation": true,
     "can_start_switch": false,
     "status": "application_received",
@@ -480,6 +482,7 @@ export default function CustomerPortalApiDocsPage() {
           <p className="mt-5 max-w-3xl text-base leading-8 text-slate-700">
             Den här guiden är den publika online-dokumentationen för tenants och webbteam. Den visar hur en hemsida hämtar publicerade avtal, skickar kundansökningar, kopplar Mina sidor mot webbens Supabase-inloggning och tar emot händelser via webhook.
           </p>
+          <p className="mt-3 text-sm font-semibold text-slate-600">Dokumentationsversion: <code>{documentationVersion}</code></p>
           <div className="mt-6 grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-xs font-bold uppercase text-slate-500">Base URL</div><div className="mt-2 font-mono text-sm text-slate-950">{baseUrl}</div></div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-xs font-bold uppercase text-slate-500">Auth</div><div className="mt-2 font-mono text-sm text-slate-950">Bearer API key</div></div>
@@ -514,7 +517,7 @@ export default function CustomerPortalApiDocsPage() {
         </Section>
 
         <Section title="5. Skicka kundansökan">
-          <p>Kundansökan ska innehålla valt <code>offer_reference</code>, fem separata juridiska godkännanden och, när kunden redan är inloggad på hemsidan, webbens Supabase <code>session.user.id</code> som både <code>customer_portal_user_id</code> och <code>auth_user_id</code>. OPS skapar kund, kundnummer, portal identity, prissnapshot och ett först väntande avtal. Därefter verifierar en atomisk serverfunktion de exakta juridikversionerna och sätter <code>status=signed</code>, <code>signed_at</code>, ångerfrist och signaturhash. Klientens egna <code>signed_at</code>/<code>acceptedAt</code> används inte som avtalets juridiska signeringstid.</p>
+          <p>Kundansökan ska innehålla valt <code>offer_reference</code>, fem separata juridiska godkännanden och, när kunden redan är inloggad på hemsidan, webbens Supabase <code>session.user.id</code> som både <code>customer_portal_user_id</code> och <code>auth_user_id</code>. OPS skapar kund, kundnummer, portal identity, prissnapshot och ett först väntande avtal. Därefter verifierar en atomisk serverfunktion de exakta juridikversionerna och sätter <code>status=signed</code>, <code>signed_at</code>, ångerfrist och <code>signature_snapshot_sha256</code>. Klientens egna <code>signed_at</code>/<code>acceptedAt</code> används inte som avtalets juridiska signeringstid.</p>
           <p>Direkt efter lyckad signering köas mottagningsmail, avtalsbekräftelse med fryst PDF och ångerrättsmail enligt tenantens regler. Detta är frikopplat från anläggningsuppslagning och leverantörsbyte. <code>can_send_agreement_confirmation</code> beskriver juridisk behörighet att skicka bekräftelsen och är därför oberoende av <code>can_start_switch</code>. Läs <code>communication.queued/sent/failed</code> för faktisk status.</p>
           <CodeBlock>{applicationExample}</CodeBlock>
           <CodeBlock>{applicationResponse}</CodeBlock>
