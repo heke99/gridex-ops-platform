@@ -12,7 +12,7 @@ import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
 import { normalizeGridOwnerIdToOps } from '@/lib/grid-owners/platformGridOwnerResolver'
 import { processWebsiteApplicationIntake, type CustomerIntakeDecision } from '@/lib/customer-operations/customerIntakeOrchestrator'
-import { resolvePublicContractOffer, type PublicContractOffer } from '@/lib/website/publicContracts'
+import { publicOfferReference, resolvePublicContractOffer, type PublicContractOffer } from '@/lib/website/publicContracts'
 import type { EnergyResolverResult } from '@/lib/energy/types'
 import {
   findFacilityConflicts,
@@ -32,6 +32,7 @@ import { buildPublicLegalUrl, loadCompanySlugById } from '@/lib/legal/publicLega
 import { normalizeCustomerType } from '@/lib/customers/normalizeCustomerType'
 import { matchCustomerIdentity, type CustomerMatchDecision } from '@/lib/customers/matchingService'
 import { assertCanonicalSnapshot, buildCanonicalContractSnapshot } from '@/lib/pricing/contractSnapshot'
+import { buildAgreementPdfAttachment } from '@/lib/customer-contracts/agreementPdf'
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() ? value.trim() : undefined),
@@ -716,21 +717,16 @@ function hasStoredAcceptance(acceptanceIds: Record<string, string>, legalType: s
   return typeof acceptanceIds[legalType] === 'string' && acceptanceIds[legalType].trim().length > 0
 }
 
-function contractLegalMailEvidenceReady(input: {
-  acceptanceIds: Record<string, string>
-  powerOfAttorneyRequired: boolean
-  powerOfAttorneyId?: string | null
-}) {
+function contractLegalMailEvidenceReady(input: { acceptanceIds: Record<string, string> }) {
+  // Agreement confirmation is tied to the five exact legal acceptances. The
+  // operational POA document row is created afterwards and must not delay the
+  // customer's proof that the agreement was concluded.
   return Boolean(
     hasStoredAcceptance(input.acceptanceIds, 'terms') &&
     hasStoredAcceptance(input.acceptanceIds, 'privacy_policy') &&
     hasStoredAcceptance(input.acceptanceIds, 'withdrawal') &&
-    hasStoredAcceptance(input.acceptanceIds, 'price_terms') &&
-    (!input.powerOfAttorneyRequired || (
-      hasStoredAcceptance(input.acceptanceIds, 'power_of_attorney') &&
-      typeof input.powerOfAttorneyId === 'string' &&
-      input.powerOfAttorneyId.trim().length > 0
-    ))
+    hasStoredAcceptance(input.acceptanceIds, 'power_of_attorney') &&
+    hasStoredAcceptance(input.acceptanceIds, 'price_terms')
   )
 }
 
@@ -771,20 +767,78 @@ function pushWarning(warnings: string[], warning: string) {
   if (!warnings.includes(warning)) warnings.push(warning)
 }
 
-async function listPublishedWebsiteLegalVersions(companyId: string): Promise<WebsiteLegalAcceptanceVersion[] | null> {
-  const { data, error } = await supabaseService
-    .from('legal_text_versions')
-    .select('id,type,version,title,body,published_at')
-    .eq('company_id', companyId)
-    .eq('status', 'published')
-    .in('type', REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.map((item) => item.legalType))
-
-  if (error) {
-    if (missingSchema(error)) return null
-    throw error
+async function loadOfferBoundLegalVersions(input: {
+  companyId: string
+  publicOffer: PublicContractOffer
+}): Promise<WebsiteLegalAcceptanceVersion[]> {
+  const offerVersions = input.publicOffer.legal_versions ?? []
+  const byOfferType = new Map(offerVersions.map((row) => [row.type, row]))
+  const missingOfferVersions = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.filter((item) => !byOfferType.has(item.legalType))
+  if (missingOfferVersions.length > 0) {
+    throw new WebsiteApplicationError({
+      message: `Det valda erbjudandet saknar exakt juridikversion för: ${missingOfferVersions.map((item) => item.label).join(', ')}.`,
+      status: 422,
+      code: 'offer_legal_versions_missing',
+      field: 'offer_reference',
+      stage: 'legal_acceptance',
+      hint: 'Publicera om erbjudandet med ett komplett juridikpaket. Kundens accept får aldrig bindas till tenantens senaste texter i efterhand.',
+    })
   }
 
-  return (data ?? []) as WebsiteLegalAcceptanceVersion[]
+  const expectedIds = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES
+    .map((item) => byOfferType.get(item.legalType)?.id ?? null)
+    .filter((id): id is string => Boolean(id))
+  if (new Set(expectedIds).size !== REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.length || expectedIds.some((id) => !isUuid(id))) {
+    throw new WebsiteApplicationError({
+      message: 'Erbjudandets juridikpaket innehåller ogiltiga eller dubbla versions-ID:n.',
+      status: 422,
+      code: 'offer_legal_versions_invalid',
+      field: 'offer_reference',
+      stage: 'legal_acceptance',
+      hint: 'Koppla fem unika publicerade legal_text_versions till erbjudandets legal bundle och publicera om.',
+    })
+  }
+
+  const { data, error } = await supabaseService
+    .from('legal_text_versions')
+    .select('id,type,version,title,body,published_at,status')
+    .eq('company_id', input.companyId)
+    .eq('status', 'published')
+    .in('id', expectedIds)
+
+  if (error) {
+    throw new WebsiteApplicationError({
+      message: 'OPS kunde inte läsa de juridikversioner som hör till det valda erbjudandet.',
+      status: 500,
+      code: 'offer_legal_versions_unavailable',
+      field: 'legal_text_versions',
+      stage: 'legal_acceptance',
+      hint: 'Kör senaste migration och kontrollera erbjudandets legal bundle.',
+      details: schemaErrorDetail(error),
+    })
+  }
+
+  const loaded = (data ?? []) as WebsiteLegalAcceptanceVersion[]
+  const loadedById = new Map(loaded.map((row) => [row.id, row]))
+  const ordered = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.map((definition) => {
+    const expected = byOfferType.get(definition.legalType)
+    const row = expected ? loadedById.get(expected.id) : null
+    if (!row || row.type !== definition.legalType || row.version !== expected?.version) return null
+    return row
+  })
+
+  if (ordered.some((row) => !row)) {
+    throw new WebsiteApplicationError({
+      message: 'Erbjudandets juridikversioner har ändrats, avpublicerats eller tillhör inte denna tenant.',
+      status: 422,
+      code: 'offer_legal_version_mismatch',
+      field: 'offer_reference',
+      stage: 'legal_acceptance',
+      hint: 'Hämta ett nytt offer_reference från public-contracts. Ett gammalt erbjudande får inte accepteras mot andra juridikversioner.',
+    })
+  }
+
+  return ordered.filter((row): row is WebsiteLegalAcceptanceVersion => Boolean(row))
 }
 
 async function assertWebsiteLegalAcceptances(input: {
@@ -792,34 +846,6 @@ async function assertWebsiteLegalAcceptances(input: {
   consents?: Record<string, unknown>
   publicOffer: PublicContractOffer
 }): Promise<WebsiteLegalAcceptanceVersion[]> {
-  const versions = await listPublishedWebsiteLegalVersions(input.companyId)
-  if (versions === null) {
-    // Legal evidence is mandatory for website applications. A schema mismatch
-    // that prevents OPS from reading published legal versions must fail clearly
-    // rather than silently skipping legal acceptances.
-    throw new WebsiteApplicationError({
-      message: 'Hemsidan kan inte ta emot avtal eftersom OPS inte kunde läsa publicerade juridiska versioner.',
-      status: 500,
-      code: 'legal_bundle_missing',
-      field: 'legal_text_versions',
-      stage: 'legal_acceptance',
-      hint: 'Kör senaste migration så att legal_text_versions finns och publicera juridiska versioner i bolagskortet.',
-    })
-  }
-
-  const byType = new Map(versions.map((row) => [row.type, row]))
-  const missingVersions = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.filter((item) => !byType.has(item.legalType))
-  if (missingVersions.length > 0) {
-    throw new WebsiteApplicationError({
-      message: `Hemsidan kan inte ta emot avtal eftersom OPS saknar publicerad juridisk version för: ${missingVersions.map((item) => item.label).join(', ')}.`,
-      status: 422,
-      code: 'legal_versions_missing',
-      field: 'legal_text_versions',
-      stage: 'legal_acceptance',
-      hint: 'Publicera allmänna villkor, integritetspolicy, ångerrätt, fullmakt och prisvillkor i tenantens bolagskort i OPS.',
-    })
-  }
-
   const missingConsents = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.filter((item) => !consentAccepted(input.consents, item.aliases))
   if (missingConsents.length > 0) {
     throw new WebsiteApplicationError({
@@ -832,7 +858,7 @@ async function assertWebsiteLegalAcceptances(input: {
     })
   }
 
-  return REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.map((item) => byType.get(item.legalType)).filter((row): row is WebsiteLegalAcceptanceVersion => Boolean(row))
+  return loadOfferBoundLegalVersions({ companyId: input.companyId, publicOffer: input.publicOffer })
 }
 
 async function persistCustomerLegalAcceptances(input: {
@@ -845,9 +871,10 @@ async function persistCustomerLegalAcceptances(input: {
   consents?: Record<string, unknown>
   rawPayload: unknown
   requestAudit?: RequestAuditMetadata
+  acceptedAt: string
 }): Promise<Record<string, string>> {
   if (input.legalVersions.length === 0) return {}
-  const now = new Date().toISOString()
+  const now = input.acceptedAt
   const rows = REQUIRED_WEBSITE_LEGAL_ACCEPTANCES.map((definition) => {
     const legal = input.legalVersions.find((row) => row.type === definition.legalType)
     if (!legal) return null
@@ -1706,6 +1733,7 @@ const WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE = 'website_application'
 const LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE = 'website_application_review'
 const WEBSITE_APPLICATION_CONTRACT_CHANNEL = 'external_website'
 const WEBSITE_APPLICATION_READY_CONTRACT_STATUS = 'pending_signature'
+const WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS = 'signed'
 const WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS = 'draft'
 const WEBSITE_CONTRACT_SOURCE_TYPES = [
   WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
@@ -1725,6 +1753,8 @@ type WebsiteContractRow = {
   contract_name: string | null
   starts_at: string | null
   status: string | null
+  signed_at?: string | null
+  withdrawal_deadline_at?: string | null
   site_id?: string | null
   customer_site_id?: string | null
   metering_point_id?: string | null
@@ -1732,19 +1762,16 @@ type WebsiteContractRow = {
   contract_number?: string | null
   price_plan_id?: string | null
   price_plan_version_id?: string | null
+  public_contract_offer_id?: string | null
+  offer_reference?: string | null
+  signature_snapshot_sha256?: string | null
   confirmed_start_date?: string | null
   actual_start_date?: string | null
   metadata?: Record<string, unknown> | null
 }
 
-function matchesExpectedValue(actual: string | null | undefined, expected: string | null | undefined): boolean {
-  if (!expected) return true
-  return actual === expected
-}
-
-function matchesExpectedDate(actual: string | null | undefined, expected: string | null | undefined): boolean {
-  if (!expected) return true
-  return Boolean(actual && String(actual).slice(0, 10) === String(expected).slice(0, 10))
+function sameDate(actual: string | null | undefined, expected: string | null | undefined): boolean {
+  return Boolean(actual && expected && String(actual).slice(0, 10) === String(expected).slice(0, 10))
 }
 
 async function findExistingWebsiteApplicationContract(input: {
@@ -1753,13 +1780,14 @@ async function findExistingWebsiteApplicationContract(input: {
   siteId?: string | null
   meteringPointId?: string | null
   requestedStartDate?: string | null
-  contractName?: string | null
   pricePlanVersionId?: string | null
+  publicContractOfferId?: string | null
+  offerReference?: string | null
   idempotencyKey?: string | null
 }): Promise<WebsiteContractRow | null> {
   const { data, error } = await supabaseService
     .from('customer_contracts')
-    .select('id,contract_name,starts_at,status,site_id,customer_site_id,metering_point_id,requested_start_date,contract_number,price_plan_id,price_plan_version_id,confirmed_start_date,actual_start_date,metadata')
+    .select('id,contract_name,starts_at,status,signed_at,withdrawal_deadline_at,site_id,customer_site_id,metering_point_id,requested_start_date,contract_number,price_plan_id,price_plan_version_id,public_contract_offer_id,offer_reference,signature_snapshot_sha256,confirmed_start_date,actual_start_date,metadata')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .in('source_type', WEBSITE_CONTRACT_SOURCE_TYPES)
@@ -1772,18 +1800,32 @@ async function findExistingWebsiteApplicationContract(input: {
   }
 
   const rows = (data ?? []) as WebsiteContractRow[]
-  return rows.find((row) => {
-    const metadata = (row as unknown as { metadata?: unknown }).metadata
-    const meta = isObject(metadata) ? metadata : {}
-    if (input.idempotencyKey && meta.website_application_idempotency_key === input.idempotencyKey) return true
+  if (input.idempotencyKey) {
+    return rows.find((row) => {
+      const meta = isObject(row.metadata) ? row.metadata : {}
+      return meta.website_application_idempotency_key === input.idempotencyKey
+    }) ?? null
+  }
 
+  // No wildcard matching. A second website application may only reuse a
+  // contract when the complete canonical business identity is identical.
+  if (!input.siteId || !input.requestedStartDate || !input.pricePlanVersionId || !input.publicContractOfferId || !input.offerReference) {
+    return null
+  }
+
+  return rows.find((row) => {
+    // A completed legal agreement is immutable. Only an unfinished contract
+    // may be recovered without the original Idempotency-Key.
+    if (['signed', 'active', 'ended', 'cancelled', 'terminated'].includes(String(row.status ?? '').toLowerCase())) {
+      return false
+    }
     const rowSiteId = row.customer_site_id ?? row.site_id ?? null
-    const siteMatches = matchesExpectedValue(rowSiteId, input.siteId ?? null)
-    const meterMatches = matchesExpectedValue(row.metering_point_id ?? null, input.meteringPointId ?? null)
-    const dateMatches = matchesExpectedDate(row.requested_start_date ?? row.starts_at ?? null, input.requestedStartDate ?? null)
-    const nameMatches = !input.contractName || !row.contract_name || row.contract_name === input.contractName
-    const versionMatches = !input.pricePlanVersionId || !row.price_plan_version_id || row.price_plan_version_id === input.pricePlanVersionId
-    return siteMatches && meterMatches && dateMatches && nameMatches && versionMatches
+    return rowSiteId === input.siteId
+      && (row.metering_point_id ?? null) === (input.meteringPointId ?? null)
+      && sameDate(row.requested_start_date ?? row.starts_at ?? null, input.requestedStartDate)
+      && row.price_plan_version_id === input.pricePlanVersionId
+      && row.public_contract_offer_id === input.publicContractOfferId
+      && row.offer_reference === input.offerReference
   }) ?? null
 }
 
@@ -2513,11 +2555,17 @@ function eventVariables(input: {
   facilityId?: string | null
   meteringPointId?: string | null
   contractName?: string | null
+  contractNumber?: string | null
+  contractType?: string | null
+  signedAt?: string | null
+  withdrawalDeadline?: string | null
+  offerReference?: string | null
+  priceSummary?: string | null
+  legalVersionsSummary?: string | null
   startDate?: string | null
   supportEmail?: string | null
   portalUrl?: string | null
 }) {
-  const cancellationDeadline = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10)
   const rawFirstName = clean(input.rawCustomer?.first_name)
   const rawLastName = clean(input.rawCustomer?.last_name)
   const rawFullName = input.rawCustomer ? fullName(input.rawCustomer) : null
@@ -2536,11 +2584,18 @@ function eventVariables(input: {
     customer_number: input.customerNumber,
     company_name: input.companyName,
     contract_name: input.contractName ?? 'Elavtal',
+    contract_number: input.contractNumber ?? '',
+    contract_type: input.contractType ?? '',
+    signed_at: input.signedAt ?? '',
+    offer_reference: input.offerReference ?? '',
+    price_summary: input.priceSummary ?? '',
+    legal_versions_summary: input.legalVersionsSummary ?? '',
+    agreement_pdf_note: 'En PDF med den frysta avtals- och bevisinformationen bifogas detta mejl.',
     start_date: input.startDate ?? '',
     facility_id: input.facilityId ?? '',
     metering_point_id: input.meteringPointId ?? '',
     support_email: input.supportEmail ?? '',
-    cancellation_deadline: cancellationDeadline,
+    cancellation_deadline: input.withdrawalDeadline?.slice(0, 10) ?? '',
     portal_url: input.portalUrl ?? '',
   }
 }
@@ -2553,7 +2608,7 @@ function safePortalUrl(): string | null {
   }
 }
 
-async function companyEmailContext(companyId: string): Promise<{ name: string; supportEmail: string | null; portalUrl: string | null }> {
+async function companyEmailContext(companyId: string): Promise<{ name: string; supportEmail: string | null; adminEmail: string | null; portalUrl: string | null }> {
   const { data, error } = await supabaseService
     .from('companies')
     .select('name,support_email,primary_contact_email,branding')
@@ -2581,8 +2636,151 @@ async function companyEmailContext(companyId: string): Promise<{ name: string; s
       ?? clean(data?.name)
       ?? 'din elhandlare',
     supportEmail: clean(settings?.support_email) ?? clean(settings?.reply_to_email) ?? clean(branding.support_email) ?? clean(data?.support_email) ?? clean(data?.primary_contact_email),
+    adminEmail: clean(data?.primary_contact_email) ?? clean(data?.support_email) ?? clean(settings?.support_email) ?? clean(settings?.reply_to_email),
     portalUrl: clean(branding.customer_portal_url) ?? clean(branding.website_url) ?? safePortalUrl(),
   }
+}
+
+type WebsiteEmailDispatchResult = {
+  eventKey: string
+  ok: boolean
+  dispatch_status: 'sent' | 'queued' | 'skipped' | 'failed'
+  result: unknown
+}
+
+async function dispatchInitialWebsiteApplicationEmails(input: {
+  companyId: string
+  applicationId: string
+  customer: CustomerRow
+  rawCustomer: ApplicationInput['customer']
+  customerNumber: string
+  externalCustomerId: string
+  siteId?: string | null
+  facilityId?: string | null
+  meteringPointId?: string | null
+  contract: WebsiteContractCreateResult | null
+  publicOffer: PublicContractOffer | null
+  offerReference: string | null
+  legalVersions: WebsiteLegalAcceptanceVersion[]
+  legalAcceptanceIds: Record<string, string>
+  startDate?: string | null
+}): Promise<{ events: string[]; results: WebsiteEmailDispatchResult[] }> {
+  const email = normalizedEmail(input.rawCustomer.email) ?? normalizedEmail(input.customer.email)
+  if (!email) return { events: [], results: [] }
+
+  const company = await companyEmailContext(input.companyId)
+  const priceParts = [
+    input.publicOffer?.monthly_fee_sek !== null && input.publicOffer?.monthly_fee_sek !== undefined ? `${input.publicOffer.monthly_fee_sek} kr/mån` : null,
+    input.publicOffer?.invoice_fee_sek !== null && input.publicOffer?.invoice_fee_sek !== undefined ? `${input.publicOffer.invoice_fee_sek} kr/faktura` : null,
+    input.publicOffer?.spot_markup_ore_per_kwh !== null && input.publicOffer?.spot_markup_ore_per_kwh !== undefined ? `${input.publicOffer.spot_markup_ore_per_kwh} öre/kWh spotpåslag` : null,
+    input.publicOffer?.variable_fee_ore_per_kwh !== null && input.publicOffer?.variable_fee_ore_per_kwh !== undefined ? `${input.publicOffer.variable_fee_ore_per_kwh} öre/kWh rörlig avgift` : null,
+    input.publicOffer?.fixed_price_ore_per_kwh !== null && input.publicOffer?.fixed_price_ore_per_kwh !== undefined ? `${input.publicOffer.fixed_price_ore_per_kwh} öre/kWh fast pris` : null,
+  ].filter((value): value is string => Boolean(value))
+  const legalVersionsSummary = input.legalVersions
+    .map((version) => `${version.title} v${version.version}`)
+    .join(', ')
+  const variables = eventVariables({
+    companyName: company.name,
+    customer: input.customer,
+    rawCustomer: input.rawCustomer,
+    customerNumber: input.customerNumber,
+    siteId: input.siteId,
+    facilityId: input.facilityId,
+    meteringPointId: input.meteringPointId,
+    contractName: input.contract?.contract_name,
+    contractNumber: input.contract?.contract_number,
+    contractType: input.publicOffer?.contract_type,
+    signedAt: input.contract?.signed_at,
+    withdrawalDeadline: input.contract?.withdrawal_deadline_at,
+    offerReference: input.offerReference,
+    priceSummary: priceParts.join(', '),
+    legalVersionsSummary,
+    startDate: input.startDate ?? input.contract?.starts_at,
+    supportEmail: company.supportEmail,
+    portalUrl: company.portalUrl,
+  })
+
+  const agreementAttachment = input.contract?.contract_number && input.contract.signed_at && input.publicOffer && input.offerReference
+    ? buildAgreementPdfAttachment({
+        companyName: company.name,
+        customerName: fullName(input.rawCustomer) ?? input.customer.full_name ?? input.customer.company_name ?? email,
+        customerEmail: email,
+        customerNumber: input.customerNumber,
+        contractNumber: input.contract.contract_number,
+        contractName: input.contract.contract_name ?? input.publicOffer.public_name,
+        contractDescription: input.publicOffer.public_description,
+        contractType: input.publicOffer.contract_type,
+        signedAt: input.contract.signed_at,
+        startsAt: input.contract.starts_at,
+        withdrawalDeadline: input.contract.withdrawal_deadline_at ?? null,
+        offerReference: input.offerReference,
+        monthlyFeeSek: input.publicOffer.monthly_fee_sek,
+        invoiceFeeSek: input.publicOffer.invoice_fee_sek,
+        spotMarkupOrePerKwh: input.publicOffer.spot_markup_ore_per_kwh,
+        fixedPriceOrePerKwh: input.publicOffer.fixed_price_ore_per_kwh,
+        variableFeeOrePerKwh: input.publicOffer.variable_fee_ore_per_kwh,
+        bindingMonths: input.publicOffer.binding_months ?? null,
+        noticeMonths: input.publicOffer.notice_months ?? null,
+        legalVersions: input.legalVersions.map((version) => ({
+          id: version.id,
+          type: version.type,
+          title: version.title,
+          version: version.version,
+          body: version.body,
+        })),
+        signatureSnapshotSha256: input.contract.signature_snapshot_sha256 ?? null,
+      })
+    : null
+
+  await seedDefaultEmailTemplates(input.companyId).catch(() => null)
+  await seedDefaultEmailEventRules(input.companyId).catch(() => null)
+
+  const legalMailReady = Boolean(
+    input.contract?.status === WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS &&
+    input.contract.signed_at &&
+    agreementAttachment &&
+    contractLegalMailEvidenceReady({ acceptanceIds: input.legalAcceptanceIds })
+  )
+  const events = [
+    'contract.application_received',
+    ...(legalMailReady ? ['contract.confirmation_sent', 'contract.cooling_off_sent'] : []),
+  ]
+
+  const results = await Promise.all(events.map(async (eventKey): Promise<WebsiteEmailDispatchResult> => {
+    const result = await triggerEmailEvent({
+      companyId: input.companyId,
+      customerId: input.customer.id,
+      siteId: input.siteId ?? null,
+      meteringPointId: input.meteringPointId ?? null,
+      eventKey,
+      to: email,
+      adminTo: company.adminEmail,
+      variables,
+      attachments: eventKey === 'contract.confirmation_sent' && agreementAttachment ? [agreementAttachment] : [],
+      idempotencyKey: `website_application:${input.applicationId}:${eventKey}`,
+      metadata: {
+        application_id: input.applicationId,
+        contract_id: input.contract?.id ?? null,
+        contract_number: input.contract?.contract_number ?? null,
+        signed_at: input.contract?.signed_at ?? null,
+        offer_reference: input.offerReference,
+        public_contract_offer_id: input.publicOffer?.id ?? null,
+        signature_snapshot_sha256: input.contract?.signature_snapshot_sha256 ?? null,
+        external_customer_id: input.externalCustomerId,
+        customer_number: input.customerNumber,
+        source: 'website_customer_applications',
+      },
+    }).catch((error) => [{ ok: false, eventKey, error: errorMessage(error) }])
+
+    return {
+      eventKey,
+      ok: emailTriggerSucceeded(result),
+      dispatch_status: emailDispatchStatus(result),
+      result,
+    }
+  }))
+
+  return { events, results }
 }
 
 async function loadExistingIdentity(companyId: string, externalCustomerId: string) {
@@ -3221,6 +3419,11 @@ type WebsiteContractCreateResult = {
   contract_name: string | null
   starts_at: string | null
   status: string
+  signed_at?: string | null
+  withdrawal_deadline_at?: string | null
+  public_contract_offer_id?: string | null
+  offer_reference?: string | null
+  signature_snapshot_sha256?: string | null
   contract_number: string | null
   price_plan_id: string | null
   price_plan_version_id: string | null
@@ -3235,7 +3438,8 @@ function selectedOfferFields(offer: PublicContractOffer | null, contract: Applic
     // previously caused `invalid input syntax for type uuid` 500s mid-flow.
     pricePlanId: offer?.price_plan_id ?? cleanUuid(contract?.price_plan_id),
     pricePlanVersionId: offer?.price_plan_version_id ?? cleanUuid(contract?.price_plan_version_id),
-    contractOfferId: offer?.id ?? cleanUuid(contract?.contract_offer_id),
+    publicContractOfferId: offer?.id ?? null,
+    internalContractOfferId: offer ? null : cleanUuid(contract?.contract_offer_id),
     campaignVersionId: offer?.campaign_version_id ?? null,
     contractName: offer?.public_name ?? clean(contract?.contract_name) ?? 'Elavtal',
     contractType: offer?.contract_type ?? clean(contract?.contract_type) ?? 'variable_monthly',
@@ -3297,7 +3501,8 @@ async function createContractPriceSnapshot(input: {
     billing_model: selected.billingModel,
     price_plan_id: selected.pricePlanId,
     price_plan_version_id: selected.pricePlanVersionId,
-    contract_offer_id: selected.contractOfferId,
+    public_contract_offer_id: selected.publicContractOfferId,
+    contract_offer_id: selected.internalContractOfferId,
     campaign_version_id: selected.campaignVersionId,
     terms_version: selected.termsVersion,
     public_price_text: input.offer?.public_price_text ?? null,
@@ -3366,6 +3571,112 @@ async function createContractPriceSnapshot(input: {
   return String(data.id)
 }
 
+function websiteLegalVersionsSnapshot(versions: WebsiteLegalAcceptanceVersion[]) {
+  return versions.map((version) => ({
+    id: version.id,
+    type: version.type,
+    version: version.version,
+    title: version.title,
+    published_at: version.published_at,
+    body_sha256: createHash('sha256').update(version.body ?? '', 'utf8').digest('hex'),
+  }))
+}
+
+function websiteSignatureSnapshot(input: {
+  companyId: string
+  customerId: string
+  contractId: string
+  applicationId: string
+  publicOffer: PublicContractOffer
+  offerReference: string
+  acceptedAt: string
+  legalVersions: WebsiteLegalAcceptanceVersion[]
+  contractPriceSnapshotId?: string | null
+  requestAudit?: RequestAuditMetadata
+}) {
+  return {
+    schema: 'gridex_website_contract_signature_v1',
+    company_id: input.companyId,
+    customer_id: input.customerId,
+    contract_id: input.contractId,
+    application_id: input.applicationId,
+    public_contract_offer_id: input.publicOffer.id,
+    offer_reference: input.offerReference,
+    price_plan_id: input.publicOffer.price_plan_id,
+    price_plan_version_id: input.publicOffer.price_plan_version_id,
+    contract_price_snapshot_id: input.contractPriceSnapshotId ?? null,
+    accepted_at: input.acceptedAt,
+    agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
+    legal_versions: websiteLegalVersionsSnapshot(input.legalVersions),
+    request_evidence: {
+      ip_hash: input.requestAudit?.ipHash ?? null,
+      user_agent: input.requestAudit?.userAgent ?? null,
+    },
+  }
+}
+
+async function finalizeWebsiteContractSignature(input: {
+  companyId: string
+  customerId: string
+  contract: WebsiteContractCreateResult
+  applicationId: string
+  publicOffer: PublicContractOffer
+  offerReference: string
+  acceptedAt: string
+  legalVersions: WebsiteLegalAcceptanceVersion[]
+  requestAudit?: RequestAuditMetadata
+}): Promise<WebsiteContractCreateResult> {
+  const snapshot = websiteSignatureSnapshot({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    contractId: input.contract.id,
+    applicationId: input.applicationId,
+    publicOffer: input.publicOffer,
+    offerReference: input.offerReference,
+    acceptedAt: input.acceptedAt,
+    legalVersions: input.legalVersions,
+    contractPriceSnapshotId: input.contract.contract_price_snapshot_id ?? null,
+    requestAudit: input.requestAudit,
+  })
+  const snapshotHash = createHash('sha256').update(JSON.stringify(snapshot), 'utf8').digest('hex')
+  const { data, error } = await supabaseService.rpc('gridex_finalize_website_contract_signature', {
+    p_company_id: input.companyId,
+    p_contract_id: input.contract.id,
+    p_application_id: input.applicationId,
+    p_public_contract_offer_id: input.publicOffer.id,
+    p_offer_reference: input.offerReference,
+    p_accepted_at: input.acceptedAt,
+    p_legal_versions: websiteLegalVersionsSnapshot(input.legalVersions),
+    p_signature_snapshot: snapshot,
+    p_signature_snapshot_sha256: snapshotHash,
+    p_signed_ip_hash: input.requestAudit?.ipHash ?? null,
+    p_signed_user_agent: input.requestAudit?.userAgent ?? null,
+  })
+
+  if (error) {
+    throw new WebsiteApplicationError({
+      message: 'Avtalet kunde inte slutmarkeras som signerat eftersom den juridiska beviskedjan inte kunde verifieras atomiskt.',
+      status: 500,
+      code: 'contract_signature_finalize_failed',
+      field: 'contract',
+      stage: 'legal_acceptance',
+      hint: 'Kör senaste migration för gridex_finalize_website_contract_signature och kontrollera att fem exakta juridiska accepter finns för ansökan.',
+      details: schemaErrorDetail(error),
+    })
+  }
+
+  const result = isObject(data) ? data : {}
+  return {
+    ...input.contract,
+    status: WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS,
+    signed_at: clean(result.signed_at) ?? input.acceptedAt,
+    withdrawal_deadline_at: clean(result.withdrawal_deadline_at) ?? new Date(new Date(input.acceptedAt).getTime() + 14 * 86_400_000).toISOString(),
+    public_contract_offer_id: input.publicOffer.id,
+    offer_reference: input.offerReference,
+    signature_snapshot_sha256: clean(result.signature_snapshot_sha256) ?? snapshotHash,
+  }
+}
+
 async function createContract(
   companyId: string,
   customerId: string,
@@ -3375,11 +3686,29 @@ async function createContract(
   readiness: WebsiteApplicationReadiness,
   customerNumber: string,
   publicOffer: PublicContractOffer | null,
-  options: { idempotencyKey?: string | null; applicationNumber?: string | null } = {}
+  options: {
+    idempotencyKey?: string | null
+    applicationNumber?: string | null
+    offerReference?: string | null
+    agreementAcceptedAt?: string | null
+    legalVersions?: WebsiteLegalAcceptanceVersion[]
+    requestAudit?: RequestAuditMetadata
+  } = {}
 ): Promise<WebsiteContractCreateResult | null> {
   const contract = input.contract
   if (!contract && !publicOffer && !readiness.canCreateContract) return null
   const selected = selectedOfferFields(publicOffer, contract)
+  const canonicalOfferReference = publicOffer ? publicOfferReference(publicOffer) : null
+  if (publicOffer && (!options.offerReference || options.offerReference !== canonicalOfferReference)) {
+    throw new WebsiteApplicationError({
+      message: 'offer_reference matchar inte längre det publicerade erbjudandet.',
+      status: 422,
+      code: 'offer_reference_mismatch',
+      field: 'offer_reference',
+      stage: 'public_contract_lookup',
+      hint: 'Hämta avtalet på nytt via public-contracts och skicka exakt offer_reference.',
+    })
+  }
 
   // Fail closed on broken offer -> price plan mapping: a resolved public offer
   // MUST carry price_plan_id and price_plan_version_id UUIDs. A contract
@@ -3394,7 +3723,9 @@ async function createContract(
       stage: 'contract_create',
       hint: 'Kontrollera att public_contract_offers-raden pekar på en aktiv price_plans/price_plan_versions-rad (UUID) och publicera om avtalet.',
       details: {
-        contract_offer_id: selected.contractOfferId,
+        public_contract_offer_id: selected.publicContractOfferId,
+        contract_offer_id: selected.internalContractOfferId,
+        offer_reference: canonicalOfferReference,
         price_plan_id: selected.pricePlanId,
         price_plan_version_id: selected.pricePlanVersionId,
       },
@@ -3409,7 +3740,11 @@ async function createContract(
   const confirmedStartDate = readiness.confirmedStartDate ?? clean(contract?.confirmed_start_date) ?? clean(contract?.confirmedStartDate)
   const actualStartDate = readiness.actualStartDate ?? clean(contract?.actual_start_date) ?? clean(contract?.actualStartDate)
   const now = new Date().toISOString()
-  const contractStatus = readiness.canStartSwitch ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS
+  const contractStatus = publicOffer
+    ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS
+    : readiness.canStartSwitch
+      ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS
+      : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS
 
   const existingContract = await findExistingWebsiteApplicationContract({
     companyId,
@@ -3417,8 +3752,9 @@ async function createContract(
     siteId,
     meteringPointId,
     requestedStartDate,
-    contractName: selected.contractName,
     pricePlanVersionId: selected.pricePlanVersionId,
+    publicContractOfferId: selected.publicContractOfferId,
+    offerReference: canonicalOfferReference,
     idempotencyKey: options.idempotencyKey ?? null,
   })
   if (existingContract) {
@@ -3427,6 +3763,11 @@ async function createContract(
       contract_name: existingContract.contract_name,
       starts_at: existingContract.starts_at,
       status: existingContract.status ?? contractStatus,
+      signed_at: existingContract.signed_at ?? null,
+      withdrawal_deadline_at: existingContract.withdrawal_deadline_at ?? null,
+      public_contract_offer_id: existingContract.public_contract_offer_id ?? selected.publicContractOfferId,
+      offer_reference: existingContract.offer_reference ?? canonicalOfferReference,
+      signature_snapshot_sha256: existingContract.signature_snapshot_sha256 ?? null,
       contract_number: existingContract.contract_number ?? null,
       price_plan_id: existingContract.price_plan_id ?? selected.pricePlanId,
       price_plan_version_id: existingContract.price_plan_version_id ?? selected.pricePlanVersionId,
@@ -3457,6 +3798,15 @@ async function createContract(
     contract_type: selected.contractType,
     price_plan_id: selected.pricePlanId,
     price_plan_version_id: selected.pricePlanVersionId,
+    contract_offer_id: selected.internalContractOfferId,
+    public_contract_offer_id: selected.publicContractOfferId,
+    offer_reference: canonicalOfferReference,
+    legal_versions_snapshot: websiteLegalVersionsSnapshot(options.legalVersions ?? []),
+    signature_snapshot: {},
+    signature_snapshot_sha256: null,
+    signed_ip_hash: null,
+    signed_user_agent: null,
+    is_distance_agreement: Boolean(publicOffer),
     starts_at: requestedStartDate,
     expected_start_at: requestedStartDate,
     requested_start_date: requestedStartDate,
@@ -3467,7 +3817,9 @@ async function createContract(
     resolution_status: readiness.resolutionStatus,
     confirmed_start_date: confirmedStartDate,
     actual_start_date: actualStartDate,
-    signed_at: clean(contract?.signed_at) ?? null,
+    // Browser supplied signed_at is deliberately ignored. The signature RPC
+    // writes the server acceptance timestamp only after exact legal evidence exists.
+    signed_at: null,
     monthly_fee_sek: selected.monthlyFeeSek,
     invoice_fee_sek: selected.invoiceFeeSek,
     markup_ore_per_kwh: selected.markupOrePerKwh,
@@ -3494,7 +3846,11 @@ async function createContract(
       contract_number: contractNumber,
       price_plan_id: selected.pricePlanId,
       price_plan_version_id: selected.pricePlanVersionId,
-      contract_offer_id: selected.contractOfferId,
+      public_contract_offer_id: selected.publicContractOfferId,
+      contract_offer_id: selected.internalContractOfferId,
+      offer_reference: canonicalOfferReference,
+      agreement_accepted_at: options.agreementAcceptedAt ?? null,
+      legal_versions: websiteLegalVersionsSnapshot(options.legalVersions ?? []),
       public_offer: publicOffer,
       metering_point_id: meteringPointId,
       requested_start_date: requestedStartDate,
@@ -3541,7 +3897,7 @@ async function createContract(
     const fallback = await supabaseService
       .from('customer_contracts')
       .insert(payload)
-      .select('id,contract_name,starts_at,status,contract_number,price_plan_id,price_plan_version_id')
+      .select('id,contract_name,starts_at,status,signed_at,withdrawal_deadline_at,public_contract_offer_id,offer_reference,signature_snapshot_sha256,contract_number,price_plan_id,price_plan_version_id')
       .single()
 
     if (!fallback.error && fallback.data) {
@@ -3604,6 +3960,8 @@ type CreateApplicationRowInput = {
   pricePlanId?: string | null
   pricePlanVersionId?: string | null
   contractPriceSnapshotId?: string | null
+  publicContractOfferId?: string | null
+  offerReference?: string | null
   payload: ApplicationInput | Record<string, unknown>
   rawPayload?: unknown
   responsePayload: Record<string, unknown>
@@ -3676,9 +4034,13 @@ async function syncExternalContractIntakeRow(input: CreateApplicationRowInput & 
     city: clean(site.city),
     move_in_date: clean(site.move_in_date) ?? null,
     price_area_code: input.priceAreaCode ?? clean(site.price_area_code) ?? clean(payload.price_area_code),
-    // external_contract_intakes.contract_offer_id is a uuid column — only
-    // UUID-shaped identifiers may be written here.
-    contract_offer_id: cleanUuid(input.pricePlanVersionId) ?? cleanUuid(payload.contract_offer_id) ?? cleanUuid(contract.price_plan_version_id) ?? cleanUuid(payload.price_plan_version_id),
+    // Keep each identifier in its canonical column. contract_offer_id is
+    // reserved for an internal OPS offer and must never contain a price-plan UUID.
+    contract_offer_id: cleanUuid(payload.contract_offer_id) ?? cleanUuid(contract.contract_offer_id),
+    public_contract_offer_id: input.publicContractOfferId ?? null,
+    offer_reference: input.offerReference ?? null,
+    price_plan_id: cleanUuid(input.pricePlanId),
+    price_plan_version_id: cleanUuid(input.pricePlanVersionId),
     requested_start_date: input.requestedStartDate ?? clean(contract.requested_start_date) ?? clean(payload.requested_start_date),
     created_customer_id: input.customer?.id ?? null,
     created_site_id: input.customerSiteId ?? null,
@@ -3723,6 +4085,8 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     price_plan_id: input.pricePlanId ?? null,
     price_plan_version_id: input.pricePlanVersionId ?? null,
     contract_price_snapshot_id: input.contractPriceSnapshotId ?? null,
+    public_contract_offer_id: input.publicContractOfferId ?? null,
+    offer_reference: input.offerReference ?? null,
     external_customer_id: input.externalCustomerId,
     external_account_id: input.externalAccountId ?? null,
     customer_number: input.customer?.customer_number ?? null,
@@ -4422,11 +4786,16 @@ export async function processWebsiteCustomerApplication(input: {
   let publicOffer: PublicContractOffer | null = null
   let legalAcceptanceVersions: WebsiteLegalAcceptanceVersion[] = []
   let applicationNumber: string | null = null
+  const agreementAcceptedAt = new Date().toISOString()
   // Once the application row exists, any later failure (e.g. power of attorney)
   // must UPDATE this row to failed/partial — never INSERT a second row, which
   // would collide on the unique (company_id, idempotency_key) index and leave a
   // misleading success row behind.
   let applicationRowId: string | null = null
+  // Legal agreement confirmation eligibility is independent from facility and
+  // supplier-switch readiness. It becomes true only after the server has
+  // finalized the exact offer-bound legal acceptances.
+  let agreementConfirmationEligible = false
 
   try {
     const existingIdempotent = await stage('idempotency', () => loadIdempotentApplication(input.client.company_id, idempotencyKey))
@@ -4624,31 +4993,27 @@ export async function processWebsiteCustomerApplication(input: {
     const selectedPricePlanId = clean(body.price_plan_id) ?? clean(body.contract?.price_plan_id)
     const selectedContractOfferId = clean(body.contract_offer_id) ?? clean(body.contract?.contract_offer_id)
     const selectedProductCode = clean(body.product_code) ?? clean(body.contract?.product_code)
-    const hasSelectedPublicContract = Boolean(selectedOfferReference || selectedPricePlanVersionId || selectedPricePlanId || selectedContractOfferId || selectedProductCode)
-    if (!hasSelectedPublicContract) {
+    const hasLegacyOfferSelector = Boolean(selectedPricePlanVersionId || selectedPricePlanId || selectedContractOfferId || selectedProductCode)
+    if (!selectedOfferReference) {
       throw new WebsiteApplicationError({
-        message: 'Kundansökan måste referera till ett publicerat avtal från Ops.',
+        message: hasLegacyOfferSelector
+          ? 'Kundansökan använder en äldre avtalsidentifierare. Endast offer_reference från public-contracts får användas vid tecknande.'
+          : 'Kundansökan måste referera till ett publicerat avtal från OPS.',
         status: 422,
-        code: 'public_contract_required',
-        field: 'contract.offer_reference',
+        code: hasLegacyOfferSelector ? 'offer_reference_required' : 'public_contract_required',
+        field: 'offer_reference',
         stage: 'public_contract_lookup',
-        hint: 'Hämta avtal via GET /api/v1/website/public-contracts och skicka offer_reference. Skicka inte egna priser eller fritextavtal som juridisk sanning.',
+        hint: 'Hämta avtal via GET /api/v1/website/public-contracts och skicka exakt offer_reference från svaret. product_code, price_plan_id och interna UUID:n väljer inte längre juridiskt avtal.',
       })
     }
 
-    publicOffer = hasSelectedPublicContract
-      ? await stage('public_contract_lookup', () => resolvePublicContractOffer({
-          client: input.client,
-          offerReference: selectedOfferReference,
-          pricePlanVersionId: selectedPricePlanVersionId,
-          pricePlanId: selectedPricePlanId,
-          contractOfferId: selectedContractOfferId,
-          productCode: selectedProductCode,
-          customerType: body.customer.customer_type,
-        }))
-      : null
+    publicOffer = await stage('public_contract_lookup', () => resolvePublicContractOffer({
+      client: input.client,
+      offerReference: selectedOfferReference,
+      customerType: body.customer.customer_type,
+    }))
 
-    if (hasSelectedPublicContract && !publicOffer) {
+    if (!publicOffer) {
       throw new WebsiteApplicationError({
         message: 'Valt avtal är inte publicerat eller tillhör inte denna tenant.',
         status: 422,
@@ -4656,6 +5021,27 @@ export async function processWebsiteCustomerApplication(input: {
         field: 'offer_reference',
         stage: 'public_contract_lookup',
         hint: 'Hemsidan ska hämta avtal via GET /api/v1/website/public-contracts och skicka offer_reference från svaret.',
+      })
+    }
+
+    // offer_reference is the only selector. Legacy fields may still be present
+    // during rollout, but a conflicting value must never silently select or
+    // describe another commercial agreement.
+    const selectorMismatches = [
+      selectedPricePlanVersionId && selectedPricePlanVersionId !== publicOffer.price_plan_version_id ? 'price_plan_version_id' : null,
+      selectedPricePlanId && selectedPricePlanId !== publicOffer.price_plan_id ? 'price_plan_id' : null,
+      selectedProductCode && selectedProductCode !== publicOffer.product_code ? 'product_code' : null,
+      selectedContractOfferId && ![publicOffer.id, selectedOfferReference].includes(selectedContractOfferId) ? 'contract_offer_id' : null,
+    ].filter((value): value is string => Boolean(value))
+    if (selectorMismatches.length > 0) {
+      throw new WebsiteApplicationError({
+        message: 'Kundansökan innehåller avtalsfält som motsäger valt offer_reference.',
+        status: 422,
+        code: 'offer_selector_mismatch',
+        field: selectorMismatches[0],
+        stage: 'public_contract_lookup',
+        hint: 'Ta bort äldre avtalsidentifierare från POST-payloaden och använd uppgifterna som returneras för samma offer_reference.',
+        details: { mismatched_fields: selectorMismatches },
       })
     }
 
@@ -4771,7 +5157,14 @@ export async function processWebsiteCustomerApplication(input: {
       readiness,
       customerNumber,
       publicOffer,
-      { idempotencyKey: input.idempotencyKey ?? null, applicationNumber }
+      {
+        idempotencyKey: input.idempotencyKey ?? null,
+        applicationNumber,
+        offerReference: selectedOfferReference,
+        agreementAcceptedAt,
+        legalVersions: legalAcceptanceVersions,
+        requestAudit: input.requestAudit,
+      }
     ))
     const identity = await stage('portal_identity_create', () => upsertPortalIdentity({
       client: input.client,
@@ -4811,7 +5204,7 @@ export async function processWebsiteCustomerApplication(input: {
       metering_point_id: meteringPoint?.id ?? null,
       contract_id: contract?.id ?? null,
       contract_number: contract?.contract_number ?? null,
-      offer_reference: publicOffer ? selectedOfferReference ?? (selectedContractOfferId?.startsWith('offer_') ? selectedContractOfferId : null) : null,
+      offer_reference: publicOffer ? selectedOfferReference : null,
       price_plan_id: contract?.price_plan_id ?? publicOffer?.price_plan_id ?? clean(body.price_plan_id) ?? clean(body.contract?.price_plan_id) ?? null,
       price_plan_version_id: contract?.price_plan_version_id ?? publicOffer?.price_plan_version_id ?? clean(body.price_plan_version_id) ?? clean(body.contract?.price_plan_version_id) ?? null,
       contract_price_snapshot_id: contract?.contract_price_snapshot_id ?? null,
@@ -4862,6 +5255,8 @@ export async function processWebsiteCustomerApplication(input: {
       pricePlanId: contract?.price_plan_id ?? publicOffer?.price_plan_id ?? clean(body.price_plan_id) ?? clean(body.contract?.price_plan_id) ?? null,
       pricePlanVersionId: contract?.price_plan_version_id ?? publicOffer?.price_plan_version_id ?? clean(body.price_plan_version_id) ?? clean(body.contract?.price_plan_version_id) ?? null,
       contractPriceSnapshotId: contract?.contract_price_snapshot_id ?? null,
+      publicContractOfferId: publicOffer?.id ?? null,
+      offerReference: selectedOfferReference,
       payload: body,
       rawPayload: input.rawBody,
       responsePayload,
@@ -4889,6 +5284,8 @@ export async function processWebsiteCustomerApplication(input: {
       auditLog: [reviewAuditEvent('application_received', null, responsePayload)],
     }))
     applicationRowId = application.id
+    const email = normalizedEmail(body.customer.email)
+    let initialCommunicationResults: WebsiteEmailDispatchResult[] = []
 
     const legalAcceptanceIds = await stage('legal_acceptance', () => persistCustomerLegalAcceptances({
       companyId: input.client.company_id,
@@ -4900,9 +5297,75 @@ export async function processWebsiteCustomerApplication(input: {
       consents: body.consents,
       rawPayload: input.rawBody,
       requestAudit: input.requestAudit,
+      acceptedAt: agreementAcceptedAt,
     }))
     if (Object.keys(legalAcceptanceIds).length > 0) {
       responsePayload.legal_acceptances = legalAcceptanceIds
+    }
+
+    if (contract && publicOffer && selectedOfferReference) {
+      contract = await stage('legal_acceptance', () => finalizeWebsiteContractSignature({
+        companyId: input.client.company_id,
+        customerId: resolvedCustomerResult.customer.id,
+        contract: contract as WebsiteContractCreateResult,
+        applicationId: application.id,
+        publicOffer: publicOffer as PublicContractOffer,
+        offerReference: selectedOfferReference,
+        acceptedAt: agreementAcceptedAt,
+        legalVersions: legalAcceptanceVersions,
+        requestAudit: input.requestAudit,
+      }))
+      responsePayload.contract_status = contract.status
+      responsePayload.signed_at = contract.signed_at ?? agreementAcceptedAt
+      responsePayload.withdrawal_deadline_at = contract.withdrawal_deadline_at ?? null
+      responsePayload.public_contract_offer_id = publicOffer.id
+      responsePayload.offer_reference = selectedOfferReference
+    }
+
+    agreementConfirmationEligible = Boolean(
+      email &&
+      contract?.status === WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS &&
+      contract?.signed_at &&
+      publicOffer &&
+      selectedOfferReference &&
+      contractLegalMailEvidenceReady({ acceptanceIds: legalAcceptanceIds })
+    )
+    // This field describes legal agreement-mail eligibility. It must not be
+    // coupled to facility lookup, confirmed delivery date or switch readiness.
+    responsePayload.can_send_agreement_confirmation = agreementConfirmationEligible
+
+    try {
+      const initialDispatch = await dispatchInitialWebsiteApplicationEmails({
+        companyId: input.client.company_id,
+        applicationId: application.id,
+        customer: resolvedCustomerResult.customer,
+        rawCustomer: body.customer,
+        customerNumber,
+        externalCustomerId,
+        siteId: site?.id ?? null,
+        facilityId: site?.facility_id ?? clean(body.site?.facility_id),
+        meteringPointId: meteringPoint?.id ?? null,
+        contract,
+        publicOffer,
+        offerReference: selectedOfferReference,
+        legalVersions: legalAcceptanceVersions,
+        legalAcceptanceIds,
+        startDate: readiness.requestedStartDate ?? contract?.starts_at ?? clean(body.contract?.starts_at) ?? clean(body.site?.move_in_date),
+      })
+      initialCommunicationResults = initialDispatch.results
+    } catch (error) {
+      const expectedEvents = [
+        'contract.application_received',
+        ...(agreementConfirmationEligible
+          ? ['contract.confirmation_sent', 'contract.cooling_off_sent']
+          : []),
+      ]
+      initialCommunicationResults = expectedEvents.map((eventKey) => ({
+        eventKey,
+        ok: false,
+        dispatch_status: 'failed' as const,
+        result: { error: errorMessage(error), stage: 'communication_trigger' },
+      }))
     }
 
     // Collected here and merged into the final response warnings later, because
@@ -5188,105 +5651,17 @@ export async function processWebsiteCustomerApplication(input: {
     }))
 
     const warnings: string[] = [...readiness.warnings, ...(gridOwnerRequest?.warnings ?? []), ...poaWarnings, ...supplierSwitchWarnings]
-    let communicationResults: unknown[] = []
-    let triggeredEmailEvents: string[] = []
+    const communicationResults: unknown[] = [...initialCommunicationResults]
 
-    const email = normalizedEmail(body.customer.email)
-    if (email) {
-      try {
-        const company = await companyEmailContext(input.client.company_id)
-        const variables = eventVariables({
-          companyName: company.name,
-          customer: resolvedCustomerResult.customer,
-          rawCustomer: body.customer,
-          customerNumber,
-          siteId: site?.id ?? null,
-          facilityId: site?.facility_id ?? clean(body.site?.facility_id),
-          meteringPointId: meteringPoint?.metering_point_id ?? clean(body.metering_point?.metering_point_id),
-          contractName: contract?.contract_name ?? clean(body.contract?.contract_name),
-          startDate: readiness.requestedStartDate ?? contract?.starts_at ?? clean(body.contract?.starts_at) ?? clean(body.site?.move_in_date),
-          supportEmail: company.supportEmail,
-          portalUrl: company.portalUrl,
-        })
-        await seedDefaultEmailTemplates(input.client.company_id).catch(() => null)
-        await seedDefaultEmailEventRules(input.client.company_id).catch(() => null)
-        const initialApplicationEmail = { eventKey: 'contract.application_received' as const }
-        const contractLegalMailReady = Boolean(
-          contract?.id &&
-          publicOffer &&
-          contractLegalMailEvidenceReady({
-            acceptanceIds: legalAcceptanceIds,
-            powerOfAttorneyRequired,
-            powerOfAttorneyId,
-          })
-        )
-        const canDispatchFinalAgreementMail = Boolean(
-          readiness.canSendAgreementConfirmation === true &&
-          contractLegalMailReady &&
-          !facilityMissing &&
-          applicationStatus === 'ready_for_switch'
-        )
-        triggeredEmailEvents = [
-          initialApplicationEmail.eventKey,
-          ...(canDispatchFinalAgreementMail ? ['contract.confirmation_sent', 'contract.cooling_off_sent'] : []),
-        ]
-
-        communicationResults = await Promise.all(triggeredEmailEvents.map(async (eventKey) => {
-          const result = await triggerEmailEvent({
-            companyId: input.client.company_id,
-            customerId: resolvedCustomerResult.customer.id,
-            siteId: site?.id ?? null,
-            meteringPointId: meteringPoint?.id ?? null,
-            eventKey,
-            to: email,
-            variables,
-            idempotencyKey: `website_application:${application.id}:${eventKey}`,
-            metadata: {
-              application_id: application.id,
-              contract_id: contract?.id ?? null,
-              external_customer_id: externalCustomerId,
-              customer_number: customerNumber,
-              source: 'website_customer_applications',
-            },
-          }).catch((error) => [{ ok: false, eventKey, error: errorMessage(error) }])
-
-          return {
-            eventKey,
-            ok: emailTriggerSucceeded(result),
-            // Explicit queued/sent/failed per event: the event key names
-            // (e.g. contract.confirmation_sent) describe the BUSINESS event,
-            // not the delivery state. Integrators must read dispatch_status.
-            dispatch_status: emailDispatchStatus(result),
-            result,
-          }
-        }))
-
-        const failedEmailResults = communicationResults
-          .filter((item): item is { eventKey: string; ok: boolean; result: unknown } => {
-            if (!item || typeof item !== 'object') return false
-            const candidate = item as { eventKey?: unknown; ok?: unknown; result?: unknown }
-            return typeof candidate.eventKey === 'string' && typeof candidate.ok === 'boolean'
-          })
-          .filter((item) => item.ok === false)
-        if (failedEmailResults.length > 0) {
-          pushWarning(warnings, 'communication_failed')
-          pushWarning(warnings, 'confirmation_email_pending')
-          if (failedEmailResults.some((item) => item.eventKey === 'contract.confirmation_sent' || item.eventKey === 'contract.cooling_off_sent')) {
-            pushWarning(warnings, 'legal_email_pending')
-          }
-          if (failedEmailResults.some((item) => /sender|avsändare|domain|domän|verified|verifierad/i.test(emailTriggerErrorText(item.result)))) {
-            pushWarning(warnings, 'legal_email_sender_not_verified')
-          }
-        }
-      } catch (error: unknown) {
-        pushWarning(warnings, 'communication_failed')
-        pushWarning(warnings, 'confirmation_email_pending')
-        // Do not claim legal agreement mail is pending when the readiness gate
-        // says final agreement confirmation/cooling-off must not be sent yet.
-        if (readiness.canSendAgreementConfirmation === true && !facilityMissing && applicationStatus === 'ready_for_switch') {
-          pushWarning(warnings, 'legal_email_pending')
-        }
-        communicationResults = [{ ok: false, error: errorMessage(error), stage: 'communication_trigger' }]
+    const failedEmailResults = initialCommunicationResults.filter((item) => item.ok === false)
+    if (failedEmailResults.length > 0) {
+      pushWarning(warnings, 'communication_failed')
+      pushWarning(warnings, 'confirmation_email_pending')
+      if (failedEmailResults.some((item) => item.eventKey === 'contract.confirmation_sent' || item.eventKey === 'contract.cooling_off_sent')) {
+        pushWarning(warnings, 'legal_email_pending')
+      }
+      if (failedEmailResults.some((item) => /sender|avsändare|domain|domän|verified|verifierad/i.test(emailTriggerErrorText(item.result)))) {
+        pushWarning(warnings, 'legal_email_sender_not_verified')
       }
     }
 
@@ -5455,7 +5830,7 @@ export async function processWebsiteCustomerApplication(input: {
       confirmed_start_date: readiness.confirmedStartDate,
       actual_start_date: readiness.actualStartDate,
       can_start_switch: false,
-      can_send_agreement_confirmation: false,
+      can_send_agreement_confirmation: agreementConfirmationEligible,
       can_activate_customer: false,
     }
     // When the application row already exists (mid-pipeline failure), update it
@@ -5506,7 +5881,7 @@ export async function processWebsiteCustomerApplication(input: {
         confirmed_start_date: readiness.confirmedStartDate,
         actual_start_date: readiness.actualStartDate,
         can_start_switch: false,
-        can_send_agreement_confirmation: false,
+        can_send_agreement_confirmation: agreementConfirmationEligible,
         can_activate_customer: false,
       },
       idempotencyKey,
@@ -5705,6 +6080,7 @@ async function repairMissingPoaOnIdempotentApplication(input: {
     contractOfferId: selectedContractOfferId,
     productCode: selectedProductCode,
     customerType: input.body.customer.customer_type,
+    allowLegacyLookup: true,
   })
 
   if (!publicOffer) {
@@ -5742,6 +6118,7 @@ async function repairMissingPoaOnIdempotentApplication(input: {
       consents: input.body.consents,
       rawPayload: input.rawBody,
       requestAudit: input.requestAudit,
+      acceptedAt: new Date().toISOString(),
     })
   }
 
@@ -5944,6 +6321,7 @@ export async function repairWebsiteCustomerApplication(
     contractOfferId: selectedContractOfferId,
     productCode: selectedProductCode,
     customerType: body.customer.customer_type,
+    allowLegacyLookup: true,
   }).catch(() => null)
 
   let legalVersions: WebsiteLegalAcceptanceVersion[] = []
@@ -5972,6 +6350,7 @@ export async function repairWebsiteCustomerApplication(
       legalVersions,
       consents: body.consents,
       rawPayload: storedPayload,
+      acceptedAt: new Date().toISOString(),
     })
   }
 

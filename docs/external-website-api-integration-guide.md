@@ -126,6 +126,14 @@ OPS sparar:
 
 Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switch tills mätpunkt/nätägare är verifierade.
 
+## Publicerade erbjudanden och felsökning
+
+Hämta alltid säljerbjudanden från `GET /api/v1/website/public-contracts`. Ett internt `contract_offers` eller ett tecknat `customer_contracts` är inte automatiskt ett publicerat webberbjudande.
+
+Vid tomt svar kan tenantens backend använda `?diagnostics=1`. Varje rad visar om erbjudandet är synligt och vilka blockerare som finns, till exempel publiceringsstatus, datum, kundtyp, prisbok, prisplansversion eller exakt juridikpaket.
+
+`offer_reference` är den enda avtalsväljaren i POST. Skicka inte `product_code`, `price_plan_id`, `price_plan_version_id` eller internt erbjudande-UUID som alternativ väljare. Motstridiga legacyfält returnerar `422 offer_selector_mismatch`.
+
 ## Kundansökan med strukturerad fullmakt
 
 `POST /api/v1/website/customer-applications` accepterar ett strukturerat `powerOfAttorney`-objekt och valfri `legalAcceptances`-lista:
@@ -153,7 +161,7 @@ Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switc
 
 Regler:
 
-- Den juridiska texten laddas från `legal_text_versions` via `textVersionId` – frontend-text litas aldrig på.
+- De fem juridikversionerna binds direkt från det valda erbjudandets exakta legal bundle. Frontend-text och tenantens senare "senaste version" litas aldrig på. `powerOfAttorney.textVersionId` måste matcha erbjudandets publicerade POA-version.
 - En riktig `powers_of_attorney`-rad skapas med signer/scope/method/evidence/dokument samt händelser i `power_of_attorney_events` (`created`, `accepted`, `snapshot_created`). Det interna JSON-snapshotet skickas aldrig externt; nätägaren får alltid en PDF.
 - **Identitet och alias:** kundens identitet sparas alltid i `personal_number`/`org_number`. Accepterade alias för privat identitet: `personal_number`, `personalNumber`, `personal_identity_number`, `personalIdentityNumber`, `identity_number`, `identityNumber`, `personnummer`. För företag: `org_number`, `orgNumber`, `organization_number`, `organizationNumber`, `organisation_number`, `organisationNumber`, `organisationsnummer`, `orgnr`.
 - **Strukturerad fullmakt krävs för automatisk nätägarkommunikation.** För att fullmakten ska kunna skickas automatiskt krävs `powerOfAttorney.accepted=true` med `signerName`, `signerIdentityNumber` och `method`. Kundidentitet används inte som fallback för nya website-fullmakter. Ett strukturerat objekt med `accepted=true` men saknade signeringsfält returnerar `422 validation_error`. Endast `consents.power_of_attorney: true` ger en juridisk accept men en **svag** fullmakt som markeras `externally_sendable: false` / `requires_completion: true` och inte skickas externt.
@@ -162,7 +170,10 @@ Regler:
 - **Fullmakt krävs när avtalet kräver det.** När det valda avtalet publicerar en `power_of_attorney`-version (`legal.power_of_attorney_required = true`) måste ett strukturerat `powerOfAttorney` med `accepted=true` skickas. Endast `consents.power_of_attorney: true` ger `422 power_of_attorney_missing`. `powerOfAttorney.accepted=false` ger `422 power_of_attorney_not_accepted`.
 - Skicka `Idempotency-Key`; upprepade anrop/klick skapar inga dubbletter. Bolaget härleds från API-nyckeln, aldrig från payload. failed idempotency ger 409 idempotent_failed. Om ett tidigare anrop med samma `Idempotency-Key` lyckades utan fullmakt men det nya anropet innehåller `powerOfAttorney`, returneras `409 idempotent_application_missing_poa` (`error.action = retry_with_new_idempotency_key_or_repair`) — använd ny nyckel eller låt en admin reparera ansökan. Om tidigare försök föll före durable site/contract-provisioning på `site_create` efter schema/migrationsfel kan OPS frigöra den gamla misslyckade idempotency-raden och låta samma retry skapa en ny komplett ansökan.
 - **Do not send duplicate legal emails.** Återanvänd samma `Idempotency-Key` vid retry av samma signerade ansökan. Använd inte ny nyckel för samma juridiska submission om ni inte avsiktligt vill skapa en ny ansökan och nya juridiska mail.
-- `contract.confirmation_sent` och `contract.cooling_off_sent` betyder faktisk skickad mail-logg för respektive mall. De får inte härledas från `contract.application_received` eller från att ansökan bara skapats.
+- Avtalet slutmarkeras server-side som `signed` först när alla fem exakta accepter finns med samma servergenererade acceptanstid. Klientens `signed_at` eller `acceptedAt` bestämmer inte avtalets juridiska tidpunkt.
+- Direkt efter signering köas avtalsbekräftelsen med en fryst PDF samt ångerrättsmail; nätägaruppslagning och leverantörsbyte får inte fördröja detta.
+- `can_send_agreement_confirmation` betyder att de fem juridiska accepter­na och avtalet är redo för bekräftelse. Fältet är frikopplat från `can_start_switch`; saknad anläggning, nätägare eller bekräftat startdatum får därför inte sätta det till `false` efter lyckad signering.
+- I den direkta responsen är `contract.confirmation_sent` och `contract.cooling_off_sent` event-/mallnycklar. Läs `communication.queued/sent/failed` för verklig status. Webhook med samma `*_sent`-namn skickas först efter providerbekräftad sändning.
 
 ## Kundtyp (kanoniska värden)
 

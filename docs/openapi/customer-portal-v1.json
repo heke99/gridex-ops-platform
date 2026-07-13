@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-12",
-    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. company_id accepteras aldrig som fri tenantväljare."
+    "version": "2026-07-13",
+    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs endast med opak offer_reference och slutmarkeras server-side mot exakta offer-bundna juridikversioner."
   },
   "servers": [
     {
@@ -124,7 +124,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CustomerContract"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -150,7 +161,8 @@
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
-        }
+        },
+        "description": "Hämtar den lösta kundens tecknade customer_contracts inom API-nyckelns tenant, inklusive immutable offer-/juridik-/signaturreferenser när tillgängliga."
       }
     },
     "/api/v1/customer/documents": {
@@ -1439,19 +1451,18 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "additionalProperties": true
+                "$ref": "#/components/schemas/WebsiteCustomerApplicationRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Lyckat svar.",
+            "description": "Ansökan sparad. Avtalsstatus och communication-status är serverns source of truth.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/WebsiteCustomerApplicationResponse"
                 }
               }
             }
@@ -1469,7 +1480,8 @@
             "$ref": "#/components/responses/Conflict"
           },
           "422": {
-            "$ref": "#/components/responses/Unprocessable"
+            "$ref": "#/components/responses/Unprocessable",
+            "description": "Valideringsfel, t.ex. offer_reference_required, offer_selector_mismatch, offer_legal_version_mismatch eller legal_acceptance_missing."
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
@@ -1477,7 +1489,8 @@
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
-        }
+        },
+        "description": "Skapar en idempotent ansökan från exakt offer_reference. OPS binder fem juridiska accepter till erbjudandets versioner, slutmarkerar avtalet atomiskt som signed och köar avtalsbekräftelse/PDF utan att invänta leverantörsbytet."
       }
     },
     "/api/v1/website/customer-events": {
@@ -1624,6 +1637,29 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "name": "customer_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "business"
+              ]
+            },
+            "description": "Filtrera erbjudanden för kundtyp; both matchar båda."
+          },
+          {
+            "name": "diagnostics",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Returnera publiceringsdiagnostik och blockerare i stället för normal kundlista."
           }
         ],
         "responses": {
@@ -1632,7 +1668,39 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/PublicContractOffer"
+                          }
+                        },
+                        "contracts": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/PublicContractOffer"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicContractDiagnostics"
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -1658,7 +1726,8 @@
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
-        }
+        },
+        "description": "Returnerar endast publiceringsklara erbjudanden för API-nyckelns tenant. offer_reference är enda kanoniska avtalsväljaren. diagnostics=1 ger tenant-scopade blockerare för server-side support."
       }
     },
     "/api/v1/website/quote": {
@@ -2252,6 +2321,388 @@
             "type": "string"
           }
         }
+      },
+      "PublicContractOffer": {
+        "type": "object",
+        "required": [
+          "id",
+          "offer_reference",
+          "code",
+          "name",
+          "type",
+          "customer_type",
+          "pricing",
+          "legal"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Samma opaka värde som offer_reference; inget internt UUID."
+          },
+          "offer_reference": {
+            "type": "string",
+            "pattern": "^offer_",
+            "description": "Enda kanoniska väljaren för POST customer-applications."
+          },
+          "contract_offer_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "deprecated": true,
+            "description": "Kompatibilitetsalias för offer_reference; inte ett internt offer-ID."
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "customer_type": {
+            "type": "string",
+            "enum": [
+              "private",
+              "business",
+              "both"
+            ]
+          },
+          "pricing": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "legal": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Exakta OPS-publicerade versioner för erbjudandet."
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "website_cta_enabled": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      },
+      "PublicContractDiagnostics": {
+        "type": "object",
+        "required": [
+          "total",
+          "visible",
+          "hidden",
+          "offers"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "visible": {
+            "type": "integer"
+          },
+          "hidden": {
+            "type": "integer"
+          },
+          "offers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "visible",
+                "blockers"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "visible": {
+                  "type": "boolean"
+                },
+                "blockers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "offer_reference": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "WebsiteCustomerApplicationRequest": {
+        "type": "object",
+        "required": [
+          "external_customer_id",
+          "customer",
+          "consents"
+        ],
+        "properties": {
+          "external_customer_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "offer_reference": {
+            "type": "string",
+            "pattern": "^offer_"
+          },
+          "customer": {
+            "type": "object",
+            "required": [
+              "email"
+            ],
+            "additionalProperties": true
+          },
+          "site": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "contract": {
+            "type": "object",
+            "properties": {
+              "offer_reference": {
+                "type": "string",
+                "pattern": "^offer_"
+              }
+            },
+            "additionalProperties": true
+          },
+          "consents": {
+            "type": "object",
+            "required": [
+              "terms",
+              "privacy_policy",
+              "withdrawal",
+              "power_of_attorney",
+              "price_terms"
+            ],
+            "properties": {
+              "terms": {
+                "const": true
+              },
+              "privacy_policy": {
+                "const": true
+              },
+              "withdrawal": {
+                "const": true
+              },
+              "power_of_attorney": {
+                "const": true
+              },
+              "price_terms": {
+                "const": true
+              }
+            },
+            "additionalProperties": true
+          },
+          "powerOfAttorney": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "signed_at": {
+            "deprecated": true,
+            "description": "Ignorerad som juridisk signeringstid. OPS använder serverns acceptanstid."
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "offer_reference"
+            ]
+          },
+          {
+            "properties": {
+              "contract": {
+                "required": [
+                  "offer_reference"
+                ]
+              }
+            }
+          }
+        ],
+        "additionalProperties": true
+      },
+      "WebsiteCustomerApplicationResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "application_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "contract_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              },
+              "contract_status": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "signed",
+                  null
+                ]
+              },
+              "signed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "withdrawal_deadline_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "can_send_agreement_confirmation": {
+                "type": "boolean",
+                "description": "True when the exact five offer-bound legal acceptances have been finalized and the signed agreement is eligible for confirmation. Independent from facility lookup and can_start_switch."
+              },
+              "offer_reference": {
+                "type": "string"
+              },
+              "communication": {
+                "type": "object",
+                "properties": {
+                  "triggered": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "queued": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sent": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "failed": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "source_of_truth": {
+                    "const": "communication_logs"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "CustomerContract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contract_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "withdrawal_deadline_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "public_contract_offer_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "offer_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_snapshot_sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "legal_versions_snapshot": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
       }
     }
   }

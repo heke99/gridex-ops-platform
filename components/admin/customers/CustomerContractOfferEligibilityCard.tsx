@@ -53,9 +53,11 @@ function groupLabel(type: ContractOfferRow['contract_type']): string {
 }
 
 export default function CustomerContractOfferEligibilityCard({
+ customerId,
  customerType,
  offers,
 }: {
+ customerId: string
  customerType: string | null
  offers: ContractOfferRow[]
 }) {
@@ -90,17 +92,17 @@ export default function CustomerContractOfferEligibilityCard({
  <div className="font-semibold">Nästa steg för admin</div>
  <p className="mt-1">
  Att en mall är valbar betyder inte att kunden redan har ett avtal.
- Själva kundavtalet skapas först i avtalssidan längre ner på kundkortet,
+ Själva kundavtalet skapas först på fliken Avtal i kundkortet,
  där det sparas som en riktig post i <code>customer_contracts</code>.
  </p>
 
  <div className="mt-3 flex flex-wrap gap-3">
- <a
- href="#contracts"
+ <Link
+ href={`/admin/customers/${customerId}?tab=contracts#contracts`}
  className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 "
  >
  Gå till kundens avtal
- </a>
+ </Link>
 
  <Link
  href="/admin/contracts"
@@ -169,12 +171,12 @@ export default function CustomerContractOfferEligibilityCard({
  </div>
 
  <div className="mt-4 flex flex-wrap gap-3">
- <a
- href="#contracts"
+ <Link
+ href={`/admin/customers/${customerId}?tab=contracts#contracts`}
  className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 "
  >
- Skapa kundavtal från mall längre ner
- </a>
+ Skapa kundavtal från mall
+ </Link>
 
  <Link
  href="/admin/contracts"

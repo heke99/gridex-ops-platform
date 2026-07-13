@@ -75,7 +75,28 @@ export type CustomerContractRow = {
   customer_site_id?: string | null;
   metering_point_id?: string | null;
   contract_offer_id: string | null;
-  source_type: "catalog" | "manual_override";
+  public_contract_offer_id?: string | null;
+  offer_reference?: string | null;
+  legal_versions_snapshot?: Array<Record<string, unknown>> | null;
+  signature_snapshot?: Record<string, unknown> | null;
+  signature_snapshot_sha256?: string | null;
+  signed_ip_hash?: string | null;
+  signed_user_agent?: string | null;
+  withdrawal_deadline_at?: string | null;
+  source_type:
+    | "catalog"
+    | "manual_override"
+    | "manual"
+    | "admin"
+    | "api"
+    | "external_website"
+    | "website_application"
+    | "website_application_review"
+    | "customer_portal"
+    | "import"
+    | "migration"
+    | "system"
+    | null;
   status: CustomerContractStatus;
   contract_name: string;
   contract_type: ContractType;

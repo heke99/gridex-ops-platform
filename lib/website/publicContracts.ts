@@ -457,7 +457,7 @@ async function listBundleLegalVersions(input: {
   legalBundleId: string | null | undefined
   companyFallback: PublicLegalTextVersion[] | null
 }): Promise<PublicLegalTextVersion[] | null> {
-  if (!input.legalBundleId) return input.companyFallback
+  if (!input.legalBundleId) return null
 
   const items = await supabaseService
     .from('legal_bundle_items')
@@ -466,13 +466,13 @@ async function listBundleLegalVersions(input: {
     .order('sort_order', { ascending: true })
 
   if (items.error) {
-    if (missingSchema(items.error)) return input.companyFallback
+    if (missingSchema(items.error)) return null
     throw items.error
   }
 
   const itemRows = (items.data ?? []) as Array<{ legal_text_version_id?: string | null }>
   const ids = Array.from(new Set(itemRows.map((row) => clean(row.legal_text_version_id)).filter(Boolean))) as string[]
-  if (ids.length === 0) return input.companyFallback
+  if (ids.length === 0) return null
 
   const versions = await supabaseService
     .from('legal_text_versions')
@@ -482,13 +482,13 @@ async function listBundleLegalVersions(input: {
     .in('id', ids)
 
   if (versions.error) {
-    if (missingSchema(versions.error)) return input.companyFallback
+    if (missingSchema(versions.error)) return null
     throw versions.error
   }
 
   const versionRows = (versions.data ?? []) as PublicLegalTextVersion[]
   if (hasAllRequiredLegalVersions(versionRows)) return versionRows
-  return input.companyFallback
+  return null
 }
 
 async function offerWithLegalVersions(input: {
@@ -533,7 +533,7 @@ async function appendReadyOffer(input: {
 
   const readiness = await assessPublicOfferReadiness({
     companyId: input.offer.company_id,
-    offer: input.offer as unknown as { legal_bundle_id?: string | null; price_book_id?: string | null },
+    offer: input.offer,
   })
   if (!readiness.isReady) return
 
@@ -571,29 +571,7 @@ export async function listPublicContractOffers(input: {
     return result
   }
 
-  if (!missingSchema(primary.error)) throw primary.error
-
-  const fallback = await supabaseService
-    .from('price_plan_versions')
-    .select('id,company_id,price_plan_id,version_label,status,valid_from,valid_to,snapshot_json,price_plans(id,company_id,name,pricing_model,status,description)')
-    .eq('company_id', input.client.company_id)
-    .in('status', ['active', 'published'])
-    .order('valid_from', { ascending: false, nullsFirst: false })
-
-  if (fallback.error) {
-    if (missingSchema(fallback.error)) return []
-    throw fallback.error
-  }
-
-  const result: PublicContractOffer[] = []
-  const offers = ((fallback.data ?? []) as PricePlanVersionRow[])
-    .map(offerFromSnapshot)
-    .filter((offer): offer is PublicContractOffer => Boolean(offer))
-
-  for (const offer of offers) {
-    await appendReadyOffer({ result, offer, companyLegalVersions, customerType: input.customerType, tenantSlug })
-  }
-  return result.sort((a, b) => a.sort_order - b.sort_order || a.public_name.localeCompare(b.public_name, 'sv'))
+  throw primary.error
 }
 
 export async function resolvePublicContractOffer(input: {
@@ -604,15 +582,88 @@ export async function resolvePublicContractOffer(input: {
   contractOfferId?: string | null
   productCode?: string | null
   customerType?: string | null
+  allowLegacyLookup?: boolean
 }): Promise<PublicContractOffer | null> {
   const offers = await listPublicContractOffers({ client: input.client, customerType: input.customerType })
+  const offerReference = clean(input.offerReference)
+  if (offerReference) {
+    return offers.find((offer) => publicOfferReference(offer) === offerReference) ?? null
+  }
+
+  if (!input.allowLegacyLookup) return null
+
   return offers.find((offer) => {
-    if (input.offerReference && publicOfferReference(offer) === input.offerReference) return true
-    if (input.contractOfferId && publicOfferReference(offer) === input.contractOfferId) return true
     if (input.contractOfferId && offer.id === input.contractOfferId) return true
     if (input.pricePlanVersionId && offer.price_plan_version_id === input.pricePlanVersionId) return true
     if (input.pricePlanId && offer.price_plan_id === input.pricePlanId) return true
     if (input.productCode && offer.product_code === input.productCode) return true
     return false
   }) ?? null
+}
+
+export type PublicContractOfferDiagnostic = {
+  id: string
+  name: string
+  product_code: string
+  publication_status: string | null
+  website_enabled: boolean
+  valid_from: string | null
+  valid_to: string | null
+  customer_type: string
+  visible: boolean
+  blockers: string[]
+  offer_reference: string | null
+}
+
+export async function diagnosePublicContractOffers(input: {
+  client: IntegrationApiClient
+  customerType?: string | null
+}): Promise<{ total: number; visible: number; hidden: number; offers: PublicContractOfferDiagnostic[] }> {
+  const query = await supabaseService
+    .from('public_contract_offers')
+    .select('*')
+    .eq('company_id', input.client.company_id)
+    .order('sort_order', { ascending: true })
+    .order('public_name', { ascending: true })
+
+  if (query.error) throw query.error
+
+  const rows = (query.data ?? []) as Array<Record<string, unknown>>
+  const diagnostics: PublicContractOfferDiagnostic[] = []
+  for (const row of rows) {
+    const offer = mapOfferRow(row)
+    const blockers: string[] = []
+    const publicationStatus = clean(row.publication_status)
+    if (row.is_archived === true || publicationStatus === 'archived') blockers.push('Erbjudandet är arkiverat')
+    if (row.website_enabled === false) blockers.push('Visning på hemsidan är avstängd')
+    if (publicationStatus ? publicationStatus !== 'published' : row.is_public !== true) blockers.push('Erbjudandet är inte publicerat')
+    if (!isCurrentlyValid(offer)) blockers.push('Erbjudandet ligger utanför sin giltighetsperiod')
+    if (!customerTypeAllowed(offer, input.customerType)) blockers.push('Erbjudandet matchar inte vald kundtyp')
+
+    const readiness = await assessPublicOfferReadiness({ companyId: offer.company_id, offer })
+    blockers.push(...readiness.blockers.filter((blocker) => !blockers.includes(blocker)))
+
+    const strictLegal = blockers.length === 0
+      ? await offerWithLegalVersions({ offer, companyLegalVersions: null })
+      : null
+    if (blockers.length === 0 && !strictLegal) blockers.push('Erbjudandets exakta juridikpaket kunde inte verifieras')
+
+    const visible = blockers.length === 0
+    diagnostics.push({
+      id: offer.id,
+      name: offer.public_name,
+      product_code: offer.product_code,
+      publication_status: publicationStatus,
+      website_enabled: row.website_enabled !== false,
+      valid_from: offer.valid_from,
+      valid_to: offer.valid_to,
+      customer_type: offer.customer_type,
+      visible,
+      blockers,
+      offer_reference: visible ? publicOfferReference(offer) : null,
+    })
+  }
+
+  const visible = diagnostics.filter((item) => item.visible).length
+  return { total: diagnostics.length, visible, hidden: diagnostics.length - visible, offers: diagnostics }
 }

@@ -53,8 +53,6 @@ import CustomerSwitchOperationsCard from "@/components/admin/customers/CustomerS
 import CustomerContractsCard from "@/components/admin/customers/CustomerContractsCard";
 import CustomerContactsAddressesCard from "@/components/admin/customers/CustomerContactsAddressesCard";
 import CustomerProfileCard from "@/components/admin/customers/CustomerProfileCard";
-import CustomerCardLegacyTabRedirect from "@/components/admin/customers/CustomerCardLegacyTabRedirect";
-import { customerCardAnchor } from "@/lib/customer-operations/customerCardAnchors";
 import { buildCustomerCardWorkflow } from "@/lib/customer-operations/customerCardWorkflow";
 import { buildTenantCustomerCardView } from "@/lib/customer-operations/customerCardTenantView";
 import CustomerGridOwnerFileImportCard from "@/components/admin/customers/CustomerGridOwnerFileImportCard";
@@ -593,9 +591,14 @@ const CUSTOMER_WORKSPACE_TAB_IDS = new Set<CustomerWorkspaceTab>(
 function canShowCustomerWorkspaceTab(
   tab: CustomerWorkspaceTab,
   isPlatformAdmin: boolean,
+  canReadContracts: boolean,
 ): boolean {
   if (tab === "ediel-operations") {
     return isPlatformAdmin;
+  }
+
+  if (tab === "contracts") {
+    return isPlatformAdmin || canReadContracts;
   }
 
   if (!isPlatformAdmin) {
@@ -619,7 +622,7 @@ function customerTabHref(
   customerId: string,
   tab: CustomerWorkspaceTab,
 ): string {
-  return `/admin/customers/${customerId}?tab=${encodeURIComponent(tab)}#${customerCardAnchor(tab)}`;
+  return `/admin/customers/${customerId}?tab=${encodeURIComponent(tab)}#${encodeURIComponent(tab)}`;
 }
 
 function CustomerLookupProblem({
@@ -1912,16 +1915,13 @@ export default async function CustomerAdminDetailPage({
     anyOf: ["customers.read", MASTERDATA_PERMISSIONS.READ],
   });
   const isPlatformAdmin = isPlatformAdminContext(access);
+  const canReadContracts = isPlatformAdmin || access.permissions.includes("contracts.read");
+  const canWriteContracts = isPlatformAdmin || access.permissions.includes("contracts.write");
 
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
   const editSiteId = resolvedSearchParams.editSite ?? null;
   const editMeteringPointId = resolvedSearchParams.editMeteringPoint ?? null;
-  const legacyTabParam =
-    typeof resolvedSearchParams.tab === "string" ? resolvedSearchParams.tab : null;
-  const legacyTabAnchor = legacyTabParam
-    ? customerCardAnchor(legacyTabParam)
-    : null;
   const requestedTab: CustomerWorkspaceTab = editSiteId
     ? "sites"
     : editMeteringPointId
@@ -1930,6 +1930,7 @@ export default async function CustomerAdminDetailPage({
   const activeTab: CustomerWorkspaceTab = canShowCustomerWorkspaceTab(
     requestedTab,
     isPlatformAdmin,
+    canReadContracts,
   )
     ? requestedTab
     : "overview";
@@ -2001,7 +2002,7 @@ export default async function CustomerAdminDetailPage({
   const needsEdielData = isPlatformAdmin && ["overview", "switch-operations", "ediel-operations", "technical-details"].includes(activeTab);
   const needsGridOwners = ["overview", "sites", "data-requests", "switch-operations", "technical-details"].includes(activeTab);
   const needsPriceAreas = isPlatformAdmin && ["sites", "metering-points", "technical-details"].includes(activeTab);
-  const needsContractOffers = isPlatformAdmin && ["profile", "contracts", "technical-details"].includes(activeTab);
+  const needsContractOffers = (isPlatformAdmin || canWriteContracts) && ["profile", "contracts", "technical-details"].includes(activeTab);
   const needsBillingMeteringData = ["overview", "billing-metering", "technical-details"].includes(activeTab);
   const needsAnalyticsData = isPlatformAdmin && activeTab === "analytics";
   const needsPortalAccessData = isPlatformAdmin && activeTab === "portal-access";
@@ -2541,7 +2542,6 @@ export default async function CustomerAdminDetailPage({
 
   return (
     <div className="space-y-6">
-      <CustomerCardLegacyTabRedirect anchor={legacyTabAnchor} />
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="min-w-0">
           <p className="text-sm font-medium text-slate-700">Kundkort</p>
@@ -2605,7 +2605,7 @@ export default async function CustomerAdminDetailPage({
         className="flex flex-wrap gap-2 rounded-3xl border border-slate-200 bg-white p-3 text-sm shadow-sm"
       >
         {CUSTOMER_WORKSPACE_TABS
-          .filter((tab) => canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin))
+          .filter((tab) => canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin, canReadContracts))
           .map((tab) => (
             <Link
               key={tab.id}
@@ -2681,6 +2681,7 @@ export default async function CustomerAdminDetailPage({
               <CustomerProfileCard customer={customer} showLifecycleTools={isPlatformAdmin} />
               {isPlatformAdmin ? (
                 <CustomerContractOfferEligibilityCard
+                  customerId={id}
                   customerType={normalizedCustomerType}
                   offers={contractOffers}
                 />
@@ -2923,15 +2924,16 @@ export default async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin && activeTab === "contracts" ? (
+      {canReadContracts && activeTab === "contracts" ? (
         <SectionAnchor
           id="contracts"
           title="Avtal"
-          description="Visa, hantera och uppdatera kundens avtal."
+          description={canWriteContracts ? "Visa, hantera och uppdatera kundens avtal." : "Visa kundens tecknade avtal och signeringsunderlag."}
         >
           <CustomerContractsCard
             customerId={id}
             companyId={customerCompanyId}
+            canEdit={canWriteContracts}
           />
         </SectionAnchor>
       ) : null}

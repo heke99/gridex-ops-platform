@@ -351,7 +351,7 @@ export function getContractUiRecommendations(
       title: "Komplettera uppsägningsorsak",
       description:
         "Uppsägning är mottagen men avtalet saknar tydlig orsak. Det gör efterföljande operationsarbete otydligt.",
-      href: `${baseCustomerHref}#contracts`,
+      href: `${baseCustomerHref}?tab=contracts#contracts`,
       ctaLabel: "Öppna avtalet",
       tone: "warning",
     });
@@ -387,7 +387,7 @@ export function getContractUiRecommendations(
       title: "Verifiera rent avslut",
       description:
         "Kunden avslutar helt. Säkerställ att slutdatum, fortsatt leverans och eventuell efterhantering är korrekt.",
-      href: `${baseCustomerHref}#contracts`,
+      href: `${baseCustomerHref}?tab=contracts#contracts`,
       ctaLabel: "Granska avtalet",
       tone: "danger",
     });
@@ -399,7 +399,7 @@ export function getContractUiRecommendations(
       title: "Verifiera manuell rättning",
       description:
         "Avtalet bygger på manuell override eller felregistrering. Kontrollera att override reason verkligen förklarar avvikelsen.",
-      href: `${baseCustomerHref}#contracts`,
+      href: `${baseCustomerHref}?tab=contracts#contracts`,
       ctaLabel: "Granska override",
       tone: "neutral",
     });
@@ -415,7 +415,7 @@ export function getContractUiRecommendations(
       title: "Saknar avslutskontext",
       description:
         "Avtalet är avslutat eller avbrutet men saknar tydlig uppsägningsdag eller override-förklaring.",
-      href: `${baseCustomerHref}#contracts`,
+      href: `${baseCustomerHref}?tab=contracts#contracts`,
       ctaLabel: "Komplettera avtalet",
       tone: "danger",
     });
@@ -432,7 +432,7 @@ export function getContractUiRecommendations(
       description: `Avtalet fortsätter enligt förlängningslogiken om ingen uppsägning registreras före ${formatDateOnly(
         lifecycle.nextRenewalDate,
       )}.`,
-      href: `${baseCustomerHref}#contracts`,
+      href: `${baseCustomerHref}?tab=contracts#contracts`,
       ctaLabel: "Granska förlängning",
       tone: "success",
     });
@@ -594,7 +594,7 @@ export function getContractEditQuickActions(
       title: "Komplettera uppsägningsorsak",
       description:
         "Uppsägning är registrerad men orsak saknas fortfarande. Spara avtalet efter att du fyllt i rätt orsak.",
-      href: `${baseCustomerHref}#contracts`,
+      href: `${baseCustomerHref}?tab=contracts#contracts`,
       label: "Stanna i avtalsdelen",
       tone: "warning",
     });
@@ -676,7 +676,7 @@ export function getContractEditQuickActions(
       title: "Verifiera rent avslut",
       description:
         "Kunden avslutar helt. Säkerställ att slutdatum, uppsägningstid och eventuell efterhantering är korrekt.",
-      href: `${baseCustomerHref}#contracts`,
+      href: `${baseCustomerHref}?tab=contracts#contracts`,
       label: "Granska avslut",
       tone: "danger",
     });
@@ -688,7 +688,7 @@ export function getContractEditQuickActions(
       title: "Verifiera override",
       description:
         "Det här avtalet bygger på manuell override eller felregistrering. Säkerställ att override-texten förklarar avvikelsen.",
-      href: `${baseCustomerHref}#contracts`,
+      href: `${baseCustomerHref}?tab=contracts#contracts`,
       label: "Granska override",
       tone: "neutral",
     });
@@ -704,7 +704,7 @@ export function getContractEditQuickActions(
       title: "Komplettera avslutskontext",
       description:
         "Avtalet är avslutat eller avbrutet men saknar fortfarande tydlig avslutsförklaring.",
-      href: `${baseCustomerHref}#contracts`,
+      href: `${baseCustomerHref}?tab=contracts#contracts`,
       label: "Komplettera avtalet",
       tone: "danger",
     });
@@ -720,7 +720,7 @@ export function getContractEditQuickActions(
       title: "Aktiv auto-förlängning",
       description:
         "Avtalet förlängs automatiskt om ingen uppsägning registreras. Kontrollera att förlängningslogiken fortfarande är rätt.",
-      href: `${baseCustomerHref}#contracts`,
+      href: `${baseCustomerHref}?tab=contracts#contracts`,
       label: "Granska förlängning",
       tone: "success",
     });

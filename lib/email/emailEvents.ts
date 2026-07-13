@@ -1,5 +1,10 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { sendCompanyEmail } from './sendCompanyEmail'
+import type { EmailAttachment } from './providers/types'
+
+export type EmailEventDispatchResult =
+  | Awaited<ReturnType<typeof sendCompanyEmail>>
+  | { ok: false; skipped: true; eventKey: string; reason: string }
 
 export type EmailEventRule = {
   id: string
@@ -115,7 +120,7 @@ export async function seedDefaultEmailEventRules(companyId: string) {
       send_to_customer: true,
       send_to_admin: false,
       updated_at: now,
-    })), { onConflict: 'company_id,event_key,template_key' })
+    })), { onConflict: 'company_id,event_key,template_key', ignoreDuplicates: true })
 
   if (error) throw error
 
@@ -136,10 +141,12 @@ export async function triggerEmailEvent(input: {
   meteringPointId?: string | null
   eventKey: string
   to: string
+  adminTo?: string | null
   variables?: Record<string, string | number | null | undefined>
   createdBy?: string | null
   idempotencyKey?: string | null
   metadata?: Record<string, unknown>
+  attachments?: EmailAttachment[]
 }) {
   const normalizedEventKey = normalizeEmailEventKey(input.eventKey)
   const fallbackTemplateKey = DEFAULT_TEMPLATE_BY_EVENT.get(normalizedEventKey)
@@ -147,31 +154,61 @@ export async function triggerEmailEvent(input: {
 
   const rules = await getEmailEventRules(input.companyId)
   const matchingRules = rules.filter((rule) => rule.event_key === normalizedEventKey && isAllowedRuleForEvent(rule, normalizedEventKey))
-  const dispatchRules: Array<Pick<EmailEventRule, 'event_key' | 'template_key'>> =
+  const dispatchRules: Array<Pick<EmailEventRule, 'event_key' | 'template_key' | 'enabled' | 'delay_minutes' | 'send_to_customer' | 'send_to_admin'>> =
     matchingRules.length > 0
       ? matchingRules
-      : [{ event_key: normalizedEventKey, template_key: fallbackTemplateKey }]
+      : [{
+          event_key: normalizedEventKey,
+          template_key: fallbackTemplateKey,
+          enabled: true,
+          delay_minutes: 0,
+          send_to_customer: true,
+          send_to_admin: false,
+        }]
 
-  const results = []
+  const results: EmailEventDispatchResult[] = []
   for (const rule of dispatchRules) {
-    results.push(await sendCompanyEmail({
-      companyId: input.companyId,
-      customerId: input.customerId ?? null,
-      siteId: input.siteId ?? null,
-      meteringPointId: input.meteringPointId ?? null,
-      eventKey: normalizedEventKey,
-      templateKey: rule.template_key,
-      to: input.to,
-      variables: input.variables ?? {},
-      createdBy: input.createdBy ?? null,
-      idempotencyKey: input.idempotencyKey ?? null,
-      metadata: {
-        ...(input.metadata ?? {}),
-        requested_event_key: input.eventKey,
-        normalized_event_key: normalizedEventKey,
-        fallback_rule_used: matchingRules.length === 0,
-      },
-    }))
+    const recipients = [
+      ...(rule.send_to_customer ? [{ role: 'customer', email: input.to }] : []),
+      ...(rule.send_to_admin && input.adminTo ? [{ role: 'admin', email: input.adminTo }] : []),
+    ].filter((recipient, index, all) => all.findIndex((candidate) => candidate.email.toLowerCase() === recipient.email.toLowerCase()) === index)
+
+    if (recipients.length === 0) {
+      results.push({
+        ok: false,
+        skipped: true,
+        eventKey: normalizedEventKey,
+        reason: rule.send_to_admin && !input.adminTo ? 'admin_recipient_missing' : 'no_enabled_recipient',
+      })
+      continue
+    }
+
+    for (const recipient of recipients) {
+      results.push(await sendCompanyEmail({
+        companyId: input.companyId,
+        customerId: input.customerId ?? null,
+        siteId: input.siteId ?? null,
+        meteringPointId: input.meteringPointId ?? null,
+        eventKey: normalizedEventKey,
+        templateKey: rule.template_key,
+        to: recipient.email,
+        variables: input.variables ?? {},
+        createdBy: input.createdBy ?? null,
+        idempotencyKey: `${input.idempotencyKey ?? 'default'}:${recipient.role}`,
+        delayMinutes: rule.delay_minutes,
+        attachments: input.attachments ?? [],
+        metadata: {
+          ...(input.metadata ?? {}),
+          requested_event_key: input.eventKey,
+          normalized_event_key: normalizedEventKey,
+          fallback_rule_used: matchingRules.length === 0,
+          recipient_role: recipient.role,
+          configured_delay_minutes: rule.delay_minutes,
+          configured_send_to_customer: rule.send_to_customer,
+          configured_send_to_admin: rule.send_to_admin,
+        },
+      }))
+    }
   }
 
   return results

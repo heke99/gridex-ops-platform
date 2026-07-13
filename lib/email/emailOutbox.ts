@@ -5,6 +5,7 @@ import {
   markCommunicationSent,
 } from "./communicationLogs";
 import { getEmailProvider } from "./providers";
+import type { EmailAttachment } from "./providers/types";
 import { emitCommunicationSentDomainEvents } from "./emailDomainEvents";
 
 type TenantEmailOutboxRow = {
@@ -30,6 +31,7 @@ type TenantEmailOutboxRow = {
   failure_reason: string | null;
   last_error?: string | null;
   branding_snapshot: Record<string, unknown> | null;
+  attachments?: EmailAttachment[] | null;
   request_id?: string | null;
   trace_id?: string | null;
   redirect_url?: string | null;
@@ -55,6 +57,8 @@ type EnqueueTenantEmailInput = {
   traceId?: string | null;
   redirectUrl?: string | null;
   maxAttempts?: number;
+  delayMinutes?: number;
+  attachments?: EmailAttachment[];
 };
 
 type ProcessTenantEmailOutboxInput = {
@@ -65,6 +69,19 @@ type ProcessTenantEmailOutboxInput = {
 function clean(value: string | null | undefined) {
   const trimmed = String(value ?? "").trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function safeAttachments(value: unknown): EmailAttachment[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const row = item as Record<string, unknown>;
+    const filename = clean(typeof row.filename === "string" ? row.filename : null);
+    const content = clean(typeof row.content === "string" ? row.content : null);
+    const contentType = clean(typeof row.contentType === "string" ? row.contentType : typeof row.content_type === "string" ? row.content_type : null);
+    if (!filename || !content) return [];
+    return [{ filename, content, contentType }];
+  });
 }
 
 function safeError(error: unknown) {
@@ -142,6 +159,11 @@ export async function enqueueTenantEmail(
   if (!subject) throw new Error("Ämnesrad saknas för e-postutskicket.");
   if (!html) throw new Error("Mallinnehåll saknas för e-postutskicket.");
 
+  const attachments = safeAttachments(input.attachments ?? []);
+  const attachmentBytes = attachments.reduce((total, attachment) => total + Buffer.byteLength(attachment.content, "base64"), 0);
+  if (attachmentBytes > 10 * 1024 * 1024) throw new Error("Bilagorna är större än 10 MB och kan inte köas.");
+  const delayMinutes = Math.max(0, Math.min(7 * 24 * 60, Math.floor(input.delayMinutes ?? 0)));
+  const nextAttemptAt = new Date(Date.now() + delayMinutes * 60_000).toISOString();
   const outboxId = randomUUID();
   const providerIdempotencyKey = `tenant-email:${input.companyId}:${outboxId}`;
   const { data, error } = await supabaseService
@@ -164,11 +186,12 @@ export async function enqueueTenantEmail(
       max_attempts: isSensitiveAuthEmailType(input.emailType)
         ? 1
         : (input.maxAttempts ?? 5),
-      next_attempt_at: now,
+      next_attempt_at: nextAttemptAt,
       dead_letter_at: null,
       last_error: null,
       failure_reason: null,
       branding_snapshot: input.brandingSnapshot ?? {},
+      attachments,
       redirect_url: clean(input.redirectUrl),
       request_id: input.requestId ?? null,
       trace_id: input.traceId ?? null,
@@ -377,6 +400,7 @@ export async function sendTenantEmailOutboxRow(row: TenantEmailOutboxRow) {
     html: row.html_body,
     text: row.text_body ?? undefined,
     idempotencyKey: row.provider_idempotency_key ?? `tenant-email:${row.id}`,
+    attachments: safeAttachments(row.attachments),
   });
 
   return result.providerMessageId;

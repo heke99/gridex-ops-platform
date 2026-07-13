@@ -5,7 +5,7 @@ import {
   logIntegrationApiRequest,
   requireIntegrationApiAccess,
 } from '@/lib/integrations/apiAuth'
-import { listPublicContractOffers, publicContractResponse } from '@/lib/website/publicContracts'
+import { diagnosePublicContractOffers, listPublicContractOffers, publicContractResponse } from '@/lib/website/publicContracts'
 import { logUsageEvent } from '@/lib/audit/actionLogger'
 
 export const runtime = 'nodejs'
@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
     const diagnostics = wantsDiagnostics(request)
     const offers = await listPublicContractOffers({ client: auth.client, customerType })
     const contracts = offers.map(publicContractResponse)
+    const offerDiagnostics = diagnostics
+      ? await diagnosePublicContractOffers({ client: auth.client, customerType })
+      : null
     await logIntegrationApiRequest({
       client: auth.client,
       request,
@@ -65,6 +68,8 @@ export async function GET(request: NextRequest) {
           company_id: auth.client.company_id,
           api_client_id: auth.client.id,
           result_count: offers.length,
+          publication: offerDiagnostics,
+          source_of_truth: 'public_contract_offers',
         },
       } : {}),
     })

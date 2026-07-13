@@ -627,6 +627,24 @@ export function assessWebsiteApplicationReadiness(
     "terms_accepted",
     "accepted_terms",
   ]);
+  const privacyAccepted = firstBoolean(input, [
+    "consents.privacy_policy",
+    "consents.privacy_policy_accepted",
+    "consents.privacy_accepted",
+    "consents.gdpr_accepted",
+  ]);
+  const withdrawalAccepted = firstBoolean(input, [
+    "consents.withdrawal",
+    "consents.withdrawal_info",
+    "consents.withdrawal_accepted",
+    "consents.cooling_off_accepted",
+  ]);
+  const priceTermsAccepted = firstBoolean(input, [
+    "consents.price_terms",
+    "consents.price_snapshot",
+    "consents.price_terms_accepted",
+    "consents.price_snapshot_accepted",
+  ]);
 
   if (!customerEmail) {
     missingFields.push("customer.email");
@@ -820,8 +838,17 @@ export function assessWebsiteApplicationReadiness(
       hasValidPricePlan &&
       hasValidStartMode,
     );
+  // Agreement confirmation is a legal-signature concern, not an operational
+  // supplier-switch concern. Missing facility data or an unconfirmed delivery
+  // date must never block the customer's signed-agreement confirmation.
   const canSendAgreementConfirmation = Boolean(
-    canStartSwitch && confirmedStartDate,
+    customerEmail &&
+      hasValidPricePlan &&
+      termsAccepted &&
+      privacyAccepted &&
+      withdrawalAccepted &&
+      powerOfAttorneyAccepted &&
+      priceTermsAccepted,
   );
   const canActivateCustomer = Boolean(
     canStartSwitch && confirmedStartDate && actualStartDate,

@@ -884,6 +884,10 @@ export default async function AdminCustomersPage({
  const companyScope = await getOperationalCompanyScope(context.userId)
  const tenantScope = await resolveAdminTenantReadScope(context)
  const scopedCompanyId = tenantScope.companyId
+ const canReadContracts =
+   tenantScope.isPlatformAdmin ||
+   context.permissions.includes('contracts.read') ||
+   context.permissions.includes('contracts.write')
 
  if (!tenantScope.isPlatformAdmin && !scopedCompanyId) {
  return (
@@ -1066,12 +1070,14 @@ export default async function AdminCustomersPage({
  Kundintag / bulkimport
  </Link>
 
+ {canReadContracts ? (
  <Link
  href="/admin/contracts"
  className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
  >
- Avtalskatalog
+ {tenantScope.isPlatformAdmin ? 'Avtalskatalog' : 'Tecknade avtal'}
  </Link>
+ ) : null}
  </div>
 
  <section className="grid gap-4 xl:grid-cols-5">
@@ -1156,12 +1162,14 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  >
  Starta kundintag
  </Link>
+ {canReadContracts ? (
  <Link
  href="/admin/contracts"
  className="mt-3 inline-flex w-full justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
  >
- Hantera avtal och kampanjer
+ {tenantScope.isPlatformAdmin ? 'Hantera avtalsmallar och kampanjer' : 'Öppna tecknade avtal'}
  </Link>
+ ) : null}
  </section>
 
  <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
@@ -1867,12 +1875,14 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  Öppna kundkort
  </Link>
 
+ {canReadContracts ? (
  <Link
- href={`/admin/customers/${customer.id}#contracts`}
+ href={`/admin/customers/${customer.id}?tab=contracts#contracts`}
  className="inline-flex rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 font-medium text-emerald-700 hover:bg-emerald-100 "
  >
  Avtal
  </Link>
+ ) : null}
 
  <Link
  href={operations.primaryHref}

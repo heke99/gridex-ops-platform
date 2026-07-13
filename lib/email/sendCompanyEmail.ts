@@ -9,6 +9,7 @@ import {
 import { getCompanyEmailTemplate } from './emailTemplates'
 import { enqueueTenantEmail } from './emailOutbox'
 import { renderEmailTemplate, type EmailTemplateVariables } from './templateRenderer'
+import type { EmailAttachment } from './providers/types'
 
 type SendCompanyEmailInput = {
   companyId: string
@@ -23,6 +24,8 @@ type SendCompanyEmailInput = {
   idempotencyKey?: string | null
   legalOrCritical?: boolean
   metadata?: Record<string, unknown>
+  delayMinutes?: number
+  attachments?: EmailAttachment[]
 }
 
 function cleanError(error: unknown) {
@@ -282,6 +285,8 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
       },
       requestId: null,
       traceId: null,
+      delayMinutes: input.delayMinutes ?? 0,
+      attachments: input.attachments ?? [],
     })
     // In this model we do not mark the communication as sent immediately.
     return { ok: true, log, senderMode: sender.mode }

@@ -56,7 +56,7 @@ Response ska vara kundvänlig och inte kräva att hemsidan förstår interna tab
 {
   "data": [
     {
-      "id": "public_offer_id",
+      "id": "offer_opaque_reference",
       "code": "RORLIGT-ELPRIS",
       "offer_reference": "offer_opaque_reference",
       "contract_offer_id": "offer_opaque_reference",
@@ -88,13 +88,25 @@ Response ska vara kundvänlig och inte kräva att hemsidan förstår interna tab
 }
 ```
 
-Teknisk diagnostik får bara visas i särskilt diagnostic-läge, inte i normal partnerrespons.
+`offer_reference` är den enda kanoniska avtalsväljaren vid tecknande. Fältet `contract_offer_id` i lässvaret är ett deprecated kompatibilitetsalias som innehåller samma opaka referens, inte ett internt UUID. `product_code`, `price_plan_id` och `price_plan_version_id` får inte användas för att välja avtal.
+
+Teknisk diagnostik kan hämtas server-side med:
+
+```http
+GET /api/v1/website/public-contracts?customer_type=private&diagnostics=1
+```
+
+Diagnostiksvaret visar `visible`, `hidden` och konkreta `blockers` per erbjudande. Det får inte visas i normal kund-UI.
 
 ## Kundansökan
 
 ```http
 POST /api/v1/website/customer-applications
 ```
+
+Kundansökan måste skicka exakt `offer_reference` från public-contracts. Legacyidentifierare utan `offer_reference` ger `422 offer_reference_required`; motstridiga identifierare ger `422 offer_selector_mismatch`.
+
+Avtalet skapas först som `pending_signature`. När exakt fem offer-bundna juridiska accepter har sparats kör OPS en atomisk serverfunktion som sätter `status = signed`, serverns `signed_at`, permanent `withdrawal_deadline_at`, `public_contract_offer_id`, `offer_reference`, juridiksnapshot och signaturhash. Klientens egna signeringstid används inte som juridisk avtalstid.
 
 Minsta rekommenderade payload:
 

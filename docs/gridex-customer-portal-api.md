@@ -100,6 +100,10 @@ Samtliga kräver `customer_portal.read` (GET) och identifierare via headers/quer
 
 Skriv-endpoints (`POST /sync`, `/profile-update`, `/move-out`, `/notifications/read`) kräver `customer_portal.write`.
 
+## Kundens tecknade avtal
+
+`GET /api/v1/customer/contracts` och portal bundle läser tenantens `customer_contracts`, inte website-endpointens säljerbjudanden. Varje modernt webbavtal kan innehålla `public_contract_offer_id`, `offer_reference`, `signed_at`, `withdrawal_deadline_at`, `signature_snapshot_sha256` och `legal_versions_snapshot`. Kundresolvern måste länka portalidentiteten till rätt `company_id` och `customer_id`; annars returneras ett tydligt identitetsfel i stället för andra kunders data.
+
 ## Dokument, fullmakt och juridiska godkännanden
 
 Tenant ska skicka godkända fullmakter, juridiska godkännanden och dokument till OPS så OPS kan starta rätt processer.

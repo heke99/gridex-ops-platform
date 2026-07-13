@@ -42,7 +42,10 @@ async function validateLegalBundle(companyId: string, legalBundleId: string | nu
     .maybeSingle()
 
   if (bundle.error) {
-    if (missingSchema(bundle.error)) return
+    if (missingSchema(bundle.error)) {
+      blockers.push('Databasschemat för juridiska paket är inte redo')
+      return
+    }
     throw bundle.error
   }
   if (!bundle.data) {
@@ -59,7 +62,10 @@ async function validateLegalBundle(companyId: string, legalBundleId: string | nu
     .eq('legal_bundle_id', legalBundleId)
 
   if (items.error) {
-    if (missingSchema(items.error)) return
+    if (missingSchema(items.error)) {
+      blockers.push('Databasschemat för juridikpaketets texter är inte redo')
+      return
+    }
     throw items.error
   }
 
@@ -78,7 +84,10 @@ async function validateLegalBundle(companyId: string, legalBundleId: string | nu
     .in('id', ids)
 
   if (versions.error) {
-    if (missingSchema(versions.error)) return
+    if (missingSchema(versions.error)) {
+      blockers.push('Databasschemat för juridiska textversioner är inte redo')
+      return
+    }
     throw versions.error
   }
 
@@ -101,7 +110,10 @@ async function validatePriceBook(companyId: string, priceBookId: string | null |
     .maybeSingle()
 
   if (error) {
-    if (missingSchema(error)) return
+    if (missingSchema(error)) {
+      blockers.push('Databasschemat för prislistor är inte redo')
+      return
+    }
     throw error
   }
   if (!data) {
@@ -110,6 +122,41 @@ async function validatePriceBook(companyId: string, priceBookId: string | null |
   }
   if (!['published', 'active'].includes(clean(data.status) ?? 'draft')) {
     blockers.push('Prislistan är inte publicerad/aktiv')
+  }
+}
+
+
+async function validatePricePlanMapping(
+  companyId: string,
+  offer: { price_plan_id?: string | null; price_plan_version_id?: string | null },
+  blockers: string[],
+) {
+  if (!offer.price_plan_id || !offer.price_plan_version_id) {
+    blockers.push('Prisplan eller prisplansversion saknas')
+    return
+  }
+
+  const { data, error } = await supabaseService
+    .from('price_plan_versions')
+    .select('id,company_id,price_plan_id,status')
+    .eq('id', offer.price_plan_version_id)
+    .eq('company_id', companyId)
+    .eq('price_plan_id', offer.price_plan_id)
+    .maybeSingle()
+
+  if (error) {
+    if (missingSchema(error)) {
+      blockers.push('Databasschemat för prisplansversioner är inte redo')
+      return
+    }
+    throw error
+  }
+  if (!data) {
+    blockers.push('Prisplansversionen hittades inte för bolaget')
+    return
+  }
+  if (!['active', 'published', 'approved'].includes(clean(data.status) ?? 'draft')) {
+    blockers.push('Prisplansversionen är inte aktiv/publicerad')
   }
 }
 
@@ -129,12 +176,18 @@ async function validatePriceBook(companyId: string, priceBookId: string | null |
  */
 export async function assessPublicOfferReadiness(input: {
   companyId: string
-  offer: { legal_bundle_id?: string | null; price_book_id?: string | null }
+  offer: {
+    legal_bundle_id?: string | null
+    price_book_id?: string | null
+    price_plan_id?: string | null
+    price_plan_version_id?: string | null
+  }
 }): Promise<PublicOfferReadiness> {
   const blockers: string[] = []
 
   await validateLegalBundle(input.companyId, input.offer.legal_bundle_id, blockers)
   await validatePriceBook(input.companyId, input.offer.price_book_id, blockers)
+  await validatePricePlanMapping(input.companyId, input.offer, blockers)
 
   try {
     const { data: client, error } = await supabaseService

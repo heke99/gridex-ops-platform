@@ -8,11 +8,12 @@ No secrets in this file — env var *names* only.
 - Endpoint: `POST /api/v1/website/customer-applications`
 - Auth: `Authorization: Bearer <website API key>` (scope `website_applications.write`)
 - Headers: `Content-Type: application/json`, `Idempotency-Key: <stable key>`
-- Request: customer + site + contract (must reference a published offer via
-  `offer_reference` / `price_plan_version_id` / `product_code`), consents,
-  optional structured `powerOfAttorney`
-- Response 200: created chain ids + `response_payload`; duplicate key replays
-  the stored response with `idempotent: true`
+- Request: customer + site + exact published `offer_reference`, five consents,
+  optional structured `powerOfAttorney`. Legacy price/product identifiers are
+  not alternative selectors and conflicting values return `offer_selector_mismatch`.
+- Response 200: created chain ids, server-signed contract state, withdrawal
+  deadline, immutable offer/legal/signature linkage and truthful communication
+  status; duplicate key replays the stored response with `idempotent: true`
 - Errors: structured `{ error: { code, stage, field, request_id } }`; 422
   validation, 409 `idempotent_failed`, 429 rate-limited
 - Idempotency: unique `(company_id, idempotency_key)`; retry-safe
@@ -44,15 +45,17 @@ No secrets in this file — env var *names* only.
 
 - `GET /api/v1/website/public-contracts` (scope `website_contracts.read`),
   `GET /api/v1/website/legal-bundle`
-- Returns published offers only; `offer_reference` is HMAC-signed
-  (`WEBSITE_OFFER_REFERENCE_SECRET` — required in production)
+- Returns published offers only; `offer_reference` is HMAC-signed and is the
+  only canonical selector (`WEBSITE_OFFER_REFERENCE_SECRET` — required in production)
+- `?diagnostics=1` returns tenant-scoped publication blockers for server-side support
 - `GET /api/public/energy-area?postal_code=` — unauthenticated, in-memory
   rate limit 60/min/IP
 
 ## 4. Resend (email provider)
 
 - Env: `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`
-- Outbound: `Idempotency-Key` forwarded per send; retry-safe
+- Outbound: `Idempotency-Key` forwarded per send; retry-safe. Tenant outbox
+  persists exact PDF attachments and respects event delay/recipient rules.
 - Inbound webhook: Svix signature verified; updates communication logs and
   outbox delivery statuses
 - Timeout/retry: provider errors surface as safe errors; outbox backoff ≤5

@@ -93,7 +93,30 @@ function RecommendationCard({
 
 
 function sourceTypeLabel(value: CustomerContractRow['source_type']): string {
- return value === 'catalog' ? 'Avtalsmall' : 'Manuellt avtal'
+ switch (value) {
+ case 'catalog':
+ return 'Avtalsmall'
+ case 'website_application':
+ case 'website_application_review':
+ case 'external_website':
+ return 'Tecknat på hemsidan'
+ case 'customer_portal':
+ return 'Mina sidor'
+ case 'api':
+ return 'API'
+ case 'import':
+ return 'Importerat'
+ case 'migration':
+ return 'Migrerat'
+ case 'system':
+ return 'Systemskapat'
+ case 'admin':
+ return 'Registrerat i OPS'
+ case 'manual':
+ case 'manual_override':
+ default:
+ return 'Manuellt avtal'
+ }
 }
 
 function valueOrDash(value: string | null | undefined): string {
@@ -104,9 +127,11 @@ function valueOrDash(value: string | null | undefined): string {
 export default async function CustomerContractsCard({
  customerId,
  companyId,
+ canEdit = false,
 }: {
  customerId: string
  companyId?: string | null
+ canEdit?: boolean
 }) {
  const supabase = await createSupabaseServerClient()
 
@@ -114,7 +139,7 @@ export default async function CustomerContractsCard({
  listCustomerContractsByCustomerId(customerId, { companyId }),
  listCustomerContractEventsByCustomerId(customerId, { companyId, limit: 100 }),
  listCustomerSitesByCustomerId(supabase, customerId, { companyId }),
- listContractOffers({ activeOnly: false, companyId }),
+ canEdit ? listContractOffers({ activeOnly: false, companyId }) : Promise.resolve([]),
  listSupplierSwitchRequestsByCustomerId(supabase, customerId, { companyId }),
  listOutboundRequestsByCustomerId(customerId, { companyId }),
  ])
@@ -297,7 +322,7 @@ export default async function CustomerContractsCard({
  </div>
  </div>
 
- {currentRecommendations.length > 0 ? (
+ {canEdit && currentRecommendations.length > 0 ? (
  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 ">
  <div className="text-xs uppercase tracking-[0.12em] text-slate-700 ">
  Rekommenderade nästa steg
@@ -416,6 +441,18 @@ export default async function CustomerContractsCard({
  </div>
  </div>
 
+ {(contract.offer_reference || contract.signature_snapshot_sha256 || contract.withdrawal_deadline_at || contract.public_contract_offer_id) ? (
+ <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-xs text-slate-700">
+ <div className="font-semibold text-slate-900">Signeringsbevis</div>
+ <div className="mt-2 grid gap-2 md:grid-cols-2">
+ <div>Erbjudandereferens: <span className="break-all font-mono">{valueOrDash(contract.offer_reference)}</span></div>
+ <div>Publicerat erbjudande: <span className="break-all font-mono">{valueOrDash(contract.public_contract_offer_id)}</span></div>
+ <div>Ångerfrist: {formatDateTime(contract.withdrawal_deadline_at)}</div>
+ <div>Signaturhash: <span className="break-all font-mono">{valueOrDash(contract.signature_snapshot_sha256)}</span></div>
+ </div>
+ </div>
+ ) : null}
+
  <div className="mt-3 grid gap-3 text-xs md:grid-cols-3">
  <ContractLifecyclePill
  label="Nuvarande avtalsperiod"
@@ -435,7 +472,7 @@ export default async function CustomerContractsCard({
  />
  </div>
 
- {recommendations.length > 0 ? (
+ {canEdit && recommendations.length > 0 ? (
  <div className="mt-4 grid gap-3 lg:grid-cols-2">
  {recommendations.map((recommendation) => (
  <RecommendationCard
@@ -464,6 +501,7 @@ export default async function CustomerContractsCard({
  )}
  </div>
 
+ {canEdit ? (
  <EditContractForm
  contract={contract}
  customerId={customerId}
@@ -472,6 +510,7 @@ export default async function CustomerContractsCard({
  switchRequests={switchRequests}
  outboundRequests={outboundRequests}
  />
+ ) : null}
  </article>
  )
  })}
@@ -480,6 +519,8 @@ export default async function CustomerContractsCard({
  </div>
 
  <div className="space-y-6">
+ {canEdit ? (
+ <>
  <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ">
  <div className="text-sm font-semibold text-slate-900 ">
  Skapa från aktiv avtalsmall
@@ -505,6 +546,12 @@ export default async function CustomerContractsCard({
  </div>
 
  <CreateManualContractForm customerId={customerId} siteOptions={siteOptions} meteringPointOptions={meteringPointOptions} />
+ </>
+ ) : (
+ <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
+ Du har läsbehörighet till kundens avtal. Du behöver utökad behörighet för att ändra avtalen.
+ </div>
+ )}
  </div>
  </section>
  )

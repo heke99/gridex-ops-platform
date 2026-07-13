@@ -109,6 +109,13 @@ const publicContractsResponse = `{
   ]
 }`
 
+const publicContractsDiagnosticsExample = `curl -X GET "${baseUrl}/api/v1/website/public-contracts?customer_type=private&diagnostics=1" \\
+  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
+  -H "Accept: application/json"
+
+# Svaret innehåller visible/hidden och blockers per public_contract_offer.
+# Använd detta server-side vid publiceringsfelsökning; visa inte intern diagnostik i kundens UI.`
+
 const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-applications" \\
   -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
   -H "Content-Type: application/json" \\
@@ -205,6 +212,11 @@ const applicationResponse = `{
     "contract_number": "AVT-DX-100025-001",
     "contract_price_snapshot_id": "uuid",
     "offer_reference": "offer_...",
+    "contract_status": "signed",
+    "signed_at": "2026-06-26T09:00:01.123Z",
+    "withdrawal_deadline_at": "2026-07-10T09:00:01.123Z",
+    "can_send_agreement_confirmation": true,
+    "can_start_switch": false,
     "status": "application_received",
     "missing_fields": [],
     "blocking_reasons": [],
@@ -213,6 +225,13 @@ const applicationResponse = `{
     "nextAction": { "code": "facility_identifier_requested", "message": "Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post." },
     "manualInformationRequest": { "status": "manual_email_queued", "case_reference": "GX-FIR-AB12CD34", "channel": "manual_email", "request_id": "uuid" },
     "next_step": "Granska ansökan och fortsätt enligt bolagets process.",
+    "communication": {
+      "triggered": ["contract.application_received", "contract.confirmation_sent", "contract.cooling_off_sent"],
+      "queued": ["contract.application_received", "contract.confirmation_sent", "contract.cooling_off_sent"],
+      "sent": [],
+      "failed": [],
+      "source_of_truth": "communication_logs"
+    },
     "warnings": []
   }
 }`
@@ -231,8 +250,13 @@ const applicationValidationErrors = `HTTP/1.1 422 Unprocessable Entity
 
 Vanliga 422-koder:
 - public_contract_required
+- offer_reference_required
+- offer_reference_mismatch
+- offer_selector_mismatch
 - public_contract_not_available
-- legal_versions_missing
+- offer_legal_versions_missing
+- offer_legal_versions_invalid
+- offer_legal_version_mismatch
 - legal_acceptance_missing
 - power_of_attorney_missing
 - power_of_attorney_not_accepted
@@ -254,11 +278,13 @@ Idempotency:
 - Replay av en committed status returnerar samma warnings och communication-snapshot som originalsvaret.
 - Rätta en ogiltig payload innan första godkända requesten, eller använd en ny nyckel efter ett avslutat fel enligt den returnerade action/hint.`
 
-const emailEventSemantics = `contract.application_received = ansökan mottagen och mottagningsmail köat/skickat för ansökan
-contract.confirmation_sent = faktisk avtalsbekräftelse har markerats skickad i communication_logs
-contract.cooling_off_sent = faktiskt ångerrättsmail har markerats skickat i communication_logs
+const emailEventSemantics = `I kundansökans communication-svar är eventKey mall-/affärshändelsen. Läs alltid dispatch_status/queued/sent/failed för faktisk utskicksstatus.
 
-Viktigt: confirmation_sent och cooling_off_sent får aldrig härledas från application_received. De skapas först när respektive mail-logg faktiskt är skickad.`
+contract.application_received = mottagningsmail har skapats enligt tenantens regel
+contract.confirmation_sent = avtalsbekräftelse med fryst avtals-PDF har skapats enligt tenantens regel
+contract.cooling_off_sent = ångerrättsmail har skapats enligt tenantens regel
+
+Webhook/domain event med samma *_sent-namn publiceras däremot först när communication_logs har markerats sent/delivered av leverantören. Ett köat mail är aldrig samma sak som levererat.`
 
 const portalBundlePayload = `{
   "email": "heke99@live.se",
@@ -481,12 +507,15 @@ export default function CustomerPortalApiDocsPage() {
           <p>Svaret innehåller bara avtal som är publicerade, aktiva för hemsida/API, datumgiltiga, kopplade till aktiv prisversion/prislista och har publicerad juridik.</p>
           <CodeBlock>{publicContractsExample}</CodeBlock>
           <CodeBlock>{publicContractsResponse}</CodeBlock>
-          <p>Hemsidan ska använda <code>offer_reference</code> från svaret när kunden tecknar avtal. Skicka inte egna priser eller fritextvillkor som juridisk sanning.</p>
-          <p>Juridiken i <code>legal</code> är OPS source of truth. Visa dokumentlänkarna från OPS och skicka tillbaka acceptans + version-ID. När fullmakt krävs ska <code>powerOfAttorney.textVersionId</code> vara <code>legal.power_of_attorney_version_id</code> från det publicerade avtalet.</p>
+          <p>Hemsidan ska använda exakt <code>offer_reference</code> från svaret när kunden tecknar avtal. Det är den enda avtalsväljaren. <code>product_code</code>, <code>price_plan_id</code>, <code>price_plan_version_id</code> och <code>contract_offer_id</code> får inte användas för att välja avtal; motstridiga legacyfält ger <code>422 offer_selector_mismatch</code>.</p>
+          <p>Juridiken i <code>legal</code> är OPS source of truth. Visa dokumentlänkarna från OPS och skicka separata consent-flaggor. OPS binder accepten server-side till exakt de fem versions-ID:n som ligger i det valda erbjudandet. När fullmakt krävs ska <code>powerOfAttorney.textVersionId</code> vara <code>legal.power_of_attorney_version_id</code>.</p>
+          <p>Vid publiceringsfelsökning kan tenantens backend använda <code>diagnostics=1</code>. Svaret förklarar per erbjudande varför det är synligt eller blockerat, exempelvis status, datum, kundtyp, prisbok, prisplansversion eller juridikpaket.</p>
+          <CodeBlock>{publicContractsDiagnosticsExample}</CodeBlock>
         </Section>
 
         <Section title="5. Skicka kundansökan">
-          <p>Kundansökan ska innehålla valt <code>offer_reference</code>, separata juridiska godkännanden och, när kunden redan är inloggad på hemsidan, webbens Supabase <code>session.user.id</code> som både <code>customer_portal_user_id</code> och <code>auth_user_id</code>. Systemet skapar kund, kundnummer, portal identity, avtal, avtalssnapshot, juridiska acceptanser, fullmakt och portal-account när flödet kräver det.</p>
+          <p>Kundansökan ska innehålla valt <code>offer_reference</code>, fem separata juridiska godkännanden och, när kunden redan är inloggad på hemsidan, webbens Supabase <code>session.user.id</code> som både <code>customer_portal_user_id</code> och <code>auth_user_id</code>. OPS skapar kund, kundnummer, portal identity, prissnapshot och ett först väntande avtal. Därefter verifierar en atomisk serverfunktion de exakta juridikversionerna och sätter <code>status=signed</code>, <code>signed_at</code>, ångerfrist och signaturhash. Klientens egna <code>signed_at</code>/<code>acceptedAt</code> används inte som avtalets juridiska signeringstid.</p>
+          <p>Direkt efter lyckad signering köas mottagningsmail, avtalsbekräftelse med fryst PDF och ångerrättsmail enligt tenantens regler. Detta är frikopplat från anläggningsuppslagning och leverantörsbyte. <code>can_send_agreement_confirmation</code> beskriver juridisk behörighet att skicka bekräftelsen och är därför oberoende av <code>can_start_switch</code>. Läs <code>communication.queued/sent/failed</code> för faktisk status.</p>
           <CodeBlock>{applicationExample}</CodeBlock>
           <CodeBlock>{applicationResponse}</CodeBlock>
           <h3 className="mt-6 text-lg font-bold text-slate-900">422-validering och juridiska retries</h3>
@@ -529,7 +558,7 @@ export default function CustomerPortalApiDocsPage() {
           <p>Aktiva/byggda events:</p>
           <ul className="grid gap-1 md:grid-cols-2">{activeWebhookEvents.map((event) => <li key={event} className="font-mono text-xs text-slate-800">{event}</li>)}</ul>
           <h3 className="mt-6 text-lg font-bold text-slate-900">Mail- och webhook-semantik</h3>
-          <p>Juridiska webhookar ska spegla faktisk kommunikation. <code>contract.confirmation_sent</code> och <code>contract.cooling_off_sent</code> betyder att respektive mail-logg har markerats som skickad, inte bara att en ansökan skapats.</p>
+          <p>Juridiska webhookar speglar faktisk kommunikation: <code>contract.confirmation_sent</code> och <code>contract.cooling_off_sent</code> publiceras först när respektive mail-logg är <code>sent</code>/<code>delivered</code>. I kundansökans direkta svar är samma namn däremot mall-/affärshändelser och måste alltid läsas tillsammans med <code>dispatch_status</code>.</p>
           <CodeBlock>{emailEventSemantics}</CodeBlock>
           <p>Planerade events som kan tillkomma senare:</p>
           <ul className="grid gap-1 md:grid-cols-2">{plannedWebhookEvents.map((event) => <li key={event} className="font-mono text-xs text-slate-500">{event}</li>)}</ul>

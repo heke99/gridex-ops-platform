@@ -1,12 +1,151 @@
+import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requirePlatformAdminAccess } from "@/lib/admin/guards";
+import { isPlatformAdminContext, requireAdminPageAccess } from "@/lib/admin/guards";
 import { listContractOffers } from "@/lib/customer-contracts/db";
 import { archiveContractOfferAction, deleteContractOfferAction, saveContractOfferAction } from "./actions";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
-import type { ContractOfferRow } from "@/lib/customer-contracts/types";
+import type { ContractOfferRow, CustomerContractRow } from "@/lib/customer-contracts/types";
 
 export const dynamic = "force-dynamic";
+
+type TenantCustomerSummary = {
+  id: string;
+  customer_number: string | null;
+  full_name: string | null;
+  company_name: string | null;
+  email: string | null;
+};
+
+function customerDisplayName(customer: TenantCustomerSummary | undefined): string {
+  return customer?.full_name?.trim() || customer?.company_name?.trim() || customer?.email?.trim() || "Kund";
+}
+
+function tenantContractStatusLabel(status: string): string {
+  switch (status) {
+    case "draft": return "Utkast";
+    case "pending_signature": return "Väntar signering";
+    case "signed": return "Signerat";
+    case "active": return "Aktivt";
+    case "terminated": return "Avslutat";
+    case "cancelled": return "Makulerat";
+    case "expired": return "Utgånget";
+    default: return status;
+  }
+}
+
+async function TenantCustomerContracts({
+  companyId,
+  companyName,
+  userEmail,
+}: {
+  companyId: string;
+  companyName: string | null;
+  userEmail: string | null;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const { data: contractData, error: contractError } = await supabase
+    .from("customer_contracts")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (contractError) throw contractError;
+  const contracts = (contractData ?? []) as CustomerContractRow[];
+  const customerIds = Array.from(new Set(contracts.map((contract) => contract.customer_id).filter(Boolean)));
+  const customersById = new Map<string, TenantCustomerSummary>();
+
+  if (customerIds.length > 0) {
+    const { data: customerData, error: customerError } = await supabase
+      .from("customers")
+      .select("id,customer_number,full_name,company_name,email")
+      .eq("company_id", companyId)
+      .in("id", customerIds);
+    if (customerError) throw customerError;
+    for (const customer of (customerData ?? []) as TenantCustomerSummary[]) {
+      customersById.set(customer.id, customer);
+    }
+  }
+
+  return (
+    <div className="min-h-screen">
+      <AdminHeader
+        title="Tecknade kundavtal"
+        subtitle={`Avtal som tillhör ${companyName ?? "det valda bolaget"}. Öppna kunden för komplett avtalsbild och historik.`}
+        userEmail={userEmail}
+      />
+      <div className="space-y-6 p-8">
+        <section className="grid gap-4 md:grid-cols-4">
+          {[
+            ["Alla", contracts.length],
+            ["Signerat", contracts.filter((row) => row.status === "signed").length],
+            ["Aktivt", contracts.filter((row) => row.status === "active").length],
+            ["Väntar signering", contracts.filter((row) => row.status === "pending_signature").length],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-sm font-semibold text-slate-600">{label}</p>
+              <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-6 py-5">
+            <h2 className="text-lg font-semibold text-slate-950">Kundernas avtal</h2>
+            <p className="mt-1 text-sm text-slate-600">Den här listan visar tecknade kundavtal, inte avtalsmallar eller erbjudanden på hemsidan.</p>
+          </div>
+          {contracts.length === 0 ? (
+            <div className="p-10 text-center text-sm text-slate-600">Inga kundavtal har registrerats för bolaget ännu.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600">
+                  <tr>
+                    <th className="px-6 py-3">Kund</th>
+                    <th className="px-6 py-3">Avtal</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3">Start</th>
+                    <th className="px-6 py-3">Signerat</th>
+                    <th className="px-6 py-3 text-right">Öppna</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {contracts.map((contract) => {
+                    const customer = customersById.get(contract.customer_id);
+                    return (
+                      <tr key={contract.id}>
+                        <td className="px-6 py-4">
+                          <div className="font-semibold text-slate-950">{customerDisplayName(customer)}</div>
+                          <div className="mt-1 text-xs text-slate-500">{customer?.customer_number ?? "Kundnummer saknas"}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-slate-900">{contract.contract_name}</div>
+                          <div className="mt-1 text-xs text-slate-500">{contract.contract_type}</div>
+                        </td>
+                        <td className="px-6 py-4">{tenantContractStatusLabel(contract.status)}</td>
+                        <td className="px-6 py-4">{contract.starts_at ?? "—"}</td>
+                        <td className="px-6 py-4">{contract.signed_at ? new Date(contract.signed_at).toLocaleString("sv-SE") : "—"}</td>
+                        <td className="px-6 py-4 text-right">
+                          <Link
+                            href={`/admin/customers/${contract.customer_id}?tab=contracts#contracts`}
+                            className="inline-flex rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Visa avtal
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
 
 function formatNumber(value: number | null): string {
   if (value === null || value === undefined) return "—";
@@ -91,7 +230,8 @@ export default async function AdminContractsPage({
   searchParams?: Promise<ContractsSearchParams>;
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
-  const admin = await requirePlatformAdminAccess();
+  const admin = await requireAdminPageAccess({ anyOf: ["contracts.read"] });
+  const isPlatformAdmin = isPlatformAdminContext(admin);
 
   const supabase = await createSupabaseServerClient();
   const { data: authResult } = await supabase.auth.getUser();
@@ -105,6 +245,21 @@ export default async function AdminContractsPage({
         requiresCompany: true,
         message: "Inloggning krävs.",
       };
+
+  if (!isPlatformAdmin) {
+    if (!scope.companyId) {
+      return (
+        <div className="p-8">
+          <ActionBanner error={scope.message ?? "Bolagskoppling saknas."} />
+        </div>
+      );
+    }
+    return TenantCustomerContracts({
+      companyId: scope.companyId,
+      companyName: scope.companyName,
+      userEmail: admin.email,
+    });
+  }
   let offers: ContractOfferRow[] = [];
   let listError: string | undefined;
   if (scope.companyId) {
