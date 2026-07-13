@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { readJsonObject } from '@/lib/api/strictRequest'
+import { executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
@@ -18,21 +18,26 @@ export async function POST(request: NextRequest) {
   if (!context.ok) return context.response
 
   try {
-    const result = await syncTenantCustomerRecords({ client: context.client, identity: context.identity, payload: body })
+    const write = await executeIdempotentPortalWrite<Record<string, unknown>>({
+      request,
+      companyId: context.client.company_id,
+      clientId: context.client.id,
+      customerId: context.identity.customer_id,
+      operation: '/api/v1/customer/sync',
+      payload: body,
+      execute: async () => {
+        const result = await syncTenantCustomerRecords({ client: context.client, identity: context.identity, payload: body })
+        return { statusCode: 200, body: { data: { status: 'synced', ...result } } }
+      },
+    })
     await logCustomerPortalSuccess({
       request,
       client: context.client,
       startedAt: context.startedAt,
       resultCount: 1,
-      metadata: {
-        action: 'tenant_customer_sync',
-        customer_id: result.customer_id,
-        customer_number: result.customer_number,
-        external_customer_id: result.external_customer_id,
-        summary: result.summary,
-      },
+      metadata: { action: 'tenant_customer_sync', idempotency_replay: write.replayed },
     })
-    return customerPortalJson({ data: { status: 'synced', ...result } })
+    return customerPortalJson(write.body, { status: write.statusCode })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

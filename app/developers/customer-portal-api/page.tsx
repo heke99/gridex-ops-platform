@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
+import { PUBLIC_API_ENDPOINT_ROWS } from '@/lib/api/publicRouteRegistry'
 
 export const metadata: Metadata = {
   title: 'Website API, Mina sidor-koppling & Webhooks | Gridex Developers',
@@ -19,43 +20,19 @@ const permissions = [
   ['Mina sidor – uppdatera kunddata', 'customer_portal.write', 'Skicka kompletteringar, flyttanmälan och profiländringar.'],
   ['Läsa händelser', 'events.read', 'Läsa händelser som skapats för bolaget.'],
   ['Skicka händelser från hemsidan', 'website_events.write', 'Skicka kundhändelser från hemsida eller kundportal.'],
-  ['Läsa kunddokument', 'customer_documents.read', 'Planerad granulär behörighet. Idag räcker customer_portal.read.'],
-  ['Synka kunddokument', 'customer_documents.write', 'Planerad granulär behörighet. Idag räcker customer_portal.write (t.ex. /sync).'],
-  ['Läsa kundnotiser', 'customer_notifications.read', 'Planerad granulär behörighet. Idag räcker customer_portal.read.'],
-  ['Uppdatera kundnotiser', 'customer_notifications.write', 'Planerad granulär behörighet. /notifications/read kräver idag customer_portal.write.'],
+  ['Läsa kunddokument', 'customer_documents.read', 'Aktiv granulär behörighet. Legacy-scope customer_portal.read accepteras tillfälligt.'],
+  ['Synka kunddokument', 'customer_documents.write', 'Aktiv granulär behörighet för dokumentoperationer. /customer/sync kräver customer_sync.write.'],
+  ['Läsa kundnotiser', 'customer_notifications.read', 'Aktiv granulär behörighet. Legacy-scope customer_portal.read accepteras tillfälligt.'],
+  ['Uppdatera kundnotiser', 'customer_notifications.write', 'Aktiv granulär behörighet för /notifications/read. Legacy-scope customer_portal.write accepteras tillfälligt.'],
 ]
 
 const futurePermissions = [
   ['Kontaktuppgifter', 'customer_contact.write'],
   ['Anläggningsuppgifter', 'customer_facility_data.write'],
   ['Fullmakt', 'customer_power_of_attorney.write'],
-]
+].map(([label, scope]) => [label, scope, 'Aktivt granulärt scope. Legacy customer_portal.write accepteras tillfälligt.'])
 
-const endpoints = [
-  ['GET', '/api/v1/website/public-contracts', 'website_contracts.read', 'Hämta publicerade avtal som hemsidan får visa.'],
-  ['POST', '/api/v1/website/quote', 'website_contracts.read', 'Beräkna månad/år för publicerat spot-, fast-, portfölj- eller mixavtal med OPS prismotor.'],
-  ['POST', '/api/v1/website/customer-applications', 'website_applications.write', 'Skapa kundansökan, avtalssnapshot och juridiska godkännanden.'],
-  ['POST', '/api/v1/website/customer-events', 'website_events.write', 'Skicka kundhändelser från hemsidan. Supportärenden ska inte skickas hit.'],
-  ['POST', '/api/v1/events', 'website_events.write', 'Alias för att skicka kundhändelser från hemsidan.'],
-  ['GET', '/api/v1/customer/portal-bundle', 'customer_portal.read', 'Hämta kundprofil, avtal, anläggningar, fakturor, dokument, juridik, notiser och events i ett anrop via headers/query.'],
-  ['POST', '/api/v1/customer/portal-bundle', 'customer_portal.read', 'Hämta Mina sidor-data med JSON-payload: email, customer_number och external_customer_id.'],
-  ['POST', '/api/v1/customer/sync', 'customer_portal.write', 'Synka dokument, fullmakt, juridiska godkännanden och anläggningskompletteringar från tenant till OPS.'],
-  ['GET', '/api/v1/customer/me', 'customer_portal.read', 'Hämta länkad kundprofil med namn-fallback.'],
-  ['GET', '/api/v1/customer/contracts', 'customer_portal.read', 'Hämta kundens avtal.'],
-  ['GET', '/api/v1/customer/sites', 'customer_portal.read', 'Hämta kundens anläggningar och mätpunkter.'],
-  ['GET', '/api/v1/customer/invoices', 'customer_portal.read', 'Hämta kundens fakturor.'],
-  ['GET', '/api/v1/customer/invoices/[id]', 'customer_portal.read', 'Hämta en faktura.'],
-  ['GET', '/api/v1/customer/metering-values', 'customer_portal.read', 'Hämta kundens mätvärden.'],
-  ['GET', '/api/v1/customer/events', 'customer_portal.read', 'Hämta kundens händelser.'],
-  ['GET', '/api/v1/customer/documents', 'customer_portal.read', 'Hämta kundens dokument.'],
-  ['GET', '/api/v1/customer/legal-acceptances', 'customer_portal.read', 'Hämta kundens juridiska godkännanden.'],
-  ['GET', '/api/v1/customer/powers-of-attorney', 'customer_portal.read', 'Hämta kundens fullmakter.'],
-  ['GET', '/api/v1/customer/notifications', 'customer_portal.read', 'Hämta kundens notiser.'],
-  ['POST', '/api/v1/customer/notifications/read', 'customer_portal.write', 'Markera kundnotiser som lästa.'],
-  ['POST', '/api/v1/customer/profile-update', 'customer_portal.write', 'Skicka profiländring.'],
-  ['POST', '/api/v1/customer/move-out', 'customer_portal.write', 'Skicka flyttanmälan.'],
-  ['GET', '/api/v1/events', 'events.read', 'Läsa bolagets domänhändelser.'],
-]
+const endpoints = PUBLIC_API_ENDPOINT_ROWS
 
 const activeWebhookEvents = [
   'customer.created',
@@ -73,11 +50,11 @@ const activeWebhookEvents = [
   'invoice.sent',
   'invoice.disputed',
   'metering_values.updated',
-  'customer.opened_document',
-  'customer.downloaded_document',
 ]
 
 const plannedWebhookEvents = [
+  'customer.opened_document',
+  'customer.downloaded_document',
   'contract.activated',
   'supplier_switch.started',
   'supplier_switch.completed',

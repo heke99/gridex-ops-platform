@@ -264,6 +264,7 @@
     "20260712100000_gridex_end_to_end_integrity_hardening.sql": "02e8e31077ad75ec3e1e753dcea72da819fc5f89484c430f2007e4fbf55e42be",
     "20260712110000_ediel_canonical_consolidation.sql": "91b200e0d2df83ef3ee9579b503f2617cbad1daa23dcacccd75ac4c0c50e8a11",
     "20260713100000_ediel_completion_and_platform_contract.sql": "a30b8f1566d1368daad2b04e03bce094d32494104db0bf700c31aa0bb0185f9d",
+    "20260713150000_api_performance_tenant_hardening.sql": "72b35dd625237e2a9564a02c506f843535c80af07fdc21cc56eca3bff340adcd",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

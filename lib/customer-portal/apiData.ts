@@ -238,8 +238,8 @@ export async function listPortalSites(context: PortalCustomerContext, route = '/
 }
 
 
-const WEBSITE_APPLICATION_SELECT = 'id,company_id,customer_id,customer_site_id,metering_point_id,contract_id,status,grid_area_code,grid_owner_id,price_area_code,resolution_status,facility_data_verified_at,payload,response_payload,warnings,created_at,updated_at'
-const WEBSITE_APPLICATION_MINIMAL_SELECT = 'id,customer_id,customer_site_id,metering_point_id,contract_id,status,response_payload,warnings,created_at,updated_at'
+const WEBSITE_APPLICATION_SELECT = 'id,customer_site_id,metering_point_id,contract_id,status,grid_area_code,price_area_code,resolution_status,facility_data_verified_at,created_at,updated_at'
+const WEBSITE_APPLICATION_MINIMAL_SELECT = 'id,customer_site_id,metering_point_id,contract_id,status,created_at,updated_at'
 
 export async function listPortalWebsiteApplications(context: PortalCustomerContext, route = '/api/v1/customer/portal-bundle') {
   await logPortalAccess({ context, route, action: 'read_website_applications' })
@@ -347,7 +347,7 @@ export async function getPortalInvoice(context: PortalCustomerContext, invoiceId
 
   const exported = await supabaseService
     .from('invoice_export_items')
-    .select('*')
+    .select('id,status,provider,provider_invoice_guid,provider_invoice_number,provider_payment_reference,provider_ocr,provider_status,purchase_status,recourse_status,amount_ex_vat,vat_amount,amount_inc_vat,created_at,sent_at')
     .eq('company_id', context.companyId)
     .eq('customer_id', context.customerId)
     .eq('id', invoiceId)
@@ -358,7 +358,7 @@ export async function getPortalInvoice(context: PortalCustomerContext, invoiceId
 
   const pricing = await supabaseService
     .from('pricing_runs')
-    .select('*,pricing_preview_lines(*)')
+    .select('id,billing_underlay_id,status,total_ex_vat,vat_amount,total_inc_vat,billing_period_start,billing_period_end,created_at,pricing_preview_lines(id,line_type,description,quantity,unit,unit_price,amount_ex_vat,vat_rate,vat_amount,amount_inc_vat)')
     .eq('company_id', context.companyId)
     .eq('customer_id', context.customerId)
     .eq('id', invoiceId)
@@ -371,10 +371,10 @@ export async function getPortalInvoice(context: PortalCustomerContext, invoiceId
   return pricing.data ?? null
 }
 
-const DOCUMENT_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,status,public_url,source_system,source,metadata,raw_payload,power_of_attorney_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,customer_number,external_customer_id,document_version,created_at'
-const DOCUMENT_LEGACY_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,public_url,source_system,power_of_attorney_id,metadata,created_at'
+const DOCUMENT_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,status,public_url,source_system,source,power_of_attorney_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,document_version,created_at'
+const DOCUMENT_LEGACY_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,public_url,source_system,power_of_attorney_id,created_at'
 const DOCUMENT_MINIMAL_SELECT = 'id,document_type,title,file_name,power_of_attorney_id,created_at'
-const AUTH_DOCUMENT_SELECT = 'id,document_type,status,title,file_name,mime_type,file_size_bytes,storage_bucket,file_path,reference,notes,power_of_attorney_id,customer_contract_id,metering_point_id,metadata,uploaded_at,created_at'
+const AUTH_DOCUMENT_SELECT = 'id,document_type,status,title,file_name,mime_type,file_size_bytes,reference,power_of_attorney_id,customer_contract_id,metering_point_id,uploaded_at,created_at'
 
 export async function listPortalDocuments(context: PortalCustomerContext, route = '/api/v1/customer/documents', limit?: number | null) {
   await logPortalAccess({ context, route, action: 'read_documents' })
@@ -419,7 +419,6 @@ export async function listPortalDocuments(context: PortalCustomerContext, route 
     source_system: row.source_system ?? 'customer_authorization_documents',
     source: row.source ?? 'customer_authorization_documents',
     public_url: row.public_url ?? null,
-    file_path: row.file_path ?? null,
   }))
 
   const documents: Array<Record<string, unknown>> = [
@@ -439,9 +438,9 @@ export async function listPortalDocuments(context: PortalCustomerContext, route 
     .sort((a, b) => String(b.created_at ?? b.uploaded_at ?? '').localeCompare(String(a.created_at ?? a.uploaded_at ?? '')))
 }
 
-const POA_SELECT = 'id,contract_id,customer_site_id,site_id,metering_point_id,scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,legal_text_version_id,scope_summary,fullmakt_snapshot,metadata,created_at'
-const POA_CURRENT_SELECT = 'id,contract_id,customer_site_id,scope,status,accepted_at,valid_until,legal_text_version_id,scope_summary,fullmakt_snapshot,metadata,created_at'
-const POA_MINIMAL_SELECT = 'id,contract_id,customer_site_id,scope,status,metadata,created_at'
+const POA_SELECT = 'id,contract_id,customer_site_id,site_id,metering_point_id,scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,legal_text_version_id,scope_summary,created_at'
+const POA_CURRENT_SELECT = 'id,contract_id,customer_site_id,scope,status,accepted_at,valid_until,legal_text_version_id,scope_summary,created_at'
+const POA_MINIMAL_SELECT = 'id,contract_id,customer_site_id,scope,status,created_at'
 
 export async function listPortalPowersOfAttorney(context: PortalCustomerContext, route = '/api/v1/customer/powers-of-attorney') {
   await logPortalAccess({ context, route, action: 'read_powers_of_attorney' })

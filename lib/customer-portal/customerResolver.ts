@@ -103,8 +103,13 @@ function activeAccount(row: Record<string, unknown>): boolean {
 }
 
 function hasStrongFirstLinkFactors(identifiers: CustomerPortalIdentifiers, resolved: ResolvedPortalCustomer): boolean {
-  const hasExistingLink = Boolean(resolved.id)
-  if (hasExistingLink) return true
+  const presentedUserId = clean(identifiers.customerPortalUserId) ?? clean(identifiers.authUserId)
+  const linkedUserIds = new Set([
+    clean(resolved.auth_user_id),
+    clean(resolved.customer_portal_user_id),
+  ].filter((value): value is string => Boolean(value)))
+  const hasVerifiedExistingLink = Boolean(resolved.id && presentedUserId && linkedUserIds.has(presentedUserId))
+  if (hasVerifiedExistingLink) return true
   const hasEmail = Boolean(identifiers.email && identifiers.email === resolved.email)
   const hasCustomerNumber = Boolean(identifiers.customerNumber && identifiers.customerNumber === resolved.customer_number)
   const hasExternalCustomerId = Boolean(identifiers.externalCustomerId && identifiers.externalCustomerId === resolved.external_customer_id)
@@ -126,12 +131,19 @@ async function fetchCustomer(companyId: string, customerId: string): Promise<Rec
   return null
 }
 
-async function fetchProfile(input: { email?: string | null; authUserId?: string | null }): Promise<Record<string, unknown> | null> {
+async function fetchProfile(input: {
+  companyId: string
+  customerId: string
+  email?: string | null
+  authUserId?: string | null
+}): Promise<Record<string, unknown> | null> {
   const authUserId = clean(input.authUserId)
   if (authUserId) {
     const byUser = await supabaseService
       .from('customer_profiles')
       .select(PROFILE_SELECT)
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
       .eq('user_id', authUserId)
       .limit(1)
       .maybeSingle()
@@ -144,14 +156,18 @@ async function fetchProfile(input: { email?: string | null; authUserId?: string 
   const byEmail = await supabaseService
     .from('customer_profiles')
     .select(PROFILE_SELECT)
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
     .eq('email', email)
-    .limit(2)
+    .limit(1)
+    .maybeSingle()
   if (byEmail.error) {
+    // Older schemas without tenant-bound profile columns must not fall back to
+    // a global email lookup because that can cross tenant boundaries.
     if (isMissingPortalSchemaError(byEmail.error)) return null
     throw byEmail.error
   }
-  const rows = asRows(byEmail.data as Record<string, unknown>[] | null)
-  return rows.length === 1 ? rows[0] : null
+  return (byEmail.data ?? null) as Record<string, unknown> | null
 }
 
 function composeFullName(source: Record<string, unknown>): string | null {
@@ -366,7 +382,7 @@ async function finishResolved(companyId: string, customerId: string, source: {
   const customer = source.prefetchedCustomer ?? await fetchCustomer(companyId, customerId)
   if (!customer || String(customer.company_id) !== companyId) return null
   const userId = source.authUserId ?? source.customerPortalUserId ?? null
-  const profile = await fetchProfile({ email: source.email ?? str(customer, 'email'), authUserId: userId })
+  const profile = await fetchProfile({ companyId, customerId, email: source.email ?? str(customer, 'email'), authUserId: userId })
   const merged = mergeCustomerProfile(customer, profile)
   return {
     id: source.id ?? null,

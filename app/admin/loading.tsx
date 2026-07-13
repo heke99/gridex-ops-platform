@@ -1,36 +1,15 @@
-function SkeletonCard() {
-  return (
-    <div className="h-28 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="h-4 w-28 rounded-full bg-slate-200" />
-      <div className="mt-4 h-8 w-20 rounded-full bg-slate-200" />
-      <div className="mt-3 h-3 w-40 rounded-full bg-slate-100" />
-    </div>
-  )
-}
-
-// Fallback loading state for every /admin segment that does not define its own
-// loading.tsx (dashboard, companies, platform/go-live, platform/actor-testing,
-// ediel hub, events, ...). Keeps heavy server-rendered pages from appearing frozen.
+// Keep the persistent admin layout visible. Route-level sections provide their
+// own small skeletons; a full-screen replacement made navigation feel slower
+// and hid already rendered navigation on every transition.
 export default function AdminLoading() {
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="mb-8 space-y-3">
-        <div className="h-8 w-64 rounded-full bg-slate-200" />
-        <div className="h-4 w-full max-w-xl rounded-full bg-slate-100" />
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
-      </div>
-      <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="h-5 w-48 rounded-full bg-slate-200" />
-        <div className="mt-5 space-y-3">
-          <div className="h-14 rounded-2xl bg-slate-100" />
-          <div className="h-14 rounded-2xl bg-slate-100" />
-          <div className="h-14 rounded-2xl bg-slate-100" />
-        </div>
+    <div className="space-y-4" aria-busy="true" aria-live="polite">
+      <div className="h-7 w-52 animate-pulse rounded-full bg-slate-200" />
+      <div className="h-4 w-full max-w-lg animate-pulse rounded-full bg-slate-100" />
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="h-24 animate-pulse rounded-3xl border border-slate-200 bg-white" />
+        <div className="h-24 animate-pulse rounded-3xl border border-slate-200 bg-white" />
+        <div className="h-24 animate-pulse rounded-3xl border border-slate-200 bg-white" />
       </div>
     </div>
   )

@@ -167,7 +167,9 @@
     "typecheck:ediel-consolidation": "tsc --noEmit -p tsconfig.ediel-consolidation.json",
     "ediel:canonical-consolidation-regression": "node scripts/ediel-canonical-consolidation-regression.cjs",
     "ediel:canonical-consolidation-tests": "vitest run __tests__/ediel-canonical-envelope.test.ts __tests__/ediel-canonical-ack.test.ts __tests__/ediel-prodat-lifecycle.test.ts __tests__/ediel-utilts-profiles.test.ts __tests__/billing-canonical-gate.test.ts",
-    "ediel:canonical-consolidation-verify": "npm run typecheck:ediel-consolidation && npm run ediel:canonical-consolidation-tests && npm run ediel:canonical-consolidation-regression"
+    "ediel:canonical-consolidation-verify": "npm run typecheck:ediel-consolidation && npm run ediel:canonical-consolidation-tests && npm run ediel:canonical-consolidation-regression",
+    "api:contract": "node scripts/check-public-api-contract.cjs",
+    "api:performance-tenant-gates": "node scripts/check-api-performance-tenant-gates.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

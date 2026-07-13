@@ -152,25 +152,37 @@ async function recordRateLimitEvent(client: IntegrationApiClient, request: NextR
     })
 }
 
-async function rateLimitAllowed(client: IntegrationApiClient, request: NextRequest): Promise<boolean> {
+async function rateLimitAllowed(client: IntegrationApiClient, request: NextRequest): Promise<{ allowed: boolean; count: number; resetAt: string | null }> {
   const limit = Number(client.rate_limit_per_minute ?? 0)
-  if (!Number.isFinite(limit) || limit <= 0) return false
+  if (!Number.isFinite(limit) || limit <= 0) return { allowed: false, count: 0, resetAt: null }
 
-  const since = new Date(Date.now() - 60_000).toISOString()
-  const { count, error } = await supabaseService
-    .from('integration_api_requests')
-    .select('id', { count: 'exact', head: true })
-    .eq('api_client_id', client.id)
-    .gte('created_at', since)
-
-  if (error) return false
-  const requestCount = Number(count ?? 0)
-  if (requestCount < limit) return true
-
-  await recordRateLimitEvent(client, request, requestCount).catch((recordError) => {
-    console.warn('[integration-api] rate limit event logging skipped', recordError)
+  const route = request.nextUrl.pathname
+  const { data, error } = await supabaseService.rpc('integration_api_rate_limit_check', {
+    p_api_client_id: client.id,
+    p_route: route,
+    p_limit: limit,
+    p_window_seconds: 60,
   })
-  return false
+
+  if (error) {
+    // Fail closed for authenticated integration APIs. A broken limiter must not
+    // turn into unlimited access or a database-log COUNT on every request.
+    console.error('[integration-api] atomic rate limiter unavailable', { route, code: error.code })
+    return { allowed: false, count: 0, resetAt: null }
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+  const allowed = Boolean((row as { allowed?: unknown } | null)?.allowed)
+  const count = Number((row as { request_count?: unknown } | null)?.request_count ?? 0)
+  const resetAt = String((row as { reset_at?: unknown } | null)?.reset_at ?? '') || null
+
+  if (!allowed) {
+    await recordRateLimitEvent(client, request, count).catch((recordError) => {
+      console.warn('[integration-api] rate limit event logging skipped', recordError)
+    })
+  }
+
+  return { allowed, count, resetAt }
 }
 
 export async function requireIntegrationApiAccess(
@@ -190,7 +202,7 @@ export async function requireIntegrationApiAccess(
 
   const { data, error } = await supabaseService
     .from('integration_api_clients')
-    .select('*')
+    .select('id,company_id,name,status,key_prefix,secret_hash,scopes,allowed_ips,allowed_origins,metadata,rate_limit_per_minute,expires_at')
     .eq('key_prefix', keyPrefix)
     .eq('secret_hash', secretHash)
     .maybeSingle()
@@ -212,7 +224,8 @@ export async function requireIntegrationApiAccess(
   if (!originAllowed(client, requestOrigin(request))) {
     return publicError({ status: 403, code: 'api_origin_not_allowed', message: 'Domänen är inte tillåten för API-klienten.', client })
   }
-  if (!(await rateLimitAllowed(client, request))) {
+  const rateLimit = await rateLimitAllowed(client, request)
+  if (!rateLimit.allowed) {
     return publicError({
       status: 429,
       code: 'rate_limited',
@@ -221,7 +234,9 @@ export async function requireIntegrationApiAccess(
     })
   }
 
-  await supabaseService
+  // Usage telemetry must not hold the response path open. The update is best
+  // effort and intentionally detached from the authenticated request.
+  void supabaseService
     .from('integration_api_clients')
     .update({ last_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq('id', client.id)

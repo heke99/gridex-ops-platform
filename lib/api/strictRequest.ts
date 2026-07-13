@@ -160,3 +160,60 @@ export async function failPortalWriteIdempotency(input: {
     .eq('company_id', input.companyId)
   if (error) throw error
 }
+
+export type IdempotentWriteResult<T> = {
+  statusCode: number
+  body: T
+}
+
+/**
+ * Executes an external customer write once for a tenant/client/customer tuple.
+ * The callback must contain the complete business mutation. Replays return the
+ * stored response and conflicting payloads are rejected before any write runs.
+ */
+export async function executeIdempotentPortalWrite<T>(input: {
+  request: NextRequest
+  companyId: string
+  clientId: string
+  customerId: string
+  operation: string
+  payload: unknown
+  execute: () => Promise<IdempotentWriteResult<T>>
+}): Promise<IdempotentWriteResult<T> & { replayed: boolean }> {
+  const idempotencyKey = requireIdempotencyKey(input.request)
+  const claim = await claimPortalWriteIdempotency({
+    companyId: input.companyId,
+    clientId: input.clientId,
+    customerId: input.customerId,
+    operation: input.operation,
+    idempotencyKey,
+    payload: input.payload,
+  })
+
+  if (claim.replay) {
+    return {
+      statusCode: claim.statusCode ?? 200,
+      body: claim.responseBody as T,
+      replayed: true,
+    }
+  }
+
+  try {
+    const result = await input.execute()
+    await completePortalWriteIdempotency({
+      recordId: claim.recordId,
+      companyId: input.companyId,
+      statusCode: result.statusCode,
+      responseBody: result.body,
+    })
+    return { ...result, replayed: false }
+  } catch (error) {
+    const errorCode = error instanceof ApiInputError ? error.code : 'write_failed'
+    await failPortalWriteIdempotency({
+      recordId: claim.recordId,
+      companyId: input.companyId,
+      errorCode,
+    }).catch(() => undefined)
+    throw error
+  }
+}

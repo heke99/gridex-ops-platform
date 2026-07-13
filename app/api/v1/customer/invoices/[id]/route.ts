@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'
 async function loadFallbackInvoice(input: { companyId: string; customerId: string; invoiceId: string }) {
   const exported = await supabaseService
     .from('invoice_export_items')
-    .select('*')
+    .select('id,customer_id,agreement_id,billing_underlay_id,partner_export_id,partner_invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,source_system,created_at')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('id', input.invoiceId)
@@ -29,7 +29,7 @@ async function loadFallbackInvoice(input: { companyId: string; customerId: strin
 
   const pricing = await supabaseService
     .from('pricing_runs')
-    .select('*,pricing_preview_lines(*)')
+    .select('id,billing_underlay_id,status,total_ex_vat,vat_amount,total_inc_vat,billing_period_start,billing_period_end,created_at,pricing_preview_lines(id,line_type,description,quantity,unit,unit_price,amount_ex_vat,vat_rate,vat_amount,amount_inc_vat)')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .eq('id', input.invoiceId)
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
     const { id } = await contextInput.params
     const { data: invoice, error: invoiceError } = await supabaseService
       .from('customer_invoices')
-      .select('*')
+      .select('id,status,provider,provider_invoice_guid,provider_invoice_number,provider_payment_reference,provider_ocr,provider_status,purchase_status,recourse_status,amount_ex_vat,vat_amount,amount_inc_vat,created_at,sent_at')
       .eq('company_id', context.client.company_id)
       .eq('customer_id', context.identity.customer_id)
       .eq('id', id)
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
 
     const { data: documents, error: documentError } = await supabaseService
       .from('customer_invoice_documents')
-      .select('id,document_type,title,file_path,public_url,source_system,created_at')
+      .select('id,document_type,title,public_url,source_system,created_at')
       .eq('company_id', context.client.company_id)
       .eq('invoice_id', id)
       .order('created_at', { ascending: false })
