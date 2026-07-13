@@ -1,4 +1,5 @@
 import { supabaseService } from "@/lib/supabase/service";
+import { getEdielCertificationEvidenceReadiness } from '@/lib/ediel/certificationEvidence'
 import { isMissingRelationError } from "@/lib/tenant/scope";
 import type { EdielMessageRow } from "@/lib/ediel/types";
 import { ACTOR_TEST_CASES } from "@/lib/ediel/actorTesting";
@@ -1486,6 +1487,32 @@ export async function getCompanyProductionReadiness(
       "Aktörstester saknas",
       `Saknar godkända testfall: ${missingTests.map((testCase) => testCase.key).join(", ")}.`,
     );
+
+  try {
+    const evidence = await getEdielCertificationEvidenceReadiness(companyId)
+    if (evidence.ready) {
+      pass(
+        "tests",
+        "external_certification_and_pilot_approved",
+        "Extern verifiering och pilot är godkända",
+        "TGT, AGT, shadow production, begränsad pilot, live tenant-integritet och restore/replay är godkända för aktuell canonical engine-version.",
+      )
+    } else {
+      block(
+        "tests",
+        "external_certification_and_pilot_missing",
+        "Extern verifiering eller pilot saknas",
+        `Saknar godkänd evidens för aktuell engine-version: ${evidence.missing.join(", ")}.`,
+      )
+    }
+  } catch (error) {
+    block(
+      "tests",
+      "external_certification_evidence_unavailable",
+      "Extern verifiering kan inte bekräftas",
+      error instanceof Error ? error.message : "Kunde inte läsa certification evidence.",
+    )
+  }
 
   if (unresolvedItems === 0)
     pass(
