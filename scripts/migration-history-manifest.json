@@ -271,7 +271,8 @@
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
-    "20260714160000_canonical_contract_runtime_completion.sql": "9d2420339e629ea4fa95b9b108160776e26580ae6ce4a531fd27afe2e8241b8c"
+    "20260714160000_canonical_contract_runtime_completion.sql": "9d2420339e629ea4fa95b9b108160776e26580ae6ce4a531fd27afe2e8241b8c",
+    "20260714223000_contract_publication_reference_integrity_hardening.sql": "6ce4e1aaa25d8f8a68f8ef4694bbe0e1834800c678013d0a5e79bc33037de365"
   },
   "allowedUnversionedFiles": [
     "Batch 1+2.sql",

@@ -96,8 +96,16 @@ async function validateLegalBundle(companyId: string, legalBundleId: string | nu
   if (missing.length > 0) blockers.push('Juridiskt paket saknar publicerade texter')
 }
 
-async function validatePriceBook(companyId: string, priceBookId: string | null | undefined, blockers: string[]) {
-  if (!priceBookId) {
+async function validatePriceBook(
+  companyId: string,
+  offer: {
+    price_book_id?: string | null
+    price_plan_id?: string | null
+    price_plan_version_id?: string | null
+  },
+  blockers: string[],
+) {
+  if (!offer.price_book_id) {
     blockers.push('Prislista saknas')
     return
   }
@@ -105,7 +113,7 @@ async function validatePriceBook(companyId: string, priceBookId: string | null |
   const { data, error } = await supabaseService
     .from('price_books')
     .select('id,company_id,status')
-    .eq('id', priceBookId)
+    .eq('id', offer.price_book_id)
     .eq('company_id', companyId)
     .maybeSingle()
 
@@ -122,6 +130,35 @@ async function validatePriceBook(companyId: string, priceBookId: string | null |
   }
   if (!['published', 'active'].includes(clean(data.status) ?? 'draft')) {
     blockers.push('Prislistan är inte publicerad/aktiv')
+    return
+  }
+
+  if (!offer.price_plan_id || !offer.price_plan_version_id) return
+
+  const { data: mapping, error: mappingError } = await supabaseService
+    .from('price_book_lines')
+    .select('price_book_id,metadata')
+    .eq('price_book_id', offer.price_book_id)
+    .eq('component_key', 'price_plan_version')
+
+  if (mappingError) {
+    if (missingSchema(mappingError)) {
+      blockers.push('Databasschemat för prislistans prisplanskoppling är inte redo')
+      return
+    }
+    throw mappingError
+  }
+
+  const hasExactMapping = (mapping ?? []).some((line) => {
+    const metadata = line.metadata && typeof line.metadata === 'object'
+      ? line.metadata as Record<string, unknown>
+      : {}
+    return metadata.price_plan_id === offer.price_plan_id
+      && metadata.price_plan_version_id === offer.price_plan_version_id
+  })
+
+  if (!hasExactMapping) {
+    blockers.push('Prislistan är inte kopplad till vald prisplan och prisplansversion')
   }
 }
 
@@ -136,26 +173,44 @@ async function validatePricePlanMapping(
     return
   }
 
-  const { data, error } = await supabaseService
-    .from('price_plan_versions')
-    .select('id,company_id,price_plan_id,status')
-    .eq('id', offer.price_plan_version_id)
-    .eq('company_id', companyId)
-    .eq('price_plan_id', offer.price_plan_id)
-    .maybeSingle()
+  const [{ data: plan, error: planError }, { data: version, error: versionError }] = await Promise.all([
+    supabaseService
+      .from('price_plans')
+      .select('id,company_id,status')
+      .eq('id', offer.price_plan_id)
+      .eq('company_id', companyId)
+      .maybeSingle(),
+    supabaseService
+      .from('price_plan_versions')
+      .select('id,company_id,price_plan_id,status')
+      .eq('id', offer.price_plan_version_id)
+      .eq('company_id', companyId)
+      .eq('price_plan_id', offer.price_plan_id)
+      .maybeSingle(),
+  ])
 
-  if (error) {
-    if (missingSchema(error)) {
+  if (planError) {
+    if (missingSchema(planError)) {
+      blockers.push('Databasschemat för prisplaner är inte redo')
+      return
+    }
+    throw planError
+  }
+  if (versionError) {
+    if (missingSchema(versionError)) {
       blockers.push('Databasschemat för prisplansversioner är inte redo')
       return
     }
-    throw error
+    throw versionError
   }
-  if (!data) {
-    blockers.push('Prisplansversionen hittades inte för bolaget')
-    return
+  if (!plan) {
+    blockers.push('Prisplanen hittades inte för bolaget')
+  } else if (!['active', 'published', 'approved'].includes(clean(plan.status) ?? 'draft')) {
+    blockers.push('Prisplanen är inte aktiv/publicerad')
   }
-  if (!['active', 'published', 'approved'].includes(clean(data.status) ?? 'draft')) {
+  if (!version) {
+    blockers.push('Prisplansversionen hittades inte för bolaget och vald prisplan')
+  } else if (!['active', 'published', 'approved'].includes(clean(version.status) ?? 'draft')) {
     blockers.push('Prisplansversionen är inte aktiv/publicerad')
   }
 }
@@ -172,7 +227,7 @@ async function validatePricePlanMapping(
  *
  * Current publication checks:
  *  - The offer must reference a published legal bundle and active/published price book.
- *  - The tenant must have an active API client with website_contracts.read.
+ *  - The tenant must have one active API client with both website_contracts.read and website_applications.write.
  */
 export async function assessPublicOfferReadiness(input: {
   companyId: string
@@ -186,7 +241,7 @@ export async function assessPublicOfferReadiness(input: {
   const blockers: string[] = []
 
   await validateLegalBundle(input.companyId, input.offer.legal_bundle_id, blockers)
-  await validatePriceBook(input.companyId, input.offer.price_book_id, blockers)
+  await validatePriceBook(input.companyId, input.offer, blockers)
   await validatePricePlanMapping(input.companyId, input.offer, blockers)
 
   try {
@@ -195,13 +250,14 @@ export async function assessPublicOfferReadiness(input: {
       .select('id')
       .eq('company_id', input.companyId)
       .eq('status', 'active')
-      .contains('scopes', ['website_contracts.read'])
+      .contains('scopes', ['website_contracts.read', 'website_applications.write'])
       .limit(1)
       .maybeSingle()
     if (error) throw error
-    if (!client) blockers.push('Aktiv API-klient med behörigheten website_contracts.read saknas')
-  } catch (err) {
-    blockers.push('Kunde inte kontrollera API-klient för hemsideavtal')
+    if (!client) blockers.push('Aktiv API-klient med både website_contracts.read och website_applications.write saknas')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : clean((error as { message?: unknown } | null)?.message)
+    blockers.push(message ? `Kunde inte kontrollera API-klient: ${message}` : 'Kunde inte kontrollera API-klient för hemsideavtal')
   }
 
   return { isReady: blockers.length === 0, blockers }

@@ -577,3 +577,16 @@ Template:
 - Added safer customer-card actions for testdata marking, archiving and protected hard delete.
 - Added platform data cleanup workflow for test customers.
 - Updated developer documentation to use public-contracts and contract offer/version identifiers.
+
+## 2026-07-14 — Contract publication reference integrity hotfix
+
+- Fixed publication readiness so selected `price_plan_id` and `price_plan_version_id` are validated together with the exact price book reference line.
+- Prevented reuse of a stale price book after changing price plan/version.
+- Blocked draft/inactive price plans and price versions from generating published price books.
+- Added cleanup when legal bundle items or price book lines fail, avoiding orphan canonical records.
+- Changed legal bundle schema failures from fail-open to explicit blockers.
+- Required one active website API client to carry both `website_contracts.read` and `website_applications.write`.
+- Added database-level canonical readiness checks for tenant legal profile, exact tenant/plan/version/book mapping and API scopes.
+- Normalized `spot` to variable-monthly legal rules, made customer type `both` include consumer and business requirements, and prevented mandatory legal modules from being removed by partial payloads.
+- Replaced hidden empty-list UI fallbacks with visible database error diagnostics on the tenant contract controls.
+- Added migration `20260714223000_contract_publication_reference_integrity_hardening.sql` and expanded the canonical contract regression.

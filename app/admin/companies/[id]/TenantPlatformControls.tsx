@@ -197,7 +197,21 @@ function legacyMailReadinessRows(rows: MailReadiness[]): MailReadiness[] {
   return rows.filter((row) => !expected.has(`${row.event_key ?? ''}:${row.template_key ?? ''}`))
 }
 
-async function safeRows<T>(table: string, companyId: string, select: string, order = 'created_at'): Promise<T[]> {
+type SafeRowsResult<T> = {
+  rows: T[]
+  source: string
+  error: string | null
+}
+
+function databaseErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message
+  const value = error as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown } | null
+  const parts = [value?.code, value?.message, value?.details, value?.hint]
+    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+  return parts.join(' · ') || 'Okänt databasfel'
+}
+
+async function safeRows<T>(source: string, table: string, companyId: string, select: string, order = 'created_at'): Promise<SafeRowsResult<T>> {
   try {
     const { data, error } = await supabaseService
       .from(table)
@@ -205,25 +219,37 @@ async function safeRows<T>(table: string, companyId: string, select: string, ord
       .eq('company_id', companyId)
       .order(order, { ascending: order === 'sort_order' })
       .limit(200)
-    if (error) return []
-    return (data ?? []) as T[]
-  } catch {
-    return []
+    if (error) return { rows: [], source, error: databaseErrorMessage(error) }
+    return { rows: (data ?? []) as T[], source, error: null }
+  } catch (error) {
+    return { rows: [], source, error: databaseErrorMessage(error) }
   }
 }
 
 export default async function TenantPlatformControls({ companyId, companyName }: { companyId: string; companyName: string }) {
-  const [offers, internalContracts, pricePlans, priceVersions, legalBundles, priceBooks, apiClients, offerApiDiagnostics, mailReadiness] = await Promise.all([
-    safeRows<PublicOffer>('public_contract_offers', companyId, 'id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at', 'sort_order'),
-    safeRows<InternalContractOffer>('contract_offers', companyId, 'id,name,status,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at', 'updated_at'),
-    safeRows<PricePlan>('price_plans', companyId, 'id,name,pricing_model,status', 'name'),
-    safeRows<PricePlanVersion>('price_plan_versions', companyId, 'id,price_plan_id,version_label,status,valid_from,valid_to', 'valid_from'),
-    safeRows<LegalBundle>('legal_bundles', companyId, 'id,name,status,updated_at', 'updated_at'),
-    safeRows<PriceBook>('price_books', companyId, 'id,name,status,valid_from,valid_to,updated_at', 'updated_at'),
-    safeRows<ApiClient>('integration_api_clients', companyId, 'id,name,status,key_prefix,scopes,permission_groups,allowed_origins,last_used_at,created_at', 'created_at'),
-    safeRows<PublicOfferApiDiagnostic>('gridex_public_contract_offer_api_diagnostics_v', companyId, 'id,company_id,offer_code,public_name,publication_status,website_enabled,is_public,is_archived,matched_api_client_count,published_legal_type_count,price_book_status,api_blockers,api_visible,endpoint_path,sort_order', 'sort_order'),
-    safeRows<MailReadiness>('gridex_tenant_email_dispatch_readiness_v', companyId, 'event_key,template_key,enabled,template_name,template_active,can_send,requires_platform_fallback,issues', 'event_key'),
+  const results = await Promise.all([
+    safeRows<PublicOffer>('Hemsideavtal', 'public_contract_offers', companyId, 'id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at', 'sort_order'),
+    safeRows<InternalContractOffer>('Interna avtal', 'contract_offers', companyId, 'id,name,status,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at', 'updated_at'),
+    safeRows<PricePlan>('Prisplaner', 'price_plans', companyId, 'id,name,pricing_model,status', 'name'),
+    safeRows<PricePlanVersion>('Prisversioner', 'price_plan_versions', companyId, 'id,price_plan_id,version_label,status,valid_from,valid_to', 'valid_from'),
+    safeRows<LegalBundle>('Juridiska paket', 'legal_bundles', companyId, 'id,name,status,updated_at', 'updated_at'),
+    safeRows<PriceBook>('Prislistor', 'price_books', companyId, 'id,name,status,valid_from,valid_to,updated_at', 'updated_at'),
+    safeRows<ApiClient>('API-klienter', 'integration_api_clients', companyId, 'id,name,status,key_prefix,scopes,permission_groups,allowed_origins,last_used_at,created_at', 'created_at'),
+    safeRows<PublicOfferApiDiagnostic>('API-diagnostik', 'gridex_public_contract_offer_api_diagnostics_v', companyId, 'id,company_id,offer_code,public_name,publication_status,website_enabled,is_public,is_archived,matched_api_client_count,published_legal_type_count,price_book_status,api_blockers,api_visible,endpoint_path,sort_order', 'sort_order'),
+    safeRows<MailReadiness>('Mejlberedskap', 'gridex_tenant_email_dispatch_readiness_v', companyId, 'event_key,template_key,enabled,template_name,template_active,can_send,requires_platform_fallback,issues', 'event_key'),
   ])
+
+  const [offersResult, internalContractsResult, pricePlansResult, priceVersionsResult, legalBundlesResult, priceBooksResult, apiClientsResult, offerApiDiagnosticsResult, mailReadinessResult] = results
+  const offers = offersResult.rows
+  const internalContracts = internalContractsResult.rows
+  const pricePlans = pricePlansResult.rows
+  const priceVersions = priceVersionsResult.rows
+  const legalBundles = legalBundlesResult.rows
+  const priceBooks = priceBooksResult.rows
+  const apiClients = apiClientsResult.rows
+  const offerApiDiagnostics = offerApiDiagnosticsResult.rows
+  const mailReadiness = mailReadinessResult.rows
+  const loadErrors = results.filter((result) => result.error !== null)
 
   const diagnosticsByOfferId = new Map(offerApiDiagnostics.map((row) => [row.id, row]))
   const activeOffers = offers.filter((offer) => offer.publication_status === 'published' && offer.website_enabled && !offer.is_archived)
@@ -270,6 +296,15 @@ export default async function TenantPlatformControls({ companyId, companyName }:
         </div>
       </div>
 
+      {loadErrors.length > 0 ? (
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-red-900 shadow-sm">
+          <p className="font-black">Vissa avtalsuppgifter kunde inte laddas</p>
+          <p className="mt-1 text-sm">Systemet visar inte dessa fel som tomma listor. Rätta databasschemat eller behörigheten innan avtal publiceras.</p>
+          <ul className="mt-3 space-y-1 text-sm">
+            {loadErrors.map((result) => <li key={result.source}><strong>{result.source}:</strong> {result.error}</li>)}
+          </ul>
+        </div>
+      ) : null}
 
       <section id="tenant-internal-contracts" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">

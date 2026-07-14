@@ -3,11 +3,15 @@ const path = require('node:path')
 const root = path.resolve(__dirname, '..')
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
 const migration = read('supabase/migrations/20260714160000_canonical_contract_runtime_completion.sql')
+const integrityMigration = read('supabase/migrations/20260714223000_contract_publication_reference_integrity_hardening.sql')
 const page = read('app/admin/contracts/page.tsx')
 const actions = read('app/admin/contracts/actions.ts')
 const canonical = read('lib/contracts/canonical.ts')
 const publicContracts = read('lib/website/publicContracts.ts')
 const applications = read('lib/website/customerApplications.ts')
+const tenantPlatformActions = read('app/admin/companies/[id]/tenant-platform-actions.ts')
+const publicOfferReadiness = read('lib/website/publicOfferReadiness.ts')
+const tenantPlatformControls = read('app/admin/companies/[id]/TenantPlatformControls.tsx')
 const docs = read('app/developers/customer-portal-api/page.tsx')
 const required = [
   ['legal rule matrix', migration.includes('legal_requirement_rules') && migration.includes('gridex_required_legal_modules')],
@@ -27,6 +31,20 @@ const required = [
   ['atomic evidence capture', migration.includes('gridex_capture_signed_contract_evidence') && migration.includes('customer_contract_acceptances')],
   ['PDF evidence archive', applications.includes("document_type: 'signed_contract_pdf'") && applications.includes('document_sha256')],
   ['strict offer selector documented', docs.includes('offer_reference') && docs.includes('offer_selector_mismatch')],
+  ['publication readiness receives selected price ids', tenantPlatformActions.includes('price_plan_id: pricePlanId') && tenantPlatformActions.includes('price_plan_version_id: pricePlanVersionId')],
+  ['price book reuse is exact-version scoped', tenantPlatformActions.includes("component_key', 'price_plan_version'") && tenantPlatformActions.includes('metadata.price_plan_version_id === input.pricePlanVersionId')],
+  ['price book readiness verifies exact mapping', publicOfferReadiness.includes('Prislistan är inte kopplad till vald prisplan och prisplansversion') && publicOfferReadiness.includes(".eq('component_key', 'price_plan_version')")],
+  ['price plan and version status both validated', publicOfferReadiness.includes(".from('price_plans')") && publicOfferReadiness.includes('Prisplanen är inte aktiv/publicerad') && publicOfferReadiness.includes('Prisplansversionen är inte aktiv/publicerad')],
+  ['same API client needs read and write scopes', publicOfferReadiness.includes("['website_contracts.read', 'website_applications.write']") && integrityMigration.includes("array['website_contracts.read','website_applications.write']")],
+  ['stale price books cannot be reused', tenantPlatformActions.includes('priceBookMatchesPlanVersion') && tenantPlatformActions.includes('Vald prislista är inte publicerad eller hör inte till vald prisplan och prisversion')],
+  ['incomplete legal bundle fails closed', tenantPlatformActions.includes('Databasschemat för juridikpaketets dokument är inte installerat') && !tenantPlatformActions.includes('if (isMissingSchemaError(itemsError)) return true')],
+  ['partial canonical artifacts are cleaned up', tenantPlatformActions.includes("from('legal_bundles').delete()") && tenantPlatformActions.includes("from('price_books').delete()")],
+  ['missing legal profile is blocked', integrityMigration.includes("coalesce(tlp.completeness_status,'incomplete')")],
+  ['combined audience receives both legal rule sets', integrityMigration.includes("v_customer_type='both'") && integrityMigration.includes("r.customer_type in ('private','business','both')")],
+  ['spot contract type is normalized', integrityMigration.includes("when 'spot' then 'variable_monthly'")],
+  ['mandatory legal modules cannot be removed', integrityMigration.includes("coalesce(new.required_legal_modules,'{}') || coalesce(v_required,'{}')")],
+  ['canonical SQL verifies exact price references', integrityMigration.includes('price_book_plan_version_mismatch') && integrityMigration.includes('price_plan_version_mismatch')],
+  ['admin UI exposes database load errors', tenantPlatformControls.includes('Vissa avtalsuppgifter kunde inte laddas') && tenantPlatformControls.includes('databaseErrorMessage')],
 ]
 const failed = required.filter(([, ok]) => !ok)
 if (failed.length) {

@@ -130,13 +130,26 @@ function isMissingSchemaError(error: unknown): boolean {
 }
 
 async function legalBundleHasRequiredTexts(companyId: string, legalBundleId: string): Promise<boolean> {
+  const { data: bundle, error: bundleError } = await supabaseService
+    .from('legal_bundles')
+    .select('id,status')
+    .eq('id', legalBundleId)
+    .eq('company_id', companyId)
+    .maybeSingle()
+
+  if (bundleError) {
+    if (isMissingSchemaError(bundleError)) throw new Error('Databasschemat för juridiska paket är inte installerat.')
+    throw bundleError
+  }
+  if (!bundle || !['published', 'active'].includes(String(bundle.status ?? 'draft'))) return false
+
   const { data: items, error: itemsError } = await supabaseService
     .from('legal_bundle_items')
     .select('legal_text_version_id,type')
     .eq('legal_bundle_id', legalBundleId)
 
   if (itemsError) {
-    if (isMissingSchemaError(itemsError)) return true
+    if (isMissingSchemaError(itemsError)) throw new Error('Databasschemat för juridikpaketets dokument är inte installerat.')
     throw itemsError
   }
 
@@ -151,7 +164,7 @@ async function legalBundleHasRequiredTexts(companyId: string, legalBundleId: str
     .in('id', ids)
 
   if (versionsError) {
-    if (isMissingSchemaError(versionsError)) return true
+    if (isMissingSchemaError(versionsError)) throw new Error('Databasschemat för juridiska textversioner är inte installerat.')
     throw versionsError
   }
 
@@ -261,27 +274,102 @@ async function ensurePublishedLegalBundle(companyId: string, publicName: string)
     sort_order: (index + 1) * 10,
   }))
   const { error: itemsError } = await supabaseService.from('legal_bundle_items').insert(items)
-  if (itemsError) throw itemsError
+  if (itemsError) {
+    await supabaseService.from('legal_bundles').delete().eq('id', bundle.id).eq('company_id', companyId)
+    throw itemsError
+  }
 
   return { id: bundle.id, blockers: [], created: true }
 }
 
-async function getActivePriceBook(companyId: string): Promise<string | null> {
-  const { data, error } = await supabaseService
+async function priceBookMatchesPlanVersion(input: {
+  companyId: string
+  priceBookId: string
+  pricePlanId: string | null
+  pricePlanVersionId: string | null
+}): Promise<boolean> {
+  if (!input.pricePlanId || !input.pricePlanVersionId) return false
+
+  const { data: book, error: bookError } = await supabaseService
+    .from('price_books')
+    .select('id,status')
+    .eq('id', input.priceBookId)
+    .eq('company_id', input.companyId)
+    .maybeSingle()
+  if (bookError) {
+    if (isMissingSchemaError(bookError)) throw new Error('Databasschemat för prislistor är inte installerat.')
+    throw bookError
+  }
+  if (!book || !['published', 'active'].includes(String(book.status ?? 'draft'))) return false
+
+  const { data: lines, error: linesError } = await supabaseService
+    .from('price_book_lines')
+    .select('metadata')
+    .eq('price_book_id', input.priceBookId)
+    .eq('component_key', 'price_plan_version')
+  if (linesError) {
+    if (isMissingSchemaError(linesError)) throw new Error('Databasschemat för prislistans prisplanskoppling är inte installerat.')
+    throw linesError
+  }
+
+  return (lines ?? []).some((line) => {
+    const metadata = line.metadata && typeof line.metadata === 'object'
+      ? line.metadata as Record<string, unknown>
+      : {}
+    return metadata.price_plan_id === input.pricePlanId
+      && metadata.price_plan_version_id === input.pricePlanVersionId
+  })
+}
+
+async function getActivePriceBook(input: {
+  companyId: string
+  pricePlanId: string | null
+  pricePlanVersionId: string | null
+}): Promise<string | null> {
+  if (!input.pricePlanId || !input.pricePlanVersionId) return null
+
+  const { data: books, error: booksError } = await supabaseService
     .from('price_books')
     .select('id')
-    .eq('company_id', companyId)
+    .eq('company_id', input.companyId)
     .in('status', ['published', 'active'])
     .order('valid_from', { ascending: false, nullsFirst: false })
     .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(100)
 
-  if (error) {
-    if (isMissingSchemaError(error)) return null
-    throw error
+  if (booksError) {
+    if (isMissingSchemaError(booksError)) return null
+    throw booksError
   }
-  return data?.id ?? null
+
+  const bookIds = (books ?? []).map((book) => book.id).filter(Boolean)
+  if (bookIds.length === 0) return null
+
+  const { data: lines, error: linesError } = await supabaseService
+    .from('price_book_lines')
+    .select('price_book_id,metadata')
+    .in('price_book_id', bookIds)
+    .eq('component_key', 'price_plan_version')
+
+  if (linesError) {
+    if (isMissingSchemaError(linesError)) return null
+    throw linesError
+  }
+
+  const matchingBookIds = new Set(
+    (lines ?? [])
+      .filter((line) => {
+        const metadata = line.metadata && typeof line.metadata === 'object'
+          ? line.metadata as Record<string, unknown>
+          : {}
+        return metadata.price_plan_id === input.pricePlanId
+          && metadata.price_plan_version_id === input.pricePlanVersionId
+      })
+      .map((line) => line.price_book_id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0),
+  )
+
+  return bookIds.find((id) => matchingBookIds.has(id)) ?? null
 }
 
 async function ensurePublishedPriceBook(input: {
@@ -299,20 +387,38 @@ async function ensurePublishedPriceBook(input: {
   validFrom: string | null
   validTo: string | null
 }): Promise<CanonicalReferenceResult> {
-  const existing = await getActivePriceBook(input.companyId)
+  const existing = await getActivePriceBook({
+    companyId: input.companyId,
+    pricePlanId: input.pricePlanId,
+    pricePlanVersionId: input.pricePlanVersionId,
+  })
   if (existing) return { id: existing, blockers: [], created: false }
   if (!input.pricePlanId || !input.pricePlanVersionId) {
     return { id: null, blockers: ['Prisplan och prisversion krävs innan prislista kan skapas.'], created: false }
   }
 
-  const { data: version, error: versionError } = await supabaseService
-    .from('price_plan_versions')
-    .select('id,price_plan_id,company_id,version_label,status,valid_from,valid_to')
-    .eq('id', input.pricePlanVersionId)
-    .maybeSingle()
+  const [{ data: plan, error: planError }, { data: version, error: versionError }] = await Promise.all([
+    supabaseService
+      .from('price_plans')
+      .select('id,company_id,status')
+      .eq('id', input.pricePlanId)
+      .maybeSingle(),
+    supabaseService
+      .from('price_plan_versions')
+      .select('id,price_plan_id,company_id,version_label,status,valid_from,valid_to')
+      .eq('id', input.pricePlanVersionId)
+      .maybeSingle(),
+  ])
+  if (planError) throw planError
   if (versionError) throw versionError
+  if (!plan || plan.company_id !== input.companyId || !['active', 'published', 'approved'].includes(String(plan.status ?? 'draft'))) {
+    return { id: null, blockers: ['Prisplanen är inte aktiv/publicerad för valt bolag.'], created: false }
+  }
   if (!version || version.company_id !== input.companyId || version.price_plan_id !== input.pricePlanId) {
     return { id: null, blockers: ['Prisversionen kan inte användas för valt bolag/prisplan.'], created: false }
+  }
+  if (!['active', 'published', 'approved'].includes(String(version.status ?? 'draft'))) {
+    return { id: null, blockers: ['Prisversionen är inte aktiv/publicerad.'], created: false }
   }
 
   const { data: book, error: bookError } = await supabaseService
@@ -344,7 +450,10 @@ async function ensurePublishedPriceBook(input: {
   ].map((line, index) => ({ price_book_id: book.id, sort_order: (index + 1) * 10, ...line }))
 
   const { error: lineError } = await supabaseService.from('price_book_lines').insert(lines)
-  if (lineError) throw lineError
+  if (lineError) {
+    await supabaseService.from('price_books').delete().eq('id', book.id).eq('company_id', input.companyId)
+    throw lineError
+  }
 
   return { id: book.id, blockers: [], created: true }
 }
@@ -497,6 +606,29 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
   let legalBundleId = submittedLegalBundleId ?? previousLegalBundleId
   let priceBookId = submittedPriceBookId ?? previousPriceBookId
 
+  if (submittedLegalBundleId && !(await legalBundleHasRequiredTexts(companyId, submittedLegalBundleId))) {
+    throw new Error('Valt juridiskt paket är inte publicerat eller saknar obligatoriska juridiska texter.')
+  }
+  if (!submittedLegalBundleId && previousLegalBundleId && !(await legalBundleHasRequiredTexts(companyId, previousLegalBundleId))) {
+    legalBundleId = null
+  }
+  if (submittedPriceBookId && !(await priceBookMatchesPlanVersion({
+    companyId,
+    priceBookId: submittedPriceBookId,
+    pricePlanId,
+    pricePlanVersionId,
+  }))) {
+    throw new Error('Vald prislista är inte publicerad eller hör inte till vald prisplan och prisversion.')
+  }
+  if (!submittedPriceBookId && previousPriceBookId && !(await priceBookMatchesPlanVersion({
+    companyId,
+    priceBookId: previousPriceBookId,
+    pricePlanId,
+    pricePlanVersionId,
+  }))) {
+    priceBookId = null
+  }
+
   let readinessStatus: string | null = null
   let readinessBlockers: string[] = []
   const autoCreatedReferences: string[] = []
@@ -534,7 +666,12 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
 
     const readiness = await assessPublicOfferReadiness({
       companyId,
-      offer: { legal_bundle_id: legalBundleId, price_book_id: priceBookId },
+      offer: {
+        legal_bundle_id: legalBundleId,
+        price_book_id: priceBookId,
+        price_plan_id: pricePlanId,
+        price_plan_version_id: pricePlanVersionId,
+      },
     })
     readinessStatus = readiness.isReady && readinessBlockers.length === 0 ? 'ready' : 'blocked'
     readinessBlockers = [...readinessBlockers, ...readiness.blockers]
