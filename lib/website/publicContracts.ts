@@ -168,10 +168,52 @@ function base64Url(value: Buffer) {
   return value.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
-export function publicOfferReference(offer: Pick<PublicContractOffer, 'company_id' | 'id' | 'price_plan_id' | 'price_plan_version_id' | 'product_code'>) {
-  const payload = [offer.company_id, offer.id, offer.price_plan_id ?? '', offer.price_plan_version_id ?? '', offer.product_code ?? ''].join('|')
+export function publicOfferReference(offer: Pick<PublicContractOffer,
+  | 'company_id'
+  | 'id'
+  | 'price_plan_id'
+  | 'price_plan_version_id'
+  | 'price_book_id'
+  | 'legal_bundle_id'
+  | 'campaign_version_id'
+  | 'product_code'
+  | 'contract_type'
+  | 'customer_type'
+  | 'valid_from'
+  | 'valid_to'
+  | 'terms_version'
+  | 'website_cta_enabled'
+  | 'legal_versions'
+  | 'metadata'
+>) {
+  const legalVersionIds = [...(offer.legal_versions ?? [])]
+    .map((version) => `${version.type}:${version.id}:${version.version}`)
+    .sort()
+  const metadata = objectValue(offer.metadata)
+  const payload = JSON.stringify({
+    tenant_id: offer.company_id,
+    public_offer_id: offer.id,
+    contract_product_id: clean(metadata.contract_product_id),
+    contract_product_version_id: clean(metadata.contract_product_version_id),
+    publication_version_id: clean(metadata.contract_publication_version_id),
+    price_plan_id: offer.price_plan_id ?? null,
+    price_plan_version_id: offer.price_plan_version_id ?? null,
+    price_book_id: offer.price_book_id ?? null,
+    legal_bundle_id: offer.legal_bundle_id ?? null,
+    legal_bundle_version_id: clean(metadata.legal_bundle_version_id),
+    legal_document_versions: legalVersionIds,
+    campaign_version_id: offer.campaign_version_id ?? null,
+    product_code: offer.product_code ?? null,
+    contract_type: offer.contract_type ?? null,
+    customer_type: offer.customer_type ?? null,
+    channel: 'website',
+    valid_from: offer.valid_from ?? null,
+    valid_to: offer.valid_to ?? null,
+    terms_version: offer.terms_version ?? null,
+    website_cta_enabled: offer.website_cta_enabled !== false,
+  })
   const digest = createHmac('sha256', offerReferenceSecret()).update(payload).digest()
-  return `offer_${base64Url(digest).slice(0, 32)}`
+  return `offer_${base64Url(digest).slice(0, 43)}`
 }
 
 function firstPlan(row: PricePlanVersionRow): PricePlanRow | null {
@@ -318,6 +360,13 @@ export function publicContractResponse(offer: PublicContractOffer) {
     id: offerReference,
     offer_reference: offerReference,
     contract_offer_id: offerReference,
+    contract_product_id: clean(offer.metadata?.contract_product_id),
+    contract_product_version_id: clean(offer.metadata?.contract_product_version_id),
+    contract_publication_version_id: clean(offer.metadata?.contract_publication_version_id),
+    legal_bundle_version_id: clean(offer.metadata?.legal_bundle_version_id),
+    price_plan_id: offer.price_plan_id,
+    price_plan_version_id: offer.price_plan_version_id,
+    price_book_id: offer.price_book_id ?? null,
     offer_code: offer.offer_code ?? null,
     code: offer.offer_code ?? offer.product_code,
     product_code: offer.product_code,
