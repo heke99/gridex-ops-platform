@@ -171,7 +171,8 @@
     "api:contract": "node scripts/check-public-api-contract.cjs",
     "api:performance-tenant-gates": "node scripts/check-api-performance-tenant-gates.cjs",
     "gridex:contract-api-signature-visibility-regression": "node scripts/gridex-contract-api-signature-visibility-regression.cjs",
-    "gridex:canonical-contract-model-regression": "node scripts/gridex-canonical-contract-model-regression.cjs"
+    "gridex:canonical-contract-model-regression": "node scripts/gridex-canonical-contract-model-regression.cjs",
+    "gridex:contract-legal-publication-completion-regression": "node scripts/gridex-contract-legal-publication-completion-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

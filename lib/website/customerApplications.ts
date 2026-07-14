@@ -2732,6 +2732,34 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
       })
     : null
 
+  if (agreementAttachment && input.contract?.id) {
+    const pdfBuffer = Buffer.from(agreementAttachment.content, 'base64')
+    const documentSha256 = createHash('sha256').update(pdfBuffer).digest('hex')
+    const generationSnapshot = {
+      offer_reference: input.offerReference,
+      contract_number: input.contract.contract_number,
+      signed_at: input.contract.signed_at,
+      signature_snapshot_sha256: input.contract.signature_snapshot_sha256 ?? null,
+      legal_version_ids: input.legalVersions.map((version) => version.id),
+    }
+    const { error: documentError } = await supabaseService.from('customer_contract_documents').upsert({
+      company_id: input.companyId,
+      customer_contract_id: input.contract.id,
+      document_type: 'signed_contract_pdf',
+      storage_path: null,
+      mime_type: agreementAttachment.contentType,
+      document_sha256: documentSha256,
+      generated_at: new Date().toISOString(),
+      generation_snapshot: generationSnapshot,
+    }, { onConflict: 'customer_contract_id,document_type,document_sha256' })
+    if (documentError) throw documentError
+    const { error: contractDocumentError } = await supabaseService.from('customer_contracts').update({
+      document_sha256: documentSha256,
+      locked_at: input.contract.signed_at ?? new Date().toISOString(),
+    }).eq('id', input.contract.id).eq('company_id', input.companyId)
+    if (contractDocumentError) throw contractDocumentError
+  }
+
   await seedDefaultEmailTemplates(input.companyId).catch(() => null)
   await seedDefaultEmailEventRules(input.companyId).catch(() => null)
 

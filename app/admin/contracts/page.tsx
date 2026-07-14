@@ -3,9 +3,10 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isPlatformAdminContext, requireAdminPageAccess } from "@/lib/admin/guards";
 import { listContractOffers } from "@/lib/customer-contracts/db";
-import { archiveContractOfferAction, deleteContractOfferAction, saveContractOfferAction } from "./actions";
+import { archiveContractOfferAction, deleteContractOfferAction, saveContractOfferAction, saveTenantLegalProfileAction, updateTenantContractChannelAction } from "./actions";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
 import type { ContractOfferRow, CustomerContractRow } from "@/lib/customer-contracts/types";
+import { getTenantLegalProfile, listCanonicalContractCatalog, listPublicationReadiness, listTenantLegalOverrides } from "@/lib/contracts/canonical";
 
 export const dynamic = "force-dynamic";
 
@@ -44,103 +45,106 @@ async function TenantCustomerContracts({
   userEmail: string | null;
 }) {
   const supabase = await createSupabaseServerClient();
-  const { data: contractData, error: contractError } = await supabase
-    .from("customer_contracts")
-    .select("*")
-    .eq("company_id", companyId)
-    .order("created_at", { ascending: false })
-    .limit(500);
-
-  if (contractError) throw contractError;
-  const contracts = (contractData ?? []) as CustomerContractRow[];
+  const [catalog, legalProfile, legalOverrides, readiness, contractResult] = await Promise.all([
+    listCanonicalContractCatalog(companyId),
+    getTenantLegalProfile(companyId),
+    listTenantLegalOverrides(companyId),
+    listPublicationReadiness(companyId),
+    supabase.from("customer_contracts").select("*").eq("company_id", companyId).order("created_at", { ascending: false }).limit(500),
+  ]);
+  if (contractResult.error) throw contractResult.error;
+  const contracts = (contractResult.data ?? []) as CustomerContractRow[];
   const customerIds = Array.from(new Set(contracts.map((contract) => contract.customer_id).filter(Boolean)));
   const customersById = new Map<string, TenantCustomerSummary>();
-
   if (customerIds.length > 0) {
-    const { data: customerData, error: customerError } = await supabase
-      .from("customers")
-      .select("id,customer_number,full_name,company_name,email")
-      .eq("company_id", companyId)
-      .in("id", customerIds);
-    if (customerError) throw customerError;
-    for (const customer of (customerData ?? []) as TenantCustomerSummary[]) {
-      customersById.set(customer.id, customer);
-    }
+    const { data, error } = await supabase.from("customers").select("id,customer_number,full_name,company_name,email").eq("company_id", companyId).in("id", customerIds);
+    if (error) throw error;
+    for (const customer of (data ?? []) as TenantCustomerSummary[]) customersById.set(customer.id, customer);
   }
+  const readinessByAssignment = new Map((readiness as Array<Record<string, unknown>>).map((row) => [String(row.assignment_id), row]));
 
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Tecknade kundavtal"
-        subtitle={`Avtal som tillhör ${companyName ?? "det valda bolaget"}. Öppna kunden för komplett avtalsbild och historik.`}
+        title="Avtal, juridik och kundavtal"
+        subtitle={`Samma låsta avtalsversion används internt, på hemsidan och när kunden tecknar hos ${companyName ?? "det valda bolaget"}.`}
         userEmail={userEmail}
       />
-      <div className="space-y-6 p-8">
-        <section className="grid gap-4 md:grid-cols-4">
-          {[
-            ["Alla", contracts.length],
-            ["Signerat", contracts.filter((row) => row.status === "signed").length],
-            ["Aktivt", contracts.filter((row) => row.status === "active").length],
-            ["Väntar signering", contracts.filter((row) => row.status === "pending_signature").length],
-          ].map(([label, value]) => (
-            <div key={String(label)} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-semibold text-slate-600">{label}</p>
-              <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
+      <div className="space-y-8 p-8">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Avtalsutbud</p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">Tilldelade avtalsversioner</h2>
+          <p className="mt-2 text-sm text-slate-600">Du kan bara styra tillåtna försäljningskanaler och publiceringsperiod. Pris, juridiska grundkrav och avtalsversion är låsta av superadmin.</p>
+          <div className="mt-6 grid gap-4">
+            {catalog.length === 0 ? <p className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-600">Inga avtalsversioner har tilldelats bolaget.</p> : catalog.map((item) => {
+              const website = item.channels.find((channel) => channel.channel === "website");
+              const internal = item.channels.find((channel) => channel.channel === "internal");
+              const ready = readinessByAssignment.get(item.assignment_id);
+              const blockers = Array.isArray(ready?.blockers) ? ready?.blockers as string[] : [];
+              return (
+                <article key={item.assignment_id} className="rounded-3xl border border-slate-200 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-950">{item.product_name}</h3>
+                      <p className="mt-1 text-sm text-slate-600">Version {item.version_number} · {typeLabel(item.contract_type)} · {item.customer_type} · juridik: {item.legal_mode}</p>
+                    </div>
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${blockers.length === 0 ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+                      {blockers.length === 0 ? "Publiceringsklar" : `${blockers.length} blockerare`}
+                    </span>
+                  </div>
+                  {blockers.length > 0 ? <p className="mt-3 text-xs text-amber-800">{blockers.join(" · ")}</p> : null}
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    {[{ channel: "internal", row: internal, allowed: item.internal_sales_allowed, label: "Intern försäljning" }, { channel: "website", row: website, allowed: item.website_publication_allowed, label: "Hemsida" }].map((entry) => (
+                      <form key={entry.channel} action={updateTenantContractChannelAction} className="rounded-2xl bg-slate-50 p-4">
+                        <input type="hidden" name="company_id" value={companyId} />
+                        <input type="hidden" name="assignment_id" value={item.assignment_id} />
+                        <input type="hidden" name="channel" value={entry.channel} />
+                        <div className="flex items-center justify-between gap-3">
+                          <strong className="text-sm text-slate-900">{entry.label}</strong>
+                          <select name="status" defaultValue={entry.row?.status ?? "paused"} disabled={!entry.allowed} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+                            <option value="active">Aktiv</option><option value="paused">Pausad</option><option value="ended">Avslutad</option>
+                          </select>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <input name="valid_from" type="datetime-local" defaultValue={entry.row?.valid_from?.slice(0,16) ?? ""} className="rounded-xl border border-slate-300 px-3 py-2 text-xs" />
+                          <input name="valid_to" type="datetime-local" defaultValue={entry.row?.valid_to?.slice(0,16) ?? ""} className="rounded-xl border border-slate-300 px-3 py-2 text-xs" />
+                        </div>
+                        {entry.channel === "website" ? <textarea name="marketing_text" defaultValue={String(entry.row?.marketing_content?.text ?? "")} placeholder="Godkänd marknadsföringstext" className="mt-2 min-h-20 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /> : null}
+                        <button disabled={!entry.allowed} className="mt-3 rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Spara kanal</button>
+                      </form>
+                    ))}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
+          <form action={saveTenantLegalProfileAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <input type="hidden" name="company_id" value={companyId} />
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Juridik</p>
+            <h2 className="mt-2 text-xl font-black text-slate-950">Bolagets juridikprofil</h2>
+            <p className="mt-2 text-sm text-slate-600">Status: <strong>{legalProfile?.completeness_status ?? "incomplete"}</strong>. Saknade obligatoriska uppgifter blockerar publicering.</p>
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              {([['legal_name','Juridiskt bolagsnamn',legalProfile?.legal_name],['organization_number','Organisationsnummer',legalProfile?.organization_number],['customer_service_email','Kundservice e-post',legalProfile?.customer_service_email],['phone','Telefon',legalProfile?.phone],['website','Webbplats',legalProfile?.website],['postal_address','Postadress',legalProfile?.postal_address?.text],['customer_service_address','Kundserviceadress',legalProfile?.customer_service_address?.text],['complaints_contact','Klagomålsansvarig',legalProfile?.complaints_contact?.text],['data_protection_contact','Dataskyddskontakt',legalProfile?.data_protection_contact?.text],['billing_information','Faktureringsuppgifter',legalProfile?.billing_information?.text],['dispute_resolution_information','Tvistlösningsinformation',legalProfile?.dispute_resolution_information?.text]] as Array<[string, string, unknown]>).map(([name,label,value]) => (
+                <label key={name} className="text-sm font-medium text-slate-700">{label}<input name={name} defaultValue={String(value ?? "")} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
+              ))}
             </div>
-          ))}
+            <button className="mt-5 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">Spara juridikprofil</button>
+          </form>
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">Egna juridiska tillägg</h2>
+            <p className="mt-2 text-sm text-slate-600">Endast godkända och versionslåsta tillägg kan ingå i ett publicerat juridikpaket.</p>
+            <div className="mt-5 space-y-3">
+              {legalOverrides.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">Inga egna tillägg har skickats in.</p> : legalOverrides.map((row: { id: string; title: string; module_key: string; legal_mode: string; status: string; review_notes?: string | null }) => <div key={row.id} className="rounded-2xl border border-slate-200 p-4"><strong className="text-sm text-slate-900">{row.title}</strong><p className="mt-1 text-xs text-slate-600">{row.module_key} · {row.legal_mode} · {row.status}</p>{row.review_notes ? <p className="mt-2 text-xs text-slate-700">{row.review_notes}</p> : null}</div>)}
+            </div>
+          </section>
         </section>
 
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-6 py-5">
-            <h2 className="text-lg font-semibold text-slate-950">Kundernas avtal</h2>
-            <p className="mt-1 text-sm text-slate-600">Den här listan visar tecknade kundavtal, inte avtalsmallar eller erbjudanden på hemsidan.</p>
-          </div>
-          {contracts.length === 0 ? (
-            <div className="p-10 text-center text-sm text-slate-600">Inga kundavtal har registrerats för bolaget ännu.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600">
-                  <tr>
-                    <th className="px-6 py-3">Kund</th>
-                    <th className="px-6 py-3">Avtal</th>
-                    <th className="px-6 py-3">Status</th>
-                    <th className="px-6 py-3">Start</th>
-                    <th className="px-6 py-3">Signerat</th>
-                    <th className="px-6 py-3 text-right">Öppna</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {contracts.map((contract) => {
-                    const customer = customersById.get(contract.customer_id);
-                    return (
-                      <tr key={contract.id}>
-                        <td className="px-6 py-4">
-                          <div className="font-semibold text-slate-950">{customerDisplayName(customer)}</div>
-                          <div className="mt-1 text-xs text-slate-500">{customer?.customer_number ?? "Kundnummer saknas"}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-slate-900">{contract.contract_name}</div>
-                          <div className="mt-1 text-xs text-slate-500">{contract.contract_type}</div>
-                        </td>
-                        <td className="px-6 py-4">{tenantContractStatusLabel(contract.status)}</td>
-                        <td className="px-6 py-4">{contract.starts_at ?? "—"}</td>
-                        <td className="px-6 py-4">{contract.signed_at ? new Date(contract.signed_at).toLocaleString("sv-SE") : "—"}</td>
-                        <td className="px-6 py-4 text-right">
-                          <Link
-                            href={`/admin/customers/${contract.customer_id}?tab=contracts#contracts`}
-                            className="inline-flex rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                          >
-                            Visa avtal
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <div className="border-b border-slate-200 px-6 py-5"><h2 className="text-lg font-semibold text-slate-950">Tecknade kundavtal</h2><p className="mt-1 text-sm text-slate-600">Signerade avtal är låsta och visas separat från avtalsutbudet.</p></div>
+          {contracts.length === 0 ? <div className="p-10 text-center text-sm text-slate-600">Inga kundavtal har registrerats.</div> : <div className="overflow-x-auto"><table className="min-w-full divide-y divide-slate-200 text-sm"><thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600"><tr><th className="px-6 py-3">Kund</th><th className="px-6 py-3">Avtal</th><th className="px-6 py-3">Status</th><th className="px-6 py-3">Signerat</th><th className="px-6 py-3 text-right">Öppna</th></tr></thead><tbody className="divide-y divide-slate-100">{contracts.map((contract) => { const customer=customersById.get(contract.customer_id); return <tr key={contract.id}><td className="px-6 py-4"><div className="font-semibold">{customerDisplayName(customer)}</div><div className="text-xs text-slate-500">{customer?.customer_number ?? "—"}</div></td><td className="px-6 py-4">{contract.contract_name}<div className="text-xs text-slate-500">{contract.contract_type}</div></td><td className="px-6 py-4">{tenantContractStatusLabel(contract.status)}</td><td className="px-6 py-4">{contract.signed_at ? new Date(contract.signed_at).toLocaleString("sv-SE") : "—"}</td><td className="px-6 py-4 text-right"><Link href={`/admin/customers/${contract.customer_id}?tab=contracts#contracts`} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold">Visa</Link></td></tr>; })}</tbody></table></div>}
         </section>
       </div>
     </div>

@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
           api_client_id: auth.client.id,
           result_count: offers.length,
           publication: offerDiagnostics,
-          source_of_truth: 'canonical_contract_publication_versions_via_legacy_compatibility',
+          source_of_truth: 'contract_publication_versions',
         },
       } : {}),
     })

@@ -51,6 +51,7 @@ export type PublicContractOffer = {
   legal_versions?: PublicLegalTextVersion[]
   tenant_slug?: string | null
   metadata: Record<string, unknown>
+  canonical_offer_reference?: string | null
 }
 
 // Builds the extended legal block exposed to tenant websites. OPS is the source
@@ -185,7 +186,9 @@ export function publicOfferReference(offer: Pick<PublicContractOffer,
   | 'website_cta_enabled'
   | 'legal_versions'
   | 'metadata'
+  | 'canonical_offer_reference'
 >) {
+  if (clean(offer.canonical_offer_reference)) return clean(offer.canonical_offer_reference) as string
   const legalVersionIds = [...(offer.legal_versions ?? [])]
     .map((version) => `${version.type}:${version.id}:${version.version}`)
     .sort()
@@ -331,7 +334,8 @@ function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
     valid_from: clean(row.valid_from),
     valid_to: clean(row.valid_to),
     sort_order: numberOrNull(row.sort_order) ?? 100,
-    metadata: objectValue(row.metadata),
+    metadata: objectValue(row.canonical_metadata ?? row.metadata),
+    canonical_offer_reference: clean(row.canonical_offer_reference),
   }
 }
 
@@ -601,7 +605,7 @@ export async function listPublicContractOffers(input: {
   const companyLegalVersions = await listPublishedLegalVersions(input.client.company_id)
   const tenantSlug = await loadCompanySlugById(input.client.company_id)
   const primary = await supabaseService
-    .from('public_contract_offers')
+    .from('canonical_public_contract_offers_v')
     .select('*')
     .eq('company_id', input.client.company_id)
     .eq('is_archived', false)
@@ -669,7 +673,7 @@ export async function diagnosePublicContractOffers(input: {
   customerType?: string | null
 }): Promise<{ total: number; visible: number; hidden: number; offers: PublicContractOfferDiagnostic[] }> {
   const query = await supabaseService
-    .from('public_contract_offers')
+    .from('canonical_public_contract_offers_v')
     .select('*')
     .eq('company_id', input.client.company_id)
     .order('sort_order', { ascending: true })

@@ -402,3 +402,86 @@ async function deleteContractOfferActionImpl(formData: FormData): Promise<{ succ
   revalidatePath("/admin/customers");
   return { success: "Oanvänt avtal raderades. Signerade kundavtal raderas aldrig automatiskt." };
 }
+
+export async function updateTenantContractChannelAction(formData: FormData) {
+  const companyId = getString(formData, 'company_id')
+  const assignmentId = getString(formData, 'assignment_id')
+  const channel = getString(formData, 'channel') || 'website'
+  const status = getString(formData, 'status') || 'paused'
+  if (!companyId || !assignmentId) redirectBack({ error: 'Bolag eller avtalstilldelning saknas.' })
+
+  try {
+    const { requireCompanyScopedActionAccess } = await import('@/lib/admin/guards')
+    const actor = await requireCompanyScopedActionAccess(companyId, { anyOf: ['contracts.write', 'contracts.manage'] })
+    await requireCompanyOperationalForWrites(companyId)
+
+    const { data: assignment, error: assignmentError } = await supabaseService
+      .from('tenant_contract_assignments')
+      .select('id,company_id,website_publication_allowed,internal_sales_allowed')
+      .eq('id', assignmentId)
+      .eq('company_id', companyId)
+      .maybeSingle()
+    if (assignmentError) throw assignmentError
+    if (!assignment) throw new Error('Avtalstilldelningen hittades inte.')
+    if (channel === 'website' && !assignment.website_publication_allowed) throw new Error('Superadmin har inte tillåtit hemsidepublicering för avtalet.')
+    if (channel === 'internal' && !assignment.internal_sales_allowed) throw new Error('Superadmin har inte tillåtit intern försäljning för avtalet.')
+
+    const validFrom = getString(formData, 'valid_from') || null
+    const validTo = getString(formData, 'valid_to') || null
+    const marketingText = getString(formData, 'marketing_text')
+    const { error } = await supabaseService.from('tenant_contract_channels').upsert({
+      assignment_id: assignmentId,
+      channel,
+      status,
+      valid_from: validFrom,
+      valid_to: validTo,
+      marketing_content: marketingText ? { text: marketingText } : {},
+      updated_by: actor.userId,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'assignment_id,channel' })
+    if (error) throw error
+    revalidatePath('/admin/contracts')
+    redirectBack({ success: status === 'active' ? 'Försäljningskanalen aktiverades.' : 'Försäljningskanalen pausades.' })
+  } catch (error) {
+    redirectBack({ error: errorMessage(error) })
+  }
+}
+
+export async function saveTenantLegalProfileAction(formData: FormData) {
+  const companyId = getString(formData, 'company_id')
+  if (!companyId) redirectBack({ error: 'Bolag saknas.' })
+  try {
+    const { requireCompanyScopedActionAccess } = await import('@/lib/admin/guards')
+    const actor = await requireCompanyScopedActionAccess(companyId, { anyOf: ['contracts.write', 'contracts.manage'] })
+    const jsonObject = (key: string) => {
+      const value = getString(formData, key)
+      return value ? { text: value } : {}
+    }
+    const { error } = await supabaseService.from('tenant_legal_profiles').upsert({
+      company_id: companyId,
+      legal_name: getString(formData, 'legal_name') || null,
+      organization_number: getString(formData, 'organization_number') || null,
+      customer_service_email: getString(formData, 'customer_service_email') || null,
+      phone: getString(formData, 'phone') || null,
+      website: getString(formData, 'website') || null,
+      postal_address: jsonObject('postal_address'),
+      customer_service_address: jsonObject('customer_service_address'),
+      complaints_contact: jsonObject('complaints_contact'),
+      data_protection_contact: jsonObject('data_protection_contact'),
+      billing_information: jsonObject('billing_information'),
+      dispute_resolution_information: jsonObject('dispute_resolution_information'),
+      verified_by: null,
+      verified_at: null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'company_id' })
+    if (error) throw error
+    await supabaseService.from('audit_logs').insert({
+      actor_user_id: actor.userId, company_id: companyId, entity_type: 'tenant_legal_profile', entity_id: companyId,
+      action: 'tenant_legal_profile_updated', new_values: { company_id: companyId }, metadata: {},
+    })
+    revalidatePath('/admin/contracts')
+    redirectBack({ success: 'Juridikprofilen sparades. Publicering blockeras automatiskt tills alla obligatoriska uppgifter är kompletta.' })
+  } catch (error) {
+    redirectBack({ error: errorMessage(error) })
+  }
+}
