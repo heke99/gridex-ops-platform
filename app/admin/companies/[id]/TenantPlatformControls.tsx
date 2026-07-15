@@ -336,18 +336,19 @@ export default async function TenantPlatformControls({ companyId, companyName }:
       <section id="tenant-avtal" className="grid gap-6 xl:grid-cols-[440px_minmax(0,1fr)]">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-lg font-black text-slate-950">Skapa hemsideavtal för {companyName}</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Publicering blockeras om prisplan, prisversion, villkor, publik pristext eller korrekt mixfördelning saknas. Om juridiskt paket eller prislista saknas försöker systemet skapa dem från publicerade juridiska texter och vald prisversion.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Fyll i avtalet och priset. Systemet skapar automatiskt en låst prisplan, prisversion och exakt prislista. Identiska priser återanvänder samma version; varje verklig prisändring skapar nästa version.</p>
           <div className="mt-3 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold text-slate-700">
-            <div>Juridiska paket: <strong>{legalBundles.length}</strong> · Prislistor: <strong>{priceBooks.length}</strong> · Avtal som API skickar ut: <strong>{apiVisibleOffers.length}</strong></div>
+            <div>Prisplaner: <strong>{pricePlans.length}</strong> · Prisversioner: <strong>{priceVersions.length}</strong> · Juridiska paket: <strong>{legalBundles.length}</strong> · Prislistor: <strong>{priceBooks.length}</strong></div>
             <div>För att publicera krävs publicerade juridiska texter för villkor, integritet, ångerrätt, fullmakt och prisvillkor samt en publicerbar prisversion.</div>
             <div>Endpoint: <code className="rounded bg-white px-1 py-0.5">GET /api/v1/website/public-contracts?customer_type=private</code>. Tenant väljs alltid från API-klientens bolag, inte från frontend.</div>
           </div>
           <form action={saveTenantPublicContractOfferAction} className="mt-5 grid gap-3">
             <input type="hidden" name="company_id" value={companyId} />
+            <input type="hidden" name="pricing_mode" value="version" />
             <input name="offer_code" placeholder="Avtalskod, t.ex. GRIDEX-MIX-70-30-2026" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-            <input name="public_name" required placeholder="Publikt avtalsnamn" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            <input name="public_name" required placeholder="Avtalsnamn" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             <textarea name="public_description" rows={2} placeholder="Kort beskrivning på hemsidan" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-            <textarea name="public_price_text" rows={2} placeholder="Kundvänlig pristext, t.ex. Spotpris + 4 öre/kWh, månadsavgift 59 kr" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-900">Publik pristext genereras automatiskt från den låsta prisversionen och kan inte avvika från prisdatan.</div>
             <div className="grid gap-3 md:grid-cols-2">
               <select name="contract_type" defaultValue="spot" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
                 <option value="spot">Rörligt spotpris</option>
@@ -355,7 +356,7 @@ export default async function TenantPlatformControls({ companyId, companyName }:
                 <option value="variable_hourly">Rörlig tim</option>
                 <option value="fixed">Fast</option>
                 <option value="portfolio">Portfölj</option>
-                <option value="mixed">Mix rörligt/portfölj</option>
+                <option value="mixed">Mix rörligt/portfölj/fast</option>
               </select>
               <select name="customer_type" defaultValue="both" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
                 <option value="both">Privat och företag</option>
@@ -363,62 +364,69 @@ export default async function TenantPlatformControls({ companyId, companyName }:
                 <option value="business">Företag</option>
               </select>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <select name="price_plan_id" required className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
-                <option value="">Välj prisplan</option>
-                {pricePlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {plan.pricing_model ?? 'modell saknas'} · {plan.status ?? 'status saknas'}</option>)}
-              </select>
-              <select name="price_plan_version_id" required className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
-                <option value="">Välj prisversion</option>
-                {priceVersions.map((version) => {
-                  const plan = pricePlans.find((item) => item.id === version.price_plan_id)
-                  return <option key={version.id} value={version.id}>{plan?.name ?? 'Prisplan'} · {version.version_label ?? version.id.slice(0, 8)} · {version.status ?? 'status saknas'}</option>
-                })}
-              </select>
+            <div className="grid gap-3 md:grid-cols-3">
+              <input name="spot_weight_percent" defaultValue="100" placeholder="Rörlig andel %" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="portfolio_weight_percent" defaultValue="0" placeholder="Portföljandel %" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="fixed_weight_percent" defaultValue="0" placeholder="Fast andel %" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             </div>
             <div className="grid gap-3 md:grid-cols-3">
-              <input name="spot_weight_percent" defaultValue="100" placeholder="% rörligt" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-              <input name="portfolio_weight_percent" defaultValue="0" placeholder="% portfölj" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-              <input name="fixed_weight_percent" defaultValue="0" placeholder="% fast" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="fixed_price_ore_per_kwh" placeholder="Fast pris öre/kWh" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="spot_markup_ore_per_kwh" placeholder="Spotpåslag öre/kWh" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="variable_fee_ore_per_kwh" placeholder="Rörlig avgift öre/kWh" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             </div>
             <div className="grid gap-3 md:grid-cols-3">
+              <input name="markup_ore_per_kwh" placeholder="Generellt påslag öre/kWh" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
               <input name="monthly_fee_sek" placeholder="Månadsavgift kr" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
               <input name="invoice_fee_sek" placeholder="Fakturaavgift kr" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-              <input name="spot_markup_ore_per_kwh" placeholder="Påslag öre/kWh" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <select name="green_fee_mode" defaultValue="none" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
+                <option value="none">Ingen grön el-avgift</option>
+                <option value="ore_per_kwh">Grön el öre/kWh</option>
+                <option value="sek_month">Grön el kr/mån</option>
+              </select>
+              <input name="green_fee_value" placeholder="Grön el-belopp" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="electricity_certificate_ore_per_kwh" placeholder="Elcertifikat öre/kWh" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </div>
+            <div className="grid gap-3 md:grid-cols-4">
+              <input name="start_fee_sek" placeholder="Startavgift kr" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="administration_fee_sek" placeholder="Administrativ avgift kr" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="break_fee_sek" placeholder="Brytavgift kr" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="portfolio_management_fee_ore_per_kwh" placeholder="Portföljavgift öre/kWh" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </div>
+            <div className="grid gap-3 md:grid-cols-4">
+              <input name="discount_value" placeholder="Rabattbelopp" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <select name="discount_unit" defaultValue="sek_month" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"><option value="sek_month">kr/mån</option><option value="ore_per_kwh">öre/kWh</option><option value="sek_once">kr engångsvis</option></select>
+              <input name="discount_months" placeholder="Rabattperiod månader" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="vat_rate" defaultValue="25" placeholder="Moms %" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </div>
+            <input name="price_areas" placeholder="Prisområden, t.ex. SE1, SE2, SE3, SE4" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            <textarea name="optional_fee_lines" rows={3} placeholder={"Övriga avgifter, en per rad: Namn|Belopp|enhet\nExempel: Pappersfaktura|39|sek_invoice"} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             <div className="grid gap-3 md:grid-cols-2">
               <input name="terms_version" required placeholder="Villkorsversion" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
               <input name="terms_url" placeholder="Villkorslänk" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <select name="legal_bundle_id" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
-                <option value="">Auto: skapa/använd juridiskt paket</option>
-                {legalBundles.map((bundle) => <option key={bundle.id} value={bundle.id}>{bundle.name ?? bundle.id.slice(0, 8)} · {bundle.status ?? 'status saknas'}</option>)}
-              </select>
-              <select name="price_book_id" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
-                <option value="">Auto: skapa/använd prislista</option>
-                {priceBooks.map((book) => <option key={book.id} value={book.id}>{book.name ?? book.id.slice(0, 8)} · {book.status ?? 'status saknas'} · {book.valid_from ?? 'utan startdatum'}</option>)}
-              </select>
-            </div>
+            <select name="legal_bundle_id" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
+              <option value="">Auto: skapa/använd komplett juridiskt paket</option>
+              {legalBundles.map((bundle) => <option key={bundle.id} value={bundle.id}>{bundle.name ?? bundle.id.slice(0, 8)} · {bundle.status ?? 'status saknas'}</option>)}
+            </select>
             <div className="grid gap-3 md:grid-cols-4">
-              <input name="binding_months" placeholder="Bindning mån" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-              <input name="notice_months" placeholder="Uppsägning mån" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="binding_months" placeholder="Bindningstid månader" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <input name="notice_months" placeholder="Uppsägningstid månader" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
               <input type="date" name="valid_from" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
               <input type="date" name="valid_to" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             </div>
+            <label className="flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"><input type="checkbox" name="automatic_renewal" />Automatisk förlängning</label>
+            <label className="flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"><input type="checkbox" name="power_of_attorney_required" defaultChecked />Fullmakt krävs</label>
             <div className="grid gap-3 md:grid-cols-2">
               <select name="publication_status" defaultValue="draft" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
-                <option value="draft">Utkast</option>
-                <option value="review">Redo för granskning</option>
-                <option value="published">Publicera</option>
-                <option value="unpublished">Avpublicerat</option>
-                <option value="archived">Arkiverat</option>
+                <option value="draft">Utkast</option><option value="review">Redo för granskning</option><option value="published">Publicera</option><option value="unpublished">Avpublicerat</option><option value="archived">Arkiverat</option>
               </select>
               <input name="sort_order" defaultValue="100" placeholder="Sortering" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
             </div>
             <label className="flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"><input type="checkbox" name="website_enabled" defaultChecked />Visa på hemsidan</label>
             <label className="flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"><input type="checkbox" name="website_cta_enabled" defaultChecked />Teckna-knapp aktiv</label>
-            <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800">Spara avtal</button>
+            <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800">Spara och versionshantera avtal</button>
           </form>
         </div>
 
@@ -469,6 +477,7 @@ export default async function TenantPlatformControls({ companyId, companyName }:
                     <summary className="cursor-pointer text-xs font-black text-slate-700">Ändra status / publicering</summary>
                     <form action={saveTenantPublicContractOfferAction} className="mt-3 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3">
                       <input type="hidden" name="company_id" value={companyId} />
+                      <input type="hidden" name="pricing_mode" value="preserve" />
                       <input type="hidden" name="id" value={offer.id} />
                       <input type="hidden" name="offer_code" value={offer.offer_code ?? ''} />
                       <input type="hidden" name="public_name" value={offer.public_name} />

@@ -12,6 +12,7 @@ import type {
 import { supabaseService } from "@/lib/supabase/service";
 import { requireOperationalCompanyId } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
+import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -52,26 +53,6 @@ function parseGreenFeeMode(value: string): GreenFeeMode {
     default:
       return "none";
   }
-}
-
-function nextPriceVersionLabel(input: {
-  name: string;
-  contractType: ContractType;
-  requested?: string | null;
-}): string {
-  const explicit = input.requested?.trim();
-  if (explicit) return explicit;
-  const now = new Date();
-  const ym = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-  const typeLabel =
-    input.contractType === "fixed"
-      ? "fast"
-      : input.contractType === "portfolio"
-        ? "portfolj"
-        : input.contractType === "mixed"
-          ? "mix"
-          : "rorligt";
-  return `${input.name.trim()} · ${ym} · ${typeLabel}-v1`;
 }
 
 function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
@@ -179,21 +160,71 @@ async function saveContractOfferActionImpl(
   }
 
   const contractType = parseContractType(getString(formData, "contract_type"));
-  const priceVersion = nextPriceVersionLabel({
+  const status = (getString(formData, "status") || "active") as "draft" | "active" | "inactive";
+  const isActive = getString(formData, "is_active") === "on";
+  const validFrom = getString(formData, "valid_from") || null;
+  const validTo = getString(formData, "valid_to") || null;
+  const normalizedPricing = normalizeContractPricing({
     name,
     contractType,
-    requested: getString(formData, "price_version") || null,
+    customerType: "both",
+    fixedPriceOrePerKwh: getString(formData, "fixed_price_ore_per_kwh"),
+    spotMarkupOrePerKwh: getString(formData, "spot_markup_ore_per_kwh"),
+    variableFeeOrePerKwh: getString(formData, "variable_fee_ore_per_kwh"),
+    monthlyFeeSek: getString(formData, "monthly_fee_sek"),
+    greenFeeMode: getString(formData, "green_fee_mode"),
+    greenFeeValue: getString(formData, "green_fee_value"),
+    startFeeSek: getString(formData, "start_fee_sek"),
+    administrationFeeSek: getString(formData, "admin_fee_sek"),
+    breakFeeSek: getString(formData, "break_fee_sek"),
+    discountValue: getString(formData, "discount_value"),
+    discountUnit: getString(formData, "discount_unit"),
+    discountMonths: getString(formData, "discount_months"),
+    vatRate: getString(formData, "vat_rate"),
+    spotWeightPercent: getString(formData, "spot_weight_percent"),
+    portfolioWeightPercent: getString(formData, "portfolio_weight_percent"),
+    fixedWeightPercent: getString(formData, "fixed_weight_percent"),
+    priceAreas: getString(formData, "price_areas") || getString(formData, "price_area"),
+    validFrom,
+    validTo,
+    bindingMonths: getString(formData, "default_binding_months"),
+    noticeMonths: getString(formData, "default_notice_months"),
+    automaticRenewal: getString(formData, "automatic_renewal") === "on",
+    powerOfAttorneyRequired: getString(formData, "power_of_attorney_required") !== "off",
+    optionalFeeLines: getString(formData, "optional_fee_lines"),
   });
+
+  const { data: pricingData, error: pricingError } = await supabaseService.rpc("gridex_create_or_version_contract_pricing", {
+    p_company_id: companyId,
+    p_plan_name: normalizedPricing.planName,
+    p_contract_type: normalizedPricing.contractType,
+    p_pricing_model: normalizedPricing.pricingModel,
+    p_customer_type: normalizedPricing.customerType,
+    p_snapshot: normalizedPricing.snapshot,
+    p_valid_from: validFrom,
+    p_valid_to: validTo,
+    p_publish: status === "active" && isActive,
+    p_actor_user_id: user.id,
+  });
+  if (pricingError) throw pricingError;
+  const pricing = pricingData as unknown as {
+    price_plan_id?: string;
+    price_plan_version_id?: string;
+    price_book_id?: string;
+    version_label?: string;
+    reused?: boolean;
+  };
+  if (!pricing?.price_plan_id || !pricing.price_plan_version_id || !pricing.price_book_id || !pricing.version_label) {
+    throw new Error("Den automatiska prisversioneringen returnerade ofullständiga referenser.");
+  }
+  const priceVersion = pricing.version_label;
 
   const saved = await saveContractOffer({
     id,
     companyId,
     name,
     slug: getString(formData, "slug") || null,
-    status: (getString(formData, "status") || "active") as
-      | "draft"
-      | "active"
-      | "inactive",
+    status,
     contractType,
     campaignName: getString(formData, "campaign_name") || null,
     campaignCode: getString(formData, "campaign_code") || null,
@@ -222,11 +253,28 @@ async function saveContractOfferActionImpl(
     optionalFeeLines: parseOptionalFeeLines(
       getString(formData, "optional_fee_lines"),
     ),
-    isActive: getString(formData, "is_active") === "on",
-    validFrom: getString(formData, "valid_from") || null,
-    validTo: getString(formData, "valid_to") || null,
+    isActive,
+    validFrom,
+    validTo,
     actorUserId: user.id,
   });
+
+  const { data: canonicalSaved, error: canonicalSaveError } = await supabaseService
+    .from("contract_offers")
+    .update({
+      price_plan_id: pricing.price_plan_id,
+      price_plan_version_id: pricing.price_plan_version_id,
+      price_book_id: pricing.price_book_id,
+      price_version: priceVersion,
+      commercial_snapshot: normalizedPricing.snapshot,
+      last_price_change_at: pricing.reused ? (previous?.last_price_change_at ?? new Date().toISOString()) : new Date().toISOString(),
+      updated_by: user.id,
+    })
+    .eq("id", saved.id)
+    .eq("company_id", companyId)
+    .select("*")
+    .single();
+  if (canonicalSaveError) throw canonicalSaveError;
 
   await supabaseService.from("audit_logs").insert({
     actor_user_id: user.id,
@@ -237,14 +285,18 @@ async function saveContractOfferActionImpl(
       ? "contract_offer_updated_platform_admin_only"
       : "contract_offer_created_platform_admin_only",
     old_values: previous,
-    new_values: saved,
+    new_values: canonicalSaved,
     metadata: {
-      campaign_code: (saved as Record<string, unknown>).campaign_code ?? null,
+      price_plan_id: pricing.price_plan_id,
+      price_plan_version_id: pricing.price_plan_version_id,
+      price_book_id: pricing.price_book_id,
+      price_version_reused: pricing.reused === true,
+      campaign_code: (canonicalSaved as Record<string, unknown>).campaign_code ?? null,
       campaign_version:
-        (saved as Record<string, unknown>).campaign_version ?? null,
+        (canonicalSaved as Record<string, unknown>).campaign_version ?? null,
       price_version:
-        (saved as Record<string, unknown>).price_version ?? priceVersion,
-      terms_version: (saved as Record<string, unknown>).terms_version ?? null,
+        (canonicalSaved as Record<string, unknown>).price_version ?? priceVersion,
+      terms_version: (canonicalSaved as Record<string, unknown>).terms_version ?? null,
     },
   });
 

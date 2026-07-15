@@ -4,6 +4,8 @@ const root = path.resolve(__dirname, '..')
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
 const migration = read('supabase/migrations/20260714160000_canonical_contract_runtime_completion.sql')
 const integrityMigration = read('supabase/migrations/20260714223000_contract_publication_reference_integrity_hardening.sql')
+const automaticPricingMigration = read('supabase/migrations/20260715120000_automatic_contract_pricing_versioning.sql')
+const pricingCompletionMigration = read('supabase/migrations/20260715123000_contract_pricing_canonical_completion.sql')
 const page = read('app/admin/contracts/page.tsx')
 const actions = read('app/admin/contracts/actions.ts')
 const canonical = read('lib/contracts/canonical.ts')
@@ -36,9 +38,9 @@ const required = [
   ['price book readiness verifies exact mapping', publicOfferReadiness.includes('Prislistan är inte kopplad till vald prisplan och prisplansversion') && publicOfferReadiness.includes(".eq('component_key', 'price_plan_version')")],
   ['price plan and version status both validated', publicOfferReadiness.includes(".from('price_plans')") && publicOfferReadiness.includes('Prisplanen är inte aktiv/publicerad') && publicOfferReadiness.includes('Prisplansversionen är inte aktiv/publicerad')],
   ['same API client needs read and write scopes', publicOfferReadiness.includes("['website_contracts.read', 'website_applications.write']") && integrityMigration.includes("array['website_contracts.read','website_applications.write']")],
-  ['stale price books cannot be reused', tenantPlatformActions.includes('priceBookMatchesPlanVersion') && tenantPlatformActions.includes('Vald prislista är inte publicerad eller hör inte till vald prisplan och prisversion')],
+  ['stale price books cannot be reused', tenantPlatformActions.includes('priceBookMatchesPlanVersion') && automaticPricingMigration.includes('price_plan_version_id = v_version_id') && pricingCompletionMigration.includes('Prislistan tillhör inte bolaget eller vald prisversion')],
   ['incomplete legal bundle fails closed', tenantPlatformActions.includes('Databasschemat för juridikpaketets dokument är inte installerat') && !tenantPlatformActions.includes('if (isMissingSchemaError(itemsError)) return true')],
-  ['partial canonical artifacts are cleaned up', tenantPlatformActions.includes("from('legal_bundles').delete()") && tenantPlatformActions.includes("from('price_books').delete()")],
+  ['pricing creation is transactional instead of manual cleanup', automaticPricingMigration.includes('gridex_create_or_version_contract_pricing') && automaticPricingMigration.includes('perform pg_advisory_xact_lock') && automaticPricingMigration.includes('begin;') && automaticPricingMigration.includes('commit;')],
   ['missing legal profile is blocked', integrityMigration.includes("coalesce(tlp.completeness_status,'incomplete')")],
   ['combined audience receives both legal rule sets', integrityMigration.includes("v_customer_type='both'") && integrityMigration.includes("r.customer_type in ('private','business','both')")],
   ['spot contract type is normalized', integrityMigration.includes("when 'spot' then 'variable_monthly'")],

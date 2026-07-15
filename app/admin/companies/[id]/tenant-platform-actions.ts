@@ -7,6 +7,7 @@ import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { supabaseService } from '@/lib/supabase/service'
 import { seedGridexDefaultLegalPackage } from '@/lib/tenant/legalDefaults'
+import { normalizeContractPricing } from '@/lib/pricing/contractPricingVersioning'
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
@@ -321,142 +322,6 @@ async function priceBookMatchesPlanVersion(input: {
   })
 }
 
-async function getActivePriceBook(input: {
-  companyId: string
-  pricePlanId: string | null
-  pricePlanVersionId: string | null
-}): Promise<string | null> {
-  if (!input.pricePlanId || !input.pricePlanVersionId) return null
-
-  const { data: books, error: booksError } = await supabaseService
-    .from('price_books')
-    .select('id')
-    .eq('company_id', input.companyId)
-    .in('status', ['published', 'active'])
-    .order('valid_from', { ascending: false, nullsFirst: false })
-    .order('updated_at', { ascending: false })
-    .limit(100)
-
-  if (booksError) {
-    if (isMissingSchemaError(booksError)) return null
-    throw booksError
-  }
-
-  const bookIds = (books ?? []).map((book) => book.id).filter(Boolean)
-  if (bookIds.length === 0) return null
-
-  const { data: lines, error: linesError } = await supabaseService
-    .from('price_book_lines')
-    .select('price_book_id,metadata')
-    .in('price_book_id', bookIds)
-    .eq('component_key', 'price_plan_version')
-
-  if (linesError) {
-    if (isMissingSchemaError(linesError)) return null
-    throw linesError
-  }
-
-  const matchingBookIds = new Set(
-    (lines ?? [])
-      .filter((line) => {
-        const metadata = line.metadata && typeof line.metadata === 'object'
-          ? line.metadata as Record<string, unknown>
-          : {}
-        return metadata.price_plan_id === input.pricePlanId
-          && metadata.price_plan_version_id === input.pricePlanVersionId
-      })
-      .map((line) => line.price_book_id)
-      .filter((id): id is string => typeof id === 'string' && id.length > 0),
-  )
-
-  return bookIds.find((id) => matchingBookIds.has(id)) ?? null
-}
-
-async function ensurePublishedPriceBook(input: {
-  companyId: string
-  publicName: string
-  pricePlanId: string | null
-  pricePlanVersionId: string | null
-  publicPriceText: string | null
-  monthlyFeeSek: number | null
-  invoiceFeeSek: number | null
-  markupOrePerKwh: number | null
-  spotMarkupOrePerKwh: number | null
-  variableFeeOrePerKwh: number | null
-  fixedPriceOrePerKwh: number | null
-  validFrom: string | null
-  validTo: string | null
-}): Promise<CanonicalReferenceResult> {
-  const existing = await getActivePriceBook({
-    companyId: input.companyId,
-    pricePlanId: input.pricePlanId,
-    pricePlanVersionId: input.pricePlanVersionId,
-  })
-  if (existing) return { id: existing, blockers: [], created: false }
-  if (!input.pricePlanId || !input.pricePlanVersionId) {
-    return { id: null, blockers: ['Prisplan och prisversion krävs innan prislista kan skapas.'], created: false }
-  }
-
-  const [{ data: plan, error: planError }, { data: version, error: versionError }] = await Promise.all([
-    supabaseService
-      .from('price_plans')
-      .select('id,company_id,status')
-      .eq('id', input.pricePlanId)
-      .maybeSingle(),
-    supabaseService
-      .from('price_plan_versions')
-      .select('id,price_plan_id,company_id,version_label,status,valid_from,valid_to')
-      .eq('id', input.pricePlanVersionId)
-      .maybeSingle(),
-  ])
-  if (planError) throw planError
-  if (versionError) throw versionError
-  if (!plan || plan.company_id !== input.companyId || !['active', 'published', 'approved'].includes(String(plan.status ?? 'draft'))) {
-    return { id: null, blockers: ['Prisplanen är inte aktiv/publicerad för valt bolag.'], created: false }
-  }
-  if (!version || version.company_id !== input.companyId || version.price_plan_id !== input.pricePlanId) {
-    return { id: null, blockers: ['Prisversionen kan inte användas för valt bolag/prisplan.'], created: false }
-  }
-  if (!['active', 'published', 'approved'].includes(String(version.status ?? 'draft'))) {
-    return { id: null, blockers: ['Prisversionen är inte aktiv/publicerad.'], created: false }
-  }
-
-  const { data: book, error: bookError } = await supabaseService
-    .from('price_books')
-    .insert({
-      company_id: input.companyId,
-      name: `Prislista · ${input.publicName}`.slice(0, 180),
-      status: 'published',
-      valid_from: input.validFrom ?? version.valid_from ?? new Date().toISOString().slice(0, 10),
-      valid_to: input.validTo ?? version.valid_to ?? null,
-    })
-    .select('id')
-    .single()
-
-  if (bookError) {
-    if (isMissingSchemaError(bookError)) return { id: null, blockers: ['Tabellen för prislista saknas.'], created: false }
-    throw bookError
-  }
-
-  const lines = [
-    { component_key: 'price_plan_version', value: null, unit: 'reference', metadata: { price_plan_id: input.pricePlanId, price_plan_version_id: input.pricePlanVersionId, version_label: version.version_label, status: version.status } },
-    { component_key: 'monthly_fee_sek', value: input.monthlyFeeSek, unit: 'sek_month', metadata: {} },
-    { component_key: 'invoice_fee_sek', value: input.invoiceFeeSek, unit: 'sek_invoice', metadata: {} },
-    { component_key: 'markup_ore_per_kwh', value: input.markupOrePerKwh, unit: 'ore_per_kwh', metadata: {} },
-    { component_key: 'spot_markup_ore_per_kwh', value: input.spotMarkupOrePerKwh, unit: 'ore_per_kwh', metadata: {} },
-    { component_key: 'variable_fee_ore_per_kwh', value: input.variableFeeOrePerKwh, unit: 'ore_per_kwh', metadata: {} },
-    { component_key: 'fixed_price_ore_per_kwh', value: input.fixedPriceOrePerKwh, unit: 'ore_per_kwh', metadata: {} },
-    { component_key: 'public_price_text', value: null, unit: 'text', metadata: { text: input.publicPriceText } },
-  ].map((line, index) => ({ price_book_id: book.id, sort_order: (index + 1) * 10, ...line }))
-
-  const { error: lineError } = await supabaseService.from('price_book_lines').insert(lines)
-  if (lineError) {
-    await supabaseService.from('price_books').delete().eq('id', book.id).eq('company_id', input.companyId)
-    throw lineError
-  }
-
-  return { id: book.id, blockers: [], created: true }
-}
 
 function contractType(value: string): string {
   if (['spot', 'variable_monthly', 'variable_hourly', 'fixed', 'portfolio', 'mixed'].includes(value)) return value
@@ -466,6 +331,49 @@ function contractType(value: string): string {
 function customerType(value: string): 'private' | 'business' | 'both' {
   if (value === 'private' || value === 'business') return value
   return 'both'
+}
+
+type PricingRpcResult = {
+  price_plan_id: string
+  price_plan_version_id: string
+  price_book_id: string
+  version_number: number
+  version_label: string
+  content_sha256: string
+  reused: boolean
+}
+
+async function createOrVersionPricing(input: {
+  companyId: string
+  actorUserId: string
+  planName: string
+  contractType: string
+  pricingModel: string
+  customerType: string
+  snapshot: Record<string, unknown>
+  validFrom: string | null
+  validTo: string | null
+  publish: boolean
+}): Promise<PricingRpcResult> {
+  const { data, error } = await supabaseService.rpc('gridex_create_or_version_contract_pricing', {
+    p_company_id: input.companyId,
+    p_plan_name: input.planName,
+    p_contract_type: input.contractType,
+    p_pricing_model: input.pricingModel,
+    p_customer_type: input.customerType,
+    p_snapshot: input.snapshot,
+    p_valid_from: input.validFrom,
+    p_valid_to: input.validTo,
+    p_publish: input.publish,
+    p_actor_user_id: input.actorUserId,
+  })
+  if (error) throw error
+  if (!data || typeof data !== 'object') throw new Error('Prisversionen kunde inte skapas.')
+  const value = data as unknown as PricingRpcResult
+  if (!value.price_plan_id || !value.price_plan_version_id || !value.price_book_id) {
+    throw new Error('Prisversioneringen returnerade ofullständiga referenser.')
+  }
+  return value
 }
 
 async function assertSameTenantReference(table: string, id: string | null, companyId: string, label: string) {
@@ -539,18 +447,15 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
   const id = text(formData, 'id') || null
   const publicName = text(formData, 'public_name')
   const type = contractType(text(formData, 'contract_type'))
-  const pricePlanId = text(formData, 'price_plan_id') || null
-  const pricePlanVersionId = text(formData, 'price_plan_version_id') || null
+  const selectedCustomerType = customerType(text(formData, 'customer_type'))
   const publicationStatus = text(formData, 'publication_status') || 'draft'
   const websiteEnabled = boolValue(formData, 'website_enabled')
   const websiteCtaEnabled = boolValue(formData, 'website_cta_enabled')
   const termsVersion = text(formData, 'terms_version') || null
-  const publicPriceText = text(formData, 'public_price_text') || null
-  const spotWeight = numberValue(formData, 'spot_weight_percent', type === 'mixed' ? 50 : type === 'portfolio' ? 0 : 100) ?? 100
-  const portfolioWeight = numberValue(formData, 'portfolio_weight_percent', type === 'mixed' ? 50 : type === 'portfolio' ? 100 : 0) ?? 0
-  const fixedWeight = numberValue(formData, 'fixed_weight_percent', 0) ?? 0
+  const pricingMode = text(formData, 'pricing_mode') || 'version'
   const submittedLegalBundleId = text(formData, 'legal_bundle_id') || null
-  const submittedPriceBookId = text(formData, 'price_book_id') || null
+  const validFrom = dateValue(formData, 'valid_from')
+  const validTo = dateValue(formData, 'valid_to')
 
   if (!companyId) throw new Error('Bolag saknas.')
   if (!publicName) throw new Error('Avtalsnamn krävs.')
@@ -563,30 +468,6 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
     .maybeSingle()
   if (companyError) throw companyError
   if (!company) throw new Error('Bolaget hittades inte.')
-
-  await assertSameTenantReference('price_plans', pricePlanId, companyId, 'Prisplan')
-  await assertSameTenantReference('price_plan_versions', pricePlanVersionId, companyId, 'Prisversion')
-  await assertVersionBelongsToPlan(pricePlanId, pricePlanVersionId)
-  await assertSameTenantReference('legal_bundles', submittedLegalBundleId, companyId, 'Juridiskt paket')
-  await assertSameTenantReference('price_books', submittedPriceBookId, companyId, 'Prislista')
-
-  const issues = publicationIssues({
-    publicationStatus,
-    websiteEnabled,
-    pricePlanId,
-    pricePlanVersionId,
-    termsVersion,
-    publicPriceText,
-    type,
-    spotWeight,
-    portfolioWeight,
-    fixedWeight,
-    validFrom: dateValue(formData, 'valid_from'),
-    validTo: dateValue(formData, 'valid_to'),
-  })
-  if (publicationStatus === 'published' && issues.length > 0) {
-    throw new Error(`Avtalet kan inte publiceras: ${issues.join(', ')}.`)
-  }
 
   let previous: Record<string, unknown> | null = null
   if (id) {
@@ -601,41 +482,114 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
     previous = data as Record<string, unknown>
   }
 
-  const previousLegalBundleId = typeof previous?.legal_bundle_id === 'string' ? previous.legal_bundle_id : null
-  const previousPriceBookId = typeof previous?.price_book_id === 'string' ? previous.price_book_id : null
-  let legalBundleId = submittedLegalBundleId ?? previousLegalBundleId
-  let priceBookId = submittedPriceBookId ?? previousPriceBookId
+  const previousString = (key: string): string | null => typeof previous?.[key] === 'string' && String(previous[key]).trim() ? String(previous[key]) : null
+  const previousNumber = (key: string): number | null => typeof previous?.[key] === 'number' && Number.isFinite(previous[key]) ? Number(previous[key]) : null
+  const previousBoolean = (key: string, fallback: boolean): boolean => typeof previous?.[key] === 'boolean' ? Boolean(previous[key]) : fallback
 
+  let pricePlanId = previousString('price_plan_id')
+  let pricePlanVersionId = previousString('price_plan_version_id')
+  let priceBookId = previousString('price_book_id')
+  let publicPriceText = previousString('public_price_text')
+  let pricingSnapshot = previous?.metadata && typeof previous.metadata === 'object'
+    ? ((previous.metadata as Record<string, unknown>).pricing_snapshot as Record<string, unknown> | undefined) ?? null
+    : null
+  let priceVersionLabel: string | null = null
+  let priceVersionReused = true
+
+  const spotWeight = numberValue(formData, 'spot_weight_percent', previousNumber('spot_weight_percent') ?? (type === 'mixed' ? 50 : type === 'portfolio' || type === 'fixed' ? 0 : 100)) ?? 100
+  const portfolioWeight = numberValue(formData, 'portfolio_weight_percent', previousNumber('portfolio_weight_percent') ?? (type === 'mixed' ? 50 : type === 'portfolio' ? 100 : 0)) ?? 0
+  const fixedWeight = numberValue(formData, 'fixed_weight_percent', previousNumber('fixed_weight_percent') ?? (type === 'fixed' ? 100 : 0)) ?? 0
+
+  if (pricingMode !== 'preserve') {
+    const normalized = normalizeContractPricing({
+      name: publicName,
+      contractType: type as 'spot' | 'variable_monthly' | 'variable_hourly' | 'fixed' | 'portfolio' | 'mixed',
+      customerType: selectedCustomerType,
+      monthlyFeeSek: text(formData, 'monthly_fee_sek'),
+      invoiceFeeSek: text(formData, 'invoice_fee_sek'),
+      markupOrePerKwh: text(formData, 'markup_ore_per_kwh'),
+      spotMarkupOrePerKwh: text(formData, 'spot_markup_ore_per_kwh'),
+      variableFeeOrePerKwh: text(formData, 'variable_fee_ore_per_kwh'),
+      fixedPriceOrePerKwh: text(formData, 'fixed_price_ore_per_kwh'),
+      greenFeeMode: text(formData, 'green_fee_mode'),
+      greenFeeValue: text(formData, 'green_fee_value'),
+      electricityCertificateOrePerKwh: text(formData, 'electricity_certificate_ore_per_kwh'),
+      startFeeSek: text(formData, 'start_fee_sek'),
+      administrationFeeSek: text(formData, 'administration_fee_sek'),
+      breakFeeSek: text(formData, 'break_fee_sek'),
+      portfolioManagementFeeOrePerKwh: text(formData, 'portfolio_management_fee_ore_per_kwh'),
+      discountValue: text(formData, 'discount_value'),
+      discountUnit: text(formData, 'discount_unit'),
+      discountMonths: text(formData, 'discount_months'),
+      vatRate: text(formData, 'vat_rate'),
+      spotWeightPercent: spotWeight,
+      portfolioWeightPercent: portfolioWeight,
+      fixedWeightPercent: fixedWeight,
+      priceAreas: text(formData, 'price_areas'),
+      validFrom,
+      validTo,
+      bindingMonths: text(formData, 'binding_months'),
+      noticeMonths: text(formData, 'notice_months'),
+      automaticRenewal: boolValue(formData, 'automatic_renewal'),
+      powerOfAttorneyRequired: boolValue(formData, 'power_of_attorney_required'),
+      optionalFeeLines: text(formData, 'optional_fee_lines'),
+    })
+    const pricing = await createOrVersionPricing({
+      companyId,
+      actorUserId: actor.userId,
+      planName: normalized.planName,
+      contractType: normalized.contractType,
+      pricingModel: normalized.pricingModel,
+      customerType: normalized.customerType,
+      snapshot: normalized.snapshot as unknown as Record<string, unknown>,
+      validFrom,
+      validTo,
+      publish: publicationStatus === 'published',
+    })
+    pricePlanId = pricing.price_plan_id
+    pricePlanVersionId = pricing.price_plan_version_id
+    priceBookId = pricing.price_book_id
+    priceVersionLabel = pricing.version_label
+    priceVersionReused = pricing.reused
+    publicPriceText = normalized.publicPriceText
+    pricingSnapshot = normalized.snapshot as unknown as Record<string, unknown>
+  }
+
+  if (!pricePlanId || !pricePlanVersionId || !priceBookId || !publicPriceText) {
+    throw new Error('Avtalet saknar en komplett automatisk prisversion. Öppna avtalet och spara prisuppgifterna igen.')
+  }
+  await assertSameTenantReference('price_plans', pricePlanId, companyId, 'Prisplan')
+  await assertSameTenantReference('price_plan_versions', pricePlanVersionId, companyId, 'Prisversion')
+  await assertVersionBelongsToPlan(pricePlanId, pricePlanVersionId)
+  await assertSameTenantReference('price_books', priceBookId, companyId, 'Prislista')
+  await assertSameTenantReference('legal_bundles', submittedLegalBundleId, companyId, 'Juridiskt paket')
+
+  const issues = publicationIssues({
+    publicationStatus,
+    websiteEnabled,
+    pricePlanId,
+    pricePlanVersionId,
+    termsVersion,
+    publicPriceText,
+    type,
+    spotWeight,
+    portfolioWeight,
+    fixedWeight,
+    validFrom,
+    validTo,
+  })
+  if (publicationStatus === 'published' && issues.length > 0) throw new Error(`Avtalet kan inte publiceras: ${issues.join(', ')}.`)
+
+  const previousLegalBundleId = previousString('legal_bundle_id')
+  let legalBundleId = submittedLegalBundleId ?? previousLegalBundleId
   if (submittedLegalBundleId && !(await legalBundleHasRequiredTexts(companyId, submittedLegalBundleId))) {
     throw new Error('Valt juridiskt paket är inte publicerat eller saknar obligatoriska juridiska texter.')
   }
-  if (!submittedLegalBundleId && previousLegalBundleId && !(await legalBundleHasRequiredTexts(companyId, previousLegalBundleId))) {
-    legalBundleId = null
-  }
-  if (submittedPriceBookId && !(await priceBookMatchesPlanVersion({
-    companyId,
-    priceBookId: submittedPriceBookId,
-    pricePlanId,
-    pricePlanVersionId,
-  }))) {
-    throw new Error('Vald prislista är inte publicerad eller hör inte till vald prisplan och prisversion.')
-  }
-  if (!submittedPriceBookId && previousPriceBookId && !(await priceBookMatchesPlanVersion({
-    companyId,
-    priceBookId: previousPriceBookId,
-    pricePlanId,
-    pricePlanVersionId,
-  }))) {
-    priceBookId = null
-  }
+  if (!submittedLegalBundleId && previousLegalBundleId && !(await legalBundleHasRequiredTexts(companyId, previousLegalBundleId))) legalBundleId = null
 
   let readinessStatus: string | null = null
   let readinessBlockers: string[] = []
   const autoCreatedReferences: string[] = []
-
-  // Website publication readiness is intentionally separate from Ediel/PRODAT go-live.
-  // If the UI has not submitted canonical legal/price references, build safe defaults
-  // from already published legal texts and the selected price plan version.
   if (publicationStatus === 'published') {
     if (!legalBundleId) {
       const legal = await ensurePublishedLegalBundle(companyId, publicName)
@@ -643,82 +597,65 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
       readinessBlockers.push(...legal.blockers)
       if (legal.created) autoCreatedReferences.push('juridiskt paket')
     }
-    if (!priceBookId) {
-      const priceBook = await ensurePublishedPriceBook({
-        companyId,
-        publicName,
-        pricePlanId,
-        pricePlanVersionId,
-        publicPriceText,
-        monthlyFeeSek: numberValue(formData, 'monthly_fee_sek'),
-        invoiceFeeSek: numberValue(formData, 'invoice_fee_sek'),
-        markupOrePerKwh: numberValue(formData, 'markup_ore_per_kwh'),
-        spotMarkupOrePerKwh: numberValue(formData, 'spot_markup_ore_per_kwh'),
-        variableFeeOrePerKwh: numberValue(formData, 'variable_fee_ore_per_kwh'),
-        fixedPriceOrePerKwh: numberValue(formData, 'fixed_price_ore_per_kwh'),
-        validFrom: dateValue(formData, 'valid_from'),
-        validTo: dateValue(formData, 'valid_to'),
-      })
-      priceBookId = priceBook.id
-      readinessBlockers.push(...priceBook.blockers)
-      if (priceBook.created) autoCreatedReferences.push('prislista')
+    if (!(await priceBookMatchesPlanVersion({ companyId, priceBookId, pricePlanId, pricePlanVersionId }))) {
+      throw new Error('Den automatiska prislistan är inte kopplad till exakt prisplan och prisversion.')
     }
-
     const readiness = await assessPublicOfferReadiness({
       companyId,
-      offer: {
-        legal_bundle_id: legalBundleId,
-        price_book_id: priceBookId,
-        price_plan_id: pricePlanId,
-        price_plan_version_id: pricePlanVersionId,
-      },
+      offer: { legal_bundle_id: legalBundleId, price_book_id: priceBookId, price_plan_id: pricePlanId, price_plan_version_id: pricePlanVersionId },
     })
     readinessStatus = readiness.isReady && readinessBlockers.length === 0 ? 'ready' : 'blocked'
     readinessBlockers = [...readinessBlockers, ...readiness.blockers]
-    if (readinessBlockers.length > 0 || !readiness.isReady) {
-      throw new Error(`Avtalet kan inte publiceras: ${readinessBlockers.join(', ')}.`)
-    }
+    if (readinessBlockers.length > 0 || !readiness.isReady) throw new Error(`Avtalet kan inte publiceras: ${readinessBlockers.join(', ')}.`)
   }
 
   const isArchived = publicationStatus === 'archived'
   const isPublic = publicationStatus === 'published' && websiteEnabled && issues.length === 0
   const payload = {
     company_id: companyId,
-    offer_code: await generateUniquePublicOfferCode({
-      companyId,
-      requested: text(formData, 'offer_code'),
-      publicName,
-      contractType: type,
-      ignoreId: id,
-    }),
+    offer_code: await generateUniquePublicOfferCode({ companyId, requested: text(formData, 'offer_code'), publicName, contractType: type, ignoreId: id }),
     public_name: publicName,
-    public_description: text(formData, 'public_description') || null,
-    product_code: text(formData, 'product_code') || 'electricity',
+    public_description: text(formData, 'public_description') || previousString('public_description'),
+    product_code: text(formData, 'product_code') || previousString('product_code') || 'electricity',
     contract_type: type,
-    billing_model: text(formData, 'billing_model') || type,
-    customer_type: customerType(text(formData, 'customer_type')),
+    billing_model: text(formData, 'billing_model') || previousString('billing_model') || type,
+    customer_type: selectedCustomerType,
     price_plan_id: pricePlanId,
     price_plan_version_id: pricePlanVersionId,
-    campaign_version_id: text(formData, 'campaign_version_id') || null,
+    campaign_version_id: text(formData, 'campaign_version_id') || previousString('campaign_version_id'),
     legal_bundle_id: legalBundleId,
     price_book_id: priceBookId,
-    monthly_fee_sek: numberValue(formData, 'monthly_fee_sek'),
-    invoice_fee_sek: numberValue(formData, 'invoice_fee_sek'),
-    markup_ore_per_kwh: numberValue(formData, 'markup_ore_per_kwh'),
-    spot_markup_ore_per_kwh: numberValue(formData, 'spot_markup_ore_per_kwh'),
-    variable_fee_ore_per_kwh: numberValue(formData, 'variable_fee_ore_per_kwh'),
-    fixed_price_ore_per_kwh: numberValue(formData, 'fixed_price_ore_per_kwh'),
-    terms_version: termsVersion,
-    terms_url: text(formData, 'terms_url') || null,
+    monthly_fee_sek: numberValue(formData, 'monthly_fee_sek', previousNumber('monthly_fee_sek')),
+    invoice_fee_sek: numberValue(formData, 'invoice_fee_sek', previousNumber('invoice_fee_sek')),
+    markup_ore_per_kwh: numberValue(formData, 'markup_ore_per_kwh', previousNumber('markup_ore_per_kwh')),
+    spot_markup_ore_per_kwh: numberValue(formData, 'spot_markup_ore_per_kwh', previousNumber('spot_markup_ore_per_kwh')),
+    variable_fee_ore_per_kwh: numberValue(formData, 'variable_fee_ore_per_kwh', previousNumber('variable_fee_ore_per_kwh')),
+    fixed_price_ore_per_kwh: numberValue(formData, 'fixed_price_ore_per_kwh', previousNumber('fixed_price_ore_per_kwh')),
+    green_fee_mode: text(formData, 'green_fee_mode') || previousString('green_fee_mode'),
+    green_fee_value: numberValue(formData, 'green_fee_value', previousNumber('green_fee_value')),
+    electricity_certificate_ore_per_kwh: numberValue(formData, 'electricity_certificate_ore_per_kwh', previousNumber('electricity_certificate_ore_per_kwh')),
+    start_fee_sek: numberValue(formData, 'start_fee_sek', previousNumber('start_fee_sek')),
+    administration_fee_sek: numberValue(formData, 'administration_fee_sek', previousNumber('administration_fee_sek')),
+    break_fee_sek: numberValue(formData, 'break_fee_sek', previousNumber('break_fee_sek')),
+    portfolio_management_fee_ore_per_kwh: numberValue(formData, 'portfolio_management_fee_ore_per_kwh', previousNumber('portfolio_management_fee_ore_per_kwh')),
+    discount_value: numberValue(formData, 'discount_value', previousNumber('discount_value')),
+    discount_unit: text(formData, 'discount_unit') || previousString('discount_unit'),
+    discount_months: intValue(formData, 'discount_months', previousNumber('discount_months')),
+    vat_rate: numberValue(formData, 'vat_rate', previousNumber('vat_rate') ?? 25),
+    terms_version: termsVersion ?? previousString('terms_version'),
+    terms_url: text(formData, 'terms_url') || previousString('terms_url'),
     public_price_text: publicPriceText,
-    binding_months: intValue(formData, 'binding_months'),
-    notice_months: intValue(formData, 'notice_months'),
+    binding_months: intValue(formData, 'binding_months', previousNumber('binding_months')),
+    notice_months: intValue(formData, 'notice_months', previousNumber('notice_months')),
+    automatic_renewal: pricingMode === 'preserve' ? previousBoolean('automatic_renewal', false) : boolValue(formData, 'automatic_renewal'),
+    power_of_attorney_required: pricingMode === 'preserve' ? previousBoolean('power_of_attorney_required', true) : boolValue(formData, 'power_of_attorney_required'),
     spot_weight_percent: spotWeight,
     portfolio_weight_percent: portfolioWeight,
     fixed_weight_percent: fixedWeight,
-    price_area: text(formData, 'price_area') || null,
-    valid_from: dateValue(formData, 'valid_from'),
-    valid_to: dateValue(formData, 'valid_to'),
+    price_area: text(formData, 'price_area') || previousString('price_area'),
+    price_areas: pricingSnapshot && Array.isArray(pricingSnapshot.price_areas) ? pricingSnapshot.price_areas : [],
+    valid_from: validFrom ?? previousString('valid_from'),
+    valid_to: validTo ?? previousString('valid_to'),
     publication_status: publicationStatus,
     website_enabled: websiteEnabled,
     website_cta_enabled: websiteCtaEnabled,
@@ -726,17 +663,21 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
     is_archived: isArchived,
     readiness_status: readinessStatus,
     readiness_blockers: readinessBlockers,
-    sort_order: intValue(formData, 'sort_order', 100) ?? 100,
+    sort_order: intValue(formData, 'sort_order', previousNumber('sort_order') ?? 100) ?? 100,
     readiness_issues: issues,
-    publication_notes: text(formData, 'publication_notes') || null,
-    published_at: isPublic ? new Date().toISOString() : null,
-    archived_at: isArchived ? new Date().toISOString() : null,
+    publication_notes: text(formData, 'publication_notes') || previousString('publication_notes'),
+    published_at: isPublic ? previousString('published_at') ?? new Date().toISOString() : null,
+    archived_at: isArchived ? previousString('archived_at') ?? new Date().toISOString() : null,
     updated_by: actor.userId,
     metadata: {
+      ...(previous?.metadata && typeof previous.metadata === 'object' ? previous.metadata as Record<string, unknown> : {}),
       ui_source: 'company_card_contracts_tab',
       company_name: company.name,
       public_price_text: publicPriceText,
-      terms_url: text(formData, 'terms_url') || null,
+      terms_url: text(formData, 'terms_url') || previousString('terms_url'),
+      pricing_snapshot: pricingSnapshot,
+      price_version_label: priceVersionLabel,
+      price_version_reused: priceVersionReused,
       mix: { spot_weight_percent: spotWeight, portfolio_weight_percent: portfolioWeight, fixed_weight_percent: fixedWeight },
     },
   }
@@ -744,23 +685,13 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
   const query = id
     ? supabaseService.from('public_contract_offers').update(payload).eq('id', id).eq('company_id', companyId)
     : supabaseService.from('public_contract_offers').insert({ ...payload, created_by: actor.userId })
-
   const { data: saved, error } = await query.select('*').single()
   if (error) {
-    if (isDuplicatePublicOfferCodeError(error)) {
-      throw new Error('Avtalskoden finns redan för bolaget. Systemet försökte skapa en unik kod automatiskt, men databasen stoppade sparningen. Ändra avtalskoden eller försök spara igen.')
-    }
+    if (isDuplicatePublicOfferCodeError(error)) throw new Error('Avtalskoden finns redan för bolaget. Ändra avtalskoden eller försök spara igen.')
     throw error
   }
 
-  const action = publicationStatus === 'published'
-    ? 'contract_plan.published'
-    : publicationStatus === 'archived'
-      ? 'contract_plan.archived'
-      : id
-        ? 'contract_plan.updated'
-        : 'contract_plan.created'
-
+  const action = publicationStatus === 'published' ? 'contract_plan.published' : publicationStatus === 'archived' ? 'contract_plan.archived' : id ? 'contract_plan.updated' : 'contract_plan.created'
   await logAdminActionAndUsage({
     companyId,
     actorUserId: actor.userId,
@@ -772,15 +703,15 @@ async function saveTenantPublicContractOfferActionImpl(formData: FormData): Prom
     newValues: saved,
     source: 'company_card_contracts_tab',
     billable: false,
-    metadata: { publicationStatus, websiteEnabled, issues, readinessStatus, readinessBlockers, pricePlanId, pricePlanVersionId, legalBundleId, priceBookId, autoCreatedReferences },
+    metadata: { publicationStatus, websiteEnabled, issues, readinessStatus, readinessBlockers, pricePlanId, pricePlanVersionId, legalBundleId, priceBookId, priceVersionLabel, priceVersionReused, autoCreatedReferences },
   })
 
   revalidatePath(`/admin/companies/${companyId}`)
   revalidatePath('/admin/contracts')
   const suffix = autoCreatedReferences.length > 0 ? ` Auto-skapade: ${autoCreatedReferences.join(', ')}.` : ''
-  return { success: `${id ? 'Avtalet uppdaterades' : 'Avtalet skapades'}.${publicationStatus === 'published' ? ' Publicerat och redo för hemsidan.' : ''}${suffix}` }
+  const versionSuffix = priceVersionLabel ? ` Prisversion ${priceVersionLabel}${priceVersionReused ? ' återanvändes' : ' skapades'}.` : ''
+  return { success: `${id ? 'Avtalet uppdaterades' : 'Avtalet skapades'}.${publicationStatus === 'published' ? ' Publicerat och redo för hemsidan.' : ''}${versionSuffix}${suffix}` }
 }
-
 
 export async function deleteTenantPublicContractOfferAction(formData: FormData) {
   const companyId = text(formData, 'company_id') || null
