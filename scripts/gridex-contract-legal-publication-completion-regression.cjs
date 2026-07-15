@@ -6,6 +6,7 @@ const migration = read('supabase/migrations/20260714160000_canonical_contract_ru
 const integrityMigration = read('supabase/migrations/20260714223000_contract_publication_reference_integrity_hardening.sql')
 const automaticPricingMigration = read('supabase/migrations/20260715120000_automatic_contract_pricing_versioning.sql')
 const pricingCompletionMigration = read('supabase/migrations/20260715123000_contract_pricing_canonical_completion.sql')
+const pgcryptoRuntimeHotfix = read('supabase/migrations/20260715170000_contract_pgcrypto_runtime_search_path_hotfix.sql')
 const page = read('app/admin/contracts/page.tsx')
 const actions = read('app/admin/contracts/actions.ts')
 const canonical = read('lib/contracts/canonical.ts')
@@ -47,6 +48,7 @@ const required = [
   ['mandatory legal modules cannot be removed', integrityMigration.includes("coalesce(new.required_legal_modules,'{}') || coalesce(v_required,'{}')")],
   ['canonical SQL verifies exact price references', integrityMigration.includes('price_book_plan_version_mismatch') && integrityMigration.includes('price_plan_version_mismatch')],
   ['admin UI exposes database load errors', tenantPlatformControls.includes('Vissa avtalsuppgifter kunde inte laddas') && tenantPlatformControls.includes('databaseErrorMessage')],
+  ['contract pgcrypto runtime includes extensions schema', pgcryptoRuntimeHotfix.includes('public, extensions, pg_temp') && pgcryptoRuntimeHotfix.includes('gridex_create_or_version_contract_pricing') && pgcryptoRuntimeHotfix.includes('gridex_sync_public_offer_to_canonical') && pgcryptoRuntimeHotfix.includes('gridex_publish_contract_publication_version') && pgcryptoRuntimeHotfix.includes('gridex-contract-runtime-self-test')],
 ]
 const failed = required.filter(([, ok]) => !ok)
 if (failed.length) {
