@@ -1,3 +1,4 @@
+import { supabaseService } from '@/lib/supabase/service'
 import { calculatePricingPreviewForUnderlay } from '@/lib/pricing/engine'
 
 /**
@@ -37,6 +38,7 @@ export type UnderlayCorePricingResult = {
   lines: UnderlayCorePricingLine[]
   warnings: string[]
   errors: string[]
+  locked: boolean
 }
 
 export async function calculateUnderlayPricingWithCore(input: {
@@ -83,6 +85,7 @@ export async function calculateUnderlayPricingWithCore(input: {
       })),
       warnings: result.warnings,
       errors: result.errors,
+      locked: false,
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Prisberäkning misslyckades.'
@@ -97,6 +100,76 @@ export async function calculateUnderlayPricingWithCore(input: {
       lines: [],
       warnings: [],
       errors: [message],
+      locked: false,
     }
+  }
+}
+
+
+function numberValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(',', '.'))
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+export async function loadLockedUnderlayPricingWithCore(input: {
+  companyId: string
+  billingUnderlayId: string
+}): Promise<UnderlayCorePricingResult | null> {
+  const { data: run, error: runError } = await supabaseService
+    .from('pricing_runs')
+    .select('*')
+    .eq('company_id', input.companyId)
+    .eq('billing_underlay_id', input.billingUnderlayId)
+    .eq('status', 'locked')
+    .order('locked_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (runError && runError.code !== 'PGRST116') throw runError
+  if (!run) return null
+
+  const { data: lines, error: lineError } = await supabaseService
+    .from('pricing_preview_lines')
+    .select('*')
+    .eq('company_id', input.companyId)
+    .eq('pricing_run_id', run.id)
+    .order('sort_order', { ascending: true })
+  if (lineError) throw lineError
+
+  const warnings = Array.isArray(run.warnings) ? run.warnings.map(String) : []
+  const errors = Array.isArray(run.errors) ? run.errors.map(String) : []
+  return {
+    engine: 'pricing_core_v1',
+    status: 'success',
+    pricingRunId: String(run.id),
+    underlayId: input.billingUnderlayId,
+    subtotalSekExVat: numberValue(run.total_ex_vat) ?? 0,
+    vatSek: numberValue(run.vat_amount) ?? 0,
+    totalSekIncVat: numberValue(run.total_inc_vat) ?? 0,
+    lines: ((lines ?? []) as Record<string, unknown>[]).map((line, index) => ({
+      componentRuleId: `pricing_core:${input.billingUnderlayId}:${String(line.id ?? index)}`,
+      componentCode: String(line.line_type ?? 'unknown'),
+      componentLabel: String(line.description ?? 'Prisrad'),
+      componentType: String(line.line_type ?? 'unknown'),
+      calculationUnit: String(line.unit ?? 'st'),
+      valueAmount: numberValue(line.unit_price_ex_vat),
+      quantity: numberValue(line.quantity),
+      amountSekExVat: numberValue(line.amount_ex_vat) ?? 0,
+      currency: 'SEK',
+      appliesTo: 'contract',
+      vatRate: numberValue(line.vat_rate) ?? 0,
+      vatAmount: numberValue(line.vat_amount) ?? 0,
+      amountIncVat: numberValue(line.amount_inc_vat) ?? 0,
+      sortOrder: numberValue(line.sort_order) ?? index * 10,
+      metadata: line.metadata && typeof line.metadata === 'object' && !Array.isArray(line.metadata)
+        ? line.metadata as Record<string, unknown>
+        : {},
+    })),
+    warnings,
+    errors,
+    locked: true,
   }
 }

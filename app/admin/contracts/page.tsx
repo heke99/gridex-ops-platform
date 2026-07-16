@@ -1,12 +1,29 @@
 import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isPlatformAdminContext, requireAdminPageAccess } from "@/lib/admin/guards";
+import {
+  isPlatformAdminContext,
+  requireAdminPageAccess,
+} from "@/lib/admin/guards";
 import { listContractOffers } from "@/lib/customer-contracts/db";
-import { archiveContractOfferAction, deleteContractOfferAction, saveContractOfferAction, saveTenantLegalProfileAction, updateTenantContractChannelAction } from "./actions";
+import {
+  archiveContractOfferAction,
+  deleteContractOfferAction,
+  saveContractOfferAction,
+  saveTenantLegalProfileAction,
+  updateTenantContractChannelAction,
+} from "./actions";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
-import type { ContractOfferRow, CustomerContractRow } from "@/lib/customer-contracts/types";
-import { getTenantLegalProfile, listCanonicalContractCatalog, listPublicationReadiness, listTenantLegalOverrides } from "@/lib/contracts/canonical";
+import type {
+  ContractOfferRow,
+  CustomerContractRow,
+} from "@/lib/customer-contracts/types";
+import {
+  getTenantLegalProfile,
+  listCanonicalContractCatalog,
+  listPublicationReadiness,
+  listTenantLegalOverrides,
+} from "@/lib/contracts/canonical";
 
 export const dynamic = "force-dynamic";
 
@@ -18,20 +35,35 @@ type TenantCustomerSummary = {
   email: string | null;
 };
 
-function customerDisplayName(customer: TenantCustomerSummary | undefined): string {
-  return customer?.full_name?.trim() || customer?.company_name?.trim() || customer?.email?.trim() || "Kund";
+function customerDisplayName(
+  customer: TenantCustomerSummary | undefined,
+): string {
+  return (
+    customer?.full_name?.trim() ||
+    customer?.company_name?.trim() ||
+    customer?.email?.trim() ||
+    "Kund"
+  );
 }
 
 function tenantContractStatusLabel(status: string): string {
   switch (status) {
-    case "draft": return "Utkast";
-    case "pending_signature": return "Väntar signering";
-    case "signed": return "Signerat";
-    case "active": return "Aktivt";
-    case "terminated": return "Avslutat";
-    case "cancelled": return "Makulerat";
-    case "expired": return "Utgånget";
-    default: return status;
+    case "draft":
+      return "Utkast";
+    case "pending_signature":
+      return "Väntar signering";
+    case "signed":
+      return "Signerat";
+    case "active":
+      return "Aktivt";
+    case "terminated":
+      return "Avslutat";
+    case "cancelled":
+      return "Makulerat";
+    case "expired":
+      return "Utgånget";
+    default:
+      return status;
   }
 }
 
@@ -45,23 +77,41 @@ async function TenantCustomerContracts({
   userEmail: string | null;
 }) {
   const supabase = await createSupabaseServerClient();
-  const [catalog, legalProfile, legalOverrides, readiness, contractResult] = await Promise.all([
-    listCanonicalContractCatalog(companyId),
-    getTenantLegalProfile(companyId),
-    listTenantLegalOverrides(companyId),
-    listPublicationReadiness(companyId),
-    supabase.from("customer_contracts").select("*").eq("company_id", companyId).order("created_at", { ascending: false }).limit(500),
-  ]);
+  const [catalog, legalProfile, legalOverrides, readiness, contractResult] =
+    await Promise.all([
+      listCanonicalContractCatalog(companyId),
+      getTenantLegalProfile(companyId),
+      listTenantLegalOverrides(companyId),
+      listPublicationReadiness(companyId),
+      supabase
+        .from("customer_contracts")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false })
+        .limit(500),
+    ]);
   if (contractResult.error) throw contractResult.error;
   const contracts = (contractResult.data ?? []) as CustomerContractRow[];
-  const customerIds = Array.from(new Set(contracts.map((contract) => contract.customer_id).filter(Boolean)));
+  const customerIds = Array.from(
+    new Set(contracts.map((contract) => contract.customer_id).filter(Boolean)),
+  );
   const customersById = new Map<string, TenantCustomerSummary>();
   if (customerIds.length > 0) {
-    const { data, error } = await supabase.from("customers").select("id,customer_number,full_name,company_name,email").eq("company_id", companyId).in("id", customerIds);
+    const { data, error } = await supabase
+      .from("customers")
+      .select("id,customer_number,full_name,company_name,email")
+      .eq("company_id", companyId)
+      .in("id", customerIds);
     if (error) throw error;
-    for (const customer of (data ?? []) as TenantCustomerSummary[]) customersById.set(customer.id, customer);
+    for (const customer of (data ?? []) as TenantCustomerSummary[])
+      customersById.set(customer.id, customer);
   }
-  const readinessByAssignment = new Map((readiness as Array<Record<string, unknown>>).map((row) => [String(row.assignment_id), row]));
+  const readinessByAssignment = new Map(
+    (readiness as Array<Record<string, unknown>>).map((row) => [
+      String(row.assignment_id),
+      row,
+    ]),
+  );
 
   return (
     <div className="min-h-screen">
@@ -72,79 +122,360 @@ async function TenantCustomerContracts({
       />
       <div className="space-y-8 p-8">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Avtalsutbud</p>
-          <h2 className="mt-2 text-xl font-black text-slate-950">Tilldelade avtalsversioner</h2>
-          <p className="mt-2 text-sm text-slate-600">Du kan bara styra tillåtna försäljningskanaler och publiceringsperiod. Pris, juridiska grundkrav och avtalsversion är låsta av superadmin.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+            Avtalsutbud
+          </p>
+          <h2 className="mt-2 text-xl font-black text-slate-950">
+            Tilldelade avtalsversioner
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Du kan bara styra tillåtna försäljningskanaler och
+            publiceringsperiod. Pris, juridiska grundkrav och avtalsversion är
+            låsta av superadmin.
+          </p>
           <div className="mt-6 grid gap-4">
-            {catalog.length === 0 ? <p className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-600">Inga avtalsversioner har tilldelats bolaget.</p> : catalog.map((item) => {
-              const website = item.channels.find((channel) => channel.channel === "website");
-              const internal = item.channels.find((channel) => channel.channel === "internal");
-              const ready = readinessByAssignment.get(item.assignment_id);
-              const blockers = Array.isArray(ready?.blockers) ? ready?.blockers as string[] : [];
-              return (
-                <article key={item.assignment_id} className="rounded-3xl border border-slate-200 p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-950">{item.product_name}</h3>
-                      <p className="mt-1 text-sm text-slate-600">Version {item.version_number} · {typeLabel(item.contract_type)} · {item.customer_type} · juridik: {item.legal_mode}</p>
+            {catalog.length === 0 ? (
+              <p className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-600">
+                Inga avtalsversioner har tilldelats bolaget.
+              </p>
+            ) : (
+              catalog.map((item) => {
+                const website = item.channels.find(
+                  (channel) => channel.channel === "website",
+                );
+                const internal = item.channels.find(
+                  (channel) => channel.channel === "internal",
+                );
+                const ready = readinessByAssignment.get(item.assignment_id);
+                const blockers = Array.isArray(ready?.blockers)
+                  ? (ready?.blockers as string[])
+                  : [];
+                return (
+                  <article
+                    key={item.assignment_id}
+                    className="rounded-3xl border border-slate-200 p-5"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-950">
+                          {item.product_name}
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-600">
+                          Version {item.version_number} ·{" "}
+                          {typeLabel(item.contract_type)} · {item.customer_type}{" "}
+                          · juridik: {item.legal_mode}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${blockers.length === 0 ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-800"}`}
+                      >
+                        {blockers.length === 0
+                          ? "Publiceringsklar"
+                          : `${blockers.length} blockerare`}
+                      </span>
                     </div>
-                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${blockers.length === 0 ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
-                      {blockers.length === 0 ? "Publiceringsklar" : `${blockers.length} blockerare`}
-                    </span>
-                  </div>
-                  {blockers.length > 0 ? <p className="mt-3 text-xs text-amber-800">{blockers.join(" · ")}</p> : null}
-                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                    {[{ channel: "internal", row: internal, allowed: item.internal_sales_allowed, label: "Intern försäljning" }, { channel: "website", row: website, allowed: item.website_publication_allowed, label: "Hemsida" }].map((entry) => (
-                      <form key={entry.channel} action={updateTenantContractChannelAction} className="rounded-2xl bg-slate-50 p-4">
-                        <input type="hidden" name="company_id" value={companyId} />
-                        <input type="hidden" name="assignment_id" value={item.assignment_id} />
-                        <input type="hidden" name="channel" value={entry.channel} />
-                        <div className="flex items-center justify-between gap-3">
-                          <strong className="text-sm text-slate-900">{entry.label}</strong>
-                          <select name="status" defaultValue={entry.row?.status ?? "paused"} disabled={!entry.allowed} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
-                            <option value="active">Aktiv</option><option value="paused">Pausad</option><option value="ended">Avslutad</option>
-                          </select>
-                        </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <input name="valid_from" type="datetime-local" defaultValue={entry.row?.valid_from?.slice(0,16) ?? ""} className="rounded-xl border border-slate-300 px-3 py-2 text-xs" />
-                          <input name="valid_to" type="datetime-local" defaultValue={entry.row?.valid_to?.slice(0,16) ?? ""} className="rounded-xl border border-slate-300 px-3 py-2 text-xs" />
-                        </div>
-                        {entry.channel === "website" ? <textarea name="marketing_text" defaultValue={String(entry.row?.marketing_content?.text ?? "")} placeholder="Godkänd marknadsföringstext" className="mt-2 min-h-20 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /> : null}
-                        <button disabled={!entry.allowed} className="mt-3 rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Spara kanal</button>
-                      </form>
-                    ))}
-                  </div>
-                </article>
-              );
-            })}
+                    {blockers.length > 0 ? (
+                      <p className="mt-3 text-xs text-amber-800">
+                        {blockers.join(" · ")}
+                      </p>
+                    ) : null}
+                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                      {[
+                        {
+                          channel: "internal",
+                          row: internal,
+                          allowed: item.internal_sales_allowed,
+                          label: "Intern försäljning",
+                        },
+                        {
+                          channel: "website",
+                          row: website,
+                          allowed: item.website_publication_allowed,
+                          label: "Hemsida",
+                        },
+                      ].map((entry) => (
+                        <form
+                          key={entry.channel}
+                          action={updateTenantContractChannelAction}
+                          className="rounded-2xl bg-slate-50 p-4"
+                        >
+                          <input
+                            type="hidden"
+                            name="company_id"
+                            value={companyId}
+                          />
+                          <input
+                            type="hidden"
+                            name="assignment_id"
+                            value={item.assignment_id}
+                          />
+                          <input
+                            type="hidden"
+                            name="channel"
+                            value={entry.channel}
+                          />
+                          <div className="flex items-center justify-between gap-3">
+                            <strong className="text-sm text-slate-900">
+                              {entry.label}
+                            </strong>
+                            <select
+                              name="status"
+                              defaultValue={entry.row?.status ?? "paused"}
+                              disabled={!entry.allowed}
+                              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                            >
+                              <option value="active">Aktiv</option>
+                              <option value="paused">Pausad</option>
+                              <option value="ended">Avslutad</option>
+                            </select>
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <input
+                              name="valid_from"
+                              type="datetime-local"
+                              defaultValue={
+                                entry.row?.valid_from?.slice(0, 16) ?? ""
+                              }
+                              className="rounded-xl border border-slate-300 px-3 py-2 text-xs"
+                            />
+                            <input
+                              name="valid_to"
+                              type="datetime-local"
+                              defaultValue={
+                                entry.row?.valid_to?.slice(0, 16) ?? ""
+                              }
+                              className="rounded-xl border border-slate-300 px-3 py-2 text-xs"
+                            />
+                          </div>
+                          {entry.channel === "website" ? (
+                            <textarea
+                              name="marketing_text"
+                              defaultValue={String(
+                                entry.row?.marketing_content?.text ?? "",
+                              )}
+                              placeholder="Godkänd marknadsföringstext"
+                              className="mt-2 min-h-20 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                            />
+                          ) : null}
+                          <button
+                            disabled={!entry.allowed}
+                            className="mt-3 rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Spara kanal
+                          </button>
+                        </form>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })
+            )}
           </div>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-          <form action={saveTenantLegalProfileAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <form
+            action={saveTenantLegalProfileAction}
+            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+          >
             <input type="hidden" name="company_id" value={companyId} />
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Juridik</p>
-            <h2 className="mt-2 text-xl font-black text-slate-950">Bolagets juridikprofil</h2>
-            <p className="mt-2 text-sm text-slate-600">Status: <strong>{legalProfile?.completeness_status ?? "incomplete"}</strong>. Saknade obligatoriska uppgifter blockerar publicering.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              Juridik
+            </p>
+            <h2 className="mt-2 text-xl font-black text-slate-950">
+              Bolagets juridikprofil
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Status:{" "}
+              <strong>
+                {legalProfile?.completeness_status ?? "incomplete"}
+              </strong>
+              . Saknade obligatoriska uppgifter blockerar publicering.
+            </p>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
-              {([['legal_name','Juridiskt bolagsnamn',legalProfile?.legal_name],['organization_number','Organisationsnummer',legalProfile?.organization_number],['customer_service_email','Kundservice e-post',legalProfile?.customer_service_email],['phone','Telefon',legalProfile?.phone],['website','Webbplats',legalProfile?.website],['postal_address','Postadress',legalProfile?.postal_address?.text],['customer_service_address','Kundserviceadress',legalProfile?.customer_service_address?.text],['complaints_contact','Klagomålsansvarig',legalProfile?.complaints_contact?.text],['data_protection_contact','Dataskyddskontakt',legalProfile?.data_protection_contact?.text],['billing_information','Faktureringsuppgifter',legalProfile?.billing_information?.text],['dispute_resolution_information','Tvistlösningsinformation',legalProfile?.dispute_resolution_information?.text]] as Array<[string, string, unknown]>).map(([name,label,value]) => (
-                <label key={name} className="text-sm font-medium text-slate-700">{label}<input name={name} defaultValue={String(value ?? "")} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" /></label>
+              {(
+                [
+                  [
+                    "legal_name",
+                    "Juridiskt bolagsnamn",
+                    legalProfile?.legal_name,
+                  ],
+                  [
+                    "organization_number",
+                    "Organisationsnummer",
+                    legalProfile?.organization_number,
+                  ],
+                  [
+                    "customer_service_email",
+                    "Kundservice e-post",
+                    legalProfile?.customer_service_email,
+                  ],
+                  ["phone", "Telefon", legalProfile?.phone],
+                  ["website", "Webbplats", legalProfile?.website],
+                  [
+                    "postal_address",
+                    "Postadress",
+                    legalProfile?.postal_address?.text,
+                  ],
+                  [
+                    "customer_service_address",
+                    "Kundserviceadress",
+                    legalProfile?.customer_service_address?.text,
+                  ],
+                  [
+                    "complaints_contact",
+                    "Klagomålsansvarig",
+                    legalProfile?.complaints_contact?.text,
+                  ],
+                  [
+                    "data_protection_contact",
+                    "Dataskyddskontakt",
+                    legalProfile?.data_protection_contact?.text,
+                  ],
+                  [
+                    "billing_information",
+                    "Faktureringsuppgifter",
+                    legalProfile?.billing_information?.text,
+                  ],
+                  [
+                    "dispute_resolution_information",
+                    "Tvistlösningsinformation",
+                    legalProfile?.dispute_resolution_information?.text,
+                  ],
+                ] as Array<[string, string, unknown]>
+              ).map(([name, label, value]) => (
+                <label
+                  key={name}
+                  className="text-sm font-medium text-slate-700"
+                >
+                  {label}
+                  <input
+                    name={name}
+                    defaultValue={String(value ?? "")}
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                  />
+                </label>
               ))}
             </div>
-            <button className="mt-5 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">Spara juridikprofil</button>
+            <button className="mt-5 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+              Spara juridikprofil
+            </button>
           </form>
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-black text-slate-950">Egna juridiska tillägg</h2>
-            <p className="mt-2 text-sm text-slate-600">Endast godkända och versionslåsta tillägg kan ingå i ett publicerat juridikpaket.</p>
+            <h2 className="text-xl font-black text-slate-950">
+              Egna juridiska tillägg
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Endast godkända och versionslåsta tillägg kan ingå i ett
+              publicerat juridikpaket.
+            </p>
             <div className="mt-5 space-y-3">
-              {legalOverrides.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">Inga egna tillägg har skickats in.</p> : legalOverrides.map((row: { id: string; title: string; module_key: string; legal_mode: string; status: string; review_notes?: string | null }) => <div key={row.id} className="rounded-2xl border border-slate-200 p-4"><strong className="text-sm text-slate-900">{row.title}</strong><p className="mt-1 text-xs text-slate-600">{row.module_key} · {row.legal_mode} · {row.status}</p>{row.review_notes ? <p className="mt-2 text-xs text-slate-700">{row.review_notes}</p> : null}</div>)}
+              {legalOverrides.length === 0 ? (
+                <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                  Inga egna tillägg har skickats in.
+                </p>
+              ) : (
+                legalOverrides.map(
+                  (row: {
+                    id: string;
+                    title: string;
+                    module_key: string;
+                    legal_mode: string;
+                    status: string;
+                    review_notes?: string | null;
+                  }) => (
+                    <div
+                      key={row.id}
+                      className="rounded-2xl border border-slate-200 p-4"
+                    >
+                      <strong className="text-sm text-slate-900">
+                        {row.title}
+                      </strong>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {row.module_key} · {row.legal_mode} · {row.status}
+                      </p>
+                      {row.review_notes ? (
+                        <p className="mt-2 text-xs text-slate-700">
+                          {row.review_notes}
+                        </p>
+                      ) : null}
+                    </div>
+                  ),
+                )
+              )}
             </div>
           </section>
         </section>
 
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-6 py-5"><h2 className="text-lg font-semibold text-slate-950">Tecknade kundavtal</h2><p className="mt-1 text-sm text-slate-600">Signerade avtal är låsta och visas separat från avtalsutbudet.</p></div>
-          {contracts.length === 0 ? <div className="p-10 text-center text-sm text-slate-600">Inga kundavtal har registrerats.</div> : <div className="overflow-x-auto"><table className="min-w-full divide-y divide-slate-200 text-sm"><thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600"><tr><th className="px-6 py-3">Kund</th><th className="px-6 py-3">Avtal</th><th className="px-6 py-3">Status</th><th className="px-6 py-3">Signerat</th><th className="px-6 py-3 text-right">Öppna</th></tr></thead><tbody className="divide-y divide-slate-100">{contracts.map((contract) => { const customer=customersById.get(contract.customer_id); return <tr key={contract.id}><td className="px-6 py-4"><div className="font-semibold">{customerDisplayName(customer)}</div><div className="text-xs text-slate-500">{customer?.customer_number ?? "—"}</div></td><td className="px-6 py-4">{contract.contract_name}<div className="text-xs text-slate-500">{contract.contract_type}</div></td><td className="px-6 py-4">{tenantContractStatusLabel(contract.status)}</td><td className="px-6 py-4">{contract.signed_at ? new Date(contract.signed_at).toLocaleString("sv-SE") : "—"}</td><td className="px-6 py-4 text-right"><Link href={`/admin/customers/${contract.customer_id}?tab=contracts#contracts`} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold">Visa</Link></td></tr>; })}</tbody></table></div>}
+          <div className="border-b border-slate-200 px-6 py-5">
+            <h2 className="text-lg font-semibold text-slate-950">
+              Tecknade kundavtal
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Signerade avtal är låsta och visas separat från avtalsutbudet.
+            </p>
+          </div>
+          {contracts.length === 0 ? (
+            <div className="p-10 text-center text-sm text-slate-600">
+              Inga kundavtal har registrerats.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600">
+                  <tr>
+                    <th className="px-6 py-3">Kund</th>
+                    <th className="px-6 py-3">Avtal</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3">Signerat</th>
+                    <th className="px-6 py-3 text-right">Öppna</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {contracts.map((contract) => {
+                    const customer = customersById.get(contract.customer_id);
+                    return (
+                      <tr key={contract.id}>
+                        <td className="px-6 py-4">
+                          <div className="font-semibold">
+                            {customerDisplayName(customer)}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {customer?.customer_number ?? "—"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {contract.contract_name}
+                          <div className="text-xs text-slate-500">
+                            {contract.contract_type}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {tenantContractStatusLabel(contract.status)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {contract.signed_at
+                            ? new Date(contract.signed_at).toLocaleString(
+                                "sv-SE",
+                              )
+                            : "—"}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Link
+                            href={`/admin/customers/${contract.customer_id}?tab=contracts#contracts`}
+                            className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold"
+                          >
+                            Visa
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </div>
     </div>
@@ -167,6 +498,8 @@ function typeLabel(value: string): string {
       return "Rörlig månad";
     case "variable_hourly":
       return "Rörlig tim";
+    case "variable_quarterly":
+      return "Rörlig kvart";
     case "portfolio":
       return "Portfölj";
     case "mixed":
@@ -388,11 +721,29 @@ export default async function AdminContractsPage({
                   <option value="fixed">Fast</option>
                   <option value="variable_monthly">Rörlig månad</option>
                   <option value="variable_hourly">Rörlig tim</option>
+                  <option value="variable_quarterly">Rörlig kvart</option>
                   <option value="portfolio">Portfölj</option>
                   <option value="mixed">Mix</option>
                 </select>
               </div>
 
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700 ">
+                  Kundtyp
+                </label>
+                <select
+                  name="customer_type"
+                  defaultValue="both"
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 "
+                >
+                  <option value="private">Privatkund</option>
+                  <option value="business">Företagskund</option>
+                  <option value="both">Privat och företag</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700 ">
                   Kampanjnamn
@@ -443,8 +794,16 @@ export default async function AdminContractsPage({
             <div className="grid gap-4 md:grid-cols-2">
               <input
                 name="fixed_price_ore_per_kwh"
-                placeholder="Fast pris öre/kWh"
+                placeholder="Generellt fast pris öre/kWh"
                 className="rounded-2xl border border-slate-300 px-4 py-3 "
+              />
+              <textarea
+                name="fixed_prices_by_area"
+                rows={3}
+                placeholder={
+                  "Fastpris per område: SE1|85,50\nSE2|88,20\nSE3|92,10\nSE4|99,40"
+                }
+                className="rounded-2xl border border-slate-300 px-4 py-3 md:col-span-2"
               />
               <input
                 name="spot_markup_ore_per_kwh"
@@ -459,6 +818,34 @@ export default async function AdminContractsPage({
               <input
                 name="monthly_fee_sek"
                 placeholder="Fast månadsavgift kr"
+                className="rounded-2xl border border-slate-300 px-4 py-3 "
+              />
+            </div>
+
+            <select
+              name="spot_interval_resolution"
+              defaultValue="monthly"
+              className="rounded-2xl border border-slate-300 px-4 py-3"
+            >
+              <option value="monthly">Spotandel: månadspris</option>
+              <option value="hourly">Spotandel: timpris</option>
+              <option value="quarterly">Spotandel: kvartspris</option>
+            </select>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <input
+                name="invoice_fee_sek"
+                placeholder="Fakturaavgift kr"
+                className="rounded-2xl border border-slate-300 px-4 py-3 "
+              />
+              <input
+                name="electricity_certificate_ore_per_kwh"
+                placeholder="Elcertifikat öre/kWh"
+                className="rounded-2xl border border-slate-300 px-4 py-3 "
+              />
+              <input
+                name="portfolio_management_fee_ore_per_kwh"
+                placeholder="Portföljavgift öre/kWh"
                 className="rounded-2xl border border-slate-300 px-4 py-3 "
               />
             </div>
@@ -690,12 +1077,16 @@ export default async function AdminContractsPage({
                           {!offer.archived_at ? (
                             <form action={archiveContractOfferAction}>
                               <input type="hidden" name="id" value={offer.id} />
-                              <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">Arkivera</button>
+                              <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
+                                Arkivera
+                              </button>
                             </form>
                           ) : null}
                           <form action={deleteContractOfferAction}>
                             <input type="hidden" name="id" value={offer.id} />
-                            <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100">Ta bort om oanvänt</button>
+                            <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100">
+                              Ta bort om oanvänt
+                            </button>
                           </form>
                         </div>
                       </td>

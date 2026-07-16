@@ -46,6 +46,7 @@ export type BasePriceComponent = {
   weightPercent: number
   fixedPriceSekPerKwh?: number | null
   label?: string | null
+  priceArea?: PriceArea | null
   validFrom?: string | null
   validTo?: string | null
   metadata?: Record<string, unknown>
@@ -85,6 +86,8 @@ export type CalculationType =
   | 'ore_per_kwh'
   | 'sek_month'
   | 'sek_once'
+  | 'per_invoice'
+  | 'event_only'
 
 export type PriceComponent = {
   componentType: PriceComponentType | string

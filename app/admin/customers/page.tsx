@@ -825,6 +825,8 @@ function contractTypeLabel(value: CustomerContractRow['contract_type']): string 
  return 'Rörlig månad'
  case 'variable_hourly':
  return 'Rörlig tim'
+ case 'variable_quarterly':
+ return 'Rörlig kvart'
  case 'portfolio':
  return 'Portfölj'
  default:

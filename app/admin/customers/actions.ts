@@ -345,6 +345,7 @@ function parseContractType(value: string): ContractType {
     case "fixed":
     case "variable_monthly":
     case "variable_hourly":
+    case "variable_quarterly":
     case "portfolio":
       return value;
     default:

@@ -1,277 +1,436 @@
-import { supabaseService } from '@/lib/supabase/service'
-import { isPriceArea } from '@/lib/pricing/types'
-import { assertBillingPeriodOpen } from '@/lib/billing/invoiceReadiness'
-import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
-import { stockholmLocalToUtc, stockholmMonthBounds } from '@/lib/time/stockholm'
-import { evaluateBillingGate } from '@/lib/billing/billingGate'
+import { supabaseService } from "@/lib/supabase/service";
+import { isPriceArea } from "@/lib/pricing/types";
+import { assertBillingPeriodOpen } from "@/lib/billing/invoiceReadiness";
+import { assertPlatformSchemaReady } from "@/lib/platform/schemaReadiness";
+import {
+  stockholmLocalToUtc,
+  stockholmMonthBounds,
+} from "@/lib/time/stockholm";
+import { evaluateBillingGate } from "@/lib/billing/billingGate";
 
-type JsonRecord = Record<string, unknown>
+type JsonRecord = Record<string, unknown>;
 
 type UnderlayResult = {
-  underlayId: string | null
-  status: 'ready_for_pricing' | 'needs_review'
-  sourceTable: 'normalized_metering_values'
-  sourceRows: number
-  warnings: string[]
-}
+  underlayId: string | null;
+  status: "ready_for_pricing" | "needs_review";
+  sourceTable: "normalized_metering_values";
+  sourceRows: number;
+  warnings: string[];
+};
 
-const PAGE_SIZE = 1_000
+const PAGE_SIZE = 1_000;
 
 function text(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function object(value: unknown): JsonRecord {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {}
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : {};
 }
 
 function strictNumber(value: unknown, field: string): number {
-  const parsed = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value.replace(',', '.')) : Number.NaN
-  if (!Number.isFinite(parsed)) throw new Error(`${field} är inte ett giltigt tal.`)
-  return parsed
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value.replace(",", "."))
+        : Number.NaN;
+  if (!Number.isFinite(parsed))
+    throw new Error(`${field} är inte ett giltigt tal.`);
+  return parsed;
 }
 
 function quantityKwh(row: JsonRecord): number {
-  const quantity = strictNumber(row.quantity_kwh, 'quantity_kwh')
-  const unit = text(row.unit) ?? 'kWh'
-  if (unit === 'kWh') return quantity
-  if (unit === 'Wh') return quantity / 1_000
-  if (unit === 'MWh') return quantity * 1_000
-  throw new Error(`Mätenheten ${unit} stöds inte för fakturering.`)
+  const quantity = strictNumber(row.quantity_kwh, "quantity_kwh");
+  const unit = text(row.unit) ?? "kWh";
+  if (unit === "kWh") return quantity;
+  if (unit === "Wh") return quantity / 1_000;
+  if (unit === "MWh") return quantity * 1_000;
+  throw new Error(`Mätenheten ${unit} stöds inte för fakturering.`);
 }
 
 function addDays(date: string, days: number): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
-  if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`)
-  const cursor = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days))
-  return cursor.toISOString().slice(0, 10)
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
+  const cursor = new Date(
+    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days),
+  );
+  return cursor.toISOString().slice(0, 10);
 }
 
 function localDateBoundary(date: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
-  if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`)
-  return stockholmLocalToUtc({ year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) }).toISOString()
-}
-
-function resolutionMilliseconds(value: unknown): number | null {
-  const raw = text(value)?.toUpperCase()
-  if (!raw) return null
-  const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(raw)
-  if (!match) return null
-  const seconds = Number(match[1] ?? 0) * 3_600 + Number(match[2] ?? 0) * 60 + Number(match[3] ?? 0)
-  return seconds > 0 ? seconds * 1_000 : null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
+  return stockholmLocalToUtc({
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+  }).toISOString();
 }
 
 function readinessIssues(warnings: string[]) {
-  return warnings.map((message) => ({ code: 'billing_underlay_blocker', message }))
+  return warnings.map((message) => ({
+    code: "billing_underlay_blocker",
+    message,
+  }));
 }
 
-async function paginatedRows<T extends JsonRecord>(loader: (from: number, to: number) => Promise<{ data: T[] | null; error: unknown }>): Promise<T[]> {
-  const rows: T[] = []
+async function paginatedRows<T extends JsonRecord>(
+  loader: (
+    from: number,
+    to: number,
+  ) => Promise<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  const rows: T[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
-    const response = await loader(from, from + PAGE_SIZE - 1)
-    if (response.error) throw response.error
-    const page = response.data ?? []
-    rows.push(...page)
-    if (page.length < PAGE_SIZE) return rows
+    const response = await loader(from, from + PAGE_SIZE - 1);
+    if (response.error) throw response.error;
+    const page = response.data ?? [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) return rows;
   }
 }
 
-async function loadNormalizedValues(companyId: string, start: string, end: string): Promise<JsonRecord[]> {
+async function loadNormalizedValues(
+  companyId: string,
+  start: string,
+  end: string,
+): Promise<JsonRecord[]> {
   return paginatedRows<JsonRecord>(async (from, to) => {
     const response = await supabaseService
-      .from('normalized_metering_values')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('revision_status', 'current')
-      .eq('billing_status', 'billable')
-      .eq('billing_gate_status', 'eligible')
-      .not('supply_period_id', 'is', null)
-      .gte('period_start', start)
-      .lt('period_start', end)
-      .order('period_start', { ascending: true })
-      .order('id', { ascending: true })
-      .range(from, to)
-    return { data: (response.data ?? []) as JsonRecord[], error: response.error }
-  })
+      .from("normalized_metering_values")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("revision_status", "current")
+      .eq("billing_status", "billable")
+      .eq("billing_gate_status", "eligible")
+      .not("supply_period_id", "is", null)
+      .lt("period_start", end)
+      .gt("period_end", start)
+      .order("period_start", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to);
+    return {
+      data: (response.data ?? []) as JsonRecord[],
+      error: response.error,
+    };
+  });
 }
 
-async function loadSupplyPeriods(companyId: string, startDate: string, endDateInclusive: string): Promise<JsonRecord[]> {
+async function loadSupplyPeriods(
+  companyId: string,
+  startDate: string,
+  endDateInclusive: string,
+): Promise<JsonRecord[]> {
   return paginatedRows<JsonRecord>(async (from, to) => {
     const response = await supabaseService
-      .from('customer_supply_periods')
-      .select('*')
-      .eq('company_id', companyId)
-      .in('status', ['active', 'confirmed_by_grid_owner'])
-      .lte('start_date', endDateInclusive)
+      .from("customer_supply_periods")
+      .select("*")
+      .eq("company_id", companyId)
+      .in("status", ["active", "confirmed_by_grid_owner"])
+      .lte("start_date", endDateInclusive)
       .or(`end_date.is.null,end_date.gte.${startDate}`)
-      .order('start_date', { ascending: true })
-      .order('id', { ascending: true })
-      .range(from, to)
-    return { data: (response.data ?? []) as JsonRecord[], error: response.error }
-  })
+      .order("start_date", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to);
+    return {
+      data: (response.data ?? []) as JsonRecord[],
+      error: response.error,
+    };
+  });
 }
 
-async function loadContract(companyId: string, contractId: string | null): Promise<JsonRecord | null> {
-  if (!contractId) return null
+async function loadContract(
+  companyId: string,
+  contractId: string | null,
+): Promise<JsonRecord | null> {
+  if (!contractId) return null;
   const response = await supabaseService
-    .from('customer_contracts')
-    .select('*')
-    .eq('company_id', companyId)
-    .eq('id', contractId)
-    .in('status', ['active', 'signed'])
-    .maybeSingle()
-  if (response.error) throw response.error
-  return (response.data as JsonRecord | null) ?? null
+    .from("customer_contracts")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("id", contractId)
+    .in("status", ["active", "signed"])
+    .maybeSingle();
+  if (response.error) throw response.error;
+  return (response.data as JsonRecord | null) ?? null;
 }
 
-async function loadSnapshot(companyId: string, contractId: string | null, segmentStart: string): Promise<JsonRecord | null> {
-  if (!contractId) return null
-  const date = segmentStart.slice(0, 10)
+async function loadSnapshot(
+  companyId: string,
+  contractId: string | null,
+  segmentStart: string,
+): Promise<JsonRecord | null> {
+  if (!contractId) return null;
+  const date = segmentStart.slice(0, 10);
   const response = await supabaseService
-    .from('contract_price_snapshots')
-    .select('*')
-    .eq('company_id', companyId)
-    .eq('contract_id', contractId)
-    .lte('valid_from', date)
+    .from("contract_price_snapshots")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("contract_id", contractId)
+    .lte("valid_from", date)
     .or(`valid_to.is.null,valid_to.gte.${date}`)
-    .order('valid_from', { ascending: false })
-    .limit(2)
-  if (response.error) throw response.error
-  const rows = (response.data ?? []) as JsonRecord[]
-  if (rows.length > 1 && text(rows[0].valid_from) === text(rows[1].valid_from)) {
-    throw new Error(`Flera prissnapshots är giltiga samtidigt för avtal ${contractId}.`)
+    .order("valid_from", { ascending: false })
+    .limit(2);
+  if (response.error) throw response.error;
+  const rows = (response.data ?? []) as JsonRecord[];
+  if (
+    rows.length > 1 &&
+    text(rows[0].valid_from) === text(rows[1].valid_from)
+  ) {
+    throw new Error(
+      `Flera prissnapshots är giltiga samtidigt för avtal ${contractId}.`,
+    );
   }
-  return rows[0] ?? null
+  return rows[0] ?? null;
 }
 
-function contractCoversSegment(contract: JsonRecord | null, segmentStart: string, segmentEnd: string): boolean {
-  if (!contract) return false
-  const startsAt = text(contract.starts_at) ?? text(contract.start_date)
-  const endsAt = text(contract.ends_at) ?? text(contract.end_date)
-  if (startsAt && Date.parse(startsAt) > Date.parse(segmentStart)) return false
-  if (endsAt && Date.parse(endsAt.length === 10 ? localDateBoundary(addDays(endsAt, 1)) : endsAt) < Date.parse(segmentEnd)) return false
-  return true
+function contractCoversSegment(
+  contract: JsonRecord | null,
+  segmentStart: string,
+  segmentEnd: string,
+): boolean {
+  if (!contract) return false;
+  const startsAt = text(contract.starts_at) ?? text(contract.start_date);
+  const endsAt = text(contract.ends_at) ?? text(contract.end_date);
+  if (startsAt && Date.parse(startsAt) > Date.parse(segmentStart)) return false;
+  if (
+    endsAt &&
+    Date.parse(
+      endsAt.length === 10 ? localDateBoundary(addDays(endsAt, 1)) : endsAt,
+    ) < Date.parse(segmentEnd)
+  )
+    return false;
+  return true;
 }
 
-function segmentBounds(period: JsonRecord, monthStart: string, monthEnd: string): { start: string; end: string } {
-  const periodStart = localDateBoundary(String(period.start_date))
-  const periodEnd = period.end_date ? localDateBoundary(addDays(String(period.end_date), 1)) : monthEnd
+function segmentBounds(
+  period: JsonRecord,
+  monthStart: string,
+  monthEnd: string,
+): { start: string; end: string } {
+  const periodStart = localDateBoundary(String(period.start_date));
+  const periodEnd = period.end_date
+    ? localDateBoundary(addDays(String(period.end_date), 1))
+    : monthEnd;
   return {
-    start: new Date(Math.max(Date.parse(monthStart), Date.parse(periodStart))).toISOString(),
-    end: new Date(Math.min(Date.parse(monthEnd), Date.parse(periodEnd))).toISOString(),
-  }
+    start: new Date(
+      Math.max(Date.parse(monthStart), Date.parse(periodStart)),
+    ).toISOString(),
+    end: new Date(
+      Math.min(Date.parse(monthEnd), Date.parse(periodEnd)),
+    ).toISOString(),
+  };
 }
 
-function validateIntervalCoverage(rows: JsonRecord[], segmentStart: string, segmentEnd: string): { missing: number; warnings: string[] } {
-  const warnings: string[] = []
-  const sorted = [...rows].sort((a, b) => Date.parse(String(a.period_start)) - Date.parse(String(b.period_start)) || String(a.id).localeCompare(String(b.id)))
-  const seen = new Set<string>()
-  let overlap = false
-  let cursor = Date.parse(segmentStart)
-  let resolutionMs: number | null = null
+function clipMeteringRowToSegment(
+  row: JsonRecord,
+  segmentStart: string,
+  segmentEnd: string,
+): JsonRecord | null {
+  const originalStart = Date.parse(String(row.period_start));
+  const originalEnd = Date.parse(String(row.period_end));
+  const clipStart = Math.max(originalStart, Date.parse(segmentStart));
+  const clipEnd = Math.min(originalEnd, Date.parse(segmentEnd));
+  if (
+    !Number.isFinite(originalStart) ||
+    !Number.isFinite(originalEnd) ||
+    originalEnd <= originalStart ||
+    clipEnd <= clipStart
+  )
+    return null;
+  const ratio = (clipEnd - clipStart) / (originalEnd - originalStart);
+  return {
+    ...row,
+    period_start: new Date(clipStart).toISOString(),
+    period_end: new Date(clipEnd).toISOString(),
+    quantity_kwh: quantityKwh(row) * ratio,
+    unit: "kWh",
+    metadata: {
+      ...object(row.metadata),
+      original_period_start: row.period_start,
+      original_period_end: row.period_end,
+      overlap_ratio: ratio,
+    },
+  };
+}
+
+function validateIntervalCoverage(
+  rows: JsonRecord[],
+  segmentStart: string,
+  segmentEnd: string,
+): { missing: number; warnings: string[] } {
+  const warnings: string[] = [];
+  const sorted = [...rows].sort(
+    (a, b) =>
+      Date.parse(String(a.period_start)) - Date.parse(String(b.period_start)) ||
+      String(a.id).localeCompare(String(b.id)),
+  );
+  const seen = new Set<string>();
+  let cursor = Date.parse(segmentStart);
+  let gapCount = 0;
 
   for (const row of sorted) {
-    const start = Date.parse(String(row.period_start))
-    const end = Date.parse(String(row.period_end))
+    const start = Date.parse(String(row.period_start));
+    const end = Date.parse(String(row.period_end));
     if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
-      warnings.push('Ett mätintervall har ogiltig start eller sluttid.')
-      continue
+      warnings.push("Ett mätintervall har ogiltig start eller sluttid.");
+      continue;
     }
-    const key = `${start}|${end}|${text(row.register_code) ?? ''}|${text(row.product_code) ?? ''}|${text(row.direction) ?? ''}`
-    if (seen.has(key)) warnings.push('Dubbla aktuella mätvärden finns för samma intervall och register.')
-    seen.add(key)
-    if (start < cursor) overlap = true
-    if (start > cursor) warnings.push(`Mätvärdeslucka finns från ${new Date(cursor).toISOString()} till ${new Date(start).toISOString()}.`)
-    cursor = Math.max(cursor, end)
-    const rowResolution = resolutionMilliseconds(row.resolution) ?? end - start
-    if (!resolutionMs) resolutionMs = rowResolution
-    else if (resolutionMs !== rowResolution) warnings.push('Flera mätupplösningar förekommer i samma fakturasegment.')
+    const key = `${start}|${end}|${text(row.register_code) ?? ""}|${text(row.product_code) ?? ""}|${text(row.direction) ?? ""}`;
+    if (seen.has(key))
+      warnings.push(
+        "Dubbla aktuella mätvärden finns för samma intervall och register.",
+      );
+    seen.add(key);
+    if (start < cursor)
+      warnings.push("Överlappande mätintervall finns i fakturasegmentet.");
+    if (start > cursor) {
+      gapCount += 1;
+      warnings.push(
+        `Mätvärdeslucka finns från ${new Date(cursor).toISOString()} till ${new Date(start).toISOString()}.`,
+      );
+    }
+    cursor = Math.max(cursor, end);
   }
-  if (cursor < Date.parse(segmentEnd)) warnings.push(`Mätvärdeslucka finns fram till ${segmentEnd}.`)
-  if (overlap) warnings.push('Överlappande mätintervall finns i fakturasegmentet.')
-
-  const expected = resolutionMs ? Math.round((Date.parse(segmentEnd) - Date.parse(segmentStart)) / resolutionMs) : 0
-  const missing = expected > 0 ? Math.max(0, expected - seen.size) : 0
-  if (!resolutionMs) warnings.push('Mätupplösning kan inte fastställas.')
-  if (missing > 0 && !warnings.some((entry) => entry.startsWith('Mätvärdeslucka'))) warnings.push(`${missing} förväntade mätintervall saknas.`)
-  return { missing, warnings: [...new Set(warnings)] }
+  if (cursor < Date.parse(segmentEnd)) {
+    gapCount += 1;
+    warnings.push(`Mätvärdeslucka finns fram till ${segmentEnd}.`);
+  }
+  if (rows.length === 0) warnings.push("Mätvärden saknas i fakturasegmentet.");
+  return { missing: gapCount, warnings: [...new Set(warnings)] };
 }
 
 function snapshotPayload(snapshot: JsonRecord | null): JsonRecord {
-  if (!snapshot) return {}
+  if (!snapshot) return {};
   return {
     ...object(snapshot.snapshot_json),
     contract_price_snapshot_id: text(snapshot.id),
-    pricing_model: text(snapshot.pricing_model) ?? text(object(snapshot.snapshot_json).pricing_model),
-    base_price_components: Array.isArray(snapshot.base_price_components_snapshot) ? snapshot.base_price_components_snapshot : [],
-    price_components: Array.isArray(snapshot.price_components_snapshot) ? snapshot.price_components_snapshot : [],
-  }
+    pricing_model:
+      text(snapshot.pricing_model) ??
+      text(object(snapshot.snapshot_json).pricing_model),
+    base_price_components: Array.isArray(
+      snapshot.base_price_components_snapshot,
+    )
+      ? snapshot.base_price_components_snapshot
+      : [],
+    price_components: Array.isArray(snapshot.price_components_snapshot)
+      ? snapshot.price_components_snapshot
+      : [],
+  };
 }
 
 export async function generateBillingUnderlaysForMonth(input: {
-  companyId: string
-  billingMonth: string
-  createdBy?: string | null
+  companyId: string;
+  billingMonth: string;
+  createdBy?: string | null;
 }) {
-  await assertPlatformSchemaReady()
-  await assertBillingPeriodOpen({ companyId: input.companyId, billingMonth: input.billingMonth })
-  const bounds = stockholmMonthBounds(input.billingMonth)
-  const values = await loadNormalizedValues(input.companyId, bounds.start, bounds.end)
-  const periods = await loadSupplyPeriods(input.companyId, bounds.start.slice(0, 10), addDays(bounds.endDateExclusive, -1))
-  const periodsByMeter = new Map<string, JsonRecord[]>()
+  await assertPlatformSchemaReady();
+  await assertBillingPeriodOpen({
+    companyId: input.companyId,
+    billingMonth: input.billingMonth,
+  });
+  const bounds = stockholmMonthBounds(input.billingMonth);
+  const values = await loadNormalizedValues(
+    input.companyId,
+    bounds.start,
+    bounds.end,
+  );
+  const periods = await loadSupplyPeriods(
+    input.companyId,
+    bounds.start.slice(0, 10),
+    addDays(bounds.endDateExclusive, -1),
+  );
+  const periodsByMeter = new Map<string, JsonRecord[]>();
   for (const period of periods) {
-    const meter = text(period.metering_point_id)
-    if (!meter) continue
-    periodsByMeter.set(meter, [...(periodsByMeter.get(meter) ?? []), period])
+    const meter = text(period.metering_point_id);
+    if (!meter) continue;
+    periodsByMeter.set(meter, [...(periodsByMeter.get(meter) ?? []), period]);
   }
 
-  const valuesByMeter = new Map<string, JsonRecord[]>()
+  const valuesByMeter = new Map<string, JsonRecord[]>();
   for (const row of values) {
-    const meter = text(row.metering_point_id)
-    if (!meter) throw new Error('Normaliserat mätvärde saknar mätpunkts-ID.')
-    valuesByMeter.set(meter, [...(valuesByMeter.get(meter) ?? []), row])
+    const meter = text(row.metering_point_id);
+    if (!meter) throw new Error("Normaliserat mätvärde saknar mätpunkts-ID.");
+    valuesByMeter.set(meter, [...(valuesByMeter.get(meter) ?? []), row]);
   }
 
-  const results: UnderlayResult[] = []
-  const coveredValueIds = new Set<string>()
+  const results: UnderlayResult[] = [];
+  const pendingStores: Array<{
+    underlay: JsonRecord;
+    items: JsonRecord[];
+    result: Omit<UnderlayResult, "underlayId">;
+  }> = [];
+  const coveredValueIds = new Set<string>();
 
   for (const [meteringPointId, meterPeriods] of periodsByMeter) {
     const overlappingPeriods = meterPeriods
-      .map((period) => ({ period, ...segmentBounds(period, bounds.start, bounds.end) }))
+      .map((period) => ({
+        period,
+        ...segmentBounds(period, bounds.start, bounds.end),
+      }))
       .filter((entry) => Date.parse(entry.end) > Date.parse(entry.start))
-      .sort((a, b) => Date.parse(a.start) - Date.parse(b.start) || String(a.period.id).localeCompare(String(b.period.id)))
+      .sort(
+        (a, b) =>
+          Date.parse(a.start) - Date.parse(b.start) ||
+          String(a.period.id).localeCompare(String(b.period.id)),
+      );
 
-    for (let index = 1; index < overlappingPeriods.length; index += 1) {
-      if (Date.parse(overlappingPeriods[index].start) < Date.parse(overlappingPeriods[index - 1].end)) {
-        throw new Error(`Överlappande leveransperioder finns för mätpunkt ${meteringPointId}.`)
-      }
+    const hasSupplyConflict = overlappingPeriods.some(
+      (entry, index) =>
+        index > 0 &&
+        Date.parse(entry.start) < Date.parse(overlappingPeriods[index - 1].end),
+    );
+    if (hasSupplyConflict) {
+      results.push({
+        underlayId: null,
+        status: "needs_review",
+        sourceTable: "normalized_metering_values",
+        sourceRows: (valuesByMeter.get(meteringPointId) ?? []).length,
+        warnings: [
+          `Överlappande leveransperioder finns för mätpunkt ${meteringPointId}.`,
+        ],
+      });
+      continue;
     }
 
     for (const entry of overlappingPeriods) {
-      const period = entry.period
-      const segmentRows = (valuesByMeter.get(meteringPointId) ?? []).filter((row) => {
-        const start = Date.parse(String(row.period_start))
-        return start >= Date.parse(entry.start) && start < Date.parse(entry.end)
-      })
-      if (segmentRows.length === 0) continue
-      segmentRows.forEach((row) => coveredValueIds.add(String(row.id)))
+      const period = entry.period;
+      const segmentRows = (valuesByMeter.get(meteringPointId) ?? [])
+        .map((row) => clipMeteringRowToSegment(row, entry.start, entry.end))
+        .filter((row): row is JsonRecord => Boolean(row));
+      if (segmentRows.length === 0) continue;
+      segmentRows.forEach((row) => coveredValueIds.add(String(row.id)));
 
-      const warnings: string[] = []
-      const customerId = text(period.customer_id)
-      const contractId = text(period.contract_id)
-      const contract = await loadContract(input.companyId, contractId)
-      if (!customerId) warnings.push('Leveransperioden saknar kund.')
-      if (!contract) warnings.push('Leveransperioden saknar ett aktivt eller signerat avtal.')
-      if (contract && text(contract.customer_id) !== customerId) warnings.push('Avtalet tillhör inte leveransperiodens kund.')
-      if (!contractCoversSegment(contract, entry.start, entry.end)) warnings.push('Avtalets giltighet täcker inte hela fakturasegmentet.')
+      const warnings: string[] = [];
+      const customerId = text(period.customer_id);
+      const contractId = text(period.contract_id);
+      const contract = await loadContract(input.companyId, contractId);
+      if (!customerId) warnings.push("Leveransperioden saknar kund.");
+      if (!contract)
+        warnings.push(
+          "Leveransperioden saknar ett aktivt eller signerat avtal.",
+        );
+      if (contract && text(contract.customer_id) !== customerId)
+        warnings.push("Avtalet tillhör inte leveransperiodens kund.");
+      if (!contractCoversSegment(contract, entry.start, entry.end))
+        warnings.push("Avtalets giltighet täcker inte hela fakturasegmentet.");
 
-      const snapshot = await loadSnapshot(input.companyId, contractId, entry.start)
-      if (contract && !snapshot) warnings.push('Prissnapshot saknas för avtalet och fakturasegmentet.')
+      const snapshot = await loadSnapshot(
+        input.companyId,
+        contractId,
+        entry.start,
+      );
+      if (contract && !snapshot)
+        warnings.push("Prissnapshot saknas för avtalet och fakturasegmentet.");
 
       for (const row of segmentRows) {
         if (text(row.supply_period_id) !== text(period.id)) {
-          warnings.push(`Mätvärde ${text(row.id) ?? 'utan id'} har annan eller saknad leveransperiod än fakturasegmentet.`)
+          warnings.push(
+            `Mätvärde ${text(row.id) ?? "utan id"} har annan eller saknad leveransperiod än fakturasegmentet.`,
+          );
         }
         const gate = evaluateBillingGate({
           normalizedValue: row,
@@ -280,48 +439,86 @@ export async function generateBillingUnderlaysForMonth(input: {
           contract,
           contractCandidateCount: contract ? 1 : 0,
           allowEstimatedValues: false,
-        })
+        });
         if (!gate.eligible) {
-          for (const gateReason of gate.reasons) warnings.push(`${gateReason.code}: ${gateReason.message}`)
+          for (const gateReason of gate.reasons)
+            warnings.push(`${gateReason.code}: ${gateReason.message}`);
         }
-        if (text(object(row.billing_gate_snapshot).status) !== 'eligible') {
-          warnings.push(`Mätvärde ${text(row.id) ?? 'utan id'} saknar en sparad eligible billing-gate-snapshot.`)
+        if (text(object(row.billing_gate_snapshot).status) !== "eligible") {
+          warnings.push(
+            `Mätvärde ${text(row.id) ?? "utan id"} saknar en sparad eligible billing-gate-snapshot.`,
+          );
         }
       }
 
-      const directionSet = new Set(segmentRows.map((row) => text(row.direction) ?? 'consumption'))
-      if ([...directionSet].some((direction) => !['consumption', 'net_consumption'].includes(direction))) {
-        warnings.push('Produktions- och förbrukningsvärden får inte blandas i ett kundfakturaunderlag.')
+      const directionSet = new Set(
+        segmentRows.map((row) => text(row.direction) ?? "consumption"),
+      );
+      if (
+        [...directionSet].some(
+          (direction) =>
+            !["consumption", "net_consumption"].includes(direction),
+        )
+      ) {
+        warnings.push(
+          "Produktions- och förbrukningsvärden får inte blandas i ett kundfakturaunderlag.",
+        );
       }
-      const registerSet = new Set(segmentRows.map((row) => `${text(row.register_code) ?? ''}|${text(row.product_code) ?? ''}`))
-      if (registerSet.size > 1) warnings.push('Flera register eller produktkoder förekommer i samma fakturasegment.')
+      const registerSet = new Set(
+        segmentRows.map(
+          (row) =>
+            `${text(row.register_code) ?? ""}|${text(row.product_code) ?? ""}`,
+        ),
+      );
+      if (registerSet.size > 1)
+        warnings.push(
+          "Flera register eller produktkoder förekommer i samma fakturasegment.",
+        );
 
-      let totalKwh = 0
+      let totalKwh = 0;
       for (const row of segmentRows) {
-        const quantity = quantityKwh(row)
-        if (quantity < 0) warnings.push('Negativ förbrukning kräver separat kredit- eller produktionshantering.')
-        totalKwh += quantity
+        const quantity = quantityKwh(row);
+        if (quantity < 0)
+          warnings.push(
+            "Negativ förbrukning kräver separat kredit- eller produktionshantering.",
+          );
+        totalKwh += quantity;
       }
-      if (!Number.isFinite(totalKwh) || totalKwh < 0) warnings.push('Total förbrukning är ogiltig.')
+      if (!Number.isFinite(totalKwh) || totalKwh < 0)
+        warnings.push("Total förbrukning är ogiltig.");
 
-      const coverage = validateIntervalCoverage(segmentRows, entry.start, entry.end)
-      warnings.push(...coverage.warnings)
+      const coverage = validateIntervalCoverage(
+        segmentRows,
+        entry.start,
+        entry.end,
+      );
+      warnings.push(...coverage.warnings);
 
-      const first = segmentRows[0]
-      const siteId = text(first.site_id) ?? text(first.customer_site_id)
-      const customerSiteId = text(first.customer_site_id) ?? siteId
-      const priceArea = text(first.price_area)
-      if (!isPriceArea(priceArea)) warnings.push('Verifierat elområde saknas på mätvärdena.')
-      if (segmentRows.some((row) => text(row.customer_id) !== customerId || text(row.metering_point_id) !== meteringPointId)) {
-        warnings.push('Mätvärdena har inkonsekvent kund- eller mätpunktskoppling.')
+      const first = segmentRows[0];
+      const siteId = text(first.site_id) ?? text(first.customer_site_id);
+      const customerSiteId = text(first.customer_site_id) ?? siteId;
+      const priceArea = text(first.price_area);
+      if (!isPriceArea(priceArea))
+        warnings.push("Verifierat elområde saknas på mätvärdena.");
+      if (
+        segmentRows.some(
+          (row) =>
+            text(row.customer_id) !== customerId ||
+            text(row.metering_point_id) !== meteringPointId,
+        )
+      ) {
+        warnings.push(
+          "Mätvärdena har inkonsekvent kund- eller mätpunktskoppling.",
+        );
       }
 
-      const uniqueWarnings = [...new Set(warnings)]
-      const ready = uniqueWarnings.length === 0
-      const snapshotJson = snapshotPayload(snapshot)
-      const now = new Date().toISOString()
-      const pricePlanId = text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id)
-      const pricePlanVersionId = text(snapshot?.price_plan_version_id)
+      const uniqueWarnings = [...new Set(warnings)];
+      const ready = uniqueWarnings.length === 0;
+      const snapshotJson = snapshotPayload(snapshot);
+      const now = new Date().toISOString();
+      const pricePlanId =
+        text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id);
+      const pricePlanVersionId = text(snapshot?.price_plan_version_id);
       const items = segmentRows.map((row) => ({
         source_normalized_metering_value_id: text(row.id),
         customer_id: customerId,
@@ -334,21 +531,23 @@ export async function generateBillingUnderlaysForMonth(input: {
         price_book_id: text(snapshot?.price_book_id),
         campaign_id: text(snapshot?.campaign_version_id),
         facility_id: text(row.facility_id),
-        price_area: isPriceArea(text(row.price_area)) ? text(row.price_area) : null,
+        price_area: isPriceArea(text(row.price_area))
+          ? text(row.price_area)
+          : null,
         grid_area: text(row.grid_area),
-        source_table: 'normalized_metering_values',
+        source_table: "normalized_metering_values",
         source_transaction_reference: text(row.source_transaction_reference),
         source_line_reference: text(row.source_line_reference),
         period_start: row.period_start,
         period_end: row.period_end,
         quantity: quantityKwh(row),
         quantity_kwh: quantityKwh(row),
-        unit: 'kWh',
+        unit: "kWh",
         product_code: text(row.product_code),
         register_code: text(row.register_code),
         quality_code: text(row.quality_status),
         resolution: text(row.resolution),
-        status: ready ? 'ready_for_pricing' : 'needs_review',
+        status: ready ? "ready_for_pricing" : "needs_review",
         warnings: readinessIssues(uniqueWarnings),
         metadata: {
           source_row_id: text(row.id),
@@ -359,7 +558,7 @@ export async function generateBillingUnderlaysForMonth(input: {
           billing_gate_snapshot: object(row.billing_gate_snapshot),
           raw_payload: object(row.raw_payload),
         },
-      }))
+      }));
 
       const underlay = {
         customer_id: customerId,
@@ -373,26 +572,26 @@ export async function generateBillingUnderlaysForMonth(input: {
         price_plan_version_id: pricePlanVersionId,
         price_book_id: text(snapshot?.price_book_id),
         contract_price_snapshot_id: text(snapshot?.id),
-        billing_block_reason: ready ? null : uniqueWarnings.join('; '),
+        billing_block_reason: ready ? null : uniqueWarnings.join("; "),
         campaign_id: text(snapshot?.campaign_version_id),
         price_area: isPriceArea(priceArea) ? priceArea : null,
         underlay_month: bounds.month,
         underlay_year: bounds.year,
         billing_period_start: entry.start,
         billing_period_end: entry.end,
-        status: ready ? 'validated' : 'pending',
-        readiness_status: ready ? 'ready' : 'blocked',
+        status: ready ? "validated" : "pending",
+        readiness_status: ready ? "ready" : "blocked",
         readiness_issues: readinessIssues(uniqueWarnings),
         total_kwh: totalKwh,
-        currency: 'SEK',
-        source_system: 'normalized_metering_values',
+        currency: "SEK",
+        source_system: "normalized_metering_values",
         source_meter_value_count: segmentRows.length,
         missing_values_count: coverage.missing,
         payload: {
           billing_month: input.billingMonth,
           source_row_ids: segmentRows.map((row) => text(row.id)),
           supply_period_id: text(period.id),
-          generated_from: 'normalized_metering_values',
+          generated_from: "normalized_metering_values",
           lineage: segmentRows.map((row) => ({
             normalized_metering_value_id: text(row.id),
             source_metering_value_id: text(row.source_metering_value_id),
@@ -400,41 +599,68 @@ export async function generateBillingUnderlaysForMonth(input: {
             supply_period_id: text(row.supply_period_id),
             revision_number: row.revision_number ?? null,
           })),
-          timezone: 'Europe/Stockholm',
+          timezone: "Europe/Stockholm",
         },
         pricing_snapshot: snapshotJson,
         received_at: now,
         validated_at: ready ? now : null,
-      }
-      const stored = await supabaseService.rpc('gridex_store_billing_underlay', {
-        p_company_id: input.companyId,
-        p_underlay: underlay,
-        p_items: items,
-        p_actor_user_id: input.createdBy ?? null,
-      })
-      if (stored.error) throw stored.error
-      results.push({
-        underlayId: typeof stored.data === 'string' ? stored.data : null,
-        status: ready ? 'ready_for_pricing' : 'needs_review',
-        sourceTable: 'normalized_metering_values',
-        sourceRows: segmentRows.length,
-        warnings: uniqueWarnings,
-      })
+      };
+      pendingStores.push({
+        underlay,
+        items,
+        result: {
+          status: ready ? "ready_for_pricing" : "needs_review",
+          sourceTable: "normalized_metering_values",
+          sourceRows: segmentRows.length,
+          warnings: uniqueWarnings,
+        },
+      });
     }
   }
 
-  const orphaned = values.filter((row) => !coveredValueIds.has(String(row.id)))
+
+  if (pendingStores.length > 0) {
+    const { data, error } = await supabaseService.rpc(
+      "gridex_store_billing_underlay_batch",
+      {
+        p_company_id: input.companyId,
+        p_commands: pendingStores.map((entry) => ({
+          underlay: entry.underlay,
+          items: entry.items,
+        })),
+        p_actor_user_id: input.createdBy ?? null,
+      },
+    );
+    if (error) throw error;
+    const storedIds = Array.isArray(data) ? data.map(String) : [];
+    if (storedIds.length !== pendingStores.length)
+      throw new Error("billing_underlay_batch_result_count_mismatch");
+    pendingStores.forEach((entry, index) => {
+      results.push({ underlayId: storedIds[index] ?? null, ...entry.result });
+    });
+  }
+
+  const orphaned = values.filter((row) => !coveredValueIds.has(String(row.id)));
   if (orphaned.length > 0) {
-    throw new Error(`${orphaned.length} faktureringsgodkända mätvärden saknar en entydig leveransperiod för ${input.billingMonth}.`)
+    results.push({
+      underlayId: null,
+      status: "needs_review",
+      sourceTable: "normalized_metering_values",
+      sourceRows: orphaned.length,
+      warnings: [
+        `${orphaned.length} faktureringsgodkända mätvärden saknar en entydig leveransperiod för ${input.billingMonth}.`,
+      ],
+    });
   }
 
   return {
     billingMonth: input.billingMonth,
-    sourceTable: 'normalized_metering_values' as const,
+    sourceTable: "normalized_metering_values" as const,
     sourceRows: values.length,
     underlays: results.length,
-    readyForPricing: results.filter((row) => row.status === 'ready_for_pricing').length,
-    needsReview: results.filter((row) => row.status === 'needs_review').length,
+    readyForPricing: results.filter((row) => row.status === "ready_for_pricing")
+      .length,
+    needsReview: results.filter((row) => row.status === "needs_review").length,
     results,
-  }
+  };
 }

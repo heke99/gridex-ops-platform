@@ -23,7 +23,13 @@ type PriceAreaOption = {
 type ContractOfferOption = {
   id: string;
   name: string;
-  contract_type: "fixed" | "variable_monthly" | "variable_hourly" | "portfolio" | "mixed";
+  contract_type:
+    | "fixed"
+    | "variable_monthly"
+    | "variable_hourly"
+    | "variable_quarterly"
+    | "portfolio"
+    | "mixed";
   fixed_price_ore_per_kwh: number | null;
   spot_markup_ore_per_kwh: number | null;
   variable_fee_ore_per_kwh: number | null;
@@ -77,8 +83,9 @@ function FieldError({
   return <span className="text-xs font-medium text-red-600">{error}</span>;
 }
 
-
-function postCreateActionLabel(value: IntakeActionState["postCreateAction"]): string {
+function postCreateActionLabel(
+  value: IntakeActionState["postCreateAction"],
+): string {
   switch (value) {
     case "request_data":
       return "Begär uppgifter direkt";
@@ -89,7 +96,9 @@ function postCreateActionLabel(value: IntakeActionState["postCreateAction"]): st
   }
 }
 
-function requestTargetLabel(value: IntakeActionState["postCreateRequestTarget"]): string {
+function requestTargetLabel(
+  value: IntakeActionState["postCreateRequestTarget"],
+): string {
   switch (value) {
     case "grid_owner":
       return "Nätägare";
@@ -143,25 +152,70 @@ function CreatedCustomerNextSteps({ state }: { state: IntakeActionState }) {
         </Link>
       </div>
 
-      <div className={`mt-4 rounded-2xl border p-4 ${showRequestFirst ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+      <div
+        className={`mt-4 rounded-2xl border p-4 ${showRequestFirst ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}
+      >
         <p className="font-semibold text-slate-950">Begär uppgifter direkt</p>
         <p className="mt-1 text-xs leading-5 text-slate-700">
-          Välj mottagare och skapa begäran utan att leta i kundkortet. Saknas signerad fullmakt stoppar systemet utskicket och lägger en tydlig blockerare på kunden.
+          Välj mottagare och skapa begäran utan att leta i kundkortet. Saknas
+          signerad fullmakt stoppar systemet utskicket och lägger en tydlig
+          blockerare på kunden.
         </p>
 
-        <form action={createCustomerDataRequestPackageAction} className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-          <input type="hidden" name="customer_id" value={state.createdCustomerId} />
-          <input type="hidden" name="redirect_after_submit" value="customer_data_requests" />
-          <input type="hidden" name="site_id" value={state.createdSiteId ?? ""} />
-          <input type="hidden" name="metering_point_id" value={state.createdMeteringPointId ?? ""} />
-          <input type="hidden" name="grid_owner_id" value={state.createdGridOwnerId ?? ""} />
-          <input type="hidden" name="power_of_attorney_id" value={state.createdPowerOfAttorneyId ?? ""} />
-          <input type="hidden" name="current_supplier_name" value={state.createdCurrentSupplierName ?? ""} />
-          <input type="hidden" name="external_reference" value="Direkt efter kundskapande" />
-          <input type="hidden" name="notes" value="Uppgiftsbegäran skapad direkt efter kundintag." />
+        <form
+          action={createCustomerDataRequestPackageAction}
+          className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+        >
+          <input
+            type="hidden"
+            name="customer_id"
+            value={state.createdCustomerId}
+          />
+          <input
+            type="hidden"
+            name="redirect_after_submit"
+            value="customer_data_requests"
+          />
+          <input
+            type="hidden"
+            name="site_id"
+            value={state.createdSiteId ?? ""}
+          />
+          <input
+            type="hidden"
+            name="metering_point_id"
+            value={state.createdMeteringPointId ?? ""}
+          />
+          <input
+            type="hidden"
+            name="grid_owner_id"
+            value={state.createdGridOwnerId ?? ""}
+          />
+          <input
+            type="hidden"
+            name="power_of_attorney_id"
+            value={state.createdPowerOfAttorneyId ?? ""}
+          />
+          <input
+            type="hidden"
+            name="current_supplier_name"
+            value={state.createdCurrentSupplierName ?? ""}
+          />
+          <input
+            type="hidden"
+            name="external_reference"
+            value="Direkt efter kundskapande"
+          />
+          <input
+            type="hidden"
+            name="notes"
+            value="Uppgiftsbegäran skapad direkt efter kundintag."
+          />
 
           <label className="grid gap-1">
-            <span className="text-xs font-semibold text-slate-700">Begär från</span>
+            <span className="text-xs font-semibold text-slate-700">
+              Begär från
+            </span>
             <select
               name="request_target"
               defaultValue={defaultRequestTarget}
@@ -230,14 +284,15 @@ export default function CustomerIntakeForm({
         kundkortet.
       </p>
 
-
       {state.status === "success" && state.message ? (
         <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           <p className="font-semibold">Klart.</p>
           <p className="mt-1">{state.message}</p>
           {state.duplicateReviewRequired && state.duplicateWarnings?.length ? (
             <div className="mt-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-amber-900">
-              <div className="font-semibold">Möjlig dubblett behöver granskas.</div>
+              <div className="font-semibold">
+                Möjlig dubblett behöver granskas.
+              </div>
               <ul className="mt-1 list-disc space-y-1 pl-4">
                 {state.duplicateWarnings.slice(0, 3).map((warning) => (
                   <li key={warning}>{warning}</li>
@@ -548,7 +603,9 @@ export default function CustomerIntakeForm({
               defaultValue={state.values.gridOwnerId ?? ""}
               className={inputClassName(state, "gridOwnerId")}
             >
-              <option value="">Välj verifierad nätägare eller låt systemet begära uppgifter</option>
+              <option value="">
+                Välj verifierad nätägare eller låt systemet begära uppgifter
+              </option>
               {gridOwners.map((owner) => (
                 <option key={owner.id} value={owner.id}>
                   {owner.name}
@@ -559,9 +616,14 @@ export default function CustomerIntakeForm({
           </label>
 
           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 md:col-span-2 text-sm text-sky-950">
-            <p className="font-semibold">Nätägare hanteras som verifierad masterdata</p>
+            <p className="font-semibold">
+              Nätägare hanteras som verifierad masterdata
+            </p>
             <p className="mt-1 text-xs leading-5 text-sky-900">
-              Vanliga elbolagsadmin kan inte skapa nätägare, Ediel-ID, subadress eller route från kundintaget. Saknas nätägaren i listan ska ärendet skickas till superadmin/importflödet och leverantörsbyte blockeras tills aktören är verifierad.
+              Vanliga elbolagsadmin kan inte skapa nätägare, Ediel-ID, subadress
+              eller route från kundintaget. Saknas nätägaren i listan ska
+              ärendet skickas till superadmin/importflödet och leverantörsbyte
+              blockeras tills aktören är verifierad.
             </p>
           </div>
 
@@ -648,7 +710,8 @@ export default function CustomerIntakeForm({
               <option value="__unknown__">Okänd nuvarande leverantör</option>
               {electricitySuppliers.map((supplier) => (
                 <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}{supplier.org_number ? ` · ${supplier.org_number}` : ""}
+                  {supplier.name}
+                  {supplier.org_number ? ` · ${supplier.org_number}` : ""}
                 </option>
               ))}
             </select>
@@ -656,15 +719,26 @@ export default function CustomerIntakeForm({
           </label>
 
           <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            <input type="checkbox" name="currentSupplierUnknown" className="mt-1" />
+            <input
+              type="checkbox"
+              name="currentSupplierUnknown"
+              className="mt-1"
+            />
             <span>
-              <span className="font-semibold">Nuvarande leverantör är okänd</span>
-              <span className="mt-1 block text-xs leading-5">Det stoppar inte kundskapandet, men preflight varnar innan ett säkert byte körs.</span>
+              <span className="font-semibold">
+                Nuvarande leverantör är okänd
+              </span>
+              <span className="mt-1 block text-xs leading-5">
+                Det stoppar inte kundskapandet, men preflight varnar innan ett
+                säkert byte körs.
+              </span>
             </span>
           </label>
 
           <label className="grid gap-1 text-sm">
-            <span className="text-slate-700">Nuvarande leverantör enligt kund/faktura</span>
+            <span className="text-slate-700">
+              Nuvarande leverantör enligt kund/faktura
+            </span>
             <input
               name="currentSupplierName"
               defaultValue={state.values.currentSupplierName ?? ""}
@@ -686,9 +760,14 @@ export default function CustomerIntakeForm({
           </label>
 
           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 md:col-span-2 text-sm text-sky-950">
-            <p className="font-semibold">Leverantörer skapas inte från kundintaget</p>
+            <p className="font-semibold">
+              Leverantörer skapas inte från kundintaget
+            </p>
             <p className="mt-1 text-xs leading-5 text-sky-900">
-              Välj en verifierad elleverantör om den finns. Fritextfältet ovan sparas bara som kundens uppgift och får inte användas som Ediel-/marknadsidentitet. Superadmin ansvarar för aktörsregister, Ediel-ID och routes.
+              Välj en verifierad elleverantör om den finns. Fritextfältet ovan
+              sparas bara som kundens uppgift och får inte användas som
+              Ediel-/marknadsidentitet. Superadmin ansvarar för aktörsregister,
+              Ediel-ID och routes.
             </p>
           </div>
 
@@ -837,6 +916,7 @@ export default function CustomerIntakeForm({
               <option value="fixed">Fast</option>
               <option value="variable_monthly">Rörlig månad</option>
               <option value="variable_hourly">Rörlig tim</option>
+              <option value="variable_quarterly">Rörlig kvart</option>
               <option value="portfolio">Portfölj</option>
             </select>
             <FieldError state={state} name="contractTypeOverride" />
@@ -1073,7 +1153,9 @@ export default function CustomerIntakeForm({
           </label>
 
           <label className="grid gap-1 text-sm md:col-span-2">
-            <span className="text-slate-700">Elnätsfaktura / anläggningsunderlag</span>
+            <span className="text-slate-700">
+              Elnätsfaktura / anläggningsunderlag
+            </span>
             <input
               type="file"
               name="gridInvoiceFile"
@@ -1081,7 +1163,9 @@ export default function CustomerIntakeForm({
               className="rounded-2xl border border-slate-300 px-4 py-3"
             />
             <span className="text-xs text-slate-600">
-              Sparas bara som föreslagen data. Anläggnings-ID, nätägare och nätområde blir verifierade först efter Ediel/nätägare/adminbekräftelse.
+              Sparas bara som föreslagen data. Anläggnings-ID, nätägare och
+              nätområde blir verifierade först efter
+              Ediel/nätägare/adminbekräftelse.
             </span>
           </label>
 
@@ -1217,14 +1301,20 @@ export default function CustomerIntakeForm({
               className={inputClassName(state, "postCreateAction")}
             >
               <option value="open_customer">Öppna kundkort</option>
-              <option value="request_data">Skapa kund och begär uppgifter direkt</option>
-              <option value="create_new">Skapa kund och registrera ny kund</option>
+              <option value="request_data">
+                Skapa kund och begär uppgifter direkt
+              </option>
+              <option value="create_new">
+                Skapa kund och registrera ny kund
+              </option>
             </select>
             <FieldError state={state} name="postCreateAction" />
           </label>
 
           <label className="grid gap-1 text-sm">
-            <span className="text-slate-700">Standardval för uppgiftsbegäran</span>
+            <span className="text-slate-700">
+              Standardval för uppgiftsbegäran
+            </span>
             <select
               name="postCreateRequestTarget"
               defaultValue={state.values.postCreateRequestTarget ?? "both"}
@@ -1240,7 +1330,9 @@ export default function CustomerIntakeForm({
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 md:col-span-2">
             <p className="font-semibold text-slate-950">Så fungerar det</p>
             <p className="mt-1">
-              Kunden sparas alltid först. Om du begär uppgifter direkt kontrollerar systemet signerad fullmakt. Saknas fullmakt skapas en blockerare i stället för att något skickas.
+              Kunden sparas alltid först. Om du begär uppgifter direkt
+              kontrollerar systemet signerad fullmakt. Saknas fullmakt skapas en
+              blockerare i stället för att något skickas.
             </p>
           </div>
         </Section>

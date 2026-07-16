@@ -2,17 +2,14 @@ export type ContractType =
   | "fixed"
   | "variable_monthly"
   | "variable_hourly"
+  | "variable_quarterly"
   | "portfolio"
   | "mixed";
 
 export type GreenFeeMode = "none" | "sek_month" | "ore_per_kwh";
 
 export type CustomerContractTerminationReason =
-  | "switch_supplier"
-  | "stop_supply"
-  | "move_out"
-  | "manual_override"
-  | "other";
+  "switch_supplier" | "stop_supply" | "move_out" | "manual_override" | "other";
 
 export type ContractOfferStatus = "draft" | "active" | "inactive";
 

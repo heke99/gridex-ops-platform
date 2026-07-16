@@ -42,6 +42,8 @@ export function contractTypeLabel(value: ContractType | string): string {
       return "Rörlig månad";
     case "variable_hourly":
       return "Rörlig tim";
+    case "variable_quarterly":
+      return "Rörlig kvart";
     case "portfolio":
       return "Portfölj";
     case "mixed":
@@ -154,6 +156,8 @@ export function parseContractType(
 ): ContractType {
   if (value === "fixed") return "fixed";
   if (value === "variable_monthly") return "variable_monthly";
+  if (value === "variable_hourly") return "variable_hourly";
+  if (value === "variable_quarterly") return "variable_quarterly";
   if (value === "portfolio") return "portfolio";
   if (value === "mixed") return "mixed";
   return "variable_hourly";

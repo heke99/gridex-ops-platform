@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertPlatformSchemaReady } from "@/lib/platform/schemaReadiness";
 import { assertOutboundAllowed } from "@/lib/platform/outboundFreeze";
@@ -16,7 +16,8 @@ import {
 } from "@/lib/cis/db";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { createPartnerExport } from "@/lib/cis/db-data";
-import { calculateUnderlayPricingWithCore } from "@/lib/pricing/underlayPricingAdapter";
+import { calculateUnderlayPricingWithCore, loadLockedUnderlayPricingWithCore } from "@/lib/pricing/underlayPricingAdapter";
+import { lockPricingPreview } from "@/lib/pricing/engine";
 import { buildXlsxWorkbook } from "@/lib/billing/xlsx";
 import {
   GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
@@ -107,92 +108,30 @@ export async function getBillingExportCenterData(
 }
 
 
-function contractSiteId(contract: CustomerContractRow | null): string | null {
-  if (!contract) return null;
-  return (
-    (contract as unknown as Record<string, unknown>).metering_point_id ? null :
-    String((contract as unknown as Record<string, unknown>).customer_site_id ?? contract.site_id ?? '').trim() || null
-  );
-}
-
-function contractMeteringPointId(contract: CustomerContractRow | null): string | null {
-  if (!contract) return null;
-  return String((contract as unknown as Record<string, unknown>).metering_point_id ?? '').trim() || null;
-}
-
-function contractMatchesUnderlayScope(contract: CustomerContractRow, underlay: BillingUnderlayRow): boolean {
-  if (contract.company_id && underlay.company_id && contract.company_id !== underlay.company_id) return false;
-  if (contract.customer_id !== underlay.customer_id) return false;
-
-  const contractPointId = contractMeteringPointId(contract);
-  if (contractPointId) return Boolean(underlay.metering_point_id && contractPointId === underlay.metering_point_id);
-
-  const contractSite = String((contract as unknown as Record<string, unknown>).customer_site_id ?? contract.site_id ?? '').trim();
-  if (contractSite) return Boolean(underlay.site_id && contractSite === underlay.site_id);
-
-  return true;
-}
-
-function contractScopeRank(contract: CustomerContractRow, underlay: BillingUnderlayRow): number {
-  const contractPointId = contractMeteringPointId(contract);
-  if (contractPointId && underlay.metering_point_id && contractPointId === underlay.metering_point_id) return 3;
-
-  const siteId = contractSiteId(contract);
-  if (siteId && underlay.site_id && siteId === underlay.site_id) return 2;
-
-  if (!contractPointId && !siteId && contract.customer_id === underlay.customer_id) return 1;
-  return 0;
-}
-
-function contractSortTime(contract: CustomerContractRow): number {
-  return new Date(
-    contract.actual_start_at ??
-      contract.confirmed_start_at ??
-      contract.starts_at ??
-      contract.signed_at ??
-      contract.updated_at ??
-      contract.created_at
-  ).getTime();
-}
-
-async function listLatestBillableContractsByUnderlayIds(params: {
+async function listExactBillableContractsByUnderlayIds(params: {
   companyId: string;
   underlays: BillingUnderlayRow[];
 }): Promise<Map<string, CustomerContractRow>> {
   const map = new Map<string, CustomerContractRow>();
-  const customerIds = Array.from(new Set(params.underlays.map((underlay) => underlay.customer_id).filter(Boolean)));
-  if (customerIds.length === 0) return map;
+  const contractIds = Array.from(new Set(params.underlays
+    .map((underlay) => String((underlay as unknown as Record<string, unknown>).contract_id ?? "").trim())
+    .filter(Boolean)));
+  if (contractIds.length === 0) return map;
 
-  try {
-    const { data, error } = await supabaseService
-      .from("customer_contracts")
-      .select("*")
-      .eq("company_id", params.companyId)
-      .in("customer_id", customerIds)
-      .in("status", ["signed", "active", "pending_signature", "draft"]);
+  const { data, error } = await supabaseService
+    .from("customer_contracts")
+    .select("*")
+    .eq("company_id", params.companyId)
+    .in("id", contractIds)
+    .in("status", ["signed", "active"]);
+  if (error) throw error;
 
-    if (error) {
-      if (isMissingRelationError(error)) return map;
-      throw error;
-    }
-
-    const contracts = ((data ?? []) as CustomerContractRow[]).sort((a, b) => contractSortTime(b) - contractSortTime(a));
-
-    for (const underlay of params.underlays) {
-      const matches = contracts
-        .filter((contract) => contractMatchesUnderlayScope(contract, underlay))
-        .sort((a, b) => {
-          const rankDelta = contractScopeRank(b, underlay) - contractScopeRank(a, underlay);
-          if (rankDelta !== 0) return rankDelta;
-          return contractSortTime(b) - contractSortTime(a);
-        });
-
-      if (matches[0]) map.set(underlay.id, matches[0]);
-    }
-  } catch (error) {
-    if (!isMissingRelationError(error)) throw error;
+  const byId = new Map(((data ?? []) as CustomerContractRow[]).map((contract) => [contract.id, contract]));
+  for (const underlay of params.underlays) {
+    const contractId = String((underlay as unknown as Record<string, unknown>).contract_id ?? "").trim();
+    const contract = contractId ? byId.get(contractId) : null;
+    if (contract) map.set(underlay.id, contract);
   }
-
   return map;
 }
 
@@ -291,11 +230,12 @@ async function createBlockedBillingCasesForItems(params: {
 
       if (taskError) throw taskError;
 
-      await supabaseService
+      const { error: itemUpdateError } = await supabaseService
         .from("billing_export_run_items")
         .update({ blocker_case_id: task?.id ?? null, updated_at: new Date().toISOString() })
         .eq("company_id", params.companyId)
         .eq("id", item.id);
+      if (itemUpdateError) throw itemUpdateError;
     } catch (error) {
       console.warn("Billing blocker task could not be created", error);
     }
@@ -346,7 +286,7 @@ export async function createBillingExportRun(input: {
     return underlay.underlay_year === year && underlay.underlay_month === month;
   });
 
-  const contractsByUnderlay = await listLatestBillableContractsByUnderlayIds({
+  const contractsByUnderlay = await listExactBillableContractsByUnderlayIds({
     companyId: input.companyId,
     underlays: periodUnderlays,
   });
@@ -362,20 +302,37 @@ export async function createBillingExportRun(input: {
     const contract = contractsByUnderlay.get(underlay.id) ?? null;
     // Single Pricing Core: same engine and persisted pricing_run as the
     // pricing preview, so billing/export can never disagree with preview.
-    const pricing = await calculateUnderlayPricingWithCore({
+    let pricing = await loadLockedUnderlayPricingWithCore({
       companyId: input.companyId,
       billingUnderlayId: underlay.id,
-      persist: true,
     });
+    if (!pricing) {
+      pricing = await calculateUnderlayPricingWithCore({
+        companyId: input.companyId,
+        billingUnderlayId: underlay.id,
+        persist: true,
+      });
+      if (pricing.status === "success" && pricing.pricingRunId) {
+        await lockPricingPreview({
+          companyId: input.companyId,
+          pricingRunId: pricing.pricingRunId,
+          actorUserId: input.actorUserId,
+        });
+        pricing = (await loadLockedUnderlayPricingWithCore({
+          companyId: input.companyId,
+          billingUnderlayId: underlay.id,
+        })) ?? pricing;
+      }
+    }
     const pricingWarnings = pricing.warnings.map((warning) => ({
       code: "pricing_warning",
       severity: "warning",
       title: "Prismotor behöver granskning",
       description: warning,
     }));
-    const pricingBlockers = pricing.status === "success"
+    const pricingBlockers = pricing.status === "success" && pricing.locked
       ? []
-      : (pricing.errors.length > 0 ? pricing.errors : ["Prisberäkningen misslyckades."]).map((message) => ({
+      : (pricing.errors.length > 0 ? pricing.errors : [pricing.status === "success" ? "Prisberäkningen är inte låst." : "Prisberäkningen misslyckades."]).map((message) => ({
           code: "pricing_failed",
           severity: "blocked",
           title: "Prisberäkning blockerad",
@@ -396,11 +353,11 @@ export async function createBillingExportRun(input: {
     items.push({
       company_id: input.companyId,
       billing_underlay_id: underlay.id,
-      contract_id: contract?.id ?? null,
+      contract_id: String((underlay as unknown as Record<string, unknown>).contract_id ?? "").trim() || null,
       customer_id: underlay.customer_id,
       site_id: underlay.site_id,
       metering_point_id: underlay.metering_point_id,
-      status: result?.isExportable && contract && pricing.status === "success" ? "ready" : "blocked",
+      status: result?.isExportable && contract && pricing.status === "success" && pricing.locked ? "ready" : "blocked",
       readiness_status: result?.status ?? "blocked",
       blocker_reasons: blockerReasons,
       pricing_line_items: pricing.lines,
@@ -443,74 +400,55 @@ export async function createBillingExportRun(input: {
       issues: item.blocker_reasons,
     }));
 
-  const { data: run, error } = await supabaseService
-    .from("billing_export_runs")
-    .insert({
-      company_id: input.companyId,
-      period_month: input.periodMonth,
-      target_system: input.targetSystem,
-      export_format: input.exportFormat,
-      status: rowsReady > 0 ? "ready_with_flags" : "blocked",
-      rows_total: items.length,
-      rows_ready: rowsReady,
-      rows_blocked: rowsBlocked,
-      rows_exported: 0,
-      blocker_summary: blockerSummary,
-      created_by: input.actorUserId,
-      adapter_key: GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
-      payload_version: "billing_export_v4c",
-      retry_policy: { maxAttempts: 3, strategy: "manual_retry" },
-      idempotency_key: idempotencyKey,
-      metadata: { pricingEngine: "pricing_core_v1", partnerAdapter: GRIDEX_BILLING_PARTNER_ADAPTER_KEY },
-    })
-    .select("*")
-    .single();
+  const now = new Date().toISOString();
+  const runDraft: BillingExportRunRow & { idempotency_key?: string | null } = {
+    id: randomUUID(),
+    company_id: input.companyId,
+    period_month: input.periodMonth,
+    target_system: input.targetSystem,
+    export_format: input.exportFormat,
+    status: rowsReady > 0 ? "ready_with_flags" : "blocked",
+    rows_total: items.length,
+    rows_ready: rowsReady,
+    rows_blocked: rowsBlocked,
+    rows_exported: 0,
+    blocker_summary: blockerSummary,
+    created_by: input.actorUserId,
+    created_at: now,
+    updated_at: now,
+    adapter_key: GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
+    payload_version: "billing_export_v4c",
+    retry_policy: { maxAttempts: 3, strategy: "manual_retry" },
+    metadata: { pricingEngine: "pricing_core_v1", partnerAdapter: GRIDEX_BILLING_PARTNER_ADAPTER_KEY, exactContractBinding: true, atomicCreation: true },
+    idempotency_key: idempotencyKey,
+  };
+  const preparedItems = items.map((item) => {
+    const prepared = {
+      ...item,
+      id: randomUUID(),
+      billing_export_run_id: runDraft.id,
+      created_at: now,
+      updated_at: now,
+    } as BillingExportRunItemRow;
+    return {
+      ...prepared,
+      adapter_payload_snapshot: buildBillingPartnerPayloadRow({ run: runDraft, item: prepared }),
+    };
+  });
 
-  if (error) {
-    // Lost a concurrent race on the idempotency index: reuse the winner.
-    if (idempotencyKey && error.code === "23505") {
-      const { data: winner, error: winnerError } = await supabaseService
-        .from("billing_export_runs")
-        .select("*")
-        .eq("company_id", input.companyId)
-        .eq("idempotency_key", idempotencyKey)
-        .maybeSingle();
-      if (winnerError) throw winnerError;
-      if (winner) return winner as BillingExportRunRow;
-    }
-    throw error;
-  }
+  const { data: atomicResult, error } = await supabaseService.rpc("gridex_create_billing_export_run", {
+    p_run: runDraft,
+    p_items: preparedItems,
+  });
+  if (error) throw error;
+  const run = atomicResult as BillingExportRunRow;
 
-  if (items.length > 0) {
-    const { data: insertedItems, error: itemError } = await supabaseService
-      .from("billing_export_run_items")
-      .insert(
-        items.map((item) => ({ ...item, billing_export_run_id: run.id })),
-      )
-      .select("*");
-
-    if (itemError) throw itemError;
-
-    const insertedRows = (insertedItems ?? []) as BillingExportRunItemRow[];
-    for (const item of insertedRows) {
-      const adapterPayload = buildBillingPartnerPayloadRow({
-        run: run as BillingExportRunRow,
-        item,
-      });
-      await supabaseService
-        .from("billing_export_run_items")
-        .update({ adapter_payload_snapshot: adapterPayload })
-        .eq("company_id", input.companyId)
-        .eq("id", item.id);
-    }
-
-    await createBlockedBillingCasesForItems({
-      companyId: input.companyId,
-      actorUserId: input.actorUserId,
-      exportRunId: run.id,
-      items: insertedRows,
-    });
-  }
+  await createBlockedBillingCasesForItems({
+    companyId: input.companyId,
+    actorUserId: input.actorUserId,
+    exportRunId: run.id,
+    items: preparedItems,
+  });
 
   return run as BillingExportRunRow;
 }
@@ -549,7 +487,7 @@ export async function queueReadyBillingExportRunItems(input: {
   for (const item of readyItems) {
     if (!item.customer_id) {
       skipped += 1;
-      await supabaseService
+      const { error: blockedUpdateError } = await supabaseService
         .from("billing_export_run_items")
         .update({
           export_status: "blocked",
@@ -559,6 +497,7 @@ export async function queueReadyBillingExportRunItems(input: {
         })
         .eq("company_id", input.companyId)
         .eq("id", item.id);
+      if (blockedUpdateError) throw blockedUpdateError;
       continue;
     }
 
@@ -618,7 +557,7 @@ export async function queueReadyBillingExportRunItems(input: {
       queued += 1;
     } catch (error) {
       skipped += 1;
-      await supabaseService
+      const { error: failedUpdateError } = await supabaseService
         .from("billing_export_run_items")
         .update({
           export_status: "failed",
@@ -633,6 +572,7 @@ export async function queueReadyBillingExportRunItems(input: {
         })
         .eq("company_id", input.companyId)
         .eq("id", item.id);
+      if (failedUpdateError) throw failedUpdateError;
     }
   }
 

@@ -9,6 +9,8 @@ function contractTypeLabel(value: ContractOfferRow['contract_type']): string {
  return 'Rörlig månad'
  case 'variable_hourly':
  return 'Rörlig tim'
+ case 'variable_quarterly':
+ return 'Rörlig kvart'
  case 'portfolio':
  return 'Portfölj'
  default:
@@ -45,6 +47,8 @@ function groupLabel(type: ContractOfferRow['contract_type']): string {
  return 'Rörlig månad'
  case 'variable_hourly':
  return 'Rörlig tim'
+ case 'variable_quarterly':
+ return 'Rörlig kvart'
  case 'portfolio':
  return 'Portfölj'
  default:
@@ -67,6 +71,7 @@ export default function CustomerContractOfferEligibilityCard({
  'fixed',
  'variable_monthly',
  'variable_hourly',
+ 'variable_quarterly',
  'portfolio',
  ].map((type) => ({
  type,

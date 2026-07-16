@@ -54,43 +54,24 @@ async function persistBillingGate(params: {
   supplyPeriodId?: string | null
   sourceMessageId?: string | null
 }) {
-  const now = new Date().toISOString()
-  const meterUpdate = await supabaseService
-    .from('metering_values')
-    .update({
-      customer_id: params.customerId ?? undefined,
-      billing_status: params.status,
-      billing_gate_status: params.gateStatus,
-      billing_gate_reasons: params.gateReasons,
-      billing_gate_snapshot: params.gateSnapshot,
-      billing_gate_evaluated_at: now,
-    })
-    .eq('id', params.meterValueId)
-    .eq('company_id', params.companyId)
-    .select('id')
-  if (meterUpdate.error) throw meterUpdate.error
-  if ((meterUpdate.data ?? []).length !== 1) throw new Error('metering_billing_status_update_missed')
-
-  const normalizedUpdate = await supabaseService
-    .from('normalized_metering_values')
-    .update({
-      customer_id: params.customerId ?? undefined,
+  const { error } = await supabaseService.rpc('gridex_set_metering_billing_gate', {
+    p_company_id: params.companyId,
+    p_metering_value_id: params.meterValueId,
+    p_normalized_value_id: params.normalizedValueId,
+    p_gate: {
+      customer_id: params.customerId ?? null,
       supply_period_id: params.supplyPeriodId ?? null,
-      source_message_id: params.sourceMessageId ?? undefined,
+      source_message_id: params.sourceMessageId ?? null,
       billing_status: params.status,
       billing_gate_status: params.gateStatus,
       billing_gate_reasons: params.gateReasons,
       billing_gate_snapshot: params.gateSnapshot,
-      billing_gate_evaluated_at: now,
-      updated_at: now,
-    })
-    .eq('id', params.normalizedValueId)
-    .eq('company_id', params.companyId)
-    .eq('revision_status', 'current')
-    .select('id')
-  if (normalizedUpdate.error) throw normalizedUpdate.error
-  if ((normalizedUpdate.data ?? []).length !== 1) throw new Error('normalized_metering_billing_status_update_missed')
+      billing_gate_evaluated_at: new Date().toISOString(),
+    },
+  })
+  if (error) throw error
 }
+
 
 export async function updateMeterValueBillingReadiness(params: {
   meterValue: MeteringValueRow
