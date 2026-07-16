@@ -1,87 +1,101 @@
-import type { BillingExportRunItemRow, BillingExportRunRow } from '@/lib/billing/exportCenter'
+import type {
+  BillingExportRunItemRow,
+  BillingExportRunRow,
+} from "@/lib/billing/exportCenter";
 
-export const GRIDEX_BILLING_PARTNER_ADAPTER_KEY = 'gridex_billing_partner_v1'
-export const GRIDEX_BILLING_PARTNER_PAYLOAD_VERSION = 'billing_partner_payload_v4c'
+export const GRIDEX_BILLING_PARTNER_ADAPTER_KEY = "gridex_billing_partner_v1";
+export const GRIDEX_BILLING_PARTNER_PAYLOAD_VERSION =
+  "billing_partner_payload_v4c";
 
 function objectValue(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
+  return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
-    : {}
+    : {};
 }
 
 function numberValue(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string' && value.trim()) {
-    const parsed = Number(value.replace(',', '.'))
-    return Number.isFinite(parsed) ? parsed : null
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
   }
-  return null
+  return null;
 }
 
 export type BillingPartnerPayloadRow = {
-  idempotencyKey: string
-  payloadVersion: string
-  adapterKey: string
-  exportRunId: string
-  exportRunItemId: string
-  billingUnderlayId: string | null
-  customerId: string | null
-  contractId: string | null
-  siteId: string | null
-  meteringPointId: string | null
-  period: { year: number | null; month: number | null; monthKey: string | null }
+  idempotencyKey: string;
+  payloadVersion: string;
+  adapterKey: string;
+  exportRunId: string;
+  exportRunItemId: string;
+  billingUnderlayId: string | null;
+  customerId: string | null;
+  contractId: string | null;
+  siteId: string | null;
+  meteringPointId: string | null;
+  period: {
+    year: number | null;
+    month: number | null;
+    monthKey: string | null;
+  };
   invoice: {
-    recipient: string | null
-    email: string | null
-    reference: string | null
-    billingLevel: string | null
-    consolidated: boolean
-    groupKey: string | null
-    address: Record<string, unknown>
-    siteAddress: Record<string, unknown>
-  }
+    recipient: string | null;
+    email: string | null;
+    reference: string | null;
+    billingLevel: string | null;
+    consolidated: boolean;
+    groupKey: string | null;
+    address: Record<string, unknown>;
+    siteAddress: Record<string, unknown>;
+  };
+  energyDirection: "consumption" | "production" | "consumption_correction";
+  settlementType: "invoice" | "credit_invoice" | "self_billing";
   amounts: {
-    kwh: number | null
-    sourceAmountSekExVat: number | null
-    calculatedSekExVat: number | null
-    vatSek: number | null
-    totalSekIncVat: number | null
-  }
-  pricingLineItems: Array<Record<string, unknown>>
-  blockers: Array<Record<string, unknown>>
-  raw: Record<string, unknown>
-}
+    kwh: number | null;
+    sourceAmountSekExVat: number | null;
+    calculatedSekExVat: number | null;
+    vatSek: number | null;
+    totalSekIncVat: number | null;
+  };
+  pricingLineItems: Array<Record<string, unknown>>;
+  intervalEvidence: Array<Record<string, unknown>>;
+  blockers: Array<Record<string, unknown>>;
+  raw: Record<string, unknown>;
+};
 
 export type BillingPartnerPayload = {
-  payloadVersion: string
-  adapterKey: string
+  payloadVersion: string;
+  adapterKey: string;
   exportRun: {
-    id: string
-    companyId: string
-    periodMonth: string
-    targetSystem: string
-    exportFormat: string
-    createdAt: string
-  }
-  rows: BillingPartnerPayloadRow[]
-}
+    id: string;
+    companyId: string;
+    periodMonth: string;
+    targetSystem: string;
+    exportFormat: string;
+    createdAt: string;
+  };
+  rows: BillingPartnerPayloadRow[];
+};
 
-function pricingNumber(snapshot: Record<string, unknown>, key: string): number | null {
-  const pricing = objectValue(snapshot.pricing)
-  return numberValue(pricing[key])
+function pricingNumber(
+  snapshot: Record<string, unknown>,
+  key: string,
+): number | null {
+  const pricing = objectValue(snapshot.pricing);
+  return numberValue(pricing[key]);
 }
 
 export function buildBillingPartnerPayloadRow(params: {
-  run: BillingExportRunRow
-  item: BillingExportRunItemRow
+  run: BillingExportRunRow;
+  item: BillingExportRunItemRow;
 }): BillingPartnerPayloadRow {
-  const snapshot = objectValue(params.item.payload_snapshot)
-  const underlay = objectValue(snapshot.underlay)
+  const snapshot = objectValue(params.item.payload_snapshot);
+  const underlay = objectValue(snapshot.underlay);
   const idempotencyKey =
     params.item.idempotency_key ||
-    `billing:${params.run.company_id}:${params.run.id}:${params.item.id}`
-  const year = numberValue(underlay.underlay_year)
-  const month = numberValue(underlay.underlay_month)
+    `billing:${params.run.company_id}:${params.run.id}:${params.item.id}`;
+  const year = numberValue(underlay.underlay_year);
+  const month = numberValue(underlay.underlay_month);
 
   return {
     idempotencyKey,
@@ -97,7 +111,10 @@ export function buildBillingPartnerPayloadRow(params: {
     period: {
       year,
       month,
-      monthKey: year && month ? `${year}-${String(month).padStart(2, '0')}` : params.run.period_month,
+      monthKey:
+        year && month
+          ? `${year}-${String(month).padStart(2, "0")}`
+          : params.run.period_month,
     },
     invoice: {
       recipient: params.item.invoice_recipient ?? null,
@@ -109,14 +126,31 @@ export function buildBillingPartnerPayloadRow(params: {
       address: objectValue(params.item.invoice_address_snapshot),
       siteAddress: objectValue(params.item.site_address_snapshot),
     },
+    energyDirection:
+      params.item.energy_direction === "production" ||
+      params.item.energy_direction === "consumption_correction"
+        ? params.item.energy_direction
+        : "consumption",
+    settlementType:
+      params.item.settlement_type === "credit_invoice" ||
+      params.item.settlement_type === "self_billing"
+        ? params.item.settlement_type
+        : "invoice",
     amounts: {
       kwh: numberValue(underlay.total_kwh),
       sourceAmountSekExVat: numberValue(underlay.total_sek_ex_vat),
-      calculatedSekExVat: pricingNumber(snapshot, 'subtotalSekExVat'),
-      vatSek: pricingNumber(snapshot, 'vatSek'),
-      totalSekIncVat: pricingNumber(snapshot, 'totalSekIncVat'),
+      calculatedSekExVat: pricingNumber(snapshot, "subtotalSekExVat"),
+      vatSek: pricingNumber(snapshot, "vatSek"),
+      totalSekIncVat: pricingNumber(snapshot, "totalSekIncVat"),
     },
     pricingLineItems: params.item.pricing_line_items ?? [],
+    intervalEvidence: Array.isArray(
+      objectValue(snapshot.pricing).intervalEvidence,
+    )
+      ? (objectValue(snapshot.pricing).intervalEvidence as Array<
+          Record<string, unknown>
+        >)
+      : [],
     blockers: params.item.blocker_reasons ?? [],
     raw: {
       underlay,
@@ -124,12 +158,12 @@ export function buildBillingPartnerPayloadRow(params: {
       readiness: objectValue(snapshot.readiness),
       pricing: objectValue(snapshot.pricing),
     },
-  }
+  };
 }
 
 export function buildBillingPartnerPayload(params: {
-  run: BillingExportRunRow
-  items: BillingExportRunItemRow[]
+  run: BillingExportRunRow;
+  items: BillingExportRunItemRow[];
 }): BillingPartnerPayload {
   return {
     payloadVersion: GRIDEX_BILLING_PARTNER_PAYLOAD_VERSION,
@@ -142,6 +176,8 @@ export function buildBillingPartnerPayload(params: {
       exportFormat: params.run.export_format,
       createdAt: params.run.created_at,
     },
-    rows: params.items.map((item) => buildBillingPartnerPayloadRow({ run: params.run, item })),
-  }
+    rows: params.items.map((item) =>
+      buildBillingPartnerPayloadRow({ run: params.run, item }),
+    ),
+  };
 }

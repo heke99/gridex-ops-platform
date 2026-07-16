@@ -797,14 +797,9 @@ export default async function AdminContractsPage({
                 placeholder="Generellt fast pris öre/kWh"
                 className="rounded-2xl border border-slate-300 px-4 py-3 "
               />
-              <textarea
-                name="fixed_prices_by_area"
-                rows={3}
-                placeholder={
-                  "Fastpris per område: SE1|85,50\nSE2|88,20\nSE3|92,10\nSE4|99,40"
-                }
-                className="rounded-2xl border border-slate-300 px-4 py-3 md:col-span-2"
-              />
+              <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:col-span-2">
+                Fastpris anges som ett gemensamt pris per kWh. Prisområden styr bara var avtalet är tillgängligt.
+              </p>
               <input
                 name="spot_markup_ore_per_kwh"
                 placeholder="Fast påslag öre/kWh"
@@ -848,6 +843,34 @@ export default async function AdminContractsPage({
                 placeholder="Portföljavgift öre/kWh"
                 className="rounded-2xl border border-slate-300 px-4 py-3 "
               />
+            </div>
+
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <label className="flex items-center gap-3 text-sm font-semibold text-emerald-950">
+                <input type="checkbox" name="production_enabled" />
+                Avtalet kan även avräkna producerad överskottsel
+              </label>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <input
+                  name="production_compensation_ore_per_kwh"
+                  placeholder="Produktionsersättning öre/kWh"
+                  className="rounded-2xl border border-emerald-200 bg-white px-4 py-3"
+                />
+                <input
+                  name="production_vat_rate"
+                  defaultValue="0"
+                  placeholder="Moms på produktionsersättning %"
+                  className="rounded-2xl border border-emerald-200 bg-white px-4 py-3"
+                />
+                <select
+                  name="production_settlement_mode"
+                  defaultValue="credit_invoice"
+                  className="rounded-2xl border border-emerald-200 bg-white px-4 py-3"
+                >
+                  <option value="credit_invoice">Kreditunderlag</option>
+                  <option value="self_billing">Självfakturering</option>
+                </select>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">

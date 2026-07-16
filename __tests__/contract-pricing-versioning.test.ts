@@ -71,13 +71,13 @@ describe("contract pricing versioning snapshot", () => {
     expect(result.snapshot.price_areas).toEqual(["SE1", "SE3"]);
   });
 
-  it("supports fixed prices per selected price area without a generic fallback", () => {
+  it("uses one fixed price per kWh across all selected price areas", () => {
     const result = normalizeContractPricing({
-      name: "Fast område",
+      name: "Fast gemensamt",
       contractType: "fixed",
       customerType: "private",
       priceAreas: "SE1,SE4",
-      fixedPricesByArea: "SE1|85,50\nSE4|99,40",
+      fixedPriceOrePerKwh: "85,50",
     });
 
     expect(result.snapshot.base_components).toEqual([
@@ -87,23 +87,22 @@ describe("contract pricing versioning snapshot", () => {
       }),
       expect.objectContaining({
         price_area: "SE4",
-        fixed_price_sek_per_kwh: 0.994,
+        fixed_price_sek_per_kwh: 0.855,
       }),
     ]);
-    expect(result.publicPriceText).toContain("SE1 85,5 öre/kWh");
-    expect(result.publicPriceText).toContain("SE4 99,4 öre/kWh");
+    expect(result.publicPriceText).toContain("Fast pris 85,5 öre/kWh");
   });
 
-  it("requires an area price for every selected area when no generic fixed price exists", () => {
+  it("rejects different legacy fixed prices between price areas", () => {
     expect(() =>
       normalizeContractPricing({
-        name: "Fast ofullständigt",
+        name: "Fast felaktigt område",
         contractType: "fixed",
         customerType: "private",
         priceAreas: "SE1,SE2",
-        fixedPricesByArea: "SE1|85",
+        fixedPricesByArea: "SE1|85\nSE2|99",
       }),
-    ).toThrow(/SE2/);
+    ).toThrow(/samma öre\/kWh/i);
   });
 
   it("models percentage discounts as a negative percentage campaign component", () => {
@@ -152,19 +151,35 @@ describe("contract pricing versioning snapshot", () => {
     );
   });
 
-  it("supports interval-priced spot legs in mixed contracts", () => {
+  it("locks mixed contracts to monthly spot average plus monthly portfolio price", () => {
     const result = normalizeContractPricing({
-      name: "Mix kvart",
+      name: "Mix månad",
       contractType: "mixed",
       customerType: "both",
       priceAreas: "SE3",
       spotWeightPercent: 50,
       portfolioWeightPercent: 50,
       fixedWeightPercent: 0,
-      spotIntervalResolution: "quarterly",
+      spotIntervalResolution: "monthly",
     });
 
-    expect(result.snapshot.interval_resolution).toBe("quarterly");
-    expect(result.publicPriceText).toContain("50% rörligt (kvartspris)");
+    expect(result.snapshot.interval_resolution).toBe("monthly");
+    expect(result.publicPriceText).toContain("50% rörligt");
+    expect(result.publicPriceText).toContain("50% portfölj");
+  });
+
+  it("rejects hourly or quarterly spot legs in mixed contracts", () => {
+    expect(() =>
+      normalizeContractPricing({
+        name: "Mix kvart",
+        contractType: "mixed",
+        customerType: "both",
+        priceAreas: "SE3",
+        spotWeightPercent: 50,
+        portfolioWeightPercent: 50,
+        fixedWeightPercent: 0,
+        spotIntervalResolution: "quarterly",
+      }),
+    ).toThrow(/månadsmedel/i);
   });
 });

@@ -20,6 +20,11 @@ import {
   resolveIntervalSpotPricing,
   type IntervalPriceEvidence,
 } from "@/lib/pricing/intervalPricing";
+import { buildProductionSettlement } from "@/lib/pricing/productionSettlement";
+import {
+  buildConsumptionCorrectionLines,
+  isConsumptionCorrectionVariableComponent,
+} from "@/lib/pricing/consumptionCorrectionSettlement";
 
 function numberValue(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -170,6 +175,18 @@ function underlayToInput(
     campaignId: stringValue(underlay.campaign_id),
     priceArea,
     quantityKwh: numberValue(underlay.total_kwh),
+    energyDirection: (() => {
+      const value = stringValue(underlay.energy_direction);
+      if (value === "production" || value === "consumption_correction")
+        return value;
+      return "consumption";
+    })(),
+    settlementType: (() => {
+      const value = stringValue(underlay.settlement_type);
+      return value === "credit_invoice" || value === "self_billing"
+        ? value
+        : "invoice";
+    })(),
     periodStart: stringValue(underlay.billing_period_start) ?? period.start,
     periodEnd: stringValue(underlay.billing_period_end) ?? period.end,
     activeFrom:
@@ -266,7 +283,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
   if (underlay.quantityKwh === null)
     errors.push("Mätförbrukning saknas på fakturaunderlaget.");
   if (underlay.quantityKwh !== null && underlay.quantityKwh <= 0)
-    errors.push("Mätförbrukning är noll för fakturaperioden.");
+    errors.push("Energimängden är noll för fakturaperioden.");
   if (!underlay.pricingSnapshot)
     errors.push("Exakt låst prissnapshot saknas på fakturaunderlaget.");
 
@@ -284,6 +301,55 @@ export async function calculatePricingPreviewForUnderlay(input: {
 
   const billingMonth =
     underlayPeriod?.billingMonth ?? normalizeBillingMonth(underlay.periodStart);
+
+  if (underlay.energyDirection === "production") {
+    let productionResult: PricingPreviewResult;
+    try {
+      const settlement = buildProductionSettlement({
+        quantityKwh: underlay.quantityKwh ?? 0,
+        pricingSnapshot: underlay.pricingSnapshot,
+      });
+      if (underlay.settlementType !== settlement.settlementType) {
+        errors.push(
+          "Fakturaunderlagets avräkningstyp matchar inte det låsta produktionsavtalet.",
+        );
+      }
+      productionResult = finalizePricingPreview({
+        billingUnderlayId: input.billingUnderlayId,
+        lines: [settlement.line],
+        warnings,
+        errors,
+        vatRate: settlement.vatRate,
+      });
+    } catch (error) {
+      errors.push(
+        error instanceof Error
+          ? error.message
+          : "Produktionsavräkningen kunde inte beräknas.",
+      );
+      productionResult = finalizePricingPreview({
+        billingUnderlayId: input.billingUnderlayId,
+        lines: [],
+        warnings,
+        errors,
+        vatRate: 0,
+      });
+    }
+    const pricingRunId = input.persist
+      ? await persistPricingRun(input.companyId, productionResult, underlay)
+      : null;
+    return { ...productionResult, pricingRunId };
+  }
+
+  if (
+    underlay.energyDirection === "consumption_correction" &&
+    underlay.settlementType !== "credit_invoice"
+  ) {
+    errors.push(
+      "Negativ konsumtionskorrigering måste avräknas som kreditfaktura.",
+    );
+  }
+
   const fixedOre = numberValue(contract?.fixed_price_ore_per_kwh);
   const config = await resolvePricingConfiguration({
     companyId: input.companyId,
@@ -372,7 +438,12 @@ export async function calculatePricingPreviewForUnderlay(input: {
 
   const component = calculatePriceComponents({
     underlay,
-    components: config.priceComponents,
+    components:
+      underlay.energyDirection === "consumption_correction"
+        ? config.priceComponents.filter(
+            isConsumptionCorrectionVariableComponent,
+          )
+        : config.priceComponents,
     baseAmountExVat: base.lines.reduce(
       (sum, line) => sum + line.amountExVat,
       0,
@@ -384,9 +455,13 @@ export async function calculatePricingPreviewForUnderlay(input: {
   warnings.push(...component.warnings);
   errors.push(...component.errors);
 
+  const calculatedLines = [...base.lines, ...component.lines];
   const result = finalizePricingPreview({
     billingUnderlayId: input.billingUnderlayId,
-    lines: [...base.lines, ...component.lines],
+    lines:
+      underlay.energyDirection === "consumption_correction"
+        ? buildConsumptionCorrectionLines(calculatedLines)
+        : calculatedLines,
     warnings,
     errors,
     vatRate: config.vatRate,

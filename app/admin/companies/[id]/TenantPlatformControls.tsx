@@ -788,6 +788,33 @@ export default async function TenantPlatformControls({
                 className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
               />
             </div>
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <label className="flex items-center gap-3 text-sm font-semibold text-emerald-950">
+                <input type="checkbox" name="production_enabled" />
+                Hantera producerad överskottsel som separat kreditunderlag
+              </label>
+              <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-3">
+                <input
+                  name="production_compensation_ore_per_kwh"
+                  placeholder="Produktionsersättning öre/kWh"
+                  className="min-w-0 w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm"
+                />
+                <input
+                  name="production_vat_rate"
+                  defaultValue="0"
+                  placeholder="Produktionsmoms %"
+                  className="min-w-0 w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm"
+                />
+                <select
+                  name="production_settlement_mode"
+                  defaultValue="credit_invoice"
+                  className="min-w-0 w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm"
+                >
+                  <option value="credit_invoice">Kreditunderlag</option>
+                  <option value="self_billing">Självfakturering</option>
+                </select>
+              </div>
+            </div>
             <div className="grid min-w-0 gap-3 sm:grid-cols-2">
               <input
                 name="discount_value"
@@ -821,14 +848,9 @@ export default async function TenantPlatformControls({
               placeholder="Prisområden, t.ex. SE1, SE2, SE3, SE4"
               className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
             />
-            <textarea
-              name="fixed_prices_by_area"
-              rows={3}
-              placeholder={
-                "Fastpris per område, en rad per område: SE1|85,50\nSE2|88,20\nSE3|92,10\nSE4|99,40"
-              }
-              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-            />
+            <p className="min-w-0 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Fastpris är ett gemensamt pris per kWh. Prisområden styr avtalets tillgänglighet.
+            </p>
             <textarea
               name="optional_fee_lines"
               rows={3}

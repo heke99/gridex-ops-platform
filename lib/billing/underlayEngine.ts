@@ -30,6 +30,16 @@ function object(value: unknown): JsonRecord {
     : {};
 }
 
+function strictNumberOrNull(value: unknown): number | null {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value.replace(",", "."))
+        : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function strictNumber(value: unknown, field: string): number {
   const parsed =
     typeof value === "number"
@@ -49,6 +59,52 @@ function quantityKwh(row: JsonRecord): number {
   if (unit === "Wh") return quantity / 1_000;
   if (unit === "MWh") return quantity * 1_000;
   throw new Error(`Mätenheten ${unit} stöds inte för fakturering.`);
+}
+
+type EnergyDirection = "consumption" | "production" | "consumption_correction";
+
+function normalizeEnergyDirection(row: JsonRecord): EnergyDirection {
+  const explicit = text(row.direction)?.toLowerCase() ?? null;
+  if (
+    explicit &&
+    ["production", "net_production", "export", "surplus"].includes(explicit)
+  ) {
+    return "production";
+  }
+  if (
+    explicit &&
+    ["consumption_correction", "negative_consumption", "correction"].includes(
+      explicit,
+    )
+  ) {
+    return "consumption_correction";
+  }
+  if (quantityKwh(row) < 0) return "consumption_correction";
+  return "consumption";
+}
+
+function normalizedBillingRow(row: JsonRecord): JsonRecord {
+  const energyDirection = normalizeEnergyDirection(row);
+  const explicitDirection = text(row.direction)?.toLowerCase() ?? null;
+  return {
+    ...row,
+    direction: energyDirection,
+    quantity_kwh: Math.abs(quantityKwh(row)),
+    unit: "kWh",
+    energy_direction_inference:
+      energyDirection === "consumption_correction" &&
+      ![
+        "consumption_correction",
+        "negative_consumption",
+        "correction",
+      ].includes(explicitDirection ?? "")
+        ? "negative_quantity"
+        : "explicit",
+  };
+}
+
+function productionConfiguration(snapshot: JsonRecord): JsonRecord {
+  return object(snapshot.production);
 }
 
 function addDays(date: string, days: number): string {
@@ -398,226 +454,278 @@ export async function generateBillingUnderlaysForMonth(input: {
 
     for (const entry of overlappingPeriods) {
       const period = entry.period;
-      const segmentRows = (valuesByMeter.get(meteringPointId) ?? [])
+      const clippedRows = (valuesByMeter.get(meteringPointId) ?? [])
         .map((row) => clipMeteringRowToSegment(row, entry.start, entry.end))
         .filter((row): row is JsonRecord => Boolean(row));
-      if (segmentRows.length === 0) continue;
-      segmentRows.forEach((row) => coveredValueIds.add(String(row.id)));
+      if (clippedRows.length === 0) continue;
+      clippedRows.forEach((row) => coveredValueIds.add(String(row.id)));
 
-      const warnings: string[] = [];
       const customerId = text(period.customer_id);
       const contractId = text(period.contract_id);
       const contract = await loadContract(input.companyId, contractId);
-      if (!customerId) warnings.push("Leveransperioden saknar kund.");
-      if (!contract)
-        warnings.push(
-          "Leveransperioden saknar ett aktivt eller signerat avtal.",
-        );
-      if (contract && text(contract.customer_id) !== customerId)
-        warnings.push("Avtalet tillhör inte leveransperiodens kund.");
-      if (!contractCoversSegment(contract, entry.start, entry.end))
-        warnings.push("Avtalets giltighet täcker inte hela fakturasegmentet.");
-
       const snapshot = await loadSnapshot(
         input.companyId,
         contractId,
         entry.start,
       );
-      if (contract && !snapshot)
-        warnings.push("Prissnapshot saknas för avtalet och fakturasegmentet.");
-
-      for (const row of segmentRows) {
-        if (text(row.supply_period_id) !== text(period.id)) {
-          warnings.push(
-            `Mätvärde ${text(row.id) ?? "utan id"} har annan eller saknad leveransperiod än fakturasegmentet.`,
-          );
-        }
-        const gate = evaluateBillingGate({
-          normalizedValue: row,
-          supplyPeriod: period,
-          supplyPeriodCandidateCount: 1,
-          contract,
-          contractCandidateCount: contract ? 1 : 0,
-          allowEstimatedValues: false,
-        });
-        if (!gate.eligible) {
-          for (const gateReason of gate.reasons)
-            warnings.push(`${gateReason.code}: ${gateReason.message}`);
-        }
-        if (text(object(row.billing_gate_snapshot).status) !== "eligible") {
-          warnings.push(
-            `Mätvärde ${text(row.id) ?? "utan id"} saknar en sparad eligible billing-gate-snapshot.`,
-          );
-        }
-      }
-
-      const directionSet = new Set(
-        segmentRows.map((row) => text(row.direction) ?? "consumption"),
-      );
-      if (
-        [...directionSet].some(
-          (direction) =>
-            !["consumption", "net_consumption"].includes(direction),
-        )
-      ) {
-        warnings.push(
-          "Produktions- och förbrukningsvärden får inte blandas i ett kundfakturaunderlag.",
-        );
-      }
-      const registerSet = new Set(
-        segmentRows.map(
-          (row) =>
-            `${text(row.register_code) ?? ""}|${text(row.product_code) ?? ""}`,
-        ),
-      );
-      if (registerSet.size > 1)
-        warnings.push(
-          "Flera register eller produktkoder förekommer i samma fakturasegment.",
-        );
-
-      let totalKwh = 0;
-      for (const row of segmentRows) {
-        const quantity = quantityKwh(row);
-        if (quantity < 0)
-          warnings.push(
-            "Negativ förbrukning kräver separat kredit- eller produktionshantering.",
-          );
-        totalKwh += quantity;
-      }
-      if (!Number.isFinite(totalKwh) || totalKwh < 0)
-        warnings.push("Total förbrukning är ogiltig.");
-
-      const coverage = validateIntervalCoverage(
-        segmentRows,
-        entry.start,
-        entry.end,
-      );
-      warnings.push(...coverage.warnings);
-
-      const first = segmentRows[0];
-      const siteId = text(first.site_id) ?? text(first.customer_site_id);
-      const customerSiteId = text(first.customer_site_id) ?? siteId;
-      const priceArea = text(first.price_area);
-      if (!isPriceArea(priceArea))
-        warnings.push("Verifierat elområde saknas på mätvärdena.");
-      if (
-        segmentRows.some(
-          (row) =>
-            text(row.customer_id) !== customerId ||
-            text(row.metering_point_id) !== meteringPointId,
-        )
-      ) {
-        warnings.push(
-          "Mätvärdena har inkonsekvent kund- eller mätpunktskoppling.",
-        );
-      }
-
-      const uniqueWarnings = [...new Set(warnings)];
-      const ready = uniqueWarnings.length === 0;
       const snapshotJson = snapshotPayload(snapshot);
-      const now = new Date().toISOString();
-      const pricePlanId =
-        text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id);
-      const pricePlanVersionId = text(snapshot?.price_plan_version_id);
-      const items = segmentRows.map((row) => ({
-        source_normalized_metering_value_id: text(row.id),
-        customer_id: customerId,
-        customer_site_id: customerSiteId,
-        site_id: siteId,
-        metering_point_id: meteringPointId,
-        contract_id: contractId,
-        price_plan_id: pricePlanId,
-        price_plan_version_id: pricePlanVersionId,
-        price_book_id: text(snapshot?.price_book_id),
-        campaign_id: text(snapshot?.campaign_version_id),
-        facility_id: text(row.facility_id),
-        price_area: isPriceArea(text(row.price_area))
-          ? text(row.price_area)
-          : null,
-        grid_area: text(row.grid_area),
-        source_table: "normalized_metering_values",
-        source_transaction_reference: text(row.source_transaction_reference),
-        source_line_reference: text(row.source_line_reference),
-        period_start: row.period_start,
-        period_end: row.period_end,
-        quantity: quantityKwh(row),
-        quantity_kwh: quantityKwh(row),
-        unit: "kWh",
-        product_code: text(row.product_code),
-        register_code: text(row.register_code),
-        quality_code: text(row.quality_status),
-        resolution: text(row.resolution),
-        status: ready ? "ready_for_pricing" : "needs_review",
-        warnings: readinessIssues(uniqueWarnings),
-        metadata: {
-          source_row_id: text(row.id),
-          source_metering_value_id: text(row.source_metering_value_id),
-          source_message_id: text(row.source_message_id),
-          revision_number: row.revision_number ?? null,
-          previous_value_id: text(row.previous_value_id),
-          billing_gate_snapshot: object(row.billing_gate_snapshot),
-          raw_payload: object(row.raw_payload),
-        },
-      }));
+      const production = productionConfiguration(snapshotJson);
 
-      const underlay = {
-        customer_id: customerId,
-        site_id: siteId,
-        customer_site_id: customerSiteId,
-        metering_point_id: meteringPointId,
-        supply_period_id: text(period.id),
-        contract_id: contractId,
-        pricing_snapshot_id: text(snapshot?.id),
-        price_plan_id: pricePlanId,
-        price_plan_version_id: pricePlanVersionId,
-        price_book_id: text(snapshot?.price_book_id),
-        contract_price_snapshot_id: text(snapshot?.id),
-        billing_block_reason: ready ? null : uniqueWarnings.join("; "),
-        campaign_id: text(snapshot?.campaign_version_id),
-        price_area: isPriceArea(priceArea) ? priceArea : null,
-        underlay_month: bounds.month,
-        underlay_year: bounds.year,
-        billing_period_start: entry.start,
-        billing_period_end: entry.end,
-        status: ready ? "validated" : "pending",
-        readiness_status: ready ? "ready" : "blocked",
-        readiness_issues: readinessIssues(uniqueWarnings),
-        total_kwh: totalKwh,
-        currency: "SEK",
-        source_system: "normalized_metering_values",
-        source_meter_value_count: segmentRows.length,
-        missing_values_count: coverage.missing,
-        payload: {
-          billing_month: input.billingMonth,
-          source_row_ids: segmentRows.map((row) => text(row.id)),
-          supply_period_id: text(period.id),
-          generated_from: "normalized_metering_values",
-          lineage: segmentRows.map((row) => ({
-            normalized_metering_value_id: text(row.id),
+      const rowsByDirection = new Map<EnergyDirection, JsonRecord[]>();
+      for (const clippedRow of clippedRows) {
+        const normalizedRow = normalizedBillingRow(clippedRow);
+        const energyDirection = normalizeEnergyDirection(normalizedRow);
+        rowsByDirection.set(energyDirection, [
+          ...(rowsByDirection.get(energyDirection) ?? []),
+          normalizedRow,
+        ]);
+      }
+
+      for (const [energyDirection, segmentRows] of rowsByDirection) {
+        const warnings: string[] = [];
+        if (!customerId) warnings.push("Leveransperioden saknar kund.");
+        if (!contract) {
+          warnings.push(
+            "Leveransperioden saknar ett aktivt eller signerat avtal.",
+          );
+        }
+        if (contract && text(contract.customer_id) !== customerId) {
+          warnings.push("Avtalet tillhör inte leveransperiodens kund.");
+        }
+        if (!contractCoversSegment(contract, entry.start, entry.end)) {
+          warnings.push(
+            "Avtalets giltighet täcker inte hela fakturasegmentet.",
+          );
+        }
+        if (contract && !snapshot) {
+          warnings.push(
+            "Prissnapshot saknas för avtalet och fakturasegmentet.",
+          );
+        }
+
+        if (energyDirection === "production") {
+          const compensationOre = strictNumberOrNull(
+            production.compensation_ore_per_kwh,
+          );
+          const compensationSek =
+            strictNumberOrNull(production.compensation_sek_per_kwh) ??
+            (compensationOre === null ? null : compensationOre / 100);
+          if (production.enabled !== true) {
+            warnings.push(
+              "Avtalets låsta prissnapshot saknar aktiverad produktionsavräkning.",
+            );
+          }
+          if (compensationSek === null || compensationSek <= 0) {
+            warnings.push(
+              "Avtalets låsta prissnapshot saknar giltig ersättning för producerad el.",
+            );
+          }
+          if (
+            !["credit_invoice", "self_billing"].includes(
+              text(production.settlement_mode) ?? "credit_invoice",
+            )
+          ) {
+            warnings.push(
+              "Produktionsavräkningen har ett ogiltigt avräkningssätt.",
+            );
+          }
+        }
+
+        for (const row of segmentRows) {
+          if (text(row.supply_period_id) !== text(period.id)) {
+            warnings.push(
+              `Mätvärde ${text(row.id) ?? "utan id"} har annan eller saknad leveransperiod än fakturasegmentet.`,
+            );
+          }
+          const gate = evaluateBillingGate({
+            normalizedValue: row,
+            supplyPeriod: period,
+            supplyPeriodCandidateCount: 1,
+            contract,
+            contractCandidateCount: contract ? 1 : 0,
+            allowEstimatedValues: false,
+          });
+          if (!gate.eligible) {
+            for (const gateReason of gate.reasons) {
+              warnings.push(`${gateReason.code}: ${gateReason.message}`);
+            }
+          }
+          if (text(object(row.billing_gate_snapshot).status) !== "eligible") {
+            warnings.push(
+              `Mätvärde ${text(row.id) ?? "utan id"} saknar en sparad eligible billing-gate-snapshot.`,
+            );
+          }
+        }
+
+        const registerSet = new Set(
+          segmentRows.map(
+            (row) =>
+              `${text(row.register_code) ?? ""}|${text(row.product_code) ?? ""}`,
+          ),
+        );
+        if (registerSet.size > 1) {
+          warnings.push(
+            "Flera register eller produktkoder förekommer i samma ekonomiska energiriktning.",
+          );
+        }
+
+        const totalKwh = segmentRows.reduce(
+          (sum, row) => sum + Math.abs(quantityKwh(row)),
+          0,
+        );
+        if (!Number.isFinite(totalKwh) || totalKwh <= 0) {
+          warnings.push("Total energimängd är ogiltig eller noll.");
+        }
+
+        const coverage = validateIntervalCoverage(
+          segmentRows,
+          entry.start,
+          entry.end,
+        );
+        warnings.push(...coverage.warnings);
+
+        const first = segmentRows[0];
+        const siteId = text(first.site_id) ?? text(first.customer_site_id);
+        const customerSiteId = text(first.customer_site_id) ?? siteId;
+        const priceArea = text(first.price_area);
+        if (!isPriceArea(priceArea)) {
+          warnings.push("Verifierat elområde saknas på mätvärdena.");
+        }
+        if (
+          segmentRows.some(
+            (row) =>
+              text(row.customer_id) !== customerId ||
+              text(row.metering_point_id) !== meteringPointId,
+          )
+        ) {
+          warnings.push(
+            "Mätvärdena har inkonsekvent kund- eller mätpunktskoppling.",
+          );
+        }
+
+        const uniqueWarnings = [...new Set(warnings)];
+        const ready = uniqueWarnings.length === 0;
+        const now = new Date().toISOString();
+        const pricePlanId =
+          text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id);
+        const pricePlanVersionId = text(snapshot?.price_plan_version_id);
+        const settlementType =
+          energyDirection === "production"
+            ? text(production.settlement_mode) === "self_billing"
+              ? "self_billing"
+              : "credit_invoice"
+            : energyDirection === "consumption_correction"
+              ? "credit_invoice"
+              : "invoice";
+
+        const items = segmentRows.map((row) => ({
+          source_normalized_metering_value_id: text(row.id),
+          customer_id: customerId,
+          customer_site_id: customerSiteId,
+          site_id: siteId,
+          metering_point_id: meteringPointId,
+          contract_id: contractId,
+          price_plan_id: pricePlanId,
+          price_plan_version_id: pricePlanVersionId,
+          price_book_id: text(snapshot?.price_book_id),
+          campaign_id: text(snapshot?.campaign_version_id),
+          facility_id: text(row.facility_id),
+          price_area: isPriceArea(text(row.price_area))
+            ? text(row.price_area)
+            : null,
+          grid_area: text(row.grid_area),
+          source_table: "normalized_metering_values",
+          source_transaction_reference: text(row.source_transaction_reference),
+          source_line_reference: text(row.source_line_reference),
+          period_start: row.period_start,
+          period_end: row.period_end,
+          quantity: Math.abs(quantityKwh(row)),
+          quantity_kwh: Math.abs(quantityKwh(row)),
+          energy_direction: energyDirection,
+          settlement_type: settlementType,
+          unit: "kWh",
+          product_code: text(row.product_code),
+          register_code: text(row.register_code),
+          quality_code: text(row.quality_status),
+          resolution: text(row.resolution),
+          status: ready ? "ready_for_pricing" : "needs_review",
+          warnings: readinessIssues(uniqueWarnings),
+          metadata: {
+            source_row_id: text(row.id),
             source_metering_value_id: text(row.source_metering_value_id),
             source_message_id: text(row.source_message_id),
-            supply_period_id: text(row.supply_period_id),
             revision_number: row.revision_number ?? null,
-          })),
-          timezone: "Europe/Stockholm",
-        },
-        pricing_snapshot: snapshotJson,
-        received_at: now,
-        validated_at: ready ? now : null,
-      };
-      pendingStores.push({
-        underlay,
-        items,
-        result: {
-          status: ready ? "ready_for_pricing" : "needs_review",
-          sourceTable: "normalized_metering_values",
-          sourceRows: segmentRows.length,
-          warnings: uniqueWarnings,
-        },
-      });
+            previous_value_id: text(row.previous_value_id),
+            billing_gate_snapshot: object(row.billing_gate_snapshot),
+            raw_payload: object(row.raw_payload),
+            energy_direction: energyDirection,
+            original_quantity_kwh: quantityKwh(row),
+          },
+        }));
+
+        const underlay = {
+          customer_id: customerId,
+          site_id: siteId,
+          customer_site_id: customerSiteId,
+          metering_point_id: meteringPointId,
+          supply_period_id: text(period.id),
+          contract_id: contractId,
+          pricing_snapshot_id: text(snapshot?.id),
+          price_plan_id: pricePlanId,
+          price_plan_version_id: pricePlanVersionId,
+          price_book_id: text(snapshot?.price_book_id),
+          contract_price_snapshot_id: text(snapshot?.id),
+          billing_block_reason: ready ? null : uniqueWarnings.join("; "),
+          campaign_id: text(snapshot?.campaign_version_id),
+          price_area: isPriceArea(priceArea) ? priceArea : null,
+          energy_direction: energyDirection,
+          settlement_type: settlementType,
+          underlay_month: bounds.month,
+          underlay_year: bounds.year,
+          billing_period_start: entry.start,
+          billing_period_end: entry.end,
+          status: ready ? "validated" : "pending",
+          readiness_status: ready ? "ready" : "blocked",
+          readiness_issues: readinessIssues(uniqueWarnings),
+          total_kwh: totalKwh,
+          currency: "SEK",
+          source_system: "normalized_metering_values",
+          source_meter_value_count: segmentRows.length,
+          missing_values_count: coverage.missing,
+          payload: {
+            billing_month: input.billingMonth,
+            source_row_ids: segmentRows.map((row) => text(row.id)),
+            supply_period_id: text(period.id),
+            generated_from: "normalized_metering_values",
+            energy_direction: energyDirection,
+            settlement_type: settlementType,
+            lineage: segmentRows.map((row) => ({
+              normalized_metering_value_id: text(row.id),
+              source_metering_value_id: text(row.source_metering_value_id),
+              source_message_id: text(row.source_message_id),
+              supply_period_id: text(row.supply_period_id),
+              revision_number: row.revision_number ?? null,
+              energy_direction: energyDirection,
+            })),
+            timezone: "Europe/Stockholm",
+          },
+          pricing_snapshot: snapshotJson,
+          received_at: now,
+          validated_at: ready ? now : null,
+        };
+        pendingStores.push({
+          underlay,
+          items,
+          result: {
+            status: ready ? "ready_for_pricing" : "needs_review",
+            sourceTable: "normalized_metering_values",
+            sourceRows: segmentRows.length,
+            warnings: uniqueWarnings,
+          },
+        });
+      }
     }
   }
-
 
   if (pendingStores.length > 0) {
     const { data, error } = await supabaseService.rpc(

@@ -42,6 +42,10 @@ export type ContractPricingInput = {
   automaticRenewal?: boolean;
   powerOfAttorneyRequired?: boolean;
   optionalFeeLines?: unknown;
+  productionEnabled?: unknown;
+  productionCompensationOrePerKwh?: unknown;
+  productionVatRate?: unknown;
+  productionSettlementMode?: unknown;
 };
 
 type PricingComponent = {
@@ -90,6 +94,14 @@ export type NormalizedContractPricing = {
     vat_rate_percent: number;
     interval_resolution:
       "monthly" | "hourly" | "quarterly" | "fixed" | "portfolio" | "mixed";
+    production: {
+      enabled: boolean;
+      compensation_ore_per_kwh: number | null;
+      compensation_sek_per_kwh: number | null;
+      vat_rate: number;
+      vat_rate_percent: number;
+      settlement_mode: "credit_invoice" | "self_billing";
+    };
   };
 };
 
@@ -285,6 +297,16 @@ export function normalizeContractPricing(
     "Fast pris",
     { min: 0 },
   );
+  const legacyAreaFixedValues = Array.from(
+    new Set(Object.values(fixedPricesByArea)),
+  );
+  if (legacyAreaFixedValues.length > 1) {
+    throw new Error(
+      "Fastpris ska vara samma öre/kWh i alla prisområden. Ange ett gemensamt fastpris.",
+    );
+  }
+  const effectiveFixedPriceOrePerKwh =
+    fixedPriceOrePerKwh ?? legacyAreaFixedValues[0] ?? null;
   const greenFeeValue = optionalNumber(input.greenFeeValue, "Grön el-avgift", {
     min: 0,
   });
@@ -318,6 +340,43 @@ export function normalizeContractPricing(
   });
   const vatRate =
     optionalNumber(input.vatRate, "Moms", { min: 0, max: 100 }) ?? 25;
+  const productionEnabled =
+    input.productionEnabled === true ||
+    String(input.productionEnabled ?? "").toLowerCase() === "true" ||
+    String(input.productionEnabled ?? "").toLowerCase() === "on";
+  const productionCompensationOrePerKwh = optionalNumber(
+    input.productionCompensationOrePerKwh,
+    "Ersättning för producerad el",
+    { min: 0 },
+  );
+  const productionVatRate =
+    optionalNumber(input.productionVatRate, "Moms på produktionsersättning", {
+      min: 0,
+      max: 100,
+    }) ?? 0;
+  const productionSettlementModeRaw = String(
+    input.productionSettlementMode ?? "credit_invoice",
+  ).trim();
+  if (
+    !new Set(["credit_invoice", "self_billing"]).has(
+      productionSettlementModeRaw,
+    )
+  ) {
+    throw new Error(
+      "Produktionsavräkning måste vara credit_invoice eller self_billing.",
+    );
+  }
+  const productionSettlementMode = productionSettlementModeRaw as
+    "credit_invoice" | "self_billing";
+  if (
+    productionEnabled &&
+    (productionCompensationOrePerKwh === null ||
+      productionCompensationOrePerKwh <= 0)
+  ) {
+    throw new Error(
+      "Produktionsavräkning kräver en ersättning över 0 öre per producerad kWh.",
+    );
+  }
   const bindingMonths = optionalNumber(input.bindingMonths, "Bindningstid", {
     min: 0,
     integer: true,
@@ -338,6 +397,14 @@ export function normalizeContractPricing(
     throw new Error(
       "Spotandelens intervall måste vara monthly, hourly eller quarterly.",
     );
+  if (
+    input.contractType === "mixed" &&
+    requestedSpotIntervalResolution !== "monthly"
+  ) {
+    throw new Error(
+      "Mixavtal använder månadsmedel för spotandelen tillsammans med månadens portföljpris.",
+    );
+  }
 
   const defaultWeights =
     input.contractType === "mixed"
@@ -369,23 +436,18 @@ export function normalizeContractPricing(
 
   if (["mixed", "portfolio"].includes(input.contractType) && weightSum !== 100)
     throw new Error("Prisandelarna måste tillsammans bli exakt 100 procent.");
-  const hasAreaFixedPrices = Object.keys(fixedPricesByArea).length > 0;
   if (
     input.contractType === "fixed" &&
-    (fixedPriceOrePerKwh === null || fixedPriceOrePerKwh <= 0) &&
-    !hasAreaFixedPrices
+    (effectiveFixedPriceOrePerKwh === null || effectiveFixedPriceOrePerKwh <= 0)
   )
-    throw new Error(
-      "Fastprisavtal kräver ett generellt fastpris eller pris per prisområde.",
-    );
+    throw new Error("Fastprisavtal kräver ett gemensamt fastpris i öre/kWh.");
   if (
     input.contractType === "mixed" &&
     fixedWeight > 0 &&
-    (fixedPriceOrePerKwh === null || fixedPriceOrePerKwh <= 0) &&
-    !hasAreaFixedPrices
+    (effectiveFixedPriceOrePerKwh === null || effectiveFixedPriceOrePerKwh <= 0)
   )
     throw new Error(
-      "Mixavtal med fast andel kräver ett generellt fastpris eller pris per prisområde.",
+      "Mixavtal med fast andel kräver ett gemensamt fastpris i öre/kWh.",
     );
   if (input.contractType === "portfolio" && portfolioWeight <= 0)
     throw new Error("Portföljavtal måste ha en portföljandel över 0 procent.");
@@ -401,20 +463,8 @@ export function normalizeContractPricing(
         `Fastpris har angetts för ${area}, men området finns inte i avtalets prisområden.`,
       );
   }
-  if (
-    (input.contractType === "fixed" ||
-      (input.contractType === "mixed" && fixedWeight > 0)) &&
-    fixedPriceOrePerKwh === null
-  ) {
-    const missingAreas = priceAreas.filter(
-      (area) =>
-        fixedPricesByArea[area as keyof typeof fixedPricesByArea] === undefined,
-    );
-    if (missingAreas.length > 0)
-      throw new Error(
-        `Fastpris saknas för prisområde: ${missingAreas.join(", ")}.`,
-      );
-  }
+  // Gridex fastpris är ett gemensamt pris per kWh. Prisområden styr
+  // tillgänglighet, inte olika fastprisnivåer.
   const componentAreas = priceAreas.length > 0 ? priceAreas : [null];
   const baseComponents: BasePriceComponent[] = [];
   for (const priceArea of componentAreas) {
@@ -440,10 +490,7 @@ export function normalizeContractPricing(
         label: "Fast pris",
         weight_percent: fixedWeight || 100,
         fixed_price_sek_per_kwh: (() => {
-          const areaPrice = priceArea
-            ? fixedPricesByArea[priceArea as keyof typeof fixedPricesByArea]
-            : undefined;
-          const ore = areaPrice ?? fixedPriceOrePerKwh;
+          const ore = effectiveFixedPriceOrePerKwh;
           return ore === null || ore === undefined
             ? null
             : Math.round((ore / 100) * 100_000_000) / 100_000_000;
@@ -579,7 +626,8 @@ export function normalizeContractPricing(
       priority: 300,
       metadata: {
         duration_months: discountMonths,
-        starts_on: input.validFrom ?? null,
+        starts_on: null,
+        starts_on_mode: "contract_start",
         lifecycle: "limited_campaign",
       },
     });
@@ -588,14 +636,10 @@ export function normalizeContractPricing(
   components.push(...optionalComponents);
 
   const priceParts: string[] = [];
-  const areaFixedPriceText = Object.entries(fixedPricesByArea)
-    .sort(([areaA], [areaB]) => areaA.localeCompare(areaB))
-    .map(([area, amount]) => `${area} ${formatNumber(amount)} öre/kWh`)
-    .join(", ");
-  if (input.contractType === "fixed" && areaFixedPriceText)
-    priceParts.push(`Fast pris per prisområde: ${areaFixedPriceText}`);
-  else if (input.contractType === "fixed" && fixedPriceOrePerKwh !== null)
-    priceParts.push(`Fast pris ${formatNumber(fixedPriceOrePerKwh)} öre/kWh`);
+  if (input.contractType === "fixed" && effectiveFixedPriceOrePerKwh !== null)
+    priceParts.push(
+      `Fast pris ${formatNumber(effectiveFixedPriceOrePerKwh)} öre/kWh`,
+    );
   else if (input.contractType === "portfolio")
     priceParts.push("Portföljförvaltat elpris");
   else if (input.contractType === "mixed") {
@@ -677,6 +721,11 @@ export function normalizeContractPricing(
     priceParts.push(
       `${component.name.toLocaleLowerCase("sv-SE")} ${formatNumber(component.amount)} ${optionalUnitLabels[component.unit] ?? component.unit}`,
     );
+  if (productionEnabled && productionCompensationOrePerKwh !== null) {
+    priceParts.push(
+      `ersättning för producerad el ${formatNumber(productionCompensationOrePerKwh)} öre/kWh`,
+    );
+  }
   const publicPriceText = `${priceParts.join(", ")}. Moms ${formatNumber(vatRate)}%.`;
 
   return {
@@ -722,6 +771,17 @@ export function normalizeContractPricing(
                 : input.contractType === "fixed"
                   ? "fixed"
                   : "portfolio",
+      production: {
+        enabled: productionEnabled,
+        compensation_ore_per_kwh: productionCompensationOrePerKwh,
+        compensation_sek_per_kwh:
+          productionCompensationOrePerKwh === null
+            ? null
+            : productionCompensationOrePerKwh / 100,
+        vat_rate: productionVatRate / 100,
+        vat_rate_percent: productionVatRate,
+        settlement_mode: productionSettlementMode,
+      },
     },
   };
 }

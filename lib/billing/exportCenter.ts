@@ -8,15 +8,16 @@ import type {
   MeteringValueRow,
   PartnerExportRow,
 } from "@/lib/cis/types";
-import { buildBillingReadinessMap } from "@/lib/cis/billingReadiness";
 import {
   listAllBillingUnderlays,
   listAllMeteringValues,
   listAllPartnerExports,
 } from "@/lib/cis/db";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
-import { createPartnerExport } from "@/lib/cis/db-data";
-import { calculateUnderlayPricingWithCore, loadLockedUnderlayPricingWithCore } from "@/lib/pricing/underlayPricingAdapter";
+import {
+  calculateUnderlayPricingWithCore,
+  loadLockedUnderlayPricingWithCore,
+} from "@/lib/pricing/underlayPricingAdapter";
 import { lockPricingPreview } from "@/lib/pricing/engine";
 import { buildXlsxWorkbook } from "@/lib/billing/xlsx";
 import {
@@ -38,6 +39,11 @@ export type BillingExportRunRow = {
   rows_ready: number;
   rows_blocked: number;
   rows_exported: number;
+  rows_queued?: number;
+  rows_sent?: number;
+  rows_acknowledged?: number;
+  rows_failed?: number;
+  rows_rejected?: number;
   blocker_summary: Array<Record<string, unknown>>;
   created_at: string;
   created_by: string | null;
@@ -107,15 +113,22 @@ export async function getBillingExportCenterData(
   return { underlays, meterValues, partnerExports, exportRuns };
 }
 
-
 async function listExactBillableContractsByUnderlayIds(params: {
   companyId: string;
   underlays: BillingUnderlayRow[];
 }): Promise<Map<string, CustomerContractRow>> {
   const map = new Map<string, CustomerContractRow>();
-  const contractIds = Array.from(new Set(params.underlays
-    .map((underlay) => String((underlay as unknown as Record<string, unknown>).contract_id ?? "").trim())
-    .filter(Boolean)));
+  const contractIds = Array.from(
+    new Set(
+      params.underlays
+        .map((underlay) =>
+          String(
+            (underlay as unknown as Record<string, unknown>).contract_id ?? "",
+          ).trim(),
+        )
+        .filter(Boolean),
+    ),
+  );
   if (contractIds.length === 0) return map;
 
   const { data, error } = await supabaseService
@@ -126,23 +139,35 @@ async function listExactBillableContractsByUnderlayIds(params: {
     .in("status", ["signed", "active"]);
   if (error) throw error;
 
-  const byId = new Map(((data ?? []) as CustomerContractRow[]).map((contract) => [contract.id, contract]));
+  const byId = new Map(
+    ((data ?? []) as CustomerContractRow[]).map((contract) => [
+      contract.id,
+      contract,
+    ]),
+  );
   for (const underlay of params.underlays) {
-    const contractId = String((underlay as unknown as Record<string, unknown>).contract_id ?? "").trim();
+    const contractId = String(
+      (underlay as unknown as Record<string, unknown>).contract_id ?? "",
+    ).trim();
     const contract = contractId ? byId.get(contractId) : null;
     if (contract) map.set(underlay.id, contract);
   }
   return map;
 }
 
-
-function contractTextField(contract: CustomerContractRow | null, key: string): string | null {
+function contractTextField(
+  contract: CustomerContractRow | null,
+  key: string,
+): string | null {
   if (!contract) return null;
   const value = (contract as unknown as Record<string, unknown>)[key];
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function contractBooleanField(contract: CustomerContractRow | null, key: string): boolean {
+function contractBooleanField(
+  contract: CustomerContractRow | null,
+  key: string,
+): boolean {
   if (!contract) return false;
   return Boolean((contract as unknown as Record<string, unknown>)[key]);
 }
@@ -162,18 +187,29 @@ function buildInvoiceSnapshot(params: {
   };
 
   const siteAddress = {
-    street: (params.underlay as unknown as Record<string, unknown>).site_street ?? null,
-    postalCode: (params.underlay as unknown as Record<string, unknown>).site_postal_code ?? null,
-    city: (params.underlay as unknown as Record<string, unknown>).site_city ?? null,
-    country: (params.underlay as unknown as Record<string, unknown>).site_country ?? "SE",
+    street:
+      (params.underlay as unknown as Record<string, unknown>).site_street ??
+      null,
+    postalCode:
+      (params.underlay as unknown as Record<string, unknown>)
+        .site_postal_code ?? null,
+    city:
+      (params.underlay as unknown as Record<string, unknown>).site_city ?? null,
+    country:
+      (params.underlay as unknown as Record<string, unknown>).site_country ??
+      "SE",
   };
 
   return {
     invoiceRecipient: invoiceAddress.recipient,
     invoiceEmail: invoiceAddress.email,
     invoiceReference: invoiceAddress.reference,
-    billingLevel: contractTextField(params.contract, "billing_level") ?? "customer",
-    consolidatedInvoice: contractBooleanField(params.contract, "consolidated_invoice"),
+    billingLevel:
+      contractTextField(params.contract, "billing_level") ?? "customer",
+    consolidatedInvoice: contractBooleanField(
+      params.contract,
+      "consolidated_invoice",
+    ),
     invoiceAddress,
     siteAddress,
     groupKey: contractBooleanField(params.contract, "consolidated_invoice")
@@ -189,9 +225,13 @@ async function createBlockedBillingCasesForItems(params: {
   items: BillingExportRunItemRow[];
 }) {
   for (const item of params.items) {
-    if (item.status !== "blocked" || !item.customer_id || item.blocker_case_id) continue;
-    const issues = Array.isArray(item.blocker_reasons) ? item.blocker_reasons : [];
-    const firstIssue = issues.find((issue) => typeof issue === "object") as Record<string, unknown> | undefined;
+    if (item.status !== "blocked" || !item.customer_id || item.blocker_case_id)
+      continue;
+    const issues = Array.isArray(item.blocker_reasons)
+      ? item.blocker_reasons
+      : [];
+    const firstIssue = issues.find((issue) => typeof issue === "object") as
+      Record<string, unknown> | undefined;
     const title = String(firstIssue?.title ?? "Faktureringsrad blockerad");
     const description = String(
       firstIssue?.description ??
@@ -232,7 +272,10 @@ async function createBlockedBillingCasesForItems(params: {
 
       const { error: itemUpdateError } = await supabaseService
         .from("billing_export_run_items")
-        .update({ blocker_case_id: task?.id ?? null, updated_at: new Date().toISOString() })
+        .update({
+          blocker_case_id: task?.id ?? null,
+          updated_at: new Date().toISOString(),
+        })
         .eq("company_id", params.companyId)
         .eq("id", item.id);
       if (itemUpdateError) throw itemUpdateError;
@@ -265,18 +308,19 @@ export async function createBillingExportRun(input: {
       .eq("company_id", input.companyId)
       .eq("idempotency_key", idempotencyKey)
       .maybeSingle();
-    if (existingError && !["42703", "PGRST204", "PGRST205"].includes(existingError.code ?? "")) {
+    if (
+      existingError &&
+      !["42703", "PGRST204", "PGRST205"].includes(existingError.code ?? "")
+    ) {
       throw existingError;
     }
     if (existingRun) return existingRun as BillingExportRunRow;
   }
 
-  const [underlays, meterValues, partnerExports] =
-    await Promise.all([
-      listAllBillingUnderlays({ companyId: input.companyId, status: "all" }),
-      listAllMeteringValues({ companyId: input.companyId }),
-      listAllPartnerExports({ companyId: input.companyId, status: "all" }),
-    ]);
+  const underlays = await listAllBillingUnderlays({
+    companyId: input.companyId,
+    status: "all",
+  });
 
   const [year, month] = input.periodMonth
     .split("-")
@@ -291,14 +335,8 @@ export async function createBillingExportRun(input: {
     underlays: periodUnderlays,
   });
 
-  const readiness = buildBillingReadinessMap({
-    underlays: periodUnderlays,
-    meterValues,
-    partnerExports,
-  });
   const items = [];
   for (const underlay of periodUnderlays) {
-    const result = readiness.get(underlay.id);
     const contract = contractsByUnderlay.get(underlay.id) ?? null;
     // Single Pricing Core: same engine and persisted pricing_run as the
     // pricing preview, so billing/export can never disagree with preview.
@@ -318,47 +356,92 @@ export async function createBillingExportRun(input: {
           pricingRunId: pricing.pricingRunId,
           actorUserId: input.actorUserId,
         });
-        pricing = (await loadLockedUnderlayPricingWithCore({
-          companyId: input.companyId,
-          billingUnderlayId: underlay.id,
-        })) ?? pricing;
+        pricing =
+          (await loadLockedUnderlayPricingWithCore({
+            companyId: input.companyId,
+            billingUnderlayId: underlay.id,
+          })) ?? pricing;
       }
     }
+    const { data: canonicalReadiness, error: readinessError } =
+      await supabaseService
+        .from("billing_export_readiness_v")
+        .select("*")
+        .eq("company_id", input.companyId)
+        .eq("billing_underlay_id", underlay.id)
+        .maybeSingle();
+    if (readinessError) throw readinessError;
+    const canonicalBlockers = Array.isArray(canonicalReadiness?.blockers)
+      ? canonicalReadiness.blockers.map((blocker: unknown) => ({
+          code: String(blocker),
+          severity: "blocked",
+          title: "Canonical exportreadiness blockerad",
+          description: String(blocker),
+        }))
+      : [];
+
     const pricingWarnings = pricing.warnings.map((warning) => ({
       code: "pricing_warning",
       severity: "warning",
       title: "Prismotor behöver granskning",
       description: warning,
     }));
-    const pricingBlockers = pricing.status === "success" && pricing.locked
-      ? []
-      : (pricing.errors.length > 0 ? pricing.errors : [pricing.status === "success" ? "Prisberäkningen är inte låst." : "Prisberäkningen misslyckades."]).map((message) => ({
-          code: "pricing_failed",
-          severity: "blocked",
-          title: "Prisberäkning blockerad",
-          description: message,
-        }));
+    const pricingBlockers =
+      pricing.status === "success" && pricing.locked
+        ? []
+        : (pricing.errors.length > 0
+            ? pricing.errors
+            : [
+                pricing.status === "success"
+                  ? "Prisberäkningen är inte låst."
+                  : "Prisberäkningen misslyckades.",
+              ]
+          ).map((message) => ({
+            code: "pricing_failed",
+            severity: "blocked",
+            title: "Prisberäkning blockerad",
+            description: message,
+          }));
     const missingContractIssue = !contract
-      ? [{
-          code: "missing_contract",
-          severity: "blocked",
-          title: "Avtal saknas",
-          description: "Faktureringsraden saknar kopplat avtal/kampanj och får inte exporteras automatiskt.",
-        }]
+      ? [
+          {
+            code: "missing_contract",
+            severity: "blocked",
+            title: "Avtal saknas",
+            description:
+              "Faktureringsraden saknar kopplat avtal/kampanj och får inte exporteras automatiskt.",
+          },
+        ]
       : [];
-    const blockerReasons = [...(result?.issues ?? []), ...pricingWarnings, ...pricingBlockers, ...missingContractIssue];
+    const blockerReasons = [
+      ...canonicalBlockers,
+      ...pricingWarnings,
+      ...pricingBlockers,
+      ...missingContractIssue,
+    ];
     const invoiceSnapshot = buildInvoiceSnapshot({ underlay, contract });
     const itemIdempotencySeed = `billing:${input.companyId}:${underlay.id}:${input.periodMonth}`;
 
     items.push({
       company_id: input.companyId,
       billing_underlay_id: underlay.id,
-      contract_id: String((underlay as unknown as Record<string, unknown>).contract_id ?? "").trim() || null,
+      contract_id:
+        String(
+          (underlay as unknown as Record<string, unknown>).contract_id ?? "",
+        ).trim() || null,
       customer_id: underlay.customer_id,
       site_id: underlay.site_id,
       metering_point_id: underlay.metering_point_id,
-      status: result?.isExportable && contract && pricing.status === "success" && pricing.locked ? "ready" : "blocked",
-      readiness_status: result?.status ?? "blocked",
+      status:
+        canonicalReadiness?.is_exportable === true &&
+        contract &&
+        pricing.status === "success" &&
+        pricing.locked
+          ? "ready"
+          : "blocked",
+      readiness_status: canonicalReadiness?.status ?? "blocked",
+      energy_direction: pricing.energyDirection,
+      settlement_type: pricing.settlementType,
       blocker_reasons: blockerReasons,
       pricing_line_items: pricing.lines,
       invoice_recipient: invoiceSnapshot.invoiceRecipient,
@@ -377,7 +460,10 @@ export async function createBillingExportRun(input: {
       payload_snapshot: {
         underlay,
         contract,
-        readiness: result,
+        readiness: canonicalReadiness ?? {
+          status: "blocked",
+          blockers: ["readiness_row_missing"],
+        },
         pricing,
         invoice: invoiceSnapshot,
         exportContract: {
@@ -419,7 +505,12 @@ export async function createBillingExportRun(input: {
     adapter_key: GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
     payload_version: "billing_export_v4c",
     retry_policy: { maxAttempts: 3, strategy: "manual_retry" },
-    metadata: { pricingEngine: "pricing_core_v1", partnerAdapter: GRIDEX_BILLING_PARTNER_ADAPTER_KEY, exactContractBinding: true, atomicCreation: true },
+    metadata: {
+      pricingEngine: "pricing_core_v1",
+      partnerAdapter: GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
+      exactContractBinding: true,
+      atomicCreation: true,
+    },
     idempotency_key: idempotencyKey,
   };
   const preparedItems = items.map((item) => {
@@ -432,14 +523,20 @@ export async function createBillingExportRun(input: {
     } as BillingExportRunItemRow;
     return {
       ...prepared,
-      adapter_payload_snapshot: buildBillingPartnerPayloadRow({ run: runDraft, item: prepared }),
+      adapter_payload_snapshot: buildBillingPartnerPayloadRow({
+        run: runDraft,
+        item: prepared,
+      }),
     };
   });
 
-  const { data: atomicResult, error } = await supabaseService.rpc("gridex_create_billing_export_run", {
-    p_run: runDraft,
-    p_items: preparedItems,
-  });
+  const { data: atomicResult, error } = await supabaseService.rpc(
+    "gridex_create_billing_export_run",
+    {
+      p_run: runDraft,
+      p_items: preparedItems,
+    },
+  );
   if (error) throw error;
   const run = atomicResult as BillingExportRunRow;
 
@@ -459,149 +556,24 @@ export async function queueReadyBillingExportRunItems(input: {
   exportRunId: string;
 }): Promise<{ queued: number; blocked: number; skipped: number }> {
   await requireCompanyOperationalForWrites(input.companyId);
-
-  const { data: run, error: runError } = await supabaseService
-    .from("billing_export_runs")
-    .select("*")
-    .eq("company_id", input.companyId)
-    .eq("id", input.exportRunId)
-    .maybeSingle();
-
-  if (runError) throw runError;
-  if (!run) throw new Error("Exportkörningen hittades inte för valt bolag.");
-
-  const { data: items, error: itemError } = await supabaseService
-    .from("billing_export_run_items")
-    .select("*")
-    .eq("company_id", input.companyId)
-    .eq("billing_export_run_id", input.exportRunId)
-    .in("status", ["ready", "ready_for_retry"]);
-
-  if (itemError) throw itemError;
-
-  const readyItems = (items ?? []) as BillingExportRunItemRow[];
-  const now = new Date().toISOString();
-  let queued = 0;
-  let skipped = 0;
-
-  for (const item of readyItems) {
-    if (!item.customer_id) {
-      skipped += 1;
-      const { error: blockedUpdateError } = await supabaseService
-        .from("billing_export_run_items")
-        .update({
-          export_status: "blocked",
-          last_error: "Kundkoppling saknas på exportraden.",
-          failed_at: now,
-          updated_at: now,
-        })
-        .eq("company_id", input.companyId)
-        .eq("id", item.id);
-      if (blockedUpdateError) throw blockedUpdateError;
-      continue;
-    }
-
-    if (
-      item.partner_export_id ||
-      ["queued", "sent", "acknowledged"].includes(
-        String(item.export_status ?? ""),
-      )
-    ) {
-      skipped += 1;
-      continue;
-    }
-
-    const idempotencyKey =
-      item.idempotency_key || `billing-export-run-item:${item.id}`;
-
-    try {
-      const partnerExport = await createPartnerExport({
-        actorUserId: input.actorUserId,
-        customerId: item.customer_id,
-        siteId: item.site_id,
-        meteringPointId: item.metering_point_id,
-        billingUnderlayId: item.billing_underlay_id,
-        exportKind: "billing_underlay",
-        targetSystem: String(
-          (run as BillingExportRunRow).target_system ?? "billing_partner",
-        ),
-        exportBatchKey: input.exportRunId,
-        externalReference: `BILLING-${input.exportRunId.slice(0, 8).toUpperCase()}-${queued + 1}`,
-        idempotencyKey,
-        adapterKey: item.adapter_key ?? GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
-        payloadVersion: item.payload_version ?? "partner_export_v4c",
-        payload: {
-          adapterPayload: buildBillingPartnerPayloadRow({ run: run as BillingExportRunRow, item }),
-          exportRunId: input.exportRunId,
-          exportRunItemId: item.id,
-          ...(item.payload_snapshot ?? {}),
-        },
-      });
-
-      const { error: updateItemError } = await supabaseService
-        .from("billing_export_run_items")
-        .update({
-          export_status: "queued",
-          partner_export_id: partnerExport.id,
-          idempotency_key: idempotencyKey,
-          queued_at: now,
-          external_reference: partnerExport.external_reference ?? item.external_reference ?? null,
-          failed_at: null,
-          last_error: null,
-          updated_at: now,
-        })
-        .eq("company_id", input.companyId)
-        .eq("id", item.id);
-
-      if (updateItemError) throw updateItemError;
-      queued += 1;
-    } catch (error) {
-      skipped += 1;
-      const { error: failedUpdateError } = await supabaseService
-        .from("billing_export_run_items")
-        .update({
-          export_status: "failed",
-          idempotency_key: idempotencyKey,
-          failed_at: now,
-          last_error:
-            error instanceof Error
-              ? error.message
-              : "Partnerexport kunde inte köas.",
-          retry_count: Number(item.retry_count ?? 0) + 1,
-          updated_at: now,
-        })
-        .eq("company_id", input.companyId)
-        .eq("id", item.id);
-      if (failedUpdateError) throw failedUpdateError;
-    }
-  }
-
-  const blocked = Math.max(
-    0,
-    Number((run as BillingExportRunRow).rows_blocked ?? 0),
+  const { data, error } = await supabaseService.rpc(
+    "gridex_queue_billing_export_run",
+    {
+      p_company_id: input.companyId,
+      p_export_run_id: input.exportRunId,
+      p_actor_user_id: input.actorUserId,
+    },
   );
-
-  const { error: updateError } = await supabaseService
-    .from("billing_export_runs")
-    .update({
-      status:
-        queued > 0 ? "queued" : blocked > 0 ? "ready_with_flags" : "blocked",
-      rows_exported:
-        Number((run as BillingExportRunRow).rows_exported ?? 0) + queued,
-      updated_at: now,
-      metadata: {
-        ...((run as { metadata?: Record<string, unknown> }).metadata ?? {}),
-        rowLevelPartnerExportsQueuedAt: now,
-        rowLevelPartnerExportsQueued: queued,
-        rowLevelPartnerExportsSkipped: skipped,
-      },
-    })
-    .eq("company_id", input.companyId)
-    .eq("id", input.exportRunId);
-
-  if (updateError) throw updateError;
-
-  return { queued, blocked, skipped };
+  if (error) throw error;
+  const result =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : {};
+  return {
+    queued: Number(result.queued ?? 0),
+    blocked: Number(result.blocked ?? 0),
+    skipped: Number(result.skipped ?? 0),
+  };
 }
 
 export type BillingExportRunItemRow = {
@@ -615,6 +587,8 @@ export type BillingExportRunItemRow = {
   metering_point_id: string | null;
   status: string;
   readiness_status: string;
+  energy_direction?: "consumption" | "production" | "consumption_correction";
+  settlement_type?: "invoice" | "credit_invoice" | "self_billing";
   blocker_reasons: Array<Record<string, unknown>>;
   pricing_line_items?: Array<Record<string, unknown>> | null;
   invoice_recipient?: string | null;
@@ -692,7 +666,8 @@ function exportRowFromItem(item: BillingExportRunItemRow) {
   return {
     export_run_item_id: item.id,
     idempotency_key: item.idempotency_key ?? null,
-    payload_version: item.payload_version ?? GRIDEX_BILLING_PARTNER_PAYLOAD_VERSION,
+    payload_version:
+      item.payload_version ?? GRIDEX_BILLING_PARTNER_PAYLOAD_VERSION,
     adapter_key: item.adapter_key ?? GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
     external_reference: item.external_reference ?? null,
     billing_underlay_id: item.billing_underlay_id,
@@ -702,6 +677,10 @@ function exportRowFromItem(item: BillingExportRunItemRow) {
     metering_point_id: item.metering_point_id,
     status: item.status,
     readiness_status: item.readiness_status,
+    energy_direction:
+      item.energy_direction ?? underlay.energy_direction ?? "consumption",
+    settlement_type:
+      item.settlement_type ?? underlay.settlement_type ?? "invoice",
     period_year: underlay.underlay_year ?? null,
     period_month: underlay.underlay_month ?? null,
     total_kwh: underlay.total_kwh ?? null,
@@ -715,6 +694,9 @@ function exportRowFromItem(item: BillingExportRunItemRow) {
       pricing.totalSekIncVat ??
       readSnapshotNumber(snapshot, ["pricing", "totalSekIncVat"]),
     pricing_line_items: item.pricing_line_items ?? [],
+    interval_evidence: Array.isArray(pricing.intervalEvidence)
+      ? pricing.intervalEvidence
+      : [],
     invoice_recipient: item.invoice_recipient ?? null,
     invoice_email: item.invoice_email ?? null,
     invoice_reference: item.invoice_reference ?? null,
@@ -734,7 +716,7 @@ export async function getBillingExportRunWithItems(params: {
   let runQuery = supabaseService
     .from("billing_export_runs")
     .select("*")
-    .eq("id", params.exportRunId)
+    .eq("id", params.exportRunId);
   if (params.companyId) runQuery = runQuery.eq("company_id", params.companyId);
   const { data: run, error: runError } = await runQuery.maybeSingle();
 
@@ -744,9 +726,13 @@ export async function getBillingExportRunWithItems(params: {
   let itemsQuery = supabaseService
     .from("billing_export_run_items")
     .select("*")
-    .eq("billing_export_run_id", params.exportRunId)
-  if (params.companyId) itemsQuery = itemsQuery.eq("company_id", params.companyId);
-  const { data: items, error: itemError } = await itemsQuery.order("created_at", { ascending: true });
+    .eq("billing_export_run_id", params.exportRunId);
+  if (params.companyId)
+    itemsQuery = itemsQuery.eq("company_id", params.companyId);
+  const { data: items, error: itemError } = await itemsQuery.order(
+    "created_at",
+    { ascending: true },
+  );
 
   if (itemError) throw itemError;
 
@@ -781,6 +767,8 @@ export function buildBillingExportFile(params: {
       "metering_point_id",
       "status",
       "readiness_status",
+      "energy_direction",
+      "settlement_type",
       "period_year",
       "period_month",
       "total_kwh",
@@ -788,6 +776,8 @@ export function buildBillingExportFile(params: {
       "calculated_amount_sek_ex_vat",
       "vat_sek",
       "total_sek_inc_vat",
+      "pricing_line_items",
+      "interval_evidence",
       "invoice_recipient",
       "invoice_email",
       "invoice_reference",
@@ -827,6 +817,8 @@ export function buildBillingExportFile(params: {
       "metering_point_id",
       "status",
       "readiness_status",
+      "energy_direction",
+      "settlement_type",
       "period_year",
       "period_month",
       "total_kwh",
@@ -834,6 +826,8 @@ export function buildBillingExportFile(params: {
       "calculated_amount_sek_ex_vat",
       "vat_sek",
       "total_sek_inc_vat",
+      "pricing_line_items",
+      "interval_evidence",
       "invoice_recipient",
       "invoice_email",
       "invoice_reference",
@@ -868,11 +862,14 @@ type BillingPartnerRoute = {
 
 function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
-function stringConfig(config: Record<string, unknown>, key: string): string | null {
+function stringConfig(
+  config: Record<string, unknown>,
+  key: string,
+): string | null {
   const value = config[key];
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -883,7 +880,9 @@ async function findPartnerApiRoute(
 ): Promise<BillingPartnerRoute | null> {
   const { data, error } = await supabaseService
     .from("communication_routes")
-    .select("id,endpoint,target_system,route_type,is_active,company_id,route_scope,auth_config,created_at")
+    .select(
+      "id,endpoint,target_system,route_type,is_active,company_id,route_scope,auth_config,created_at",
+    )
     .eq("route_scope", "billing_underlay")
     .eq("route_type", "partner_api")
     .eq("target_system", targetSystem)
@@ -895,16 +894,22 @@ async function findPartnerApiRoute(
   if (error) throw error;
   const rows = (data ?? []) as Array<Record<string, unknown>>;
   const tenantRows = rows.filter((row) => row.company_id === companyId);
-  const candidates = tenantRows.length > 0 ? tenantRows : rows.filter((row) => row.company_id === null);
+  const candidates =
+    tenantRows.length > 0
+      ? tenantRows
+      : rows.filter((row) => row.company_id === null);
   if (candidates.length > 1) {
-    throw new Error(`Flera aktiva fakturapartner-routes matchar ${targetSystem}.`);
+    throw new Error(
+      `Flera aktiva fakturapartner-routes matchar ${targetSystem}.`,
+    );
   }
   const row = candidates[0];
   const endpoint = typeof row?.endpoint === "string" ? row.endpoint.trim() : "";
   const routeId = typeof row?.id === "string" ? row.id : "";
   if (!endpoint || !routeId) return null;
   const parsed = new URL(endpoint);
-  if (parsed.protocol !== "https:") throw new Error("Fakturapartnerns endpoint måste använda HTTPS.");
+  if (parsed.protocol !== "https:")
+    throw new Error("Fakturapartnerns endpoint måste använda HTTPS.");
   return {
     id: routeId,
     endpoint,
@@ -913,9 +918,14 @@ async function findPartnerApiRoute(
   };
 }
 
-function partnerHeaders(route: BillingPartnerRoute, rawBody: string, idempotencyKey: string): Record<string, string> {
+function partnerHeaders(
+  route: BillingPartnerRoute,
+  rawBody: string,
+  idempotencyKey: string,
+): Record<string, string> {
   const config = route.authConfig;
-  const authType = stringConfig(config, "type") ?? stringConfig(config, "auth_type");
+  const authType =
+    stringConfig(config, "type") ?? stringConfig(config, "auth_type");
   const headers: Record<string, string> = {
     "content-type": "application/json",
     accept: "application/json",
@@ -923,7 +933,8 @@ function partnerHeaders(route: BillingPartnerRoute, rawBody: string, idempotency
     "x-gridex-route-id": route.id,
   };
   if (authType === "bearer") {
-    const token = stringConfig(config, "token") ?? stringConfig(config, "bearer_token");
+    const token =
+      stringConfig(config, "token") ?? stringConfig(config, "bearer_token");
     if (!token) throw new Error("Fakturapartner-routen saknar bearer-token.");
     headers.authorization = `Bearer ${token}`;
   } else if (authType === "api_key") {
@@ -934,18 +945,22 @@ function partnerHeaders(route: BillingPartnerRoute, rawBody: string, idempotency
   } else if (authType === "basic") {
     const username = stringConfig(config, "username");
     const password = stringConfig(config, "password");
-    if (!username || !password) throw new Error("Fakturapartner-routen saknar Basic Auth-uppgifter.");
+    if (!username || !password)
+      throw new Error("Fakturapartner-routen saknar Basic Auth-uppgifter.");
     headers.authorization = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
   } else if (authType === "hmac_sha256") {
     const secret = stringConfig(config, "secret");
-    if (!secret) throw new Error("Fakturapartner-routen saknar HMAC-hemlighet.");
+    if (!secret)
+      throw new Error("Fakturapartner-routen saknar HMAC-hemlighet.");
     const timestamp = String(Math.floor(Date.now() / 1000));
     headers["x-gridex-timestamp"] = timestamp;
     headers["x-gridex-signature"] = createHmac("sha256", secret)
       .update(`${timestamp}.${rawBody}`)
       .digest("hex");
   } else {
-    throw new Error("Fakturapartner-routen saknar en stödd autentiseringsmetod.");
+    throw new Error(
+      "Fakturapartner-routen saknar en stödd autentiseringsmetod.",
+    );
   }
   return headers;
 }
@@ -953,39 +968,53 @@ function partnerHeaders(route: BillingPartnerRoute, rawBody: string, idempotency
 function parsePartnerItemResult(payload: unknown, readyItemIds: string[]) {
   const body = objectValue(payload);
   const accepted = Array.isArray(body.accepted_ids)
-    ? body.accepted_ids.filter((value): value is string => typeof value === "string")
+    ? body.accepted_ids.filter(
+        (value): value is string => typeof value === "string",
+      )
     : [];
   const rejectedRows = Array.isArray(body.rejected) ? body.rejected : [];
   const rejected = new Map<string, string>();
   for (const entry of rejectedRows) {
     const row = objectValue(entry);
     const id = typeof row.id === "string" ? row.id : null;
-    const error = typeof row.error === "string" ? row.error : "Fakturapartnern avvisade raden.";
+    const error =
+      typeof row.error === "string"
+        ? row.error
+        : "Fakturapartnern avvisade raden.";
     if (id) rejected.set(id, error);
   }
   const known = new Set([...accepted, ...rejected.keys()]);
   const unknown = readyItemIds.filter((id) => !known.has(id));
   const invalid = [...known].filter((id) => !readyItemIds.includes(id));
   if (unknown.length > 0 || invalid.length > 0) {
-    throw new Error("Fakturapartnerns radkvittens är ofullständig eller innehåller okända rad-ID:n.");
+    throw new Error(
+      "Fakturapartnerns radkvittens är ofullständig eller innehåller okända rad-ID:n.",
+    );
   }
   return { accepted, rejected };
 }
 
-async function updateBillingExportRunStrict(input: {
+async function applyPartnerResult(input: {
   companyId: string;
+  actorUserId: string | null;
   exportRunId: string;
-  payload: Record<string, unknown>;
+  acceptedIds: string[];
+  rejected: Array<{ id: string; error: string }>;
+  responsePayload: Record<string, unknown>;
 }) {
-  const response = await supabaseService
-    .from("billing_export_runs")
-    .update(input.payload)
-    .eq("company_id", input.companyId)
-    .eq("id", input.exportRunId)
-    .select("id")
-    .maybeSingle();
-  if (response.error) throw response.error;
-  if (!response.data) throw new Error("Fakturaexportkörningen kunde inte uppdateras tenant-säkert.");
+  const { data, error } = await supabaseService.rpc(
+    "gridex_apply_billing_export_partner_result",
+    {
+      p_company_id: input.companyId,
+      p_export_run_id: input.exportRunId,
+      p_accepted_ids: input.acceptedIds,
+      p_rejected: input.rejected,
+      p_response: input.responsePayload,
+      p_actor_user_id: input.actorUserId,
+    },
+  );
+  if (error) throw error;
+  return data;
 }
 
 export async function sendBillingExportRunToPartnerApi(input: {
@@ -1000,14 +1029,21 @@ export async function sendBillingExportRunToPartnerApi(input: {
 }> {
   await assertPlatformSchemaReady();
   await requireCompanyOperationalForWrites(input.companyId);
-  await assertOutboundAllowed({ companyId: input.companyId, channel: "invoice_export" });
+  await assertOutboundAllowed({
+    companyId: input.companyId,
+    channel: "invoice_export",
+  });
 
   return withAutomationLock({
     lockKey: `billing-partner-export:${input.companyId}:${input.exportRunId}`,
     companyId: input.companyId,
     ttlSeconds: 7_200,
-    metadata: { domain: "billing_partner_export", exportRunId: input.exportRunId },
+    metadata: {
+      domain: "billing_partner_export",
+      exportRunId: input.exportRunId,
+    },
     run: async () => {
+      await queueReadyBillingExportRunItems(input);
       const { run, items } = await getBillingExportRunWithItems({
         companyId: input.companyId,
         exportRunId: input.exportRunId,
@@ -1015,39 +1051,61 @@ export async function sendBillingExportRunToPartnerApi(input: {
       const readyItems = items.filter(
         (item) =>
           ["ready", "ready_for_retry"].includes(item.status) &&
-          !["sent", "acknowledged"].includes(String(item.export_status ?? "")),
+          String(item.export_status ?? "") === "queued" &&
+          Boolean(item.partner_export_id),
       );
       if (readyItems.length === 0) {
-        throw new Error("Exportkörningen saknar osända readiness-godkända rader.");
+        throw new Error(
+          "Exportkörningen saknar osända readiness-godkända rader.",
+        );
       }
-      if (items.some((item) => !["ready", "ready_for_retry", "sent", "acknowledged"].includes(String(item.status)))) {
-        throw new Error("Exportkörningen innehåller blockerade eller inkonsekventa rader.");
+      if (
+        items.some(
+          (item) =>
+            !["ready", "ready_for_retry", "sent", "acknowledged"].includes(
+              String(item.status),
+            ),
+        )
+      ) {
+        throw new Error(
+          "Exportkörningen innehåller blockerade eller inkonsekventa rader.",
+        );
       }
 
-      const route = await findPartnerApiRoute(input.companyId, run.target_system);
-      const now = new Date().toISOString();
+      const route = await findPartnerApiRoute(
+        input.companyId,
+        run.target_system,
+      );
       if (!route) {
-        const responsePayload = { error: "partner_api_route_missing", targetSystem: run.target_system };
-        await updateBillingExportRunStrict({
-          companyId: input.companyId,
-          exportRunId: input.exportRunId,
-          payload: {
-            status: "failed",
-            rows_exported: 0,
-            blocker_summary: [...(run.blocker_summary ?? []), responsePayload],
-            partner_response_log: [responsePayload],
-            last_partner_response_at: now,
-            updated_at: now,
-          },
+        const responsePayload = {
+          error: "partner_api_route_missing",
+          targetSystem: run.target_system,
+        };
+        await applyPartnerResult({
+          ...input,
+          acceptedIds: [],
+          rejected: readyItems.map((item) => ({
+            id: item.id,
+            error: "Partner-API-rutt saknas.",
+          })),
+          responsePayload,
         });
-        return { sent: false, status: "failed", endpoint: null, responsePayload };
+        return {
+          sent: false,
+          status: "failed",
+          endpoint: null,
+          responsePayload,
+        };
       }
 
       const payload = buildBillingPartnerPayload({ run, items: readyItems });
       const rawBody = JSON.stringify(payload);
       const idempotencyKey = `billing-export:${input.companyId}:${input.exportRunId}`;
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(new Error("Fakturapartner timeout")), 30_000);
+      const timeout = setTimeout(
+        () => controller.abort(new Error("Fakturapartner timeout")),
+        30_000,
+      );
       try {
         const response = await fetch(route.endpoint, {
           method: "POST",
@@ -1070,52 +1128,22 @@ export async function sendBillingExportRunToPartnerApi(input: {
           endpoint: route.endpoint,
           route_id: route.id,
         };
-        if (!response.ok) throw new Error(`Fakturapartnern svarade ${response.status}.`);
-        const itemResult = parsePartnerItemResult(responseJson, readyItems.map((item) => item.id));
-
-        for (const item of readyItems) {
-          const rejectedReason = itemResult.rejected.get(item.id);
-          const itemUpdate = await supabaseService
-            .from("billing_export_run_items")
-            .update({
-              export_status: rejectedReason ? "failed" : "sent",
-              status: rejectedReason ? "ready_for_retry" : item.status,
-              sent_at: rejectedReason ? null : now,
-              failed_at: rejectedReason ? now : null,
-              last_error: rejectedReason ?? null,
-              partner_response_log: [responsePayload],
-              last_partner_response_at: now,
-              sent_by: input.actorUserId,
-              updated_at: now,
-            })
-            .eq("company_id", input.companyId)
-            .eq("billing_export_run_id", input.exportRunId)
-            .eq("id", item.id)
-            .in("status", ["ready", "ready_for_retry"])
-            .select("id")
-            .maybeSingle();
-          if (itemUpdate.error) throw itemUpdate.error;
-          if (!itemUpdate.data) throw new Error(`Exportpost ${item.id} kunde inte uppdateras efter partnerkvittens.`);
+        if (!response.ok) {
+          throw new Error(`Fakturapartnern svarade ${response.status}.`);
         }
-
-        const allAccepted = itemResult.rejected.size === 0;
-        await updateBillingExportRunStrict({
-          companyId: input.companyId,
-          exportRunId: input.exportRunId,
-          payload: {
-            status: allAccepted ? "sent" : "partial_failed",
-            rows_exported: itemResult.accepted.length,
-            metadata: {
-              ...((run as { metadata?: Record<string, unknown> }).metadata ?? {}),
-              partnerApi: responsePayload,
-              sentAt: now,
-              rowCount: readyItems.length,
-            },
-            partner_response_log: [...(run.partner_response_log ?? []), responsePayload].slice(-20),
-            last_partner_response_at: now,
-            updated_at: now,
-          },
+        const itemResult = parsePartnerItemResult(
+          responseJson,
+          readyItems.map((item) => item.id),
+        );
+        await applyPartnerResult({
+          ...input,
+          acceptedIds: itemResult.accepted,
+          rejected: Array.from(itemResult.rejected.entries()).map(
+            ([id, error]) => ({ id, error }),
+          ),
+          responsePayload,
         });
+        const allAccepted = itemResult.rejected.size === 0;
         return {
           sent: allAccepted,
           status: allAccepted ? "sent" : "partial_failed",
@@ -1128,43 +1156,21 @@ export async function sendBillingExportRunToPartnerApi(input: {
           endpoint: route.endpoint,
           route_id: route.id,
         };
-        await updateBillingExportRunStrict({
-          companyId: input.companyId,
-          exportRunId: input.exportRunId,
-          payload: {
-            status: "failed",
-            metadata: {
-              ...((run as { metadata?: Record<string, unknown> }).metadata ?? {}),
-              partnerApi: responsePayload,
-              failedAt: now,
-            },
-            partner_response_log: [...(run.partner_response_log ?? []), responsePayload].slice(-20),
-            last_partner_response_at: now,
-            updated_at: now,
-          },
+        await applyPartnerResult({
+          ...input,
+          acceptedIds: [],
+          rejected: readyItems.map((item) => ({
+            id: item.id,
+            error: String(responsePayload.error),
+          })),
+          responsePayload,
         });
-        for (const item of readyItems) {
-          const itemUpdate = await supabaseService
-            .from("billing_export_run_items")
-            .update({
-              export_status: "failed",
-              status: "ready_for_retry",
-              failed_at: now,
-              last_error: responsePayload.error,
-              partner_response_log: [responsePayload],
-              last_partner_response_at: now,
-              updated_at: now,
-            })
-            .eq("company_id", input.companyId)
-            .eq("billing_export_run_id", input.exportRunId)
-            .eq("id", item.id)
-            .in("status", ["ready", "ready_for_retry"])
-            .select("id")
-            .maybeSingle();
-          if (itemUpdate.error) throw itemUpdate.error;
-          if (!itemUpdate.data) throw new Error(`Exportpost ${item.id} kunde inte markeras för retry.`);
-        }
-        return { sent: false, status: "failed", endpoint: route.endpoint, responsePayload };
+        return {
+          sent: false,
+          status: "failed",
+          endpoint: route.endpoint,
+          responsePayload,
+        };
       } finally {
         clearTimeout(timeout);
       }
@@ -1178,48 +1184,18 @@ export async function retryFailedBillingExportRunItems(input: {
   exportRunId: string;
 }): Promise<{ reopened: number }> {
   await requireCompanyOperationalForWrites(input.companyId);
-  const now = new Date().toISOString();
-
-  const { data: items, error: itemError } = await supabaseService
-    .from("billing_export_run_items")
-    .select("id,retry_count")
-    .eq("company_id", input.companyId)
-    .eq("billing_export_run_id", input.exportRunId)
-    .eq("export_status", "failed");
-
-  if (itemError) throw itemError;
-
-  const rows = (items ?? []) as Array<{
-    id: string;
-    retry_count?: number | null;
-  }>;
-  for (const row of rows) {
-    await supabaseService
-      .from("billing_export_run_items")
-      .update({
-        export_status: "ready_for_retry",
-        failed_at: null,
-        last_error: null,
-        retry_count: Number(row.retry_count ?? 0) + 1,
-        updated_at: now,
-      })
-      .eq("company_id", input.companyId)
-      .eq("id", row.id);
-  }
-
-  await supabaseService
-    .from("billing_export_runs")
-    .update({
-      status: rows.length > 0 ? "ready_with_flags" : "failed",
-      updated_at: now,
-      metadata: {
-        retryPreparedAt: now,
-        retryPreparedBy: input.actorUserId,
-        retryPreparedRows: rows.length,
-      },
-    })
-    .eq("company_id", input.companyId)
-    .eq("id", input.exportRunId);
-
-  return { reopened: rows.length };
+  const { data, error } = await supabaseService.rpc(
+    "gridex_prepare_billing_export_retry",
+    {
+      p_company_id: input.companyId,
+      p_export_run_id: input.exportRunId,
+      p_actor_user_id: input.actorUserId,
+    },
+  );
+  if (error) throw error;
+  const result =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : {};
+  return { reopened: Number(result.reopened ?? 0) };
 }

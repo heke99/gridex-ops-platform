@@ -340,11 +340,22 @@ export function evaluateBillingGate(input: {
     );
   }
   const direction = (text(value.direction) ?? "consumption").toLowerCase();
-  if (!["consumption", "net_consumption"].includes(direction))
+  if (
+    ![
+      "consumption",
+      "net_consumption",
+      "consumption_correction",
+      "negative_consumption",
+      "production",
+      "net_production",
+      "export",
+      "surplus",
+    ].includes(direction)
+  )
     reasons.push(
       reason(
         "unsupported_direction",
-        "Produktionsvärden kräver separat ekonomiskt flöde.",
+        "Mätvärdets energiriktning stöds inte av faktureringsmotorn.",
       ),
     );
   if (!["Wh", "kWh", "MWh"].includes(text(value.unit) ?? "kWh"))

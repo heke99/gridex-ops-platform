@@ -645,6 +645,16 @@ async function saveTenantPublicContractOfferActionImpl(
         "power_of_attorney_required",
       ),
       optionalFeeLines: text(formData, "optional_fee_lines"),
+      productionEnabled: boolValue(formData, "production_enabled"),
+      productionCompensationOrePerKwh: text(
+        formData,
+        "production_compensation_ore_per_kwh",
+      ),
+      productionVatRate: text(formData, "production_vat_rate"),
+      productionSettlementMode: text(
+        formData,
+        "production_settlement_mode",
+      ),
     });
     publicPriceText = normalized.publicPriceText;
     pricingModel = normalized.pricingModel;

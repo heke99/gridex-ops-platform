@@ -240,6 +240,16 @@ async function saveContractOfferActionImpl(
     powerOfAttorneyRequired:
       getString(formData, "power_of_attorney_required") !== "off",
     optionalFeeLines: getString(formData, "optional_fee_lines"),
+    productionEnabled: getString(formData, "production_enabled") === "on",
+    productionCompensationOrePerKwh: getString(
+      formData,
+      "production_compensation_ore_per_kwh",
+    ),
+    productionVatRate: getString(formData, "production_vat_rate"),
+    productionSettlementMode: getString(
+      formData,
+      "production_settlement_mode",
+    ),
   });
 
   const payload = {
