@@ -4163,62 +4163,201 @@ function safePortalUrl(): string | null {
   }
 }
 
-async function companyEmailContext(companyId: string): Promise<{
+async function companyEmailContext(
+  companyId: string,
+  customerContractId?: string | null,
+): Promise<{
   name: string;
+  legalName: string;
+  organizationNumber: string | null;
+  postalAddress: string | null;
+  phone: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  senderName: string;
+  senderEmail: string | null;
+  replyTo: string | null;
   supportEmail: string | null;
   adminEmail: string | null;
   portalUrl: string | null;
+  legalFooter: string | null;
+  snapshot: Record<string, unknown>;
+  snapshotSha256: string;
 }> {
   const { data, error } = await supabaseService
     .from("companies")
-    .select("name,support_email,primary_contact_email,branding")
+    .select("name,support_email,primary_contact_email,phone,website,branding")
     .eq("id", companyId)
     .maybeSingle();
   if (error) throw error;
 
-  const settingsResult = await supabaseService
-    .from("company_email_settings")
-    .select("sender_name,support_email,reply_to_email")
-    .eq("company_id", companyId)
-    .maybeSingle();
+  const [settingsResult, profileResult, contractSnapshotResult] =
+    await Promise.all([
+      supabaseService
+        .from("company_email_settings")
+        .select("sender_name,sender_email,support_email,reply_to_email")
+        .eq("company_id", companyId)
+        .maybeSingle(),
+      supabaseService
+        .from("tenant_legal_profiles")
+        .select(
+          "legal_name,organization_number,postal_address,customer_service_email,phone,website",
+        )
+        .eq("company_id", companyId)
+        .maybeSingle(),
+      customerContractId
+        ? supabaseService
+            .from("customer_contracts")
+            .select(
+              "tenant_communication_snapshot,tenant_communication_snapshot_sha256,tenant_legal_party_snapshot",
+            )
+            .eq("id", customerContractId)
+            .eq("company_id", companyId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
 
-  const settings = settingsResult.error
-    ? null
-    : (settingsResult.data as {
-        sender_name?: string | null;
-        support_email?: string | null;
-        reply_to_email?: string | null;
-      } | null);
+  if (settingsResult.error && !missingSchema(settingsResult.error))
+    throw settingsResult.error;
+  if (profileResult.error && !missingSchema(profileResult.error))
+    throw profileResult.error;
+  if (
+    contractSnapshotResult.error &&
+    !missingSchema(contractSnapshotResult.error)
+  )
+    throw contractSnapshotResult.error;
 
-  const branding = (
-    data?.branding &&
-    typeof data.branding === "object" &&
-    !Array.isArray(data.branding)
-      ? data.branding
-      : {}
-  ) as Record<string, unknown>;
+  const settings: Record<string, unknown> = isObject(settingsResult.data)
+    ? settingsResult.data
+    : {};
+  const profile: Record<string, unknown> = isObject(profileResult.data)
+    ? profileResult.data
+    : {};
+  const contractSnapshot: Record<string, unknown> = isObject(
+    contractSnapshotResult.data,
+  )
+    ? contractSnapshotResult.data
+    : {};
+  const lockedCommunication: Record<string, unknown> = isObject(
+    contractSnapshot.tenant_communication_snapshot,
+  )
+    ? contractSnapshot.tenant_communication_snapshot
+    : {};
+  const lockedLegalParty: Record<string, unknown> = isObject(
+    contractSnapshot.tenant_legal_party_snapshot,
+  )
+    ? contractSnapshot.tenant_legal_party_snapshot
+    : {};
+  const branding: Record<string, unknown> = isObject(data?.branding)
+    ? data.branding
+    : {};
+  const profileAddress: Record<string, unknown> = isObject(
+    profile.postal_address,
+  )
+    ? profile.postal_address
+    : {};
+  const lockedAddress: Record<string, unknown> = isObject(
+    lockedLegalParty.postal_address,
+  )
+    ? lockedLegalParty.postal_address
+    : {};
+
+  const legalName =
+    clean(lockedLegalParty.legal_name) ??
+    clean(lockedCommunication.legal_name) ??
+    clean(profile.legal_name) ??
+    clean(data?.name) ??
+    "din elhandlare";
+  const brandName =
+    clean(lockedCommunication.brand_name) ??
+    clean(branding.brand_name) ??
+    clean(branding.display_name) ??
+    clean(data?.name) ??
+    legalName;
+  const supportEmail =
+    clean(lockedCommunication.support_email) ??
+    clean(settings.support_email) ??
+    clean(settings.reply_to_email) ??
+    clean(profile.customer_service_email) ??
+    clean(branding.support_email) ??
+    clean(data?.support_email) ??
+    clean(data?.primary_contact_email);
+  const postalAddress =
+    clean(lockedAddress.text) ??
+    clean(lockedAddress.address) ??
+    clean(profileAddress.text) ??
+    clean(profileAddress.address);
+  const senderName =
+    clean(lockedCommunication.sender_name) ??
+    clean(settings.sender_name) ??
+    brandName;
+  const senderEmail =
+    clean(lockedCommunication.sender_email) ?? clean(settings.sender_email);
+  const replyTo =
+    clean(lockedCommunication.reply_to) ??
+    clean(settings.reply_to_email) ??
+    supportEmail;
+  const snapshot = {
+    schema: "gridex_tenant_communication_v1",
+    company_id: companyId,
+    legal_name: legalName,
+    brand_name: brandName,
+    organization_number:
+      clean(lockedLegalParty.organization_number) ??
+      clean(profile.organization_number),
+    postal_address: postalAddress,
+    phone:
+      clean(lockedLegalParty.phone) ??
+      clean(lockedCommunication.phone) ??
+      clean(profile.phone) ??
+      clean(data?.phone),
+    website:
+      clean(lockedLegalParty.website) ??
+      clean(lockedCommunication.website) ??
+      clean(profile.website) ??
+      clean(data?.website),
+    sender_name: senderName,
+    sender_email: senderEmail,
+    reply_to: replyTo,
+    support_email: supportEmail,
+    logo_url:
+      clean(lockedCommunication.logo_url) ??
+      clean(branding.logo_url),
+    legal_footer:
+      clean(lockedCommunication.legal_footer) ?? clean(branding.legal_footer),
+    customer_contract_id: customerContractId ?? null,
+  };
+  const storedHash = clean(
+    contractSnapshot.tenant_communication_snapshot_sha256,
+  );
 
   return {
-    name:
-      clean(settings?.sender_name) ??
-      clean(branding.display_name) ??
-      clean(data?.name) ??
-      "din elhandlare",
-    supportEmail:
-      clean(settings?.support_email) ??
-      clean(settings?.reply_to_email) ??
-      clean(branding.support_email) ??
-      clean(data?.support_email) ??
-      clean(data?.primary_contact_email),
+    name: brandName,
+    legalName,
+    organizationNumber: clean(snapshot.organization_number),
+    postalAddress,
+    phone: clean(snapshot.phone),
+    website: clean(snapshot.website),
+    logoUrl: clean(snapshot.logo_url),
+    senderName,
+    senderEmail,
+    replyTo,
+    supportEmail,
     adminEmail:
       clean(data?.primary_contact_email) ??
       clean(data?.support_email) ??
-      clean(settings?.support_email) ??
-      clean(settings?.reply_to_email),
+      supportEmail,
     portalUrl:
       clean(branding.customer_portal_url) ??
       clean(branding.website_url) ??
       safePortalUrl(),
+    legalFooter: clean(snapshot.legal_footer),
+    snapshot,
+    snapshotSha256:
+      storedHash ??
+      createHash("sha256")
+        .update(JSON.stringify(snapshot), "utf8")
+        .digest("hex"),
   };
 }
 
@@ -4251,7 +4390,7 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
     normalizedEmail(input.customer.email);
   if (!email) return { events: [], results: [] };
 
-  const company = await companyEmailContext(input.companyId);
+  const company = await companyEmailContext(input.companyId, input.contract?.id);
   const priceParts = [
     input.publicOffer?.monthly_fee_sek !== null &&
     input.publicOffer?.monthly_fee_sek !== undefined
@@ -4304,7 +4443,14 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
     input.publicOffer &&
     input.offerReference
       ? buildAgreementPdfAttachment({
-          companyName: company.name,
+          companyName: company.legalName,
+          brandName: company.name,
+          organizationNumber: company.organizationNumber,
+          companyAddress: company.postalAddress,
+          companySupportEmail: company.supportEmail,
+          companyPhone: company.phone,
+          companyWebsite: company.website,
+          legalFooter: company.legalFooter,
           customerName:
             fullName(input.rawCustomer) ??
             input.customer.full_name ??
@@ -4321,6 +4467,12 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
           startsAt: input.contract.starts_at,
           withdrawalDeadline: input.contract.withdrawal_deadline_at ?? null,
           offerReference: input.offerReference,
+          contractPublicationVersionId:
+            input.publicOffer.contract_publication_version_id ?? null,
+          pricePlanVersionId: input.publicOffer.price_plan_version_id,
+          legalBundleVersionId: input.publicOffer.legal_bundle_version_id ?? null,
+          tenantSnapshotSha256: company.snapshotSha256,
+          evidenceId: `contract:${input.contract.id}`,
           monthlyFeeSek: input.publicOffer.monthly_fee_sek,
           invoiceFeeSek: input.publicOffer.invoice_fee_sek,
           spotMarkupOrePerKwh: input.publicOffer.spot_markup_ore_per_kwh,
@@ -4350,6 +4502,12 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
       signature_snapshot_sha256:
         input.contract.signature_snapshot_sha256 ?? null,
       legal_version_ids: input.legalVersions.map((version) => version.id),
+      contract_publication_version_id:
+        input.publicOffer?.contract_publication_version_id ?? null,
+      price_plan_version_id: input.publicOffer?.price_plan_version_id ?? null,
+      legal_bundle_version_id: input.publicOffer?.legal_bundle_version_id ?? null,
+      tenant_communication_snapshot: company.snapshot,
+      tenant_communication_snapshot_sha256: company.snapshotSha256,
     };
     const { error: documentError } = await supabaseService
       .from("customer_contract_documents")
@@ -4422,6 +4580,13 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
           public_contract_offer_id: input.publicOffer?.id ?? null,
           signature_snapshot_sha256:
             input.contract?.signature_snapshot_sha256 ?? null,
+          tenant_communication_snapshot_sha256: company.snapshotSha256,
+          contract_publication_version_id:
+            input.publicOffer?.contract_publication_version_id ?? null,
+          price_plan_version_id:
+            input.publicOffer?.price_plan_version_id ?? null,
+          legal_bundle_version_id:
+            input.publicOffer?.legal_bundle_version_id ?? null,
           external_customer_id: input.externalCustomerId,
           customer_number: input.customerNumber,
           source: "website_customer_applications",

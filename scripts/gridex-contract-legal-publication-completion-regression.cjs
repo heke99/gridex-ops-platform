@@ -29,6 +29,9 @@ const publicOfferReadiness = read("lib/website/publicOfferReadiness.ts");
 const endToEndMigration = read(
   "supabase/migrations/20260716010000_contract_billing_end_to_end_completion.sql",
 );
+const singleSourceMigration = read(
+  "supabase/migrations/20260716140000_contract_legal_publication_single_source_completion.sql",
+);
 const tenantPlatformControls = read(
   "app/admin/companies/[id]/TenantPlatformControls.tsx",
 );
@@ -124,7 +127,8 @@ const required = [
   ],
   [
     "publication readiness receives selected price ids",
-    tenantPlatformActions.includes("gridex_upsert_public_contract_offer") &&
+    tenantPlatformActions.includes("gridex_publish_contract_version") &&
+      singleSourceMigration.includes("gridex_upsert_public_contract_offer") &&
       endToEndMigration.includes("v_pricing->>'price_plan_version_id'"),
   ],
   [

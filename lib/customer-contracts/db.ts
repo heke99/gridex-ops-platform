@@ -10,17 +10,6 @@ import type {
 } from "./types";
 import { deriveContractEndsAt } from "./lifecycle";
 
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9åäö\s-]/gi, "")
-    .replace(/[åä]/g, "a")
-    .replace(/ö/g, "o")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
-
 export type LatestCustomerContractSummary = {
   contract_name: string;
   status: CustomerContractRow["status"];
@@ -35,12 +24,7 @@ export type LatestCustomerContractSummary = {
 } | null;
 
 export type LatestContractBucketFilter =
-  | "all"
-  | "none"
-  | "pending_signature"
-  | "signed"
-  | "active"
-  | "closed";
+  "all" | "none" | "pending_signature" | "signed" | "active" | "closed";
 
 export type LatestContractBucketCounts = {
   all: number;
@@ -91,109 +75,6 @@ export async function getContractOfferById(
 
   if (error) throw error;
   return (data as ContractOfferRow | null) ?? null;
-}
-
-export async function saveContractOffer(input: {
-  id?: string;
-  companyId?: string | null;
-  name: string;
-  slug?: string | null;
-  status: "draft" | "active" | "inactive";
-  contractType: ContractType;
-  campaignName?: string | null;
-  campaignCode?: string | null;
-  campaignVersion?: string | null;
-  priceVersion?: string | null;
-  termsVersion?: string | null;
-  maxCustomers?: number | null;
-  discountValue?: number | null;
-  discountUnit?: string | null;
-  startFeeSek?: number | null;
-  adminFeeSek?: number | null;
-  breakFeeSek?: number | null;
-  vatRate?: number | null;
-  description?: string | null;
-  fixedPriceOrePerKwh?: number | null;
-  spotMarkupOrePerKwh?: number | null;
-  variableFeeOrePerKwh?: number | null;
-  monthlyFeeSek?: number | null;
-  greenFeeMode: GreenFeeMode;
-  greenFeeValue?: number | null;
-  defaultBindingMonths?: number | null;
-  defaultNoticeMonths?: number | null;
-  optionalFeeLines?: Array<Record<string, unknown>> | null;
-  isActive: boolean;
-  validFrom?: string | null;
-  validTo?: string | null;
-  actorUserId?: string | null;
-}): Promise<ContractOfferRow> {
-  const payload = {
-    company_id: input.companyId ?? null,
-    name: input.name.trim(),
-    slug: (input.slug?.trim() || slugify(input.name)).slice(0, 120),
-    status: input.status,
-    contract_type: input.contractType,
-    campaign_name: input.campaignName ?? null,
-    campaign_code: input.campaignCode ?? null,
-    campaign_version: input.campaignVersion ?? null,
-    price_version: input.priceVersion ?? null,
-    terms_version: input.termsVersion ?? null,
-    offer_version:
-      input.termsVersion ?? input.priceVersion ?? input.campaignVersion ?? "v1",
-    version_snapshot: {
-      model: "contract_offer_price_version",
-      availability:
-        input.status === "active" && input.isActive
-          ? "internal_active"
-          : input.status,
-      campaignVersion: input.campaignVersion ?? null,
-      priceVersion: input.priceVersion ?? null,
-      termsVersion: input.termsVersion ?? null,
-      validFrom: input.validFrom ?? null,
-      validTo: input.validTo ?? null,
-      pricing: {
-        fixedPriceOrePerKwh: input.fixedPriceOrePerKwh ?? null,
-        spotMarkupOrePerKwh: input.spotMarkupOrePerKwh ?? null,
-        variableFeeOrePerKwh: input.variableFeeOrePerKwh ?? null,
-        monthlyFeeSek: input.monthlyFeeSek ?? null,
-        greenFeeMode: input.greenFeeMode,
-        greenFeeValue: input.greenFeeValue ?? null,
-      },
-    },
-    max_customers: input.maxCustomers ?? null,
-    discount_value: input.discountValue ?? null,
-    discount_unit: input.discountUnit ?? null,
-    start_fee_sek: input.startFeeSek ?? null,
-    admin_fee_sek: input.adminFeeSek ?? null,
-    break_fee_sek: input.breakFeeSek ?? null,
-    vat_rate: input.vatRate ?? null,
-    description: input.description ?? null,
-    fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
-    spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
-    variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
-    monthly_fee_sek: input.monthlyFeeSek ?? null,
-    green_fee_mode: input.greenFeeMode,
-    green_fee_value: input.greenFeeValue ?? null,
-    default_binding_months: input.defaultBindingMonths ?? null,
-    default_notice_months: input.defaultNoticeMonths ?? null,
-    optional_fee_lines: input.optionalFeeLines ?? [],
-    is_active: input.isActive,
-    valid_from: input.validFrom ?? null,
-    valid_to: input.validTo ?? null,
-    updated_by: input.actorUserId ?? null,
-  };
-
-  const query = input.id
-    ? supabaseService.from("contract_offers").update(payload).eq("id", input.id)
-    : supabaseService.from("contract_offers").insert({
-        ...payload,
-        created_by: input.actorUserId ?? null,
-      });
-
-  const { data, error } = await query.select("*").single();
-  if (error) throw error;
-
-  return data as ContractOfferRow;
 }
 
 export async function listCustomerContractsByCustomerId(
@@ -797,9 +678,11 @@ export async function addCustomerContractEvent(input: {
         "starts_at, ends_at, binding_months, notice_months, status, auto_renew_enabled, auto_renew_term_months, termination_reason",
       )
       .eq("id", input.customerContractId);
-    if (input.companyId) currentQuery = currentQuery.eq("company_id", input.companyId);
+    if (input.companyId)
+      currentQuery = currentQuery.eq("company_id", input.companyId);
 
-    const { data: current, error: currentError } = await currentQuery.maybeSingle();
+    const { data: current, error: currentError } =
+      await currentQuery.maybeSingle();
 
     if (currentError) throw currentError;
 

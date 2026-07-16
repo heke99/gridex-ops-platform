@@ -1059,7 +1059,7 @@ export default async function TenantPlatformControls({
                       · API-klienter med rätt behörighet:{" "}
                       {apiDiagnostic?.matched_api_client_count ?? 0} · juridiska
                       texter i paket:{" "}
-                      {apiDiagnostic?.published_legal_type_count ?? 0}/5
+                      {apiDiagnostic?.published_legal_type_count ?? 0} publicerade källdokument
                     </div>
                     {apiBlockers.length > 0 ? (
                       <ul className="mt-2 list-disc pl-5">

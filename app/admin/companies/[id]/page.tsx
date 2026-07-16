@@ -21,6 +21,7 @@ import TenantPlatformControls from './TenantPlatformControls'
 import { computeTenantReadiness, listWebhookSubscriptions } from '@/lib/admin/websiteIntegrationOps'
 import { getTenantWebsiteReadiness, listCompanyLegalTextVersions, REQUIRED_LEGAL_TEXT_TYPES, type LegalTextVersion, type TenantWebsiteReadiness } from '@/lib/opsMaster/readiness'
 import { getTenantLegalDefaultStatus, legalTypeLabel, type TenantLegalDefaultStatus } from '@/lib/tenant/legalDefaults'
+import { getCanonicalTenantContractReadiness, type CanonicalTenantContractReadiness } from '@/lib/contracts/canonical'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
 import { saveCompanyProfileAction } from './company-profile-actions'
 import {
@@ -536,17 +537,53 @@ function LegalStatusBadge({ status }: { status: string }) {
 function CompanyLegalMasterSection({
   company,
   versions,
-  websiteReadiness,
+  canonicalReadiness,
   defaultStatus,
 }: {
   company: GovernanceCompany
   versions: LegalTextVersion[]
-  websiteReadiness: TenantWebsiteReadiness | null
+  canonicalReadiness: CanonicalTenantContractReadiness
   defaultStatus: TenantLegalDefaultStatus
 }) {
-  const missingItems = websiteReadiness?.missing_items ?? []
   const publishedTypes = new Set(versions.filter((row) => row.status === 'published').map((row) => row.type))
-  const missingLegalTypes = REQUIRED_LEGAL_TEXT_TYPES.filter((type) => !publishedTypes.has(type))
+  const missingLegalSourceTypes = REQUIRED_LEGAL_TEXT_TYPES.filter((type) => !publishedTypes.has(type))
+  const missingFieldLabels: Record<string, string> = {
+    tenant_legal_profile: 'Juridikprofil saknas',
+    legal_name: 'Juridiskt bolagsnamn',
+    organization_number: 'Organisationsnummer',
+    postal_address: 'Postadress',
+    customer_service_email: 'Kundserviceadress',
+    phone: 'Telefonnummer',
+    website: 'Webbplats',
+    complaints_contact: 'Klagomålskontakt',
+    data_protection_contact: 'Dataskyddskontakt',
+    billing_information: 'Faktureringsuppgifter',
+    dispute_resolution_information: 'Tvistlösningsinformation',
+  }
+  const blockerLabels: Record<string, string> = {
+    tenant_legal_profile_missing: 'Juridikprofil saknas',
+    tenant_legal_profile_incomplete: 'Juridikprofilen är ofullständig',
+    tenant_legal_profile_review_required: 'Juridikprofilen har ändrats och måste granskas igen',
+    contract_version_not_approved: 'Avtalsversionen är inte godkänd och låst',
+    price_areas_missing: 'Prisområden saknas',
+    price_area_invalid: 'Ett prisområde är ogiltigt',
+    price_plan_not_active: 'Prisplanen är inte aktiv',
+    price_plan_version_not_locked: 'Prisversionen är inte låst',
+    price_book_not_locked: 'Prislistan är inte låst',
+    legal_bundle_not_locked: 'Juridikpaketet är inte publicerat och låst',
+    unresolved_legal_variables: 'Juridikdokument innehåller olösta variabler',
+    invalid_validity_period: 'Giltighetsperioden är felaktig',
+    website_contracts_read_scope_missing: 'API-klienten saknar rättighet att läsa hemsideavtal',
+    website_applications_write_scope_missing: 'API-klienten saknar rättighet att ta emot kundansökningar',
+  }
+  const blockerLabel = (code: string) => code.startsWith('missing_legal_module:')
+    ? `Juridisk modul saknas: ${code.slice('missing_legal_module:'.length)}`
+    : blockerLabels[code] ?? code.replaceAll('_', ' ')
+  const readinessTone = canonicalReadiness.overall_status === 'ready'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+    : canonicalReadiness.overall_status === 'unknown'
+      ? 'border-slate-300 bg-slate-100 text-slate-800'
+      : 'border-amber-200 bg-amber-50 text-amber-900'
 
   return (
     <section id="legal-master" className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -558,8 +595,12 @@ function CompanyLegalMasterSection({
             Platform admin publicerar juridiska versioner per bolag. Publicerade versioner används av hemsidan, kundansökan, Mina sidor och kundkortets godkännanden. Gamla publicerade versioner ska inte ändras bakåt.
           </p>
         </div>
-        <div className={`rounded-2xl border px-4 py-3 text-sm font-black ${missingItems.length === 0 && missingLegalTypes.length === 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
-          {missingItems.length === 0 && missingLegalTypes.length === 0 ? 'Hemsidan är juridiskt redo' : 'Hemsidan är inte juridiskt redo'}
+        <div className={`rounded-2xl border px-4 py-3 text-sm font-black ${readinessTone}`}>
+          {canonicalReadiness.overall_status === 'ready'
+            ? 'Canonical readiness: redo'
+            : canonicalReadiness.overall_status === 'unknown'
+              ? 'Canonical readiness: okänd'
+              : 'Canonical readiness: blockerad'}
         </div>
       </div>
 
@@ -567,7 +608,7 @@ function CompanyLegalMasterSection({
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
           <p className="text-sm font-black text-emerald-950">Gridex standardjuridik ingår från start</p>
           <p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">
-            Alla tenants ska ha Allmänna villkor, Integritetspolicy, Ångerrättsinformation, Prisvillkor och Fullmaktstext. Tenantens egna publicerade texter används först. Om tenant saknar egna texter används Gridex standardpaket så avtal inte fastnar i onödan. Endast platform admin får ändra eller publicera juridiska versioner.
+            Dessa dokumentkategorier är kompatibilitetskällor för den dynamiska juridikmotorn. Databasen räknar därefter fram exakta moduler utifrån kundtyp, avtalstyp, fullmakt, automatisk förlängning och produktion. Företagsavtal kräver därför inte automatiskt konsumentens ångerrätt, och avstängd fullmakt tas bort ur kraven.
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs font-black">
             {REQUIRED_LEGAL_TEXT_TYPES.map((type) => (
@@ -575,7 +616,7 @@ function CompanyLegalMasterSection({
             ))}
           </div>
           <p className="mt-3 text-xs font-bold text-emerald-800">
-            Status: {defaultStatus.hasAllRequiredLegalTexts ? 'juridik komplett' : `saknar ${defaultStatus.missingTypes.map(legalTypeLabel).join(', ')}`}
+            Status: {defaultStatus.hasAllRequiredLegalTexts ? 'källpaket komplett' : `saknar ${defaultStatus.missingTypes.map(legalTypeLabel).join(', ')}`}
             {defaultStatus.usingGridexDefaults ? ' · använder Gridex standardpaket' : ''}
             {defaultStatus.hasTenantOwnedPublishedTexts ? ' · har tenant-egna publicerade texter' : ''}
           </p>
@@ -588,12 +629,38 @@ function CompanyLegalMasterSection({
         </form>
       </div>
 
-      {missingItems.length > 0 || missingLegalTypes.length > 0 ? (
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+          <p className="font-black text-slate-950">Juridikprofil</p>
+          <p className="mt-2">Status: {canonicalReadiness.legal_profile_status === 'ready' ? 'komplett' : canonicalReadiness.legal_profile_status === 'unknown' ? 'okänd' : 'ofullständig'}</p>
+          <p className={canonicalReadiness.legal_profile_review_required ? 'mt-2 text-amber-800' : 'mt-2 text-slate-600'}>Ny granskning krävs: {canonicalReadiness.legal_profile_review_required ? 'ja' : 'nej'}</p>
+          <p className="mt-1 text-slate-600">Senast verifierad: {formatDate(canonicalReadiness.legal_profile_verified_at)}</p>
+          <p className="mt-1 text-slate-600">Profil uppdaterad: {formatDate(canonicalReadiness.legal_profile_updated_at)}</p>
+          {canonicalReadiness.legal_profile_missing_fields.length > 0 ? <p className="mt-2 text-amber-800">Saknas: {canonicalReadiness.legal_profile_missing_fields.map((field) => missingFieldLabels[field] ?? field).join(', ')}</p> : null}
+          <Link href="/admin/contracts#tenant-legal-profile" className="mt-3 inline-flex text-xs font-black text-emerald-800">Redigera juridikprofil</Link>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+          <p className="font-black text-slate-950">Publicering</p>
+          <p className="mt-2">Publicerade versioner: {canonicalReadiness.published_publication_versions}</p>
+          {canonicalReadiness.no_published_contracts ? <p className="mt-2 text-slate-600">Inga avtal har publicerats ännu. Det är information, inte ett juridiskt fel.</p> : null}
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+          <p className="font-black text-slate-950">Hemsida</p>
+          <p className="mt-2">Kan visas: {canonicalReadiness.can_display ? 'ja' : 'nej'}</p>
+          <p>Kan ta emot ansökningar: {canonicalReadiness.can_accept_applications ? 'ja' : 'nej'}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+          <p className="font-black text-slate-950">Juridiska källor</p>
+          <p className="mt-2">Publicerade: {publishedTypes.size}</p>
+          {missingLegalSourceTypes.length > 0 ? <p className="mt-2 text-amber-800">Saknade kompatibilitetskällor: {missingLegalSourceTypes.map(legalTypeLabel).join(', ')}</p> : null}
+        </div>
+      </div>
+
+      {canonicalReadiness.publication_blockers.length > 0 ? (
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
-          <p className="text-sm font-black text-amber-950">Åtgärder innan hemsidan ska visa/ta emot avtal</p>
+          <p className="text-sm font-black text-amber-950">Canonical blockerare</p>
           <ul className="mt-3 grid gap-2 text-sm font-semibold leading-6 text-amber-950">
-            {missingItems.map((item) => <li key={item}>• {item}</li>)}
-            {missingLegalTypes.map((type) => <li key={type}>• Publicera {LEGAL_TYPE_LABELS[type]}</li>)}
+            {canonicalReadiness.publication_blockers.map((item) => <li key={item}>• {blockerLabel(item)}</li>)}
           </ul>
         </div>
       ) : null}
@@ -1057,6 +1124,7 @@ export default async function CompanyDetailPage({
     tenantIntakeTracking,
     tenantEventMailReadiness,
     tenantContractOfferReadiness,
+    canonicalTenantContractReadiness,
   ] = await Promise.all([
     getCompanyGovernanceSummary(row),
     getActorTestingSummary(row.id),
@@ -1077,6 +1145,7 @@ export default async function CompanyDetailPage({
     getTenantIntakeTracking(row.id),
     getTenantEventMailReadiness(row.id),
     getTenantContractOfferReadiness(row.id),
+    getCanonicalTenantContractReadiness(row.id),
   ])
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
@@ -1243,7 +1312,7 @@ export default async function CompanyDetailPage({
         </section>
 
 
-        <CompanyLegalMasterSection company={company} versions={legalTextVersions} websiteReadiness={tenantWebsiteReadiness} defaultStatus={tenantLegalDefaultStatus} />
+        <CompanyLegalMasterSection company={company} versions={legalTextVersions} canonicalReadiness={canonicalTenantContractReadiness} defaultStatus={tenantLegalDefaultStatus} />
 
         <section id="tenant-website-readiness" className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Website readiness</p>

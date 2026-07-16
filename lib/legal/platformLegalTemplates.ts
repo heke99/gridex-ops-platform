@@ -370,6 +370,10 @@ export async function copyPublishedTemplatesToCompany(input: {
     const rendered = renderTenantLegalTemplate(template, company)
     const metadata = {
       source: input.source ?? 'platform_template',
+      origin: 'platform_template',
+      template_key: type,
+      template_version: template.version,
+      tenant_customized: false,
       copied_from_platform_default_id: template.id,
       copied_from_platform_version: template.version,
       inherited_from_platform: true,

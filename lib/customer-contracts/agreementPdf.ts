@@ -10,6 +10,13 @@ export type AgreementPdfLegalVersion = {
 
 export type AgreementPdfInput = {
   companyName: string
+  brandName?: string | null
+  organizationNumber?: string | null
+  companyAddress?: string | null
+  companySupportEmail?: string | null
+  companyPhone?: string | null
+  companyWebsite?: string | null
+  legalFooter?: string | null
   customerName: string
   customerEmail?: string | null
   customerNumber: string
@@ -21,6 +28,11 @@ export type AgreementPdfInput = {
   startsAt?: string | null
   withdrawalDeadline?: string | null
   offerReference: string
+  contractPublicationVersionId?: string | null
+  pricePlanVersionId?: string | null
+  legalBundleVersionId?: string | null
+  tenantSnapshotSha256?: string | null
+  evidenceId?: string | null
   monthlyFeeSek?: number | null
   invoiceFeeSek?: number | null
   spotMarkupOrePerKwh?: number | null
@@ -127,7 +139,12 @@ function agreementLines(input: AgreementPdfInput) {
   return [
     'AVTALSBEKRÄFTELSE',
     '',
-    `Elhandelsbolag: ${input.companyName}`,
+    `Avtalspart: ${input.companyName}`,
+    ...(input.brandName && input.brandName !== input.companyName ? [`Varumärke: ${input.brandName}`] : []),
+    `Organisationsnummer: ${input.organizationNumber ?? '-'}`,
+    `Adress: ${input.companyAddress ?? '-'}`,
+    `Kundservice: ${input.companySupportEmail ?? '-'}${input.companyPhone ? ` · ${input.companyPhone}` : ''}`,
+    `Webbplats: ${input.companyWebsite ?? '-'}`,
     `Kund: ${input.customerName}`,
     `E-post: ${input.customerEmail ?? '-'}`,
     `Kundnummer: ${input.customerNumber}`,
@@ -155,9 +172,14 @@ function agreementLines(input: AgreementPdfInput) {
     '',
     'BEVISUPPGIFTER',
     `Offer reference: ${input.offerReference}`,
+    `Publiceringsversion: ${input.contractPublicationVersionId ?? '-'}`,
+    `Prisversion: ${input.pricePlanVersionId ?? '-'}`,
+    `Juridikversion: ${input.legalBundleVersionId ?? '-'}`,
+    `Bevis-ID: ${input.evidenceId ?? input.contractNumber}`,
+    `Tenantsnapshot SHA-256: ${input.tenantSnapshotSha256 ?? '-'}`,
     `Signatursnapshot SHA-256: ${input.signatureSnapshotSha256 ?? '-'}`,
     '',
-    'Detta dokument återger det erbjudande, det pris och de juridiska versioner som var bundna till kundens serverregistrerade accept. Originalbeviset och fullständiga snapshots finns i Gridex OPS.',
+    input.legalFooter ?? 'Detta dokument återger exakt den publicerings-, pris-, juridik- och tenantversion som var bunden till kundens serverregistrerade accept. Gridex OPS är teknisk plattform och är inte avtalspart om inte annat uttryckligen anges.',
   ].flatMap((line) => wrapLine(line))
 }
 

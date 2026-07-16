@@ -40,6 +40,28 @@ export type TenantLegalProfile = {
   data_protection_contact: Record<string, unknown>
   billing_information: Record<string, unknown>
   dispute_resolution_information: Record<string, unknown>
+  missing_fields?: string[]
+  review_required?: boolean
+  verified_at?: string | null
+  updated_at?: string | null
+}
+
+export type CanonicalTenantContractReadiness = {
+  company_id: string
+  company_name: string
+  legal_profile_status: 'ready' | 'blocked' | 'unknown'
+  legal_profile_missing_fields: string[]
+  legal_profile_review_required: boolean
+  legal_profile_verified_at: string | null
+  legal_profile_updated_at: string | null
+  total_publication_versions: number
+  published_publication_versions: number
+  can_display: boolean
+  can_accept_applications: boolean
+  publication_blockers: string[]
+  overall_status: 'ready' | 'blocked' | 'unknown'
+  no_published_contracts: boolean
+  evaluated_at: string | null
 }
 
 type CanonicalRawRow = Record<string, unknown> & {
@@ -184,4 +206,66 @@ export async function listPublicationReadiness(companyId: string) {
     .eq('company_id', companyId)
   if (error) throw error
   return data ?? []
+}
+
+
+function isMissingSchemaError(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return ['42P01', '42703', 'PGRST200', 'PGRST201', 'PGRST204', 'PGRST205'].includes(code)
+    || /schema cache|does not exist|column .* does not exist|relationship/i.test(message)
+}
+
+export async function getCanonicalTenantContractReadiness(
+  companyId: string,
+): Promise<CanonicalTenantContractReadiness> {
+  const { data, error } = await supabaseService
+    .from('gridex_tenant_contract_readiness_v')
+    .select('*')
+    .eq('company_id', companyId)
+    .maybeSingle()
+
+  if (error) {
+    if (!isMissingSchemaError(error)) throw error
+    return {
+      company_id: companyId,
+      company_name: '',
+      legal_profile_status: 'unknown',
+      legal_profile_missing_fields: ['tenant_legal_profile'],
+      legal_profile_review_required: false,
+      legal_profile_verified_at: null,
+      legal_profile_updated_at: null,
+      total_publication_versions: 0,
+      published_publication_versions: 0,
+      can_display: false,
+      can_accept_applications: false,
+      publication_blockers: ['canonical_readiness_unavailable'],
+      overall_status: 'unknown',
+      no_published_contracts: true,
+      evaluated_at: null,
+    }
+  }
+
+  const row = record(data)
+  return {
+    company_id: text(row.company_id, companyId),
+    company_name: text(row.company_name),
+    legal_profile_status: ['ready', 'blocked', 'unknown'].includes(text(row.legal_profile_status))
+      ? text(row.legal_profile_status) as CanonicalTenantContractReadiness['legal_profile_status']
+      : 'unknown',
+    legal_profile_missing_fields: stringArray(row.legal_profile_missing_fields),
+    legal_profile_review_required: bool(row.legal_profile_review_required),
+    legal_profile_verified_at: nullableText(row.legal_profile_verified_at),
+    legal_profile_updated_at: nullableText(row.legal_profile_updated_at),
+    total_publication_versions: integer(row.total_publication_versions),
+    published_publication_versions: integer(row.published_publication_versions),
+    can_display: bool(row.can_display),
+    can_accept_applications: bool(row.can_accept_applications),
+    publication_blockers: stringArray(row.publication_blockers),
+    overall_status: ['ready', 'blocked', 'unknown'].includes(text(row.overall_status))
+      ? text(row.overall_status) as CanonicalTenantContractReadiness['overall_status']
+      : 'unknown',
+    no_published_contracts: bool(row.no_published_contracts),
+    evaluated_at: nullableText(row.evaluated_at),
+  }
 }

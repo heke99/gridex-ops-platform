@@ -34,7 +34,7 @@ expect(
 )
 expect(
   /async function patchMeteringPointCanonicalFields/.test(website) &&
-    /\.from\('metering_points'\)[\s\S]{0,220}\.update\(patch\)/.test(website) &&
+    /\.from\(['"]metering_points['"]\)[\s\S]{0,500}\.update\(patch\)/.test(website) &&
     /await patchMeteringPointCanonicalFields\(\{[\s\S]{0,260}existing\.id/.test(website),
   'existing idempotent metering_points rows are patched with canonical fields',
 )
@@ -47,13 +47,13 @@ expect(
   'metering_points insert writes grid area, price area, bidding zone, grid owner and consumption canonical columns',
 )
 expect(
-  /const canDispatchFinalAgreementMail = Boolean\([\s\S]*readiness\.canSendAgreementConfirmation === true[\s\S]*!facilityMissing[\s\S]*applicationStatus === 'ready_for_switch'/.test(website) &&
-    /\.\.\.\(canDispatchFinalAgreementMail \? \['contract\.confirmation_sent', 'contract\.cooling_off_sent'\] : \[\]\)/.test(website),
-  'final agreement/cooling-off e-mails are gated by readiness and never by legal evidence alone',
+  /const legalMailReady = Boolean\([\s\S]*WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS[\s\S]*agreementAttachment[\s\S]*contractLegalMailEvidenceReady/.test(website) &&
+    /\.\.\.\(legalMailReady[\s\S]{0,80}contract\.confirmation_sent[\s\S]{0,80}contract\.cooling_off_sent/.test(website),
+  'final agreement/cooling-off e-mails require a signed contract, immutable PDF and exact legal evidence',
 )
 expect(
-  /if \(readiness\.canSendAgreementConfirmation === true && !facilityMissing && applicationStatus === 'ready_for_switch'\)[\s\S]{0,120}pushWarning\(warnings, 'legal_email_pending'\)/.test(website),
-  'legal_email_pending warning is only used when final agreement e-mail was allowed',
+  /failedEmailResults\.some\([\s\S]{0,220}contract\.confirmation_sent[\s\S]{0,160}contract\.cooling_off_sent[\s\S]{0,120}pushWarning\(warnings, ["']legal_email_pending["']\)/.test(website),
+  'legal_email_pending warning is only used after a failed final agreement e-mail event',
 )
 expect(
   /function resolveRequestPriceArea/.test(manual) &&
