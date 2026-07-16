@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
-import { isCanonicalLegalModule } from '@/lib/legal/canonicalModules'
+import { CANONICAL_LEGAL_MODULES, isCanonicalLegalModule } from '@/lib/legal/canonicalModules'
 import { seedGridexDefaultLegalPackage } from '@/lib/tenant/legalDefaults'
 import { supabaseService } from '@/lib/supabase/service'
 
@@ -197,7 +197,7 @@ export async function seedDefaultLegalPackageAction(formData: FormData) {
     })
 
     revalidatePath(`/admin/companies/${companyId}`)
-    redirectBack(companyId, { success: 'Alla canonical juridikmoduler finns publicerade och renderas med bolagets låsta juridikprofil vid publicering.' })
+    redirectBack(companyId, { success: `OPS-standardmallar ${result.platformPublishedCount}/${CANONICAL_LEGAL_MODULES.length} · egna overrides ${result.tenantOverrideCount} · effektiva moduler ${result.effectiveModuleCount}/${CANONICAL_LEGAL_MODULES.length}. Alla dokument renderas med bolagets låsta juridikprofil vid publicering.` })
   } catch (error) {
     if (isRedirectError(error)) throw error
     redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Standardjuridiken kunde inte valideras.' })

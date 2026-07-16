@@ -4,6 +4,7 @@ import { seedDefaultEmailTemplates } from './emailTemplates'
 
 export async function seedDefaultCompanyEmailConfiguration(companyId: string) {
   await seedDefaultCompanyEmailSettings(companyId)
-  await seedDefaultEmailTemplates(companyId)
-  await seedDefaultEmailEventRules(companyId)
+  const templates = await seedDefaultEmailTemplates(companyId)
+  const rules = await seedDefaultEmailEventRules(companyId)
+  return { templates, rules }
 }

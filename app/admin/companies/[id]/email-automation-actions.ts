@@ -50,8 +50,8 @@ export async function repairCompanyEmailAutomationAction(formData: FormData) {
   const companyId = text(formData.get('company_id'))
   if (!companyId) throw new Error('Bolag saknas.')
 
-  await seedDefaultEmailTemplates(companyId)
-  await seedDefaultEmailEventRules(companyId)
+  const templates = await seedDefaultEmailTemplates(companyId)
+  const rules = await seedDefaultEmailEventRules(companyId)
 
   await supabaseService.from('audit_logs').insert({
     company_id: companyId,
@@ -59,9 +59,9 @@ export async function repairCompanyEmailAutomationAction(formData: FormData) {
     action: 'SUPERADMIN_EMAIL_AUTOMATION_REPAIRED',
     entity_type: 'email_event_rules',
     entity_id: companyId,
-    new_values: { repaired_defaults: DEFAULT_EMAIL_EVENT_RULES },
+    new_values: { repaired_defaults: DEFAULT_EMAIL_EVENT_RULES, templates, rules },
   }).then(() => null)
 
   revalidatePath(`/admin/companies/${companyId}`)
-  redirectBack(companyId, 'Standardmallar och utskicksregler kontrollerades och aktiverades.')
+  redirectBack(companyId, `${templates.checked} mallar kontrollerades: ${templates.created} skapades, ${templates.repaired} reparerades, ${templates.preserved} bevarades. ${rules.checked} regler verifierades: ${rules.created} skapades, ${rules.repaired} reparerades och ${rules.legacyDisabled} felkopplade legacyregler stängdes av.`)
 }

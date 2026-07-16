@@ -555,6 +555,7 @@ export async function saveTenantLegalProfileAction(formData: FormData) {
           dispute_resolution_information: jsonObject(
             "dispute_resolution_information",
           ),
+          review_required: false,
           verified_by: null,
           verified_at: null,
           updated_at: new Date().toISOString(),

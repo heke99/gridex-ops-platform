@@ -543,8 +543,7 @@ function CompanyLegalMasterSection({
   canonicalReadiness: CanonicalTenantContractReadiness
   defaultStatus: TenantLegalDefaultStatus
 }) {
-  const publishedTypes = new Set(versions.filter((row) => row.status === 'published').map((row) => row.type))
-  const missingLegalSourceTypes = CANONICAL_LEGAL_MODULES.filter((type) => !publishedTypes.has(type))
+  const missingLegalSourceTypes = defaultStatus.missingTypes
   const missingFieldLabels: Record<string, string> = {
     tenant_legal_profile: 'Juridikprofil saknas',
     legal_name: 'Juridiskt bolagsnamn',
@@ -590,7 +589,7 @@ function CompanyLegalMasterSection({
           <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">OPS master</p>
           <h2 className="mt-2 text-xl font-black text-slate-950">Juridiska texter, fullmakt och hemside-readiness</h2>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
-            Platform admin publicerar juridiska versioner per bolag. Publicerade versioner används av hemsidan, kundansökan, Mina sidor och kundkortets godkännanden. Gamla publicerade versioner ska inte ändras bakåt.
+            OPS tillhandahåller ett globalt, versionslåst standardbibliotek för alla bolag. Bolagets egna publicerade texter används endast som ersättning eller tillägg för vald modul. Publicering, hemsida, kundaccept, PDF och historik använder samma effektiva dokumentversioner.
           </p>
         </div>
         <div className={`rounded-2xl border px-4 py-3 text-sm font-black ${readinessTone}`}>
@@ -604,7 +603,7 @@ function CompanyLegalMasterSection({
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-          <p className="text-sm font-black text-emerald-950">Gridex standardjuridik ingår från start</p>
+          <p className="text-sm font-black text-emerald-950">OPS-standardjuridik ingår från start</p>
           <p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">
             Dessa är canonical juridikmoduler som publiceringsmotorn materialiserar som separata, låsta dokument. Databasen räknar fram exakt kravuppsättning utifrån kundtyp, avtalstyp, fullmakt, automatisk förlängning och produktion. Företagsavtal kräver därför inte automatiskt konsumentens ångerrätt, och avstängd fullmakt tas bort ur kraven.
           </p>
@@ -615,15 +614,15 @@ function CompanyLegalMasterSection({
           </div>
           <p className="mt-3 text-xs font-bold text-emerald-800">
             Status: {defaultStatus.hasAllRequiredLegalTexts ? 'canonical mallpaket komplett' : `saknar ${defaultStatus.missingTypes.map(canonicalLegalModuleLabel).join(', ')}`}
-            {defaultStatus.usingGridexDefaults ? ' · använder publicerade Gridex-masterversioner' : ''}
+            {defaultStatus.usingGridexDefaults ? ' · använder publicerade OPS-masterversioner' : ''}
             {defaultStatus.hasTenantOwnedPublishedTexts ? ' · har tenant-egna publicerade texter' : ''}
           </p>
         </div>
         <form action={seedDefaultLegalPackageAction} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
           <input type="hidden" name="company_id" value={company.id} />
           <p className="text-sm font-black text-slate-950">Standardpaket</p>
-          <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">Validera att samtliga publicerade canonical mastermallar finns. Tenantens egna overrides bevaras och exakta dokument skapas först i den atomiska publiceringen.</p>
-          <button className="mt-4 w-full rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Validera canonical juridik</button>
+          <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">Kontrollerar OPS-masterbiblioteket och bolagets effektiva källor. Inga tenantkopior skapas; egna overrides bevaras och får företräde vid publicering.</p>
+          <button className="mt-4 w-full rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Kontrollera OPS-standardjuridik</button>
         </form>
       </div>
 
@@ -649,10 +648,34 @@ function CompanyLegalMasterSection({
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
           <p className="font-black text-slate-950">Juridiska källor</p>
-          <p className="mt-2">Publicerade: {publishedTypes.size}</p>
-          {missingLegalSourceTypes.length > 0 ? <p className="mt-2 text-amber-800">Saknade canonical moduler: {missingLegalSourceTypes.map(canonicalLegalModuleLabel).join(', ')}</p> : null}
+          <p className="mt-2">OPS-standardmallar: {defaultStatus.platformPublishedCount}/{CANONICAL_LEGAL_MODULES.length}</p>
+          <p>Egna publicerade overrides: {defaultStatus.tenantOverrideCount}</p>
+          <p>Effektiva moduler: {defaultStatus.effectiveModuleCount}/{CANONICAL_LEGAL_MODULES.length}</p>
+          {missingLegalSourceTypes.length > 0 ? <p className="mt-2 text-amber-800">Saknade effektiva moduler: {missingLegalSourceTypes.map(canonicalLegalModuleLabel).join(', ')}</p> : <p className="mt-2 text-emerald-800">Alla canonical moduler har en effektiv källa.</p>}
         </div>
       </div>
+
+      <details className="rounded-3xl border border-slate-200 bg-white p-5">
+        <summary className="cursor-pointer text-sm font-black text-slate-950">Visa effektiva juridiska källor per modul</summary>
+        <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">OPS-master används automatiskt. En publicerad tenant-override ersätter standarden eller läggs till som ett versionslåst tillägg för endast den valda modulen.</p>
+        <div className="mt-4 grid gap-2 md:grid-cols-2">
+          {defaultStatus.effectiveSources.map((source) => {
+            const sourceDescription = source.effectiveSource === 'tenant_replacement'
+              ? `Tenant-override ersätter OPS-standard · version ${source.tenantOverrideVersion ?? 'okänd'}`
+              : source.effectiveSource === 'platform_template_with_tenant_addendum'
+                ? `OPS-standard ${source.platformVersion ?? 'okänd'} + tenant-tillägg ${source.tenantOverrideVersion ?? 'okänd'}`
+                : source.effectiveSource === 'platform_template'
+                  ? `OPS-standard · version ${source.platformVersion ?? 'okänd'}`
+                  : 'Effektiv källa saknas'
+            return (
+              <div key={source.type} className={`rounded-2xl border px-4 py-3 text-xs font-semibold ${source.available ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+                <p className="font-black text-slate-950">{canonicalLegalModuleLabel(source.type)}</p>
+                <p className="mt-1">{sourceDescription}</p>
+              </div>
+            )
+          })}
+        </div>
+      </details>
 
       {canonicalReadiness.publication_blockers.length > 0 ? (
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
@@ -674,8 +697,8 @@ function CompanyLegalMasterSection({
         <label className="grid gap-1 text-sm font-bold text-slate-800">
           Läge
           <select name="legal_mode" defaultValue="replacement" className="rounded-2xl border border-slate-300 bg-white px-4 py-3" required>
-            <option value="replacement">Ersätter Gridex mastermall</option>
-            <option value="addendum">Tillägg till Gridex mastermall</option>
+            <option value="replacement">Ersätter OPS-master</option>
+            <option value="addendum">Tillägg till OPS-master</option>
           </select>
         </label>
         <label className="grid gap-1 text-sm font-bold text-slate-800">
@@ -704,7 +727,7 @@ function CompanyLegalMasterSection({
             <tr><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Version</th><th className="px-4 py-3">Rubrik</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Publicerad</th><th className="px-4 py-3">Åtgärd</th></tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
-            {versions.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center font-semibold text-slate-600">Inga juridiska versioner finns ännu.</td></tr> : null}
+            {versions.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center font-semibold text-slate-600">Inga tenant-egna overrides finns. Bolaget använder OPS-standardmallarna automatiskt.</td></tr> : null}
             {versions.map((version) => (
               <tr key={version.id}>
                 <td className="px-4 py-3 font-bold text-slate-900">{LEGAL_TYPE_LABELS[version.type] ?? version.type}</td>

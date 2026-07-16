@@ -17,6 +17,31 @@ export type EmailEventRule = {
   send_to_admin: boolean
   created_at: string
   updated_at: string
+  is_active?: boolean | null
+}
+
+export const CANONICAL_EMAIL_EVENT_LABELS: Record<string, string> = {
+  'contract.application_received': 'Ansökan mottagen',
+  'contract.confirmation_sent': 'Avtalsbekräftelse',
+  'contract.cooling_off_sent': 'Ångerrätt',
+  'contract.power_of_attorney_required': 'Begäran om fullmakt',
+  'contract.facility_id_required': 'Begäran om anläggnings-ID',
+  'contract.customer_information_required': 'Begäran om kunduppgifter',
+  'contract.completion_reminder': 'Påminnelse om komplettering',
+  'contract.rejected': 'Avtal avslaget',
+  'contract.manual_review': 'Manuell granskning',
+  'switch.started': 'Leverantörsbyte startat',
+  'switch.confirmed': 'Leverantörsbyte bekräftat',
+  'switch.action_required': 'Komplettering behövs',
+  'customer.welcome_active': 'Välkommen som kund',
+}
+
+export type EmailEventRuleRepairReport = {
+  checked: number
+  created: number
+  repaired: number
+  preserved: number
+  legacyDisabled: number
 }
 
 export const DEFAULT_EMAIL_EVENT_RULES = [
@@ -63,6 +88,12 @@ const EVENT_ALIASES: Record<string, string> = {
 
 export function normalizeEmailEventKey(eventKey: string) {
   return EVENT_ALIASES[eventKey] ?? eventKey
+}
+
+export function isEmailEventRuleActive(
+  rule: Pick<EmailEventRule, 'enabled' | 'is_active'>,
+): boolean {
+  return rule.enabled === true && rule.is_active !== false
 }
 
 function isAllowedRuleForEvent(rule: Pick<EmailEventRule, 'template_key'>, normalizedEventKey: string) {
@@ -116,32 +147,66 @@ export async function updateEmailEventRule(
   return data as EmailEventRule
 }
 
-export async function seedDefaultEmailEventRules(companyId: string) {
+export async function seedDefaultEmailEventRules(companyId: string): Promise<EmailEventRuleRepairReport> {
   const now = new Date().toISOString()
-  const { error } = await supabaseService
+  const { data: existingRows, error: existingError } = await supabaseService
     .from('email_event_rules')
-    .upsert(DEFAULT_EMAIL_EVENT_RULES.map((rule) => ({
+    .select('id,company_id,event_key,template_key,enabled,is_active,delay_minutes,send_to_customer,send_to_admin,created_at,updated_at')
+    .eq('company_id', companyId)
+
+  if (existingError && !['42P01', '42703', 'PGRST205'].includes(existingError.code ?? '')) throw existingError
+
+  const existing = (existingRows ?? []) as EmailEventRule[]
+  const exactByPair = new Map(existing.map((row) => [`${row.event_key}:${row.template_key}`, row]))
+  let created = 0
+  let repaired = 0
+  let preserved = 0
+
+  const canonicalRows = DEFAULT_EMAIL_EVENT_RULES.map((rule) => {
+    const current = exactByPair.get(`${rule.event_key}:${rule.template_key}`)
+    if (!current) created += 1
+    else if (current.enabled !== true || current.is_active === false || current.send_to_customer !== true) repaired += 1
+    else preserved += 1
+
+    return {
       company_id: companyId,
       event_key: rule.event_key,
       template_key: rule.template_key,
       enabled: true,
       is_active: true,
-      delay_minutes: 0,
+      delay_minutes: current?.delay_minutes ?? 0,
       send_to_customer: true,
-      send_to_admin: false,
+      send_to_admin: current?.send_to_admin ?? false,
       updated_at: now,
-    })), { onConflict: 'company_id,event_key,template_key', ignoreDuplicates: true })
+    }
+  })
 
+  const { error } = await supabaseService
+    .from('email_event_rules')
+    .upsert(canonicalRows, { onConflict: 'company_id,event_key,template_key' })
   if (error) throw error
 
-  await supabaseService
-    .from('email_event_rules')
-    .update({ enabled: false, is_active: false, updated_at: now })
-    .eq('company_id', companyId)
-    .or(`template_key.in.(${Array.from(LEGACY_TEMPLATE_KEYS).join(',')}),and(event_key.eq.contract.application_received,template_key.neq.contract.application_received),and(event_key.eq.contract.confirmation_sent,template_key.neq.contract.confirmation_sent),and(event_key.eq.contract.cooling_off_sent,template_key.neq.contract.cooling_off_sent)`)
-    .then(({ error: legacyError }) => {
-      if (legacyError && !['42P01', '42703', 'PGRST205'].includes(legacyError.code ?? '')) throw legacyError
-    })
+  const canonicalByEvent = new Map(DEFAULT_EMAIL_EVENT_RULES.map((rule) => [rule.event_key, rule.template_key]))
+  const legacyIds = existing
+    .filter((row) => LEGACY_TEMPLATE_KEYS.has(row.template_key) || (canonicalByEvent.has(row.event_key) && canonicalByEvent.get(row.event_key) !== row.template_key))
+    .map((row) => row.id)
+
+  if (legacyIds.length > 0) {
+    const { error: legacyError } = await supabaseService
+      .from('email_event_rules')
+      .update({ enabled: false, is_active: false, updated_at: now })
+      .eq('company_id', companyId)
+      .in('id', legacyIds)
+    if (legacyError && !['42P01', '42703', 'PGRST205'].includes(legacyError.code ?? '')) throw legacyError
+  }
+
+  return {
+    checked: DEFAULT_EMAIL_EVENT_RULES.length,
+    created,
+    repaired,
+    preserved,
+    legacyDisabled: legacyIds.length,
+  }
 }
 
 export async function triggerEmailEvent(input: {
@@ -164,13 +229,14 @@ export async function triggerEmailEvent(input: {
 
   const rules = await getEmailEventRules(input.companyId)
   const matchingRules = rules.filter((rule) => rule.event_key === normalizedEventKey && isAllowedRuleForEvent(rule, normalizedEventKey))
-  const dispatchRules: Array<Pick<EmailEventRule, 'event_key' | 'template_key' | 'enabled' | 'delay_minutes' | 'send_to_customer' | 'send_to_admin'>> =
+  const dispatchRules: Array<Pick<EmailEventRule, 'event_key' | 'template_key' | 'enabled' | 'is_active' | 'delay_minutes' | 'send_to_customer' | 'send_to_admin'>> =
     matchingRules.length > 0
       ? matchingRules
       : [{
           event_key: normalizedEventKey,
           template_key: fallbackTemplateKey,
           enabled: true,
+          is_active: true,
           delay_minutes: 0,
           send_to_customer: true,
           send_to_admin: false,
@@ -178,6 +244,16 @@ export async function triggerEmailEvent(input: {
 
   const results: EmailEventDispatchResult[] = []
   for (const rule of dispatchRules) {
+    if (!isEmailEventRuleActive(rule)) {
+      results.push({
+        ok: false,
+        skipped: true,
+        eventKey: normalizedEventKey,
+        reason: 'event_rule_disabled',
+      })
+      continue
+    }
+
     const recipients = [
       ...(rule.send_to_customer ? [{ role: 'customer', email: input.to }] : []),
       ...(rule.send_to_admin && input.adminTo ? [{ role: 'admin', email: input.adminTo }] : []),

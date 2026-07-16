@@ -14,6 +14,13 @@ export type CompanyEmailTemplate = {
   updated_at: string
 }
 
+export type EmailTemplateRepairReport = {
+  checked: number
+  created: number
+  repaired: number
+  preserved: number
+}
+
 type TemplateInput = {
   name?: string
   subject?: string
@@ -219,18 +226,64 @@ export async function upsertCompanyEmailTemplate(companyId: string, templateKey:
   return data as CompanyEmailTemplate
 }
 
-export async function seedDefaultEmailTemplates(companyId: string) {
-  const { error } = await supabaseService
+export async function seedDefaultEmailTemplates(companyId: string): Promise<EmailTemplateRepairReport> {
+  const { data: existingRows, error: existingError } = await supabaseService
     .from('company_email_templates')
-    .upsert(DEFAULT_EMAIL_TEMPLATES.map((template) => ({
-      ...template,
+    .select('id,company_id,template_key,name,subject,body_html,body_text,language,is_active,created_at,updated_at')
+    .eq('company_id', companyId)
+    .eq('language', 'sv')
+
+  if (existingError && !['42P01', '42703', 'PGRST205'].includes(existingError.code ?? '')) throw existingError
+
+  const existing = (existingRows ?? []) as CompanyEmailTemplate[]
+  const byKey = new Map(existing.map((row) => [row.template_key, row]))
+  const now = new Date().toISOString()
+  let created = 0
+  let repaired = 0
+  let preserved = 0
+
+  const rows = DEFAULT_EMAIL_TEMPLATES.map((fallback) => {
+    const current = byKey.get(fallback.template_key)
+    const subject = current?.subject?.trim() || fallback.subject
+    const bodyHtml = current?.body_html?.trim() || fallback.body_html
+    const bodyText = current?.body_text?.trim() || fallback.body_text
+    const name = current?.name?.trim() || fallback.name
+    const needsRepair = Boolean(current) && (
+      current?.is_active !== true ||
+      !current?.name?.trim() ||
+      !current?.subject?.trim() ||
+      !current?.body_html?.trim() ||
+      !current?.body_text?.trim()
+    )
+
+    if (!current) created += 1
+    else if (needsRepair) repaired += 1
+    else preserved += 1
+
+    return {
       company_id: companyId,
+      template_key: fallback.template_key,
+      name,
+      subject,
+      body_html: bodyHtml,
+      body_text: bodyText,
       language: 'sv',
       is_active: true,
-      updated_at: new Date().toISOString(),
-    })), { onConflict: 'company_id,template_key,language', ignoreDuplicates: true })
+      updated_at: now,
+    }
+  })
 
+  const { error } = await supabaseService
+    .from('company_email_templates')
+    .upsert(rows, { onConflict: 'company_id,template_key,language' })
   if (error) throw error
+
+  return {
+    checked: DEFAULT_EMAIL_TEMPLATES.length,
+    created,
+    repaired,
+    preserved,
+  }
 }
 
 export async function resetEmailTemplateToDefault(companyId: string, templateKey: string) {

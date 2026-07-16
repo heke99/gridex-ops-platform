@@ -271,9 +271,9 @@ export async function seedDefaultCompanyEmailAction(formData: FormData) {
   const companyId = text(formData.get('company_id'))
   try {
     if (!companyId) throw new Error('Bolag saknas.')
-    await seedDefaultCompanyEmailConfiguration(companyId)
+    const report = await seedDefaultCompanyEmailConfiguration(companyId)
     revalidatePath(`/admin/companies/${companyId}`)
-    redirectBack(companyId, { success: 'Standardmallar och utskicksregler skapades.' })
+    redirectBack(companyId, { success: `${report.templates.checked} mallar och ${report.rules.checked} regler verifierades. Skapade: ${report.templates.created + report.rules.created}. Reparerade: ${report.templates.repaired + report.rules.repaired}.` })
   } catch (error) {
     if (isRedirectError(error)) throw error
     redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Standardmallar kunde inte skapas.' })

@@ -12,7 +12,7 @@ import {
   repairCompanyEmailAutomationAction,
   toggleCompanyEmailEventRuleAction,
 } from "./email-automation-actions";
-import { DEFAULT_EMAIL_EVENT_RULES } from "@/lib/email/emailEvents";
+import { CANONICAL_EMAIL_EVENT_LABELS, DEFAULT_EMAIL_EVENT_RULES } from "@/lib/email/emailEvents";
 import {
   updateIntegrationApiClientPermissionsAction,
   setIntegrationApiClientStatusAction,
@@ -199,15 +199,7 @@ function badge(tone: "green" | "amber" | "red" | "slate", label: string) {
   );
 }
 
-const MAIL_EVENT_LABELS: Record<string, string> = {
-  "contract.application_received": "Ansökan mottagen",
-  "contract.confirmation_sent": "Avtalsbekräftelse",
-  "contract.cooling_off_sent": "Ångerrätt",
-  "switch.started": "Leverantörsbyte startat",
-  "switch.confirmed": "Leverantörsbyte bekräftat",
-  "switch.action_required": "Komplettering behövs",
-  "customer.welcome_active": "Välkommen som kund",
-};
+const MAIL_EVENT_LABELS = CANONICAL_EMAIL_EVENT_LABELS;
 
 function canonicalMailReadinessRows(rows: MailReadiness[]): MailReadiness[] {
   return DEFAULT_EMAIL_EVENT_RULES.map((rule) => {
