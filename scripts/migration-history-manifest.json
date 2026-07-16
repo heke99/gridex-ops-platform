@@ -275,7 +275,7 @@
     "20260716010000_contract_billing_end_to_end_completion.sql": "681f2061678aa4c22075d730925367a824400a9bd9c58f71281c9e182dee9014",
     "20260716090000_production_settlement_export_completion.sql": "d50c8f7e755c026d1af9be693bf42b0d0001b4b8a4680c96c4e0d611f03b64eb",
     "20260716140000_contract_legal_publication_single_source_completion.sql": "c2dcd7e84e5963486207a764a51e57f4830078c59e4032f1df3d8e8405bd5561",
-    "20260716183000_contract_canonical_finalization.sql": "96f94113d09e30e844a3f666f8ff0c51b0d58b3ddb5f250d1a5821d251dc98db",
+    "20260716183000_contract_canonical_finalization.sql": "37da788d8e05adf15b177d6c6eed7467f6a86cc81d7932fc3cb9df04b52827e0",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
