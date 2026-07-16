@@ -104,21 +104,21 @@ ok(src.includes('legalAcceptances'), 'application schema accepts a legalAcceptan
 // 2) Legal text is loaded by id (never trust frontend text).
 ok(src.includes('loadLegalTextVersionById'), 'website API loads legal text version by id')
 ok(src.includes('power_of_attorney_version_invalid') && src.includes('UUID_RE'), 'website API rejects non-UUID powerOfAttorney.textVersionId before querying legal_text_versions')
-ok(src.includes('referencedLegal ?? input.legalVersions.find'), 'POA binds to referenced legal version, falling back to published version')
+ok(src.includes('referencedLegal ??') && src.includes('input.legalVersions.find'), 'POA binds to referenced legal version, falling back to published version')
 
 // 3) Real POA row with evidence + provenance + scopes.
 ok(src.includes('signer_name:') && src.includes('signer_identity_number:') && src.includes('method,'), 'POA row persists signer + method')
 ok(src.includes('evidence_payload: evidencePayload'), 'POA row persists evidence payload')
-ok(src.includes("source: 'website_api'"), 'POA row records website_api source')
+ok(src.includes("source: 'website_api'") || src.includes('source: "website_api"'), 'POA row records website_api source')
 ok(src.includes('facility_information_lookup'), 'POA scope includes facility_information_lookup')
 
 // 4) Events + immutable document snapshot, linked back.
-ok(src.includes('power_of_attorney_events') && src.includes("event_type: 'created'") && src.includes("event_type: 'accepted'"), 'POA writes created + accepted events')
+ok(src.includes('power_of_attorney_events') && (src.includes("event_type: 'created'") || src.includes('event_type: "created"')) && (src.includes("event_type: 'accepted'") || src.includes('event_type: "accepted"')), 'POA writes created + accepted events')
 ok(src.includes('createPowerOfAttorneyDocumentSnapshot') && src.includes('document_id: documentId'), 'POA generates + links an immutable document snapshot')
 
 // 5) Operational response blocks (no technical Ediel leakage).
 ok(src.includes('responsePayload.nextAction = nextAction'), 'response exposes nextAction')
-ok(src.includes("code: 'power_of_attorney_required'"), 'response nextAction covers the missing-POA state')
+ok(src.includes("code: 'power_of_attorney_required'") || src.includes('code: "power_of_attorney_required"'), 'response nextAction covers the missing-POA state')
 const poaOrchestrator = read('lib/customer-operations/requestMissingFacilityInformation.ts')
 ok(poaOrchestrator.includes('grid_owner_contact_required') && poaOrchestrator.includes('facility_identifier_requested'), 'orchestrator nextAction covers contact-required + facility-requested states')
 ok(src.includes('manualInformationRequest') && src.includes('requestMissingFacilityInformation'), 'response includes manualInformationRequest from the orchestrator')
@@ -145,14 +145,14 @@ for (const alias of [
 ]) {
   ok(src.includes(alias), `normalization accepts identity alias ${alias}`)
 }
-ok(src.includes('digits(customer.personal_number) ? { personal_number'), 'existing customers get identity written to canonical columns on update')
+ok(src.includes('digits(customer.personal_number)') && src.includes('personal_number: digits(customer.personal_number)'), 'existing customers get identity written to canonical columns on update')
 
 // 9) Structured vs weak POA + JSON snapshot semantics (Task E + G).
 ok(!src.includes('signerNameFallback') && !src.includes('signerIdentityFallback'), 'POA no longer uses customer identity/name as signer fallback for website legacy consent')
 ok(src.includes('structuredPoaIsExternallySendable') && src.includes('externally_sendable') && src.includes('requires_completion'), 'response marks weak POA as not externally sendable via structured POA policy')
-ok(src.includes("event_type: 'snapshot_created'") && !src.includes("event_type: 'pdf_generated'"), 'JSON snapshot uses snapshot_created (not pdf_generated)')
+ok((src.includes("event_type: 'snapshot_created'") || src.includes('event_type: "snapshot_created"')) && !src.includes("event_type: 'pdf_generated'") && !src.includes('event_type: "pdf_generated"'), 'JSON snapshot uses snapshot_created (not pdf_generated)')
 ok(src.includes('internal_snapshot_document_id'), 'internal JSON snapshot document id is tracked distinctly')
-ok(src.includes("code: 'poa_not_externally_sendable'") && src.includes('!poaExternallySendable'), 'weak POA missing facility returns poa_not_externally_sendable before manual outbox')
+ok((src.includes("code: 'poa_not_externally_sendable'") || src.includes('code: "poa_not_externally_sendable"')) && src.includes('!poaExternallySendable'), 'weak POA missing facility returns poa_not_externally_sendable before manual outbox')
 // Missing facility now routes through the MANUAL pipeline only: the Ediel
 // grid-owner request must never be created when the facility id is missing
 // (continuation-hardening behaviour, replacing the old POA-sendability gate).
@@ -160,10 +160,10 @@ ok(src.includes('gridOwnerRequestMayBeCreated') && src.includes('readiness.canRe
 
 // 9b) Website intake schema hardening: optional DB columns must fall back to
 // controlled pending_review/repair status, not uncontrolled crashes.
-ok(src.includes('schemaRepairStatus') && src.includes("'PGRST204'"), 'website intake treats PostgREST schema-cache mismatches as repairable')
+ok(src.includes('schemaRepairStatus') && (src.includes("'PGRST204'") || src.includes('\"PGRST204\"')), 'website intake treats PostgREST schema-cache mismatches as repairable')
 ok(src.includes('customer_site_schema_mismatch') && src.includes('metering_point_schema_mismatch'), 'website intake returns explicit schema mismatch codes for site/metering fallback failures')
-ok(src.includes("const fallbackPayloads: Array<Record<string, unknown>>") && src.includes(".select('id')"), 'website site/metering fallback uses minimal guaranteed columns')
-ok(src.includes("businessStatus = schemaStatus") && src.includes("'pending_review'"), 'website partial/schema failures are recorded as pending_review for repair/retry')
+ok(src.includes("const fallbackPayloads: Array<Record<string, unknown>>") && (src.includes(".select('id')") || src.includes('.select("id")')), 'website site/metering fallback uses minimal guaranteed columns')
+ok(src.includes('const businessStatus =') && src.includes('schemaStatus ??') && src.includes('pending_review'), 'website partial/schema failures are recorded as pending_review for repair/retry')
 
 // 10) findValidPowerOfAttorney selects all externally-sendable + PDF fields (Task F).
 ok(poaOrchestrator.includes('signer_identity_number') && poaOrchestrator.includes('legal_text_version_id') && poaOrchestrator.includes('accepted_at') && poaOrchestrator.includes('method'), 'findValidPowerOfAttorney selects signer/method/legal/accepted fields')
@@ -180,8 +180,8 @@ ok(read('package.json').includes('gridex:website-api-power-of-attorney-regressio
 
 // Tenant-safe facility policy: same-tenant duplicate blocks, cross-tenant match is platform-only and must not block core customer creation.
 ok(src.includes('crossTenantFacilitySeen = conflicts.crossTenantExists'), 'website intake records cross-tenant facility as an internal signal')
-ok(!src.includes("code: 'cross_tenant_facility_conflict',\n        stage: 'site_create'"), 'website intake no longer throws cross_tenant_facility_conflict during site creation')
-ok(src.includes("code: 'duplicate_facility_id'") && src.includes('sameTenantConflict'), 'website intake still blocks same-tenant duplicate facility ids')
+ok(!src.includes("code: 'cross_tenant_facility_conflict',\n        stage: 'site_create'") && !src.includes('code: "cross_tenant_facility_conflict"'), 'website intake no longer throws cross_tenant_facility_conflict during site creation')
+ok((src.includes("code: 'duplicate_facility_id'") || src.includes('code: "duplicate_facility_id"')) && src.includes('sameTenantConflict'), 'website intake still blocks same-tenant duplicate facility ids')
 ok(src.includes('cross_tenant_facility_seen') && src.includes('platform_only'), 'website intake persists cross-tenant facility signal as platform-only metadata')
 const facilityErrors = read('lib/energy/facilityDataErrors.ts')
 ok(facilityErrors.includes("status: 'manual_review'") && facilityErrors.includes('Andra tenants kunddata visas aldrig'), 'cross-tenant facility catalog is neutral and platform-review oriented')

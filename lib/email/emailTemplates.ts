@@ -45,6 +45,10 @@ export const EMAIL_TEMPLATE_VARIABLES = [
   'support_email',
   'cancellation_deadline',
   'portal_url',
+  'required_information',
+  'review_reason',
+  'completion_deadline',
+  'power_of_attorney_url',
 ]
 
 export const DEFAULT_EMAIL_TEMPLATES = [
@@ -89,6 +93,48 @@ export const DEFAULT_EMAIL_TEMPLATES = [
     subject: 'Vi behöver komplettera ditt leverantörsbyte',
     body_html: '<p>Hej {{customer_name}},</p><p>Leverantörsbytet kunde inte slutföras automatiskt. Vi behöver kontrollera eller komplettera uppgifter innan bytet kan fortsätta.</p><p>Kontakta oss på {{support_email}} om du har frågor.</p>',
     body_text: 'Hej {{customer_name}}, leverantörsbytet kunde inte slutföras automatiskt. Vi behöver kontrollera eller komplettera uppgifter innan bytet kan fortsätta.',
+  },
+  {
+    template_key: 'contract.power_of_attorney_required',
+    name: 'Begäran om fullmakt',
+    subject: 'Fullmakt behövs för ditt avtal hos {{company_name}}',
+    body_html: '<p>Hej {{customer_name}},</p><p>För att vi ska kunna fortsätta med avtalet {{contract_name}} behöver du lämna eller signera fullmakt.</p><p>Använd denna länk: {{power_of_attorney_url}}</p><p>Har du frågor når du oss på {{support_email}}.</p>',
+    body_text: 'Hej {{customer_name}}, för att vi ska kunna fortsätta med avtalet {{contract_name}} behöver du lämna eller signera fullmakt. Länk: {{power_of_attorney_url}}. Frågor: {{support_email}}.',
+  },
+  {
+    template_key: 'contract.facility_id_required',
+    name: 'Begäran om anläggnings-ID',
+    subject: 'Vi behöver ditt anläggnings-ID',
+    body_html: '<p>Hej {{customer_name}},</p><p>Vi behöver anläggnings-ID eller mätpunkts-ID för att fortsätta ditt avtal hos {{company_name}}.</p><p>Svara med uppgiften eller komplettera den i portalen: {{portal_url}}</p>',
+    body_text: 'Hej {{customer_name}}, vi behöver anläggnings-ID eller mätpunkts-ID för att fortsätta ditt avtal hos {{company_name}}. Komplettera i portalen: {{portal_url}}.',
+  },
+  {
+    template_key: 'contract.customer_information_required',
+    name: 'Begäran om kunduppgifter',
+    subject: 'Ditt avtal behöver kompletteras',
+    body_html: '<p>Hej {{customer_name}},</p><p>Vi behöver följande uppgifter för att fortsätta ditt avtal hos {{company_name}}:</p><p>{{required_information}}</p><p>Komplettera i portalen: {{portal_url}}</p>',
+    body_text: 'Hej {{customer_name}}, vi behöver följande uppgifter för att fortsätta ditt avtal hos {{company_name}}: {{required_information}}. Portal: {{portal_url}}.',
+  },
+  {
+    template_key: 'contract.completion_reminder',
+    name: 'Påminnelse om komplettering',
+    subject: 'Påminnelse: komplettera ditt avtal',
+    body_html: '<p>Hej {{customer_name}},</p><p>Det finns fortfarande uppgifter som behöver kompletteras för avtalet {{contract_name}}.</p><p>{{required_information}}</p><p>Komplettera senast {{completion_deadline}} via {{portal_url}}.</p>',
+    body_text: 'Hej {{customer_name}}, avtalet {{contract_name}} behöver fortfarande kompletteras: {{required_information}}. Komplettera senast {{completion_deadline}} via {{portal_url}}.',
+  },
+  {
+    template_key: 'contract.rejected',
+    name: 'Avtal avslaget',
+    subject: 'Information om din avtalsansökan',
+    body_html: '<p>Hej {{customer_name}},</p><p>Vi kan inte godkänna din ansökan om {{contract_name}} i nuvarande form.</p><p>Orsak: {{review_reason}}</p><p>Kontakta {{support_email}} om du vill få beslutet förklarat.</p>',
+    body_text: 'Hej {{customer_name}}, vi kan inte godkänna din ansökan om {{contract_name}} i nuvarande form. Orsak: {{review_reason}}. Kontakta {{support_email}} vid frågor.',
+  },
+  {
+    template_key: 'contract.manual_review',
+    name: 'Manuell granskning',
+    subject: 'Din avtalsansökan granskas manuellt',
+    body_html: '<p>Hej {{customer_name}},</p><p>Din ansökan om {{contract_name}} hos {{company_name}} behöver granskas manuellt.</p><p>Orsak: {{review_reason}}</p><p>Vi återkommer när granskningen är klar.</p>',
+    body_text: 'Hej {{customer_name}}, din ansökan om {{contract_name}} hos {{company_name}} behöver granskas manuellt. Orsak: {{review_reason}}. Vi återkommer när granskningen är klar.',
   },
   {
     template_key: 'customer.welcome_active',

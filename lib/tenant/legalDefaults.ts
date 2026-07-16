@@ -1,15 +1,20 @@
 import { supabaseService } from '@/lib/supabase/service'
-import { REQUIRED_LEGAL_TEXT_TYPES, type LegalTextType, type LegalTextVersion } from '@/lib/opsMaster/readiness'
+import {
+  CANONICAL_LEGAL_MODULES,
+  canonicalLegalModuleLabel,
+  type CanonicalLegalModule,
+} from '@/lib/legal/canonicalModules'
+import type { LegalTextVersion } from '@/lib/opsMaster/readiness'
 import { copyPublishedTemplatesToCompany } from '@/lib/legal/platformLegalTemplates'
 
-export const GRIDEX_DEFAULT_LEGAL_VERSION = 'gridex-standard-2026-06'
+export const GRIDEX_DEFAULT_LEGAL_VERSION = 'gridex-canonical-2026-07'
 
 export type TenantLegalDefaultStatus = {
   companyId: string
   hasAllRequiredLegalTexts: boolean
   hasTenantOwnedPublishedTexts: boolean
   usingGridexDefaults: boolean
-  missingTypes: LegalTextType[]
+  missingTypes: CanonicalLegalModule[]
   publishedVersions: LegalTextVersion[]
   defaultBundleId: string | null
 }
@@ -20,27 +25,8 @@ function isMissingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST200', 'PGRST201', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist|function .* does not exist/i.test(message)
 }
 
-function legalSource(row: LegalTextVersion): string | null {
-  const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {}
-  const source = (metadata as Record<string, unknown>).source
-  return typeof source === 'string' ? source : null
-}
-
 export function legalTypeLabel(type: string): string {
-  switch (type) {
-    case 'terms':
-      return 'Allmänna villkor'
-    case 'privacy_policy':
-      return 'Integritetspolicy'
-    case 'withdrawal':
-      return 'Ångerrättsinformation'
-    case 'price_terms':
-      return 'Prisvillkor'
-    case 'power_of_attorney':
-      return 'Fullmaktstext'
-    default:
-      return type
-  }
+  return canonicalLegalModuleLabel(type)
 }
 
 export async function seedGridexDefaultLegalPackage(companyId: string, actorUserId?: string | null): Promise<{
@@ -49,98 +35,72 @@ export async function seedGridexDefaultLegalPackage(companyId: string, actorUser
   bundleId: string | null
   missingTypes: string[]
 }> {
-  try {
-    const result = await copyPublishedTemplatesToCompany({
-      companyId,
-      actorUserId: actorUserId ?? null,
-      onlyMissing: true,
-      publishNow: true,
-      source: 'gridex_default_rendered',
-    })
-
-    return {
-      insertedCount: result.inserted,
-      existingCount: result.skipped,
-      bundleId: null,
-      missingTypes: result.missingTemplates,
-    }
-  } catch (error) {
-    if (!isMissingSchema(error)) throw error
-  }
-
-  const { data, error } = await supabaseService.rpc('gridex_seed_default_legal_package_for_company', {
-    p_company_id: companyId,
-    p_actor_user_id: actorUserId ?? null,
+  const result = await copyPublishedTemplatesToCompany({
+    companyId,
+    actorUserId: actorUserId ?? null,
+    source: 'canonical_platform_template_validation',
   })
 
-  if (error) {
-    if (isMissingSchema(error)) {
-      return { insertedCount: 0, existingCount: 0, bundleId: null, missingTypes: [...REQUIRED_LEGAL_TEXT_TYPES] }
-    }
-    throw error
-  }
-
-  const row = Array.isArray(data) ? data[0] : data
   return {
-    insertedCount: Number(row?.inserted_count ?? 0),
-    existingCount: Number(row?.existing_count ?? 0),
-    bundleId: typeof row?.bundle_id === 'string' ? row.bundle_id : null,
-    missingTypes: Array.isArray(row?.missing_types) ? row.missing_types.map(String) : [],
+    insertedCount: 0,
+    existingCount: result.skipped,
+    bundleId: null,
+    missingTypes: result.missingTemplates,
   }
 }
 
-
 export async function getTenantLegalDefaultStatus(companyId: string): Promise<TenantLegalDefaultStatus> {
-  const { data, error } = await supabaseService
-    .from('legal_text_versions')
-    .select('id,company_id,type,version,title,body,status,published_at,created_at,updated_at,metadata')
-    .eq('company_id', companyId)
-    .eq('status', 'published')
-    .in('type', [...REQUIRED_LEGAL_TEXT_TYPES])
-    .order('published_at', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false })
+  const [{ data: templates, error: templatesError }, { data: overrides, error: overridesError }] = await Promise.all([
+    supabaseService
+      .from('canonical_legal_template_versions_v')
+      .select('id,type,version,title,body,status,published_at,created_at,updated_at,metadata')
+      .eq('status', 'published')
+      .order('created_at', { ascending: false }),
+    supabaseService
+      .from('canonical_tenant_legal_overrides_v')
+      .select('id,company_id,type,version,title,body,status,published_at,created_at,updated_at,metadata')
+      .eq('company_id', companyId)
+      .eq('status', 'published')
+      .order('created_at', { ascending: false }),
+  ])
 
-  if (error) {
-    if (isMissingSchema(error)) {
+  if (templatesError) {
+    if (isMissingSchema(templatesError)) {
       return {
         companyId,
         hasAllRequiredLegalTexts: false,
         hasTenantOwnedPublishedTexts: false,
         usingGridexDefaults: false,
-        missingTypes: [...REQUIRED_LEGAL_TEXT_TYPES],
+        missingTypes: [...CANONICAL_LEGAL_MODULES],
         publishedVersions: [],
         defaultBundleId: null,
       }
     }
-    throw error
+    throw templatesError
+  }
+  if (overridesError && !isMissingSchema(overridesError)) throw overridesError
+
+  const latestTemplateByType = new Map<string, LegalTextVersion>()
+  for (const row of (templates ?? []) as LegalTextVersion[]) {
+    if (!latestTemplateByType.has(row.type)) latestTemplateByType.set(row.type, row)
+  }
+  const latestOverrideByType = new Map<string, LegalTextVersion>()
+  for (const row of (overrides ?? []) as LegalTextVersion[]) {
+    if (!latestOverrideByType.has(row.type)) latestOverrideByType.set(row.type, row)
   }
 
-  const latestByType = new Map<string, LegalTextVersion>()
-  for (const row of (data ?? []) as LegalTextVersion[]) {
-    if (!latestByType.has(row.type)) latestByType.set(row.type, row)
-  }
-  const publishedVersions = [...latestByType.values()]
-  const missingTypes = REQUIRED_LEGAL_TEXT_TYPES.filter((type) => !latestByType.has(type))
-  const usingGridexDefaults = publishedVersions.some((row) => legalSource(row) === 'gridex_default')
-  const hasTenantOwnedPublishedTexts = publishedVersions.some((row) => legalSource(row) !== 'gridex_default')
-
-  const { data: bundle } = await supabaseService
-    .from('legal_bundles')
-    .select('id,metadata,status')
-    .eq('company_id', companyId)
-    .in('status', ['published', 'active'])
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-    .then((result: { data: { id?: string | null } | null; error?: unknown }) => result.error && isMissingSchema(result.error) ? { data: null } : result)
+  const missingTypes = CANONICAL_LEGAL_MODULES.filter(
+    (type) => !latestTemplateByType.has(type) && !latestOverrideByType.has(type),
+  )
+  const publishedVersions = Array.from(latestOverrideByType.values())
 
   return {
     companyId,
     hasAllRequiredLegalTexts: missingTypes.length === 0,
-    hasTenantOwnedPublishedTexts,
-    usingGridexDefaults,
+    hasTenantOwnedPublishedTexts: publishedVersions.length > 0,
+    usingGridexDefaults: missingTypes.length === 0,
     missingTypes,
     publishedVersions,
-    defaultBundleId: typeof bundle?.id === 'string' ? bundle.id : null,
+    defaultBundleId: null,
   }
 }

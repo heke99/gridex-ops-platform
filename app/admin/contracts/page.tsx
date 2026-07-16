@@ -275,6 +275,7 @@ async function TenantCustomerContracts({
 
         <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
           <form
+            id="tenant-legal-profile"
             action={saveTenantLegalProfileAction}
             className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
           >

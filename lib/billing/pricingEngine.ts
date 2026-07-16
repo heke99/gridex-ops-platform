@@ -42,7 +42,7 @@ function isMissingRelationError(error: unknown): boolean {
 
 export async function listContractOffersForPricing(companyId: string): Promise<Pick<ContractOfferRow, 'id' | 'name' | 'status' | 'contract_type' | 'is_active'>[]> {
   const { data, error } = await supabaseService
-    .from('contract_offers')
+    .from('canonical_internal_contract_offers_v')
     .select('id, name, status, contract_type, is_active')
     .eq('company_id', companyId)
     .order('created_at', { ascending: false })
@@ -103,7 +103,7 @@ export async function createPricingComponentRule(input: {
 
   if (input.contractOfferId) {
     const { data: offer, error: offerError } = await supabaseService
-      .from('contract_offers')
+      .from('canonical_internal_contract_offers_v')
       .select('id, company_id')
       .eq('id', input.contractOfferId)
       .eq('company_id', input.companyId)

@@ -13,6 +13,9 @@ export type PublicLegalTextVersion = {
   version: string;
   title: string;
   published_at: string | null;
+  content_sha256?: string | null;
+  legal_bundle_version_id?: string | null;
+  origin?: string | null;
 };
 
 export type PublicContractOffer = {
@@ -77,28 +80,110 @@ export type PublicContractOffer = {
 // of truth: per type it returns whether acceptance is required, the published
 // version label, the version id, and a public OPS-hosted document URL. Existing
 // keys are preserved for backward compatibility.
+export type LegacyLegalAcceptanceType =
+  | "terms"
+  | "privacy_policy"
+  | "withdrawal"
+  | "power_of_attorney"
+  | "price_terms";
+
+const LEGAL_ACCEPTANCE_MODULE_PRIORITY: Record<
+  LegacyLegalAcceptanceType,
+  string[]
+> = {
+  terms: [
+    "general_consumer_terms",
+    "general_business_terms",
+    "agreement_confirmation",
+  ],
+  privacy_policy: ["privacy_policy"],
+  withdrawal: [
+    "withdrawal_right",
+    "distance_contract_information",
+    "pre_contract_information",
+    "withdrawal_form",
+  ],
+  power_of_attorney: ["power_of_attorney"],
+  price_terms: [
+    "price_terms",
+    "variable_price_terms",
+    "hourly_price_terms",
+    "quarterly_price_terms",
+    "fixed_price_terms",
+    "mixed_price_terms",
+    "portfolio_terms",
+  ],
+};
+
+export function selectLegalVersionForAcceptance(
+  versions: PublicLegalTextVersion[],
+  type: LegacyLegalAcceptanceType,
+): PublicLegalTextVersion | null {
+  const exactLegacy = versions.find((version) => version.type === type);
+  if (exactLegacy) return exactLegacy;
+  for (const moduleKey of LEGAL_ACCEPTANCE_MODULE_PRIORITY[type]) {
+    const match = versions.find((version) => version.type === moduleKey);
+    if (match) return match;
+  }
+  return null;
+}
+
+// Builds the complete immutable legal package exposed to tenant websites. All
+// module_versions point to exact legal_bundle_version_documents ids. The five
+// historical keys are retained as aliases for older website clients.
 export function buildPublicLegalBlock(input: {
   legalVersions: PublicLegalTextVersion[];
   termsVersionFallback?: string | null;
   withdrawalVersionFallback?: string | null;
   tenantSlug?: string | null;
 }): Record<string, unknown> {
-  const byType = new Map(
-    input.legalVersions.map((version) => [version.type, version]),
-  );
   const slug = input.tenantSlug ?? null;
+  const byAcceptanceType = new Map<
+    LegacyLegalAcceptanceType,
+    PublicLegalTextVersion | null
+  >(
+    (
+      [
+        "terms",
+        "privacy_policy",
+        "withdrawal",
+        "power_of_attorney",
+        "price_terms",
+      ] as LegacyLegalAcceptanceType[]
+    ).map((type) => [
+      type,
+      selectLegalVersionForAcceptance(input.legalVersions, type),
+    ]),
+  );
 
-  const versionLabel = (type: string, fallback?: string | null) =>
-    byType.get(type)?.version ?? fallback ?? null;
-  const versionId = (type: string) => byType.get(type)?.id ?? null;
-  const required = (type: string) => Boolean(byType.get(type));
-  const url = (type: string) => {
-    const id = versionId(type);
-    return slug && id ? buildPublicLegalUrl(slug, type, id) : null;
-  };
+  const versionLabel = (
+    type: LegacyLegalAcceptanceType,
+    fallback?: string | null,
+  ) => byAcceptanceType.get(type)?.version ?? fallback ?? null;
+  const versionId = (type: LegacyLegalAcceptanceType) =>
+    byAcceptanceType.get(type)?.id ?? null;
+  const required = (type: LegacyLegalAcceptanceType) =>
+    Boolean(byAcceptanceType.get(type));
+  const urlForVersion = (version: PublicLegalTextVersion | null | undefined) =>
+    slug && version
+      ? buildPublicLegalUrl(slug, version.type, version.id)
+      : null;
+  const url = (type: LegacyLegalAcceptanceType) =>
+    urlForVersion(byAcceptanceType.get(type));
+
+  const moduleVersions = input.legalVersions.map((version) => ({
+    id: version.id,
+    module_key: version.type,
+    version: version.version,
+    title: version.title,
+    published_at: version.published_at,
+    content_sha256: version.content_sha256 ?? null,
+    origin: version.origin ?? "canonical_bundle_document",
+    legal_bundle_version_id: version.legal_bundle_version_id ?? null,
+    url: urlForVersion(version),
+  }));
 
   return {
-    // Backward-compatible keys
     terms_version: versionLabel("terms", input.termsVersionFallback),
     privacy_policy_version: versionLabel("privacy_policy"),
     withdrawal_version: versionLabel(
@@ -107,24 +192,27 @@ export function buildPublicLegalBlock(input: {
     ),
     power_of_attorney_version: versionLabel("power_of_attorney"),
     price_terms_version: versionLabel("price_terms"),
-    // Required flags
     terms_required: required("terms"),
     privacy_policy_required: required("privacy_policy"),
     withdrawal_required: required("withdrawal"),
     price_terms_required: required("price_terms"),
     power_of_attorney_required: required("power_of_attorney"),
-    // Version ids
     terms_version_id: versionId("terms"),
     privacy_policy_version_id: versionId("privacy_policy"),
     withdrawal_version_id: versionId("withdrawal"),
     price_terms_version_id: versionId("price_terms"),
     power_of_attorney_version_id: versionId("power_of_attorney"),
-    // Public OPS-hosted document URLs
     terms_url: url("terms"),
     privacy_policy_url: url("privacy_policy"),
     withdrawal_url: url("withdrawal"),
     price_terms_url: url("price_terms"),
     power_of_attorney_url: url("power_of_attorney"),
+    required_modules: moduleVersions.map((version) => version.module_key),
+    module_versions: moduleVersions,
+    legal_bundle_version_id:
+      input.legalVersions.find((version) => version.legal_bundle_version_id)
+        ?.legal_bundle_version_id ?? null,
+    immutable: moduleVersions.length > 0,
   };
 }
 
@@ -509,35 +597,53 @@ function hasExactCanonicalLegalVersions(
 async function listPublishedLegalVersions(
   companyId: string,
 ): Promise<PublicLegalTextVersion[] | null> {
-  const { data, error } = await supabaseService
-    .from("legal_text_versions")
-    .select("id,type,version,title,published_at")
+  const latestPublication = await supabaseService
+    .from("canonical_public_contract_offers_v")
+    .select("legal_bundle_version_id")
+    .eq("company_id", companyId)
+    .eq("is_archived", false)
+    .eq("publication_status", "published")
+    .not("legal_bundle_version_id", "is", null)
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (
+    !latestPublication.error &&
+    latestPublication.data?.legal_bundle_version_id
+  ) {
+    return listBundleLegalVersions({
+      companyId,
+      legalBundleVersionId: String(
+        latestPublication.data.legal_bundle_version_id,
+      ),
+    });
+  }
+  if (latestPublication.error && !missingSchema(latestPublication.error)) {
+    throw latestPublication.error;
+  }
+
+  const overrides = await supabaseService
+    .from("canonical_tenant_legal_overrides_v")
+    .select("id,type,version,title,published_at,metadata")
     .eq("company_id", companyId)
     .eq("status", "published")
     .order("type", { ascending: true });
 
-  if (error) {
-    if (missingSchema(error)) return null;
-    throw error;
+  if (overrides.error) {
+    if (missingSchema(overrides.error)) return null;
+    throw overrides.error;
   }
 
-  return (data ?? []) as PublicLegalTextVersion[];
-}
-
-function legacyTypeForCanonicalModule(moduleKey: string): string {
-  if (moduleKey === "privacy_policy") return "privacy_policy";
-  if (
-    [
-      "withdrawal_right",
-      "withdrawal_form",
-      "pre_contract_information",
-    ].includes(moduleKey)
-  )
-    return "withdrawal";
-  if (moduleKey === "power_of_attorney") return "power_of_attorney";
-  if (moduleKey === "price_terms" || moduleKey.endsWith("_price_terms"))
-    return "price_terms";
-  return "terms";
+  return (overrides.data ?? []).map((row) => ({
+    id: String(row.id),
+    type: String(row.type),
+    version: String(row.version),
+    title: String(row.title),
+    published_at: clean(row.published_at),
+    content_sha256: clean(objectValue(row.metadata).content_sha256),
+    origin: "tenant_override",
+  }));
 }
 
 async function listBundleLegalVersions(input: {
@@ -546,53 +652,51 @@ async function listBundleLegalVersions(input: {
 }): Promise<PublicLegalTextVersion[] | null> {
   if (!input.legalBundleVersionId) return null;
 
+  const bundle = await supabaseService
+    .from("legal_bundle_versions")
+    .select("id,company_id,status,published_at,locked_at")
+    .eq("id", input.legalBundleVersionId)
+    .eq("company_id", input.companyId)
+    .maybeSingle();
+  if (bundle.error) throw bundle.error;
+  if (
+    !bundle.data ||
+    !bundle.data.locked_at ||
+    !["published", "replaced", "archived"].includes(String(bundle.data.status))
+  ) {
+    return null;
+  }
+
   const documents = await supabaseService
     .from("legal_bundle_version_documents")
-    .select("module_key,legacy_legal_text_version_id,title,sort_order")
+    .select(
+      "id,legal_bundle_version_id,module_key,title,template_version,content_sha256,origin,created_at,sort_order,unresolved_variables",
+    )
     .eq("legal_bundle_version_id", input.legalBundleVersionId)
     .order("sort_order", { ascending: true });
 
   if (documents.error) throw documents.error;
-  const documentRows = (documents.data ?? []) as Array<{
-    module_key: string;
-    legacy_legal_text_version_id: string | null;
-    title: string;
-    sort_order: number;
-  }>;
-  const ids = Array.from(
-    new Set(
-      documentRows
-        .map((row) => clean(row.legacy_legal_text_version_id))
-        .filter(Boolean),
-    ),
-  ) as string[];
-  if (ids.length === 0) return null;
-
-  const versions = await supabaseService
-    .from("legal_text_versions")
-    .select("id,type,version,title,published_at,company_id")
-    .eq("company_id", input.companyId)
-    .in("id", ids);
-
-  if (versions.error) throw versions.error;
-  const byId = new Map(
-    (versions.data ?? []).map((row) => [String(row.id), row]),
-  );
-  const exactByDocument = new Map<string, PublicLegalTextVersion>();
-  for (const document of documentRows) {
-    const id = clean(document.legacy_legal_text_version_id);
-    const version = id ? byId.get(id) : null;
-    if (!id || !version) continue;
-    const type = legacyTypeForCanonicalModule(document.module_key);
-    exactByDocument.set(`${type}:${id}`, {
-      id,
-      type,
-      version: String(version.version),
-      title: document.title || String(version.title),
-      published_at: clean(version.published_at),
-    });
-  }
-  const exact = Array.from(exactByDocument.values());
+  const publishedAt = clean(bundle.data.published_at);
+  const exact = (documents.data ?? [])
+    .filter(
+      (row) =>
+        Array.isArray(row.unresolved_variables) &&
+        row.unresolved_variables.length === 0,
+    )
+    .map((row) => ({
+      id: String(row.id),
+      type: String(row.module_key),
+      version:
+        clean(row.template_version) ??
+        publishedAt ??
+        clean(row.created_at) ??
+        String(row.id),
+      title: String(row.title),
+      published_at: publishedAt ?? clean(row.created_at),
+      content_sha256: clean(row.content_sha256),
+      legal_bundle_version_id: String(row.legal_bundle_version_id),
+      origin: clean(row.origin) ?? "canonical_bundle_document",
+    }));
   return exact.length > 0 ? exact : null;
 }
 

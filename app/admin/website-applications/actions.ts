@@ -588,6 +588,7 @@ async function upsertApplicationContract(application: ApplicationRecord, siteId:
   if (application.contract_id) return application.contract_id
 
   const contract = isRecord(payload.contract) ? payload.contract : {}
+  const publicOffer = isRecord(payload.public_offer) ? payload.public_offer : {}
   const contractName = cleanReviewText(contract.contract_name) ?? 'Elavtal'
   const requestedStartDate = readiness.requestedStartDate ?? cleanReviewText(payload.requested_start_date) ?? cleanReviewText(contract.requested_start_date)
   const existingContract = await findExistingApplicationContract({
@@ -600,15 +601,24 @@ async function upsertApplicationContract(application: ApplicationRecord, siteId:
   })
   if (existingContract?.id) return String(existingContract.id)
 
+  const status = readiness.canStartSwitch ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS
   const now = new Date().toISOString()
-  const insertPayload = {
+  const metadata = {
+    source: 'website_application_review',
+    source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+    agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
+    application_id: application.id,
+    missing_fields: readiness.missingFields,
+    blocking_reasons: readiness.blockingReasons,
+  }
+  const commonPayload = {
     company_id: application.company_id,
     customer_id: application.customer_id,
     site_id: siteId,
     customer_site_id: siteId,
     metering_point_id: meteringPointId,
     source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
-    status: readiness.canStartSwitch ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS,
+    status,
     contract_name: contractName,
     contract_type: cleanReviewText(contract.contract_type) ?? 'variable_monthly',
     starts_at: requestedStartDate,
@@ -622,45 +632,52 @@ async function upsertApplicationContract(application: ApplicationRecord, siteId:
     confirmed_start_date: readiness.confirmedStartDate,
     actual_start_date: readiness.actualStartDate,
     agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
-    metadata: {
-      source: 'website_application_review',
-      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
-      agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
-      application_id: application.id,
-      missing_fields: readiness.missingFields,
-      blocking_reasons: readiness.blockingReasons,
-    },
+    metadata,
     updated_at: now,
   }
 
-  const { data, error } = await supabaseService
-    .from('customer_contracts')
-    .insert(insertPayload)
-    .select('id')
-    .single()
+  // A draft may exist before every publication field is known. Any contract
+  // that can proceed to signing/switching must be created atomically from the
+  // exact locked public offer and may never fall back to an unbound insert.
+  if (!readiness.canStartSwitch) {
+    const { data, error } = await supabaseService
+      .from('customer_contracts')
+      .insert(commonPayload)
+      .select('id')
+      .single()
+    if (error) throw error
+    return String(data.id)
+  }
 
-  if (error && !missingSchema(error)) throw error
-  if (data?.id) return String(data.id)
+  const publicContractOfferId =
+    cleanReviewText(payload.public_contract_offer_id) ??
+    cleanReviewText(contract.public_contract_offer_id) ??
+    cleanReviewText(publicOffer.id)
+  const offerReference =
+    cleanReviewText(payload.offer_reference) ??
+    cleanReviewText(contract.offer_reference) ??
+    cleanReviewText(publicOffer.offer_reference)
 
-  const fallback = await supabaseService
-    .from('customer_contracts')
-    .insert({
-      company_id: application.company_id,
-      customer_id: application.customer_id,
-      site_id: siteId,
-      customer_site_id: siteId,
-      metering_point_id: meteringPointId,
-      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
-      status: readiness.canStartSwitch ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS,
-      contract_name: contractName,
-      contract_type: cleanReviewText(contract.contract_type) ?? 'variable_monthly',
-      starts_at: requestedStartDate,
-      updated_at: now,
-    })
-    .select('id')
-    .single()
-  if (fallback.error) throw fallback.error
-  return String(fallback.data.id)
+  if (!isUuid(publicContractOfferId) || !offerReference) {
+    throw new Error('Webbansökan saknar exakt public_contract_offer_id eller offer_reference. Reparera ansökan mot den låsta publiceringsversionen innan avtal skapas.')
+  }
+
+  const { data, error } = await supabaseService.rpc('gridex_create_website_customer_contract', {
+    p_company_id: application.company_id,
+    p_contract_payload: {
+      ...commonPayload,
+      public_contract_offer_id: publicContractOfferId,
+      offer_reference: offerReference,
+      legal_versions_snapshot: Array.isArray(payload.legal_versions) ? payload.legal_versions : [],
+    },
+    p_customer_number: cleanReviewText(payload.customer_number),
+  })
+  if (error) throw error
+  const result = isRecord(data) ? data : {}
+  const created = isRecord(result.contract) ? result.contract : {}
+  const contractId = cleanReviewText(created.id)
+  if (!contractId) throw new Error('Canonical kundavtals-RPC returnerade inget avtals-ID.')
+  return contractId
 }
 
 async function saveApplicationReview(input: { applicationId: string; formData: FormData; action: 'review.updated' | 'review.checked' }) {

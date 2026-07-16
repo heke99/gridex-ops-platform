@@ -30,6 +30,8 @@ import {
 import {
   publicOfferReference,
   resolvePublicContractOffer,
+  selectLegalVersionForAcceptance,
+  type LegacyLegalAcceptanceType,
   type PublicContractOffer,
 } from "@/lib/website/publicContracts";
 import type { EnergyResolverResult } from "@/lib/energy/types";
@@ -70,6 +72,7 @@ import {
   buildCanonicalContractSnapshot,
 } from "@/lib/pricing/contractSnapshot";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
+import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/documents";
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) =>
@@ -1265,11 +1268,14 @@ function hasStoredAcceptance(
 }
 
 function requiredWebsiteLegalAcceptances(offer: PublicContractOffer) {
-  const offeredTypes = new Set(
-    (offer.legal_versions ?? []).map((version) => version.type),
-  );
+  const versions = offer.legal_versions ?? [];
   return WEBSITE_LEGAL_ACCEPTANCE_DEFINITIONS.filter((definition) =>
-    offeredTypes.has(definition.legalType),
+    Boolean(
+      selectLegalVersionForAcceptance(
+        versions,
+        definition.legalType as LegacyLegalAcceptanceType,
+      ),
+    ),
   );
 }
 
@@ -1344,88 +1350,151 @@ async function loadOfferBoundLegalVersions(input: {
   publicOffer: PublicContractOffer;
 }): Promise<WebsiteLegalAcceptanceVersion[]> {
   const offerVersions = input.publicOffer.legal_versions ?? [];
-  const byOfferType = new Map(offerVersions.map((row) => [row.type, row]));
   const requirements = requiredWebsiteLegalAcceptances(input.publicOffer);
-  const missingOfferVersions = requirements.filter(
-    (item) => !byOfferType.has(item.legalType),
-  );
+  const selectedVersions = requirements.map((definition) => ({
+    definition,
+    version: selectLegalVersionForAcceptance(
+      offerVersions,
+      definition.legalType as LegacyLegalAcceptanceType,
+    ),
+  }));
+  const missingOfferVersions = selectedVersions.filter((item) => !item.version);
   if (missingOfferVersions.length > 0) {
     throw new WebsiteApplicationError({
-      message: `Det valda erbjudandet saknar exakt juridikversion för: ${missingOfferVersions.map((item) => item.label).join(", ")}.`,
+      message: `Det valda erbjudandet saknar exakt juridikversion för: ${missingOfferVersions.map((item) => item.definition.label).join(", ")}.`,
       status: 422,
       code: "offer_legal_versions_missing",
       field: "offer_reference",
       stage: "legal_acceptance",
-      hint: "Publicera om erbjudandet med ett komplett juridikpaket. Kundens accept får aldrig bindas till tenantens senaste texter i efterhand.",
+      hint: "Publicera om erbjudandet med ett komplett canonical juridikpaket. Kundens accept får aldrig bindas till tenantens senaste texter i efterhand.",
     });
   }
 
-  const expectedIds = requirements
-    .map((item) => byOfferType.get(item.legalType)?.id ?? null)
+  const expectedIds = selectedVersions
+    .map((item) => item.version?.id ?? null)
     .filter((id): id is string => Boolean(id));
   if (
     new Set(expectedIds).size !== requirements.length ||
-    expectedIds.some((id) => !isUuid(id))
+    expectedIds.some((id) => !isUuid(id)) ||
+    !input.publicOffer.legal_bundle_version_id
   ) {
     throw new WebsiteApplicationError({
       message:
-        "Erbjudandets juridikpaket innehåller ogiltiga eller dubbla versions-ID:n.",
+        "Erbjudandets juridikpaket innehåller ogiltiga eller dubbla dokument-ID:n.",
       status: 422,
       code: "offer_legal_versions_invalid",
       field: "offer_reference",
       stage: "legal_acceptance",
-      hint: "Koppla de exakta publicerade legal_text_versions som den kanoniska publiceringen kräver och publicera om.",
+      hint: "Publicera om erbjudandet så att varje accept binds till exakt legal_bundle_version_documents.id.",
     });
   }
 
-  const { data, error } = await supabaseService
-    .from("legal_text_versions")
-    .select("id,type,version,title,body,published_at,status")
+  const bundleResult = await supabaseService
+    .from("legal_bundle_versions")
+    .select("id,company_id,status,published_at,locked_at")
+    .eq("id", input.publicOffer.legal_bundle_version_id)
     .eq("company_id", input.companyId)
-    .eq("status", "published")
-    .in("id", expectedIds);
-
-  if (error) {
+    .maybeSingle();
+  if (
+    bundleResult.error ||
+    !bundleResult.data ||
+    !bundleResult.data.locked_at
+  ) {
     throw new WebsiteApplicationError({
       message:
-        "OPS kunde inte läsa de juridikversioner som hör till det valda erbjudandet.",
-      status: 500,
-      code: "offer_legal_versions_unavailable",
-      field: "legal_text_versions",
+        "OPS kunde inte verifiera det låsta juridikpaketet för erbjudandet.",
+      status: bundleResult.error ? 500 : 422,
+      code: "offer_legal_bundle_unavailable",
+      field: "offer_reference",
       stage: "legal_acceptance",
-      hint: "Kör senaste migration och kontrollera erbjudandets legal bundle.",
-      details: schemaErrorDetail(error),
+      hint: "Kör senaste migration och publicera om erbjudandet.",
+      details: bundleResult.error
+        ? schemaErrorDetail(bundleResult.error)
+        : undefined,
+    });
+  }
+  const verifiedBundle = bundleResult.data;
+  if (
+    !["published", "replaced", "archived"].includes(
+      String(verifiedBundle.status),
+    )
+  ) {
+    throw new WebsiteApplicationError({
+      message: "Erbjudandets juridikpaket är inte publicerat och låst.",
+      status: 422,
+      code: "offer_legal_bundle_not_published",
+      field: "offer_reference",
+      stage: "legal_acceptance",
     });
   }
 
-  const loaded = (data ?? []) as WebsiteLegalAcceptanceVersion[];
-  const loadedById = new Map(loaded.map((row) => [row.id, row]));
-  const ordered = requirements.map((definition) => {
-    const expected = byOfferType.get(definition.legalType);
-    const row = expected ? loadedById.get(expected.id) : null;
-    if (
-      !row ||
-      row.type !== definition.legalType ||
-      row.version !== expected?.version
+  const documents = await supabaseService
+    .from("legal_bundle_version_documents")
+    .select(
+      "id,module_key,title,rendered_body,template_version,created_at,unresolved_variables",
     )
-      return null;
-    return row;
-  });
+    .eq("legal_bundle_version_id", input.publicOffer.legal_bundle_version_id)
+    .in("id", expectedIds);
+
+  if (documents.error) {
+    throw new WebsiteApplicationError({
+      message:
+        "OPS kunde inte läsa de exakta juridikdokument som hör till erbjudandet.",
+      status: 500,
+      code: "offer_legal_versions_unavailable",
+      field: "legal_bundle_version_documents",
+      stage: "legal_acceptance",
+      hint: "Kör senaste migration och kontrollera erbjudandets canonical legal bundle.",
+      details: schemaErrorDetail(documents.error),
+    });
+  }
+
+  const loadedById = new Map(
+    (documents.data ?? []).map((row) => [String(row.id), row]),
+  );
+  const ordered: Array<WebsiteLegalAcceptanceVersion | null> =
+    selectedVersions.map(({ definition, version }) => {
+      if (!version) return null;
+      const row = loadedById.get(version.id);
+      if (
+        !row ||
+        (Array.isArray(row.unresolved_variables) &&
+          row.unresolved_variables.length > 0)
+      ) {
+        return null;
+      }
+      return {
+        id: String(row.id),
+        type: definition.legalType,
+        version:
+          version.version ||
+          String(row.template_version ?? row.created_at ?? row.id),
+        title: String(row.title ?? version.title),
+        body: String(row.rendered_body ?? ""),
+        published_at:
+          typeof verifiedBundle.published_at === "string"
+            ? verifiedBundle.published_at
+            : typeof row.created_at === "string"
+              ? row.created_at
+              : null,
+        status: "published",
+      } satisfies WebsiteLegalAcceptanceVersion;
+    });
 
   if (ordered.some((row) => !row)) {
     throw new WebsiteApplicationError({
       message:
-        "Erbjudandets juridikversioner har ändrats, avpublicerats eller tillhör inte denna tenant.",
+        "Erbjudandets låsta juridikdokument saknas, innehåller olösta variabler eller matchar inte publiceringsversionen.",
       status: 422,
       code: "offer_legal_version_mismatch",
       field: "offer_reference",
       stage: "legal_acceptance",
-      hint: "Hämta ett nytt offer_reference från public-contracts. Ett gammalt erbjudande får inte accepteras mot andra juridikversioner.",
+      hint: "Hämta ett nytt offer_reference från public-contracts. Ett gammalt erbjudande får inte accepteras mot andra juridikdokument.",
     });
   }
 
-  return ordered.filter((row): row is WebsiteLegalAcceptanceVersion =>
-    Boolean(row),
+  return ordered.filter(
+    (row): row is WebsiteLegalAcceptanceVersion => row !== null,
   );
 }
 
@@ -1565,7 +1634,7 @@ async function loadLegalTextVersionById(
   if (!isUuid(textVersionId)) {
     throw new WebsiteApplicationError({
       message:
-        "Angiven fullmaktsversion (textVersionId) måste vara OPS legal_text_versions.id i UUID-format, inte ett versionsnamn.",
+        "Angiven fullmaktsversion (textVersionId) måste vara ett immutable OPS-dokument-ID i UUID-format, inte ett versionsnamn.",
       status: 422,
       code: "power_of_attorney_version_invalid",
       field: "powerOfAttorney.textVersionId",
@@ -1577,28 +1646,81 @@ async function loadLegalTextVersionById(
       },
     });
   }
-  const { data, error } = await supabaseService
+
+  const exact = await supabaseService
+    .from("legal_bundle_version_documents")
+    .select(
+      "id,legal_bundle_version_id,module_key,title,rendered_body,template_version,created_at,unresolved_variables",
+    )
+    .eq("id", textVersionId)
+    .eq("module_key", "power_of_attorney")
+    .maybeSingle();
+  if (exact.error && !missingSchema(exact.error)) throw exact.error;
+  if (exact.data) {
+    const bundle = await supabaseService
+      .from("legal_bundle_versions")
+      .select("company_id,status,published_at,locked_at")
+      .eq("id", exact.data.legal_bundle_version_id)
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (bundle.error && !missingSchema(bundle.error)) throw bundle.error;
+    if (
+      bundle.data?.locked_at &&
+      ["published", "replaced", "archived"].includes(
+        String(bundle.data.status),
+      ) &&
+      (!Array.isArray(exact.data.unresolved_variables) ||
+        exact.data.unresolved_variables.length === 0)
+    ) {
+      return {
+        id: String(exact.data.id),
+        type: "power_of_attorney",
+        version: String(
+          exact.data.template_version ??
+            bundle.data.published_at ??
+            exact.data.created_at ??
+            exact.data.id,
+        ),
+        title: String(exact.data.title),
+        body: String(exact.data.rendered_body ?? ""),
+        published_at:
+          typeof bundle.data.published_at === "string"
+            ? bundle.data.published_at
+            : typeof exact.data.created_at === "string"
+              ? exact.data.created_at
+              : null,
+        status: "published",
+      };
+    }
+    return null;
+  }
+
+  // Historical fallback for contracts issued before canonical bundle documents
+  // became the public evidence id. New publications never use this path.
+  const legacy = await supabaseService
     .from("legal_text_versions")
     .select("id,type,version,title,body,published_at,status")
     .eq("company_id", companyId)
     .eq("id", textVersionId)
+    .eq("type", "power_of_attorney")
+    .eq("status", "published")
     .maybeSingle();
-  if (error) {
-    if (missingSchema(error)) {
+  if (legacy.error) {
+    if (missingSchema(legacy.error)) {
       throw new WebsiteApplicationError({
         message:
-          "Fullmaktsversionen kunde inte läsas eftersom databasens schema för legal_text_versions inte matchar.",
+          "Fullmaktsversionen kunde inte läsas eftersom canonical juridikmigrationen saknas.",
         status: 500,
         code: "legal_bundle_missing",
-        field: "legal_text_versions",
+        field: "legal_bundle_version_documents",
         stage: "legal_acceptance",
-        hint: "Kör senaste migration för legal_text_versions och retrya ansökan.",
-        details: schemaErrorDetail(error),
+        hint: "Kör senaste migration och retrya ansökan.",
+        details: schemaErrorDetail(legacy.error),
       });
     }
-    throw error;
+    throw legacy.error;
   }
-  return (data as WebsiteLegalAcceptanceVersion | null) ?? null;
+  return (legacy.data as WebsiteLegalAcceptanceVersion | null) ?? null;
 }
 
 async function ensureWebsitePowerOfAttorney(input: {
@@ -4320,9 +4442,7 @@ async function companyEmailContext(
     sender_email: senderEmail,
     reply_to: replyTo,
     support_email: supportEmail,
-    logo_url:
-      clean(lockedCommunication.logo_url) ??
-      clean(branding.logo_url),
+    logo_url: clean(lockedCommunication.logo_url) ?? clean(branding.logo_url),
     legal_footer:
       clean(lockedCommunication.legal_footer) ?? clean(branding.legal_footer),
     customer_contract_id: customerContractId ?? null,
@@ -4390,7 +4510,10 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
     normalizedEmail(input.customer.email);
   if (!email) return { events: [], results: [] };
 
-  const company = await companyEmailContext(input.companyId, input.contract?.id);
+  const company = await companyEmailContext(
+    input.companyId,
+    input.contract?.id,
+  );
   const priceParts = [
     input.publicOffer?.monthly_fee_sek !== null &&
     input.publicOffer?.monthly_fee_sek !== undefined
@@ -4470,7 +4593,8 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
           contractPublicationVersionId:
             input.publicOffer.contract_publication_version_id ?? null,
           pricePlanVersionId: input.publicOffer.price_plan_version_id,
-          legalBundleVersionId: input.publicOffer.legal_bundle_version_id ?? null,
+          legalBundleVersionId:
+            input.publicOffer.legal_bundle_version_id ?? null,
           tenantSnapshotSha256: company.snapshotSha256,
           evidenceId: `contract:${input.contract.id}`,
           monthlyFeeSek: input.publicOffer.monthly_fee_sek,
@@ -4505,26 +4629,19 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
       contract_publication_version_id:
         input.publicOffer?.contract_publication_version_id ?? null,
       price_plan_version_id: input.publicOffer?.price_plan_version_id ?? null,
-      legal_bundle_version_id: input.publicOffer?.legal_bundle_version_id ?? null,
+      legal_bundle_version_id:
+        input.publicOffer?.legal_bundle_version_id ?? null,
       tenant_communication_snapshot: company.snapshot,
       tenant_communication_snapshot_sha256: company.snapshotSha256,
     };
-    const { error: documentError } = await supabaseService
-      .from("customer_contract_documents")
-      .upsert(
-        {
-          company_id: input.companyId,
-          customer_contract_id: input.contract.id,
-          document_type: "signed_contract_pdf",
-          storage_path: null,
-          mime_type: agreementAttachment.contentType,
-          document_sha256: documentSha256,
-          generated_at: new Date().toISOString(),
-          generation_snapshot: generationSnapshot,
-        },
-        { onConflict: "customer_contract_id,document_type,document_sha256" },
-      );
-    if (documentError) throw documentError;
+    await archiveSignedCustomerContractPdf({
+      companyId: input.companyId,
+      customerContractId: input.contract.id,
+      pdfBuffer,
+      mimeType: agreementAttachment.contentType ?? undefined,
+      documentSha256,
+      generationSnapshot,
+    });
     const { error: contractDocumentError } = await supabaseService
       .from("customer_contracts")
       .update({
@@ -7579,8 +7696,13 @@ export async function processWebsiteCustomerApplication(input: {
     body = energyResolution.body;
     readiness = assessWebsiteApplicationReadiness(body);
     if (publicOffer) {
-      const allowedAreas = new Set((publicOffer.price_areas ?? []).map((area) => area.toUpperCase()));
-      if (!readiness.priceArea || !allowedAreas.has(readiness.priceArea.toUpperCase())) {
+      const allowedAreas = new Set(
+        (publicOffer.price_areas ?? []).map((area) => area.toUpperCase()),
+      );
+      if (
+        !readiness.priceArea ||
+        !allowedAreas.has(readiness.priceArea.toUpperCase())
+      ) {
         throw new WebsiteApplicationError({
           message: readiness.priceArea
             ? `Det valda avtalet gäller inte i prisområde ${readiness.priceArea}.`

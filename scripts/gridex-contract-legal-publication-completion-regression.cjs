@@ -22,6 +22,9 @@ const actions = read("app/admin/contracts/actions.ts");
 const canonical = read("lib/contracts/canonical.ts");
 const publicContracts = read("lib/website/publicContracts.ts");
 const applications = read("lib/website/customerApplications.ts");
+const contractDocuments = read("lib/customer-contracts/documents.ts");
+const contractDocumentRoute = read("app/api/admin/customer-contract-documents/[documentId]/route.ts");
+const finalizationMigration = read("supabase/migrations/20260716183000_contract_canonical_finalization.sql");
 const tenantPlatformActions = read(
   "app/admin/companies/[id]/tenant-platform-actions.ts",
 );
@@ -117,8 +120,11 @@ const required = [
   ],
   [
     "PDF evidence archive",
-    /document_type:\s*[\'\"]signed_contract_pdf[\'\"]/.test(applications) &&
-      applications.includes("document_sha256"),
+    applications.includes("archiveSignedCustomerContractPdf") &&
+      contractDocuments.includes("CUSTOMER_CONTRACT_DOCUMENT_BUCKET") &&
+      contractDocuments.includes("document_sha256") &&
+      contractDocumentRoute.includes("downloadAndVerifyCustomerContractDocument") &&
+      finalizationMigration.includes("customer_contract_documents_immutable"),
   ],
   [
     "strict offer selector documented",

@@ -19,8 +19,9 @@ import { DEFAULT_EMAIL_TEMPLATES, EMAIL_TEMPLATE_VARIABLES, getCompanyEmailTempl
 import { getCompanyCommunicationLogs, type CommunicationLog } from '@/lib/email/communicationLogs'
 import TenantPlatformControls from './TenantPlatformControls'
 import { computeTenantReadiness, listWebhookSubscriptions } from '@/lib/admin/websiteIntegrationOps'
-import { getTenantWebsiteReadiness, listCompanyLegalTextVersions, REQUIRED_LEGAL_TEXT_TYPES, type LegalTextVersion, type TenantWebsiteReadiness } from '@/lib/opsMaster/readiness'
-import { getTenantLegalDefaultStatus, legalTypeLabel, type TenantLegalDefaultStatus } from '@/lib/tenant/legalDefaults'
+import { getTenantWebsiteReadiness, listCompanyLegalTextVersions, type LegalTextVersion, type TenantWebsiteReadiness } from '@/lib/opsMaster/readiness'
+import { getTenantLegalDefaultStatus, type TenantLegalDefaultStatus } from '@/lib/tenant/legalDefaults'
+import { CANONICAL_LEGAL_MODULES, canonicalLegalModuleLabel } from '@/lib/legal/canonicalModules'
 import { getCanonicalTenantContractReadiness, type CanonicalTenantContractReadiness } from '@/lib/contracts/canonical'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
 import { saveCompanyProfileAction } from './company-profile-actions'
@@ -386,7 +387,7 @@ function CompanySetupControlPanel({
   const testsApproved = actorSummary?.actorTestStatus === 'approved'
   const internalBlockers = simpleList(contractReadiness?.internal_blockers).map(blockerCopy)
   const websiteBlockers = simpleList(contractReadiness?.website_blockers).map(blockerCopy)
-  const missingLegal = legalDefaultStatus.missingTypes.map(legalTypeLabel)
+  const missingLegal = legalDefaultStatus.missingTypes.map(canonicalLegalModuleLabel)
 
   return (
     <section id="company-control-panel" className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -511,13 +512,10 @@ function ConfigTable({ title, rows, columns }: { title: string; rows: EdielConfi
 }
 
 
-const LEGAL_TYPE_LABELS: Record<string, string> = {
-  terms: 'Allmänna villkor',
-  privacy_policy: 'Integritetspolicy',
-  withdrawal: 'Ångerrätt',
-  power_of_attorney: 'Fullmakt',
-  price_terms: 'Prisvillkor',
-}
+const LEGAL_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  CANONICAL_LEGAL_MODULES.map((type) => [type, canonicalLegalModuleLabel(type)]),
+)
+
 
 const LEGAL_STATUS_LABELS: Record<string, string> = {
   draft: 'Utkast',
@@ -546,7 +544,7 @@ function CompanyLegalMasterSection({
   defaultStatus: TenantLegalDefaultStatus
 }) {
   const publishedTypes = new Set(versions.filter((row) => row.status === 'published').map((row) => row.type))
-  const missingLegalSourceTypes = REQUIRED_LEGAL_TEXT_TYPES.filter((type) => !publishedTypes.has(type))
+  const missingLegalSourceTypes = CANONICAL_LEGAL_MODULES.filter((type) => !publishedTypes.has(type))
   const missingFieldLabels: Record<string, string> = {
     tenant_legal_profile: 'Juridikprofil saknas',
     legal_name: 'Juridiskt bolagsnamn',
@@ -608,24 +606,24 @@ function CompanyLegalMasterSection({
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
           <p className="text-sm font-black text-emerald-950">Gridex standardjuridik ingår från start</p>
           <p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">
-            Dessa dokumentkategorier är kompatibilitetskällor för den dynamiska juridikmotorn. Databasen räknar därefter fram exakta moduler utifrån kundtyp, avtalstyp, fullmakt, automatisk förlängning och produktion. Företagsavtal kräver därför inte automatiskt konsumentens ångerrätt, och avstängd fullmakt tas bort ur kraven.
+            Dessa är canonical juridikmoduler som publiceringsmotorn materialiserar som separata, låsta dokument. Databasen räknar fram exakt kravuppsättning utifrån kundtyp, avtalstyp, fullmakt, automatisk förlängning och produktion. Företagsavtal kräver därför inte automatiskt konsumentens ångerrätt, och avstängd fullmakt tas bort ur kraven.
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs font-black">
-            {REQUIRED_LEGAL_TEXT_TYPES.map((type) => (
-              <span key={type} className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-emerald-900">{legalTypeLabel(type)}</span>
+            {CANONICAL_LEGAL_MODULES.map((type) => (
+              <span key={type} className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-emerald-900">{canonicalLegalModuleLabel(type)}</span>
             ))}
           </div>
           <p className="mt-3 text-xs font-bold text-emerald-800">
-            Status: {defaultStatus.hasAllRequiredLegalTexts ? 'källpaket komplett' : `saknar ${defaultStatus.missingTypes.map(legalTypeLabel).join(', ')}`}
-            {defaultStatus.usingGridexDefaults ? ' · använder Gridex standardpaket' : ''}
+            Status: {defaultStatus.hasAllRequiredLegalTexts ? 'canonical mallpaket komplett' : `saknar ${defaultStatus.missingTypes.map(canonicalLegalModuleLabel).join(', ')}`}
+            {defaultStatus.usingGridexDefaults ? ' · använder publicerade Gridex-masterversioner' : ''}
             {defaultStatus.hasTenantOwnedPublishedTexts ? ' · har tenant-egna publicerade texter' : ''}
           </p>
         </div>
         <form action={seedDefaultLegalPackageAction} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
           <input type="hidden" name="company_id" value={company.id} />
           <p className="text-sm font-black text-slate-950">Standardpaket</p>
-          <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">Koppla/återställ saknade standardtexter från Gridex utan att ändra befintliga tenant-egna publicerade versioner.</p>
-          <button className="mt-4 w-full rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Koppla Gridex standardjuridik</button>
+          <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">Validera att samtliga publicerade canonical mastermallar finns. Tenantens egna overrides bevaras och exakta dokument skapas först i den atomiska publiceringen.</p>
+          <button className="mt-4 w-full rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Validera canonical juridik</button>
         </form>
       </div>
 
@@ -637,7 +635,7 @@ function CompanyLegalMasterSection({
           <p className="mt-1 text-slate-600">Senast verifierad: {formatDate(canonicalReadiness.legal_profile_verified_at)}</p>
           <p className="mt-1 text-slate-600">Profil uppdaterad: {formatDate(canonicalReadiness.legal_profile_updated_at)}</p>
           {canonicalReadiness.legal_profile_missing_fields.length > 0 ? <p className="mt-2 text-amber-800">Saknas: {canonicalReadiness.legal_profile_missing_fields.map((field) => missingFieldLabels[field] ?? field).join(', ')}</p> : null}
-          <Link href="/admin/contracts#tenant-legal-profile" className="mt-3 inline-flex text-xs font-black text-emerald-800">Redigera juridikprofil</Link>
+          <Link href={`/admin/contracts?company_id=${company.id}#tenant-legal-profile`} className="mt-3 inline-flex text-xs font-black text-emerald-800">Redigera juridikprofil</Link>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
           <p className="font-black text-slate-950">Publicering</p>
@@ -652,7 +650,7 @@ function CompanyLegalMasterSection({
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
           <p className="font-black text-slate-950">Juridiska källor</p>
           <p className="mt-2">Publicerade: {publishedTypes.size}</p>
-          {missingLegalSourceTypes.length > 0 ? <p className="mt-2 text-amber-800">Saknade kompatibilitetskällor: {missingLegalSourceTypes.map(legalTypeLabel).join(', ')}</p> : null}
+          {missingLegalSourceTypes.length > 0 ? <p className="mt-2 text-amber-800">Saknade canonical moduler: {missingLegalSourceTypes.map(canonicalLegalModuleLabel).join(', ')}</p> : null}
         </div>
       </div>
 
@@ -670,7 +668,14 @@ function CompanyLegalMasterSection({
         <label className="grid gap-1 text-sm font-bold text-slate-800">
           Typ
           <select name="type" className="rounded-2xl border border-slate-300 bg-white px-4 py-3" required>
-            {REQUIRED_LEGAL_TEXT_TYPES.map((type) => <option key={type} value={type}>{LEGAL_TYPE_LABELS[type]}</option>)}
+            {CANONICAL_LEGAL_MODULES.map((type) => <option key={type} value={type}>{LEGAL_TYPE_LABELS[type]}</option>)}
+          </select>
+        </label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">
+          Läge
+          <select name="legal_mode" defaultValue="replacement" className="rounded-2xl border border-slate-300 bg-white px-4 py-3" required>
+            <option value="replacement">Ersätter Gridex mastermall</option>
+            <option value="addendum">Tillägg till Gridex mastermall</option>
           </select>
         </label>
         <label className="grid gap-1 text-sm font-bold text-slate-800">
@@ -716,7 +721,7 @@ function CompanyLegalMasterSection({
                         <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-100">Publicera</button>
                       </form>
                     ) : null}
-                    {version.status !== 'archived' ? (
+                    {version.status === 'draft' ? (
                       <form action={archiveLegalTextVersionAction}>
                         <input type="hidden" name="company_id" value={company.id} />
                         <input type="hidden" name="id" value={version.id} />
@@ -876,19 +881,21 @@ function readinessNotes(value: unknown): string[] {
 
 const IMPORTANT_EVENT_LABELS: Array<{ eventKey: string; label: string }> = [
   { eventKey: 'contract.application_received', label: 'Ansökan mottagen' },
+  { eventKey: 'contract.confirmation_sent', label: 'Avtalsbekräftelse' },
+  { eventKey: 'contract.cooling_off_sent', label: 'Ångerrätt' },
+  { eventKey: 'contract.power_of_attorney_required', label: 'Fullmakt krävs' },
+  { eventKey: 'contract.facility_id_required', label: 'Anläggnings-ID krävs' },
+  { eventKey: 'contract.customer_information_required', label: 'Kunduppgifter krävs' },
+  { eventKey: 'contract.completion_reminder', label: 'Påminnelse om komplettering' },
+  { eventKey: 'contract.manual_review', label: 'Manuell granskning' },
+  { eventKey: 'contract.rejected', label: 'Ansökan avslagen' },
   { eventKey: 'switch.started', label: 'Leverantörsbyte startat' },
   { eventKey: 'switch.confirmed', label: 'Leverantörsbyte bekräftat' },
   { eventKey: 'switch.action_required', label: 'Leverantörsbyte kräver åtgärd' },
   { eventKey: 'customer.welcome_active', label: 'Välkommen aktiv kund' },
 ]
 
-const TEMPLATE_UI_KEYS = [
-  'contract.application_received',
-  'switch.started',
-  'switch.confirmed',
-  'switch.action_required',
-  'customer.welcome_active',
-]
+const TEMPLATE_UI_KEYS = DEFAULT_EMAIL_TEMPLATES.map((template) => template.template_key)
 
 function statusTone(status: string | null | undefined) {
   if (status === 'verified' || status === 'sent' || status === 'delivered') return 'border-emerald-200 bg-emerald-50 text-emerald-800'

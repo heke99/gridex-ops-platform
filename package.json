@@ -174,7 +174,8 @@
     "gridex:canonical-contract-model-regression": "node scripts/gridex-canonical-contract-model-regression.cjs",
     "gridex:contract-legal-publication-completion-regression": "node scripts/gridex-contract-legal-publication-completion-regression.cjs",
     "gridex:contract-single-source-regression": "node scripts/gridex-contract-single-source-regression.cjs",
-    "gridex:production-settlement-export-regression": "node scripts/gridex-production-settlement-export-regression.cjs"
+    "gridex:production-settlement-export-regression": "node scripts/gridex-production-settlement-export-regression.cjs",
+    "gridex:canonical-finalization-regression": "node scripts/gridex-canonical-finalization-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
+import { isCanonicalLegalModule } from '@/lib/legal/canonicalModules'
 import { supabaseService } from '@/lib/supabase/service'
-import { REQUIRED_LEGAL_TEXT_TYPES } from '@/lib/opsMaster/readiness'
 import {
   copyPublishedTemplatesToCompanies,
   listLegalTemplateCompanies,
@@ -34,8 +34,8 @@ function isRedirectError(error: unknown) {
 }
 
 function assertLegalType(value: string) {
-  if (!(REQUIRED_LEGAL_TEXT_TYPES as readonly string[]).includes(value)) {
-    throw new Error('Unknown legal template type.')
+  if (!isCanonicalLegalModule(value)) {
+    throw new Error('Unknown canonical legal module.')
   }
 }
 
@@ -51,43 +51,11 @@ async function auditPlatformLegalTemplate(input: {
       company_id: null,
       actor_user_id: input.actorUserId,
       action: input.action,
-      entity_type: 'platform_default_legal_templates',
+      entity_type: 'legal_template_versions',
       entity_id: input.entityId ?? null,
       new_values: input.metadata ?? {},
     })
     .then(() => null)
-}
-
-async function publishPlatformTemplate(templateId: string, type: string, userId: string) {
-  const { error: archiveError } = await supabaseService
-    .from('platform_default_legal_templates')
-    .update({
-      status: 'archived',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('type', type)
-    .eq('status', 'published')
-    .neq('id', templateId)
-
-  if (archiveError) throw archiveError
-
-  const { error: publishError } = await supabaseService
-    .from('platform_default_legal_templates')
-    .update({
-      status: 'published',
-      published_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', templateId)
-
-  if (publishError) throw publishError
-
-  await auditPlatformLegalTemplate({
-    actorUserId: userId,
-    action: 'PLATFORM_LEGAL_TEMPLATE_PUBLISHED',
-    entityId: templateId,
-    metadata: { type },
-  })
 }
 
 export async function createPlatformLegalTemplateAction(formData: FormData) {
@@ -105,54 +73,29 @@ export async function createPlatformLegalTemplateAction(formData: FormData) {
     if (!title) throw new Error('Title is required.')
     if (!body) throw new Error('Body is required.')
 
-    const { data, error } = await supabaseService
-      .from('platform_default_legal_templates')
-      .insert({
-        type,
-        version,
-        title,
-        body,
-        status: 'draft',
-        metadata: {
-          source: 'platform_admin_ui',
-          created_by: admin.userId,
-          supported_placeholders: [
-            'company_name',
-            'brand_name',
-            'org_number',
-            'support_email',
-            'contact_email',
-            'phone',
-            'website',
-            'address_line_1',
-            'address_line_2',
-            'postal_code',
-            'city',
-            'country',
-          ],
-        },
-      })
-      .select('id')
-      .single()
-
+    const { data, error } = await supabaseService.rpc('gridex_create_legal_template_version', {
+      p_module_key: type,
+      p_version_label: version,
+      p_title: title,
+      p_body: body,
+      p_publish: publishNow,
+      p_actor_user_id: admin.userId,
+    })
     if (error) throw error
 
-    if (publishNow && data?.id) {
-      await publishPlatformTemplate(data.id, type, admin.userId)
-    }
-
+    const id = typeof data === 'string' ? data : null
     await auditPlatformLegalTemplate({
       actorUserId: admin.userId,
-      action: publishNow ? 'PLATFORM_LEGAL_TEMPLATE_CREATED_AND_PUBLISHED' : 'PLATFORM_LEGAL_TEMPLATE_CREATED',
-      entityId: data?.id ?? null,
+      action: publishNow ? 'CANONICAL_LEGAL_TEMPLATE_CREATED_AND_PUBLISHED' : 'CANONICAL_LEGAL_TEMPLATE_CREATED',
+      entityId: id,
       metadata: { type, version, title, publishNow },
     })
 
     revalidatePath(PAGE_PATH)
-    redirectBack({ success: publishNow ? 'Master template created and published.' : 'Master template created as draft.' })
+    redirectBack({ success: publishNow ? 'Canonical master template created and published.' : 'Canonical master template created as draft.' })
   } catch (error) {
     if (isRedirectError(error)) throw error
-    redirectBack({ error: error instanceof Error ? error.message : 'Could not create master template.' })
+    redirectBack({ error: error instanceof Error ? error.message : 'Could not create canonical master template.' })
   }
 }
 
@@ -168,31 +111,25 @@ export async function updateDraftPlatformLegalTemplateAction(formData: FormData)
     if (!body) throw new Error('Body is required.')
 
     const { data: existing, error: existingError } = await supabaseService
-      .from('platform_default_legal_templates')
+      .from('canonical_legal_template_versions_v')
       .select('id,type,version,status,metadata')
       .eq('id', id)
       .maybeSingle()
-
     if (existingError) throw existingError
     if (!existing) throw new Error('Template was not found.')
-    if (existing.status !== 'draft') throw new Error('Only draft master templates can be edited.')
+    if (existing.status !== 'draft') throw new Error('Only unlocked draft master templates can be edited.')
 
-    const currentMetadata = existing.metadata && typeof existing.metadata === 'object' ? existing.metadata as Record<string, unknown> : {}
-    const { error } = await supabaseService
-      .from('platform_default_legal_templates')
-      .update({
-        title,
-        body,
-        updated_at: new Date().toISOString(),
-        metadata: { ...currentMetadata, updated_by: admin.userId, updated_from: 'platform_admin_ui' },
-      })
-      .eq('id', id)
-
+    const { error } = await supabaseService.rpc('gridex_update_draft_legal_template_version', {
+      p_version_id: id,
+      p_title: title,
+      p_body: body,
+      p_actor_user_id: admin.userId,
+    })
     if (error) throw error
 
     await auditPlatformLegalTemplate({
       actorUserId: admin.userId,
-      action: 'PLATFORM_LEGAL_TEMPLATE_DRAFT_UPDATED',
+      action: 'CANONICAL_LEGAL_TEMPLATE_DRAFT_UPDATED',
       entityId: id,
       metadata: { type: existing.type, version: existing.version },
     })
@@ -212,19 +149,29 @@ export async function publishPlatformLegalTemplateAction(formData: FormData) {
     const id = text(formData, 'id')
     if (!id) throw new Error('Template is missing.')
 
-    const { data, error } = await supabaseService
-      .from('platform_default_legal_templates')
+    const { data: existing, error: existingError } = await supabaseService
+      .from('canonical_legal_template_versions_v')
       .select('id,type,version,title,status')
       .eq('id', id)
       .maybeSingle()
+    if (existingError) throw existingError
+    if (!existing) throw new Error('Template was not found.')
 
+    const { error } = await supabaseService.rpc('gridex_publish_legal_template_version', {
+      p_version_id: id,
+      p_actor_user_id: admin.userId,
+    })
     if (error) throw error
-    if (!data) throw new Error('Template was not found.')
 
-    await publishPlatformTemplate(id, String(data.type), admin.userId)
+    await auditPlatformLegalTemplate({
+      actorUserId: admin.userId,
+      action: 'CANONICAL_LEGAL_TEMPLATE_PUBLISHED',
+      entityId: id,
+      metadata: existing as Record<string, unknown>,
+    })
 
     revalidatePath(PAGE_PATH)
-    redirectBack({ success: 'Master template published.' })
+    redirectBack({ success: 'Canonical master template published and locked.' })
   } catch (error) {
     if (isRedirectError(error)) throw error
     redirectBack({ error: error instanceof Error ? error.message : 'Could not publish master template.' })
@@ -238,25 +185,29 @@ export async function archivePlatformLegalTemplateAction(formData: FormData) {
     const id = text(formData, 'id')
     if (!id) throw new Error('Template is missing.')
 
-    const { data, error } = await supabaseService
-      .from('platform_default_legal_templates')
-      .update({ status: 'archived', updated_at: new Date().toISOString() })
-      .eq('id', id)
+    const { data: existing, error: existingError } = await supabaseService
+      .from('canonical_legal_template_versions_v')
       .select('id,type,version,title,status')
+      .eq('id', id)
       .maybeSingle()
+    if (existingError) throw existingError
+    if (!existing) throw new Error('Template was not found.')
+    if (existing.status === 'published') throw new Error('Published master templates are immutable. Publish a newer version instead.')
 
+    const { error } = await supabaseService.rpc('gridex_archive_draft_legal_template_version', {
+      p_version_id: id,
+    })
     if (error) throw error
-    if (!data) throw new Error('Template was not found.')
 
     await auditPlatformLegalTemplate({
       actorUserId: admin.userId,
-      action: 'PLATFORM_LEGAL_TEMPLATE_ARCHIVED',
+      action: 'CANONICAL_LEGAL_TEMPLATE_DRAFT_ARCHIVED',
       entityId: id,
-      metadata: { type: data.type, version: data.version },
+      metadata: existing as Record<string, unknown>,
     })
 
     revalidatePath(PAGE_PATH)
-    redirectBack({ success: 'Master template archived.' })
+    redirectBack({ success: 'Draft master template archived.' })
   } catch (error) {
     if (isRedirectError(error)) throw error
     redirectBack({ error: error instanceof Error ? error.message : 'Could not archive master template.' })
@@ -269,8 +220,6 @@ export async function copyPublishedTemplatesToTenantsAction(formData: FormData) 
   try {
     const selectedCompanyIds = formData.getAll('company_ids').map((value) => String(value).trim()).filter(Boolean)
     const allCompanies = text(formData, 'all_companies') === 'on'
-    const publishNow = text(formData, 'publish_now') !== 'off'
-    const onlyMissing = text(formData, 'only_missing') !== 'off'
 
     let companyIds = selectedCompanyIds
     if (allCompanies) {
@@ -283,21 +232,17 @@ export async function copyPublishedTemplatesToTenantsAction(formData: FormData) 
     const results = await copyPublishedTemplatesToCompanies({
       companyIds,
       actorUserId: admin.userId,
-      publishNow,
-      onlyMissing,
-      source: 'platform_legal_templates_bulk_ui',
+      source: 'platform_legal_templates_validation_ui',
     })
 
     await supabaseService.from('audit_logs').insert({
       company_id: null,
       actor_user_id: admin.userId,
-      action: 'PLATFORM_LEGAL_TEMPLATES_BULK_COPIED_TO_TENANTS',
-      entity_type: 'legal_text_versions',
+      action: 'CANONICAL_LEGAL_TEMPLATES_VALIDATED_FOR_TENANTS',
+      entity_type: 'legal_template_versions',
       entity_id: null,
       new_values: {
         company_count: companyIds.length,
-        publishNow,
-        onlyMissing,
         results,
       },
     }).then(() => null)
@@ -307,6 +252,6 @@ export async function copyPublishedTemplatesToTenantsAction(formData: FormData) 
     redirectBack({ success: summarizeCopyResults(results) })
   } catch (error) {
     if (isRedirectError(error)) throw error
-    redirectBack({ error: error instanceof Error ? error.message : 'Could not copy templates to tenants.' })
+    redirectBack({ error: error instanceof Error ? error.message : 'Could not validate canonical legal templates for tenants.' })
   }
 }

@@ -8,6 +8,9 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const migration = read(
   "supabase/migrations/20260716140000_contract_legal_publication_single_source_completion.sql",
 );
+const finalizationMigration = read(
+  "supabase/migrations/20260716183000_contract_canonical_finalization.sql",
+);
 const actions = read("app/admin/companies/[id]/tenant-platform-actions.ts");
 const controls = read("app/admin/companies/[id]/TenantPlatformControls.tsx");
 const internalActions = read("app/admin/contracts/actions.ts");
@@ -129,20 +132,21 @@ const required = [
   [
     "legacy five-document count is not presented as universal completion",
     !controls.includes("/5") &&
-      companyPage.includes("kompatibilitetskällor") &&
-      companyPage.includes("dynamiska juridikmotorn") &&
+      companyPage.includes("canonical juridikmoduler") &&
+      companyPage.includes("separata, låsta dokument") &&
       !companyPage.includes("juridik komplett"),
   ],
   [
     "legal documents carry provenance and unresolved placeholders block publication",
-    migration.includes("tenant_legal_profile_snapshot") &&
-      migration.includes("template_version") &&
-      migration.includes("tenant_customized") &&
-      migration.includes("unresolved_placeholder:") &&
+    finalizationMigration.includes("tenant_legal_profile_snapshot") &&
+      finalizationMigration.includes("template_version") &&
+      finalizationMigration.includes("tenant_customized") &&
+      finalizationMigration.includes("unresolved_placeholder:") &&
       migration.includes("gridex_reject_locked_legal_document_mutation") &&
-      templates.includes("origin: 'platform_template'") &&
-      templates.includes("template_key: type") &&
-      templates.includes("tenant_customized: false"),
+      finalizationMigration.includes("'origin','platform_template'") &&
+      finalizationMigration.includes("'template_key',t.module_key") &&
+      finalizationMigration.includes("'tenant_customized',v_override_id is not null") &&
+      templates.includes("canonical_legal_template_versions_v"),
   ],
   [
     "legal profile review reacts only to legally relevant company fields",
@@ -165,9 +169,8 @@ const required = [
     "email and PDF prefer the locked tenant snapshot",
     applications.includes("tenant_communication_snapshot") &&
       applications.includes("tenant_legal_party_snapshot") &&
-      applications.includes(
-        "companyEmailContext(input.companyId, input.contract?.id)",
-      ) &&
+      applications.includes("customerContractId?: string | null") &&
+      applications.includes("input.contract?.id") &&
       applications.includes("tenant_communication_snapshot_sha256"),
   ],
   [

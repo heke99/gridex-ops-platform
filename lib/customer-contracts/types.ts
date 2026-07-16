@@ -73,7 +73,18 @@ export type CustomerContractRow = {
   metering_point_id?: string | null;
   contract_offer_id: string | null;
   public_contract_offer_id?: string | null;
+  contract_product_id?: string | null;
+  contract_product_version_id?: string | null;
+  contract_publication_version_id?: string | null;
+  price_plan_id?: string | null;
+  price_plan_version_id?: string | null;
+  price_book_id?: string | null;
+  legal_bundle_version_id?: string | null;
   offer_reference?: string | null;
+  commercial_snapshot?: Record<string, unknown> | null;
+  legal_snapshot?: Record<string, unknown> | null;
+  document_sha256?: string | null;
+  locked_at?: string | null;
   legal_versions_snapshot?: Array<Record<string, unknown>> | null;
   signature_snapshot?: Record<string, unknown> | null;
   signature_snapshot_sha256?: string | null;

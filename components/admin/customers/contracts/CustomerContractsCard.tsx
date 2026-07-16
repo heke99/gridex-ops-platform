@@ -8,6 +8,7 @@ import {
  listCustomerContractsByCustomerId,
 } from '@/lib/customer-contracts/db'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
+import { listCustomerContractDocuments } from '@/lib/customer-contracts/documents'
 import { listCustomerSitesByCustomerId, listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import { listSupplierSwitchRequestsByCustomerId } from '@/lib/operations/db'
 import {
@@ -144,10 +145,19 @@ export default async function CustomerContractsCard({
  listOutboundRequestsByCustomerId(customerId, { companyId }),
  ])
 
- const meteringPoints = await listMeteringPointsBySiteIds(
+ const [meteringPoints, contractDocuments] = await Promise.all([
+ listMeteringPointsBySiteIds(
  supabase,
  sites.map((site) => site.id),
  { companyId }
+ ),
+ listCustomerContractDocuments(
+ contracts.map((contract) => contract.id),
+ { companyId },
+ ),
+ ])
+ const documentsByContractId = new Map(
+ contractDocuments.map((document) => [document.customer_contract_id, document] as const),
  )
 
  const activeOffers = offers.filter((offer) => offer.is_active && offer.status === 'active')
@@ -362,6 +372,7 @@ export default async function CustomerContractsCard({
  const lifecycle = getLifecycleSummary(contract)
  const situation = getContractSituation(contract)
  const recommendations = getContractUiRecommendations(contract, customerId)
+ const archivedDocument = documentsByContractId.get(contract.id) ?? null
 
  return (
  <article key={contract.id} className="p-6">
@@ -441,14 +452,34 @@ export default async function CustomerContractsCard({
  </div>
  </div>
 
- {(contract.offer_reference || contract.signature_snapshot_sha256 || contract.withdrawal_deadline_at || contract.public_contract_offer_id) ? (
+ {(contract.offer_reference || contract.signature_snapshot_sha256 || contract.withdrawal_deadline_at || contract.public_contract_offer_id || archivedDocument) ? (
  <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-xs text-slate-700">
+ <div className="flex flex-wrap items-center justify-between gap-3">
  <div className="font-semibold text-slate-900">Signeringsbevis</div>
+ {archivedDocument?.storage_path ? (
+ <Link
+ href={`/api/admin/customer-contract-documents/${archivedDocument.id}`}
+ className="inline-flex rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-700 hover:bg-slate-100"
+ >
+ Ladda ner verifierad avtals-PDF
+ </Link>
+ ) : contract.signed_at ? (
+ <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 font-semibold text-amber-800">
+ Arkiverad PDF saknas
+ </span>
+ ) : null}
+ </div>
  <div className="mt-2 grid gap-2 md:grid-cols-2">
  <div>Erbjudandereferens: <span className="break-all font-mono">{valueOrDash(contract.offer_reference)}</span></div>
  <div>Publicerat erbjudande: <span className="break-all font-mono">{valueOrDash(contract.public_contract_offer_id)}</span></div>
  <div>Ångerfrist: {formatDateTime(contract.withdrawal_deadline_at)}</div>
  <div>Signaturhash: <span className="break-all font-mono">{valueOrDash(contract.signature_snapshot_sha256)}</span></div>
+ {archivedDocument ? (
+ <>
+ <div>PDF-hash: <span className="break-all font-mono">{archivedDocument.document_sha256}</span></div>
+ <div>Arkiverad: {formatDateTime(archivedDocument.archived_at ?? archivedDocument.generated_at)}</div>
+ </>
+ ) : null}
  </div>
  </div>
  ) : null}

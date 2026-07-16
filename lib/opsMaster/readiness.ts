@@ -177,7 +177,7 @@ export async function listCompanyLegalTextVersions(
   companyId: string,
 ): Promise<LegalTextVersion[]> {
   const { data, error } = await supabaseService
-    .from("legal_text_versions")
+    .from("canonical_tenant_legal_overrides_v")
     .select(
       "id,company_id,type,version,title,body,status,published_at,created_at,updated_at,metadata",
     )

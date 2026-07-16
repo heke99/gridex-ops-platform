@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
-import { REQUIRED_LEGAL_TEXT_TYPES } from '@/lib/opsMaster/readiness'
+import { isCanonicalLegalModule } from '@/lib/legal/canonicalModules'
 import { seedGridexDefaultLegalPackage } from '@/lib/tenant/legalDefaults'
 import { supabaseService } from '@/lib/supabase/service'
 
@@ -27,9 +27,26 @@ function isRedirectError(error: unknown) {
 }
 
 function assertLegalType(value: string) {
-  if (!(REQUIRED_LEGAL_TEXT_TYPES as readonly string[]).includes(value)) {
-    throw new Error('Okänd juridisk texttyp.')
+  if (!isCanonicalLegalModule(value)) {
+    throw new Error('Okänd juridisk modul.')
   }
+}
+
+async function auditTenantLegalOverride(input: {
+  companyId: string
+  actorUserId: string
+  action: string
+  entityId?: string | null
+  metadata?: Record<string, unknown>
+}) {
+  await supabaseService.from('audit_logs').insert({
+    company_id: input.companyId,
+    actor_user_id: input.actorUserId,
+    action: input.action,
+    entity_type: 'tenant_legal_overrides',
+    entity_id: input.entityId ?? null,
+    new_values: input.metadata ?? {},
+  }).then(() => null)
 }
 
 export async function createLegalTextVersionAction(formData: FormData) {
@@ -41,6 +58,7 @@ export async function createLegalTextVersionAction(formData: FormData) {
     const version = text(formData.get('version'))
     const title = text(formData.get('title'))
     const body = text(formData.get('body'))
+    const legalMode = text(formData.get('legal_mode')) || 'replacement'
     const publishNow = text(formData.get('publish_now')) === 'on'
 
     if (!companyId) throw new Error('Bolag saknas.')
@@ -48,64 +66,35 @@ export async function createLegalTextVersionAction(formData: FormData) {
     if (!version) throw new Error('Version krävs.')
     if (!title) throw new Error('Rubrik krävs.')
     if (!body) throw new Error('Text krävs.')
+    if (!['replacement', 'addendum'].includes(legalMode)) throw new Error('Ogiltigt juridiskt läge.')
 
-    const { data, error } = await supabaseService
-      .from('legal_text_versions')
-      .insert({
-        company_id: companyId,
-        type,
-        version,
-        title,
-        body,
-        status: 'draft',
-        created_by: admin.userId,
-        updated_by: admin.userId,
-        metadata: { source: 'platform_admin_ui' },
-      })
-      .select('id')
-      .single()
-
+    const { data, error } = await supabaseService.rpc('gridex_create_tenant_legal_override', {
+      p_company_id: companyId,
+      p_module_key: type,
+      p_legal_mode: legalMode,
+      p_version_label: version,
+      p_title: title,
+      p_body: body,
+      p_publish: publishNow,
+      p_actor_user_id: admin.userId,
+    })
     if (error) throw error
 
-    if (publishNow && data?.id) {
-      await publishLegalTextVersion(companyId, data.id, type, admin.userId)
-    }
-
-    await supabaseService.from('audit_logs').insert({
-      company_id: companyId,
-      actor_user_id: admin.userId,
-      action: publishNow ? 'LEGAL_TEXT_CREATED_AND_PUBLISHED' : 'LEGAL_TEXT_CREATED',
-      entity_type: 'legal_text_versions',
-      entity_id: data?.id ?? null,
-      new_values: { type, version, title, publishNow },
-    }).then(() => null)
+    const id = typeof data === 'string' ? data : null
+    await auditTenantLegalOverride({
+      companyId,
+      actorUserId: admin.userId,
+      action: publishNow ? 'TENANT_LEGAL_OVERRIDE_CREATED_AND_PUBLISHED' : 'TENANT_LEGAL_OVERRIDE_CREATED',
+      entityId: id,
+      metadata: { type, version, title, legalMode, publishNow },
+    })
 
     revalidatePath(`/admin/companies/${companyId}`)
-    redirectBack(companyId, { success: publishNow ? 'Juridisk version skapades och publicerades.' : 'Juridisk version skapades som utkast.' })
+    redirectBack(companyId, { success: publishNow ? 'Juridisk modul skapades och publicerades.' : 'Juridisk modul skapades som utkast.' })
   } catch (error) {
     if (isRedirectError(error)) throw error
-    redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Juridisk version kunde inte sparas.' })
+    redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Juridisk modul kunde inte sparas.' })
   }
-}
-
-async function publishLegalTextVersion(companyId: string, id: string, type: string, userId: string) {
-  const { error: archiveError } = await supabaseService
-    .from('legal_text_versions')
-    .update({ status: 'archived', updated_by: userId })
-    .eq('company_id', companyId)
-    .eq('type', type)
-    .eq('status', 'published')
-    .neq('id', id)
-
-  if (archiveError) throw archiveError
-
-  const { error: publishError } = await supabaseService
-    .from('legal_text_versions')
-    .update({ status: 'published', published_at: new Date().toISOString(), published_by: userId, updated_by: userId })
-    .eq('company_id', companyId)
-    .eq('id', id)
-
-  if (publishError) throw publishError
 }
 
 export async function publishLegalTextVersionAction(formData: FormData) {
@@ -116,29 +105,32 @@ export async function publishLegalTextVersionAction(formData: FormData) {
     const id = text(formData.get('id'))
     if (!companyId || !id) throw new Error('Version saknas.')
 
-    const { data, error } = await supabaseService
-      .from('legal_text_versions')
-      .select('id,type,version,title,status')
+    const { data: existing, error: existingError } = await supabaseService
+      .from('canonical_tenant_legal_overrides_v')
+      .select('id,type,version,title,status,metadata')
       .eq('company_id', companyId)
       .eq('id', id)
-      .single()
+      .maybeSingle()
+    if (existingError) throw existingError
+    if (!existing) throw new Error('Versionen hittades inte.')
 
+    const { error } = await supabaseService.rpc('gridex_publish_tenant_legal_override', {
+      p_company_id: companyId,
+      p_override_id: id,
+      p_actor_user_id: admin.userId,
+    })
     if (error) throw error
-    if (!data) throw new Error('Versionen hittades inte.')
 
-    await publishLegalTextVersion(companyId, id, String(data.type), admin.userId)
-
-    await supabaseService.from('audit_logs').insert({
-      company_id: companyId,
-      actor_user_id: admin.userId,
-      action: 'LEGAL_TEXT_PUBLISHED',
-      entity_type: 'legal_text_versions',
-      entity_id: id,
-      new_values: data,
-    }).then(() => null)
+    await auditTenantLegalOverride({
+      companyId,
+      actorUserId: admin.userId,
+      action: 'TENANT_LEGAL_OVERRIDE_PUBLISHED',
+      entityId: id,
+      metadata: existing as Record<string, unknown>,
+    })
 
     revalidatePath(`/admin/companies/${companyId}`)
-    redirectBack(companyId, { success: 'Juridisk version publicerades.' })
+    redirectBack(companyId, { success: 'Juridisk modul publicerades.' })
   } catch (error) {
     if (isRedirectError(error)) throw error
     redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Versionen kunde inte publiceras.' })
@@ -153,27 +145,32 @@ export async function archiveLegalTextVersionAction(formData: FormData) {
     const id = text(formData.get('id'))
     if (!companyId || !id) throw new Error('Version saknas.')
 
-    const { data, error } = await supabaseService
-      .from('legal_text_versions')
-      .update({ status: 'archived', updated_by: admin.userId })
+    const { data: existing, error: existingError } = await supabaseService
+      .from('canonical_tenant_legal_overrides_v')
+      .select('id,type,version,title,status,metadata')
       .eq('company_id', companyId)
       .eq('id', id)
-      .select('id,type,version,title,status')
-      .single()
+      .maybeSingle()
+    if (existingError) throw existingError
+    if (!existing) throw new Error('Versionen hittades inte.')
+    if (existing.status === 'published') throw new Error('Publicerade juridikversioner är låsta och får inte arkiveras genom att ändras. Skapa en ny version i stället.')
 
+    const { error } = await supabaseService.rpc('gridex_archive_draft_tenant_legal_override', {
+      p_company_id: companyId,
+      p_override_id: id,
+    })
     if (error) throw error
 
-    await supabaseService.from('audit_logs').insert({
-      company_id: companyId,
-      actor_user_id: admin.userId,
-      action: 'LEGAL_TEXT_ARCHIVED',
-      entity_type: 'legal_text_versions',
-      entity_id: id,
-      new_values: data,
-    }).then(() => null)
+    await auditTenantLegalOverride({
+      companyId,
+      actorUserId: admin.userId,
+      action: 'TENANT_LEGAL_OVERRIDE_DRAFT_ARCHIVED',
+      entityId: id,
+      metadata: existing as Record<string, unknown>,
+    })
 
     revalidatePath(`/admin/companies/${companyId}`)
-    redirectBack(companyId, { success: 'Juridisk version arkiverades.' })
+    redirectBack(companyId, { success: 'Juridiskt utkast arkiverades.' })
   } catch (error) {
     if (isRedirectError(error)) throw error
     redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Versionen kunde inte arkiveras.' })
@@ -188,22 +185,21 @@ export async function seedDefaultLegalPackageAction(formData: FormData) {
     if (!companyId) throw new Error('Bolag saknas.')
     const result = await seedGridexDefaultLegalPackage(companyId, admin.userId)
     if (result.missingTypes.length > 0) {
-      throw new Error(`Gridex standardjuridik saknar mallar: ${result.missingTypes.join(', ')}`)
+      throw new Error(`Gridex standardjuridik saknar publicerade mastermallar: ${result.missingTypes.join(', ')}`)
     }
 
-    await supabaseService.from('audit_logs').insert({
-      company_id: companyId,
-      actor_user_id: admin.userId,
-      action: 'LEGAL_DEFAULT_PACKAGE_SEEDED',
-      entity_type: 'legal_text_versions',
-      entity_id: result.bundleId,
-      new_values: result,
-    }).then(() => null)
+    await auditTenantLegalOverride({
+      companyId,
+      actorUserId: admin.userId,
+      action: 'CANONICAL_LEGAL_TEMPLATES_VALIDATED_FOR_TENANT',
+      entityId: null,
+      metadata: result,
+    })
 
     revalidatePath(`/admin/companies/${companyId}`)
-    redirectBack(companyId, { success: result.insertedCount > 0 ? 'Gridex standardjuridik kopplades till bolaget.' : 'Bolaget har redan publicerad juridik för alla krav.' })
+    redirectBack(companyId, { success: 'Alla canonical juridikmoduler finns publicerade och renderas med bolagets låsta juridikprofil vid publicering.' })
   } catch (error) {
     if (isRedirectError(error)) throw error
-    redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Standardjuridiken kunde inte kopplas.' })
+    redirectBack(companyId || 'unknown', { error: error instanceof Error ? error.message : 'Standardjuridiken kunde inte valideras.' })
   }
 }

@@ -2,8 +2,7 @@ import Link from 'next/link'
 
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
-import { REQUIRED_LEGAL_TEXT_TYPES } from '@/lib/opsMaster/readiness'
-import { legalTypeLabel } from '@/lib/tenant/legalDefaults'
+import { CANONICAL_LEGAL_MODULES, canonicalLegalModuleLabel } from '@/lib/legal/canonicalModules'
 import {
   LEGAL_TEMPLATE_PLACEHOLDERS,
   legalTemplatePlaceholderValues,
@@ -56,7 +55,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function TemplateStats({ templates }: { templates: PlatformLegalTemplate[] }) {
   const publishedByType = new Set(templates.filter((template) => template.status === 'published').map((template) => template.type))
-  const missing = REQUIRED_LEGAL_TEXT_TYPES.filter((type) => !publishedByType.has(type))
+  const missing = CANONICAL_LEGAL_MODULES.filter((type) => !publishedByType.has(type))
   const drafts = templates.filter((template) => template.status === 'draft').length
   return (
     <section className="grid gap-4 sm:grid-cols-4">
@@ -66,7 +65,7 @@ function TemplateStats({ templates }: { templates: PlatformLegalTemplate[] }) {
       </div>
       <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Published types</p>
-        <p className="mt-2 text-3xl font-black text-emerald-950">{publishedByType.size}/5</p>
+        <p className="mt-2 text-3xl font-black text-emerald-950">{publishedByType.size}/{CANONICAL_LEGAL_MODULES.length}</p>
       </div>
       <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Drafts</p>
@@ -74,7 +73,7 @@ function TemplateStats({ templates }: { templates: PlatformLegalTemplate[] }) {
       </div>
       <div className={missing.length === 0 ? 'rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm' : 'rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm'}>
         <p className={missing.length === 0 ? 'text-xs font-black uppercase tracking-[0.18em] text-emerald-700' : 'text-xs font-black uppercase tracking-[0.18em] text-red-700'}>Missing</p>
-        <p className={missing.length === 0 ? 'mt-2 text-sm font-black text-emerald-950' : 'mt-2 text-sm font-black text-red-950'}>{missing.length === 0 ? 'Complete' : missing.map(legalTypeLabel).join(', ')}</p>
+        <p className={missing.length === 0 ? 'mt-2 text-sm font-black text-emerald-950' : 'mt-2 text-sm font-black text-red-950'}>{missing.length === 0 ? 'Complete' : missing.map(canonicalLegalModuleLabel).join(', ')}</p>
       </div>
     </section>
   )
@@ -88,7 +87,7 @@ function CreateTemplateForm() {
           <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Create master template</p>
           <h2 className="mt-2 text-xl font-black text-slate-950">New platform legal template</h2>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
-            Master templates are copied into tenants as immutable tenant legal versions. Use placeholders like {'{{company_name}}'} and {'{{org_number}}'} so OPS can render tenant-specific versions.
+            Master templates are rendered directly from the immutable canonical version together with the tenant legal-profile snapshot. Use placeholders like {'{{company_name}}'} and {'{{org_number}}'} so OPS can render tenant-specific versions.
           </p>
         </div>
         <Link href="/admin/platform/legal-readiness" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-100">
@@ -100,7 +99,7 @@ function CreateTemplateForm() {
         <label className="grid gap-1 text-sm font-bold text-slate-800">
           Type
           <select name="type" className="rounded-2xl border border-slate-300 bg-white px-4 py-3" required>
-            {REQUIRED_LEGAL_TEXT_TYPES.map((type) => <option key={type} value={type}>{legalTypeLabel(type)}</option>)}
+            {CANONICAL_LEGAL_MODULES.map((type) => <option key={type} value={type}>{canonicalLegalModuleLabel(type)}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-sm font-bold text-slate-800">
@@ -147,10 +146,10 @@ function PlaceholdersCard({ previewCompany }: { previewCompany: LegalTemplateCom
 function BulkCopyForm({ companies }: { companies: LegalTemplateCompany[] }) {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Bulk tenant generation</p>
-      <h2 className="mt-2 text-xl font-black text-slate-950">Copy latest published master templates to tenants</h2>
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Tenant coverage validation</p>
+      <h2 className="mt-2 text-xl font-black text-slate-950">Validate canonical master templates for tenants</h2>
       <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
-        This creates tenant-specific legal versions from the latest published master templates. It does not mutate existing published tenant versions. By default it only fills missing published legal types.
+        This validates that every selected tenant can use the published canonical modules. No duplicate tenant copy is created; exact rendered documents are locked only when a contract version is published.
       </p>
 
       <form action={copyPublishedTemplatesToTenantsAction} className="mt-5 grid gap-4">
@@ -159,10 +158,10 @@ function BulkCopyForm({ companies }: { companies: LegalTemplateCompany[] }) {
             <input type="checkbox" name="all_companies" /> Apply to all tenants below
           </label>
           <label className="flex items-center gap-2 text-sm font-black text-slate-800">
-            <input type="checkbox" name="only_missing" defaultChecked /> Only create missing published legal types
+            <input type="checkbox" name="only_missing" defaultChecked /> Validate only the canonical module set
           </label>
           <label className="flex items-center gap-2 text-sm font-black text-slate-800">
-            <input type="checkbox" name="publish_now" defaultChecked /> Publish generated tenant versions immediately
+            <input type="checkbox" name="publish_now" defaultChecked /> Use published canonical versions
           </label>
         </div>
 
@@ -186,7 +185,7 @@ function BulkCopyForm({ companies }: { companies: LegalTemplateCompany[] }) {
         </div>
 
         <div>
-          <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Generate tenant legal versions</button>
+          <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Validate tenant legal coverage</button>
         </div>
       </form>
     </section>
@@ -223,7 +222,7 @@ function TemplateCard({ template, previewCompany }: { template: PlatformLegalTem
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{legalTypeLabel(template.type)}</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{canonicalLegalModuleLabel(template.type)}</p>
             <StatusBadge status={template.status} />
           </div>
           <h3 className="mt-2 text-lg font-black text-slate-950">{template.title}</h3>
@@ -236,7 +235,7 @@ function TemplateCard({ template, previewCompany }: { template: PlatformLegalTem
               <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-100">Publish</button>
             </form>
           ) : null}
-          {template.status !== 'archived' ? (
+          {template.status === 'draft' ? (
             <form action={archivePlatformLegalTemplateAction}>
               <input type="hidden" name="id" value={template.id} />
               <button className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-100">Archive</button>
@@ -290,7 +289,7 @@ export default async function PlatformLegalTemplatesPage({ searchParams }: { sea
     <div className="min-h-screen">
       <AdminHeader
         title="Master legal templates"
-        subtitle="Superadmin UI for global legal templates, tenant placeholder rendering and bulk generation of tenant legal bundles."
+        subtitle="Superadmin UI for global immutable legal templates, tenant placeholder rendering and canonical module coverage."
         userEmail={admin.email}
         workspaceMode="platform"
       />
@@ -307,7 +306,7 @@ export default async function PlatformLegalTemplatesPage({ searchParams }: { sea
               <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Published</p>
               <h2 className="mt-2 text-xl font-black text-slate-950">Active master templates</h2>
             </div>
-            <p className="text-sm font-bold text-slate-600">One published template per type should exist.</p>
+            <p className="text-sm font-bold text-slate-600">At least one published immutable version per canonical module must exist.</p>
           </div>
           {publishedTemplates.length === 0 ? <p className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-bold text-amber-900">No published master templates found.</p> : null}
           {publishedTemplates.map((template) => <TemplateCard key={template.id} template={template} previewCompany={previewCompany} />)}

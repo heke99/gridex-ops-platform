@@ -35,6 +35,276 @@ export type LatestContractBucketCounts = {
   closed: number;
 };
 
+type CanonicalContractBinding = {
+  contract_offer_id: string;
+  contract_product_id: string;
+  contract_product_version_id: string;
+  contract_publication_version_id: string;
+  price_plan_id: string;
+  price_plan_version_id: string;
+  price_book_id: string | null;
+  legal_bundle_version_id: string;
+  offer_reference: string;
+  commercial_snapshot: Record<string, unknown>;
+  legal_snapshot: Record<string, unknown>;
+};
+
+type ManualBindingInput = {
+  companyId: string;
+  siteId?: string | null;
+  meteringPointId?: string | null;
+  contractName: string;
+  contractType: ContractType;
+  campaignName?: string | null;
+  campaignCode?: string | null;
+  campaignVersion?: string | null;
+  termsVersion?: string | null;
+  fixedPriceOrePerKwh?: number | null;
+  spotMarkupOrePerKwh?: number | null;
+  variableFeeOrePerKwh?: number | null;
+  monthlyFeeSek?: number | null;
+  startFeeSek?: number | null;
+  adminFeeSek?: number | null;
+  breakFeeSek?: number | null;
+  vatRate?: number | null;
+  discountValue?: number | null;
+  discountUnit?: string | null;
+  greenFeeMode?: GreenFeeMode | null;
+  greenFeeValue?: number | null;
+  bindingMonths?: number | null;
+  noticeMonths?: number | null;
+  optionalFeeLines?: Array<Record<string, unknown>> | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  autoRenewEnabled?: boolean | null;
+  priceSnapshot?: Record<string, unknown> | null;
+  actorUserId?: string | null;
+};
+
+function pricingModelForContractType(contractType: ContractType): string {
+  if (contractType === "fixed") return "fixed";
+  if (contractType === "portfolio") return "portfolio";
+  if (contractType === "mixed") return "mixed";
+  return "spot";
+}
+
+function pushPriceComponent(
+  target: Array<Record<string, unknown>>,
+  input: {
+    code: string;
+    name: string;
+    amount?: number | null;
+    unit: string;
+    calculationType: string;
+    priority: number;
+  },
+) {
+  if (input.amount === null || input.amount === undefined) return;
+  target.push({
+    component_code: input.code,
+    component_type: "fee",
+    name: input.name,
+    amount: input.amount,
+    unit: input.unit,
+    calculation_type: input.calculationType,
+    vat_applicable: true,
+    invoice_line_visible: true,
+    periodization_mode:
+      input.unit === "sek_month" ? "monthly" : "none",
+    priority: input.priority,
+  });
+}
+
+async function resolveContractPriceAreas(input: ManualBindingInput): Promise<string[]> {
+  const snapshotAreas = input.priceSnapshot?.price_areas;
+  if (Array.isArray(snapshotAreas)) {
+    const normalized = snapshotAreas
+      .map((value) => String(value).trim().toUpperCase())
+      .filter((value) => ["SE1", "SE2", "SE3", "SE4"].includes(value));
+    if (normalized.length > 0) return [...new Set(normalized)];
+  }
+
+  if (input.meteringPointId) {
+    const { data, error } = await supabaseService
+      .from("metering_points")
+      .select("price_area_code")
+      .eq("id", input.meteringPointId)
+      .eq("company_id", input.companyId)
+      .maybeSingle();
+    if (error) throw error;
+    const area = data?.price_area_code?.trim().toUpperCase();
+    if (area && ["SE1", "SE2", "SE3", "SE4"].includes(area)) return [area];
+  }
+
+  if (input.siteId) {
+    const { data, error } = await supabaseService
+      .from("customer_sites")
+      .select("price_area_code")
+      .eq("id", input.siteId)
+      .eq("company_id", input.companyId)
+      .maybeSingle();
+    if (error) throw error;
+    const area = data?.price_area_code?.trim().toUpperCase();
+    if (area && ["SE1", "SE2", "SE3", "SE4"].includes(area)) return [area];
+  }
+
+  throw new Error(
+    "Prisområde saknas. Koppla avtalet till en anläggning eller mätpunkt med SE1–SE4 innan avtalet skickas för signering.",
+  );
+}
+
+async function prepareManualCanonicalBinding(
+  input: ManualBindingInput,
+): Promise<CanonicalContractBinding> {
+  const priceAreas = await resolveContractPriceAreas(input);
+  const priceComponents: Array<Record<string, unknown>> = [];
+  pushPriceComponent(priceComponents, {
+    code: "monthly_fee",
+    name: "Månadsavgift",
+    amount: input.monthlyFeeSek,
+    unit: "sek_month",
+    calculationType: "fixed_monthly",
+    priority: 20,
+  });
+  pushPriceComponent(priceComponents, {
+    code: "spot_markup",
+    name: "Spotpåslag",
+    amount: input.spotMarkupOrePerKwh,
+    unit: "ore_per_kwh",
+    calculationType: "consumption_based",
+    priority: 30,
+  });
+  pushPriceComponent(priceComponents, {
+    code: "variable_fee",
+    name: "Rörlig avgift",
+    amount: input.variableFeeOrePerKwh,
+    unit: "ore_per_kwh",
+    calculationType: "consumption_based",
+    priority: 40,
+  });
+  pushPriceComponent(priceComponents, {
+    code: "green_fee",
+    name: "Miljöavgift",
+    amount: input.greenFeeValue,
+    unit: input.greenFeeMode === "sek_month" ? "sek_month" : "ore_per_kwh",
+    calculationType:
+      input.greenFeeMode === "sek_month" ? "fixed_monthly" : "consumption_based",
+    priority: 50,
+  });
+  pushPriceComponent(priceComponents, {
+    code: "start_fee",
+    name: "Startavgift",
+    amount: input.startFeeSek,
+    unit: "sek_once",
+    calculationType: "fixed_once",
+    priority: 60,
+  });
+  pushPriceComponent(priceComponents, {
+    code: "admin_fee",
+    name: "Administrationsavgift",
+    amount: input.adminFeeSek,
+    unit: "sek_invoice",
+    calculationType: "fixed_invoice",
+    priority: 70,
+  });
+  pushPriceComponent(priceComponents, {
+    code: "break_fee",
+    name: "Brytavgift",
+    amount: input.breakFeeSek,
+    unit: "sek_event",
+    calculationType: "fixed_event",
+    priority: 80,
+  });
+
+  for (const [index, line] of (input.optionalFeeLines ?? []).entries()) {
+    const amount = Number(line.amount ?? line.value);
+    const unit = String(line.unit ?? "sek_month");
+    if (!Number.isFinite(amount)) continue;
+    priceComponents.push({
+      ...line,
+      component_code: String(line.component_code ?? `optional_fee_${index + 1}`),
+      component_type: String(line.component_type ?? "fee"),
+      name: String(line.name ?? line.label ?? `Tillägg ${index + 1}`),
+      amount,
+      unit,
+      calculation_type: String(
+        line.calculation_type ??
+          (unit === "ore_per_kwh" ? "consumption_based" : "fixed_monthly"),
+      ),
+      vat_applicable: line.vat_applicable ?? true,
+      invoice_line_visible: line.invoice_line_visible ?? true,
+      priority: Number(line.priority ?? 100 + index),
+    });
+  }
+
+  const baseComponents =
+    input.fixedPriceOrePerKwh === null || input.fixedPriceOrePerKwh === undefined
+      ? []
+      : priceAreas.map((priceArea) => ({
+          source_type: "manual",
+          label: `Fastpris ${priceArea}`,
+          weight_percent: 100,
+          fixed_price_sek_per_kwh: input.fixedPriceOrePerKwh! / 100,
+          price_area: priceArea,
+          metadata: { source: "manual_customer_contract" },
+        }));
+
+  const pricingSnapshot = {
+    ...(input.priceSnapshot ?? {}),
+    schema: "gridex_manual_contract_pricing_v1",
+    pricing_model: pricingModelForContractType(input.contractType),
+    contract_type: input.contractType,
+    price_areas: priceAreas,
+    vat_rate: input.vatRate ?? 25,
+    fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
+    spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
+    variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
+    monthly_fee_sek: input.monthlyFeeSek ?? null,
+    discount_value: input.discountValue ?? null,
+    discount_unit: input.discountUnit ?? null,
+    green_fee_mode: input.greenFeeMode ?? "none",
+    green_fee_value: input.greenFeeValue ?? null,
+    base_components: baseComponents,
+    price_components: priceComponents,
+  };
+
+  const { data, error } = await supabaseService.rpc(
+    "gridex_prepare_manual_contract_binding",
+    {
+      p_company_id: input.companyId,
+      p_payload: {
+        name: input.contractName,
+        contract_type: input.contractType,
+        customer_type: "both",
+        pricing_model: pricingModelForContractType(input.contractType),
+        campaign_name: input.campaignName ?? null,
+        campaign_code: input.campaignCode ?? null,
+        campaign_version: input.campaignVersion ?? null,
+        terms_version: input.termsVersion ?? "canonical",
+        fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
+        spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh ?? null,
+        variable_fee_ore_per_kwh: input.variableFeeOrePerKwh ?? null,
+        monthly_fee_sek: input.monthlyFeeSek ?? null,
+        green_fee_mode: input.greenFeeMode ?? "none",
+        green_fee_value: input.greenFeeValue ?? null,
+        default_binding_months: input.bindingMonths ?? null,
+        default_notice_months: input.noticeMonths ?? null,
+        optional_fee_lines: input.optionalFeeLines ?? [],
+        automatic_renewal: input.autoRenewEnabled ?? false,
+        valid_from: input.startsAt ?? null,
+        valid_to: input.endsAt ?? null,
+      },
+      p_pricing_snapshot: pricingSnapshot,
+      p_actor_user_id: input.actorUserId ?? null,
+    },
+  );
+  if (error) throw error;
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("canonical_manual_contract_binding_missing");
+  }
+  return data as CanonicalContractBinding;
+}
+
 export async function listContractOffers(
   options: {
     activeOnly?: boolean;
@@ -42,7 +312,7 @@ export async function listContractOffers(
   } = {},
 ): Promise<ContractOfferRow[]> {
   let query = supabaseService
-    .from("contract_offers")
+    .from("canonical_internal_contract_offers_v")
     .select("*")
     .order("is_active", { ascending: false })
     .order("updated_at", { ascending: false });
@@ -65,7 +335,7 @@ export async function getContractOfferById(
   id: string,
   companyId?: string | null,
 ): Promise<ContractOfferRow | null> {
-  let query = supabaseService.from("contract_offers").select("*").eq("id", id);
+  let query = supabaseService.from("canonical_internal_contract_offers_v").select("*").eq("id", id);
 
   if (companyId) {
     query = query.eq("company_id", companyId);
@@ -333,6 +603,45 @@ export async function createCustomerContract(input: {
   overrideReason?: string | null;
   actorUserId?: string | null;
 }): Promise<CustomerContractRow> {
+  const status = input.status ?? "draft";
+  if (status !== "draft" && !input.companyId) {
+    throw new Error("Bolag krävs för att versionslåsa kundavtalet.");
+  }
+  const manualBinding =
+    !input.contractOfferId && status !== "draft" && input.companyId
+      ? await prepareManualCanonicalBinding({
+          companyId: input.companyId,
+          siteId: input.siteId,
+          meteringPointId: input.meteringPointId,
+          contractName: input.contractName,
+          contractType: input.contractType,
+          campaignName: input.campaignName,
+          campaignCode: input.campaignCode,
+          campaignVersion: input.campaignVersion,
+          termsVersion: input.termsVersion,
+          fixedPriceOrePerKwh: input.fixedPriceOrePerKwh,
+          spotMarkupOrePerKwh: input.spotMarkupOrePerKwh,
+          variableFeeOrePerKwh: input.variableFeeOrePerKwh,
+          monthlyFeeSek: input.monthlyFeeSek,
+          startFeeSek: input.startFeeSek,
+          adminFeeSek: input.adminFeeSek,
+          breakFeeSek: input.breakFeeSek,
+          vatRate: input.vatRate,
+          discountValue: input.discountValue,
+          discountUnit: input.discountUnit,
+          greenFeeMode: input.greenFeeMode,
+          greenFeeValue: input.greenFeeValue,
+          bindingMonths: input.bindingMonths,
+          noticeMonths: input.noticeMonths,
+          optionalFeeLines: input.optionalFeeLines,
+          startsAt: input.startsAt,
+          endsAt: input.endsAt,
+          autoRenewEnabled: input.autoRenewEnabled,
+          priceSnapshot: input.priceSnapshot,
+          actorUserId: input.actorUserId,
+        })
+      : null;
+
   const { data, error } = await supabaseService
     .from("customer_contracts")
     .insert({
@@ -341,9 +650,22 @@ export async function createCustomerContract(input: {
       site_id: input.siteId ?? null,
       customer_site_id: input.siteId ?? null,
       metering_point_id: input.meteringPointId ?? null,
-      contract_offer_id: input.contractOfferId ?? null,
+      contract_offer_id: manualBinding?.contract_offer_id ?? input.contractOfferId ?? null,
+      contract_product_id: manualBinding?.contract_product_id ?? null,
+      contract_product_version_id:
+        manualBinding?.contract_product_version_id ?? null,
+      contract_publication_version_id:
+        manualBinding?.contract_publication_version_id ?? null,
+      price_plan_id: manualBinding?.price_plan_id ?? null,
+      price_plan_version_id: manualBinding?.price_plan_version_id ?? null,
+      price_book_id: manualBinding?.price_book_id ?? null,
+      legal_bundle_version_id:
+        manualBinding?.legal_bundle_version_id ?? null,
+      offer_reference: manualBinding?.offer_reference ?? null,
+      commercial_snapshot: manualBinding?.commercial_snapshot ?? {},
+      legal_snapshot: manualBinding?.legal_snapshot ?? {},
       source_type: input.sourceType,
-      status: input.status ?? "draft",
+      status,
       contract_name: input.contractName,
       contract_type: input.contractType,
       campaign_name: input.campaignName ?? null,
@@ -437,7 +759,7 @@ export async function createCustomerContract(input: {
         terminationReason: input.terminationReason ?? null,
         autoRenewEnabled: input.autoRenewEnabled ?? null,
         autoRenewTermMonths: input.autoRenewTermMonths ?? null,
-        status: input.status ?? "draft",
+        status,
       }),
       signed_at: input.signedAt ?? null,
       termination_notice_date: input.terminationNoticeDate ?? null,
@@ -505,9 +827,77 @@ export async function updateCustomerContract(input: {
   overrideReason?: string | null;
   actorUserId?: string | null;
 }): Promise<CustomerContractRow> {
+  const { data: existing, error: existingError } = await supabaseService
+    .from("customer_contracts")
+    .select("contract_offer_id,contract_publication_version_id,source_type")
+    .eq("id", input.id)
+    .eq("customer_id", input.customerId)
+    .eq("company_id", input.companyId ?? null)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing) throw new Error("Kundavtalet hittades inte.");
+
+  const manualBinding =
+    input.status !== "draft" &&
+    !existing.contract_offer_id &&
+    !existing.contract_publication_version_id &&
+    input.companyId
+      ? await prepareManualCanonicalBinding({
+          companyId: input.companyId,
+          siteId: input.siteId,
+          meteringPointId: input.meteringPointId,
+          contractName: input.contractName,
+          contractType: input.contractType,
+          campaignName: input.campaignName,
+          campaignCode: input.campaignCode,
+          campaignVersion: input.campaignVersion,
+          termsVersion: input.termsVersion,
+          fixedPriceOrePerKwh: input.fixedPriceOrePerKwh,
+          spotMarkupOrePerKwh: input.spotMarkupOrePerKwh,
+          variableFeeOrePerKwh: input.variableFeeOrePerKwh,
+          monthlyFeeSek: input.monthlyFeeSek,
+          startFeeSek: input.startFeeSek,
+          adminFeeSek: input.adminFeeSek,
+          breakFeeSek: input.breakFeeSek,
+          vatRate: input.vatRate,
+          discountValue: input.discountValue,
+          discountUnit: input.discountUnit,
+          greenFeeMode: input.greenFeeMode,
+          greenFeeValue: input.greenFeeValue,
+          bindingMonths: input.bindingMonths,
+          noticeMonths: input.noticeMonths,
+          startsAt: input.startsAt,
+          endsAt: input.endsAt,
+          autoRenewEnabled: input.autoRenewEnabled,
+          priceSnapshot: input.priceSnapshot,
+          actorUserId: input.actorUserId,
+        })
+      : null;
+
+  if (input.status !== "draft" && !input.companyId) {
+    throw new Error("Bolag krävs för att versionslåsa kundavtalet.");
+  }
+
   const { data, error } = await supabaseService
     .from("customer_contracts")
     .update({
+      ...(manualBinding
+        ? {
+            contract_offer_id: manualBinding.contract_offer_id,
+            contract_product_id: manualBinding.contract_product_id,
+            contract_product_version_id:
+              manualBinding.contract_product_version_id,
+            contract_publication_version_id:
+              manualBinding.contract_publication_version_id,
+            price_plan_id: manualBinding.price_plan_id,
+            price_plan_version_id: manualBinding.price_plan_version_id,
+            price_book_id: manualBinding.price_book_id,
+            legal_bundle_version_id: manualBinding.legal_bundle_version_id,
+            offer_reference: manualBinding.offer_reference,
+            commercial_snapshot: manualBinding.commercial_snapshot,
+            legal_snapshot: manualBinding.legal_snapshot,
+          }
+        : {}),
       site_id: input.siteId ?? null,
       customer_site_id: input.siteId ?? null,
       metering_point_id: input.meteringPointId ?? null,
