@@ -2,6 +2,34 @@
 
 Use this file after every Cursor task.
 
+## 2026-07-16 — Canonical contract publication, dynamic legal evidence and tenant snapshots
+
+### Database and canonical commands
+
+- Added `20260716140000_contract_legal_publication_single_source_completion.sql`.
+- Added strict tenant legal-profile completeness, exact missing fields, backfill and legally relevant company-change review tracking.
+- Added dynamic legal-module rules for private/business, quarterly price, automatic renewal, optional POA and production.
+- Added atomic `gridex_publish_contract_version`: legal source resolution, pricing, legal evidence, contract version, publication, readiness and audit commit or roll back together.
+- Added `gridex_remove_contract_offer`: row-locked safe delete with automatic archival when history exists.
+- Added `gridex_remove_internal_contract_offer` and removed active direct internal offer update/delete paths plus the unused direct-save helper.
+- Added tri-state canonical readiness with separate website display and application acceptance.
+- Added immutable tenant legal/communication snapshots to customer contracts and locked legal-document provenance.
+
+### Application
+
+- Company-card contract save/publication uses the canonical publication RPC and structured Swedish blockers.
+- Removed the old checked-in backup action file containing obsolete legacy writes.
+- Company legal UI now consumes canonical readiness, treats no published contracts as information and shows review/verification timestamps.
+- Agreement e-mail/PDF context prefers the signed contract's locked tenant snapshots; PDF names the tenant as contracting party.
+- Platform legal templates store explicit origin, template key/version and tenant-customized metadata.
+
+### Verification
+
+- Added `gridex:contract-single-source-regression`.
+- Updated contract/legal publication and website application regressions.
+- Added architecture/deployment documentation in `docs/canonical-contract-publication-single-source-2026-07-16.md`.
+- Added final verification evidence in `docs/verification-contract-single-source-2026-07-16.md`.
+
 ## 2026-06-29 — Continuation hardening: intake POA/errors, customer-type, manual comms, portal, docs
 
 ### Website customer application intake (`lib/website/customerApplications.ts`, route)

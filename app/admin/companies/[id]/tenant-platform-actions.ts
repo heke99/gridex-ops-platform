@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
 import { supabaseService } from "@/lib/supabase/service";
-import { seedGridexDefaultLegalPackage } from "@/lib/tenant/legalDefaults";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
 
 function text(formData: FormData, key: string): string {
@@ -115,37 +114,6 @@ async function generateUniquePublicOfferCode(input: {
   return `${base.slice(0, Math.max(1, 80 - tail.length - 1))}-${tail}`;
 }
 
-async function countRows(
-  table: string,
-  filters: Record<string, string>,
-): Promise<number> {
-  let query = supabaseService
-    .from(table)
-    .select("id", { count: "exact", head: true });
-  for (const [key, value] of Object.entries(filters))
-    query = query.eq(key, value);
-  const { count, error } = await query;
-  if (error) {
-    if (isMissingSchemaError(error)) return 0;
-    throw error;
-  }
-  return count ?? 0;
-}
-
-const REQUIRED_PUBLIC_LEGAL_TYPES = [
-  "terms",
-  "privacy_policy",
-  "withdrawal",
-  "power_of_attorney",
-  "price_terms",
-] as const;
-
-type CanonicalReferenceResult = {
-  id: string | null;
-  blockers: string[];
-  created: boolean;
-};
-
 function redirectBack(
   companyId: string | null,
   params: { success?: string; error?: string },
@@ -160,16 +128,72 @@ function redirectBack(
   throw new Error("Kunde inte navigera tillbaka efter åtgärden.");
 }
 
+const PUBLICATION_BLOCKER_LABELS: Record<string, string> = {
+  tenant_legal_profile_missing: "Bolagets juridikprofil saknas",
+  tenant_legal_profile_incomplete: "Bolagets juridikprofil är ofullständig",
+  tenant_legal_profile_review_required:
+    "Juridikprofilen har ändrats och måste granskas igen",
+  contract_version_not_approved: "Avtalsversionen kunde inte låsas",
+  price_plan_not_active: "Prisplanen är inte aktiv",
+  price_plan_version_not_locked: "Prisversionen är inte låst",
+  price_book_not_locked: "Prislistan är inte låst",
+  legal_bundle_not_locked: "Juridikpaketet är inte låst",
+  unresolved_legal_variables: "Juridikdokument innehåller olösta variabler",
+  invalid_validity_period: "Giltighetsperioden är felaktig",
+  website_contracts_read_scope_missing:
+    "API-klienten saknar website_contracts.read",
+  website_applications_write_scope_missing:
+    "API-klienten saknar website_applications.write",
+};
+
+const LEGAL_PROFILE_FIELD_LABELS: Record<string, string> = {
+  legal_name: "juridiskt bolagsnamn",
+  organization_number: "organisationsnummer",
+  postal_address: "postadress",
+  customer_service_email: "kundservice-e-post",
+  phone: "telefonnummer",
+  website: "webbplats",
+  complaints_contact: "klagomålskontakt",
+  data_protection_contact: "dataskyddskontakt",
+  billing_information: "faktureringsuppgifter",
+  dispute_resolution_information: "information om tvistlösning",
+};
+
+function publicationBlockerLabel(code: string): string {
+  const normalized = code.trim();
+  if (normalized.startsWith("missing_legal_profile_field:")) {
+    const field = normalized.slice("missing_legal_profile_field:".length);
+    return `Juridikprofilen saknar ${LEGAL_PROFILE_FIELD_LABELS[field] ?? field.replaceAll("_", " ")}`;
+  }
+  if (normalized.startsWith("missing_legal_module:"))
+    return `Juridisk modul saknas: ${normalized.slice("missing_legal_module:".length)}`;
+  if (normalized.startsWith("unresolved_placeholder:"))
+    return `Olöst juridisk variabel: ${normalized.slice("unresolved_placeholder:".length)}`;
+  if (normalized.startsWith("missing_document:"))
+    return `Juridiskt källdokument saknas: ${normalized.slice("missing_document:".length)}`;
+  if (normalized.startsWith("legal_source_bundle_invalid:"))
+    return `Valt juridiskt paket är ogiltigt: ${normalized.slice("legal_source_bundle_invalid:".length).replaceAll("_", " ")}`;
+  return PUBLICATION_BLOCKER_LABELS[normalized] ?? normalized.replaceAll("_", " ");
+}
+
 function errorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message;
-  if (
-    typeof error === "object" &&
-    error &&
-    "message" in error &&
-    typeof (error as { message?: unknown }).message === "string"
-  )
-    return (error as { message: string }).message;
-  return "Åtgärden kunde inte genomföras.";
+  const message =
+    error instanceof Error && error.message.trim()
+      ? error.message
+      : typeof error === "object" &&
+          error &&
+          "message" in error &&
+          typeof (error as { message?: unknown }).message === "string"
+        ? (error as { message: string }).message
+        : "Åtgärden kunde inte genomföras.";
+  if (message.startsWith("publication_not_ready:")) {
+    const blockers = message
+      .slice("publication_not_ready:".length)
+      .split(",")
+      .map(publicationBlockerLabel);
+    return `Avtalet kan inte publiceras: ${blockers.join(", ")}.`;
+  }
+  return message;
 }
 
 function isMissingSchemaError(error: unknown): boolean {
@@ -183,212 +207,6 @@ function isMissingSchemaError(error: unknown): boolean {
       message,
     )
   );
-}
-
-async function legalBundleHasRequiredTexts(
-  companyId: string,
-  legalBundleId: string,
-): Promise<boolean> {
-  const { data: bundle, error: bundleError } = await supabaseService
-    .from("legal_bundles")
-    .select("id,status")
-    .eq("id", legalBundleId)
-    .eq("company_id", companyId)
-    .maybeSingle();
-
-  if (bundleError) {
-    if (isMissingSchemaError(bundleError))
-      throw new Error(
-        "Databasschemat för juridiska paket är inte installerat.",
-      );
-    throw bundleError;
-  }
-  if (
-    !bundle ||
-    !["published", "active"].includes(String(bundle.status ?? "draft"))
-  )
-    return false;
-
-  const { data: items, error: itemsError } = await supabaseService
-    .from("legal_bundle_items")
-    .select("legal_text_version_id,type")
-    .eq("legal_bundle_id", legalBundleId);
-
-  if (itemsError) {
-    if (isMissingSchemaError(itemsError))
-      throw new Error(
-        "Databasschemat för juridikpaketets dokument är inte installerat.",
-      );
-    throw itemsError;
-  }
-
-  const ids = Array.from(
-    new Set(
-      ((items ?? []) as Array<{ legal_text_version_id?: string | null }>)
-        .map((row) => row.legal_text_version_id)
-        .filter(Boolean),
-    ),
-  ) as string[];
-  if (ids.length === 0) return false;
-
-  const { data: versions, error: versionsError } = await supabaseService
-    .from("legal_text_versions")
-    .select("id,type")
-    .eq("company_id", companyId)
-    .eq("status", "published")
-    .in("id", ids);
-
-  if (versionsError) {
-    if (isMissingSchemaError(versionsError))
-      throw new Error(
-        "Databasschemat för juridiska textversioner är inte installerat.",
-      );
-    throw versionsError;
-  }
-
-  const present = new Set((versions ?? []).map((row) => row.type));
-  return REQUIRED_PUBLIC_LEGAL_TYPES.every((type) => present.has(type));
-}
-
-async function getActiveLegalBundle(companyId: string): Promise<string | null> {
-  const { data, error } = await supabaseService
-    .from("legal_bundles")
-    .select("id")
-    .eq("company_id", companyId)
-    .in("status", ["published", "active"])
-    .order("updated_at", { ascending: false })
-    .limit(10);
-
-  if (error) {
-    if (isMissingSchemaError(error)) return null;
-    throw error;
-  }
-
-  for (const row of (data ?? []) as Array<{ id: string }>) {
-    if (await legalBundleHasRequiredTexts(companyId, row.id)) return row.id;
-  }
-  return null;
-}
-
-async function ensurePublishedLegalBundle(
-  companyId: string,
-  publicName: string,
-): Promise<CanonicalReferenceResult> {
-  const existing = await getActiveLegalBundle(companyId);
-  if (existing) return { id: existing, blockers: [], created: false };
-
-  const { data: versions, error } = await supabaseService
-    .from("legal_text_versions")
-    .select("id,type,version,published_at,created_at")
-    .eq("company_id", companyId)
-    .eq("status", "published")
-    .in("type", [...REQUIRED_PUBLIC_LEGAL_TYPES])
-    .order("type", { ascending: true })
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    if (isMissingSchemaError(error))
-      return {
-        id: null,
-        blockers: [
-          "Juridiska texter eller juridiska paket saknas i databasen.",
-        ],
-        created: false,
-      };
-    throw error;
-  }
-
-  const latestByType = new Map<string, { id: string; type: string }>();
-  for (const row of versions ?? []) {
-    if (!latestByType.has(row.type))
-      latestByType.set(row.type, row as { id: string; type: string });
-  }
-
-  let missing = REQUIRED_PUBLIC_LEGAL_TYPES.filter(
-    (type) => !latestByType.has(type),
-  );
-  if (missing.length > 0) {
-    const seeded = await seedGridexDefaultLegalPackage(companyId, null);
-    if (seeded.missingTypes.length > 0) {
-      return {
-        id: null,
-        blockers: seeded.missingTypes.map(
-          (type) => `Gridex standardjuridik saknar mall: ${type}`,
-        ),
-        created: false,
-      };
-    }
-
-    const { data: seededVersions, error: seededError } = await supabaseService
-      .from("legal_text_versions")
-      .select("id,type,version,published_at,created_at")
-      .eq("company_id", companyId)
-      .eq("status", "published")
-      .in("type", [...REQUIRED_PUBLIC_LEGAL_TYPES])
-      .order("type", { ascending: true })
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false });
-
-    if (seededError) throw seededError;
-    latestByType.clear();
-    for (const row of seededVersions ?? []) {
-      if (!latestByType.has(row.type))
-        latestByType.set(row.type, row as { id: string; type: string });
-    }
-    missing = REQUIRED_PUBLIC_LEGAL_TYPES.filter(
-      (type) => !latestByType.has(type),
-    );
-    if (missing.length > 0) {
-      return {
-        id: null,
-        blockers: missing.map(
-          (type) => `Publicerad juridisk text saknas: ${type}`,
-        ),
-        created: false,
-      };
-    }
-  }
-
-  const { data: bundle, error: bundleError } = await supabaseService
-    .from("legal_bundles")
-    .insert({
-      company_id: companyId,
-      name: `Standard juridik · ${publicName}`.slice(0, 180),
-      status: "published",
-    })
-    .select("id")
-    .single();
-
-  if (bundleError) {
-    if (isMissingSchemaError(bundleError))
-      return {
-        id: null,
-        blockers: ["Tabellen för juridiska paket saknas."],
-        created: false,
-      };
-    throw bundleError;
-  }
-
-  const items = REQUIRED_PUBLIC_LEGAL_TYPES.map((type, index) => ({
-    legal_bundle_id: bundle.id,
-    legal_text_version_id: latestByType.get(type)!.id,
-    type,
-    sort_order: (index + 1) * 10,
-  }));
-  const { error: itemsError } = await supabaseService
-    .from("legal_bundle_items")
-    .insert(items);
-  if (itemsError) {
-    await supabaseService
-      .from("legal_bundles")
-      .delete()
-      .eq("id", bundle.id)
-      .eq("company_id", companyId);
-    throw itemsError;
-  }
-
-  return { id: bundle.id, blockers: [], created: true };
 }
 
 function contractType(value: string): string {
@@ -444,9 +262,6 @@ async function assertSameTenantReference(
 function publicationIssues(input: {
   publicationStatus: string;
   websiteEnabled: boolean;
-  pricePlanId: string | null;
-  pricePlanVersionId: string | null;
-  termsVersion: string | null;
   publicPriceText: string | null;
   type: string;
   spotWeight: number;
@@ -456,7 +271,6 @@ function publicationIssues(input: {
   validTo: string | null;
 }) {
   const issues: string[] = [];
-  if (!input.termsVersion) issues.push("Villkorsversion saknas");
   if (!input.publicPriceText) issues.push("Publik pristext saknas");
   if (["portfolio", "mixed"].includes(input.type)) {
     const sum = input.spotWeight + input.portfolioWeight + input.fixedWeight;
@@ -546,6 +360,14 @@ async function saveTenantPublicContractOfferActionImpl(
       : null;
   const previousBoolean = (key: string, fallback: boolean): boolean =>
     typeof previous?.[key] === "boolean" ? Boolean(previous[key]) : fallback;
+  const automaticRenewal =
+    pricingMode === "preserve"
+      ? previousBoolean("automatic_renewal", false)
+      : boolValue(formData, "automatic_renewal");
+  const powerOfAttorneyRequired =
+    pricingMode === "preserve"
+      ? previousBoolean("power_of_attorney_required", true)
+      : boolValue(formData, "power_of_attorney_required");
 
   let pricePlanId = previousString("price_plan_id");
   let pricePlanVersionId = previousString("price_plan_version_id");
@@ -639,11 +461,8 @@ async function saveTenantPublicContractOfferActionImpl(
       validTo,
       bindingMonths: text(formData, "binding_months"),
       noticeMonths: text(formData, "notice_months"),
-      automaticRenewal: boolValue(formData, "automatic_renewal"),
-      powerOfAttorneyRequired: boolValue(
-        formData,
-        "power_of_attorney_required",
-      ),
+      automaticRenewal,
+      powerOfAttorneyRequired,
       optionalFeeLines: text(formData, "optional_fee_lines"),
       productionEnabled: boolValue(formData, "production_enabled"),
       productionCompensationOrePerKwh: text(
@@ -679,9 +498,6 @@ async function saveTenantPublicContractOfferActionImpl(
   const issues = publicationIssues({
     publicationStatus,
     websiteEnabled,
-    pricePlanId,
-    pricePlanVersionId,
-    termsVersion,
     publicPriceText,
     type,
     spotWeight,
@@ -693,40 +509,19 @@ async function saveTenantPublicContractOfferActionImpl(
   if (publicationStatus === "published" && issues.length > 0)
     throw new Error(`Avtalet kan inte publiceras: ${issues.join(", ")}.`);
 
+  // The database command resolves, validates and, when needed, creates the
+  // compatibility legal source bundle inside the same transaction as pricing,
+  // legal materialization, contract versioning and publication. No publication
+  // write is allowed before the RPC, so a failed publication cannot leave an
+  // orphan legal bundle behind.
   const previousLegalBundleId = previousString("legal_bundle_id");
-  let legalBundleId = submittedLegalBundleId ?? previousLegalBundleId;
-  if (
-    submittedLegalBundleId &&
-    !(await legalBundleHasRequiredTexts(companyId, submittedLegalBundleId))
-  ) {
-    throw new Error(
-      "Valt juridiskt paket är inte publicerat eller saknar obligatoriska juridiska texter.",
-    );
-  }
-  if (
-    !submittedLegalBundleId &&
-    previousLegalBundleId &&
-    !(await legalBundleHasRequiredTexts(companyId, previousLegalBundleId))
-  )
-    legalBundleId = null;
-
-  let readinessStatus: string | null = null;
+  let legalBundleId =
+    submittedLegalBundleId ??
+    (publicationStatus === "published" ? null : previousLegalBundleId);
+  let readinessStatus: string | null =
+    publicationStatus === "published" ? "pending_canonical_validation" : null;
   let readinessBlockers: string[] = [];
   const autoCreatedReferences: string[] = [];
-  if (publicationStatus === "published") {
-    if (!legalBundleId) {
-      const legal = await ensurePublishedLegalBundle(companyId, publicName);
-      legalBundleId = legal.id;
-      readinessBlockers.push(...legal.blockers);
-      if (legal.created) autoCreatedReferences.push("juridiskt paket");
-    }
-    if (!legalBundleId || readinessBlockers.length > 0) {
-      throw new Error(
-        `Avtalet kan inte publiceras: ${readinessBlockers.join(", ") || "juridiskt paket saknas"}.`,
-      );
-    }
-    readinessStatus = "pending_canonical_validation";
-  }
 
   const isArchived = publicationStatus === "archived";
   const isPublic =
@@ -847,14 +642,8 @@ async function saveTenantPublicContractOfferActionImpl(
       "notice_months",
       previousNumber("notice_months"),
     ),
-    automatic_renewal:
-      pricingMode === "preserve"
-        ? previousBoolean("automatic_renewal", false)
-        : boolValue(formData, "automatic_renewal"),
-    power_of_attorney_required:
-      pricingMode === "preserve"
-        ? previousBoolean("power_of_attorney_required", true)
-        : boolValue(formData, "power_of_attorney_required"),
+    automatic_renewal: automaticRenewal,
+    power_of_attorney_required: powerOfAttorneyRequired,
     spot_weight_percent: spotWeight,
     portfolio_weight_percent: portfolioWeight,
     fixed_weight_percent: fixedWeight,
@@ -913,10 +702,10 @@ async function saveTenantPublicContractOfferActionImpl(
     ignoreId: id,
   });
   const { data: commandData, error } = await supabaseService.rpc(
-    "gridex_upsert_public_contract_offer",
+    "gridex_publish_contract_version",
     {
       p_company_id: companyId,
-      p_offer_id: id,
+      p_draft_contract_id: id,
       p_offer_code: offerCode,
       p_payload: payload,
       p_pricing_snapshot: pricingSnapshot,
@@ -933,11 +722,38 @@ async function saveTenantPublicContractOfferActionImpl(
   if (!commandData || typeof commandData !== "object")
     throw new Error("Avtalskommandot returnerade inget resultat.");
   const command = commandData as unknown as {
+    ok?: boolean;
+    error_code?: string;
+    message?: string;
+    blockers?: string[];
     offer?: Record<string, unknown>;
     pricing?: PricingRpcResult;
     offer_reference?: string | null;
+    contract_publication_version_id?: string | null;
     created_new_version?: boolean;
+    correlation_id?: string;
+    legal_bundle_id?: string | null;
+    legal_bundle_created?: boolean;
+    readiness?: {
+      status?: "ready" | "blocked" | "unknown";
+      can_display?: boolean;
+      can_accept_applications?: boolean;
+      blockers?: string[];
+      display_blockers?: string[];
+      application_blockers?: string[];
+      legal_profile_missing_fields?: string[];
+      required_legal_modules?: string[];
+      included_legal_modules?: string[];
+    };
   };
+  if (command.ok === false) {
+    const blockers = (command.blockers ?? []).map(publicationBlockerLabel);
+    throw new Error(
+      blockers.length > 0
+        ? `Avtalet kan inte publiceras: ${blockers.join(", ")}.`
+        : command.message || "Avtalet kan inte publiceras ännu.",
+    );
+  }
   if (
     !command.offer?.id ||
     !command.pricing?.price_plan_id ||
@@ -954,9 +770,13 @@ async function saveTenantPublicContractOfferActionImpl(
   priceBookId = command.pricing.price_book_id;
   priceVersionLabel = command.pricing.version_label;
   priceVersionReused = command.pricing.reused;
+  legalBundleId = command.legal_bundle_id ?? legalBundleId;
+  if (command.legal_bundle_created) autoCreatedReferences.push("juridiskt paket");
   readinessStatus =
-    publicationStatus === "published" ? "ready" : readinessStatus;
-  readinessBlockers = [];
+    publicationStatus === "published"
+      ? command.readiness?.status ?? "unknown"
+      : readinessStatus;
+  readinessBlockers = command.readiness?.blockers ?? [];
 
   const action =
     publicationStatus === "published"
@@ -990,6 +810,7 @@ async function saveTenantPublicContractOfferActionImpl(
       priceVersionLabel,
       priceVersionReused,
       autoCreatedReferences,
+      correlationId: command.correlation_id ?? null,
     },
   });
 
@@ -1002,8 +823,16 @@ async function saveTenantPublicContractOfferActionImpl(
   const versionSuffix = priceVersionLabel
     ? ` Prisversion ${priceVersionLabel}${priceVersionReused ? " återanvändes" : " skapades"}.`
     : "";
+  const publicationSuffix =
+    publicationStatus !== "published"
+      ? ""
+      : command.readiness?.can_display
+        ? command.readiness?.can_accept_applications
+          ? " Publicerat, synligt och öppet för kundteckning."
+          : " Publicerat och synligt, men kundteckning är blockerad."
+        : " Publicerat, men hemsidevisning är blockerad.";
   return {
-    success: `${id ? "Avtalet uppdaterades" : "Avtalet skapades"}.${publicationStatus === "published" ? " Publicerat och redo för hemsidan." : ""}${versionSuffix}${suffix}`,
+    success: `${id ? "Avtalet uppdaterades" : "Avtalet skapades"}.${publicationSuffix}${versionSuffix}${suffix}`,
   };
 }
 
@@ -1040,76 +869,58 @@ async function deleteTenantPublicContractOfferActionImpl(
   if (error) throw error;
   if (!offer) throw new Error("Avtalet hittades inte för valt bolag.");
 
-  const snapshotCount = await countRows("contract_price_snapshots", {
-    company_id: companyId,
-    public_contract_offer_id: id,
-  });
-  const mustArchive = mode === "archive" || snapshotCount > 0;
-
-  if (mustArchive) {
-    const { data: archiveData, error: archiveError } =
-      await supabaseService.rpc("gridex_archive_public_contract_offer", {
-        p_company_id: companyId,
-        p_offer_id: id,
-        p_actor_user_id: actor.userId,
-      });
-    if (archiveError) throw archiveError;
-    if (!archiveData || typeof archiveData !== "object")
-      throw new Error("Arkiveringen returnerade inget avtal.");
-    const archived = archiveData as Record<string, unknown>;
-
-    await logAdminActionAndUsage({
-      companyId,
-      actorUserId: actor.userId,
-      entityType: "public_contract_offer",
-      entityId: id,
-      action: "contract_plan.archived",
-      label:
-        snapshotCount > 0
-          ? "Avtal arkiverat, historik bevarad"
-          : "Avtal arkiverat",
-      oldValues: offer,
-      newValues: archived,
-      source: "company_card_contracts_tab",
-      billable: false,
-      metadata: { mode, snapshotCount },
-    });
-
-    revalidatePath(`/admin/companies/${companyId}`);
-    revalidatePath("/admin/contracts");
-    return {
-      success:
-        snapshotCount > 0
-          ? "Avtalet används i signerad historik och arkiverades istället för att raderas."
-          : "Avtalet arkiverades och är dolt från hemsidan.",
-    };
-  }
-
-  const { error: deleteError } = await supabaseService
-    .from("public_contract_offers")
-    .delete()
-    .eq("id", id)
-    .eq("company_id", companyId);
-  if (deleteError) throw deleteError;
+  const { data: removalData, error: removalError } = await supabaseService.rpc(
+    "gridex_remove_contract_offer",
+    {
+      p_company_id: companyId,
+      p_offer_id: id,
+      p_mode: mode,
+      p_actor_user_id: actor.userId,
+    },
+  );
+  if (removalError) throw removalError;
+  if (!removalData || typeof removalData !== "object")
+    throw new Error("Avtalskommandot returnerade inget resultat.");
+  const removal = removalData as {
+    ok?: boolean;
+    mode?: "archived" | "deleted";
+    snapshot_count?: number;
+    offer?: Record<string, unknown>;
+  };
+  if (removal.ok === false || !removal.mode)
+    throw new Error("Avtalet kunde inte tas bort eller arkiveras.");
+  const snapshotCount = Number(removal.snapshot_count ?? 0);
 
   await logAdminActionAndUsage({
     companyId,
     actorUserId: actor.userId,
     entityType: "public_contract_offer",
     entityId: id,
-    action: "contract_plan.deleted_unused",
-    label: "Oanvänt hemsideavtal raderat",
+    action:
+      removal.mode === "archived"
+        ? "contract_plan.archived"
+        : "contract_plan.deleted_unused",
+    label:
+      removal.mode === "archived"
+        ? snapshotCount > 0
+          ? "Avtal arkiverat, historik bevarad"
+          : "Avtal arkiverat"
+        : "Oanvänt hemsideavtal raderat",
     oldValues: offer,
-    newValues: null,
+    newValues: removal.mode === "archived" ? removal.offer ?? null : null,
     source: "company_card_contracts_tab",
     billable: false,
-    metadata: { mode, snapshotCount },
+    metadata: { mode, snapshotCount, canonicalCommand: "gridex_remove_contract_offer" },
   });
 
   revalidatePath(`/admin/companies/${companyId}`);
   revalidatePath("/admin/contracts");
   return {
     success:
-      "Oanvänt avtal raderades. Historiska/signerade avtal raderas aldrig automatiskt.",
+      removal.mode === "archived"
+        ? snapshotCount > 0
+          ? "Avtalet används i signerad historik och arkiverades istället för att raderas."
+          : "Avtalet arkiverades och är dolt från hemsidan."
+        : "Oanvänt avtal raderades. Historiska/signerade avtal raderas aldrig automatiskt.",
   };
 }

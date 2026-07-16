@@ -3,6 +3,12 @@ import { buildAgreementPdfAttachment, buildAgreementPdfBuffer } from '@/lib/cust
 
 const input = {
   companyName: 'Exempel Energi AB',
+  brandName: 'Exempel Energi',
+  organizationNumber: '559999-9999',
+  companyAddress: 'Exempelvägen 1, 111 11 Stockholm',
+  companySupportEmail: 'kundservice@exempel.se',
+  companyPhone: '+46 8 123 45 67',
+  companyWebsite: 'https://exempel.se',
   customerName: 'Anna Andersson',
   customerEmail: 'anna@example.se',
   customerNumber: 'DX-100025',
@@ -14,6 +20,11 @@ const input = {
   startsAt: '2026-08-01',
   withdrawalDeadline: '2026-07-27T18:00:00.000Z',
   offerReference: 'offer_signed_reference',
+  contractPublicationVersionId: '33333333-3333-4333-8333-333333333333',
+  pricePlanVersionId: '44444444-4444-4444-8444-444444444444',
+  legalBundleVersionId: '55555555-5555-4555-8555-555555555555',
+  tenantSnapshotSha256: 'b'.repeat(64),
+  evidenceId: 'evidence-001',
   monthlyFeeSek: 68,
   spotMarkupOrePerKwh: 4,
   bindingMonths: 0,
@@ -34,6 +45,9 @@ describe('agreement PDF', () => {
     expect(latin1).toContain('AVTALSBEKR')
     expect(latin1).toContain('AVT-DX-100025-001')
     expect(latin1).toContain('offer_signed_reference')
+    expect(latin1).toContain('559999-9999')
+    expect(latin1).toContain('33333333-3333-4333-8333-333333333333')
+    expect(latin1).toContain('Gridex OPS \\344r teknisk plattform')
     expect(latin1).toContain('Detta \\344r de accepterade villkoren')
     expect(latin1.trimEnd().endsWith('%%EOF')).toBe(true)
   })
