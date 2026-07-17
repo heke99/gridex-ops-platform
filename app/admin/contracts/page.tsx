@@ -12,7 +12,7 @@ import {
   saveContractOfferAction,
   updateTenantContractChannelAction,
 } from "./actions";
-import { getOperationalCompanyScope } from "@/lib/tenant/scope";
+import { getOperationalCompanyScope, listPlatformCompanies } from "@/lib/tenant/scope";
 import type {
   ContractOfferRow,
   CustomerContractRow,
@@ -24,6 +24,7 @@ import {
   listTenantLegalOverrides,
 } from "@/lib/contracts/canonical";
 import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile";
+import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 
 export const dynamic = "force-dynamic";
 
@@ -277,9 +278,11 @@ async function TenantCustomerContracts({
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Juridikprofil · read-only</p>
             <h2 className="mt-2 text-xl font-black text-slate-950">
-              {["complete", "verified"].includes(legalProfile?.completeness_status ?? "") && (legalProfile?.missing_fields ?? []).length === 0
-                ? "Juridikprofilen är komplett"
-                : "Juridikprofilen behöver kompletteras"}
+              {(legalProfile?.missing_fields ?? []).length > 0 || legalProfile?.completeness_status === "incomplete"
+                ? "Juridikprofilen behöver kompletteras"
+                : legalProfile?.review_required || !(legalProfile?.reviewed_at ?? legalProfile?.verified_at)
+                  ? "Juridikprofilen är komplett men väntar granskning"
+                  : "Juridikprofilen är granskad och verifierad"}
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
               Bolagets juridiska profil genereras från Redigera bolagsuppgifter. Avtalssidan har ingen separat skrivväg.
@@ -488,17 +491,6 @@ function ActionBanner({
   );
 }
 
-function errorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message;
-  if (
-    typeof error === "object" &&
-    error &&
-    "message" in error &&
-    typeof (error as { message?: unknown }).message === "string"
-  )
-    return (error as { message: string }).message;
-  return "Avtalsmallar kunde inte hämtas.";
-}
 
 type ContractsSearchParams = Record<string, string | string[] | undefined>;
 
@@ -514,7 +506,7 @@ export default async function AdminContractsPage({
   const supabase = await createSupabaseServerClient();
   const { data: authResult } = await supabase.auth.getUser();
   const user = authResult.user;
-  const scope = user
+  const membershipScope = user
     ? await getOperationalCompanyScope(user.id)
     : {
         companyId: null,
@@ -523,6 +515,26 @@ export default async function AdminContractsPage({
         requiresCompany: true,
         message: "Inloggning krävs.",
       };
+  const platformCompanies = isPlatformAdmin
+    ? (await listPlatformCompanies()).filter((company) => company.status !== "archived")
+    : [];
+  const requestedCompanyId = firstSearchValue(resolvedSearchParams.company_id);
+  const selectedPlatformCompany = isPlatformAdmin
+    ? platformCompanies.find((company) => company.id === requestedCompanyId) ??
+      platformCompanies.find((company) => company.id === membershipScope.companyId) ??
+      platformCompanies[0] ??
+      null
+    : null;
+  const scope = isPlatformAdmin
+    ? {
+        ...membershipScope,
+        companyId: selectedPlatformCompany?.id ?? null,
+        companyName: selectedPlatformCompany?.name ?? null,
+        requiresCompany: !selectedPlatformCompany,
+        message: selectedPlatformCompany ? null : "Inget aktivt bolag finns att välja.",
+        selectedByPlatformAdmin: true,
+      }
+    : membershipScope;
 
   if (!isPlatformAdmin) {
     if (!scope.companyId) {
@@ -544,7 +556,11 @@ export default async function AdminContractsPage({
     try {
       offers = await listContractOffers({ companyId: scope.companyId });
     } catch (error) {
-      listError = errorMessage(error);
+      listError = toSafeContractError(error, {
+        action: "list_contract_offers",
+        companyId: scope.companyId,
+        userId: user?.id ?? null,
+      });
     }
   }
   const actionSuccess = firstSearchValue(resolvedSearchParams.success);
@@ -579,6 +595,37 @@ export default async function AdminContractsPage({
           </p>
         </section>
 
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+            Tenantval för platform admin
+          </p>
+          <form method="get" className="mt-3 flex flex-col gap-3 md:flex-row md:items-end">
+            <label className="grid flex-1 gap-2 text-sm font-semibold text-slate-800">
+              Bolag
+              <select
+                name="company_id"
+                defaultValue={scope.companyId ?? ""}
+                className="h-12 rounded-2xl border border-slate-300 bg-white px-4"
+              >
+                {platformCompanies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name} · {company.org_number ?? "org.nr saknas"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="submit"
+              className="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white"
+            >
+              Välj bolag
+            </button>
+          </form>
+          <p className="mt-3 text-xs text-slate-600">
+            Valet styr endast arbetsvyn. Varje skrivning kontrollerar fortfarande explicit bolagsbehörighet på serversidan.
+          </p>
+        </section>
+
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm xl:col-span-2">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 ">
             Operativt bolag
@@ -608,6 +655,7 @@ export default async function AdminContractsPage({
           </p>
 
           <form action={saveContractOfferAction} className="mt-6 space-y-4">
+            <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
             <input type="hidden" name="id" />
 
             <div>
@@ -1040,6 +1088,7 @@ export default async function AdminContractsPage({
                         <div className="grid gap-2">
                           {!offer.archived_at ? (
                             <form action={archiveContractOfferAction}>
+                              <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
                               <input type="hidden" name="id" value={offer.id} />
                               <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
                                 Arkivera
@@ -1047,6 +1096,7 @@ export default async function AdminContractsPage({
                             </form>
                           ) : null}
                           <form action={deleteContractOfferAction}>
+                            <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
                             <input type="hidden" name="id" value={offer.id} />
                             <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100">
                               Ta bort om oanvänt

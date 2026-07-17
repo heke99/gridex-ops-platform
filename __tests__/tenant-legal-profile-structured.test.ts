@@ -6,6 +6,8 @@ import {
   buildStructuredContact,
   normalizeCountryCode,
   normalizeEmail,
+  normalizePostalCode,
+  normalizeSwedishOrganizationNumber,
   normalizeUrl,
 } from '@/lib/legal/tenantLegalProfile'
 
@@ -61,6 +63,13 @@ describe('structured tenant legal profile', () => {
       url: 'https://arn.se/',
       text: 'Klagomål lämnas först till bolaget.',
     })
+  })
+
+  it('normalizes and validates Swedish legal identifiers', () => {
+    expect(normalizePostalCode('21120', 'SE')).toBe('211 20')
+    expect(() => normalizePostalCode('abc21120xyz', 'SE')).toThrow('123 45')
+    expect(normalizeSwedishOrganizationNumber('5560160680')).toBe('556016-0680')
+    expect(() => normalizeSwedishOrganizationNumber('5560160681')).toThrow('giltigt svenskt organisationsnummer')
   })
 
   it('rejects malformed contact values', () => {

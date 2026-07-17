@@ -126,9 +126,11 @@ assert(controls.includes('CANONICAL_EMAIL_EVENT_LABELS'), 'Tenant controls do no
 
 const contractActions = read('app/admin/contracts/actions.ts')
 const companyProfileActions = read('app/admin/companies/[id]/company-profile-actions.ts')
-const singleEditorMigration = read('supabase/migrations/20260717190000_company_legal_profile_single_editor.sql')
-assert(companyProfileActions.includes('markReviewed: true'), 'Superadmin company save does not clear a resolved review blocker atomically')
-assert(singleEditorMigration.includes('set review_required=false,reviewed_at=v_now'), 'Canonical rebuild cannot mark a complete profile reviewed')
+const runtimeCompletionMigration = read('supabase/migrations/20260717233000_company_legal_contract_runtime_completion.sql')
+assert(!companyProfileActions.includes('markReviewed: true'), 'Normal company save must not approve legal review')
+assert(companyProfileActions.includes('reviewCompanyLegalProfile'), 'Dedicated legal review action is missing')
+assert(runtimeCompletionMigration.includes('gridex_review_company_legal_profile'), 'Dedicated legal review RPC is missing')
+assert(runtimeCompletionMigration.includes('complete_unreviewed'), 'Readiness does not distinguish complete but unreviewed profiles')
 assert(!contractActions.includes('tenant_legal_profiles'), 'Contracts action still writes the generated legal profile directly')
 
 const repairAction = read('app/admin/companies/[id]/email-automation-actions.ts')

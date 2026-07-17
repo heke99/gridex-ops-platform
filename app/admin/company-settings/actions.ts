@@ -13,9 +13,12 @@ import {
 import {
   normalizeCountryCode,
   normalizeEmail as normalizeLegalEmail,
+  normalizePostalCode,
+  normalizeSwedishOrganizationNumber,
   normalizeUrl,
 } from '@/lib/legal/tenantLegalProfile'
 import { updateCompanyAndRebuildLegalProfile } from '@/lib/tenant/companyLegalProfile'
+import { toSafeCompanyProfileError } from '@/lib/errors/safeActionErrors'
 
 export type CompanySettingsActionState = {
   ok: boolean
@@ -36,6 +39,22 @@ function optionalText(value: FormDataEntryValue | null): string | null {
 
 function optionalLegalEmail(value: FormDataEntryValue | null, label: string): string | null {
   return normalizeLegalEmail(normalizeText(value), label) || null
+}
+
+
+function optionalCountryCode(
+  value: FormDataEntryValue | null,
+): string | null {
+  const raw = normalizeText(value)
+  return raw ? normalizeCountryCode(raw) : null
+}
+
+function optionalPostalCode(
+  value: FormDataEntryValue | null,
+  countryCode: string,
+  label: string,
+): string | null {
+  return normalizePostalCode(normalizeText(value), countryCode, label) || null
 }
 
 function normalizeUpper(value: FormDataEntryValue | null) {
@@ -70,8 +89,8 @@ export async function updateCompanySettingsAction(
   _prevState: CompanySettingsActionState,
   formData: FormData
 ): Promise<CompanySettingsActionState> {
+  const companyId = normalizeText(formData.get('company_id'))
   try {
-    const companyId = normalizeText(formData.get('company_id'))
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
 
     const admin = await assertCanManageCompany(companyId)
@@ -105,6 +124,10 @@ export async function updateCompanySettingsAction(
       }
     }
 
+    const countryCode = normalizeCountryCode(normalizeText(formData.get('country_code')))
+    const complaintsCountryCode = optionalCountryCode(formData.get('complaints_country_code'))
+    const dataProtectionCountryCode = optionalCountryCode(formData.get('data_protection_country_code'))
+    const billingCountryCode = optionalCountryCode(formData.get('billing_country_code'))
     const supportEmail = optionalLegalEmail(formData.get('support_email'), 'Kundservice: e-post')
     const billingContactEmail = optionalLegalEmail(formData.get('billing_contact_email'), 'Fakturering: e-post')
     const branding = {
@@ -120,11 +143,10 @@ export async function updateCompanySettingsAction(
     const result = await updateCompanyAndRebuildLegalProfile({
       companyId,
       actorUserId: admin.userId,
-      markReviewed: false,
       values: {
         name,
         legal_name: optionalText(formData.get('legal_name')),
-        org_number: optionalText(formData.get('org_number')),
+        org_number: normalizeSwedishOrganizationNumber(normalizeText(formData.get('org_number'))) || null,
         vat_number: optionalText(formData.get('vat_number')),
         customer_number_prefix: customerNumberPrefix,
         primary_contact_name: optionalText(formData.get('primary_contact_name')),
@@ -135,33 +157,33 @@ export async function updateCompanySettingsAction(
         customer_service_hours: optionalText(formData.get('customer_service_hours')),
         address_line_1: optionalText(formData.get('address_line_1')),
         address_line_2: optionalText(formData.get('address_line_2')),
-        postal_code: optionalText(formData.get('postal_code')),
+        postal_code: optionalPostalCode(formData.get('postal_code'), countryCode, 'Postnummer'),
         city: optionalText(formData.get('city')),
-        country_code: normalizeCountryCode(normalizeText(formData.get('country_code'))),
+        country_code: countryCode,
         complaints_contact_name: optionalText(formData.get('complaints_contact_name')),
         complaints_email: optionalLegalEmail(formData.get('complaints_email'), 'Klagomål: e-post'),
         complaints_phone: optionalText(formData.get('complaints_phone')),
         complaints_address_line_1: optionalText(formData.get('complaints_address_line_1')),
         complaints_address_line_2: optionalText(formData.get('complaints_address_line_2')),
-        complaints_postal_code: optionalText(formData.get('complaints_postal_code')),
+        complaints_postal_code: optionalPostalCode(formData.get('complaints_postal_code'), complaintsCountryCode ?? countryCode, 'Klagomål: postnummer'),
         complaints_city: optionalText(formData.get('complaints_city')),
-        complaints_country_code: normalizeCountryCode(normalizeText(formData.get('complaints_country_code'))),
+        complaints_country_code: complaintsCountryCode,
         complaints_description: optionalText(formData.get('complaints_description')),
         data_protection_contact_name: optionalText(formData.get('data_protection_contact_name')),
         data_protection_email: optionalLegalEmail(formData.get('data_protection_email'), 'Dataskydd: e-post'),
         data_protection_phone: optionalText(formData.get('data_protection_phone')),
         data_protection_address_line_1: optionalText(formData.get('data_protection_address_line_1')),
         data_protection_address_line_2: optionalText(formData.get('data_protection_address_line_2')),
-        data_protection_postal_code: optionalText(formData.get('data_protection_postal_code')),
+        data_protection_postal_code: optionalPostalCode(formData.get('data_protection_postal_code'), dataProtectionCountryCode ?? countryCode, 'Dataskydd: postnummer'),
         data_protection_city: optionalText(formData.get('data_protection_city')),
-        data_protection_country_code: normalizeCountryCode(normalizeText(formData.get('data_protection_country_code'))),
+        data_protection_country_code: dataProtectionCountryCode,
         billing_contact_email: billingContactEmail,
         billing_contact_phone: optionalText(formData.get('billing_contact_phone')),
         billing_address_line_1: optionalText(formData.get('billing_address_line_1')),
         billing_address_line_2: optionalText(formData.get('billing_address_line_2')),
-        billing_postal_code: optionalText(formData.get('billing_postal_code')),
+        billing_postal_code: optionalPostalCode(formData.get('billing_postal_code'), billingCountryCode ?? countryCode, 'Fakturering: postnummer'),
         billing_city: optionalText(formData.get('billing_city')),
-        billing_country_code: normalizeCountryCode(normalizeText(formData.get('billing_country_code'))),
+        billing_country_code: billingCountryCode,
         billing_terms_summary: optionalText(formData.get('billing_terms_summary')),
         ediel_id: normalizeUpper(formData.get('ediel_id')),
         actor_role: normalizeUpper(formData.get('actor_role')),
@@ -209,7 +231,10 @@ export async function updateCompanySettingsAction(
         : 'Bolagsinställningarna sparades och juridikprofilen synkroniserades.',
     }
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Bolagsinställningar kunde inte sparas.' }
+    return {
+      ok: false,
+      message: toSafeCompanyProfileError(error, { action: 'update_company_settings', companyId: companyId || null }),
+    }
   }
 }
 

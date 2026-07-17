@@ -177,7 +177,10 @@
     "gridex:production-settlement-export-regression": "node scripts/gridex-production-settlement-export-regression.cjs",
     "gridex:canonical-finalization-regression": "node scripts/gridex-canonical-finalization-regression.cjs",
     "gridex:legal-defaults-readiness-repair-regression": "node scripts/gridex-legal-defaults-readiness-repair-regression.cjs",
-    "gridex:tenant-legal-profile-structured-sync-regression": "node scripts/gridex-tenant-legal-profile-structured-sync-regression.cjs"
+    "gridex:tenant-legal-profile-structured-sync-regression": "node scripts/gridex-tenant-legal-profile-structured-sync-regression.cjs",
+    "gridex:next-control-flow-regression": "node scripts/no-next-control-flow-in-try-regression.cjs",
+    "gridex:company-legal-contract-runtime-regression": "node scripts/company-legal-contract-runtime-regression.cjs",
+    "ops:company-legal-live-preflight": "node scripts/company-legal-live-preflight.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

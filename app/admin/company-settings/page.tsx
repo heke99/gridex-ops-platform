@@ -215,7 +215,7 @@ export default async function CompanySettingsPage() {
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Fakturaadress rad 2</span><input name="billing_address_line_2" defaultValue={company.billing_address_line_2 ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Fakturapostnummer</span><input name="billing_postal_code" defaultValue={company.billing_postal_code ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Fakturaort</span><input name="billing_city" defaultValue={company.billing_city ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
-                    <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Fakturalandkod</span><input name="billing_country_code" defaultValue={company.billing_country_code ?? company.country_code ?? "SE"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
+                    <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Fakturalandkod</span><input name="billing_country_code" defaultValue={company.billing_country_code ?? ""} placeholder={company.country_code ?? "SE"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm lg:col-span-2"><span className="font-medium text-slate-700">Särskild faktureringsinformation</span><textarea name="billing_terms_summary" defaultValue={company.billing_terms_summary ?? ""} rows={3} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                   </div>
                 </div>
@@ -287,7 +287,7 @@ export default async function CompanySettingsPage() {
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Adressrad 2</span><input name="complaints_address_line_2" defaultValue={company.complaints_address_line_2 ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Postnummer</span><input name="complaints_postal_code" defaultValue={company.complaints_postal_code ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Ort</span><input name="complaints_city" defaultValue={company.complaints_city ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
-                    <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Landkod</span><input name="complaints_country_code" defaultValue={company.complaints_country_code ?? company.country_code ?? "SE"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
+                    <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Landkod</span><input name="complaints_country_code" defaultValue={company.complaints_country_code ?? ""} placeholder={company.country_code ?? "SE"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm xl:col-span-3"><span className="font-medium text-slate-700">Beskrivning</span><textarea name="complaints_description" defaultValue={company.complaints_description ?? ""} rows={3} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                   </div>
                 </div>
@@ -303,7 +303,7 @@ export default async function CompanySettingsPage() {
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Adressrad 2</span><input name="data_protection_address_line_2" defaultValue={company.data_protection_address_line_2 ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Postnummer</span><input name="data_protection_postal_code" defaultValue={company.data_protection_postal_code ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Ort</span><input name="data_protection_city" defaultValue={company.data_protection_city ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
-                    <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Landkod</span><input name="data_protection_country_code" defaultValue={company.data_protection_country_code ?? company.country_code ?? "SE"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
+                    <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Landkod</span><input name="data_protection_country_code" defaultValue={company.data_protection_country_code ?? ""} placeholder={company.country_code ?? "SE"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                   </div>
                 </div>
 
@@ -495,7 +495,13 @@ export default async function CompanySettingsPage() {
 
               <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Juridisk status · read-only</p>
-                <h3 className="mt-2 text-lg font-black text-slate-950">{["complete", "verified"].includes(legalProfile?.completeness_status ?? "") && (legalProfile?.missing_fields ?? []).length === 0 ? "Juridikprofilen är komplett" : "Juridikprofilen behöver kompletteras"}</h3>
+                <h3 className="mt-2 text-lg font-black text-slate-950">
+                  {(legalProfile?.missing_fields ?? []).length > 0 || legalProfile?.completeness_status === "incomplete"
+                    ? "Juridikprofilen behöver kompletteras"
+                    : legalProfile?.review_required || !(legalProfile?.reviewed_at ?? legalProfile?.verified_at)
+                      ? "Juridikprofilen är komplett men väntar granskning"
+                      : "Juridikprofilen är granskad och verifierad"}
+                </h3>
                 <p className="mt-2 text-sm text-slate-700">Profilen genereras automatiskt från uppgifterna ovan. Det finns inget separat juridikformulär.</p>
                 <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
                   <p><strong>Granskning krävs:</strong> {legalProfile?.review_required ? "Ja" : "Nej"}</p>

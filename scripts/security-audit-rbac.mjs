@@ -67,6 +67,10 @@ mustNotContain(
   "company settings link to platform company detail",
 );
 mustContain("app/admin/companies/actions.ts", "parseCompanyAssignableRoleKey");
+mustContain("app/admin/pricing/portfolio-prices/actions.ts", "requirePlatformAdminActionAccess");
+mustContain("app/admin/pricing/portfolio-prices/actions.ts", ".eq('company_id', companyId)");
+mustContain("app/admin/pricing/portfolio-prices/page.tsx", "requirePlatformAdminAccess");
+mustContain("app/admin/pricing/portfolio-prices/page.tsx", ".eq('company_id', selectedCompanyId)");
 mustContain("proxy.ts", "isPlatformAdminPath");
 mustContain("proxy.ts", "pathname === '/admin/companies'");
 mustContain("proxy.ts", "pathname === '/admin/users'");
@@ -187,6 +191,8 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/platform/customers/archived/page.tsx",
   "app/admin/platform/ediel/messages/page.tsx",
   "app/admin/platform/legal-templates/actions.ts",
+  "app/admin/pricing/portfolio-prices/actions.ts",
+  "app/admin/pricing/portfolio-prices/page.tsx",
   "app/admin/website-applications/[id]/page.tsx",
   "app/admin/audit/page.tsx",
   "app/admin/agreements/grid-owners/actions.ts",

@@ -7,7 +7,8 @@ describe('company legal profile sync result', () => {
       code: 'postal_address',
       label: 'Postadress',
       message: 'Fyll i gatuadress, postnummer, ort och land under Postadress.',
-      edit_path: '/admin/companies/company-1#company-profile',
+      edit_section: 'company_address',
+      edit_path: '/admin/companies/company-1#company-address',
     })
   })
 

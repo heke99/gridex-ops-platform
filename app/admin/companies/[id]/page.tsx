@@ -482,9 +482,16 @@ function CompanyProfileField({
 
 function CompanyProfileEditor({ company, profile }: { company: GovernanceCompany; profile: TenantLegalProfile | null }) {
   const missingFields = profile?.missing_fields ?? []
-  const profileComplete = ['complete', 'verified'].includes(profile?.completeness_status ?? '') && missingFields.length === 0
+  const profileDataComplete = ['complete', 'complete_unreviewed', 'verified'].includes(profile?.completeness_status ?? '') && missingFields.length === 0
   const lastSyncedAt = profile?.last_synced_at ?? profile?.updated_at ?? null
   const reviewedAt = profile?.reviewed_at ?? profile?.verified_at ?? null
+  const profileVerified = profileDataComplete && !profile?.review_required && Boolean(reviewedAt)
+  const profileStatus = !profileDataComplete ? 'incomplete' : profileVerified ? 'verified' : 'complete_unreviewed'
+  const profileTitle = profileStatus === 'verified'
+    ? 'Juridikprofilen är granskad och verifierad'
+    : profileStatus === 'complete_unreviewed'
+      ? 'Juridikprofilen är komplett men väntar granskning'
+      : 'Juridikprofilen behöver kompletteras'
 
   return (
     <section id="company-profile" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -536,7 +543,7 @@ function CompanyProfileEditor({ company, profile }: { company: GovernanceCompany
           <CompanyProfileField label="Adressrad 2" name="complaints_address_line_2" defaultValue={company.complaints_address_line_2 ?? ''} />
           <CompanyProfileField label="Postnummer" name="complaints_postal_code" defaultValue={company.complaints_postal_code ?? ''} />
           <CompanyProfileField label="Ort" name="complaints_city" defaultValue={company.complaints_city ?? ''} />
-          <CompanyProfileField label="Landkod" name="complaints_country_code" defaultValue={company.complaints_country_code ?? company.country_code ?? 'SE'} />
+          <CompanyProfileField label="Landkod" name="complaints_country_code" defaultValue={company.complaints_country_code ?? ''} placeholder={company.country_code ?? 'SE'} />
           <label className="grid gap-1 text-sm font-bold text-slate-800 md:col-span-2 xl:col-span-3">Beskrivning<textarea name="complaints_description" defaultValue={company.complaints_description ?? ''} rows={3} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
         </fieldset>
 
@@ -549,7 +556,7 @@ function CompanyProfileEditor({ company, profile }: { company: GovernanceCompany
           <CompanyProfileField label="Adressrad 2" name="data_protection_address_line_2" defaultValue={company.data_protection_address_line_2 ?? ''} />
           <CompanyProfileField label="Postnummer" name="data_protection_postal_code" defaultValue={company.data_protection_postal_code ?? ''} />
           <CompanyProfileField label="Ort" name="data_protection_city" defaultValue={company.data_protection_city ?? ''} />
-          <CompanyProfileField label="Landkod" name="data_protection_country_code" defaultValue={company.data_protection_country_code ?? company.country_code ?? 'SE'} />
+          <CompanyProfileField label="Landkod" name="data_protection_country_code" defaultValue={company.data_protection_country_code ?? ''} placeholder={company.country_code ?? 'SE'} />
         </fieldset>
 
         <fieldset className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -560,7 +567,7 @@ function CompanyProfileEditor({ company, profile }: { company: GovernanceCompany
           <CompanyProfileField label="Adressrad 2" name="billing_address_line_2" defaultValue={company.billing_address_line_2 ?? ''} />
           <CompanyProfileField label="Postnummer" name="billing_postal_code" defaultValue={company.billing_postal_code ?? ''} />
           <CompanyProfileField label="Ort" name="billing_city" defaultValue={company.billing_city ?? ''} />
-          <CompanyProfileField label="Landkod" name="billing_country_code" defaultValue={company.billing_country_code ?? company.country_code ?? 'SE'} />
+          <CompanyProfileField label="Landkod" name="billing_country_code" defaultValue={company.billing_country_code ?? ''} placeholder={company.country_code ?? 'SE'} />
           <label className="grid gap-1 text-sm font-bold text-slate-800 md:col-span-2 xl:col-span-3">Särskild faktureringsinformation<textarea name="billing_terms_summary" defaultValue={company.billing_terms_summary ?? ''} rows={3} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
         </fieldset>
 
@@ -577,10 +584,10 @@ function CompanyProfileEditor({ company, profile }: { company: GovernanceCompany
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Juridisk status · read-only</p>
-            <h3 className="mt-2 text-lg font-black text-slate-950">{profileComplete ? 'Juridikprofilen är komplett' : 'Juridikprofilen behöver kompletteras'}</h3>
+            <h3 className="mt-2 text-lg font-black text-slate-950">{profileTitle}</h3>
             <p className="mt-2 text-sm text-slate-700">Tvistlösning genereras från OPS-standard. Tenantens uttryckliga kontaktuppgifter och tillåtna overrides bevaras.</p>
           </div>
-          <span className={`rounded-full border px-3 py-1 text-xs font-black ${profileComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>{profile?.completeness_status ?? 'saknas'}</span>
+          <span className={`rounded-full border px-3 py-1 text-xs font-black ${profileStatus === 'verified' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>{profile ? profileStatus : 'saknas'}</span>
         </div>
         <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
           <div><dt className="font-bold text-slate-500">Postadress</dt><dd className="mt-1 font-semibold text-slate-900">{missingFields.includes('postal_address') ? 'Ofullständig' : 'Komplett'}</dd></div>
@@ -596,7 +603,7 @@ function CompanyProfileEditor({ company, profile }: { company: GovernanceCompany
             })}
           </div>
         ) : null}
-        {profile && !profileComplete && missingFields.length === 0 ? <p className="mt-4 text-sm font-semibold text-amber-800">Uppgifterna är kompletta men måste granskas innan publicering.</p> : null}
+        {profile && profileStatus === 'complete_unreviewed' ? <p className="mt-4 text-sm font-semibold text-amber-800">Uppgifterna är kompletta men måste granskas innan publicering.</p> : null}
         {profile && missingFields.length === 0 && profile.review_required ? (
           <form action={reviewCompanyLegalProfileAction} className="mt-4"><input type="hidden" name="company_id" value={company.id} /><button className="rounded-2xl border border-emerald-300 bg-white px-4 py-2 text-sm font-black text-emerald-800 hover:bg-emerald-50">Markera juridikprofilen som granskad</button></form>
         ) : null}

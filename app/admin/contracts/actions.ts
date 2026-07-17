@@ -9,9 +9,10 @@ import type {
   GreenFeeMode,
 } from "@/lib/customer-contracts/types";
 import { supabaseService } from "@/lib/supabase/service";
-import { requireOperationalCompanyId } from "@/lib/tenant/scope";
+import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
+import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 
 
 function getString(formData: FormData, key: string): string {
@@ -30,9 +31,11 @@ function getNullableNumber(formData: FormData, key: string): number | null {
 function getNullableInt(formData: FormData, key: string): number | null {
   const raw = getString(formData, key);
   if (!raw) return null;
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed))
+  if (!/^-?\d+$/.test(raw))
     throw new Error(`${key} måste vara ett giltigt heltal.`);
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed))
+    throw new Error(`${key} måste vara ett säkert heltal.`);
   return parsed;
 }
 
@@ -92,35 +95,28 @@ function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
     });
 }
 
-function redirectBack(params: { success?: string; error?: string }): never {
+function redirectBack(params: { companyId?: string | null; success?: string; error?: string }): never {
   const search = new URLSearchParams();
+  if (params.companyId) search.set("company_id", params.companyId);
   if (params.success) search.set("success", params.success);
   if (params.error) search.set("error", params.error);
   redirect(`/admin/contracts?${search.toString()}`);
-  throw new Error("Kunde inte navigera tillbaka efter åtgärden.");
 }
 
 
-function errorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message;
-  if (
-    typeof error === "object" &&
-    error &&
-    "message" in error &&
-    typeof (error as { message?: unknown }).message === "string"
-  )
-    return (error as { message: string }).message;
-  return "Avtalsmallen kunde inte sparas.";
+function errorMessage(error: unknown, context: { action: string; companyId?: string | null; userId?: string | null }): string {
+  return toSafeContractError(error, context);
 }
 
 export async function saveContractOfferAction(formData: FormData) {
+  const companyId = getString(formData, "company_id") || null;
   let success: string;
   try {
     success = (await saveContractOfferActionImpl(formData)).success;
   } catch (error) {
-    redirectBack({ error: errorMessage(error) });
+    redirectBack({ companyId, error: errorMessage(error, { action: "save_contract_offer", companyId }) });
   }
-  redirectBack({ success });
+  redirectBack({ companyId, success });
 }
 
 async function saveContractOfferActionImpl(
@@ -137,7 +133,7 @@ async function saveContractOfferActionImpl(
     throw new Error("Unauthorized");
   }
 
-  const companyId = await requireOperationalCompanyId(user.id);
+  const companyId = await assertUserCanOperateCompany(user.id, getString(formData, "company_id"));
   await requireCompanyOperationalForWrites(companyId);
   const id = getString(formData, "id") || undefined;
   const name = getString(formData, "name");
@@ -350,13 +346,14 @@ async function saveContractOfferActionImpl(
 }
 
 export async function archiveContractOfferAction(formData: FormData) {
+  const companyId = getString(formData, "company_id") || null;
   let success: string;
   try {
     success = (await archiveContractOfferActionImpl(formData)).success;
   } catch (error) {
-    redirectBack({ error: errorMessage(error) });
+    redirectBack({ companyId, error: errorMessage(error, { action: "archive_contract_offer", companyId }) });
   }
-  redirectBack({ success });
+  redirectBack({ companyId, success });
 }
 
 async function archiveContractOfferActionImpl(
@@ -369,7 +366,7 @@ async function archiveContractOfferActionImpl(
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const companyId = await requireOperationalCompanyId(user.id);
+  const companyId = await assertUserCanOperateCompany(user.id, getString(formData, "company_id"));
   const id = getString(formData, "id");
   if (!id) throw new Error("Avtal saknas.");
 
@@ -402,13 +399,14 @@ async function archiveContractOfferActionImpl(
 }
 
 export async function deleteContractOfferAction(formData: FormData) {
+  const companyId = getString(formData, "company_id") || null;
   let success: string;
   try {
     success = (await deleteContractOfferActionImpl(formData)).success;
   } catch (error) {
-    redirectBack({ error: errorMessage(error) });
+    redirectBack({ companyId, error: errorMessage(error, { action: "delete_contract_offer", companyId }) });
   }
-  redirectBack({ success });
+  redirectBack({ companyId, success });
 }
 
 async function deleteContractOfferActionImpl(
@@ -421,7 +419,7 @@ async function deleteContractOfferActionImpl(
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const companyId = await requireOperationalCompanyId(user.id);
+  const companyId = await assertUserCanOperateCompany(user.id, getString(formData, "company_id"));
   const id = getString(formData, "id");
   if (!id) throw new Error("Avtal saknas.");
 
@@ -459,67 +457,81 @@ async function deleteContractOfferActionImpl(
 }
 
 export async function updateTenantContractChannelAction(formData: FormData) {
+  let success: string;
+  try {
+    success = await updateTenantContractChannelActionImpl(formData);
+  } catch (error) {
+    redirectBack({
+      companyId: getString(formData, "company_id") || null,
+      error: errorMessage(error, {
+        action: "update_contract_channel",
+        companyId: getString(formData, "company_id") || null,
+      }),
+    });
+  }
+  redirectBack({ companyId: getString(formData, "company_id") || null, success });
+}
+
+async function updateTenantContractChannelActionImpl(
+  formData: FormData,
+): Promise<string> {
   const companyId = getString(formData, "company_id");
   const assignmentId = getString(formData, "assignment_id");
   const channel = getString(formData, "channel") || "website";
   const status = getString(formData, "status") || "paused";
-  if (!companyId || !assignmentId)
-    redirectBack({ error: "Bolag eller avtalstilldelning saknas." });
-
-  try {
-    const { requireCompanyScopedActionAccess } =
-      await import("@/lib/admin/guards");
-    const actor = await requireCompanyScopedActionAccess(companyId, {
-      anyOf: ["contracts.write", "contracts.manage"],
-    });
-    await requireCompanyOperationalForWrites(companyId);
-
-    const { data: assignment, error: assignmentError } = await supabaseService
-      .from("tenant_contract_assignments")
-      .select(
-        "id,company_id,website_publication_allowed,internal_sales_allowed",
-      )
-      .eq("id", assignmentId)
-      .eq("company_id", companyId)
-      .maybeSingle();
-    if (assignmentError) throw assignmentError;
-    if (!assignment) throw new Error("Avtalstilldelningen hittades inte.");
-    if (channel === "website" && !assignment.website_publication_allowed)
-      throw new Error(
-        "Superadmin har inte tillåtit hemsidepublicering för avtalet.",
-      );
-    if (channel === "internal" && !assignment.internal_sales_allowed)
-      throw new Error(
-        "Superadmin har inte tillåtit intern försäljning för avtalet.",
-      );
-
-    const validFrom = getString(formData, "valid_from") || null;
-    const validTo = getString(formData, "valid_to") || null;
-    const marketingText = getString(formData, "marketing_text");
-    const { error } = await supabaseService
-      .from("tenant_contract_channels")
-      .upsert(
-        {
-          assignment_id: assignmentId,
-          channel,
-          status,
-          valid_from: validFrom,
-          valid_to: validTo,
-          marketing_content: marketingText ? { text: marketingText } : {},
-          updated_by: actor.userId,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "assignment_id,channel" },
-      );
-    if (error) throw error;
-    revalidatePath("/admin/contracts");
-    redirectBack({
-      success:
-        status === "active"
-          ? "Försäljningskanalen aktiverades."
-          : "Försäljningskanalen pausades.",
-    });
-  } catch (error) {
-    redirectBack({ error: errorMessage(error) });
+  if (!companyId || !assignmentId) {
+    throw new Error("Bolag eller avtalstilldelning saknas.");
   }
+
+  const { requireCompanyScopedActionAccess } =
+    await import("@/lib/admin/guards");
+  const actor = await requireCompanyScopedActionAccess(companyId, {
+    anyOf: ["contracts.write", "contracts.manage"],
+  });
+  await requireCompanyOperationalForWrites(companyId);
+
+  const { data: assignment, error: assignmentError } = await supabaseService
+    .from("tenant_contract_assignments")
+    .select(
+      "id,company_id,website_publication_allowed,internal_sales_allowed",
+    )
+    .eq("id", assignmentId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (assignmentError) throw assignmentError;
+  if (!assignment) throw new Error("Avtalstilldelningen hittades inte.");
+  if (channel === "website" && !assignment.website_publication_allowed) {
+    throw new Error(
+      "Superadmin har inte tillåtit hemsidepublicering för avtalet.",
+    );
+  }
+  if (channel === "internal" && !assignment.internal_sales_allowed) {
+    throw new Error(
+      "Superadmin har inte tillåtit intern försäljning för avtalet.",
+    );
+  }
+
+  const validFrom = getString(formData, "valid_from") || null;
+  const validTo = getString(formData, "valid_to") || null;
+  const marketingText = getString(formData, "marketing_text");
+  const { error } = await supabaseService
+    .from("tenant_contract_channels")
+    .upsert(
+      {
+        assignment_id: assignmentId,
+        channel,
+        status,
+        valid_from: validFrom,
+        valid_to: validTo,
+        marketing_content: marketingText ? { text: marketingText } : {},
+        updated_by: actor.userId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "assignment_id,channel" },
+    );
+  if (error) throw error;
+  revalidatePath("/admin/contracts");
+  return status === "active"
+    ? "Försäljningskanalen aktiverades."
+    : "Försäljningskanalen pausades.";
 }

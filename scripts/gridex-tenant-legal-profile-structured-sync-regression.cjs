@@ -44,9 +44,12 @@ assert(contractPage.includes('Redigera bolagsuppgifter'), 'Contracts page does n
 for (const source of [companyAction, tenantAction]) {
   assert(source.includes('updateCompanyAndRebuildLegalProfile'), 'A company write path does not use the atomic RPC helper')
 }
-assert(companyAction.includes('markReviewed: true'), 'Superadmin save must perform review in the same atomic transaction')
-assert(tenantAction.includes('markReviewed: false'), 'Tenant edits must require a fresh review')
+assert(!companyAction.includes('markReviewed: true'), 'Normal superadmin save must not approve legal review')
+assert(companyAction.includes('reviewCompanyLegalProfile'), 'Superadmin page lacks a dedicated legal review operation')
+assert(!tenantAction.includes('markReviewed: true'), 'Tenant edits must never approve legal review')
 assert(helper.includes("rpc('gridex_update_company_and_rebuild_legal_profile'"), 'Shared helper does not call the canonical RPC')
+assert(helper.includes('p_mark_reviewed: false'), 'Normal company writes do not force fresh review state')
+assert(helper.includes("rpc('gridex_review_company_legal_profile'"), 'Dedicated review RPC helper is missing')
 
 const fields = [
   'legal_name', 'org_number', 'vat_number', 'address_line_1', 'address_line_2', 'postal_code', 'city', 'country_code',

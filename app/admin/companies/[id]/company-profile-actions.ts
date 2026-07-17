@@ -3,12 +3,19 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
-import { normalizeCountryCode, normalizeEmail, normalizeUrl } from '@/lib/legal/tenantLegalProfile'
+import {
+  normalizeCountryCode,
+  normalizeEmail,
+  normalizePostalCode,
+  normalizeSwedishOrganizationNumber,
+  normalizeUrl,
+} from '@/lib/legal/tenantLegalProfile'
 import { supabaseService } from '@/lib/supabase/service'
 import {
-  rebuildCompanyLegalProfile,
+  reviewCompanyLegalProfile,
   updateCompanyAndRebuildLegalProfile,
 } from '@/lib/tenant/companyLegalProfile'
+import { toSafeCompanyProfileError } from '@/lib/errors/safeActionErrors'
 
 const COMPANY_STATUSES = new Set(['active', 'onboarding', 'paused', 'suspended', 'archived'])
 
@@ -27,6 +34,21 @@ function optionalEmail(value: FormDataEntryValue | null, label: string): string 
 
 function optionalWebsite(value: FormDataEntryValue | null): string | null {
   return normalizeUrl(text(value), 'Webbplats') || null
+}
+
+function optionalCountryCode(
+  value: FormDataEntryValue | null,
+): string | null {
+  const raw = text(value)
+  return raw ? normalizeCountryCode(raw) : null
+}
+
+function optionalPostalCode(
+  value: FormDataEntryValue | null,
+  countryCode: string,
+  label: string,
+): string | null {
+  return normalizePostalCode(text(value), countryCode, label) || null
 }
 
 function normalizeCustomerNumberPrefix(value: FormDataEntryValue | null): string | null {
@@ -79,6 +101,7 @@ export async function saveCompanyProfileAction(formData: FormData) {
   const companyId = text(formData.get('company_id'))
   if (!companyId) redirectBack('', 'error', 'Bolag saknas.')
 
+  let successMessage: string
   try {
     const name = text(formData.get('name'))
     if (!name) throw new Error('Bolagsnamn krävs.')
@@ -89,14 +112,18 @@ export async function saveCompanyProfileAction(formData: FormData) {
     const customerNumberPrefix = normalizeCustomerNumberPrefix(formData.get('customer_number_prefix'))
     await assertCustomerPrefixCanChange(companyId, customerNumberPrefix)
 
+    const countryCode = normalizeCountryCode(text(formData.get('country_code')))
+    const complaintsCountryCode = optionalCountryCode(formData.get('complaints_country_code'))
+    const dataProtectionCountryCode = optionalCountryCode(formData.get('data_protection_country_code'))
+    const billingCountryCode = optionalCountryCode(formData.get('billing_country_code'))
+
     const result = await updateCompanyAndRebuildLegalProfile({
       companyId,
       actorUserId: admin.userId,
-      markReviewed: true,
       values: {
         name,
         legal_name: optionalText(formData.get('legal_name')),
-        org_number: optionalText(formData.get('org_number')),
+        org_number: normalizeSwedishOrganizationNumber(text(formData.get('org_number'))) || null,
         vat_number: optionalText(formData.get('vat_number')),
         website: optionalWebsite(formData.get('website')),
         customer_number_prefix: customerNumberPrefix,
@@ -107,33 +134,33 @@ export async function saveCompanyProfileAction(formData: FormData) {
         customer_service_hours: optionalText(formData.get('customer_service_hours')),
         address_line_1: optionalText(formData.get('address_line_1')),
         address_line_2: optionalText(formData.get('address_line_2')),
-        postal_code: optionalText(formData.get('postal_code')),
+        postal_code: optionalPostalCode(formData.get('postal_code'), countryCode, 'Postnummer'),
         city: optionalText(formData.get('city')),
-        country_code: normalizeCountryCode(text(formData.get('country_code'))),
+        country_code: countryCode,
         complaints_contact_name: optionalText(formData.get('complaints_contact_name')),
         complaints_email: optionalEmail(formData.get('complaints_email'), 'Klagomål: e-post'),
         complaints_phone: optionalText(formData.get('complaints_phone')),
         complaints_address_line_1: optionalText(formData.get('complaints_address_line_1')),
         complaints_address_line_2: optionalText(formData.get('complaints_address_line_2')),
-        complaints_postal_code: optionalText(formData.get('complaints_postal_code')),
+        complaints_postal_code: optionalPostalCode(formData.get('complaints_postal_code'), complaintsCountryCode ?? countryCode, 'Klagomål: postnummer'),
         complaints_city: optionalText(formData.get('complaints_city')),
-        complaints_country_code: normalizeCountryCode(text(formData.get('complaints_country_code'))),
+        complaints_country_code: complaintsCountryCode,
         complaints_description: optionalText(formData.get('complaints_description')),
         data_protection_contact_name: optionalText(formData.get('data_protection_contact_name')),
         data_protection_email: optionalEmail(formData.get('data_protection_email'), 'Dataskydd: e-post'),
         data_protection_phone: optionalText(formData.get('data_protection_phone')),
         data_protection_address_line_1: optionalText(formData.get('data_protection_address_line_1')),
         data_protection_address_line_2: optionalText(formData.get('data_protection_address_line_2')),
-        data_protection_postal_code: optionalText(formData.get('data_protection_postal_code')),
+        data_protection_postal_code: optionalPostalCode(formData.get('data_protection_postal_code'), dataProtectionCountryCode ?? countryCode, 'Dataskydd: postnummer'),
         data_protection_city: optionalText(formData.get('data_protection_city')),
-        data_protection_country_code: normalizeCountryCode(text(formData.get('data_protection_country_code'))),
+        data_protection_country_code: dataProtectionCountryCode,
         billing_contact_email: optionalEmail(formData.get('billing_contact_email'), 'Fakturering: e-post'),
         billing_contact_phone: optionalText(formData.get('billing_contact_phone')),
         billing_address_line_1: optionalText(formData.get('billing_address_line_1')),
         billing_address_line_2: optionalText(formData.get('billing_address_line_2')),
-        billing_postal_code: optionalText(formData.get('billing_postal_code')),
+        billing_postal_code: optionalPostalCode(formData.get('billing_postal_code'), billingCountryCode ?? countryCode, 'Fakturering: postnummer'),
         billing_city: optionalText(formData.get('billing_city')),
-        billing_country_code: normalizeCountryCode(text(formData.get('billing_country_code'))),
+        billing_country_code: billingCountryCode,
         billing_terms_summary: optionalText(formData.get('billing_terms_summary')),
         status,
         status_reason: optionalText(formData.get('status_reason')),
@@ -142,15 +169,18 @@ export async function saveCompanyProfileAction(formData: FormData) {
 
     revalidateCompanyProfile(companyId)
     const missing = result.missing_field_details.map((item) => item.label).join(', ')
-    const message = missing
+    successMessage = missing
       ? `Bolagsuppgifterna sparades. Juridikprofilen saknar fortfarande: ${missing}.`
-      : result.review_required
-        ? 'Bolagsuppgifterna sparades. Juridikprofilen är komplett men behöver granskas.'
-        : 'Bolagsuppgifterna och juridikprofilen sparades och synkroniserades.'
-    redirectBack(companyId, 'success', message)
+      : 'Bolagsuppgifterna sparades. Juridikprofilen är komplett men behöver granskas.'
   } catch (error) {
-    redirectBack(companyId, 'error', error instanceof Error ? error.message : 'Bolagsuppgifterna kunde inte sparas.')
+    redirectBack(companyId, 'error', toSafeCompanyProfileError(error, {
+      action: 'save_company_profile',
+      companyId,
+      userId: admin.userId,
+    }))
   }
+
+  redirectBack(companyId, 'success', successMessage)
 }
 
 export async function reviewCompanyLegalProfileAction(formData: FormData) {
@@ -159,17 +189,21 @@ export async function reviewCompanyLegalProfileAction(formData: FormData) {
   if (!companyId) redirectBack('', 'error', 'Bolag saknas.')
 
   try {
-    const result = await rebuildCompanyLegalProfile({
+    const result = await reviewCompanyLegalProfile({
       companyId,
       actorUserId: admin.userId,
-      markReviewed: true,
     })
     if (result.missing_field_details.length > 0) {
-      throw new Error(`Juridikprofilen kan inte granskas som komplett. Komplettera: ${result.missing_field_details.map((item) => item.label).join(', ')}.`)
+      throw new Error(`tenant_legal_profile_incomplete:${result.missing_fields.join(',')}`)
     }
     revalidateCompanyProfile(companyId)
-    redirectBack(companyId, 'success', 'Juridikprofilen granskades och readiness uppdaterades.')
   } catch (error) {
-    redirectBack(companyId, 'error', error instanceof Error ? error.message : 'Juridikprofilen kunde inte granskas.')
+    redirectBack(companyId, 'error', toSafeCompanyProfileError(error, {
+      action: 'review_company_legal_profile',
+      companyId,
+      userId: admin.userId,
+    }))
   }
+
+  redirectBack(companyId, 'success', 'Juridikprofilen granskades och readiness uppdaterades.')
 }

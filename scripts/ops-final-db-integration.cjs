@@ -34,5 +34,12 @@ async function rpc(name, body = {}) {
     'route:required_receiver_subaddress_missing',
     'workflow:missing_atomic_commit_marker',
   ]) assert.ok(keys.has(keyName), `missing live health key: ${keyName}`)
-  console.log(`ops final DB integration passed (${health.length} health rows)`)
+
+  const companyLegalHealth = await rpc('gridex_company_legal_contract_runtime_health')
+  assert.equal(companyLegalHealth?.ok, true, `company/legal runtime is not ready: ${JSON.stringify(companyLegalHealth)}`)
+  assert.equal(companyLegalHealth?.pgcrypto_search_path_ready, true, 'pgcrypto functions are missing extensions search_path')
+  assert.equal(companyLegalHealth?.company_legal_profile_sync_trigger_count, 1, 'expected exactly one company legal-profile sync trigger')
+  assert.equal(companyLegalHealth?.legal_renderer_readable, true, 'legal renderer emitted raw JSON or placeholders')
+
+  console.log(`ops final DB integration passed (${health.length} health rows; company/legal runtime ready)`)
 })().catch((error) => { console.error(error); process.exit(1) })

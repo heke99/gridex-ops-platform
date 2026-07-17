@@ -6,6 +6,7 @@ import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
 import { supabaseService } from "@/lib/supabase/service";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
+import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -16,10 +17,14 @@ function numberValue(
   key: string,
   fallback: number | null = null,
 ): number | null {
+  if (!formData.has(key)) return fallback;
   const raw = text(formData, key).replace(",", ".");
-  if (!raw) return fallback;
+  if (!raw) return null;
   const parsed = Number(raw);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`${key} måste vara ett giltigt tal.`);
+  }
+  return parsed;
 }
 
 function intValue(
@@ -27,10 +32,17 @@ function intValue(
   key: string,
   fallback: number | null = null,
 ): number | null {
+  if (!formData.has(key)) return fallback;
   const raw = text(formData, key);
-  if (!raw) return fallback;
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  if (!raw) return null;
+  if (!/^-?\d+$/.test(raw)) {
+    throw new Error(`${key} måste vara ett giltigt heltal.`);
+  }
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`${key} måste vara ett säkert heltal.`);
+  }
+  return parsed;
 }
 
 function dateValue(formData: FormData, key: string): string | null {
@@ -104,7 +116,6 @@ async function generateUniquePublicOfferCode(input: {
       ? query.neq("id", input.ignoreId)
       : query);
     if (error) {
-      if (isMissingSchemaError(error)) return candidate;
       throw error;
     }
     if (!data || data.length === 0) return candidate;
@@ -125,7 +136,6 @@ function redirectBack(
     ? `/admin/companies/${companyId}?${search.toString()}#tenant-avtal`
     : `/admin/companies?${search.toString()}`;
   redirect(target);
-  throw new Error("Kunde inte navigera tillbaka efter åtgärden.");
 }
 
 const PUBLICATION_BLOCKER_LABELS: Record<string, string> = {
@@ -176,7 +186,7 @@ function publicationBlockerLabel(code: string): string {
   return PUBLICATION_BLOCKER_LABELS[normalized] ?? normalized.replaceAll("_", " ");
 }
 
-function errorMessage(error: unknown): string {
+function errorMessage(error: unknown, companyId?: string | null): string {
   const message =
     error instanceof Error && error.message.trim()
       ? error.message
@@ -191,23 +201,13 @@ function errorMessage(error: unknown): string {
       .slice("publication_not_ready:".length)
       .split(",")
       .map(publicationBlockerLabel);
-    return `Avtalet kan inte publiceras: ${blockers.join(", ")}.`;
+    const safe = toSafeContractError(error, { action: "tenant_contract_offer", companyId });
+    const reference = safe.match(/Referens: [A-Z0-9]+\.$/)?.[0] ?? "";
+    return `Avtalet kan inte publiceras: ${blockers.join(", ")}. ${reference}`.trim();
   }
-  return message;
+  return toSafeContractError(error, { action: "tenant_contract_offer", companyId });
 }
 
-function isMissingSchemaError(error: unknown): boolean {
-  const code = (error as { code?: string } | null)?.code ?? "";
-  const message = (error as { message?: string } | null)?.message ?? "";
-  return (
-    ["42P01", "42703", "PGRST200", "PGRST201", "PGRST204", "PGRST205"].includes(
-      code,
-    ) ||
-    /schema cache|does not exist|column .* does not exist|relationship/i.test(
-      message,
-    )
-  );
-}
 
 function contractType(value: string): string {
   if (
@@ -292,7 +292,7 @@ export async function saveTenantPublicContractOfferAction(formData: FormData) {
   try {
     success = (await saveTenantPublicContractOfferActionImpl(formData)).success;
   } catch (error) {
-    redirectBack(companyId, { error: errorMessage(error) });
+    redirectBack(companyId, { error: errorMessage(error, companyId) });
   }
   redirectBack(companyId, { success });
 }
@@ -845,7 +845,7 @@ export async function deleteTenantPublicContractOfferAction(
     success = (await deleteTenantPublicContractOfferActionImpl(formData))
       .success;
   } catch (error) {
-    redirectBack(companyId, { error: errorMessage(error) });
+    redirectBack(companyId, { error: errorMessage(error, companyId) });
   }
   redirectBack(companyId, { success });
 }
