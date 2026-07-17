@@ -18,6 +18,7 @@ import type {
   ContractOfferRow,
   CustomerContractRow,
 } from "@/lib/customer-contracts/types";
+import TenantLegalProfileForm from "@/components/admin/legal/TenantLegalProfileForm";
 import {
   getTenantLegalProfile,
   listCanonicalContractCatalog,
@@ -274,94 +275,12 @@ async function TenantCustomerContracts({
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-          <form
-            id="tenant-legal-profile"
+          <TenantLegalProfileForm
+            companyId={companyId}
+            profile={legalProfile}
             action={saveTenantLegalProfileAction}
-            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
-          >
-            <input type="hidden" name="company_id" value={companyId} />
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-              Juridik
-            </p>
-            <h2 className="mt-2 text-xl font-black text-slate-950">
-              Bolagets juridikprofil
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Status:{" "}
-              <strong>
-                {legalProfile?.completeness_status ?? "incomplete"}
-              </strong>
-              . Saknade obligatoriska uppgifter blockerar publicering.
-            </p>
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-              {(
-                [
-                  [
-                    "legal_name",
-                    "Juridiskt bolagsnamn",
-                    legalProfile?.legal_name,
-                  ],
-                  [
-                    "organization_number",
-                    "Organisationsnummer",
-                    legalProfile?.organization_number,
-                  ],
-                  [
-                    "customer_service_email",
-                    "Kundservice e-post",
-                    legalProfile?.customer_service_email,
-                  ],
-                  ["phone", "Telefon", legalProfile?.phone],
-                  ["website", "Webbplats", legalProfile?.website],
-                  [
-                    "postal_address",
-                    "Postadress",
-                    legalProfile?.postal_address?.text,
-                  ],
-                  [
-                    "customer_service_address",
-                    "Kundserviceadress",
-                    legalProfile?.customer_service_address?.text,
-                  ],
-                  [
-                    "complaints_contact",
-                    "Klagomålsansvarig",
-                    legalProfile?.complaints_contact?.text,
-                  ],
-                  [
-                    "data_protection_contact",
-                    "Dataskyddskontakt",
-                    legalProfile?.data_protection_contact?.text,
-                  ],
-                  [
-                    "billing_information",
-                    "Faktureringsuppgifter",
-                    legalProfile?.billing_information?.text,
-                  ],
-                  [
-                    "dispute_resolution_information",
-                    "Tvistlösningsinformation",
-                    legalProfile?.dispute_resolution_information?.text,
-                  ],
-                ] as Array<[string, string, unknown]>
-              ).map(([name, label, value]) => (
-                <label
-                  key={name}
-                  className="text-sm font-medium text-slate-700"
-                >
-                  {label}
-                  <input
-                    name={name}
-                    defaultValue={String(value ?? "")}
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                  />
-                </label>
-              ))}
-            </div>
-            <button className="mt-5 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
-              Spara juridikprofil
-            </button>
-          </form>
+            returnTo={`/admin/contracts?company_id=${companyId}`}
+          />
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-950">
               Egna juridiska tillägg

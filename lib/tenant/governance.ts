@@ -53,6 +53,11 @@ export type GovernanceCompany = {
   billing_contact_email: string | null
   phone: string | null
   website: string | null
+  address_line_1: string | null
+  address_line_2: string | null
+  postal_code: string | null
+  city: string | null
+  country_code: string | null
   created_at: string | null
   updated_at: string | null
   activeUsers: number
@@ -392,6 +397,11 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
     billing_contact_email: company.billing_contact_email ?? null,
     phone: company.phone ?? null,
     website: company.website ?? null,
+    address_line_1: company.address_line_1 ?? null,
+    address_line_2: company.address_line_2 ?? null,
+    postal_code: company.postal_code ?? null,
+    city: company.city ?? null,
+    country_code: company.country_code ?? null,
     created_at: company.created_at ?? null,
     updated_at: company.updated_at ?? null,
     activeUsers,

@@ -18,6 +18,7 @@ const pgcryptoRuntimeHotfix = read(
   "supabase/migrations/20260715170000_contract_pgcrypto_runtime_search_path_hotfix.sql",
 );
 const page = read("app/admin/contracts/page.tsx");
+const legalProfileForm = read("components/admin/legal/TenantLegalProfileForm.tsx");
 const actions = read("app/admin/contracts/actions.ts");
 const canonical = read("lib/contracts/canonical.ts");
 const publicContracts = read("lib/website/publicContracts.ts");
@@ -61,7 +62,9 @@ const required = [
   ],
   [
     "legal profile fields are React-safe",
-    page.includes("Array<[string, string, unknown]>"),
+    page.includes("<TenantLegalProfileForm") &&
+      legalProfileForm.includes("defaultValue={") &&
+      !legalProfileForm.includes("defaultValue={profile?.postal_address}"),
   ],
   [
     "all legal modules",

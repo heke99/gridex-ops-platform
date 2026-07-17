@@ -22,7 +22,9 @@ import { computeTenantReadiness, listWebhookSubscriptions } from '@/lib/admin/we
 import { getTenantWebsiteReadiness, listCompanyLegalTextVersions, type LegalTextVersion, type TenantWebsiteReadiness } from '@/lib/opsMaster/readiness'
 import { getTenantLegalDefaultStatus, type TenantLegalDefaultStatus } from '@/lib/tenant/legalDefaults'
 import { CANONICAL_LEGAL_MODULES, canonicalLegalModuleLabel } from '@/lib/legal/canonicalModules'
-import { getCanonicalTenantContractReadiness, type CanonicalTenantContractReadiness } from '@/lib/contracts/canonical'
+import { getCanonicalTenantContractReadiness, getTenantLegalProfile, type CanonicalTenantContractReadiness } from '@/lib/contracts/canonical'
+import TenantLegalProfileForm from '@/components/admin/legal/TenantLegalProfileForm'
+import { saveTenantLegalProfileAction } from '@/app/admin/contracts/actions'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
 import { saveCompanyProfileAction } from './company-profile-actions'
 import {
@@ -476,6 +478,12 @@ function CompanyProfileEditor({ company }: { company: GovernanceCompany }) {
         <label className="grid gap-1 text-sm font-bold text-slate-800">Kontaktperson<input name="primary_contact_name" defaultValue={company.primary_contact_name ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
         <label className="grid gap-1 text-sm font-bold text-slate-800">Kontaktmail<input name="primary_contact_email" type="email" defaultValue={company.primary_contact_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
         <label className="grid gap-1 text-sm font-bold text-slate-800">Supportmail<input name="support_email" type="email" defaultValue={company.support_email ?? company.primary_contact_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Faktura-e-post<input name="billing_contact_email" type="email" defaultValue={company.billing_contact_email ?? company.support_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Gatuadress<input name="address_line_1" defaultValue={company.address_line_1 ?? ''} placeholder="Storgatan 1" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Adressrad 2<input name="address_line_2" defaultValue={company.address_line_2 ?? ''} placeholder="C/O eller våning" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Postnummer<input name="postal_code" defaultValue={company.postal_code ?? ''} placeholder="211 20" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Ort<input name="city" defaultValue={company.city ?? ''} placeholder="Malmö" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        <label className="grid gap-1 text-sm font-bold text-slate-800">Landkod<input name="country_code" defaultValue={company.country_code ?? 'SE'} placeholder="SE" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
         <label className="grid gap-1 text-sm font-bold text-slate-800">Telefon<input name="phone" defaultValue={company.phone ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
         <label className="grid gap-1 text-sm font-bold text-slate-800">Webbplats<input name="website" defaultValue={company.website ?? ''} placeholder="https://bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
         <label className="grid gap-1 text-sm font-bold text-slate-800">Status<select name="status" defaultValue={company.status} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="onboarding">Onboarding</option><option value="active">Aktivt</option><option value="paused">Pausat</option><option value="suspended">Avstängt</option><option value="archived">Arkiverat</option></select></label>
@@ -634,7 +642,7 @@ function CompanyLegalMasterSection({
           <p className="mt-1 text-slate-600">Senast verifierad: {formatDate(canonicalReadiness.legal_profile_verified_at)}</p>
           <p className="mt-1 text-slate-600">Profil uppdaterad: {formatDate(canonicalReadiness.legal_profile_updated_at)}</p>
           {canonicalReadiness.legal_profile_missing_fields.length > 0 ? <p className="mt-2 text-amber-800">Saknas: {canonicalReadiness.legal_profile_missing_fields.map((field) => missingFieldLabels[field] ?? field).join(', ')}</p> : null}
-          <Link href={`/admin/contracts?company_id=${company.id}#tenant-legal-profile`} className="mt-3 inline-flex text-xs font-black text-emerald-800">Redigera juridikprofil</Link>
+          <Link href="#tenant-legal-profile" className="mt-3 inline-flex text-xs font-black text-emerald-800">Redigera juridikprofil</Link>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
           <p className="font-black text-slate-950">Publicering</p>
@@ -1155,6 +1163,7 @@ export default async function CompanyDetailPage({
     tenantEventMailReadiness,
     tenantContractOfferReadiness,
     canonicalTenantContractReadiness,
+    tenantLegalProfile,
   ] = await Promise.all([
     getCompanyGovernanceSummary(row),
     getActorTestingSummary(row.id),
@@ -1176,6 +1185,7 @@ export default async function CompanyDetailPage({
     getTenantEventMailReadiness(row.id),
     getTenantContractOfferReadiness(row.id),
     getCanonicalTenantContractReadiness(row.id),
+    getTenantLegalProfile(row.id),
   ])
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
@@ -1249,6 +1259,15 @@ export default async function CompanyDetailPage({
         />
 
         <CompanyProfileEditor company={company} />
+
+        <TenantLegalProfileForm
+          companyId={company.id}
+          profile={tenantLegalProfile}
+          action={saveTenantLegalProfileAction}
+          returnTo={`/admin/companies/${company.id}`}
+          title={`Juridikprofil för ${company.name}`}
+          description="Redigera den juridiska identiteten direkt på bolagskortet. Bolagsadress och kontaktuppgifter används som OPS-standard, medan manuella juridiska värden bevaras som den publicerade sanningen."
+        />
 
         {actorSummary ? (
           <section className="grid gap-4 lg:grid-cols-2">

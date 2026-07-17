@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { normalizeCountryCode } from '@/lib/legal/tenantLegalProfile'
 
 type OptionalColumnError = { code?: string | null; message?: string | null }
 
@@ -98,6 +99,12 @@ export async function saveCompanyProfileAction(formData: FormData) {
       primary_contact_name: nullableText(formData.get('primary_contact_name')),
       primary_contact_email: normalizeEmail(formData.get('primary_contact_email')),
       support_email: normalizeEmail(formData.get('support_email')),
+      billing_contact_email: normalizeEmail(formData.get('billing_contact_email')),
+      address_line_1: nullableText(formData.get('address_line_1')),
+      address_line_2: nullableText(formData.get('address_line_2')),
+      postal_code: nullableText(formData.get('postal_code')),
+      city: nullableText(formData.get('city')),
+      country_code: normalizeCountryCode(text(formData.get('country_code'))),
       phone: nullableText(formData.get('phone')),
       website: normalizeWebsite(formData.get('website')),
       status,
@@ -108,7 +115,7 @@ export async function saveCompanyProfileAction(formData: FormData) {
 
     const previous = await supabaseService
       .from('companies')
-      .select('id,name,org_number,customer_number_prefix,primary_contact_name,primary_contact_email,support_email,phone,website,status,status_reason')
+      .select('id,name,org_number,customer_number_prefix,primary_contact_name,primary_contact_email,support_email,billing_contact_email,address_line_1,address_line_2,postal_code,city,country_code,phone,website,status,status_reason')
       .eq('id', companyId)
       .maybeSingle()
       .then((result) => result.error ? null : result.data)
