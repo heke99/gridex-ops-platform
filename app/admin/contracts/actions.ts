@@ -14,7 +14,6 @@ import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 
-
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
 }
@@ -95,7 +94,11 @@ function parseOptionalFeeLines(value: string): Array<Record<string, unknown>> {
     });
 }
 
-function redirectBack(params: { companyId?: string | null; success?: string; error?: string }): never {
+function redirectBack(params: {
+  companyId?: string | null;
+  success?: string;
+  error?: string;
+}): never {
   const search = new URLSearchParams();
   if (params.companyId) search.set("company_id", params.companyId);
   if (params.success) search.set("success", params.success);
@@ -103,8 +106,14 @@ function redirectBack(params: { companyId?: string | null; success?: string; err
   redirect(`/admin/contracts?${search.toString()}`);
 }
 
-
-function errorMessage(error: unknown, context: { action: string; companyId?: string | null; userId?: string | null }): string {
+function errorMessage(
+  error: unknown,
+  context: {
+    action: string;
+    companyId?: string | null;
+    userId?: string | null;
+  },
+): string {
   return toSafeContractError(error, context);
 }
 
@@ -114,7 +123,10 @@ export async function saveContractOfferAction(formData: FormData) {
   try {
     success = (await saveContractOfferActionImpl(formData)).success;
   } catch (error) {
-    redirectBack({ companyId, error: errorMessage(error, { action: "save_contract_offer", companyId }) });
+    redirectBack({
+      companyId,
+      error: errorMessage(error, { action: "save_contract_offer", companyId }),
+    });
   }
   redirectBack({ companyId, success });
 }
@@ -133,7 +145,10 @@ async function saveContractOfferActionImpl(
     throw new Error("Unauthorized");
   }
 
-  const companyId = await assertUserCanOperateCompany(user.id, getString(formData, "company_id"));
+  const companyId = await assertUserCanOperateCompany(
+    user.id,
+    getString(formData, "company_id"),
+  );
   await requireCompanyOperationalForWrites(companyId);
   const id = getString(formData, "id") || undefined;
   const name = getString(formData, "name");
@@ -215,6 +230,31 @@ async function saveContractOfferActionImpl(
     ),
     productionVatRate: getString(formData, "production_vat_rate"),
     productionSettlementMode: getString(formData, "production_settlement_mode"),
+    websiteCardVisibility: {
+      fixed_price: getString(formData, "show_fixed_price_on_website") === "on",
+      spot_markup: getString(formData, "show_spot_markup_on_website") === "on",
+      variable_fee:
+        getString(formData, "show_variable_fee_on_website") === "on",
+      monthly_fee: getString(formData, "show_monthly_fee_on_website") === "on",
+      invoice_fee: getString(formData, "show_invoice_fee_on_website") === "on",
+      green_energy_fee:
+        getString(formData, "show_green_fee_on_website") === "on",
+      electricity_certificate:
+        getString(formData, "show_electricity_certificate_on_website") === "on",
+      start_fee: getString(formData, "show_start_fee_on_website") === "on",
+      administration_fee:
+        getString(formData, "show_admin_fee_on_website") === "on",
+      break_fee: getString(formData, "show_break_fee_on_website") === "on",
+      portfolio_management_fee:
+        getString(formData, "show_portfolio_management_fee_on_website") ===
+        "on",
+      campaign_discount:
+        getString(formData, "show_discount_on_website") === "on",
+      optional_fees:
+        getString(formData, "show_optional_fees_on_website") === "on",
+      production_compensation:
+        getString(formData, "show_production_compensation_on_website") === "on",
+    },
   });
 
   const payload = {
@@ -351,7 +391,13 @@ export async function archiveContractOfferAction(formData: FormData) {
   try {
     success = (await archiveContractOfferActionImpl(formData)).success;
   } catch (error) {
-    redirectBack({ companyId, error: errorMessage(error, { action: "archive_contract_offer", companyId }) });
+    redirectBack({
+      companyId,
+      error: errorMessage(error, {
+        action: "archive_contract_offer",
+        companyId,
+      }),
+    });
   }
   redirectBack({ companyId, success });
 }
@@ -366,7 +412,10 @@ async function archiveContractOfferActionImpl(
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const companyId = await assertUserCanOperateCompany(user.id, getString(formData, "company_id"));
+  const companyId = await assertUserCanOperateCompany(
+    user.id,
+    getString(formData, "company_id"),
+  );
   const id = getString(formData, "id");
   if (!id) throw new Error("Avtal saknas.");
 
@@ -404,7 +453,13 @@ export async function deleteContractOfferAction(formData: FormData) {
   try {
     success = (await deleteContractOfferActionImpl(formData)).success;
   } catch (error) {
-    redirectBack({ companyId, error: errorMessage(error, { action: "delete_contract_offer", companyId }) });
+    redirectBack({
+      companyId,
+      error: errorMessage(error, {
+        action: "delete_contract_offer",
+        companyId,
+      }),
+    });
   }
   redirectBack({ companyId, success });
 }
@@ -419,7 +474,10 @@ async function deleteContractOfferActionImpl(
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const companyId = await assertUserCanOperateCompany(user.id, getString(formData, "company_id"));
+  const companyId = await assertUserCanOperateCompany(
+    user.id,
+    getString(formData, "company_id"),
+  );
   const id = getString(formData, "id");
   if (!id) throw new Error("Avtal saknas.");
 
@@ -469,7 +527,10 @@ export async function updateTenantContractChannelAction(formData: FormData) {
       }),
     });
   }
-  redirectBack({ companyId: getString(formData, "company_id") || null, success });
+  redirectBack({
+    companyId: getString(formData, "company_id") || null,
+    success,
+  });
 }
 
 async function updateTenantContractChannelActionImpl(
@@ -492,9 +553,7 @@ async function updateTenantContractChannelActionImpl(
 
   const { data: assignment, error: assignmentError } = await supabaseService
     .from("tenant_contract_assignments")
-    .select(
-      "id,company_id,website_publication_allowed,internal_sales_allowed",
-    )
+    .select("id,company_id,website_publication_allowed,internal_sales_allowed")
     .eq("id", assignmentId)
     .eq("company_id", companyId)
     .maybeSingle();

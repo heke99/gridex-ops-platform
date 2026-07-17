@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-13.2",
-    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs endast med opak offer_reference och slutmarkeras server-side mot exakta offer-bundna juridikversioner."
+    "version": "2026-07-18.1",
+    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs endast med opak offer_reference och slutmarkeras server-side mot exakta offer-bundna juridikversioner. Publik prisvisning är versionslåst per komponent via website_card_visible/pricing.visibility."
   },
   "servers": [
     {
@@ -17,14 +17,10 @@
         "summary": "Länka extern portalidentitet till en entydig kund.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_sync.write"
-            ]
+            "bearerAuth": ["customer_sync.write"]
           }
         ],
-        "x-required-scopes": [
-          "customer_sync.write"
-        ],
+        "x-required-scopes": ["customer_sync.write"],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -95,14 +91,10 @@
         "summary": "Hämta kundens avtal.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_contracts.read"
-            ]
+            "bearerAuth": ["customer_contracts.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_contracts.read"
-        ],
+        "x-required-scopes": ["customer_contracts.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -125,9 +117,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data"
-                  ],
+                  "required": ["data"],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -171,14 +161,10 @@
         "summary": "Hämta kundens dokument.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_documents.read"
-            ]
+            "bearerAuth": ["customer_documents.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_documents.read"
-        ],
+        "x-required-scopes": ["customer_documents.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -235,14 +221,10 @@
         "summary": "Hämta kundens händelser.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_events.read"
-            ]
+            "bearerAuth": ["customer_events.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_events.read"
-        ],
+        "x-required-scopes": ["customer_events.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -299,14 +281,10 @@
         "summary": "Hämta en tenant- och kundbunden faktura.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_invoices.read"
-            ]
+            "bearerAuth": ["customer_invoices.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_invoices.read"
-        ],
+        "x-required-scopes": ["customer_invoices.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -372,14 +350,10 @@
         "summary": "Hämta kundens fakturor.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_invoices.read"
-            ]
+            "bearerAuth": ["customer_invoices.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_invoices.read"
-        ],
+        "x-required-scopes": ["customer_invoices.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -436,14 +410,10 @@
         "summary": "Hämta juridiska godkännanden.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_legal.read"
-            ]
+            "bearerAuth": ["customer_legal.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_legal.read"
-        ],
+        "x-required-scopes": ["customer_legal.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -500,14 +470,10 @@
         "summary": "Hämta kundprofil.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_profile.read"
-            ]
+            "bearerAuth": ["customer_profile.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_profile.read"
-        ],
+        "x-required-scopes": ["customer_profile.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -564,14 +530,10 @@
         "summary": "Hämta kanoniska mätvärden.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_metering.read"
-            ]
+            "bearerAuth": ["customer_metering.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_metering.read"
-        ],
+        "x-required-scopes": ["customer_metering.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -628,14 +590,10 @@
         "summary": "Registrera utflyttning med verkligt kalenderdatum.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_facility_data.write"
-            ]
+            "bearerAuth": ["customer_facility_data.write"]
           }
         ],
-        "x-required-scopes": [
-          "customer_facility_data.write"
-        ],
+        "x-required-scopes": ["customer_facility_data.write"],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -706,14 +664,10 @@
         "summary": "Markera exakt angivna notiser som lästa.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_notifications.write"
-            ]
+            "bearerAuth": ["customer_notifications.write"]
           }
         ],
-        "x-required-scopes": [
-          "customer_notifications.write"
-        ],
+        "x-required-scopes": ["customer_notifications.write"],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -784,14 +738,10 @@
         "summary": "Hämta kundnotiser.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_notifications.read"
-            ]
+            "bearerAuth": ["customer_notifications.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_notifications.read"
-        ],
+        "x-required-scopes": ["customer_notifications.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1021,14 +971,10 @@
         "summary": "Hämta fullmakter.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_power_of_attorney.read"
-            ]
+            "bearerAuth": ["customer_power_of_attorney.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_power_of_attorney.read"
-        ],
+        "x-required-scopes": ["customer_power_of_attorney.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1165,14 +1111,10 @@
         "summary": "Hämta anläggningar och mätpunkter.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_sites.read"
-            ]
+            "bearerAuth": ["customer_sites.read"]
           }
         ],
-        "x-required-scopes": [
-          "customer_sites.read"
-        ],
+        "x-required-scopes": ["customer_sites.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1229,14 +1171,10 @@
         "summary": "Synka dokument, fullmakter, juridik och anläggningsdata.",
         "security": [
           {
-            "bearerAuth": [
-              "customer_sync.write"
-            ]
+            "bearerAuth": ["customer_sync.write"]
           }
         ],
-        "x-required-scopes": [
-          "customer_sync.write"
-        ],
+        "x-required-scopes": ["customer_sync.write"],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -1307,14 +1245,10 @@
         "summary": "Hämta tenantens domänhändelser.",
         "security": [
           {
-            "bearerAuth": [
-              "events.read"
-            ]
+            "bearerAuth": ["events.read"]
           }
         ],
-        "x-required-scopes": [
-          "events.read"
-        ],
+        "x-required-scopes": ["events.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1360,14 +1294,10 @@
         "summary": "Skicka kundhändelse från hemsida eller portal.",
         "security": [
           {
-            "bearerAuth": [
-              "website_events.write"
-            ]
+            "bearerAuth": ["website_events.write"]
           }
         ],
-        "x-required-scopes": [
-          "website_events.write"
-        ],
+        "x-required-scopes": ["website_events.write"],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -1429,14 +1359,10 @@
         "summary": "Skapa idempotent kundansökan.",
         "security": [
           {
-            "bearerAuth": [
-              "website_applications.write"
-            ]
+            "bearerAuth": ["website_applications.write"]
           }
         ],
-        "x-required-scopes": [
-          "website_applications.write"
-        ],
+        "x-required-scopes": ["website_applications.write"],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -1499,14 +1425,10 @@
         "summary": "Skicka kundhändelse från hemsida.",
         "security": [
           {
-            "bearerAuth": [
-              "website_events.write"
-            ]
+            "bearerAuth": ["website_events.write"]
           }
         ],
-        "x-required-scopes": [
-          "website_events.write"
-        ],
+        "x-required-scopes": ["website_events.write"],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -1568,16 +1490,10 @@
         "summary": "Hämta publicerat juridikpaket.",
         "security": [
           {
-            "bearerAuth": [
-              "website_legal.read",
-              "website_contracts.read"
-            ]
+            "bearerAuth": ["website_legal.read", "website_contracts.read"]
           }
         ],
-        "x-required-scopes": [
-          "website_legal.read",
-          "website_contracts.read"
-        ],
+        "x-required-scopes": ["website_legal.read", "website_contracts.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1625,14 +1541,10 @@
         "summary": "Hämta publicerade och teckningsbara erbjudanden.",
         "security": [
           {
-            "bearerAuth": [
-              "website_contracts.read"
-            ]
+            "bearerAuth": ["website_contracts.read"]
           }
         ],
-        "x-required-scopes": [
-          "website_contracts.read"
-        ],
+        "x-required-scopes": ["website_contracts.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1644,10 +1556,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "private",
-                "business"
-              ]
+              "enum": ["private", "business"]
             },
             "description": "Filtrera erbjudanden för kundtyp; both matchar båda."
           },
@@ -1671,9 +1580,7 @@
                   "oneOf": [
                     {
                       "type": "object",
-                      "required": [
-                        "data"
-                      ],
+                      "required": ["data"],
                       "properties": {
                         "data": {
                           "type": "array",
@@ -1691,9 +1598,7 @@
                     },
                     {
                       "type": "object",
-                      "required": [
-                        "data"
-                      ],
+                      "required": ["data"],
                       "properties": {
                         "data": {
                           "$ref": "#/components/schemas/PublicContractDiagnostics"
@@ -1739,14 +1644,10 @@
         "summary": "Beräkna offert för publicerat erbjudande utan mutation.",
         "security": [
           {
-            "bearerAuth": [
-              "website_contracts.read"
-            ]
+            "bearerAuth": ["website_contracts.read"]
           }
         ],
-        "x-required-scopes": [
-          "website_contracts.read"
-        ],
+        "x-required-scopes": ["website_contracts.read"],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1864,18 +1765,11 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": [
-                "error",
-                "code",
-                "message"
-              ],
+              "required": ["error", "code", "message"],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
+                  "required": ["code", "message"],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -1884,22 +1778,13 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "field": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "hint": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     }
                   }
                 },
@@ -1923,18 +1808,11 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": [
-                "error",
-                "code",
-                "message"
-              ],
+              "required": ["error", "code", "message"],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
+                  "required": ["code", "message"],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -1943,22 +1821,13 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "field": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "hint": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     }
                   }
                 },
@@ -1982,18 +1851,11 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": [
-                "error",
-                "code",
-                "message"
-              ],
+              "required": ["error", "code", "message"],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
+                  "required": ["code", "message"],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -2002,22 +1864,13 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "field": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "hint": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     }
                   }
                 },
@@ -2041,18 +1894,11 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": [
-                "error",
-                "code",
-                "message"
-              ],
+              "required": ["error", "code", "message"],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
+                  "required": ["code", "message"],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -2061,22 +1907,13 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "field": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "hint": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     }
                   }
                 },
@@ -2100,18 +1937,11 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": [
-                "error",
-                "code",
-                "message"
-              ],
+              "required": ["error", "code", "message"],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
+                  "required": ["code", "message"],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -2120,22 +1950,13 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "field": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "hint": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     }
                   }
                 },
@@ -2189,16 +2010,11 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": [
-                "error"
-              ],
+              "required": ["error"],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
+                  "required": ["code", "message"],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -2225,18 +2041,11 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": [
-                "error",
-                "code",
-                "message"
-              ],
+              "required": ["error", "code", "message"],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
+                  "required": ["code", "message"],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -2245,22 +2054,13 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "field": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "hint": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     }
                   }
                 },
@@ -2284,16 +2084,11 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": [
-                "error"
-              ],
+              "required": ["error"],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
+                  "required": ["code", "message"],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -2330,18 +2125,11 @@
     "schemas": {
       "ApiError": {
         "type": "object",
-        "required": [
-          "error",
-          "code",
-          "message"
-        ],
+        "required": ["error", "code", "message"],
         "properties": {
           "error": {
             "type": "object",
-            "required": [
-              "code",
-              "message"
-            ],
+            "required": ["code", "message"],
             "properties": {
               "code": {
                 "type": "string"
@@ -2350,22 +2138,13 @@
                 "type": "string"
               },
               "stage": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               },
               "field": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               },
               "hint": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               }
             }
           },
@@ -2403,10 +2182,7 @@
             "description": "Enda kanoniska väljaren för POST customer-applications."
           },
           "contract_offer_id": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "deprecated": true,
             "description": "Kompatibilitetsalias för offer_reference; inte ett internt offer-ID."
           },
@@ -2421,14 +2197,79 @@
           },
           "customer_type": {
             "type": "string",
-            "enum": [
-              "private",
-              "business",
-              "both"
-            ]
+            "enum": ["private", "business", "both"]
           },
           "pricing": {
             "type": "object",
+            "required": ["visibility", "components"],
+            "properties": {
+              "monthly_fee": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "invoice_fee": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "markup": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "spot_markup": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "variable_fee": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "fixed_price": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "green_fee": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "electricity_certificate": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "start_fee": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "administration_fee": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "break_fee": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "portfolio_management_fee": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "discount": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "visibility": {
+                "$ref": "#/components/schemas/PublicPricingVisibility"
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicPricingComponent"
+                },
+                "description": "Innehåller endast komponenter som får visas på hemsidans avtalskort."
+              },
+              "public_price_text": {
+                "type": ["string", "null"],
+                "description": "Genererad marknadstext som endast innehåller website-card-visible prisdelar."
+              }
+            },
             "additionalProperties": true
           },
           "legal": {
@@ -2437,33 +2278,32 @@
             "description": "Exakta OPS-publicerade versioner för erbjudandet."
           },
           "valid_from": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "date"
           },
           "valid_to": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "date"
           },
           "website_cta_enabled": {
             "type": "boolean"
+          },
+          "customer_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["private", "business"]
+            },
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "Entydig expansion av customer_type. both blir [private,business]."
           }
         },
         "additionalProperties": true
       },
       "PublicContractDiagnostics": {
         "type": "object",
-        "required": [
-          "total",
-          "visible",
-          "hidden",
-          "offers"
-        ],
+        "required": ["total", "visible", "hidden", "offers"],
         "properties": {
           "total": {
             "type": "integer"
@@ -2478,12 +2318,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "id",
-                "name",
-                "visible",
-                "blockers"
-              ],
+              "required": ["id", "name", "visible", "blockers"],
               "properties": {
                 "id": {
                   "type": "string",
@@ -2502,10 +2337,7 @@
                   }
                 },
                 "offer_reference": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
+                  "type": ["string", "null"]
                 }
               },
               "additionalProperties": true
@@ -2515,11 +2347,7 @@
       },
       "WebsiteCustomerApplicationRequest": {
         "type": "object",
-        "required": [
-          "external_customer_id",
-          "customer",
-          "consents"
-        ],
+        "required": ["external_customer_id", "customer", "consents"],
         "properties": {
           "external_customer_id": {
             "type": "string",
@@ -2531,9 +2359,7 @@
           },
           "customer": {
             "type": "object",
-            "required": [
-              "email"
-            ],
+            "required": ["email"],
             "additionalProperties": true
           },
           "site": {
@@ -2589,16 +2415,12 @@
         },
         "anyOf": [
           {
-            "required": [
-              "offer_reference"
-            ]
+            "required": ["offer_reference"]
           },
           {
             "properties": {
               "contract": {
-                "required": [
-                  "offer_reference"
-                ]
+                "required": ["offer_reference"]
               }
             }
           }
@@ -2607,9 +2429,7 @@
       },
       "WebsiteCustomerApplicationResponse": {
         "type": "object",
-        "required": [
-          "data"
-        ],
+        "required": ["data"],
         "properties": {
           "data": {
             "type": "object",
@@ -2619,41 +2439,23 @@
                 "format": "uuid"
               },
               "contract_id": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "uuid"
               },
               "contract_status": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "enum": [
-                  "signed",
-                  null
-                ]
+                "type": ["string", "null"],
+                "enum": ["signed", null]
               },
               "signed_at": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "date-time"
               },
               "withdrawal_deadline_at": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "date-time"
               },
               "signature_snapshot_sha256": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "pattern": "^[a-f0-9]{64}$",
                 "description": "SHA-256 över det frysta servergenererade signeringssnapshotet. Kan användas för verifiering och support; klienten får aldrig skicka eller bestämma värdet."
               },
@@ -2710,55 +2512,31 @@
             "format": "uuid"
           },
           "contract_number": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "contract_name": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "status": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "signed_at": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "date-time"
           },
           "withdrawal_deadline_at": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "date-time"
           },
           "public_contract_offer_id": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "uuid"
           },
           "offer_reference": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "signature_snapshot_sha256": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "legal_versions_snapshot": {
             "type": "array",
@@ -2766,6 +2544,95 @@
               "type": "object",
               "additionalProperties": true
             }
+          }
+        },
+        "additionalProperties": true
+      },
+      "PublicPricingVisibility": {
+        "type": "object",
+        "description": "Versionslåst presentation för tenantens publika avtalskort. False påverkar inte offert, checkout, avtal eller fakturering.",
+        "properties": {
+          "fixed_price": {
+            "type": "boolean"
+          },
+          "spot_markup": {
+            "type": "boolean"
+          },
+          "variable_fee": {
+            "type": "boolean"
+          },
+          "monthly_fee": {
+            "type": "boolean"
+          },
+          "invoice_fee": {
+            "type": "boolean"
+          },
+          "green_energy_fee": {
+            "type": "boolean"
+          },
+          "electricity_certificate": {
+            "type": "boolean"
+          },
+          "start_fee": {
+            "type": "boolean"
+          },
+          "administration_fee": {
+            "type": "boolean"
+          },
+          "break_fee": {
+            "type": "boolean"
+          },
+          "portfolio_management_fee": {
+            "type": "boolean"
+          },
+          "campaign_discount": {
+            "type": "boolean"
+          },
+          "optional_fees": {
+            "type": "boolean"
+          },
+          "production_compensation": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublicPricingComponent": {
+        "type": "object",
+        "required": [
+          "component_code",
+          "component_type",
+          "name",
+          "amount",
+          "unit",
+          "website_card_visible"
+        ],
+        "properties": {
+          "component_code": {
+            "type": "string"
+          },
+          "component_type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "calculation_type": {
+            "type": ["string", "null"]
+          },
+          "website_card_visible": {
+            "type": "boolean",
+            "description": "True endast när komponenten får renderas på tenantens publika avtalskort."
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
           }
         },
         "additionalProperties": true

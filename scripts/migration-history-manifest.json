@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-17T21:30:00.000000Z",
+  "generatedAt": "2026-07-17T22:10:00.000000Z",
   "allowedLegacyCollisions": {
     "20260612193000": [
       "20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql",
@@ -282,6 +282,7 @@
     "20260717233000_company_legal_contract_runtime_completion.sql": "829939f0953132d99bb790238138a5fc661a2f7bbc159ca147aae4bc602c403e",
     "20260717234500_canonical_public_contract_api_diagnostics.sql": "92dcb0d5bb4add3fc303f32d7af78b954596ca012815f88e57a84a5a56583c5d",
     "20260717235500_integration_api_rate_limiter_canonical_repair.sql": "d42a42e6583b5a813143a550286bd3af9033aade6cfa37809c147717ade73714",
+    "20260718001000_public_pricing_component_website_visibility.sql": "46f872c66850a6f333f4b0447373baed8c379d8bc12f449ac0843da82d021d06",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

@@ -249,6 +249,134 @@ function objectValue(value: unknown): Record<string, unknown> {
     : {};
 }
 
+const PUBLIC_PRICING_VISIBILITY_KEYS = [
+  "fixed_price",
+  "spot_markup",
+  "variable_fee",
+  "monthly_fee",
+  "invoice_fee",
+  "green_energy_fee",
+  "electricity_certificate",
+  "start_fee",
+  "administration_fee",
+  "break_fee",
+  "portfolio_management_fee",
+  "campaign_discount",
+  "optional_fees",
+  "production_compensation",
+] as const;
+
+type PublicPricingVisibilityKey =
+  (typeof PUBLIC_PRICING_VISIBILITY_KEYS)[number];
+
+function booleanOrNull(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (value === "true" || value === 1 || value === "1") return true;
+  if (value === "false" || value === 0 || value === "0") return false;
+  return null;
+}
+
+function pricingComponents(
+  offer: PublicContractOffer,
+): Record<string, unknown>[] {
+  return Array.isArray(offer.pricing_snapshot?.price_components)
+    ? offer.pricing_snapshot.price_components.filter(
+        (value): value is Record<string, unknown> =>
+          Boolean(value) && typeof value === "object" && !Array.isArray(value),
+      )
+    : [];
+}
+
+function componentCode(component: Record<string, unknown>): string {
+  return (
+    clean(component.component_code) ??
+    clean(component.component_type) ??
+    clean(objectValue(component.metadata).component_code) ??
+    ""
+  );
+}
+
+function componentMatchesVisibilityKey(
+  component: Record<string, unknown>,
+  key: PublicPricingVisibilityKey,
+): boolean {
+  const code = componentCode(component);
+  if (key === "optional_fees") return code.startsWith("optional_");
+  return code === key;
+}
+
+function explicitComponentWebsiteVisibility(
+  component: Record<string, unknown>,
+): boolean | null {
+  const direct = booleanOrNull(component.website_card_visible);
+  if (direct !== null) return direct;
+  const metadata = objectValue(component.metadata);
+  const visibility = objectValue(metadata.visibility);
+  return booleanOrNull(visibility.website_card);
+}
+
+function pricingWebsiteVisibility(
+  offer: PublicContractOffer,
+): Record<PublicPricingVisibilityKey, boolean> {
+  const snapshot = offer.pricing_snapshot ?? {};
+  const schemaVersion = numberOrNull(snapshot.schema_version) ?? 0;
+  const configured = objectValue(snapshot.website_visibility);
+  const components = pricingComponents(offer);
+
+  return Object.fromEntries(
+    PUBLIC_PRICING_VISIBILITY_KEYS.map((key) => {
+      const configuredValue = booleanOrNull(configured[key]);
+      if (configuredValue !== null) return [key, configuredValue];
+
+      const matching = components.filter((component) =>
+        componentMatchesVisibilityKey(component, key),
+      );
+      const explicitValues = matching
+        .map(explicitComponentWebsiteVisibility)
+        .filter((value): value is boolean => value !== null);
+      if (explicitValues.length > 0)
+        return [key, explicitValues.some((value) => value)];
+
+      // Snapshots created before schema v3 had no separate website visibility.
+      // Preserve their historic public behavior until a new immutable version is created.
+      return [key, schemaVersion < 3];
+    }),
+  ) as Record<PublicPricingVisibilityKey, boolean>;
+}
+
+function publicPricingComponents(
+  offer: PublicContractOffer,
+  visibility: Record<PublicPricingVisibilityKey, boolean>,
+): Record<string, unknown>[] {
+  const schemaVersion =
+    numberOrNull(offer.pricing_snapshot?.schema_version) ?? 0;
+  return pricingComponents(offer).filter((component) => {
+    const explicit = explicitComponentWebsiteVisibility(component);
+    if (explicit !== null) return explicit;
+    const code = componentCode(component);
+    const key = PUBLIC_PRICING_VISIBILITY_KEYS.find((candidate) =>
+      componentMatchesVisibilityKey(component, candidate),
+    );
+    if (key) return visibility[key];
+    return schemaVersion < 3 || !code;
+  });
+}
+
+function publicBaseComponents(
+  offer: PublicContractOffer,
+  visibility: Record<PublicPricingVisibilityKey, boolean>,
+): unknown[] {
+  if (!Array.isArray(offer.pricing_snapshot?.base_components)) return [];
+  return offer.pricing_snapshot.base_components.map((value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      return value;
+    const row = value as Record<string, unknown>;
+    if (clean(row.source_type) !== "fixed" || visibility.fixed_price)
+      return row;
+    return { ...row, fixed_price_sek_per_kwh: null };
+  });
+}
+
 export function publicOfferReference(
   offer: Pick<PublicContractOffer, "canonical_offer_reference">,
 ): string {
@@ -284,6 +412,7 @@ function customerTypeAllowed(
 }
 
 function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
+  const pricingSnapshot = objectValue(row.canonical_pricing_snapshot);
   return {
     id: String(row.id),
     offer_code: clean(row.offer_code),
@@ -316,7 +445,8 @@ function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
     green_fee_value: numberOrNull(row.green_fee_value),
     terms_version: clean(row.terms_version),
     terms_url: clean(row.terms_url),
-    public_price_text: clean(row.public_price_text),
+    public_price_text:
+      clean(pricingSnapshot.public_price_text) ?? clean(row.public_price_text),
     binding_months: numberOrNull(row.binding_months),
     notice_months: numberOrNull(row.notice_months),
     website_cta_enabled: row.website_cta_enabled !== false,
@@ -332,7 +462,7 @@ function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
     contract_product_version_id: clean(row.contract_product_version_id),
     contract_publication_version_id: clean(row.contract_publication_version_id),
     legal_bundle_version_id: clean(row.legal_bundle_version_id),
-    pricing_snapshot: objectValue(row.canonical_pricing_snapshot),
+    pricing_snapshot: pricingSnapshot,
     electricity_certificate_ore_per_kwh: numberOrNull(
       row.electricity_certificate_ore_per_kwh,
     ),
@@ -363,6 +493,17 @@ export function publicContractResponse(offer: PublicContractOffer) {
         ? offer.metadata.withdrawal_terms_version
         : offer.terms_version;
   const legalVersions = offer.legal_versions ?? [];
+  const websiteVisibility = pricingWebsiteVisibility(offer);
+  const visibleComponents = publicPricingComponents(offer, websiteVisibility);
+  const visibleBaseComponents = publicBaseComponents(offer, websiteVisibility);
+  const publicPriceText =
+    clean(offer.pricing_snapshot?.public_price_text) ??
+    offer.public_price_text ??
+    null;
+  const customerTypes =
+    offer.customer_type === "both"
+      ? ["private", "business"]
+      : [offer.customer_type];
   const legalBlock = buildPublicLegalBlock({
     legalVersions,
     termsVersionFallback: offer.terms_version,
@@ -370,14 +511,15 @@ export function publicContractResponse(offer: PublicContractOffer) {
     tenantSlug: offer.tenant_slug ?? null,
   });
   const monthlyFee =
-    offer.monthly_fee_sek === null
+    !websiteVisibility.monthly_fee || offer.monthly_fee_sek === null
       ? null
       : { amount: offer.monthly_fee_sek, currency: "SEK", unit: "month" };
   const invoiceFee =
-    offer.invoice_fee_sek === null
+    !websiteVisibility.invoice_fee || offer.invoice_fee_sek === null
       ? null
       : { amount: offer.invoice_fee_sek, currency: "SEK", unit: "invoice" };
   const markup =
+    !websiteVisibility.spot_markup ||
     (offer.spot_markup_ore_per_kwh ?? offer.markup_ore_per_kwh) === null
       ? null
       : {
@@ -385,7 +527,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
           unit: "ore_per_kwh",
         };
   const fixedPrice =
-    offer.fixed_price_ore_per_kwh === null
+    !websiteVisibility.fixed_price || offer.fixed_price_ore_per_kwh === null
       ? null
       : { amount: offer.fixed_price_ore_per_kwh, unit: "ore_per_kwh" };
 
@@ -405,24 +547,27 @@ export function publicContractResponse(offer: PublicContractOffer) {
     type: offer.contract_type,
     billing_model: offer.billing_model,
     customer_type: offer.customer_type,
+    customer_types: customerTypes,
     pricing: {
       monthly_fee: monthlyFee,
       invoice_fee: invoiceFee,
       markup,
       spot_markup: markup,
       variable_fee:
+        !websiteVisibility.variable_fee ||
         offer.variable_fee_ore_per_kwh === null
           ? null
           : { amount: offer.variable_fee_ore_per_kwh, unit: "ore_per_kwh" },
       fixed_price: fixedPrice,
       green_fee:
-        offer.green_fee_value === null
+        !websiteVisibility.green_energy_fee || offer.green_fee_value === null
           ? null
           : { amount: offer.green_fee_value, mode: offer.green_fee_mode },
       spot_share: offer.spot_weight_percent,
       portfolio_share: offer.portfolio_weight_percent,
       fixed_share: offer.fixed_weight_percent,
-      public_price_text: offer.public_price_text ?? null,
+      public_price_text: publicPriceText,
+      visibility: websiteVisibility,
       price_areas: offer.price_areas ?? [],
       vat_rate:
         numberOrNull(offer.pricing_snapshot?.vat_rate) ??
@@ -432,13 +577,10 @@ export function publicContractResponse(offer: PublicContractOffer) {
             ? offer.vat_rate / 100
             : offer.vat_rate),
       interval_resolution: clean(offer.pricing_snapshot?.interval_resolution),
-      base_components: Array.isArray(offer.pricing_snapshot?.base_components)
-        ? offer.pricing_snapshot.base_components
-        : [],
-      components: Array.isArray(offer.pricing_snapshot?.price_components)
-        ? offer.pricing_snapshot.price_components
-        : [],
+      base_components: visibleBaseComponents,
+      components: visibleComponents,
       electricity_certificate:
+        !websiteVisibility.electricity_certificate ||
         offer.electricity_certificate_ore_per_kwh == null
           ? null
           : {
@@ -446,7 +588,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
               unit: "ore_per_kwh",
             },
       start_fee:
-        offer.start_fee_sek == null
+        !websiteVisibility.start_fee || offer.start_fee_sek == null
           ? null
           : {
               amount: offer.start_fee_sek,
@@ -454,6 +596,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
               lifecycle: "once_per_contract",
             },
       administration_fee:
+        !websiteVisibility.administration_fee ||
         offer.administration_fee_sek == null
           ? null
           : {
@@ -462,7 +605,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
               lifecycle: "once_per_contract",
             },
       break_fee:
-        offer.break_fee_sek == null
+        !websiteVisibility.break_fee || offer.break_fee_sek == null
           ? null
           : {
               amount: offer.break_fee_sek,
@@ -470,6 +613,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
               event: "early_termination",
             },
       portfolio_management_fee:
+        !websiteVisibility.portfolio_management_fee ||
         offer.portfolio_management_fee_ore_per_kwh == null
           ? null
           : {
@@ -477,7 +621,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
               unit: "ore_per_kwh",
             },
       discount:
-        offer.discount_value == null
+        !websiteVisibility.campaign_discount || offer.discount_value == null
           ? null
           : {
               amount: offer.discount_value,
@@ -485,19 +629,41 @@ export function publicContractResponse(offer: PublicContractOffer) {
               duration_months: offer.discount_months,
             },
     },
-    pricing_snapshot: offer.pricing_snapshot ?? {},
+    pricing_snapshot: {
+      ...(offer.pricing_snapshot ?? {}),
+      base_components: visibleBaseComponents,
+      price_components: visibleComponents,
+      website_visibility: websiteVisibility,
+      public_price_text: publicPriceText,
+    },
     legal: legalBlock,
-    monthly_fee_sek: offer.monthly_fee_sek,
-    invoice_fee_sek: offer.invoice_fee_sek,
-    markup_ore_per_kwh: offer.markup_ore_per_kwh,
-    spot_markup_ore_per_kwh: offer.spot_markup_ore_per_kwh,
-    variable_fee_ore_per_kwh: offer.variable_fee_ore_per_kwh,
-    fixed_price_ore_per_kwh: offer.fixed_price_ore_per_kwh,
-    green_fee_mode: offer.green_fee_mode,
-    green_fee_value: offer.green_fee_value,
+    monthly_fee_sek: websiteVisibility.monthly_fee
+      ? offer.monthly_fee_sek
+      : null,
+    invoice_fee_sek: websiteVisibility.invoice_fee
+      ? offer.invoice_fee_sek
+      : null,
+    markup_ore_per_kwh: websiteVisibility.spot_markup
+      ? offer.markup_ore_per_kwh
+      : null,
+    spot_markup_ore_per_kwh: websiteVisibility.spot_markup
+      ? offer.spot_markup_ore_per_kwh
+      : null,
+    variable_fee_ore_per_kwh: websiteVisibility.variable_fee
+      ? offer.variable_fee_ore_per_kwh
+      : null,
+    fixed_price_ore_per_kwh: websiteVisibility.fixed_price
+      ? offer.fixed_price_ore_per_kwh
+      : null,
+    green_fee_mode: websiteVisibility.green_energy_fee
+      ? offer.green_fee_mode
+      : null,
+    green_fee_value: websiteVisibility.green_energy_fee
+      ? offer.green_fee_value
+      : null,
     terms_version: offer.terms_version,
     terms_url: offer.terms_url ?? null,
-    public_price_text: offer.public_price_text ?? null,
+    public_price_text: publicPriceText,
     binding_months: offer.binding_months ?? null,
     notice_months: offer.notice_months ?? null,
     website_cta_enabled: offer.website_cta_enabled !== false,

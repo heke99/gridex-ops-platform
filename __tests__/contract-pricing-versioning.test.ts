@@ -16,6 +16,38 @@ describe("contract pricing versioning snapshot", () => {
     expect(result.snapshot.price_components).toHaveLength(2);
   });
 
+  it("keeps hidden fees in pricing but excludes them from website price text", () => {
+    const result = normalizeContractPricing({
+      name: "Selektiv visning",
+      contractType: "portfolio",
+      customerType: "both",
+      spotMarkupOrePerKwh: 4,
+      variableFeeOrePerKwh: 2,
+      invoiceFeeSek: 29,
+      websiteCardVisibility: {
+        spot_markup: true,
+        variable_fee: false,
+        invoice_fee: false,
+      },
+    });
+
+    expect(result.snapshot.schema_version).toBe(3);
+    expect(result.snapshot.price_components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          component_code: "variable_fee",
+          website_card_visible: false,
+        }),
+        expect.objectContaining({
+          component_code: "invoice_fee",
+          website_card_visible: false,
+        }),
+      ]),
+    );
+    expect(result.publicPriceText).toContain("påslag 4 öre/kWh");
+    expect(result.publicPriceText).not.toMatch(/rörlig avgift|fakturaavgift/i);
+  });
+
   it("blocks fixed contracts without fixed price", () => {
     expect(() =>
       normalizeContractPricing({

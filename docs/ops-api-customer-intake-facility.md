@@ -66,11 +66,25 @@ Response ska vara kundvänlig och inte kräva att hemsidan förstår interna tab
       "type": "variable_spot",
       "billing_model": "spot",
       "customer_type": "both",
+      "customer_types": ["private", "business"],
       "pricing": {
-        "monthly_fee": { "amount": 68, "currency": "SEK", "unit": "month" },
-        "invoice_fee": { "amount": 0, "currency": "SEK" },
+        "monthly_fee": null,
+        "invoice_fee": null,
         "markup": { "amount": 4, "unit": "ore_per_kwh" },
         "fixed_price": null,
+        "visibility": {
+          "monthly_fee": false,
+          "invoice_fee": false,
+          "spot_markup": true
+        },
+        "components": [
+          {
+            "component_code": "spot_markup",
+            "amount": 4,
+            "unit": "ore_per_kwh",
+            "website_card_visible": true
+          }
+        ],
         "portfolio_share": null,
         "spot_share": null
       },
@@ -89,6 +103,31 @@ Response ska vara kundvänlig och inte kräva att hemsidan förstår interna tab
 ```
 
 `offer_reference` är den enda kanoniska avtalsväljaren vid tecknande. Fältet `contract_offer_id` i lässvaret är ett deprecated kompatibilitetsalias som innehåller samma opaka referens, inte ett internt UUID. `product_code`, `price_plan_id` och `price_plan_version_id` får inte användas för att välja avtal.
+
+### Kundtyp i publik DTO
+
+`customer_type` behålls för bakåtkompatibilitet. API:t skickar dessutom den entydiga arrayen `customer_types`:
+
+```txt
+private  -> ["private"]
+business -> ["business"]
+both     -> ["private", "business"]
+```
+
+Tenantens UI ska visa `both` som **Privat och företag**. Ett okänt värde får inte automatiskt behandlas som privatkund.
+
+### Versionslåst synlighet per avgift
+
+Varje pris- eller avgiftskomponent kan ha `website_card_visible`. Samma beslut exponeras i `pricing.visibility`. Endast poster som är markerade för webbens avtalskort finns i `pricing.components`, de namngivna `pricing.*`-fälten och top-level kompatibilitetsfälten.
+
+Synlighetsflaggan är endast presentation. En dold avgift finns fortfarande kvar i den fullständiga låsta prisversionen och används i:
+
+- offert och prisberäkning,
+- checkout/kostnadssammanställning före accept,
+- avtalsdokument och kundens snapshots,
+- fakturering och bokföringsunderlag.
+
+Ändrad webbvisning på ett publicerat avtal ska skapa en ny pris- och publiceringsversion. Redan tecknade kundavtal får aldrig skrivas om.
 
 Teknisk diagnostik kan hämtas server-side med:
 
@@ -143,8 +182,16 @@ Minsta rekommenderade payload:
     "price_terms": true
   },
   "legalAcceptances": [
-    { "type": "terms", "textVersionId": "<legal_text_version_id>", "acceptedAt": "2026-06-26T09:00:00Z" },
-    { "type": "privacy_policy", "textVersionId": "<legal_text_version_id>", "acceptedAt": "2026-06-26T09:00:00Z" }
+    {
+      "type": "terms",
+      "textVersionId": "<legal_text_version_id>",
+      "acceptedAt": "2026-06-26T09:00:00Z"
+    },
+    {
+      "type": "privacy_policy",
+      "textVersionId": "<legal_text_version_id>",
+      "acceptedAt": "2026-06-26T09:00:00Z"
+    }
   ],
   "powerOfAttorney": {
     "accepted": true,
@@ -205,8 +252,8 @@ Om `facility_id`/anläggnings-id saknas:
 
 Tre olika begrepp blandas aldrig ihop:
 
-- **Manuell operationsbrevlåda** (`manual_communication_mailboxes`) = Gridex *avsändar*- och inkorgsbrevlåda för manuell nätägarkommunikation (leverantörsbyte, fullmakt, anläggningsuppgifter). Konfigureras av superadmin under `/admin/manual-mailboxes`. Standard är `leverantorsbyte@gridex.se` men adressen är konfigurerbar. Lösenord lagras aldrig i databasen – endast `env:`-referenser.
-- **Nätägarens kontaktvägar** (`grid_owner_contact_channels`) = *mottagaradresser* per nätägare och kanaltyp.
+- **Manuell operationsbrevlåda** (`manual_communication_mailboxes`) = Gridex _avsändar_- och inkorgsbrevlåda för manuell nätägarkommunikation (leverantörsbyte, fullmakt, anläggningsuppgifter). Konfigureras av superadmin under `/admin/manual-mailboxes`. Standard är `leverantorsbyte@gridex.se` men adressen är konfigurerbar. Lösenord lagras aldrig i databasen – endast `env:`-referenser.
+- **Nätägarens kontaktvägar** (`grid_owner_contact_channels`) = _mottagaradresser_ per nätägare och kanaltyp.
 - **Ediel-brevlådan** (`ediel_mailboxes`, `ediel@gridex.se`) = enbart Ediel/EDIFACT-transport (PRODAT/UTILTS/CONTRL/APERAK + Ediel IMAP/SMTP).
 
 Manuell e-post skickas **aldrig** från `ediel@gridex.se`. Om ingen manuell brevlåda är konfigurerad blockeras sändning med ett svenskt meddelande – det sker ingen tyst fallback till Ediel-brevlådan.
@@ -252,9 +299,21 @@ Svaret innehåller endast **operativ status** – aldrig tekniska Ediel-detaljer
   "applicationId": "...",
   "customerId": "...",
   "siteId": "...",
-  "powerOfAttorney": { "status": "signed", "scope": ["supplier_switch", "facility_information_lookup"], "method": "website_acceptance" },
-  "nextAction": { "code": "facility_identifier_requested", "message": "Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post." },
-  "manualInformationRequest": { "status": "manual_email_queued", "case_reference": "GX-FIR-AB12CD34", "channel": "manual_email", "request_id": "..." }
+  "powerOfAttorney": {
+    "status": "signed",
+    "scope": ["supplier_switch", "facility_information_lookup"],
+    "method": "website_acceptance"
+  },
+  "nextAction": {
+    "code": "facility_identifier_requested",
+    "message": "Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post."
+  },
+  "manualInformationRequest": {
+    "status": "manual_email_queued",
+    "case_reference": "GX-FIR-AB12CD34",
+    "channel": "manual_email",
+    "request_id": "..."
+  }
 }
 ```
 

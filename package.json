@@ -181,7 +181,8 @@
     "gridex:next-control-flow-regression": "node scripts/no-next-control-flow-in-try-regression.cjs",
     "gridex:company-legal-contract-runtime-regression": "node scripts/company-legal-contract-runtime-regression.cjs",
     "ops:company-legal-live-preflight": "node scripts/company-legal-live-preflight.cjs",
-    "gridex:rate-limit-schema-repair-regression": "node scripts/gridex-rate-limit-schema-repair-regression.cjs"
+    "gridex:rate-limit-schema-repair-regression": "node scripts/gridex-rate-limit-schema-repair-regression.cjs",
+    "gridex:public-pricing-visibility-regression": "node scripts/gridex-public-pricing-visibility-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

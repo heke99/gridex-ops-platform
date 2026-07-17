@@ -8,6 +8,29 @@ export type ContractPricingModel =
   | "mixed";
 export type ContractCustomerType = "private" | "business" | "both";
 
+export const WEBSITE_PRICING_VISIBILITY_KEYS = [
+  "fixed_price",
+  "spot_markup",
+  "variable_fee",
+  "monthly_fee",
+  "invoice_fee",
+  "green_energy_fee",
+  "electricity_certificate",
+  "start_fee",
+  "administration_fee",
+  "break_fee",
+  "portfolio_management_fee",
+  "campaign_discount",
+  "optional_fees",
+  "production_compensation",
+] as const;
+
+export type WebsitePricingVisibilityKey =
+  (typeof WEBSITE_PRICING_VISIBILITY_KEYS)[number];
+export type WebsitePricingVisibilityInput = Partial<
+  Record<WebsitePricingVisibilityKey, unknown>
+>;
+
 export type ContractPricingInput = {
   name: string;
   contractType: ContractPricingModel;
@@ -46,6 +69,7 @@ export type ContractPricingInput = {
   productionCompensationOrePerKwh?: unknown;
   productionVatRate?: unknown;
   productionSettlementMode?: unknown;
+  websiteCardVisibility?: WebsitePricingVisibilityInput;
 };
 
 type PricingComponent = {
@@ -57,6 +81,7 @@ type PricingComponent = {
   unit: string;
   vat_applicable: boolean;
   invoice_line_visible: boolean;
+  website_card_visible: boolean;
   priority: number;
   metadata?: Record<string, unknown>;
 };
@@ -77,7 +102,7 @@ export type NormalizedContractPricing = {
   customerType: ContractCustomerType;
   publicPriceText: string;
   snapshot: {
-    schema_version: 2;
+    schema_version: 3;
     contract_type: ContractPricingModel;
     customer_type: ContractCustomerType;
     price_areas: string[];
@@ -89,6 +114,7 @@ export type NormalizedContractPricing = {
     power_of_attorney_required: boolean;
     base_components: BasePriceComponent[];
     price_components: PricingComponent[];
+    website_visibility: Record<WebsitePricingVisibilityKey, boolean>;
     public_price_text: string;
     vat_rate: number;
     vat_rate_percent: number;
@@ -193,29 +219,80 @@ function formatNumber(value: number): string {
   );
 }
 
+function booleanFlag(value: unknown, fallback: boolean): boolean {
+  if (typeof value === "boolean") return value;
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  if (["1", "true", "on", "yes", "ja", "visa", "visible"].includes(normalized))
+    return true;
+  if (
+    ["0", "false", "off", "no", "nej", "dolj", "dölj", "hidden"].includes(
+      normalized,
+    )
+  )
+    return false;
+  return fallback;
+}
+
+function normalizeWebsiteVisibility(
+  input: WebsitePricingVisibilityInput | undefined,
+): Record<WebsitePricingVisibilityKey, boolean> {
+  return Object.fromEntries(
+    WEBSITE_PRICING_VISIBILITY_KEYS.map((key) => [
+      key,
+      booleanFlag(input?.[key], true),
+    ]),
+  ) as Record<WebsitePricingVisibilityKey, boolean>;
+}
+
 function addComponent(
   target: PricingComponent[],
-  input: Omit<PricingComponent, "vat_applicable" | "invoice_line_visible"> & {
+  input: Omit<
+    PricingComponent,
+    "vat_applicable" | "invoice_line_visible" | "website_card_visible"
+  > & {
     vat_applicable?: boolean;
     invoice_line_visible?: boolean;
+    website_card_visible?: boolean;
   },
 ) {
+  const invoiceLineVisible = input.invoice_line_visible ?? true;
+  const websiteCardVisible = input.website_card_visible ?? true;
+  const existingVisibility =
+    input.metadata?.visibility &&
+    typeof input.metadata.visibility === "object" &&
+    !Array.isArray(input.metadata.visibility)
+      ? (input.metadata.visibility as Record<string, unknown>)
+      : {};
   target.push({
     ...input,
     vat_applicable: input.vat_applicable ?? true,
-    invoice_line_visible: input.invoice_line_visible ?? true,
+    invoice_line_visible: invoiceLineVisible,
+    website_card_visible: websiteCardVisible,
     metadata: {
-      component_key: input.component_code,
       ...(input.metadata ?? {}),
+      component_key: input.component_code,
+      visibility: {
+        ...existingVisibility,
+        website_card: websiteCardVisible,
+        quote_breakdown: true,
+        checkout: true,
+        contract_document: true,
+        invoice: invoiceLineVisible,
+      },
     },
   });
 }
 
-function parseOptionalFeeLines(value: unknown): PricingComponent[] {
+function parseOptionalFeeLines(
+  value: unknown,
+  defaultWebsiteCardVisible: boolean,
+): PricingComponent[] {
   const rows = String(value ?? "").trim();
   if (!rows) return [];
   return rows.split(/\r?\n/).map((line, index) => {
-    const [nameRaw, amountRaw, unitRaw] = line
+    const [nameRaw, amountRaw, unitRaw, websiteVisibilityRaw] = line
       .split("|")
       .map((part) => part.trim());
     if (!nameRaw)
@@ -237,6 +314,10 @@ function parseOptionalFeeLines(value: unknown): PricingComponent[] {
     ]);
     if (!allowedUnits.has(unit))
       throw new Error(`Övrig avgift på rad ${index + 1} har en ogiltig enhet.`);
+    const websiteCardVisible = booleanFlag(
+      websiteVisibilityRaw,
+      defaultWebsiteCardVisible,
+    );
     const lifecycle =
       unit === "sek_invoice"
         ? "per_invoice"
@@ -258,8 +339,19 @@ function parseOptionalFeeLines(value: unknown): PricingComponent[] {
       unit,
       vat_applicable: true,
       invoice_line_visible: true,
+      website_card_visible: websiteCardVisible,
       priority: 900 + index,
-      metadata: { lifecycle, component_key: `optional_${index + 1}` },
+      metadata: {
+        lifecycle,
+        component_key: `optional_${index + 1}`,
+        visibility: {
+          website_card: websiteCardVisible,
+          quote_breakdown: true,
+          checkout: true,
+          contract_document: true,
+          invoice: true,
+        },
+      },
     };
   });
 }
@@ -269,6 +361,9 @@ export function normalizeContractPricing(
 ): NormalizedContractPricing {
   const planName = input.name.trim();
   if (!planName) throw new Error("Avtalsnamn krävs.");
+  const websiteVisibility = normalizeWebsiteVisibility(
+    input.websiteCardVisibility,
+  );
 
   const monthlyFeeSek = optionalNumber(input.monthlyFeeSek, "Månadsavgift", {
     min: 0,
@@ -509,6 +604,7 @@ export function normalizeContractPricing(
       calculation_type: "per_month",
       unit: "sek_month",
       priority: 100,
+      website_card_visible: websiteVisibility.monthly_fee,
     });
   if (invoiceFeeSek !== null)
     addComponent(components, {
@@ -519,6 +615,7 @@ export function normalizeContractPricing(
       calculation_type: "per_invoice",
       unit: "sek_invoice",
       priority: 110,
+      website_card_visible: websiteVisibility.invoice_fee,
     });
   const effectiveSpotMarkupOrePerKwh = spotMarkupOrePerKwh ?? markupOrePerKwh;
   if (effectiveSpotMarkupOrePerKwh !== null)
@@ -530,6 +627,7 @@ export function normalizeContractPricing(
       calculation_type: "per_kwh",
       unit: "ore_per_kwh",
       priority: 130,
+      website_card_visible: websiteVisibility.spot_markup,
       metadata: { replaces_legacy_markup: true },
     });
   if (variableFeeOrePerKwh !== null)
@@ -541,6 +639,7 @@ export function normalizeContractPricing(
       calculation_type: "per_kwh",
       unit: "ore_per_kwh",
       priority: 140,
+      website_card_visible: websiteVisibility.variable_fee,
     });
   if (greenFeeValue !== null)
     addComponent(components, {
@@ -555,6 +654,7 @@ export function normalizeContractPricing(
           ? "sek_month"
           : "ore_per_kwh",
       priority: 150,
+      website_card_visible: websiteVisibility.green_energy_fee,
     });
   if (electricityCertificateOrePerKwh !== null)
     addComponent(components, {
@@ -565,6 +665,7 @@ export function normalizeContractPricing(
       calculation_type: "per_kwh",
       unit: "ore_per_kwh",
       priority: 160,
+      website_card_visible: websiteVisibility.electricity_certificate,
     });
   if (startFeeSek !== null)
     addComponent(components, {
@@ -575,6 +676,7 @@ export function normalizeContractPricing(
       calculation_type: "fixed_once",
       unit: "sek_contract",
       priority: 170,
+      website_card_visible: websiteVisibility.start_fee,
       metadata: { lifecycle: "once_per_contract", event: "contract_started" },
     });
   if (administrationFeeSek !== null)
@@ -586,6 +688,7 @@ export function normalizeContractPricing(
       calculation_type: "fixed_once",
       unit: "sek_contract",
       priority: 180,
+      website_card_visible: websiteVisibility.administration_fee,
       metadata: { lifecycle: "once_per_contract", event: "contract_started" },
     });
   if (breakFeeSek !== null)
@@ -597,6 +700,7 @@ export function normalizeContractPricing(
       calculation_type: "event_only",
       unit: "sek_event",
       priority: 190,
+      website_card_visible: websiteVisibility.break_fee,
       metadata: { lifecycle: "event_only", event: "early_termination" },
     });
   if (portfolioManagementFeeOrePerKwh !== null)
@@ -608,6 +712,7 @@ export function normalizeContractPricing(
       calculation_type: "per_kwh",
       unit: "ore_per_kwh",
       priority: 200,
+      website_card_visible: websiteVisibility.portfolio_management_fee,
     });
   if (discountValue !== null) {
     const discountUnit = String(input.discountUnit || "sek_month");
@@ -624,6 +729,7 @@ export function normalizeContractPricing(
             : "discount_fixed",
       unit: discountUnit,
       priority: 300,
+      website_card_visible: websiteVisibility.campaign_discount,
       metadata: {
         duration_months: discountMonths,
         starts_on: null,
@@ -632,15 +738,20 @@ export function normalizeContractPricing(
       },
     });
   }
-  const optionalComponents = parseOptionalFeeLines(input.optionalFeeLines);
+  const optionalComponents = parseOptionalFeeLines(
+    input.optionalFeeLines,
+    websiteVisibility.optional_fees,
+  );
   components.push(...optionalComponents);
 
   const priceParts: string[] = [];
-  if (input.contractType === "fixed" && effectiveFixedPriceOrePerKwh !== null)
+  if (input.contractType === "fixed") {
     priceParts.push(
-      `Fast pris ${formatNumber(effectiveFixedPriceOrePerKwh)} öre/kWh`,
+      effectiveFixedPriceOrePerKwh !== null && websiteVisibility.fixed_price
+        ? `Fast pris ${formatNumber(effectiveFixedPriceOrePerKwh)} öre/kWh`
+        : "Fastprisavtal",
     );
-  else if (input.contractType === "portfolio")
+  } else if (input.contractType === "portfolio")
     priceParts.push("Portföljförvaltat elpris");
   else if (input.contractType === "mixed") {
     const intervalLabel =
@@ -662,41 +773,47 @@ export function normalizeContractPricing(
             ? "Rörligt kvartspris"
             : "Rörligt spotpris",
     );
-  if (effectiveSpotMarkupOrePerKwh !== null)
+  if (effectiveSpotMarkupOrePerKwh !== null && websiteVisibility.spot_markup)
     priceParts.push(
       `påslag ${formatNumber(effectiveSpotMarkupOrePerKwh)} öre/kWh`,
     );
-  if (variableFeeOrePerKwh !== null)
+  if (variableFeeOrePerKwh !== null && websiteVisibility.variable_fee)
     priceParts.push(
       `rörlig avgift ${formatNumber(variableFeeOrePerKwh)} öre/kWh`,
     );
-  if (monthlyFeeSek !== null)
+  if (monthlyFeeSek !== null && websiteVisibility.monthly_fee)
     priceParts.push(`månadsavgift ${formatNumber(monthlyFeeSek)} kr`);
-  if (invoiceFeeSek !== null)
+  if (invoiceFeeSek !== null && websiteVisibility.invoice_fee)
     priceParts.push(`fakturaavgift ${formatNumber(invoiceFeeSek)} kr/faktura`);
-  if (greenFeeValue !== null)
+  if (greenFeeValue !== null && websiteVisibility.green_energy_fee)
     priceParts.push(
       `grön el ${formatNumber(greenFeeValue)} ${String(input.greenFeeMode) === "sek_month" ? "kr/mån" : "öre/kWh"}`,
     );
-  if (electricityCertificateOrePerKwh !== null)
+  if (
+    electricityCertificateOrePerKwh !== null &&
+    websiteVisibility.electricity_certificate
+  )
     priceParts.push(
       `elcertifikat ${formatNumber(electricityCertificateOrePerKwh)} öre/kWh`,
     );
-  if (startFeeSek !== null)
+  if (startFeeSek !== null && websiteVisibility.start_fee)
     priceParts.push(`startavgift ${formatNumber(startFeeSek)} kr en gång`);
-  if (administrationFeeSek !== null)
+  if (administrationFeeSek !== null && websiteVisibility.administration_fee)
     priceParts.push(
       `administrationsavgift ${formatNumber(administrationFeeSek)} kr en gång`,
     );
-  if (breakFeeSek !== null)
+  if (breakFeeSek !== null && websiteVisibility.break_fee)
     priceParts.push(
       `brytavgift ${formatNumber(breakFeeSek)} kr vid förtida uppsägning`,
     );
-  if (portfolioManagementFeeOrePerKwh !== null)
+  if (
+    portfolioManagementFeeOrePerKwh !== null &&
+    websiteVisibility.portfolio_management_fee
+  )
     priceParts.push(
       `portföljavgift ${formatNumber(portfolioManagementFeeOrePerKwh)} öre/kWh`,
     );
-  if (discountValue !== null) {
+  if (discountValue !== null && websiteVisibility.campaign_discount) {
     const discountUnit = String(input.discountUnit || "sek_month");
     const unitLabel =
       discountUnit === "percent"
@@ -717,11 +834,17 @@ export function normalizeContractPricing(
     sek_month: "kr/mån",
     ore_per_kwh: "öre/kWh",
   };
-  for (const component of optionalComponents)
+  for (const component of optionalComponents.filter(
+    (item) => item.website_card_visible,
+  ))
     priceParts.push(
       `${component.name.toLocaleLowerCase("sv-SE")} ${formatNumber(component.amount)} ${optionalUnitLabels[component.unit] ?? component.unit}`,
     );
-  if (productionEnabled && productionCompensationOrePerKwh !== null) {
+  if (
+    productionEnabled &&
+    productionCompensationOrePerKwh !== null &&
+    websiteVisibility.production_compensation
+  ) {
     priceParts.push(
       `ersättning för producerad el ${formatNumber(productionCompensationOrePerKwh)} öre/kWh`,
     );
@@ -742,7 +865,7 @@ export function normalizeContractPricing(
     customerType: input.customerType,
     publicPriceText,
     snapshot: {
-      schema_version: 2,
+      schema_version: 3,
       contract_type: input.contractType,
       customer_type: input.customerType,
       price_areas: priceAreas,
@@ -754,6 +877,7 @@ export function normalizeContractPricing(
       power_of_attorney_required: input.powerOfAttorneyRequired ?? true,
       base_components: baseComponents,
       price_components: components,
+      website_visibility: websiteVisibility,
       public_price_text: publicPriceText,
       vat_rate: vatRate / 100,
       vat_rate_percent: vatRate,

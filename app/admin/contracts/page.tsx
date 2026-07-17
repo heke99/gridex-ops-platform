@@ -12,7 +12,10 @@ import {
   saveContractOfferAction,
   updateTenantContractChannelAction,
 } from "./actions";
-import { getOperationalCompanyScope, listPlatformCompanies } from "@/lib/tenant/scope";
+import {
+  getOperationalCompanyScope,
+  listPlatformCompanies,
+} from "@/lib/tenant/scope";
 import type {
   ContractOfferRow,
   CustomerContractRow,
@@ -27,6 +30,37 @@ import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 
 export const dynamic = "force-dynamic";
+
+function WebsitePricingField({
+  name,
+  placeholder,
+  visibilityName,
+  defaultVisible = false,
+}: {
+  name: string;
+  placeholder: string;
+  visibilityName: string;
+  defaultVisible?: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-3">
+      <input
+        name={name}
+        placeholder={placeholder}
+        className="w-full rounded-xl border border-slate-300 px-4 py-3"
+      />
+      <label className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-700">
+        <span>Visa på hemsidans avtalskort</span>
+        <input
+          type="checkbox"
+          name={visibilityName}
+          defaultChecked={defaultVisible}
+          className="h-4 w-4 rounded border-slate-300"
+        />
+      </label>
+    </div>
+  );
+}
 
 type TenantCustomerSummary = {
   id: string;
@@ -276,32 +310,67 @@ async function TenantCustomerContracts({
 
         <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Juridikprofil · read-only</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">
+              Juridikprofil · read-only
+            </p>
             <h2 className="mt-2 text-xl font-black text-slate-950">
-              {(legalProfile?.missing_fields ?? []).length > 0 || legalProfile?.completeness_status === "incomplete"
+              {(legalProfile?.missing_fields ?? []).length > 0 ||
+              legalProfile?.completeness_status === "incomplete"
                 ? "Juridikprofilen behöver kompletteras"
-                : legalProfile?.review_required || !(legalProfile?.reviewed_at ?? legalProfile?.verified_at)
+                : legalProfile?.review_required ||
+                    !(legalProfile?.reviewed_at ?? legalProfile?.verified_at)
                   ? "Juridikprofilen är komplett men väntar granskning"
                   : "Juridikprofilen är granskad och verifierad"}
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              Bolagets juridiska profil genereras från Redigera bolagsuppgifter. Avtalssidan har ingen separat skrivväg.
+              Bolagets juridiska profil genereras från Redigera bolagsuppgifter.
+              Avtalssidan har ingen separat skrivväg.
             </p>
             <div className="mt-4 grid gap-2 text-sm text-slate-700">
-              <p><strong>Status:</strong> {legalProfile?.completeness_status ?? "saknas"}</p>
-              <p><strong>Granskning krävs:</strong> {legalProfile?.review_required ? "Ja" : "Nej"}</p>
-              <p><strong>Senast synkroniserad:</strong> {legalProfile?.last_synced_at ? new Date(legalProfile.last_synced_at).toLocaleString("sv-SE") : legalProfile?.updated_at ? new Date(legalProfile.updated_at).toLocaleString("sv-SE") : "–"}</p>
-              <p><strong>Tvistlösning:</strong> OPS-standard</p>
+              <p>
+                <strong>Status:</strong>{" "}
+                {legalProfile?.completeness_status ?? "saknas"}
+              </p>
+              <p>
+                <strong>Granskning krävs:</strong>{" "}
+                {legalProfile?.review_required ? "Ja" : "Nej"}
+              </p>
+              <p>
+                <strong>Senast synkroniserad:</strong>{" "}
+                {legalProfile?.last_synced_at
+                  ? new Date(legalProfile.last_synced_at).toLocaleString(
+                      "sv-SE",
+                    )
+                  : legalProfile?.updated_at
+                    ? new Date(legalProfile.updated_at).toLocaleString("sv-SE")
+                    : "–"}
+              </p>
+              <p>
+                <strong>Tvistlösning:</strong> OPS-standard
+              </p>
             </div>
             {(legalProfile?.missing_fields ?? []).length > 0 ? (
               <div className="mt-4 space-y-2">
                 {(legalProfile?.missing_fields ?? []).map((code) => {
-                  const detail = legalProfileMissingFieldDetail(companyId, code);
-                  return <p key={code} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"><strong>{detail.label}:</strong> {detail.message}</p>;
+                  const detail = legalProfileMissingFieldDetail(
+                    companyId,
+                    code,
+                  );
+                  return (
+                    <p
+                      key={code}
+                      className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"
+                    >
+                      <strong>{detail.label}:</strong> {detail.message}
+                    </p>
+                  );
                 })}
               </div>
             ) : null}
-            <Link href="/admin/company-settings#company-profile" className="mt-5 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">
+            <Link
+              href="/admin/company-settings#company-profile"
+              className="mt-5 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800"
+            >
               Redigera bolagsuppgifter
             </Link>
           </section>
@@ -491,7 +560,6 @@ function ActionBanner({
   );
 }
 
-
 type ContractsSearchParams = Record<string, string | string[] | undefined>;
 
 export default async function AdminContractsPage({
@@ -516,14 +584,18 @@ export default async function AdminContractsPage({
         message: "Inloggning krävs.",
       };
   const platformCompanies = isPlatformAdmin
-    ? (await listPlatformCompanies()).filter((company) => company.status !== "archived")
+    ? (await listPlatformCompanies()).filter(
+        (company) => company.status !== "archived",
+      )
     : [];
   const requestedCompanyId = firstSearchValue(resolvedSearchParams.company_id);
   const selectedPlatformCompany = isPlatformAdmin
-    ? platformCompanies.find((company) => company.id === requestedCompanyId) ??
-      platformCompanies.find((company) => company.id === membershipScope.companyId) ??
+    ? (platformCompanies.find((company) => company.id === requestedCompanyId) ??
+      platformCompanies.find(
+        (company) => company.id === membershipScope.companyId,
+      ) ??
       platformCompanies[0] ??
-      null
+      null)
     : null;
   const scope = isPlatformAdmin
     ? {
@@ -531,7 +603,9 @@ export default async function AdminContractsPage({
         companyId: selectedPlatformCompany?.id ?? null,
         companyName: selectedPlatformCompany?.name ?? null,
         requiresCompany: !selectedPlatformCompany,
-        message: selectedPlatformCompany ? null : "Inget aktivt bolag finns att välja.",
+        message: selectedPlatformCompany
+          ? null
+          : "Inget aktivt bolag finns att välja.",
         selectedByPlatformAdmin: true,
       }
     : membershipScope;
@@ -599,7 +673,10 @@ export default async function AdminContractsPage({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
             Tenantval för platform admin
           </p>
-          <form method="get" className="mt-3 flex flex-col gap-3 md:flex-row md:items-end">
+          <form
+            method="get"
+            className="mt-3 flex flex-col gap-3 md:flex-row md:items-end"
+          >
             <label className="grid flex-1 gap-2 text-sm font-semibold text-slate-800">
               Bolag
               <select
@@ -622,7 +699,8 @@ export default async function AdminContractsPage({
             </button>
           </form>
           <p className="mt-3 text-xs text-slate-600">
-            Valet styr endast arbetsvyn. Varje skrivning kontrollerar fortfarande explicit bolagsbehörighet på serversidan.
+            Valet styr endast arbetsvyn. Varje skrivning kontrollerar
+            fortfarande explicit bolagsbehörighet på serversidan.
           </p>
         </section>
 
@@ -655,7 +733,11 @@ export default async function AdminContractsPage({
           </p>
 
           <form action={saveContractOfferAction} className="mt-6 space-y-4">
-            <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+            <input
+              type="hidden"
+              name="company_id"
+              value={scope.companyId ?? ""}
+            />
             <input type="hidden" name="id" />
 
             <div>
@@ -780,29 +862,38 @@ export default async function AdminContractsPage({
               />
             </div>
 
+            <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm leading-6 text-indigo-950">
+              <strong>Offentlig prisvisning:</strong> varje pris eller avgift
+              har en egen kontroll för avtalskortet. En dold avgift används
+              fortfarande i offert, kostnadssammanställning, avtal och faktura.
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
-              <input
+              <WebsitePricingField
                 name="fixed_price_ore_per_kwh"
                 placeholder="Generellt fast pris öre/kWh"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_fixed_price_on_website"
+                defaultVisible
               />
               <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:col-span-2">
-                Fastpris anges som ett gemensamt pris per kWh. Prisområden styr bara var avtalet är tillgängligt.
+                Fastpris anges som ett gemensamt pris per kWh. Prisområden styr
+                bara var avtalet är tillgängligt.
               </p>
-              <input
+              <WebsitePricingField
                 name="spot_markup_ore_per_kwh"
                 placeholder="Fast påslag öre/kWh"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_spot_markup_on_website"
+                defaultVisible
               />
-              <input
+              <WebsitePricingField
                 name="variable_fee_ore_per_kwh"
                 placeholder="Rörlig avgift öre/kWh"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_variable_fee_on_website"
               />
-              <input
+              <WebsitePricingField
                 name="monthly_fee_sek"
                 placeholder="Fast månadsavgift kr"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_monthly_fee_on_website"
               />
             </div>
 
@@ -817,20 +908,20 @@ export default async function AdminContractsPage({
             </select>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <input
+              <WebsitePricingField
                 name="invoice_fee_sek"
                 placeholder="Fakturaavgift kr"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_invoice_fee_on_website"
               />
-              <input
+              <WebsitePricingField
                 name="electricity_certificate_ore_per_kwh"
                 placeholder="Elcertifikat öre/kWh"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_electricity_certificate_on_website"
               />
-              <input
+              <WebsitePricingField
                 name="portfolio_management_fee_ore_per_kwh"
                 placeholder="Portföljavgift öre/kWh"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_portfolio_management_fee_on_website"
               />
             </div>
 
@@ -840,11 +931,20 @@ export default async function AdminContractsPage({
                 Avtalet kan även avräkna producerad överskottsel
               </label>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
-                <input
-                  name="production_compensation_ore_per_kwh"
-                  placeholder="Produktionsersättning öre/kWh"
-                  className="rounded-2xl border border-emerald-200 bg-white px-4 py-3"
-                />
+                <div className="rounded-2xl border border-emerald-200 bg-white p-3">
+                  <input
+                    name="production_compensation_ore_per_kwh"
+                    placeholder="Produktionsersättning öre/kWh"
+                    className="w-full rounded-xl border border-emerald-200 px-4 py-3"
+                  />
+                  <label className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-emerald-950">
+                    <span>Visa på hemsidans avtalskort</span>
+                    <input
+                      type="checkbox"
+                      name="show_production_compensation_on_website"
+                    />
+                  </label>
+                </div>
                 <input
                   name="production_vat_rate"
                   defaultValue="0"
@@ -873,10 +973,10 @@ export default async function AdminContractsPage({
                 <option value="ore_per_kwh">Grön el i öre/kWh</option>
               </select>
 
-              <input
+              <WebsitePricingField
                 name="green_fee_value"
                 placeholder="Grön el-värde"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_green_fee_on_website"
               />
 
               <label className="flex items-center gap-3 rounded-2xl border border-slate-300 px-4 py-3 text-sm ">
@@ -886,10 +986,10 @@ export default async function AdminContractsPage({
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
-              <input
+              <WebsitePricingField
                 name="discount_value"
                 placeholder="Rabattvärde"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_discount_on_website"
               />
               <select
                 name="discount_unit"
@@ -900,20 +1000,20 @@ export default async function AdminContractsPage({
                 <option value="ore_per_kwh">Rabatt öre/kWh</option>
                 <option value="percent">Rabatt %</option>
               </select>
-              <input
+              <WebsitePricingField
                 name="start_fee_sek"
                 placeholder="Startavgift kr"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_start_fee_on_website"
               />
-              <input
+              <WebsitePricingField
                 name="admin_fee_sek"
                 placeholder="Administrativ avgift kr"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_admin_fee_on_website"
               />
-              <input
+              <WebsitePricingField
                 name="break_fee_sek"
                 placeholder="Brytavgift kr"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
+                visibilityName="show_break_fee_on_website"
               />
               <input
                 name="max_customers"
@@ -962,10 +1062,21 @@ export default async function AdminContractsPage({
                 name="optional_fee_lines"
                 rows={4}
                 placeholder={
-                  "Etablering | 395 | sek\nGrön kampanjjustering | 1.2 | ore_per_kwh"
+                  "Etablering | 395 | sek_contract | nej\nPappersfaktura | 39 | sek_invoice | ja"
                 }
                 className="w-full rounded-2xl border border-slate-300 px-4 py-3 font-mono text-sm "
               />
+              <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                <span>
+                  Visa övriga avgifter på hemsidans avtalskort som standard
+                </span>
+                <input type="checkbox" name="show_optional_fees_on_website" />
+              </label>
+              <p className="mt-2 text-xs text-slate-500">
+                Fjärde kolumnen kan vara ja eller nej och styr varje rad
+                separat. Avgiften finns alltid kvar i offert, checkout,
+                avtalsdokument och fakturering.
+              </p>
             </div>
 
             <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900">
@@ -1088,7 +1199,11 @@ export default async function AdminContractsPage({
                         <div className="grid gap-2">
                           {!offer.archived_at ? (
                             <form action={archiveContractOfferAction}>
-                              <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+                              <input
+                                type="hidden"
+                                name="company_id"
+                                value={scope.companyId ?? ""}
+                              />
                               <input type="hidden" name="id" value={offer.id} />
                               <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
                                 Arkivera
@@ -1096,7 +1211,11 @@ export default async function AdminContractsPage({
                             </form>
                           ) : null}
                           <form action={deleteContractOfferAction}>
-                            <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+                            <input
+                              type="hidden"
+                              name="company_id"
+                              value={scope.companyId ?? ""}
+                            />
                             <input type="hidden" name="id" value={offer.id} />
                             <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100">
                               Ta bort om oanvänt
