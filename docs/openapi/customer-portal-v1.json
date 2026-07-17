@@ -1725,9 +1725,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
-        "description": "Returnerar endast publiceringsklara erbjudanden för API-nyckelns tenant. offer_reference är enda kanoniska avtalsväljaren. diagnostics=1 ger tenant-scopade blockerare för server-side support."
+        "description": "Returnerar endast publiceringsklara erbjudanden för API-nyckelns tenant. offer_reference är enda kanoniska avtalsväljaren. diagnostics=1 ger tenant-scopade blockerare för server-side support. Rate-limit headers returneras på lyckade svar; verklig kvotöverskridning ger 429 medan limiter-/schemainfrastrukturfel ger 503."
       }
     },
     "/api/v1/website/quote": {
@@ -2151,15 +2154,43 @@
         }
       },
       "RateLimited": {
-        "description": "Rate limit överskriden.",
+        "description": "API-klientens trafikgräns har överskridits.",
+        "headers": {
+          "Retry-After": {
+            "description": "Sekunder till nästa tillåtna försök.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "X-RateLimit-Limit": {
+            "description": "Tillåtet antal anrop i aktuellt fönster.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "X-RateLimit-Remaining": {
+            "description": "Återstående anrop i aktuellt fönster.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "X-RateLimit-Reset": {
+            "description": "ISO 8601-tid när fönstret återställs.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
         "content": {
           "application/json": {
             "schema": {
               "type": "object",
               "required": [
-                "error",
-                "code",
-                "message"
+                "error"
               ],
               "properties": {
                 "error": {
@@ -2174,36 +2205,15 @@
                     },
                     "message": {
                       "type": "string"
-                    },
-                    "stage": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "field": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "hint": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
                     }
                   }
-                },
-                "code": {
-                  "type": "string"
-                },
-                "message": {
-                  "type": "string"
-                },
-                "request_id": {
-                  "type": "string"
                 }
+              }
+            },
+            "example": {
+              "error": {
+                "code": "rate_limited",
+                "message": "API-klientens trafikgräns har överskridits. Försök igen när rate-limit-fönstret har återställts."
               }
             }
           }
@@ -2262,6 +2272,54 @@
                 },
                 "request_id": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Tjänsten eller ett obligatoriskt skydd är tillfälligt otillgängligt.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "examples": {
+              "rateLimiterUnavailable": {
+                "value": {
+                  "error": {
+                    "code": "api_rate_limiter_unavailable",
+                    "message": "API:ts trafikskydd kunde inte verifieras. Försök igen senare."
+                  }
+                }
+              },
+              "invalidRateLimit": {
+                "value": {
+                  "error": {
+                    "code": "api_rate_limit_invalid",
+                    "message": "API-klientens trafikgräns är felkonfigurerad."
+                  }
                 }
               }
             }

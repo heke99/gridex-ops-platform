@@ -18,9 +18,24 @@ export type IntegrationApiClient = {
   expires_at: string | null
 }
 
+export type IntegrationApiRateLimit = {
+  limit: number
+  count: number
+  remaining: number
+  resetAt: string | null
+}
+
 export type IntegrationApiAuthResult =
-  | { ok: true; client: IntegrationApiClient }
-  | { ok: false; status: number; error: string; errorCode: string; client?: IntegrationApiClient | null }
+  | { ok: true; client: IntegrationApiClient; rateLimit: IntegrationApiRateLimit }
+  | {
+      ok: false
+      status: number
+      error: string
+      errorCode: string
+      client?: IntegrationApiClient | null
+      retryAfterSeconds?: number
+      rateLimit?: IntegrationApiRateLimit
+    }
 
 function bearerToken(request: NextRequest): string | null {
   const authorization = request.headers.get('authorization') ?? ''
@@ -98,18 +113,39 @@ function missingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
 }
 
-function publicError(input: { status: number; message: string; code: string; client?: IntegrationApiClient | null }): IntegrationApiAuthResult {
+function publicError(input: {
+  status: number
+  message: string
+  code: string
+  client?: IntegrationApiClient | null
+  retryAfterSeconds?: number
+  rateLimit?: IntegrationApiRateLimit
+}): IntegrationApiAuthResult {
   return {
     ok: false,
     status: input.status,
     error: input.message,
     errorCode: input.code,
     client: input.client ?? null,
+    retryAfterSeconds: input.retryAfterSeconds,
+    rateLimit: input.rateLimit,
   }
 }
 
-async function recordRateLimitEvent(client: IntegrationApiClient, request: NextRequest, requestCount: number) {
-  const cooldownUntil = new Date(Date.now() + 60_000).toISOString()
+function retryAfterSeconds(resetAt: string | null): number {
+  if (!resetAt) return 60
+  const resetAtMs = new Date(resetAt).getTime()
+  if (!Number.isFinite(resetAtMs)) return 60
+  return Math.max(1, Math.ceil((resetAtMs - Date.now()) / 1000))
+}
+
+async function recordRateLimitEvent(
+  client: IntegrationApiClient,
+  request: NextRequest,
+  requestCount: number,
+  resetAt: string | null
+) {
+  const cooldownUntil = resetAt ?? new Date(Date.now() + 60_000).toISOString()
   const metadata = {
     route: request.nextUrl.pathname,
     ip_address: requestIp(request),
@@ -152,9 +188,17 @@ async function recordRateLimitEvent(client: IntegrationApiClient, request: NextR
     })
 }
 
-async function rateLimitAllowed(client: IntegrationApiClient, request: NextRequest): Promise<{ allowed: boolean; count: number; resetAt: string | null }> {
+type RateLimitDecision =
+  | { outcome: 'allowed'; rateLimit: IntegrationApiRateLimit }
+  | { outcome: 'limited'; rateLimit: IntegrationApiRateLimit }
+  | { outcome: 'misconfigured'; reason: string }
+  | { outcome: 'unavailable'; reason: string; databaseCode: string | null }
+
+async function rateLimitDecision(client: IntegrationApiClient, request: NextRequest): Promise<RateLimitDecision> {
   const limit = Number(client.rate_limit_per_minute ?? 0)
-  if (!Number.isFinite(limit) || limit <= 0) return { allowed: false, count: 0, resetAt: null }
+  if (!Number.isSafeInteger(limit) || limit <= 0) {
+    return { outcome: 'misconfigured', reason: 'rate_limit_per_minute must be a positive integer' }
+  }
 
   const route = request.nextUrl.pathname
   const { data, error } = await supabaseService.rpc('integration_api_rate_limit_check', {
@@ -165,24 +209,41 @@ async function rateLimitAllowed(client: IntegrationApiClient, request: NextReque
   })
 
   if (error) {
-    // Fail closed for authenticated integration APIs. A broken limiter must not
-    // turn into unlimited access or a database-log COUNT on every request.
-    console.error('[integration-api] atomic rate limiter unavailable', { route, code: error.code })
-    return { allowed: false, count: 0, resetAt: null }
+    // Fail closed, but do not report an internal limiter/schema failure as if
+    // the caller actually exceeded its quota. A false 429 prevents clients
+    // from distinguishing deployment drift from real traffic throttling.
+    console.error('[integration-api] atomic rate limiter unavailable', {
+      route,
+      code: error.code,
+      message: error.message,
+      apiClientId: client.id,
+    })
+    return {
+      outcome: 'unavailable',
+      reason: 'atomic rate limiter RPC failed',
+      databaseCode: error.code ?? null,
+    }
   }
 
   const row = Array.isArray(data) ? data[0] : data
   const allowed = Boolean((row as { allowed?: unknown } | null)?.allowed)
   const count = Number((row as { request_count?: unknown } | null)?.request_count ?? 0)
   const resetAt = String((row as { reset_at?: unknown } | null)?.reset_at ?? '') || null
-
-  if (!allowed) {
-    await recordRateLimitEvent(client, request, count).catch((recordError) => {
-      console.warn('[integration-api] rate limit event logging skipped', recordError)
-    })
+  const rateLimit: IntegrationApiRateLimit = {
+    limit,
+    count: Number.isFinite(count) ? count : 0,
+    remaining: Math.max(0, limit - (Number.isFinite(count) ? count : 0)),
+    resetAt,
   }
 
-  return { allowed, count, resetAt }
+  if (!allowed) {
+    await recordRateLimitEvent(client, request, rateLimit.count, resetAt).catch((recordError) => {
+      console.warn('[integration-api] rate limit event logging skipped', recordError)
+    })
+    return { outcome: 'limited', rateLimit }
+  }
+
+  return { outcome: 'allowed', rateLimit }
 }
 
 export async function requireIntegrationApiAccess(
@@ -224,13 +285,31 @@ export async function requireIntegrationApiAccess(
   if (!originAllowed(client, requestOrigin(request))) {
     return publicError({ status: 403, code: 'api_origin_not_allowed', message: 'Domänen är inte tillåten för API-klienten.', client })
   }
-  const rateLimit = await rateLimitAllowed(client, request)
-  if (!rateLimit.allowed) {
+  const rateLimit = await rateLimitDecision(client, request)
+  if (rateLimit.outcome === 'misconfigured') {
+    return publicError({
+      status: 503,
+      code: 'api_rate_limit_invalid',
+      message: 'API-klientens trafikgräns är felkonfigurerad.',
+      client,
+    })
+  }
+  if (rateLimit.outcome === 'unavailable') {
+    return publicError({
+      status: 503,
+      code: 'api_rate_limiter_unavailable',
+      message: 'API:ts trafikskydd kunde inte verifieras. Försök igen senare.',
+      client,
+    })
+  }
+  if (rateLimit.outcome === 'limited') {
     return publicError({
       status: 429,
       code: 'rate_limited',
-      message: 'Tjänsten svarar långsamt just nu. Försök igen senare eller hantera ärendet manuellt.',
+      message: 'API-klientens trafikgräns har överskridits. Försök igen när rate-limit-fönstret har återställts.',
       client,
+      retryAfterSeconds: retryAfterSeconds(rateLimit.rateLimit.resetAt),
+      rateLimit: rateLimit.rateLimit,
     })
   }
 
@@ -242,7 +321,7 @@ export async function requireIntegrationApiAccess(
     .eq('id', client.id)
     .then(() => null)
 
-  return { ok: true, client }
+  return { ok: true, client, rateLimit: rateLimit.rateLimit }
 }
 
 export async function logIntegrationApiRequest(input: {

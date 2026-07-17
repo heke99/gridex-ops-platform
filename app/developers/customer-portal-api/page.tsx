@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600
 
 const baseUrl = 'https://app.gridex.se'
-const documentationVersion = '2026-07-13.2'
+const documentationVersion = '2026-07-17.3'
 
 const permissions = [
   ['Läsa avtal på hemsidan', 'website_contracts.read', 'Hämta publicerade elavtal för rätt bolag.'],
@@ -572,7 +572,8 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{cronEndpoints}</CodeBlock>
         </Section>
 
-        <Section title="10. Fel och idempotency">
+        <Section title="10. Fel, rate limits och idempotency">
+          <p>Rate limiting är per API-klient, endpoint och 60-sekundersfönster. Läs <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code> och <code>X-RateLimit-Reset</code>. Ett verkligt kvotöverskridande ger <code>429 rate_limited</code> samt <code>Retry-After</code>. Vänta minst angiven tid före retry. Infrastrukturfel i limitern ger i stället <code>503 api_rate_limiter_unavailable</code>, och felaktig klientgräns ger <code>503 api_rate_limit_invalid</code>.</p>
           <p>Alla write-anrop bör skicka <code>Idempotency-Key</code>; för <code>POST /api/v1/website/customer-applications</code> är den obligatorisk och valideras till 8–200 tecken. Samma nyckel är låst till samma normaliserade payload via SHA-256. Stabil idempotency-respons: <code>idempotency_key_required</code> (400), <code>idempotency_key_invalid</code> (400), <code>idempotency_key_payload_mismatch</code> (409), <code>idempotency_in_progress</code> (409), <code>duplicate_application</code> (409), <code>application_business_in_progress</code> (409), <code>application_business_conflict</code> (409) och <code>idempotent_failed</code> (409). En committed replay returnerar den sparade responsen inklusive warnings och communication. Ett avslutat misslyckat försök får endast retryas enligt returnerad hint; komplettering ska göras på befintlig ansökan och en verkligt ny affärshändelse ska använda ny nyckel samt annan site/offer/start-identitet.</p>
           <p>Batch 8.1 live-schema alignment: inkommande mätpunkter provisioneras mot <code>public.metering_points</code>; <code>external_customer_id krävs</code> för stabil kundlänkning; mailinställningar stödjer <code>sender_email</code> och <code>reply_to_email</code>.</p>
         </Section>

@@ -245,8 +245,10 @@ if (fs.existsSync(path.join(root, "lib/integrations/apiAuth.ts"))) {
     fail("API auth does not normalize rate limit errors");
   if (!apiAuth.includes("integration_api_rate_limit_events"))
     fail("API auth does not log rate limit events");
-  if (!apiAuth.includes("Tjänsten svarar långsamt just nu"))
-    fail("API auth still lacks human rate-limit text");
+  if (!apiAuth.includes("API-klientens trafikgräns har överskridits"))
+    fail("API auth still lacks a precise human message for real quota exhaustion");
+  if (!apiAuth.includes("api_rate_limiter_unavailable"))
+    fail("API auth still conflates limiter infrastructure failure with HTTP 429");
 }
 
 const packageJson = JSON.parse(read("package.json"));

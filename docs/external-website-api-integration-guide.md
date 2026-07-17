@@ -134,6 +134,22 @@ Vid tomt svar kan tenantens backend använda `?diagnostics=1`. Varje rad visar o
 
 `offer_reference` är den enda avtalsväljaren i POST. Skicka inte `product_code`, `price_plan_id`, `price_plan_version_id` eller internt erbjudande-UUID som alternativ väljare. Motstridiga legacyfält returnerar `422 offer_selector_mismatch`.
 
+## Rate limits och 429
+
+Rate limiting är per API-klient, route och fast 60-sekundersfönster. Ett normalt svar innehåller:
+
+```text
+X-RateLimit-Limit
+X-RateLimit-Remaining
+X-RateLimit-Reset
+```
+
+`429 rate_limited` betyder endast att klientens verkliga kvot har överskridits. Svaret innehåller även `Retry-After`; klienten ska vänta minst så många sekunder och får inte göra en tät retry-loop.
+
+Databas- eller deploymentsfel i rate limiter returneras separat som `503 api_rate_limiter_unavailable`. En ogiltig klientkonfiguration returneras som `503 api_rate_limit_invalid`. Dessa fel ska inte behandlas som verklig trafikbegränsning.
+
+Standardgränsen för nya API-klienter är 120 anrop per minut. Hemsidans server ska cacha läsresultat och undvika att hämta `public-contracts` flera gånger under samma sidrendering.
+
 ## Kundansökan med strukturerad fullmakt
 
 `POST /api/v1/website/customer-applications` accepterar ett strukturerat `powerOfAttorney`-objekt och valfri `legalAcceptances`-lista:

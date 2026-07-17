@@ -28,7 +28,17 @@ export async function GET(request: NextRequest) {
 
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
-    return customerPortalJson({ error: { code: auth.errorCode, message: auth.error } }, { status: auth.status })
+    const headers = new Headers()
+    if (auth.retryAfterSeconds) headers.set('Retry-After', String(auth.retryAfterSeconds))
+    if (auth.rateLimit) {
+      headers.set('X-RateLimit-Limit', String(auth.rateLimit.limit))
+      headers.set('X-RateLimit-Remaining', String(auth.rateLimit.remaining))
+      if (auth.rateLimit.resetAt) headers.set('X-RateLimit-Reset', auth.rateLimit.resetAt)
+    }
+    return customerPortalJson(
+      { error: { code: auth.errorCode, message: auth.error } },
+      { status: auth.status, headers },
+    )
   }
 
   try {
@@ -59,20 +69,29 @@ export async function GET(request: NextRequest) {
       metadata: { result_count: offers.length, customer_type: customerType, diagnostics },
     })
 
-    return publicContractsJson({
-      data: contracts,
-      contracts,
-      ...(diagnostics ? {
-        diagnostics: {
-          authenticated: true,
-          company_id: auth.client.company_id,
-          api_client_id: auth.client.id,
-          result_count: offers.length,
-          publication: offerDiagnostics,
-          source_of_truth: 'contract_publication_versions',
+    return publicContractsJson(
+      {
+        data: contracts,
+        contracts,
+        ...(diagnostics ? {
+          diagnostics: {
+            authenticated: true,
+            company_id: auth.client.company_id,
+            api_client_id: auth.client.id,
+            result_count: offers.length,
+            publication: offerDiagnostics,
+            source_of_truth: 'contract_publication_versions',
+          },
+        } : {}),
+      },
+      {
+        headers: {
+          'X-RateLimit-Limit': String(auth.rateLimit.limit),
+          'X-RateLimit-Remaining': String(auth.rateLimit.remaining),
+          ...(auth.rateLimit.resetAt ? { 'X-RateLimit-Reset': auth.rateLimit.resetAt } : {}),
         },
-      } : {}),
-    })
+      },
+    )
   } catch (error) {
     const traceId = randomUUID()
     console.error('[public-contracts] failed', { traceId, error })
