@@ -1,7 +1,7 @@
 export type LegalJsonObject = Record<string, unknown>
 
 export type StructuredAddress = {
-  text?: string
+  formatted?: string
   address_line_1?: string
   address_line_2?: string
   postal_code?: string
@@ -92,12 +92,12 @@ export function buildStructuredAddress(
   if (!addressLine1 && !addressLine2 && !postalCode && !city) return {}
 
   const locality = [postalCode, city].filter(Boolean).join(' ')
-  const text = [addressLine1, addressLine2, locality, countryCode]
+  const formatted = [addressLine1, addressLine2, locality, countryCode]
     .filter(Boolean)
     .join(', ')
 
   return compactObject({
-    text,
+    formatted,
     address_line_1: addressLine1,
     address_line_2: addressLine2,
     postal_code: postalCode,

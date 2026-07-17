@@ -36,6 +36,7 @@ export type TenantLegalProfile = {
   completeness_status: string
   postal_address: Record<string, unknown>
   customer_service_address: Record<string, unknown>
+  customer_service_contact?: Record<string, unknown>
   complaints_contact: Record<string, unknown>
   data_protection_contact: Record<string, unknown>
   billing_information: Record<string, unknown>
@@ -43,6 +44,10 @@ export type TenantLegalProfile = {
   missing_fields?: string[]
   review_required?: boolean
   verified_at?: string | null
+  reviewed_at?: string | null
+  reviewed_by?: string | null
+  last_synced_at?: string | null
+  last_synced_by?: string | null
   updated_at?: string | null
 }
 

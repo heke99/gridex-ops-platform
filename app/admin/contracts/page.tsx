@@ -10,7 +10,6 @@ import {
   archiveContractOfferAction,
   deleteContractOfferAction,
   saveContractOfferAction,
-  saveTenantLegalProfileAction,
   updateTenantContractChannelAction,
 } from "./actions";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
@@ -18,13 +17,13 @@ import type {
   ContractOfferRow,
   CustomerContractRow,
 } from "@/lib/customer-contracts/types";
-import TenantLegalProfileForm from "@/components/admin/legal/TenantLegalProfileForm";
 import {
   getTenantLegalProfile,
   listCanonicalContractCatalog,
   listPublicationReadiness,
   listTenantLegalOverrides,
 } from "@/lib/contracts/canonical";
+import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile";
 
 export const dynamic = "force-dynamic";
 
@@ -275,12 +274,34 @@ async function TenantCustomerContracts({
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-          <TenantLegalProfileForm
-            companyId={companyId}
-            profile={legalProfile}
-            action={saveTenantLegalProfileAction}
-            returnTo={`/admin/contracts?company_id=${companyId}`}
-          />
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Juridikprofil · read-only</p>
+            <h2 className="mt-2 text-xl font-black text-slate-950">
+              {["complete", "verified"].includes(legalProfile?.completeness_status ?? "") && (legalProfile?.missing_fields ?? []).length === 0
+                ? "Juridikprofilen är komplett"
+                : "Juridikprofilen behöver kompletteras"}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              Bolagets juridiska profil genereras från Redigera bolagsuppgifter. Avtalssidan har ingen separat skrivväg.
+            </p>
+            <div className="mt-4 grid gap-2 text-sm text-slate-700">
+              <p><strong>Status:</strong> {legalProfile?.completeness_status ?? "saknas"}</p>
+              <p><strong>Granskning krävs:</strong> {legalProfile?.review_required ? "Ja" : "Nej"}</p>
+              <p><strong>Senast synkroniserad:</strong> {legalProfile?.last_synced_at ? new Date(legalProfile.last_synced_at).toLocaleString("sv-SE") : legalProfile?.updated_at ? new Date(legalProfile.updated_at).toLocaleString("sv-SE") : "–"}</p>
+              <p><strong>Tvistlösning:</strong> OPS-standard</p>
+            </div>
+            {(legalProfile?.missing_fields ?? []).length > 0 ? (
+              <div className="mt-4 space-y-2">
+                {(legalProfile?.missing_fields ?? []).map((code) => {
+                  const detail = legalProfileMissingFieldDetail(companyId, code);
+                  return <p key={code} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"><strong>{detail.label}:</strong> {detail.message}</p>;
+                })}
+              </div>
+            ) : null}
+            <Link href="/admin/company-settings#company-profile" className="mt-5 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">
+              Redigera bolagsuppgifter
+            </Link>
+          </section>
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-950">
               Egna juridiska tillägg

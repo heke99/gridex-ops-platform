@@ -4405,8 +4405,10 @@ async function companyEmailContext(
     clean(data?.support_email) ??
     clean(data?.primary_contact_email);
   const postalAddress =
+    clean(lockedAddress.formatted) ??
     clean(lockedAddress.text) ??
     clean(lockedAddress.address) ??
+    clean(profileAddress.formatted) ??
     clean(profileAddress.text) ??
     clean(profileAddress.address);
   const senderName =

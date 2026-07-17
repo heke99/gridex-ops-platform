@@ -10,6 +10,12 @@ import {
   COMPANY_ASSIGNABLE_MEMBERSHIP_ROLES,
   COMPANY_ASSIGNABLE_ROLE_KEYS,
 } from '@/lib/tenant/companyUserRoles'
+import {
+  normalizeCountryCode,
+  normalizeEmail as normalizeLegalEmail,
+  normalizeUrl,
+} from '@/lib/legal/tenantLegalProfile'
+import { updateCompanyAndRebuildLegalProfile } from '@/lib/tenant/companyLegalProfile'
 
 export type CompanySettingsActionState = {
   ok: boolean
@@ -22,6 +28,14 @@ function normalizeText(value: FormDataEntryValue | null) {
 
 function normalizeEmail(value: FormDataEntryValue | null) {
   return normalizeText(value).toLowerCase()
+}
+
+function optionalText(value: FormDataEntryValue | null): string | null {
+  return normalizeText(value) || null
+}
+
+function optionalLegalEmail(value: FormDataEntryValue | null, label: string): string | null {
+  return normalizeLegalEmail(normalizeText(value), label) || null
 }
 
 function normalizeUpper(value: FormDataEntryValue | null) {
@@ -39,8 +53,7 @@ function normalizeCustomerNumberPrefix(value: FormDataEntryValue | null): string
 }
 
 function normalizeEnvironment(value: FormDataEntryValue | null) {
-  const text = normalizeText(value)
-  return text === 'production' ? 'production' : 'test'
+  return normalizeText(value) === 'production' ? 'production' : 'test'
 }
 
 function normalizeHexColor(value: FormDataEntryValue | null) {
@@ -66,23 +79,9 @@ export async function updateCompanySettingsAction(
     if (!currentCompany) return { ok: false, message: 'Bolaget hittades inte.' }
 
     const name = normalizeText(formData.get('name'))
-    const orgNumber = normalizeText(formData.get('org_number')) || null
+    if (!name) return { ok: false, message: 'Bolagsnamn krävs.' }
+
     const customerNumberPrefix = normalizeCustomerNumberPrefix(formData.get('customer_number_prefix'))
-    const primaryContactName = normalizeText(formData.get('primary_contact_name')) || null
-    const primaryContactEmail = normalizeEmail(formData.get('primary_contact_email')) || null
-    const phone = normalizeText(formData.get('phone')) || null
-    const website = normalizeText(formData.get('website')) || null
-    const billingContactEmail = normalizeEmail(formData.get('billing_contact_email')) || null
-    const supportEmail = normalizeEmail(formData.get('support_email')) || null
-    const addressLine1 = normalizeText(formData.get('address_line_1')) || null
-    const addressLine2 = normalizeText(formData.get('address_line_2')) || null
-    const postalCode = normalizeText(formData.get('postal_code')) || null
-    const city = normalizeText(formData.get('city')) || null
-    const countryCode = normalizeUpper(formData.get('country_code')) || 'SE'
-    const edielId = normalizeUpper(formData.get('ediel_id'))
-    const actorRole = normalizeUpper(formData.get('actor_role'))
-    const senderSubAddress = normalizeUpper(formData.get('sender_sub_address'))
-    const edielMailbox = normalizeText(formData.get('ediel_mailbox')) || null
     const requestedOperatingEnvironment = normalizeEnvironment(formData.get('operating_environment'))
     const isLiveApproved = Boolean(
       currentCompany.live_ediel_enabled === true &&
@@ -92,61 +91,86 @@ export async function updateCompanySettingsAction(
     if (requestedOperatingEnvironment === 'production' && !isLiveApproved) {
       return { ok: false, message: 'Produktion kan bara aktiveras via superadmin go-live efter godkända tester, production route och live-godkännande.' }
     }
-    const operatingEnvironment = isLiveApproved ? requestedOperatingEnvironment : 'test' 
-    const branding = {
-      display_name: normalizeText(formData.get('branding_display_name')) || null,
-      logo_url: normalizeText(formData.get('branding_logo_url')) || null,
-      primary_color: normalizeHexColor(formData.get('branding_primary_color')) || null,
-      support_email: supportEmail,
-      billing_email: billingContactEmail,
-      sender_email: normalizeEmail(formData.get('branding_sender_email')) || null,
-      customer_portal_name: normalizeText(formData.get('branding_customer_portal_name')) || null,
-    }
+    const operatingEnvironment = isLiveApproved ? requestedOperatingEnvironment : 'test'
 
-    if (!name) return { ok: false, message: 'Bolagsnamn krävs.' }
-
-    const currentPrefix = currentCompany.customer_number_prefix ?? null
-    if (customerNumberPrefix !== currentPrefix) {
+    if (customerNumberPrefix !== (currentCompany.customer_number_prefix ?? null)) {
       const { count, error: customerCountError } = await supabaseService
         .from('customers')
         .select('id', { count: 'exact', head: true })
         .eq('company_id', companyId)
         .not('customer_number', 'is', null)
-
       if (customerCountError) throw customerCountError
       if ((count ?? 0) > 0) {
         return { ok: false, message: 'Kundnummerprefix kan inte ändras efter att bolaget har fått kundnummer. Skapa ett nytt prefix bara innan första kunden.' }
       }
     }
 
-    const { error } = await supabaseService
-      .from('companies')
-      .update({
+    const supportEmail = optionalLegalEmail(formData.get('support_email'), 'Kundservice: e-post')
+    const billingContactEmail = optionalLegalEmail(formData.get('billing_contact_email'), 'Fakturering: e-post')
+    const branding = {
+      display_name: optionalText(formData.get('branding_display_name')),
+      logo_url: optionalText(formData.get('branding_logo_url')),
+      primary_color: normalizeHexColor(formData.get('branding_primary_color')),
+      support_email: supportEmail,
+      billing_email: billingContactEmail,
+      sender_email: optionalLegalEmail(formData.get('branding_sender_email'), 'Avsändare: e-post'),
+      customer_portal_name: optionalText(formData.get('branding_customer_portal_name')),
+    }
+
+    const result = await updateCompanyAndRebuildLegalProfile({
+      companyId,
+      actorUserId: admin.userId,
+      markReviewed: false,
+      values: {
         name,
-        org_number: orgNumber,
+        legal_name: optionalText(formData.get('legal_name')),
+        org_number: optionalText(formData.get('org_number')),
+        vat_number: optionalText(formData.get('vat_number')),
         customer_number_prefix: customerNumberPrefix,
-        primary_contact_name: primaryContactName,
-        primary_contact_email: primaryContactEmail,
-        phone,
-        website,
-        billing_contact_email: billingContactEmail,
+        primary_contact_name: optionalText(formData.get('primary_contact_name')),
+        primary_contact_email: optionalLegalEmail(formData.get('primary_contact_email'), 'Primär kontakt: e-post'),
+        phone: optionalText(formData.get('phone')),
+        website: normalizeUrl(normalizeText(formData.get('website')), 'Webbplats') || null,
         support_email: supportEmail,
-        address_line_1: addressLine1,
-        address_line_2: addressLine2,
-        postal_code: postalCode,
-        city,
-        country_code: countryCode,
-        ediel_id: edielId,
-        actor_role: actorRole,
-        sender_sub_address: senderSubAddress,
-        ediel_mailbox: edielMailbox,
+        customer_service_hours: optionalText(formData.get('customer_service_hours')),
+        address_line_1: optionalText(formData.get('address_line_1')),
+        address_line_2: optionalText(formData.get('address_line_2')),
+        postal_code: optionalText(formData.get('postal_code')),
+        city: optionalText(formData.get('city')),
+        country_code: normalizeCountryCode(normalizeText(formData.get('country_code'))),
+        complaints_contact_name: optionalText(formData.get('complaints_contact_name')),
+        complaints_email: optionalLegalEmail(formData.get('complaints_email'), 'Klagomål: e-post'),
+        complaints_phone: optionalText(formData.get('complaints_phone')),
+        complaints_address_line_1: optionalText(formData.get('complaints_address_line_1')),
+        complaints_address_line_2: optionalText(formData.get('complaints_address_line_2')),
+        complaints_postal_code: optionalText(formData.get('complaints_postal_code')),
+        complaints_city: optionalText(formData.get('complaints_city')),
+        complaints_country_code: normalizeCountryCode(normalizeText(formData.get('complaints_country_code'))),
+        complaints_description: optionalText(formData.get('complaints_description')),
+        data_protection_contact_name: optionalText(formData.get('data_protection_contact_name')),
+        data_protection_email: optionalLegalEmail(formData.get('data_protection_email'), 'Dataskydd: e-post'),
+        data_protection_phone: optionalText(formData.get('data_protection_phone')),
+        data_protection_address_line_1: optionalText(formData.get('data_protection_address_line_1')),
+        data_protection_address_line_2: optionalText(formData.get('data_protection_address_line_2')),
+        data_protection_postal_code: optionalText(formData.get('data_protection_postal_code')),
+        data_protection_city: optionalText(formData.get('data_protection_city')),
+        data_protection_country_code: normalizeCountryCode(normalizeText(formData.get('data_protection_country_code'))),
+        billing_contact_email: billingContactEmail,
+        billing_contact_phone: optionalText(formData.get('billing_contact_phone')),
+        billing_address_line_1: optionalText(formData.get('billing_address_line_1')),
+        billing_address_line_2: optionalText(formData.get('billing_address_line_2')),
+        billing_postal_code: optionalText(formData.get('billing_postal_code')),
+        billing_city: optionalText(formData.get('billing_city')),
+        billing_country_code: normalizeCountryCode(normalizeText(formData.get('billing_country_code'))),
+        billing_terms_summary: optionalText(formData.get('billing_terms_summary')),
+        ediel_id: normalizeUpper(formData.get('ediel_id')),
+        actor_role: normalizeUpper(formData.get('actor_role')),
+        sender_sub_address: normalizeUpper(formData.get('sender_sub_address')),
+        ediel_mailbox: optionalText(formData.get('ediel_mailbox')),
         operating_environment: operatingEnvironment,
         branding,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', companyId)
-
-    if (error) throw error
+      },
+    })
 
     await logAdminActionAndUsage({
       companyId,
@@ -154,7 +178,7 @@ export async function updateCompanySettingsAction(
       entityType: 'company',
       entityId: companyId,
       action: 'company_settings_updated',
-      label: 'Bolagsinställningar sparade',
+      label: 'Bolagsinställningar och juridikprofil synkroniserade',
       oldValues: {
         name: currentCompany.name,
         org_number: currentCompany.org_number ?? null,
@@ -163,16 +187,27 @@ export async function updateCompanySettingsAction(
       },
       newValues: {
         name,
-        org_number: orgNumber,
         customer_number_prefix: customerNumberPrefix,
         operating_environment: operatingEnvironment,
+        legal_profile_status: result.completeness_status,
+        legal_profile_missing_fields: result.missing_fields,
       },
       source: 'company_settings',
     }).catch(() => undefined)
 
     revalidatePath('/admin/company-settings')
     revalidatePath('/admin/companies')
-    return { ok: true, message: 'Bolagsinställningar sparades.' }
+    revalidatePath(`/admin/companies/${companyId}`)
+    revalidatePath('/admin/contracts')
+    revalidatePath('/api/v1/website/public-contracts')
+
+    const missing = result.missing_field_details.map((item) => item.label).join(', ')
+    return {
+      ok: true,
+      message: missing
+        ? `Bolagsinställningarna sparades. Juridikprofilen saknar fortfarande: ${missing}.`
+        : 'Bolagsinställningarna sparades och juridikprofilen synkroniserades.',
+    }
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Bolagsinställningar kunde inte sparas.' }
   }

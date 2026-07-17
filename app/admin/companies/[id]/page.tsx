@@ -22,11 +22,10 @@ import { computeTenantReadiness, listWebhookSubscriptions } from '@/lib/admin/we
 import { getTenantWebsiteReadiness, listCompanyLegalTextVersions, type LegalTextVersion, type TenantWebsiteReadiness } from '@/lib/opsMaster/readiness'
 import { getTenantLegalDefaultStatus, type TenantLegalDefaultStatus } from '@/lib/tenant/legalDefaults'
 import { CANONICAL_LEGAL_MODULES, canonicalLegalModuleLabel } from '@/lib/legal/canonicalModules'
-import { getCanonicalTenantContractReadiness, getTenantLegalProfile, type CanonicalTenantContractReadiness } from '@/lib/contracts/canonical'
-import TenantLegalProfileForm from '@/components/admin/legal/TenantLegalProfileForm'
-import { saveTenantLegalProfileAction } from '@/app/admin/contracts/actions'
+import { getCanonicalTenantContractReadiness, getTenantLegalProfile, type CanonicalTenantContractReadiness, type TenantLegalProfile } from '@/lib/contracts/canonical'
+import { legalProfileMissingFieldDetail } from '@/lib/tenant/companyLegalProfile'
 import { saveCompanyBrpAction, saveCompanyEdielActorAction } from './ediel-actions'
-import { saveCompanyProfileAction } from './company-profile-actions'
+import { reviewCompanyLegalProfileAction, saveCompanyProfileAction } from './company-profile-actions'
 import {
   checkCompanyDomainVerificationAction,
   resetEmailTemplateAction,
@@ -458,40 +457,150 @@ function CompanySetupControlPanel({
   )
 }
 
-function CompanyProfileEditor({ company }: { company: GovernanceCompany }) {
+function CompanyProfileField({
+  label,
+  name,
+  defaultValue,
+  type = 'text',
+  placeholder,
+  required = false,
+}: {
+  label: string
+  name: string
+  defaultValue: string
+  type?: string
+  placeholder?: string
+  required?: boolean
+}) {
+  return (
+    <label className="grid gap-1 text-sm font-bold text-slate-800">
+      {label}
+      <input name={name} type={type} defaultValue={defaultValue} placeholder={placeholder} required={required} className="rounded-2xl border border-slate-300 px-4 py-3" />
+    </label>
+  )
+}
+
+function CompanyProfileEditor({ company, profile }: { company: GovernanceCompany; profile: TenantLegalProfile | null }) {
+  const missingFields = profile?.missing_fields ?? []
+  const profileComplete = ['complete', 'verified'].includes(profile?.completeness_status ?? '') && missingFields.length === 0
+  const lastSyncedAt = profile?.last_synced_at ?? profile?.updated_at ?? null
+  const reviewedAt = profile?.reviewed_at ?? profile?.verified_at ?? null
+
   return (
     <section id="company-profile" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Redigera bolagsuppgifter</p>
-          <h2 className="mt-2 text-xl font-black text-slate-950">Enkel bolagsredigerare</h2>
-          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-700">
-            Ändringar gäller framtida avtal, mail och Ediel-konfiguration. Gamla signerade snapshots och historiska meddelanden ändras inte retroaktivt.
-          </p>
-        </div>
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Redigera bolagsuppgifter</p>
+        <h2 className="mt-2 text-xl font-black text-slate-950">Bolagets enda redigerbara masterkälla</h2>
+        <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-700">
+          När uppgifterna sparas uppdateras bolaget, juridikprofilen och readiness atomiskt. Historiska signerade avtal, juridikversioner, PDF:er och e-postbevis ändras aldrig retroaktivt.
+        </p>
       </div>
-      <form action={saveCompanyProfileAction} className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+
+      <form action={saveCompanyProfileAction} className="mt-6 space-y-8">
         <input type="hidden" name="company_id" value={company.id} />
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Bolagsnamn<input name="name" defaultValue={company.name} required className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Organisationsnummer<input name="org_number" defaultValue={company.org_number ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Kundnummerprefix<input name="customer_number_prefix" defaultValue={company.customer_number_prefix ?? ''} placeholder="t.ex. DX" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Kontaktperson<input name="primary_contact_name" defaultValue={company.primary_contact_name ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Kontaktmail<input name="primary_contact_email" type="email" defaultValue={company.primary_contact_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Supportmail<input name="support_email" type="email" defaultValue={company.support_email ?? company.primary_contact_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Faktura-e-post<input name="billing_contact_email" type="email" defaultValue={company.billing_contact_email ?? company.support_email ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Gatuadress<input name="address_line_1" defaultValue={company.address_line_1 ?? ''} placeholder="Storgatan 1" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Adressrad 2<input name="address_line_2" defaultValue={company.address_line_2 ?? ''} placeholder="C/O eller våning" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Postnummer<input name="postal_code" defaultValue={company.postal_code ?? ''} placeholder="211 20" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Ort<input name="city" defaultValue={company.city ?? ''} placeholder="Malmö" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Landkod<input name="country_code" defaultValue={company.country_code ?? 'SE'} placeholder="SE" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Telefon<input name="phone" defaultValue={company.phone ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Webbplats<input name="website" defaultValue={company.website ?? ''} placeholder="https://bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800">Status<select name="status" defaultValue={company.status} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="onboarding">Onboarding</option><option value="active">Aktivt</option><option value="paused">Pausat</option><option value="suspended">Avstängt</option><option value="archived">Arkiverat</option></select></label>
-        <label className="grid gap-1 text-sm font-bold text-slate-800 md:col-span-2 xl:col-span-3">Intern notering om status<input name="status_reason" defaultValue={company.status_reason ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
-        <div className="md:col-span-2 xl:col-span-3">
-          <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">Spara bolagsuppgifter</button>
-        </div>
+
+        <fieldset className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <legend className="mb-3 w-full text-base font-black text-slate-950">Bolagsidentitet</legend>
+          <CompanyProfileField label="Juridiskt bolagsnamn" name="legal_name" defaultValue={company.legal_name ?? company.name} required />
+          <CompanyProfileField label="Varumärkesnamn" name="name" defaultValue={company.name} required />
+          <CompanyProfileField label="Organisationsnummer" name="org_number" defaultValue={company.org_number ?? ''} required />
+          <CompanyProfileField label="Momsregistreringsnummer" name="vat_number" defaultValue={company.vat_number ?? ''} />
+          <CompanyProfileField label="Webbplats" name="website" type="url" defaultValue={company.website ?? ''} placeholder="https://bolag.se" />
+          <CompanyProfileField label="Kundnummerprefix" name="customer_number_prefix" defaultValue={company.customer_number_prefix ?? ''} placeholder="t.ex. DX" />
+        </fieldset>
+
+        <fieldset id="company-address" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <legend className="mb-3 w-full text-base font-black text-slate-950">Postadress</legend>
+          <CompanyProfileField label="Adressrad 1" name="address_line_1" defaultValue={company.address_line_1 ?? ''} placeholder="Storgatan 1" required />
+          <CompanyProfileField label="Adressrad 2" name="address_line_2" defaultValue={company.address_line_2 ?? ''} placeholder="C/O eller våning" />
+          <CompanyProfileField label="Postnummer" name="postal_code" defaultValue={company.postal_code ?? ''} placeholder="211 20" required />
+          <CompanyProfileField label="Ort" name="city" defaultValue={company.city ?? ''} placeholder="Malmö" required />
+          <CompanyProfileField label="Landkod" name="country_code" defaultValue={company.country_code ?? 'SE'} placeholder="SE" required />
+        </fieldset>
+
+        <fieldset className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <legend className="mb-3 w-full text-base font-black text-slate-950">Kundservice</legend>
+          <CompanyProfileField label="Kontaktperson eller funktion" name="primary_contact_name" defaultValue={company.primary_contact_name ?? ''} />
+          <CompanyProfileField label="Primär e-post" name="primary_contact_email" type="email" defaultValue={company.primary_contact_email ?? ''} />
+          <CompanyProfileField label="Supportmail" name="support_email" type="email" defaultValue={company.support_email ?? company.primary_contact_email ?? ''} required />
+          <CompanyProfileField label="Telefon" name="phone" defaultValue={company.phone ?? ''} required />
+          <CompanyProfileField label="Öppettider" name="customer_service_hours" defaultValue={company.customer_service_hours ?? ''} placeholder="Vardagar 08:00–17:00" />
+        </fieldset>
+
+        <fieldset className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <legend className="mb-3 w-full text-base font-black text-slate-950">Klagomål</legend>
+          <CompanyProfileField label="Kontaktperson eller funktion" name="complaints_contact_name" defaultValue={company.complaints_contact_name ?? ''} />
+          <CompanyProfileField label="E-post" name="complaints_email" type="email" defaultValue={company.complaints_email ?? ''} />
+          <CompanyProfileField label="Telefon" name="complaints_phone" defaultValue={company.complaints_phone ?? ''} />
+          <CompanyProfileField label="Adressrad 1" name="complaints_address_line_1" defaultValue={company.complaints_address_line_1 ?? ''} />
+          <CompanyProfileField label="Adressrad 2" name="complaints_address_line_2" defaultValue={company.complaints_address_line_2 ?? ''} />
+          <CompanyProfileField label="Postnummer" name="complaints_postal_code" defaultValue={company.complaints_postal_code ?? ''} />
+          <CompanyProfileField label="Ort" name="complaints_city" defaultValue={company.complaints_city ?? ''} />
+          <CompanyProfileField label="Landkod" name="complaints_country_code" defaultValue={company.complaints_country_code ?? company.country_code ?? 'SE'} />
+          <label className="grid gap-1 text-sm font-bold text-slate-800 md:col-span-2 xl:col-span-3">Beskrivning<textarea name="complaints_description" defaultValue={company.complaints_description ?? ''} rows={3} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        </fieldset>
+
+        <fieldset className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <legend className="mb-3 w-full text-base font-black text-slate-950">Dataskydd</legend>
+          <CompanyProfileField label="Kontaktperson eller funktion" name="data_protection_contact_name" defaultValue={company.data_protection_contact_name ?? ''} />
+          <CompanyProfileField label="E-post" name="data_protection_email" type="email" defaultValue={company.data_protection_email ?? ''} />
+          <CompanyProfileField label="Telefon" name="data_protection_phone" defaultValue={company.data_protection_phone ?? ''} />
+          <CompanyProfileField label="Adressrad 1" name="data_protection_address_line_1" defaultValue={company.data_protection_address_line_1 ?? ''} />
+          <CompanyProfileField label="Adressrad 2" name="data_protection_address_line_2" defaultValue={company.data_protection_address_line_2 ?? ''} />
+          <CompanyProfileField label="Postnummer" name="data_protection_postal_code" defaultValue={company.data_protection_postal_code ?? ''} />
+          <CompanyProfileField label="Ort" name="data_protection_city" defaultValue={company.data_protection_city ?? ''} />
+          <CompanyProfileField label="Landkod" name="data_protection_country_code" defaultValue={company.data_protection_country_code ?? company.country_code ?? 'SE'} />
+        </fieldset>
+
+        <fieldset className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <legend className="mb-3 w-full text-base font-black text-slate-950">Fakturering</legend>
+          <CompanyProfileField label="Faktureringsmail" name="billing_contact_email" type="email" defaultValue={company.billing_contact_email ?? ''} />
+          <CompanyProfileField label="Fakturatelefon" name="billing_contact_phone" defaultValue={company.billing_contact_phone ?? ''} />
+          <CompanyProfileField label="Adressrad 1" name="billing_address_line_1" defaultValue={company.billing_address_line_1 ?? ''} />
+          <CompanyProfileField label="Adressrad 2" name="billing_address_line_2" defaultValue={company.billing_address_line_2 ?? ''} />
+          <CompanyProfileField label="Postnummer" name="billing_postal_code" defaultValue={company.billing_postal_code ?? ''} />
+          <CompanyProfileField label="Ort" name="billing_city" defaultValue={company.billing_city ?? ''} />
+          <CompanyProfileField label="Landkod" name="billing_country_code" defaultValue={company.billing_country_code ?? company.country_code ?? 'SE'} />
+          <label className="grid gap-1 text-sm font-bold text-slate-800 md:col-span-2 xl:col-span-3">Särskild faktureringsinformation<textarea name="billing_terms_summary" defaultValue={company.billing_terms_summary ?? ''} rows={3} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        </fieldset>
+
+        <fieldset className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <legend className="mb-3 w-full text-base font-black text-slate-950">Status</legend>
+          <label className="grid gap-1 text-sm font-bold text-slate-800">Bolagsstatus<select name="status" defaultValue={company.status} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="onboarding">Onboarding</option><option value="active">Aktivt</option><option value="paused">Pausat</option><option value="suspended">Avstängt</option><option value="archived">Arkiverat</option></select></label>
+          <label className="grid gap-1 text-sm font-bold text-slate-800 md:col-span-2">Intern statusnotering<input name="status_reason" defaultValue={company.status_reason ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+        </fieldset>
+
+        <button className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800">Spara bolagsuppgifter och synkronisera juridik</button>
       </form>
+
+      <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Juridisk status · read-only</p>
+            <h3 className="mt-2 text-lg font-black text-slate-950">{profileComplete ? 'Juridikprofilen är komplett' : 'Juridikprofilen behöver kompletteras'}</h3>
+            <p className="mt-2 text-sm text-slate-700">Tvistlösning genereras från OPS-standard. Tenantens uttryckliga kontaktuppgifter och tillåtna overrides bevaras.</p>
+          </div>
+          <span className={`rounded-full border px-3 py-1 text-xs font-black ${profileComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>{profile?.completeness_status ?? 'saknas'}</span>
+        </div>
+        <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
+          <div><dt className="font-bold text-slate-500">Postadress</dt><dd className="mt-1 font-semibold text-slate-900">{missingFields.includes('postal_address') ? 'Ofullständig' : 'Komplett'}</dd></div>
+          <div><dt className="font-bold text-slate-500">Granskning krävs</dt><dd className="mt-1 font-semibold text-slate-900">{profile?.review_required ? 'Ja' : 'Nej'}</dd></div>
+          <div><dt className="font-bold text-slate-500">Senast synkroniserad</dt><dd className="mt-1 font-semibold text-slate-900">{formatDate(lastSyncedAt)}</dd></div>
+          <div><dt className="font-bold text-slate-500">Senast granskad</dt><dd className="mt-1 font-semibold text-slate-900">{formatDate(reviewedAt)}</dd></div>
+        </dl>
+        {missingFields.length > 0 ? (
+          <div className="mt-4 space-y-2">
+            {missingFields.map((code) => {
+              const detail = legalProfileMissingFieldDetail(company.id, code)
+              return <p key={code} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"><strong>{detail.label}:</strong> {detail.message}</p>
+            })}
+          </div>
+        ) : null}
+        {profile && !profileComplete && missingFields.length === 0 ? <p className="mt-4 text-sm font-semibold text-amber-800">Uppgifterna är kompletta men måste granskas innan publicering.</p> : null}
+        {profile && missingFields.length === 0 && profile.review_required ? (
+          <form action={reviewCompanyLegalProfileAction} className="mt-4"><input type="hidden" name="company_id" value={company.id} /><button className="rounded-2xl border border-emerald-300 bg-white px-4 py-2 text-sm font-black text-emerald-800 hover:bg-emerald-50">Markera juridikprofilen som granskad</button></form>
+        ) : null}
+      </div>
     </section>
   )
 }
@@ -642,7 +751,7 @@ function CompanyLegalMasterSection({
           <p className="mt-1 text-slate-600">Senast verifierad: {formatDate(canonicalReadiness.legal_profile_verified_at)}</p>
           <p className="mt-1 text-slate-600">Profil uppdaterad: {formatDate(canonicalReadiness.legal_profile_updated_at)}</p>
           {canonicalReadiness.legal_profile_missing_fields.length > 0 ? <p className="mt-2 text-amber-800">Saknas: {canonicalReadiness.legal_profile_missing_fields.map((field) => missingFieldLabels[field] ?? field).join(', ')}</p> : null}
-          <Link href="#tenant-legal-profile" className="mt-3 inline-flex text-xs font-black text-emerald-800">Redigera juridikprofil</Link>
+          <Link href="#company-profile" className="mt-3 inline-flex text-xs font-black text-emerald-800">Redigera bolagsuppgifter</Link>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
           <p className="font-black text-slate-950">Publicering</p>
@@ -1258,16 +1367,8 @@ export default async function CompanyDetailPage({
           actorSummary={actorSummary}
         />
 
-        <CompanyProfileEditor company={company} />
+        <CompanyProfileEditor company={company} profile={tenantLegalProfile} />
 
-        <TenantLegalProfileForm
-          companyId={company.id}
-          profile={tenantLegalProfile}
-          action={saveTenantLegalProfileAction}
-          returnTo={`/admin/companies/${company.id}`}
-          title={`Juridikprofil för ${company.name}`}
-          description="Redigera den juridiska identiteten direkt på bolagskortet. Bolagsadress och kontaktuppgifter används som OPS-standard, medan manuella juridiska värden bevaras som den publicerade sanningen."
-        />
 
         {actorSummary ? (
           <section className="grid gap-4 lg:grid-cols-2">

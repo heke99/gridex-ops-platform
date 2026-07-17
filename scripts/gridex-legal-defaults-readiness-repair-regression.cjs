@@ -125,7 +125,11 @@ const controls = read('app/admin/companies/[id]/TenantPlatformControls.tsx')
 assert(controls.includes('CANONICAL_EMAIL_EVENT_LABELS'), 'Tenant controls do not use shared canonical mail labels')
 
 const contractActions = read('app/admin/contracts/actions.ts')
-assert(contractActions.includes('review_required: false'), 'Manual legal-profile save does not clear a resolved review blocker')
+const companyProfileActions = read('app/admin/companies/[id]/company-profile-actions.ts')
+const singleEditorMigration = read('supabase/migrations/20260717190000_company_legal_profile_single_editor.sql')
+assert(companyProfileActions.includes('markReviewed: true'), 'Superadmin company save does not clear a resolved review blocker atomically')
+assert(singleEditorMigration.includes('set review_required=false,reviewed_at=v_now'), 'Canonical rebuild cannot mark a complete profile reviewed')
+assert(!contractActions.includes('tenant_legal_profiles'), 'Contracts action still writes the generated legal profile directly')
 
 const repairAction = read('app/admin/companies/[id]/email-automation-actions.ts')
 assert(repairAction.includes('templates.created'), 'Repair action does not report template repairs')

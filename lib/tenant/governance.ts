@@ -42,8 +42,10 @@ export type GovernanceCount = {
 export type GovernanceCompany = {
   id: string
   name: string
+  legal_name: string | null
   slug: string | null
   org_number: string | null
+  vat_number: string | null
   customer_number_prefix: string | null
   status: CompanyOperationalStatus
   status_reason: string | null
@@ -53,11 +55,36 @@ export type GovernanceCompany = {
   billing_contact_email: string | null
   phone: string | null
   website: string | null
+  customer_service_hours: string | null
   address_line_1: string | null
   address_line_2: string | null
   postal_code: string | null
   city: string | null
   country_code: string | null
+  complaints_contact_name: string | null
+  complaints_email: string | null
+  complaints_phone: string | null
+  complaints_address_line_1: string | null
+  complaints_address_line_2: string | null
+  complaints_postal_code: string | null
+  complaints_city: string | null
+  complaints_country_code: string | null
+  complaints_description: string | null
+  data_protection_contact_name: string | null
+  data_protection_email: string | null
+  data_protection_phone: string | null
+  data_protection_address_line_1: string | null
+  data_protection_address_line_2: string | null
+  data_protection_postal_code: string | null
+  data_protection_city: string | null
+  data_protection_country_code: string | null
+  billing_contact_phone: string | null
+  billing_address_line_1: string | null
+  billing_address_line_2: string | null
+  billing_postal_code: string | null
+  billing_city: string | null
+  billing_country_code: string | null
+  billing_terms_summary: string | null
   created_at: string | null
   updated_at: string | null
   activeUsers: number
@@ -105,8 +132,10 @@ type CountFilter = {
 type CompanyRow = {
   id: string
   name: string
+  legal_name?: string | null
   slug?: string | null
   org_number?: string | null
+  vat_number?: string | null
   customer_number_prefix?: string | null
   status?: string | null
   status_reason?: string | null
@@ -114,6 +143,7 @@ type CompanyRow = {
   primary_contact_name?: string | null
   phone?: string | null
   website?: string | null
+  customer_service_hours?: string | null
   billing_contact_email?: string | null
   support_email?: string | null
   address_line_1?: string | null
@@ -121,6 +151,30 @@ type CompanyRow = {
   postal_code?: string | null
   city?: string | null
   country_code?: string | null
+  complaints_contact_name?: string | null
+  complaints_email?: string | null
+  complaints_phone?: string | null
+  complaints_address_line_1?: string | null
+  complaints_address_line_2?: string | null
+  complaints_postal_code?: string | null
+  complaints_city?: string | null
+  complaints_country_code?: string | null
+  complaints_description?: string | null
+  data_protection_contact_name?: string | null
+  data_protection_email?: string | null
+  data_protection_phone?: string | null
+  data_protection_address_line_1?: string | null
+  data_protection_address_line_2?: string | null
+  data_protection_postal_code?: string | null
+  data_protection_city?: string | null
+  data_protection_country_code?: string | null
+  billing_contact_phone?: string | null
+  billing_address_line_1?: string | null
+  billing_address_line_2?: string | null
+  billing_postal_code?: string | null
+  billing_city?: string | null
+  billing_country_code?: string | null
+  billing_terms_summary?: string | null
   ediel_id?: string | null
   actor_role?: string | null
   sender_sub_address?: string | null
@@ -266,7 +320,7 @@ async function latestTimestamp(table: string, companyId: string, column = 'creat
   }
 }
 
-const COMPANY_FULL_SELECT = 'id, name, slug, org_number, customer_number_prefix, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at'
+const COMPANY_FULL_SELECT = 'id, name, legal_name, slug, org_number, vat_number, customer_number_prefix, status, status_reason, primary_contact_email, primary_contact_name, phone, website, customer_service_hours, billing_contact_email, billing_contact_phone, billing_address_line_1, billing_address_line_2, billing_postal_code, billing_city, billing_country_code, billing_terms_summary, support_email, address_line_1, address_line_2, postal_code, city, country_code, complaints_contact_name, complaints_email, complaints_phone, complaints_address_line_1, complaints_address_line_2, complaints_postal_code, complaints_city, complaints_country_code, complaints_description, data_protection_contact_name, data_protection_email, data_protection_phone, data_protection_address_line_1, data_protection_address_line_2, data_protection_postal_code, data_protection_city, data_protection_country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at'
 const COMPANY_SAFE_SELECT = 'id, name, slug, org_number, customer_number_prefix, status, status_reason, primary_contact_email, primary_contact_name, phone, website, created_at, updated_at'
 const COMPANY_MINIMAL_SELECT = 'id, name, status'
 
@@ -386,8 +440,10 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
   return {
     id: company.id,
     name: company.name,
+    legal_name: company.legal_name ?? null,
     slug: company.slug ?? null,
     org_number: company.org_number ?? null,
+    vat_number: company.vat_number ?? null,
     customer_number_prefix: company.customer_number_prefix ?? null,
     status: normalizeCompanyStatus(company.status),
     status_reason: company.status_reason ?? null,
@@ -397,11 +453,36 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
     billing_contact_email: company.billing_contact_email ?? null,
     phone: company.phone ?? null,
     website: company.website ?? null,
+    customer_service_hours: company.customer_service_hours ?? null,
     address_line_1: company.address_line_1 ?? null,
     address_line_2: company.address_line_2 ?? null,
     postal_code: company.postal_code ?? null,
     city: company.city ?? null,
     country_code: company.country_code ?? null,
+    complaints_contact_name: company.complaints_contact_name ?? null,
+    complaints_email: company.complaints_email ?? null,
+    complaints_phone: company.complaints_phone ?? null,
+    complaints_address_line_1: company.complaints_address_line_1 ?? null,
+    complaints_address_line_2: company.complaints_address_line_2 ?? null,
+    complaints_postal_code: company.complaints_postal_code ?? null,
+    complaints_city: company.complaints_city ?? null,
+    complaints_country_code: company.complaints_country_code ?? null,
+    complaints_description: company.complaints_description ?? null,
+    data_protection_contact_name: company.data_protection_contact_name ?? null,
+    data_protection_email: company.data_protection_email ?? null,
+    data_protection_phone: company.data_protection_phone ?? null,
+    data_protection_address_line_1: company.data_protection_address_line_1 ?? null,
+    data_protection_address_line_2: company.data_protection_address_line_2 ?? null,
+    data_protection_postal_code: company.data_protection_postal_code ?? null,
+    data_protection_city: company.data_protection_city ?? null,
+    data_protection_country_code: company.data_protection_country_code ?? null,
+    billing_contact_phone: company.billing_contact_phone ?? null,
+    billing_address_line_1: company.billing_address_line_1 ?? null,
+    billing_address_line_2: company.billing_address_line_2 ?? null,
+    billing_postal_code: company.billing_postal_code ?? null,
+    billing_city: company.billing_city ?? null,
+    billing_country_code: company.billing_country_code ?? null,
+    billing_terms_summary: company.billing_terms_summary ?? null,
     created_at: company.created_at ?? null,
     updated_at: company.updated_at ?? null,
     activeUsers,
@@ -431,7 +512,7 @@ const GOVERNANCE_SUMMARY_CONCURRENCY = 5
 export async function listCompanyGovernanceSummaries(): Promise<GovernanceCompany[]> {
   const { data, error } = await supabaseService
     .from('companies')
-    .select('id, name, slug, org_number, customer_number_prefix, status, status_reason, primary_contact_email, primary_contact_name, phone, website, billing_contact_email, support_email, address_line_1, address_line_2, postal_code, city, country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at')
+    .select('id, name, legal_name, slug, org_number, vat_number, customer_number_prefix, status, status_reason, primary_contact_email, primary_contact_name, phone, website, customer_service_hours, billing_contact_email, billing_contact_phone, billing_address_line_1, billing_address_line_2, billing_postal_code, billing_city, billing_country_code, billing_terms_summary, support_email, address_line_1, address_line_2, postal_code, city, country_code, complaints_contact_name, complaints_email, complaints_phone, complaints_address_line_1, complaints_address_line_2, complaints_postal_code, complaints_city, complaints_country_code, complaints_description, data_protection_contact_name, data_protection_email, data_protection_phone, data_protection_address_line_1, data_protection_address_line_2, data_protection_postal_code, data_protection_city, data_protection_country_code, ediel_id, actor_role, sender_sub_address, ediel_mailbox, operating_environment, production_status, live_ediel_enabled, live_approved_at, live_blocked_reason, production_ediel_id, production_mailbox, production_application_reference, production_counterparty_ediel_id, branding, created_at, updated_at')
     .neq('status', 'deleted_test_only')
     .order('created_at', { ascending: false })
     .limit(GOVERNANCE_COMPANY_LIST_LIMIT)

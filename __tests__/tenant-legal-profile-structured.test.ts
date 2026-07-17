@@ -19,7 +19,7 @@ describe('structured tenant legal profile', () => {
     data.set('postal_address_country_code', 'se')
 
     expect(buildStructuredAddress(data, 'postal_address')).toEqual({
-      text: 'Storgatan 1, C/O Gridex, 211 20 Malmö, SE',
+      formatted: 'Storgatan 1, C/O Gridex, 211 20 Malmö, SE',
       address_line_1: 'Storgatan 1',
       address_line_2: 'C/O Gridex',
       postal_code: '211 20',

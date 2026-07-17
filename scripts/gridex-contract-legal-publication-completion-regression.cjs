@@ -18,7 +18,6 @@ const pgcryptoRuntimeHotfix = read(
   "supabase/migrations/20260715170000_contract_pgcrypto_runtime_search_path_hotfix.sql",
 );
 const page = read("app/admin/contracts/page.tsx");
-const legalProfileForm = read("components/admin/legal/TenantLegalProfileForm.tsx");
 const actions = read("app/admin/contracts/actions.ts");
 const canonical = read("lib/contracts/canonical.ts");
 const publicContracts = read("lib/website/publicContracts.ts");
@@ -61,10 +60,10 @@ const required = [
       !canonical.includes("commercial_terms"),
   ],
   [
-    "legal profile fields are React-safe",
-    page.includes("<TenantLegalProfileForm") &&
-      legalProfileForm.includes("defaultValue={") &&
-      !legalProfileForm.includes("defaultValue={profile?.postal_address}"),
+    "legal profile is read-only on contracts page",
+    page.includes("Juridikprofil · read-only") &&
+      page.includes("Redigera bolagsuppgifter") &&
+      !page.includes("TenantLegalProfileForm"),
   ],
   [
     "all legal modules",
@@ -111,9 +110,10 @@ const required = [
       actions.includes("website_publication_allowed"),
   ],
   [
-    "tenant legal profile UI",
-    page.includes("saveTenantLegalProfileAction") &&
-      actions.includes("tenant_legal_profiles"),
+    "tenant legal profile uses company single source",
+    page.includes("Juridikprofil · read-only") &&
+      !page.includes("saveTenantLegalProfileAction") &&
+      !actions.includes("tenant_legal_profiles"),
   ],
   ["signed contracts separated", page.includes("Tecknade kundavtal")],
   [

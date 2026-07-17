@@ -12,15 +12,7 @@ import { supabaseService } from "@/lib/supabase/service";
 import { requireOperationalCompanyId } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
-import {
-  buildBillingInformation,
-  buildDisputeResolutionInformation,
-  buildStructuredAddress,
-  buildStructuredContact,
-  formText,
-  normalizeEmail,
-  normalizeUrl,
-} from "@/lib/legal/tenantLegalProfile";
+
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -108,24 +100,6 @@ function redirectBack(params: { success?: string; error?: string }): never {
   throw new Error("Kunde inte navigera tillbaka efter åtgärden.");
 }
 
-function redirectLegalProfileBack(
-  companyId: string,
-  formData: FormData,
-  params: { success?: string; error?: string },
-): never {
-  const requested = getString(formData, "return_to");
-  const companyPage = `/admin/companies/${companyId}`;
-  const contractPage = `/admin/contracts?company_id=${companyId}`;
-  const base = requested === companyPage || requested === contractPage
-    ? requested
-    : contractPage;
-  const search = new URLSearchParams();
-  if (params.success) search.set("success", params.success);
-  if (params.error) search.set("error", params.error);
-  const separator = base.includes("?") ? "&" : "?";
-  redirect(`${base}${separator}${search.toString()}#tenant-legal-profile`);
-  throw new Error("Kunde inte navigera tillbaka till juridikprofilen.");
-}
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim()) return error.message;
@@ -548,128 +522,4 @@ export async function updateTenantContractChannelAction(formData: FormData) {
   } catch (error) {
     redirectBack({ error: errorMessage(error) });
   }
-}
-
-export async function saveTenantLegalProfileAction(formData: FormData) {
-  const companyId = getString(formData, "company_id");
-  if (!companyId) redirectBack({ error: "Bolag saknas." });
-
-  let successMessage = "Juridikprofilen sparades.";
-  try {
-    const { requireCompanyScopedActionAccess } =
-      await import("@/lib/admin/guards");
-    const actor = await requireCompanyScopedActionAccess(companyId, {
-      anyOf: ["contracts.write", "contracts.manage"],
-    });
-
-    const legalName = formText(formData, "legal_name") || null;
-    const organizationNumber = formText(formData, "organization_number") || null;
-    const customerServiceEmail = normalizeEmail(
-      formText(formData, "customer_service_email"),
-      "Kundservice e-post",
-    ) || null;
-    const phone = formText(formData, "phone") || null;
-    const website = normalizeUrl(formText(formData, "website"), "Webbplats") || null;
-    const postalAddress = buildStructuredAddress(formData, "postal_address");
-    const customerServiceAddressInput = buildStructuredAddress(
-      formData,
-      "customer_service_address",
-    );
-    const customerServiceAddress = Object.keys(customerServiceAddressInput).length > 0
-      ? customerServiceAddressInput
-      : postalAddress;
-
-    const { error: defaultsError } = await supabaseService.rpc(
-      "gridex_upsert_company_legal_profile_defaults",
-      { p_company_id: companyId },
-    );
-    if (defaultsError && !["42883", "PGRST202"].includes(defaultsError.code ?? "")) {
-      throw defaultsError;
-    }
-
-    const now = new Date().toISOString();
-    const { data: savedProfile, error } = await supabaseService
-      .from("tenant_legal_profiles")
-      .upsert(
-        {
-          company_id: companyId,
-          legal_name: legalName,
-          organization_number: organizationNumber,
-          customer_service_email: customerServiceEmail,
-          phone,
-          website,
-          postal_address: postalAddress,
-          customer_service_address: customerServiceAddress,
-          complaints_contact: buildStructuredContact(
-            formData,
-            "complaints",
-            "Klagomålskontakt",
-          ),
-          data_protection_contact: buildStructuredContact(
-            formData,
-            "data_protection",
-            "Dataskyddskontakt",
-          ),
-          billing_information: buildBillingInformation(formData),
-          dispute_resolution_information:
-            buildDisputeResolutionInformation(formData),
-          review_required: false,
-          verified_by: null,
-          verified_at: null,
-          updated_at: now,
-        },
-        { onConflict: "company_id" },
-      )
-      .select("company_id,completeness_status,missing_fields,review_required")
-      .single();
-    if (error) throw error;
-
-    const missingFields = Array.isArray(savedProfile.missing_fields)
-      ? savedProfile.missing_fields.filter((value): value is string => typeof value === "string")
-      : [];
-    let finalStatus = String(savedProfile.completeness_status ?? "incomplete");
-
-    if (missingFields.length === 0) {
-      const { data: verifiedProfile, error: verifyError } = await supabaseService
-        .from("tenant_legal_profiles")
-        .update({
-          review_required: false,
-          verified_by: actor.userId,
-          verified_at: now,
-          updated_at: now,
-        })
-        .eq("company_id", companyId)
-        .select("completeness_status")
-        .single();
-      if (verifyError) throw verifyError;
-      finalStatus = String(verifiedProfile.completeness_status ?? "verified");
-    }
-
-    await supabaseService.from("audit_logs").insert({
-      actor_user_id: actor.userId,
-      company_id: companyId,
-      entity_type: "tenant_legal_profile",
-      entity_id: companyId,
-      action: "tenant_legal_profile_updated",
-      new_values: {
-        company_id: companyId,
-        completeness_status: finalStatus,
-        missing_fields: missingFields,
-        structured_profile: true,
-      },
-      metadata: { ui_source: getString(formData, "return_to") || "/admin/contracts" },
-    });
-
-    revalidatePath("/admin/contracts");
-    revalidatePath(`/admin/companies/${companyId}`);
-    revalidatePath(`/admin/platform/go-live/${companyId}`);
-
-    successMessage = missingFields.length === 0
-      ? "Juridikprofilen sparades och verifierades."
-      : `Juridikprofilen sparades. Saknas fortfarande: ${missingFields.join(", ")}.`;
-  } catch (error) {
-    redirectLegalProfileBack(companyId, formData, { error: errorMessage(error) });
-  }
-
-  redirectLegalProfileBack(companyId, formData, { success: successMessage });
 }
