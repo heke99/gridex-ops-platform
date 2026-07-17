@@ -35,6 +35,9 @@ const endToEndMigration = read(
 const singleSourceMigration = read(
   "supabase/migrations/20260716140000_contract_legal_publication_single_source_completion.sql",
 );
+const canonicalApiDiagnosticMigration = read(
+  "supabase/migrations/20260717234500_canonical_public_contract_api_diagnostics.sql",
+);
 const tenantPlatformControls = read(
   "app/admin/companies/[id]/TenantPlatformControls.tsx",
 );
@@ -213,6 +216,22 @@ const required = [
     tenantPlatformControls.includes(
       "Vissa avtalsuppgifter kunde inte laddas",
     ) && tenantPlatformControls.includes("databaseErrorMessage"),
+  ],
+  [
+    "admin API diagnostics use canonical legal bundle versions",
+    canonicalApiDiagnosticMigration.includes("legal_bundle_version_documents") &&
+      canonicalApiDiagnosticMigration.includes("contract_publication_readiness_v") &&
+      canonicalApiDiagnosticMigration.includes("website_contracts.read") &&
+      !canonicalApiDiagnosticMigration.includes(
+        "case when o.legal_bundle_id is null then 'Juridiskt paket saknas'",
+      ),
+  ],
+  [
+    "company contract UI reports canonical legal modules",
+    tenantPlatformControls.includes("legal_bundle_version_id") &&
+      tenantPlatformControls.includes("Kanoniskt juridikpaket") &&
+      tenantPlatformControls.includes("juridikmoduler i låst paket") &&
+      !tenantPlatformControls.includes('name="legal_bundle_id"'),
   ],
   [
     "contract pgcrypto runtime includes extensions schema",

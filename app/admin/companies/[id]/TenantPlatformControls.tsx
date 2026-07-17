@@ -61,6 +61,7 @@ type PublicOffer = {
   terms_version: string | null;
   terms_url: string | null;
   legal_bundle_id?: string | null;
+  legal_bundle_version_id?: string | null;
   price_book_id?: string | null;
   publication_status: string;
   website_enabled: boolean;
@@ -292,7 +293,7 @@ export default async function TenantPlatformControls({
       "Hemsideavtal",
       "public_contract_offers",
       companyId,
-      "id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at",
+      "id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,legal_bundle_version_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at",
       "sort_order",
     ),
     safeRows<InternalContractOffer>(
@@ -605,14 +606,14 @@ export default async function TenantPlatformControls({
           <div className="mt-3 grid min-w-0 gap-2 break-words rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold text-slate-700">
             <div>
               Prisplaner: <strong>{pricePlans.length}</strong> · Prisversioner:{" "}
-              <strong>{priceVersions.length}</strong> · Juridiska paket:{" "}
+              <strong>{priceVersions.length}</strong> · Äldre juridikpaket:{" "}
               <strong>{legalBundles.length}</strong> · Prislistor:{" "}
               <strong>{priceBooks.length}</strong>
             </div>
             <div>
-              För att publicera krävs publicerade juridiska texter för villkor,
-              integritet, ångerrätt, fullmakt och prisvillkor samt en
-              publicerbar prisversion.
+              Vid publicering väljs alla obligatoriska canonical juridikmoduler
+              automatiskt för kundtyp och avtalstyp. Paketversionen renderas,
+              publiceras och låses tillsammans med pris- och avtalsversionen.
             </div>
             <div>
               Endpoint:{" "}
@@ -864,20 +865,11 @@ export default async function TenantPlatformControls({
                 className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
               />
             </div>
-            <select
-              name="legal_bundle_id"
-              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-            >
-              <option value="">
-                Auto: skapa/använd komplett juridiskt paket
-              </option>
-              {legalBundles.map((bundle) => (
-                <option key={bundle.id} value={bundle.id}>
-                  {bundle.name ?? bundle.id.slice(0, 8)} ·{" "}
-                  {bundle.status ?? "status saknas"}
-                </option>
-              ))}
-            </select>
+            <p className="min-w-0 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Juridikpaketet skapas automatiskt från publicerade canonical
+              juridikmallar och låses till den exakta avtalsversionen vid
+              publicering. Äldre juridikpaket väljs inte manuellt.
+            </p>
             <div className="grid min-w-0 gap-3 sm:grid-cols-2">
               <input
                 name="binding_months"
@@ -1009,8 +1001,10 @@ export default async function TenantPlatformControls({
                   </div>
                   <div className="mt-3 grid gap-2 text-xs font-semibold text-slate-600 md:grid-cols-2">
                     <div>
-                      Juridiskt paket:{" "}
-                      {offer.legal_bundle_id ? "kopplat" : "auto/ej kopplat"}
+                      Kanoniskt juridikpaket:{" "}
+                      {offer.legal_bundle_version_id
+                        ? "skapat och versionsbundet"
+                        : "väntar på publicering"}
                     </div>
                     <div>
                       Prislista:{" "}
@@ -1048,10 +1042,10 @@ export default async function TenantPlatformControls({
                       Endpoint:{" "}
                       {apiDiagnostic?.endpoint_path ??
                         "/api/v1/website/public-contracts"}{" "}
-                      · API-klienter med rätt behörighet:{" "}
-                      {apiDiagnostic?.matched_api_client_count ?? 0} · juridiska
-                      texter i paket:{" "}
-                      {apiDiagnostic?.published_legal_type_count ?? 0} publicerade källdokument
+                      · API-klienter med läsbehörighet:{" "}
+                      {apiDiagnostic?.matched_api_client_count ?? 0} ·
+                      juridikmoduler i låst paket:{" "}
+                      {apiDiagnostic?.published_legal_type_count ?? 0}
                     </div>
                     {apiBlockers.length > 0 ? (
                       <ul className="mt-2 list-disc pl-5">
@@ -1125,11 +1119,6 @@ export default async function TenantPlatformControls({
                         type="hidden"
                         name="price_plan_version_id"
                         value={offer.price_plan_version_id ?? ""}
-                      />
-                      <input
-                        type="hidden"
-                        name="legal_bundle_id"
-                        value={offer.legal_bundle_id ?? ""}
                       />
                       <input
                         type="hidden"
