@@ -171,7 +171,14 @@ function underlayToInput(
       stringValue(underlay.customer_site_id) ?? stringValue(underlay.site_id),
     meteringPointId: stringValue(underlay.metering_point_id),
     contractId: stringValue(contract?.id) ?? stringValue(underlay.contract_id),
-    pricePlanId: stringValue(underlay.price_plan_id),
+    pricePlanId:
+      stringValue(underlay.price_plan_id) ??
+      stringValue(normalizePricingSnapshot(underlay, snapshot)?.price_plan_id),
+    pricePlanVersionId:
+      stringValue(underlay.price_plan_version_id) ??
+      stringValue(
+        normalizePricingSnapshot(underlay, snapshot)?.price_plan_version_id,
+      ),
     campaignId: stringValue(underlay.campaign_id),
     priceArea,
     quantityKwh: numberValue(underlay.total_kwh),
@@ -378,6 +385,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
     companyId: input.companyId,
     priceArea: underlay.priceArea as PriceArea,
     billingMonth,
+    pricePlanVersionId: underlay.pricePlanVersionId ?? null,
     fixedSekPerKwh: fixedOre !== null ? fixedOre / 100 : null,
   });
 
@@ -430,6 +438,18 @@ export async function calculatePricingPreviewForUnderlay(input: {
         "spot",
     )
     .reduce((sum, line) => sum + line.amountExVat, 0);
+  const portfolioAmountExVat = base.lines
+    .filter(
+      (line) =>
+        (line.metadata as Record<string, unknown> | undefined)?.source_type ===
+        "portfolio",
+    )
+    .reduce((sum, line) => sum + line.amountExVat, 0);
+  const hasPortfolioBase = base.lines.some(
+    (line) =>
+      (line.metadata as Record<string, unknown> | undefined)?.source_type ===
+      "portfolio",
+  );
   const hasSpotBase = base.lines.some(
     (line) =>
       (line.metadata as Record<string, unknown> | undefined)?.source_type ===
@@ -449,6 +469,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
       0,
     ),
     spotAmountExVat: hasSpotBase ? spotAmountExVat : null,
+    portfolioAmountExVat: hasPortfolioBase ? portfolioAmountExVat : null,
     vatRate: config.vatRate,
     startSortOrder: 100,
   });

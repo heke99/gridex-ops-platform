@@ -453,3 +453,44 @@ lib/integrations/webhooks.ts
 - Hemsidan får inte skicka interna prisplan-id, månadsavgift, påslag eller juridiska villkor som source of truth.
 - Kundkortets actions ska logga både audit och usage-events där det påverkar juridik, spårbarhet eller framtida fakturering.
 - Riktig kunddata arkiveras i första hand. Hårdradering ska bara användas för säker testdata utan historiska beroenden.
+
+## Canonical portföljprissättning och procentbaser (2026-07-18.2)
+
+Portföljandel, portföljpris och portföljförvaltningsavgift är tre separata begrepp:
+
+- `portfolio_share` anger hur stor andel av kundens kWh som prissätts med portföljpris.
+- `pricing.portfolio_monthly_prices` innehåller det publicerade priset per `period_month`, `price_area_code` och exakt `price_plan_version_id`.
+- `pricing.portfolio_management_fee` är en separat avgiftskomponent och kan anges i bland annat `ore_per_kwh`, `sek_per_kwh`, `sek_month`, `sek_invoice`, `sek_once` eller `percent`.
+
+Procentvärden representeras alltid som `0..100`. En procentkomponent måste ha `calculation_base`, exempelvis `portfolio_cost`, `spot_cost`, `energy_cost_ex_vat` eller `invoice_subtotal`. Samma bas används av offertkalkyl, checkout, signerad prissnapshot och faktureringsmotor.
+Månadens energipris kan vara noll eller negativt när det publicerade marknadsutfallet kräver det. Avgifter, påslag och procentkomponenter får däremot inte vara negativa.
+API och checkout får aldrig återanvända en äldre månad som fallback. Publik readiness kräver exakt pris för den senare av avtalsstartens månad och aktuell månad i Europe/Stockholm.
+
+```json
+{
+  "pricing": {
+    "portfolio_management_fee": {
+      "amount": 3,
+      "unit": "percent",
+      "calculation_base": "portfolio_cost"
+    },
+    "portfolio_monthly_prices": [
+      {
+        "price_plan_version_id": "00000000-0000-4000-8000-000000000000",
+        "period_month": "2027-02-01",
+        "price_area_code": "SE4",
+        "amount": 81.1,
+        "unit": "ore_per_kwh",
+        "vat_included": false,
+        "status": "published"
+      }
+    ]
+  }
+}
+```
+
+Ett bindande prisförslag returnerar `422 portfolio_price_missing` när exakt publicerat/bekräftat månadspris saknas för avtalets prisplansversion, månad och elområde. Systemet använder aldrig `0`, annan tenants pris eller en annan prisplansversions pris som tyst fallback.
+
+Fakturering sker per månadsunderlag. En fakturaperiod som omfattar flera månader består därför av separata underlag/prisrader för respektive månad och behåller `portfolio_monthly_price_id`, prisplansversion, elområde, förbrukning, enhetspris, beräkningsbas och moms som revisionsbevis.
+
+`pricing.visibility.portfolio_price` och komponentens `website_card_visible` påverkar endast tenantens publika avtalskort. Dolda avgifter och priser finns fortfarande kvar i bindande prisöversikt, avtalssnapshot och fakturering.

@@ -28,39 +28,11 @@ import {
 } from "@/lib/contracts/canonical";
 import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile";
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
+import WebsitePricingField from "@/components/admin/contracts/WebsitePricingField";
+import PortfolioPricingEditor from "@/components/admin/contracts/PortfolioPricingEditor";
+import PricingCalculationBaseField from "@/components/admin/contracts/PricingCalculationBaseField";
 
 export const dynamic = "force-dynamic";
-
-function WebsitePricingField({
-  name,
-  placeholder,
-  visibilityName,
-  defaultVisible = false,
-}: {
-  name: string;
-  placeholder: string;
-  visibilityName: string;
-  defaultVisible?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3">
-      <input
-        name={name}
-        placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-300 px-4 py-3"
-      />
-      <label className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-700">
-        <span>Visa på hemsidans avtalskort</span>
-        <input
-          type="checkbox"
-          name={visibilityName}
-          defaultChecked={defaultVisible}
-          className="h-4 w-4 rounded border-slate-300"
-        />
-      </label>
-    </div>
-  );
-}
 
 type TenantCustomerSummary = {
   id: string;
@@ -907,6 +879,19 @@ export default async function AdminContractsPage({
               <option value="quarterly">Spotandel: kvartspris</option>
             </select>
 
+            <input
+              name="price_areas"
+              defaultValue="SE1,SE2,SE3,SE4"
+              placeholder="Prisområden, t.ex. SE1, SE2, SE3, SE4"
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            />
+
+            <PortfolioPricingEditor
+              defaultSpotWeight={100}
+              defaultPortfolioWeight={0}
+              defaultFixedWeight={0}
+            />
+
             <div className="grid gap-4 md:grid-cols-3">
               <WebsitePricingField
                 name="invoice_fee_sek"
@@ -917,11 +902,6 @@ export default async function AdminContractsPage({
                 name="electricity_certificate_ore_per_kwh"
                 placeholder="Elcertifikat öre/kWh"
                 visibilityName="show_electricity_certificate_on_website"
-              />
-              <WebsitePricingField
-                name="portfolio_management_fee_ore_per_kwh"
-                placeholder="Portföljavgift öre/kWh"
-                visibilityName="show_portfolio_management_fee_on_website"
               />
             </div>
 
@@ -999,7 +979,9 @@ export default async function AdminContractsPage({
                 <option value="sek_month">Rabatt kr/mån</option>
                 <option value="ore_per_kwh">Rabatt öre/kWh</option>
                 <option value="percent">Rabatt %</option>
+                <option value="sek_once">Rabatt kr engångsvis</option>
               </select>
+              <PricingCalculationBaseField name="discount_calculation_base" />
               <WebsitePricingField
                 name="start_fee_sek"
                 placeholder="Startavgift kr"
@@ -1022,8 +1004,8 @@ export default async function AdminContractsPage({
               />
               <input
                 name="vat_rate"
-                placeholder="Moms, t.ex. 0.25"
-                defaultValue="0.25"
+                placeholder="Moms i procent, t.ex. 25"
+                defaultValue="25"
                 className="rounded-2xl border border-slate-300 px-4 py-3 "
               />
             </div>

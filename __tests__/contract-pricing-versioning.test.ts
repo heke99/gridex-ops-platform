@@ -24,6 +24,10 @@ describe("contract pricing versioning snapshot", () => {
       spotMarkupOrePerKwh: 4,
       variableFeeOrePerKwh: 2,
       invoiceFeeSek: 29,
+      priceAreas: "SE3",
+      portfolioMonthlyPrices: [
+        { period_month: "2026-07", price_area_code: "SE3", amount: 75 },
+      ],
       websiteCardVisibility: {
         spot_markup: true,
         variable_fee: false,
@@ -31,7 +35,7 @@ describe("contract pricing versioning snapshot", () => {
       },
     });
 
-    expect(result.snapshot.schema_version).toBe(3);
+    expect(result.snapshot.schema_version).toBe(4);
     expect(result.snapshot.price_components).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -156,7 +160,9 @@ describe("contract pricing versioning snapshot", () => {
         unit: "percent",
       }),
     );
-    expect(result.publicPriceText).toContain("rabatt 10 % i 3 mån");
+    expect(result.publicPriceText).toContain(
+      "rabatt 10 % av energy_cost_ex_vat i 3 mån",
+    );
   });
 
   it("includes lifecycle-correct optional charges in the public price text", () => {
@@ -193,11 +199,131 @@ describe("contract pricing versioning snapshot", () => {
       portfolioWeightPercent: 50,
       fixedWeightPercent: 0,
       spotIntervalResolution: "monthly",
+      portfolioMonthlyPrices: [
+        { period_month: "2026-07", price_area_code: "SE3", amount: 80 },
+      ],
     });
 
     expect(result.snapshot.interval_resolution).toBe("monthly");
     expect(result.publicPriceText).toContain("50% rörligt");
     expect(result.publicPriceText).toContain("50% portfölj");
+  });
+
+  it("supports a percentage portfolio management fee with an explicit base", () => {
+    const result = normalizeContractPricing({
+      name: "Portfölj procent",
+      contractType: "portfolio",
+      customerType: "both",
+      priceAreas: "SE1,SE4",
+      portfolioManagementFeeAmount: 3,
+      portfolioManagementFeeUnit: "percent",
+      portfolioManagementFeeCalculationBase: "portfolio_cost",
+      portfolioMonthlyPrices: [
+        { period_month: "2026-08", price_area_code: "ALL", amount: 81.1 },
+      ],
+      websiteCardVisibility: {
+        portfolio_management_fee: true,
+        portfolio_price: false,
+      },
+    });
+
+    expect(result.snapshot.portfolio_monthly_prices).toEqual([
+      expect.objectContaining({
+        period_month: "2026-08-01",
+        price_area_code: "SE1",
+        amount_ore_per_kwh: 81.1,
+      }),
+      expect.objectContaining({
+        period_month: "2026-08-01",
+        price_area_code: "SE4",
+        amount_ore_per_kwh: 81.1,
+      }),
+    ]);
+    expect(result.snapshot.price_components).toContainEqual(
+      expect.objectContaining({
+        component_code: "portfolio_management_fee",
+        amount: 3,
+        unit: "percent",
+        calculation_base: "portfolio_cost",
+      }),
+    );
+    expect(result.snapshot.website_visibility.portfolio_price).toBe(false);
+  });
+
+  it("allows zero or negative monthly portfolio energy prices without allowing negative fees", () => {
+    const result = normalizeContractPricing({
+      name: "Negativt portföljutfall",
+      contractType: "portfolio",
+      customerType: "both",
+      priceAreas: "SE3",
+      spotWeightPercent: 0,
+      portfolioWeightPercent: 100,
+      fixedWeightPercent: 0,
+      portfolioMonthlyPrices: JSON.stringify([
+        {
+          period_month: "2027-01",
+          price_area_code: "SE3",
+          amount_ore_per_kwh: -2.5,
+        },
+      ]),
+    });
+
+    expect(result.snapshot.portfolio_monthly_prices[0]).toMatchObject({
+      period_month: "2027-01-01",
+      price_area_code: "SE3",
+      amount_ore_per_kwh: -2.5,
+      amount_sek_per_kwh: -0.025,
+    });
+    expect(() =>
+      normalizeContractPricing({
+        name: "Negativ avgift",
+        contractType: "portfolio",
+        customerType: "both",
+        priceAreas: "SE3",
+        spotWeightPercent: 0,
+        portfolioWeightPercent: 100,
+        fixedWeightPercent: 0,
+        portfolioManagementFeeAmount: -1,
+        portfolioManagementFeeUnit: "ore_per_kwh",
+        portfolioMonthlyPrices: JSON.stringify([
+          {
+            period_month: "2027-01",
+            price_area_code: "SE3",
+            amount_ore_per_kwh: 50,
+          },
+        ]),
+      }),
+    ).toThrow(/Portföljförvaltningsavgift/);
+  });
+
+  it("rejects duplicate monthly portfolio prices and percentage values above 100", () => {
+    expect(() =>
+      normalizeContractPricing({
+        name: "Dubblett",
+        contractType: "portfolio",
+        customerType: "private",
+        priceAreas: "SE3",
+        portfolioMonthlyPrices: [
+          { period_month: "2026-09", price_area_code: "SE3", amount: 70 },
+          { period_month: "2026-09", price_area_code: "SE3", amount: 71 },
+        ],
+      }),
+    ).toThrow(/Dubbelt portföljpris/i);
+
+    expect(() =>
+      normalizeContractPricing({
+        name: "För hög procent",
+        contractType: "portfolio",
+        customerType: "private",
+        priceAreas: "SE3",
+        portfolioManagementFeeAmount: 101,
+        portfolioManagementFeeUnit: "percent",
+        portfolioManagementFeeCalculationBase: "portfolio_cost",
+        portfolioMonthlyPrices: [
+          { period_month: "2026-09", price_area_code: "SE3", amount: 70 },
+        ],
+      }),
+    ).toThrow(/Portföljförvaltningsavgift/i);
   });
 
   it("rejects hourly or quarterly spot legs in mixed contracts", () => {

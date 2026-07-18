@@ -260,6 +260,7 @@ const PUBLIC_PRICING_VISIBILITY_KEYS = [
   "start_fee",
   "administration_fee",
   "break_fee",
+  "portfolio_price",
   "portfolio_management_fee",
   "campaign_discount",
   "optional_fees",
@@ -362,6 +363,83 @@ function publicPricingComponents(
   });
 }
 
+function visibleComponentByCode(
+  components: Record<string, unknown>[],
+  code: string,
+): Record<string, unknown> | null {
+  return (
+    components.find((component) => componentCode(component) === code) ?? null
+  );
+}
+
+function publicPortfolioMonthlyPrices(
+  offer: PublicContractOffer,
+  visible: boolean,
+): Record<string, unknown>[] {
+  if (
+    !visible ||
+    !Array.isArray(offer.pricing_snapshot?.portfolio_monthly_prices)
+  )
+    return [];
+  return offer.pricing_snapshot.portfolio_monthly_prices
+    .filter(
+      (value): value is Record<string, unknown> =>
+        Boolean(value) && typeof value === "object" && !Array.isArray(value),
+    )
+    .map((row) => ({
+      period_month: clean(row.period_month) ?? clean(row.billing_month),
+      price_area_code: clean(row.price_area_code) ?? clean(row.price_area),
+      amount: numberOrNull(row.amount_ore_per_kwh ?? row.amount),
+      unit: clean(row.unit) ?? "ore_per_kwh",
+      vat_included: booleanOrNull(row.vat_included) ?? false,
+      status: clean(row.status) ?? "published",
+    }))
+    .filter(
+      (row) =>
+        Boolean(row.period_month) &&
+        Boolean(row.price_area_code) &&
+        row.amount !== null,
+    )
+    .sort(
+      (a, b) =>
+        String(a.period_month).localeCompare(String(b.period_month)) ||
+        String(a.price_area_code).localeCompare(String(b.price_area_code)),
+    );
+}
+
+function currentPortfolioPriceBlock(rows: Record<string, unknown>[]) {
+  if (rows.length === 0) return null;
+  const monthParts = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Stockholm",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const year = monthParts.find((part) => part.type === "year")?.value ?? null;
+  const month = monthParts.find((part) => part.type === "month")?.value ?? null;
+  const normalizedMonth = year && month ? `${year}-${month}-01` : null;
+  const months = Array.from(
+    new Set(
+      rows
+        .map((row) => clean(row.period_month))
+        .filter((month): month is string => Boolean(month)),
+    ),
+  ).sort();
+  const selectedMonth =
+    (normalizedMonth && months.includes(normalizedMonth)
+      ? normalizedMonth
+      : months.find((month) => normalizedMonth && month >= normalizedMonth)) ??
+    null;
+  if (!selectedMonth) return null;
+  const selected = rows.filter((row) => row.period_month === selectedMonth);
+  return {
+    period_month: selectedMonth,
+    unit: "ore_per_kwh",
+    vat_included: false,
+    prices_by_area: Object.fromEntries(
+      selected.map((row) => [row.price_area_code, row.amount]),
+    ),
+  };
+}
 function publicBaseComponents(
   offer: PublicContractOffer,
   visibility: Record<PublicPricingVisibilityKey, boolean>,
@@ -496,6 +574,15 @@ export function publicContractResponse(offer: PublicContractOffer) {
   const websiteVisibility = pricingWebsiteVisibility(offer);
   const visibleComponents = publicPricingComponents(offer, websiteVisibility);
   const visibleBaseComponents = publicBaseComponents(offer, websiteVisibility);
+  const portfolioManagementComponent = visibleComponentByCode(
+    visibleComponents,
+    "portfolio_management_fee",
+  );
+  const portfolioMonthlyPrices = publicPortfolioMonthlyPrices(
+    offer,
+    websiteVisibility.portfolio_price,
+  );
+  const portfolioPrice = currentPortfolioPriceBlock(portfolioMonthlyPrices);
   const publicPriceText =
     clean(offer.pricing_snapshot?.public_price_text) ??
     offer.public_price_text ??
@@ -612,14 +699,30 @@ export function publicContractResponse(offer: PublicContractOffer) {
               currency: "SEK",
               event: "early_termination",
             },
-      portfolio_management_fee:
-        !websiteVisibility.portfolio_management_fee ||
-        offer.portfolio_management_fee_ore_per_kwh == null
-          ? null
-          : {
-              amount: offer.portfolio_management_fee_ore_per_kwh,
-              unit: "ore_per_kwh",
-            },
+      portfolio_price: portfolioPrice,
+      portfolio_monthly_prices: portfolioMonthlyPrices,
+      portfolio_management_fee: !websiteVisibility.portfolio_management_fee
+        ? null
+        : portfolioManagementComponent
+          ? {
+              amount: numberOrNull(portfolioManagementComponent.amount),
+              unit:
+                clean(portfolioManagementComponent.unit) ??
+                clean(portfolioManagementComponent.calculation_type),
+              calculation_base:
+                clean(portfolioManagementComponent.calculation_base) ??
+                clean(
+                  objectValue(portfolioManagementComponent.metadata)
+                    .calculation_base,
+                ),
+            }
+          : offer.portfolio_management_fee_ore_per_kwh == null
+            ? null
+            : {
+                amount: offer.portfolio_management_fee_ore_per_kwh,
+                unit: "ore_per_kwh",
+                calculation_base: null,
+              },
       discount:
         !websiteVisibility.campaign_discount || offer.discount_value == null
           ? null
@@ -634,8 +737,33 @@ export function publicContractResponse(offer: PublicContractOffer) {
       base_components: visibleBaseComponents,
       price_components: visibleComponents,
       website_visibility: websiteVisibility,
+      portfolio_monthly_prices: portfolioMonthlyPrices,
       public_price_text: publicPriceText,
     },
+    portfolio_price_ore_per_kwh: (() => {
+      const values = Array.from(
+        new Set(
+          portfolioMonthlyPrices
+            .map((row) => numberOrNull(row.amount))
+            .filter((value): value is number => value !== null),
+        ),
+      );
+      return values.length === 1 ? values[0] : null;
+    })(),
+    portfolio_management_fee: !websiteVisibility.portfolio_management_fee
+      ? null
+      : portfolioManagementComponent
+        ? {
+            amount: numberOrNull(portfolioManagementComponent.amount),
+            unit: clean(portfolioManagementComponent.unit),
+            calculation_base:
+              clean(portfolioManagementComponent.calculation_base) ??
+              clean(
+                objectValue(portfolioManagementComponent.metadata)
+                  .calculation_base,
+              ),
+          }
+        : null,
     legal: legalBlock,
     monthly_fee_sek: websiteVisibility.monthly_fee
       ? offer.monthly_fee_sek
@@ -896,6 +1024,28 @@ function isWebsitePublishedRow(row: Record<string, unknown>): boolean {
   return row.is_public === true;
 }
 
+async function exactPortfolioMonthlyPrices(
+  offer: PublicContractOffer,
+): Promise<Record<string, unknown>[]> {
+  if (
+    !offer.price_plan_version_id ||
+    !["portfolio", "mixed"].includes(offer.contract_type)
+  )
+    return [];
+  const { data, error } = await supabaseService
+    .from("portfolio_monthly_price_versions_v")
+    .select(
+      "id,price_plan_id,price_plan_version_id,period_month,price_area_code,amount,unit,vat_included,status,source,version_number,published_at,locked_at",
+    )
+    .eq("company_id", offer.company_id)
+    .eq("price_plan_version_id", offer.price_plan_version_id)
+    .in("status", ["locked", "published"])
+    .order("period_month", { ascending: true })
+    .order("price_area_code", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Record<string, unknown>[];
+}
+
 async function appendReadyOffer(input: {
   result: PublicContractOffer[];
   offer: PublicContractOffer;
@@ -921,6 +1071,11 @@ async function appendReadyOffer(input: {
   });
   if (!withLegal) return;
 
+  const monthlyPortfolioPrices = await exactPortfolioMonthlyPrices(withLegal);
+  withLegal.pricing_snapshot = {
+    ...(withLegal.pricing_snapshot ?? {}),
+    portfolio_monthly_prices: monthlyPortfolioPrices,
+  };
   withLegal.tenant_slug = input.tenantSlug ?? null;
   withLegal.metadata = {
     ...withLegal.metadata,

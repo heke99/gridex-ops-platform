@@ -103,6 +103,57 @@ describe("public contract website pricing visibility", () => {
     );
   });
 
+  it("exposes version-scoped monthly portfolio prices and generic percentage fees", () => {
+    const response = publicContractResponse(
+      offer({
+        pricing_snapshot: {
+          schema_version: 4,
+          website_visibility: {
+            portfolio_price: true,
+            portfolio_management_fee: true,
+          },
+          portfolio_monthly_prices: [
+            {
+              id: "monthly-price-id",
+              price_plan_version_id: "plan-version-id",
+              period_month: "2026-07-01",
+              price_area_code: "SE3",
+              amount: 81.1,
+              unit: "ore_per_kwh",
+              vat_included: false,
+              status: "published",
+            },
+          ],
+          price_components: [
+            {
+              component_code: "portfolio_management_fee",
+              component_type: "portfolio_management_fee",
+              amount: 3,
+              unit: "percent",
+              calculation_type: "percentage",
+              calculation_base: "portfolio_cost",
+              website_card_visible: true,
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(response.pricing.portfolio_monthly_prices).toEqual([
+      expect.objectContaining({
+        period_month: "2026-07-01",
+        price_area_code: "SE3",
+        amount: 81.1,
+      }),
+    ]);
+    expect(response.pricing.portfolio_management_fee).toEqual({
+      amount: 3,
+      unit: "percent",
+      calculation_base: "portfolio_cost",
+    });
+    expect(response.portfolio_price_ore_per_kwh).toBe(81.1);
+  });
+
   it("preserves legacy visibility when an older snapshot has no explicit flags", () => {
     const response = publicContractResponse(
       offer({

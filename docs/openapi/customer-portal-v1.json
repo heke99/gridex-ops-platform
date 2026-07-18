@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-18.1",
+    "version": "2026-07-18.2",
     "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs endast med opak offer_reference och slutmarkeras server-side mot exakta offer-bundna juridikversioner. Publik prisvisning är versionslåst per komponent via website_card_visible/pricing.visibility."
   },
   "servers": [
@@ -2249,7 +2249,25 @@
               },
               "portfolio_management_fee": {
                 "type": ["object", "null"],
-                "additionalProperties": true
+                "properties": {
+                  "amount": {
+                    "type": ["number", "null"]
+                  },
+                  "unit": {
+                    "type": ["string", "null"]
+                  },
+                  "calculation_base": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/PricingCalculationBase"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               },
               "discount": {
                 "type": ["object", "null"],
@@ -2268,6 +2286,16 @@
               "public_price_text": {
                 "type": ["string", "null"],
                 "description": "Genererad marknadstext som endast innehåller website-card-visible prisdelar."
+              },
+              "portfolio_price": {
+                "$ref": "#/components/schemas/PortfolioPriceDisplay"
+              },
+              "portfolio_monthly_prices": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PortfolioMonthlyPrice"
+                },
+                "description": "Exact tenant- and price-plan-version-scoped published monthly prices. Empty when portfolio_price visibility is false."
               }
             },
             "additionalProperties": true
@@ -2297,6 +2325,15 @@
             "minItems": 1,
             "uniqueItems": true,
             "description": "Entydig expansion av customer_type. both blir [private,business]."
+          },
+          "portfolio_price_ore_per_kwh": {
+            "type": ["number", "null"],
+            "description": "Legacy scalar only when all visible area prices share one amount; otherwise null. Use pricing.portfolio_monthly_prices."
+          },
+          "portfolio_management_fee": {
+            "type": ["object", "null"],
+            "additionalProperties": true,
+            "description": "Canonical generic fee object. Prefer pricing.portfolio_management_fee."
           }
         },
         "additionalProperties": true
@@ -2593,6 +2630,10 @@
           },
           "production_compensation": {
             "type": "boolean"
+          },
+          "portfolio_price": {
+            "type": "boolean",
+            "description": "Controls current/monthly portfolio price rendering on the public contract card."
           }
         },
         "additionalProperties": false
@@ -2621,7 +2662,8 @@
             "type": "number"
           },
           "unit": {
-            "type": "string"
+            "type": "string",
+            "description": "Canonical unit, including percent, ore_per_kwh, sek_per_kwh, sek_month, sek_invoice or sek_once."
           },
           "calculation_type": {
             "type": ["string", "null"]
@@ -2633,9 +2675,124 @@
           "metadata": {
             "type": "object",
             "additionalProperties": true
+          },
+          "calculation_base": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PricingCalculationBase"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": true
+      },
+      "PricingCalculationBase": {
+        "type": "string",
+        "enum": [
+          "energy_cost_ex_vat",
+          "energy_cost_inc_vat",
+          "spot_cost",
+          "portfolio_cost",
+          "total_variable_cost",
+          "invoice_subtotal",
+          "monthly_fixed_amount"
+        ],
+        "description": "Obligatorisk för procentkomponenter. Procentvärden representeras alltid som 0–100."
+      },
+      "PortfolioMonthlyPrice": {
+        "type": "object",
+        "required": [
+          "period_month",
+          "price_area_code",
+          "amount",
+          "unit",
+          "vat_included",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "price_plan_id": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "price_plan_version_id": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "period_month": {
+            "type": "string",
+            "format": "date",
+            "description": "Månadens första kalenderdatum, YYYY-MM-01."
+          },
+          "price_area_code": {
+            "type": "string",
+            "enum": ["SE1", "SE2", "SE3", "SE4"]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Öre/kWh exklusive moms. Kan vara noll eller negativt när det publicerade marknadsutfallet kräver det.",
+            "minimum": -100000,
+            "maximum": 100000
+          },
+          "unit": {
+            "type": "string",
+            "const": "ore_per_kwh"
+          },
+          "vat_included": {
+            "type": "boolean",
+            "const": false
+          },
+          "status": {
+            "type": "string",
+            "enum": ["locked", "published"]
+          },
+          "source": {
+            "type": ["string", "null"]
+          },
+          "version_number": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "published_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "locked_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      },
+      "PortfolioPriceDisplay": {
+        "type": ["object", "null"],
+        "properties": {
+          "period_month": {
+            "type": "string",
+            "format": "date"
+          },
+          "unit": {
+            "type": "string",
+            "const": "ore_per_kwh"
+          },
+          "vat_included": {
+            "type": "boolean",
+            "const": false
+          },
+          "prices_by_area": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        },
+        "additionalProperties": false
       }
     }
   }

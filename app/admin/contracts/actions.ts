@@ -200,6 +200,19 @@ async function saveContractOfferActionImpl(
       formData,
       "portfolio_management_fee_ore_per_kwh",
     ),
+    portfolioManagementFeeAmount: getString(
+      formData,
+      "portfolio_management_fee_amount",
+    ),
+    portfolioManagementFeeUnit: getString(
+      formData,
+      "portfolio_management_fee_unit",
+    ),
+    portfolioManagementFeeCalculationBase: getString(
+      formData,
+      "portfolio_management_fee_calculation_base",
+    ),
+    portfolioMonthlyPrices: getString(formData, "portfolio_monthly_prices"),
     greenFeeMode: getString(formData, "green_fee_mode"),
     greenFeeValue: getString(formData, "green_fee_value"),
     startFeeSek: getString(formData, "start_fee_sek"),
@@ -207,6 +220,7 @@ async function saveContractOfferActionImpl(
     breakFeeSek: getString(formData, "break_fee_sek"),
     discountValue: getString(formData, "discount_value"),
     discountUnit: getString(formData, "discount_unit"),
+    discountCalculationBase: getString(formData, "discount_calculation_base"),
     discountMonths: getString(formData, "discount_months"),
     vatRate: getString(formData, "vat_rate"),
     spotWeightPercent: getString(formData, "spot_weight_percent"),
@@ -245,6 +259,8 @@ async function saveContractOfferActionImpl(
       administration_fee:
         getString(formData, "show_admin_fee_on_website") === "on",
       break_fee: getString(formData, "show_break_fee_on_website") === "on",
+      portfolio_price:
+        getString(formData, "show_portfolio_price_on_website") === "on",
       portfolio_management_fee:
         getString(formData, "show_portfolio_management_fee_on_website") ===
         "on",

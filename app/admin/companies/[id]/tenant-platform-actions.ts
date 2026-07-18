@@ -183,7 +183,9 @@ function publicationBlockerLabel(code: string): string {
     return `Juridiskt källdokument saknas: ${normalized.slice("missing_document:".length)}`;
   if (normalized.startsWith("legal_source_bundle_invalid:"))
     return `Valt juridiskt paket är ogiltigt: ${normalized.slice("legal_source_bundle_invalid:".length).replaceAll("_", " ")}`;
-  return PUBLICATION_BLOCKER_LABELS[normalized] ?? normalized.replaceAll("_", " ");
+  return (
+    PUBLICATION_BLOCKER_LABELS[normalized] ?? normalized.replaceAll("_", " ")
+  );
 }
 
 function errorMessage(error: unknown, companyId?: string | null): string {
@@ -201,13 +203,18 @@ function errorMessage(error: unknown, companyId?: string | null): string {
       .slice("publication_not_ready:".length)
       .split(",")
       .map(publicationBlockerLabel);
-    const safe = toSafeContractError(error, { action: "tenant_contract_offer", companyId });
+    const safe = toSafeContractError(error, {
+      action: "tenant_contract_offer",
+      companyId,
+    });
     const reference = safe.match(/Referens: [A-Z0-9]+\.$/)?.[0] ?? "";
     return `Avtalet kan inte publiceras: ${blockers.join(", ")}. ${reference}`.trim();
   }
-  return toSafeContractError(error, { action: "tenant_contract_offer", companyId });
+  return toSafeContractError(error, {
+    action: "tenant_contract_offer",
+    companyId,
+  });
 }
-
 
 function contractType(value: string): string {
   if (
@@ -380,6 +387,9 @@ async function saveTenantPublicContractOfferActionImpl(
       : null;
   let priceVersionLabel: string | null = null;
   let priceVersionReused = true;
+  let portfolioManagementFeeOrePerKwh = previousNumber(
+    "portfolio_management_fee_ore_per_kwh",
+  );
   let pricingModel =
     typeof pricingSnapshot?.pricing_model === "string"
       ? String(pricingSnapshot.pricing_model)
@@ -448,8 +458,22 @@ async function saveTenantPublicContractOfferActionImpl(
         formData,
         "portfolio_management_fee_ore_per_kwh",
       ),
+      portfolioManagementFeeAmount: text(
+        formData,
+        "portfolio_management_fee_amount",
+      ),
+      portfolioManagementFeeUnit: text(
+        formData,
+        "portfolio_management_fee_unit",
+      ),
+      portfolioManagementFeeCalculationBase: text(
+        formData,
+        "portfolio_management_fee_calculation_base",
+      ),
+      portfolioMonthlyPrices: text(formData, "portfolio_monthly_prices"),
       discountValue: text(formData, "discount_value"),
       discountUnit: text(formData, "discount_unit"),
+      discountCalculationBase: text(formData, "discount_calculation_base"),
       discountMonths: text(formData, "discount_months"),
       vatRate: text(formData, "vat_rate"),
       spotWeightPercent: spotWeight,
@@ -470,10 +494,35 @@ async function saveTenantPublicContractOfferActionImpl(
         "production_compensation_ore_per_kwh",
       ),
       productionVatRate: text(formData, "production_vat_rate"),
-      productionSettlementMode: text(
-        formData,
-        "production_settlement_mode",
-      ),
+      productionSettlementMode: text(formData, "production_settlement_mode"),
+      websiteCardVisibility: {
+        fixed_price: boolValue(formData, "show_fixed_price_on_website"),
+        spot_markup:
+          boolValue(formData, "show_spot_markup_on_website") ||
+          boolValue(formData, "show_spot_markup_on_website_legacy"),
+        variable_fee: boolValue(formData, "show_variable_fee_on_website"),
+        monthly_fee: boolValue(formData, "show_monthly_fee_on_website"),
+        invoice_fee: boolValue(formData, "show_invoice_fee_on_website"),
+        green_energy_fee: boolValue(formData, "show_green_fee_on_website"),
+        electricity_certificate: boolValue(
+          formData,
+          "show_electricity_certificate_on_website",
+        ),
+        start_fee: boolValue(formData, "show_start_fee_on_website"),
+        administration_fee: boolValue(formData, "show_admin_fee_on_website"),
+        break_fee: boolValue(formData, "show_break_fee_on_website"),
+        portfolio_price: boolValue(formData, "show_portfolio_price_on_website"),
+        portfolio_management_fee: boolValue(
+          formData,
+          "show_portfolio_management_fee_on_website",
+        ),
+        campaign_discount: boolValue(formData, "show_discount_on_website"),
+        optional_fees: boolValue(formData, "show_optional_fees_on_website"),
+        production_compensation: boolValue(
+          formData,
+          "show_production_compensation_on_website",
+        ),
+      },
     });
     publicPriceText = normalized.publicPriceText;
     pricingModel = normalized.pricingModel;
@@ -481,6 +530,14 @@ async function saveTenantPublicContractOfferActionImpl(
       ...normalized.snapshot,
       pricing_model: normalized.pricingModel,
     } as unknown as Record<string, unknown>;
+    const portfolioManagementComponent =
+      normalized.snapshot.price_components.find(
+        (component) => component.component_code === "portfolio_management_fee",
+      );
+    portfolioManagementFeeOrePerKwh =
+      portfolioManagementComponent?.unit === "ore_per_kwh"
+        ? portfolioManagementComponent.amount
+        : null;
   }
 
   if (!pricingSnapshot || !publicPriceText) {
@@ -607,11 +664,7 @@ async function saveTenantPublicContractOfferActionImpl(
       "break_fee_sek",
       previousNumber("break_fee_sek"),
     ),
-    portfolio_management_fee_ore_per_kwh: numberValue(
-      formData,
-      "portfolio_management_fee_ore_per_kwh",
-      previousNumber("portfolio_management_fee_ore_per_kwh"),
-    ),
+    portfolio_management_fee_ore_per_kwh: portfolioManagementFeeOrePerKwh,
     discount_value: numberValue(
       formData,
       "discount_value",
@@ -771,10 +824,11 @@ async function saveTenantPublicContractOfferActionImpl(
   priceVersionLabel = command.pricing.version_label;
   priceVersionReused = command.pricing.reused;
   legalBundleId = command.legal_bundle_id ?? legalBundleId;
-  if (command.legal_bundle_created) autoCreatedReferences.push("juridiskt paket");
+  if (command.legal_bundle_created)
+    autoCreatedReferences.push("juridiskt paket");
   readinessStatus =
     publicationStatus === "published"
-      ? command.readiness?.status ?? "unknown"
+      ? (command.readiness?.status ?? "unknown")
       : readinessStatus;
   readinessBlockers = command.readiness?.blockers ?? [];
 
@@ -907,10 +961,14 @@ async function deleteTenantPublicContractOfferActionImpl(
           : "Avtal arkiverat"
         : "Oanvänt hemsideavtal raderat",
     oldValues: offer,
-    newValues: removal.mode === "archived" ? removal.offer ?? null : null,
+    newValues: removal.mode === "archived" ? (removal.offer ?? null) : null,
     source: "company_card_contracts_tab",
     billable: false,
-    metadata: { mode, snapshotCount, canonicalCommand: "gridex_remove_contract_offer" },
+    metadata: {
+      mode,
+      snapshotCount,
+      canonicalCommand: "gridex_remove_contract_offer",
+    },
   });
 
   revalidatePath(`/admin/companies/${companyId}`);

@@ -12,7 +12,13 @@ import {
   repairCompanyEmailAutomationAction,
   toggleCompanyEmailEventRuleAction,
 } from "./email-automation-actions";
-import { CANONICAL_EMAIL_EVENT_LABELS, DEFAULT_EMAIL_EVENT_RULES } from "@/lib/email/emailEvents";
+import {
+  CANONICAL_EMAIL_EVENT_LABELS,
+  DEFAULT_EMAIL_EVENT_RULES,
+} from "@/lib/email/emailEvents";
+import WebsitePricingField from "@/components/admin/contracts/WebsitePricingField";
+import PortfolioPricingEditor from "@/components/admin/contracts/PortfolioPricingEditor";
+import PricingCalculationBaseField from "@/components/admin/contracts/PricingCalculationBaseField";
 import {
   updateIntegrationApiClientPermissionsAction,
   setIntegrationApiClientStatusAction,
@@ -675,26 +681,11 @@ export default async function TenantPlatformControls({
                 <option value="business">Företag</option>
               </select>
             </div>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-              <input
-                name="spot_weight_percent"
-                defaultValue="100"
-                placeholder="Rörlig andel %"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-              <input
-                name="portfolio_weight_percent"
-                defaultValue="0"
-                placeholder="Portföljandel %"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-              <input
-                name="fixed_weight_percent"
-                defaultValue="0"
-                placeholder="Fast andel %"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-            </div>
+            <PortfolioPricingEditor
+              defaultSpotWeight={100}
+              defaultPortfolioWeight={0}
+              defaultFixedWeight={0}
+            />
             <select
               name="spot_interval_resolution"
               defaultValue="monthly"
@@ -705,37 +696,43 @@ export default async function TenantPlatformControls({
               <option value="quarterly">Spotandel: kvartspris</option>
             </select>
             <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-              <input
+              <WebsitePricingField
                 name="fixed_price_ore_per_kwh"
-                placeholder="Fast pris öre/kWh"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Fast pris"
+                placeholder="öre/kWh"
+                visibilityName="show_fixed_price_on_website"
+                defaultVisible
               />
-              <input
+              <WebsitePricingField
                 name="spot_markup_ore_per_kwh"
-                placeholder="Spotpåslag öre/kWh"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Spotpåslag"
+                placeholder="öre/kWh"
+                visibilityName="show_spot_markup_on_website"
+                defaultVisible
               />
-              <input
+              <WebsitePricingField
                 name="variable_fee_ore_per_kwh"
-                placeholder="Rörlig avgift öre/kWh"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Rörlig avgift"
+                placeholder="öre/kWh"
+                visibilityName="show_variable_fee_on_website"
               />
-            </div>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-              <input
+              <WebsitePricingField
                 name="markup_ore_per_kwh"
-                placeholder="Generellt påslag öre/kWh"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Generellt påslag"
+                placeholder="öre/kWh"
+                visibilityName="show_spot_markup_on_website_legacy"
               />
-              <input
+              <WebsitePricingField
                 name="monthly_fee_sek"
-                placeholder="Månadsavgift kr"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Månadsavgift"
+                placeholder="kr/mån"
+                visibilityName="show_monthly_fee_on_website"
               />
-              <input
+              <WebsitePricingField
                 name="invoice_fee_sek"
-                placeholder="Fakturaavgift kr"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Fakturaavgift"
+                placeholder="kr/faktura"
+                visibilityName="show_invoice_fee_on_website"
               />
             </div>
             <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
@@ -748,37 +745,35 @@ export default async function TenantPlatformControls({
                 <option value="ore_per_kwh">Grön el öre/kWh</option>
                 <option value="sek_month">Grön el kr/mån</option>
               </select>
-              <input
+              <WebsitePricingField
                 name="green_fee_value"
-                placeholder="Grön el-belopp"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Grön el-avgift"
+                placeholder="Belopp"
+                visibilityName="show_green_fee_on_website"
               />
-              <input
+              <WebsitePricingField
                 name="electricity_certificate_ore_per_kwh"
-                placeholder="Elcertifikat öre/kWh"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Elcertifikat"
+                placeholder="öre/kWh"
+                visibilityName="show_electricity_certificate_on_website"
               />
-            </div>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-              <input
+              <WebsitePricingField
                 name="start_fee_sek"
-                placeholder="Startavgift kr"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Startavgift"
+                placeholder="kr engångsvis"
+                visibilityName="show_start_fee_on_website"
               />
-              <input
+              <WebsitePricingField
                 name="administration_fee_sek"
-                placeholder="Administrativ avgift kr"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Administrativ avgift"
+                placeholder="kr engångsvis"
+                visibilityName="show_admin_fee_on_website"
               />
-              <input
+              <WebsitePricingField
                 name="break_fee_sek"
-                placeholder="Brytavgift kr"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-              <input
-                name="portfolio_management_fee_ore_per_kwh"
-                placeholder="Portföljavgift öre/kWh"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Brytavgift"
+                placeholder="kr vid förtida avslut"
+                visibilityName="show_break_fee_on_website"
               />
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
@@ -787,10 +782,11 @@ export default async function TenantPlatformControls({
                 Hantera producerad överskottsel som separat kreditunderlag
               </label>
               <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-3">
-                <input
+                <WebsitePricingField
                   name="production_compensation_ore_per_kwh"
-                  placeholder="Produktionsersättning öre/kWh"
-                  className="min-w-0 w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm"
+                  label="Produktionsersättning"
+                  placeholder="öre/kWh"
+                  visibilityName="show_production_compensation_on_website"
                 />
                 <input
                   name="production_vat_rate"
@@ -809,10 +805,11 @@ export default async function TenantPlatformControls({
               </div>
             </div>
             <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-              <input
+              <WebsitePricingField
                 name="discount_value"
-                placeholder="Rabattbelopp"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                label="Kampanjrabatt"
+                placeholder="Belopp enligt vald enhet"
+                visibilityName="show_discount_on_website"
               />
               <select
                 name="discount_unit"
@@ -824,6 +821,7 @@ export default async function TenantPlatformControls({
                 <option value="percent">%</option>
                 <option value="sek_once">kr engångsvis</option>
               </select>
+              <PricingCalculationBaseField name="discount_calculation_base" />
               <input
                 name="discount_months"
                 placeholder="Rabattperiod månader"
@@ -838,20 +836,28 @@ export default async function TenantPlatformControls({
             </div>
             <input
               name="price_areas"
+              defaultValue="SE1,SE2,SE3,SE4"
               placeholder="Prisområden, t.ex. SE1, SE2, SE3, SE4"
               className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
             />
             <p className="min-w-0 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Fastpris är ett gemensamt pris per kWh. Prisområden styr avtalets tillgänglighet.
+              Fastpris är ett gemensamt pris per kWh. Prisområden styr avtalets
+              tillgänglighet.
             </p>
-            <textarea
-              name="optional_fee_lines"
-              rows={3}
-              placeholder={
-                "Övriga avgifter, en per rad: Namn|Belopp|enhet\nExempel: Pappersfaktura|39|sek_invoice"
-              }
-              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-            />
+            <div className="rounded-2xl border border-slate-200 bg-white p-3">
+              <textarea
+                name="optional_fee_lines"
+                rows={3}
+                placeholder={
+                  "Övriga avgifter: Namn|Belopp|enhet|ja/nej\nExempel: Pappersfaktura|39|sek_invoice|nej"
+                }
+                className="min-w-0 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"
+              />
+              <label className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-700">
+                <span>Visa övriga avgifter på hemsidan som standard</span>
+                <input type="checkbox" name="show_optional_fees_on_website" />
+              </label>
+            </div>
             <div className="grid min-w-0 gap-3 sm:grid-cols-2">
               <input
                 name="terms_version"

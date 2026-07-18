@@ -74,6 +74,15 @@ import {
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
 import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/documents";
 
+function numericValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
 const OPTIONAL_TEXT = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim() ? value.trim() : undefined,
@@ -5575,7 +5584,7 @@ async function createContractPriceSnapshot(input: {
   metadata?: Record<string, unknown>;
 }) {
   const selected = selectedOfferFields(input.offer, input.contract);
-  const canonicalSnapshot = buildCanonicalContractSnapshot({
+  const compatibilitySnapshot = buildCanonicalContractSnapshot({
     contractType: selected.contractType,
     billingModel: selected.billingModel,
     productCode: selected.productCode,
@@ -5594,6 +5603,28 @@ async function createContractPriceSnapshot(input: {
       input.readiness.requestedStartDate ?? input.offer?.valid_from ?? null,
     validTo: input.offer?.valid_to ?? null,
   });
+  const exactPricingSnapshot = input.offer?.pricing_snapshot ?? {};
+  const exactBaseComponents = Array.isArray(
+    exactPricingSnapshot.base_components,
+  )
+    ? exactPricingSnapshot.base_components
+    : Array.isArray(exactPricingSnapshot.base_price_components_snapshot)
+      ? exactPricingSnapshot.base_price_components_snapshot
+      : compatibilitySnapshot.basePriceComponents;
+  const exactPriceComponents = Array.isArray(
+    exactPricingSnapshot.price_components,
+  )
+    ? exactPricingSnapshot.price_components
+    : Array.isArray(exactPricingSnapshot.price_components_snapshot)
+      ? exactPricingSnapshot.price_components_snapshot
+      : compatibilitySnapshot.priceComponents;
+  const exactVatRate = numericValue(exactPricingSnapshot.vat_rate);
+  const canonicalSnapshot = {
+    pricingModel: compatibilitySnapshot.pricingModel,
+    basePriceComponents: exactBaseComponents,
+    priceComponents: exactPriceComponents,
+    vatRate: exactVatRate ?? compatibilitySnapshot.vatRate,
+  };
   assertCanonicalSnapshot(canonicalSnapshot);
 
   const snapshotJson = {
@@ -5614,7 +5645,15 @@ async function createContractPriceSnapshot(input: {
     public_price_text: input.offer?.public_price_text ?? null,
     terms_url: input.offer?.terms_url ?? null,
     pricing_model: canonicalSnapshot.pricingModel,
-    snapshot_schema: "gridex_contract_pricing_v2",
+    snapshot_schema: "gridex_contract_pricing_v4",
+    pricing_source_schema_version:
+      numericValue(exactPricingSnapshot.schema_version) ?? 4,
+    portfolio_monthly_prices: Array.isArray(
+      exactPricingSnapshot.portfolio_monthly_prices,
+    )
+      ? exactPricingSnapshot.portfolio_monthly_prices
+      : [],
+    website_visibility: exactPricingSnapshot.website_visibility ?? {},
     vat_rate: canonicalSnapshot.vatRate,
     mix: {
       spot_weight_percent: input.offer?.spot_weight_percent ?? null,

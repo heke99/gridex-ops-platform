@@ -127,6 +127,7 @@ export function calculatePriceComponents(input: {
    * blocked with an explicit error instead of being silently skipped.
    */
   spotAmountExVat?: number | null;
+  portfolioAmountExVat?: number | null;
   vatRate: number;
   startSortOrder?: number;
 }): { lines: PricingPreviewLine[]; warnings: string[]; errors: string[] } {
@@ -135,6 +136,8 @@ export function calculatePriceComponents(input: {
   const errors: string[] = [];
   const quantityKwh = input.underlay.quantityKwh;
   let sortOrder = input.startSortOrder ?? 100;
+  let runningSubtotalExVat = input.baseAmountExVat;
+  let monthlyFixedAmountExVat = 0;
 
   const activeComponents = [...input.components].sort(
     (a, b) => (a.priority ?? 100) - (b.priority ?? 100),
@@ -173,8 +176,36 @@ export function calculatePriceComponents(input: {
       amountExVat = component.amount;
       unit = "st";
     } else if (type === "percentage") {
-      amountExVat = input.baseAmountExVat * (component.amount / 100);
+      const calculationBase =
+        component.calculationBase ??
+        metadataString(component.metadata, "calculation_base") ??
+        "energy_cost_ex_vat";
+      let baseValue: number | null;
+      if (calculationBase === "spot_cost") {
+        baseValue = input.spotAmountExVat ?? null;
+      } else if (calculationBase === "portfolio_cost") {
+        baseValue = input.portfolioAmountExVat ?? null;
+      } else if (calculationBase === "energy_cost_inc_vat") {
+        baseValue = input.baseAmountExVat * (1 + input.vatRate);
+      } else if (calculationBase === "total_variable_cost") {
+        baseValue = runningSubtotalExVat - monthlyFixedAmountExVat;
+      } else if (calculationBase === "invoice_subtotal") {
+        baseValue = runningSubtotalExVat;
+      } else if (calculationBase === "monthly_fixed_amount") {
+        baseValue = monthlyFixedAmountExVat;
+      } else {
+        baseValue = input.baseAmountExVat;
+      }
+      if (baseValue === null || !Number.isFinite(baseValue)) {
+        errors.push(
+          `${component.name}: beräkningsbasen ${calculationBase} saknas för perioden.`,
+        );
+        continue;
+      }
+      amountExVat = baseValue * (component.amount / 100);
       unit = "%";
+      quantity = component.amount;
+      unitPriceExVat = baseValue;
     } else if (type === "percent_of_spot") {
       const spotAmount = input.spotAmountExVat;
       if (
@@ -228,6 +259,8 @@ export function calculatePriceComponents(input: {
     const vatRate = component.vatApplicable === false ? 0 : input.vatRate;
     const roundedExVat = roundMoney(amountExVat);
     const vatAmount = roundMoney(roundedExVat * vatRate);
+    runningSubtotalExVat += roundedExVat;
+    if (type === "fixed_monthly") monthlyFixedAmountExVat += roundedExVat;
     lines.push({
       lineType: component.componentType,
       description: component.name,
@@ -243,6 +276,9 @@ export function calculatePriceComponents(input: {
         ...(component.metadata ?? {}),
         component_type: component.componentType,
         calculation_type: component.calculationType,
+        calculation_base:
+          component.calculationBase ??
+          metadataString(component.metadata, "calculation_base"),
         input_amount: component.amount,
         input_unit: component.unit ?? component.calculationType ?? null,
         normalized_pricing_unit: normalizePricingUnitForComponent({

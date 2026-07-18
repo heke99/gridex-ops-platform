@@ -42,8 +42,11 @@ export type PortfolioMonthlyPrice = {
   priceArea: PriceArea;
   billingMonth: string;
   priceExVatSekPerKwh: number;
-  status: "draft" | "confirmed" | "locked";
-  source: "manual" | "api" | "import";
+  pricePlanId?: string | null;
+  pricePlanVersionId?: string | null;
+  status:
+    "draft" | "confirmed" | "locked" | "published" | "corrected" | "archived";
+  source: "manual" | "api" | "import" | "contract_price_version";
 };
 
 export type BasePriceComponent = {
@@ -92,13 +95,19 @@ export type CalculationType =
   | "sek_month"
   | "sek_once"
   | "per_invoice"
-  | "event_only";
+  | "event_only"
+  | "percent_of_spot"
+  | "percent_of_portfolio"
+  | "percent_of_energy"
+  | "percent_of_invoice_subtotal"
+  | "percent_of_monthly_fixed";
 
 export type PriceComponent = {
   componentType: PriceComponentType | string;
   name: string;
   description?: string | null;
   calculationType: CalculationType | string;
+  calculationBase?: string | null;
   amount: number;
   unit?: string | null;
   vatApplicable?: boolean;
@@ -124,6 +133,7 @@ export type BillingUnderlayInput = {
   meteringPointId: string | null;
   contractId?: string | null;
   pricePlanId?: string | null;
+  pricePlanVersionId?: string | null;
   campaignId?: string | null;
   priceArea: PriceArea | null;
   quantityKwh: number | null;
@@ -141,6 +151,8 @@ export type BasePriceSourceValues = {
   portfolioSekPerKwh?: number | null;
   fixedSekPerKwh?: number | null;
   manualSekPerKwh?: number | null;
+  spotSource?: Record<string, unknown> | null;
+  portfolioSource?: Record<string, unknown> | null;
 };
 
 export type BasePriceResult = {

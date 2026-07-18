@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 const baseUrl = "https://app.gridex.se";
-const documentationVersion = "2026-07-18.1";
+const documentationVersion = "2026-07-18.2";
 
 const permissions = [
   [
@@ -700,10 +700,22 @@ export default function CustomerPortalApiDocsPage() {
             tenantens backend.
           </p>
           <p>
+            Månatliga portföljpriser returneras i{" "}
+            <code>pricing.portfolio_monthly_prices</code> och är bundna till
+            exakt <code>price_plan_version_id</code>, månad och elområde.
+            Portföljandel, portföljpris och portföljförvaltningsavgift är olika
+            begrepp. En procentuell förvaltningsavgift använder värden i
+            intervallet <code>0..100</code> och måste ange en explicit
+            Beräkningsbas i <code>calculation_base</code>. Saknas exakt
+            månad/prisområde får en bindande kalkyl inte falla tillbaka till en
+            annan version eller tidigare månad.
+          </p>
+          <p>
             Juridiken i <code>legal</code> är OPS source of truth. Visa
             dokumentlänkarna från OPS och skicka separata consent-flaggor. OPS
-            binder accepten server-side till exakt de fem versions-ID:n som
-            ligger i det valda erbjudandet. När fullmakt krävs ska{" "}
+            binder accepten server-side till den låsta canonical
+            juridikpaketversionen och de kompatibilitets-ID:n som ligger i det
+            valda erbjudandet. När fullmakt krävs ska{" "}
             <code>powerOfAttorney.textVersionId</code> vara{" "}
             <code>legal.power_of_attorney_version_id</code>.
           </p>
@@ -718,16 +730,16 @@ export default function CustomerPortalApiDocsPage() {
 
         <Section title="5. Skicka kundansökan">
           <p>
-            Kundansökan ska innehålla valt <code>offer_reference</code>, fem
-            separata juridiska godkännanden och, när kunden redan är inloggad på
-            hemsidan, webbens Supabase <code>session.user.id</code> som både{" "}
-            <code>customer_portal_user_id</code> och <code>auth_user_id</code>.
-            OPS skapar kund, kundnummer, portal identity, prissnapshot och ett
-            först väntande avtal. Därefter verifierar en atomisk serverfunktion
-            de exakta juridikversionerna och sätter <code>status=signed</code>,{" "}
-            <code>signed_at</code>, ångerfrist och{" "}
-            <code>signature_snapshot_sha256</code>. Klientens egna{" "}
-            <code>signed_at</code>/<code>acceptedAt</code> används inte som
+            Kundansökan ska innehålla valt <code>offer_reference</code>, de
+            dokumenterade juridiska godkännandena och, när kunden redan är
+            inloggad på hemsidan, webbens Supabase <code>session.user.id</code>{" "}
+            som både <code>customer_portal_user_id</code> och{" "}
+            <code>auth_user_id</code>. OPS skapar kund, kundnummer, portal
+            identity, prissnapshot och ett först väntande avtal. Därefter
+            verifierar en atomisk serverfunktion de exakta juridikversionerna
+            och sätter <code>status=signed</code>, <code>signed_at</code>,
+            ångerfrist och <code>signature_snapshot_sha256</code>. Klientens
+            egna <code>signed_at</code>/<code>acceptedAt</code> används inte som
             avtalets juridiska signeringstid.
           </p>
           <p>

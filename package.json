@@ -182,7 +182,8 @@
     "gridex:company-legal-contract-runtime-regression": "node scripts/company-legal-contract-runtime-regression.cjs",
     "ops:company-legal-live-preflight": "node scripts/company-legal-live-preflight.cjs",
     "gridex:rate-limit-schema-repair-regression": "node scripts/gridex-rate-limit-schema-repair-regression.cjs",
-    "gridex:public-pricing-visibility-regression": "node scripts/gridex-public-pricing-visibility-regression.cjs"
+    "gridex:public-pricing-visibility-regression": "node scripts/gridex-public-pricing-visibility-regression.cjs",
+    "gridex:canonical-portfolio-pricing-regression": "node scripts/gridex-canonical-portfolio-pricing-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

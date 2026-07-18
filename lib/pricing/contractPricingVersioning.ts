@@ -19,6 +19,7 @@ export const WEBSITE_PRICING_VISIBILITY_KEYS = [
   "start_fee",
   "administration_fee",
   "break_fee",
+  "portfolio_price",
   "portfolio_management_fee",
   "campaign_discount",
   "optional_fees",
@@ -49,8 +50,13 @@ export type ContractPricingInput = {
   administrationFeeSek?: unknown;
   breakFeeSek?: unknown;
   portfolioManagementFeeOrePerKwh?: unknown;
+  portfolioManagementFeeAmount?: unknown;
+  portfolioManagementFeeUnit?: unknown;
+  portfolioManagementFeeCalculationBase?: unknown;
+  portfolioMonthlyPrices?: unknown;
   discountValue?: unknown;
   discountUnit?: unknown;
+  discountCalculationBase?: unknown;
   discountMonths?: unknown;
   vatRate?: unknown;
   spotWeightPercent?: unknown;
@@ -82,6 +88,7 @@ type PricingComponent = {
   vat_applicable: boolean;
   invoice_line_visible: boolean;
   website_card_visible: boolean;
+  calculation_base: string | null;
   priority: number;
   metadata?: Record<string, unknown>;
 };
@@ -95,6 +102,26 @@ type BasePriceComponent = {
   metadata?: Record<string, unknown>;
 };
 
+export type PortfolioMonthlyPriceSnapshot = {
+  period_month: string;
+  price_area_code: "SE1" | "SE2" | "SE3" | "SE4";
+  amount_ore_per_kwh: number;
+  amount_sek_per_kwh: number;
+  unit: "ore_per_kwh";
+  vat_included: false;
+  status: "published";
+  source: "contract_price_version";
+};
+
+export type PricingCalculationBase =
+  | "energy_cost_ex_vat"
+  | "energy_cost_inc_vat"
+  | "spot_cost"
+  | "portfolio_cost"
+  | "total_variable_cost"
+  | "invoice_subtotal"
+  | "monthly_fixed_amount";
+
 export type NormalizedContractPricing = {
   planName: string;
   pricingModel: "spot" | "fixed" | "portfolio" | "mixed";
@@ -102,7 +129,7 @@ export type NormalizedContractPricing = {
   customerType: ContractCustomerType;
   publicPriceText: string;
   snapshot: {
-    schema_version: 3;
+    schema_version: 4;
     contract_type: ContractPricingModel;
     customer_type: ContractCustomerType;
     price_areas: string[];
@@ -115,6 +142,7 @@ export type NormalizedContractPricing = {
     base_components: BasePriceComponent[];
     price_components: PricingComponent[];
     website_visibility: Record<WebsitePricingVisibilityKey, boolean>;
+    portfolio_monthly_prices: PortfolioMonthlyPriceSnapshot[];
     public_price_text: string;
     vat_rate: number;
     vat_rate_percent: number;
@@ -250,11 +278,15 @@ function addComponent(
   target: PricingComponent[],
   input: Omit<
     PricingComponent,
-    "vat_applicable" | "invoice_line_visible" | "website_card_visible"
+    | "vat_applicable"
+    | "invoice_line_visible"
+    | "website_card_visible"
+    | "calculation_base"
   > & {
     vat_applicable?: boolean;
     invoice_line_visible?: boolean;
     website_card_visible?: boolean;
+    calculation_base?: string | null;
   },
 ) {
   const invoiceLineVisible = input.invoice_line_visible ?? true;
@@ -270,9 +302,11 @@ function addComponent(
     vat_applicable: input.vat_applicable ?? true,
     invoice_line_visible: invoiceLineVisible,
     website_card_visible: websiteCardVisible,
+    calculation_base: input.calculation_base ?? null,
     metadata: {
       ...(input.metadata ?? {}),
       component_key: input.component_code,
+      calculation_base: input.calculation_base ?? null,
       visibility: {
         ...existingVisibility,
         website_card: websiteCardVisible,
@@ -340,6 +374,7 @@ function parseOptionalFeeLines(
       vat_applicable: true,
       invoice_line_visible: true,
       website_card_visible: websiteCardVisible,
+      calculation_base: null,
       priority: 900 + index,
       metadata: {
         lifecycle,
@@ -354,6 +389,149 @@ function parseOptionalFeeLines(
       },
     };
   });
+}
+
+function normalizePortfolioFeeUnit(
+  value: unknown,
+):
+  | "ore_per_kwh"
+  | "sek_per_kwh"
+  | "sek_month"
+  | "sek_invoice"
+  | "sek_once"
+  | "percent" {
+  const unit = String(value ?? "ore_per_kwh").trim();
+  const allowed = new Set([
+    "ore_per_kwh",
+    "sek_per_kwh",
+    "sek_month",
+    "sek_invoice",
+    "sek_once",
+    "percent",
+  ]);
+  if (!allowed.has(unit))
+    throw new Error("Portföljförvaltningsavgiften har en ogiltig enhet.");
+  return unit as
+    | "ore_per_kwh"
+    | "sek_per_kwh"
+    | "sek_month"
+    | "sek_invoice"
+    | "sek_once"
+    | "percent";
+}
+
+function normalizeCalculationBase(
+  value: unknown,
+  required: boolean,
+): PricingCalculationBase | null {
+  const base = String(value ?? "").trim();
+  if (!base) {
+    if (required)
+      throw new Error("En procentuell avgift kräver en tydlig beräkningsbas.");
+    return null;
+  }
+  const allowed = new Set<PricingCalculationBase>([
+    "energy_cost_ex_vat",
+    "energy_cost_inc_vat",
+    "spot_cost",
+    "portfolio_cost",
+    "total_variable_cost",
+    "invoice_subtotal",
+    "monthly_fixed_amount",
+  ]);
+  if (!allowed.has(base as PricingCalculationBase))
+    throw new Error("Den valda beräkningsbasen är ogiltig.");
+  return base as PricingCalculationBase;
+}
+
+function parsePortfolioMonthlyPrices(
+  value: unknown,
+  priceAreas: string[],
+): PortfolioMonthlyPriceSnapshot[] {
+  if (value === null || value === undefined || String(value).trim() === "")
+    return [];
+  let candidate: unknown = value;
+  if (typeof value === "string") {
+    try {
+      candidate = JSON.parse(value);
+    } catch {
+      throw new Error("Portföljpriser per månad måste vara giltig JSON.");
+    }
+  }
+  if (!Array.isArray(candidate))
+    throw new Error("Portföljpriser per månad måste anges som en lista.");
+
+  const rows: PortfolioMonthlyPriceSnapshot[] = [];
+  const seen = new Set<string>();
+  for (const [index, raw] of candidate.entries()) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw))
+      throw new Error(`Portföljpris på rad ${index + 1} är ogiltigt.`);
+    const row = raw as Record<string, unknown>;
+    const rawMonth = String(row.period_month ?? row.billing_month ?? "").trim();
+    const periodMonth = /^\d{4}-\d{2}$/.test(rawMonth)
+      ? `${rawMonth}-01`
+      : rawMonth;
+    if (!/^\d{4}-\d{2}-01$/.test(periodMonth))
+      throw new Error(
+        `Portföljpris på rad ${index + 1} måste ha månad YYYY-MM.`,
+      );
+    const parsedDate = new Date(`${periodMonth}T00:00:00Z`);
+    if (
+      Number.isNaN(parsedDate.getTime()) ||
+      parsedDate.toISOString().slice(0, 10) !== periodMonth
+    )
+      throw new Error(`Portföljpris på rad ${index + 1} har en ogiltig månad.`);
+    const rawArea = String(row.price_area_code ?? row.price_area ?? "ALL")
+      .trim()
+      .toUpperCase();
+    const areas =
+      rawArea === "ALL" || rawArea === "COMMON" || rawArea === "GEMENSAM"
+        ? priceAreas
+        : [rawArea];
+    if (areas.length === 0)
+      throw new Error("Gemensamt portföljpris kräver minst ett valt elområde.");
+    const amount = optionalNumber(
+      row.amount_ore_per_kwh ?? row.amount ?? row.price_ore_per_kwh,
+      `Portföljpris på rad ${index + 1}`,
+      { min: -100000, max: 100000 },
+    );
+    if (amount === null)
+      throw new Error(
+        `Portföljpris på rad ${index + 1} måste vara ett giltigt tal i öre/kWh.`,
+      );
+    for (const area of areas) {
+      if (!["SE1", "SE2", "SE3", "SE4"].includes(area))
+        throw new Error(
+          `Portföljpris på rad ${index + 1} har ogiltigt elområde ${area}.`,
+        );
+      if (!priceAreas.includes(area))
+        throw new Error(
+          `Portföljpris har angetts för ${area}, men området ingår inte i avtalet.`,
+        );
+      const key = `${periodMonth}:${area}`;
+      if (seen.has(key))
+        throw new Error(
+          `Dubbelt portföljpris för ${area} och ${periodMonth.slice(0, 7)}.`,
+        );
+      seen.add(key);
+      rows.push({
+        period_month: periodMonth,
+        price_area_code: area as "SE1" | "SE2" | "SE3" | "SE4",
+        amount_ore_per_kwh: amount,
+        amount_sek_per_kwh:
+          Math.round((amount / 100) * 100_000_000) / 100_000_000,
+        unit: "ore_per_kwh",
+        vat_included: false,
+        status: "published",
+        source: "contract_price_version",
+      });
+    }
+  }
+  return rows.sort(
+    (a, b) =>
+      a.period_month.localeCompare(b.period_month) ||
+      a.price_area_code.localeCompare(b.price_area_code),
+  );
 }
 
 export function normalizeContractPricing(
@@ -421,14 +599,34 @@ export function normalizeContractPricing(
   const breakFeeSek = optionalNumber(input.breakFeeSek, "Brytavgift", {
     min: 0,
   });
-  const portfolioManagementFeeOrePerKwh = optionalNumber(
-    input.portfolioManagementFeeOrePerKwh,
-    "Portföljförvaltningsavgift",
-    { min: 0 },
+  const portfolioManagementFeeUnit = normalizePortfolioFeeUnit(
+    input.portfolioManagementFeeUnit,
   );
+  const portfolioManagementFeeAmount = optionalNumber(
+    input.portfolioManagementFeeAmount ?? input.portfolioManagementFeeOrePerKwh,
+    "Portföljförvaltningsavgift",
+    { min: 0, max: portfolioManagementFeeUnit === "percent" ? 100 : undefined },
+  );
+  const portfolioManagementFeeCalculationBase = normalizeCalculationBase(
+    input.portfolioManagementFeeCalculationBase ??
+      (portfolioManagementFeeUnit === "percent" ? "portfolio_cost" : null),
+    portfolioManagementFeeUnit === "percent" &&
+      portfolioManagementFeeAmount !== null,
+  );
+  const discountUnit = String(input.discountUnit || "sek_month");
+  if (
+    !["sek_month", "ore_per_kwh", "percent", "sek_once"].includes(discountUnit)
+  )
+    throw new Error("Rabattens enhet är ogiltig.");
   const discountValue = optionalNumber(input.discountValue, "Rabatt", {
     min: 0,
+    max: discountUnit === "percent" ? 100 : undefined,
   });
+  const discountCalculationBase = normalizeCalculationBase(
+    input.discountCalculationBase ??
+      (discountUnit === "percent" ? "energy_cost_ex_vat" : null),
+    discountUnit === "percent" && discountValue !== null,
+  );
   const discountMonths = optionalNumber(input.discountMonths, "Rabattperiod", {
     min: 1,
     integer: true,
@@ -552,6 +750,17 @@ export function normalizeContractPricing(
     throw new Error("Rabatt kräver en angiven rabattperiod i månader.");
 
   const priceAreas = parsePriceAreas(input.priceAreas);
+  const portfolioMonthlyPrices = parsePortfolioMonthlyPrices(
+    input.portfolioMonthlyPrices,
+    priceAreas,
+  );
+  if (
+    ["portfolio", "mixed"].includes(input.contractType) &&
+    portfolioMonthlyPrices.length === 0
+  )
+    throw new Error(
+      "Portfölj- och mixavtal kräver minst ett månadsspecifikt portföljpris.",
+    );
   for (const area of Object.keys(fixedPricesByArea)) {
     if (!priceAreas.includes(area))
       throw new Error(
@@ -703,19 +912,32 @@ export function normalizeContractPricing(
       website_card_visible: websiteVisibility.break_fee,
       metadata: { lifecycle: "event_only", event: "early_termination" },
     });
-  if (portfolioManagementFeeOrePerKwh !== null)
+  if (portfolioManagementFeeAmount !== null)
     addComponent(components, {
       component_code: "portfolio_management_fee",
       component_type: "portfolio_management_fee",
       name: "Portföljförvaltningsavgift",
-      amount: portfolioManagementFeeOrePerKwh,
-      calculation_type: "per_kwh",
-      unit: "ore_per_kwh",
+      amount: portfolioManagementFeeAmount,
+      calculation_type:
+        portfolioManagementFeeUnit === "percent"
+          ? "percentage"
+          : portfolioManagementFeeUnit === "sek_month"
+            ? "per_month"
+            : portfolioManagementFeeUnit === "sek_invoice" ||
+                portfolioManagementFeeUnit === "sek_once"
+              ? "fixed_once"
+              : "per_kwh",
+      unit: portfolioManagementFeeUnit,
+      calculation_base: portfolioManagementFeeCalculationBase,
       priority: 200,
       website_card_visible: websiteVisibility.portfolio_management_fee,
+      metadata: {
+        calculation_base: portfolioManagementFeeCalculationBase,
+        percentage_representation:
+          portfolioManagementFeeUnit === "percent" ? "0_to_100" : null,
+      },
     });
   if (discountValue !== null) {
-    const discountUnit = String(input.discountUnit || "sek_month");
     addComponent(components, {
       component_code: "campaign_discount",
       component_type: "campaign_discount",
@@ -728,10 +950,14 @@ export function normalizeContractPricing(
             ? "percentage"
             : "discount_fixed",
       unit: discountUnit,
+      calculation_base: discountCalculationBase,
       priority: 300,
       website_card_visible: websiteVisibility.campaign_discount,
       metadata: {
         duration_months: discountMonths,
+        calculation_base: discountCalculationBase,
+        percentage_representation:
+          discountUnit === "percent" ? "0_to_100" : null,
         starts_on: null,
         starts_on_mode: "contract_start",
         lifecycle: "limited_campaign",
@@ -807,17 +1033,29 @@ export function normalizeContractPricing(
       `brytavgift ${formatNumber(breakFeeSek)} kr vid förtida uppsägning`,
     );
   if (
-    portfolioManagementFeeOrePerKwh !== null &&
+    portfolioManagementFeeAmount !== null &&
     websiteVisibility.portfolio_management_fee
-  )
+  ) {
+    const unitLabel =
+      portfolioManagementFeeUnit === "percent"
+        ? `% av ${portfolioManagementFeeCalculationBase ?? "portföljkostnad"}`
+        : portfolioManagementFeeUnit === "sek_per_kwh"
+          ? "kr/kWh"
+          : portfolioManagementFeeUnit === "sek_month"
+            ? "kr/mån"
+            : portfolioManagementFeeUnit === "sek_invoice"
+              ? "kr/faktura"
+              : portfolioManagementFeeUnit === "sek_once"
+                ? "kr engångsvis"
+                : "öre/kWh";
     priceParts.push(
-      `portföljavgift ${formatNumber(portfolioManagementFeeOrePerKwh)} öre/kWh`,
+      `portföljavgift ${formatNumber(portfolioManagementFeeAmount)} ${unitLabel}`,
     );
+  }
   if (discountValue !== null && websiteVisibility.campaign_discount) {
-    const discountUnit = String(input.discountUnit || "sek_month");
     const unitLabel =
       discountUnit === "percent"
-        ? "%"
+        ? `% av ${discountCalculationBase ?? "energikostnad exkl. moms"}`
         : discountUnit === "ore_per_kwh"
           ? "öre/kWh"
           : discountUnit === "sek_once"
@@ -865,7 +1103,7 @@ export function normalizeContractPricing(
     customerType: input.customerType,
     publicPriceText,
     snapshot: {
-      schema_version: 3,
+      schema_version: 4,
       contract_type: input.contractType,
       customer_type: input.customerType,
       price_areas: priceAreas,
@@ -878,6 +1116,7 @@ export function normalizeContractPricing(
       base_components: baseComponents,
       price_components: components,
       website_visibility: websiteVisibility,
+      portfolio_monthly_prices: portfolioMonthlyPrices,
       public_price_text: publicPriceText,
       vat_rate: vatRate / 100,
       vat_rate_percent: vatRate,
