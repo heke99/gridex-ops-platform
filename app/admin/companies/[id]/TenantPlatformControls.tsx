@@ -597,7 +597,7 @@ export default async function TenantPlatformControls({
 
       <section
         id="tenant-avtal"
-        className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,520px)_minmax(0,1fr)]"
+        className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]"
       >
         <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <h3 className="text-lg font-black text-slate-950">
@@ -632,7 +632,7 @@ export default async function TenantPlatformControls({
           </div>
           <form
             action={saveTenantPublicContractOfferAction}
-            className="mt-5 grid min-w-0 gap-3"
+            className="mt-5 grid min-w-0 gap-2.5"
           >
             <input type="hidden" name="company_id" value={companyId} />
             <input type="hidden" name="pricing_mode" value="version" />
@@ -682,6 +682,7 @@ export default async function TenantPlatformControls({
               </select>
             </div>
             <PortfolioPricingEditor
+              compact
               defaultSpotWeight={100}
               defaultPortfolioWeight={0}
               defaultFixedWeight={0}
@@ -695,8 +696,9 @@ export default async function TenantPlatformControls({
               <option value="hourly">Spotandel: timpris</option>
               <option value="quarterly">Spotandel: kvartspris</option>
             </select>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+            <div className="grid min-w-0 gap-2.5 md:grid-cols-2">
               <WebsitePricingField
+                compact
                 name="fixed_price_ore_per_kwh"
                 label="Fast pris"
                 placeholder="öre/kWh"
@@ -704,6 +706,7 @@ export default async function TenantPlatformControls({
                 defaultVisible
               />
               <WebsitePricingField
+                compact
                 name="spot_markup_ore_per_kwh"
                 label="Spotpåslag"
                 placeholder="öre/kWh"
@@ -711,31 +714,35 @@ export default async function TenantPlatformControls({
                 defaultVisible
               />
               <WebsitePricingField
+                compact
                 name="variable_fee_ore_per_kwh"
                 label="Rörlig avgift"
                 placeholder="öre/kWh"
                 visibilityName="show_variable_fee_on_website"
               />
               <WebsitePricingField
+                compact
                 name="markup_ore_per_kwh"
                 label="Generellt påslag"
                 placeholder="öre/kWh"
                 visibilityName="show_spot_markup_on_website_legacy"
               />
               <WebsitePricingField
+                compact
                 name="monthly_fee_sek"
                 label="Månadsavgift"
                 placeholder="kr/mån"
                 visibilityName="show_monthly_fee_on_website"
               />
               <WebsitePricingField
+                compact
                 name="invoice_fee_sek"
                 label="Fakturaavgift"
                 placeholder="kr/faktura"
                 visibilityName="show_invoice_fee_on_website"
               />
             </div>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+            <div className="grid min-w-0 gap-2.5 md:grid-cols-2">
               <select
                 name="green_fee_mode"
                 defaultValue="none"
@@ -746,30 +753,35 @@ export default async function TenantPlatformControls({
                 <option value="sek_month">Grön el kr/mån</option>
               </select>
               <WebsitePricingField
+                compact
                 name="green_fee_value"
                 label="Grön el-avgift"
                 placeholder="Belopp"
                 visibilityName="show_green_fee_on_website"
               />
               <WebsitePricingField
+                compact
                 name="electricity_certificate_ore_per_kwh"
                 label="Elcertifikat"
                 placeholder="öre/kWh"
                 visibilityName="show_electricity_certificate_on_website"
               />
               <WebsitePricingField
+                compact
                 name="start_fee_sek"
                 label="Startavgift"
                 placeholder="kr engångsvis"
                 visibilityName="show_start_fee_on_website"
               />
               <WebsitePricingField
+                compact
                 name="administration_fee_sek"
                 label="Administrativ avgift"
                 placeholder="kr engångsvis"
                 visibilityName="show_admin_fee_on_website"
               />
               <WebsitePricingField
+                compact
                 name="break_fee_sek"
                 label="Brytavgift"
                 placeholder="kr vid förtida avslut"
@@ -783,6 +795,7 @@ export default async function TenantPlatformControls({
               </label>
               <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-3">
                 <WebsitePricingField
+                  compact
                   name="production_compensation_ore_per_kwh"
                   label="Produktionsersättning"
                   placeholder="öre/kWh"
@@ -806,6 +819,7 @@ export default async function TenantPlatformControls({
             </div>
             <div className="grid min-w-0 gap-3 sm:grid-cols-2">
               <WebsitePricingField
+                compact
                 name="discount_value"
                 label="Kampanjrabatt"
                 placeholder="Belopp enligt vald enhet"
@@ -821,7 +835,10 @@ export default async function TenantPlatformControls({
                 <option value="percent">%</option>
                 <option value="sek_once">kr engångsvis</option>
               </select>
-              <PricingCalculationBaseField name="discount_calculation_base" />
+              <PricingCalculationBaseField
+                compact
+                name="discount_calculation_base"
+              />
               <input
                 name="discount_months"
                 placeholder="Rabattperiod månader"

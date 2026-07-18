@@ -35,6 +35,7 @@ assertContains(
     'name="show_portfolio_management_fee_on_website"',
     'name="show_portfolio_price_on_website"',
     '<option value="ALL">Gemensamt SE1–SE4</option>',
+    'compact?: boolean',
   ],
   "Gemensam portföljeditor",
 );
@@ -55,6 +56,9 @@ assertContains(
     'import PortfolioPricingEditor from "@/components/admin/contracts/PortfolioPricingEditor"',
     "<PortfolioPricingEditor",
     'name="price_areas"',
+    'xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]',
+    '<PortfolioPricingEditor\n              compact',
+    '<WebsitePricingField\n                compact',
   ],
   "admin/companies",
 );

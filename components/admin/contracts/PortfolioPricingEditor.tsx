@@ -26,6 +26,7 @@ export default function PortfolioPricingEditor({
   defaultManagementFeeVisible = false,
   defaultPortfolioPriceVisible = true,
   defaultRows = [],
+  compact = false,
 }: {
   defaultSpotWeight?: number;
   defaultPortfolioWeight?: number;
@@ -35,6 +36,7 @@ export default function PortfolioPricingEditor({
   defaultManagementFeeCalculationBase?: string;
   defaultManagementFeeVisible?: boolean;
   defaultPortfolioPriceVisible?: boolean;
+  compact?: boolean;
   defaultRows?: Array<{
     period_month?: string | null;
     billing_month?: string | null;
@@ -80,8 +82,19 @@ export default function PortfolioPricingEditor({
       })),
   );
 
+  const controlClass = compact
+    ? "mt-1.5 w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm"
+    : "mt-2 w-full rounded-xl border border-indigo-200 bg-white px-4 py-3";
+  const visibilityClass = compact
+    ? "mt-2 flex items-center justify-between gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold leading-4 text-slate-700"
+    : "mt-3 flex items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-white px-4 py-3 text-xs font-semibold text-slate-700";
+
   return (
-    <section className="rounded-3xl border border-indigo-200 bg-indigo-50 p-5">
+    <section
+      className={`border border-indigo-200 bg-indigo-50 ${
+        compact ? "rounded-2xl p-4" : "rounded-3xl p-5"
+      }`}
+    >
       <h3 className="text-sm font-black text-indigo-950">
         Canonical portföljprissättning
       </h3>
@@ -91,14 +104,18 @@ export default function PortfolioPricingEditor({
         fakturering.
       </p>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div
+        className={`grid sm:grid-cols-3 ${
+          compact ? "mt-3 gap-2" : "mt-4 gap-3"
+        }`}
+      >
         <label className="text-xs font-semibold text-slate-700">
           Rörlig andel %
           <input
             name="spot_weight_percent"
             defaultValue={defaultSpotWeight}
             inputMode="decimal"
-            className="mt-2 w-full rounded-xl border border-indigo-200 bg-white px-4 py-3"
+            className={controlClass}
           />
         </label>
         <label className="text-xs font-semibold text-slate-700">
@@ -107,7 +124,7 @@ export default function PortfolioPricingEditor({
             name="portfolio_weight_percent"
             defaultValue={defaultPortfolioWeight}
             inputMode="decimal"
-            className="mt-2 w-full rounded-xl border border-indigo-200 bg-white px-4 py-3"
+            className={controlClass}
           />
         </label>
         <label className="text-xs font-semibold text-slate-700">
@@ -116,19 +133,25 @@ export default function PortfolioPricingEditor({
             name="fixed_weight_percent"
             defaultValue={defaultFixedWeight}
             inputMode="decimal"
-            className="mt-2 w-full rounded-xl border border-indigo-200 bg-white px-4 py-3"
+            className={controlClass}
           />
         </label>
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_1.4fr]">
+      <div
+        className={`grid ${
+          compact
+            ? "mt-3 gap-2 md:grid-cols-[1fr_0.85fr_1.35fr]"
+            : "mt-4 gap-3 lg:grid-cols-[1fr_1fr_1.4fr]"
+        }`}
+      >
         <label className="text-xs font-semibold text-slate-700">
           Portföljförvaltningsavgift
           <input
             name="portfolio_management_fee_amount"
             defaultValue={defaultManagementFeeAmount}
             inputMode="decimal"
-            className="mt-2 w-full rounded-xl border border-indigo-200 bg-white px-4 py-3"
+            className={controlClass}
           />
         </label>
         <label className="text-xs font-semibold text-slate-700">
@@ -137,7 +160,7 @@ export default function PortfolioPricingEditor({
             name="portfolio_management_fee_unit"
             value={unit}
             onChange={(event) => setUnit(event.target.value)}
-            className="mt-2 w-full rounded-xl border border-indigo-200 bg-white px-4 py-3"
+            className={controlClass}
           >
             <option value="ore_per_kwh">öre/kWh</option>
             <option value="sek_per_kwh">kr/kWh</option>
@@ -153,7 +176,7 @@ export default function PortfolioPricingEditor({
             name="portfolio_management_fee_calculation_base"
             defaultValue={defaultManagementFeeCalculationBase}
             disabled={unit !== "percent"}
-            className="mt-2 w-full rounded-xl border border-indigo-200 bg-white px-4 py-3 disabled:bg-slate-100"
+            className={`${controlClass} disabled:bg-slate-100`}
           >
             {PRICING_CALCULATION_BASES.map(([value, label]) => (
               <option key={value} value={value}>
@@ -163,7 +186,7 @@ export default function PortfolioPricingEditor({
           </select>
         </label>
       </div>
-      <label className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-white px-4 py-3 text-xs font-semibold text-slate-700">
+      <label className={visibilityClass}>
         <span>Visa förvaltningsavgiften på hemsidans avtalskort</span>
         <input
           type="checkbox"
@@ -172,7 +195,11 @@ export default function PortfolioPricingEditor({
         />
       </label>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+      <div
+        className={`flex flex-wrap items-center justify-between ${
+          compact ? "mt-4 gap-2" : "mt-5 gap-3"
+        }`}
+      >
         <div>
           <h4 className="text-sm font-black text-slate-950">
             Portföljpris per månad och elområde
@@ -194,17 +221,21 @@ export default function PortfolioPricingEditor({
               },
             ])
           }
-          className="rounded-xl border border-indigo-300 bg-white px-3 py-2 text-xs font-black text-indigo-800"
+          className={`border border-indigo-300 bg-white text-xs font-black text-indigo-800 ${
+            compact ? "rounded-lg px-3 py-1.5" : "rounded-xl px-3 py-2"
+          }`}
         >
           Lägg till månad
         </button>
       </div>
       <input type="hidden" name="portfolio_monthly_prices" value={serialized} />
-      <div className="mt-3 grid gap-2">
+      <div className={compact ? "mt-2 grid gap-2" : "mt-3 grid gap-2"}>
         {rows.map((row, index) => (
           <div
             key={`${index}-${row.period_month}-${row.price_area_code}`}
-            className="grid gap-2 rounded-2xl border border-indigo-200 bg-white p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+            className={`grid gap-2 border border-indigo-200 bg-white sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)_auto] ${
+              compact ? "rounded-xl p-2" : "rounded-2xl p-3"
+            }`}
           >
             <input
               type="month"
@@ -218,7 +249,11 @@ export default function PortfolioPricingEditor({
                   ),
                 )
               }
-              className="rounded-xl border border-slate-300 px-3 py-2"
+              className={
+                compact
+                  ? "min-w-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm"
+                  : "rounded-xl border border-slate-300 px-3 py-2"
+              }
             />
             <select
               value={row.price_area_code}
@@ -235,7 +270,11 @@ export default function PortfolioPricingEditor({
                   ),
                 )
               }
-              className="rounded-xl border border-slate-300 px-3 py-2"
+              className={
+                compact
+                  ? "min-w-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm"
+                  : "rounded-xl border border-slate-300 px-3 py-2"
+              }
             >
               <option value="ALL">Gemensamt SE1–SE4</option>
               <option value="SE1">SE1</option>
@@ -256,7 +295,11 @@ export default function PortfolioPricingEditor({
               }
               inputMode="decimal"
               placeholder="öre/kWh exkl. moms"
-              className="rounded-xl border border-slate-300 px-3 py-2"
+              className={
+                compact
+                  ? "min-w-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm"
+                  : "rounded-xl border border-slate-300 px-3 py-2"
+              }
             />
             <button
               type="button"
@@ -265,14 +308,18 @@ export default function PortfolioPricingEditor({
                   current.filter((_, itemIndex) => itemIndex !== index),
                 )
               }
-              className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-black text-rose-700"
+              className={
+                compact
+                  ? "rounded-lg border border-rose-200 px-2.5 py-2 text-xs font-black text-rose-700"
+                  : "rounded-xl border border-rose-200 px-3 py-2 text-xs font-black text-rose-700"
+              }
             >
               Ta bort
             </button>
           </div>
         ))}
       </div>
-      <label className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-white px-4 py-3 text-xs font-semibold text-slate-700">
+      <label className={visibilityClass}>
         <span>Visa aktuellt portföljpris på hemsidans avtalskort</span>
         <input
           type="checkbox"
