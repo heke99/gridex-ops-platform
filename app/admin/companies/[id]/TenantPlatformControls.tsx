@@ -40,6 +40,12 @@ type PricePlanVersion = {
   valid_to: string | null;
 };
 
+type PortfolioOption = {
+  id: string;
+  name: string;
+  code: string;
+};
+
 type InternalContractOffer = {
   id: string;
   name: string;
@@ -323,6 +329,13 @@ export default async function TenantPlatformControls({
       "id,price_plan_id,version_label,status,valid_from,valid_to",
       "valid_from",
     ),
+    safeRows<PortfolioOption>(
+      "Portföljer",
+      "portfolios",
+      companyId,
+      "id,name,code",
+      "name",
+    ),
     safeRows<LegalBundle>(
       "Juridiska paket",
       "legal_bundles",
@@ -365,6 +378,7 @@ export default async function TenantPlatformControls({
     internalContractsResult,
     pricePlansResult,
     priceVersionsResult,
+    portfoliosResult,
     legalBundlesResult,
     priceBooksResult,
     apiClientsResult,
@@ -375,6 +389,7 @@ export default async function TenantPlatformControls({
   const internalContracts = internalContractsResult.rows;
   const pricePlans = pricePlansResult.rows;
   const priceVersions = priceVersionsResult.rows;
+  const portfolios = portfoliosResult.rows;
   const legalBundles = legalBundlesResult.rows;
   const priceBooks = priceBooksResult.rows;
   const apiClients = apiClientsResult.rows;
@@ -508,6 +523,12 @@ export default async function TenantPlatformControls({
             className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-emerald-800"
           >
             Priser/prisversioner
+          </Link>
+          <Link
+            href={`/admin/pricing/portfolio-settlements?companyId=${companyId}`}
+            className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-emerald-800"
+          >
+            Portföljavräkningar
           </Link>
         </div>
       </div>
@@ -683,6 +704,7 @@ export default async function TenantPlatformControls({
             </div>
             <PortfolioPricingEditor
               compact
+              portfolios={portfolios}
               defaultSpotWeight={100}
               defaultPortfolioWeight={0}
               defaultFixedWeight={0}

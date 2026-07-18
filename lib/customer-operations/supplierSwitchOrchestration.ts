@@ -14,6 +14,7 @@ import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { enqueueSupplierSwitchAutomation } from '@/lib/customer-operations/automation'
 import { normalizeUuidOrNull, requireUuid } from '@/lib/validation/uuid'
+import { checkSupplierSwitchReadiness } from '@/lib/customer-operations/switchReadiness'
 
 type JsonRecord = Record<string, unknown>
 
@@ -295,6 +296,23 @@ export async function ensureSupplierSwitchRequestForReadySite(
     }
   }
 
+  const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, { companyId, customerId, siteId })
+  const canonicalReadiness = await checkSupplierSwitchReadiness({
+    companyId,
+    customerId,
+    siteId,
+    contractId: clean(context.contractId),
+    switchRequestId: existing?.id ?? null,
+    requestedStartDate,
+    treatNormalIssuesAsBlockers: false,
+  })
+  const exactContractId = clean(canonicalReadiness.readinessSnapshot.contract_id)
+  for (const blocker of canonicalReadiness.blockers) {
+    if (!reviewBlockers.some((item) => item.code === blocker.code)) {
+      reviewBlockers.push({ code: blocker.code, message: blocker.message })
+    }
+  }
+
   if (creationBlockers.length > 0) {
     return {
       ok: false,
@@ -309,7 +327,6 @@ export async function ensureSupplierSwitchRequestForReadySite(
     }
   }
 
-  const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, { companyId, customerId, siteId })
   if (existing) {
     const existingMetadata = existing.metadata && typeof existing.metadata === 'object'
       ? existing.metadata
@@ -369,12 +386,15 @@ export async function ensureSupplierSwitchRequestForReadySite(
         meteringPoint: candidate,
         requestedStartDate: existing.requested_start_date ?? requestedStartDate,
       }),
+      contract_id: exactContractId,
       supplier_switch_blockers: reviewBlockers,
       pending_review_reason: reviewBlockers[0]?.code ?? null,
     }
 
     const updatePayload: JsonRecord = {
       status: nextStatus,
+      contract_id: exactContractId,
+      customer_contract_id: exactContractId,
       metering_point_id: candidate.id,
       customer_site_id: site.id,
       requested_start_date: existing.requested_start_date ?? requestedStartDate,
@@ -485,6 +505,7 @@ export async function ensureSupplierSwitchRequestForReadySite(
     requestType,
     requestedStartDate,
     companyId,
+    contractId: exactContractId,
     automationOrigin: input.automationOrigin,
     automationKey: input.automationKey,
     externalReference: clean(input.externalReference) ?? clean(context.externalCustomerId),

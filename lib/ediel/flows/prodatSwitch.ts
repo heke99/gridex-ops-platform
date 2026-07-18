@@ -39,6 +39,7 @@ import {
   makeServerClient,
   queuePreparedEdielMessage,
 } from '@/lib/ediel/flows/shared'
+import { supabaseService } from '@/lib/supabase/service'
 
 type PrepareProdatSwitchParams = {
   actorUserId: string
@@ -177,6 +178,29 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     throw new Error(
       'PRODAT switch stoppades: switchärendet och anläggningen saknar company_id.'
     )
+  }
+
+  if (params.messageCode === 'Z03' || params.messageCode === 'Z05') {
+    const contractId =
+      switchRequest.customer_contract_id ??
+      switchRequest.contract_id ??
+      (typeof switchRequest.metadata?.contract_id === 'string'
+        ? switchRequest.metadata.contract_id
+        : null)
+    if (!contractId) {
+      throw new Error(
+        `PRODAT ${params.messageCode} stoppades: switchärendet saknar exakt customer_contract_id.`,
+      )
+    }
+    const gate = await supabaseService.rpc('gridex_assert_supplier_switch_ready', {
+      p_company_id: companyId,
+      p_contract_id: contractId,
+    })
+    if (gate.error) {
+      throw new Error(
+        `PRODAT ${params.messageCode} stoppades av canonical switch-gate: ${gate.error.message}`,
+      )
+    }
   }
 
   const routeProcess = routeProcessForCode(params.messageCode)

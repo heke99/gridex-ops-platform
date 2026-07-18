@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-18.2",
-    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs endast med opak offer_reference och slutmarkeras server-side mot exakta offer-bundna juridikversioner. Publik prisvisning är versionslåst per komponent via website_card_visible/pricing.visibility."
+    "version": "2026-07-18.3",
+    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs endast med opak offer_reference och slutmarkeras server-side mot varje exakt dokument i erbjudandets låsta juridikpaket. Portföljmetod, final historik och icke-bindande indikationer hålls isär; slutlig fakturering kräver en exakt låst avräkningsrevision."
   },
   "servers": [
     {
@@ -1535,6 +1535,79 @@
         }
       }
     },
+    "/api/v1/website/portfolio-prices": {
+      "get": {
+        "operationId": "getApiV1WebsitePortfolioPrices",
+        "summary": "Hämta portföljmetod, final historik och icke-bindande indikationer.",
+        "description": "Read-only och tenant-scopad från API-token. offer_reference väljer exakt publicerat portfölj-/mixavtal. Indikationer är alltid non_binding och slutlig fakturering kräver exakt locked settlement.",
+        "security": [
+          {
+            "bearerAuth": ["website_contracts.read"]
+          }
+        ],
+        "x-required-scopes": ["website_contracts.read"],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "name": "offer_reference",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "price_area",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["SE1", "SE2", "SE3", "SE4"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Metod, historiska finala avräkningar och tillgängliga icke-bindande indikationer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": ["offer_reference", "historical_final_prices", "indications", "non_binding", "final_billing_rule"],
+                      "properties": {
+                        "offer_reference": { "type": "string" },
+                        "price_plan_version_id": { "type": ["string", "null"], "format": "uuid" },
+                        "legal_bundle_version_id": { "type": ["string", "null"], "format": "uuid" },
+                        "method": { "type": ["object", "null"], "additionalProperties": true },
+                        "historical_final_prices": { "type": "array", "items": { "$ref": "#/components/schemas/PortfolioHistoricalFinalPrice" } },
+                        "indications": { "type": "array", "items": { "$ref": "#/components/schemas/PortfolioPriceIndication" } },
+                        "indication_available": { "type": "boolean" },
+                        "non_binding": { "type": "boolean", "const": true },
+                        "final_billing_rule": { "type": "string", "const": "locked_settlement_only" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "description": "Publicerat portfölj-/mixavtal hittades inte." },
+          "422": { "$ref": "#/components/responses/Unprocessable" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
     "/api/v1/website/public-contracts": {
       "get": {
         "operationId": "getApiV1WebsitePublicContracts",
@@ -2123,6 +2196,59 @@
       }
     },
     "schemas": {
+      "PortfolioSettlementPermission": {
+        "type": "string",
+        "description": "OPS-behörigheter är default-deny och får endast delegeras av platform_superadmin med tenant-, portfölj- och tids-scope. manage_access kan aldrig delegeras.",
+        "enum": [
+          "portfolio_settlement.read",
+          "portfolio_settlement.create",
+          "portfolio_settlement.import",
+          "portfolio_settlement.calculate",
+          "portfolio_settlement.review",
+          "portfolio_settlement.approve",
+          "portfolio_settlement.lock",
+          "portfolio_settlement.correct",
+          "portfolio_settlement.manage_access"
+        ]
+      },
+      "PortfolioHistoricalFinalPrice": {
+        "type": "object",
+        "required": ["id", "portfolio_id", "price_plan_version_id", "period_month", "price_area_code", "amount", "unit", "status", "revision_no", "historical"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "portfolio_id": { "type": "string", "format": "uuid" },
+          "price_plan_version_id": { "type": "string", "format": "uuid" },
+          "period_month": { "type": "string", "format": "date", "description": "Canonical delivery_month." },
+          "price_area_code": { "type": "string", "enum": ["SE1", "SE2", "SE3", "SE4"] },
+          "amount": { "type": "number", "description": "Historiskt slutpris i öre/kWh exklusive moms." },
+          "unit": { "type": "string", "const": "ore_per_kwh" },
+          "vat_included": { "type": "boolean", "const": false },
+          "status": { "type": "string", "enum": ["final", "locked"] },
+          "revision_no": { "type": "integer", "minimum": 1 },
+          "final_at": { "type": ["string", "null"], "format": "date-time" },
+          "historical": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      },
+      "PortfolioPriceIndication": {
+        "type": "object",
+        "required": ["id", "portfolio_id", "price_plan_version_id", "estimate_month", "price_area_code", "estimate_source", "estimate_price_ore_per_kwh", "estimate_generated_at", "non_binding"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "portfolio_id": { "type": "string", "format": "uuid" },
+          "price_plan_version_id": { "type": "string", "format": "uuid" },
+          "estimate_month": { "type": "string", "format": "date" },
+          "price_area_code": { "type": "string", "enum": ["SE1", "SE2", "SE3", "SE4"] },
+          "estimate_source": { "type": "string", "enum": ["latest_final", "rolling_3", "forecast", "manual"] },
+          "estimate_price_ore_per_kwh": { "type": "number" },
+          "estimate_generated_at": { "type": "string", "format": "date-time" },
+          "confidence": { "type": ["string", "null"], "enum": ["low", "medium", "high", null] },
+          "expires_at": { "type": ["string", "null"], "format": "date-time" },
+          "non_binding": { "type": "boolean", "const": true },
+          "label": { "type": "string", "const": "Uppskattning – ej bindande" }
+        },
+        "additionalProperties": true
+      },
       "ApiError": {
         "type": "object",
         "required": ["error", "code", "message"],
@@ -2728,7 +2854,7 @@
           "period_month": {
             "type": "string",
             "format": "date",
-            "description": "Månadens första kalenderdatum, YYYY-MM-01."
+            "description": "Historisk avräkningsmånad, alltid första kalenderdatum YYYY-MM-01. Fältet beskriver aldrig ett framtida faktiskt pris."
           },
           "price_area_code": {
             "type": "string",
@@ -2750,7 +2876,7 @@
           },
           "status": {
             "type": "string",
-            "enum": ["locked", "published"]
+            "enum": ["final", "locked"]
           },
           "source": {
             "type": ["string", "null"]

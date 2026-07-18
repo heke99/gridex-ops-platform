@@ -9,213 +9,223 @@ function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
-function assertContains(relativePath, needles, label = relativePath) {
+function contains(relativePath, needles, label = relativePath) {
   const body = read(relativePath);
   for (const needle of needles) {
     checks += 1;
-    if (!body.includes(needle))
+    if (!body.includes(needle)) {
       failures.push(`${label}: saknar ${JSON.stringify(needle)}`);
+    }
   }
 }
 
-function assertJson(relativePath, validate, label = relativePath) {
-  checks += 1;
-  const value = JSON.parse(read(relativePath));
-  if (!validate(value))
-    failures.push(`${label}: JSON-kontraktet matchar inte förväntad struktur`);
+function excludes(relativePath, needles, label = relativePath) {
+  const body = read(relativePath);
+  for (const needle of needles) {
+    checks += 1;
+    if (body.includes(needle)) {
+      failures.push(`${label}: innehåller förbjudet legacy-mönster ${JSON.stringify(needle)}`);
+    }
+  }
 }
 
-assertContains(
+contains(
   "components/admin/contracts/PortfolioPricingEditor.tsx",
   [
-    'name="portfolio_management_fee_unit"',
-    '<option value="percent">procent</option>',
-    'name="portfolio_management_fee_calculation_base"',
-    'name="portfolio_monthly_prices"',
-    'name="show_portfolio_management_fee_on_website"',
-    'name="show_portfolio_price_on_website"',
-    '<option value="ALL">Gemensamt SE1–SE4</option>',
-    'compact?: boolean',
+    'name="portfolio_id"',
+    'name="portfolio_settlement_timing"',
+    'name="portfolio_estimate_rule"',
+    'name="portfolio_show_historical_final"',
+    'name="portfolio_show_indication"',
+    "icke bindande",
+    "måste tillsammans vara exakt 100 %",
   ],
-  "Gemensam portföljeditor",
+  "Gemensam metodeditor",
 );
-
-assertContains(
-  "app/admin/contracts/page.tsx",
-  [
-    'import PortfolioPricingEditor from "@/components/admin/contracts/PortfolioPricingEditor"',
-    "<PortfolioPricingEditor",
-    'name="price_areas"',
-  ],
-  "admin/contracts",
-);
-
-assertContains(
-  "app/admin/companies/[id]/TenantPlatformControls.tsx",
-  [
-    'import PortfolioPricingEditor from "@/components/admin/contracts/PortfolioPricingEditor"',
-    "<PortfolioPricingEditor",
-    'name="price_areas"',
-    'xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]',
-    '<PortfolioPricingEditor\n              compact',
-    '<WebsitePricingField\n                compact',
-  ],
-  "admin/companies",
+excludes(
+  "components/admin/contracts/PortfolioPricingEditor.tsx",
+  ['name="portfolio_monthly_prices"', "Framtida faktiskt portföljpris"],
+  "Gemensam metodeditor",
 );
 
 for (const action of [
   "app/admin/contracts/actions.ts",
   "app/admin/companies/[id]/tenant-platform-actions.ts",
 ]) {
-  assertContains(
-    action,
-    [
-      '"portfolio_management_fee_unit"',
-      '"portfolio_management_fee_calculation_base"',
-      '"portfolio_monthly_prices"',
-      '"show_portfolio_management_fee_on_website"',
-      '"show_portfolio_price_on_website"',
-    ],
-    action,
-  );
+  contains(action, ["portfolioId", "portfolioSettlementTiming", "portfolioEstimateRule"], action);
+  excludes(action, ["portfolioMonthlyPrices"], action);
 }
 
-assertContains(
+contains(
   "lib/pricing/contractPricingVersioning.ts",
   [
-    "schema_version: 4",
-    "portfolio_monthly_prices: portfolioMonthlyPrices",
-    "percentage_representation:",
-    '"0_to_100"',
-    "portfolioManagementFeeCalculationBase",
-    "Dubbelt portföljpris",
+    "schema_version: 5",
+    "portfolio_method:",
+    "portfolio_id: portfolioId",
+    "estimate_rule: portfolioEstimateRule",
+    'final_billing_requires: "locked_settlement"',
     "Prisandelarna måste tillsammans bli exakt 100 procent.",
   ],
-  "Canonical prisnormalisering",
+  "Canonical avtalsmetod",
+);
+excludes(
+  "lib/pricing/contractPricingVersioning.ts",
+  ["PortfolioMonthlyPriceSnapshot", "portfolio_monthly_prices: portfolioMonthlyPrices"],
+  "Canonical avtalsmetod",
 );
 
-assertContains(
+contains(
+  "supabase/migrations/20260718161000_portfolio_monthly_settlements_rbac.sql",
+  [
+    "create table if not exists public.portfolio_monthly_settlements",
+    "portfolio_monthly_settlements_current_uidx",
+    "delivery_month date not null",
+    "revision_no integer not null",
+    "energy_volume_kwh numeric",
+    "gross_energy_cost_sek numeric",
+    "hedging_result_sek numeric",
+    "balancing_cost_sek numeric",
+    "other_allowed_cost_sek numeric",
+    "portfolio_price_ore_per_kwh numeric",
+    "calculation_snapshot_sha256 text",
+    "approved_by uuid",
+    "check(status in('draft','calculated','reviewed','final','locked'))",
+    "estimate_price_ore_per_kwh numeric",
+    "estimate_generated_at timestamptz",
+    "non_binding boolean not null default true check(non_binding)",
+    "gridex_transition_portfolio_settlement",
+    "gridex_create_portfolio_settlement_correction",
+    "portfolio_manage_access_superadmin_only",
+    "portfolio_settlement.manage_access",
+    "portfolio_settlement.read",
+    "portfolio_settlement.create",
+    "portfolio_settlement.import",
+    "portfolio_settlement.calculate",
+    "portfolio_settlement.review",
+    "portfolio_settlement.approve",
+    "portfolio_settlement.lock",
+    "portfolio_settlement.correct",
+    "permission text not null",
+    "expires_at timestamptz",
+    "trace_id text not null",
+    "portfolio_settlement_role_templates",
+    "portfolio_settlement_operator",
+    "gridex_grant_portfolio_settlement_role",
+    "enable row level security",
+    "gridex_guard_portfolio_settlement_immutability",
+    "gridex_audit_portfolio_settlement_write",
+  ],
+  "Canonical avräkning och RBAC",
+);
+
+contains(
+  "supabase/migrations/20260718162000_portfolio_publication_billing_alignment.sql",
+  [
+    "drop trigger if exists price_plan_versions_sync_portfolio_monthly_prices",
+    "portfolio_price_source_missing_or_unlocked",
+    "future_portfolio_price_publication_blocker_still_installed",
+    "gridex_generate_portfolio_price_estimate",
+    "gridex_bind_locked_portfolio_settlement",
+    "gridex_attach_portfolio_settlement_to_invoice",
+    "final_or_locked_portfolio_settlement_required_for_billing",
+    "customer_contract_id uuid",
+    "consumption_kwh numeric",
+    "portfolio_share_percent numeric",
+    "spot_share_percent numeric",
+    "portfolio_energy_cost_sek numeric",
+    "spot_energy_cost_sek numeric",
+    "management_fee_sek numeric",
+    "other_fees_sek numeric",
+    "calculation_snapshot_sha256 text",
+    "final_invoice_requires_locked_portfolio_settlement_evidence",
+    "issued_invoice_portfolio_evidence_immutable",
+  ],
+  "Publicering och fakturering",
+);
+
+contains(
   "lib/pricing/priceSourceResolver.ts",
   [
+    '.from("portfolio_monthly_settlements")',
     '.eq("price_plan_version_id", input.pricePlanVersionId)',
-    "portfolio_monthly_price_id:",
-    "price_plan_version_id:",
-    "Never use this fallback when an",
+    '.eq("status", "locked")',
+    "portfolio_monthly_settlement_id:",
+    "revision_no: numberValue(portfolioRow.revision_no)",
   ],
-  "Exakt priskälla",
+  "Runtime source of truth",
+);
+excludes(
+  "lib/pricing/priceSourceResolver.ts",
+  ['.from("portfolio_monthly_prices")', "rolling_3", "latest_final"],
+  "Runtime source of truth",
 );
 
-assertContains(
-  "lib/pricing/priceComponentCalculator.ts",
-  [
-    'calculationBase === "portfolio_cost"',
-    'calculationBase === "invoice_subtotal"',
-    'calculationBase === "energy_cost_inc_vat"',
-    "calculationBase",
-  ],
-  "Procentbaser",
-);
-
-assertContains(
-  "lib/pricing/engine.ts",
-  [
-    "pricePlanVersionId: underlay.pricePlanVersionId ?? null",
-    "portfolioAmountExVat",
-    "portfolioAmountExVat: hasPortfolioBase ? portfolioAmountExVat : null",
-  ],
-  "Faktureringsmotor",
-);
-
-assertContains(
-  "lib/pricing/offerQuote.ts",
-  ["pricePlanVersionId:", "pricing_snapshot"],
-  "Bindande offert",
-);
-
-assertContains(
+contains(
   "lib/website/customerApplications.ts",
   [
-    "portfolio_monthly_prices:",
-    "price_plan_version_id:",
-    'snapshot_schema: "gridex_contract_pricing_v4"',
-    "pricing_source_schema_version:",
+    "legal_bundle_version_document_id",
+    "legal_document_sha256",
+    "contractLegalMailEvidenceReady",
+    'schema: "gridex_website_contract_signature_v2"',
+    "p_acceptance_evidence",
+    "gridex_fail_website_contract_signature",
   ],
-  "Kundens låsta snapshot",
+  "Exakt juridisk signering",
 );
-
-assertContains(
-  "lib/website/publicContracts.ts",
+contains(
+  "supabase/migrations/20260718160000_v5_signature_switch_readiness_hardening.sql",
   [
-    '"portfolio_price"',
-    "portfolio_monthly_price_versions_v",
-    "portfolio_monthly_prices:",
-    "portfolio_management_fee:",
-    "customer_types:",
+    "legal_bundle_version_document_id",
+    "customer_contract_lifecycle_readiness_v",
+    "gridex_assert_supplier_switch_ready",
+    "supplier_switch_exact_contract_required",
+    "contract_start_date_missing",
+    "agreement_ready",
+    "billing_ready",
   ],
-  "Publikt API",
+  "Signerings- och switch-gate",
 );
 
-assertContains(
-  "supabase/migrations/20260718010000_canonical_portfolio_pricing_versions.sql",
+contains(
+  "app/admin/pricing/portfolio-settlements/page.tsx",
   [
-    "add column if not exists website_card_visible boolean not null default true",
-    "add column if not exists calculation_base",
-    "add column if not exists price_plan_version_id",
-    "ux_portfolio_monthly_prices_version_area_month",
-    "gridex_validate_portfolio_monthly_price_tenant",
-    "gridex_prevent_locked_portfolio_price_mutation",
-    "gridex_sync_portfolio_monthly_prices_for_version",
-    "portfolio_monthly_price_versions_v",
-    "pmp.price_plan_version_id=b.price_plan_version_id",
-    "'percent','percentage'",
+    "En gemensam, revisionssäker OPS-vy",
+    "portfolio_settlement.calculate",
+    "portfolio_settlement.review",
+    "portfolio_settlement.approve",
+    "portfolio_settlement.lock",
+    "portfolio_settlement.correct",
+    "Append-only audit",
+    "Icke-bindande indikation",
   ],
-  "Framåtriktad migration",
+  "Delad RBAC-vy",
 );
-
-assertContains(
-  "docs/ops-api-customer-intake-facility.md",
+contains(
+  "app/api/v1/website/portfolio-prices/route.ts",
   [
-    "Canonical portföljprissättning och procentbaser (2026-07-18.2)",
-    "portfolio_monthly_prices",
-    "calculation_base",
-    "0..100",
+    '"website_contracts.read"',
+    "offer_reference_required",
+    "historical_final_prices",
+    "indications",
+    "non_binding: true",
+    'final_billing_rule: "locked_settlement_only"',
   ],
-  "Integrationsguide",
+  "Publikt portfölj-API",
 );
 
-assertContains(
-  "app/developers/customer-portal-api/page.tsx",
-  [
-    'const documentationVersion = "2026-07-18.2"',
-    "Månatliga portföljpriser",
-    "Beräkningsbas",
-    "pricing.portfolio_monthly_prices",
-  ],
-  "Utvecklarsida",
-);
-
-assertJson(
-  "docs/openapi/customer-portal-v1.json",
-  (document) => {
-    const schemas = document?.components?.schemas ?? {};
-    return (
-      document?.info?.version === "2026-07-18.2" &&
-      Boolean(schemas.PricingCalculationBase) &&
-      Boolean(schemas.PortfolioMonthlyPrice) &&
-      Boolean(schemas.PortfolioPriceDisplay)
-    );
-  },
-  "OpenAPI",
-);
+checks += 1;
+const openapi = JSON.parse(read("docs/openapi/customer-portal-v1.json"));
+if (
+  openapi?.info?.version !== "2026-07-18.3" ||
+  !openapi?.paths?.["/api/v1/website/portfolio-prices"]?.get
+) {
+  failures.push("OpenAPI: portföljendpoint eller dokumentationsversion saknas");
+}
 
 if (failures.length > 0) {
-  console.error(
-    `Canonical portfolio pricing regression failed (${failures.length}/${checks}).`,
-  );
+  console.error(`Canonical portfolio V5 regression failed (${failures.length}/${checks}).`);
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
 
-console.log(
-  `Canonical portfolio pricing regression passed (${checks} controls).`,
-);
+console.log(`Canonical portfolio V5 regression passed (${checks} controls).`);

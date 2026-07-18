@@ -29,8 +29,8 @@ import {
 } from "@/lib/customer-operations/customerIntakeOrchestrator";
 import {
   publicOfferReference,
+  legalAcceptanceTypeForModule,
   resolvePublicContractOffer,
-  selectLegalVersionForAcceptance,
   type LegacyLegalAcceptanceType,
   type PublicContractOffer,
 } from "@/lib/website/publicContracts";
@@ -1178,11 +1178,14 @@ function validateNestedPayloadFields(
 type WebsiteLegalAcceptanceVersion = {
   id: string;
   type: string;
+  module_key?: string;
   version: string;
   title: string;
   body: string | null;
   published_at: string | null;
   status?: string | null;
+  content_sha256?: string | null;
+  legal_bundle_version_id?: string | null;
 };
 
 const WEBSITE_LEGAL_ACCEPTANCE_DEFINITIONS: Array<{
@@ -1278,13 +1281,11 @@ function hasStoredAcceptance(
 
 function requiredWebsiteLegalAcceptances(offer: PublicContractOffer) {
   const versions = offer.legal_versions ?? [];
+  const requiredTypes = new Set(
+    versions.map((version) => legalAcceptanceTypeForModule(version.type)),
+  );
   return WEBSITE_LEGAL_ACCEPTANCE_DEFINITIONS.filter((definition) =>
-    Boolean(
-      selectLegalVersionForAcceptance(
-        versions,
-        definition.legalType as LegacyLegalAcceptanceType,
-      ),
-    ),
+    requiredTypes.has(definition.legalType as LegacyLegalAcceptanceType),
   );
 }
 
@@ -1293,12 +1294,12 @@ function contractLegalMailEvidenceReady(input: {
   legalVersions: WebsiteLegalAcceptanceVersion[];
 }) {
   const requiredTypes = new Set(
-    input.legalVersions.map((version) => version.type),
+    input.legalVersions.map((version) => version.id),
   );
   return (
     requiredTypes.size > 0 &&
-    Array.from(requiredTypes).every((type) =>
-      hasStoredAcceptance(input.acceptanceIds, type),
+    Array.from(requiredTypes).every((documentId) =>
+      hasStoredAcceptance(input.acceptanceIds, documentId),
     )
   );
 }
@@ -1359,18 +1360,9 @@ async function loadOfferBoundLegalVersions(input: {
   publicOffer: PublicContractOffer;
 }): Promise<WebsiteLegalAcceptanceVersion[]> {
   const offerVersions = input.publicOffer.legal_versions ?? [];
-  const requirements = requiredWebsiteLegalAcceptances(input.publicOffer);
-  const selectedVersions = requirements.map((definition) => ({
-    definition,
-    version: selectLegalVersionForAcceptance(
-      offerVersions,
-      definition.legalType as LegacyLegalAcceptanceType,
-    ),
-  }));
-  const missingOfferVersions = selectedVersions.filter((item) => !item.version);
-  if (missingOfferVersions.length > 0) {
+  if (offerVersions.length === 0) {
     throw new WebsiteApplicationError({
-      message: `Det valda erbjudandet saknar exakt juridikversion för: ${missingOfferVersions.map((item) => item.definition.label).join(", ")}.`,
+      message: "Det valda erbjudandet saknar ett exakt juridikpaket.",
       status: 422,
       code: "offer_legal_versions_missing",
       field: "offer_reference",
@@ -1379,11 +1371,9 @@ async function loadOfferBoundLegalVersions(input: {
     });
   }
 
-  const expectedIds = selectedVersions
-    .map((item) => item.version?.id ?? null)
-    .filter((id): id is string => Boolean(id));
+  const expectedIds = offerVersions.map((item) => item.id);
   if (
-    new Set(expectedIds).size !== requirements.length ||
+    new Set(expectedIds).size !== offerVersions.length ||
     expectedIds.some((id) => !isUuid(id)) ||
     !input.publicOffer.legal_bundle_version_id
   ) {
@@ -1440,10 +1430,11 @@ async function loadOfferBoundLegalVersions(input: {
   const documents = await supabaseService
     .from("legal_bundle_version_documents")
     .select(
-      "id,module_key,title,rendered_body,template_version,created_at,unresolved_variables",
+      "id,legal_bundle_version_id,module_key,title,rendered_body,template_version,content_sha256,created_at,unresolved_variables",
     )
     .eq("legal_bundle_version_id", input.publicOffer.legal_bundle_version_id)
-    .in("id", expectedIds);
+    .in("id", expectedIds)
+    .order("sort_order", { ascending: true });
 
   if (documents.error) {
     throw new WebsiteApplicationError({
@@ -1461,9 +1452,8 @@ async function loadOfferBoundLegalVersions(input: {
   const loadedById = new Map(
     (documents.data ?? []).map((row) => [String(row.id), row]),
   );
-  const ordered: Array<WebsiteLegalAcceptanceVersion | null> =
-    selectedVersions.map(({ definition, version }) => {
-      if (!version) return null;
+  const ordered: Array<WebsiteLegalAcceptanceVersion | null> = offerVersions.map(
+    (version) => {
       const row = loadedById.get(version.id);
       if (
         !row ||
@@ -1474,7 +1464,8 @@ async function loadOfferBoundLegalVersions(input: {
       }
       return {
         id: String(row.id),
-        type: definition.legalType,
+        type: String(row.module_key),
+        module_key: String(row.module_key),
         version:
           version.version ||
           String(row.template_version ?? row.created_at ?? row.id),
@@ -1487,8 +1478,14 @@ async function loadOfferBoundLegalVersions(input: {
               ? row.created_at
               : null,
         status: "published",
+        content_sha256: String(
+          row.content_sha256 ??
+            createHash("sha256").update(String(row.rendered_body ?? ""), "utf8").digest("hex"),
+        ),
+        legal_bundle_version_id: String(row.legal_bundle_version_id),
       } satisfies WebsiteLegalAcceptanceVersion;
-    });
+    },
+  );
 
   if (ordered.some((row) => !row)) {
     throw new WebsiteApplicationError({
@@ -1533,7 +1530,7 @@ async function assertWebsiteLegalAcceptances(input: {
   });
 }
 
-async function persistCustomerLegalAcceptances(input: {
+type CustomerLegalAcceptanceEvidenceInput = {
   companyId: string;
   customerId: string;
   contractId: string | null;
@@ -1544,25 +1541,41 @@ async function persistCustomerLegalAcceptances(input: {
   rawPayload: unknown;
   requestAudit?: RequestAuditMetadata;
   acceptedAt: string;
-}): Promise<Record<string, string>> {
-  if (input.legalVersions.length === 0) return {};
+};
+
+function buildCustomerLegalAcceptanceEvidence(
+  input: CustomerLegalAcceptanceEvidenceInput,
+) {
+  if (input.legalVersions.length === 0) return [];
   const now = input.acceptedAt;
   const requirements = input.publicOffer
     ? requiredWebsiteLegalAcceptances(input.publicOffer)
     : [];
-  const rows = requirements
-    .map((definition) => {
-      const legal = input.legalVersions.find(
-        (row) => row.type === definition.legalType,
+  const definitionsByType = new Map(
+    requirements.map((definition) => [definition.legalType, definition]),
+  );
+  const rows = input.legalVersions
+    .map((legal) => {
+      const legalType = legalAcceptanceTypeForModule(
+        legal.module_key ?? legal.type,
       );
-      if (!legal) return null;
+      const definition = definitionsByType.get(legalType);
+      if (!definition) return null;
       return {
         company_id: input.companyId,
         customer_id: input.customerId,
         contract_id: input.contractId,
         contract_application_id: input.applicationId,
         acceptance_type: definition.acceptanceType,
-        legal_text_version_id: legal.id,
+        legal_text_version_id: null,
+        legal_bundle_version_document_id: legal.id,
+        legal_module_key: legal.module_key ?? legal.type,
+        legal_document_version: legal.version,
+        legal_document_sha256:
+          legal.content_sha256 ??
+          createHash("sha256").update(legal.body ?? "", "utf8").digest("hex"),
+        request_id: input.requestAudit?.requestId ?? null,
+        trace_id: input.requestAudit?.traceId ?? null,
         accepted_at: now,
         accepted_ip: input.requestAudit?.ipAddress ?? null,
         accepted_ip_hash: input.requestAudit?.ipHash ?? null,
@@ -1572,6 +1585,7 @@ async function persistCustomerLegalAcceptances(input: {
           legal_text: {
             id: legal.id,
             type: legal.type,
+            module_key: legal.module_key ?? legal.type,
             version: legal.version,
             title: legal.title,
             body: legal.body,
@@ -1591,10 +1605,21 @@ async function persistCustomerLegalAcceptances(input: {
     })
     .filter(Boolean);
 
+  return rows;
+}
+
+async function persistCustomerLegalAcceptances(
+  input: CustomerLegalAcceptanceEvidenceInput,
+): Promise<Record<string, string>> {
+  if (input.legalVersions.length === 0) return {};
+  const rows = buildCustomerLegalAcceptanceEvidence(input);
+  const requirements = input.publicOffer
+    ? requiredWebsiteLegalAcceptances(input.publicOffer)
+    : [];
   const { data, error } = await supabaseService
     .from("customer_legal_acceptances")
     .insert(rows)
-    .select("id,acceptance_type");
+    .select("id,acceptance_type,legal_bundle_version_document_id");
   if (error) {
     // Required legal evidence — a schema mismatch must fail clearly so we never
     // persist a "complete" customer without recorded legal acceptances.
@@ -1622,12 +1647,19 @@ async function persistCustomerLegalAcceptances(input: {
   for (const acceptanceRow of (data ?? []) as Array<{
     id: string;
     acceptance_type: string;
+    legal_bundle_version_document_id: string;
   }>) {
     const legalType = acceptanceTypeToLegalType.get(
       acceptanceRow.acceptance_type,
     );
-    if (legalType && acceptanceRow.id)
+    if (acceptanceRow.legal_bundle_version_document_id && acceptanceRow.id) {
+      ids[acceptanceRow.legal_bundle_version_document_id] = String(
+        acceptanceRow.id,
+      );
+    }
+    if (legalType && acceptanceRow.id && !ids[legalType]) {
       ids[legalType] = String(acceptanceRow.id);
+    }
   }
   return ids;
 }
@@ -2661,6 +2693,8 @@ type RequestAuditMetadata = {
   ipAddress?: string | null;
   ipHash?: string | null;
   userAgent?: string | null;
+  requestId?: string | null;
+  traceId?: string | null;
 };
 
 type WebsiteContractRow = {
@@ -5645,14 +5679,24 @@ async function createContractPriceSnapshot(input: {
     public_price_text: input.offer?.public_price_text ?? null,
     terms_url: input.offer?.terms_url ?? null,
     pricing_model: canonicalSnapshot.pricingModel,
-    snapshot_schema: "gridex_contract_pricing_v4",
+    snapshot_schema: "gridex_contract_pricing_v5",
     pricing_source_schema_version:
-      numericValue(exactPricingSnapshot.schema_version) ?? 4,
-    portfolio_monthly_prices: Array.isArray(
+      numericValue(exactPricingSnapshot.schema_version) ?? 5,
+    portfolio_method: isObject(exactPricingSnapshot.portfolio_method)
+      ? exactPricingSnapshot.portfolio_method
+      : null,
+    portfolio_historical_final_prices: Array.isArray(
       exactPricingSnapshot.portfolio_monthly_prices,
     )
       ? exactPricingSnapshot.portfolio_monthly_prices
       : [],
+    portfolio_indications: Array.isArray(
+      exactPricingSnapshot.portfolio_indications,
+    )
+      ? exactPricingSnapshot.portfolio_indications
+      : [],
+    portfolio_indications_non_binding: true,
+    final_portfolio_billing_requires: "locked_settlement",
     website_visibility: exactPricingSnapshot.website_visibility ?? {},
     vat_rate: canonicalSnapshot.vatRate,
     mix: {
@@ -5723,12 +5767,15 @@ function websiteLegalVersionsSnapshot(
   return versions.map((version) => ({
     id: version.id,
     type: version.type,
+    legal_bundle_version_document_id: version.id,
+    module_key: version.module_key ?? version.type,
     version: version.version,
     title: version.title,
     published_at: version.published_at,
-    body_sha256: createHash("sha256")
-      .update(version.body ?? "", "utf8")
-      .digest("hex"),
+    document_sha256:
+      version.content_sha256 ??
+      createHash("sha256").update(version.body ?? "", "utf8").digest("hex"),
+    legal_bundle_version_id: version.legal_bundle_version_id ?? null,
   }));
 }
 
@@ -5745,13 +5792,19 @@ function websiteSignatureSnapshot(input: {
   requestAudit?: RequestAuditMetadata;
 }) {
   return {
-    schema: "gridex_website_contract_signature_v1",
+    schema: "gridex_website_contract_signature_v2",
     company_id: input.companyId,
     customer_id: input.customerId,
     contract_id: input.contractId,
     application_id: input.applicationId,
     public_contract_offer_id: input.publicOffer.id,
     offer_reference: input.offerReference,
+    contract_publication_version_id:
+      input.publicOffer.contract_publication_version_id ?? null,
+    contract_product_id: input.publicOffer.contract_product_id ?? null,
+    contract_product_version_id:
+      input.publicOffer.contract_product_version_id ?? null,
+    legal_bundle_version_id: input.publicOffer.legal_bundle_version_id ?? null,
     price_plan_id: input.publicOffer.price_plan_id,
     price_plan_version_id: input.publicOffer.price_plan_version_id,
     contract_price_snapshot_id: input.contractPriceSnapshotId ?? null,
@@ -5759,6 +5812,8 @@ function websiteSignatureSnapshot(input: {
     agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
     legal_versions: websiteLegalVersionsSnapshot(input.legalVersions),
     request_evidence: {
+      request_id: input.requestAudit?.requestId ?? null,
+      trace_id: input.requestAudit?.traceId ?? null,
       ip_hash: input.requestAudit?.ipHash ?? null,
       user_agent: input.requestAudit?.userAgent ?? null,
     },
@@ -5774,8 +5829,13 @@ async function finalizeWebsiteContractSignature(input: {
   offerReference: string;
   acceptedAt: string;
   legalVersions: WebsiteLegalAcceptanceVersion[];
+  consents?: Record<string, unknown>;
+  rawPayload: unknown;
   requestAudit?: RequestAuditMetadata;
-}): Promise<WebsiteContractCreateResult> {
+}): Promise<{
+  contract: WebsiteContractCreateResult;
+  acceptanceIds: Record<string, string>;
+}> {
   const snapshot = websiteSignatureSnapshot({
     companyId: input.companyId,
     customerId: input.customerId,
@@ -5802,6 +5862,18 @@ async function finalizeWebsiteContractSignature(input: {
       p_accepted_at: input.acceptedAt,
       p_legal_versions: websiteLegalVersionsSnapshot(input.legalVersions),
       p_signature_snapshot: snapshot,
+      p_acceptance_evidence: buildCustomerLegalAcceptanceEvidence({
+        companyId: input.companyId,
+        customerId: input.customerId,
+        contractId: input.contract.id,
+        applicationId: input.applicationId,
+        publicOffer: input.publicOffer,
+        legalVersions: input.legalVersions,
+        consents: input.consents,
+        rawPayload: input.rawPayload,
+        requestAudit: input.requestAudit,
+        acceptedAt: input.acceptedAt,
+      }),
       p_signature_snapshot_sha256: snapshotHash,
       p_signed_ip_hash: input.requestAudit?.ipHash ?? null,
       p_signed_user_agent: input.requestAudit?.userAgent ?? null,
@@ -5822,7 +5894,25 @@ async function finalizeWebsiteContractSignature(input: {
   }
 
   const result = isObject(data) ? data : {};
+  const exactAcceptanceIds = isObject(result.acceptance_ids)
+    ? Object.fromEntries(
+        Object.entries(result.acceptance_ids)
+          .filter((entry): entry is [string, string] =>
+            typeof entry[1] === "string",
+          ),
+      )
+    : {};
+  const acceptanceIds = { ...exactAcceptanceIds };
+  for (const legalVersion of input.legalVersions) {
+    const id = exactAcceptanceIds[legalVersion.id];
+    if (!id) continue;
+    const legacyType = legalAcceptanceTypeForModule(
+      legalVersion.module_key ?? legalVersion.type,
+    );
+    if (!acceptanceIds[legacyType]) acceptanceIds[legacyType] = id;
+  }
   return {
+    contract: {
     ...input.contract,
     status: WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS,
     signed_at: clean(result.signed_at) ?? input.acceptedAt,
@@ -5831,6 +5921,8 @@ async function finalizeWebsiteContractSignature(input: {
     offer_reference: input.offerReference,
     signature_snapshot_sha256:
       clean(result.signature_snapshot_sha256) ?? snapshotHash,
+    },
+    acceptanceIds,
   };
 }
 
@@ -5846,6 +5938,7 @@ async function createContract(
   options: {
     idempotencyKey?: string | null;
     applicationNumber?: string | null;
+    applicationId?: string | null;
     offerReference?: string | null;
     agreementAcceptedAt?: string | null;
     legalVersions?: WebsiteLegalAcceptanceVersion[];
@@ -6030,6 +6123,7 @@ async function createContract(
       source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
       website_application_idempotency_key: options.idempotencyKey ?? null,
       application_number: options.applicationNumber ?? null,
+      website_application_id: options.applicationId ?? null,
       agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
       contract_number: contractNumber,
       price_plan_id: selected.pricePlanId,
@@ -7861,6 +7955,7 @@ export async function processWebsiteCustomerApplication(input: {
         {
           idempotencyKey: input.idempotencyKey ?? null,
           applicationNumber,
+          applicationId: applicationRowId,
           offerReference: selectedOfferReference,
           agreementAcceptedAt,
           legalVersions: legalAcceptanceVersions,
@@ -8048,26 +8143,10 @@ export async function processWebsiteCustomerApplication(input: {
     const email = normalizedEmail(body.customer.email);
     let initialCommunicationResults: WebsiteEmailDispatchResult[] = [];
 
-    const legalAcceptanceIds = await stage("legal_acceptance", () =>
-      persistCustomerLegalAcceptances({
-        companyId: input.client.company_id,
-        customerId: resolvedCustomerResult.customer.id,
-        contractId: contract?.id ?? null,
-        applicationId: application.id,
-        publicOffer,
-        legalVersions: legalAcceptanceVersions,
-        consents: body.consents,
-        rawPayload: input.rawBody,
-        requestAudit: input.requestAudit,
-        acceptedAt: agreementAcceptedAt,
-      }),
-    );
-    if (Object.keys(legalAcceptanceIds).length > 0) {
-      responsePayload.legal_acceptances = legalAcceptanceIds;
-    }
+    let legalAcceptanceIds: Record<string, string> = {};
 
     if (contract && publicOffer && selectedOfferReference) {
-      contract = await stage("legal_acceptance", () =>
+      const signatureResult = await stage("legal_acceptance", () =>
         finalizeWebsiteContractSignature({
           companyId: input.client.company_id,
           customerId: resolvedCustomerResult.customer.id,
@@ -8077,9 +8156,13 @@ export async function processWebsiteCustomerApplication(input: {
           offerReference: selectedOfferReference,
           acceptedAt: agreementAcceptedAt,
           legalVersions: legalAcceptanceVersions,
+          consents: body.consents,
+          rawPayload: input.rawBody,
           requestAudit: input.requestAudit,
         }),
       );
+      contract = signatureResult.contract;
+      legalAcceptanceIds = signatureResult.acceptanceIds;
       responsePayload.contract_status = contract.status;
       responsePayload.signed_at = contract.signed_at ?? agreementAcceptedAt;
       responsePayload.withdrawal_deadline_at =
@@ -8088,6 +8171,24 @@ export async function processWebsiteCustomerApplication(input: {
         contract.signature_snapshot_sha256 ?? null;
       responsePayload.public_contract_offer_id = publicOffer.id;
       responsePayload.offer_reference = selectedOfferReference;
+    } else {
+      legalAcceptanceIds = await stage("legal_acceptance", () =>
+        persistCustomerLegalAcceptances({
+          companyId: input.client.company_id,
+          customerId: resolvedCustomerResult.customer.id,
+          contractId: contract?.id ?? null,
+          applicationId: application.id,
+          publicOffer,
+          legalVersions: legalAcceptanceVersions,
+          consents: body.consents,
+          rawPayload: input.rawBody,
+          requestAudit: input.requestAudit,
+          acceptedAt: agreementAcceptedAt,
+        }),
+      );
+    }
+    if (Object.keys(legalAcceptanceIds).length > 0) {
+      responsePayload.legal_acceptances = legalAcceptanceIds;
     }
 
     agreementConfirmationEligible = Boolean(
@@ -8854,6 +8955,32 @@ export async function processWebsiteCustomerApplication(input: {
           );
           return null;
         });
+
+    // A contract and its price snapshot are created in one database RPC. If a
+    // later exact-legal/signature step fails, never leave a misleading
+    // pending_signature row that downstream automation could mistake for a
+    // viable agreement. Historical evidence is retained and explicitly failed.
+    if (
+      contract?.id &&
+      contract.status !== WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS
+    ) {
+      const { error: contractFailureError } = await supabaseService.rpc(
+        "gridex_fail_website_contract_signature",
+        {
+          p_company_id: input.client.company_id,
+          p_contract_id: contract.id,
+          p_application_id: applicationRowId,
+          p_error_code: appError.code,
+          p_error_stage: appError.stage,
+        },
+      );
+      if (contractFailureError) {
+        console.warn(
+          "[website-applications] failed to close pending signature contract",
+          contractFailureError,
+        );
+      }
+    }
 
     if (failedApplication?.id && customerResult?.customer?.id) {
       await failApplicationProvisioning({

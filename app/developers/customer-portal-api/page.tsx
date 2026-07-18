@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 const baseUrl = "https://app.gridex.se";
-const documentationVersion = "2026-07-18.2";
+const documentationVersion = "2026-07-18.3";
 
 const permissions = [
   [
@@ -173,6 +173,15 @@ const publicContractsDiagnosticsExample = `curl -X GET "${baseUrl}/api/v1/websit
 
 # Svaret innehåller visible/hidden och blockers per public_contract_offer.
 # Använd detta server-side vid publiceringsfelsökning; visa inte intern diagnostik i kundens UI.`;
+
+const portfolioPricesExample = `curl -X GET "${baseUrl}/api/v1/website/portfolio-prices?offer_reference=offer_...&price_area=SE3" \\
+  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
+  -H "Accept: application/json"
+
+# data.method beskriver avtalsmetoden.
+# data.historical_final_prices är finala/låsta revisioner.
+# data.indications är alltid non_binding och får aldrig faktureras.
+# data.final_billing_rule är alltid locked_settlement_only.`;
 
 const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-applications" \\
   -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
@@ -700,9 +709,11 @@ export default function CustomerPortalApiDocsPage() {
             tenantens backend.
           </p>
           <p>
-            Månatliga portföljpriser returneras i{" "}
+            Historiska slutpriser returneras i{" "}
             <code>pricing.portfolio_monthly_prices</code> och är bundna till
-            exakt <code>price_plan_version_id</code>, månad och elområde.
+            exakt <code>price_plan_version_id</code>, månad, elområde och
+            avräkningsrevision. De är aldrig ett krav för att teckna eller
+            publicera ett framtida avtal.
             Portföljandel, portföljpris och portföljförvaltningsavgift är olika
             begrepp. En procentuell förvaltningsavgift använder värden i
             intervallet <code>0..100</code> och måste ange en explicit
@@ -711,13 +722,26 @@ export default function CustomerPortalApiDocsPage() {
             annan version eller tidigare månad.
           </p>
           <p>
+            För en separat portföljvy används{" "}
+            <code>GET /api/v1/website/portfolio-prices</code>. Endpointen är
+            read-only, tenant-scopad från API-nyckeln och kräver exakt{" "}
+            <code>offer_reference</code>. En prognos eller manuell indikation
+            sparas med källa, estimatmånad, genereringstid och märks alltid{" "}
+            <code>non_binding=true</code>; slutlig fakturering kräver exakt
+            låst avräkning och får inte använda estimat. OPS-statusflödet är{" "}
+            <code>draft → calculated → reviewed → final → locked</code> och en
+            rättelse skapar alltid en ny <code>revision_no</code>.
+          </p>
+          <CodeBlock>{portfolioPricesExample}</CodeBlock>
+          <p>
             Juridiken i <code>legal</code> är OPS source of truth. Visa
             dokumentlänkarna från OPS och skicka separata consent-flaggor. OPS
-            binder accepten server-side till den låsta canonical
-            juridikpaketversionen och de kompatibilitets-ID:n som ligger i det
-            valda erbjudandet. När fullmakt krävs ska{" "}
-            <code>powerOfAttorney.textVersionId</code> vara{" "}
-            <code>legal.power_of_attorney_version_id</code>.
+            binder varje accept server-side till exakt{" "}
+            <code>legal_bundle_version_document_id</code>, dokumentversion och
+            dokumenthash i den låsta juridikpaketversionen. Kravuppsättningen
+            är databasdriven och kan variera med kundtyp, avtal, prismodell,
+            kanal, produkt och fullmakt; klienten får inte anta fem fasta
+            dokument.
           </p>
           <p>
             Vid publiceringsfelsökning kan tenantens backend använda{" "}

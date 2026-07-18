@@ -18,7 +18,7 @@ const migration = read(
 const docs = read("docs/ops-api-customer-intake-facility.md");
 const openapi = JSON.parse(read("docs/openapi/customer-portal-v1.json"));
 
-must(/schema_version:\s*3/.test(pricing), "pricing snapshot schema is v3");
+must(/schema_version:\s*5/.test(pricing), "pricing snapshot schema is v5");
 must(
   /website_card_visible/.test(pricing),
   "price components carry website visibility",

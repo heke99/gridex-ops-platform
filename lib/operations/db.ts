@@ -1443,6 +1443,7 @@ export async function createSupplierSwitchRequest(
     automationOrigin?: string | null;
     automationKey?: string | null;
     companyId?: string | null;
+    contractId?: string | null;
     externalReference?: string | null;
     metadata?: Record<string, unknown> | null;
     initialStatus?: SupplierSwitchRequestStatus;
@@ -1510,6 +1511,8 @@ export async function createSupplierSwitchRequest(
 
   const insertPayload = {
     customer_id: params.readiness.customerId,
+    contract_id: params.contractId ?? null,
+    customer_contract_id: params.contractId ?? null,
     site_id: params.site.id,
     // Keep the legacy alias column coherent: several read paths (e.g. the
     // customer intake orchestrator's open-switch detection) filter on

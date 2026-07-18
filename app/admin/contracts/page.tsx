@@ -597,10 +597,23 @@ export default async function AdminContractsPage({
     });
   }
   let offers: ContractOfferRow[] = [];
+  let portfolioOptions: Array<{ id: string; name: string; code: string }> = [];
   let listError: string | undefined;
   if (scope.companyId) {
     try {
       offers = await listContractOffers({ companyId: scope.companyId });
+      const portfolioResult = await supabase
+        .from("portfolios")
+        .select("id,name,code")
+        .eq("company_id", scope.companyId)
+        .eq("status", "active")
+        .order("name", { ascending: true });
+      if (portfolioResult.error) throw portfolioResult.error;
+      portfolioOptions = (portfolioResult.data ?? []).map((row) => ({
+        id: String(row.id),
+        name: String(row.name),
+        code: String(row.code),
+      }));
     } catch (error) {
       listError = toSafeContractError(error, {
         action: "list_contract_offers",
@@ -887,6 +900,7 @@ export default async function AdminContractsPage({
             />
 
             <PortfolioPricingEditor
+              portfolios={portfolioOptions}
               defaultSpotWeight={100}
               defaultPortfolioWeight={0}
               defaultFixedWeight={0}

@@ -212,7 +212,16 @@ async function saveContractOfferActionImpl(
       formData,
       "portfolio_management_fee_calculation_base",
     ),
-    portfolioMonthlyPrices: getString(formData, "portfolio_monthly_prices"),
+    portfolioId: getString(formData, "portfolio_id"),
+    portfolioSettlementTiming: getString(
+      formData,
+      "portfolio_settlement_timing",
+    ),
+    portfolioEstimateRule: getString(formData, "portfolio_estimate_rule"),
+    portfolioShowHistoricalFinal:
+      getString(formData, "portfolio_show_historical_final") === "on",
+    portfolioShowIndication:
+      getString(formData, "portfolio_show_indication") === "on",
     greenFeeMode: getString(formData, "green_fee_mode"),
     greenFeeValue: getString(formData, "green_fee_value"),
     startFeeSek: getString(formData, "start_fee_sek"),

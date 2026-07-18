@@ -537,7 +537,7 @@ export async function listPortalMeteringPoints(context: PortalCustomerContext, s
 // a table nothing read) was removed. Profile updates / move-outs are recorded
 // as customer_portal_completions with linked ops cases.
 
-const LEGAL_ACCEPTANCE_SELECT = 'id,acceptance_type,legal_text_version_id,contract_id,contract_application_id,accepted_at,source,snapshot,metadata,created_at'
+const LEGAL_ACCEPTANCE_SELECT = 'id,acceptance_type,legal_bundle_version_document_id,legal_module_key,legal_document_version,legal_document_sha256,request_id,trace_id,legal_text_version_id,contract_id,contract_application_id,accepted_at,source,snapshot,metadata,created_at'
 const LEGAL_ACCEPTANCE_LEGACY_SELECT = 'id,acceptance_type,legal_text_version_id,contract_id,contract_application_id,accepted_at,snapshot,metadata,created_at'
 const LEGAL_ACCEPTANCE_MINIMAL_SELECT = 'id,acceptance_type,accepted_at,metadata,created_at'
 

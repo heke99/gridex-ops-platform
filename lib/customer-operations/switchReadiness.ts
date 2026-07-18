@@ -90,6 +90,11 @@ const NEXT_ACTION_BY_CODE: Record<string, string> = {
   move_in_date_missing: 'Registrera inflyttnings-/startdatum.',
   contract_cancelled: 'Avtalet är avslutat/annullerat – skapa nytt avtal innan byte.',
   contract_start_date_missing: 'Komplettera avtalets startdatum.',
+  contract_missing: 'Koppla ett signerat canonical-avtal till anläggningen.',
+  agreement_not_signed_with_exact_evidence: 'Slutför signering och samtliga exakta juridikaccepter.',
+  signed_pdf_not_archived_or_hash_mismatch: 'Arkivera och verifiera den signerade PDF-filen.',
+  valid_power_of_attorney_missing: 'Registrera en giltig signerad fullmakt för avtalet och anläggningen.',
+  contract_readiness_unavailable: 'Installera senaste readiness-migration innan leverantörsbyte.',
   grid_owner_not_verified: 'Verifiera nätägaren (rutt/certifikat/Ediel-ID) innan byte.',
   duplicate_open_supplier_switch: 'Invänta eller hantera det befintliga leverantörsbytet.',
   supplier_switch_send_window_not_open: 'Invänta att sändfönstret öppnar.',
@@ -167,82 +172,74 @@ export async function checkSupplierSwitchReadiness(
     meteringPoints[0] ??
     null
 
-  // 2. Contract linkage (advisory unless the linked contract is unusable) ------
+  // 2. Exact agreement chain. Missing schema is fail-closed: neither service
+  // role nor a direct Ediel call may turn an unverifiable contract into a send.
   let contractSnapshot: Record<string, unknown> | null = null
-  if (input.contractId) {
-    const { data: contract, error: contractError } = await supabaseService
+  let effectiveContractId = input.contractId ?? null
+  if (!effectiveContractId) {
+    let contractQuery = supabaseService
       .from('customer_contracts')
-      .select('id,company_id,customer_id,customer_site_id,site_id,status,contract_start_date,starts_at,expected_start_at')
-      .eq('id', input.contractId)
-      .eq('company_id', input.companyId)
-      .maybeSingle()
-    if (!contractError && contract) {
-      const row = contract as Record<string, unknown>
-      contractSnapshot = {
-        id: row.id,
-        status: row.status,
-        contract_start_date: row.contract_start_date ?? row.starts_at ?? row.expected_start_at ?? null,
-      }
-      const status = String(row.status ?? '')
-      if (['cancelled', 'terminated', 'expired'].includes(status)) {
-        blockers.push({
-          code: 'contract_cancelled',
-          message: `Kopplat avtal har status ${status} och kan inte användas för leverantörsbyte.`,
-          source: 'contract',
-        })
-      }
-      if (!row.contract_start_date && !row.starts_at && !row.expected_start_at) {
-        warnings.push({
-          code: 'contract_start_date_missing',
-          message: 'Avtalet saknar startdatum – bytet schemaläggs utan avtalsdatum.',
-          source: 'contract',
-        })
-      }
-      if (row.customer_id && row.customer_id !== input.customerId) {
-        blockers.push({
-          code: 'contract_customer_mismatch',
-          message: 'Avtalet tillhör en annan kund.',
-          source: 'contract',
-        })
-      }
-      const contractSiteId = (row.customer_site_id ?? row.site_id) as string | null
-      if (contractSiteId && contractSiteId !== input.siteId) {
-        blockers.push({
-          code: 'contract_site_mismatch',
-          message: 'Avtalet är kopplat till en annan anläggning.',
-          source: 'contract',
-        })
-      }
-    } else if (!contractError && !contract) {
-      blockers.push({
-        code: 'contract_missing',
-        message: 'Angivet avtal kunde inte hittas i tenanten.',
-        source: 'contract',
-      })
-    }
-  }
-
-  // 3. Legal acceptance (advisory: admin/paper flows may lack digital records) --
-  let legalAcceptanceCount = 0
-  try {
-    const { count, error: legalError } = await supabaseService
-      .from('customer_legal_acceptances')
-      .select('id', { count: 'exact', head: true })
+      .select('id')
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
-    if (!legalError) {
-      legalAcceptanceCount = count ?? 0
-      if (legalAcceptanceCount === 0) {
-        warnings.push({
-          code: 'legal_acceptance_missing',
-          message:
-            'Ingen digital villkorsaccept finns registrerad för kunden. Säkerställ att signerat avtal/villkor finns dokumenterat.',
-          source: 'legal',
+      .eq('status', 'signed')
+      .order('signed_at', { ascending: false })
+      .limit(1)
+    contractQuery = contractQuery.or(`customer_site_id.eq.${input.siteId},site_id.eq.${input.siteId}`)
+    const candidate = await contractQuery.maybeSingle()
+    if (!candidate.error && candidate.data?.id) effectiveContractId = String(candidate.data.id)
+  }
+
+  let legalAcceptanceCount = 0
+  if (!effectiveContractId) {
+    blockers.push({
+      code: 'contract_missing',
+      message: 'Inget signerat canonical-avtal är kopplat till kunden och anläggningen.',
+      source: 'contract',
+    })
+  } else {
+    const exact = await supabaseService
+      .from('customer_contract_lifecycle_readiness_v')
+      .select('*')
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('customer_site_id', input.siteId)
+      .eq('customer_contract_id', effectiveContractId)
+      .maybeSingle()
+    if (exact.error) {
+      blockers.push({
+        code: 'contract_readiness_unavailable',
+        message: 'Den canonicala avtals-/switch-readinessen kunde inte verifieras.',
+        source: 'contract',
+      })
+      contractSnapshot = { id: effectiveContractId, error: exact.error.message }
+    } else if (!exact.data) {
+      blockers.push({
+        code: 'contract_missing',
+        message: 'Avtalet saknar readiness för rätt tenant, kund eller anläggning.',
+        source: 'contract',
+      })
+    } else {
+      const row = exact.data as Record<string, unknown>
+      contractSnapshot = row
+      legalAcceptanceCount = Number(row.accepted_document_count ?? 0)
+      const exactBlockers = Array.isArray(row.blockers) ? row.blockers : []
+      for (const codeValue of exactBlockers) {
+        const code = String(codeValue)
+        blockers.push({
+          code,
+          message: `Avtalets switch-gate blockerades: ${code}.`,
+          source: code.includes('legal') ? 'legal' : 'contract',
+        })
+      }
+      if (row.switch_ready !== true && exactBlockers.length === 0) {
+        blockers.push({
+          code: 'contract_not_switch_ready',
+          message: 'Avtalet är inte markerat som switch-ready i den canonicala livscykeln.',
+          source: 'contract',
         })
       }
     }
-  } catch {
-    // Table may not exist in older databases; readiness must not crash.
   }
 
   // 4. Lifecycle blocks ---------------------------------------------------------
@@ -380,7 +377,7 @@ export async function checkSupplierSwitchReadiness(
     company_id: input.companyId,
     customer_id: input.customerId,
     site_id: input.siteId,
-    contract_id: input.contractId ?? null,
+    contract_id: effectiveContractId,
     switch_request_id: input.switchRequestId ?? null,
     ready,
     blockers,

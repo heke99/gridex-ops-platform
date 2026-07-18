@@ -22,13 +22,34 @@ const collaboratorMocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
-    from() {
+    from(table: string) {
+      const response =
+        table === 'customer_contracts'
+          ? { data: { id: 'contract-1' }, error: null, count: 1 }
+          : table === 'customer_contract_lifecycle_readiness_v'
+            ? {
+                data: {
+                  customer_contract_id: 'contract-1',
+                  company_id: 'company-1',
+                  customer_id: 'customer-1',
+                  customer_site_id: 'site-1',
+                  accepted_document_count: 5,
+                  blockers: [],
+                  switch_ready: true,
+                },
+                error: null,
+                count: 1,
+              }
+            : { data: null, error: null, count: 1 }
       const builder = {
         select: () => builder,
         eq: () => builder,
+        or: () => builder,
+        order: () => builder,
+        limit: () => builder,
         maybeSingle: () => builder,
         then: (resolve: (value: unknown) => unknown) =>
-          Promise.resolve({ data: null, error: null, count: 1 }).then(resolve),
+          Promise.resolve(response).then(resolve),
       }
       return builder
     },

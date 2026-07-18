@@ -21,12 +21,14 @@ function readStringField(value: unknown, field: string): string | null {
   return typeof record[field] === 'string' && record[field].trim() ? record[field] : null
 }
 
-function requestAudit(request: NextRequest) {
+function requestAudit(request: NextRequest, requestId: string) {
   const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
   return {
     ipAddress: forwardedFor,
     ipHash: forwardedFor ? createHash('sha256').update(forwardedFor).digest('hex') : null,
     userAgent: request.headers.get('user-agent')?.slice(0, 1000) || null,
+    requestId,
+    traceId: request.headers.get('traceparent')?.slice(0, 255) || requestId,
   }
 }
 
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
       client: auth.client,
       rawBody: body,
       idempotencyKey: request.headers.get('idempotency-key')?.trim() || null,
-      requestAudit: requestAudit(request),
+      requestAudit: requestAudit(request, requestId),
     })
 
     const applicationMetadata = {

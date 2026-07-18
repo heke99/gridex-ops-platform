@@ -2,7 +2,7 @@
 
 Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
-Dokumentationsversion: `2026-07-13.2`.
+Dokumentationsversion: `2026-07-18.3`.
 
 ## Grundmodell
 
@@ -166,6 +166,32 @@ Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switc
 
 ## Website customer applications
 
+### Portföljmetod, historik och indikation
+
+`GET /api/v1/website/portfolio-prices?offer_reference=...&price_area=SE3`
+kräver `website_contracts.read`. API-nyckeln bestämmer bolaget och
+`offer_reference` bestämmer exakt publicerat portfölj-/mixavtal. Svaret skiljer
+alltid på:
+
+- `method`: låst avtalsmetod, portfölj, andelar, avgift och avräkningstidpunkt
+- `historical_final_prices`: finala eller låsta revisioner för exakt
+  prisplansversion, månad och elområde
+- `indications`: sparade prognoser/manuella indikationer med
+  `estimate_source`, `estimate_month`, `estimate_price_ore_per_kwh`,
+  `estimate_generated_at` och `non_binding=true`
+- `final_billing_rule=locked_settlement_only`: estimat och historiska
+  fallbackvärden får aldrig användas i slutlig fakturering
+
+Ett framtida faktiskt portföljpris är varken publiceringskrav eller avtalskrav.
+Saknas en explicit indikation returneras ingen siffra; systemet gissar inte.
+
+OPS-avräkningen använder `delivery_month`, `revision_no`, exakt
+`price_plan_version_id` och statusflödet
+`draft → calculated → reviewed → final → locked`. Rättelser skapar alltid en
+ny revision. Portföljadministration är inte en publik API-scope: de separata
+`portfolio_settlement.*`-behörigheterna är default-deny, tenant-/portföljscopade
+och kan bara tilldelas av `platform_superadmin`.
+
 ```http
 POST /api/v1/website/customer-applications
 Authorization: Bearer YOUR_GRIDEX_API_TOKEN
@@ -181,7 +207,11 @@ Idempotency-Key: website-order-12345
 - `offer_reference` är enda avtalsväljaren. Motstridiga legacyfält ger `422 offer_selector_mismatch`.
 - Efter lyckad serververifiering returneras `contract_status = signed`, `signed_at`, `withdrawal_deadline_at` och `signature_snapshot_sha256`.
 - `signature_snapshot_sha256` är SHA-256 över OPS frysta signeringssnapshot och genereras endast av servern.
-- `can_send_agreement_confirmation` visar att exakt fem erbjudandebundna juridiska accepter finns och att avtalsbekräftelsen får köas. Fältet är oberoende av `can_start_switch`.
+- `can_send_agreement_confirmation` visar att hela den databasdrivna, exakt
+  erbjudandebundna dokumentuppsättningen har accepterats och att
+  avtalsbekräftelsen får köas. Antalet varierar med kundtyp, produkt,
+  prismodell, kanal och fullmaktskrav. Fältet är oberoende av
+  `can_start_switch`.
 
 ### Idempotency-regler
 

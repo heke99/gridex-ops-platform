@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
 
+const PORTFOLIO_ID = "11111111-1111-4111-8111-111111111111";
+
 describe("contract pricing versioning snapshot", () => {
   it("generates canonical public price text", () => {
     const result = normalizeContractPricing({
@@ -25,9 +27,7 @@ describe("contract pricing versioning snapshot", () => {
       variableFeeOrePerKwh: 2,
       invoiceFeeSek: 29,
       priceAreas: "SE3",
-      portfolioMonthlyPrices: [
-        { period_month: "2026-07", price_area_code: "SE3", amount: 75 },
-      ],
+      portfolioId: PORTFOLIO_ID,
       websiteCardVisibility: {
         spot_markup: true,
         variable_fee: false,
@@ -35,7 +35,7 @@ describe("contract pricing versioning snapshot", () => {
       },
     });
 
-    expect(result.snapshot.schema_version).toBe(4);
+    expect(result.snapshot.schema_version).toBe(5);
     expect(result.snapshot.price_components).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -199,12 +199,19 @@ describe("contract pricing versioning snapshot", () => {
       portfolioWeightPercent: 50,
       fixedWeightPercent: 0,
       spotIntervalResolution: "monthly",
-      portfolioMonthlyPrices: [
-        { period_month: "2026-07", price_area_code: "SE3", amount: 80 },
-      ],
+      portfolioId: PORTFOLIO_ID,
     });
 
     expect(result.snapshot.interval_resolution).toBe("monthly");
+    expect(result.snapshot.portfolio_method).toMatchObject({
+      portfolio_id: PORTFOLIO_ID,
+      final_billing_requires: "locked_settlement",
+      mix_shares: {
+        spot_weight_percent: 50,
+        portfolio_weight_percent: 50,
+        fixed_weight_percent: 0,
+      },
+    });
     expect(result.publicPriceText).toContain("50% rörligt");
     expect(result.publicPriceText).toContain("50% portfölj");
   });
@@ -218,27 +225,27 @@ describe("contract pricing versioning snapshot", () => {
       portfolioManagementFeeAmount: 3,
       portfolioManagementFeeUnit: "percent",
       portfolioManagementFeeCalculationBase: "portfolio_cost",
-      portfolioMonthlyPrices: [
-        { period_month: "2026-08", price_area_code: "ALL", amount: 81.1 },
-      ],
+      portfolioId: PORTFOLIO_ID,
+      portfolioSettlementTiming: "preliminary_then_final",
+      portfolioEstimateRule: "rolling_3",
       websiteCardVisibility: {
         portfolio_management_fee: true,
         portfolio_price: false,
       },
     });
 
-    expect(result.snapshot.portfolio_monthly_prices).toEqual([
-      expect.objectContaining({
-        period_month: "2026-08-01",
-        price_area_code: "SE1",
-        amount_ore_per_kwh: 81.1,
-      }),
-      expect.objectContaining({
-        period_month: "2026-08-01",
-        price_area_code: "SE4",
-        amount_ore_per_kwh: 81.1,
-      }),
-    ]);
+    expect(result.snapshot.portfolio_method).toMatchObject({
+      pricing_model: "portfolio_monthly_settlement",
+      portfolio_id: PORTFOLIO_ID,
+      settlement_timing: "preliminary_then_final",
+      estimate_rule: "rolling_3",
+      display_rules: {
+        show_historical_final: true,
+        show_indication: true,
+        indication_non_binding: true,
+      },
+      final_billing_requires: "locked_settlement",
+    });
     expect(result.snapshot.price_components).toContainEqual(
       expect.objectContaining({
         component_code: "portfolio_management_fee",
@@ -250,7 +257,7 @@ describe("contract pricing versioning snapshot", () => {
     expect(result.snapshot.website_visibility.portfolio_price).toBe(false);
   });
 
-  it("allows zero or negative monthly portfolio energy prices without allowing negative fees", () => {
+  it("keeps settlement values out of the offer snapshot and rejects negative fees", () => {
     const result = normalizeContractPricing({
       name: "Negativt portföljutfall",
       contractType: "portfolio",
@@ -259,21 +266,11 @@ describe("contract pricing versioning snapshot", () => {
       spotWeightPercent: 0,
       portfolioWeightPercent: 100,
       fixedWeightPercent: 0,
-      portfolioMonthlyPrices: JSON.stringify([
-        {
-          period_month: "2027-01",
-          price_area_code: "SE3",
-          amount_ore_per_kwh: -2.5,
-        },
-      ]),
+      portfolioId: PORTFOLIO_ID,
     });
 
-    expect(result.snapshot.portfolio_monthly_prices[0]).toMatchObject({
-      period_month: "2027-01-01",
-      price_area_code: "SE3",
-      amount_ore_per_kwh: -2.5,
-      amount_sek_per_kwh: -0.025,
-    });
+    expect(result.snapshot).not.toHaveProperty("portfolio_monthly_prices");
+    expect(result.snapshot.portfolio_method?.portfolio_id).toBe(PORTFOLIO_ID);
     expect(() =>
       normalizeContractPricing({
         name: "Negativ avgift",
@@ -285,30 +282,20 @@ describe("contract pricing versioning snapshot", () => {
         fixedWeightPercent: 0,
         portfolioManagementFeeAmount: -1,
         portfolioManagementFeeUnit: "ore_per_kwh",
-        portfolioMonthlyPrices: JSON.stringify([
-          {
-            period_month: "2027-01",
-            price_area_code: "SE3",
-            amount_ore_per_kwh: 50,
-          },
-        ]),
+        portfolioId: PORTFOLIO_ID,
       }),
     ).toThrow(/Portföljförvaltningsavgift/);
   });
 
-  it("rejects duplicate monthly portfolio prices and percentage values above 100", () => {
+  it("requires a canonical portfolio and rejects percentage values above 100", () => {
     expect(() =>
       normalizeContractPricing({
-        name: "Dubblett",
+        name: "Portfölj saknas",
         contractType: "portfolio",
         customerType: "private",
         priceAreas: "SE3",
-        portfolioMonthlyPrices: [
-          { period_month: "2026-09", price_area_code: "SE3", amount: 70 },
-          { period_month: "2026-09", price_area_code: "SE3", amount: 71 },
-        ],
       }),
-    ).toThrow(/Dubbelt portföljpris/i);
+    ).toThrow(/canonical portfölj/i);
 
     expect(() =>
       normalizeContractPricing({
@@ -319,9 +306,7 @@ describe("contract pricing versioning snapshot", () => {
         portfolioManagementFeeAmount: 101,
         portfolioManagementFeeUnit: "percent",
         portfolioManagementFeeCalculationBase: "portfolio_cost",
-        portfolioMonthlyPrices: [
-          { period_month: "2026-09", price_area_code: "SE3", amount: 70 },
-        ],
+        portfolioId: PORTFOLIO_ID,
       }),
     ).toThrow(/Portföljförvaltningsavgift/i);
   });

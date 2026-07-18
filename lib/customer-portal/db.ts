@@ -371,7 +371,7 @@ async function listPortalLegalAcceptancesForDashboard(context: CustomerPortalCon
 
   const { data, error } = await supabaseService
     .from('customer_legal_acceptances')
-    .select('id,customer_id,contract_id,contract_application_id,acceptance_type,legal_text_version_id,accepted_at,source,metadata,created_at')
+    .select('id,customer_id,contract_id,contract_application_id,acceptance_type,legal_bundle_version_document_id,legal_module_key,legal_document_version,legal_document_sha256,request_id,trace_id,legal_text_version_id,accepted_at,source,metadata,created_at')
     .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('accepted_at', { ascending: false, nullsFirst: false })

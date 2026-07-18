@@ -443,52 +443,43 @@ function databaseShapeError(error: unknown): boolean {
   );
 }
 
-async function loadPortfolioMonthlyPrice(input: {
+async function loadPortfolioMonthlySettlement(input: {
   companyId: string;
   priceArea: PriceArea;
   billingMonth: string;
   pricePlanVersionId?: string | null;
 }) {
-  let query = supabaseService
-    .from("portfolio_monthly_prices")
-    .select(
-      "id,price_plan_id,price_plan_version_id,price_ex_vat_sek_per_kwh,status,version_number,billing_month,price_area,source,locked_at,published_at",
-    )
+  if (!input.pricePlanVersionId) return { data: null, error: null };
+  const version = await supabaseService
+    .from("price_plan_versions")
+    .select("snapshot_json")
     .eq("company_id", input.companyId)
-    .eq("price_area", input.priceArea)
-    .eq("billing_month", input.billingMonth)
-    .is("superseded_at", null);
-
-  if (input.pricePlanVersionId) {
-    query = query
-      .eq("price_plan_version_id", input.pricePlanVersionId)
-      .in("status", ["locked", "published"]);
-  } else {
-    query = query.in("status", ["confirmed", "locked", "published"]);
-  }
-
-  const current = await query
-    .order("version_number", { ascending: false })
-    .limit(1)
+    .eq("id", input.pricePlanVersionId)
     .maybeSingle();
+  if (version.error) return version;
+  const snapshot = isObject(version.data?.snapshot_json)
+    ? version.data.snapshot_json
+    : {};
+  const portfolioMethod = isObject(snapshot.portfolio_method)
+    ? snapshot.portfolio_method
+    : {};
+  const portfolioId = stringValue(portfolioMethod.portfolio_id);
+  if (!portfolioId) return { data: null, error: null };
 
-  if (!current.error || current.error.code === "PGRST116") return current;
-  if (!databaseShapeError(current.error)) return current;
-
-  // Compatibility for a deployment where the forward migration has not yet
-  // added exact price-plan-version references. Never use this fallback when an
-  // exact version was requested; that would let a different contract version
-  // leak into billing or a binding quote.
-  if (input.pricePlanVersionId) return current;
   return supabaseService
-    .from("portfolio_monthly_prices")
+    .from("portfolio_monthly_settlements")
     .select(
-      "id,price_ex_vat_sek_per_kwh,status,billing_month,price_area,source,locked_at",
+      "id,portfolio_id,price_plan_version_id,portfolio_price_ore_per_kwh,status,revision_no,delivery_month,price_area_code,source,locked_at,calculation_snapshot_sha256,management_fee_ore_per_kwh",
     )
     .eq("company_id", input.companyId)
-    .eq("price_area", input.priceArea)
-    .eq("billing_month", input.billingMonth)
-    .in("status", ["confirmed", "locked", "published"])
+    .eq("portfolio_id", portfolioId)
+    .eq("price_area_code", input.priceArea)
+    .eq("delivery_month", `${input.billingMonth}-01`)
+    .eq("price_plan_version_id", input.pricePlanVersionId)
+    .eq("status", "locked")
+    .eq("is_current", true)
+    .order("revision_no", { ascending: false })
+    .limit(1)
     .maybeSingle();
 }
 
@@ -503,13 +494,13 @@ export async function resolveBasePriceSourceValues(input: {
   const [spot, portfolio] = await Promise.all([
     supabaseService
       .from("spot_price_monthly_summaries")
-      .select("id,source,price_area,billing_month,average_sek_per_kwh,status")
+      .select("id,source,price_area,delivery_month,average_sek_per_kwh,status")
       .eq("source", "elprisetjustnu")
       .eq("price_area", input.priceArea)
-      .eq("billing_month", input.billingMonth)
+      .eq("delivery_month", input.billingMonth)
       .in("status", ["complete", "locked"])
       .maybeSingle(),
-    loadPortfolioMonthlyPrice(input),
+    loadPortfolioMonthlySettlement(input),
   ]);
 
   if (spot.error && spot.error.code !== "PGRST116") throw spot.error;
@@ -521,31 +512,40 @@ export async function resolveBasePriceSourceValues(input: {
     (portfolio.data as Record<string, unknown> | null) ?? null;
   return {
     spotSekPerKwh: numberValue(spotRow?.average_sek_per_kwh),
-    portfolioSekPerKwh: numberValue(portfolioRow?.price_ex_vat_sek_per_kwh),
+    portfolioSekPerKwh: (() => {
+      const orePerKwh = numberValue(
+        portfolioRow?.portfolio_price_ore_per_kwh,
+      );
+      return orePerKwh === null ? null : orePerKwh / 100;
+    })(),
     fixedSekPerKwh: input.fixedSekPerKwh ?? null,
     manualSekPerKwh: input.manualSekPerKwh ?? null,
     spotSource: spotRow
       ? {
           spot_price_summary_id: stringValue(spotRow.id),
           source: stringValue(spotRow.source),
-          billing_month: stringValue(spotRow.billing_month),
+          delivery_month: stringValue(spotRow.delivery_month),
           price_area: stringValue(spotRow.price_area),
           status: stringValue(spotRow.status),
         }
       : null,
     portfolioSource: portfolioRow
       ? {
-          portfolio_monthly_price_id: stringValue(portfolioRow.id),
-          price_plan_id: stringValue(portfolioRow.price_plan_id),
+          portfolio_monthly_settlement_id: stringValue(portfolioRow.id),
+          portfolio_id: stringValue(portfolioRow.portfolio_id),
           price_plan_version_id: stringValue(
             portfolioRow.price_plan_version_id,
           ),
-          billing_month: stringValue(portfolioRow.billing_month),
-          price_area: stringValue(portfolioRow.price_area),
+          delivery_month: stringValue(portfolioRow.delivery_month),
+          price_area: stringValue(portfolioRow.price_area_code),
           status: stringValue(portfolioRow.status),
+          revision_no: numberValue(portfolioRow.revision_no),
           source: stringValue(portfolioRow.source),
           locked_at: stringValue(portfolioRow.locked_at),
-          published_at: stringValue(portfolioRow.published_at),
+          calculation_snapshot_sha256: stringValue(portfolioRow.calculation_snapshot_sha256),
+          management_fee_ore_per_kwh: numberValue(
+            portfolioRow.management_fee_ore_per_kwh,
+          ),
         }
       : null,
   };

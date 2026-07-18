@@ -10,6 +10,7 @@ export type PublicApiRouteContract = {
 /** Canonical source for the public V1 endpoint catalogue and documentation. */
 export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
   { method: 'GET', path: '/api/v1/website/public-contracts', scopes: ['website_contracts.read'], description: 'Hämta publicerade avtal som hemsidan får visa.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/website/portfolio-prices', scopes: ['website_contracts.read'], description: 'Hämta metod, historiska finala avräkningar och uttryckligt icke-bindande indikationer för ett publicerat portföljavtal.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/website/quote', scopes: ['website_contracts.read'], description: 'Beräkna pris för ett publicerat erbjudande.', rateLimitClass: 'expensive' },
   { method: 'GET', path: '/api/v1/website/legal-bundle', scopes: ['website_legal.read', 'website_contracts.read'], description: 'Hämta publicerade juridikversioner och länkar. Ett av angivna scopes räcker.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/website/customer-applications', scopes: ['website_applications.write'], description: 'Skapa kundansökan och juridiska godkännanden.', idempotencyRequired: true, rateLimitClass: 'write' },

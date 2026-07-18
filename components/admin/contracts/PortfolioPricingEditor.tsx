@@ -1,22 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { PRICING_CALCULATION_BASES } from "@/components/admin/contracts/PricingCalculationBaseField";
 
-type PortfolioRow = {
-  period_month: string;
-  price_area_code: "ALL" | "SE1" | "SE2" | "SE3" | "SE4";
-  amount_ore_per_kwh: string;
+export type PortfolioOption = {
+  id: string;
+  name: string;
+  code: string;
 };
 
-function nextMonth(): string {
-  const date = new Date();
-  date.setUTCDate(1);
-  date.setUTCMonth(date.getUTCMonth() + 1);
-  return date.toISOString().slice(0, 7);
-}
-
 export default function PortfolioPricingEditor({
+  portfolios = [],
+  defaultPortfolioId = "",
   defaultSpotWeight = 0,
   defaultPortfolioWeight = 100,
   defaultFixedWeight = 0,
@@ -25,9 +20,12 @@ export default function PortfolioPricingEditor({
   defaultManagementFeeCalculationBase = "portfolio_cost",
   defaultManagementFeeVisible = false,
   defaultPortfolioPriceVisible = true,
-  defaultRows = [],
+  defaultSettlementTiming = "after_month_close",
+  defaultEstimateRule = "none",
   compact = false,
 }: {
+  portfolios?: PortfolioOption[];
+  defaultPortfolioId?: string;
   defaultSpotWeight?: number;
   defaultPortfolioWeight?: number;
   defaultFixedWeight?: number;
@@ -36,52 +34,12 @@ export default function PortfolioPricingEditor({
   defaultManagementFeeCalculationBase?: string;
   defaultManagementFeeVisible?: boolean;
   defaultPortfolioPriceVisible?: boolean;
+  defaultSettlementTiming?: string;
+  defaultEstimateRule?: string;
   compact?: boolean;
-  defaultRows?: Array<{
-    period_month?: string | null;
-    billing_month?: string | null;
-    price_area_code?: string | null;
-    price_area?: string | null;
-    amount_ore_per_kwh?: number | string | null;
-    amount?: number | string | null;
-  }>;
 }) {
-  const initialRows = useMemo<PortfolioRow[]>(() => {
-    const normalized = defaultRows
-      .map((row) => ({
-        period_month: String(row.period_month ?? row.billing_month ?? "").slice(
-          0,
-          7,
-        ),
-        price_area_code: String(
-          row.price_area_code ?? row.price_area ?? "ALL",
-        ).toUpperCase() as PortfolioRow["price_area_code"],
-        amount_ore_per_kwh: String(row.amount_ore_per_kwh ?? row.amount ?? ""),
-      }))
-      .filter((row) => row.period_month && row.amount_ore_per_kwh);
-    return normalized.length
-      ? normalized
-      : [
-          {
-            period_month: nextMonth(),
-            price_area_code: "ALL",
-            amount_ore_per_kwh: "",
-          },
-        ];
-  }, [defaultRows]);
-  const [rows, setRows] = useState(initialRows);
   const [unit, setUnit] = useState(defaultManagementFeeUnit);
-
-  const serialized = JSON.stringify(
-    rows
-      .filter((row) => row.period_month && row.amount_ore_per_kwh)
-      .map((row) => ({
-        period_month: row.period_month,
-        price_area_code: row.price_area_code,
-        amount_ore_per_kwh: row.amount_ore_per_kwh,
-      })),
-  );
-
+  const [estimateRule, setEstimateRule] = useState(defaultEstimateRule);
   const controlClass = compact
     ? "mt-1.5 w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm"
     : "mt-2 w-full rounded-xl border border-indigo-200 bg-white px-4 py-3";
@@ -96,72 +54,71 @@ export default function PortfolioPricingEditor({
       }`}
     >
       <h3 className="text-sm font-black text-indigo-950">
-        Canonical portföljprissättning
+        Canonical portföljmetod
       </h3>
       <p className="mt-1 text-xs leading-5 text-indigo-900">
-        Portföljandel, förvaltningsavgift och månadens portföljpris är separata
-        uppgifter. Samma låsta prisversion används i offert, kalkyl, avtal och
-        fakturering.
+        Avtalet låser portfölj, andelar, avgift och beräkningsmetod. Månadens
+        faktiska utfallspris uppstår först efter månadsstängning i den gemensamma
+        avräkningsvyn och lagras aldrig som ett framtida avtalspris.
       </p>
 
-      <div
-        className={`grid sm:grid-cols-3 ${
-          compact ? "mt-3 gap-2" : "mt-4 gap-3"
-        }`}
-      >
+      <div className={`grid gap-3 md:grid-cols-2 ${compact ? "mt-3" : "mt-4"}`}>
         <label className="text-xs font-semibold text-slate-700">
-          Rörlig andel %
-          <input
-            name="spot_weight_percent"
-            defaultValue={defaultSpotWeight}
-            inputMode="decimal"
+          Canonical portfölj
+          <select
+            name="portfolio_id"
+            defaultValue={defaultPortfolioId}
             className={controlClass}
-          />
+          >
+            <option value="">Välj portfölj</option>
+            {portfolios.map((portfolio) => (
+              <option key={portfolio.id} value={portfolio.id}>
+                {portfolio.name} · {portfolio.code}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="text-xs font-semibold text-slate-700">
-          Portföljandel %
-          <input
-            name="portfolio_weight_percent"
-            defaultValue={defaultPortfolioWeight}
-            inputMode="decimal"
+          Slutlig avräkning
+          <select
+            name="portfolio_settlement_timing"
+            defaultValue={defaultSettlementTiming}
             className={controlClass}
-          />
-        </label>
-        <label className="text-xs font-semibold text-slate-700">
-          Fast andel %
-          <input
-            name="fixed_weight_percent"
-            defaultValue={defaultFixedWeight}
-            inputMode="decimal"
-            className={controlClass}
-          />
+          >
+            <option value="after_month_close">Efter månadsstängning</option>
+            <option value="preliminary_then_final">
+              Preliminär följd av slutlig avräkning
+            </option>
+          </select>
         </label>
       </div>
 
-      <div
-        className={`grid ${
-          compact
-            ? "mt-3 gap-2 md:grid-cols-[1fr_0.85fr_1.35fr]"
-            : "mt-4 gap-3 lg:grid-cols-[1fr_1fr_1.4fr]"
-        }`}
-      >
+      <div className={`grid sm:grid-cols-3 ${compact ? "mt-3 gap-2" : "mt-4 gap-3"}`}>
+        <label className="text-xs font-semibold text-slate-700">
+          Rörlig andel %
+          <input name="spot_weight_percent" defaultValue={defaultSpotWeight} inputMode="decimal" min="0" max="100" className={controlClass} />
+        </label>
+        <label className="text-xs font-semibold text-slate-700">
+          Portföljandel %
+          <input name="portfolio_weight_percent" defaultValue={defaultPortfolioWeight} inputMode="decimal" min="0" max="100" className={controlClass} />
+        </label>
+        <label className="text-xs font-semibold text-slate-700">
+          Fast andel %
+          <input name="fixed_weight_percent" defaultValue={defaultFixedWeight} inputMode="decimal" min="0" max="100" className={controlClass} />
+        </label>
+      </div>
+      <p className="mt-2 text-xs font-semibold text-indigo-900">
+        Andelarna valideras till 0–100 % och måste tillsammans vara exakt 100 %.
+      </p>
+
+      <div className={`grid ${compact ? "mt-3 gap-2 md:grid-cols-[1fr_0.85fr_1.35fr]" : "mt-4 gap-3 lg:grid-cols-[1fr_1fr_1.4fr]"}`}>
         <label className="text-xs font-semibold text-slate-700">
           Portföljförvaltningsavgift
-          <input
-            name="portfolio_management_fee_amount"
-            defaultValue={defaultManagementFeeAmount}
-            inputMode="decimal"
-            className={controlClass}
-          />
+          <input name="portfolio_management_fee_amount" defaultValue={defaultManagementFeeAmount} inputMode="decimal" className={controlClass} />
         </label>
         <label className="text-xs font-semibold text-slate-700">
           Enhet
-          <select
-            name="portfolio_management_fee_unit"
-            value={unit}
-            onChange={(event) => setUnit(event.target.value)}
-            className={controlClass}
-          >
+          <select name="portfolio_management_fee_unit" value={unit} onChange={(event) => setUnit(event.target.value)} className={controlClass}>
             <option value="ore_per_kwh">öre/kWh</option>
             <option value="sek_per_kwh">kr/kWh</option>
             <option value="sek_month">kr/månad</option>
@@ -172,160 +129,46 @@ export default function PortfolioPricingEditor({
         </label>
         <label className="text-xs font-semibold text-slate-700">
           Beräkningsbas {unit === "percent" ? "(obligatorisk)" : ""}
-          <select
-            name="portfolio_management_fee_calculation_base"
-            defaultValue={defaultManagementFeeCalculationBase}
-            disabled={unit !== "percent"}
-            className={`${controlClass} disabled:bg-slate-100`}
-          >
+          <select name="portfolio_management_fee_calculation_base" defaultValue={defaultManagementFeeCalculationBase} disabled={unit !== "percent"} className={`${controlClass} disabled:bg-slate-100`}>
             {PRICING_CALCULATION_BASES.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
+              <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </label>
       </div>
       <label className={visibilityClass}>
-        <span>Visa förvaltningsavgiften på hemsidans avtalskort</span>
-        <input
-          type="checkbox"
-          name="show_portfolio_management_fee_on_website"
-          defaultChecked={defaultManagementFeeVisible}
-        />
+        <span>Visa förvaltningsavgiften på hemsidan</span>
+        <input type="checkbox" name="show_portfolio_management_fee_on_website" defaultChecked={defaultManagementFeeVisible} />
       </label>
 
-      <div
-        className={`flex flex-wrap items-center justify-between ${
-          compact ? "mt-4 gap-2" : "mt-5 gap-3"
-        }`}
-      >
-        <div>
-          <h4 className="text-sm font-black text-slate-950">
-            Portföljpris per månad och elområde
-          </h4>
-          <p className="text-xs text-slate-600">
-            Gemensamt pris expanderas till avtalets valda SE1–SE4 i den låsta
-            versionen.
-          </p>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <label className="text-xs font-semibold text-slate-700">
+          Regel för icke-bindande indikation
+          <select name="portfolio_estimate_rule" value={estimateRule} onChange={(event) => setEstimateRule(event.target.value)} className={controlClass}>
+            <option value="none">Ingen siffra</option>
+            <option value="latest_final">Senaste finala månad</option>
+            <option value="rolling_3">Rullande tre finala månader</option>
+            <option value="forecast">Sparad prognos</option>
+            <option value="manual">Manuell indikation</option>
+          </select>
+        </label>
+        <div className="rounded-xl border border-indigo-200 bg-white p-3 text-xs leading-5 text-slate-700">
+          {estimateRule === "none"
+            ? "Hemsidan visar metod och historiska finala priser, men ingen prognossiffra."
+            : "Indikationen märks alltid som uppskattning och icke bindande. Den används aldrig i slutlig fakturering."}
         </div>
-        <button
-          type="button"
-          onClick={() =>
-            setRows((current) => [
-              ...current,
-              {
-                period_month: nextMonth(),
-                price_area_code: "ALL",
-                amount_ore_per_kwh: "",
-              },
-            ])
-          }
-          className={`border border-indigo-300 bg-white text-xs font-black text-indigo-800 ${
-            compact ? "rounded-lg px-3 py-1.5" : "rounded-xl px-3 py-2"
-          }`}
-        >
-          Lägg till månad
-        </button>
-      </div>
-      <input type="hidden" name="portfolio_monthly_prices" value={serialized} />
-      <div className={compact ? "mt-2 grid gap-2" : "mt-3 grid gap-2"}>
-        {rows.map((row, index) => (
-          <div
-            key={`${index}-${row.period_month}-${row.price_area_code}`}
-            className={`grid gap-2 border border-indigo-200 bg-white sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)_auto] ${
-              compact ? "rounded-xl p-2" : "rounded-2xl p-3"
-            }`}
-          >
-            <input
-              type="month"
-              value={row.period_month}
-              onChange={(event) =>
-                setRows((current) =>
-                  current.map((item, itemIndex) =>
-                    itemIndex === index
-                      ? { ...item, period_month: event.target.value }
-                      : item,
-                  ),
-                )
-              }
-              className={
-                compact
-                  ? "min-w-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm"
-                  : "rounded-xl border border-slate-300 px-3 py-2"
-              }
-            />
-            <select
-              value={row.price_area_code}
-              onChange={(event) =>
-                setRows((current) =>
-                  current.map((item, itemIndex) =>
-                    itemIndex === index
-                      ? {
-                          ...item,
-                          price_area_code: event.target
-                            .value as PortfolioRow["price_area_code"],
-                        }
-                      : item,
-                  ),
-                )
-              }
-              className={
-                compact
-                  ? "min-w-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm"
-                  : "rounded-xl border border-slate-300 px-3 py-2"
-              }
-            >
-              <option value="ALL">Gemensamt SE1–SE4</option>
-              <option value="SE1">SE1</option>
-              <option value="SE2">SE2</option>
-              <option value="SE3">SE3</option>
-              <option value="SE4">SE4</option>
-            </select>
-            <input
-              value={row.amount_ore_per_kwh}
-              onChange={(event) =>
-                setRows((current) =>
-                  current.map((item, itemIndex) =>
-                    itemIndex === index
-                      ? { ...item, amount_ore_per_kwh: event.target.value }
-                      : item,
-                  ),
-                )
-              }
-              inputMode="decimal"
-              placeholder="öre/kWh exkl. moms"
-              className={
-                compact
-                  ? "min-w-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm"
-                  : "rounded-xl border border-slate-300 px-3 py-2"
-              }
-            />
-            <button
-              type="button"
-              onClick={() =>
-                setRows((current) =>
-                  current.filter((_, itemIndex) => itemIndex !== index),
-                )
-              }
-              className={
-                compact
-                  ? "rounded-lg border border-rose-200 px-2.5 py-2 text-xs font-black text-rose-700"
-                  : "rounded-xl border border-rose-200 px-3 py-2 text-xs font-black text-rose-700"
-              }
-            >
-              Ta bort
-            </button>
-          </div>
-        ))}
       </div>
       <label className={visibilityClass}>
-        <span>Visa aktuellt portföljpris på hemsidans avtalskort</span>
-        <input
-          type="checkbox"
-          name="show_portfolio_price_on_website"
-          defaultChecked={defaultPortfolioPriceVisible}
-        />
+        <span>Visa historiska finala avräkningspriser</span>
+        <input type="checkbox" name="portfolio_show_historical_final" defaultChecked />
+      </label>
+      <label className={visibilityClass}>
+        <span>Visa tillgänglig indikation som icke bindande</span>
+        <input type="checkbox" name="portfolio_show_indication" defaultChecked={defaultEstimateRule !== "none"} />
+      </label>
+      <label className={visibilityClass}>
+        <span>Visa portföljmetoden på hemsidans avtalskort</span>
+        <input type="checkbox" name="show_portfolio_price_on_website" defaultChecked={defaultPortfolioPriceVisible} />
       </label>
     </section>
   );

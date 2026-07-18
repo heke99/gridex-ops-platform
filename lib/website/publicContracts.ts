@@ -115,6 +115,26 @@ const LEGAL_ACCEPTANCE_MODULE_PRIORITY: Record<
   ],
 };
 
+/**
+ * Maps every canonical bundle module to the customer consent that covers it.
+ * The five values are API compatibility categories only; evidence is always
+ * persisted against every exact legal_bundle_version_documents.id.
+ */
+export function legalAcceptanceTypeForModule(
+  moduleKey: string,
+): LegacyLegalAcceptanceType {
+  const normalized = moduleKey.trim().toLowerCase();
+  for (const [type, moduleKeys] of Object.entries(
+    LEGAL_ACCEPTANCE_MODULE_PRIORITY,
+  ) as Array<[LegacyLegalAcceptanceType, string[]]>) {
+    if (type === normalized || moduleKeys.includes(normalized)) return type;
+  }
+  // Modules such as supplier information, contact details and complaints are
+  // part of the agreement package and are covered by the explicit terms
+  // consent. They still receive their own immutable acceptance row.
+  return "terms";
+}
+
 export function selectLegalVersionForAcceptance(
   versions: PublicLegalTextVersion[],
   type: LegacyLegalAcceptanceType,
@@ -387,7 +407,7 @@ function publicPortfolioMonthlyPrices(
         Boolean(value) && typeof value === "object" && !Array.isArray(value),
     )
     .map((row) => ({
-      period_month: clean(row.period_month) ?? clean(row.billing_month),
+      period_month: clean(row.period_month) ?? clean(row.delivery_month),
       price_area_code: clean(row.price_area_code) ?? clean(row.price_area),
       amount: numberOrNull(row.amount_ore_per_kwh ?? row.amount),
       unit: clean(row.unit) ?? "ore_per_kwh",
@@ -435,6 +455,8 @@ function currentPortfolioPriceBlock(rows: Record<string, unknown>[]) {
     period_month: selectedMonth,
     unit: "ore_per_kwh",
     vat_included: false,
+    price_kind: "historical_final_settlement",
+    binding_scope: "historical_delivery_month_only",
     prices_by_area: Object.fromEntries(
       selected.map((row) => [row.price_area_code, row.amount]),
     ),
@@ -701,6 +723,14 @@ export function publicContractResponse(offer: PublicContractOffer) {
             },
       portfolio_price: portfolioPrice,
       portfolio_monthly_prices: portfolioMonthlyPrices,
+      portfolio_method: objectValue(
+        offer.pricing_snapshot?.portfolio_method,
+      ),
+      portfolio_indications: Array.isArray(
+        offer.pricing_snapshot?.portfolio_indications,
+      )
+        ? offer.pricing_snapshot.portfolio_indications
+        : [],
       portfolio_management_fee: !websiteVisibility.portfolio_management_fee
         ? null
         : portfolioManagementComponent
@@ -740,16 +770,9 @@ export function publicContractResponse(offer: PublicContractOffer) {
       portfolio_monthly_prices: portfolioMonthlyPrices,
       public_price_text: publicPriceText,
     },
-    portfolio_price_ore_per_kwh: (() => {
-      const values = Array.from(
-        new Set(
-          portfolioMonthlyPrices
-            .map((row) => numberOrNull(row.amount))
-            .filter((value): value is number => value !== null),
-        ),
-      );
-      return values.length === 1 ? values[0] : null;
-    })(),
+    // Compatibility field intentionally stays null. Historical final rows and
+    // non-binding indications must never masquerade as a future contract price.
+    portfolio_price_ore_per_kwh: null,
     portfolio_management_fee: !websiteVisibility.portfolio_management_fee
       ? null
       : portfolioManagementComponent
@@ -1026,24 +1049,73 @@ function isWebsitePublishedRow(row: Record<string, unknown>): boolean {
 
 async function exactPortfolioMonthlyPrices(
   offer: PublicContractOffer,
-): Promise<Record<string, unknown>[]> {
+): Promise<{
+  historicalFinal: Record<string, unknown>[];
+  indications: Record<string, unknown>[];
+}> {
   if (
     !offer.price_plan_version_id ||
     !["portfolio", "mixed"].includes(offer.contract_type)
   )
-    return [];
-  const { data, error } = await supabaseService
-    .from("portfolio_monthly_price_versions_v")
+    return { historicalFinal: [], indications: [] };
+  const method = objectValue(offer.pricing_snapshot?.portfolio_method);
+  const portfolioId = clean(method.portfolio_id);
+  if (!portfolioId) return { historicalFinal: [], indications: [] };
+  const displayRules = objectValue(method.display_rules);
+  const showHistorical = displayRules.show_historical_final !== false;
+  const showIndication = displayRules.show_indication === true;
+  const [settlements, estimates] = await Promise.all([
+    supabaseService
+    .from("portfolio_monthly_settlements")
     .select(
-      "id,price_plan_id,price_plan_version_id,period_month,price_area_code,amount,unit,vat_included,status,source,version_number,published_at,locked_at",
+      "id,portfolio_id,price_plan_version_id,delivery_month,price_area_code,portfolio_price_ore_per_kwh,status,source,revision_no,approved_at,locked_at",
     )
     .eq("company_id", offer.company_id)
+    .eq("portfolio_id", portfolioId)
     .eq("price_plan_version_id", offer.price_plan_version_id)
-    .in("status", ["locked", "published"])
-    .order("period_month", { ascending: true })
-    .order("price_area_code", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as Record<string, unknown>[];
+    .eq("is_current", true)
+    .in("status", ["final", "locked"])
+    .order("delivery_month", { ascending: false })
+    .order("price_area_code", { ascending: true })
+    .limit(48),
+    supabaseService
+      .from("portfolio_price_estimates")
+      .select("id,portfolio_id,price_plan_version_id,estimate_month,price_area_code,estimate_price_ore_per_kwh,estimate_source,confidence,non_binding,reason,expires_at,estimate_generated_at")
+      .eq("company_id", offer.company_id)
+      .eq("portfolio_id", portfolioId)
+      .eq("price_plan_version_id", offer.price_plan_version_id)
+      .eq("is_current", true)
+      .order("estimate_month", { ascending: true })
+      .limit(16),
+  ]);
+  if (settlements.error) throw settlements.error;
+  if (estimates.error) throw estimates.error;
+  return {
+    historicalFinal: showHistorical ? (settlements.data ?? []).map((row) => ({
+      id: row.id,
+      portfolio_id: row.portfolio_id,
+      price_plan_version_id: row.price_plan_version_id,
+      period_month: row.delivery_month,
+      price_area_code: row.price_area_code,
+      amount: row.portfolio_price_ore_per_kwh,
+      unit: "ore_per_kwh",
+      vat_included: false,
+      status: row.status,
+      source: row.source,
+      revision_no: row.revision_no,
+      final_at: row.locked_at ?? row.approved_at,
+      historical: true,
+    })) : [],
+    indications: showIndication ? (estimates.data ?? [])
+      .filter((row) => !row.expires_at || Date.parse(row.expires_at) > Date.now())
+      .map((row) => ({
+      ...row,
+      amount_ore_per_kwh: Number(row.estimate_price_ore_per_kwh),
+      unit: "ore_per_kwh",
+      non_binding: true,
+      label: "Uppskattning – ej bindande",
+    })) : [],
+  };
 }
 
 async function appendReadyOffer(input: {
@@ -1071,10 +1143,11 @@ async function appendReadyOffer(input: {
   });
   if (!withLegal) return;
 
-  const monthlyPortfolioPrices = await exactPortfolioMonthlyPrices(withLegal);
+  const portfolioPricing = await exactPortfolioMonthlyPrices(withLegal);
   withLegal.pricing_snapshot = {
     ...(withLegal.pricing_snapshot ?? {}),
-    portfolio_monthly_prices: monthlyPortfolioPrices,
+    portfolio_monthly_prices: portfolioPricing.historicalFinal,
+    portfolio_indications: portfolioPricing.indications,
   };
   withLegal.tenant_slug = input.tenantSlug ?? null;
   withLegal.metadata = {

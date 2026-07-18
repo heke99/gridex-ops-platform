@@ -161,6 +161,10 @@ export type SupplierSwitchRequestRow = {
   metering_point_id: string;
   power_of_attorney_id: string | null;
   authorization_document_id: string | null;
+  contract_id?: string | null;
+  customer_contract_id?: string | null;
+  readiness_snapshot?: Record<string, unknown> | null;
+  readiness_checked_at?: string | null;
   request_type: SupplierSwitchRequestType;
   status: SupplierSwitchRequestStatus;
   requested_start_date: string | null;

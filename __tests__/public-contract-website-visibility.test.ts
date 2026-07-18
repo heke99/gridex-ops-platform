@@ -103,11 +103,11 @@ describe("public contract website pricing visibility", () => {
     );
   });
 
-  it("exposes version-scoped monthly portfolio prices and generic percentage fees", () => {
+  it("exposes historical final settlements without presenting them as a future contract price", () => {
     const response = publicContractResponse(
       offer({
         pricing_snapshot: {
-          schema_version: 4,
+          schema_version: 5,
           website_visibility: {
             portfolio_price: true,
             portfolio_management_fee: true,
@@ -121,9 +121,14 @@ describe("public contract website pricing visibility", () => {
               amount: 81.1,
               unit: "ore_per_kwh",
               vat_included: false,
-              status: "published",
+              status: "locked",
             },
           ],
+          portfolio_method: {
+            pricing_model: "portfolio_monthly_settlement",
+            portfolio_id: "11111111-1111-4111-8111-111111111111",
+            final_billing_requires: "locked_settlement",
+          },
           price_components: [
             {
               component_code: "portfolio_management_fee",
@@ -151,7 +156,12 @@ describe("public contract website pricing visibility", () => {
       unit: "percent",
       calculation_base: "portfolio_cost",
     });
-    expect(response.portfolio_price_ore_per_kwh).toBe(81.1);
+    expect(response.pricing.portfolio_price).toMatchObject({
+      price_kind: "historical_final_settlement",
+      binding_scope: "historical_delivery_month_only",
+      prices_by_area: { SE3: 81.1 },
+    });
+    expect(response.portfolio_price_ore_per_kwh).toBeNull();
   });
 
   it("preserves legacy visibility when an older snapshot has no explicit flags", () => {

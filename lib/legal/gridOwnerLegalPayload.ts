@@ -69,7 +69,7 @@ export async function prepareLegalPayloadForGridOwner(input: LegalPayloadInput):
   const legalAcceptances = await safeList(
     supabaseService
       .from('customer_legal_acceptances')
-      .select('id,legal_text_version_id,accepted_at,created_at,metadata')
+      .select('id,legal_bundle_version_document_id,legal_module_key,legal_document_version,legal_document_sha256,legal_text_version_id,accepted_at,created_at,metadata')
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
       .order('accepted_at', { ascending: false })

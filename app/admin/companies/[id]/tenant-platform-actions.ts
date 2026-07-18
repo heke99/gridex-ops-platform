@@ -470,7 +470,16 @@ async function saveTenantPublicContractOfferActionImpl(
         formData,
         "portfolio_management_fee_calculation_base",
       ),
-      portfolioMonthlyPrices: text(formData, "portfolio_monthly_prices"),
+      portfolioId: text(formData, "portfolio_id"),
+      portfolioSettlementTiming: text(
+        formData,
+        "portfolio_settlement_timing",
+      ),
+      portfolioEstimateRule: text(formData, "portfolio_estimate_rule"),
+      portfolioShowHistoricalFinal:
+        text(formData, "portfolio_show_historical_final") === "on",
+      portfolioShowIndication:
+        text(formData, "portfolio_show_indication") === "on",
       discountValue: text(formData, "discount_value"),
       discountUnit: text(formData, "discount_unit"),
       discountCalculationBase: text(formData, "discount_calculation_base"),

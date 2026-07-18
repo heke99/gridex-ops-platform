@@ -47,7 +47,7 @@ export default async function PricingPage() {
         <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
           {[
             ['Spotpriser', '/admin/pricing/spot-prices'],
-            ['Portföljpriser', '/admin/pricing/portfolio-prices'],
+            ['Portföljavräkningar', '/admin/pricing/portfolio-settlements'],
             ['Prisplaner', '/admin/pricing/price-plans'],
             ['Kampanjer', '/admin/pricing/campaigns'],
             ['Komponenter', '/admin/pricing/components'],

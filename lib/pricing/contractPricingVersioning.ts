@@ -53,7 +53,11 @@ export type ContractPricingInput = {
   portfolioManagementFeeAmount?: unknown;
   portfolioManagementFeeUnit?: unknown;
   portfolioManagementFeeCalculationBase?: unknown;
-  portfolioMonthlyPrices?: unknown;
+  portfolioId?: unknown;
+  portfolioSettlementTiming?: unknown;
+  portfolioEstimateRule?: unknown;
+  portfolioShowHistoricalFinal?: unknown;
+  portfolioShowIndication?: unknown;
   discountValue?: unknown;
   discountUnit?: unknown;
   discountCalculationBase?: unknown;
@@ -102,17 +106,6 @@ type BasePriceComponent = {
   metadata?: Record<string, unknown>;
 };
 
-export type PortfolioMonthlyPriceSnapshot = {
-  period_month: string;
-  price_area_code: "SE1" | "SE2" | "SE3" | "SE4";
-  amount_ore_per_kwh: number;
-  amount_sek_per_kwh: number;
-  unit: "ore_per_kwh";
-  vat_included: false;
-  status: "published";
-  source: "contract_price_version";
-};
-
 export type PricingCalculationBase =
   | "energy_cost_ex_vat"
   | "energy_cost_inc_vat"
@@ -129,7 +122,7 @@ export type NormalizedContractPricing = {
   customerType: ContractCustomerType;
   publicPriceText: string;
   snapshot: {
-    schema_version: 4;
+    schema_version: 5;
     contract_type: ContractPricingModel;
     customer_type: ContractCustomerType;
     price_areas: string[];
@@ -142,7 +135,30 @@ export type NormalizedContractPricing = {
     base_components: BasePriceComponent[];
     price_components: PricingComponent[];
     website_visibility: Record<WebsitePricingVisibilityKey, boolean>;
-    portfolio_monthly_prices: PortfolioMonthlyPriceSnapshot[];
+    portfolio_method: {
+      pricing_model: "portfolio_monthly_settlement";
+      portfolio_id: string;
+      mix_shares: {
+        spot_weight_percent: number;
+        portfolio_weight_percent: number;
+        fixed_weight_percent: number;
+      };
+      management_fee: {
+        amount: number;
+        unit: string;
+        calculation_base: PricingCalculationBase | null;
+      };
+      calculation_base: "portfolio_cost";
+      vat_rate: number;
+      settlement_timing: "after_month_close" | "preliminary_then_final";
+      estimate_rule: "none" | "latest_final" | "rolling_3" | "forecast" | "manual";
+      display_rules: {
+        show_historical_final: boolean;
+        show_indication: boolean;
+        indication_non_binding: true;
+      };
+      final_billing_requires: "locked_settlement";
+    } | null;
     public_price_text: string;
     vat_rate: number;
     vat_rate_percent: number;
@@ -444,96 +460,6 @@ function normalizeCalculationBase(
   return base as PricingCalculationBase;
 }
 
-function parsePortfolioMonthlyPrices(
-  value: unknown,
-  priceAreas: string[],
-): PortfolioMonthlyPriceSnapshot[] {
-  if (value === null || value === undefined || String(value).trim() === "")
-    return [];
-  let candidate: unknown = value;
-  if (typeof value === "string") {
-    try {
-      candidate = JSON.parse(value);
-    } catch {
-      throw new Error("Portföljpriser per månad måste vara giltig JSON.");
-    }
-  }
-  if (!Array.isArray(candidate))
-    throw new Error("Portföljpriser per månad måste anges som en lista.");
-
-  const rows: PortfolioMonthlyPriceSnapshot[] = [];
-  const seen = new Set<string>();
-  for (const [index, raw] of candidate.entries()) {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw))
-      throw new Error(`Portföljpris på rad ${index + 1} är ogiltigt.`);
-    const row = raw as Record<string, unknown>;
-    const rawMonth = String(row.period_month ?? row.billing_month ?? "").trim();
-    const periodMonth = /^\d{4}-\d{2}$/.test(rawMonth)
-      ? `${rawMonth}-01`
-      : rawMonth;
-    if (!/^\d{4}-\d{2}-01$/.test(periodMonth))
-      throw new Error(
-        `Portföljpris på rad ${index + 1} måste ha månad YYYY-MM.`,
-      );
-    const parsedDate = new Date(`${periodMonth}T00:00:00Z`);
-    if (
-      Number.isNaN(parsedDate.getTime()) ||
-      parsedDate.toISOString().slice(0, 10) !== periodMonth
-    )
-      throw new Error(`Portföljpris på rad ${index + 1} har en ogiltig månad.`);
-    const rawArea = String(row.price_area_code ?? row.price_area ?? "ALL")
-      .trim()
-      .toUpperCase();
-    const areas =
-      rawArea === "ALL" || rawArea === "COMMON" || rawArea === "GEMENSAM"
-        ? priceAreas
-        : [rawArea];
-    if (areas.length === 0)
-      throw new Error("Gemensamt portföljpris kräver minst ett valt elområde.");
-    const amount = optionalNumber(
-      row.amount_ore_per_kwh ?? row.amount ?? row.price_ore_per_kwh,
-      `Portföljpris på rad ${index + 1}`,
-      { min: -100000, max: 100000 },
-    );
-    if (amount === null)
-      throw new Error(
-        `Portföljpris på rad ${index + 1} måste vara ett giltigt tal i öre/kWh.`,
-      );
-    for (const area of areas) {
-      if (!["SE1", "SE2", "SE3", "SE4"].includes(area))
-        throw new Error(
-          `Portföljpris på rad ${index + 1} har ogiltigt elområde ${area}.`,
-        );
-      if (!priceAreas.includes(area))
-        throw new Error(
-          `Portföljpris har angetts för ${area}, men området ingår inte i avtalet.`,
-        );
-      const key = `${periodMonth}:${area}`;
-      if (seen.has(key))
-        throw new Error(
-          `Dubbelt portföljpris för ${area} och ${periodMonth.slice(0, 7)}.`,
-        );
-      seen.add(key);
-      rows.push({
-        period_month: periodMonth,
-        price_area_code: area as "SE1" | "SE2" | "SE3" | "SE4",
-        amount_ore_per_kwh: amount,
-        amount_sek_per_kwh:
-          Math.round((amount / 100) * 100_000_000) / 100_000_000,
-        unit: "ore_per_kwh",
-        vat_included: false,
-        status: "published",
-        source: "contract_price_version",
-      });
-    }
-  }
-  return rows.sort(
-    (a, b) =>
-      a.period_month.localeCompare(b.period_month) ||
-      a.price_area_code.localeCompare(b.price_area_code),
-  );
-}
-
 export function normalizeContractPricing(
   input: ContractPricingInput,
 ): NormalizedContractPricing {
@@ -750,17 +676,35 @@ export function normalizeContractPricing(
     throw new Error("Rabatt kräver en angiven rabattperiod i månader.");
 
   const priceAreas = parsePriceAreas(input.priceAreas);
-  const portfolioMonthlyPrices = parsePortfolioMonthlyPrices(
-    input.portfolioMonthlyPrices,
-    priceAreas,
-  );
+  const usesPortfolio = ["portfolio", "mixed"].includes(input.contractType);
+  const portfolioId = String(input.portfolioId ?? "").trim();
   if (
-    ["portfolio", "mixed"].includes(input.contractType) &&
-    portfolioMonthlyPrices.length === 0
+    usesPortfolio &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      portfolioId,
+    )
   )
-    throw new Error(
-      "Portfölj- och mixavtal kräver minst ett månadsspecifikt portföljpris.",
-    );
+    throw new Error("Portfölj- och mixavtal kräver en canonical portfölj.");
+  const portfolioSettlementTiming = String(
+    input.portfolioSettlementTiming ?? "after_month_close",
+  ).trim();
+  if (
+    usesPortfolio &&
+    !["after_month_close", "preliminary_then_final"].includes(
+      portfolioSettlementTiming,
+    )
+  )
+    throw new Error("Ogiltig tidpunkt för portföljavräkning.");
+  const portfolioEstimateRule = String(
+    input.portfolioEstimateRule ?? "none",
+  ).trim();
+  if (
+    usesPortfolio &&
+    !["none", "latest_final", "rolling_3", "forecast", "manual"].includes(
+      portfolioEstimateRule,
+    )
+  )
+    throw new Error("Ogiltig regel för icke-bindande prisindikation.");
   for (const area of Object.keys(fixedPricesByArea)) {
     if (!priceAreas.includes(area))
       throw new Error(
@@ -1103,7 +1047,7 @@ export function normalizeContractPricing(
     customerType: input.customerType,
     publicPriceText,
     snapshot: {
-      schema_version: 4,
+      schema_version: 5,
       contract_type: input.contractType,
       customer_type: input.customerType,
       price_areas: priceAreas,
@@ -1116,7 +1060,45 @@ export function normalizeContractPricing(
       base_components: baseComponents,
       price_components: components,
       website_visibility: websiteVisibility,
-      portfolio_monthly_prices: portfolioMonthlyPrices,
+      portfolio_method: usesPortfolio
+        ? {
+            pricing_model: "portfolio_monthly_settlement",
+            portfolio_id: portfolioId,
+            mix_shares: {
+              spot_weight_percent: spotWeight,
+              portfolio_weight_percent: portfolioWeight,
+              fixed_weight_percent: fixedWeight,
+            },
+            management_fee: {
+              amount: portfolioManagementFeeAmount ?? 0,
+              unit: portfolioManagementFeeUnit,
+              calculation_base: portfolioManagementFeeCalculationBase,
+            },
+            calculation_base: "portfolio_cost",
+            vat_rate: vatRate / 100,
+            settlement_timing: portfolioSettlementTiming as
+              | "after_month_close"
+              | "preliminary_then_final",
+            estimate_rule: portfolioEstimateRule as
+              | "none"
+              | "latest_final"
+              | "rolling_3"
+              | "forecast"
+              | "manual",
+            display_rules: {
+              show_historical_final: booleanFlag(
+                input.portfolioShowHistoricalFinal,
+                true,
+              ),
+              show_indication: booleanFlag(
+                input.portfolioShowIndication,
+                portfolioEstimateRule !== "none",
+              ),
+              indication_non_binding: true as const,
+            },
+            final_billing_requires: "locked_settlement" as const,
+          }
+        : null,
       public_price_text: publicPriceText,
       vat_rate: vatRate / 100,
       vat_rate_percent: vatRate,
