@@ -32,8 +32,11 @@ assert(/payload: mergeJsonObjects\(enrichedPayload,[\s\S]*operation_id: input\.o
 assert(/findOrCreateDataRequestOutbound\(params: \{[\s\S]*operationId\?: string \| null/.test(shared), 'findOrCreateDataRequestOutbound accepts operationId.')
 assert(/operationId: params\.operationId \?\? params\.dataRequest\.operation_id \?\? null/.test(shared), 'findOrCreateDataRequestOutbound forwards operationId.')
 assert(/operationId: request\.operation_id|operationId = normalizeUuidOrNull\(request\.operation_id/.test(info), 'customer info dispatch reads request.operation_id.')
-assert(/operationId,\n\s*\}\);\n\n\s*const linkNow/.test(info), 'customer info dispatch passes operationId and links grid_owner_data_request before Z01 prepare.')
-assert(/grid_owner_data_request_id: gridOwnerDataRequest\.id[\s\S]*route_resolution_status: "grid_owner_request_created"/.test(info), 'customer_info_request is linked immediately after grid-owner request creation.')
+// The outbound call gained more canonical fields (authorizationDocumentId,
+// requestPayload) after operationId; the invariant is unchanged: operationId
+// is passed and the grid_owner_data_request is linked before Z01 prepare.
+assert(/operationId,[\s\S]{0,400}\}\);\n\n\s*const linkNow/.test(info), 'customer info dispatch passes operationId and links grid_owner_data_request before Z01 prepare.')
+assert(/grid_owner_data_request_id: gridOwnerDataRequest\.id[\s\S]*route_resolution_status: 'grid_owner_request_created'/.test(info), 'customer_info_request is linked immediately after grid-owner request creation.')
 assert(/prepareAndQueueProdatZ01FromDataRequest\([\s\S]*operationId/.test(info), 'queueCustomerInfoRequestForDispatch forwards operationId to Z01 prepare.')
 assert(/customerInfoStatusFromZ01Result/.test(info) && !/const nextStatus = z01\.prepared \? "z01_prepared" : "route_missing"/.test(info), 'Z01 result status mapping prevents plain draft/over-generic route_missing.')
 assert(/dispatchBlockerFromError/.test(info) && /production_send_locked/.test(info) && /platform_route_exists_but_not_materialized/.test(info), 'known dispatch blockers are captured as structured blockers.')

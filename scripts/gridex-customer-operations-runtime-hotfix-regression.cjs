@@ -33,9 +33,18 @@ ok(shared.includes("status: 'queued'"), 'prepared Ediel message is queued to tra
 ok(shared.includes('edielOutboxQueued'), 'outbound response payload records transport queue state')
 
 const dispatch = read('lib/customer-operations/facilityLookupEdifactDispatch.ts')
-ok(dispatch.includes("const FACILITY_LOOKUP_APPLICATION_REFERENCE = '23-DDQ-PRODAT'"), 'facility lookup application reference is deterministic')
+// The hardcoded '23-DDQ-PRODAT' constant moved to the single rule source:
+// the renderer derives it via resolveApplicationReferenceForProcess and the
+// dispatcher imports that canonical constant.
+ok(
+  dispatch.includes("import { FACILITY_LOOKUP_APPLICATION_REFERENCE } from '@/lib/ediel/intent/renderers/facilityLookupZ01'") &&
+    read('lib/ediel/intent/renderers/facilityLookupZ01.ts').includes("resolveApplicationReferenceForProcess('facility_lookup')"),
+  'facility lookup application reference is deterministic',
+)
 ok(dispatch.includes("request.ediel_message_id && request.outbound_request_id"), 'facility request does not short-circuit with only outbound_request_id')
-ok(dispatch.includes("dispatchKind: 'facility_lookup_edifact_repair'"), 'half-created facility outbounds are repaired')
+// The repair path evolved: half-created dispatches are repaired in place and
+// flagged with repairedFacilityLookupEdifactDispatch + repaired_and_queued.
+ok(dispatch.includes('repairedFacilityLookupEdifactDispatch: true') && dispatch.includes("'repaired_and_queued'"), 'half-created facility outbounds are repaired')
 ok(dispatch.includes(".in('status', ['ready_to_send', 'waiting_response'])"), 'facility dispatcher scans repairable waiting_response rows')
 ok(dispatch.includes("row.status === 'waiting_response' && Boolean(row.outbound_request_id) && !row.ediel_message_id"), 'dispatcher filters waiting_response rows missing ediel_message_id')
 ok(dispatch.includes('grid_owner_information_request_id: request.id'), 'outbound first-class facility request link is patched')
