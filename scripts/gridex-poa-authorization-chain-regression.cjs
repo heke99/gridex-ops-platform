@@ -17,6 +17,15 @@ function mustInclude(file, needle, why) {
   if (!read(file).includes(needle)) failures.push(`Missing "${needle}" in ${file} (${why})`)
 }
 
+// Some sources are formatted with double quotes; table-name assertions must be
+// quote-style agnostic so a formatter run cannot silently disable the check.
+function mustIncludeEither(file, needles, why) {
+  const source = read(file)
+  if (!needles.some((needle) => source.includes(needle))) {
+    failures.push(`Missing any of ${needles.map((needle) => `"${needle}"`).join(' / ')} in ${file} (${why})`)
+  }
+}
+
 const chain = 'lib/legal/authorizationChain.ts'
 const adminActions = 'app/admin/customers/actions.ts'
 const opsDb = 'lib/operations/db.ts'
@@ -36,7 +45,13 @@ mustInclude(adminActions, 'ensureAuthorizationScopes', 'uploaded intake POA must
 
 // Website chain remains intact (canonical implementation).
 mustInclude(website, 'ensureWebsiteAuthorizationChainFromPowerOfAttorney', 'website chain implementation')
-mustInclude(website, "from('authorization_scopes')", 'website chain writes authorization_scopes')
+mustIncludeEither(website, ["from('authorization_scopes')", 'from("authorization_scopes")'], 'website chain writes authorization_scopes')
+
+// The supplier switch readiness gate must verify (and be able to heal) the
+// canonical scope coverage before any switch dispatch.
+mustInclude(chain, 'export async function verifyAuthorizationScopeCoverage', 'scope coverage verifier for POA-requiring operations')
+mustInclude('lib/customer-operations/switchReadiness.ts', 'verifyAuthorizationScopeCoverage', 'switch readiness enforces authorization scope coverage')
+mustInclude('lib/customer-operations/switchReadiness.ts', 'authorization_scope_missing', 'switch readiness raises a structured scope blocker')
 
 // Supplier switch chain propagation.
 mustInclude(opsDb, 'resolveAuthorizationDocumentIdForPowerOfAttorney', 'switch creation must resolve authorization document from POA')

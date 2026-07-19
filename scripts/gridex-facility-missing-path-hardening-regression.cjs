@@ -49,7 +49,10 @@ mustInclude(rmfi, "status: 'manual_email_queued',\n    nextAction: 'Begäran är
 mustInclude(outbox, "facility_data_status: 'waiting_manual_response'", 'site advances to waiting only when the worker confirms the send')
 
 // 5. delivery_uncertain flags the linked request.
-mustInclude(outbox, "dispatch_error_code: 'send_uncertain'", 'stale sending recovery must flag the request')
+// Stale `sending` rows become delivery_uncertain and the linked request is
+// flagged through markLinkedRequestFailed (dispatch_error_code from errorCode).
+mustInclude(outbox, "errorCode: 'delivery_uncertain'", 'stale sending recovery must flag the request')
+mustInclude(outbox, "status: 'delivery_uncertain'", 'stale sending rows are moved to delivery_uncertain (never silently re-sent)')
 
 // 6. Orchestrator waiting detection covers manual lifecycle statuses.
 mustInclude(orchestrator, "'manual_email_queued', 'manual_email_sent', 'waiting_manual_response'", 'orchestrator must treat all manual waiting statuses as waiting')
@@ -57,7 +60,9 @@ mustInclude(orchestrator, "'manual_email_queued', 'manual_email_sent', 'waiting_
 // 7. blocked_missing_manual_mailbox is a first-class blocker.
 mustInclude(blockers, 'blocked_missing_manual_mailbox', 'blocker catalog entry')
 mustInclude(blockers, 'Manuell e-postbrevlåda saknas', 'Swedish status label')
-mustInclude(lookupAutomation, "manual.status === 'blocked_missing_manual_mailbox'", 'automation maps missing mailbox to blocked, not needs_review')
+// The automation now maps EVERY blocked_* orchestrator status (including
+// blocked_missing_manual_mailbox) to 'blocked' via the startsWith guard.
+mustInclude(lookupAutomation, "status.startsWith('blocked_')", 'automation maps missing mailbox (and all blocked_* states) to blocked, not needs_review')
 
 // 8. Facility-only replies: grid area may merge from site context.
 mustInclude(parser, 'effectiveGridAreaCode', 'parser must merge grid area from site context')

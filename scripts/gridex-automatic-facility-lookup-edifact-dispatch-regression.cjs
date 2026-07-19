@@ -23,10 +23,18 @@ ok(dispatch.includes('findExistingDispatchForRequest') && dispatch.includes('alr
 ok(dispatch.includes("sourceType: 'manual'"), 'outbound request uses supported source type while preserving request linkage')
 ok(!dispatch.includes('queueCustomerInfoRequestForDispatch') && !dispatch.includes('prepareAndQueueProdatZ01FromDataRequest'), 'dispatcher does not loosen existing customer-info Z01 preflight path')
 
+// Facility automation is manual-only by design: missing identifiers go through
+// the controlled manual information request pipeline. The Edifact dispatcher
+// remains available ONLY for requests explicitly configured with
+// channel='ediel' (resumed via the intent sweep), and it hard-guards that.
 const facilityAutomation = read('lib/customer-operations/facilityLookupAutomation.ts')
-ok(facilityAutomation.includes("dispatchFacilityLookupEdifact"), 'facility lookup automation calls Edifact dispatcher')
-ok(facilityAutomation.includes("status = 'waiting_response'") && facilityAutomation.includes('outbound_request_id') && facilityAutomation.includes('ediel_message_id'), 'facility automation maps successful dispatch to waiting_response with outbound and message references')
-ok(facilityAutomation.includes('facility_lookup_edifact_dispatch_failed'), 'facility automation surfaces dispatch failures as review blockers')
+ok(!facilityAutomation.includes('dispatchFacilityLookupEdifact'), 'facility lookup automation never calls the Edifact dispatcher directly (manual-only)')
+ok(facilityAutomation.includes('requestMissingFacilityInformation'), 'facility automation delegates to the manual information orchestrator')
+ok(facilityAutomation.includes("'waiting_response'") && facilityAutomation.includes('mapStatus'), 'facility automation maps manual dispatch statuses to waiting_response')
+ok(facilityAutomation.includes('manual_information_orchestrator'), 'facility automation surfaces orchestrator blockers with their source')
+ok(dispatch.includes("request.channel !== 'ediel'"), 'Edifact dispatcher blocks requests not explicitly configured with the ediel channel')
+const resumeSweep = read('lib/ediel/intent/resumeStuckIntents.ts')
+ok(resumeSweep.includes("process === 'facility_lookup'") && resumeSweep.includes('dispatchFacilityLookupEdifact'), 'only the stuck-intent sweep resumes explicitly configured Ediel facility lookups')
 
 const gridOwnerRequests = read('lib/energy/gridOwnerRequests.ts')
 ok(gridOwnerRequests.includes('communication_route_id: operationalRoute') && gridOwnerRequests.includes('ediel_route_profile_id: operationalRoute'), 'grid owner request stores materialized route columns')
