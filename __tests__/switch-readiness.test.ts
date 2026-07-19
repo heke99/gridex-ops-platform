@@ -18,6 +18,7 @@ const collaboratorMocks = vi.hoisted(() => ({
   findActiveSwitchLifecycleBlock: vi.fn(),
   evaluateCustomerProcessRouteReadiness: vi.fn(),
   getGridOwnerVerification: vi.fn(),
+  verifyAuthorizationScopeCoverage: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/service', () => ({
@@ -67,6 +68,9 @@ vi.mock('@/lib/customer-operations/customerProcessRouteReadiness', () => ({
 }))
 vi.mock('@/lib/grid-owners/verification', () => ({
   getGridOwnerVerification: collaboratorMocks.getGridOwnerVerification,
+}))
+vi.mock('@/lib/legal/authorizationChain', () => ({
+  verifyAuthorizationScopeCoverage: collaboratorMocks.verifyAuthorizationScopeCoverage,
 }))
 
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
@@ -247,6 +251,12 @@ function primeHappyPath() {
     warnings: [],
   })
   collaboratorMocks.evaluateSupplierSwitchSchedule.mockResolvedValue({ ok: true, window: null, blockers: [] })
+  collaboratorMocks.verifyAuthorizationScopeCoverage.mockResolvedValue({
+    covered: true,
+    missing: [],
+    healed: false,
+    schemaAvailable: true,
+  })
 }
 
 const BASE_INPUT = {
@@ -341,6 +351,58 @@ describe('checkSupplierSwitchReadiness (unified gate)', () => {
 
     expect(result.ready).toBe(false)
     expect(result.blockers.some((blocker) => blocker.source === 'route_readiness')).toBe(true)
+  })
+
+  it('blocks with authorization_scope_missing when the canonical scope chain does not cover the switch', async () => {
+    collaboratorMocks.verifyAuthorizationScopeCoverage.mockResolvedValue({
+      covered: false,
+      missing: ['current_supplier_contract'],
+      healed: false,
+      schemaAvailable: true,
+    })
+
+    const result = await checkSupplierSwitchReadiness(BASE_INPUT)
+
+    expect(result.ready).toBe(false)
+    expect(result.blockers.map((blocker) => blocker.code)).toContain('authorization_scope_missing')
+    expect(result.readinessSnapshot.authorization_scope).toMatchObject({
+      covered: false,
+      missing: ['current_supplier_contract'],
+    })
+    // Healing must have been attempted from the signed POA before blocking.
+    expect(collaboratorMocks.verifyAuthorizationScopeCoverage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyId: 'company-1',
+        customerId: 'customer-1',
+        required: ['current_supplier_contract'],
+        powerOfAttorneyId: 'poa-1',
+        healFromPowerOfAttorney: true,
+      }),
+    )
+  })
+
+  it('skips the scope check (POA blocker already present) when no POA exists', async () => {
+    dbMocks.listPowersOfAttorneyByCustomerId.mockResolvedValue([])
+
+    const result = await checkSupplierSwitchReadiness(BASE_INPUT)
+
+    expect(result.ready).toBe(false)
+    expect(result.blockers.map((blocker) => blocker.code)).toContain('power_of_attorney_missing')
+    expect(collaboratorMocks.verifyAuthorizationScopeCoverage).not.toHaveBeenCalled()
+  })
+
+  it('fails closed when the authorization scope schema is missing', async () => {
+    collaboratorMocks.verifyAuthorizationScopeCoverage.mockResolvedValue({
+      covered: false,
+      missing: ['current_supplier_contract'],
+      healed: false,
+      schemaAvailable: false,
+    })
+
+    const result = await checkSupplierSwitchReadiness(BASE_INPUT)
+
+    expect(result.ready).toBe(false)
+    expect(result.blockers.map((blocker) => blocker.code)).toContain('authorization_scope_missing')
   })
 
   it('merges scheduler blockers when re-validating a scheduled switch', async () => {
