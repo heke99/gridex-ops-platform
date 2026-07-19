@@ -19,6 +19,7 @@ import {
   matchCustomerIdentity,
   type CustomerMatchDecision,
 } from "@/lib/customers/matchingService";
+import { ensureCustomerNumberIfSupported } from "@/lib/customer-numbers/customerNumbers";
 
 type ExternalContractInput = {
   companySlug: string;
@@ -82,6 +83,7 @@ function hashKey(input: ExternalContractInput): string {
 type ExistingCustomerRow = {
   id: string;
   status?: string | null;
+  customer_number?: string | null;
   first_name?: string | null;
   last_name?: string | null;
   full_name?: string | null;
@@ -106,7 +108,7 @@ type ExistingMeteringPointRow = {
 };
 
 const INTAKE_CUSTOMER_SELECT =
-  "id,status,first_name,last_name,full_name,company_name,email,phone,personal_number,org_number,source,metadata";
+  "id,status,customer_number,first_name,last_name,full_name,company_name,email,phone,personal_number,org_number,source,metadata";
 
 async function findExistingCustomerForIntake(
   companyId: string,
@@ -147,6 +149,23 @@ async function findExistingCustomerForIntake(
   }
 
   return { customer: null, matchDecision };
+}
+
+// Every resolved intake customer gets the canonical, permanent Gridex
+// customer number from the shared tenant-scoped generator. On migrated
+// databases the insert trigger has already assigned it; matched existing
+// customers that predate the backfill are filled here.
+async function finishIntakeCustomer(
+  companyId: string,
+  customerId: string,
+  existingCustomerNumber?: string | null,
+): Promise<string> {
+  await ensureCustomerNumberIfSupported({
+    companyId,
+    customerId,
+    existingCustomerNumber: existingCustomerNumber ?? null,
+  });
+  return customerId;
 }
 
 async function ensureCustomerForIntake(
@@ -217,7 +236,11 @@ async function ensureCustomerForIntake(
         .eq("id", existing.id);
       if (fallback.error) throw fallback.error;
     }
-    return String(existing.id);
+    return finishIntakeCustomer(
+      companyId,
+      String(existing.id),
+      existing.customer_number ?? null,
+    );
   }
 
   const insertPayload = {
@@ -248,10 +271,16 @@ async function ensureCustomerForIntake(
   const { data, error } = await supabaseService
     .from("customers")
     .insert(insertPayload)
-    .select("id")
+    .select("id,customer_number")
     .single();
 
-  if (!error && data?.id) return String(data.id);
+  if (!error && data?.id) {
+    return finishIntakeCustomer(
+      companyId,
+      String(data.id),
+      (data as { customer_number?: string | null }).customer_number ?? null,
+    );
+  }
 
   const code = (error as { code?: string } | null)?.code ?? "";
   if (code === "23505") {
@@ -259,7 +288,13 @@ async function ensureCustomerForIntake(
       companyId,
       input,
     );
-    if (repaired?.id) return String(repaired.id);
+    if (repaired?.id) {
+      return finishIntakeCustomer(
+        companyId,
+        String(repaired.id),
+        repaired.customer_number ?? null,
+      );
+    }
   }
   if (["42703", "PGRST204", "PGRST205"].includes(code)) {
     const fallback = await supabaseService
@@ -280,7 +315,7 @@ async function ensureCustomerForIntake(
       .select("id")
       .single();
     if (fallback.error) throw fallback.error;
-    return String(fallback.data.id);
+    return finishIntakeCustomer(companyId, String(fallback.data.id));
   }
 
   throw error;
