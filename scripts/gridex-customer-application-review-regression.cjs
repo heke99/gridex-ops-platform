@@ -2,8 +2,12 @@
 const fs = require('fs')
 const path = require('path')
 
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
 function read(file) {
-  return fs.readFileSync(path.join(process.cwd(), file), 'utf8')
+  const source = fs.readFileSync(path.join(process.cwd(), file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
 }
 
 function assert(condition, message) {
@@ -28,8 +32,12 @@ const resendWebhook = read('lib/email/resendWebhookEvents.ts')
 
 assert(!applicationEngine.includes('metering_point_id krävs när ansökan innehåller anläggningsadress'), 'address-only website applications are not rejected with 422')
 assert(applicationEngine.includes('status: applicationStatus'), 'website application response uses readiness status')
-assert(applicationEngine.includes("eventKey: 'contract.application_received'"), 'initial application only triggers received email')
-assert(!applicationEngine.includes("eventKey: 'switch.confirmed'"), 'website submit does not trigger switch confirmation email')
+// The single eventKey call became a gated event list: application_received is
+// always sent; confirmation/cooling-off only when the signed-contract legal
+// evidence is ready (legalMailReady). The invariant is unchanged: an initial
+// application never triggers confirmation mail.
+assert(applicationEngine.includes("'contract.application_received',") && /legalMailReady\s*\?\s*\['contract\.confirmation_sent', 'contract\.cooling_off_sent'\]\s*:\s*\[\]/.test(applicationEngine), 'initial application only triggers received email')
+assert(!applicationEngine.includes("eventKey: 'switch.confirmed'") && !applicationEngine.includes("'switch.confirmed'"), 'website submit does not trigger switch confirmation email')
 assert(reviewEngine.includes('canSendAgreementConfirmation'), 'readiness model separates agreement confirmation guard')
 assert(reviewEngine.includes('requestedStartDate') && reviewEngine.includes('confirmedStartDate') && reviewEngine.includes('actualStartDate'), 'requested/confirmed/actual start dates are separated')
 assert(applicationPage.includes('Kundansökningar') && applicationPage.includes('Kontrollera om redo'), 'admin UI exposes customer application work queue and readiness check')

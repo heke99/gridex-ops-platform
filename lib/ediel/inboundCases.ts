@@ -4,6 +4,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessageEvent, linkEdielMessage } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { describeProdatCaseType, edielCodeLabel } from '@/lib/ediel/codeLabels'
+import { ensureCustomerNumberIfSupported } from '@/lib/customer-numbers/customerNumbers'
 
 type JsonRecord = Record<string, unknown>
 
@@ -638,6 +639,7 @@ async function createOrUpdateCustomer(params: {
       .eq('company_id', companyId)
 
     if (error) throw error
+    await ensureCustomerNumberIfSupported({ companyId, customerId: selectedCustomerId })
     return selectedCustomerId
   }
 
@@ -658,11 +660,19 @@ async function createOrUpdateCustomer(params: {
       created_by: params.actorUserId,
       updated_by: params.actorUserId,
     })
-    .select('id')
+    .select('id,customer_number')
     .single()
 
   if (error) throw error
-  return (data as { id: string }).id
+  const createdCustomerId = (data as { id: string }).id
+  // Canonical permanent customer number (same generator as every other intake
+  // channel). On migrated databases the insert trigger has already set it.
+  await ensureCustomerNumberIfSupported({
+    companyId,
+    customerId: createdCustomerId,
+    existingCustomerNumber: (data as { customer_number?: string | null }).customer_number ?? null,
+  })
+  return createdCustomerId
 }
 
 async function createOrUpdateSite(params: {

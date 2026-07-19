@@ -8,7 +8,13 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 
 const assert = (condition, message) => {
   if (!condition) {
@@ -37,9 +43,14 @@ assert(
   /eq.*grid_owner_id/.test(decisionEngine),
   'routeDecisionEngine: queries communication_routes by grid_owner_id (counterparty)'
 )
+// Tenant scoping evolved: the query allows tenant + platform-global rows
+// (company_id.is.null,company_id.eq.<tenant>) and the selection logic prefers
+// tenant-owned rows over global ones — never another tenant's routes.
 assert(
-  /eq.*company_id/.test(decisionEngine),
-  'routeDecisionEngine: queries communication_routes by company_id (tenant)'
+  /company_id\.eq\./.test(decisionEngine) &&
+    /company_id\.is\.null/.test(decisionEngine) &&
+    /row\.company_id === params\.companyId/.test(decisionEngine),
+  'routeDecisionEngine: queries communication_routes tenant-scoped (tenant rows preferred over platform-global)'
 )
 assert(
   /eq.*is_active/.test(decisionEngine) || /is_active.*true/.test(decisionEngine),

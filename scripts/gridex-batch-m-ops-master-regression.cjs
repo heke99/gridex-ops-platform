@@ -3,8 +3,12 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
 function read(file) {
-  return fs.readFileSync(path.join(root, file), 'utf8')
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
 }
 function assertContains(file, needles) {
   const text = read(file)
@@ -34,7 +38,8 @@ assertContains('lib/opsMaster/readiness.ts', [
   'canSendMail',
   'Villkor saknas',
   'Aktiv fullmakt saknas',
-  'Ediel-route saknas',
+  // Tenant copy was simplified: the technical Ediel wording became 'Kontaktväg saknas'.
+  'Kontaktväg saknas',
 ])
 
 assertContains('app/admin/customers/[id]/page.tsx', [
@@ -55,7 +60,8 @@ assertContains('app/admin/companies/[id]/page.tsx', [
   'CompanyLegalMasterSection',
   'legal-master',
   'Skapa juridisk version',
-  'Hemsidan är inte juridiskt redo',
+  // Legal readiness copy was consolidated onto the canonical readiness banner.
+  'Canonical readiness: blockerad',
 ])
 
 assertContains('lib/website/publicContracts.ts', [

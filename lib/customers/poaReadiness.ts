@@ -114,6 +114,58 @@ export function hasExternallySendablePoa(
   return true
 }
 
+// ---------------------------------------------------------------------------
+// Canonical POA lifecycle status
+// ---------------------------------------------------------------------------
+//
+// The stored powers_of_attorney.status vocabulary grew organically
+// (draft/sent/signed/active/accepted/completed/expired/revoked). UI and
+// process code need ONE derived lifecycle answer instead of re-implementing
+// this mapping. Derivation is fail-closed: an accepted status without any
+// acceptance evidence is still "awaiting_signature".
+
+export type PowerOfAttorneyLifecycleStatus =
+  | 'missing'
+  | 'awaiting_signature'
+  | 'signed'
+  | 'valid'
+  | 'revoked'
+  | 'expired'
+  | 'replaced'
+
+function toDateOrNull(value: unknown): Date | null {
+  const cleaned = clean(value)
+  if (!cleaned) return null
+  const parsed = new Date(cleaned)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+export function derivePowerOfAttorneyLifecycleStatus(
+  poa: PoaLike | null | undefined,
+  options?: { now?: Date },
+): PowerOfAttorneyLifecycleStatus {
+  if (!poa) return 'missing'
+  const now = options?.now ?? new Date()
+  const status = (clean(poa.status) ?? '').toLowerCase()
+
+  if (status === 'revoked' || status === 'annulled' || clean(poa.revoked_at)) return 'revoked'
+  if (status === 'replaced' || status === 'superseded' || clean(poa.replaced_by_id)) return 'replaced'
+
+  const validTo = toDateOrNull(poa.valid_to) ?? toDateOrNull(poa.valid_until)
+  if (status === 'expired' || (validTo && validTo < now)) return 'expired'
+
+  if (poaStatusIsAccepted(poa)) {
+    // Accepted status without acceptance evidence is not provable — treat as
+    // still awaiting a verifiable signature.
+    if (!hasLegalPoaAcceptance(poa)) return 'awaiting_signature'
+    const validFrom = toDateOrNull(poa.valid_from)
+    if (validFrom && validFrom > now) return 'signed'
+    return 'valid'
+  }
+
+  return 'awaiting_signature'
+}
+
 // Human-readable Swedish list of what is missing for external sendability.
 export function poaMissingExternalFields(
   poa: PoaLike | null | undefined,

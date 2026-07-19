@@ -15,7 +15,13 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 
 const assert = (condition, message) => {
   if (!condition) {
@@ -92,10 +98,14 @@ assert(
   /communication_route_id/.test(z01Flow),
   'prodatCustomerMasterdata.ts: references communication_route_id'
 )
-// Verify the wrong column name is not used in z01 flow
+// Verify the wrong column name is never WRITTEN in the z01 flow. Reading the
+// communication route's own route_profile_id column as a documented fallback
+// (routeContext.route.route_profile_id -> ediel_route_profiles.id) is allowed;
+// what must never happen is persisting a bare `route_profile_id:` key on
+// outbound/message rows (ID-namespace confusion).
 assert(
-  !/\.route_profile_id\b/.test(z01Flow.replace(/ediel_route_profile_id/g, '')),
-  'prodatCustomerMasterdata.ts: does NOT use bare route_profile_id on outbound rows'
+  !/(?<!ediel_)route_profile_id\s*:/.test(z01Flow.replace(/route_profile_id\?: unknown/g, '').replace(/routeProfileId/g, '')),
+  'prodatCustomerMasterdata.ts: does NOT write bare route_profile_id on outbound rows'
 )
 
 // ---- 6. customer_info_request blocker is updated when route is ready ----
@@ -183,8 +193,13 @@ assert(
 
 // ---- New: finalizer always links the outbound and never sends SMTP directly ----
 const finalizerSrc = read('lib/customer-operations/z01Finalizer.ts')
+// The direct row write became the dedicated sync helper: whenever a CIR
+// exists the finalizer calls syncCustomerInfoRequestAfterZ01Repair with the
+// outbound id, which persists outbound_request_id on the request.
 assert(
-  /if \(cir\) \{/.test(finalizerSrc) && /outbound_request_id:\s*z01\.outbound\.id/.test(finalizerSrc),
+  /if \(cir\) \{/.test(finalizerSrc) &&
+    /syncCustomerInfoRequestAfterZ01Repair\(\{[\s\S]{0,400}outboundRequestId: outbound\.id/.test(finalizerSrc) &&
+    /outbound_request_id:\s*input\.outboundRequestId/.test(finalizerSrc),
   'z01Finalizer.ts: links customer_info_requests.outbound_request_id whenever the CIR exists'
 )
 assert(

@@ -6,15 +6,15 @@ const registryPath = path.join(root, 'lib/ediel/rulebook/testCaseRuleRegistry.ts
 const migrationPath = path.join(root, 'supabase/migrations/20260605183000_batch4_canonical_edifact_rulebook.sql')
 const pagePath = path.join(root, 'app/admin/ediel/certification/page.tsx')
 const decisionPath = path.join(root, 'lib/ediel/decisionEngine.ts')
-const tgtRegistryPath = path.join(root, 'lib/ediel/tgtRegistry.ts')
+const tgtRegistryPath = path.join(root, 'lib/ediel/testing/tgtRegistry.ts')
 const systemTestPagePath = path.join(root, 'app/admin/ediel/system-tests/cases/[id]/page.tsx')
 const systemTestActionsPath = path.join(root, 'app/admin/ediel/system-tests/actions.ts')
-const tgtAutopilotPath = path.join(root, 'lib/ediel/tgtAutopilot.ts')
-const prodatGenericBuilderPath = path.join(root, 'lib/ediel/prodat/builders/generic.ts')
+const tgtAutopilotPath = path.join(root, 'lib/ediel/testing/tgtAutopilot.ts')
+const prodatGenericBuilderPath = path.join(root, 'lib/ediel/prodat/builders/profileRenderer.ts')
 const prodatRenderValidatePath = path.join(root, 'lib/ediel/prodat/render/validate.ts')
 const payloadPreflightPath = path.join(root, 'lib/ediel/core/messageBuilder/payloadPreflight.ts')
 
-const tgtEdifactPath = path.join(root, 'lib/ediel/tgtEdifact.ts')
+const tgtEdifactPath = path.join(root, 'lib/ediel/testing/tgtEdifact.ts')
 
 const required = [registryPath, migrationPath, pagePath, decisionPath, tgtRegistryPath, systemTestPagePath, systemTestActionsPath, tgtAutopilotPath, tgtEdifactPath, prodatGenericBuilderPath, prodatRenderValidatePath, payloadPreflightPath]
 const failures = []

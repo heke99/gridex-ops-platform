@@ -4,8 +4,12 @@
 // semantics, and no "SMTP skickad" claim without actual dispatch proof.
 const fs = require('fs')
 
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
 function read(file) {
-  return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''
+  const source = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
 }
 
 const failures = []
@@ -34,9 +38,9 @@ mustInclude(website, "queued: email ? communicationStatusOf(['queued'])", 'queue
 mustInclude(website, "sent: email ? communicationStatusOf(['sent'])", 'sent only when provider-confirmed')
 
 // 3. Workflow step: EDIEL SMTP send claims require dispatch proof.
-mustInclude(workflow, 'label: "EDIEL-utskick (SMTP)"', 'SMTP step is channel-specific')
-mustNotInclude(workflow, 'facilityDispatchSent || isWaiting ? "done"', 'waiting status must never mark the send as done')
-mustInclude(workflow, 'status: facilityDispatchSent ? "done" : facilityDispatchQueued ? "current" : isWaiting ? "waiting" : "not_started"', 'send step truth table')
+mustInclude(workflow, "label: 'EDIEL-utskick (SMTP)'", 'SMTP step is channel-specific')
+mustNotInclude(workflow, "facilityDispatchSent || isWaiting ? 'done'", 'waiting status must never mark the send as done')
+mustInclude(workflow, "status: facilityDispatchSent ? 'done' : facilityDispatchQueued ? 'current' : isWaiting ? 'waiting' : 'not_started'", 'send step truth table')
 
 // 4. Legal *_sent domain events still only fire after actual send.
 mustInclude('lib/email/emailDomainEvents.ts', 'emitCommunicationSentDomainEvents', 'sent domain events stay post-send')

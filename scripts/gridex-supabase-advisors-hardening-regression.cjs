@@ -20,7 +20,13 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 let failures = 0
 
 function expect(condition, message) {
@@ -227,6 +233,17 @@ expect(
 const migrationsDir = path.join(root, 'supabase/migrations')
 const newMigrations = fs.readdirSync(migrationsDir)
   .filter((f) => /^202607(09|[1-9][0-9])|^2026(0[8-9]|1[0-2])|^202[7-9]/.test(f) && f.endsWith('.sql'))
+// A function counts as pinned when EITHER its create statement pins
+// search_path inline OR a later migration repairs it with
+// `alter function public.<name>(...) set search_path` (applied migrations are
+// immutable, so advisor repairs must be forward migrations).
+const alterPinned = new Set()
+for (const file of fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql'))) {
+  const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8')
+  for (const match of sql.matchAll(/alter function\s+public\.([a-z0-9_]+)\s*\([^)]*\)\s+set search_path/gi)) {
+    alterPinned.add(match[1].toLowerCase())
+  }
+}
 const offenders = []
 for (const file of newMigrations) {
   const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8')
@@ -234,12 +251,16 @@ for (const file of newMigrations) {
   for (const block of fnBlocks) {
     if (!/^\s+(public\.|if not exists\s+public\.)/i.test(block)) continue
     const head = block.slice(0, block.search(/\bas\s+\$|\bbegin\b/i) === -1 ? block.length : block.search(/\bas\s+\$|\bbegin\b/i))
-    if (!/set search_path/i.test(head)) offenders.push(`${file}: public.${block.trim().slice(0, 60)}...`)
+    if (/set search_path/i.test(head)) continue
+    const nameMatch = block.match(/^\s*(?:if not exists\s+)?public\.([a-z0-9_]+)/i)
+    const functionName = nameMatch ? nameMatch[1].toLowerCase() : null
+    if (functionName && alterPinned.has(functionName)) continue
+    offenders.push(`${file}: public.${block.trim().slice(0, 60)}...`)
   }
 }
 expect(
   offenders.length === 0,
-  `new migrations (>= 20260709) pin search_path on created public functions${offenders.length ? ` (offenders: ${offenders.join(' | ')})` : ''}`
+  `new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter)${offenders.length ? ` (offenders: ${offenders.join(' | ')})` : ''}`
 )
 
 console.log('\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md')

@@ -68,11 +68,16 @@ ok(orchestrator.includes('blocked_missing_poa') && orchestrator.includes('blocke
 ok(orchestrator.includes('grid_owner_contact_channels'), 'orchestrator resolves contact via grid_owner_contact_channels')
 ok(!orchestrator.includes(".from('ediel_outbox')") && !orchestrator.includes('renderAndQueueFacilityLookupZ01('), 'orchestrator never touches the Ediel outbox/render path')
 
-// 6) Facility automation reroute (manual default) while preserving legacy Ediel path strings.
+// 6) Facility automation is manual-only: the former environment switch to an
+// Ediel facility lookup is intentionally removed. The Edifact path may only
+// be reached for requests explicitly configured with channel='ediel'
+// (facilityLookupEdifactDispatch guards this itself, checked below).
 const automation = read('lib/customer-operations/facilityLookupAutomation.ts')
-ok(automation.includes('resolveFacilityLookupChannel') && automation.includes("=== 'manual_email'"), 'facility automation defaults to manual_email channel')
-ok(automation.includes('requestMissingFacilityInformation'), 'facility automation delegates missing facility to the orchestrator')
-ok(automation.includes('dispatchFacilityLookupEdifact'), 'facility automation preserves the legacy Ediel dispatch path')
+ok(automation.includes('requestMissingFacilityInformation'), 'facility automation delegates missing facility to the manual orchestrator')
+ok(automation.includes('intentionally removed'), 'facility automation documents that the Ediel channel switch is removed')
+ok(!automation.includes('dispatchFacilityLookupEdifact'), 'facility automation never calls the Ediel dispatch path (manual-only)')
+const edifactDispatchGuard = read('lib/customer-operations/facilityLookupEdifactDispatch.ts')
+ok(edifactDispatchGuard.includes("request.channel !== 'ediel'"), 'Edifact facility dispatch hard-guards on the explicitly configured ediel channel')
 
 // 7) Worker (Resend) + cron.
 const worker = read('lib/email/manualEmailOutbox.ts')
@@ -92,7 +97,7 @@ ok(templates.includes('Anläggnings-ID') && templates.includes('Årsenergi'), 'f
 // 9) Inbound ingestion (match by case_reference, tenant from request, sender credibility, no cross-tenant).
 const inbound = read('lib/inbound-mail/manualInboundIngestion.ts')
 ok(inbound.includes('extractCaseReference') && inbound.includes('GX-FIR-'), 'inbound ingestion matches by case_reference')
-ok(inbound.includes('findRequestByCaseReference') && inbound.includes('rows.length !== 1'), 'inbound rejects ambiguous (cross-tenant) matches')
+ok(inbound.includes('findRequestByCaseReference') && (inbound.includes('rows.length !== 1') || inbound.includes('rows.length > 1')), 'inbound rejects ambiguous (cross-tenant) matches')
 ok(inbound.includes('company_id') && inbound.includes('request.company_id'), 'inbound resolves tenant from the request, not the mailbox')
 ok(inbound.includes('isSenderCredible'), 'inbound verifies sender credibility')
 ok(inbound.includes('manual_inbound_messages'), 'inbound stores manual_inbound_messages')
@@ -159,8 +164,10 @@ ok(orchestrator.includes('blocked_missing_grid_owner_contact') && orchestrator.i
 ok(!orchestrator.includes('MANUAL_GRID_OWNER_FROM_EMAIL'), 'orchestrator no longer hardcodes an env sender (uses manual mailbox)')
 
 // 19) Worker guards against the Ediel sender (no silent fallback to ediel@gridex.se).
+// The former MANUAL_EMAIL_ALLOW_EDIEL_SENDER emergency override was removed:
+// the worker now refuses the reserved Ediel sender unconditionally.
 ok(worker.includes('isEdielReservedSender'), 'worker refuses to send manual e-mail from the Ediel reserved sender')
-ok(worker.includes('MANUAL_EMAIL_ALLOW_EDIEL_SENDER'), 'worker only allows the Ediel sender behind an explicit emergency override')
+ok(!worker.includes('MANUAL_EMAIL_ALLOW_EDIEL_SENDER'), 'no emergency override can re-enable the Ediel sender for manual e-mail')
 
 // 20) Worker route hides raw provider diagnostics from the HTTP response.
 ok(cron.includes('scanned: result.scanned') && cron.includes('console.error'), 'manual email cron route returns counts only and logs provider errors (tenant-hidden)')

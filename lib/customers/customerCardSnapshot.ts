@@ -2,7 +2,11 @@ import type { CustomerContractRow } from "@/lib/customer-contracts/types";
 import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types";
 import type { CustomerInfoRequestRow } from "@/lib/onboarding/infoRequests";
 import { hasMeteringPointIdentity } from "@/lib/customers/meteringIdentity";
-import { hasExternallySendablePoa } from "@/lib/customers/poaReadiness";
+import {
+  derivePowerOfAttorneyLifecycleStatus,
+  hasExternallySendablePoa,
+  type PowerOfAttorneyLifecycleStatus,
+} from "@/lib/customers/poaReadiness";
 import type {
   CustomerAuthorizationDocumentRow,
   PowerOfAttorneyRow,
@@ -61,6 +65,8 @@ export type CustomerCardSnapshot = {
     | "follow_up"
     | "review_grid_owner";
   authorizationStatus: CustomerCardStatus;
+  /** Canonical derived POA lifecycle (missing/awaiting_signature/signed/valid/revoked/expired/replaced). */
+  poaLifecycleStatus: PowerOfAttorneyLifecycleStatus;
   legalStatus: CustomerCardStatus;
   facilityStatus: CustomerCardStatus;
   gridOwnerStatus: CustomerCardStatus;
@@ -376,6 +382,15 @@ export function buildCustomerCardSnapshot(
   const hasExternallySendable = (input.powersOfAttorney ?? []).some((poa) =>
     hasExternallySendablePoa(poa as AnyRow),
   );
+  // Newest POA drives the derived lifecycle status (missing when none exists).
+  const newestPoa = [...(input.powersOfAttorney ?? [])].sort((a, b) =>
+    String((b as AnyRow).created_at ?? "").localeCompare(
+      String((a as AnyRow).created_at ?? ""),
+    ),
+  )[0] as AnyRow | undefined;
+  const poaLifecycleStatus = derivePowerOfAttorneyLifecycleStatus(
+    newestPoa ?? null,
+  );
   const hasFacilityId = truthy(primarySite?.facility_id);
   const hasMeteringPoint = hasMeteringPointIdentity(primaryMeteringPoint);
   const gridOwnerResolution = lower(
@@ -491,6 +506,7 @@ export function buildCustomerCardSnapshot(
     recommendedAction,
     hasOpenInfoRequest,
     authorizationStatus: hasAuthorization ? "ready" : "missing",
+    poaLifecycleStatus,
     legalStatus: legal.ok ? "ready" : "missing",
     facilityStatus: hasFacilityId ? "ready" : "missing",
     gridOwnerStatus: hasGridOwner ? "ready" : "needs_review",

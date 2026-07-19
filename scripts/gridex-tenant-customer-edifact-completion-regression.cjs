@@ -9,8 +9,12 @@ const path = require('node:path')
 
 const root = process.cwd()
 let failures = 0
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
 function read(rel) {
-  return fs.readFileSync(path.join(root, rel), 'utf8')
+  const source = fs.readFileSync(path.join(root, rel), 'utf8')
+  return /\.(ts|tsx)$/.test(rel) ? source.replace(/"/g, "'") : source
 }
 function exists(rel) {
   return fs.existsSync(path.join(root, rel))
@@ -75,7 +79,7 @@ const customerCard = read('app/admin/customers/[id]/page.tsx')
 // stay platform-admin only via canShowCustomerWorkspaceTab and the platform-
 // gated "Teknisk diagnostik" section.
 assert(
-  /if \(tab === "ediel-operations"\)[\s\S]{0,80}return isPlatformAdmin/.test(customerCard),
+  /if \(tab === 'ediel-operations'\)[\s\S]{0,80}return isPlatformAdmin/.test(customerCard),
   'customer card keeps Ediel technical operations platform-admin only',
 )
 

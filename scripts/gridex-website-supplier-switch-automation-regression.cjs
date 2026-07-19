@@ -20,7 +20,13 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 let failures = 0
 
 function expect(condition, message) {
@@ -153,18 +159,23 @@ expect(
 )
 
 // 4. Communication stays strict ------------------------------------------------
+// canDispatchFinalAgreementMail was renamed: the response flag is
+// agreementConfirmationEligible (signed contract + signed_at + exact legal
+// evidence) and the dispatcher recomputes legalMailReady before sending.
 expect(
-  /const canDispatchFinalAgreementMail = Boolean\(\s*readiness\.canSendAgreementConfirmation === true &&/.test(intake),
+  /agreementConfirmationEligible = Boolean\(\s*email &&\s*contract\?\.status === WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS &&\s*contract\?\.signed_at &&/.test(intake) &&
+    intake.includes('responsePayload.can_send_agreement_confirmation ='),
   'final agreement mail still requires can_send_agreement_confirmation=true'
 )
 expect(
-  /canDispatchFinalAgreementMail \? \['contract\.confirmation_sent', 'contract\.cooling_off_sent'\] : \[\]/.test(intake),
-  'confirmation/cooling-off events remain gated behind canDispatchFinalAgreementMail'
+  /legalMailReady\s*\?\s*\['contract\.confirmation_sent', 'contract\.cooling_off_sent'\]\s*:\s*\[\]/.test(intake) &&
+    intake.includes('contractLegalMailEvidenceReady'),
+  'confirmation/cooling-off events remain gated behind the legal-evidence dispatch gate'
 )
 
 // 5. Missing-facility path -------------------------------------------------------
 expect(
-  /const gridOwnerRequestMayBeCreated = readiness\.canRequestGridOwnerInformation && !facilityMissing/.test(intake),
+  /const gridOwnerRequestMayBeCreated =\s*readiness\.canRequestGridOwnerInformation && !facilityMissing/.test(intake),
   'missing facility keeps the manual grid-owner information path (no Ediel request)'
 )
 expect(
@@ -203,7 +214,7 @@ expect(
 )
 expect(
   /missing_automation_user: \{/.test(blockers) &&
-    /error_class: "configuration_error"/.test(blockers) &&
+    /error_class: 'configuration_error'/.test(blockers) &&
     /Configure GRIDEX_AUTOMATION_USER_ID for automatic EDIEL\/supplier switch operations/.test(blockers),
   'missing_automation_user blocker registered with error_class configuration_error'
 )

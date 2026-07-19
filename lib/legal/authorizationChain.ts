@@ -261,3 +261,104 @@ export async function resolveAuthorizationDocumentIdForPowerOfAttorney(input: {
   }
   return latest.data?.id ? String(latest.data.id) : null
 }
+
+export type AuthorizationCoverageRequirement =
+  | 'grid_owner_data'
+  | 'current_supplier_contract'
+  | 'metering_data'
+
+const COVERAGE_COLUMN: Record<AuthorizationCoverageRequirement, string> = {
+  grid_owner_data: 'covers_grid_owner_data',
+  current_supplier_contract: 'covers_current_supplier_contract',
+  metering_data: 'covers_metering_data',
+}
+
+function isDateBeforeToday(value: unknown): boolean {
+  if (typeof value !== 'string' || !value.trim()) return false
+  const today = new Date().toISOString().slice(0, 10)
+  return value.slice(0, 10) < today
+}
+
+export type AuthorizationScopeCoverageResult = {
+  covered: boolean
+  missing: AuthorizationCoverageRequirement[]
+  healed: boolean
+  schemaAvailable: boolean
+}
+
+/**
+ * Verifies that ACTIVE authorization_scopes rows cover the required
+ * operations for the customer. This is the same scope model the customer-info
+ * request pipeline enforces (lib/onboarding/infoRequests.ts); the supplier
+ * switch gate uses it so an operation requiring a fullmakt can never run when
+ * the canonical chain (POA -> customer_authorization_documents ->
+ * authorization_scopes) was never materialized.
+ *
+ * When `healFromPowerOfAttorney` is set and a signed POA id is provided, a
+ * missing chain is repaired idempotently first (same coverage semantics as
+ * the website chain: a signed POA grants the full onboarding coverage), then
+ * re-checked. Fail-closed: a missing schema counts as not covered.
+ */
+export async function verifyAuthorizationScopeCoverage(input: {
+  companyId: string
+  customerId: string
+  required: AuthorizationCoverageRequirement[]
+  powerOfAttorneyId?: string | null
+  healFromPowerOfAttorney?: boolean
+  actorUserId?: string | null
+  siteId?: string | null
+}): Promise<AuthorizationScopeCoverageResult> {
+  async function loadMissing(): Promise<{
+    missing: AuthorizationCoverageRequirement[]
+    schemaAvailable: boolean
+  }> {
+    const { data, error } = await supabaseService
+      .from('authorization_scopes')
+      .select('id,status,revoked_at,valid_to,covers_grid_owner_data,covers_current_supplier_contract,covers_metering_data')
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('status', 'active')
+      .is('revoked_at', null)
+    if (error) {
+      if (missingSchema(error)) return { missing: [...input.required], schemaAvailable: false }
+      throw error
+    }
+    const activeScopes = ((data ?? []) as Record<string, unknown>[]).filter(
+      (row) => !isDateBeforeToday(row.valid_to),
+    )
+    const missing = input.required.filter(
+      (requirement) => !activeScopes.some((row) => row[COVERAGE_COLUMN[requirement]] === true),
+    )
+    return { missing, schemaAvailable: true }
+  }
+
+  const first = await loadMissing()
+  if (first.missing.length === 0) {
+    return { covered: true, missing: [], healed: false, schemaAvailable: first.schemaAvailable }
+  }
+
+  if (input.healFromPowerOfAttorney && input.powerOfAttorneyId && first.schemaAvailable) {
+    await ensureAuthorizationDocumentFromPowerOfAttorney({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      powerOfAttorneyId: input.powerOfAttorneyId,
+      actorUserId: input.actorUserId ?? null,
+      siteId: input.siteId ?? null,
+      source: 'authorization_scope_coverage_heal',
+    })
+    const second = await loadMissing()
+    return {
+      covered: second.missing.length === 0,
+      missing: second.missing,
+      healed: second.missing.length < first.missing.length,
+      schemaAvailable: second.schemaAvailable,
+    }
+  }
+
+  return {
+    covered: false,
+    missing: first.missing,
+    healed: false,
+    schemaAvailable: first.schemaAvailable,
+  }
+}

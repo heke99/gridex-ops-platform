@@ -10,6 +10,7 @@ import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchS
 import { findActiveSwitchLifecycleBlock } from '@/lib/operations/switchLifecycleBlocks'
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { getGridOwnerVerification } from '@/lib/grid-owners/verification'
+import { verifyAuthorizationScopeCoverage } from '@/lib/legal/authorizationChain'
 import type { SwitchReadinessResult } from '@/lib/operations/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 
@@ -94,6 +95,7 @@ const NEXT_ACTION_BY_CODE: Record<string, string> = {
   agreement_not_signed_with_exact_evidence: 'Slutför signering och samtliga exakta juridikaccepter.',
   signed_pdf_not_archived_or_hash_mismatch: 'Arkivera och verifiera den signerade PDF-filen.',
   valid_power_of_attorney_missing: 'Registrera en giltig signerad fullmakt för avtalet och anläggningen.',
+  authorization_scope_missing: 'Komplettera fullmaktens behörighetsomfattning (authorization scope) innan byte.',
   contract_readiness_unavailable: 'Installera senaste readiness-migration innan leverantörsbyte.',
   grid_owner_not_verified: 'Verifiera nätägaren (rutt/certifikat/Ediel-ID) innan byte.',
   duplicate_open_supplier_switch: 'Invänta eller hantera det befintliga leverantörsbytet.',
@@ -171,6 +173,50 @@ export async function checkSupplierSwitchReadiness(
     meteringPoints.find((point) => point.id === siteReadiness.candidateMeteringPointId) ??
     meteringPoints[0] ??
     null
+
+  // 1b. Canonical authorization-scope coverage. A signed POA alone is not
+  // enough: the operational chain (POA -> customer_authorization_documents ->
+  // authorization_scopes) must cover the current-supplier-contract operation,
+  // exactly like the customer-info request pipeline enforces. A valid POA
+  // whose chain was never materialized is healed idempotently first.
+  let authorizationScopeSnapshot: Record<string, unknown> | null = null
+  const poaIssueCodes = new Set(['power_of_attorney_missing', 'power_of_attorney_not_signed'])
+  const hasValidPoa =
+    Boolean(siteReadiness.latestPowerOfAttorneyId) &&
+    !siteReadiness.issues.some((issue) => poaIssueCodes.has(issue.code))
+  if (hasValidPoa) {
+    try {
+      const coverage = await verifyAuthorizationScopeCoverage({
+        companyId: input.companyId,
+        customerId: input.customerId,
+        required: ['current_supplier_contract'],
+        powerOfAttorneyId: siteReadiness.latestPowerOfAttorneyId,
+        healFromPowerOfAttorney: true,
+        siteId: input.siteId,
+      })
+      authorizationScopeSnapshot = {
+        covered: coverage.covered,
+        missing: coverage.missing,
+        healed: coverage.healed,
+        schema_available: coverage.schemaAvailable,
+      }
+      if (!coverage.covered) {
+        blockers.push({
+          code: 'authorization_scope_missing',
+          message: coverage.schemaAvailable
+            ? `Fullmaktens behörighetsomfattning täcker inte: ${coverage.missing.join(', ')}.`
+            : 'Authorization scopes kan inte verifieras (schema saknas) – leverantörsbyte är blockerat tills migrationen har körts.',
+          source: 'legal',
+        })
+      }
+    } catch (scopeError) {
+      blockers.push({
+        code: 'authorization_scope_missing',
+        message: `Fullmaktens behörighetsomfattning kunde inte verifieras: ${scopeError instanceof Error ? scopeError.message : 'okänt fel'}.`,
+        source: 'legal',
+      })
+    }
+  }
 
   // 2. Exact agreement chain. Missing schema is fail-closed: neither service
   // role nor a direct Ediel call may turn an unverifiable contract into a send.
@@ -388,6 +434,7 @@ export async function checkSupplierSwitchReadiness(
       candidate_metering_point_id: siteReadiness.candidateMeteringPointId,
       latest_power_of_attorney_id: siteReadiness.latestPowerOfAttorneyId,
     },
+    authorization_scope: authorizationScopeSnapshot,
     contract: contractSnapshot,
     legal_acceptance_count: legalAcceptanceCount,
     lifecycle_block: lifecycleBlock

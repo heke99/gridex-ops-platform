@@ -75,6 +75,7 @@ import {
   processManualCustomerIntake,
   processPdfCustomerIntake,
 } from "@/lib/customer-operations/customerIntakeOrchestrator";
+import { ensureCustomerNumberIfSupported } from "@/lib/customer-numbers/customerNumbers";
 
 type CustomerType = "private" | "business" | "association";
 type SiteType = "consumption" | "production" | "mixed";
@@ -3076,6 +3077,22 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
 
     if (!customer?.id) throw new Error("Kund kunde inte förberedas.");
     const customerId = String(customer.id);
+
+    // Canonical customer number: the same tenant-scoped generator as the
+    // website flow (gridex_next_customer_number). New customers normally get
+    // the number from the DB insert trigger; matched existing customers that
+    // predate the backfill are filled here. Numbers are permanent.
+    const canonicalCustomerNumber = await ensureCustomerNumberIfSupported({
+      companyId: params.companyId,
+      customerId,
+      existingCustomerNumber:
+        typeof customer.customer_number === "string"
+          ? customer.customer_number
+          : null,
+    });
+    if (canonicalCustomerNumber) {
+      customer.customer_number = canonicalCustomerNumber;
+    }
 
     await updateCustomerBillingSettings({
       companyId: params.companyId,

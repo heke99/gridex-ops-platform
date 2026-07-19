@@ -268,6 +268,9 @@ async function main() {
       markCommunicationFailed: async () => undefined,
       markCommunicationSent: async () => undefined,
     },
+    './emailDomainEvents': {
+      emitCommunicationSentDomainEvents: async () => undefined,
+    },
   })
 
   const secret = 'whsec_' + Buffer.from('0123456789abcdef0123456789abcdef').toString('base64')
@@ -368,7 +371,7 @@ async function main() {
   // JSON snapshot stays internal only (website document snapshot remains JSON,
   // but the EXTERNAL attachment is never JSON).
   const website = read('lib/website/customerApplications.ts')
-  ok(website.includes("mime_type: 'application/json'"), 'internal POA JSON snapshot is retained for audit (website document)')
+  ok(website.includes("mime_type: 'application/json'") || website.includes('mime_type: "application/json"'), 'internal POA JSON snapshot is retained for audit (website document)')
 
   // -------------------------------------------------------------------------
   // 8) Customer card: tenant single page, technical gated/collapsed (Task G)
@@ -376,7 +379,10 @@ async function main() {
   const page = read('app/admin/customers/[id]/page.tsx')
   ok(page.includes('Teknisk diagnostik') && page.includes('<details'), 'customer card has a collapsed Teknisk diagnostik section')
   ok(page.includes('isPlatformAdmin ? (') && page.includes('id="tekniskt"'), 'technical diagnostics are platform-admin gated with #tekniskt anchor')
-  ok(page.includes('const needsCommunicationLogs = isPlatformAdmin') && page.includes('const needsEdielData = isPlatformAdmin'), 'tenant view does not fetch Ediel/communication heavy data')
+  // Ediel-heavy data stays platform-admin gated; communication logs are lazily
+  // loaded per tab (tenants only fetch them on the dedicated communication tab).
+  ok(page.includes('const needsEdielData = isPlatformAdmin'), 'tenant view does not fetch Ediel heavy data')
+  ok(page.includes('const needsCommunicationLogs =') && /needsCommunicationLogs\s*=\s*\[[^\]]*\]\.includes\(activeTab\)/.test(page), 'communication logs are tab-gated (not fetched on tenant operational tabs)')
   ok(page.includes('id="avtal"') && page.includes('id="anlaggning"') && page.includes('id="leverantorsbyte"') && page.includes('id="fakturering"') && page.includes('id="anteckningar"'), 'single page preserves Swedish deep-link anchors')
   // The communication section (provider_message_id) is rendered only inside the
   // platform-gated technical block, never in the tenant operational sections.
@@ -411,7 +417,7 @@ async function main() {
 
   // Task G: website POA records snapshot_created (not pdf_generated) for the JSON
   // snapshot, and the migration allows the new event type.
-  ok(website.includes("event_type: 'snapshot_created'"), 'website JSON snapshot records snapshot_created event')
+  ok(website.includes("event_type: 'snapshot_created'") || website.includes('event_type: "snapshot_created"'), 'website JSON snapshot records snapshot_created event')
   ok(website.includes('internal_snapshot_document_id'), 'website distinguishes the internal snapshot document id')
   const poaMigration = read('supabase/migrations/20260628120000_gridex_poa_event_and_outbox_status_backfill.sql')
   ok(poaMigration.includes("'snapshot_created'"), 'migration allows snapshot_created in power_of_attorney_events')
@@ -426,7 +432,10 @@ async function main() {
   // Task H: a sent manual_email_outbox can never leave the request not_started.
   const outbox = read('lib/email/manualEmailOutbox.ts')
   ok(outbox.includes("dispatch_status: 'waiting_response'"), 'outbox advances request dispatch_status on send')
-  ok(outbox.includes(".eq('dispatch_status', 'not_started')"), 'outbox safety net repairs not_started after send')
+  // The old conditional not_started repair was replaced by an unconditional,
+  // status-guarded dispatch_status update in advanceLinkedRequest: any sent
+  // outbox row moves its request to waiting_response (never left not_started).
+  ok(outbox.includes('advanceLinkedRequest') && /dispatch_status: 'waiting_response'[\s\S]*?\.in\('status', \[/.test(outbox), 'sent outbox rows always advance the request dispatch_status (no not_started leftovers)')
   ok(poaMigration.includes("coalesce(r.dispatch_status, 'not_started') = 'not_started'"), 'migration backfills sent outbox rows stuck at not_started')
 
   // Task I: provider event stores company_id from the matched outbox even when

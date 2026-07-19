@@ -81,17 +81,23 @@ export async function resolveCanonicalOutboundContext(params: {
   gridOwner?: { id?: string | null; name?: string | null; ediel_id?: string | null } | null
   preferredRouteId?: string | null
   companyId: string
-  environment?: EdielEnvironment
+  /**
+   * Required: outbound routing must never fall back to a silent test
+   * environment. Every caller resolves the runtime environment explicitly
+   * (resolveOutboundRuntimeEnvironment or an admin/test action choice).
+   */
+  environment: EdielEnvironment
   messageStandard?: EdielMessageStandard
 }) {
+  if (!params.environment) {
+    throw new Error('ediel_outbound_environment_required')
+  }
   return resolveCanonicalRouteContext({
     requestType: params.requestType,
     gridOwner: (params.gridOwner ?? null) as never,
     preferredRouteId: params.preferredRouteId ?? null,
     companyId: params.companyId,
-    // DEPRECATED DEFAULT: see resolveCanonicalRouteContext — all runtime
-    // callers pass an explicit environment; new callers must do the same.
-    environment: params.environment ?? 'test',
+    environment: params.environment,
     messageStandard: params.messageStandard ?? 'edifact',
   })
 }

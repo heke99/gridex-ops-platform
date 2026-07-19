@@ -15,7 +15,13 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 const exists = (file) => fs.existsSync(path.join(root, file))
 const ok = (condition, message) => {
   if (!condition) {
@@ -49,8 +55,15 @@ ok(
 
 // 2) Legal version loading failures fail clearly (legal_bundle_missing).
 ok(apps.includes("code: 'legal_bundle_missing'"), 'legal version/acceptance schema mismatch fails with legal_bundle_missing')
+// The old `if (versions === null)` fallback was replaced by the strictly
+// offer-bound loader: every failure mode throws a structured error instead of
+// returning null (offer_legal_versions_missing / _invalid,
+// offer_legal_bundle_unavailable / _not_published).
 ok(
-  apps.includes('if (versions === null) {') && apps.includes("code: 'legal_bundle_missing'"),
+  apps.includes("code: 'offer_legal_versions_missing'") &&
+    apps.includes("code: 'offer_legal_versions_invalid'") &&
+    apps.includes("code: 'offer_legal_bundle_unavailable'") &&
+    apps.includes("code: 'offer_legal_bundle_not_published'"),
   'assertWebsiteLegalAcceptances fails closed when published versions cannot be read',
 )
 

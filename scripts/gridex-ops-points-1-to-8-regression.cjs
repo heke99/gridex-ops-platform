@@ -68,7 +68,8 @@ assertContains('app/admin/customers/[id]/profile-actions.ts', 'confirmText !== "
 assertContains('app/admin/customers/[id]/profile-actions.ts', 'confirmText !== "RADERA"', 'Testkundsradering ska kräva bekräftelsetext')
 assertContains('lib/customers/statusLabels.ts', 'Anläggningsuppgifter saknas', 'Råstatus needs_facility_data ska vara kundvänlig')
 assertContains('lib/customers/statusLabels.ts', 'Uppgifter begärda från nätägare', 'Råstatus facility_data_requested ska vara kundvänlig')
-assertContains('app/admin/customers/intake/page.tsx', 'Nästa åtgärd', 'Kundintag ska visa nästa åtgärd')
+// Intake next-step UI moved from the page into CustomerIntakeForm ("Nästa steg").
+assertContains('components/admin/customers/CustomerIntakeForm.tsx', 'Nästa steg', 'Kundintag ska visa nästa åtgärd')
 assertAny('app/admin/customers/intake/page.tsx', ['Föreslagen nätägare', 'Verifierad nätägare', 'Nätägare'], 'Kundintag ska visa nätägare på begripligt sätt')
 
 // DB-stöd för usage/statistik och import-review ska finnas migrationsmässigt.

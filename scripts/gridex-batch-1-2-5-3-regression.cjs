@@ -3,7 +3,13 @@ const assert = require('assert')
 const fs = require('fs')
 const path = require('path')
 const root = path.resolve(__dirname, '..')
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 
 const unit = read('lib/pricing/unitConversion.ts')
 const options = read('lib/pricing/unitOptions.ts')
@@ -41,7 +47,8 @@ assert(migration.includes('invoice_purchase_events'), 'Batch 5 purchase event ta
 assert(read('app/api/internal/invoice-exports/create/route.ts').includes('createInvoiceExportRun'), 'Batch 5 create API missing')
 assert(read('app/api/internal/invoices/[id]/purchase/route.ts').includes('requestCapwayInvoicePurchase'), 'Batch 5 purchase API missing')
 
-assert(customerIntake.includes('Verifierade aktörer används i kundflödet'), 'Batch 3 customer intake verified actor guidance missing')
+// The guidance copy moved into CustomerIntakeForm (verified grid owner picker).
+assert(read('components/admin/customers/CustomerIntakeForm.tsx').includes('Välj verifierad nätägare'), 'Batch 3 customer intake verified actor guidance missing')
 assert(migration.includes('verified_for_customer_flow'), 'Batch 3 actor registry verification fields missing')
 assert(read('app/admin/network-owners/page.tsx').includes('Endast platform/teknisk admin'), 'Batch 3 network owner UI guard copy missing')
 

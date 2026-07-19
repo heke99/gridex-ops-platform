@@ -3,8 +3,12 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const root = process.cwd()
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
 function read(file) {
-  return fs.readFileSync(path.join(root, file), 'utf8')
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
 }
 function assert(condition, message) {
   if (!condition) {
@@ -14,8 +18,8 @@ function assert(condition, message) {
 }
 
 const prodatParser = read('lib/ediel/prodat/parser.ts')
-const prodatExpected = read('lib/ediel/prodat/expectedContext.ts')
-const prodatValidators = read('lib/ediel/prodat/validators.ts')
+const prodatExpected = read('lib/ediel/testing/prodatExpectedContext.ts')
+const prodatValidators = read('lib/ediel/testing/prodatValidators.ts')
 const tenantResolver = read('lib/ediel/core/tenantResolver.ts')
 const utiltsEngine = read('lib/ediel/utiltsEngine.ts')
 const utiltsFlow = read('lib/ediel/flows/utiltsDataRequest.ts')

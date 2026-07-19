@@ -43,7 +43,7 @@ mustInclude(inspector, 'is_test_data', 'inspector flags test customers')
 
 // UI: test rows hidden from tenant registry; superadmin gets an explicit warning.
 mustInclude(customersLib, 'excludeTestData', 'tenant registry exclusion exists')
-mustInclude(card, 'isPlatformAdmin && isTestData', 'customer card warns superadmin about test rows')
+mustInclude(card, 'isPlatformAdmin && showTechnicalDiagnostics && isTestData', 'customer card warns superadmin about test rows')
 
 if (failures.length > 0) {
   for (const failure of failures) console.error(`FAIL: ${failure}`)

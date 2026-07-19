@@ -90,11 +90,19 @@ function makeThenableBuilder(result, recorder) {
   return builder
 }
 
-const edielRecorder = { updates: [], selects: 0 }
+// Outbox claiming is atomic and DB-owned: claim_ediel_outbox_items both moves
+// stale `sending` rows to delivery_uncertain and claims candidates in one
+// statement (supabase/migrations/20260618200000_ops_production_hardening_resolver_queues.sql).
+// The application must fail closed when the RPC is missing — there is no
+// app-level fallback claim path that could race and double-send.
+const edielRecorder = { updates: [], selects: 0, rpcCalls: [] }
 const { claimEdielOutboxItems } = loadTypeScriptModule('lib/ediel/outbox/claimOutboxItems.ts', {
   '@/lib/supabase/service': {
     supabaseService: {
-      rpc: async () => ({ data: null, error: { message: 'Could not find the function claim_ediel_outbox_items' } }),
+      rpc: async (name, args) => {
+        edielRecorder.rpcCalls.push({ name, args })
+        return { data: null, error: { message: 'Could not find the function claim_ediel_outbox_items' } }
+      },
       from: () => ({
         update: (payload) => makeThenableBuilder({ data: null, error: null }, edielRecorder).update(payload),
         select: () => {
@@ -107,15 +115,31 @@ const { claimEdielOutboxItems } = loadTypeScriptModule('lib/ediel/outbox/claimOu
 })
 
 claimEdielOutboxItems({ workerId: 'regression-worker', limit: 1 })
-  .then((claimed) => {
-    assert(Array.isArray(claimed) && claimed.length === 0, 'Fallback claim should return empty result from mocked queue')
-    assert(
-      edielRecorder.updates.some((payload) => payload.status === 'delivery_uncertain'),
-      'Fallback claimant must move stale sending outbox rows to delivery_uncertain before claiming',
-    )
-    console.log('OPS behavior regression passed (Ediel stale sending fallback).')
+  .then(() => {
+    console.error('claimEdielOutboxItems must fail closed when the claim RPC is missing (no silent fallback claim).')
+    process.exit(1)
   })
   .catch((error) => {
-    console.error(error)
-    process.exit(1)
+    try {
+      assert(
+        /claim_ediel_outbox_items/.test(String(error && error.message)),
+        'Missing claim RPC must surface the original database error, not a rewritten one',
+      )
+      assert(
+        edielRecorder.rpcCalls.length === 1 && edielRecorder.rpcCalls[0].name === 'claim_ediel_outbox_items',
+        'Claiming must go through the atomic claim_ediel_outbox_items RPC',
+      )
+      assert(
+        edielRecorder.rpcCalls[0].args && edielRecorder.rpcCalls[0].args.p_worker_id === 'regression-worker',
+        'Claim RPC must carry the worker id for lock attribution',
+      )
+      assert(
+        edielRecorder.updates.length === 0,
+        'No direct table updates may happen when the atomic claim RPC is unavailable (fail closed)',
+      )
+      console.log('OPS behavior regression passed (Ediel outbox claim is RPC-only and fail-closed).')
+    } catch (assertionError) {
+      console.error(assertionError)
+      process.exit(1)
+    }
   })

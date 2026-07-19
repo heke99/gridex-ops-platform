@@ -6,7 +6,13 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// assertions below are structural, so normalize quotes for .ts/.tsx haystacks
+// to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 let failures = 0
 function expect(condition, message) {
   if (!condition) {
@@ -58,11 +64,11 @@ expect(orchestration.includes('unrelatedLifecycleBlock'), 'unrelated lifecycle/l
 expect(orchestration.includes('shouldBlockForBusinessReview && !unrelatedLifecycleBlock'), 'business review never overwrites an unrelated lifecycle block source')
 expect(orchestration.includes('currentSupplierResponseReviewBlockers') && orchestration.includes('current_supplier_binding_period') && orchestration.includes('current_supplier_termination_fee'), 'supplier contract risks remain dispatch blockers during reconcile')
 expect(orchestration.includes('reconcileSupplierSwitchAfterCustomerDataChange'), 'shared data-change reconcile helper exists')
-expect(adminActions.includes('source: "customer_site_saved"'), 'site save triggers switch reconcile')
-expect(adminActions.includes('source: "metering_point_saved"'), 'metering point save triggers switch reconcile')
-expect(adminActions.includes('source: "current_supplier_response_registered"'), 'supplier response triggers switch reconcile')
-expect(adminActions.includes('source: "power_of_attorney_signed"'), 'signed POA triggers switch reconcile')
-expect(adminActions.includes('source: "power_of_attorney_document_signed"'), 'signed uploaded POA document triggers switch reconcile')
+expect(adminActions.includes("source: 'customer_site_saved'"), 'site save triggers switch reconcile')
+expect(adminActions.includes("source: 'metering_point_saved'"), 'metering point save triggers switch reconcile')
+expect(adminActions.includes("source: 'current_supplier_response_registered'"), 'supplier response triggers switch reconcile')
+expect(adminActions.includes("source: 'power_of_attorney_signed'"), 'signed POA triggers switch reconcile')
+expect(adminActions.includes("source: 'power_of_attorney_document_signed'"), 'signed uploaded POA document triggers switch reconcile')
 
 expect(migration.includes("'processing'"), 'database status constraint allows processing reservation')
 expect(migration.includes('current_supplier_ediel_id'), 'database stores current supplier Ediel id')

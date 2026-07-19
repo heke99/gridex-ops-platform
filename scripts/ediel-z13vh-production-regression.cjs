@@ -2,17 +2,23 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 
-const tgtEdifact = read('lib/ediel/tgtEdifact.ts')
-const genericBuilder = read('lib/ediel/prodat/builders/generic.ts')
+const tgtEdifact = read('lib/ediel/testing/tgtEdifact.ts')
+const genericBuilder = read('lib/ediel/prodat/builders/profileRenderer.ts')
 const payloadPreflight = read('lib/ediel/core/messageBuilder/payloadPreflight.ts')
 const docs = read('docs/ai-context/05_PRODAT_RULES.md')
 
 const failures = []
 
 if (!tgtEdifact.includes('reasonForTransaction: isAgtZ13Vh')) failures.push('E4/Z13VH Systemtest fallback must override imported reasonForTransaction')
-if (!tgtEdifact.includes('? "S18"')) failures.push('E4/Z13VH Systemtest fallback must set reasonForTransaction S18')
+if (!tgtEdifact.includes("? 'S18'")) failures.push('E4/Z13VH Systemtest fallback must set reasonForTransaction S18')
 if (!tgtEdifact.includes('const reasonForTransaction = isHistoricalPermissionTransaction(transactionType)')) failures.push('Permission line builder must force S18 for historical transaction type')
 if (!tgtEdifact.includes('? historicalReportStartDateTime()')) failures.push('Z13VH Systemtest must use deterministic historical report start')
 if (!tgtEdifact.includes('? historicalReportEndDateTime()')) failures.push('Z13VH Systemtest must use deterministic historical report end')

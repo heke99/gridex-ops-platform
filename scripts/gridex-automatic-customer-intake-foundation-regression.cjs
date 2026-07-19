@@ -22,12 +22,18 @@ const routeReadiness = read('lib/customer-operations/customerProcessRouteReadine
 assert(/evaluateGridOwnerBusinessApproval/.test(routeReadiness), 'customer route readiness uses business approval guard')
 assert(/businessApproval\.processRelevant/.test(routeReadiness), 'route profile checks only run for relevant actor/process scope')
 
+// Facility lookup automation delegates to the manual information orchestrator
+// (requestMissingFacilityInformation), which owns idempotency (deterministic
+// manual-facility-request key), POA gating and blocker states. Route readiness
+// only applies to the explicitly configured Ediel channel in the dispatcher.
 const facilityAutomation = read('lib/customer-operations/facilityLookupAutomation.ts')
 assert(/ensureFacilityLookupAutomation/.test(facilityAutomation), 'facility lookup automation service exists')
-assert(/existing|ensureGridOwnerInformationRequest/.test(facilityAutomation), 'facility lookup uses idempotent grid-owner request creation')
-assert(/facility_lookup_ready_to_send/.test(facilityAutomation), 'facility lookup can mark customer/site as ready to send')
-assert(/missing_power_of_attorney/.test(facilityAutomation), 'facility lookup blocks without signed power of attorney')
-assert(/evaluateCustomerProcessRouteReadiness/.test(facilityAutomation), 'facility lookup checks production route readiness')
+assert(/requestMissingFacilityInformation/.test(facilityAutomation), 'facility lookup delegates to the manual information orchestrator')
+const manualOrchestrator = read('lib/customer-operations/requestMissingFacilityInformation.ts')
+assert(/manual-facility-request:/.test(manualOrchestrator), 'facility lookup uses idempotent grid-owner request creation (deterministic key)')
+assert(/blocked_missing_poa/.test(manualOrchestrator), 'facility lookup blocks without signed power of attorney')
+const edifactDispatch = read('lib/customer-operations/facilityLookupEdifactDispatch.ts')
+assert(/evaluateCustomerProcessRouteReadiness/.test(edifactDispatch), 'explicit Ediel facility lookup checks production route readiness')
 
 const gridOwnerRequests = read('lib/energy/gridOwnerRequests.ts')
 assert(/company_operational_routes/.test(gridOwnerRequests), 'grid owner information request can use materialized company routes')
