@@ -5,6 +5,11 @@ import {
   companyAllowsEstimatedMeteringValues,
   evaluateMeteringCompletenessForMonth,
 } from '@/lib/metering/validation'
+import {
+  evaluateContractBillingAccountReadiness,
+  type BillingReadinessContract,
+  type BillingReadinessCustomer,
+} from '@/lib/billing/billingReadiness'
 
 export type InvoiceReadinessStatus = 'ready' | 'blocked'
 export type BillingPeriodLockStatus = 'open' | 'locked' | 'exported' | 'closed' | 'reopened'
@@ -270,6 +275,69 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   const incompleteCoverage = underlays.filter((row) => Number(row.missing_values_count ?? 0) > 0)
   if (incompleteCoverage.length > 0) {
     issues.push({ code: 'incomplete_metering_coverage', message: `${incompleteCoverage.length} underlag har mätvärdesluckor.`, severity: 'blocked' })
+  }
+
+  // Account-level gate (canonical billing readiness): an invoice export must
+  // never be produced for a contract without invoice recipient, distribution
+  // channel (address/e-mail/same-as-site) or VAT settings. These were
+  // previously only snapshotted at export time without any validation.
+  const contractIds = [...new Set(underlays.map((row) => (typeof row.contract_id === 'string' ? row.contract_id : '')).filter(Boolean))]
+  if (contractIds.length > 0) {
+    const contractResult = await supabaseService
+      .from('customer_contracts')
+      .select('id,customer_id,status,invoice_recipient,invoice_email,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,price_snapshot')
+      .eq('company_id', input.companyId)
+      .in('id', contractIds)
+    if (contractResult.error && !isMissingRelationError(contractResult.error)) throw contractResult.error
+    const contracts = (contractResult.data ?? []) as Array<BillingReadinessContract & { id: string; customer_id?: string | null }>
+
+    const customerIds = [...new Set(contracts.map((row) => (typeof row.customer_id === 'string' ? row.customer_id : '')).filter(Boolean))]
+    const customersById = new Map<string, BillingReadinessCustomer>()
+    if (customerIds.length > 0) {
+      const customerResult = await supabaseService
+        .from('customers')
+        .select('id,full_name,company_name,email,invoice_email,billing_street,billing_postal_code,billing_city')
+        .eq('company_id', input.companyId)
+        .in('id', customerIds)
+      if (customerResult.error && !isMissingRelationError(customerResult.error)) throw customerResult.error
+      for (const row of (customerResult.data ?? []) as BillingReadinessCustomer[]) {
+        customersById.set(String(row.id), row)
+      }
+    }
+
+    const foundContractIds = new Set(contracts.map((row) => String(row.id)))
+    const missingContracts = contractIds.filter((id) => !foundContractIds.has(id))
+    if (missingContracts.length > 0) {
+      issues.push({
+        code: 'contract_not_found_for_tenant',
+        message: `${missingContracts.length} underlag pekar på avtal som inte finns i tenanten.`,
+        severity: 'blocked',
+      })
+    }
+
+    for (const contract of contracts) {
+      const customer = contract.customer_id ? customersById.get(String(contract.customer_id)) ?? null : null
+      const account = evaluateContractBillingAccountReadiness({
+        contract,
+        customer,
+        // Capway applies a documented default due date when none is configured.
+        paymentTerms: { dueDays: null, defaulted: true },
+      })
+      for (const blocker of account.blockers) {
+        issues.push({
+          code: blocker.code,
+          message: `${blocker.message} (avtal ${contract.id})`,
+          severity: 'blocked',
+        })
+      }
+      for (const warning of account.warnings) {
+        issues.push({
+          code: warning.code,
+          message: `${warning.message} (avtal ${contract.id})`,
+          severity: 'warning',
+        })
+      }
+    }
   }
 
   // Metering completeness gate: final invoicing requires complete,
