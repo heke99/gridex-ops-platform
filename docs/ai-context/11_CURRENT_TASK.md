@@ -1,4 +1,33 @@
-# Current task — OPS-E + OPS-F
+# Current task — Canonical customer flow hardening (2026-07-19)
+
+Latest batch (see 10_CHANGELOG.md 2026-07-19) hardened the canonical customer
+flow end to end:
+
+1. Customer numbers are assigned by ONE canonical generator on every intake
+   channel (DB insert trigger + permanence guard + backfill,
+   migration `20260719120000`). Admin intake, /teckna-avtal and Ediel inbound
+   no longer create numberless customers.
+2. `gridex_store_billing_underlay` upsert repaired after the energy-direction
+   index change (migration `20260719121000`) — underlay generation works again.
+3. Central billing readiness (`lib/billing/billingReadiness.ts`,
+   `evaluateBillingReadinessCore`) with account-level gating wired into the
+   month invoice readiness (recipient/distribution/VAT are now hard blockers).
+4. Supplier switch verifies the canonical authorization-scope chain
+   (`verifyAuthorizationScopeCoverage`, blocker `authorization_scope_missing`)
+   with idempotent healing from a signed POA.
+5. Canonical POA lifecycle status derivation on the customer card snapshot.
+6. Regression suite repaired from 50 failing scripts to 2. The remaining two
+   (`ediel-certification`, `ediel-completion`) flag a REAL pending
+   consolidation: the ACK decision engine must move its AGT UE1/UE2 hardcode
+   onto the certification registry and stop importing lib/ediel/testing.
+   That refactor touches approved Ediel test flows — run it as its own task
+   under the override protocol.
+
+Run after applying migrations: `npm run db:migrations:check`, `typecheck`,
+`typecheck:tests`, `typecheck:scripts`, `lint`, `test`, `build` and the
+regression suite.
+
+# Previous task — OPS-E + OPS-F
 
 Current batch focuses on the daily operator layer for multi-tenant electricity retailers:
 

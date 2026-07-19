@@ -2,6 +2,76 @@
 
 Use this file after every Cursor task.
 
+## 2026-07-19 — Canonical customer flow hardening: customer numbers, billing readiness, POA scopes, regression repair
+
+### Database (new forward migrations)
+
+- `20260719120000_canonical_customer_number_assignment.sql`: BEFORE INSERT
+  trigger assigns customer numbers from the canonical per-company generator
+  (`gridex_next_customer_number`) for every intake channel, a BEFORE UPDATE
+  guard makes assigned numbers permanent (`customer_number_is_permanent`,
+  errcode 23514), backfill of existing numberless customers per company in
+  created_at order, defensive recreation of the tenant-scoped unique index.
+- `20260719121000_billing_underlay_energy_direction_upsert_repair.sql`:
+  repairs `gridex_store_billing_underlay` — its 7-column ON CONFLICT arbiter
+  stopped matching after `20260716090000` recreated the segment unique index
+  with `energy_direction`, so every underlay store failed. The function now
+  inserts `energy_direction`/`settlement_type` explicitly and uses the
+  8-column arbiter (idempotent per segment + direction).
+- `20260719122000_pin_search_path_ediel_consolidation_triggers.sql`: pins
+  `search_path` on the two trigger functions created without a pin by the
+  immutable `20260712110000` migration.
+
+### Application
+
+- Canonical customer numbers on ALL intake channels: admin intake
+  (`createCustomerGraph`), external `/teckna-avtal` intake and Ediel inbound
+  approval now assign the permanent Gridex customer number through
+  `ensureCustomerNumberIfSupported` (schema-tolerant); `ensureCustomerNumber`
+  re-reads the persisted number when a concurrent writer or the DB trigger
+  wins the race (never reports an unused reservation).
+- New `lib/billing/billingReadiness.ts`: pure, unit-tested
+  `evaluateBillingReadinessCore` covering the fourteen billing-readiness
+  criteria with structured codes, returning
+  `{ billable, blockers, warnings, evidence }`.
+  `evaluateBillingMonthInvoiceReadiness` now runs the shared account-level
+  gate per contract — invoice export is blocked without invoice recipient,
+  distribution channel (address/e-mail/same-as-site) or VAT settings.
+- Supplier switch enforces the canonical authorization-scope chain: new
+  `verifyAuthorizationScopeCoverage` (heals a missing chain idempotently from
+  a signed POA, fail-closed on missing schema) is called from
+  `checkSupplierSwitchReadiness` with structured blocker
+  `authorization_scope_missing`.
+- New canonical POA lifecycle derivation
+  `derivePowerOfAttorneyLifecycleStatus` (missing / awaiting_signature /
+  signed / valid / revoked / expired / replaced; fail-closed for accepted
+  statuses without evidence), exposed as `poaLifecycleStatus` on the
+  customer-card snapshot.
+- `resolveCanonicalOutboundContext` requires an explicit environment — the
+  deprecated silent `'test'` fallback was removed
+  (`ediel_outbound_environment_required`).
+
+### Verification
+
+- New unit tests: `billing-readiness.test.ts`, `poa-lifecycle-status.test.ts`,
+  `authorization-scope-coverage.test.ts`, `customer-numbers.test.ts`; switch
+  readiness tests extended with scope-coverage blockers (229 tests green).
+- Regression scripts repaired from 50 failing to 2: quote/format drift
+  normalized (quote-agnostic read helpers), superseded policies rewritten to
+  guard the current documented designs (claim-based energy-context merge,
+  normalized-only underlay engine, DB-driven switch send-window policy,
+  offer-bound legal versions, tab-driven lazy customer card, moved tgt*/agt
+  test modules, renamed API scopes, Swedish-rewritten API docs).
+- Remaining known-red checks: `ediel-certification-regression` and
+  `ediel-completion-regression` both flag the same pending consolidation —
+  the ACK decision engine still hardcodes AGT UE1/UE2 logic and imports
+  `lib/ediel/testing/utiltsAckOverrides` instead of using the certification
+  registry (`findCertificationCase`). This is an Ediel-domain refactor with
+  approved-flow impact and needs its own task/override protocol.
+- OPS hardening CI workflow is green again: the behavior regression asserted
+  a removed app-level outbox claim fallback; it now asserts the RPC-only,
+  fail-closed claim design.
+
 ## 2026-07-16 — Canonical contract publication, dynamic legal evidence and tenant snapshots
 
 ### Database and canonical commands
