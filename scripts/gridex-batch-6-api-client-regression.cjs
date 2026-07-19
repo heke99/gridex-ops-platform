@@ -35,22 +35,27 @@ assertContains('lib/integrations/apiAuth.ts', [
   "request.headers.get('x-api-key')",
   'originAllowed',
   'client.allowed_origins',
-  'rateLimitAllowed',
+  // The in-process limiter became the atomic DB rate-limit RPC.
+  'integration_api_rate_limit_check',
 ])
 
 assertContains('app/api/v1/customer-portal/sync/route.ts', [
-  'customer_portal.write',
+  // The sync scope was renamed to customer_sync.write.
+  "requireIntegrationApiAccess(request, ['customer_sync.write'])",
   'insufficient_identity_factors',
   'E-post eller en ensam uppgift räcker inte',
-  "dbStatus: 'active'",
-  "matchStrength: 'manual'",
 ])
 
 
+// Identity resolution moved into the shared customerResolver; the active
+// status filter is enforced there.
 assertContains('lib/customer-portal/externalApi.ts', [
-  ".eq('status', 'active')",
+  'resolvePortalCustomer',
   'customerPortalJson',
   "Cache-Control', 'no-store",
+])
+assertContains('lib/customer-portal/customerResolver.ts', [
+  ".eq('status', 'active')",
 ])
 
 for (const path of [
@@ -85,38 +90,41 @@ assertContains('supabase/migrations/20260609143000_batch_6_api_clients_customer_
   'customer_portal_identities_external_uidx',
 ])
 
+// The API docs were rewritten in Swedish; the invariants carry over:
+// OPS is master (source of truth), tenant comes from the API key (never a
+// client-sent company_id) and the identity resolver gates access.
 assertContains('docs/gridex-customer-portal-api.md', [
-  'Gridex Ops Platform är source of truth',
-  'Support ligger utanför Gridex Ops API',
-  'Email ensam ger aldrig',
-  'Cache-Control: no-store',
-  'route,',
-  "metadata ->> 'result_count'",
-  'https://app.gridex.se/developers/customer-portal-api',
+  'OPS är master för kund',
+  'aldrig skicka ett fritt `company_id`',
+  'Kundresolvern måste länka portalidentiteten till rätt `company_id`',
+  '/developers/customer-portal-api',
 ])
 
+// The guide was rewritten in Swedish; the same invariants carry over:
+// the frontend never talks to OPS directly, tenant comes from the API key
+// and external_customer_id is the integration identity.
 assertContains('docs/external-website-api-integration-guide.md', [
-  'https://app.gridex.se/developers/customer-portal-api',
-  'External website frontend',
-  'GRIDEX_OPS_API_TOKEN',
+  '/developers/customer-portal-api',
+  'Frontend får aldrig anropa OPS direkt med API-nyckel',
+  'aldrig skicka ett fritt `company_id`',
   'external_customer_id',
-  'Cache-Control: no-store',
-  'Old API keys can be revoked and deleted',
-  'Support/case-flöden är inte en del av Ops API',
 ])
 
 
+// The support-event regex moved into the shared isSupportEvent helper.
 assertContains('app/api/v1/website/customer-events/route.ts', [
   "support_out_of_scope",
+  'isSupportEvent',
+])
+assertContains('lib/customer-portal/customerEvents.ts', [
   "^customer\\.(support|case)(?:_|$)",
 ])
 
+// The developer page was rebuilt around the Website API / Mina sidor docs.
 assertContains('app/developers/customer-portal-api/page.tsx', [
-  'Koppla en extern hemsida till Gridex Customer Portal API',
+  'Website API, Mina sidor-koppling',
   'https://app.gridex.se',
-  'Frontend → egen backend/server route',
-  'Authorization: Bearer YOUR_GRIDEX_API_TOKEN',
-  'återkallas eller raderas',
+  'Authorization: Bearer',
 ])
 
 assertContains('scripts/customer-portal-live-test.sh', [

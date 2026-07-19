@@ -18,8 +18,8 @@ function assert(condition, message) {
 }
 
 const prodatParser = read('lib/ediel/prodat/parser.ts')
-const prodatExpected = read('lib/ediel/prodat/expectedContext.ts')
-const prodatValidators = read('lib/ediel/prodat/validators.ts')
+const prodatExpected = read('lib/ediel/testing/prodatExpectedContext.ts')
+const prodatValidators = read('lib/ediel/testing/prodatValidators.ts')
 const tenantResolver = read('lib/ediel/core/tenantResolver.ts')
 const utiltsEngine = read('lib/ediel/utiltsEngine.ts')
 const utiltsFlow = read('lib/ediel/flows/utiltsDataRequest.ts')

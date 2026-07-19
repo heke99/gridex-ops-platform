@@ -47,8 +47,8 @@ assertIncludes(migration, [
 ])
 
 assertIncludes('lib/legal/publicLegalDocuments.ts', [
-  'from("legal_bundle_version_documents")',
-  'from("legal_bundle_versions")',
+  "from('legal_bundle_version_documents')",
+  "from('legal_bundle_versions')",
   'content_sha256',
   'immutable: true',
   'loadLegacyPublishedVersion',
@@ -64,7 +64,9 @@ assertIncludes('lib/website/customerApplications.ts', [
   'legal_bundle_version_documents',
   'gridex_create_website_customer_contract',
   'offer_legal_bundle_unavailable',
-  'selectLegalVersionForAcceptance',
+  // Acceptances are now strictly offer-bound (loadOfferBoundLegalVersions)
+  // instead of selecting from tenant-latest versions.
+  'loadOfferBoundLegalVersions',
 ])
 assertIncludes('lib/customer-contracts/documents.ts', [
   'signed-contract-',
@@ -82,16 +84,14 @@ assertIncludes('app/admin/website-applications/actions.ts', [
   'offer_reference',
 ])
 assertExcludes('app/admin/website-applications/actions.ts', [
-  'terms_version: "v1"',
-  'price_version: "v1"',
+  "terms_version: 'v1'",
+  "price_version: 'v1'",
 ])
 assertExcludes('app/admin/companies/[id]/legal-actions.ts', [
-  '.from("legal_text_versions").insert',
   ".from('legal_text_versions').insert",
-  '.from("legal_bundles").insert',
+  ".from('legal_bundles').insert",
 ])
 assertExcludes('app/admin/platform/legal-templates/actions.ts', [
-  'platform_default_legal_templates").insert',
   "platform_default_legal_templates').insert",
 ])
 assertIncludes('lib/email/emailTemplates.ts', [

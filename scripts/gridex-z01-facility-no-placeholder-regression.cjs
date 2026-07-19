@@ -15,7 +15,8 @@ function read(file) {
 function assert(ok, msg) { if (!ok) { console.error(`\u2717 ${msg}`); process.exitCode = 1 } else console.log(`\u2713 ${msg}`) }
 
 const guard = read('lib/ediel/intent/noPlaceholderGuard.ts')
-const generic = read('lib/ediel/prodat/builders/generic.ts')
+// The generic builder was renamed to the profile-driven renderer.
+const generic = read('lib/ediel/prodat/builders/profileRenderer.ts')
 const segments = read('lib/ediel/prodat/render/segments.ts')
 const prodat = read('lib/ediel/prodat.ts')
 const dispatch = read('lib/customer-operations/facilityLookupEdifactDispatch.ts')

@@ -14,7 +14,8 @@ function assert(ok, msg) { if (!ok) { console.error(`✗ ${msg}`); process.exitC
 const z01 = read('lib/ediel/flows/prodatCustomerMasterdata.ts')
 const builder = read('lib/ediel/prodat/builders/z01.ts')
 const renderer = read('lib/ediel/prodat/engine.ts')
-const genericBuilder = read('lib/ediel/prodat/builders/generic.ts')
+// The generic builder was renamed to the profile-driven renderer.
+const genericBuilder = read('lib/ediel/prodat/builders/profileRenderer.ts')
 
 assert((z01.includes("messageCode: 'Z01'") || z01.includes('messageCode: "Z01"')) && (z01.includes("messageFamily: 'PRODAT'") || z01.includes('messageFamily: "PRODAT"')), 'Z01 outbound path is explicitly PRODAT/Z01')
 assert(genericBuilder.includes('BGM+') || renderer.includes('BGM'), 'PRODAT renderer contains BGM segment support')
