@@ -74,9 +74,11 @@ assert(
   /z01RepairEvents\.length > 0/.test(card) && /Senaste Z01-reparation/.test(card),
   'CustomerBusinessActionsCard.tsx: renders a visible Z01 repair/dry-run result panel',
 )
+// The panel must never claim a direct SMTP send (false-positive status):
+// repair runs through the server-side finalizer and the guarded send pipeline.
 assert(
-  /SMTP skickad/.test(card),
-  'CustomerBusinessActionsCard.tsx: result panel states SMTP status',
+  /Ingen SMTP skickas direkt/.test(card),
+  'CustomerBusinessActionsCard.tsx: result panel never claims a direct SMTP send',
 )
 assert(
   /z01PayloadAny/.test(card) && /z01EventDateLabel/.test(card),

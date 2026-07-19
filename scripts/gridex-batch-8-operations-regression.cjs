@@ -60,7 +60,9 @@ assert(customerPage.includes('Capway/debtor'), 'customer page must show Capway/d
 const docs = read('app/developers/customer-portal-api/page.tsx')
 assert(docs.includes('422'), 'developer docs must document 422 validation errors')
 assert(docs.includes('contract.confirmation_sent'), 'developer docs must document communication events')
-assert(docs.includes('Do not send duplicate'), 'developer docs must warn about duplicate legal emails')
+// The docs were rewritten in Swedish: the duplicate policy is now the
+// documented 409 duplicate_application semantics for committed applications.
+assert(docs.includes('duplicate_application'), 'developer docs must warn about duplicate legal emails')
 
 if (process.exitCode) process.exit(process.exitCode)
 console.log('OK: Batch 8 operations regression passed')

@@ -48,7 +48,7 @@ for (const file of codeFiles) {
 
 // ---- 2. Resolver joins via ediel_route_profiles.communication_route_id ----
 assert(
-  /from\("ediel_route_profiles"\)[\s\S]{0,200}\.eq\("communication_route_id", routeId\)/.test(routeEngine),
+  /from\('ediel_route_profiles'\)[\s\S]{0,200}\.eq\('communication_route_id', routeId\)/.test(routeEngine),
   'routeDecisionEngine.ts: findRouteProfile joins ediel_route_profiles.communication_route_id = route id',
 )
 const finalizerJoin = /from\(["']ediel_route_profiles["']\)[\s\S]{0,320}\.eq\(["']communication_route_id["'], communicationRouteId\)/.test(finalizer)
@@ -67,15 +67,15 @@ assert(
 
 // ---- 4. Disabled / not-ready map to precise blockers ----
 assert(
-  /code:\s*"route_profile_disabled"/.test(routeEngine),
+  /code:\s*'route_profile_disabled'/.test(routeEngine),
   'routeDecisionEngine.ts: emits route_profile_disabled when profile exists but is_enabled=false',
 )
 assert(
-  /code:\s*"production_route_profile_not_ready"/.test(routeEngine),
+  /code:\s*'production_route_profile_not_ready'/.test(routeEngine),
   'routeDecisionEngine.ts: emits production_route_profile_not_ready when profile not production-ready',
 )
 assert(
-  /is_production_ready === false/.test(routeEngine) && /production_mode\) === "disabled"/.test(routeEngine),
+  /is_production_ready === false/.test(routeEngine) && /production_mode\) === 'disabled'/.test(routeEngine),
   'routeDecisionEngine.ts: not-ready check inspects is_production_ready / production_mode',
 )
 // The precise codes must not collapse to operational_route_missing.
@@ -84,7 +84,7 @@ assert(
   'blockers.ts: precise route-profile blockers are first-class (not collapsed to operational_route_missing)',
 )
 assert(
-  /normalized\.includes\("production_route_profile_not_ready"\)/.test(blockers),
+  /normalized\.includes\('production_route_profile_not_ready'\)/.test(blockers),
   'blockers.ts: routeIssueCodeToCustomerBlocker preserves production_route_profile_not_ready',
 )
 
