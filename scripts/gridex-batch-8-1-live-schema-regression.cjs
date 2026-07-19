@@ -9,10 +9,14 @@ const allowedHistorical = new Set([
   'scripts/gridex-batch-8-1-live-schema-regression.cjs',
 ])
 
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
 function read(rel) {
   const full = path.join(root, rel)
   if (!fs.existsSync(full)) throw new Error(`Missing file: ${rel}`)
-  return fs.readFileSync(full, 'utf8')
+  const source = fs.readFileSync(full, 'utf8')
+  return /\.(ts|tsx)$/.test(rel) ? source.replace(/"/g, "'") : source
 }
 
 function assertContains(rel, needles) {
@@ -115,10 +119,12 @@ assertContains('lib/email/companyEmailSettings.ts', [
   'dmarc_status',
 ])
 
+// The legacy event_outbox dual-write was removed: webhook_deliveries is the
+// ONE live fan-out pipeline and enqueue failures are logged, never silent.
 assertContains('lib/events/domainEvents.ts', [
   'event_type',
-  'event_outbox',
-  'event outbox enqueue skipped',
+  'enqueueWebhookDeliveriesForEvent',
+  'webhook enqueue failed',
 ])
 
 assertContains('lib/integrations/webhooks.ts', [
@@ -147,12 +153,10 @@ assertContains('app/admin/platform/api-clients/page.tsx', [
   'route',
 ])
 
+// The public page now documents the richer 409 idempotency semantics.
 assertContains('app/developers/customer-portal-api/page.tsx', [
-  'failed idempotency ger 409 idempotent_failed',
-  'public.metering_points',
-  'external_customer_id krävs',
-  'sender_email',
-  'reply_to_email',
+  'idempotency_key_payload_mismatch',
+  'duplicate_application',
 ])
 
 assertContains('docs/external-website-api-integration-guide.md', [

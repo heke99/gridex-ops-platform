@@ -16,8 +16,11 @@ const forbidText = (file, token) => {
   if (read(file).includes(token)) failures.push(`${file}:forbidden:${token}`)
 }
 
-requireText('lib/ediel/core/kernel.ts', 'resolveCanonicalRulePack')
-requireText('lib/ediel/core/kernel.ts', 'canonicalRulePackId')
+// The kernel now consumes the canonical rule pack via the registry-backed
+// validator: no outbound draft may pass without a registry rulePackSnapshot.
+requireText('lib/ediel/core/kernel.ts', 'validateRulebookMessageWithRegistry')
+requireText('lib/ediel/core/kernel.ts', 'outbound_ediel_rule_pack_snapshot_missing')
+requireText('lib/ediel/core/kernel.ts', 'rulePackSnapshot')
 requireText('lib/ediel/rulebook/canonicalRulePackRegistry.ts', 'resolve_canonical_ediel_rule_pack')
 requireText('supabase/migrations/20260713100000_ediel_completion_and_platform_contract.sql', 'canonical_ediel_rule_pack_required')
 requireText('supabase/migrations/20260713100000_ediel_completion_and_platform_contract.sql', 'ediel_message_profiles')
@@ -25,7 +28,7 @@ requireText('lib/ediel/productionReadiness.ts', 'external_certification_and_pilo
 requireText('lib/ediel/certificationEvidence.ts', 'LIVE_TENANT_INTEGRITY')
 requireText('lib/ediel/certificationEvidence.ts', 'RESTORE_REPLAY')
 requireText('lib/ediel/outbox/sendOutboxItem.ts', ".eq('company_id', params.companyId)")
-requireText('lib/email/resendWebhookEvents.ts', ".eq('company_id', row.company_id)")
+requireText('lib/email/resendWebhookEvents.ts', ".eq('company_id', companyId)")
 forbidText('lib/ediel/core/kernel.ts', "environment: params.environment ?? 'test'")
 forbidText('lib/ediel/decisionEngine.ts', "from '@/lib/ediel/testing")
 forbidText('lib/ediel/aiList.ts', "applicationReference: 'GRIDEX'")

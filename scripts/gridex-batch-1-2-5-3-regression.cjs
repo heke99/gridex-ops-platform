@@ -47,7 +47,8 @@ assert(migration.includes('invoice_purchase_events'), 'Batch 5 purchase event ta
 assert(read('app/api/internal/invoice-exports/create/route.ts').includes('createInvoiceExportRun'), 'Batch 5 create API missing')
 assert(read('app/api/internal/invoices/[id]/purchase/route.ts').includes('requestCapwayInvoicePurchase'), 'Batch 5 purchase API missing')
 
-assert(customerIntake.includes('Verifierade aktörer används i kundflödet'), 'Batch 3 customer intake verified actor guidance missing')
+// The guidance copy moved into CustomerIntakeForm (verified grid owner picker).
+assert(read('components/admin/customers/CustomerIntakeForm.tsx').includes('Välj verifierad nätägare'), 'Batch 3 customer intake verified actor guidance missing')
 assert(migration.includes('verified_for_customer_flow'), 'Batch 3 actor registry verification fields missing')
 assert(read('app/admin/network-owners/page.tsx').includes('Endast platform/teknisk admin'), 'Batch 3 network owner UI guard copy missing')
 

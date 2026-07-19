@@ -38,7 +38,8 @@ assertContains('lib/opsMaster/readiness.ts', [
   'canSendMail',
   'Villkor saknas',
   'Aktiv fullmakt saknas',
-  'Ediel-route saknas',
+  // Tenant copy was simplified: the technical Ediel wording became 'Kontaktväg saknas'.
+  'Kontaktväg saknas',
 ])
 
 assertContains('app/admin/customers/[id]/page.tsx', [
@@ -59,7 +60,8 @@ assertContains('app/admin/companies/[id]/page.tsx', [
   'CompanyLegalMasterSection',
   'legal-master',
   'Skapa juridisk version',
-  'Hemsidan är inte juridiskt redo',
+  // Legal readiness copy was consolidated onto the canonical readiness banner.
+  'Canonical readiness: blockerad',
 ])
 
 assertContains('lib/website/publicContracts.ts', [

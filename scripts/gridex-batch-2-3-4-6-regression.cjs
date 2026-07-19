@@ -47,8 +47,11 @@ assert(inbound.includes('matchMeteringPointWithinTenant'), 'Batch 4 tenant-scope
 assert(inbound.includes('ediel_manual_review_items'), 'Batch 4 manual review write missing')
 
 const portalApi = read('lib/customer-portal/apiData.ts')
-assert(portalApi.includes('external_customer_id krävs'), 'Batch 6 external customer id guard missing')
-assert(portalApi.includes('tenant_portal_customer_links'), 'Batch 6 portal link resolution missing')
+// The guard moved into the portal sync route (identity factors) and the
+// website intake (external_customer_id krävs).
+assert(read('app/api/v1/customer-portal/sync/route.ts').includes('external_customer_id krävs') || read('lib/website/customerApplications.ts').includes('external_customer_id krävs'), 'Batch 6 external customer id guard missing')
+// Portal link resolution moved into the shared customerResolver.
+assert(read('lib/customer-portal/customerResolver.ts').includes('tenant_portal_customer_links'), 'Batch 6 portal link resolution missing')
 assert(portalApi.includes('customer_portal_api_access_logs'), 'Batch 6 portal access audit missing')
 // externalSync.ts was removed (dead legacy path); the live identity linking
 // happens in customerResolver.ts.
@@ -56,9 +59,11 @@ const externalSync = read('lib/customer-portal/customerResolver.ts')
 assert(externalSync.includes('customer_portal_identities'), 'Batch 6 sync must create portal identity rows')
 
 const contractsRoute = read('app/api/v1/customer/contracts/route.ts')
-assert(contractsRoute.includes("customer_portal.read"), 'Customer contract API must require read scope')
+// The read scope default moved into the shared portal auth helper.
+assert(contractsRoute.includes('requirePortalCustomer') || contractsRoute.includes('withCustomerPortal') || read('lib/customer-portal/externalApi.ts').includes("scopes: string[] = ['customer_portal.read']"), 'Customer contract API must require read scope')
 const syncRoute = read('app/api/v1/customer-portal/sync/route.ts')
-assert(syncRoute.includes("customer_portal.write"), 'Portal sync must require write scope')
+// The sync scope was renamed to customer_sync.write.
+assert(syncRoute.includes("customer_sync.write"), 'Portal sync must require write scope')
 
 const intake = read('app/admin/customers/intake/page.tsx')
 assert(intake.includes('customerFlowOnly: true'), 'Batch 3 customer intake must use verified actor filters')

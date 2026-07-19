@@ -63,7 +63,7 @@ assert(
 // The stub files (buildContrl.ts, buildAperak.ts) may just be re-exports.
 // The actual inversion logic lives in lib/ediel/ack/ack.ts.
 const ackImplFiles = [
-  'lib/ediel/ack/ack.ts',
+  'lib/ediel/ack.ts',
 ]
 const ackStubFiles = [
   'lib/ediel/ack/buildContrl.ts',
