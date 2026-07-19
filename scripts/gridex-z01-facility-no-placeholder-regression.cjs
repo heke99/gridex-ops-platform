@@ -5,7 +5,13 @@
 const fs = require('fs')
 const path = require('path')
 const root = process.cwd()
-function read(file) { return fs.readFileSync(path.join(root, file), 'utf8') }
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+function read(file) {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 function assert(ok, msg) { if (!ok) { console.error(`\u2717 ${msg}`); process.exitCode = 1 } else console.log(`\u2713 ${msg}`) }
 
 const guard = read('lib/ediel/intent/noPlaceholderGuard.ts')

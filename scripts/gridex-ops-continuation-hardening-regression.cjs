@@ -16,7 +16,13 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 const exists = (file) => fs.existsSync(path.join(root, file))
 const ok = (condition, message) => {
   if (!condition) {
@@ -40,7 +46,8 @@ for (const code of ['power_of_attorney_missing']) {
   ok(apps.includes(`code: '${code}'`), `intake defines ${code}`)
 }
 ok(apps.includes('idempotent_application_missing_poa'), 'intake keeps idempotent_application_missing_poa as repair fallback code')
-ok(apps.includes("await stage('power_of_attorney', () => ensureWebsitePowerOfAttorney("), 'POA persistence runs under the power_of_attorney stage')
+// Whitespace/quote tolerant: the stage call may be wrapped by the formatter.
+ok(/await stage\('power_of_attorney', \(\) =>\s*ensureWebsitePowerOfAttorney\(/.test(apps), 'POA persistence runs under the power_of_attorney stage')
 
 // 2) Structured POA required when the contract publishes a POA version.
 ok(
@@ -123,14 +130,20 @@ ok(read('lib/external-contracts/intake.ts').includes('isBusinessCustomerType'), 
 
 // 8) Missing-facility intake uses the manual pipeline only.
 ok(
-  /const gridOwnerRequestMayBeCreated = readiness\.canRequestGridOwnerInformation && !facilityMissing/.test(apps),
+  /const gridOwnerRequestMayBeCreated =\s*readiness\.canRequestGridOwnerInformation && !facilityMissing/.test(apps),
   'Ediel grid-owner request is not created when facility is missing',
 )
 ok(
   /if \(committedSiteId && powerOfAttorneyId && !facilityMissing\)/.test(apps),
   'Z01-first automation is skipped when facility is missing',
 )
-ok(apps.includes('requestMissingFacilityInformation('), 'missing-facility path calls the manual orchestrator')
+// The website flow now delegates the missing-facility case to the shared
+// customer-intake orchestrator, which owns the manual information request.
+ok(
+  apps.includes('processWebsiteApplicationIntake(') &&
+    read('lib/customer-operations/customerIntakeOrchestrator.ts').includes('requestMissingFacilityInformation('),
+  'missing-facility path calls the manual orchestrator',
+)
 ok(gridOwnerRequests.includes('existingOpenManualRequest('), 'Ediel creator checks for an open manual request')
 ok(gridOwnerRequests.includes("'manual_request_in_progress'"), 'Ediel creator skips when a manual request is open')
 

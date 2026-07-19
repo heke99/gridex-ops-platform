@@ -3,7 +3,13 @@ const assert = require('assert')
 const fs = require('fs')
 const path = require('path')
 const root = path.resolve(__dirname, '..')
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 
 const unit = read('lib/pricing/unitConversion.ts')
 const options = read('lib/pricing/unitOptions.ts')

@@ -69,7 +69,7 @@ assert(!/TGT|AGT|portal fixture/i.test(utiltsKernel), 'production UTILTS kernel 
 const billingMatcher = read('lib/billing/meterValueBillingMatcher.ts')
 const underlay = read('lib/billing/underlayEngine.ts')
 assert(billingMatcher.includes('evaluateBillingGate'), 'metering matcher must evaluate the canonical billing gate')
-assert(underlay.includes("billing_gate_status', 'eligible'"), 'underlay query must require eligible billing gate')
+assert(underlay.includes("billing_gate_status', 'eligible'") || underlay.includes('billing_gate_status", "eligible"'), 'underlay query must require eligible billing gate')
 assert(underlay.includes('source_normalized_metering_value_id'), 'underlay must retain normalized row lineage')
 
 const migration = read('supabase/migrations/20260712110000_ediel_canonical_consolidation.sql')

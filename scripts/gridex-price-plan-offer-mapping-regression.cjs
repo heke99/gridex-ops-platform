@@ -22,7 +22,10 @@ const review = 'lib/website/applicationReview.ts'
 
 // 1. Resolved offer UUIDs merged into the application body before readiness.
 mustInclude(apps, 'price_plan_id: selectedPublicOffer.price_plan_id ?? body.price_plan_id', 'resolved offer UUIDs must reach readiness assessment')
-mustInclude(apps, 'price_plan_version_id: selectedPublicOffer.price_plan_version_id ?? body.price_plan_version_id', 'version UUID merged too')
+// Whitespace-tolerant: the merge may be wrapped across lines by the formatter.
+if (!/price_plan_version_id:\s*selectedPublicOffer\.price_plan_version_id \?\?\s*body\.price_plan_version_id/.test(read(apps))) {
+  failures.push(`Missing price_plan_version_id merge in ${apps} (version UUID merged too)`)
+}
 
 // 2. Readiness no longer treats offer_reference as a price plan id.
 const reviewSrc = read(review)

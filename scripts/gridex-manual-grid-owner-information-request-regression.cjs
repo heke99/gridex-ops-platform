@@ -164,8 +164,10 @@ ok(orchestrator.includes('blocked_missing_grid_owner_contact') && orchestrator.i
 ok(!orchestrator.includes('MANUAL_GRID_OWNER_FROM_EMAIL'), 'orchestrator no longer hardcodes an env sender (uses manual mailbox)')
 
 // 19) Worker guards against the Ediel sender (no silent fallback to ediel@gridex.se).
+// The former MANUAL_EMAIL_ALLOW_EDIEL_SENDER emergency override was removed:
+// the worker now refuses the reserved Ediel sender unconditionally.
 ok(worker.includes('isEdielReservedSender'), 'worker refuses to send manual e-mail from the Ediel reserved sender')
-ok(worker.includes('MANUAL_EMAIL_ALLOW_EDIEL_SENDER'), 'worker only allows the Ediel sender behind an explicit emergency override')
+ok(!worker.includes('MANUAL_EMAIL_ALLOW_EDIEL_SENDER'), 'no emergency override can re-enable the Ediel sender for manual e-mail')
 
 // 20) Worker route hides raw provider diagnostics from the HTTP response.
 ok(cron.includes('scanned: result.scanned') && cron.includes('console.error'), 'manual email cron route returns counts only and logs provider errors (tenant-hidden)')

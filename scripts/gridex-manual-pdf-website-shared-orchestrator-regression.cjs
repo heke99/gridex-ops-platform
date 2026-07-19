@@ -54,7 +54,10 @@ mustInclude(adminIntakeActions, 'processPdfCustomerIntake', 'PDF intake orchestr
 
 // Website flow keeps its facility guard and orchestrator handoff.
 mustInclude(website, 'processWebsiteApplicationIntake', 'website orchestrator handoff')
-mustInclude(website, 'const gridOwnerRequestMayBeCreated = readiness.canRequestGridOwnerInformation && !facilityMissing', 'website Ediel request guard')
+// Whitespace-tolerant: the guard may be wrapped across lines by the formatter.
+if (!/const gridOwnerRequestMayBeCreated =\s*readiness\.canRequestGridOwnerInformation && !facilityMissing/.test(read(website))) {
+  failures.push(`Missing gridOwnerRequestMayBeCreated guard in ${website} (website Ediel request guard)`)
+}
 
 if (failures.length > 0) {
   for (const failure of failures) console.error(`FAIL: ${failure}`)

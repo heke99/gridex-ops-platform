@@ -8,7 +8,13 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// TypeScript sources are formatter-dependent (single vs double quotes); the
+// static assertions below are structural, so quotes are normalized for
+// .ts/.tsx haystacks to keep the checks meaningful across formatter runs.
+const read = (file) => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+  return /\.(ts|tsx)$/.test(file) ? source.replace(/"/g, "'") : source
+}
 const assert = (condition, message) => {
   if (!condition) {
     console.error(`FAIL: ${message}`)
