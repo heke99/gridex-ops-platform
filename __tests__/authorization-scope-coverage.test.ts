@@ -14,17 +14,20 @@ const workflowMocks = vi.hoisted(() => ({
       status: 'active',
       revoked_at: null,
       valid_to: null,
-      covers_grid_owner_data: true,
+      covers_grid_owner_data: false,
       covers_current_supplier_contract: true,
-      covers_metering_data: true,
+      covers_metering_data: false,
     })
     return `scope-${state.scopes.length}`
   }),
-  FULL_POWER_OF_ATTORNEY_COVERAGE: {
-    coversGridOwnerData: true,
-    coversCurrentSupplierContract: true,
-    coversMeteringData: true,
-  },
+  getSignedPowerOfAttorneyCoverage: vi.fn(async () => ({
+    coverage: {
+      coversGridOwnerData: false,
+      coversCurrentSupplierContract: true,
+      coversMeteringData: false,
+    },
+    signedScopes: ['current_supplier_contract'],
+  })),
 }))
 
 vi.mock('@/lib/operations/powerOfAttorneyWorkflow', () => workflowMocks)

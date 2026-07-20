@@ -41,7 +41,7 @@ export type BillingReadinessResult = {
 }
 
 /** Contract statuses that permit billing (aligned with lib/billing/billingGate.ts). */
-export const BILLABLE_CONTRACT_STATUSES = new Set(['signed', 'active'])
+export const BILLABLE_CONTRACT_STATUSES = new Set(['active'])
 
 /** Supply-period statuses that count as active/confirmed delivery. */
 export const BILLABLE_SUPPLY_PERIOD_STATUSES = new Set(['active', 'confirmed_by_grid_owner'])
@@ -117,7 +117,15 @@ export type BillingReadinessInput = {
     meter_point_id?: string | null
   } | null
   /** Supply periods covering the requested delivery period. */
-  supplyPeriods?: Array<{ id?: string | null; status?: string | null }> | null
+  supplyPeriods?: Array<{
+    id?: string | null
+    status?: string | null
+    start_date?: string | null
+    end_date?: string | null
+    actual_start_date?: string | null
+    actual_end_date?: string | null
+  }> | null
+  billingPeriod?: { start: string; end: string } | null
   priceArea?: string | null
   meterValues?: {
     present: boolean
@@ -214,6 +222,20 @@ export function evaluateContractBillingAccountReadiness(input: {
   }
 }
 
+function isoDate(value: unknown): string | null {
+  const normalized = clean(value)
+  return normalized && /^\d{4}-\d{2}-\d{2}/.test(normalized) ? normalized.slice(0, 10) : null
+}
+
+function periodsOverlap(input: {
+  billingStart: string
+  billingEnd: string
+  supplyStart: string
+  supplyEnd?: string | null
+}): boolean {
+  return input.supplyStart <= input.billingEnd && (!input.supplyEnd || input.supplyEnd >= input.billingStart)
+}
+
 /**
  * The canonical fourteen-point billing readiness decision. Pure: all data is
  * passed in, so the same rules run in unit tests, the month gate and any
@@ -244,10 +266,15 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
     blockers.push({ code: 'contract_missing', message: 'Inget avtal är kopplat till kunden.' })
   } else {
     const status = clean(contract.status)?.toLowerCase() ?? ''
-    if (!BILLABLE_CONTRACT_STATUSES.has(status)) {
+    if (status === 'signed') {
+      blockers.push({
+        code: 'delivery_not_started',
+        message: 'Avtalet är signerat men ännu inte aktiverat för leverans och fakturering.',
+      })
+    } else if (!BILLABLE_CONTRACT_STATUSES.has(status)) {
       blockers.push({
         code: 'contract_not_approved',
-        message: `Avtalet har status "${status || 'okänd'}" och är inte godkänt för fakturering.`,
+        message: `Avtalet har status "${status || 'okänd'}" och är inte aktivt för fakturering.`,
       })
     }
     if (clean(contract.company_id) && contract.company_id !== input.companyId) {
@@ -268,13 +295,29 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
   }
 
   // 3: delivery -----------------------------------------------------------
-  const activeSupplyPeriods = (input.supplyPeriods ?? []).filter((period) =>
-    BILLABLE_SUPPLY_PERIOD_STATUSES.has(clean(period.status)?.toLowerCase() ?? ''),
-  )
+  const billingStart = isoDate(input.billingPeriod?.start)
+  const billingEnd = isoDate(input.billingPeriod?.end)
+  if (!billingStart || !billingEnd || billingStart > billingEnd) {
+    blockers.push({
+      code: 'billing_period_invalid',
+      message: 'Faktureringsperiodens start och slut måste vara giltiga datum.',
+    })
+  }
+  const activeSupplyPeriods = (input.supplyPeriods ?? []).filter((period) => {
+    if (!BILLABLE_SUPPLY_PERIOD_STATUSES.has(clean(period.status)?.toLowerCase() ?? '')) return false
+    const supplyStart = isoDate(period.actual_start_date) ?? isoDate(period.start_date)
+    const supplyEnd = isoDate(period.actual_end_date) ?? isoDate(period.end_date)
+    return Boolean(
+      billingStart &&
+      billingEnd &&
+      supplyStart &&
+      periodsOverlap({ billingStart, billingEnd, supplyStart, supplyEnd }),
+    )
+  })
   if (activeSupplyPeriods.length === 0) {
     blockers.push({
       code: 'delivery_not_started',
-      message: 'Ingen aktiv eller bekräftad leveransperiod täcker faktureringsperioden.',
+      message: 'Ingen aktiv eller nätägarbekräftad leveransperiod överlappar faktureringsperioden.',
     })
   }
 
@@ -403,11 +446,15 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
     blockers: uniqueBlockers,
     warnings,
     evidence: {
-      version: 'billing_readiness_core_v1',
+      version: 'billing_readiness_core_v2',
+      data_sources: ['customer_contracts','customers','customer_sites','metering_points','customer_supply_periods','billing_underlays','contract_price_snapshots'],
       evaluated_at: new Date().toISOString(),
       company_id: input.companyId,
       customer_id: input.customerId,
       contract_id: clean(contract?.id),
+      billing_period_start: billingStart,
+      billing_period_end: billingEnd,
+      overlapping_supply_period_ids: activeSupplyPeriods.map((period) => clean(period.id)).filter(Boolean),
       contract_status: clean(contract?.status),
       issuer_legal_name: issuerName,
       issuer_org_number: issuerOrg,

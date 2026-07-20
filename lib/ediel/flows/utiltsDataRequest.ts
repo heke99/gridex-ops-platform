@@ -1,6 +1,6 @@
 // lib/ediel/flows/utiltsDataRequest.ts
 
-import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
+import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
 import {
   getCustomerSiteById,
   getGridOwnerById,
@@ -1371,7 +1371,7 @@ export async function processInboundUtiltsMessage(params: {
   }
 
   const runtime = runUtiltsRuntimeForMessage(runtimeSourceMessage)
-  const ackPlan = applyUtiltsTestAckPlanOverride({
+  const ackPlan = applyCertifiedUtiltsAckPolicy({
     runtime,
     testCaseCode: runtimeTestCaseCode,
   })

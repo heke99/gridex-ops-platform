@@ -58,38 +58,20 @@ export async function ensureCustomerNumber(input: {
   if (current.error) throw current.error
   const persisted = typeof current.data?.customer_number === 'string' ? current.data.customer_number.trim() : ''
   if (persisted) return persisted
-  return customerNumber
+  throw new Error('Kundnummer reserverades men sparades inte på kunden. Registreringen måste rullas tillbaka.')
 }
 
 /**
- * Best-effort canonical customer-number assignment for intake paths that must
- * keep working against databases where the canonical number schema has not
- * been migrated yet (admin intake, /teckna-avtal external intake, Ediel
- * inbound approval). On migrated databases the BEFORE INSERT trigger already
- * assigns numbers, so this only fills matched existing customers that predate
- * the backfill. Returns null when the generator is missing instead of
- * failing the whole intake; every other error is thrown.
+ * Compatibility name retained for older call sites. Customer numbers are now
+ * mandatory and fail closed: a missing migration or unpersisted number must
+ * abort the intake instead of committing a customer without a permanent id.
  */
 export async function ensureCustomerNumberIfSupported(input: {
   companyId: string
   customerId: string
   existingCustomerNumber?: string | null
-}): Promise<string | null> {
-  if (input.existingCustomerNumber?.trim()) return input.existingCustomerNumber.trim()
-  try {
-    return await ensureCustomerNumber(input)
-  } catch (error) {
-    if (
-      missingNumberSchema(error) ||
-      /Kundnummer-funktionen saknas/.test((error as { message?: string } | null)?.message ?? '')
-    ) {
-      console.warn(
-        '[customer-numbers] gridex_next_customer_number saknas – kundnummer kan inte reserveras förrän migrationen 20260719120000 har körts.',
-      )
-      return null
-    }
-    throw error
-  }
+}): Promise<string> {
+  return ensureCustomerNumber(input)
 }
 
 export async function reserveContractNumber(input: {

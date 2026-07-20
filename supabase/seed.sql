@@ -1,0 +1,1 @@
+-- Intentionally empty local seed. Integration fixtures live in supabase/tests.

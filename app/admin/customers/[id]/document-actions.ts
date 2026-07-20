@@ -42,8 +42,9 @@ import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutomation'
 import { resolveFullmaktAutomationPolicy } from '@/lib/operations/fullmaktAutomation'
 import {
-  FULL_POWER_OF_ATTORNEY_COVERAGE,
   ensureAuthorizationScopeFromPowerOfAttorney,
+  getSignedPowerOfAttorneyCoverage,
+  powerOfAttorneyCoverageFromScopes,
   resolveCustomerBlockersAfterSignedPowerOfAttorney,
 } from '@/lib/operations/powerOfAttorneyWorkflow'
 import type {
@@ -1162,6 +1163,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
         facility_information_lookup: poaScopes.includes('facility_information_lookup'),
         source: 'manual_pdf_upload',
       },
+      signedScopes: poaScopes,
       valid_from: validFrom,
       valid_to: validTo,
       document_path: filePath,
@@ -1189,6 +1191,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
     upload_idempotency_key: uploadIdempotencyKey,
     reference,
     notes,
+    metadata: { signedScopes: poaScopes },
     companyId: actionContext.companyId,
   })
 
@@ -1202,7 +1205,8 @@ export async function uploadCustomerAuthorizationDocumentAction(
       customerId,
       powerOfAttorneyId: savedPowerOfAttorneyId,
       authorizationDocumentId: savedDocument.id,
-      coverage: FULL_POWER_OF_ATTORNEY_COVERAGE,
+      coverage: powerOfAttorneyCoverageFromScopes(poaScopes),
+      signedScopes: poaScopes,
       validFrom,
       validTo,
       evidenceNote: 'Signerad fullmakt uppladdad och verifierad i kundkortet.',
@@ -1500,6 +1504,12 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
     : null
 
   if (!linkedPowerOfAttorney) {
+    const metadataScopes = Array.isArray(existingDocument.metadata?.signedScopes)
+      ? existingDocument.metadata.signedScopes.map(String).filter(Boolean)
+      : []
+    if (metadataScopes.length === 0) {
+      throw new Error('Dokumentet saknar signerad fullmaktsscope och kan inte verifieras automatiskt.')
+    }
     linkedPowerOfAttorney = await savePowerOfAttorney(supabase, {
       customer_id: customerId,
       site_id: existingDocument.site_id,
@@ -1511,12 +1521,24 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
       document_path: existingDocument.file_path,
       reference: existingDocument.reference,
       notes: existingDocument.notes
-        ? `${existingDocument.notes}\n\nVerifierad manuellt från kundkortet.`
+        ? `${existingDocument.notes}
+
+Verifierad manuellt från kundkortet.`
         : 'Verifierad manuellt från kundkortet.',
+      scopeSummary: { scopes: metadataScopes, source: 'authorization_document_metadata' },
+      signedScopes: metadataScopes,
       companyId: actionContext.companyId,
     })
     powerOfAttorneyId = linkedPowerOfAttorney.id
   } else if (linkedPowerOfAttorney.status !== 'signed') {
+    const immutableScopes = Array.isArray(linkedPowerOfAttorney.signed_scope_snapshot)
+      ? linkedPowerOfAttorney.signed_scope_snapshot.map(String).filter(Boolean)
+      : Array.isArray(linkedPowerOfAttorney.scope_summary?.scopes)
+        ? (linkedPowerOfAttorney.scope_summary.scopes as unknown[]).map(String).filter(Boolean)
+        : []
+    if (immutableScopes.length === 0) {
+      throw new Error('Fullmaktens signerade scope saknas och får inte antas vid verifiering.')
+    }
     linkedPowerOfAttorney = await savePowerOfAttorney(supabase, {
       id: linkedPowerOfAttorney.id,
       customer_id: linkedPowerOfAttorney.customer_id,
@@ -1529,10 +1551,18 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
       document_path: linkedPowerOfAttorney.document_path ?? existingDocument.file_path,
       reference: linkedPowerOfAttorney.reference ?? existingDocument.reference,
       notes: linkedPowerOfAttorney.notes
-        ? `${linkedPowerOfAttorney.notes}\n\nVerifierad manuellt från kundkortet.`
+        ? `${linkedPowerOfAttorney.notes}
+
+Verifierad manuellt från kundkortet.`
         : 'Verifierad manuellt från kundkortet.',
+      scopeSummary: linkedPowerOfAttorney.scope_summary ?? { scopes: immutableScopes },
+      signedScopes: immutableScopes,
       companyId: actionContext.companyId,
     })
+  }
+
+  if (!powerOfAttorneyId) {
+    throw new Error('Fullmakten kunde inte kopplas till ett permanent ID.')
   }
 
   const { data: updatedDocument, error: updateError } = await supabase
@@ -1553,14 +1583,23 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
 
   const document = updatedDocument as CustomerAuthorizationDocumentRow
   const siteId = document.site_id
+  const signedCoverage = await getSignedPowerOfAttorneyCoverage({
+    companyId: actionContext.companyId,
+    customerId,
+    powerOfAttorneyId,
+  })
+  if (!signedCoverage) {
+    throw new Error('Signerad fullmaktsscope saknas. Ange exakt omfattning innan dokumentet verifieras.')
+  }
   const authorizationScopeId = await ensureAuthorizationScopeFromPowerOfAttorney({
     companyId: actionContext.companyId,
     actorUserId: actor.id,
     customerId,
     powerOfAttorneyId,
     authorizationDocumentId: document.id,
-    coverage: FULL_POWER_OF_ATTORNEY_COVERAGE,
-    evidenceNote: 'Fullmakt verifierad manuellt och upplåser uppgiftsbegäran.',
+    coverage: signedCoverage.coverage,
+    signedScopes: signedCoverage.signedScopes,
+    evidenceNote: 'Fullmakt verifierad manuellt och upplåser endast signerad omfattning.',
   })
   const blockerResult = await resolveCustomerBlockersAfterSignedPowerOfAttorney({
     companyId: actionContext.companyId,

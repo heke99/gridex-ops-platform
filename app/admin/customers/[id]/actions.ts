@@ -60,6 +60,7 @@ import {
   createMissingPowerOfAttorneyBlocker,
   ensureAuthorizationScopeFromPowerOfAttorney,
   getLatestSignedPowerOfAttorneyForCustomer,
+  getSignedPowerOfAttorneyCoverage,
   resolveCustomerBlockersAfterSignedPowerOfAttorney,
 } from "@/lib/operations/powerOfAttorneyWorkflow";
 import {
@@ -2697,9 +2698,49 @@ export async function createCustomerDataRequestPackageAction(
     return;
   }
 
-  const coversGridOwnerData = target === "grid_owner" || target === "both";
-  const coversCurrentSupplierContract =
+  const signedCoverage = await getSignedPowerOfAttorneyCoverage({
+    companyId,
+    customerId,
+    powerOfAttorneyId: signedPowerOfAttorneyId,
+  });
+  if (!signedCoverage) {
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "customer_data.blocked",
+      title: "Fullmaktens omfattning saknas",
+      message: "Begäran stoppas eftersom signerad fullmaktsscope inte kan verifieras.",
+      payload: { target, powerOfAttorneyId: signedPowerOfAttorneyId },
+    });
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/customer-info-requests");
+    return;
+  }
+
+  const requiredGridOwnerData = target === "grid_owner" || target === "both";
+  const requiredCurrentSupplierContract =
     target === "current_supplier" || target === "both";
+  if (
+    (requiredGridOwnerData && !signedCoverage.coverage.coversGridOwnerData) ||
+    (requiredCurrentSupplierContract &&
+      !signedCoverage.coverage.coversCurrentSupplierContract)
+  ) {
+    await recordCustomerActionResult({
+      actorUserId: actor.id,
+      companyId,
+      customerId,
+      siteId,
+      eventType: "customer_data.blocked",
+      title: "Fullmakten täcker inte begäran",
+      message: "Begäran stoppas eftersom den ligger utanför kundens signerade fullmakt.",
+      payload: { target, signedScopes: signedCoverage.signedScopes },
+    });
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/customer-info-requests");
+    return;
+  }
 
   const authorizationScopeId =
     await ensureAuthorizationScopeFromPowerOfAttorney({
@@ -2708,11 +2749,8 @@ export async function createCustomerDataRequestPackageAction(
       customerId,
       powerOfAttorneyId: signedPowerOfAttorneyId,
       authorizationDocumentId: null,
-      coverage: {
-        coversGridOwnerData,
-        coversCurrentSupplierContract,
-        coversMeteringData: coversGridOwnerData,
-      },
+      coverage: signedCoverage.coverage,
+      signedScopes: signedCoverage.signedScopes,
       validFrom:
         (signedPowerOfAttorneyRecord.valid_from as string | null | undefined) ??
         null,
@@ -2740,7 +2778,7 @@ export async function createCustomerDataRequestPackageAction(
     blockerReason: string | null;
   }> = [];
 
-  if (coversGridOwnerData) {
+  if (requiredGridOwnerData) {
     const request = await createCustomerInfoRequest({
       companyId,
       actorUserId: actor.id,
@@ -2776,7 +2814,7 @@ export async function createCustomerDataRequestPackageAction(
     });
   }
 
-  if (coversCurrentSupplierContract) {
+  if (requiredCurrentSupplierContract) {
     const request = await createCustomerInfoRequest({
       companyId,
       actorUserId: actor.id,

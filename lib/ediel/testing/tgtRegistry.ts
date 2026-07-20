@@ -472,6 +472,7 @@ function prodatEscoStartCase(params: {
   inboundVariant: string;
   purpose: string;
   testDataHint: string;
+  portalAperakOutcome?: "positive" | "negative";
 }): EdielTgtTestCaseDefinition {
   return {
     suite: "PRODAT",
@@ -777,6 +778,7 @@ function prodatAgtEscoOutboundCase(params: {
   outboundVariant: string;
   purpose: string;
   testDataHint: string;
+  portalAperakOutcome?: "positive" | "negative";
 }): EdielTgtTestCaseDefinition {
   return {
     suite: "PRODAT",
@@ -819,10 +821,10 @@ function prodatAgtEscoOutboundCase(params: {
         actor: "portal",
         family: "APERAK",
         code: "APERAK",
-        outcome: "positive",
+        outcome: params.portalAperakOutcome ?? "negative",
         required: true,
-        title: `Ta emot positiv APERAK på ${params.outboundVariant}`,
-        description: "Edielportalen applikationskvitterar outbound PRODAT.",
+        title: `Ta emot ${params.portalAperakOutcome ?? "negative"} APERAK på ${params.outboundVariant}`,
+        description: "Edielportalen applikationskvitterar enligt den kanoniska certifieringsmatrisen.",
       },
     ],
     notes: [
@@ -839,6 +841,7 @@ function prodatAgtEscoInboundPositiveCase(params: {
   inboundVariant: string;
   purpose: string;
   testDataHint: string;
+  aperakOutcome?: "positive" | "negative";
 }): EdielTgtTestCaseDefinition {
   return {
     suite: "PRODAT",
@@ -881,11 +884,13 @@ function prodatAgtEscoInboundPositiveCase(params: {
         actor: "gridex",
         family: "APERAK",
         code: "APERAK",
-        outcome: "positive",
+        outcome: params.aperakOutcome ?? "positive",
         required: true,
-        title: `Skicka positiv APERAK på ${params.inboundVariant}`,
+        title: `Skicka ${params.aperakOutcome ?? "positive"} APERAK på ${params.inboundVariant}`,
         description:
-          "Meddelandet är korrekt behandlat. Z14N kan vara ett affärsmässigt nekande men ska fortfarande kvitteras tekniskt korrekt om payloaden är giltig.",
+          params.aperakOutcome === "negative"
+            ? "Backendens certifieringsregel kräver negativ APERAK för scenariot."
+            : "Meddelandet är korrekt behandlat och kvitteras enligt certifieringsmatrisen.",
       },
     ],
     notes: [
@@ -1021,7 +1026,8 @@ function additionalEdielTgtTestCases(): EdielTgtTestCaseDefinition[] {
       purpose:
         "AGT DGI/Energitjänsteföretag: portalen/nätägaren skickar Z15V om upphörande av tillstånd till aktören.",
       testDataHint:
-        "E7 är portal → aktör. Starta testet i Edielportalen; Gridex ska vänta på inbound PRODAT Z15V och sedan skicka korrekt CONTRL + APERAK.",
+        "E7 är portal → aktör. Starta testet i Edielportalen; Gridex ska vänta på inbound PRODAT Z15V och sedan skicka positiv CONTRL + negativ APERAK från backendmotorn.",
+      aperakOutcome: "negative",
     }),
     prodatAgtEscoOutboundCase({
       testCaseCode: "E8",

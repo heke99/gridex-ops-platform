@@ -4,7 +4,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessageEvent, linkEdielMessage } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { describeProdatCaseType, edielCodeLabel } from '@/lib/ediel/codeLabels'
-import { ensureCustomerNumberIfSupported } from '@/lib/customer-numbers/customerNumbers'
+import { canonicalIdempotencyKey, onboardCustomerGraph } from '@/lib/customers/canonicalOnboarding'
 
 type JsonRecord = Record<string, unknown>
 
@@ -567,16 +567,17 @@ export async function getEdielInboundCaseById(caseId: string): Promise<EdielInbo
   return (data as EdielInboundCaseRow | null) ?? null
 }
 
-async function getGridOwnerIdByGridArea(gridAreaCode: string | null): Promise<string | null> {
+async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string | null): Promise<string | null> {
   if (!gridAreaCode) return null
   const { data, error } = await supabaseService
     .from('grid_owners')
     .select('id,owner_code')
+    .eq('company_id', companyId)
     .or(`owner_code.eq.${gridAreaCode},name.ilike.${gridAreaCode}`)
     .limit(1)
     .maybeSingle()
 
-  if (error) return null
+  if (error) throw error
   return (data as { id?: string } | null)?.id ?? null
 }
 
@@ -589,7 +590,7 @@ async function insertAuditLog(params: {
   newValues?: JsonRecord
   metadata?: JsonRecord
 }) {
-  await supabaseService.from('audit_logs').insert({
+  const { error } = await supabaseService.from('audit_logs').insert({
     company_id: params.companyId ?? null,
     actor_user_id: params.actorUserId,
     entity_type: params.entityType,
@@ -598,228 +599,7 @@ async function insertAuditLog(params: {
     new_values: params.newValues ?? null,
     metadata: params.metadata ?? null,
   })
-}
-
-async function createOrUpdateCustomer(params: {
-  actorUserId: string
-  inboundCase: EdielInboundCaseRow
-  mode: EdielInboundCaseActionMode
-  selectedCustomerId?: string | null
-}): Promise<string> {
-  const customer = params.inboundCase.parsed_customer
-  const selectedCustomerId = trimOrNull(params.selectedCustomerId) ?? params.inboundCase.customer_id
-  const customerType = trimOrNull(customer.customerType) === 'business' ? 'business' : 'private'
-  const fullName = trimOrNull(customer.fullName) ?? trimOrNull(customer.companyName) ?? 'Ediel inbound-kund'
-
-  const companyId = params.inboundCase.company_id
-
-  if (!companyId) {
-    throw new Error('Inbound-caset saknar company_id och kan inte appliceras säkert i SaaS-läge.')
-  }
-
-  if (params.mode === 'link_existing_only' && !selectedCustomerId) {
-    throw new Error('Välj en befintlig kund eller byt godkänn-läge. Link existing only får inte skapa ny kund.')
-  }
-
-  if (selectedCustomerId && params.mode !== 'create_new_customer') {
-    const { error } = await supabaseService
-      .from('customers')
-      .update({
-        customer_type: customerType,
-        status: 'draft',
-        first_name: customerType === 'private' ? trimOrNull(customer.firstName) : null,
-        last_name: customerType === 'private' ? trimOrNull(customer.lastName) : null,
-        full_name: fullName,
-        company_name: customerType === 'business' ? fullName : null,
-        personal_number: customerType === 'private' ? trimOrNull(customer.personalNumber) : null,
-        org_number: customerType === 'business' ? trimOrNull(customer.orgNumber) : null,
-        updated_by: params.actorUserId,
-      })
-      .eq('id', selectedCustomerId)
-      .eq('company_id', companyId)
-
-    if (error) throw error
-    await ensureCustomerNumberIfSupported({ companyId, customerId: selectedCustomerId })
-    return selectedCustomerId
-  }
-
-  const { data, error } = await supabaseService
-    .from('customers')
-    .insert({
-      company_id: companyId,
-      customer_type: customerType,
-      status: 'draft',
-      first_name: customerType === 'private' ? trimOrNull(customer.firstName) : null,
-      last_name: customerType === 'private' ? trimOrNull(customer.lastName) : null,
-      full_name: fullName,
-      company_name: customerType === 'business' ? fullName : null,
-      email: null,
-      phone: null,
-      personal_number: customerType === 'private' ? trimOrNull(customer.personalNumber) : null,
-      org_number: customerType === 'business' ? trimOrNull(customer.orgNumber) : null,
-      created_by: params.actorUserId,
-      updated_by: params.actorUserId,
-    })
-    .select('id,customer_number')
-    .single()
-
   if (error) throw error
-  const createdCustomerId = (data as { id: string }).id
-  // Canonical permanent customer number (same generator as every other intake
-  // channel). On migrated databases the insert trigger has already set it.
-  await ensureCustomerNumberIfSupported({
-    companyId,
-    customerId: createdCustomerId,
-    existingCustomerNumber: (data as { customer_number?: string | null }).customer_number ?? null,
-  })
-  return createdCustomerId
-}
-
-async function createOrUpdateSite(params: {
-  actorUserId: string
-  inboundCase: EdielInboundCaseRow
-  customerId: string
-  selectedSiteId?: string | null
-}): Promise<string> {
-  const site = params.inboundCase.parsed_site
-  const production = params.inboundCase.parsed_production
-  const siteId = trimOrNull(params.selectedSiteId) ?? params.inboundCase.site_id
-  const gridOwnerId = await getGridOwnerIdByGridArea(trimOrNull(site.gridAreaCode))
-  const siteType = production.isMicroProduction === true ? 'production' : trimOrNull(site.siteType) ?? 'consumption'
-  const notes = buildInternalNotes({
-    caseType: params.inboundCase.case_type,
-    transactionType: params.inboundCase.transaction_type,
-    customer: params.inboundCase.parsed_customer,
-    site,
-    meteringPoint: params.inboundCase.parsed_metering_point,
-    contract: params.inboundCase.parsed_contract,
-    production,
-    proposedAction: params.inboundCase.proposed_action,
-  })
-
-  const companyId = params.inboundCase.company_id
-  if (!companyId) {
-    throw new Error('Inbound-caset saknar company_id och kan inte skapa eller uppdatera anläggning.')
-  }
-
-  const payload = {
-    company_id: companyId,
-    customer_id: params.customerId,
-    site_name: trimOrNull(site.siteName) ?? trimOrNull(site.facilityId) ?? 'Ediel inbound-anläggning',
-    facility_id: trimOrNull(site.facilityId),
-    site_type: siteType,
-    status: 'draft',
-    grid_owner_id: gridOwnerId,
-    price_area_code: null,
-    move_in_date: edifactDateToIsoDate(site.contractStartDate),
-    annual_consumption_kwh: numberOrNull(site.annualEnergyKwh),
-    street: trimOrNull(site.street),
-    postal_code: trimOrNull(site.postalCode),
-    city: trimOrNull(site.city),
-    country: normalizeUpper(site.country) ?? 'SE',
-    internal_notes: notes,
-    updated_by: params.actorUserId,
-  }
-
-  if (siteId) {
-    const { error } = await supabaseService.from('customer_sites').update(payload).eq('id', siteId).eq('company_id', companyId).eq('customer_id', params.customerId)
-    if (error) throw error
-    return siteId
-  }
-
-  const facilityId = trimOrNull(site.facilityId)
-  if (facilityId) {
-    const { data: existing, error: existingError } = await supabaseService
-      .from('customer_sites')
-      .select('id')
-      .eq('company_id', companyId)
-      .eq('facility_id', facilityId)
-      .limit(1)
-      .maybeSingle()
-    if (existingError) throw existingError
-    if (existing) {
-      const existingId = (existing as { id: string }).id
-      const { error } = await supabaseService.from('customer_sites').update(payload).eq('id', existingId).eq('company_id', companyId)
-      if (error) throw error
-      return existingId
-    }
-  }
-
-  const { data, error } = await supabaseService
-    .from('customer_sites')
-    .insert({ ...payload, created_by: params.actorUserId })
-    .select('id')
-    .single()
-  if (error) throw error
-  return (data as { id: string }).id
-}
-
-async function createOrUpdateMeteringPoint(params: {
-  actorUserId: string
-  inboundCase: EdielInboundCaseRow
-  customerId: string
-  siteId: string
-  selectedMeteringPointId?: string | null
-}): Promise<string> {
-  const mp = params.inboundCase.parsed_metering_point
-  const production = params.inboundCase.parsed_production
-  const selectedId = trimOrNull(params.selectedMeteringPointId) ?? params.inboundCase.metering_point_id
-  const meterPointId = trimOrNull(mp.meterPointId) ?? trimOrNull(mp.referenceToMeteringPoint)
-
-  if (!meterPointId) {
-    throw new Error('Mätpunkt/anläggnings-id saknas i inbound-caset.')
-  }
-
-  const companyId = params.inboundCase.company_id
-  if (!companyId) {
-    throw new Error('Inbound-caset saknar company_id och kan inte skapa eller uppdatera mätpunkt.')
-  }
-
-  const payload = {
-    company_id: companyId,
-    customer_id: params.customerId,
-    site_id: params.siteId,
-    meter_point_id: meterPointId,
-    site_facility_id: meterPointId,
-    ediel_reference: trimOrNull(mp.referenceToMeteringPoint),
-    status: 'draft',
-    measurement_type: production.isMicroProduction === true ? 'production' : trimOrNull(mp.measurementType) ?? 'consumption',
-    reading_frequency: trimOrNull(mp.readingFrequency) === 'D' ? 'daily' : trimOrNull(mp.readingFrequency) === 'M' ? 'monthly' : 'hourly',
-    grid_owner_id: null,
-    price_area_code: null,
-    start_date: edifactDateToIsoDate(params.inboundCase.parsed_contract.startDate),
-    is_settlement_relevant: true,
-    updated_by: params.actorUserId,
-  }
-
-  if (selectedId) {
-    const { error } = await supabaseService.from('metering_points').update(payload).eq('id', selectedId).eq('company_id', companyId).eq('customer_id', params.customerId)
-    if (error) throw error
-    return selectedId
-  }
-
-  const { data: existing, error: existingError } = await supabaseService
-    .from('metering_points')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('meter_point_id', meterPointId)
-    .limit(1)
-    .maybeSingle()
-  if (existingError) throw existingError
-  if (existing) {
-    const existingId = (existing as { id: string }).id
-    const { error } = await supabaseService.from('metering_points').update(payload).eq('id', existingId).eq('company_id', companyId)
-    if (error) throw error
-    return existingId
-  }
-
-  const { data, error } = await supabaseService
-    .from('metering_points')
-    .insert({ ...payload, created_by: params.actorUserId })
-    .select('id')
-    .single()
-  if (error) throw error
-  return (data as { id: string }).id
 }
 
 export async function approveEdielInboundCase(params: {
@@ -836,44 +616,139 @@ export async function approveEdielInboundCase(params: {
   if (!['pending_review', 'failed'].includes(inboundCase.status)) {
     throw new Error(`Inbound-caset har status ${inboundCase.status} och kan inte godkännas.`)
   }
+  if (!inboundCase.company_id) {
+    throw new Error('Inbound-caset saknar company_id och kan inte appliceras säkert i SaaS-läge.')
+  }
 
   try {
     const mode = params.mode ?? (inboundCase.customer_id ? 'update_existing_customer' : 'create_new_customer')
-    const customerId = await createOrUpdateCustomer({
-      actorUserId: params.actorUserId,
-      inboundCase,
-      mode,
-      selectedCustomerId: params.selectedCustomerId,
+    const selectedCustomerId = trimOrNull(params.selectedCustomerId) ?? inboundCase.customer_id
+    if (mode === 'link_existing_only' && !selectedCustomerId) {
+      throw new Error('Välj en befintlig kund. Link existing only får aldrig skapa en ny kund.')
+    }
+
+    const parsedCustomer = inboundCase.parsed_customer
+    const parsedSite = inboundCase.parsed_site
+    const parsedMeter = inboundCase.parsed_metering_point
+    const production = inboundCase.parsed_production
+    const customerType = trimOrNull(parsedCustomer.customerType) === 'business' ? 'business' : 'private'
+    const fullName = trimOrNull(parsedCustomer.fullName) ?? trimOrNull(parsedCustomer.companyName) ?? 'Ediel inbound-kund'
+    const meterPointId = trimOrNull(parsedMeter.meterPointId) ?? trimOrNull(parsedMeter.referenceToMeteringPoint)
+    if (!meterPointId) throw new Error('Mätpunkt/anläggnings-id saknas i inbound-caset.')
+    const gridOwnerId = await getGridOwnerIdByGridArea(inboundCase.company_id, trimOrNull(parsedSite.gridAreaCode))
+    const siteType = production.isMicroProduction === true ? 'production' : trimOrNull(parsedSite.siteType) ?? 'consumption'
+
+    const result = await onboardCustomerGraph({
+      company_id: inboundCase.company_id,
+      actor_user_id: params.actorUserId,
+      channel: 'ediel_inbound',
+      idempotency_key: canonicalIdempotencyKey({
+        channel: 'ediel_inbound',
+        companyId: inboundCase.company_id,
+        sourceId: inboundCase.id,
+      }),
+      matching_policy: mode === 'create_new_customer' ? 'create_separate' : 'link_selected',
+      existing_customer_id: mode === 'create_new_customer' ? null : selectedCustomerId,
+      existing_site_id: trimOrNull(params.selectedSiteId) ?? inboundCase.site_id,
+      existing_metering_point_id: trimOrNull(params.selectedMeteringPointId) ?? inboundCase.metering_point_id,
+      update_existing: mode !== 'create_new_customer',
+      customer: {
+        customer_type: customerType,
+        status: 'draft',
+        first_name: customerType === 'private' ? trimOrNull(parsedCustomer.firstName) : null,
+        last_name: customerType === 'private' ? trimOrNull(parsedCustomer.lastName) : null,
+        full_name: fullName,
+        company_name: customerType === 'business' ? fullName : null,
+        personal_number: customerType === 'private' ? trimOrNull(parsedCustomer.personalNumber) : null,
+        org_number: customerType === 'business' ? trimOrNull(parsedCustomer.orgNumber) : null,
+        source: 'ediel_inbound',
+        metadata: {
+          inboundCaseId: inboundCase.id,
+          edielMessageId: inboundCase.ediel_message_id,
+          caseType: inboundCase.case_type,
+        },
+        created_by: params.actorUserId,
+        updated_by: params.actorUserId,
+      },
+      site: {
+        site_name: trimOrNull(parsedSite.siteName) ?? trimOrNull(parsedSite.facilityId) ?? 'Ediel inbound-anläggning',
+        facility_id: trimOrNull(parsedSite.facilityId),
+        site_type: siteType,
+        status: 'draft',
+        grid_owner_id: gridOwnerId,
+        move_in_date: edifactDateToIsoDate(parsedSite.contractStartDate),
+        annual_consumption_kwh: numberOrNull(parsedSite.annualEnergyKwh),
+        street: trimOrNull(parsedSite.street),
+        postal_code: trimOrNull(parsedSite.postalCode),
+        city: trimOrNull(parsedSite.city),
+        country: normalizeUpper(parsedSite.country) ?? 'SE',
+        internal_notes: buildInternalNotes({
+          caseType: inboundCase.case_type,
+          transactionType: inboundCase.transaction_type,
+          customer: inboundCase.parsed_customer,
+          site: inboundCase.parsed_site,
+          meteringPoint: inboundCase.parsed_metering_point,
+          contract: inboundCase.parsed_contract,
+          production: inboundCase.parsed_production,
+          proposedAction: inboundCase.proposed_action,
+        }),
+        created_by: params.actorUserId,
+        updated_by: params.actorUserId,
+      },
+      metering_point: {
+        meter_point_id: meterPointId,
+        metering_point_id: meterPointId,
+        site_facility_id: trimOrNull(parsedSite.facilityId) ?? meterPointId,
+        ediel_reference: trimOrNull(parsedMeter.referenceToMeteringPoint),
+        status: 'draft',
+        measurement_type: production.isMicroProduction === true
+          ? 'production'
+          : trimOrNull(parsedMeter.measurementType) ?? 'consumption',
+        reading_frequency: trimOrNull(parsedMeter.readingFrequency) === 'D'
+          ? 'daily'
+          : trimOrNull(parsedMeter.readingFrequency) === 'M'
+            ? 'monthly'
+            : 'hourly',
+        grid_owner_id: gridOwnerId,
+        start_date: edifactDateToIsoDate(inboundCase.parsed_contract.startDate),
+        is_settlement_relevant: true,
+        created_by: params.actorUserId,
+        updated_by: params.actorUserId,
+      },
+      application: {
+        source_record_type: 'ediel_inbound_case',
+        source_record_id: inboundCase.id,
+        status: 'committed',
+        payload_snapshot: {
+          edielMessageId: inboundCase.ediel_message_id,
+          caseType: inboundCase.case_type,
+          transactionType: inboundCase.transaction_type,
+          mode,
+        },
+      },
     })
-    const siteId = await createOrUpdateSite({
-      actorUserId: params.actorUserId,
-      inboundCase,
-      customerId,
-      selectedSiteId: params.selectedSiteId,
-    })
-    const meteringPointId = await createOrUpdateMeteringPoint({
-      actorUserId: params.actorUserId,
-      inboundCase,
-      customerId,
-      siteId,
-      selectedMeteringPointId: params.selectedMeteringPointId,
-    })
+
+    if (!result.ok) {
+      throw new Error(`Tvetydig kundmatchning blockerade Ediel-caset. Referens: ${result.correlation_id}.`)
+    }
 
     const reviewDecision = {
       mode,
       note: trimOrNull(params.note),
-      appliedCustomerId: customerId,
-      appliedSiteId: siteId,
-      appliedMeteringPointId: meteringPointId,
+      appliedCustomerId: result.customer_id,
+      appliedSiteId: result.site_id,
+      appliedMeteringPointId: result.metering_point_id,
+      onboardingOperationId: result.operation_id,
+      correlationId: result.correlation_id,
     }
 
     const { data, error } = await supabaseService
       .from('ediel_inbound_cases')
       .update({
         status: 'applied',
-        customer_id: customerId,
-        site_id: siteId,
-        metering_point_id: meteringPointId,
+        customer_id: result.customer_id,
+        site_id: result.site_id,
+        metering_point_id: result.metering_point_id,
         review_decision: reviewDecision,
         reviewed_by: params.actorUserId,
         reviewed_at: new Date().toISOString(),
@@ -882,18 +757,18 @@ export async function approveEdielInboundCase(params: {
         updated_by: params.actorUserId,
       })
       .eq('id', inboundCase.id)
+      .eq('company_id', inboundCase.company_id)
       .select('*')
       .single()
-
     if (error) throw error
 
     await linkEdielMessage({
       actorUserId: params.actorUserId,
       edielMessageId: inboundCase.ediel_message_id,
-      customerId,
-      siteId,
-      meteringPointId,
-      gridOwnerId: null,
+      customerId: result.customer_id,
+      siteId: result.site_id,
+      meteringPointId: result.metering_point_id,
+      gridOwnerId,
       switchRequestId: null,
       relatedMessageId: null,
     })
@@ -908,8 +783,8 @@ export async function approveEdielInboundCase(params: {
       metadata: {
         edielMessageId: inboundCase.ediel_message_id,
         caseType: inboundCase.case_type,
-        multiTenantNote:
-          'När company_id införs på masterdata ska detta case appliceras inom samma company_id-scope.',
+        onboardingOperationId: result.operation_id,
+        correlationId: result.correlation_id,
       },
     })
 
@@ -918,14 +793,14 @@ export async function approveEdielInboundCase(params: {
       edielMessageId: inboundCase.ediel_message_id,
       eventType: 'validated',
       eventStatus: 'success',
-      message: 'Inbound PRODAT-case godkänt av admin och applicerat på kund/anläggning/mätpunkt.',
+      message: 'Inbound PRODAT-case godkänt och applicerat genom kanonisk kundtransaktion.',
       payload: reviewDecision,
     })
 
     return data as EdielInboundCaseRow
   } catch (error) {
     const failureReason = error instanceof Error ? error.message : 'Okänt fel vid applicering.'
-    const { data, error: updateError } = await supabaseService
+    const { error: updateError } = await supabaseService
       .from('ediel_inbound_cases')
       .update({
         status: 'failed',
@@ -933,8 +808,7 @@ export async function approveEdielInboundCase(params: {
         updated_by: params.actorUserId,
       })
       .eq('id', inboundCase.id)
-      .select('*')
-      .single()
+      .eq('company_id', inboundCase.company_id)
     if (updateError) throw updateError
     throw error
   }

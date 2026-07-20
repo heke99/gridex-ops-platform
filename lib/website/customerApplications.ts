@@ -4,10 +4,7 @@ import { z } from "zod";
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import { supabaseService } from "@/lib/supabase/service";
 import {
-  ensureCustomerNumber,
   reserveApplicationNumber,
-  reserveContractNumber,
-  reserveCustomerNumber,
 } from "@/lib/customer-numbers/customerNumbers";
 import { emitDomainEvent } from "@/lib/events/domainEvents";
 import {
@@ -36,7 +33,6 @@ import {
 } from "@/lib/website/publicContracts";
 import type { EnergyResolverResult } from "@/lib/energy/types";
 import {
-  findFacilityConflicts,
   mapFacilityBusinessError,
   normalizeFacilityId,
   recordFacilityDataIssue,
@@ -46,7 +42,6 @@ import { getBaseAppUrl } from "@/lib/auth/urls";
 import { ensureCustomerPortalUserLink } from "@/lib/customer-portal/customerResolver";
 import {
   applyCustomerSiteAddressCandidate,
-  createOrUpdateCustomerSiteFromAddress,
 } from "@/lib/customer-sites/addressIntake";
 import { enqueueCustomerDataRequestAutomation } from "@/lib/customer-operations/automation";
 import { ensureSupplierSwitchForReadyCustomer } from "@/lib/customer-operations/supplierSwitchOrchestration";
@@ -64,24 +59,12 @@ import {
 } from "@/lib/legal/publicLegalDocuments";
 import { normalizeCustomerType } from "@/lib/customers/normalizeCustomerType";
 import {
-  matchCustomerIdentity,
-  type CustomerMatchDecision,
-} from "@/lib/customers/matchingService";
-import {
   assertCanonicalSnapshot,
   buildCanonicalContractSnapshot,
 } from "@/lib/pricing/contractSnapshot";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
 import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/documents";
-
-function numericValue(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value.replace(",", "."));
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
+import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) =>
@@ -389,11 +372,13 @@ function validateStructuredPoaForExternalSendability(
     });
   if (!poa.method)
     missing.push({ field: "powerOfAttorney.method", label: "method" });
+  if (poa.scope.length === 0)
+    missing.push({ field: "powerOfAttorney.scope", label: "scope" });
 
   if (missing.length === 0) return null;
 
   return validationError(
-    `Strukturerad fullmakt är markerad accepted=true men saknar ${missing.map((item) => item.label).join(", ")}. Skicka signerName, signerIdentityNumber och method eller skicka bara legacy consent som intern, icke sändbar accept.`,
+    `Strukturerad fullmakt är markerad accepted=true men saknar ${missing.map((item) => item.label).join(", ")}. Skicka signerName, signerIdentityNumber, method och exakt scope eller skicka bara legacy consent som intern, icke sändbar accept.`,
     missing[0]?.field ?? "powerOfAttorney",
     "Automatisk nätägarkommunikation kräver komplett strukturerad powerOfAttorney. Legacy consents.power_of_attorney=true blir aldrig externt sändbar.",
   );
@@ -1786,6 +1771,16 @@ async function ensureWebsitePowerOfAttorney(input: {
     ])
   )
     return null;
+  if (input.structuredPoa?.accepted !== true) return null;
+  if (input.structuredPoa.scope.length === 0) {
+    throw new WebsiteApplicationError({
+      message: "Signerad fullmakt saknar exakt scope.",
+      status: 422,
+      code: "power_of_attorney_scope_missing",
+      field: "powerOfAttorney.scope",
+      stage: "power_of_attorney",
+    });
+  }
   // Never trust frontend legal text: prefer the explicitly referenced active
   // legal version (textVersionId), then the published power_of_attorney version.
   const requestedVersionId = input.structuredPoa?.textVersionId ?? null;
@@ -1898,9 +1893,7 @@ async function ensureWebsitePowerOfAttorney(input: {
         powerOfAttorneyId: existingPowerOfAttorneyId,
         applicationId: input.applicationId,
         reference: `POA-${input.applicationId}`,
-        scopes: input.structuredPoa?.scope?.length
-          ? input.structuredPoa.scope
-          : ["supplier_switch", "facility_information_lookup"],
+        scopes: input.structuredPoa.scope,
         legal,
         snapshot: {
           source: "website_customer_applications",
@@ -1926,10 +1919,7 @@ async function ensureWebsitePowerOfAttorney(input: {
   const poa =
     input.structuredPoa?.accepted === true ? input.structuredPoa : null;
   const externallySendableAtCapture = structuredPoaIsExternallySendable(poa);
-  const scopes =
-    poa && poa.scope.length > 0
-      ? poa.scope
-      : ["supplier_switch", "facility_information_lookup"];
+  const scopes = poa?.scope ?? [];
   const acceptedAt = poa?.acceptedAt ?? now;
   const method = poa?.method ?? null;
   // Legacy consent-only creates an internal legal acceptance only. It must not
@@ -2369,6 +2359,25 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
       throw existingScope.error;
 
     if (!existingScope.data?.id) {
+      const normalizedScopes = new Set(input.scopes.map((scope) => scope.trim().toLowerCase()).filter(Boolean));
+      if (normalizedScopes.size === 0) {
+        throw new WebsiteApplicationError({
+          message: "Authorization scope kan inte skapas utan signerade scopes.",
+          status: 422,
+          code: "authorization_scope_snapshot_missing",
+          field: "powerOfAttorney.scope",
+          stage: "power_of_attorney",
+        });
+      }
+      const coversGridOwnerData =
+        normalizedScopes.has("grid_owner_data") ||
+        normalizedScopes.has("facility_information_lookup") ||
+        normalizedScopes.has("supplier_switch");
+      const coversCurrentSupplierContract =
+        normalizedScopes.has("current_supplier_contract") || normalizedScopes.has("supplier_switch");
+      const coversMeteringData =
+        normalizedScopes.has("metering_data") || normalizedScopes.has("facility_information_lookup");
+      const signedScopeSnapshot = [...normalizedScopes];
       const scopeInsert = await supabaseService
         .from("authorization_scopes")
         .insert({
@@ -2377,9 +2386,10 @@ async function ensureWebsiteAuthorizationChainFromPowerOfAttorney(input: {
           authorization_document_id: authorizationDocumentId,
           scope_type: "supplier_switch_data",
           status: "active",
-          covers_grid_owner_data: true,
-          covers_current_supplier_contract: true,
-          covers_metering_data: true,
+          covers_grid_owner_data: coversGridOwnerData,
+          covers_current_supplier_contract: coversCurrentSupplierContract,
+          covers_metering_data: coversMeteringData,
+          signed_scope_snapshot: signedScopeSnapshot,
           valid_from: now.slice(0, 10),
           evidence_note:
             "Signerad website-fullmakt verifierad och kopplad till uppgifts-/leverantörsbytesflödet.",
@@ -2667,26 +2677,10 @@ function schemaErrorDetail(error: unknown): {
   return { db_code: code, db_message: message };
 }
 
-function omitKeys<T extends Record<string, unknown>>(
-  payload: T,
-  keys: string[],
-): Record<string, unknown> {
-  const copy: Record<string, unknown> = { ...payload };
-  for (const key of keys) delete copy[key];
-  return copy;
-}
-
 const WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE = "website_application";
-const LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE =
-  "website_application_review";
 const WEBSITE_APPLICATION_CONTRACT_CHANNEL = "external_website";
 const WEBSITE_APPLICATION_READY_CONTRACT_STATUS = "pending_signature";
 const WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS = "signed";
-const WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS = "draft";
-const WEBSITE_CONTRACT_SOURCE_TYPES = [
-  WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
-  LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE,
-];
 const WEBSITE_PORTAL_PROVIDER = "gridex_website";
 
 type RequestAuditMetadata = {
@@ -2696,117 +2690,6 @@ type RequestAuditMetadata = {
   requestId?: string | null;
   traceId?: string | null;
 };
-
-type WebsiteContractRow = {
-  id: string;
-  contract_name: string | null;
-  starts_at: string | null;
-  status: string | null;
-  signed_at?: string | null;
-  withdrawal_deadline_at?: string | null;
-  site_id?: string | null;
-  customer_site_id?: string | null;
-  metering_point_id?: string | null;
-  requested_start_date?: string | null;
-  contract_number?: string | null;
-  price_plan_id?: string | null;
-  price_plan_version_id?: string | null;
-  public_contract_offer_id?: string | null;
-  offer_reference?: string | null;
-  signature_snapshot_sha256?: string | null;
-  confirmed_start_date?: string | null;
-  actual_start_date?: string | null;
-  metadata?: Record<string, unknown> | null;
-};
-
-function sameDate(
-  actual: string | null | undefined,
-  expected: string | null | undefined,
-): boolean {
-  return Boolean(
-    actual &&
-    expected &&
-    String(actual).slice(0, 10) === String(expected).slice(0, 10),
-  );
-}
-
-async function findExistingWebsiteApplicationContract(input: {
-  companyId: string;
-  customerId: string;
-  siteId?: string | null;
-  meteringPointId?: string | null;
-  requestedStartDate?: string | null;
-  pricePlanVersionId?: string | null;
-  publicContractOfferId?: string | null;
-  offerReference?: string | null;
-  idempotencyKey?: string | null;
-}): Promise<WebsiteContractRow | null> {
-  const { data, error } = await supabaseService
-    .from("customer_contracts")
-    .select(
-      "id,contract_name,starts_at,status,signed_at,withdrawal_deadline_at,site_id,customer_site_id,metering_point_id,requested_start_date,contract_number,price_plan_id,price_plan_version_id,public_contract_offer_id,offer_reference,signature_snapshot_sha256,confirmed_start_date,actual_start_date,metadata",
-    )
-    .eq("company_id", input.companyId)
-    .eq("customer_id", input.customerId)
-    .in("source_type", WEBSITE_CONTRACT_SOURCE_TYPES)
-    .order("created_at", { ascending: false })
-    .limit(25);
-
-  if (error) {
-    if (missingSchema(error)) return null;
-    throw error;
-  }
-
-  const rows = (data ?? []) as WebsiteContractRow[];
-  if (input.idempotencyKey) {
-    return (
-      rows.find((row) => {
-        const meta = isObject(row.metadata) ? row.metadata : {};
-        return (
-          meta.website_application_idempotency_key === input.idempotencyKey
-        );
-      }) ?? null
-    );
-  }
-
-  // No wildcard matching. A second website application may only reuse a
-  // contract when the complete canonical business identity is identical.
-  if (
-    !input.siteId ||
-    !input.requestedStartDate ||
-    !input.pricePlanVersionId ||
-    !input.publicContractOfferId ||
-    !input.offerReference
-  ) {
-    return null;
-  }
-
-  return (
-    rows.find((row) => {
-      // A completed legal agreement is immutable. Only an unfinished contract
-      // may be recovered without the original Idempotency-Key.
-      if (
-        ["signed", "active", "ended", "cancelled", "terminated"].includes(
-          String(row.status ?? "").toLowerCase(),
-        )
-      ) {
-        return false;
-      }
-      const rowSiteId = row.customer_site_id ?? row.site_id ?? null;
-      return (
-        rowSiteId === input.siteId &&
-        (row.metering_point_id ?? null) === (input.meteringPointId ?? null) &&
-        sameDate(
-          row.requested_start_date ?? row.starts_at ?? null,
-          input.requestedStartDate,
-        ) &&
-        row.price_plan_version_id === input.pricePlanVersionId &&
-        row.public_contract_offer_id === input.publicContractOfferId &&
-        row.offer_reference === input.offerReference
-      );
-    }) ?? null
-  );
-}
 
 function timelineEvent(
   type: string,
@@ -3316,7 +3199,7 @@ function enrichApplicationWithEnergyResolution(
 
 async function runEnergyResolution(input: {
   companyId: string;
-  customerId: string;
+  customerId?: string | null;
   customerSiteId?: string | null;
   customerApplicationId?: string | null;
   body: ApplicationInput;
@@ -4698,8 +4581,8 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
     if (contractDocumentError) throw contractDocumentError;
   }
 
-  await seedDefaultEmailTemplates(input.companyId).catch(() => null);
-  await seedDefaultEmailEventRules(input.companyId).catch(() => null);
+  await seedDefaultEmailTemplates(input.companyId);
+  await seedDefaultEmailEventRules(input.companyId);
 
   const legalMailReady = Boolean(
     input.contract?.status === WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS &&
@@ -4792,45 +4675,6 @@ async function loadExistingIdentity(
   } | null;
 }
 
-async function findExistingCustomer(
-  companyId: string,
-  input: ApplicationInput,
-): Promise<{
-  customer: CustomerRow | null;
-  matchDecision: CustomerMatchDecision;
-}> {
-  const matchDecision = await matchCustomerIdentity({
-    companyId,
-    personalNumber: clean(input.customer.personal_number),
-    orgNumber: clean(input.customer.org_number),
-    email: clean(input.customer.email),
-    phone: clean(input.customer.phone),
-    select: "id,customer_number,email,full_name,company_name",
-  });
-
-  if (matchDecision.outcome === "matched") {
-    return { customer: matchDecision.customer as CustomerRow, matchDecision };
-  }
-
-  if (matchDecision.outcome === "ambiguous") {
-    // Legacy behavior linked to the most recent candidate; keep the link so
-    // repeat applications do not create duplicates, but the caller marks the
-    // customer for duplicate review instead of silently merging.
-    const candidate =
-      matchDecision.candidates.find(
-        (entry) => entry.matchedBy === matchDecision.matchedBy,
-      )?.customer ??
-      matchDecision.candidates[0]?.customer ??
-      null;
-    return {
-      customer: (candidate as CustomerRow | null) ?? null,
-      matchDecision,
-    };
-  }
-
-  return { customer: null, matchDecision };
-}
-
 async function upsertPortalIdentity(input: {
   client: IntegrationApiClient;
   customerId: string;
@@ -4882,660 +4726,6 @@ async function upsertPortalIdentity(input: {
 
   if (error) throw error;
   return data as { id: string };
-}
-
-async function createOrUpdateCustomer(
-  client: IntegrationApiClient,
-  input: ApplicationInput,
-): Promise<{
-  customer: CustomerRow;
-  created: boolean;
-  customerNumberAssigned: boolean;
-}> {
-  const { customer: existing, matchDecision } = await findExistingCustomer(
-    client.company_id,
-    input,
-  );
-  const customer = input.customer;
-  const name = fullName(customer);
-  const email = normalizedEmail(customer.email);
-  const customerNumber =
-    existing?.customer_number ??
-    (await reserveCustomerNumber(client.company_id));
-  const externalCustomerId = clean(input.external_customer_id);
-  const now = new Date().toISOString();
-
-  if (existing) {
-    const updatePayload = {
-      customer_number: customerNumber,
-      // Keep customers.external_customer_id in sync so tenant-scoped portal
-      // resolution can fall back to it without a portal identity row.
-      ...(externalCustomerId
-        ? { external_customer_id: externalCustomerId }
-        : {}),
-      email: email ?? existing.email,
-      phone: clean(customer.phone),
-      full_name: name ?? existing.full_name,
-      company_name: clean(customer.company_name) ?? existing.company_name,
-      // Store identity in the canonical columns when the application provides it
-      // (under any documented alias). Only set when present so a later
-      // application never wipes an identity captured earlier. This is what makes
-      // POA externally sendable when identity was missing on first contact.
-      ...(digits(customer.personal_number)
-        ? { personal_number: digits(customer.personal_number) }
-        : {}),
-      ...(digits(customer.org_number)
-        ? { org_number: digits(customer.org_number) }
-        : {}),
-      invoice_email:
-        normalizedEmail(customer.invoice_email) ?? email ?? undefined,
-      billing_street: clean(customer.billing_street) ?? undefined,
-      billing_postal_code: clean(customer.billing_postal_code) ?? undefined,
-      billing_city: clean(customer.billing_city) ?? undefined,
-      billing_country: clean(customer.billing_country) ?? "SE",
-      source: "external_website",
-      updated_at: now,
-      // Ambiguous identity matches must never be silently merged: flag the
-      // linked customer for duplicate review so it lands in the review queue.
-      ...(matchDecision.needsReview
-        ? { possible_duplicate: true, duplicate_review_status: "pending" }
-        : {}),
-      metadata: {
-        source: "website_customer_applications",
-        api_client_id: client.id,
-        customer_match: matchDecision.auditMetadata,
-      },
-    };
-
-    const { data, error } = await supabaseService
-      .from("customers")
-      .update(updatePayload)
-      .eq("company_id", client.company_id)
-      .eq("id", existing.id)
-      .select("id,customer_number,email,full_name,company_name")
-      .single();
-    if (error && !missingSchema(error)) throw error;
-    if (data)
-      return {
-        customer: data as CustomerRow,
-        created: false,
-        customerNumberAssigned: !existing.customer_number,
-      };
-
-    const fallback = await supabaseService
-      .from("customers")
-      .update({
-        customer_number: customerNumber,
-        email: email ?? existing.email,
-        full_name: name ?? existing.full_name,
-        updated_at: now,
-      })
-      .eq("company_id", client.company_id)
-      .eq("id", existing.id)
-      .select("id,customer_number,email,full_name,company_name")
-      .single();
-    if (fallback.error) throw fallback.error;
-    return {
-      customer: fallback.data as CustomerRow,
-      created: false,
-      customerNumberAssigned: !existing.customer_number,
-    };
-  }
-
-  const insertPayload = {
-    company_id: client.company_id,
-    customer_type: customer.customer_type,
-    status: "active",
-    first_name: clean(customer.first_name),
-    last_name: clean(customer.last_name),
-    full_name: name,
-    company_name: clean(customer.company_name),
-    personal_number: digits(customer.personal_number),
-    org_number: digits(customer.org_number),
-    email,
-    phone: clean(customer.phone),
-    customer_number: customerNumber,
-    ...(externalCustomerId ? { external_customer_id: externalCustomerId } : {}),
-    invoice_email: normalizedEmail(customer.invoice_email) ?? email,
-    billing_street: clean(customer.billing_street),
-    billing_postal_code: clean(customer.billing_postal_code),
-    billing_city: clean(customer.billing_city),
-    billing_country: clean(customer.billing_country) ?? "SE",
-    source: "external_website",
-    metadata: {
-      source: "website_customer_applications",
-      api_client_id: client.id,
-      customer_match: matchDecision.auditMetadata,
-    },
-  };
-
-  const { data, error } = await supabaseService
-    .from("customers")
-    .insert(insertPayload)
-    .select("id,customer_number,email,full_name,company_name")
-    .single();
-
-  if (error && !missingSchema(error)) throw error;
-  if (data)
-    return {
-      customer: data as CustomerRow,
-      created: true,
-      customerNumberAssigned: true,
-    };
-
-  const fallback = await supabaseService
-    .from("customers")
-    .insert({
-      company_id: client.company_id,
-      customer_type: customer.customer_type,
-      status: "active",
-      full_name: name,
-      email,
-      phone: clean(customer.phone),
-      customer_number: customerNumber,
-    })
-    .select("id,customer_number,email,full_name,company_name")
-    .single();
-
-  if (fallback.error) throw fallback.error;
-  return {
-    customer: fallback.data as CustomerRow,
-    created: true,
-    customerNumberAssigned: true,
-  };
-}
-
-async function upsertSite(
-  companyId: string,
-  customerId: string,
-  input: ApplicationInput,
-): Promise<{ id: string; facility_id: string | null } | null> {
-  const site = input.site;
-  if (!site) return null;
-  const facilityId = normalizeFacilityId(site.facility_id);
-  let crossTenantFacilitySeen = false;
-
-  if (facilityId) {
-    const conflicts = await findFacilityConflicts({
-      companyId,
-      customerId,
-      facilityId,
-    });
-    crossTenantFacilitySeen = conflicts.crossTenantExists;
-    const sameTenantConflict = conflicts.sameTenant[0];
-    if (sameTenantConflict) {
-      throw new WebsiteApplicationError({
-        message:
-          "Anläggnings-ID finns redan hos en annan kund i samma bolag. Skapa inte dubblett; länka eller granska befintlig anläggning.",
-        status: 409,
-        code: "duplicate_facility_id",
-        stage: "site_create",
-        details: {
-          facility_id: facilityId,
-          existing_site_id: sameTenantConflict.id,
-        },
-      });
-    }
-
-    const { data: existing, error: existingError } = await supabaseService
-      .from("customer_sites")
-      .select("id,facility_id")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .eq("facility_id", facilityId)
-      .limit(1)
-      .maybeSingle();
-    if (existingError) throw existingError;
-    if (existing?.id) {
-      await patchWebsiteSiteCanonicalFields(
-        companyId,
-        customerId,
-        String(existing.id),
-        input,
-        facilityId,
-      );
-      return existing as { id: string; facility_id: string | null };
-    }
-  }
-
-  const hasSiteData = Boolean(
-    facilityId || clean(site.street) || clean(site.city),
-  );
-  if (!hasSiteData) return null;
-
-  // A complete website address is provisioned atomically with the new site.
-  // This prevents a draft site without address history from being left behind
-  // if the address commit fails.
-  if (clean(site.street) && clean(site.postal_code) && clean(site.city)) {
-    const created = await createOrUpdateCustomerSiteFromAddress({
-      companyId,
-      customerId,
-      siteName: clean(site.site_name) ?? "Anläggning",
-      facilityId,
-      address: {
-        street: clean(site.street) ?? "",
-        postalCode: clean(site.postal_code) ?? "",
-        city: clean(site.city) ?? "",
-        country: clean(site.country) ?? "SE",
-        source: "website",
-        sourceReference: null,
-        claimedGridOwnerId:
-          clean(site.grid_owner_id) ?? clean(site.gridOwnerId),
-        claimedGridAreaCode:
-          clean(site.grid_area_code) ?? clean(site.gridAreaCode),
-        claimedPriceAreaCode:
-          clean(site.price_area_code) ?? clean(site.price_area),
-        metadata: {
-          source: "website_customer_applications",
-          cross_tenant_facility_seen: crossTenantFacilitySeen,
-          platform_only: crossTenantFacilitySeen,
-        },
-      },
-    });
-    await patchWebsiteSiteCanonicalFields(
-      companyId,
-      customerId,
-      created.siteId,
-      input,
-      facilityId,
-    );
-    return { id: created.siteId, facility_id: facilityId };
-  }
-
-  // Explicit/enriched grid context must be persisted on the site columns even
-  // when the address is incomplete. Previously these were forced to null and
-  // only kept in metadata.claimed_*, which lost valid submitted values
-  // (e.g. grid_area_code/price_area_code) for downstream route resolution.
-  const fullPayload = {
-    company_id: companyId,
-    customer_id: customerId,
-    ...websiteSiteCanonicalFields(input, { facilityId, status: "active" }),
-    site_name: clean(site.site_name) ?? "Anläggning",
-    facility_id: facilityId,
-    site_type: clean(site.site_type) ?? "consumption",
-    status: "active",
-    country: clean(site.country) ?? "SE",
-    metadata: {
-      source: "website_customer_applications",
-      address_source: "website",
-      claimed_grid_owner_id: explicitSiteGridOwnerId(input),
-      claimed_grid_area_code: explicitSiteGridAreaCode(input),
-      claimed_price_area_code: explicitSitePriceAreaCode(input),
-      energy_resolution: input.metadata?.energy_resolution ?? null,
-      cross_tenant_facility_seen: crossTenantFacilitySeen,
-      platform_only: crossTenantFacilitySeen,
-    },
-  };
-
-  const { data, error } = await supabaseService
-    .from("customer_sites")
-    .insert(fullPayload)
-    .select("id,facility_id")
-    .single();
-
-  if (error && !missingSchema(error)) throw error;
-  if (data) return data as { id: string; facility_id: string | null };
-
-  const fallbackPayloads: Array<Record<string, unknown>> = [
-    {
-      company_id: companyId,
-      customer_id: customerId,
-      site_name: clean(site.site_name) ?? "Anläggning",
-      facility_id: facilityId,
-      status: "active",
-    },
-    {
-      company_id: companyId,
-      customer_id: customerId,
-      site_name: clean(site.site_name) ?? "Anläggning",
-      status: "active",
-    },
-  ];
-
-  let lastFallbackError: unknown = null;
-  for (const payload of fallbackPayloads) {
-    const fallback = await supabaseService
-      .from("customer_sites")
-      .insert(payload)
-      .select("id")
-      .single();
-    if (fallback.data?.id)
-      return { id: String(fallback.data.id), facility_id: facilityId };
-    if (fallback.error && !missingSchema(fallback.error)) throw fallback.error;
-    lastFallbackError = fallback.error;
-  }
-
-  throw new WebsiteApplicationError({
-    message:
-      "Kundansökan kunde inte skapa anläggning eftersom customer_sites-schemat inte matchar koden.",
-    status: 500,
-    code: "customer_site_schema_mismatch",
-    stage: "site_create",
-    details: lastFallbackError,
-  });
-}
-
-async function patchMeteringPointCanonicalFields(input: {
-  companyId: string;
-  customerId: string;
-  meteringPointId: string;
-  siteId: string;
-  application: ApplicationInput;
-  facilityId?: string | null;
-}): Promise<void> {
-  const priceAreaCode = explicitMeteringPriceAreaCode(input.application);
-  const gridAreaCode = explicitMeteringGridAreaCode(input.application);
-  const gridOwnerId = explicitMeteringGridOwnerId(input.application);
-  const startDate =
-    clean(input.application.metering_point?.start_date) ??
-    clean(input.application.metering_point?.installation_date) ??
-    requestedSiteMoveInDate(input.application);
-  const annualConsumption = requestedAnnualConsumption(input.application);
-  const siteFacilityId =
-    clean(input.application.metering_point?.site_facility_id) ??
-    clean(input.application.metering_point?.anlage_id) ??
-    input.facilityId ??
-    null;
-
-  const patch = stripUndefined({
-    site_id: input.siteId,
-    customer_site_id: input.siteId,
-    metering_point_id: input.meteringPointId,
-    meter_point_id: input.meteringPointId,
-    ediel_metering_point_id: input.meteringPointId,
-    anlage_id:
-      clean(input.application.metering_point?.anlage_id) ??
-      siteFacilityId ??
-      undefined,
-    site_facility_id: siteFacilityId ?? undefined,
-    grid_area_code: gridAreaCode ?? undefined,
-    price_area_code: priceAreaCode ?? undefined,
-    bidding_zone_code: priceAreaCode ?? undefined,
-    grid_owner_id: gridOwnerId ?? undefined,
-    estimated_annual_consumption_kwh: annualConsumption ?? undefined,
-    start_date: startDate ?? undefined,
-    installation_date:
-      clean(input.application.metering_point?.installation_date) ??
-      startDate ??
-      undefined,
-    updated_at: new Date().toISOString(),
-  });
-
-  const result = await supabaseService
-    .from("metering_points")
-    .update(patch)
-    .eq("company_id", input.companyId)
-    .eq("customer_id", input.customerId)
-    .eq("id", input.meteringPointId);
-
-  if (!result.error) return;
-  if (!missingSchema(result.error)) throw result.error;
-
-  // Compatibility fallback for environments that have not yet reloaded optional
-  // canonical columns. Keep the proven legacy identifiers instead of silently
-  // returning an unpatched row; the migration below adds the canonical columns.
-  const fallback = { ...patch };
-  delete fallback.grid_area_code;
-  delete fallback.grid_owner_id;
-  delete fallback.bidding_zone_code;
-  delete fallback.anlage_id;
-  delete fallback.site_facility_id;
-  delete fallback.estimated_annual_consumption_kwh;
-  const fallbackResult = await supabaseService
-    .from("metering_points")
-    .update(fallback)
-    .eq("company_id", input.companyId)
-    .eq("customer_id", input.customerId)
-    .eq("id", input.meteringPointId);
-  if (fallbackResult.error && !missingSchema(fallbackResult.error))
-    throw fallbackResult.error;
-  if (fallbackResult.error && missingSchema(fallbackResult.error)) {
-    console.warn(
-      "[website-applications] metering point canonical patch skipped because metering_points schema differs",
-      fallbackResult.error,
-    );
-  }
-}
-
-async function upsertMeteringPoint(
-  companyId: string,
-  customerId: string,
-  site: { id: string; facility_id: string | null } | null,
-  input: ApplicationInput,
-) {
-  const metering = input.metering_point;
-  const meteringPointId =
-    clean(metering?.metering_point_id) ??
-    clean(metering?.meter_point_id) ??
-    clean(metering?.ediel_metering_point_id) ??
-    clean(metering?.anlage_id) ??
-    clean(metering?.site_facility_id) ??
-    clean(input.site?.facility_id) ??
-    site?.facility_id ??
-    null;
-  if (!meteringPointId || !site?.id) return null;
-
-  const matchExpression = [
-    `metering_point_id.eq.${meteringPointId}`,
-    `meter_point_id.eq.${meteringPointId}`,
-    `ediel_metering_point_id.eq.${meteringPointId}`,
-  ].join(",");
-
-  const { data: existing, error: existingError } = await supabaseService
-    .from("metering_points")
-    .select("id,metering_point_id,meter_point_id,ediel_metering_point_id")
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId)
-    .or(`site_id.eq.${site.id},customer_site_id.eq.${site.id}`)
-    .or(matchExpression)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (existingError && !missingSchema(existingError)) throw existingError;
-  if (existing?.id) {
-    await patchMeteringPointCanonicalFields({
-      companyId,
-      customerId,
-      meteringPointId: String(existing.id),
-      siteId: site.id,
-      application: input,
-      facilityId: site.facility_id,
-    });
-    return {
-      id: String(existing.id),
-      metering_point_id:
-        clean(existing.metering_point_id) ??
-        clean(existing.meter_point_id) ??
-        clean(existing.ediel_metering_point_id) ??
-        meteringPointId,
-    };
-  }
-
-  if (existingError && missingSchema(existingError)) {
-    const fallbackExisting = await supabaseService
-      .from("metering_points")
-      .select("id,metering_point_id,meter_point_id")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .eq("site_id", site.id)
-      .or(
-        `metering_point_id.eq.${meteringPointId},meter_point_id.eq.${meteringPointId}`,
-      )
-      .limit(1)
-      .maybeSingle();
-    if (fallbackExisting.error && !missingSchema(fallbackExisting.error))
-      throw fallbackExisting.error;
-    if (fallbackExisting.data?.id) {
-      await patchMeteringPointCanonicalFields({
-        companyId,
-        customerId,
-        meteringPointId: String(fallbackExisting.data.id),
-        siteId: site.id,
-        application: input,
-        facilityId: site.facility_id,
-      });
-      return {
-        id: String(fallbackExisting.data.id),
-        metering_point_id:
-          clean(fallbackExisting.data.metering_point_id) ??
-          clean(fallbackExisting.data.meter_point_id) ??
-          meteringPointId,
-      };
-    }
-  }
-
-  const readingFrequency = clean(metering?.reading_frequency) ?? "monthly";
-  const measurementType = clean(metering?.measurement_type) ?? "consumption";
-  const startDate =
-    clean(metering?.start_date) ??
-    clean(metering?.installation_date) ??
-    requestedSiteMoveInDate(input);
-  const installationDate = clean(metering?.installation_date) ?? startDate;
-  const annualConsumption = requestedAnnualConsumption(input);
-  const priceAreaCode = explicitMeteringPriceAreaCode(input);
-  const gridAreaCode = explicitMeteringGridAreaCode(input);
-  const gridOwnerId = explicitMeteringGridOwnerId(input);
-  const siteFacilityId =
-    clean(metering?.site_facility_id) ??
-    clean(metering?.anlage_id) ??
-    site.facility_id ??
-    clean(input.site?.facility_id) ??
-    null;
-  const metadata = {
-    source: "website_customer_applications",
-    source_metadata: input.metadata ?? {},
-  };
-
-  const fullPayload = {
-    company_id: companyId,
-    customer_id: customerId,
-    site_id: site.id,
-    customer_site_id: site.id,
-    meter_point_id: meteringPointId,
-    metering_point_id: meteringPointId,
-    ediel_metering_point_id: meteringPointId,
-    anlage_id: clean(metering?.anlage_id) ?? siteFacilityId,
-    site_facility_id: siteFacilityId,
-    status: "active",
-    metering_type: "consumption",
-    measurement_type: measurementType,
-    reading_frequency: readingFrequency,
-    grid_area_code: gridAreaCode,
-    price_area_code: priceAreaCode,
-    bidding_zone_code: priceAreaCode,
-    grid_owner_id: gridOwnerId,
-    start_date: startDate,
-    installation_date: installationDate,
-    is_settlement_relevant: true,
-    data_quality_status: "incomplete",
-    verification_status: "pending",
-    onboarding_status: "application_received",
-    estimated_annual_consumption_kwh: annualConsumption,
-    metadata: {
-      ...metadata,
-      claimed_grid_owner_id: gridOwnerId,
-      claimed_grid_area_code: gridAreaCode,
-      claimed_price_area_code: priceAreaCode,
-    },
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabaseService
-    .from("metering_points")
-    .insert(fullPayload)
-    .select("id,metering_point_id,meter_point_id,ediel_metering_point_id")
-    .single();
-
-  if (error && !missingSchema(error)) throw error;
-  if (data) {
-    return {
-      id: String(data.id),
-      metering_point_id:
-        clean(data.metering_point_id) ??
-        clean(data.meter_point_id) ??
-        clean(data.ediel_metering_point_id) ??
-        meteringPointId,
-    };
-  }
-
-  const fallbackBase = {
-    grid_area_code: gridAreaCode,
-    price_area_code: priceAreaCode,
-    bidding_zone_code: priceAreaCode,
-    grid_owner_id: gridOwnerId,
-    customer_site_id: site.id,
-    site_id: site.id,
-    anlage_id: clean(metering?.anlage_id) ?? siteFacilityId,
-    site_facility_id: siteFacilityId,
-    estimated_annual_consumption_kwh: annualConsumption,
-    start_date: startDate,
-    installation_date: installationDate,
-  };
-  const fallbackPayloads: Array<Record<string, unknown>> = [
-    stripUndefined({
-      company_id: companyId,
-      customer_id: customerId,
-      ...fallbackBase,
-      metering_point_id: meteringPointId,
-      status: "active",
-    }),
-    stripUndefined({
-      company_id: companyId,
-      customer_id: customerId,
-      ...fallbackBase,
-      metering_point_id: meteringPointId,
-      status: "active",
-    }),
-    stripUndefined({
-      company_id: companyId,
-      customer_id: customerId,
-      ...fallbackBase,
-      meter_point_id: meteringPointId,
-      status: "active",
-    }),
-    {
-      company_id: companyId,
-      customer_id: customerId,
-      site_id: site.id,
-      metering_point_id: meteringPointId,
-      status: "active",
-    },
-  ];
-
-  let lastFallbackError: unknown = null;
-  for (const payload of fallbackPayloads) {
-    const fallback = await supabaseService
-      .from("metering_points")
-      .insert(payload)
-      .select("id")
-      .single();
-    if (fallback.data?.id) {
-      await patchMeteringPointCanonicalFields({
-        companyId,
-        customerId,
-        meteringPointId: String(fallback.data.id),
-        siteId: site.id,
-        application: input,
-        facilityId: site.facility_id,
-      });
-      return {
-        id: String(fallback.data.id),
-        metering_point_id: meteringPointId,
-      };
-    }
-    if (fallback.error && !missingSchema(fallback.error)) throw fallback.error;
-    lastFallbackError = fallback.error;
-  }
-
-  throw new WebsiteApplicationError({
-    message:
-      "Kundansökan kunde inte skapa mätpunkt eftersom metering_points-schemat inte matchar koden.",
-    status: 500,
-    code: "metering_point_schema_mismatch",
-    stage: "metering_point_create",
-    details: lastFallbackError,
-  });
 }
 
 type WebsiteContractCreateResult = {
@@ -5603,162 +4793,6 @@ function selectedOfferFields(
     productCode: offer?.product_code ?? clean(contract?.product_code) ?? null,
     billingModel: offer?.billing_model ?? null,
   };
-}
-
-async function createContractPriceSnapshot(input: {
-  companyId: string;
-  customerId: string;
-  contractId: string;
-  offer: PublicContractOffer | null;
-  contract: ApplicationInput["contract"];
-  contractNumber: string | null;
-  customerNumber: string | null;
-  readiness: WebsiteApplicationReadiness;
-  consents?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
-}) {
-  const selected = selectedOfferFields(input.offer, input.contract);
-  const compatibilitySnapshot = buildCanonicalContractSnapshot({
-    contractType: selected.contractType,
-    billingModel: selected.billingModel,
-    productCode: selected.productCode,
-    monthlyFeeSek: selected.monthlyFeeSek,
-    invoiceFeeSek: selected.invoiceFeeSek,
-    markupOrePerKwh: selected.markupOrePerKwh,
-    spotMarkupOrePerKwh: selected.spotMarkupOrePerKwh,
-    variableFeeOrePerKwh: selected.variableFeeOrePerKwh,
-    fixedPriceOrePerKwh: selected.fixedPriceOrePerKwh,
-    greenFeeMode: selected.greenFeeMode,
-    greenFeeValue: selected.greenFeeValue,
-    spotWeightPercent: input.offer?.spot_weight_percent ?? null,
-    portfolioWeightPercent: input.offer?.portfolio_weight_percent ?? null,
-    fixedWeightPercent: input.offer?.fixed_weight_percent ?? null,
-    validFrom:
-      input.readiness.requestedStartDate ?? input.offer?.valid_from ?? null,
-    validTo: input.offer?.valid_to ?? null,
-  });
-  const exactPricingSnapshot = input.offer?.pricing_snapshot ?? {};
-  const exactBaseComponents = Array.isArray(
-    exactPricingSnapshot.base_components,
-  )
-    ? exactPricingSnapshot.base_components
-    : Array.isArray(exactPricingSnapshot.base_price_components_snapshot)
-      ? exactPricingSnapshot.base_price_components_snapshot
-      : compatibilitySnapshot.basePriceComponents;
-  const exactPriceComponents = Array.isArray(
-    exactPricingSnapshot.price_components,
-  )
-    ? exactPricingSnapshot.price_components
-    : Array.isArray(exactPricingSnapshot.price_components_snapshot)
-      ? exactPricingSnapshot.price_components_snapshot
-      : compatibilitySnapshot.priceComponents;
-  const exactVatRate = numericValue(exactPricingSnapshot.vat_rate);
-  const canonicalSnapshot = {
-    pricingModel: compatibilitySnapshot.pricingModel,
-    basePriceComponents: exactBaseComponents,
-    priceComponents: exactPriceComponents,
-    vatRate: exactVatRate ?? compatibilitySnapshot.vatRate,
-  };
-  assertCanonicalSnapshot(canonicalSnapshot);
-
-  const snapshotJson = {
-    source: "website_customer_applications",
-    legal_snapshot_type: "website_contract_acceptance",
-    customer_number: input.customerNumber,
-    contract_number: input.contractNumber,
-    contract_name: selected.contractName,
-    contract_type: selected.contractType,
-    product_code: selected.productCode,
-    billing_model: selected.billingModel,
-    price_plan_id: selected.pricePlanId,
-    price_plan_version_id: selected.pricePlanVersionId,
-    public_contract_offer_id: selected.publicContractOfferId,
-    contract_offer_id: selected.internalContractOfferId,
-    campaign_version_id: selected.campaignVersionId,
-    terms_version: selected.termsVersion,
-    public_price_text: input.offer?.public_price_text ?? null,
-    terms_url: input.offer?.terms_url ?? null,
-    pricing_model: canonicalSnapshot.pricingModel,
-    snapshot_schema: "gridex_contract_pricing_v5",
-    pricing_source_schema_version:
-      numericValue(exactPricingSnapshot.schema_version) ?? 5,
-    portfolio_method: isObject(exactPricingSnapshot.portfolio_method)
-      ? exactPricingSnapshot.portfolio_method
-      : null,
-    portfolio_historical_final_prices: Array.isArray(
-      exactPricingSnapshot.portfolio_monthly_prices,
-    )
-      ? exactPricingSnapshot.portfolio_monthly_prices
-      : [],
-    portfolio_indications: Array.isArray(
-      exactPricingSnapshot.portfolio_indications,
-    )
-      ? exactPricingSnapshot.portfolio_indications
-      : [],
-    portfolio_indications_non_binding: true,
-    final_portfolio_billing_requires: "locked_settlement",
-    website_visibility: exactPricingSnapshot.website_visibility ?? {},
-    vat_rate: canonicalSnapshot.vatRate,
-    mix: {
-      spot_weight_percent: input.offer?.spot_weight_percent ?? null,
-      portfolio_weight_percent: input.offer?.portfolio_weight_percent ?? null,
-      fixed_weight_percent: input.offer?.fixed_weight_percent ?? null,
-    },
-    base_price_components_snapshot: canonicalSnapshot.basePriceComponents,
-    price_components_snapshot: canonicalSnapshot.priceComponents,
-    requested_start_date: input.readiness.requestedStartDate,
-    requested_start_mode: input.readiness.requestedStartMode,
-    calculated_earliest_start_date: input.readiness.calculatedEarliestStartDate,
-    missing_fields: input.readiness.missingFields,
-    blocking_reasons: input.readiness.blockingReasons,
-    consents: input.consents ?? {},
-    public_offer: input.offer ?? null,
-    source_metadata: input.metadata ?? {},
-  };
-
-  const { data, error } = await supabaseService
-    .from("contract_price_snapshots")
-    .insert({
-      company_id: input.companyId,
-      contract_id: input.contractId,
-      customer_id: input.customerId,
-      contract_number: input.contractNumber,
-      public_contract_offer_id: input.offer?.id ?? null,
-      public_price_text: input.offer?.public_price_text ?? null,
-      terms_url: input.offer?.terms_url ?? null,
-      spot_weight_percent: input.offer?.spot_weight_percent ?? null,
-      portfolio_weight_percent: input.offer?.portfolio_weight_percent ?? null,
-      fixed_weight_percent: input.offer?.fixed_weight_percent ?? null,
-      customer_number: input.customerNumber,
-      source: "website_customer_applications",
-      price_plan_version_id: selected.pricePlanVersionId,
-      campaign_version_id: selected.campaignVersionId,
-      pricing_model: canonicalSnapshot.pricingModel,
-      base_price_components_snapshot: canonicalSnapshot.basePriceComponents,
-      price_components_snapshot: canonicalSnapshot.priceComponents,
-      snapshot_json: snapshotJson,
-      valid_from: input.readiness.requestedStartDate ?? null,
-      valid_to: input.offer?.valid_to ?? null,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    if (missingSchema(error)) {
-      throw new WebsiteApplicationError({
-        message:
-          "Avtalets prissnapshot kunde inte skapas eftersom databasschemat saknar nödvändiga prisfält.",
-        status: 500,
-        code: "contract_price_snapshot_schema_missing",
-        stage: "contract_snapshot_create",
-        hint: "Kör senaste prismotor- och kontraktsmigrationer innan webbavtal tillåts.",
-        details: error,
-      });
-    }
-    throw error;
-  }
-
-  return String(data.id);
 }
 
 function websiteLegalVersionsSnapshot(
@@ -5924,371 +4958,6 @@ async function finalizeWebsiteContractSignature(input: {
     },
     acceptanceIds,
   };
-}
-
-async function createContract(
-  companyId: string,
-  customerId: string,
-  siteId: string | null,
-  meteringPointId: string | null,
-  input: ApplicationInput,
-  readiness: WebsiteApplicationReadiness,
-  customerNumber: string,
-  publicOffer: PublicContractOffer | null,
-  options: {
-    idempotencyKey?: string | null;
-    applicationNumber?: string | null;
-    applicationId?: string | null;
-    offerReference?: string | null;
-    agreementAcceptedAt?: string | null;
-    legalVersions?: WebsiteLegalAcceptanceVersion[];
-    requestAudit?: RequestAuditMetadata;
-  } = {},
-): Promise<WebsiteContractCreateResult | null> {
-  const contract = input.contract;
-  if (!contract && !publicOffer && !readiness.canCreateContract) return null;
-  const selected = selectedOfferFields(publicOffer, contract);
-  const canonicalOfferReference = publicOffer
-    ? publicOfferReference(publicOffer)
-    : null;
-  if (
-    publicOffer &&
-    (!options.offerReference ||
-      options.offerReference !== canonicalOfferReference)
-  ) {
-    throw new WebsiteApplicationError({
-      message:
-        "offer_reference matchar inte längre det publicerade erbjudandet.",
-      status: 422,
-      code: "offer_reference_mismatch",
-      field: "offer_reference",
-      stage: "public_contract_lookup",
-      hint: "Hämta avtalet på nytt via public-contracts och skicka exakt offer_reference.",
-    });
-  }
-
-  // Fail closed on broken offer -> price plan mapping: a resolved public offer
-  // MUST carry price_plan_id and price_plan_version_id UUIDs. A contract
-  // written without that linkage would silently detach billing/pricing from
-  // the published offer and later block supplier switch with a vague error.
-  if (
-    publicOffer &&
-    (!isUuid(selected.pricePlanId) || !isUuid(selected.pricePlanVersionId))
-  ) {
-    throw new WebsiteApplicationError({
-      message:
-        "Det publicerade avtalet saknar giltig prisplan (price_plan_id/price_plan_version_id). Ansökan blockeras tills prisplanskopplingen är åtgärdad.",
-      status: 422,
-      code: "public_offer_price_plan_mapping_invalid",
-      field: "offer_reference",
-      stage: "contract_create",
-      hint: "Kontrollera att public_contract_offers-raden pekar på en aktiv price_plans/price_plan_versions-rad (UUID) och publicera om avtalet.",
-      details: {
-        public_contract_offer_id: selected.publicContractOfferId,
-        contract_offer_id: selected.internalContractOfferId,
-        offer_reference: canonicalOfferReference,
-        price_plan_id: selected.pricePlanId,
-        price_plan_version_id: selected.pricePlanVersionId,
-      },
-    });
-  }
-  const requestedStartDate =
-    readiness.requestedStartDate ??
-    clean(contract?.requested_start_date) ??
-    clean(contract?.requestedStartDate) ??
-    clean(contract?.starts_at) ??
-    clean(contract?.expected_start_at) ??
-    clean(input.site?.move_in_date);
-  const confirmedStartDate =
-    readiness.confirmedStartDate ??
-    clean(contract?.confirmed_start_date) ??
-    clean(contract?.confirmedStartDate);
-  const actualStartDate =
-    readiness.actualStartDate ??
-    clean(contract?.actual_start_date) ??
-    clean(contract?.actualStartDate);
-  const now = new Date().toISOString();
-  const contractStatus = publicOffer
-    ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS
-    : readiness.canStartSwitch
-      ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS
-      : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS;
-
-  const existingContract = await findExistingWebsiteApplicationContract({
-    companyId,
-    customerId,
-    siteId,
-    meteringPointId,
-    requestedStartDate,
-    pricePlanVersionId: selected.pricePlanVersionId,
-    publicContractOfferId: selected.publicContractOfferId,
-    offerReference: canonicalOfferReference,
-    idempotencyKey: options.idempotencyKey ?? null,
-  });
-  if (existingContract) {
-    return {
-      id: existingContract.id,
-      contract_name: existingContract.contract_name,
-      starts_at: existingContract.starts_at,
-      status: existingContract.status ?? contractStatus,
-      signed_at: existingContract.signed_at ?? null,
-      withdrawal_deadline_at: existingContract.withdrawal_deadline_at ?? null,
-      public_contract_offer_id:
-        existingContract.public_contract_offer_id ??
-        selected.publicContractOfferId,
-      offer_reference:
-        existingContract.offer_reference ?? canonicalOfferReference,
-      signature_snapshot_sha256:
-        existingContract.signature_snapshot_sha256 ?? null,
-      contract_number: existingContract.contract_number ?? null,
-      price_plan_id: existingContract.price_plan_id ?? selected.pricePlanId,
-      price_plan_version_id:
-        existingContract.price_plan_version_id ?? selected.pricePlanVersionId,
-    };
-  }
-
-  const contractNumber =
-    clean(contract?.contract_number) ??
-    (await reserveContractNumber({ companyId, customerNumber }));
-  const feeLines = [
-    {
-      source: "website_customer_applications",
-      metering_point_id: meteringPointId,
-      consents: input.consents ?? {},
-      source_metadata: input.metadata ?? {},
-      public_offer: publicOffer,
-    },
-  ];
-
-  const fullPayload = {
-    company_id: companyId,
-    customer_id: customerId,
-    site_id: siteId,
-    customer_site_id: siteId,
-    metering_point_id: meteringPointId,
-    source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
-    status: contractStatus,
-    contract_number: contractNumber,
-    contract_name: selected.contractName,
-    contract_type: selected.contractType,
-    price_plan_id: selected.pricePlanId,
-    price_plan_version_id: selected.pricePlanVersionId,
-    contract_offer_id: selected.internalContractOfferId,
-    public_contract_offer_id: selected.publicContractOfferId,
-    offer_reference: canonicalOfferReference,
-    legal_versions_snapshot: websiteLegalVersionsSnapshot(
-      options.legalVersions ?? [],
-    ),
-    signature_snapshot: {},
-    signature_snapshot_sha256: null,
-    signed_ip_hash: null,
-    signed_user_agent: null,
-    is_distance_agreement: Boolean(publicOffer),
-    starts_at: requestedStartDate,
-    expected_start_at: requestedStartDate,
-    requested_start_date: requestedStartDate,
-    requested_start_mode: readiness.requestedStartMode,
-    calculated_earliest_start_date: readiness.calculatedEarliestStartDate,
-    price_area_used: readiness.priceArea,
-    grid_area_code_used: readiness.gridAreaCode,
-    resolution_status: readiness.resolutionStatus,
-    confirmed_start_date: confirmedStartDate,
-    actual_start_date: actualStartDate,
-    // Browser supplied signed_at is deliberately ignored. The signature RPC
-    // writes the server acceptance timestamp only after exact legal evidence exists.
-    signed_at: null,
-    monthly_fee_sek: selected.monthlyFeeSek,
-    invoice_fee_sek: selected.invoiceFeeSek,
-    markup_ore_per_kwh: selected.markupOrePerKwh,
-    spot_markup_ore_per_kwh: selected.spotMarkupOrePerKwh,
-    variable_fee_ore_per_kwh: selected.variableFeeOrePerKwh,
-    fixed_price_ore_per_kwh: selected.fixedPriceOrePerKwh,
-    green_fee_mode: selected.greenFeeMode,
-    green_fee_value: selected.greenFeeValue,
-    binding_months: contract?.binding_months ?? null,
-    notice_months: contract?.notice_months ?? null,
-    campaign_code: clean(contract?.campaign_code) ?? null,
-    // price_version is a text column: keep a human-readable version name here
-    // even when it is not a UUID (UUID-gated out of price_plan_version_id).
-    price_version:
-      selected.pricePlanVersionId ??
-      clean(contract?.price_version) ??
-      clean(contract?.price_plan_version_id) ??
-      null,
-    terms_version: selected.termsVersion,
-    optional_fee_lines: feeLines,
-    agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
-    metadata: {
-      source: "website_customer_applications",
-      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
-      website_application_idempotency_key: options.idempotencyKey ?? null,
-      application_number: options.applicationNumber ?? null,
-      website_application_id: options.applicationId ?? null,
-      agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
-      contract_number: contractNumber,
-      price_plan_id: selected.pricePlanId,
-      price_plan_version_id: selected.pricePlanVersionId,
-      public_contract_offer_id: selected.publicContractOfferId,
-      contract_offer_id: selected.internalContractOfferId,
-      offer_reference: canonicalOfferReference,
-      agreement_accepted_at: options.agreementAcceptedAt ?? null,
-      legal_versions: websiteLegalVersionsSnapshot(options.legalVersions ?? []),
-      public_offer: publicOffer,
-      metering_point_id: meteringPointId,
-      requested_start_date: requestedStartDate,
-      requested_start_mode: readiness.requestedStartMode,
-      calculated_earliest_start_date: readiness.calculatedEarliestStartDate,
-      price_area_used: readiness.priceArea,
-      grid_area_code_used: readiness.gridAreaCode,
-      resolution_status: readiness.resolutionStatus,
-      confirmed_start_date: confirmedStartDate,
-      actual_start_date: actualStartDate,
-      missing_fields: readiness.missingFields,
-      blocking_reasons: readiness.blockingReasons,
-      source_metadata: input.metadata ?? {},
-    },
-    updated_at: now,
-  };
-
-  if (publicOffer) {
-    const { data, error } = await supabaseService.rpc(
-      "gridex_create_website_customer_contract",
-      {
-        p_company_id: companyId,
-        p_contract_payload: fullPayload,
-        p_customer_number: customerNumber,
-      },
-    );
-    if (error) {
-      throw new WebsiteApplicationError({
-        message: "Kundavtal och exakt prissnapshot kunde inte skapas atomiskt.",
-        status: 500,
-        code: "contract_atomic_create_failed",
-        stage: "contract_create",
-        hint: "Kör den senaste end-to-end-migrationen och kontrollera att erbjudandet fortfarande är publicerat och låst.",
-        details: schemaErrorDetail(error),
-      });
-    }
-    const command = isObject(data) ? data : {};
-    const created = isObject(command.contract) ? command.contract : {};
-    const contractId = clean(created.id);
-    const snapshotId =
-      clean(command.contract_price_snapshot_id) ??
-      clean(created.contract_price_snapshot_id);
-    if (!contractId || !snapshotId) {
-      throw new WebsiteApplicationError({
-        message:
-          "Databasen returnerade inte ett komplett kundavtal med låst prissnapshot.",
-        status: 500,
-        code: "contract_atomic_create_incomplete",
-        stage: "contract_snapshot_create",
-        details: command,
-      });
-    }
-    return {
-      id: contractId,
-      contract_name: clean(created.contract_name),
-      starts_at: clean(created.starts_at),
-      status: clean(created.status) ?? contractStatus,
-      signed_at: clean(created.signed_at),
-      withdrawal_deadline_at: clean(created.withdrawal_deadline_at),
-      public_contract_offer_id:
-        clean(created.public_contract_offer_id) ?? publicOffer.id,
-      offer_reference:
-        clean(created.offer_reference) ?? canonicalOfferReference,
-      signature_snapshot_sha256: clean(created.signature_snapshot_sha256),
-      contract_number: clean(created.contract_number) ?? contractNumber,
-      price_plan_id: clean(created.price_plan_id) ?? selected.pricePlanId,
-      price_plan_version_id:
-        clean(created.price_plan_version_id) ?? selected.pricePlanVersionId,
-      contract_price_snapshot_id: snapshotId,
-    };
-  }
-
-  // Legacy/manual intake still uses schema-compatible fallbacks. Public offers
-  // never enter this path because their contract and snapshot must be atomic.
-  const fallbackPayloads = [
-    fullPayload,
-    omitKeys(fullPayload, [
-      "metadata",
-      "optional_fee_lines",
-      "expected_start_at",
-      "requested_start_date",
-      "confirmed_start_date",
-      "actual_start_date",
-      "agreement_channel",
-      "campaign_code",
-      "price_version",
-      "terms_version",
-      "invoice_fee_sek",
-      "markup_ore_per_kwh",
-    ]),
-  ];
-
-  let firstError: unknown = null;
-  let lastError: unknown = null;
-  for (const payload of fallbackPayloads) {
-    const fallback = await supabaseService
-      .from("customer_contracts")
-      .insert(payload)
-      .select(
-        "id,contract_name,starts_at,status,signed_at,withdrawal_deadline_at,public_contract_offer_id,offer_reference,signature_snapshot_sha256,contract_number,price_plan_id,price_plan_version_id",
-      )
-      .single();
-
-    if (!fallback.error && fallback.data) {
-      const created = fallback.data as WebsiteContractCreateResult;
-      const snapshotId = await createContractPriceSnapshot({
-        companyId,
-        customerId,
-        contractId: created.id,
-        offer: publicOffer,
-        contract,
-        contractNumber: clean(created.contract_number) ?? contractNumber,
-        customerNumber,
-        readiness,
-        consents: input.consents,
-        metadata: input.metadata,
-      });
-      if (!snapshotId) {
-        throw new WebsiteApplicationError({
-          message:
-            "Kundavtalet saknar ett komplett prissnapshot och kan inte slutföras.",
-          status: 500,
-          code: "contract_price_snapshot_missing",
-          stage: "contract_snapshot_create",
-        });
-      }
-      const { error: snapshotLinkError } = await supabaseService
-        .from("customer_contracts")
-        .update({
-          contract_price_snapshot_id: snapshotId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("company_id", companyId)
-        .eq("id", created.id);
-      if (snapshotLinkError && !missingSchema(snapshotLinkError))
-        throw snapshotLinkError;
-      created.contract_price_snapshot_id = snapshotId;
-      return created;
-    }
-
-    firstError = firstError ?? fallback.error;
-    lastError = fallback.error;
-
-    if (fallback.error && !missingSchema(fallback.error)) break;
-  }
-
-  throw new WebsiteApplicationError({
-    message: `Kundavtal kunde inte skapas: ${errorMessage(lastError)}`,
-    status: 500,
-    code: "contract_create_failed",
-    stage: "contract_create",
-    details: {
-      full_error: errorMessage(firstError),
-      fallback_error: errorMessage(lastError),
-    },
-  });
 }
 
 type CreateApplicationRowInput = {
@@ -7246,6 +5915,431 @@ function failureResponse(error: WebsiteApplicationError) {
   };
 }
 
+
+async function onboardCanonicalWebsiteCustomerGraph(input: {
+  client: IntegrationApiClient;
+  body: ApplicationInput;
+  rawBody: unknown;
+  existingCustomerId?: string | null;
+  externalCustomerId: string;
+  applicationRowId: string;
+  applicationNumber: string;
+  publicOffer: PublicContractOffer;
+  offerReference: string;
+  readiness: WebsiteApplicationReadiness;
+  legalVersions: WebsiteLegalAcceptanceVersion[];
+  structuredPoa: NormalizedStructuredPoa | null;
+  agreementAcceptedAt: string;
+  idempotencyKey: string;
+  requestAudit?: RequestAuditMetadata;
+}) {
+  const companyId = input.client.company_id;
+  const customer = input.body.customer;
+  const selected = selectedOfferFields(input.publicOffer, input.body.contract);
+  if (!isUuid(selected.pricePlanId) || !isUuid(selected.pricePlanVersionId)) {
+    throw new WebsiteApplicationError({
+      message: "Det publicerade avtalet saknar verifierad prisplanskoppling.",
+      status: 422,
+      code: "public_offer_price_plan_mapping_invalid",
+      field: "offer_reference",
+      stage: "contract_create",
+      details: {
+        price_plan_id: selected.pricePlanId,
+        price_plan_version_id: selected.pricePlanVersionId,
+      },
+    });
+  }
+
+  if (input.existingCustomerId) {
+    const existing = await supabaseService
+      .from("customers")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("id", input.existingCustomerId)
+      .maybeSingle();
+    if (existing.error) throw existing.error;
+    if (!existing.data?.id) {
+      throw new WebsiteApplicationError({
+        message: "Befintlig portalidentitet pekar på en kund som inte finns i aktuell tenant.",
+        status: 409,
+        code: "portal_identity_customer_invalid",
+        stage: "customer_lookup",
+      });
+    }
+  }
+
+  const exactSignedScopes = input.structuredPoa?.accepted
+    ? [...new Set(input.structuredPoa.scope.map((scope) => clean(scope)?.toLowerCase()).filter((scope): scope is string => Boolean(scope)))]
+    : [];
+  if (input.structuredPoa?.accepted && exactSignedScopes.length === 0) {
+    throw new WebsiteApplicationError({
+      message: "Signerad fullmakt saknar exakt scope och kan därför inte sparas.",
+      status: 422,
+      code: "power_of_attorney_scope_missing",
+      field: "powerOfAttorney.scope",
+      stage: "power_of_attorney",
+    });
+  }
+
+  const compatibilitySnapshot = buildCanonicalContractSnapshot({
+    contractType: selected.contractType,
+    billingModel: selected.billingModel,
+    productCode: selected.productCode,
+    monthlyFeeSek: selected.monthlyFeeSek,
+    invoiceFeeSek: selected.invoiceFeeSek,
+    markupOrePerKwh: selected.markupOrePerKwh,
+    spotMarkupOrePerKwh: selected.spotMarkupOrePerKwh,
+    variableFeeOrePerKwh: selected.variableFeeOrePerKwh,
+    fixedPriceOrePerKwh: selected.fixedPriceOrePerKwh,
+    greenFeeMode: selected.greenFeeMode,
+    greenFeeValue: selected.greenFeeValue,
+    spotWeightPercent: input.publicOffer.spot_weight_percent ?? null,
+    portfolioWeightPercent: input.publicOffer.portfolio_weight_percent ?? null,
+    fixedWeightPercent: input.publicOffer.fixed_weight_percent ?? null,
+    validFrom: input.readiness.requestedStartDate ?? input.publicOffer.valid_from ?? null,
+    validTo: input.publicOffer.valid_to ?? null,
+  });
+  assertCanonicalSnapshot(compatibilitySnapshot);
+  const exactPricing = input.publicOffer.pricing_snapshot ?? {};
+  const legalSnapshot = websiteLegalVersionsSnapshot(input.legalVersions);
+  const poaLegal = input.legalVersions.find((version) => version.type === "power_of_attorney") ?? null;
+  const siteInput = input.body.site;
+  const meterInput = input.body.metering_point;
+  const normalizedFacilityId = normalizeFacilityId(siteInput?.facility_id);
+  const canonicalMeteringPointId =
+    clean(meterInput?.metering_point_id) ??
+    clean(meterInput?.meter_point_id) ??
+    clean(meterInput?.ediel_metering_point_id) ??
+    clean(meterInput?.anlage_id) ??
+    null;
+  const requestedStartDate =
+    input.readiness.requestedStartDate ??
+    clean(input.body.contract?.requested_start_date) ??
+    clean(input.body.contract?.starts_at) ??
+    clean(siteInput?.move_in_date);
+  const contractStatus = WEBSITE_APPLICATION_READY_CONTRACT_STATUS;
+  const now = new Date().toISOString();
+
+  const result = await onboardCustomerGraph({
+    company_id: companyId,
+    channel: "website",
+    idempotency_key: canonicalIdempotencyKey({
+      channel: "website",
+      companyId,
+      sourceId: input.applicationRowId,
+    }),
+    matching_policy: input.existingCustomerId ? "link_selected" : "link_unique",
+    existing_customer_id: input.existingCustomerId ?? null,
+    update_existing: true,
+    customer: {
+      customer_type: customer.customer_type,
+      status: "active",
+      intake_status: customerIntakeStatusForReadiness(input.readiness),
+      external_customer_id: input.externalCustomerId,
+      first_name: clean(customer.first_name),
+      last_name: clean(customer.last_name),
+      full_name: fullName(customer),
+      company_name: clean(customer.company_name),
+      personal_number: digits(customer.personal_number),
+      org_number: digits(customer.org_number),
+      email: normalizedEmail(customer.email),
+      phone: clean(customer.phone),
+      invoice_email: normalizedEmail(customer.invoice_email) ?? normalizedEmail(customer.email),
+      billing_street: clean(customer.billing_street),
+      billing_postal_code: clean(customer.billing_postal_code),
+      billing_city: clean(customer.billing_city),
+      billing_country: clean(customer.billing_country) ?? "SE",
+      source: "external_website",
+      metadata: {
+        source: "website_customer_applications",
+        api_client_id: input.client.id,
+        application_id: input.applicationRowId,
+      },
+    },
+    contact: normalizedEmail(customer.email) || clean(customer.phone)
+      ? {
+          type: "primary",
+          name: fullName(customer),
+          email: normalizedEmail(customer.email),
+          phone: clean(customer.phone),
+          is_primary: true,
+        }
+      : null,
+    address: clean(customer.billing_street) || clean(customer.billing_postal_code) || clean(customer.billing_city)
+      ? {
+          type: "billing",
+          street_1: clean(customer.billing_street),
+          postal_code: clean(customer.billing_postal_code),
+          city: clean(customer.billing_city),
+          country: clean(customer.billing_country) ?? "SE",
+          is_active: true,
+        }
+      : null,
+    site: input.readiness.canCreateSite && siteInput
+      ? {
+          ...websiteSiteCanonicalFields(input.body, { facilityId: normalizedFacilityId, status: "active" }),
+          site_name: clean(siteInput.site_name) ?? "Anläggning",
+          facility_id: normalizedFacilityId,
+          site_type: clean(siteInput.site_type) ?? "consumption",
+          status: "active",
+          street: clean(siteInput.street),
+          postal_code: clean(siteInput.postal_code),
+          city: clean(siteInput.city),
+          country: clean(siteInput.country) ?? "SE",
+          metadata: {
+            source: "website_customer_applications",
+            energy_resolution: input.body.metadata?.energy_resolution ?? null,
+          },
+        }
+      : null,
+    metering_point: input.readiness.canCreateMeteringPoint && canonicalMeteringPointId
+      ? {
+          meter_point_id: canonicalMeteringPointId,
+          metering_point_id: canonicalMeteringPointId,
+          ediel_metering_point_id: canonicalMeteringPointId,
+          anlage_id: clean(meterInput?.anlage_id) ?? normalizedFacilityId,
+          site_facility_id: clean(meterInput?.site_facility_id) ?? normalizedFacilityId,
+          status: "active",
+          metering_type: "consumption",
+          measurement_type: clean(meterInput?.measurement_type) ?? "consumption",
+          reading_frequency: clean(meterInput?.reading_frequency) ?? "monthly",
+          grid_area_code: explicitMeteringGridAreaCode(input.body),
+          price_area_code: explicitMeteringPriceAreaCode(input.body),
+          bidding_zone_code: explicitMeteringPriceAreaCode(input.body),
+          grid_owner_id: explicitMeteringGridOwnerId(input.body),
+          start_date: clean(meterInput?.start_date) ?? clean(meterInput?.installation_date) ?? requestedSiteMoveInDate(input.body),
+          installation_date: clean(meterInput?.installation_date) ?? clean(meterInput?.start_date) ?? requestedSiteMoveInDate(input.body),
+          is_settlement_relevant: true,
+          data_quality_status: "incomplete",
+          verification_status: "pending",
+          onboarding_status: "application_received",
+          estimated_annual_consumption_kwh: requestedAnnualConsumption(input.body),
+          metadata: { source: "website_customer_applications" },
+        }
+      : null,
+    contract: {
+      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+      status: contractStatus,
+      contract_name: selected.contractName,
+      contract_type: selected.contractType,
+      price_plan_id: selected.pricePlanId,
+      price_plan_version_id: selected.pricePlanVersionId,
+      contract_offer_id: selected.internalContractOfferId,
+      public_contract_offer_id: selected.publicContractOfferId,
+      offer_reference: publicOfferReference(input.publicOffer),
+      legal_versions_snapshot: legalSnapshot,
+      signature_snapshot: {},
+      is_distance_agreement: true,
+      starts_at: requestedStartDate,
+      expected_start_at: requestedStartDate,
+      requested_start_date: requestedStartDate,
+      requested_start_mode: input.readiness.requestedStartMode,
+      calculated_earliest_start_date: input.readiness.calculatedEarliestStartDate,
+      price_area_used: input.readiness.priceArea,
+      grid_area_code_used: input.readiness.gridAreaCode,
+      resolution_status: input.readiness.resolutionStatus,
+      signed_at: null,
+      monthly_fee_sek: selected.monthlyFeeSek,
+      invoice_fee_sek: selected.invoiceFeeSek,
+      markup_ore_per_kwh: selected.markupOrePerKwh,
+      spot_markup_ore_per_kwh: selected.spotMarkupOrePerKwh,
+      variable_fee_ore_per_kwh: selected.variableFeeOrePerKwh,
+      fixed_price_ore_per_kwh: selected.fixedPriceOrePerKwh,
+      green_fee_mode: selected.greenFeeMode,
+      green_fee_value: selected.greenFeeValue,
+      binding_months: input.body.contract?.binding_months ?? null,
+      notice_months: input.body.contract?.notice_months ?? null,
+      terms_version: selected.termsVersion,
+      agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
+      metadata: {
+        source: "website_customer_applications",
+        website_application_id: input.applicationRowId,
+        application_number: input.applicationNumber,
+        offer_reference: input.offerReference,
+        missing_fields: input.readiness.missingFields,
+        blocking_reasons: input.readiness.blockingReasons,
+      },
+      updated_at: now,
+    },
+    price_snapshot: {
+      public_contract_offer_id: input.publicOffer.id,
+      public_price_text: input.publicOffer.public_price_text ?? null,
+      terms_url: input.publicOffer.terms_url ?? null,
+      spot_weight_percent: input.publicOffer.spot_weight_percent ?? null,
+      portfolio_weight_percent: input.publicOffer.portfolio_weight_percent ?? null,
+      fixed_weight_percent: input.publicOffer.fixed_weight_percent ?? null,
+      source: "website_customer_applications",
+      price_plan_version_id: selected.pricePlanVersionId,
+      campaign_version_id: selected.campaignVersionId,
+      pricing_model: compatibilitySnapshot.pricingModel,
+      base_price_components_snapshot: compatibilitySnapshot.basePriceComponents,
+      price_components_snapshot: compatibilitySnapshot.priceComponents,
+      snapshot_json: {
+        ...exactPricing,
+        source: "website_customer_applications",
+            contract_type: selected.contractType,
+        price_plan_id: selected.pricePlanId,
+        price_plan_version_id: selected.pricePlanVersionId,
+        public_contract_offer_id: selected.publicContractOfferId,
+        pricing_model: compatibilitySnapshot.pricingModel,
+        base_price_components_snapshot: compatibilitySnapshot.basePriceComponents,
+        price_components_snapshot: compatibilitySnapshot.priceComponents,
+        requested_start_date: requestedStartDate,
+      },
+      valid_from: requestedStartDate,
+      valid_to: input.publicOffer.valid_to ?? null,
+    },
+    legal: {
+      legal_bundle_version_id: input.publicOffer.legal_bundle_version_id,
+      terms_version: input.legalVersions.find((v) => v.type === "terms")?.version ?? selected.termsVersion,
+      privacy_version: input.legalVersions.find((v) => v.type === "privacy")?.version ?? null,
+      cooling_off_version: input.legalVersions.find((v) => v.type === "cooling_off")?.version ?? null,
+      signed_scopes: exactSignedScopes,
+      accepted_at: input.agreementAcceptedAt,
+      acceptance_snapshot: {
+        legal_versions: legalSnapshot,
+        consents: input.body.consents ?? {},
+        offer_reference: input.offerReference,
+        request_audit: input.requestAudit ?? null,
+      },
+    },
+    power_of_attorney: input.structuredPoa?.accepted
+      ? {
+          signed_scopes: exactSignedScopes,
+          scope: exactSignedScopes.includes("supplier_switch") ? "supplier_switch" : exactSignedScopes[0],
+          status: "signed",
+          signed_at: input.structuredPoa.acceptedAt ?? now,
+          accepted_at: input.structuredPoa.acceptedAt ?? now,
+          valid_from: (input.structuredPoa.acceptedAt ?? now).slice(0, 10),
+          legal_text_version_id: input.structuredPoa.textVersionId ?? poaLegal?.id ?? null,
+          signer_name: input.structuredPoa.signerName,
+          signer_identity_number: input.structuredPoa.signerIdentityNumber,
+          method: input.structuredPoa.method,
+          evidence_payload: {
+            accepted: true,
+            scopes: exactSignedScopes,
+            ip_address: input.structuredPoa.ipAddress ?? input.requestAudit?.ipAddress ?? null,
+            user_agent: input.structuredPoa.userAgent ?? input.requestAudit?.userAgent ?? null,
+            externally_sendable_at_capture: true,
+          },
+          source: "website_api",
+          accepted_ip: input.structuredPoa.ipAddress ?? input.requestAudit?.ipAddress ?? null,
+          accepted_ip_hash: input.requestAudit?.ipHash ?? null,
+          accepted_user_agent: input.structuredPoa.userAgent ?? input.requestAudit?.userAgent ?? null,
+          accepted_source: "website",
+          reference: `POA-${input.applicationRowId}`,
+          metadata: { source: "website_customer_applications", application_id: input.applicationRowId },
+        }
+      : null,
+    authorization_document: input.structuredPoa?.accepted
+      ? {
+          status: "active",
+          title: `Signerad fullmakt POA-${input.applicationRowId}`,
+          reference: `POA-${input.applicationRowId}`,
+          notes: "Immutable website POA evidence created in canonical onboarding transaction.",
+          metadata: {
+            source: "website_customer_applications",
+            application_id: input.applicationRowId,
+            signed_scopes: exactSignedScopes,
+          },
+        }
+      : null,
+    application: {
+      source_record_type: "website_customer_application",
+      source_record_id: input.applicationRowId,
+      status: input.readiness.status,
+      payload_snapshot: input.body,
+    },
+    task: input.readiness.blockingReasons.length > 0 || input.readiness.missingFields.length > 0
+      ? {
+          task_type: "customer_data_review",
+          status: "open",
+          priority: "high",
+          title: "Granska webbansökan",
+          description: [...input.readiness.blockingReasons, ...input.readiness.missingFields].join("; "),
+          metadata: { website_application_id: input.applicationRowId },
+        }
+      : null,
+    info_request: input.readiness.missingFields.length > 0
+      ? {
+          request_type: "website_customer_onboarding",
+          target_party_type: "customer",
+          status: "draft",
+          requested_data_categories: input.readiness.missingFields,
+          verified_payload: {},
+          notes: "Skapad atomiskt från webbansökan.",
+          automation_origin: "website_customer_application",
+          automation_key: `website-customer-application:${input.applicationRowId}`,
+        }
+      : null,
+  });
+
+  if (!result.ok) {
+    throw new WebsiteApplicationError({
+      message: "Flera möjliga kunder hittades. Ansökan har blockerats för manuell identitetsgranskning.",
+      status: 409,
+      code: "ambiguous_customer_match",
+      stage: "customer_lookup",
+      action: "manual_review_required",
+      details: {
+        correlation_id: result.correlation_id,
+      },
+    });
+  }
+
+  const customerRow = await supabaseService
+    .from("customers")
+    .select("id,customer_number,email,full_name,company_name")
+    .eq("company_id", companyId)
+    .eq("id", result.customer_id)
+    .single();
+  if (customerRow.error || !customerRow.data?.customer_number) {
+    throw customerRow.error ?? new Error("canonical_customer_number_missing");
+  }
+  const siteRow = result.site_id
+    ? await supabaseService.from("customer_sites").select("id,facility_id").eq("company_id", companyId).eq("id", result.site_id).single()
+    : null;
+  if (siteRow?.error) throw siteRow.error;
+  const meterRow = result.metering_point_id
+    ? await supabaseService.from("metering_points").select("id,metering_point_id,meter_point_id,ediel_metering_point_id").eq("company_id", companyId).eq("id", result.metering_point_id).single()
+    : null;
+  if (meterRow?.error) throw meterRow.error;
+  const contractRow = result.contract_id
+    ? await supabaseService
+        .from("customer_contracts")
+        .select("id,contract_name,starts_at,status,signed_at,withdrawal_deadline_at,public_contract_offer_id,offer_reference,signature_snapshot_sha256,contract_number,price_plan_id,price_plan_version_id,contract_price_snapshot_id")
+        .eq("company_id", companyId)
+        .eq("id", result.contract_id)
+        .single()
+    : null;
+  if (contractRow?.error) throw contractRow.error;
+
+  const meterData = meterRow?.data as Record<string, unknown> | undefined;
+  return {
+    result,
+    customerResult: {
+      customer: customerRow.data as CustomerRow,
+      created: result.created_new_customer,
+      customerNumberAssigned: result.created_new_customer,
+    },
+    site: siteRow?.data
+      ? { id: String(siteRow.data.id), facility_id: clean(siteRow.data.facility_id) }
+      : null,
+    meteringPoint: meterData
+      ? {
+          id: String(meterData.id),
+          metering_point_id:
+            clean(meterData.metering_point_id) ??
+            clean(meterData.meter_point_id) ??
+            clean(meterData.ediel_metering_point_id),
+        }
+      : null,
+    contract: contractRow?.data
+      ? ({ ...contractRow.data, contract_price_snapshot_id: result.price_snapshot_id } as WebsiteContractCreateResult)
+      : null,
+  };
+}
+
 export async function processWebsiteCustomerApplication(input: {
   client: IntegrationApiClient;
   rawBody: unknown;
@@ -7390,6 +6484,8 @@ export async function processWebsiteCustomerApplication(input: {
   let publicOffer: PublicContractOffer | null = null;
   let legalAcceptanceVersions: WebsiteLegalAcceptanceVersion[] = [];
   let applicationNumber: string | null = null;
+  let existingIdentity: Awaited<ReturnType<typeof loadExistingIdentity>> = null;
+  let canonicalPowerOfAttorneyId: string | null = null;
   const agreementAcceptedAt = new Date().toISOString();
   // Once the application row exists, any later failure (e.g. power of attorney)
   // must UPDATE this row to failed/partial — never INSERT a second row, which
@@ -7618,59 +6714,9 @@ export async function processWebsiteCustomerApplication(input: {
     }
     applicationRowId = reservation.application.id;
 
-    const existingIdentity = await stage("customer_lookup", () =>
+    existingIdentity = await stage("customer_lookup", () =>
       loadExistingIdentity(input.client.company_id, externalCustomerId),
     );
-    if (existingIdentity?.customer_id) {
-      customerResult = await stage("customer_lookup", async () => {
-        const { data, error } = await supabaseService
-          .from("customers")
-          .select("id,customer_number,email,full_name,company_name")
-          .eq("company_id", input.client.company_id)
-          .eq("id", existingIdentity.customer_id)
-          .maybeSingle();
-        if (error) throw error;
-        if (!data)
-          throw new Error("Befintlig portal identity saknar giltig kund.");
-        const customerNumber = await ensureCustomerNumber({
-          companyId: input.client.company_id,
-          customerId: String(data.id),
-          existingCustomerNumber: clean(data.customer_number),
-        });
-        return {
-          customer: {
-            ...(data as CustomerRow),
-            customer_number: customerNumber,
-          },
-          created: false,
-          customerNumberAssigned: !clean(data.customer_number),
-        };
-      });
-    } else {
-      customerResult = await stage("customer_create", () =>
-        createOrUpdateCustomer(input.client, body),
-      );
-    }
-
-    if (!customerResult) {
-      throw new WebsiteApplicationError({
-        message: "Kund kunde inte skapas eller matchas.",
-        status: 500,
-        code: "customer_create_failed",
-        stage: "customer_create",
-      });
-    }
-
-    const resolvedCustomerResult = customerResult;
-    const customerNumber =
-      resolvedCustomerResult.customer.customer_number ??
-      (await stage("customer_number_create", () =>
-        ensureCustomerNumber({
-          companyId: input.client.company_id,
-          customerId: resolvedCustomerResult.customer.id,
-        }),
-      ));
-    resolvedCustomerResult.customer.customer_number = customerNumber;
 
     const selectedOfferReference =
       clean(body.offer_reference) ??
@@ -7812,7 +6858,7 @@ export async function processWebsiteCustomerApplication(input: {
         code: "power_of_attorney_missing",
         field: "powerOfAttorney",
         stage: "power_of_attorney",
-        hint: "consents.power_of_attorney=true räcker inte. Skicka powerOfAttorney med accepted, signerName, signerIdentityNumber och method.",
+        hint: "consents.power_of_attorney=true räcker inte. Skicka powerOfAttorney med accepted, signerName, signerIdentityNumber, method och exakt scope.",
       });
     }
 
@@ -7823,7 +6869,7 @@ export async function processWebsiteCustomerApplication(input: {
     const energyResolution = await stage("energy_resolution", () =>
       runEnergyResolution({
         companyId: input.client.company_id,
-        customerId: resolvedCustomerResult.customer.id,
+        customerId: existingIdentity?.customer_id ?? null,
         customerSiteId: null,
         body,
       }),
@@ -7856,15 +6902,32 @@ export async function processWebsiteCustomerApplication(input: {
       }
     }
 
-    site = readiness.canCreateSite
-      ? await stage("site_create", () =>
-          upsertSite(
-            input.client.company_id,
-            resolvedCustomerResult.customer.id,
-            body,
-          ),
-        )
-      : null;
+    const canonicalGraph = await stage("customer_create", () =>
+      onboardCanonicalWebsiteCustomerGraph({
+        client: input.client,
+        body,
+        rawBody: input.rawBody,
+        existingCustomerId: existingIdentity?.customer_id ?? null,
+        externalCustomerId,
+        applicationRowId: applicationRowId as string,
+        applicationNumber: applicationNumber as string,
+        publicOffer: publicOffer as PublicContractOffer,
+        offerReference: selectedOfferReference as string,
+        readiness,
+        legalVersions: legalAcceptanceVersions,
+        structuredPoa,
+        agreementAcceptedAt,
+        idempotencyKey: idempotencyKey as string,
+        requestAudit: input.requestAudit,
+      }),
+    );
+    customerResult = canonicalGraph.customerResult;
+    const resolvedCustomerResult = canonicalGraph.customerResult;
+    const customerNumber = resolvedCustomerResult.customer.customer_number as string;
+    site = canonicalGraph.site;
+    meteringPoint = canonicalGraph.meteringPoint;
+    contract = canonicalGraph.contract;
+    canonicalPowerOfAttorneyId = canonicalGraph.result.power_of_attorney_id;
 
     const siteAddress = body.site;
     if (
@@ -7923,17 +6986,6 @@ export async function processWebsiteCustomerApplication(input: {
       );
     }
 
-    meteringPoint = readiness.canCreateMeteringPoint
-      ? await stage("metering_point_create", () =>
-          upsertMeteringPoint(
-            input.client.company_id,
-            resolvedCustomerResult.customer.id,
-            site,
-            body,
-          ),
-        )
-      : null;
-
     await stage("customer_intake_update", () =>
       updateCustomerIntakeStatus(
         input.client.company_id,
@@ -7942,27 +6994,6 @@ export async function processWebsiteCustomerApplication(input: {
       ),
     );
 
-    contract = await stage("contract_create", () =>
-      createContract(
-        input.client.company_id,
-        resolvedCustomerResult.customer.id,
-        site?.id ?? null,
-        meteringPoint?.id ?? null,
-        body,
-        readiness,
-        customerNumber,
-        publicOffer,
-        {
-          idempotencyKey: input.idempotencyKey ?? null,
-          applicationNumber,
-          applicationId: applicationRowId,
-          offerReference: selectedOfferReference,
-          agreementAcceptedAt,
-          legalVersions: legalAcceptanceVersions,
-          requestAudit: input.requestAudit,
-        },
-      ),
-    );
     const identity = await stage("portal_identity_create", () =>
       upsertPortalIdentity({
         client: input.client,
@@ -8255,22 +7286,7 @@ export async function processWebsiteCustomerApplication(input: {
       structuredPoaIsExternallySendable(structuredPoa);
     const effectiveSignerMethod = structuredPoa?.method ?? null;
 
-    const powerOfAttorneyId = await stage("power_of_attorney", () =>
-      ensureWebsitePowerOfAttorney({
-        companyId: input.client.company_id,
-        customerId: resolvedCustomerResult.customer.id,
-        contractId: contract?.id ?? null,
-        customerSiteId: site?.id ?? null,
-        meteringPointId: meteringPoint?.id ?? null,
-        applicationId: application.id,
-        publicOffer,
-        legalVersions: legalAcceptanceVersions,
-        consents: body.consents,
-        requestAudit: input.requestAudit,
-        rawPayload: input.rawBody,
-        structuredPoa,
-      }),
-    );
+    const powerOfAttorneyId = canonicalPowerOfAttorneyId;
 
     if (powerOfAttorneyId) {
       // The POA legal version id used: the customer-supplied textVersionId when
@@ -8294,10 +7310,7 @@ export async function processWebsiteCustomerApplication(input: {
       responsePayload.power_of_attorney_id = powerOfAttorneyId;
       responsePayload.power_of_attorney = {
         status: "signed",
-        scope:
-          structuredPoa && structuredPoa.scope.length > 0
-            ? structuredPoa.scope
-            : ["supplier_switch", "facility_information_lookup"],
+        scope: structuredPoa?.scope ?? [],
         method: effectiveSignerMethod,
         externally_sendable: poaExternallySendable,
         // When the POA cannot be sent externally, fullmakt must be completed
@@ -9278,10 +8291,7 @@ async function repairMissingPoaOnIdempotentApplication(input: {
     power_of_attorney_id: powerOfAttorneyId,
     power_of_attorney: {
       status: "signed",
-      scope:
-        input.structuredPoa && input.structuredPoa.scope.length > 0
-          ? input.structuredPoa.scope
-          : ["supplier_switch", "facility_information_lookup"],
+      scope: input.structuredPoa?.scope ?? [],
       method: input.structuredPoa?.method ?? null,
       externally_sendable: poaExternallySendable,
       requires_completion: !poaExternallySendable,
@@ -9514,7 +8524,7 @@ export async function repairWebsiteCustomerApplication(
     productCode: selectedProductCode,
     customerType: body.customer.customer_type,
     allowLegacyLookup: true,
-  }).catch(() => null);
+  });
 
   let legalVersions: WebsiteLegalAcceptanceVersion[] = [];
   if (publicOffer) {

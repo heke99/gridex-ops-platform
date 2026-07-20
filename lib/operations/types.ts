@@ -48,6 +48,9 @@ export type PowerOfAttorneyRow = {
   document_path: string | null;
   reference: string | null;
   notes: string | null;
+  scope_summary?: Record<string, unknown> | null;
+  signed_scope_snapshot?: unknown;
+  legal_snapshot_id?: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;

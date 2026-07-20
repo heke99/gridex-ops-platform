@@ -6,7 +6,7 @@ import {
   evaluateMeteringCompletenessForMonth,
 } from '@/lib/metering/validation'
 import {
-  evaluateContractBillingAccountReadiness,
+  evaluateBillingReadinessCore,
   type BillingReadinessContract,
   type BillingReadinessCustomer,
 } from '@/lib/billing/billingReadiness'
@@ -54,6 +54,12 @@ function monthParts(billingMonth: string): { billingMonth: string; year: number;
   const normalized = normalizeBillingMonth(billingMonth)
   const [year, month] = normalized.split('-').map(Number)
   return { billingMonth: normalized, year, month }
+}
+
+function billingMonthBounds(value: string): { start: string; end: string } {
+  const { billingMonth, year, month } = monthParts(value)
+  const end = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
+  return { start: `${billingMonth}-01`, end }
 }
 
 function isBlockingPeriodStatus(status: unknown): boolean {
@@ -241,7 +247,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   for (let from = 0; ; from += pageSize) {
     const underlayResult = await supabaseService
       .from('billing_underlays')
-      .select('id,status,readiness_status,total_kwh,contract_id,pricing_snapshot_id,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end')
+      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end')
       .eq('company_id', input.companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -277,66 +283,133 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     issues.push({ code: 'incomplete_metering_coverage', message: `${incompleteCoverage.length} underlag har mätvärdesluckor.`, severity: 'blocked' })
   }
 
-  // Account-level gate (canonical billing readiness): an invoice export must
-  // never be produced for a contract without invoice recipient, distribution
-  // channel (address/e-mail/same-as-site) or VAT settings. These were
-  // previously only snapshotted at export time without any validation.
+  // Full canonical gate. Every underlay is evaluated against contract, tenant,
+  // customer, site, metering point, exact supply-period overlap, price snapshot,
+  // price area, meter coverage, invoice account and external blockers.
   const contractIds = [...new Set(underlays.map((row) => (typeof row.contract_id === 'string' ? row.contract_id : '')).filter(Boolean))]
+  const meteringPointIds = [...new Set(underlays.map((row) => (typeof row.metering_point_id === 'string' ? row.metering_point_id : '')).filter(Boolean))]
+  const bounds = billingMonthBounds(billingMonth)
+
+  const companyResult = await supabaseService
+    .from('companies')
+    .select('id,name,legal_name,org_number')
+    .eq('id', input.companyId)
+    .maybeSingle()
+  if (companyResult.error) throw companyResult.error
+  const company = companyResult.data as { name?: string | null; legal_name?: string | null; org_number?: string | null } | null
+
+  const contractsById = new Map<string, BillingReadinessContract & { id: string; customer_id?: string | null; customer_site_id?: string | null; site_id?: string | null }>()
   if (contractIds.length > 0) {
     const contractResult = await supabaseService
       .from('customer_contracts')
-      .select('id,customer_id,status,invoice_recipient,invoice_email,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,price_snapshot')
+      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,pricing_snapshot_id,price_snapshot,invoice_recipient,invoice_email,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons')
       .eq('company_id', input.companyId)
       .in('id', contractIds)
-    if (contractResult.error && !isMissingRelationError(contractResult.error)) throw contractResult.error
-    const contracts = (contractResult.data ?? []) as Array<BillingReadinessContract & { id: string; customer_id?: string | null }>
-
-    const customerIds = [...new Set(contracts.map((row) => (typeof row.customer_id === 'string' ? row.customer_id : '')).filter(Boolean))]
-    const customersById = new Map<string, BillingReadinessCustomer>()
-    if (customerIds.length > 0) {
-      const customerResult = await supabaseService
-        .from('customers')
-        .select('id,full_name,company_name,email,invoice_email,billing_street,billing_postal_code,billing_city')
-        .eq('company_id', input.companyId)
-        .in('id', customerIds)
-      if (customerResult.error && !isMissingRelationError(customerResult.error)) throw customerResult.error
-      for (const row of (customerResult.data ?? []) as BillingReadinessCustomer[]) {
-        customersById.set(String(row.id), row)
-      }
+    if (contractResult.error) throw contractResult.error
+    for (const row of (contractResult.data ?? []) as Array<BillingReadinessContract & { id: string; customer_id?: string | null; customer_site_id?: string | null; site_id?: string | null }>) {
+      contractsById.set(String(row.id), row)
     }
+  }
 
-    const foundContractIds = new Set(contracts.map((row) => String(row.id)))
-    const missingContracts = contractIds.filter((id) => !foundContractIds.has(id))
-    if (missingContracts.length > 0) {
-      issues.push({
-        code: 'contract_not_found_for_tenant',
-        message: `${missingContracts.length} underlag pekar på avtal som inte finns i tenanten.`,
-        severity: 'blocked',
-      })
+  const customerIds = [...new Set([...contractsById.values()].map((row) => String(row.customer_id ?? '')).filter(Boolean))]
+  const customersById = new Map<string, BillingReadinessCustomer>()
+  if (customerIds.length > 0) {
+    const customerResult = await supabaseService
+      .from('customers')
+      .select('id,company_id,customer_number,full_name,company_name,email,invoice_email,billing_street,billing_postal_code,billing_city')
+      .eq('company_id', input.companyId)
+      .in('id', customerIds)
+    if (customerResult.error) throw customerResult.error
+    for (const row of (customerResult.data ?? []) as BillingReadinessCustomer[]) customersById.set(String(row.id), row)
+  }
+
+  const siteIds = [...new Set([...contractsById.values()].map((row) => String(row.customer_site_id ?? row.site_id ?? '')).filter(Boolean))]
+  const sitesById = new Map<string, Record<string, unknown>>()
+  if (siteIds.length > 0) {
+    const siteResult = await supabaseService
+      .from('customer_sites')
+      .select('id,company_id,customer_id,price_area_code')
+      .eq('company_id', input.companyId)
+      .in('id', siteIds)
+    if (siteResult.error) throw siteResult.error
+    for (const row of (siteResult.data ?? []) as Record<string, unknown>[]) sitesById.set(String(row.id), row)
+  }
+
+  const metersById = new Map<string, Record<string, unknown>>()
+  if (meteringPointIds.length > 0) {
+    const meterResult = await supabaseService
+      .from('metering_points')
+      .select('id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,price_area_code,bidding_zone_code')
+      .eq('company_id', input.companyId)
+      .in('id', meteringPointIds)
+    if (meterResult.error) throw meterResult.error
+    for (const row of (meterResult.data ?? []) as Record<string, unknown>[]) metersById.set(String(row.id), row)
+  }
+
+  const supplyPeriodsByMeter = new Map<string, Record<string, unknown>[]>()
+  if (meteringPointIds.length > 0) {
+    const supplyResult = await supabaseService
+      .from('customer_supply_periods')
+      .select('id,company_id,customer_id,metering_point_id,contract_id,status,start_date,end_date,actual_start_date,actual_end_date')
+      .eq('company_id', input.companyId)
+      .in('metering_point_id', meteringPointIds)
+      .lte('start_date', bounds.end)
+      .or(`end_date.is.null,end_date.gte.${bounds.start}`)
+    if (supplyResult.error) throw supplyResult.error
+    for (const row of (supplyResult.data ?? []) as Record<string, unknown>[]) {
+      const key = String(row.metering_point_id ?? '')
+      if (!key) continue
+      supplyPeriodsByMeter.set(key, [...(supplyPeriodsByMeter.get(key) ?? []), row])
     }
+  }
 
-    for (const contract of contracts) {
-      const customer = contract.customer_id ? customersById.get(String(contract.customer_id)) ?? null : null
-      const account = evaluateContractBillingAccountReadiness({
-        contract,
-        customer,
-        // Capway applies a documented default due date when none is configured.
-        paymentTerms: { dueDays: null, defaulted: true },
-      })
-      for (const blocker of account.blockers) {
-        issues.push({
-          code: blocker.code,
-          message: `${blocker.message} (avtal ${contract.id})`,
-          severity: 'blocked',
-        })
-      }
-      for (const warning of account.warnings) {
-        issues.push({
-          code: warning.code,
-          message: `${warning.message} (avtal ${contract.id})`,
-          severity: 'warning',
-        })
-      }
+  for (const underlay of underlays) {
+    const underlayId = String(underlay.id ?? 'okänt')
+    const contractId = typeof underlay.contract_id === 'string' ? underlay.contract_id : ''
+    const meterId = typeof underlay.metering_point_id === 'string' ? underlay.metering_point_id : ''
+    const contract = contractsById.get(contractId) ?? null
+    const customerId = String(contract?.customer_id ?? underlay.customer_id ?? '')
+    const customer = customerId ? customersById.get(customerId) ?? null : null
+    const siteId = String(contract?.customer_site_id ?? contract?.site_id ?? '')
+    const site = siteId ? sitesById.get(siteId) ?? null : null
+    const meter = meterId ? metersById.get(meterId) ?? null : null
+    const meterPointIdentity = String(meter?.meter_point_id ?? meter?.metering_point_id ?? '') || null
+    const priceArea = String(meter?.price_area_code ?? meter?.bidding_zone_code ?? site?.price_area_code ?? '') || null
+    const readiness = evaluateBillingReadinessCore({
+      companyId: input.companyId,
+      customerId,
+      customer,
+      contract,
+      issuer: { legalName: company?.legal_name ?? company?.name ?? null, orgNumber: company?.org_number ?? null },
+      site: site ? { id: String(site.id), company_id: String(site.company_id ?? ''), customer_id: String(site.customer_id ?? '') } : null,
+      meteringPoint: meter ? {
+        id: String(meter.id),
+        company_id: String(meter.company_id ?? ''),
+        customer_id: String(meter.customer_id ?? ''),
+        site_id: String(meter.customer_site_id ?? meter.site_id ?? ''),
+        meter_point_id: meterPointIdentity,
+      } : null,
+      supplyPeriods: (supplyPeriodsByMeter.get(meterId) ?? []) as Array<{ id?: string | null; status?: string | null; start_date?: string | null; end_date?: string | null; actual_start_date?: string | null; actual_end_date?: string | null }>,
+      billingPeriod: {
+        start: typeof underlay.billing_period_start === 'string' ? underlay.billing_period_start : bounds.start,
+        end: typeof underlay.billing_period_end === 'string' ? underlay.billing_period_end : bounds.end,
+      },
+      priceArea,
+      meterValues: {
+        present: underlay.total_kwh !== null && underlay.total_kwh !== undefined,
+        missingCount: Number(underlay.missing_values_count ?? 0),
+        estimatedOnly: false,
+        estimationAllowed: false,
+      },
+      paymentTerms: { dueDays: null, defaulted: true },
+      paymentProvider: null,
+      externalBlockers: null,
+    })
+    for (const blocker of readiness.blockers) {
+      issues.push({ code: blocker.code, message: `${blocker.message} (underlag ${underlayId})`, severity: 'blocked' })
+    }
+    for (const warning of readiness.warnings) {
+      issues.push({ code: warning.code, message: `${warning.message} (underlag ${underlayId})`, severity: 'warning' })
     }
   }
 

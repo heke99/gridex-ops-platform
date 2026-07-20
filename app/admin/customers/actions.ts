@@ -10,14 +10,9 @@ import {
 import { supabaseService } from "@/lib/supabase/service";
 import { requireOperationalCompanyId } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
-import { runBatch2BAutomation } from "@/lib/operations/batch2bAutomation";
 import { parseCustomerImportFormData } from "@/lib/customers/importParser";
 import { normalizeCustomerIdentityType } from "@/lib/customers/normalizeCustomerType";
 import { normalizeGridOwnerIdToOps } from "@/lib/grid-owners/platformGridOwnerResolver";
-import {
-  ensureAuthorizationDocumentFromPowerOfAttorney,
-  ensureAuthorizationScopes,
-} from "@/lib/legal/authorizationChain";
 import {
   matchCustomerIdentity,
   type CustomerMatchSignal,
@@ -36,24 +31,12 @@ import type {
   IntakeFieldErrors,
   IntakeFormValues,
 } from "./actionState";
-import {
-  addCustomerContractEvent,
-  createCustomerContract,
-  getContractOfferById,
-} from "@/lib/customer-contracts/db";
+import { getContractOfferById } from "@/lib/customer-contracts/db";
 import type {
   ContractType,
   GreenFeeMode,
 } from "@/lib/customer-contracts/types";
-import {
-  createSupplierSwitchRequest,
-  findCustomerSiteById,
-  listMeteringPointsForSite,
-  listPowersOfAttorneyByCustomerId,
-  saveCustomerAuthorizationDocument,
-  savePowerOfAttorney,
-  syncCustomerOperationsForSite,
-} from "@/lib/operations/db";
+import { saveCustomerAuthorizationDocument } from "@/lib/operations/db";
 import type { SupplierSwitchRequestType } from "@/lib/operations/types";
 import {
   isValidEmailAddress,
@@ -64,18 +47,15 @@ import {
   isValidSwedishPhoneNumber,
   isValidSwedishPostalCode,
 } from "@/lib/validation/customerFields";
-import { emitDomainEvent } from "@/lib/events/domainEvents";
-import { enqueueWebhookDeliveriesForEvent } from "@/lib/integrations/webhooks";
-import { getCompanyGoLiveSetupSummary } from "@/lib/ediel/platformGoLive";
-import {
-  applyCustomerSiteAddressCandidate,
-  computeCustomerSiteAddressHash,
-} from "@/lib/customer-sites/addressIntake";
 import {
   processManualCustomerIntake,
   processPdfCustomerIntake,
 } from "@/lib/customer-operations/customerIntakeOrchestrator";
-import { ensureCustomerNumberIfSupported } from "@/lib/customer-numbers/customerNumbers";
+import {
+  canonicalIdempotencyKey,
+  onboardCustomerGraph,
+  signedAuthorizationScopes,
+} from "@/lib/customers/canonicalOnboarding";
 
 type CustomerType = "private" | "business" | "association";
 type SiteType = "consumption" | "production" | "mixed";
@@ -180,17 +160,7 @@ type CreateCustomerGraphParams = {
   postCreateRequestTarget: PostCreateRequestTarget;
 };
 
-type CreationContext = {
-  customerId: string | null;
-  contactId: string | null;
-  addressId: string | null;
-  siteId: string | null;
-  meteringPointId: string | null;
-  contractId: string | null;
-  switchRequestId: string | null;
-  powerOfAttorneyId: string | null;
-  documentIds: string[];
-};
+
 
 class IntakeValidationError extends Error {
   fieldErrors: IntakeFieldErrors;
@@ -1030,85 +1000,6 @@ async function insertAuditLog(params: {
   return data;
 }
 
-async function createPrimaryContact(params: {
-  customerId: string;
-  customerType: CustomerType;
-  firstName: string | null;
-  lastName: string | null;
-  companyName: string | null;
-  email: string | null;
-  phone: string | null;
-  title: string | null;
-  companyId: string;
-}) {
-  const personName =
-    `${params.firstName ?? ""} ${params.lastName ?? ""}`.trim() || null;
-
-  const name =
-    params.customerType === "private"
-      ? personName
-      : personName || (params.companyName ?? "").trim() || null;
-
-  if (!name && !params.email && !params.phone) {
-    return null;
-  }
-
-  const { data, error } = await supabaseService
-    .from("customer_contacts")
-    .insert({
-      company_id: params.companyId,
-      customer_id: params.customerId,
-      type: "primary",
-      name,
-      email: params.email ?? null,
-      phone: params.phone ?? null,
-      title: params.title ?? null,
-      is_primary: true,
-    })
-    .select("*")
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-async function createFacilityAddress(params: {
-  customerId: string;
-  street: string | null;
-  postalCode: string | null;
-  city: string | null;
-  careOf: string | null;
-  moveInDate: string | null;
-  country: string | null;
-  companyId: string;
-}) {
-  if (!params.street && !params.postalCode && !params.city) {
-    return null;
-  }
-
-  const { data, error } = await supabaseService
-    .from("customer_addresses")
-    .insert({
-      company_id: params.companyId,
-      customer_id: params.customerId,
-      type: "facility",
-      street_1: params.street ?? "",
-      street_2: params.careOf ?? null,
-      postal_code: params.postalCode ?? null,
-      city: params.city ?? null,
-      country: normalizeCountryCode(params.country),
-      municipality: null,
-      moved_in_at: params.moveInDate ?? null,
-      moved_out_at: null,
-      is_active: true,
-    })
-    .select("*")
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
 function buildBillingAddressSnapshot(params: CreateCustomerGraphParams) {
   const billingStreet = params.billingAddressSameAsSite
     ? normalizeOptionalString(params.street)
@@ -1137,350 +1028,6 @@ function buildBillingAddressSnapshot(params: CreateCustomerGraphParams) {
   };
 }
 
-async function createBillingAddressFromIntake(params: {
-  companyId: string;
-  customerId: string;
-  billing: ReturnType<typeof buildBillingAddressSnapshot>;
-}) {
-  const hasAddress = Boolean(
-    params.billing.street ||
-    params.billing.postalCode ||
-    params.billing.city ||
-    params.billing.recipient ||
-    params.billing.email ||
-    params.billing.reference,
-  );
-
-  if (!hasAddress) return null;
-
-  const { data, error } = await supabaseService
-    .from("customer_addresses")
-    .insert({
-      company_id: params.companyId,
-      customer_id: params.customerId,
-      type: "billing",
-      recipient_name: params.billing.recipient,
-      invoice_email: params.billing.email,
-      invoice_reference: params.billing.reference,
-      street_1: params.billing.street ?? "",
-      postal_code: params.billing.postalCode,
-      city: params.billing.city,
-      country: params.billing.country,
-      is_active: true,
-    })
-    .select("*")
-    .single();
-
-  if (error) {
-    if (error.code === "42703") return null;
-    throw error;
-  }
-
-  return data;
-}
-
-async function updateCustomerBillingSettings(params: {
-  companyId: string;
-  customerId: string;
-  billing: ReturnType<typeof buildBillingAddressSnapshot>;
-}) {
-  try {
-    const { error } = await supabaseService
-      .from("customers")
-      .update({
-        invoice_recipient: params.billing.recipient,
-        invoice_email: params.billing.email,
-        invoice_reference: params.billing.reference,
-        billing_street: params.billing.street,
-        billing_postal_code: params.billing.postalCode,
-        billing_city: params.billing.city,
-        billing_country: params.billing.country,
-        billing_address_same_as_site: params.billing.sameAsSite,
-        billing_level: params.billing.billingLevel,
-        consolidated_invoice: params.billing.consolidatedInvoice,
-      })
-      .eq("company_id", params.companyId)
-      .eq("id", params.customerId);
-
-    if (error && !databaseObjectMissing(error) && error.code !== "42703")
-      throw error;
-  } catch (error) {
-    if (!databaseObjectMissing(error)) {
-      console.warn("Customer billing settings could not be updated", error);
-    }
-  }
-}
-
-async function logDuplicateResolutionEvent(params: {
-  companyId: string;
-  actorUserId: string;
-  customerId: string;
-  existingCustomerId?: string | null;
-  duplicateMatches: IntakeDuplicateMatch[];
-  resolution: DuplicateResolution;
-  reason?: string | null;
-}) {
-  if (
-    params.duplicateMatches.length === 0 &&
-    params.resolution === "create_new_pending_review"
-  )
-    return;
-
-  try {
-    await supabaseService.from("customer_duplicate_resolution_events").insert({
-      company_id: params.companyId,
-      customer_id: params.customerId,
-      existing_customer_id: params.existingCustomerId ?? null,
-      resolution: params.resolution,
-      reason: params.reason ?? null,
-      match_payload: params.duplicateMatches,
-      created_by: params.actorUserId,
-    });
-  } catch (error) {
-    if (!databaseObjectMissing(error)) {
-      console.warn("Duplicate resolution event could not be logged", error);
-    }
-  }
-
-  await insertAuditLog({
-    actorUserId: params.actorUserId,
-    companyId: params.companyId,
-    entityType: "customer_duplicate_resolution",
-    entityId: params.customerId,
-    action: "customer_duplicate_resolution_recorded",
-    newValues: {
-      resolution: params.resolution,
-      existingCustomerId: params.existingCustomerId ?? null,
-      duplicateMatches: params.duplicateMatches,
-    },
-    metadata: {
-      reason: params.reason ?? null,
-    },
-  }).catch((error) =>
-    console.warn("Duplicate resolution audit could not be logged", error),
-  );
-}
-
-async function createDuplicateReviewCase(params: {
-  companyId: string;
-  actorUserId: string;
-  customerId: string;
-  siteId: string | null;
-  meteringPointId: string | null;
-  duplicateMatches: IntakeDuplicateMatch[];
-}) {
-  if (params.duplicateMatches.length === 0) return;
-
-  const critical = params.duplicateMatches.some(
-    (match) => match.severity === "critical",
-  );
-  const description = duplicateWarningsFromMatches(
-    params.duplicateMatches,
-  ).join("\n");
-
-  try {
-    await supabaseService.from("customer_operation_tasks").insert({
-      company_id: params.companyId,
-      customer_id: params.customerId,
-      site_id: params.siteId,
-      metering_point_id: params.meteringPointId,
-      task_type: "duplicate_review",
-      status: "open",
-      priority: critical ? "high" : "normal",
-      title: critical
-        ? "Kritisk dubblettkontroll krävs"
-        : "Möjlig dubblett behöver granskas",
-      description,
-      metadata: {
-        reasonCategory: "possible_duplicate",
-        billingBlocked: critical,
-        billingManualReview: true,
-        source: "customer_intake_duplicate_check",
-        nextAction:
-          "Granska matchningen och välj om kunden ska kopplas till befintlig kund, behållas separat eller kompletteras med ny anläggning/avtal.",
-        duplicateMatches: params.duplicateMatches,
-      },
-      created_by: params.actorUserId,
-      updated_by: params.actorUserId,
-    });
-  } catch (error) {
-    if (!databaseObjectMissing(error)) {
-      console.warn("Duplicate review task could not be created", error);
-    }
-  }
-}
-
-async function syncContractLifecycleEvents(params: {
-  companyId: string;
-  customerId: string;
-  contractId: string;
-  contractStatus: ContractStatus | null;
-  contractStartDate: string | null;
-  actorUserId: string;
-}) {
-  const happenedAt = params.contractStartDate ?? null;
-
-  if (params.contractStatus === "pending_signature") {
-    await addCustomerContractEvent({
-      companyId: params.companyId,
-      customerContractId: params.contractId,
-      customerId: params.customerId,
-      eventType: "signature_requested",
-      happenedAt,
-      note: "Avtal satt till väntar signering i intake-flödet",
-      actorUserId: params.actorUserId,
-    });
-    return;
-  }
-
-  if (params.contractStatus === "signed") {
-    await addCustomerContractEvent({
-      companyId: params.companyId,
-      customerContractId: params.contractId,
-      customerId: params.customerId,
-      eventType: "signed",
-      happenedAt,
-      note: "Avtal markerat som signerat i intake-flödet",
-      actorUserId: params.actorUserId,
-    });
-    return;
-  }
-
-  if (params.contractStatus === "active") {
-    await addCustomerContractEvent({
-      companyId: params.companyId,
-      customerContractId: params.contractId,
-      customerId: params.customerId,
-      eventType: "signed",
-      happenedAt,
-      note: "Avtal markerat som signerat i intake-flödet",
-      actorUserId: params.actorUserId,
-    });
-
-    await addCustomerContractEvent({
-      companyId: params.companyId,
-      customerContractId: params.contractId,
-      customerId: params.customerId,
-      eventType: "activated",
-      happenedAt,
-      note: "Avtal markerat som aktivt i intake-flödet",
-      actorUserId: params.actorUserId,
-    });
-    return;
-  }
-
-  if (params.contractStatus === "terminated") {
-    await addCustomerContractEvent({
-      companyId: params.companyId,
-      customerContractId: params.contractId,
-      customerId: params.customerId,
-      eventType: "terminated",
-      happenedAt,
-      note: "Avtal markerat som avslutat i intake-flödet",
-      actorUserId: params.actorUserId,
-    });
-    return;
-  }
-
-  if (params.contractStatus === "cancelled") {
-    await addCustomerContractEvent({
-      companyId: params.companyId,
-      customerContractId: params.contractId,
-      customerId: params.customerId,
-      eventType: "cancelled",
-      happenedAt,
-      note: "Avtal markerat som avbrutet i intake-flödet",
-      actorUserId: params.actorUserId,
-    });
-  }
-}
-
-async function maybeCreatePowerOfAttorneyFromIntake(params: {
-  companyId: string;
-  actorUserId: string;
-  customerId: string;
-  siteId: string | null;
-  status: string | null;
-  validFrom: string | null;
-  validTo: string | null;
-}) {
-  const normalizedStatus =
-    params.status === "signed" ||
-    params.status === "sent" ||
-    params.status === "expired" ||
-    params.status === "revoked"
-      ? params.status
-      : params.status === "missing"
-        ? null
-        : "draft";
-
-  if (!normalizedStatus) return null;
-
-  try {
-    const { data, error } = await supabaseService
-      .from("powers_of_attorney")
-      .insert({
-        company_id: params.companyId,
-        customer_id: params.customerId,
-        site_id: params.siteId,
-        scope: "supplier_switch",
-        status: normalizedStatus,
-        signed_at:
-          normalizedStatus === "signed" ? new Date().toISOString() : null,
-        valid_from: params.validFrom,
-        valid_to: params.validTo,
-        document_path: null,
-        reference: `INTAKE-${params.customerId.slice(0, 8)}`,
-        notes:
-          "Skapad från kundintag. Dokument kan kompletteras på kundkortet.",
-        created_by: params.actorUserId,
-        updated_by: params.actorUserId,
-      })
-      .select("id")
-      .maybeSingle();
-
-    if (error) {
-      if (!databaseObjectMissing(error) && error.code !== "42703") {
-        console.warn(
-          "Power of attorney from intake could not be created",
-          error,
-        );
-      }
-      return null;
-    }
-
-    // A signed POA must produce the full authorization chain
-    // (customer_authorization_documents + authorization_scopes) exactly like
-    // the website intake does. Without scopes the Z01/data-request dispatch
-    // blocks with missing_authorization even though the POA is signed.
-    if (data?.id && normalizedStatus === "signed") {
-      await ensureAuthorizationDocumentFromPowerOfAttorney({
-        companyId: params.companyId,
-        customerId: params.customerId,
-        powerOfAttorneyId: String(data.id),
-        actorUserId: params.actorUserId,
-        siteId: params.siteId,
-        source: "manual_customer_intake",
-        validFrom: params.validFrom,
-        validTo: params.validTo,
-      }).catch((chainError) => {
-        console.warn(
-          "Authorization chain from intake POA could not be ensured",
-          chainError,
-        );
-        return null;
-      });
-    }
-
-    return data?.id ?? null;
-  } catch (error) {
-    if (!databaseObjectMissing(error)) {
-      console.warn("Power of attorney from intake could not be created", error);
-    }
-    return null;
-  }
-}
-
 type IntakeDocumentUploadResult = {
   uploadedDocumentIds: string[];
   powerOfAttorneyId: string | null;
@@ -1494,6 +1041,9 @@ async function uploadCustomerIntakeDocuments(params: {
   siteId: string | null;
   meteringPointId: string | null;
   contractId: string | null;
+  existingPowerOfAttorneyId: string | null;
+  existingAuthorizationDocumentId: string | null;
+  signedScopes: string[];
   signedAgreementFile: File | null;
   signedPowerOfAttorneyFile: File | null;
   gridInvoiceFile: File | null;
@@ -1540,93 +1090,86 @@ async function uploadCustomerIntakeDocuments(params: {
   }
 
   if (params.signedPowerOfAttorneyFile) {
+    if (
+      !params.existingPowerOfAttorneyId ||
+      !params.existingAuthorizationDocumentId ||
+      params.signedScopes.length === 0
+    ) {
+      throw new Error("Den kanoniska kundtransaktionen saknar signerad fullmaktskedja.");
+    }
+
     const uploaded = await uploadFile(
       params.signedPowerOfAttorneyFile,
       "power_of_attorney",
     );
 
-    const poa = await savePowerOfAttorney(supabase, {
-      companyId: params.companyId,
-      customer_id: params.customerId,
-      site_id: params.siteId,
-      scope: "supplier_switch",
-      status: "signed",
-      signed_at: new Date().toISOString(),
-      valid_from: params.authorizationValidFrom,
-      valid_to: params.authorizationValidTo,
-      document_path: uploaded.filePath,
-      reference: `INTAKE-POA-${params.customerId.slice(0, 8)}`,
-      notes:
-        "Signerad fullmakt uppladdad direkt i kundintaget. Fullmakten kan användas för uppgiftsbegäran när övrig data är komplett.",
-    });
-
-    result.powerOfAttorneyId = poa.id;
-
-    const document = await saveCustomerAuthorizationDocument(supabase, {
-      companyId: params.companyId,
-      customer_id: params.customerId,
-      site_id: params.siteId,
-      metering_point_id: params.meteringPointId,
-      customer_contract_id: params.contractId,
-      power_of_attorney_id: poa.id,
-      document_type: "power_of_attorney",
-      status: "active",
-      title: "Signerad fullmakt från kundintag",
-      file_name: params.signedPowerOfAttorneyFile.name || null,
-      mime_type: params.signedPowerOfAttorneyFile.type || null,
-      file_size_bytes: params.signedPowerOfAttorneyFile.size || null,
-      storage_bucket: bucket,
-      file_path: uploaded.filePath,
-      file_checksum: uploaded.checksum,
-      reference: poa.reference,
-      notes: "Uppladdad vid kundskapande.",
-      metadata: {
-        source: "customer_intake",
-        documentRole: "signed_power_of_attorney",
-      },
-    });
-
-    result.uploadedDocumentIds.push(document.id);
-    result.uploadedLabels.push("signerad fullmakt");
-
-    // Complete the authorization chain for the uploaded signed POA:
-    // active authorization_scopes + powers_of_attorney.document_id pointing at
-    // the authorization document, matching the website intake guarantees.
-    await ensureAuthorizationScopes({
-      companyId: params.companyId,
-      customerId: params.customerId,
-      authorizationDocumentId: String(document.id),
-      actorUserId: params.actorUserId,
-      powerOfAttorneyId: poa.id,
-      validFrom: params.authorizationValidFrom,
-      validTo: params.authorizationValidTo,
-      evidenceNote: "Signerad fullmakt uppladdad i kundintaget.",
-    }).catch((scopeError) => {
-      console.warn("Authorization scopes for uploaded intake POA could not be ensured", scopeError);
-      return null;
-    });
-    await supabaseService
+    const { error: poaUpdateError } = await supabaseService
       .from("powers_of_attorney")
-      .update({ document_id: document.id, updated_at: new Date().toISOString() })
+      .update({
+        document_path: uploaded.filePath,
+        document_hash: uploaded.checksum,
+        signed_scope_snapshot: params.signedScopes,
+        scope_summary: {
+          scopes: params.signedScopes,
+          source: "canonical_admin_intake",
+        },
+        updated_by: params.actorUserId,
+        updated_at: new Date().toISOString(),
+      })
       .eq("company_id", params.companyId)
-      .eq("id", poa.id)
-      .is("document_id", null)
-      .then(() => undefined, () => undefined);
+      .eq("customer_id", params.customerId)
+      .eq("id", params.existingPowerOfAttorneyId);
+    if (poaUpdateError) throw poaUpdateError;
+
+    const { data: updatedDocument, error: documentUpdateError } = await supabaseService
+      .from("customer_authorization_documents")
+      .update({
+        site_id: params.siteId,
+        metering_point_id: params.meteringPointId,
+        customer_contract_id: params.contractId,
+        power_of_attorney_id: params.existingPowerOfAttorneyId,
+        status: "active",
+        file_name: params.signedPowerOfAttorneyFile.name || null,
+        mime_type: params.signedPowerOfAttorneyFile.type || null,
+        file_size_bytes: params.signedPowerOfAttorneyFile.size || null,
+        storage_bucket: bucket,
+        file_path: uploaded.filePath,
+        file_checksum: uploaded.checksum,
+        notes: "Uppladdad efter kanonisk kundtransaktion.",
+        metadata: {
+          source: "canonical_admin_intake",
+          documentRole: "signed_power_of_attorney",
+          signedScopes: params.signedScopes,
+          uploadStatus: "completed",
+        },
+        updated_by: params.actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("company_id", params.companyId)
+      .eq("customer_id", params.customerId)
+      .eq("id", params.existingAuthorizationDocumentId)
+      .select("*")
+      .single();
+    if (documentUpdateError) throw documentUpdateError;
+
+    result.powerOfAttorneyId = params.existingPowerOfAttorneyId;
+    result.uploadedDocumentIds.push(params.existingAuthorizationDocumentId);
+    result.uploadedLabels.push("signerad fullmakt");
 
     await insertAuditLog({
       actorUserId: params.actorUserId,
       companyId: params.companyId,
       entityType: "customer_authorization_document",
-      entityId: document.id,
-      action: "customer_intake_document_uploaded",
-      newValues: document as unknown as Record<string, unknown>,
+      entityId: params.existingAuthorizationDocumentId,
+      action: "customer_intake_document_upload_completed",
+      newValues: updatedDocument as unknown as Record<string, unknown>,
       metadata: {
         customerId: params.customerId,
         siteId: params.siteId,
         meteringPointId: params.meteringPointId,
         contractId: params.contractId,
-        linkedPowerOfAttorneyId: poa.id,
-        documentType: "power_of_attorney",
+        linkedPowerOfAttorneyId: params.existingPowerOfAttorneyId,
+        signedScopes: params.signedScopes,
       },
     });
   }
@@ -1752,173 +1295,6 @@ async function uploadCustomerIntakeDocuments(params: {
   }
 
   return result;
-}
-
-async function maybeCreateSwitchRequestFromIntake(params: {
-  customerId: string;
-  siteId: string | null;
-  intakeFlowType: SupplierSwitchRequestType | null;
-}) {
-  if (!params.customerId || !params.siteId || !params.intakeFlowType) {
-    return null;
-  }
-
-  const supabase = await createSupabaseServerClient();
-
-  const readiness = await syncCustomerOperationsForSite(supabase, {
-    customerId: params.customerId,
-    siteId: params.siteId,
-  });
-
-  const site = await findCustomerSiteById(supabase, params.siteId);
-  if (!site) {
-    return null;
-  }
-
-  const [meteringPoints, powersOfAttorney] = await Promise.all([
-    listMeteringPointsForSite(supabase, params.siteId),
-    listPowersOfAttorneyByCustomerId(supabase, params.customerId),
-  ]);
-
-  const candidateMeteringPoint =
-    meteringPoints.find(
-      (point) => point.id === readiness.candidateMeteringPointId,
-    ) ??
-    meteringPoints[0] ??
-    null;
-
-  const hasRelevantPoa = powersOfAttorney.some(
-    (poa) =>
-      poa.scope === "supplier_switch" &&
-      poa.status === "signed" &&
-      (poa.site_id === params.siteId || poa.site_id === null),
-  );
-
-  if (!candidateMeteringPoint) {
-    return {
-      created: false,
-      reason: "Mätpunkt saknas",
-      readiness,
-    };
-  }
-
-  if (!hasRelevantPoa) {
-    return {
-      created: false,
-      reason: "Fullmakt saknas",
-      readiness,
-    };
-  }
-
-  const request = await createSupplierSwitchRequest(supabase, {
-    readiness,
-    site,
-    meteringPoint: candidateMeteringPoint,
-    requestType: params.intakeFlowType,
-    requestedStartDate: site.move_in_date ?? null,
-  });
-
-  return {
-    created: true,
-    requestId: request.id,
-    requestType: request.request_type,
-    readiness,
-  };
-}
-
-async function cleanupCreatedGraph(context: CreationContext) {
-  try {
-    if (context.switchRequestId) {
-      await supabaseService
-        .from("supplier_switch_events")
-        .delete()
-        .eq("switch_request_id", context.switchRequestId);
-
-      await supabaseService
-        .from("supplier_switch_requests")
-        .delete()
-        .eq("id", context.switchRequestId);
-    }
-
-    if (context.documentIds.length > 0) {
-      await supabaseService
-        .from("customer_authorization_documents")
-        .delete()
-        .in("id", context.documentIds);
-    }
-
-    if (context.powerOfAttorneyId) {
-      await supabaseService
-        .from("powers_of_attorney")
-        .delete()
-        .eq("id", context.powerOfAttorneyId);
-    }
-
-    if (context.contractId) {
-      await supabaseService
-        .from("customer_contract_events")
-        .delete()
-        .eq("customer_contract_id", context.contractId);
-
-      await supabaseService
-        .from("customer_contracts")
-        .delete()
-        .eq("id", context.contractId);
-    }
-
-    if (context.meteringPointId) {
-      await supabaseService
-        .from("metering_points")
-        .delete()
-        .eq("id", context.meteringPointId);
-    }
-
-    if (context.siteId) {
-      await supabaseService
-        .from("customer_operation_tasks")
-        .delete()
-        .eq("site_id", context.siteId);
-
-      await supabaseService
-        .from("customer_sites")
-        .delete()
-        .eq("id", context.siteId);
-    }
-
-    if (context.addressId) {
-      await supabaseService
-        .from("customer_addresses")
-        .delete()
-        .eq("id", context.addressId);
-    }
-
-    if (context.contactId) {
-      await supabaseService
-        .from("customer_contacts")
-        .delete()
-        .eq("id", context.contactId);
-    }
-
-    if (context.customerId) {
-      await supabaseService
-        .from("customer_blockers")
-        .delete()
-        .eq("customer_id", context.customerId);
-
-      await supabaseService
-        .from("audit_logs")
-        .delete()
-        .eq("entity_type", "customer")
-        .eq("entity_id", context.customerId);
-
-      await supabaseService
-        .from("customers")
-        .delete()
-        .eq("id", context.customerId);
-    }
-  } catch (cleanupError) {
-    console.error("Customer intake rollback failed", cleanupError);
-  }
 }
 
 function databaseObjectMissing(error: unknown): boolean {
@@ -2218,550 +1594,10 @@ async function findIntakeDuplicates(
   return errors;
 }
 
-async function loadExistingCustomerForIntake(params: {
-  companyId: string;
-  customerId: string | null;
-}) {
-  const id = normalizeOptionalString(params.customerId);
-  if (!id) return null;
-
-  const { data, error } = await supabaseService
-    .from("customers")
-    .select("*")
-    .eq("company_id", params.companyId)
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data as Record<string, unknown> | null;
-}
-
-async function updateExistingCustomerFromIntake(params: {
-  companyId: string;
-  customerId: string;
-  actorUserId: string;
-  intake: CreateCustomerGraphParams;
-}) {
-  const payload: Record<string, unknown> = {
-    updated_at: new Date().toISOString(),
-    updated_by: params.actorUserId,
-  };
-
-  const email = normalizeOptionalString(params.intake.email);
-  const phone = normalizeOptionalString(params.intake.phone);
-  const firstName = normalizeOptionalString(params.intake.firstName);
-  const lastName = normalizeOptionalString(params.intake.lastName);
-  const companyName = normalizeOptionalString(params.intake.companyName);
-
-  if (email) payload.email = email;
-  if (phone) payload.phone = phone;
-  if (firstName) payload.first_name = firstName;
-  if (lastName) payload.last_name = lastName;
-  if (companyName) payload.company_name = companyName;
-  if (firstName || lastName || companyName) {
-    payload.full_name =
-      companyName ?? (`${firstName ?? ""} ${lastName ?? ""}`.trim() || null);
-  }
-
-  try {
-    const { error } = await supabaseService
-      .from("customers")
-      .update(payload)
-      .eq("company_id", params.companyId)
-      .eq("id", params.customerId);
-
-    if (error && !databaseObjectMissing(error) && error.code !== "42703")
-      throw error;
-  } catch (error) {
-    if (!databaseObjectMissing(error))
-      console.warn("Existing customer could not be updated from intake", error);
-  }
-}
-
 function duplicateWarningsFromMatches(
   matches: IntakeDuplicateMatch[],
 ): string[] {
   return Array.from(new Set(matches.map((match) => match.message)));
-}
-
-function buildMissingDataList(
-  params: CreateCustomerGraphParams,
-  switchRequestResult: unknown,
-): string[] {
-  const missing: string[] = [];
-
-  if (!normalizeOptionalString(params.facilityId))
-    missing.push("anläggnings-id");
-  if (!normalizeOptionalString(params.meterPointId))
-    missing.push("mätpunkts-id");
-  if (!normalizeOptionalString(params.gridOwnerId)) missing.push("nätägare");
-  if (!normalizeOptionalString(params.gridAreaCode)) missing.push("nätområde");
-  if (!normalizeOptionalString(params.priceAreaCode)) missing.push("elområde");
-  if (!normalizeOptionalString(params.currentSupplierName))
-    missing.push("nuvarande elleverantör");
-  if (
-    !normalizeOptionalString(params.customerConfirmationStatus) ||
-    params.customerConfirmationStatus !== "confirmed"
-  ) {
-    missing.push("kundbekräftelse");
-  }
-
-  const hasAnyStartDate = Boolean(
-    normalizeOptionalString(params.contractStartDate) ||
-    normalizeOptionalString(params.expectedStartDate) ||
-    normalizeOptionalString(params.confirmedStartDate) ||
-    normalizeOptionalString(params.actualStartDate) ||
-    normalizeOptionalString(params.moveInDate),
-  );
-
-  if (!hasAnyStartDate) missing.push("förväntat avtalsstartdatum");
-
-  if (params.intakeFlowType && params.authorizationStatus !== "signed") {
-    missing.push(
-      params.authorizationStatus === "sent"
-        ? "fullmakt ej signerad"
-        : "fullmakt saknas",
-    );
-  }
-
-  const maybeSwitch = switchRequestResult as {
-    created?: boolean;
-    reason?: string;
-  } | null;
-  if (
-    params.intakeFlowType &&
-    maybeSwitch &&
-    !maybeSwitch.created &&
-    maybeSwitch.reason
-  ) {
-    missing.push(maybeSwitch.reason.toLowerCase());
-  }
-
-  return Array.from(new Set(missing));
-}
-
-function buildAddressWarnings(params: CreateCustomerGraphParams): string[] {
-  const warnings: string[] = [];
-  const addressParts = [params.street, params.postalCode, params.city].map(
-    (value) => normalizeOptionalString(value),
-  );
-  const filledAddressParts = addressParts.filter(Boolean).length;
-
-  if (filledAddressParts > 0 && filledAddressParts < 3) {
-    warnings.push(
-      "Anläggningsadressen är ofullständig. Kontrollera gata, postnummer och ort innan switch eller fakturering startas.",
-    );
-  }
-
-  const currentAddress = [params.street, params.postalCode, params.city]
-    .map((value) => normalizeOptionalString(value)?.toLowerCase() ?? "")
-    .join("|");
-  const movedFromAddress = [
-    params.movedFromStreet,
-    params.movedFromPostalCode,
-    params.movedFromCity,
-  ]
-    .map((value) => normalizeOptionalString(value)?.toLowerCase() ?? "")
-    .join("|");
-
-  if (
-    params.intakeFlowType !== "switch" &&
-    currentAddress.replace(/\|/g, "") &&
-    currentAddress === movedFromAddress
-  ) {
-    warnings.push(
-      "Flyttadress och ny anläggningsadress verkar vara samma. Kontrollera adressen innan flödet skickas vidare.",
-    );
-  }
-
-  return warnings;
-}
-
-type IntakeStatus =
-  | "draft"
-  | "incomplete"
-  | "needs_completion"
-  | "pending_information"
-  | "pending_power_of_attorney"
-  | "pending_duplicate_review"
-  | "blocked"
-  | "ready_for_contract"
-  | "ready_for_operations";
-
-function determineIntakeStatus(params: {
-  intakeCreateMode: IntakeCreateMode;
-  hasCoreIdentity: boolean;
-  hasContact: boolean;
-  missingData: string[];
-  contractId: string | null;
-  duplicateReviewRequired: boolean;
-}): IntakeStatus {
-  if (params.intakeCreateMode === "create_blocked") return "blocked";
-  if (params.duplicateReviewRequired) return "pending_duplicate_review";
-  if (!params.hasCoreIdentity || !params.hasContact) return "incomplete";
-  if (params.missingData.some((value) => value.includes("fullmakt"))) {
-    return "pending_power_of_attorney";
-  }
-  if (params.missingData.length > 0) return "pending_information";
-  if (!params.contractId) return "ready_for_contract";
-  return "ready_for_operations";
-}
-
-function calculateIntakeQualityScore(
-  params: CreateCustomerGraphParams,
-  missingData: string[],
-): number {
-  let score = 100;
-
-  const importantValues = [
-    params.firstName || params.companyName,
-    params.lastName || params.orgNumber,
-    params.email || params.phone,
-    params.facilityId,
-    params.meterPointId,
-    params.gridOwnerId,
-    params.contractOfferId || params.contractTypeOverride,
-    params.contractStartDate,
-  ];
-
-  score -=
-    importantValues.filter(
-      (value) => !normalizeOptionalString(value as string | null | undefined),
-    ).length * 8;
-  score -= missingData.length * 6;
-
-  return Math.max(0, Math.min(100, score));
-}
-
-async function updateCustomerIntakeQuality(params: {
-  companyId: string;
-  customerId: string;
-  missingData: string[];
-  qualityScore: number;
-  intakeStatus: IntakeStatus;
-  addressWarnings?: string[];
-}) {
-  try {
-    const payload: Record<string, unknown> = {
-      intake_status: params.intakeStatus,
-      intake_missing_fields: params.missingData,
-      intake_quality_score: params.qualityScore,
-      intake_warnings: params.addressWarnings ?? [],
-    };
-
-    if (params.intakeStatus === "blocked") {
-      payload.status = "blocked";
-    }
-
-    const { error } = await supabaseService
-      .from("customers")
-      .update(payload)
-      .eq("id", params.customerId)
-      .eq("company_id", params.companyId);
-
-    if (error && !databaseObjectMissing(error) && error.code !== "42703") {
-      console.warn("Customer intake quality could not be updated", error);
-    }
-  } catch (error) {
-    if (!databaseObjectMissing(error)) {
-      console.warn("Customer intake quality could not be updated", error);
-    }
-  }
-}
-
-async function createIntakeFollowUps(params: {
-  companyId: string;
-  actorUserId: string;
-  customerId: string;
-  siteId: string | null;
-  meteringPointId: string | null;
-  contractId: string | null;
-  gridOwnerId: string | null;
-  currentSupplierName: string | null;
-  missingData: string[];
-  addressWarnings?: string[];
-}) {
-  const warnings = params.addressWarnings ?? [];
-  if (params.missingData.length === 0 && warnings.length === 0) return;
-
-  const blockerReason =
-    params.missingData.length > 0
-      ? `Kundintag kräver komplettering: ${params.missingData.join(", ")}.`
-      : `Kundintag kräver adresskontroll: ${warnings.join(" ")}`;
-  const requestedCategories = params.missingData.map((value) => ({
-    key: value,
-  }));
-
-  try {
-    const { error: requestError } = await supabaseService
-      .from("customer_info_requests")
-      .insert({
-        company_id: params.companyId,
-        customer_id: params.customerId,
-        site_id: params.siteId,
-        metering_point_id: params.meteringPointId,
-        request_type: "customer_intake_completion",
-        target_party_type: params.gridOwnerId
-          ? "grid_owner"
-          : "customer_or_supplier",
-        target_party_name: params.currentSupplierName,
-        grid_owner_id: params.gridOwnerId,
-        current_supplier_name: params.currentSupplierName,
-        status: "manual_review_required",
-        requested_data_categories: requestedCategories,
-        blocker_reason: blockerReason,
-        notes:
-          "Automatiskt skapad från kundintag när obligatoriska driftuppgifter saknades.",
-        created_by: params.actorUserId,
-        updated_by: params.actorUserId,
-      });
-
-    if (requestError && !databaseObjectMissing(requestError)) {
-      console.warn(
-        "Customer intake info request could not be created",
-        requestError,
-      );
-    }
-  } catch (error) {
-    if (!databaseObjectMissing(error)) {
-      console.warn("Customer intake info request could not be created", error);
-    }
-  }
-
-  try {
-    const { error: taskError } = await supabaseService
-      .from("customer_operation_tasks")
-      .insert({
-        company_id: params.companyId,
-        customer_id: params.customerId,
-        site_id: params.siteId,
-        metering_point_id: params.meteringPointId,
-        task_type: params.missingData.some((value) => value.includes("fullmakt"))
-          ? "missing_authorization"
-          : "customer_intake_missing_data",
-        status: "open",
-        priority: params.missingData.some(
-          (value) => value.includes("fullmakt") || value.includes("mätpunkt"),
-        )
-          ? "high"
-          : "normal",
-        title: "Kundintag kräver komplettering",
-        description: blockerReason,
-        metadata: {
-          contractId: params.contractId,
-          reasonCategory: "customer_intake_missing_data",
-          billingBlocked: params.missingData.some(
-            (value) => value.includes("mätpunkt") || value.includes("startdatum"),
-          ),
-          billingManualReview: true,
-          source: "customer_intake",
-          nextAction:
-            "Komplettera saknade uppgifter innan leverantörsbyte eller fakturering går vidare.",
-          missingData: params.missingData,
-          addressWarnings: warnings,
-          createdFrom: "createCustomerAction",
-        },
-        created_by: params.actorUserId,
-        updated_by: params.actorUserId,
-      });
-
-    if (taskError && !databaseObjectMissing(taskError)) {
-      console.warn("Customer intake task could not be created", taskError);
-    }
-  } catch (error) {
-    if (!databaseObjectMissing(error)) {
-      console.warn("Customer intake task could not be created", error);
-    }
-  }
-}
-
-type CustomerBlockerDraft = {
-  blockerType: string;
-  severity: "info" | "warning" | "blocking" | "critical";
-  status: "open" | "pending_review" | "resolved" | "dismissed";
-  title: string;
-  description: string;
-  metadata: Record<string, unknown>;
-  relatedField?: string | null;
-};
-
-function blockerTypeFromMissingLabel(label: string): string {
-  const lower = label.toLowerCase();
-  if (lower.includes("ediel readiness")) return "ediel_readiness_blocked";
-  if (lower.includes("fullmakt")) return "missing_power_of_attorney";
-  if (lower.includes("mätpunkt")) return "missing_metering_point_id";
-  if (lower.includes("anläggnings")) return "missing_facility_id";
-  if (lower.includes("nätägare")) return "missing_grid_owner";
-  if (lower.includes("startdatum")) return "missing_start_date";
-  if (lower.includes("avtal")) return "missing_contract";
-  return "missing_required_data";
-}
-
-function blockerSeverityFromMissingLabel(
-  label: string,
-): CustomerBlockerDraft["severity"] {
-  const lower = label.toLowerCase();
-  if (lower.includes("ediel readiness")) return "blocking";
-  if (lower.includes("fullmakt") || lower.includes("mätpunkt"))
-    return "blocking";
-  if (lower.includes("anläggnings") || lower.includes("nätägare"))
-    return "warning";
-  return "warning";
-}
-
-function buildCustomerBlockerDrafts(params: {
-  missingData: string[];
-  addressWarnings: string[];
-  duplicateMatches: IntakeDuplicateMatch[];
-  forceBlocked: boolean;
-}): CustomerBlockerDraft[] {
-  const drafts: CustomerBlockerDraft[] = [];
-
-  for (const label of params.missingData) {
-    const blockerType = blockerTypeFromMissingLabel(label);
-    drafts.push({
-      blockerType,
-      severity: blockerSeverityFromMissingLabel(label),
-      status: "open",
-      title: `Saknas: ${label}`,
-      description:
-        "Kunden är sparad, men detta måste kompletteras innan berört utskick, leverantörsbyte eller fakturering går vidare.",
-      relatedField: label,
-      metadata: {
-        source: "customer_intake",
-        missingField: label,
-        stopsCustomerCreation: false,
-      },
-    });
-  }
-
-  if (params.duplicateMatches.length > 0) {
-    drafts.push({
-      blockerType: "possible_duplicate",
-      severity: params.duplicateMatches.some(
-        (match) => match.severity === "critical",
-      )
-        ? "blocking"
-        : "warning",
-      status: "pending_review",
-      title: "Möjlig dubblett",
-      description:
-        "Systemet hittade en möjlig dubblett. Kunden är skapad, men bör granskas innan merge, export eller känsliga driftsteg.",
-      metadata: {
-        source: "customer_intake_duplicate_check",
-        duplicateMatches: params.duplicateMatches,
-        stopsCustomerCreation: false,
-      },
-    });
-  }
-
-  for (const warning of params.addressWarnings.filter(
-    (value) => !value.toLowerCase().includes("matchar kund"),
-  )) {
-    drafts.push({
-      blockerType: "missing_required_data",
-      severity: "warning",
-      status: "open",
-      title: "Adress eller intagsdata behöver kontrolleras",
-      description: warning,
-      metadata: {
-        source: "customer_intake_address_warning",
-        warning,
-        stopsCustomerCreation: false,
-      },
-    });
-  }
-
-  if (params.forceBlocked) {
-    drafts.push({
-      blockerType: "manual_admin_block",
-      severity: "blocking",
-      status: "open",
-      title: "Kunden markerades som blockerad vid intag",
-      description:
-        "Admin valde att skapa kunden men hålla den blockerad tills uppgifterna har granskats.",
-      metadata: {
-        source: "customer_intake",
-        stopsCustomerCreation: false,
-      },
-    });
-  }
-
-  const keySet = new Set<string>();
-  return drafts.filter((draft) => {
-    const key = `${draft.blockerType}:${draft.title}:${draft.description}`;
-    if (keySet.has(key)) return false;
-    keySet.add(key);
-    return true;
-  });
-}
-
-async function createCustomerBlockers(params: {
-  companyId: string;
-  actorUserId: string;
-  customerId: string;
-  siteId: string | null;
-  meteringPointId: string | null;
-  contractId: string | null;
-  missingData: string[];
-  addressWarnings: string[];
-  duplicateMatches: IntakeDuplicateMatch[];
-  forceBlocked: boolean;
-}) {
-  const drafts = buildCustomerBlockerDrafts(params);
-  if (drafts.length === 0) return [];
-
-  try {
-    const { data, error } = await supabaseService
-      .from("customer_blockers")
-      .insert(
-        drafts.map((draft) => ({
-          company_id: params.companyId,
-          customer_id: params.customerId,
-          customer_site_id: params.siteId,
-          metering_point_id: params.meteringPointId,
-          contract_id: params.contractId,
-          blocker_type: draft.blockerType,
-          severity: draft.severity,
-          status: draft.status,
-          title: draft.title,
-          description: draft.description,
-          metadata: draft.metadata,
-          created_by: params.actorUserId,
-        })),
-      )
-      .select("id, blocker_type, severity, status, title");
-
-    if (error) {
-      if (!databaseObjectMissing(error)) {
-        console.warn("Customer blockers could not be created", error);
-      }
-      return [];
-    }
-
-    await insertAuditLog({
-      actorUserId: params.actorUserId,
-      companyId: params.companyId,
-      entityType: "customer_blockers",
-      entityId: params.customerId,
-      action: "customer_intake_blockers_created",
-      newValues: { blockers: data ?? [] },
-      metadata: {
-        missingData: params.missingData,
-        duplicateCount: params.duplicateMatches.length,
-        forceBlocked: params.forceBlocked,
-      },
-    }).catch((error) =>
-      console.warn("Customer blocker audit could not be logged", error),
-    );
-
-    return data ?? [];
-  } catch (error) {
-    if (!databaseObjectMissing(error)) {
-      console.warn("Customer blockers could not be created", error);
-    }
-    return [];
-  }
 }
 
 function mapUnknownErrorToIntakeState(
@@ -2832,6 +1668,7 @@ type CustomerGraphResult = CustomerGraphRow & {
   __createdGridOwnerId: string | null
   __createdPowerOfAttorneyId: string | null
   __createdCurrentSupplierName: string | null
+  __uploadedDocumentLabels?: string[]
 }
 
 async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<CustomerGraphResult> {
@@ -2842,355 +1679,199 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
 
   const duplicateMatches = await findIntakeDuplicateMatches(params);
   const duplicateWarnings = duplicateWarningsFromMatches(duplicateMatches);
-  const duplicateReviewRequired =
-    duplicateMatches.length > 0 &&
-    params.duplicateResolution !== "create_separate_confirmed";
-
   const normalizedFirstName = normalizeOptionalString(params.firstName);
   const normalizedLastName = normalizeOptionalString(params.lastName);
   const normalizedCompanyName = normalizeOptionalString(params.companyName);
-  const normalizedContactTitle = normalizeOptionalString(params.contactTitle);
   const normalizedEmail = normalizeOptionalString(params.email);
   const normalizedPhone = normalizeOptionalString(params.phone);
-  const normalizedApartmentNumber = normalizeOptionalString(
-    params.apartmentNumber,
-  );
-  const normalizedSiteName = normalizeOptionalString(params.siteName);
+  const normalizedPersonalNumber = params.customerType === "private"
+    ? normalizeOptionalString(params.personalNumber)
+    : null;
+  const normalizedOrgNumber = params.customerType === "private"
+    ? null
+    : normalizeOptionalString(params.orgNumber);
   const normalizedFacilityId = normalizeOptionalString(params.facilityId);
   const normalizedMeterPointId = normalizeOptionalString(params.meterPointId);
-  const submittedGridOwnerId = normalizeOptionalString(params.gridOwnerId);
-  // customer_sites.grid_owner_id must always reference OPS grid_owners.id.
-  // Submitted ids in the platform_grid_owners namespace are bridged via
-  // ops_grid_owner_id; unmappable ids are dropped with a warning instead of
-  // storing a wrong-namespace id.
-  const gridOwnerNormalization = await normalizeGridOwnerIdToOps({
-    gridOwnerId: submittedGridOwnerId,
-    companyId: params.companyId,
-  });
-  const normalizedGridOwnerId = gridOwnerNormalization.opsGridOwnerId;
-  if (submittedGridOwnerId && !normalizedGridOwnerId) {
-    console.warn(
-      "[admin-customer-intake] submitted grid_owner_id could not be mapped to OPS grid_owners namespace",
-      { submittedGridOwnerId, source: gridOwnerNormalization.source, warnings: gridOwnerNormalization.warnings },
-    );
-  }
-  const normalizedGridAreaCode = normalizeOptionalString(params.gridAreaCode);
-  const normalizedMoveInDate = normalizeOptionalString(params.moveInDate);
-  const normalizedCurrentSupplierId = normalizeOptionalString(params.currentSupplierId);
-  const normalizedCurrentSupplierName = params.currentSupplierUnknown
-    ? "Okänd nuvarande leverantör"
-    : normalizeOptionalString(
-        params.currentSupplierName,
-      );
-  const normalizedCurrentSupplierOrgNumber = params.currentSupplierUnknown
-    ? null
-    : normalizeOptionalString(
-        params.currentSupplierOrgNumber,
-      );
-  const normalizedCustomerConfirmationStatus = normalizeOptionalString(
-    params.customerConfirmationStatus,
-  );
-  const normalizedAuthorizationStatus = normalizeOptionalString(
-    params.authorizationStatus,
-  );
-  const normalizedAuthorizationValidFrom = normalizeOptionalString(
-    params.authorizationValidFrom,
-  );
-  const normalizedAuthorizationValidTo = normalizeOptionalString(
-    params.authorizationValidTo,
-  );
-  const normalizedExpectedStartDate = normalizeOptionalString(
-    params.expectedStartDate,
-  );
-  const normalizedConfirmedStartDate = normalizeOptionalString(
-    params.confirmedStartDate,
-  );
-  const normalizedActualStartDate = normalizeOptionalString(
-    params.actualStartDate,
-  );
-  const normalizedStartDateSource = normalizeOptionalString(
-    params.startDateSource,
-  );
+  const normalizedCountry = normalizeCountryCode(params.country);
   const normalizedStreet = normalizeOptionalString(params.street);
   const normalizedPostalCode = normalizeOptionalString(params.postalCode);
   const normalizedCity = normalizeOptionalString(params.city);
   const normalizedCareOf = normalizeOptionalString(params.careOf);
-  const normalizedCountry = normalizeCountryCode(params.country);
-  const normalizedContractStartDate = normalizeOptionalString(
-    params.contractStartDate,
-  );
-  const hasSignedAgreementUpload = Boolean(params.signedAgreementFile);
-  const normalizedContractStatus =
-    hasSignedAgreementUpload &&
-    (!params.contractStatus ||
-      params.contractStatus === "draft" ||
-      params.contractStatus === "pending_signature")
-      ? "signed"
-      : (params.contractStatus ?? null);
-  const normalizedOverrideReason = normalizeOptionalString(
-    params.overrideReason,
-  );
-  const normalizedAnnualConsumptionKwh = params.annualConsumptionKwh ?? null;
-  const normalizedBindingMonths = params.bindingMonths ?? null;
-  const normalizedNoticeMonths = params.noticeMonths ?? null;
-  const normalizedFixedPriceOrePerKwh = params.fixedPriceOrePerKwh ?? null;
-  const normalizedSpotMarkupOrePerKwh = params.spotMarkupOrePerKwh ?? null;
-  const normalizedVariableFeeOrePerKwh = params.variableFeeOrePerKwh ?? null;
-  const normalizedMonthlyFeeSek = params.monthlyFeeSek ?? null;
-  const normalizedGreenFeeMode = params.greenFeeMode ?? null;
-  const normalizedGreenFeeValue = params.greenFeeValue ?? null;
-  const normalizedOptionalFeeLines = params.optionalFeeLines ?? [];
+  const displayName = params.customerType === "private"
+    ? `${normalizedFirstName ?? ""} ${normalizedLastName ?? ""}`.trim()
+    : (normalizedCompanyName ?? "");
+
+  const gridOwnerNormalization = await normalizeGridOwnerIdToOps({
+    gridOwnerId: normalizeOptionalString(params.gridOwnerId),
+    companyId: params.companyId,
+  });
+  const normalizedGridOwnerId = gridOwnerNormalization.opsGridOwnerId;
   const billingSnapshot = buildBillingAddressSnapshot(params);
-  const duplicateResolution = params.duplicateResolution;
-  const shouldUseExistingCustomer = Boolean(
-    params.existingCustomerId &&
-    [
-      "add_site_to_existing",
-      "add_contract_to_existing",
-      "update_existing",
-    ].includes(duplicateResolution),
-  );
+  const offer = params.contractOfferId
+    ? await getContractOfferById(params.contractOfferId, params.companyId)
+    : null;
+  const hasContract = Boolean(params.contractOfferId || params.contractTypeOverride);
+  const hasSignedAgreement = Boolean(params.signedAgreementFile);
+  const contractStatus = hasSignedAgreement && (!params.contractStatus || ["draft", "pending_signature"].includes(params.contractStatus))
+    ? "signed"
+    : (params.contractStatus ?? "pending_signature");
+  const contractType = params.contractTypeOverride ?? offer?.contract_type ?? "variable_hourly";
+  const signedScopes = params.signedPowerOfAttorneyFile
+    ? signedAuthorizationScopes({
+        gridOwnerData: params.postCreateRequestTarget !== "current_supplier",
+        currentSupplierContract: params.postCreateRequestTarget !== "grid_owner",
+        meteringData: params.postCreateRequestTarget !== "current_supplier",
+      })
+    : [];
 
-  let normalizedPersonalNumber = normalizeOptionalString(params.personalNumber);
-  let normalizedOrgNumber = normalizeOptionalString(params.orgNumber);
-  let normalizedMovedFromStreet = normalizeOptionalString(
-    params.movedFromStreet,
-  );
-  let normalizedMovedFromPostalCode = normalizeOptionalString(
-    params.movedFromPostalCode,
-  );
-  let normalizedMovedFromCity = normalizeOptionalString(params.movedFromCity);
-  let normalizedMovedFromSupplierName = normalizeOptionalString(
-    params.movedFromSupplierName,
-  );
+  const matchingPolicy = params.existingCustomerId
+    ? "link_selected"
+    : params.duplicateResolution === "create_separate_confirmed" ||
+        params.duplicateResolution === "create_new_pending_review"
+      ? "create_separate"
+      : "link_unique";
 
-  if (params.customerType === "private") {
-    normalizedOrgNumber = null;
-  } else {
-    normalizedPersonalNumber = null;
-  }
+  const idempotencyKey = canonicalIdempotencyKey({
+    channel: "admin",
+    companyId: params.companyId,
+    sourceId: buildAdminIntakeIdempotencyKey(params),
+  });
 
-  if (
-    params.intakeFlowType !== "move_in" &&
-    params.intakeFlowType !== "move_out_takeover"
-  ) {
-    normalizedMovedFromStreet = null;
-    normalizedMovedFromPostalCode = null;
-    normalizedMovedFromCity = null;
-    normalizedMovedFromSupplierName = null;
-  }
-
-  const displayName =
-    params.customerType === "business" || params.customerType === "association"
-      ? (normalizedCompanyName ?? "")
-      : `${normalizedFirstName ?? ""} ${normalizedLastName ?? ""}`.trim();
-
-  const creationContext: CreationContext = {
-    customerId: null,
-    contactId: null,
-    addressId: null,
-    siteId: null,
-    meteringPointId: null,
-    contractId: null,
-    switchRequestId: null,
-    powerOfAttorneyId: null,
-    documentIds: [],
-  };
-
-  try {
-    let customer = null as CustomerGraphRow | null;
-    let createdNewCustomer = false;
-
-    if (shouldUseExistingCustomer) {
-      customer = (await loadExistingCustomerForIntake({
-        companyId: params.companyId,
-        customerId: params.existingCustomerId,
-      })) as CustomerGraphRow | null;
-
-      if (!customer?.id) {
-        throw new IntakeValidationError(
-          "Befintlig kund hittades inte i valt bolag.",
-          {
-            existingCustomerId:
-              "Befintlig kund hittades inte eller tillhör ett annat bolag.",
-          },
-        );
-      }
-
-      if (duplicateResolution === "update_existing") {
-        await updateExistingCustomerFromIntake({
-          companyId: params.companyId,
-          customerId: String(customer.id),
-          actorUserId: params.actorUserId,
-          intake: params,
-        });
-      }
-    } else {
-      const { data: createdCustomer, error: customerError } =
-        await supabaseService
-          .from("customers")
-          .insert({
-            company_id: params.companyId,
-            customer_type: params.customerType,
-            status:
-              params.intakeCreateMode === "create_blocked"
-                ? "blocked"
-                : "draft",
-            first_name: normalizedFirstName,
-            last_name: normalizedLastName,
-            full_name: displayName || null,
-            company_name: normalizedCompanyName,
-            email: normalizedEmail,
-            phone: normalizedPhone,
-            personal_number: normalizedPersonalNumber,
-            org_number: normalizedOrgNumber,
-            apartment_number: normalizedApartmentNumber,
-            possible_duplicate: duplicateMatches.length > 0,
-            duplicate_review_status:
-              duplicateMatches.length > 0
-                ? duplicateResolution === "create_separate_confirmed"
-                  ? "created_separate"
-                  : "pending_review"
-                : "clear",
-          })
-          .select("*")
-          .single();
-
-      if (customerError) throw customerError;
-      customer = createdCustomer as CustomerGraphRow;
-      createdNewCustomer = true;
-      creationContext.customerId = String(customer.id);
-
-      const contact = await createPrimaryContact({
-        customerId: String(customer.id),
-        customerType: params.customerType,
-        firstName: normalizedFirstName,
-        lastName: normalizedLastName,
-        companyName: normalizedCompanyName,
-        title: normalizedContactTitle,
-        email: normalizedEmail,
-        phone: normalizedPhone,
-        companyId: params.companyId,
-      });
-      creationContext.contactId = contact?.id ?? null;
-    }
-
-    if (!customer?.id) throw new Error("Kund kunde inte förberedas.");
-    const customerId = String(customer.id);
-
-    // Canonical customer number: the same tenant-scoped generator as the
-    // website flow (gridex_next_customer_number). New customers normally get
-    // the number from the DB insert trigger; matched existing customers that
-    // predate the backfill are filled here. Numbers are permanent.
-    const canonicalCustomerNumber = await ensureCustomerNumberIfSupported({
-      companyId: params.companyId,
-      customerId,
-      existingCustomerNumber:
-        typeof customer.customer_number === "string"
-          ? customer.customer_number
-          : null,
-    });
-    if (canonicalCustomerNumber) {
-      customer.customer_number = canonicalCustomerNumber;
-    }
-
-    await updateCustomerBillingSettings({
-      companyId: params.companyId,
-      customerId,
-      billing: billingSnapshot,
-    });
-
-    const address = await createFacilityAddress({
-      customerId: customer.id,
-      street: normalizedStreet,
-      postalCode: normalizedPostalCode,
-      city: normalizedCity,
-      careOf: normalizedCareOf,
-      moveInDate: normalizedMoveInDate,
-      country: normalizedCountry,
-      companyId: params.companyId,
-    });
-    creationContext.addressId = address?.id ?? null;
-
-    const billingAddress = await createBillingAddressFromIntake({
-      companyId: params.companyId,
-      customerId,
-      billing: billingSnapshot,
-    });
-
-    if (!creationContext.addressId) {
-      creationContext.addressId = billingAddress?.id ?? null;
-    }
-
-    const shouldCreateSite = Boolean(
-      normalizedSiteName ||
-      normalizedFacilityId ||
-      normalizedStreet ||
-      normalizedGridOwnerId ||
-      normalizedGridAreaCode ||
-      params.priceAreaCode ||
-      normalizedMoveInDate,
-    );
-
-    let siteId: string | null = null;
-    let reusedExistingSite = false;
-
-    // Shared site dedupe: when attaching to an existing customer, an active
-    // site with the exact same normalized address must be reused rather than
-    // duplicated (same rule as website/external intake via addressIntake).
-    if (shouldCreateSite && shouldUseExistingCustomer) {
-      const addressHash = computeCustomerSiteAddressHash({
-        street: normalizedStreet,
-        postalCode: normalizedPostalCode,
-        city: normalizedCity,
-        country: normalizedCountry,
-        apartmentNumber: normalizedApartmentNumber,
-      });
-      if (addressHash.hash) {
-        const { data: existingSite, error: existingSiteError } =
-          await supabaseService
-            .from("customer_sites")
-            .select("id")
-            .eq("company_id", params.companyId)
-            .eq("customer_id", customer.id)
-            .eq("address_hash", addressHash.hash)
-            .eq("is_active", true)
-            .limit(1)
-            .maybeSingle();
-        if (existingSiteError && !databaseObjectMissing(existingSiteError)) {
-          throw existingSiteError;
+  const result = await onboardCustomerGraph({
+    company_id: params.companyId,
+    actor_user_id: params.actorUserId,
+    channel: "admin",
+    idempotency_key: idempotencyKey,
+    matching_policy: matchingPolicy,
+    existing_customer_id: params.existingCustomerId,
+    update_existing: params.duplicateResolution === "update_existing",
+    customer: {
+      customer_type: params.customerType,
+      status: params.intakeCreateMode === "create_blocked" ? "pending_review" : "active",
+      first_name: normalizedFirstName,
+      last_name: normalizedLastName,
+      full_name: displayName || normalizedEmail || "Ny kund",
+      company_name: normalizedCompanyName,
+      personal_number: normalizedPersonalNumber,
+      org_number: normalizedOrgNumber,
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      apartment_number: normalizeOptionalString(params.apartmentNumber),
+      source: "admin_customer_intake",
+      metadata: {
+        duplicateResolution: params.duplicateResolution,
+        duplicateOverrideReason: normalizeOptionalString(params.duplicateOverrideReason),
+        duplicateWarnings,
+      },
+      created_by: params.actorUserId,
+      updated_by: params.actorUserId,
+    },
+    contact: normalizedEmail || normalizedPhone
+      ? {
+          type: "primary",
+          name: displayName || null,
+          email: normalizedEmail,
+          phone: normalizedPhone,
+          title: normalizeOptionalString(params.contactTitle),
+          is_primary: true,
+          created_by: params.actorUserId,
+          updated_by: params.actorUserId,
         }
-        if (typeof existingSite?.id === "string") {
-          siteId = existingSite.id;
-          reusedExistingSite = true;
+      : null,
+    address: normalizedStreet || normalizedPostalCode || normalizedCity
+      ? {
+          type: "registered",
+          street_1: normalizedStreet,
+          street_2: normalizedCareOf,
+          postal_code: normalizedPostalCode,
+          city: normalizedCity,
+          country: normalizedCountry,
+          is_active: true,
+          created_by: params.actorUserId,
+          updated_by: params.actorUserId,
         }
-      }
-    }
-
-    if (shouldCreateSite && !siteId) {
-      const { data: site, error: siteError } = await supabaseService
-        .from("customer_sites")
-        .insert({
-          company_id: params.companyId,
-          customer_id: customer.id,
-          site_name: normalizedSiteName || displayName || "Ny anläggning",
+      : null,
+    site: normalizedFacilityId || normalizedStreet || params.existingCustomerId
+      ? {
+          site_name: normalizeOptionalString(params.siteName) || displayName || "Ny anläggning",
           facility_id: normalizedFacilityId,
           site_type: params.siteType ?? "consumption",
           status: "draft",
           grid_owner_id: normalizedGridOwnerId,
-          price_area_code: params.priceAreaCode ?? null,
-          grid_area_code: normalizedGridAreaCode,
-          move_in_date: normalizedMoveInDate,
-          annual_consumption_kwh: normalizedAnnualConsumptionKwh,
-          current_supplier_id: normalizedCurrentSupplierId,
-          current_supplier_name: normalizedCurrentSupplierName,
-          current_supplier_org_number: normalizedCurrentSupplierOrgNumber,
+          price_area_code: params.priceAreaCode,
+          grid_area_code: normalizeOptionalString(params.gridAreaCode),
+          move_in_date: normalizeOptionalString(params.moveInDate),
+          annual_consumption_kwh: params.annualConsumptionKwh,
+          current_supplier_id: normalizeOptionalString(params.currentSupplierId),
+          current_supplier_name: params.currentSupplierUnknown
+            ? "Okänd nuvarande leverantör"
+            : normalizeOptionalString(params.currentSupplierName),
+          current_supplier_org_number: params.currentSupplierUnknown
+            ? null
+            : normalizeOptionalString(params.currentSupplierOrgNumber),
           current_supplier_unknown: params.currentSupplierUnknown,
           street: normalizedStreet,
+          care_of: normalizedCareOf,
           postal_code: normalizedPostalCode,
           city: normalizedCity,
           country: normalizedCountry,
-          care_of: normalizedCareOf,
+          moved_from_street: normalizeOptionalString(params.movedFromStreet),
+          moved_from_postal_code: normalizeOptionalString(params.movedFromPostalCode),
+          moved_from_city: normalizeOptionalString(params.movedFromCity),
+          moved_from_supplier_name: normalizeOptionalString(params.movedFromSupplierName),
+          metadata: {
+            billing: billingSnapshot,
+            addressSource: "admin_customer_intake",
+          },
+          created_by: params.actorUserId,
+          updated_by: params.actorUserId,
+        }
+      : null,
+    metering_point: normalizedMeterPointId
+      ? {
+          meter_point_id: normalizedMeterPointId,
+          metering_point_id: normalizedMeterPointId,
+          site_facility_id: normalizedFacilityId,
+          status: "draft",
+          measurement_type: params.siteType === "production" ? "production" : "consumption",
+          reading_frequency: "hourly",
+          grid_owner_id: normalizedGridOwnerId,
+          price_area_code: params.priceAreaCode,
+          grid_area_code: normalizeOptionalString(params.gridAreaCode),
+          start_date: normalizeOptionalString(params.moveInDate),
+          is_settlement_relevant: true,
+          created_by: params.actorUserId,
+          updated_by: params.actorUserId,
+        }
+      : null,
+    contract: hasContract
+      ? {
+          contract_offer_id: offer?.id ?? null,
+          source_type: params.contractOfferId && !params.overrideReason ? "catalog" : "manual_override",
+          status: contractStatus,
+          contract_name: offer?.name ?? "Kundspecifikt avtal",
+          contract_type: contractType,
+          campaign_name: offer?.campaign_name ?? null,
+          campaign_code: offer?.campaign_code ?? null,
+          campaign_version: offer?.campaign_version ?? "v1",
+          price_version: offer?.price_version ?? "v1",
+          terms_version: offer?.terms_version ?? "v1",
+          fixed_price_ore_per_kwh: params.fixedPriceOrePerKwh ?? offer?.fixed_price_ore_per_kwh ?? null,
+          spot_markup_ore_per_kwh: params.spotMarkupOrePerKwh ?? offer?.spot_markup_ore_per_kwh ?? null,
+          variable_fee_ore_per_kwh: params.variableFeeOrePerKwh ?? offer?.variable_fee_ore_per_kwh ?? null,
+          monthly_fee_sek: params.monthlyFeeSek ?? offer?.monthly_fee_sek ?? null,
+          green_fee_mode: params.greenFeeMode ?? offer?.green_fee_mode ?? "none",
+          green_fee_value: params.greenFeeValue ?? offer?.green_fee_value ?? null,
+          binding_months: params.bindingMonths ?? offer?.default_binding_months ?? null,
+          notice_months: params.noticeMonths ?? offer?.default_notice_months ?? null,
+          optional_fee_lines: params.optionalFeeLines.length > 0 ? params.optionalFeeLines : (offer?.optional_fee_lines ?? []),
+          starts_at: normalizeOptionalString(params.contractStartDate) ?? normalizeOptionalString(params.confirmedStartDate) ?? normalizeOptionalString(params.expectedStartDate),
+          expected_start_at: normalizeOptionalString(params.expectedStartDate),
+          confirmed_start_at: normalizeOptionalString(params.confirmedStartDate),
+          actual_start_at: normalizeOptionalString(params.actualStartDate),
+          start_date_source: normalizeOptionalString(params.startDateSource),
+          signed_at: ["signed", "active"].includes(contractStatus) ? new Date().toISOString() : null,
+          override_reason: normalizeOptionalString(params.overrideReason),
           invoice_recipient: billingSnapshot.recipient,
           invoice_email: billingSnapshot.email,
           invoice_reference: billingSnapshot.reference,
@@ -3201,504 +1882,169 @@ async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<C
           billing_address_same_as_site: billingSnapshot.sameAsSite,
           billing_level: billingSnapshot.billingLevel,
           consolidated_invoice: billingSnapshot.consolidatedInvoice,
-          moved_from_street: normalizedMovedFromStreet,
-          moved_from_postal_code: normalizedMovedFromPostalCode,
-          moved_from_city: normalizedMovedFromCity,
-          moved_from_supplier_name: normalizedMovedFromSupplierName,
-          metadata: {
-            currentSupplier: {
-              id: normalizedCurrentSupplierId,
-              name: normalizedCurrentSupplierName,
-              orgNumber: normalizedCurrentSupplierOrgNumber,
-              unknown: params.currentSupplierUnknown,
-              source: "customer_intake",
-            },
-          },
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
-        })
-        .select("*")
-        .single();
-
-      if (siteError) throw siteError;
-      siteId = site.id;
-      creationContext.siteId = site.id;
-
-      // Stamp the shared address hash/normalization + history so the site
-      // participates in the same dedupe/conflict pipeline as other channels.
-      await applyCustomerSiteAddressCandidate({
-        companyId: params.companyId,
-        customerId: String(customer.id),
-        siteId: String(site.id),
-        address: {
-          street: normalizedStreet,
-          postalCode: normalizedPostalCode,
-          city: normalizedCity,
-          country: normalizedCountry,
-          careOf: normalizedCareOf,
-          apartmentNumber: normalizedApartmentNumber,
-          source: "manual_intake",
-          sourceReference: "admin_customer_intake",
-          actorUserId: params.actorUserId,
-        },
-      }).catch((addressError) => {
-        console.warn(
-          "Site address normalization could not be applied during admin intake",
-          addressError,
-        );
-        return null;
-      });
-    }
-
-    if (siteId && normalizedMeterPointId) {
-      const { data: meteringPoint, error: meteringPointError } =
-        await supabaseService
-          .from("metering_points")
-          .insert({
-            company_id: params.companyId,
-            customer_id: customer.id,
-            site_id: siteId,
-            meter_point_id: normalizedMeterPointId,
-            site_facility_id: normalizedFacilityId,
-            status: "draft",
-            measurement_type: "consumption",
-            reading_frequency: "hourly",
-            grid_owner_id: normalizedGridOwnerId,
-            price_area_code: params.priceAreaCode ?? null,
-            grid_area_code: normalizedGridAreaCode,
-            is_settlement_relevant: true,
-            created_by: params.actorUserId,
-            updated_by: params.actorUserId,
-          })
-          .select("id")
-          .single();
-
-      if (meteringPointError) throw meteringPointError;
-      creationContext.meteringPointId = meteringPoint.id;
-    }
-
-    if (params.contractOfferId || params.contractTypeOverride) {
-      const offer = params.contractOfferId
-        ? await getContractOfferById(params.contractOfferId, params.companyId)
-        : null;
-
-      const contract = await createCustomerContract({
-        companyId: params.companyId,
-        customerId: customer.id,
-        siteId,
-        contractOfferId: offer?.id ?? null,
-        sourceType:
-          params.contractOfferId && !normalizedOverrideReason
-            ? "catalog"
-            : "manual_override",
-        status: normalizedContractStatus ?? "pending_signature",
-        contractName: offer?.name ?? "Kundspecifikt avtal",
-        contractType:
-          params.contractTypeOverride ??
-          offer?.contract_type ??
-          "variable_hourly",
-        campaignName: offer?.campaign_name ?? null,
-        campaignCode: offer?.campaign_code ?? null,
-        campaignVersion: offer?.campaign_version ?? "v1",
-        priceVersion: offer?.price_version ?? "v1",
-        termsVersion: offer?.terms_version ?? "v1",
-        discountValue: offer?.discount_value ?? null,
-        discountUnit: offer?.discount_unit ?? null,
-        startFeeSek: offer?.start_fee_sek ?? null,
-        adminFeeSek: offer?.admin_fee_sek ?? null,
-        breakFeeSek: offer?.break_fee_sek ?? null,
-        vatRate: offer?.vat_rate ?? null,
-        campaignSnapshot: offer
-          ? {
-              offerId: offer.id,
-              campaignName: offer.campaign_name ?? null,
-              campaignCode: offer.campaign_code ?? null,
-              campaignVersion: offer.campaign_version ?? "v1",
-              validFrom: offer.valid_from ?? null,
-              validTo: offer.valid_to ?? null,
-            }
-          : null,
-        priceSnapshot: offer
-          ? {
-              offerId: offer.id,
-              priceVersion: offer.price_version ?? "v1",
-              termsVersion: offer.terms_version ?? "v1",
-              monthlyFeeSek: offer.monthly_fee_sek ?? null,
-              spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh ?? null,
-              variableFeeOrePerKwh: offer.variable_fee_ore_per_kwh ?? null,
-              greenFeeMode: offer.green_fee_mode ?? "none",
-              greenFeeValue: offer.green_fee_value ?? null,
-              discountValue: offer.discount_value ?? null,
-              discountUnit: offer.discount_unit ?? null,
-              startFeeSek: offer.start_fee_sek ?? null,
-              adminFeeSek: offer.admin_fee_sek ?? null,
-              breakFeeSek: offer.break_fee_sek ?? null,
-              vatRate: offer.vat_rate ?? null,
-            }
-          : null,
-        fixedPriceOrePerKwh:
-          normalizedFixedPriceOrePerKwh ??
-          offer?.fixed_price_ore_per_kwh ??
-          null,
-        spotMarkupOrePerKwh:
-          normalizedSpotMarkupOrePerKwh ??
-          offer?.spot_markup_ore_per_kwh ??
-          null,
-        variableFeeOrePerKwh:
-          normalizedVariableFeeOrePerKwh ??
-          offer?.variable_fee_ore_per_kwh ??
-          null,
-        monthlyFeeSek:
-          normalizedMonthlyFeeSek ?? offer?.monthly_fee_sek ?? null,
-        greenFeeMode: normalizedGreenFeeMode ?? offer?.green_fee_mode ?? "none",
-        greenFeeValue:
-          normalizedGreenFeeValue ?? offer?.green_fee_value ?? null,
-        bindingMonths:
-          normalizedBindingMonths ?? offer?.default_binding_months ?? null,
-        noticeMonths:
-          normalizedNoticeMonths ?? offer?.default_notice_months ?? null,
-        optionalFeeLines:
-          normalizedOptionalFeeLines.length > 0
-            ? normalizedOptionalFeeLines
-            : ((offer?.optional_fee_lines as Array<
-                Record<string, unknown>
-              > | null) ?? []),
-        startsAt:
-          normalizedContractStartDate ??
-          normalizedConfirmedStartDate ??
-          normalizedExpectedStartDate,
-        expectedStartAt: normalizedExpectedStartDate,
-        confirmedStartAt: normalizedConfirmedStartDate,
-        actualStartAt: normalizedActualStartDate,
-        startDateSource: normalizedStartDateSource,
-        invoiceRecipient: billingSnapshot.recipient,
-        invoiceEmail: billingSnapshot.email,
-        invoiceReference: billingSnapshot.reference,
-        billingStreet: billingSnapshot.street,
-        billingPostalCode: billingSnapshot.postalCode,
-        billingCity: billingSnapshot.city,
-        billingCountry: billingSnapshot.country,
-        billingAddressSameAsSite: billingSnapshot.sameAsSite,
-        billingLevel: billingSnapshot.billingLevel,
-        consolidatedInvoice: billingSnapshot.consolidatedInvoice,
-        signedAt:
-          normalizedContractStatus === "signed" ||
-          normalizedContractStatus === "active"
-            ? normalizedContractStartDate ||
-              normalizedConfirmedStartDate ||
-              new Date().toISOString()
-            : null,
-        overrideReason: normalizedOverrideReason,
-        actorUserId: params.actorUserId,
-      });
-
-      creationContext.contractId = contract.id;
-
-      await addCustomerContractEvent({
-        companyId: params.companyId,
-        customerContractId: contract.id,
-        customerId: customer.id,
-        eventType: "created",
-        note: params.contractOfferId
-          ? `Skapad från avtalskatalog${normalizedOverrideReason ? ` med override: ${normalizedOverrideReason}` : ""}`
-          : "Skapad som manuellt kundspecifikt avtal",
-        metadata: {
-          contractOfferId: params.contractOfferId ?? null,
-          customerNumber: customer.customer_number ?? null,
-        },
-        actorUserId: params.actorUserId,
-      });
-
-      await syncContractLifecycleEvents({
-        companyId: params.companyId,
-        customerId: customer.id,
-        contractId: contract.id,
-        contractStatus: normalizedContractStatus,
-        contractStartDate:
-          normalizedContractStartDate ??
-          normalizedConfirmedStartDate ??
-          normalizedExpectedStartDate,
-        actorUserId: params.actorUserId,
-      });
-    }
-
-    const intakeDocumentUpload = await uploadCustomerIntakeDocuments({
-      companyId: params.companyId,
-      actorUserId: params.actorUserId,
-      customerId: customer.id,
-      siteId,
-      meteringPointId: creationContext.meteringPointId,
-      contractId: creationContext.contractId,
-      signedAgreementFile: params.signedAgreementFile,
-      signedPowerOfAttorneyFile: params.signedPowerOfAttorneyFile,
-      gridInvoiceFile: params.gridInvoiceFile,
-      authorizationValidFrom: normalizedAuthorizationValidFrom,
-      authorizationValidTo: normalizedAuthorizationValidTo,
-    });
-
-    creationContext.documentIds = intakeDocumentUpload.uploadedDocumentIds;
-    creationContext.powerOfAttorneyId = intakeDocumentUpload.powerOfAttorneyId;
-
-    if (!creationContext.powerOfAttorneyId) {
-      creationContext.powerOfAttorneyId =
-        await maybeCreatePowerOfAttorneyFromIntake({
-          companyId: params.companyId,
-          actorUserId: params.actorUserId,
-          customerId: customer.id,
-          siteId,
-          status: normalizedAuthorizationStatus,
-          validFrom: normalizedAuthorizationValidFrom,
-          validTo: normalizedAuthorizationValidTo,
-        });
-    }
-
-    const switchRequestResult = await maybeCreateSwitchRequestFromIntake({
-      customerId: customer.id,
-      siteId,
-      intakeFlowType: params.intakeFlowType,
-    });
-
-    creationContext.switchRequestId =
-      switchRequestResult && switchRequestResult.created
-        ? (switchRequestResult.requestId ?? null)
-        : null;
-
-    const effectiveAuthorizationStatus = creationContext.powerOfAttorneyId
-      ? "signed"
-      : normalizedAuthorizationStatus;
-    const readinessParams: CreateCustomerGraphParams = {
-      ...params,
-      authorizationStatus: effectiveAuthorizationStatus,
-      contractStatus: normalizedContractStatus,
-    };
-    const goLiveSetup = await getCompanyGoLiveSetupSummary(params.companyId).catch((error) => {
-      console.warn("Go-live setup could not be evaluated during customer intake", error);
-      return null;
-    });
-    const edifactReadinessBlockers = params.intakeFlowType && goLiveSetup?.status === "blocked"
-      ? goLiveSetup.blockers.slice(0, 4).map((blocker) => `ediel readiness: ${blocker}`)
-      : [];
-    const missingData = Array.from(new Set([
-      ...buildMissingDataList(
-        readinessParams,
-        switchRequestResult,
-      ),
-      ...edifactReadinessBlockers,
-    ]));
-    const addressWarnings = [
-      ...buildAddressWarnings(params),
-      ...duplicateWarnings,
-    ];
-    const intakeQualityScore = calculateIntakeQualityScore(
-      readinessParams,
-      missingData,
-    );
-    const hasCoreIdentity = Boolean(
-      (params.customerType === "private" &&
-        (normalizedFirstName ||
-          normalizedLastName ||
-          normalizedPersonalNumber)) ||
-      (params.customerType !== "private" &&
-        (normalizedCompanyName || normalizedOrgNumber)),
-    );
-    const hasContact = Boolean(normalizedEmail || normalizedPhone);
-    const intakeStatus = determineIntakeStatus({
-      intakeCreateMode: params.intakeCreateMode,
-      hasCoreIdentity,
-      hasContact,
-      missingData,
-      contractId: creationContext.contractId,
-      duplicateReviewRequired,
-    });
-
-    await createIntakeFollowUps({
-      companyId: params.companyId,
-      actorUserId: params.actorUserId,
-      customerId: customer.id,
-      siteId,
-      meteringPointId: creationContext.meteringPointId,
-      contractId: creationContext.contractId,
-      gridOwnerId: normalizedGridOwnerId,
-      currentSupplierName: normalizedCurrentSupplierName,
-      missingData,
-      addressWarnings,
-    });
-
-    const customerBlockers = await createCustomerBlockers({
-      companyId: params.companyId,
-      actorUserId: params.actorUserId,
-      customerId: customer.id,
-      siteId,
-      meteringPointId: creationContext.meteringPointId,
-      contractId: creationContext.contractId,
-      missingData,
-      addressWarnings,
-      duplicateMatches,
-      forceBlocked: params.intakeCreateMode === "create_blocked",
-    });
-
-    await updateCustomerIntakeQuality({
-      companyId: params.companyId,
-      customerId: customer.id,
-      missingData,
-      qualityScore: intakeQualityScore,
-      intakeStatus,
-      addressWarnings,
-    });
-
-    if (duplicateMatches.length > 0) {
-      await createDuplicateReviewCase({
-        companyId: params.companyId,
-        actorUserId: params.actorUserId,
-        customerId: customer.id,
-        siteId,
-        meteringPointId: creationContext.meteringPointId,
-        duplicateMatches,
-      });
-
-      await logDuplicateResolutionEvent({
-        companyId: params.companyId,
-        actorUserId: params.actorUserId,
-        customerId: customer.id,
-        existingCustomerId: params.existingCustomerId,
-        duplicateMatches,
-        resolution: duplicateResolution,
-        reason: params.duplicateOverrideReason,
-      });
-    }
-
-    const batch2BAutomationResult = await runBatch2BAutomation({
-      companyId: params.companyId,
-      actorUserId: params.actorUserId,
-    }).catch((error) => ({
-      error:
-        error instanceof Error
-          ? error.message
-          : "Automationsmotorn kunde inte köras efter kundintag.",
-    }));
-
-    await insertAuditLog({
-      actorUserId: params.actorUserId,
-      entityType: "customer",
-      entityId: customer.id,
-      action: "customer_created",
-      newValues: {
-        customer_type: customer.customer_type,
-        full_name: customer.full_name,
-        company_name: customer.company_name,
-        email: customer.email,
-        phone: customer.phone,
-        customer_number: customer.customer_number,
-      },
-      companyId: params.companyId,
-      metadata: {
+        }
+      : null,
+    price_snapshot: hasContract
+      ? {
+          pricing_model: contractType,
+          snapshot_json: {
+            offerId: offer?.id ?? null,
+            priceVersion: offer?.price_version ?? "v1",
+            termsVersion: offer?.terms_version ?? "v1",
+            fixedPriceOrePerKwh: params.fixedPriceOrePerKwh ?? offer?.fixed_price_ore_per_kwh ?? null,
+            spotMarkupOrePerKwh: params.spotMarkupOrePerKwh ?? offer?.spot_markup_ore_per_kwh ?? null,
+            variableFeeOrePerKwh: params.variableFeeOrePerKwh ?? offer?.variable_fee_ore_per_kwh ?? null,
+            monthlyFeeSek: params.monthlyFeeSek ?? offer?.monthly_fee_sek ?? null,
+            greenFeeMode: params.greenFeeMode ?? offer?.green_fee_mode ?? "none",
+            greenFeeValue: params.greenFeeValue ?? offer?.green_fee_value ?? null,
+            vatRate: offer?.vat_rate ?? 25,
+            optionalFeeLines: params.optionalFeeLines.length > 0 ? params.optionalFeeLines : (offer?.optional_fee_lines ?? []),
+          },
+          valid_from: normalizeOptionalString(params.contractStartDate),
+        }
+      : null,
+    legal: hasSignedAgreement || signedScopes.length > 0
+      ? {
+          terms_version: offer?.terms_version ?? "v1",
+          accepted_at: new Date().toISOString(),
+          signed_scopes: signedScopes,
+          acceptance_snapshot: {
+            signedAgreementUploaded: hasSignedAgreement,
+            signedPowerOfAttorneyUploaded: Boolean(params.signedPowerOfAttorneyFile),
+            source: "admin_customer_intake",
+          },
+        }
+      : null,
+    power_of_attorney: signedScopes.length > 0
+      ? {
+          scope: "supplier_switch",
+          status: "signed",
+          signed_at: new Date().toISOString(),
+          valid_from: normalizeOptionalString(params.authorizationValidFrom),
+          valid_to: normalizeOptionalString(params.authorizationValidTo),
+          reference: `INTAKE-POA-${idempotencyKey.slice(-12)}`,
+          notes: "Signerad fullmakt registrerad genom kanoniskt kundintag.",
+          signed_scopes: signedScopes,
+          created_by: params.actorUserId,
+          updated_by: params.actorUserId,
+        }
+      : null,
+    authorization_document: signedScopes.length > 0
+      ? {
+          document_type: "power_of_attorney",
+          status: "active",
+          title: "Signerad fullmakt från kundintag",
+          file_name: params.signedPowerOfAttorneyFile?.name ?? null,
+          mime_type: params.signedPowerOfAttorneyFile?.type ?? null,
+          file_size_bytes: params.signedPowerOfAttorneyFile?.size ?? null,
+          storage_bucket: "customer-documents",
+          file_path: `pending-upload/${idempotencyKey}`,
+          metadata: { source: "admin_customer_intake", signedScopes, uploadStatus: "pending" },
+          created_by: params.actorUserId,
+          updated_by: params.actorUserId,
+        }
+      : null,
+    application: {
+      source_record_type: "admin_customer_intake",
+      source_record_id: idempotencyKey,
+      status: params.duplicateResolution === "create_new_pending_review" ? "pending_review" : "committed",
+      payload_snapshot: {
         intakeFlowType: params.intakeFlowType,
-        siteId,
-        switchRequest: switchRequestResult ?? null,
-        missingData,
-        addressWarnings,
-        intakeStatus,
-        intakeFollowUpsCreated:
-          missingData.length > 0 || addressWarnings.length > 0,
-        intakeQualityScore,
-        duplicateWarnings,
-        duplicateReviewRequired,
-        uploadedDocuments: intakeDocumentUpload.uploadedLabels,
-        customerBlockers,
-        duplicateResolution,
-        existingCustomerId: params.existingCustomerId,
-        createdNewCustomer,
-        billing: billingSnapshot,
-        customerConfirmationStatus: normalizedCustomerConfirmationStatus,
-        authorizationStatus: normalizedAuthorizationStatus,
-        startDates: {
-          desired: normalizedMoveInDate,
-          expected: normalizedExpectedStartDate,
-          confirmed: normalizedConfirmedStartDate,
-          actual: normalizedActualStartDate,
-          source: normalizedStartDateSource,
-        },
-        batch2BAutomation: batch2BAutomationResult,
-        edifactReadiness: goLiveSetup ? {
-          status: goLiveSetup.status,
-          edielId: goLiveSetup.edielId,
-          routeResolutionMode: goLiveSetup.routeResolutionMode,
-          hasProdatRoute: goLiveSetup.hasProdatRoute,
-          blockers: goLiveSetup.blockers.slice(0, 8),
-          warnings: goLiveSetup.warnings.slice(0, 8),
-        } : null,
-        transactionReadyMode: "server_validated_rollback",
+        postCreateAction: params.postCreateAction,
+        postCreateRequestTarget: params.postCreateRequestTarget,
       },
-    });
+    },
+    task: duplicateWarnings.length > 0 || params.intakeCreateMode === "create_blocked"
+      ? {
+          task_type: duplicateWarnings.length > 0 ? "duplicate_review" : "customer_data_review",
+          status: "open",
+          priority: duplicateWarnings.length > 0 ? "high" : "normal",
+          title: duplicateWarnings.length > 0 ? "Granska möjlig dubblett" : "Komplettera kundintag",
+          description: duplicateWarnings.join("; ") || "Kundintaget skapades blockerat och behöver granskas.",
+          created_by: params.actorUserId,
+          updated_by: params.actorUserId,
+        }
+      : null,
+    info_request: params.postCreateAction === "request_data"
+      ? {
+          request_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier_contract" : "z01_customer_masterdata",
+          target_party_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier" : "grid_owner",
+          grid_owner_id: normalizedGridOwnerId,
+          current_supplier_name: params.currentSupplierUnknown ? "Okänd nuvarande leverantör" : normalizeOptionalString(params.currentSupplierName),
+          status: signedScopes.length > 0 ? "ready_to_send" : "missing_authorization",
+          requested_data_categories: params.postCreateRequestTarget === "both"
+            ? ["grid_owner_data", "metering_data", "current_supplier_contract"]
+            : signedScopes,
+          created_by: params.actorUserId,
+          updated_by: params.actorUserId,
+        }
+      : null,
+  });
 
-    const domainEvent = await emitDomainEvent({
-      companyId: params.companyId,
-      eventType: createdNewCustomer ? "customer.created" : "customer.updated_from_intake",
-      aggregateType: "customer",
-      aggregateId: customer.id,
-      subjectCustomerId: customer.id,
-      actorUserId: params.actorUserId,
-      source: "customer_intake",
-      idempotencyKey: `customer_intake:${params.companyId}:${customer.id}:${creationContext.siteId ?? "no_site"}:${creationContext.contractId ?? "no_contract"}`,
-      payload: {
-        intakeFlowType: params.intakeFlowType,
-        intakeStatus,
-        siteId,
-        meteringPointId: creationContext.meteringPointId,
-        contractId: creationContext.contractId,
-        switchRequestId: creationContext.switchRequestId,
-        powerOfAttorneyId: creationContext.powerOfAttorneyId,
-        missingData,
-        addressWarnings,
-        edifactReadiness: goLiveSetup ? { status: goLiveSetup.status, edielId: goLiveSetup.edielId, routeResolutionMode: goLiveSetup.routeResolutionMode } : null,
-        duplicateReviewRequired,
-      },
-    }).catch(() => null);
-
-    if (domainEvent) {
-      await enqueueWebhookDeliveriesForEvent(domainEvent).catch(() => 0);
-    }
-
-    // Run the shared intake orchestrator so admin-created customers use the
-    // exact same post-commit state machine as website/PDF intake. This is the
-    // batch-4 handoff point: if facility_id is missing but grid owner + POA are
-    // ready, the orchestrator creates/reuses the manual grid-owner information
-    // request instead of leaving the customer in a passive review state.
-    const hasUploadedEvidence = intakeDocumentUpload.uploadedLabels.length > 0;
-    const runSharedIntake = hasUploadedEvidence
-      ? processPdfCustomerIntake
-      : processManualCustomerIntake;
-
-    await runSharedIntake({
-      companyId: params.companyId,
-      customerId: String(customer.id),
-      siteId,
-      actorUserId: params.actorUserId,
-    }).catch((orchestratorError) => {
-      console.warn(
-        "Shared intake orchestrator could not be evaluated after admin intake",
-        orchestratorError,
-      );
-      return null;
-    });
-
-    return {
-      ...customer,
-      __duplicateWarnings: duplicateWarnings,
-      __duplicateReviewRequired: duplicateReviewRequired,
-      __createdNewCustomer: createdNewCustomer,
-      __reusedExistingSite: reusedExistingSite,
-      __uploadedDocumentLabels: intakeDocumentUpload.uploadedLabels,
-      __createdSiteId: creationContext.siteId,
-      __createdMeteringPointId: creationContext.meteringPointId,
-      __createdGridOwnerId: normalizedGridOwnerId,
-      __createdPowerOfAttorneyId: creationContext.powerOfAttorneyId,
-      __createdCurrentSupplierName: normalizedCurrentSupplierName,
-    };
-  } catch (error) {
-    await cleanupCreatedGraph(creationContext);
-    throw error;
+  if (!result.ok) {
+    throw new IntakeValidationError(
+      `Kundmatchningen är tvetydig och kräver manuell granskning. Referens: ${result.correlation_id}.`,
+      { existingCustomerId: "Flera möjliga kunder hittades. Välj kund uttryckligen eller skapa separat efter granskning." },
+    );
   }
+
+  const documentUpload = await uploadCustomerIntakeDocuments({
+    companyId: params.companyId,
+    actorUserId: params.actorUserId,
+    customerId: result.customer_id,
+    siteId: result.site_id,
+    meteringPointId: result.metering_point_id,
+    contractId: result.contract_id,
+    existingPowerOfAttorneyId: result.power_of_attorney_id,
+    existingAuthorizationDocumentId: result.authorization_document_id,
+    signedScopes,
+    signedAgreementFile: params.signedAgreementFile,
+    signedPowerOfAttorneyFile: params.signedPowerOfAttorneyFile,
+    gridInvoiceFile: params.gridInvoiceFile,
+    authorizationValidFrom: params.authorizationValidFrom,
+    authorizationValidTo: params.authorizationValidTo,
+  });
+
+  const runSharedIntake = documentUpload.uploadedLabels.length > 0
+    ? processPdfCustomerIntake
+    : processManualCustomerIntake;
+  await runSharedIntake({
+    companyId: params.companyId,
+    customerId: result.customer_id,
+    siteId: result.site_id,
+    actorUserId: params.actorUserId,
+  });
+
+  const { data: customer, error: customerError } = await supabaseService
+    .from("customers")
+    .select("*")
+    .eq("company_id", params.companyId)
+    .eq("id", result.customer_id)
+    .single();
+  if (customerError || !customer) {
+    throw customerError ?? new Error(`Kundposten kunde inte verifieras efter commit. Referens: ${result.correlation_id}.`);
+  }
+  if (!String(customer.customer_number ?? "").trim()) {
+    throw new Error(`Kundnummer saknas efter commit. Referens: ${result.correlation_id}.`);
+  }
+
+  return {
+    ...(customer as CustomerGraphRow),
+    __duplicateWarnings: duplicateWarnings,
+    __duplicateReviewRequired: params.duplicateResolution === "create_new_pending_review",
+    __createdNewCustomer: result.created_new_customer,
+    __reusedExistingSite: !result.created_new_customer && Boolean(result.site_id),
+    __uploadedDocumentLabels: documentUpload.uploadedLabels,
+    __createdSiteId: result.site_id,
+    __createdMeteringPointId: result.metering_point_id,
+    __createdGridOwnerId: normalizedGridOwnerId,
+    __createdPowerOfAttorneyId: result.power_of_attorney_id,
+    __createdCurrentSupplierName: params.currentSupplierUnknown
+      ? "Okänd nuvarande leverantör"
+      : normalizeOptionalString(params.currentSupplierName),
+  };
 }
 
 const ADMIN_INTAKE_ROUTE = "admin/customers/intake";

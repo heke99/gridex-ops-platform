@@ -18,10 +18,46 @@ export type PowerOfAttorneyCoverage = {
   coversMeteringData: boolean
 }
 
-export const FULL_POWER_OF_ATTORNEY_COVERAGE: PowerOfAttorneyCoverage = {
-  coversGridOwnerData: true,
-  coversCurrentSupplierContract: true,
-  coversMeteringData: true,
+export function powerOfAttorneyCoverageFromScopes(scopes: readonly string[]): PowerOfAttorneyCoverage {
+  const normalized = new Set(scopes.map((scope) => scope.trim().toLowerCase()).filter(Boolean))
+  const supplierSwitch = normalized.has('supplier_switch')
+  const facilityLookup = normalized.has('facility_information_lookup')
+  return {
+    coversGridOwnerData:
+      normalized.has('grid_owner_data') || facilityLookup || supplierSwitch,
+    coversCurrentSupplierContract:
+      normalized.has('current_supplier_contract') || supplierSwitch,
+    coversMeteringData:
+      normalized.has('metering_data') || facilityLookup,
+  }
+}
+
+export async function getSignedPowerOfAttorneyCoverage(params: {
+  companyId: string
+  customerId: string
+  powerOfAttorneyId: string
+}): Promise<{ coverage: PowerOfAttorneyCoverage; signedScopes: string[] } | null> {
+  const { data, error } = await supabaseService
+    .from('powers_of_attorney')
+    .select('id,status,scope_summary,signed_scope_snapshot')
+    .eq('company_id', params.companyId)
+    .eq('customer_id', params.customerId)
+    .eq('id', params.powerOfAttorneyId)
+    .maybeSingle()
+  if (error) {
+    if (isMissingRelationError(error)) return null
+    throw error
+  }
+  if (!data || !['signed', 'accepted', 'active'].includes(String(data.status ?? '').toLowerCase())) return null
+
+  const immutable = Array.isArray(data.signed_scope_snapshot)
+    ? data.signed_scope_snapshot.map(String).filter(Boolean)
+    : []
+  const summary = data.scope_summary as { scopes?: unknown } | null
+  const legacy = Array.isArray(summary?.scopes) ? summary.scopes.map(String).filter(Boolean) : []
+  const signedScopes = immutable.length > 0 ? immutable : legacy
+  if (signedScopes.length === 0) return null
+  return { coverage: powerOfAttorneyCoverageFromScopes(signedScopes), signedScopes }
 }
 
 export async function getLatestSignedPowerOfAttorneyForCustomer(params: {
@@ -58,6 +94,7 @@ export async function ensureAuthorizationScopeFromPowerOfAttorney(params: {
   powerOfAttorneyId?: string | null
   authorizationDocumentId?: string | null
   coverage: PowerOfAttorneyCoverage
+  signedScopes?: string[]
   validFrom?: string | null
   validTo?: string | null
   evidenceNote?: string | null
@@ -85,7 +122,33 @@ export async function ensureAuthorizationScopeFromPowerOfAttorney(params: {
       throw existingError
     }
 
-    const existing = (existingRows ?? [])[0] as { id: string; covers_grid_owner_data?: boolean; covers_current_supplier_contract?: boolean; covers_metering_data?: boolean; metadata?: Record<string, unknown> | null } | undefined
+    const existing = (existingRows ?? [])[0] as {
+      id: string
+      covers_grid_owner_data?: boolean
+      covers_current_supplier_contract?: boolean
+      covers_metering_data?: boolean
+      signed_scope_snapshot?: unknown
+      metadata?: Record<string, unknown> | null
+    } | undefined
+    const requestedSignedScopes = (params.signedScopes ?? [])
+      .map((scope) => scope.trim().toLowerCase())
+      .filter(Boolean)
+    const existingSignedScopes = Array.isArray(existing?.signed_scope_snapshot)
+      ? existing.signed_scope_snapshot.map(String).filter(Boolean)
+      : []
+    if (existingSignedScopes.length === 0 && requestedSignedScopes.length === 0) {
+      throw new Error('Signerad fullmakt saknar oföränderligt scope-snapshot. Behörighet kan inte skapas eller breddas automatiskt.')
+    }
+    const immutableScopes = existingSignedScopes.length > 0 ? existingSignedScopes : requestedSignedScopes
+    const immutableCoverage = powerOfAttorneyCoverageFromScopes(immutableScopes)
+    const requestedCoverage = powerOfAttorneyCoverageFromScopes(requestedSignedScopes)
+    if (requestedSignedScopes.length > 0 && (
+      requestedCoverage.coversGridOwnerData !== params.coverage.coversGridOwnerData ||
+      requestedCoverage.coversCurrentSupplierContract !== params.coverage.coversCurrentSupplierContract ||
+      requestedCoverage.coversMeteringData !== params.coverage.coversMeteringData
+    )) {
+      throw new Error('Begärd fullmaktscoverage matchar inte signerade scopes.')
+    }
     const metadata = {
       ...(existing?.metadata ?? {}),
       powerOfAttorneyId: params.powerOfAttorneyId ?? (existing?.metadata?.powerOfAttorneyId as string | undefined) ?? null,
@@ -98,10 +161,10 @@ export async function ensureAuthorizationScopeFromPowerOfAttorney(params: {
       const { error: updateError } = await supabaseService
         .from('authorization_scopes')
         .update({
-          covers_grid_owner_data: Boolean(existing.covers_grid_owner_data) || params.coverage.coversGridOwnerData,
-          covers_current_supplier_contract:
-            Boolean(existing.covers_current_supplier_contract) || params.coverage.coversCurrentSupplierContract,
-          covers_metering_data: Boolean(existing.covers_metering_data) || params.coverage.coversMeteringData,
+          covers_grid_owner_data: immutableCoverage.coversGridOwnerData,
+          covers_current_supplier_contract: immutableCoverage.coversCurrentSupplierContract,
+          covers_metering_data: immutableCoverage.coversMeteringData,
+          signed_scope_snapshot: immutableScopes,
           valid_from: params.validFrom ?? null,
           valid_to: params.validTo ?? null,
           evidence_note: params.evidenceNote ?? 'Signerad fullmakt verifierad i kundkortet.',
@@ -123,9 +186,10 @@ export async function ensureAuthorizationScopeFromPowerOfAttorney(params: {
         authorization_document_id: params.authorizationDocumentId ?? null,
         scope_type: 'supplier_switch_data',
         status: 'active',
-        covers_grid_owner_data: params.coverage.coversGridOwnerData,
-        covers_current_supplier_contract: params.coverage.coversCurrentSupplierContract,
-        covers_metering_data: params.coverage.coversMeteringData,
+        covers_grid_owner_data: immutableCoverage.coversGridOwnerData,
+        covers_current_supplier_contract: immutableCoverage.coversCurrentSupplierContract,
+        covers_metering_data: immutableCoverage.coversMeteringData,
+        signed_scope_snapshot: immutableScopes,
         valid_from: params.validFrom ?? null,
         valid_to: params.validTo ?? null,
         evidence_note: params.evidenceNote ?? 'Signerad fullmakt verifierad i kundkortet.',

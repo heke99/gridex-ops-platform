@@ -183,7 +183,11 @@
     "ops:company-legal-live-preflight": "node scripts/company-legal-live-preflight.cjs",
     "gridex:rate-limit-schema-repair-regression": "node scripts/gridex-rate-limit-schema-repair-regression.cjs",
     "gridex:public-pricing-visibility-regression": "node scripts/gridex-public-pricing-visibility-regression.cjs",
-    "gridex:canonical-portfolio-pricing-regression": "node scripts/gridex-canonical-portfolio-pricing-regression.cjs"
+    "gridex:canonical-portfolio-pricing-regression": "node scripts/gridex-canonical-portfolio-pricing-regression.cjs",
+    "gridex:canonical-onboarding-regression": "node scripts/gridex-canonical-onboarding-regression.cjs",
+    "test:canonical-onboarding": "vitest run __tests__/canonical-onboarding.test.ts __tests__/billing-readiness.test.ts __tests__/authorization-scope-coverage.test.ts __tests__/customer-numbers.test.ts",
+    "test:db": "supabase test db",
+    "verify:canonical-onboarding": "npm run typecheck && npm run test:canonical-onboarding && npm run gridex:canonical-onboarding-regression && node scripts/ediel-certification-regression.cjs && node scripts/ediel-completion-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

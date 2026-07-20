@@ -1,6 +1,7 @@
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
+import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
+import { findCertificationCase } from '@/lib/ediel/rulebook/testCaseRuleRegistry'
 import {
   compareEngineDecisionWithExpected,
   selectRuleProfile,
@@ -266,16 +267,15 @@ function buildKnownPermissionErrors(params: {
 
 
 function shouldForcePortalExpectedNegativeAperak(input: ProdatAperakDecisionInput, classification: EdielClassifiedMessage): boolean {
-  const testCase = normalize(input.testCaseCode)
-  if (input.expectedOutcome !== 'negative') return false
+  const certificationCase = findCertificationCase(input.testCaseCode)
   if (!input.testKind || input.testKind === 'production') return false
   if (classification.family !== 'PRODAT') return false
 
-  // AGT/TGT expected-outcome overrides are only allowed in certification context.
-  // They protect portal regression cases where a syntactically valid business
-  // denial must still become a negative APERAK because the referenced object or
-  // process is intentionally unlinked in the test scenario.
-  return testCase.length > 0 || input.testKind === 'AGT' || input.testKind === 'TGT'
+  // Certification policy is owned by the production registry. A caller-provided
+  // expected outcome may only reinforce the registered case, never invent a rule.
+  const registeredNegativeAperak = certificationCase?.expectedBusinessResponseFamily === 'APERAK'
+    && certificationCase.expectedBusinessOutcome === 'negative'
+  return registeredNegativeAperak && (input.expectedOutcome == null || input.expectedOutcome === 'negative')
 }
 
 function expectedNegativeAperakError(rawPayload: string | null): EdielAperakApplicationError {
@@ -420,14 +420,18 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
 
   const testCase = normalize(input.testCaseCode)
   const runtime = runUtiltsRuntimeForMessage(input.message)
+  const certificationCase = findCertificationCase(testCase)
+  const registryRequiresUtiltsErr = certificationCase?.messageFamily === 'UTILTS'
+    && certificationCase.expectedBusinessResponseFamily === 'UTILTS_ERR'
+    && certificationCase.expectedBusinessOutcome === 'negative'
 
-  if ((input.testKind === 'AGT' || testCase.startsWith('UE')) && ['UE1', 'UE2'].includes(testCase) && input.message.message_family === 'UTILTS') {
-    const ackPlan = applyUtiltsTestAckPlanOverride({ runtime, testCaseCode: testCase })
+  if (registryRequiresUtiltsErr && input.message.message_family === 'UTILTS') {
+    const ackPlan = applyCertifiedUtiltsAckPolicy({ runtime, testCaseCode: testCase })
     const comparison = compareEngineDecisionWithExpected({
       actualFamily: 'UTILTS_ERR',
       actualOutcome: 'negative',
-      expectedFamily: input.expectedFamily ?? 'UTILTS_ERR',
-      expectedOutcome: input.expectedOutcome ?? 'negative',
+      expectedFamily: input.expectedFamily ?? certificationCase.expectedBusinessResponseFamily,
+      expectedOutcome: input.expectedOutcome ?? certificationCase.expectedBusinessOutcome,
     })
     return {
       kind: 'ack',
@@ -435,8 +439,8 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
       outcome: 'negative',
       messageText: serializeUtiltsRuntimeUtiltsErrMessageText(ackPlan) || 'E14',
       applicationErrors: [],
-      reason: ackPlan.reason || 'AGT UE1/UE2 separeras från TGT U3: positiv CONTRL + UTILTS_ERR, inte positiv APERAK.',
-      ruleKeys: ['AGT_UE_UTILTS_ERR', classification.ruleProfileId],
+      reason: ackPlan.reason || `${certificationCase.testCaseCode}: certifieringsregistret kräver positiv CONTRL och negativ UTILTS_ERR.`,
+      ruleKeys: [`CERTIFICATION_${certificationCase.testCaseCode}_UTILTS_ERR`, classification.ruleProfileId],
       classification: summarizeRuleProfile(classification),
       expectedComparison: comparison,
     }

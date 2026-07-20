@@ -1,7 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import {
   ensureAuthorizationScopeFromPowerOfAttorney,
-  FULL_POWER_OF_ATTORNEY_COVERAGE,
+  getSignedPowerOfAttorneyCoverage,
   type PowerOfAttorneyCoverage,
 } from '@/lib/operations/powerOfAttorneyWorkflow'
 
@@ -114,6 +114,7 @@ export type EnsureAuthorizationScopesInput = {
   actorUserId?: string | null
   powerOfAttorneyId?: string | null
   coverage?: PowerOfAttorneyCoverage
+  signedScopes?: string[]
   validFrom?: string | null
   validTo?: string | null
   evidenceNote?: string | null
@@ -122,18 +123,23 @@ export type EnsureAuthorizationScopesInput = {
 /**
  * Ensures active authorization_scopes exist for an authorization document.
  * Idempotent via ensureAuthorizationScopeFromPowerOfAttorney (find-or-create,
- * coverage only widens, never narrows).
+ * coverage is derived from immutable signed evidence and never widens).
  */
 export async function ensureAuthorizationScopes(
   input: EnsureAuthorizationScopesInput,
 ): Promise<string | null> {
+  if (!input.coverage) {
+    throw new Error('Signerad fullmaktsscope saknas och får inte antas.')
+  }
+
   return ensureAuthorizationScopeFromPowerOfAttorney({
     companyId: input.companyId,
     actorUserId: input.actorUserId ?? 'system',
     customerId: input.customerId,
     powerOfAttorneyId: input.powerOfAttorneyId ?? null,
     authorizationDocumentId: input.authorizationDocumentId,
-    coverage: input.coverage ?? FULL_POWER_OF_ATTORNEY_COVERAGE,
+    coverage: input.coverage,
+    signedScopes: input.signedScopes,
     validFrom: input.validFrom ?? null,
     validTo: input.validTo ?? null,
     evidenceNote: input.evidenceNote ?? null,
@@ -153,6 +159,7 @@ export type EnsureAuthorizationChainInput = {
   validFrom?: string | null
   validTo?: string | null
   coverage?: PowerOfAttorneyCoverage
+  signedScopes?: string[]
   metadata?: Record<string, unknown>
 }
 
@@ -190,6 +197,7 @@ export async function ensureAuthorizationDocumentFromPowerOfAttorney(
       actorUserId: input.actorUserId ?? null,
       powerOfAttorneyId: input.powerOfAttorneyId,
       coverage: input.coverage,
+      signedScopes: input.signedScopes,
       validFrom: input.validFrom ?? null,
       validTo: input.validTo ?? null,
     })
@@ -295,8 +303,8 @@ export type AuthorizationScopeCoverageResult = {
  * authorization_scopes) was never materialized.
  *
  * When `healFromPowerOfAttorney` is set and a signed POA id is provided, a
- * missing chain is repaired idempotently first (same coverage semantics as
- * the website chain: a signed POA grants the full onboarding coverage), then
+ * missing chain is repaired idempotently first (the exact immutable scope semantics as
+ * the website chain: a signed POA grants only what the customer accepted), then
  * re-checked. Fail-closed: a missing schema counts as not covered.
  */
 export async function verifyAuthorizationScopeCoverage(input: {
@@ -338,6 +346,19 @@ export async function verifyAuthorizationScopeCoverage(input: {
   }
 
   if (input.healFromPowerOfAttorney && input.powerOfAttorneyId && first.schemaAvailable) {
+    const signed = await getSignedPowerOfAttorneyCoverage({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      powerOfAttorneyId: input.powerOfAttorneyId,
+    })
+    if (!signed) {
+      return {
+        covered: false,
+        missing: first.missing,
+        healed: false,
+        schemaAvailable: first.schemaAvailable,
+      }
+    }
     await ensureAuthorizationDocumentFromPowerOfAttorney({
       companyId: input.companyId,
       customerId: input.customerId,
@@ -345,6 +366,9 @@ export async function verifyAuthorizationScopeCoverage(input: {
       actorUserId: input.actorUserId ?? null,
       siteId: input.siteId ?? null,
       source: 'authorization_scope_coverage_heal',
+      coverage: signed.coverage,
+      signedScopes: signed.signedScopes,
+      metadata: { signedScopes: signed.signedScopes },
     })
     const second = await loadMissing()
     return {

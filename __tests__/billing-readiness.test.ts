@@ -34,7 +34,8 @@ function billableInput(overrides: Partial<BillingReadinessInput> = {}): BillingR
       site_id: 'site-1',
       meter_point_id: '735999000000000001',
     },
-    supplyPeriods: [{ id: 'sp-1', status: 'active' }],
+    supplyPeriods: [{ id: 'sp-1', status: 'active', start_date: '2026-06-01', end_date: '2026-06-30' }],
+    billingPeriod: { start: '2026-06-01', end: '2026-06-30' },
     priceArea: 'SE3',
     meterValues: { present: true, missingCount: 0 },
     paymentTerms: { dueDays: 30 },
@@ -49,7 +50,7 @@ describe('evaluateBillingReadinessCore', () => {
     expect(result.blockers).toEqual([])
     expect(result.billable).toBe(true)
     expect(result.evidence).toMatchObject({
-      version: 'billing_readiness_core_v1',
+      version: 'billing_readiness_core_v2',
       company_id: 'company-1',
       customer_id: 'customer-1',
       contract_id: 'contract-1',
@@ -225,6 +226,39 @@ describe('evaluateBillingReadinessCore', () => {
     const codes = result.blockers.map((blocker) => blocker.code)
     expect(codes).toContain('portfolio_price_not_locked')
     expect(codes).toContain('manual_review')
+  })
+
+  it('never treats a merely signed contract as billable', () => {
+    const result = evaluateBillingReadinessCore(
+      billableInput({ contract: { ...billableInput().contract!, status: 'signed' } }),
+    )
+    expect(result.billable).toBe(false)
+    expect(result.blockers.map((blocker) => blocker.code)).toContain('delivery_not_started')
+  })
+
+  it.each([
+    ['before supply start', { start: '2026-05-01', end: '2026-05-31' }],
+    ['after supply end', { start: '2026-07-01', end: '2026-07-31' }],
+  ])('blocks a billing period %s', (_label, billingPeriod) => {
+    const result = evaluateBillingReadinessCore(billableInput({ billingPeriod }))
+    expect(result.billable).toBe(false)
+    expect(result.blockers.map((blocker) => blocker.code)).toContain('delivery_not_started')
+  })
+
+  it('allows a partial first month when the actual supply period overlaps', () => {
+    const result = evaluateBillingReadinessCore(
+      billableInput({
+        supplyPeriods: [{
+          id: 'sp-1',
+          status: 'confirmed_by_grid_owner',
+          start_date: '2026-06-01',
+          actual_start_date: '2026-06-17',
+          end_date: null,
+        }],
+      }),
+    )
+    expect(result.billable).toBe(true)
+    expect(result.evidence).toMatchObject({ overlapping_supply_period_ids: ['sp-1'] })
   })
 
   it('is idempotent: evaluating twice yields identical blockers and no duplicates', () => {

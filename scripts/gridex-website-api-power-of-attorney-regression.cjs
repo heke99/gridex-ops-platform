@@ -161,8 +161,10 @@ ok(src.includes('gridOwnerRequestMayBeCreated') && src.includes('readiness.canRe
 // 9b) Website intake schema hardening: optional DB columns must fall back to
 // controlled pending_review/repair status, not uncontrolled crashes.
 ok(src.includes('schemaRepairStatus') && (src.includes("'PGRST204'") || src.includes('\"PGRST204\"')), 'website intake treats PostgREST schema-cache mismatches as repairable')
-ok(src.includes('customer_site_schema_mismatch') && src.includes('metering_point_schema_mismatch'), 'website intake returns explicit schema mismatch codes for site/metering fallback failures')
-ok(src.includes("const fallbackPayloads: Array<Record<string, unknown>>") && (src.includes(".select('id')") || src.includes('.select("id")')), 'website site/metering fallback uses minimal guaranteed columns')
+const canonicalOnboarding = read('lib/customers/canonicalOnboarding.ts')
+ok(src.includes('onboardCustomerGraph') && src.includes('canonicalIdempotencyKey'), 'website site/metering creation is delegated to the canonical onboarding transaction')
+ok(canonicalOnboarding.includes('canonical_onboarding_rpc_missing') && canonicalOnboarding.includes('PGRST202') && canonicalOnboarding.includes('42883'), 'canonical onboarding returns an explicit migration/RPC mismatch code')
+ok(!src.includes('const fallbackPayloads: Array<Record<string, unknown>>'), 'website intake no longer owns a direct site/metering fallback writer')
 ok(src.includes('const businessStatus =') && src.includes('schemaStatus ??') && src.includes('pending_review'), 'website partial/schema failures are recorded as pending_review for repair/retry')
 
 // 10) findValidPowerOfAttorney selects all externally-sendable + PDF fields (Task F).
@@ -178,11 +180,14 @@ ok(extDoc.includes('poa_not_externally_sendable') && extDoc.includes('organisati
 ok(read('package.json').includes('gridex:website-api-power-of-attorney-regression'), 'package script exposes regression command')
 
 
-// Tenant-safe facility policy: same-tenant duplicate blocks, cross-tenant match is platform-only and must not block core customer creation.
-ok(src.includes('crossTenantFacilitySeen = conflicts.crossTenantExists'), 'website intake records cross-tenant facility as an internal signal')
+// Tenant-safe facility policy lives inside the canonical transaction: same-tenant
+// conflicts block atomically, while cross-tenant presence is retained only as a
+// platform signal and never leaks candidate identifiers into the website flow.
+const canonicalOnboardingSql = read('supabase/migrations/20260720110000_canonical_customer_onboarding_transaction.sql')
+ok(canonicalOnboardingSql.includes('v_cross_tenant_facility_seen') && canonicalOnboardingSql.includes('s.company_id <> v_company_id'), 'canonical onboarding records cross-tenant facility presence without reading another tenant into the website flow')
 ok(!src.includes("code: 'cross_tenant_facility_conflict',\n        stage: 'site_create'") && !src.includes('code: "cross_tenant_facility_conflict"'), 'website intake no longer throws cross_tenant_facility_conflict during site creation')
-ok((src.includes("code: 'duplicate_facility_id'") || src.includes('code: "duplicate_facility_id"')) && src.includes('sameTenantConflict'), 'website intake still blocks same-tenant duplicate facility ids')
-ok(src.includes('cross_tenant_facility_seen') && src.includes('platform_only'), 'website intake persists cross-tenant facility signal as platform-only metadata')
+ok(canonicalOnboardingSql.includes('facility_id_owned_by_another_customer') && canonicalOnboarding.includes('facility_identity_conflict'), 'canonical onboarding blocks same-tenant facility ownership conflicts with an explicit code')
+ok(canonicalOnboardingSql.includes("'cross_tenant_signal_visibility', 'platform_only'"), 'canonical onboarding persists cross-tenant facility signal as platform-only metadata')
 const facilityErrors = read('lib/energy/facilityDataErrors.ts')
 ok(facilityErrors.includes("status: 'manual_review'") && facilityErrors.includes('Andra tenants kunddata visas aldrig'), 'cross-tenant facility catalog is neutral and platform-review oriented')
 const reviewActions = read('app/admin/website-applications/actions.ts')

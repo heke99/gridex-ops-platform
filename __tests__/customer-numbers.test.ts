@@ -95,13 +95,11 @@ describe('ensureCustomerNumber', () => {
 })
 
 describe('ensureCustomerNumberIfSupported', () => {
-  it('returns null instead of failing intake when the generator is missing', async () => {
+  it('fails closed when the generator migration is missing', async () => {
     state.rpcResult = { data: null, error: { code: 'PGRST202', message: 'schema cache' } }
-    const number = await ensureCustomerNumberIfSupported({
-      companyId: 'company-1',
-      customerId: 'customer-1',
-    })
-    expect(number).toBeNull()
+    await expect(
+      ensureCustomerNumberIfSupported({ companyId: 'company-1', customerId: 'customer-1' }),
+    ).rejects.toThrow(/Kundnummer-funktionen saknas/)
   })
 
   it('propagates real errors', async () => {

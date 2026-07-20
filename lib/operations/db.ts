@@ -250,6 +250,7 @@ export async function savePowerOfAttorney(
     accepted_at?: string | null;
     accepted_source?: string | null;
     scopeSummary?: Record<string, unknown> | null;
+    signedScopes?: string[] | null;
   },
 ): Promise<PowerOfAttorneyRow> {
   const actorId = await getActorId(supabase);
@@ -277,6 +278,7 @@ export async function savePowerOfAttorney(
   if (input.accepted_at !== undefined) payload.accepted_at = input.accepted_at;
   if (input.accepted_source !== undefined) payload.accepted_source = input.accepted_source;
   if (input.scopeSummary !== undefined) payload.scope_summary = input.scopeSummary;
+  if (input.signedScopes !== undefined) payload.signed_scope_snapshot = input.signedScopes ?? [];
 
   if (input.id) {
     // Tenant guard: an update by id must stay inside the customer's company so
