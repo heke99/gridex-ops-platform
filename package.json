@@ -187,7 +187,8 @@
     "gridex:canonical-onboarding-regression": "node scripts/gridex-canonical-onboarding-regression.cjs",
     "test:canonical-onboarding": "vitest run __tests__/canonical-onboarding.test.ts __tests__/billing-readiness.test.ts __tests__/authorization-scope-coverage.test.ts __tests__/customer-numbers.test.ts",
     "test:db": "supabase test db",
-    "verify:canonical-onboarding": "npm run typecheck && npm run test:canonical-onboarding && npm run gridex:canonical-onboarding-regression && node scripts/ediel-certification-regression.cjs && node scripts/ediel-completion-regression.cjs"
+    "verify:canonical-onboarding": "npm run typecheck && npm run test:canonical-onboarding && npm run gridex:canonical-onboarding-regression && node scripts/ediel-certification-regression.cjs && node scripts/ediel-completion-regression.cjs",
+    "gridex:invoice-fee-canonical-regression": "node scripts/gridex-invoice-fee-canonical-regression.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

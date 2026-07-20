@@ -311,3 +311,31 @@ fältbeskrivningar.
 - `409 ambiguous_customer_match`
 - `422 missing_customer_identifier`
 - `500 customer_portal_internal_error`
+
+## Kanoniskt fakturaavgifts- och quote-kontrakt (`2026-07-20.2`)
+
+Den bindande integrationsordningen är:
+
+1. `GET /api/v1/website/public-contracts` används för avtalskort, urval, marknadstext, kundtyp, juridiska länkar och `offer_reference`.
+2. `POST /api/v1/website/quote` används för all faktisk prisberäkning från exakt låst prisversion.
+3. `POST /api/v1/website/customer-applications` tecknar samma `offer_reference` och exakt publicerings-/prisversion.
+
+`public-contracts` är ett presentations-API. En prisdel kan vara `null` eller saknas i kortets `pricing.components` när `website_card_visible=false`, men den kan fortfarande vara en verklig debiteringskomponent. Dolda komponenter ingår därför fortsatt i quote, checkout, avtalsdokument, låst avtalssnapshot och fakturering. Tenantens frontend får inte återskapa totalsumman från kort-DTO:n.
+
+För penningvärden gäller:
+
+- `0` är ett giltigt publicerat numeriskt värde och betyder avgiftsfritt;
+- blankt, `null` och `undefined` betyder inte automatiskt `0`;
+- använd aldrig truthy/falsy-kontroller för pengar;
+- kontrollera uttryckligen `value === null || value === undefined`.
+
+Quote-requesten kräver `offer_reference`, `price_area`, `annual_consumption_kwh > 0` och `start_date` i formatet `YYYY-MM-DD`. `customer_type` får, när det anges, endast vara `private` eller `business`. Svarets `lines` innehåller de verkliga beräkningskomponenterna, inklusive `invoice_fee` med `unit=sek_invoice` och `calculation_type=per_invoice` även när fakturaavgiften är dold på avtalskortet.
+
+`GET /api/v1/website/public-contracts?diagnostics=1` är tenant-scopad och visar `pricing_readiness.invoice_fee`. Ready-status innehåller belopp, enhet, beräkningstyp, kortsynlighet och källa. Blockerad status använder någon av:
+
+- `invoice_fee_missing`
+- `invoice_fee_conflict`
+- `invoice_fee_ambiguous`
+
+Befintliga publicerade avtal rättas versionssäkert: en ny pris- och publiceringsversion skapas och den gamla markeras `superseded`. Redan signerade kundavtal behåller sin tidigare exakta version. Entydiga draftavtal kan uppdateras via det kanoniska kommandot. Saknade eller motstridiga värden sätts aldrig automatiskt till `0`, utan hamnar i manuell remediation med auditspår.
+

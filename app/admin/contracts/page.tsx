@@ -909,8 +909,12 @@ export default async function AdminContractsPage({
             <div className="grid gap-4 md:grid-cols-3">
               <WebsitePricingField
                 name="invoice_fee_sek"
-                placeholder="Fakturaavgift kr"
+                label="Fakturaavgift, kr per faktura"
+                placeholder="Ange 0 om avgiftsfritt"
                 visibilityName="show_invoice_fee_on_website"
+                visibilityLabel="Visa fakturaavgiften på avtalskortet"
+                helpText="Avgiften används alltid i offert, avtal och fakturering. Inställningen nedan styr endast om avgiften visas på hemsidans sammanfattande avtalskort."
+                required
               />
               <WebsitePricingField
                 name="electricity_certificate_ore_per_kwh"

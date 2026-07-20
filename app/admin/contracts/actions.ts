@@ -12,6 +12,10 @@ import { supabaseService } from "@/lib/supabase/service";
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
+import {
+  buildCanonicalContractPricingCommand,
+  parseCanonicalInvoiceFee,
+} from "@/lib/pricing/canonicalInvoiceFee";
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 
 function getString(formData: FormData, key: string): string {
@@ -182,6 +186,10 @@ async function saveContractOfferActionImpl(
   const isActive = getString(formData, "is_active") === "on";
   const validFrom = getString(formData, "valid_from") || null;
   const validTo = getString(formData, "valid_to") || null;
+  const invoiceFeeSek = parseCanonicalInvoiceFee(
+    getString(formData, "invoice_fee_sek"),
+    { required: status === "active" && isActive },
+  );
   const normalizedPricing = normalizeContractPricing({
     name,
     contractType,
@@ -191,7 +199,7 @@ async function saveContractOfferActionImpl(
     spotMarkupOrePerKwh: getString(formData, "spot_markup_ore_per_kwh"),
     variableFeeOrePerKwh: getString(formData, "variable_fee_ore_per_kwh"),
     monthlyFeeSek: getString(formData, "monthly_fee_sek"),
-    invoiceFeeSek: getString(formData, "invoice_fee_sek"),
+    invoiceFeeSek,
     electricityCertificateOrePerKwh: getString(
       formData,
       "electricity_certificate_ore_per_kwh",
@@ -282,13 +290,19 @@ async function saveContractOfferActionImpl(
     },
   });
 
+  const canonicalPricingCommand = buildCanonicalContractPricingCommand({
+    pricingModel: normalizedPricing.pricingModel,
+    pricingSnapshot: normalizedPricing.snapshot,
+    invoiceFeeSek,
+  });
+
   const payload = {
     name,
     slug: getString(formData, "slug") || null,
     status,
     contract_type: contractType,
     customer_type: customerType,
-    pricing_model: normalizedPricing.pricingModel,
+    pricing_model: canonicalPricingCommand.pricing_model,
     campaign_name: getString(formData, "campaign_name") || null,
     campaign_code: getString(formData, "campaign_code") || null,
     campaign_version: getString(formData, "campaign_version") || null,
@@ -315,6 +329,7 @@ async function saveContractOfferActionImpl(
       "variable_fee_ore_per_kwh",
     ),
     monthly_fee_sek: getNullableNumber(formData, "monthly_fee_sek"),
+    invoice_fee_sek: canonicalPricingCommand.invoice_fee_sek,
     green_fee_mode: parseGreenFeeMode(getString(formData, "green_fee_mode")),
     green_fee_value: getNullableNumber(formData, "green_fee_value"),
     default_binding_months: getNullableInt(formData, "default_binding_months"),
@@ -329,10 +344,7 @@ async function saveContractOfferActionImpl(
     valid_from: validFrom,
     valid_to: validTo,
   };
-  const pricingSnapshot = {
-    ...normalizedPricing.snapshot,
-    pricing_model: normalizedPricing.pricingModel,
-  };
+  const pricingSnapshot = canonicalPricingCommand.pricing_snapshot;
   const { data: commandData, error: commandError } = await supabaseService.rpc(
     "gridex_upsert_internal_contract_offer",
     {

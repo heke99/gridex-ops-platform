@@ -6,6 +6,10 @@ import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
 import { supabaseService } from "@/lib/supabase/service";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
+import {
+  buildCanonicalContractPricingCommand,
+  parseCanonicalInvoiceFee,
+} from "@/lib/pricing/canonicalInvoiceFee";
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 
 function text(formData: FormData, key: string): string {
@@ -154,6 +158,12 @@ const PUBLICATION_BLOCKER_LABELS: Record<string, string> = {
     "API-klienten saknar website_contracts.read",
   website_applications_write_scope_missing:
     "API-klienten saknar website_applications.write",
+  invoice_fee_missing:
+    "Fakturaavgift saknas. Ange 0 kr om avtalet inte har någon fakturaavgift",
+  invoice_fee_conflict:
+    "Fakturaavgiften skiljer sig mellan avtalsraden och prisversionen",
+  invoice_fee_ambiguous:
+    "Flera fakturaavgifter finns i prisversionen och måste granskas",
 };
 
 const LEGAL_PROFILE_FIELD_LABELS: Record<string, string> = {
@@ -367,6 +377,12 @@ async function saveTenantPublicContractOfferActionImpl(
       : null;
   const previousBoolean = (key: string, fallback: boolean): boolean =>
     typeof previous?.[key] === "boolean" ? Boolean(previous[key]) : fallback;
+  const submittedInvoiceFee = formData.has("invoice_fee_sek")
+    ? text(formData, "invoice_fee_sek")
+    : previousNumber("invoice_fee_sek");
+  const invoiceFeeSek = parseCanonicalInvoiceFee(submittedInvoiceFee, {
+    required: publicationStatus === "published",
+  });
   const automaticRenewal =
     pricingMode === "preserve"
       ? previousBoolean("automatic_renewal", false)
@@ -439,7 +455,7 @@ async function saveTenantPublicContractOfferActionImpl(
         | "mixed",
       customerType: selectedCustomerType,
       monthlyFeeSek: text(formData, "monthly_fee_sek"),
-      invoiceFeeSek: text(formData, "invoice_fee_sek"),
+      invoiceFeeSek,
       markupOrePerKwh: text(formData, "markup_ore_per_kwh"),
       spotMarkupOrePerKwh: text(formData, "spot_markup_ore_per_kwh"),
       variableFeeOrePerKwh: text(formData, "variable_fee_ore_per_kwh"),
@@ -471,10 +487,7 @@ async function saveTenantPublicContractOfferActionImpl(
         "portfolio_management_fee_calculation_base",
       ),
       portfolioId: text(formData, "portfolio_id"),
-      portfolioSettlementTiming: text(
-        formData,
-        "portfolio_settlement_timing",
-      ),
+      portfolioSettlementTiming: text(formData, "portfolio_settlement_timing"),
       portfolioEstimateRule: text(formData, "portfolio_estimate_rule"),
       portfolioShowHistoricalFinal:
         text(formData, "portfolio_show_historical_final") === "on",
@@ -554,6 +567,13 @@ async function saveTenantPublicContractOfferActionImpl(
       "Avtalet saknar ett komplett prissnapshot. Öppna avtalet och spara prisuppgifterna igen.",
     );
   }
+  const canonicalPricingCommand = buildCanonicalContractPricingCommand({
+    pricingModel,
+    pricingSnapshot,
+    invoiceFeeSek,
+  });
+  pricingModel = canonicalPricingCommand.pricing_model;
+  pricingSnapshot = canonicalPricingCommand.pricing_snapshot;
   await assertSameTenantReference(
     "legal_bundles",
     submittedLegalBundleId,
@@ -621,11 +641,7 @@ async function saveTenantPublicContractOfferActionImpl(
       "monthly_fee_sek",
       previousNumber("monthly_fee_sek"),
     ),
-    invoice_fee_sek: numberValue(
-      formData,
-      "invoice_fee_sek",
-      previousNumber("invoice_fee_sek"),
-    ),
+    invoice_fee_sek: canonicalPricingCommand.invoice_fee_sek,
     markup_ore_per_kwh: numberValue(
       formData,
       "markup_ore_per_kwh",

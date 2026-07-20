@@ -132,6 +132,40 @@ describe("calculatePriceComponents", () => {
     expect(lines[0].amountExVat).toBeCloseTo(29, 2);
   });
 
+  it("calculates a hidden canonical invoice fee and preserves zero", () => {
+    const hidden = component({
+      componentType: "invoice_fee",
+      name: "Fakturaavgift",
+      calculationType: "per_invoice",
+      amount: 19,
+      unit: "sek_invoice",
+      metadata: {
+        visibility: { website_card: false, quote_breakdown: true },
+      },
+    });
+    const { lines } = calculatePriceComponents({
+      underlay: underlay(),
+      components: [hidden],
+      baseAmountExVat: 0,
+      vatRate: 0.25,
+    });
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({
+      amountExVat: 19,
+      vatAmount: 4.75,
+      amountIncVat: 23.75,
+    });
+
+    const zero = calculatePriceComponents({
+      underlay: underlay(),
+      components: [{ ...hidden, amount: 0 }],
+      baseAmountExVat: 0,
+      vatRate: 0.25,
+    });
+    expect(zero.lines).toHaveLength(1);
+    expect(zero.lines[0].amountExVat).toBe(0);
+  });
+
   it("applies a per-kWh discount as a negative line with negative VAT", () => {
     const { lines } = calculatePriceComponents({
       underlay: underlay({ quantityKwh: 1000 }),

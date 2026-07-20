@@ -1,5 +1,6 @@
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import { calculateBasePrice } from "@/lib/pricing/basePriceCalculator";
+import { assessCanonicalInvoiceFee } from "@/lib/pricing/canonicalInvoiceFee";
 import { buildCanonicalContractSnapshot } from "@/lib/pricing/contractSnapshot";
 import { finalizePricingPreview } from "@/lib/pricing/pricePreviewBuilder";
 import { calculatePriceComponents } from "@/lib/pricing/priceComponentCalculator";
@@ -29,7 +30,7 @@ export class OfferQuoteError extends Error {
 }
 
 function dateOnly(value: string | null | undefined): string {
-  const candidate = value?.trim() || new Date().toISOString().slice(0, 10);
+  const candidate = value?.trim() ?? "";
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(candidate) ||
     Number.isNaN(new Date(`${candidate}T00:00:00Z`).getTime())
@@ -93,6 +94,17 @@ export async function calculateOfferQuote(input: {
       400,
       "price_area",
     );
+  if (
+    input.customerType &&
+    !["private", "business"].includes(input.customerType.trim())
+  ) {
+    throw new OfferQuoteError(
+      "customer_type måste vara private eller business.",
+      "invalid_customer_type",
+      400,
+      "customer_type",
+    );
+  }
 
   const annualConsumptionKwh = positiveNumber(
     input.annualConsumptionKwh,
@@ -113,12 +125,33 @@ export async function calculateOfferQuote(input: {
       "offer_reference",
     );
 
+  const invoiceFeeReadiness = assessCanonicalInvoiceFee({
+    rowAmount: offer.invoice_fee_sek,
+    snapshot: offer.pricing_snapshot,
+  });
+  if (invoiceFeeReadiness.status === "blocked") {
+    const messages = {
+      invoice_fee_missing:
+        "Avtalet saknar en publicerad fakturaavgift. Ange 0 kr om avtalet är avgiftsfritt.",
+      invoice_fee_conflict:
+        "Fakturaavgiften skiljer sig mellan avtalsraden och den låsta prisversionen.",
+      invoice_fee_ambiguous:
+        "Den låsta prisversionen innehåller flera fakturaavgifter.",
+    } as const;
+    throw new OfferQuoteError(
+      messages[invoiceFeeReadiness.code],
+      invoiceFeeReadiness.code,
+      422,
+      "offer_reference",
+    );
+  }
+
   const canonical = buildCanonicalContractSnapshot({
     contractType: offer.contract_type,
     billingModel: offer.billing_model,
     productCode: offer.product_code,
     monthlyFeeSek: offer.monthly_fee_sek,
-    invoiceFeeSek: offer.invoice_fee_sek,
+    invoiceFeeSek: invoiceFeeReadiness.amount,
     markupOrePerKwh: offer.markup_ore_per_kwh,
     spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh,
     variableFeeOrePerKwh: offer.variable_fee_ore_per_kwh,
@@ -259,7 +292,30 @@ export async function calculateOfferQuote(input: {
       annual_inc_vat:
         Math.round(preview.totalIncVat * annualFactor * 100) / 100,
     },
-    lines: preview.lines,
+    lines: preview.lines.map((line) => ({
+      component_code:
+        typeof line.metadata?.component_code === "string"
+          ? line.metadata.component_code
+          : typeof line.metadata?.component_type === "string"
+            ? line.metadata.component_type
+            : line.lineType,
+      name: line.description,
+      quantity: line.quantity,
+      unit:
+        typeof line.metadata?.input_unit === "string"
+          ? line.metadata.input_unit
+          : line.unit,
+      calculation_type:
+        typeof line.metadata?.calculation_type === "string"
+          ? line.metadata.calculation_type
+          : null,
+      unit_price_ex_vat: line.unitPriceExVat,
+      amount_ex_vat: line.amountExVat,
+      vat_rate: line.vatRate,
+      vat_amount: line.vatAmount,
+      amount_inc_vat: line.amountIncVat,
+      metadata: line.metadata ?? {},
+    })),
     warnings: preview.warnings,
     assumptions: [
       "Årsförbrukningen fördelas jämnt över 12 månader i förhandskalkylen.",

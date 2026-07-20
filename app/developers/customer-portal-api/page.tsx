@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 const baseUrl = "https://app.gridex.se";
-const documentationVersion = "2026-07-18.3";
+const documentationVersion = "2026-07-20.2";
 
 const permissions = [
   [
@@ -165,6 +165,59 @@ const publicContractsResponse = `{
       "valid_to": null
     }
   ]
+}`;
+
+const quoteExample = `curl -X POST "${baseUrl}/api/v1/website/quote" \
+  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "offer_reference": "offer_...",
+    "price_area": "SE3",
+    "annual_consumption_kwh": 5000,
+    "start_date": "2026-09-01",
+    "customer_type": "private"
+  }'`;
+
+const quoteResponse = `{
+  "data": {
+    "offer": {
+      "offer_reference": "offer_...",
+      "public_name": "Rörligt elpris",
+      "contract_type": "variable_monthly",
+      "pricing_model": "spot"
+    },
+    "input": {
+      "price_area": "SE3",
+      "annual_consumption_kwh": 5000,
+      "estimated_monthly_consumption_kwh": 416.67,
+      "start_date": "2026-09-01",
+      "billing_month": "2026-09"
+    },
+    "estimate": {
+      "monthly_ex_vat": 500,
+      "monthly_vat": 125,
+      "monthly_inc_vat": 625,
+      "annual_ex_vat": 6000,
+      "annual_vat": 1500,
+      "annual_inc_vat": 7500
+    },
+    "lines": [
+      {
+        "component_code": "invoice_fee",
+        "name": "Fakturaavgift",
+        "quantity": 1,
+        "unit": "sek_invoice",
+        "calculation_type": "per_invoice",
+        "amount_ex_vat": 19,
+        "vat_amount": 4.75,
+        "amount_inc_vat": 23.75
+      }
+    ],
+    "warnings": [],
+    "assumptions": [],
+    "snapshot_schema": "gridex_contract_pricing_v4"
+  },
+  "request_id": "..."
 }`;
 
 const publicContractsDiagnosticsExample = `curl -X GET "${baseUrl}/api/v1/website/public-contracts?customer_type=private&diagnostics=1" \\
@@ -683,6 +736,23 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{publicContractsExample}</CodeBlock>
           <CodeBlock>{publicContractsResponse}</CodeBlock>
           <p>
+            <code>GET /public-contracts</code> är endast ett presentations- och
+            urvals-API. Ett fält som är <code>null</code> kan vara dolt på
+            avtalskortet; värdet <code>0</code> är däremot ett giltigt
+            publicerat penningvärde. Använd aldrig truthy/falsy för pengar, utan
+            kontrollera uttryckligen{" "}
+            <code>value === null || value === undefined</code>.
+          </p>
+          <p>
+            När kunden valt avtal ska tenantens backend alltid anropa
+            <code>POST /api/v1/website/quote</code>. Quote använder den exakta
+            låsta prisversionen och räknar fakturaavgift samt andra verkliga
+            komponenter även när de är dolda på avtalskortet. Därefter skickas
+            samma <code>offer_reference</code> till kundansökan.
+          </p>
+          <CodeBlock>{quoteExample}</CodeBlock>
+          <CodeBlock>{quoteResponse}</CodeBlock>
+          <p>
             Hemsidan ska använda exakt <code>offer_reference</code> från svaret
             när kunden tecknar avtal. Det är den enda avtalsväljaren.{" "}
             <code>product_code</code>, <code>price_plan_id</code>,{" "}
@@ -713,13 +783,13 @@ export default function CustomerPortalApiDocsPage() {
             <code>pricing.portfolio_monthly_prices</code> och är bundna till
             exakt <code>price_plan_version_id</code>, månad, elområde och
             avräkningsrevision. De är aldrig ett krav för att teckna eller
-            publicera ett framtida avtal.
-            Portföljandel, portföljpris och portföljförvaltningsavgift är olika
-            begrepp. En procentuell förvaltningsavgift använder värden i
-            intervallet <code>0..100</code> och måste ange en explicit
-            Beräkningsbas i <code>calculation_base</code>. Saknas exakt
-            månad/prisområde får en bindande kalkyl inte falla tillbaka till en
-            annan version eller tidigare månad.
+            publicera ett framtida avtal. Portföljandel, portföljpris och
+            portföljförvaltningsavgift är olika begrepp. En procentuell
+            förvaltningsavgift använder värden i intervallet <code>0..100</code>{" "}
+            och måste ange en explicit Beräkningsbas i{" "}
+            <code>calculation_base</code>. Saknas exakt månad/prisområde får en
+            bindande kalkyl inte falla tillbaka till en annan version eller
+            tidigare månad.
           </p>
           <p>
             För en separat portföljvy används{" "}
@@ -727,8 +797,8 @@ export default function CustomerPortalApiDocsPage() {
             read-only, tenant-scopad från API-nyckeln och kräver exakt{" "}
             <code>offer_reference</code>. En prognos eller manuell indikation
             sparas med källa, estimatmånad, genereringstid och märks alltid{" "}
-            <code>non_binding=true</code>; slutlig fakturering kräver exakt
-            låst avräkning och får inte använda estimat. OPS-statusflödet är{" "}
+            <code>non_binding=true</code>; slutlig fakturering kräver exakt låst
+            avräkning och får inte använda estimat. OPS-statusflödet är{" "}
             <code>draft → calculated → reviewed → final → locked</code> och en
             rättelse skapar alltid en ny <code>revision_no</code>.
           </p>
@@ -738,16 +808,19 @@ export default function CustomerPortalApiDocsPage() {
             dokumentlänkarna från OPS och skicka separata consent-flaggor. OPS
             binder varje accept server-side till exakt{" "}
             <code>legal_bundle_version_document_id</code>, dokumentversion och
-            dokumenthash i den låsta juridikpaketversionen. Kravuppsättningen
-            är databasdriven och kan variera med kundtyp, avtal, prismodell,
-            kanal, produkt och fullmakt; klienten får inte anta fem fasta
-            dokument.
+            dokumenthash i den låsta juridikpaketversionen. Kravuppsättningen är
+            databasdriven och kan variera med kundtyp, avtal, prismodell, kanal,
+            produkt och fullmakt; klienten får inte anta fem fasta dokument.
           </p>
           <p>
             Vid publiceringsfelsökning kan tenantens backend använda{" "}
             <code>diagnostics=1</code>. Svaret förklarar per erbjudande varför
             det är synligt eller blockerat, exempelvis status, datum, kundtyp,
-            prisbok, prisplansversion eller juridikpaket.
+            prisbok, prisplansversion eller juridikpaket. Fältet
+            <code>pricing_readiness.invoice_fee</code> visar amount, unit,
+            website_card_visible och källa, eller blockerarkoderna
+            <code>invoice_fee_missing</code>, <code>invoice_fee_conflict</code>
+            och <code>invoice_fee_ambiguous</code>.
           </p>
           <CodeBlock>{publicContractsDiagnosticsExample}</CodeBlock>
         </Section>

@@ -759,9 +759,12 @@ export default async function TenantPlatformControls({
               <WebsitePricingField
                 compact
                 name="invoice_fee_sek"
-                label="Fakturaavgift"
-                placeholder="kr/faktura"
+                label="Fakturaavgift, kr per faktura"
+                placeholder="Ange 0 om avgiftsfritt"
                 visibilityName="show_invoice_fee_on_website"
+                visibilityLabel="Visa fakturaavgiften på avtalskortet"
+                helpText="Avgiften används alltid i offert, avtal och fakturering. Inställningen nedan styr endast om avgiften visas på hemsidans sammanfattande avtalskort."
+                required
               />
             </div>
             <div className="grid min-w-0 gap-2.5 md:grid-cols-2">

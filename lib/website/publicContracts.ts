@@ -2,6 +2,10 @@ import { supabaseService } from "@/lib/supabase/service";
 import { assessPublicOfferReadiness } from "@/lib/website/publicOfferReadiness";
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import {
+  assessCanonicalInvoiceFee,
+  type CanonicalInvoiceFeeReadiness,
+} from "@/lib/pricing/canonicalInvoiceFee";
+import {
   buildPublicLegalUrl,
   loadCompanySlugById,
 } from "@/lib/legal/publicLegalDocuments";
@@ -723,9 +727,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
             },
       portfolio_price: portfolioPrice,
       portfolio_monthly_prices: portfolioMonthlyPrices,
-      portfolio_method: objectValue(
-        offer.pricing_snapshot?.portfolio_method,
-      ),
+      portfolio_method: objectValue(offer.pricing_snapshot?.portfolio_method),
       portfolio_indications: Array.isArray(
         offer.pricing_snapshot?.portfolio_indications,
       )
@@ -1066,21 +1068,23 @@ async function exactPortfolioMonthlyPrices(
   const showIndication = displayRules.show_indication === true;
   const [settlements, estimates] = await Promise.all([
     supabaseService
-    .from("portfolio_monthly_settlements")
-    .select(
-      "id,portfolio_id,price_plan_version_id,delivery_month,price_area_code,portfolio_price_ore_per_kwh,status,source,revision_no,approved_at,locked_at",
-    )
-    .eq("company_id", offer.company_id)
-    .eq("portfolio_id", portfolioId)
-    .eq("price_plan_version_id", offer.price_plan_version_id)
-    .eq("is_current", true)
-    .in("status", ["final", "locked"])
-    .order("delivery_month", { ascending: false })
-    .order("price_area_code", { ascending: true })
-    .limit(48),
+      .from("portfolio_monthly_settlements")
+      .select(
+        "id,portfolio_id,price_plan_version_id,delivery_month,price_area_code,portfolio_price_ore_per_kwh,status,source,revision_no,approved_at,locked_at",
+      )
+      .eq("company_id", offer.company_id)
+      .eq("portfolio_id", portfolioId)
+      .eq("price_plan_version_id", offer.price_plan_version_id)
+      .eq("is_current", true)
+      .in("status", ["final", "locked"])
+      .order("delivery_month", { ascending: false })
+      .order("price_area_code", { ascending: true })
+      .limit(48),
     supabaseService
       .from("portfolio_price_estimates")
-      .select("id,portfolio_id,price_plan_version_id,estimate_month,price_area_code,estimate_price_ore_per_kwh,estimate_source,confidence,non_binding,reason,expires_at,estimate_generated_at")
+      .select(
+        "id,portfolio_id,price_plan_version_id,estimate_month,price_area_code,estimate_price_ore_per_kwh,estimate_source,confidence,non_binding,reason,expires_at,estimate_generated_at",
+      )
       .eq("company_id", offer.company_id)
       .eq("portfolio_id", portfolioId)
       .eq("price_plan_version_id", offer.price_plan_version_id)
@@ -1091,30 +1095,36 @@ async function exactPortfolioMonthlyPrices(
   if (settlements.error) throw settlements.error;
   if (estimates.error) throw estimates.error;
   return {
-    historicalFinal: showHistorical ? (settlements.data ?? []).map((row) => ({
-      id: row.id,
-      portfolio_id: row.portfolio_id,
-      price_plan_version_id: row.price_plan_version_id,
-      period_month: row.delivery_month,
-      price_area_code: row.price_area_code,
-      amount: row.portfolio_price_ore_per_kwh,
-      unit: "ore_per_kwh",
-      vat_included: false,
-      status: row.status,
-      source: row.source,
-      revision_no: row.revision_no,
-      final_at: row.locked_at ?? row.approved_at,
-      historical: true,
-    })) : [],
-    indications: showIndication ? (estimates.data ?? [])
-      .filter((row) => !row.expires_at || Date.parse(row.expires_at) > Date.now())
-      .map((row) => ({
-      ...row,
-      amount_ore_per_kwh: Number(row.estimate_price_ore_per_kwh),
-      unit: "ore_per_kwh",
-      non_binding: true,
-      label: "Uppskattning – ej bindande",
-    })) : [],
+    historicalFinal: showHistorical
+      ? (settlements.data ?? []).map((row) => ({
+          id: row.id,
+          portfolio_id: row.portfolio_id,
+          price_plan_version_id: row.price_plan_version_id,
+          period_month: row.delivery_month,
+          price_area_code: row.price_area_code,
+          amount: row.portfolio_price_ore_per_kwh,
+          unit: "ore_per_kwh",
+          vat_included: false,
+          status: row.status,
+          source: row.source,
+          revision_no: row.revision_no,
+          final_at: row.locked_at ?? row.approved_at,
+          historical: true,
+        }))
+      : [],
+    indications: showIndication
+      ? (estimates.data ?? [])
+          .filter(
+            (row) => !row.expires_at || Date.parse(row.expires_at) > Date.now(),
+          )
+          .map((row) => ({
+            ...row,
+            amount_ore_per_kwh: Number(row.estimate_price_ore_per_kwh),
+            unit: "ore_per_kwh",
+            non_binding: true,
+            label: "Uppskattning – ej bindande",
+          }))
+      : [],
   };
 }
 
@@ -1136,6 +1146,12 @@ async function appendReadyOffer(input: {
     offer: input.offer,
   });
   if (!readiness.isReady) return;
+
+  const invoiceFeeReadiness = assessCanonicalInvoiceFee({
+    rowAmount: input.offer.invoice_fee_sek,
+    snapshot: input.offer.pricing_snapshot,
+  });
+  if (invoiceFeeReadiness.status !== "ready") return;
 
   const withLegal = await offerWithLegalVersions({
     offer: input.offer,
@@ -1249,6 +1265,9 @@ export type PublicContractOfferDiagnostic = {
   visible: boolean;
   blockers: string[];
   offer_reference: string | null;
+  pricing_readiness: {
+    invoice_fee: CanonicalInvoiceFeeReadiness;
+  };
 };
 
 export async function diagnosePublicContractOffers(input: {
@@ -1297,6 +1316,13 @@ export async function diagnosePublicContractOffers(input: {
     blockers.push(
       ...readiness.blockers.filter((blocker) => !blockers.includes(blocker)),
     );
+    const invoiceFeeReadiness = assessCanonicalInvoiceFee({
+      rowAmount: offer.invoice_fee_sek,
+      snapshot: offer.pricing_snapshot,
+    });
+    if (invoiceFeeReadiness.status === "blocked") {
+      blockers.push(invoiceFeeReadiness.code);
+    }
 
     const strictLegal =
       blockers.length === 0
@@ -1316,8 +1342,9 @@ export async function diagnosePublicContractOffers(input: {
       valid_to: offer.valid_to,
       customer_type: offer.customer_type,
       visible,
-      blockers,
+      blockers: Array.from(new Set(blockers)),
       offer_reference: visible ? publicOfferReference(offer) : null,
+      pricing_readiness: { invoice_fee: invoiceFeeReadiness },
     });
   }
 

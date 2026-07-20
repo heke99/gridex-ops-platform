@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-18.3",
-    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs endast med opak offer_reference och slutmarkeras server-side mot varje exakt dokument i erbjudandets låsta juridikpaket. Portföljmetod, final historik och icke-bindande indikationer hålls isär; slutlig fakturering kräver en exakt låst avräkningsrevision."
+    "version": "2026-07-20.2",
+    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. GET /api/v1/website/public-contracts är ett presentations- och urvals-API, medan POST /api/v1/website/quote är den enda kanoniska prisberäkningen och använder den låsta prisversionen även för komponenter som är dolda på avtalskortet. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs endast med opak offer_reference och slutmarkeras server-side mot varje exakt dokument i erbjudandets låsta juridikpaket. Portföljmetod, final historik och icke-bindande indikationer hålls isär; slutlig fakturering kräver en exakt låst avräkningsrevision."
   },
   "servers": [
     {
@@ -17,10 +17,14 @@
         "summary": "Länka extern portalidentitet till en entydig kund.",
         "security": [
           {
-            "bearerAuth": ["customer_sync.write"]
+            "bearerAuth": [
+              "customer_sync.write"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_sync.write"],
+        "x-required-scopes": [
+          "customer_sync.write"
+        ],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -91,10 +95,14 @@
         "summary": "Hämta kundens avtal.",
         "security": [
           {
-            "bearerAuth": ["customer_contracts.read"]
+            "bearerAuth": [
+              "customer_contracts.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_contracts.read"],
+        "x-required-scopes": [
+          "customer_contracts.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -117,7 +125,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["data"],
+                  "required": [
+                    "data"
+                  ],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -161,10 +171,14 @@
         "summary": "Hämta kundens dokument.",
         "security": [
           {
-            "bearerAuth": ["customer_documents.read"]
+            "bearerAuth": [
+              "customer_documents.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_documents.read"],
+        "x-required-scopes": [
+          "customer_documents.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -221,10 +235,14 @@
         "summary": "Hämta kundens händelser.",
         "security": [
           {
-            "bearerAuth": ["customer_events.read"]
+            "bearerAuth": [
+              "customer_events.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_events.read"],
+        "x-required-scopes": [
+          "customer_events.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -281,10 +299,14 @@
         "summary": "Hämta en tenant- och kundbunden faktura.",
         "security": [
           {
-            "bearerAuth": ["customer_invoices.read"]
+            "bearerAuth": [
+              "customer_invoices.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_invoices.read"],
+        "x-required-scopes": [
+          "customer_invoices.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -350,10 +372,14 @@
         "summary": "Hämta kundens fakturor.",
         "security": [
           {
-            "bearerAuth": ["customer_invoices.read"]
+            "bearerAuth": [
+              "customer_invoices.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_invoices.read"],
+        "x-required-scopes": [
+          "customer_invoices.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -410,10 +436,14 @@
         "summary": "Hämta juridiska godkännanden.",
         "security": [
           {
-            "bearerAuth": ["customer_legal.read"]
+            "bearerAuth": [
+              "customer_legal.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_legal.read"],
+        "x-required-scopes": [
+          "customer_legal.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -470,10 +500,14 @@
         "summary": "Hämta kundprofil.",
         "security": [
           {
-            "bearerAuth": ["customer_profile.read"]
+            "bearerAuth": [
+              "customer_profile.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_profile.read"],
+        "x-required-scopes": [
+          "customer_profile.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -530,10 +564,14 @@
         "summary": "Hämta kanoniska mätvärden.",
         "security": [
           {
-            "bearerAuth": ["customer_metering.read"]
+            "bearerAuth": [
+              "customer_metering.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_metering.read"],
+        "x-required-scopes": [
+          "customer_metering.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -590,10 +628,14 @@
         "summary": "Registrera utflyttning med verkligt kalenderdatum.",
         "security": [
           {
-            "bearerAuth": ["customer_facility_data.write"]
+            "bearerAuth": [
+              "customer_facility_data.write"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_facility_data.write"],
+        "x-required-scopes": [
+          "customer_facility_data.write"
+        ],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -664,10 +706,14 @@
         "summary": "Markera exakt angivna notiser som lästa.",
         "security": [
           {
-            "bearerAuth": ["customer_notifications.write"]
+            "bearerAuth": [
+              "customer_notifications.write"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_notifications.write"],
+        "x-required-scopes": [
+          "customer_notifications.write"
+        ],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -738,10 +784,14 @@
         "summary": "Hämta kundnotiser.",
         "security": [
           {
-            "bearerAuth": ["customer_notifications.read"]
+            "bearerAuth": [
+              "customer_notifications.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_notifications.read"],
+        "x-required-scopes": [
+          "customer_notifications.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -971,10 +1021,14 @@
         "summary": "Hämta fullmakter.",
         "security": [
           {
-            "bearerAuth": ["customer_power_of_attorney.read"]
+            "bearerAuth": [
+              "customer_power_of_attorney.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_power_of_attorney.read"],
+        "x-required-scopes": [
+          "customer_power_of_attorney.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1111,10 +1165,14 @@
         "summary": "Hämta anläggningar och mätpunkter.",
         "security": [
           {
-            "bearerAuth": ["customer_sites.read"]
+            "bearerAuth": [
+              "customer_sites.read"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_sites.read"],
+        "x-required-scopes": [
+          "customer_sites.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1171,10 +1229,14 @@
         "summary": "Synka dokument, fullmakter, juridik och anläggningsdata.",
         "security": [
           {
-            "bearerAuth": ["customer_sync.write"]
+            "bearerAuth": [
+              "customer_sync.write"
+            ]
           }
         ],
-        "x-required-scopes": ["customer_sync.write"],
+        "x-required-scopes": [
+          "customer_sync.write"
+        ],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -1245,10 +1307,14 @@
         "summary": "Hämta tenantens domänhändelser.",
         "security": [
           {
-            "bearerAuth": ["events.read"]
+            "bearerAuth": [
+              "events.read"
+            ]
           }
         ],
-        "x-required-scopes": ["events.read"],
+        "x-required-scopes": [
+          "events.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1294,10 +1360,14 @@
         "summary": "Skicka kundhändelse från hemsida eller portal.",
         "security": [
           {
-            "bearerAuth": ["website_events.write"]
+            "bearerAuth": [
+              "website_events.write"
+            ]
           }
         ],
-        "x-required-scopes": ["website_events.write"],
+        "x-required-scopes": [
+          "website_events.write"
+        ],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -1359,10 +1429,14 @@
         "summary": "Skapa idempotent kundansökan.",
         "security": [
           {
-            "bearerAuth": ["website_applications.write"]
+            "bearerAuth": [
+              "website_applications.write"
+            ]
           }
         ],
-        "x-required-scopes": ["website_applications.write"],
+        "x-required-scopes": [
+          "website_applications.write"
+        ],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -1416,7 +1490,7 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
-        "description": "Skapar en idempotent ansökan från exakt offer_reference. OPS binder fem juridiska accepter till erbjudandets versioner, slutmarkerar avtalet atomiskt som signed och köar avtalsbekräftelse/PDF utan att invänta leverantörsbytet."
+        "description": "Skapar en idempotent ansökan från exakt offer_reference som först har offererats via POST /api/v1/website/quote. OPS binder exakt publicerings- och prisversion, fem juridiska accepter och slutmarkerar avtalet atomiskt som signed. Klienten får inte rekonstruera pris från GET public-contracts."
       }
     },
     "/api/v1/website/customer-events": {
@@ -1425,10 +1499,14 @@
         "summary": "Skicka kundhändelse från hemsida.",
         "security": [
           {
-            "bearerAuth": ["website_events.write"]
+            "bearerAuth": [
+              "website_events.write"
+            ]
           }
         ],
-        "x-required-scopes": ["website_events.write"],
+        "x-required-scopes": [
+          "website_events.write"
+        ],
         "x-idempotency-required": true,
         "parameters": [
           {
@@ -1490,10 +1568,16 @@
         "summary": "Hämta publicerat juridikpaket.",
         "security": [
           {
-            "bearerAuth": ["website_legal.read", "website_contracts.read"]
+            "bearerAuth": [
+              "website_legal.read",
+              "website_contracts.read"
+            ]
           }
         ],
-        "x-required-scopes": ["website_legal.read", "website_contracts.read"],
+        "x-required-scopes": [
+          "website_legal.read",
+          "website_contracts.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1542,10 +1626,14 @@
         "description": "Read-only och tenant-scopad från API-token. offer_reference väljer exakt publicerat portfölj-/mixavtal. Indikationer är alltid non_binding och slutlig fakturering kräver exakt locked settlement.",
         "security": [
           {
-            "bearerAuth": ["website_contracts.read"]
+            "bearerAuth": [
+              "website_contracts.read"
+            ]
           }
         ],
-        "x-required-scopes": ["website_contracts.read"],
+        "x-required-scopes": [
+          "website_contracts.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1566,7 +1654,12 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["SE1", "SE2", "SE3", "SE4"]
+              "enum": [
+                "SE1",
+                "SE2",
+                "SE3",
+                "SE4"
+              ]
             }
           }
         ],
@@ -1577,21 +1670,67 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["data"],
+                  "required": [
+                    "data"
+                  ],
                   "properties": {
                     "data": {
                       "type": "object",
-                      "required": ["offer_reference", "historical_final_prices", "indications", "non_binding", "final_billing_rule"],
+                      "required": [
+                        "offer_reference",
+                        "historical_final_prices",
+                        "indications",
+                        "non_binding",
+                        "final_billing_rule"
+                      ],
                       "properties": {
-                        "offer_reference": { "type": "string" },
-                        "price_plan_version_id": { "type": ["string", "null"], "format": "uuid" },
-                        "legal_bundle_version_id": { "type": ["string", "null"], "format": "uuid" },
-                        "method": { "type": ["object", "null"], "additionalProperties": true },
-                        "historical_final_prices": { "type": "array", "items": { "$ref": "#/components/schemas/PortfolioHistoricalFinalPrice" } },
-                        "indications": { "type": "array", "items": { "$ref": "#/components/schemas/PortfolioPriceIndication" } },
-                        "indication_available": { "type": "boolean" },
-                        "non_binding": { "type": "boolean", "const": true },
-                        "final_billing_rule": { "type": "string", "const": "locked_settlement_only" }
+                        "offer_reference": {
+                          "type": "string"
+                        },
+                        "price_plan_version_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        },
+                        "legal_bundle_version_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        },
+                        "method": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": true
+                        },
+                        "historical_final_prices": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/PortfolioHistoricalFinalPrice"
+                          }
+                        },
+                        "indications": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/PortfolioPriceIndication"
+                          }
+                        },
+                        "indication_available": {
+                          "type": "boolean"
+                        },
+                        "non_binding": {
+                          "type": "boolean",
+                          "const": true
+                        },
+                        "final_billing_rule": {
+                          "type": "string",
+                          "const": "locked_settlement_only"
+                        }
                       }
                     }
                   }
@@ -1599,25 +1738,41 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "description": "Publicerat portfölj-/mixavtal hittades inte." },
-          "422": { "$ref": "#/components/responses/Unprocessable" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/InternalError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "Publicerat portfölj-/mixavtal hittades inte."
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
         }
       }
     },
     "/api/v1/website/public-contracts": {
       "get": {
         "operationId": "getApiV1WebsitePublicContracts",
-        "summary": "Hämta publicerade och teckningsbara erbjudanden.",
+        "summary": "Lista publicerade avtalskort och välj offer_reference.",
         "security": [
           {
-            "bearerAuth": ["website_contracts.read"]
+            "bearerAuth": [
+              "website_contracts.read"
+            ]
           }
         ],
-        "x-required-scopes": ["website_contracts.read"],
+        "x-required-scopes": [
+          "website_contracts.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1629,7 +1784,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["private", "business"]
+              "enum": [
+                "private",
+                "business"
+              ]
             },
             "description": "Filtrera erbjudanden för kundtyp; both matchar båda."
           },
@@ -1653,7 +1811,9 @@
                   "oneOf": [
                     {
                       "type": "object",
-                      "required": ["data"],
+                      "required": [
+                        "data"
+                      ],
                       "properties": {
                         "data": {
                           "type": "array",
@@ -1671,7 +1831,9 @@
                     },
                     {
                       "type": "object",
-                      "required": ["data"],
+                      "required": [
+                        "data"
+                      ],
                       "properties": {
                         "data": {
                           "$ref": "#/components/schemas/PublicContractDiagnostics"
@@ -1708,7 +1870,7 @@
             "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
-        "description": "Returnerar endast publiceringsklara erbjudanden för API-nyckelns tenant. offer_reference är enda kanoniska avtalsväljaren. diagnostics=1 ger tenant-scopade blockerare för server-side support. Rate-limit headers returneras på lyckade svar; verklig kvotöverskridning ger 429 medan limiter-/schemainfrastrukturfel ger 503."
+        "description": "Presentations- och urvals-API. Returnerar endast publiceringsklara erbjudanden för API-nyckelns tenant. Dolda komponenter kan visas som null eller saknas i kortets pricing/components utan att de upphör att vara debiterbara. Värdet 0 är ett giltigt publicerat numeriskt värde och får inte testas med truthy/falsy. Integratören ska kontrollera value === null || value === undefined. offer_reference ska skickas till POST /quote och därefter till customer-applications. diagnostics=1 ger tenant-scopad readiness, inklusive fakturaavgiftens status och källa."
       }
     },
     "/api/v1/website/quote": {
@@ -1717,10 +1879,14 @@
         "summary": "Beräkna offert för publicerat erbjudande utan mutation.",
         "security": [
           {
-            "bearerAuth": ["website_contracts.read"]
+            "bearerAuth": [
+              "website_contracts.read"
+            ]
           }
         ],
-        "x-required-scopes": ["website_contracts.read"],
+        "x-required-scopes": [
+          "website_contracts.read"
+        ],
         "x-idempotency-required": false,
         "parameters": [
           {
@@ -1732,19 +1898,18 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "additionalProperties": true
+                "$ref": "#/components/schemas/WebsiteQuoteRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Lyckat svar.",
+            "description": "Komplett offert från exakt låst prisversion.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/WebsiteQuoteResponse"
                 }
               }
             }
@@ -1762,7 +1927,8 @@
             "$ref": "#/components/responses/Conflict"
           },
           "422": {
-            "$ref": "#/components/responses/Unprocessable"
+            "$ref": "#/components/responses/Unprocessable",
+            "description": "Beräkningen kan inte genomföras, exempelvis invoice_fee_missing, invoice_fee_conflict, invoice_fee_ambiguous eller portfolio_price_missing."
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
@@ -1770,7 +1936,8 @@
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
-        }
+        },
+        "description": "Kanonisk server-side prisberäkning från exakt offer_reference och låst prisversion. Fakturaavgift, månadsavgift, påslag och övriga verkliga komponenter räknas även när de inte visas på avtalskortet. Svarets lines är det beräkningsunderlag som checkout och tecknande ska visa; GET public-contracts får inte användas för lokal totalsummering."
       }
     }
   },
@@ -1838,11 +2005,18 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["error", "code", "message"],
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": ["code", "message"],
+                  "required": [
+                    "code",
+                    "message"
+                  ],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -1851,13 +2025,22 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "field": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "hint": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   }
                 },
@@ -1881,11 +2064,18 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["error", "code", "message"],
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": ["code", "message"],
+                  "required": [
+                    "code",
+                    "message"
+                  ],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -1894,13 +2084,22 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "field": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "hint": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   }
                 },
@@ -1924,11 +2123,18 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["error", "code", "message"],
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": ["code", "message"],
+                  "required": [
+                    "code",
+                    "message"
+                  ],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -1937,13 +2143,22 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "field": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "hint": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   }
                 },
@@ -1967,11 +2182,18 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["error", "code", "message"],
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": ["code", "message"],
+                  "required": [
+                    "code",
+                    "message"
+                  ],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -1980,13 +2202,22 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "field": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "hint": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   }
                 },
@@ -2010,11 +2241,18 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["error", "code", "message"],
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": ["code", "message"],
+                  "required": [
+                    "code",
+                    "message"
+                  ],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -2023,13 +2261,22 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "field": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "hint": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   }
                 },
@@ -2083,11 +2330,16 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["error"],
+              "required": [
+                "error"
+              ],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": ["code", "message"],
+                  "required": [
+                    "code",
+                    "message"
+                  ],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -2114,11 +2366,18 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["error", "code", "message"],
+              "required": [
+                "error",
+                "code",
+                "message"
+              ],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": ["code", "message"],
+                  "required": [
+                    "code",
+                    "message"
+                  ],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -2127,13 +2386,22 @@
                       "type": "string"
                     },
                     "stage": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "field": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "hint": {
-                      "type": ["string", "null"]
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   }
                 },
@@ -2157,11 +2425,16 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["error"],
+              "required": [
+                "error"
+              ],
               "properties": {
                 "error": {
                   "type": "object",
-                  "required": ["code", "message"],
+                  "required": [
+                    "code",
+                    "message"
+                  ],
                   "properties": {
                     "code": {
                       "type": "string"
@@ -2213,49 +2486,181 @@
       },
       "PortfolioHistoricalFinalPrice": {
         "type": "object",
-        "required": ["id", "portfolio_id", "price_plan_version_id", "period_month", "price_area_code", "amount", "unit", "status", "revision_no", "historical"],
+        "required": [
+          "id",
+          "portfolio_id",
+          "price_plan_version_id",
+          "period_month",
+          "price_area_code",
+          "amount",
+          "unit",
+          "status",
+          "revision_no",
+          "historical"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "portfolio_id": { "type": "string", "format": "uuid" },
-          "price_plan_version_id": { "type": "string", "format": "uuid" },
-          "period_month": { "type": "string", "format": "date", "description": "Canonical delivery_month." },
-          "price_area_code": { "type": "string", "enum": ["SE1", "SE2", "SE3", "SE4"] },
-          "amount": { "type": "number", "description": "Historiskt slutpris i öre/kWh exklusive moms." },
-          "unit": { "type": "string", "const": "ore_per_kwh" },
-          "vat_included": { "type": "boolean", "const": false },
-          "status": { "type": "string", "enum": ["final", "locked"] },
-          "revision_no": { "type": "integer", "minimum": 1 },
-          "final_at": { "type": ["string", "null"], "format": "date-time" },
-          "historical": { "type": "boolean", "const": true }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "portfolio_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "price_plan_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period_month": {
+            "type": "string",
+            "format": "date",
+            "description": "Canonical delivery_month."
+          },
+          "price_area_code": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Historiskt slutpris i öre/kWh exklusive moms."
+          },
+          "unit": {
+            "type": "string",
+            "const": "ore_per_kwh"
+          },
+          "vat_included": {
+            "type": "boolean",
+            "const": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "final",
+              "locked"
+            ]
+          },
+          "revision_no": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "final_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "historical": {
+            "type": "boolean",
+            "const": true
+          }
         },
         "additionalProperties": false
       },
       "PortfolioPriceIndication": {
         "type": "object",
-        "required": ["id", "portfolio_id", "price_plan_version_id", "estimate_month", "price_area_code", "estimate_source", "estimate_price_ore_per_kwh", "estimate_generated_at", "non_binding"],
+        "required": [
+          "id",
+          "portfolio_id",
+          "price_plan_version_id",
+          "estimate_month",
+          "price_area_code",
+          "estimate_source",
+          "estimate_price_ore_per_kwh",
+          "estimate_generated_at",
+          "non_binding"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "portfolio_id": { "type": "string", "format": "uuid" },
-          "price_plan_version_id": { "type": "string", "format": "uuid" },
-          "estimate_month": { "type": "string", "format": "date" },
-          "price_area_code": { "type": "string", "enum": ["SE1", "SE2", "SE3", "SE4"] },
-          "estimate_source": { "type": "string", "enum": ["latest_final", "rolling_3", "forecast", "manual"] },
-          "estimate_price_ore_per_kwh": { "type": "number" },
-          "estimate_generated_at": { "type": "string", "format": "date-time" },
-          "confidence": { "type": ["string", "null"], "enum": ["low", "medium", "high", null] },
-          "expires_at": { "type": ["string", "null"], "format": "date-time" },
-          "non_binding": { "type": "boolean", "const": true },
-          "label": { "type": "string", "const": "Uppskattning – ej bindande" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "portfolio_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "price_plan_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "estimate_month": {
+            "type": "string",
+            "format": "date"
+          },
+          "price_area_code": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "estimate_source": {
+            "type": "string",
+            "enum": [
+              "latest_final",
+              "rolling_3",
+              "forecast",
+              "manual"
+            ]
+          },
+          "estimate_price_ore_per_kwh": {
+            "type": "number"
+          },
+          "estimate_generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confidence": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              null
+            ]
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "non_binding": {
+            "type": "boolean",
+            "const": true
+          },
+          "label": {
+            "type": "string",
+            "const": "Uppskattning – ej bindande"
+          }
         },
         "additionalProperties": true
       },
       "ApiError": {
         "type": "object",
-        "required": ["error", "code", "message"],
+        "required": [
+          "error",
+          "code",
+          "message"
+        ],
         "properties": {
           "error": {
             "type": "object",
-            "required": ["code", "message"],
+            "required": [
+              "code",
+              "message"
+            ],
             "properties": {
               "code": {
                 "type": "string"
@@ -2264,13 +2669,22 @@
                 "type": "string"
               },
               "stage": {
-                "type": ["string", "null"]
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "field": {
-                "type": ["string", "null"]
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "hint": {
-                "type": ["string", "null"]
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             }
           },
@@ -2308,7 +2722,10 @@
             "description": "Enda kanoniska väljaren för POST customer-applications."
           },
           "contract_offer_id": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "deprecated": true,
             "description": "Kompatibilitetsalias för offer_reference; inte ett internt offer-ID."
           },
@@ -2323,64 +2740,114 @@
           },
           "customer_type": {
             "type": "string",
-            "enum": ["private", "business", "both"]
+            "enum": [
+              "private",
+              "business",
+              "both"
+            ]
           },
           "pricing": {
             "type": "object",
-            "required": ["visibility", "components"],
+            "required": [
+              "visibility",
+              "components"
+            ],
             "properties": {
               "monthly_fee": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "invoice_fee": {
-                "type": ["object", "null"],
-                "additionalProperties": true
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": true,
+                "description": "Presentationsfält för avtalskortet. null kan betyda dold på kortet; använd POST /quote för verklig beräkningsavgift. 0 är ett giltigt belopp."
               },
               "markup": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "spot_markup": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "variable_fee": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "fixed_price": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "green_fee": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "electricity_certificate": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "start_fee": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "administration_fee": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "break_fee": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "portfolio_management_fee": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "properties": {
                   "amount": {
-                    "type": ["number", "null"]
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   },
                   "unit": {
-                    "type": ["string", "null"]
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "calculation_base": {
                     "oneOf": [
@@ -2396,7 +2863,10 @@
                 "additionalProperties": false
               },
               "discount": {
-                "type": ["object", "null"],
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": true
               },
               "visibility": {
@@ -2410,7 +2880,10 @@
                 "description": "Innehåller endast komponenter som får visas på hemsidans avtalskort."
               },
               "public_price_text": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "description": "Genererad marknadstext som endast innehåller website-card-visible prisdelar."
               },
               "portfolio_price": {
@@ -2432,11 +2905,17 @@
             "description": "Exakta OPS-publicerade versioner för erbjudandet."
           },
           "valid_from": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date"
           },
           "valid_to": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date"
           },
           "website_cta_enabled": {
@@ -2446,18 +2925,27 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["private", "business"]
+              "enum": [
+                "private",
+                "business"
+              ]
             },
             "minItems": 1,
             "uniqueItems": true,
             "description": "Entydig expansion av customer_type. both blir [private,business]."
           },
           "portfolio_price_ore_per_kwh": {
-            "type": ["number", "null"],
+            "type": [
+              "number",
+              "null"
+            ],
             "description": "Legacy scalar only when all visible area prices share one amount; otherwise null. Use pricing.portfolio_monthly_prices."
           },
           "portfolio_management_fee": {
-            "type": ["object", "null"],
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": true,
             "description": "Canonical generic fee object. Prefer pricing.portfolio_management_fee."
           }
@@ -2466,7 +2954,12 @@
       },
       "PublicContractDiagnostics": {
         "type": "object",
-        "required": ["total", "visible", "hidden", "offers"],
+        "required": [
+          "total",
+          "visible",
+          "hidden",
+          "offers"
+        ],
         "properties": {
           "total": {
             "type": "integer"
@@ -2481,7 +2974,13 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["id", "name", "visible", "blockers"],
+              "required": [
+                "id",
+                "name",
+                "visible",
+                "blockers",
+                "pricing_readiness"
+              ],
               "properties": {
                 "id": {
                   "type": "string",
@@ -2500,7 +2999,77 @@
                   }
                 },
                 "offer_reference": {
-                  "type": ["string", "null"]
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "pricing_readiness": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "invoice_fee"
+                  ],
+                  "properties": {
+                    "invoice_fee": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "status",
+                            "amount",
+                            "unit",
+                            "calculation_type",
+                            "website_card_visible",
+                            "source"
+                          ],
+                          "properties": {
+                            "status": {
+                              "const": "ready"
+                            },
+                            "amount": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "unit": {
+                              "const": "sek_invoice"
+                            },
+                            "calculation_type": {
+                              "const": "per_invoice"
+                            },
+                            "website_card_visible": {
+                              "type": "boolean"
+                            },
+                            "source": {
+                              "const": "price_plan_version"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "required": [
+                            "status",
+                            "code"
+                          ],
+                          "properties": {
+                            "status": {
+                              "const": "blocked"
+                            },
+                            "code": {
+                              "type": "string",
+                              "enum": [
+                                "invoice_fee_missing",
+                                "invoice_fee_conflict",
+                                "invoice_fee_ambiguous"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
                 }
               },
               "additionalProperties": true
@@ -2510,7 +3079,11 @@
       },
       "WebsiteCustomerApplicationRequest": {
         "type": "object",
-        "required": ["external_customer_id", "customer", "consents"],
+        "required": [
+          "external_customer_id",
+          "customer",
+          "consents"
+        ],
         "properties": {
           "external_customer_id": {
             "type": "string",
@@ -2522,7 +3095,9 @@
           },
           "customer": {
             "type": "object",
-            "required": ["email"],
+            "required": [
+              "email"
+            ],
             "additionalProperties": true
           },
           "site": {
@@ -2578,12 +3153,16 @@
         },
         "anyOf": [
           {
-            "required": ["offer_reference"]
+            "required": [
+              "offer_reference"
+            ]
           },
           {
             "properties": {
               "contract": {
-                "required": ["offer_reference"]
+                "required": [
+                  "offer_reference"
+                ]
               }
             }
           }
@@ -2592,7 +3171,9 @@
       },
       "WebsiteCustomerApplicationResponse": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "object",
@@ -2602,23 +3183,41 @@
                 "format": "uuid"
               },
               "contract_id": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "uuid"
               },
               "contract_status": {
-                "type": ["string", "null"],
-                "enum": ["signed", null]
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "signed",
+                  null
+                ]
               },
               "signed_at": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "date-time"
               },
               "withdrawal_deadline_at": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "date-time"
               },
               "signature_snapshot_sha256": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "pattern": "^[a-f0-9]{64}$",
                 "description": "SHA-256 över det frysta servergenererade signeringssnapshotet. Kan användas för verifiering och support; klienten får aldrig skicka eller bestämma värdet."
               },
@@ -2675,31 +3274,55 @@
             "format": "uuid"
           },
           "contract_number": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "contract_name": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "signed_at": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "withdrawal_deadline_at": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "public_contract_offer_id": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "offer_reference": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "signature_snapshot_sha256": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "legal_versions_snapshot": {
             "type": "array",
@@ -2792,7 +3415,10 @@
             "description": "Canonical unit, including percent, ore_per_kwh, sek_per_kwh, sek_month, sek_invoice or sek_once."
           },
           "calculation_type": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "website_card_visible": {
             "type": "boolean",
@@ -2840,15 +3466,24 @@
         ],
         "properties": {
           "id": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "price_plan_id": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "price_plan_version_id": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid"
           },
           "period_month": {
@@ -2858,7 +3493,12 @@
           },
           "price_area_code": {
             "type": "string",
-            "enum": ["SE1", "SE2", "SE3", "SE4"]
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
           },
           "amount": {
             "type": "number",
@@ -2876,28 +3516,46 @@
           },
           "status": {
             "type": "string",
-            "enum": ["final", "locked"]
+            "enum": [
+              "final",
+              "locked"
+            ]
           },
           "source": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "version_number": {
-            "type": ["integer", "null"],
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 1
           },
           "published_at": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "locked_at": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           }
         },
         "additionalProperties": true
       },
       "PortfolioPriceDisplay": {
-        "type": ["object", "null"],
+        "type": [
+          "object",
+          "null"
+        ],
         "properties": {
           "period_month": {
             "type": "string",
@@ -2919,6 +3577,320 @@
           }
         },
         "additionalProperties": false
+      },
+      "WebsiteQuoteRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "offer_reference",
+          "price_area",
+          "annual_consumption_kwh",
+          "start_date"
+        ],
+        "properties": {
+          "offer_reference": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^offer_",
+            "description": "Exakt opak referens från GET /api/v1/website/public-contracts."
+          },
+          "price_area": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "annual_consumption_kwh": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Obligatoriskt startdatum i YYYY-MM-DD."
+          },
+          "customer_type": {
+            "type": "string",
+            "enum": [
+              "private",
+              "business"
+            ]
+          }
+        },
+        "example": {
+          "offer_reference": "offer_example",
+          "price_area": "SE3",
+          "annual_consumption_kwh": 5000,
+          "start_date": "2026-09-01",
+          "customer_type": "private"
+        }
+      },
+      "WebsiteQuoteLine": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "component_code",
+          "name",
+          "quantity",
+          "unit",
+          "amount_ex_vat",
+          "vat_amount",
+          "amount_inc_vat"
+        ],
+        "properties": {
+          "component_code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "calculation_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unit_price_ex_vat": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "amount_ex_vat": {
+            "type": "number"
+          },
+          "vat_rate": {
+            "type": "number"
+          },
+          "vat_amount": {
+            "type": "number"
+          },
+          "amount_inc_vat": {
+            "type": "number"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "description": "Verklig beräkningsrad från den låsta prisversionen. Rader kan finnas här även när samma komponent är dold på avtalskortet."
+      },
+      "WebsiteQuoteOffer": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "offer_reference",
+          "public_name",
+          "contract_type",
+          "pricing_model"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "offer_reference": {
+            "type": "string",
+            "pattern": "^offer_"
+          },
+          "public_name": {
+            "type": "string"
+          },
+          "product_code": {
+            "type": "string"
+          },
+          "contract_type": {
+            "type": "string"
+          },
+          "pricing_model": {
+            "type": "string"
+          }
+        }
+      },
+      "WebsiteQuoteInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "price_area",
+          "annual_consumption_kwh",
+          "estimated_monthly_consumption_kwh",
+          "start_date",
+          "billing_month"
+        ],
+        "properties": {
+          "price_area": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "annual_consumption_kwh": {
+            "type": "number"
+          },
+          "estimated_monthly_consumption_kwh": {
+            "type": "number"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "billing_month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}$"
+          }
+        }
+      },
+      "WebsiteQuoteEstimate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "monthly_ex_vat",
+          "monthly_vat",
+          "monthly_inc_vat",
+          "annual_ex_vat",
+          "annual_vat",
+          "annual_inc_vat"
+        ],
+        "properties": {
+          "monthly_ex_vat": {
+            "type": "number"
+          },
+          "monthly_vat": {
+            "type": "number"
+          },
+          "monthly_inc_vat": {
+            "type": "number"
+          },
+          "annual_ex_vat": {
+            "type": "number"
+          },
+          "annual_vat": {
+            "type": "number"
+          },
+          "annual_inc_vat": {
+            "type": "number"
+          }
+        }
+      },
+      "WebsiteQuoteData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "offer",
+          "input",
+          "estimate",
+          "lines",
+          "warnings",
+          "assumptions",
+          "snapshot_schema"
+        ],
+        "properties": {
+          "offer": {
+            "$ref": "#/components/schemas/WebsiteQuoteOffer"
+          },
+          "input": {
+            "$ref": "#/components/schemas/WebsiteQuoteInput"
+          },
+          "estimate": {
+            "$ref": "#/components/schemas/WebsiteQuoteEstimate"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebsiteQuoteLine"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assumptions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "snapshot_schema": {
+            "type": "string",
+            "const": "gridex_contract_pricing_v4"
+          }
+        }
+      },
+      "WebsiteQuoteResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WebsiteQuoteData"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "data": {
+            "offer": {
+              "offer_reference": "offer_example",
+              "public_name": "Rörligt elpris",
+              "contract_type": "variable_monthly",
+              "pricing_model": "spot"
+            },
+            "input": {
+              "price_area": "SE3",
+              "annual_consumption_kwh": 5000,
+              "estimated_monthly_consumption_kwh": 416.67,
+              "start_date": "2026-09-01",
+              "billing_month": "2026-09"
+            },
+            "estimate": {
+              "monthly_ex_vat": 500,
+              "monthly_vat": 125,
+              "monthly_inc_vat": 625,
+              "annual_ex_vat": 6000,
+              "annual_vat": 1500,
+              "annual_inc_vat": 7500
+            },
+            "lines": [
+              {
+                "component_code": "invoice_fee",
+                "name": "Fakturaavgift",
+                "quantity": 1,
+                "unit": "sek_invoice",
+                "calculation_type": "per_invoice",
+                "unit_price_ex_vat": 19,
+                "amount_ex_vat": 19,
+                "vat_rate": 0.25,
+                "vat_amount": 4.75,
+                "amount_inc_vat": 23.75,
+                "metadata": {}
+              }
+            ],
+            "warnings": [],
+            "assumptions": [],
+            "snapshot_schema": "gridex_contract_pricing_v4"
+          },
+          "request_id": "request_example"
+        }
       }
     }
   }
