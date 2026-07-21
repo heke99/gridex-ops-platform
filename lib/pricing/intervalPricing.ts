@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
+import { loadMarketPriceSourcePolicies } from "@/lib/pricing/marketPriceSources";
 import type { PriceArea } from "@/lib/pricing/types";
 
 export type IntervalPriceEvidence = {
@@ -60,6 +61,19 @@ export async function resolveIntervalSpotPricing(input: {
   evidence: IntervalPriceEvidence[];
   errors: string[];
 }> {
+  const policies = await loadMarketPriceSourcePolicies(input.companyId);
+  const requiredPolicyResolution = input.requiredResolution === 'quarterly' ? 'quarterly' : 'hourly';
+  const eligiblePolicies = policies.filter((policy) =>
+    policy.supportedResolutions.includes(requiredPolicyResolution),
+  );
+  if (eligiblePolicies.length === 0) {
+    return {
+      weightedAverageSekPerKwh: null,
+      evidence: [],
+      errors: [`Ingen aktiverad marknadsdatakälla stöder ${requiredPolicyResolution}.`],
+    };
+  }
+  const sourcePriority = new Map(eligiblePolicies.map((policy) => [policy.sourceKey, policy.priority]));
   const [itemsResponse, pricesResponse] = await Promise.all([
     supabaseService
       .from("billing_underlay_items")
@@ -69,8 +83,8 @@ export async function resolveIntervalSpotPricing(input: {
       .order("period_start", { ascending: true }),
     supabaseService
       .from("spot_price_intervals")
-      .select("id,time_start,time_end,sek_per_kwh,resolution")
-      .eq("source", "elprisetjustnu")
+      .select("id,source,time_start,time_end,sek_per_kwh,resolution,updated_at")
+      .in("source", eligiblePolicies.map((policy) => policy.sourceKey))
       .eq("price_area", input.priceArea)
       .lt("time_start", input.periodEnd)
       .gt("time_end", input.periodStart)
@@ -131,13 +145,12 @@ export async function resolveIntervalSpotPricing(input: {
       )
         return false;
       return priceStart <= startMs && priceEnd >= endMs;
-    });
-    if (candidates.length !== 1) {
-      errors.push(
-        candidates.length === 0
-          ? `Spotpris saknas för mätintervallet ${start}–${end}.`
-          : `Flera spotprisintervall matchar mätintervallet ${start}–${end}.`,
-      );
+    }).sort((a, b) =>
+      (sourcePriority.get(String(a.source)) ?? Number.MAX_SAFE_INTEGER) -
+      (sourcePriority.get(String(b.source)) ?? Number.MAX_SAFE_INTEGER)
+    );
+    if (candidates.length === 0) {
+      errors.push(`Spotpris saknas för mätintervallet ${start}–${end}.`);
       continue;
     }
 

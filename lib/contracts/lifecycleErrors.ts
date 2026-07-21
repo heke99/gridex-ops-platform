@@ -1,0 +1,78 @@
+export type ContractLifecycleRpcResult = {
+  ok?: boolean
+  changed?: boolean
+  deleted?: boolean
+  mode?: string
+  code?: string
+  reason_codes?: string[]
+  recommended_action?: string
+  already_unpublished?: boolean
+  affected_channels?: number
+}
+
+export const CONTRACT_LIFECYCLE_REASON_MESSAGES: Readonly<Record<string, string>> = {
+  HAS_CUSTOMER_CONTRACTS: 'Avtalet används av ett eller flera kundavtal och kan därför endast arkiveras.',
+  HAS_ACCEPTED_APPLICATIONS: 'Avtalet används av en kundansökan och kan därför endast arkiveras.',
+  HAS_EXTERNAL_INTAKES: 'Avtalet används av ett externt kundintag och kan därför endast arkiveras.',
+  HAS_BINDING_PRICE_SNAPSHOTS: 'Avtalet har bindande kundprissnapshots och kan därför endast arkiveras.',
+  HAS_INVOICES: 'Avtalet har fakturahistorik och kan därför endast arkiveras.',
+  HAS_BILLING_HISTORY: 'Avtalet används i faktureringsunderlag och kan därför endast arkiveras.',
+  HAS_CHARGE_LEDGER: 'Avtalet används i avgiftsliggaren och kan därför endast arkiveras.',
+  HAS_LEGAL_ACCEPTANCES: 'Avtalet har juridiska accepter och kan därför endast arkiveras.',
+  HAS_SUCCESSOR_VERSION: 'Avtalsversionen har en efterföljande version och kan inte raderas separat.',
+  HAS_SHARED_CANONICAL_VERSION: 'Den canonical avtalsversionen delas av annan data och kan inte raderas automatiskt.',
+  HAS_SHARED_LEGAL_VERSION: 'Juridikversionen delas av annan data och kan inte raderas automatiskt.',
+  INCOMPLETE_CANONICAL_MAPPING: 'Avtalet har ofullständig äldre systemdata. Reparera canonical backfill innan åtgärden genomförs.',
+  ACTIVE_PUBLICATION_REQUIRES_UNPUBLISH: 'Avtalet är fortfarande publicerat. Avpublicera samtliga aktiva kanaler innan permanent radering.',
+  HAS_LEGACY_PUBLICATION_REFERENCES: 'Avtalet har äldre publiceringsreferenser som måste repareras innan permanent radering.',
+  PUBLICATION_GRAPH_INCONSISTENT: 'Avtalsgrafen är inkonsekvent. Reparera publiceringsgrafen eller arkivera avtalet.',
+  PUBLICATION_COMPANY_MISMATCH: 'Publiceringsgrafen innehåller data från fel tenant och måste granskas manuellt.',
+  PUBLICATION_CHANNEL_MISMATCH: 'Publiceringsgrafens kanalbindning är inkonsekvent och måste repareras.',
+  PUBLICATION_VERSION_LINK_MISMATCH: 'Avtalets framåt- och bakåtlänk pekar på olika publiceringsversioner.',
+  SOURCE_OFFER_MISMATCH: 'Publiceringen pekar på fel internt avtal och måste repareras.',
+  PRODUCT_VERSION_MISMATCH: 'Publiceringen pekar på fel avtalsversion och måste repareras.',
+  contract_channel_not_found: 'Försäljningskanalen saknas för avtalet. Canonical backfill behöver repareras.',
+  active_publication_version_not_found: 'Kanalen är aktiv men saknar en aktiv publiceringsversion. Canonical backfill behöver repareras.',
+  contract_public_offer_still_referenced: 'Avtalet kunde inte raderas eftersom publiceringshistorik fortfarande refererar till det. Avtalsgrafen behöver repareras eller avtalet arkiveras.',
+}
+
+export function contractLifecycleMessage(
+  result: ContractLifecycleRpcResult | null | undefined,
+  fallback: string,
+): string {
+  const reason = result?.reason_codes?.find((code) => CONTRACT_LIFECYCLE_REASON_MESSAGES[code])
+  if (reason) return CONTRACT_LIFECYCLE_REASON_MESSAGES[reason]
+  if (result?.code && CONTRACT_LIFECYCLE_REASON_MESSAGES[result.code]) {
+    return CONTRACT_LIFECYCLE_REASON_MESSAGES[result.code]
+  }
+  return fallback
+}
+
+export function contractLifecycleError(
+  result: ContractLifecycleRpcResult | null | undefined,
+  fallback: string,
+): Error {
+  return new Error(contractLifecycleMessage(result, fallback))
+}
+
+export function contractDatabaseErrorMessage(error: unknown): string | null {
+  const record = error && typeof error === 'object' ? error as { code?: unknown; message?: unknown; details?: unknown } : {}
+  const code = typeof record.code === 'string' ? record.code : ''
+  const message = typeof record.message === 'string' ? record.message : error instanceof Error ? error.message : ''
+  const details = typeof record.details === 'string' ? record.details : ''
+  const combined = `${message} ${details}`
+
+  for (const [reason, userMessage] of Object.entries(CONTRACT_LIFECYCLE_REASON_MESSAGES)) {
+    if (combined.includes(reason)) return userMessage
+  }
+  if (code === '23503') {
+    return 'Avtalet kunde inte raderas eftersom annan avtals- eller publiceringshistorik fortfarande refererar till det. Reparera grafen eller arkivera avtalet.'
+  }
+  if (code === '23505') return 'Åtgärden skulle skapa en dubblerad avtals- eller publiceringsrad.'
+  if (code === '23514') return 'Avtalsgrafen bryter mot en integritetsregel och måste repareras innan åtgärden kan genomföras.'
+  if (code === '42501') return 'Du saknar behörighet att genomföra den här avtalsåtgärden.'
+  if (code === '55000') return 'Avtalet är låst i sitt nuvarande lifecycle-läge. Välj rätt åtgärd för avpublicering, arkivering eller ny version.'
+  if (code === 'P0002') return 'Avtalet eller dess canonical publiceringsrad hittades inte.'
+  if (code === 'P0001') return message || 'Avtalsåtgärden blockerades av en domänregel.'
+  return null
+}

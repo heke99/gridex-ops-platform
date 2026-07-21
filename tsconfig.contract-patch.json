@@ -17,7 +17,22 @@
     "lib/pricing/contractPricingVersioning.ts",
     "lib/rbac/catalog.ts",
     "app/admin/companies/[id]/tenant-platform-actions.ts",
-    "app/admin/companies/[id]/TenantPlatformControls.tsx"
+    "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "app/api/v1/website/public-contracts/route.ts",
+    "app/api/v1/website/public-contracts/diagnostics/route.ts",
+    "app/api/v1/website/quote/route.ts",
+    "lib/contracts/lifecycleErrors.ts",
+    "lib/errors/safeActionErrors.ts",
+    "lib/integrations/apiAuth.ts",
+    "lib/integrations/ipPolicy.ts",
+    "lib/integrations/apiClientScopes.ts",
+    "lib/pricing/marketPriceSources.ts",
+    "lib/pricing/priceSourceResolver.ts",
+    "lib/pricing/intervalPricing.ts",
+    "lib/pricing/offerQuote.ts",
+    "lib/website/publicContractApi.ts",
+    "lib/website/publicContracts.ts",
+    "lib/api/publicRouteRegistry.ts"
   ],
   "exclude": [
     "node_modules",

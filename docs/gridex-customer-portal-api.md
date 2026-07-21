@@ -203,7 +203,7 @@ Idempotency-Key: website-order-12345
 
 ### Publiceringsdiagnostik och signeringsrespons
 
-- `GET /api/v1/website/public-contracts?customer_type=private&diagnostics=1` returnerar tenant-scopade publiceringsblockerare för server-side felsökning.
+- `GET /api/v1/website/public-contracts/diagnostics?customer_type=private` returnerar tenant-scopade publiceringsblockerare för server-side felsökning och kräver `website_contracts.diagnostics`.
 - `offer_reference` är enda avtalsväljaren. Motstridiga legacyfält ger `422 offer_reference_mismatch`.
 - Efter lyckad serververifiering returneras `contract_status = signed`, `signed_at`, `withdrawal_deadline_at` och `signature_snapshot_sha256`.
 - `signature_snapshot_sha256` är SHA-256 över OPS frysta signeringssnapshot och genereras endast av servern.
@@ -317,7 +317,7 @@ För penningvärden gäller:
 
 Quote-requesten kräver `offer_reference`, `price_area`, `annual_consumption_kwh > 0` och `start_date` i formatet `YYYY-MM-DD`. `customer_type` får, när det anges, endast vara `private` eller `business`. Svarets `lines` innehåller de verkliga beräkningskomponenterna, inklusive `invoice_fee` med `unit=sek_invoice` och `calculation_type=per_invoice` även när fakturaavgiften är dold på avtalskortet.
 
-`GET /api/v1/website/public-contracts?diagnostics=1` är tenant-scopad och visar `pricing_readiness.invoice_fee`. Ready-status innehåller belopp, enhet, beräkningstyp, kortsynlighet och källa. Blockerad status använder någon av:
+`GET /api/v1/website/public-contracts/diagnostics` är tenant-scopad och visar `pricing_readiness.invoice_fee`. Ready-status innehåller belopp, enhet, beräkningstyp, kortsynlighet och källa. Blockerad status använder någon av:
 
 - `invoice_fee_missing`
 - `invoice_fee_conflict`
@@ -325,3 +325,18 @@ Quote-requesten kräver `offer_reference`, `price_area`, `annual_consumption_kwh
 
 Befintliga publicerade avtal rättas versionssäkert: en ny pris- och publiceringsversion skapas och den gamla markeras `superseded`. Redan signerade kundavtal behåller sin tidigare exakta version. Entydiga draftavtal kan uppdateras via det kanoniska kommandot. Saknade eller motstridiga värden sätts aldrig automatiskt till `0`, utan hamnar i manuell remediation med auditspår.
 
+
+
+## Publication revision, cache och kanaler
+
+`GET /api/v1/website/public-contracts` läser endast kanalen `website`. `internal` används av OPS och interna säljflöden. `api` är en separat partner-/serverkanal och ska inte automatiskt visas på hemsidan.
+
+Varje publiceringsrelevant ändring höjer en tenant- och kanalbunden `publication_revision`. Feed-svaret returnerar revisionen i `meta` och som `ETag`. Skicka `If-None-Match`; oförändrad revision ger `304 Not Modified`. Externa kunder ska inte förlita sig på Next.js `revalidateTag` för cacheinvalidering.
+
+API-nycklar är server-side secrets. `allowed_origins` är ett kompletterande driftfilter, inte en fullständig säkerhetsgräns för server-till-server-anrop. IP-regler accepterar exakta IPv4/IPv6-adresser och CIDR. Forwarding-headers betros automatiskt endast på Vercel (`VERCEL=1`); andra reverse proxies måste uttryckligen sätta `INTEGRATION_API_TRUST_PROXY_HEADERS=true` efter att de konfigurerats att skriva över klientens inkommande forwarding-headers. Vid avsaknad av en betrodd proxy failar aktiva IP-allowlists stängt.
+
+## V1-deprecation
+
+`offer_reference` är den enda canonical externa avtalsidentiteten. Aliasen `contract_offer_id`, `publication_reference` och toppnivåfältet `contracts` finns kvar i V1 men är deprecated. Nya klienter ska använda `data` och `offer_reference`. Aliasen tas tidigast bort i en framtida major-version efter publicerad sunset-period.
+
+Nya publiceringar får en opak tenantoberoende referens i formatet `offer_<sha256>`. Redan publicerade referenser behålls exakt som de är eftersom de kan vara bundna till ansökningar, kundavtal, juridiska accepter och pris-snapshots. Klienten ska därför behandla värdet som en opak sträng och aldrig validera varumärke, UUID-format eller produktnamn lokalt.

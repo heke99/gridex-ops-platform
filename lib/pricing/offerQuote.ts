@@ -15,6 +15,28 @@ import {
 } from "@/lib/pricing/types";
 import { resolvePublicContractOffer } from "@/lib/website/publicContracts";
 
+
+function textValue(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function canonicalSnapshotSchema(snapshot: Record<string, unknown>): string {
+  return textValue(snapshot.snapshot_schema) ?? textValue(snapshot.schema_version) ?? "gridex_contract_pricing_v5";
+}
+
+function quotePricingInterval(contractType: string, snapshot: Record<string, unknown>): "monthly" | "hourly" | "quarterly" | "fixed" | "portfolio" | "mixed" {
+  const explicit = textValue(snapshot.interval_resolution)?.toLowerCase();
+  if (explicit === "quarterly" || explicit === "quarter_hour") return "quarterly";
+  if (explicit === "hourly" || explicit === "hour") return "hourly";
+  const normalized = contractType.toLowerCase();
+  if (normalized.includes("quarter")) return "quarterly";
+  if (normalized.includes("hour")) return "hourly";
+  if (normalized.includes("fixed")) return "fixed";
+  if (normalized.includes("portfolio")) return "portfolio";
+  if (normalized.includes("mixed") || normalized.includes("hybrid")) return "mixed";
+  return "monthly";
+}
+
 export class OfferQuoteError extends Error {
   readonly code: string;
   readonly status: number;
@@ -177,9 +199,11 @@ export async function calculateOfferQuote(input: {
     : Array.isArray(exactSnapshot.price_components_snapshot)
       ? exactSnapshot.price_components_snapshot
       : canonical.priceComponents;
+  const snapshotSchema = canonicalSnapshotSchema(exactSnapshot);
+  const pricingInterval = quotePricingInterval(offer.contract_type, exactSnapshot);
   const pricingSnapshot = {
     ...exactSnapshot,
-    snapshot_schema: "gridex_contract_pricing_v4",
+    snapshot_schema: snapshotSchema,
     pricing_model: exactSnapshot.pricing_model ?? canonical.pricingModel,
     vat_rate: exactSnapshot.vat_rate ?? canonical.vatRate,
     price_plan_id: offer.price_plan_id,
@@ -269,7 +293,7 @@ export async function calculateOfferQuote(input: {
   const annualFactor = annualConsumptionKwh / monthlyConsumptionKwh;
   return {
     offer: {
-      id: offer.id,
+      id: offerReference,
       offer_reference: offerReference,
       public_name: offer.public_name,
       product_code: offer.product_code,
@@ -316,12 +340,24 @@ export async function calculateOfferQuote(input: {
       amount_inc_vat: line.amountIncVat,
       metadata: line.metadata ?? {},
     })),
+    pricing_interval: pricingInterval,
+    estimate_method: pricingInterval === "hourly" || pricingInterval === "quarterly"
+      ? "even_monthly_consumption_with_period_average"
+      : "canonical_monthly_preview",
+    source_period: { start: periodStart, end: periodEnd, billing_month: billingMonth },
+    market_data_timestamp:
+      textValue(sourceValues.spotSource?.market_data_timestamp) ??
+      textValue(sourceValues.portfolioSource?.locked_at) ?? null,
+    is_binding: false,
+    market_sources: { spot: sourceValues.spotSource ?? null, portfolio: sourceValues.portfolioSource ?? null },
     warnings: preview.warnings,
     assumptions: [
       "Årsförbrukningen fördelas jämnt över 12 månader i förhandskalkylen.",
-      "Rörligt spot- och portföljpris hämtas för valt elområde och startmånad.",
+      pricingInterval === "hourly" || pricingInterval === "quarterly"
+        ? "Tim- och kvartspris visas som en icke-bindande månadsindikation; slutpriset beror på verklig förbrukningsprofil per intervall."
+        : "Rörligt spot- och portföljpris hämtas för valt elområde och startmånad.",
       "Slutlig faktura använder verkliga mätvärden och prisperiodens låsta underlag.",
     ],
-    snapshot_schema: "gridex_contract_pricing_v4",
+    snapshot_schema: snapshotSchema,
   };
 }

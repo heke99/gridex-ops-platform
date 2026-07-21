@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
+import { contractLifecycleMessage, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
@@ -32,32 +33,14 @@ function errorMessage(error: unknown, companyId?: string | null): string {
   });
 }
 
-type LifecycleResult = {
-  ok?: boolean;
-  changed?: boolean;
+type LifecycleResult = ContractLifecycleRpcResult & {
   already_unpublished?: boolean;
-  mode?: "archived" | "deleted" | "blocked";
-  code?: string;
-  reason_codes?: string[];
   delete_preview?: unknown;
-};
-
-const reasonMessage: Record<string, string> = {
-  HAS_CUSTOMER_CONTRACTS: "Avtalet används av kundavtal och kan därför endast arkiveras.",
-  HAS_ACCEPTED_APPLICATIONS: "Avtalet används av en kundansökan och kan därför endast arkiveras.",
-  HAS_INVOICES: "Avtalet har fakturahistorik och kan därför endast arkiveras.",
-  HAS_BILLING_HISTORY: "Avtalet används i faktureringsunderlag och kan därför endast arkiveras.",
-  HAS_SHARED_CANONICAL_VERSION: "Avtalsversionen delas av annan data och kan inte raderas automatiskt.",
-  HAS_SHARED_LEGAL_VERSION: "Juridikversionen delas av annan data och kan inte raderas automatiskt.",
-  INCOMPLETE_CANONICAL_MAPPING: "Avtalet har ofullständig äldre systemdata. Reparera canonical backfill innan åtgärden genomförs.",
 };
 
 function assertLifecycleResult(result: LifecycleResult | null, fallback: string): LifecycleResult {
   if (result?.ok) return result;
-  const reason = result?.reason_codes?.find((code) => reasonMessage[code]);
-  if (reason) throw new Error(reasonMessage[reason]);
-  if (result?.code && reasonMessage[result.code]) throw new Error(reasonMessage[result.code]);
-  throw new Error(fallback);
+  throw new Error(contractLifecycleMessage(result, fallback));
 }
 
 function revalidateContractSurfaces(companyId: string): void {
@@ -327,8 +310,7 @@ async function removeCanonicalContractImpl(
 
   const result = assertLifecycleResult(data as LifecycleResult | null, "Avtalet kunde inte arkiveras eller raderas.");
   if (!result.mode || result.mode === "blocked") {
-    const reason = result.reason_codes?.find((code) => reasonMessage[code]);
-    throw new Error(reason ? reasonMessage[reason] : "Avtalet kunde inte arkiveras eller raderas.");
+    throw new Error(contractLifecycleMessage(result, "Avtalet kunde inte arkiveras eller raderas."));
   }
 
   await logAdminActionAndUsage({

@@ -215,12 +215,12 @@ const quoteResponse = `{
     ],
     "warnings": [],
     "assumptions": [],
-    "snapshot_schema": "gridex_contract_pricing_v4"
+    "snapshot_schema": "gridex_contract_pricing_v5"
   },
   "request_id": "..."
 }`;
 
-const publicContractsDiagnosticsExample = `curl -X GET "${baseUrl}/api/v1/website/public-contracts?customer_type=private&diagnostics=1" \\
+const publicContractsDiagnosticsExample = `curl -X GET "${baseUrl}/api/v1/website/public-contracts/diagnostics?customer_type=private" \\
   -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
   -H "Accept: application/json"
 
@@ -814,7 +814,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
           <p>
             Vid publiceringsfelsökning kan tenantens backend använda{" "}
-            <code>diagnostics=1</code>. Svaret förklarar per erbjudande varför
+            <code>/api/v1/website/public-contracts/diagnostics</code> med scope <code>website_contracts.diagnostics</code>. V1-kompatibiliteten <code>diagnostics=1</code> finns kvar men är deprecated och kräver samma separata scope. Svaret förklarar per erbjudande varför
             det är synligt eller blockerat, exempelvis status, datum, kundtyp,
             prisbok, prisplansversion eller juridikpaket. Fältet
             <code>pricing_readiness.invoice_fee</code> visar amount, unit,

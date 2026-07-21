@@ -1799,7 +1799,21 @@
               "type": "boolean",
               "default": false
             },
-            "description": "Returnera publiceringsdiagnostik och blockerare i stället för normal kundlista."
+            "description": "Bakåtkompatibelt diagnostics-läge. Kräver både website_contracts.read och website_contracts.diagnostics. Nya klienter ska använda /public-contracts/diagnostics.",
+            "deprecated": true
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "website"
+              ],
+              "default": "website"
+            },
+            "description": "Website-endpointen läser endast website-kanalen. Partner-/serverkanalen api publiceras separat."
           }
         ],
         "responses": {
@@ -1808,39 +1822,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "data"
-                      ],
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/PublicContractOffer"
-                          }
-                        },
-                        "contracts": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/PublicContractOffer"
-                          }
-                        }
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data",
+                    "meta",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PublicContractOffer"
                       }
                     },
-                    {
+                    "contracts": {
+                      "type": "array",
+                      "deprecated": true,
+                      "items": {
+                        "$ref": "#/components/schemas/PublicContractOffer"
+                      },
+                      "description": "Deprecated V1-alias för data."
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PublicContractResponseMeta"
+                    },
+                    "diagnostics": {
                       "type": "object",
-                      "required": [
-                        "data"
-                      ],
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/PublicContractDiagnostics"
-                        }
-                      }
+                      "description": "Endast i bakåtkompatibelt diagnostics-läge; kräver separat scope.",
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string"
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1868,9 +1883,12 @@
           },
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "304": {
+            "description": "Oförändrad tenant- och kanalbunden publication revision för angiven If-None-Match."
           }
         },
-        "description": "Presentations- och urvals-API. Returnerar endast publiceringsklara erbjudanden för API-nyckelns tenant. Dolda komponenter kan visas som null eller saknas i kortets pricing/components utan att de upphör att vara debiterbara. Värdet 0 är ett giltigt publicerat numeriskt värde och får inte testas med truthy/falsy. Integratören ska kontrollera value === null || value === undefined. offer_reference ska skickas till POST /quote och därefter till customer-applications. diagnostics=1 ger tenant-scopad readiness, inklusive fakturaavgiftens status och källa."
+        "description": "Presentations- och urvals-API. Returnerar endast publiceringsklara erbjudanden för API-nyckelns tenant. Dolda komponenter kan visas som null eller saknas i kortets pricing/components utan att de upphör att vara debiterbara. Värdet 0 är ett giltigt publicerat numeriskt värde och får inte testas med truthy/falsy. Integratören ska kontrollera value === null || value === undefined. offer_reference ska skickas till POST /quote och därefter till customer-applications. diagnostics=1 ger tenant-scopad readiness, inklusive fakturaavgiftens status och källa. Svaret innehåller tenant- och kanalbunden publication_revision samt ETag; aktuell If-None-Match ger 304."
       }
     },
     "/api/v1/website/quote": {
@@ -1938,6 +1956,80 @@
           }
         },
         "description": "Kanonisk server-side prisberäkning från exakt offer_reference och låst prisversion. Fakturaavgift, månadsavgift, påslag och övriga verkliga komponenter räknas även när de inte visas på avtalskortet. Svarets lines är det beräkningsunderlag som checkout och tecknande ska visa; GET public-contracts får inte användas för lokal totalsummering."
+      }
+    },
+    "/api/v1/website/public-contracts/diagnostics": {
+      "get": {
+        "operationId": "getApiV1WebsitePublicContractsDiagnostics",
+        "summary": "Diagnostisera tenantens website-publiceringsgraf.",
+        "security": [
+          {
+            "bearerAuth": [
+              "website_contracts.diagnostics"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "website_contracts.diagnostics"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "name": "customer_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "business"
+              ]
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "website"
+              ],
+              "default": "website"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-skopad diagnostik med stabil data-typ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicContractDiagnosticsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "description": "Separat diagnostikscope. data är alltid en array och diagnostics ändrar inte typen på normalfeedens data."
       }
     }
   },
@@ -2718,8 +2810,8 @@
           },
           "offer_reference": {
             "type": "string",
-            "pattern": "^offer_",
-            "description": "Enda kanoniska väljaren för POST customer-applications."
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$",
+            "description": "Enda kanoniska väljaren. Nya referenser använder offer_<sha256>; historiska opaka referenser förblir giltiga och skrivs aldrig om."
           },
           "contract_offer_id": {
             "type": [
@@ -2948,6 +3040,14 @@
             ],
             "additionalProperties": true,
             "description": "Canonical generic fee object. Prefer pricing.portfolio_management_fee."
+          },
+          "publication_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "deprecated": true,
+            "description": "Deprecated V1-alias för offer_reference."
           }
         },
         "additionalProperties": true
@@ -3091,7 +3191,7 @@
           },
           "offer_reference": {
             "type": "string",
-            "pattern": "^offer_"
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$"
           },
           "customer": {
             "type": "object",
@@ -3109,7 +3209,7 @@
             "properties": {
               "offer_reference": {
                 "type": "string",
-                "pattern": "^offer_"
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$"
               }
             },
             "additionalProperties": true
@@ -3591,8 +3691,8 @@
           "offer_reference": {
             "type": "string",
             "minLength": 1,
-            "pattern": "^offer_",
-            "description": "Exakt opak referens från GET /api/v1/website/public-contracts."
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$",
+            "description": "Exakt opak referens från GET /api/v1/website/public-contracts. Acceptera även historiska opaka referenser som OPS returnerar."
           },
           "price_area": {
             "type": "string",
@@ -3702,7 +3802,7 @@
           },
           "offer_reference": {
             "type": "string",
-            "pattern": "^offer_"
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$"
           },
           "public_name": {
             "type": "string"
@@ -3796,7 +3896,13 @@
           "lines",
           "warnings",
           "assumptions",
-          "snapshot_schema"
+          "snapshot_schema",
+          "pricing_interval",
+          "estimate_method",
+          "source_period",
+          "market_data_timestamp",
+          "is_binding",
+          "market_sources"
         ],
         "properties": {
           "offer": {
@@ -3828,7 +3934,76 @@
           },
           "snapshot_schema": {
             "type": "string",
-            "const": "gridex_contract_pricing_v4"
+            "minLength": 1,
+            "description": "Exakt schema-version från den låsta canonical pris-snapshoten; skrivs inte om av quote-API:t."
+          },
+          "pricing_interval": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "hourly",
+              "quarterly",
+              "fixed",
+              "portfolio",
+              "mixed"
+            ]
+          },
+          "estimate_method": {
+            "type": "string"
+          },
+          "source_period": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "start",
+              "end",
+              "billing_month"
+            ],
+            "properties": {
+              "start": {
+                "type": "string",
+                "format": "date"
+              },
+              "end": {
+                "type": "string",
+                "format": "date"
+              },
+              "billing_month": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}$"
+              }
+            }
+          },
+          "market_data_timestamp": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "is_binding": {
+            "type": "boolean",
+            "const": false
+          },
+          "market_sources": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "spot": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": true
+              },
+              "portfolio": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": true
+              }
+            }
           }
         }
       },
@@ -3887,9 +4062,99 @@
             ],
             "warnings": [],
             "assumptions": [],
-            "snapshot_schema": "gridex_contract_pricing_v4"
+            "snapshot_schema": "gridex_contract_pricing_v5",
+            "pricing_interval": "monthly",
+            "estimate_method": "canonical_monthly_preview",
+            "source_period": {
+              "start": "2026-09-01",
+              "end": "2026-10-01",
+              "billing_month": "2026-09"
+            },
+            "market_data_timestamp": "2026-09-30T23:59:59Z",
+            "is_binding": false,
+            "market_sources": {
+              "spot": {
+                "source": "configured-provider",
+                "delivery_month": "2026-09"
+              },
+              "portfolio": null
+            }
           },
           "request_id": "request_example"
+        }
+      },
+      "PublicContractResponseMeta": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "api_version",
+          "channel",
+          "publication_revision",
+          "deprecated_aliases"
+        ],
+        "properties": {
+          "api_version": {
+            "const": "v1"
+          },
+          "channel": {
+            "const": "website"
+          },
+          "publication_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "publication_updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "deprecated_aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PublicContractDiagnosticsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "diagnostics",
+          "meta",
+          "request_id"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "maxItems": 0,
+            "items": {}
+          },
+          "diagnostics": {
+            "type": "object",
+            "required": [
+              "publication",
+              "graph"
+            ],
+            "properties": {
+              "publication": {
+                "$ref": "#/components/schemas/PublicContractDiagnostics"
+              },
+              "graph": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PublicContractResponseMeta"
+          },
+          "request_id": {
+            "type": "string"
+          }
         }
       }
     }

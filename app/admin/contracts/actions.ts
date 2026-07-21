@@ -11,6 +11,7 @@ import { buildCanonicalContractPricingCommand } from "@/lib/pricing/canonicalInv
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 import { parseAdminContractForm } from "@/lib/contracts/adminContractSchema";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
+import { contractLifecycleError, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -39,42 +40,8 @@ function errorMessage(
   return toSafeContractError(error, context);
 }
 
-type ContractLifecycleRpcResult = {
-  ok?: boolean;
-  changed?: boolean;
-  deleted?: boolean;
-  mode?: string;
-  code?: string;
-  reason_codes?: string[];
-  already_unpublished?: boolean;
-  affected_channels?: number;
-};
-
-const CONTRACT_REASON_MESSAGES: Record<string, string> = {
-  HAS_CUSTOMER_CONTRACTS: "Avtalet används av ett eller flera kundavtal och kan därför endast arkiveras.",
-  HAS_ACCEPTED_APPLICATIONS: "Avtalet används av en kundansökan och kan därför endast arkiveras.",
-  HAS_EXTERNAL_INTAKES: "Avtalet används av ett externt kundintag och kan därför endast arkiveras.",
-  HAS_BINDING_PRICE_SNAPSHOTS: "Avtalet har bindande kundprissnapshots och kan därför endast arkiveras.",
-  HAS_INVOICES: "Avtalet har fakturahistorik och kan därför endast arkiveras.",
-  HAS_BILLING_HISTORY: "Avtalet används i faktureringsunderlag och kan därför endast arkiveras.",
-  HAS_CHARGE_LEDGER: "Avtalet används i avgiftsliggaren och kan därför endast arkiveras.",
-  HAS_LEGAL_ACCEPTANCES: "Avtalet har juridiska accepter och kan därför endast arkiveras.",
-  HAS_SUCCESSOR_VERSION: "Avtalsversionen har en efterföljande version och kan inte raderas separat.",
-  HAS_SHARED_CANONICAL_VERSION: "Den canonical avtalsversionen delas av annan data och kan inte raderas automatiskt.",
-  HAS_SHARED_LEGAL_VERSION: "Juridikversionen delas av annan data och kan inte raderas automatiskt.",
-  INCOMPLETE_CANONICAL_MAPPING: "Avtalet har ofullständig äldre systemdata. Kör eller reparera canonical backfill innan åtgärden genomförs.",
-  ACTIVE_PUBLICATION_REQUIRES_UNPUBLISH: "Avtalet är fortfarande publicerat. Avpublicera samtliga aktiva kanaler innan permanent radering.",
-};
-
 function contractLifecycleFailure(result: ContractLifecycleRpcResult | null, fallback: string): Error {
-  const reason = result?.reason_codes?.find((code) => CONTRACT_REASON_MESSAGES[code]);
-  if (reason) return new Error(CONTRACT_REASON_MESSAGES[reason]);
-  if (result?.code && CONTRACT_REASON_MESSAGES[result.code]) {
-    return new Error(CONTRACT_REASON_MESSAGES[result.code]);
-  }
-  if (result?.code === "contract_channel_not_found") return new Error("Försäljningskanalen saknas för avtalet. Canonical backfill behöver repareras.");
-  if (result?.code === "active_publication_version_not_found") return new Error("Kanalen är aktiv men saknar en aktiv publiceringsversion. Canonical backfill behöver repareras.");
-  return new Error(fallback);
+  return contractLifecycleError(result, fallback);
 }
 
 function revalidateContractSurfaces(companyId: string): void {

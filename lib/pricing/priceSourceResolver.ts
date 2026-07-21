@@ -1,4 +1,5 @@
 import { supabaseService } from "@/lib/supabase/service";
+import { loadMarketPriceSourcePolicies, selectMarketPriceRow } from "@/lib/pricing/marketPriceSources";
 import type {
   BasePriceComponent,
   BasePriceSourceValues,
@@ -491,23 +492,27 @@ export async function resolveBasePriceSourceValues(input: {
   fixedSekPerKwh?: number | null;
   manualSekPerKwh?: number | null;
 }): Promise<BasePriceSourceValues> {
+  const policies = await loadMarketPriceSourcePolicies(input.companyId);
   const [spot, portfolio] = await Promise.all([
     supabaseService
       .from("spot_price_monthly_summaries")
-      .select("id,source,price_area,delivery_month,average_sek_per_kwh,status")
-      .eq("source", "elprisetjustnu")
+      .select("id,source,price_area,billing_month,average_sek_per_kwh,status,locked_at,updated_at,interval_count,expected_interval_count")
+      .in("source", policies.map((policy) => policy.sourceKey))
       .eq("price_area", input.priceArea)
-      .eq("delivery_month", input.billingMonth)
-      .in("status", ["complete", "locked"])
-      .maybeSingle(),
+      .eq("billing_month", input.billingMonth)
+      .in("status", ["complete", "locked"]),
     loadPortfolioMonthlySettlement(input),
   ]);
 
-  if (spot.error && spot.error.code !== "PGRST116") throw spot.error;
+  if (spot.error) throw spot.error;
   if (portfolio.error && portfolio.error.code !== "PGRST116")
     throw portfolio.error;
 
-  const spotRow = (spot.data as Record<string, unknown> | null) ?? null;
+  const spotRow = selectMarketPriceRow(
+    ((spot.data ?? []) as Array<Record<string, unknown>>),
+    policies,
+    { requiredResolution: 'monthly', enforceFreshness: true },
+  );
   const portfolioRow =
     (portfolio.data as Record<string, unknown> | null) ?? null;
   return {
@@ -524,9 +529,13 @@ export async function resolveBasePriceSourceValues(input: {
       ? {
           spot_price_summary_id: stringValue(spotRow.id),
           source: stringValue(spotRow.source),
-          delivery_month: stringValue(spotRow.delivery_month),
+          delivery_month: stringValue(spotRow.billing_month),
           price_area: stringValue(spotRow.price_area),
           status: stringValue(spotRow.status),
+          locked_at: stringValue(spotRow.locked_at),
+          market_data_timestamp: stringValue(spotRow.updated_at),
+          interval_count: numberValue(spotRow.interval_count),
+          expected_interval_count: numberValue(spotRow.expected_interval_count),
         }
       : null,
     portfolioSource: portfolioRow

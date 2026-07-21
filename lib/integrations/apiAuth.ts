@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { hashIntegrationApiSecret } from '@/lib/integrations/apiClientSecrets'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import { ipAllowedByRules, trustedClientIp } from '@/lib/integrations/ipPolicy'
 
 export type IntegrationApiClient = {
   id: string
@@ -68,16 +69,11 @@ function hasRequiredScopes(clientScopes: string[], requiredScopes: string[]): bo
 }
 
 function requestIp(request: NextRequest): string | null {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    request.headers.get('x-real-ip') ??
-    null
-  )
+  return trustedClientIp(request.headers)
 }
 
 function ipAllowed(client: IntegrationApiClient, ip: string | null): boolean {
-  if (client.allowed_ips.length === 0) return true
-  return Boolean(ip && client.allowed_ips.includes(ip))
+  return ipAllowedByRules(ip, client.allowed_ips ?? [])
 }
 
 function requestOrigin(request: NextRequest): string | null {

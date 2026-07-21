@@ -34,6 +34,10 @@ declare
   v_delete_preview jsonb;
   v_delete_created jsonb;
   v_delete_offer_id uuid;
+  v_delete_public_offer_id uuid;
+  v_stale_publication_version_id uuid;
+  v_graph jsonb;
+  v_blocked jsonb;
   v_offer_id uuid;
   v_successor_id uuid;
   v_product_id uuid;
@@ -146,6 +150,15 @@ begin
   v_publication_version_id:=(v_website_first->>'contract_publication_version_id')::uuid;
   if v_publication_version_id is null then
     raise exception 'website_publication_identity_missing:%',v_website_first;
+  end if;
+  if coalesce(v_website_first->>'offer_reference','') !~ '^offer_[0-9a-f]{64}$' then
+    raise exception 'new_offer_reference_is_not_opaque:%',v_website_first;
+  end if;
+  if coalesce((
+    select revision from public.contract_publication_revisions
+    where company_id=v_company_id and channel='website'
+  ),0)<=0 then
+    raise exception 'website_publication_revision_was_not_bumped';
   end if;
   if not exists(
     select 1 from public.public_contract_offers po
@@ -328,6 +341,60 @@ begin
     raise exception 'unpublish_removed_website_permission';
   end if;
   perform public.gridex_unpublish_contract_channel(v_company_id,v_delete_offer_id,'internal',v_actor_id);
+
+  -- Reproduce the production FK shape: a publication version outside the
+  -- delete target's normal assignment tree directly references the public
+  -- offer through legacy_public_contract_offer_id. The resolver must find it
+  -- without first filtering by the target publication ids, and delete must
+  -- return a domain blocker rather than leaking SQLSTATE 23503.
+  select id into v_delete_public_offer_id
+  from public.public_contract_offers
+  where source_contract_offer_id=v_delete_offer_id
+  order by created_at desc,id desc
+  limit 1;
+  select cpv.id into v_stale_publication_version_id
+  from public.contract_publication_versions cpv
+  join public.public_contract_offers po on po.contract_publication_version_id=cpv.id
+  where po.source_contract_offer_id=v_offer_id
+    and cpv.id is distinct from (
+      select contract_publication_version_id
+      from public.public_contract_offers
+      where id=v_delete_public_offer_id
+    )
+  order by cpv.created_at desc,cpv.id desc
+  limit 1;
+  if v_delete_public_offer_id is null or v_stale_publication_version_id is null then
+    raise exception 'fk_reproducer_fixture_missing';
+  end if;
+
+  perform set_config('gridex.publication_link_repair','on',true);
+  update public.contract_publication_versions
+  set legacy_public_contract_offer_id=v_delete_public_offer_id
+  where id=v_stale_publication_version_id;
+
+  v_graph:=public.gridex_resolve_contract_lifecycle_graph(v_company_id,v_delete_offer_id);
+  if not (v_graph->'direct_reverse_legacy_publication_version_ids' @> to_jsonb(array[v_stale_publication_version_id])) then
+    raise exception 'direct_reverse_reference_was_not_resolved:%',v_graph;
+  end if;
+  v_delete_preview:=public.gridex_preview_delete_unused_contract(v_company_id,v_delete_offer_id);
+  if coalesce((v_delete_preview->>'can_delete')::boolean,true)
+     or not (coalesce(v_delete_preview->'reason_codes','[]'::jsonb) ? 'PUBLICATION_PRODUCT_VERSION_MISMATCH') then
+    raise exception 'preview_promised_unsafe_delete:%',v_delete_preview;
+  end if;
+  v_blocked:=public.gridex_delete_unused_contract(v_company_id,v_delete_offer_id,v_actor_id);
+  if coalesce((v_blocked->>'ok')::boolean,true)
+     or coalesce(v_blocked->>'mode','')<>'blocked' then
+    raise exception 'delete_did_not_return_structured_graph_blocker:%',v_blocked;
+  end if;
+  if not exists(select 1 from public.contract_offers where id=v_delete_offer_id) then
+    raise exception 'blocked_delete_removed_offer';
+  end if;
+
+  update public.contract_publication_versions
+  set legacy_public_contract_offer_id=null
+  where id=v_stale_publication_version_id
+    and legacy_public_contract_offer_id=v_delete_public_offer_id;
+
   v_delete_preview:=public.gridex_preview_delete_unused_contract(v_company_id,v_delete_offer_id);
   if not coalesce((v_delete_preview->>'can_delete')::boolean,false)
      or coalesce((v_delete_preview->>'has_business_usage')::boolean,true) then

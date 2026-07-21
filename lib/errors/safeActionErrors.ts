@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { contractDatabaseErrorMessage } from '@/lib/contracts/lifecycleErrors'
 
 type DatabaseLikeError = {
   code?: unknown
@@ -97,6 +98,8 @@ export function toSafeContractError(error: unknown, context: ErrorContext): stri
   if (isDeploymentMigrationDrift(error)) {
     return withReference('Avtalet kunde inte behandlas eftersom databasen inte är synkroniserad med den här versionen.', reference)
   }
+  const lifecycleMessage = contractDatabaseErrorMessage(error)
+  if (lifecycleMessage) return withReference(lifecycleMessage, reference)
   if (/publication_not_ready:/i.test(message)) {
     return withReference('Avtalet är inte publiceringsklart. Komplettera juridik, pris eller bolagsuppgifter enligt readiness-statusen.', reference)
   }

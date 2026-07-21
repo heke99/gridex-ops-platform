@@ -12,6 +12,8 @@ const tenantActions = read("app/admin/companies/[id]/tenant-platform-actions.ts"
 const tenantControls = read("app/admin/companies/[id]/TenantPlatformControls.tsx");
 const types = read("lib/customer-contracts/types.ts");
 const dbTest = read("scripts/gridex-contract-db-lifecycle-test.sql");
+const lifecycleErrors = read("lib/contracts/lifecycleErrors.ts");
+const graphMigration = read("supabase/migrations/20260721170000_contract_graph_api_revision_hardening.sql");
 
 const failures = [];
 let checks = 0;
@@ -115,8 +117,18 @@ check(!tenantControls.includes("&edit=${offer.source_contract_offer_id}"), "lega
 includesAll(tenantActions, [
   "assertLifecycleResult",
   "result.changed === false",
+  "contractLifecycleMessage",
+], "tenant actions reject false success through the centralized reason parser");
+includesAll(lifecycleErrors, [
   "reason_codes",
-], "tenant actions reject false success");
+  "PUBLICATION_VERSION_LINK_MISMATCH",
+  "contract_public_offer_still_referenced",
+], "central lifecycle reason map");
+includesAll(graphMigration, [
+  "gridex_resolve_contract_lifecycle_graph",
+  "where legacy_public_contract_offer_id=any(v_public_offer_ids)",
+  "contract_public_offer_still_referenced",
+], "forward-only graph/FK repair migration");
 includesAll(types, [
   "can_delete?: boolean",
   "business_blockers?: Record<string, number>",

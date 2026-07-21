@@ -305,8 +305,9 @@
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
-    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2"
+    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
+    "20260721170000_contract_graph_api_revision_hardening.sql": "a115919d0a03d23255e82cb0cd3ebac959bd3554d34bdb522befe0fb4e99ff50"
   },
-  "generatedAt": "2026-07-17T22:10:00.000000Z",
+  "generatedAt": "2026-07-21T16:00:27.131681Z",
   "schemaVersion": 1
 }

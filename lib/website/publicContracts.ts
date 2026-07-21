@@ -1,5 +1,4 @@
 import { supabaseService } from "@/lib/supabase/service";
-import { assessPublicOfferReadiness } from "@/lib/website/publicOfferReadiness";
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import {
   assessCanonicalInvoiceFee,
@@ -1019,25 +1018,6 @@ async function listBundleLegalVersions(input: {
   return exact.length > 0 ? exact : null;
 }
 
-async function offerWithLegalVersions(input: {
-  offer: PublicContractOffer;
-  companyLegalVersions: PublicLegalTextVersion[] | null;
-}): Promise<PublicContractOffer | null> {
-  const legalVersions = await listBundleLegalVersions({
-    companyId: input.offer.company_id,
-    legalBundleVersionId: input.offer.legal_bundle_version_id,
-  });
-  if (!hasExactCanonicalLegalVersions(legalVersions)) return null;
-  return {
-    ...input.offer,
-    legal_versions: legalVersions ?? undefined,
-    metadata: {
-      ...input.offer.metadata,
-      legal_versions: legalVersions ?? undefined,
-    },
-  };
-}
-
 function isWebsitePublishedRow(row: Record<string, unknown>): boolean {
   const status = clean(row.publication_status);
   const hasStatusColumn = status !== null;
@@ -1049,54 +1029,207 @@ function isWebsitePublishedRow(row: Record<string, unknown>): boolean {
   return row.is_public === true;
 }
 
-async function exactPortfolioMonthlyPrices(
-  offer: PublicContractOffer,
-): Promise<{
-  historicalFinal: Record<string, unknown>[];
-  indications: Record<string, unknown>[];
-}> {
-  if (
-    !offer.price_plan_version_id ||
-    !["portfolio", "mixed"].includes(offer.contract_type)
-  )
-    return { historicalFinal: [], indications: [] };
-  const method = objectValue(offer.pricing_snapshot?.portfolio_method);
-  const portfolioId = clean(method.portfolio_id);
-  if (!portfolioId) return { historicalFinal: [], indications: [] };
-  const displayRules = objectValue(method.display_rules);
-  const showHistorical = displayRules.show_historical_final !== false;
-  const showIndication = displayRules.show_indication === true;
+type BulkPublicationReadiness = {
+  isReady: boolean;
+  blockers: string[];
+};
+
+async function loadPublicationReadinessByVersion(
+  companyId: string,
+  offers: PublicContractOffer[],
+): Promise<Map<string, BulkPublicationReadiness>> {
+  const ids = Array.from(
+    new Set(
+      offers
+        .map((offer) => clean(offer.contract_publication_version_id))
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+  if (ids.length === 0) return new Map();
+  const query = await supabaseService
+    .from("contract_publication_readiness_v")
+    .select("contract_publication_version_id,company_id,status,locked_at,blockers")
+    .eq("company_id", companyId)
+    .in("contract_publication_version_id", ids);
+  if (query.error) throw query.error;
+  return new Map(
+    ((query.data ?? []) as Array<Record<string, unknown>>).map((row) => {
+      const blockers = Array.isArray(row.blockers)
+        ? row.blockers.map(clean).filter((value): value is string => Boolean(value))
+        : [];
+      if (clean(row.status) !== "published")
+        blockers.push("Publiceringsversionen är inte publicerad");
+      if (!clean(row.locked_at))
+        blockers.push("Publiceringsversionen är inte låst");
+      return [
+        String(row.contract_publication_version_id),
+        { isReady: blockers.length === 0, blockers: Array.from(new Set(blockers)) },
+      ];
+    }),
+  );
+}
+
+async function loadLegalVersionsByBundle(
+  companyId: string,
+  offers: PublicContractOffer[],
+): Promise<Map<string, PublicLegalTextVersion[]>> {
+  const bundleIds = Array.from(
+    new Set(
+      offers
+        .map((offer) => clean(offer.legal_bundle_version_id))
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+  if (bundleIds.length === 0) return new Map();
+  const [bundles, documents] = await Promise.all([
+    supabaseService
+      .from("legal_bundle_versions")
+      .select("id,status,published_at,locked_at")
+      .eq("company_id", companyId)
+      .in("id", bundleIds),
+    supabaseService
+      .from("legal_bundle_version_documents")
+      .select(
+        "id,legal_bundle_version_id,module_key,title,template_version,content_sha256,origin,created_at,sort_order,unresolved_variables",
+      )
+      .in("legal_bundle_version_id", bundleIds)
+      .order("sort_order", { ascending: true }),
+  ]);
+  if (bundles.error) throw bundles.error;
+  if (documents.error) throw documents.error;
+  const validBundles = new Map(
+    ((bundles.data ?? []) as Array<Record<string, unknown>>)
+      .filter(
+        (row) =>
+          Boolean(clean(row.locked_at)) &&
+          ["published", "replaced", "archived"].includes(clean(row.status) ?? ""),
+      )
+      .map((row) => [String(row.id), clean(row.published_at)]),
+  );
+  const result = new Map<string, PublicLegalTextVersion[]>();
+  for (const row of (documents.data ?? []) as Array<Record<string, unknown>>) {
+    const bundleId = String(row.legal_bundle_version_id);
+    if (!validBundles.has(bundleId)) continue;
+    if (
+      !Array.isArray(row.unresolved_variables) ||
+      row.unresolved_variables.length > 0
+    ) continue;
+    const publishedAt = validBundles.get(bundleId) ?? null;
+    const version: PublicLegalTextVersion = {
+      id: String(row.id),
+      type: String(row.module_key),
+      version:
+        clean(row.template_version) ??
+        publishedAt ??
+        clean(row.created_at) ??
+        String(row.id),
+      title: String(row.title),
+      published_at: publishedAt ?? clean(row.created_at),
+      content_sha256: clean(row.content_sha256),
+      legal_bundle_version_id: bundleId,
+      origin: clean(row.origin) ?? "canonical_bundle_document",
+    };
+    result.set(bundleId, [...(result.get(bundleId) ?? []), version]);
+  }
+  return result;
+}
+
+type PortfolioPricingRows = {
+  settlements: Array<Record<string, unknown>>;
+  estimates: Array<Record<string, unknown>>;
+};
+
+function portfolioPricingKey(portfolioId: string, pricePlanVersionId: string) {
+  return `${portfolioId}:${pricePlanVersionId}`;
+}
+
+async function loadPortfolioPricingByOffer(
+  companyId: string,
+  offers: PublicContractOffer[],
+): Promise<Map<string, PortfolioPricingRows>> {
+  const targets = offers.flatMap((offer) => {
+    if (
+      !offer.price_plan_version_id ||
+      !["portfolio", "mixed"].includes(offer.contract_type)
+    ) return [];
+    const portfolioId = clean(
+      objectValue(offer.pricing_snapshot?.portfolio_method).portfolio_id,
+    );
+    return portfolioId
+      ? [{ portfolioId, pricePlanVersionId: offer.price_plan_version_id }]
+      : [];
+  });
+  const portfolioIds = Array.from(new Set(targets.map((target) => target.portfolioId)));
+  const versionIds = Array.from(
+    new Set(targets.map((target) => target.pricePlanVersionId)),
+  );
+  if (portfolioIds.length === 0 || versionIds.length === 0) return new Map();
   const [settlements, estimates] = await Promise.all([
     supabaseService
       .from("portfolio_monthly_settlements")
       .select(
         "id,portfolio_id,price_plan_version_id,delivery_month,price_area_code,portfolio_price_ore_per_kwh,status,source,revision_no,approved_at,locked_at",
       )
-      .eq("company_id", offer.company_id)
-      .eq("portfolio_id", portfolioId)
-      .eq("price_plan_version_id", offer.price_plan_version_id)
+      .eq("company_id", companyId)
+      .in("portfolio_id", portfolioIds)
+      .in("price_plan_version_id", versionIds)
       .eq("is_current", true)
       .in("status", ["final", "locked"])
       .order("delivery_month", { ascending: false })
-      .order("price_area_code", { ascending: true })
-      .limit(48),
+      .order("price_area_code", { ascending: true }),
     supabaseService
       .from("portfolio_price_estimates")
       .select(
         "id,portfolio_id,price_plan_version_id,estimate_month,price_area_code,estimate_price_ore_per_kwh,estimate_source,confidence,non_binding,reason,expires_at,estimate_generated_at",
       )
-      .eq("company_id", offer.company_id)
-      .eq("portfolio_id", portfolioId)
-      .eq("price_plan_version_id", offer.price_plan_version_id)
+      .eq("company_id", companyId)
+      .in("portfolio_id", portfolioIds)
+      .in("price_plan_version_id", versionIds)
       .eq("is_current", true)
-      .order("estimate_month", { ascending: true })
-      .limit(16),
+      .order("estimate_month", { ascending: true }),
   ]);
   if (settlements.error) throw settlements.error;
   if (estimates.error) throw estimates.error;
+  const result = new Map<string, PortfolioPricingRows>();
+  for (const target of targets) {
+    result.set(portfolioPricingKey(target.portfolioId, target.pricePlanVersionId), {
+      settlements: [],
+      estimates: [],
+    });
+  }
+  for (const row of (settlements.data ?? []) as Array<Record<string, unknown>>) {
+    const key = portfolioPricingKey(String(row.portfolio_id), String(row.price_plan_version_id));
+    const current = result.get(key);
+    if (current && current.settlements.length < 48) current.settlements.push(row);
+  }
+  for (const row of (estimates.data ?? []) as Array<Record<string, unknown>>) {
+    const key = portfolioPricingKey(String(row.portfolio_id), String(row.price_plan_version_id));
+    const current = result.get(key);
+    if (current && current.estimates.length < 16) current.estimates.push(row);
+  }
+  return result;
+}
+
+function portfolioPricingForOffer(
+  offer: PublicContractOffer,
+  pricingByKey: Map<string, PortfolioPricingRows>,
+): { historicalFinal: Record<string, unknown>[]; indications: Record<string, unknown>[] } {
+  if (
+    !offer.price_plan_version_id ||
+    !["portfolio", "mixed"].includes(offer.contract_type)
+  ) return { historicalFinal: [], indications: [] };
+  const method = objectValue(offer.pricing_snapshot?.portfolio_method);
+  const portfolioId = clean(method.portfolio_id);
+  if (!portfolioId) return { historicalFinal: [], indications: [] };
+  const rows = pricingByKey.get(
+    portfolioPricingKey(portfolioId, offer.price_plan_version_id),
+  ) ?? { settlements: [], estimates: [] };
+  const displayRules = objectValue(method.display_rules);
+  const showHistorical = displayRules.show_historical_final !== false;
+  const showIndication = displayRules.show_indication === true;
   return {
     historicalFinal: showHistorical
-      ? (settlements.data ?? []).map((row) => ({
+      ? rows.settlements.map((row) => ({
           id: row.id,
           portfolio_id: row.portfolio_id,
           price_plan_version_id: row.price_plan_version_id,
@@ -1113,9 +1246,10 @@ async function exactPortfolioMonthlyPrices(
         }))
       : [],
     indications: showIndication
-      ? (estimates.data ?? [])
+      ? rows.estimates
           .filter(
-            (row) => !row.expires_at || Date.parse(row.expires_at) > Date.now(),
+            (row) =>
+              !row.expires_at || Date.parse(String(row.expires_at)) > Date.now(),
           )
           .map((row) => ({
             ...row,
@@ -1128,59 +1262,44 @@ async function exactPortfolioMonthlyPrices(
   };
 }
 
-async function appendReadyOffer(input: {
-  result: PublicContractOffer[];
-  offer: PublicContractOffer;
-  companyLegalVersions: PublicLegalTextVersion[] | null;
-  customerType?: string | null;
-  tenantSlug?: string | null;
-}) {
-  if (
-    !isCurrentlyValid(input.offer) ||
-    !customerTypeAllowed(input.offer, input.customerType)
-  )
-    return;
+type PublicationGraphIntegrity = {
+  public_contract_offer_id: string;
+  canonical_graph_consistent: boolean;
+  forward_publication_link_valid: boolean;
+  reverse_legacy_link_valid: boolean;
+  company_chain_valid: boolean;
+  tenant_assignment_valid: boolean;
+  channel_valid: boolean;
+  product_version_valid: boolean;
+  source_offer_consistent: boolean;
+  publication_active: boolean;
+};
 
-  const readiness = await assessPublicOfferReadiness({
-    companyId: input.offer.company_id,
-    offer: input.offer,
-  });
-  if (!readiness.isReady) return;
-
-  const invoiceFeeReadiness = assessCanonicalInvoiceFee({
-    rowAmount: input.offer.invoice_fee_sek,
-    snapshot: input.offer.pricing_snapshot,
-  });
-  if (invoiceFeeReadiness.status !== "ready") return;
-
-  const withLegal = await offerWithLegalVersions({
-    offer: input.offer,
-    companyLegalVersions: input.companyLegalVersions,
-  });
-  if (!withLegal) return;
-
-  const portfolioPricing = await exactPortfolioMonthlyPrices(withLegal);
-  withLegal.pricing_snapshot = {
-    ...(withLegal.pricing_snapshot ?? {}),
-    portfolio_monthly_prices: portfolioPricing.historicalFinal,
-    portfolio_indications: portfolioPricing.indications,
-  };
-  withLegal.tenant_slug = input.tenantSlug ?? null;
-  withLegal.metadata = {
-    ...withLegal.metadata,
-    readiness_status: "ready",
-    readiness_blockers: [],
-  };
-  input.result.push(withLegal);
+async function loadPublicationGraphIntegrity(
+  companyId: string,
+  publicOfferIds: string[],
+): Promise<Map<string, PublicationGraphIntegrity>> {
+  if (publicOfferIds.length === 0) return new Map();
+  const query = await supabaseService
+    .from("contract_publication_graph_integrity_v")
+    .select(
+      "public_contract_offer_id,canonical_graph_consistent,forward_publication_link_valid,reverse_legacy_link_valid,company_chain_valid,tenant_assignment_valid,channel_valid,product_version_valid,source_offer_consistent,publication_active",
+    )
+    .eq("company_id", companyId)
+    .in("public_contract_offer_id", publicOfferIds);
+  if (query.error) throw query.error;
+  return new Map(
+    ((query.data ?? []) as PublicationGraphIntegrity[]).map((row) => [
+      row.public_contract_offer_id,
+      row,
+    ]),
+  );
 }
 
 export async function listPublicContractOffers(input: {
   client: IntegrationApiClient;
   customerType?: string | null;
 }): Promise<PublicContractOffer[]> {
-  const companyLegalVersions = await listPublishedLegalVersions(
-    input.client.company_id,
-  );
   const tenantSlug = await loadCompanySlugById(input.client.company_id);
   const primary = await supabaseService
     .from("canonical_public_contract_offers_v")
@@ -1190,25 +1309,59 @@ export async function listPublicContractOffers(input: {
     .order("sort_order", { ascending: true })
     .order("public_name", { ascending: true });
 
-  if (!primary.error) {
-    const result: PublicContractOffer[] = [];
-    const offers = ((primary.data ?? []) as Array<Record<string, unknown>>)
-      .filter(isWebsitePublishedRow)
-      .map(mapOfferRow);
+  if (primary.error) throw primary.error;
+  const offers = ((primary.data ?? []) as Array<Record<string, unknown>>)
+    .filter(isWebsitePublishedRow)
+    .map(mapOfferRow);
+  const [graphIntegrity, readinessByVersion, legalByBundle, portfolioByOffer] =
+    await Promise.all([
+      loadPublicationGraphIntegrity(
+        input.client.company_id,
+        offers.map((offer) => offer.id),
+      ),
+      loadPublicationReadinessByVersion(input.client.company_id, offers),
+      loadLegalVersionsByBundle(input.client.company_id, offers),
+      loadPortfolioPricingByOffer(input.client.company_id, offers),
+    ]);
 
-    for (const offer of offers) {
-      await appendReadyOffer({
-        result,
-        offer,
-        companyLegalVersions,
-        customerType: input.customerType,
-        tenantSlug,
-      });
-    }
-    return result;
+  const result: PublicContractOffer[] = [];
+  for (const offer of offers) {
+    if (graphIntegrity.get(offer.id)?.canonical_graph_consistent !== true)
+      continue;
+    if (!isCurrentlyValid(offer) || !customerTypeAllowed(offer, input.customerType))
+      continue;
+    const publicationVersionId = clean(offer.contract_publication_version_id);
+    if (!publicationVersionId || readinessByVersion.get(publicationVersionId)?.isReady !== true)
+      continue;
+    const invoiceFeeReadiness = assessCanonicalInvoiceFee({
+      rowAmount: offer.invoice_fee_sek,
+      snapshot: offer.pricing_snapshot,
+    });
+    if (invoiceFeeReadiness.status !== "ready") continue;
+    const legalBundleVersionId = clean(offer.legal_bundle_version_id);
+    const legalVersions = legalBundleVersionId
+      ? legalByBundle.get(legalBundleVersionId) ?? null
+      : null;
+    if (!hasExactCanonicalLegalVersions(legalVersions)) continue;
+    const portfolioPricing = portfolioPricingForOffer(offer, portfolioByOffer);
+    result.push({
+      ...offer,
+      tenant_slug: tenantSlug ?? null,
+      legal_versions: legalVersions ?? undefined,
+      pricing_snapshot: {
+        ...(offer.pricing_snapshot ?? {}),
+        portfolio_monthly_prices: portfolioPricing.historicalFinal,
+        portfolio_indications: portfolioPricing.indications,
+      },
+      metadata: {
+        ...offer.metadata,
+        legal_versions: legalVersions ?? undefined,
+        readiness_status: "ready",
+        readiness_blockers: [],
+      },
+    });
   }
-
-  throw primary.error;
+  return result;
 }
 
 export async function resolvePublicContractOffer(input: {
@@ -1254,7 +1407,7 @@ export async function resolvePublicContractOffer(input: {
 }
 
 export type PublicContractOfferDiagnostic = {
-  id: string;
+  id: string | null;
   name: string;
   product_code: string;
   publication_status: string | null;
@@ -1265,6 +1418,7 @@ export type PublicContractOfferDiagnostic = {
   visible: boolean;
   blockers: string[];
   offer_reference: string | null;
+  graph: Omit<PublicationGraphIntegrity, "public_contract_offer_id"> | null;
   pricing_readiness: {
     invoice_fee: CanonicalInvoiceFeeReadiness;
   };
@@ -1289,10 +1443,23 @@ export async function diagnosePublicContractOffers(input: {
   if (query.error) throw query.error;
 
   const rows = (query.data ?? []) as Array<Record<string, unknown>>;
+  const offers = rows.map(mapOfferRow);
+  const [graphIntegrity, readinessByVersion, legalByBundle] = await Promise.all([
+    loadPublicationGraphIntegrity(
+      input.client.company_id,
+      offers.map((offer) => offer.id),
+    ),
+    loadPublicationReadinessByVersion(input.client.company_id, offers),
+    loadLegalVersionsByBundle(input.client.company_id, offers),
+  ]);
   const diagnostics: PublicContractOfferDiagnostic[] = [];
-  for (const row of rows) {
-    const offer = mapOfferRow(row);
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    const offer = offers[index];
     const blockers: string[] = [];
+    const graph = graphIntegrity.get(offer.id) ?? null;
+    if (graph?.canonical_graph_consistent !== true)
+      blockers.push("PUBLICATION_GRAPH_INCONSISTENT");
     const publicationStatus = clean(row.publication_status);
     if (row.is_archived === true || publicationStatus === "archived")
       blockers.push("Erbjudandet är arkiverat");
@@ -1309,10 +1476,16 @@ export async function diagnosePublicContractOffers(input: {
     if (!customerTypeAllowed(offer, input.customerType))
       blockers.push("Erbjudandet matchar inte vald kundtyp");
 
-    const readiness = await assessPublicOfferReadiness({
-      companyId: offer.company_id,
-      offer,
-    });
+    const publicationVersionId = clean(offer.contract_publication_version_id);
+    const readiness = publicationVersionId
+      ? readinessByVersion.get(publicationVersionId) ?? {
+          isReady: false,
+          blockers: ["Publiceringsversionen hittades inte för bolaget"],
+        }
+      : {
+          isReady: false,
+          blockers: ["Kanonisk publiceringsversion saknas"],
+        };
     blockers.push(
       ...readiness.blockers.filter((blocker) => !blockers.includes(blocker)),
     );
@@ -1324,16 +1497,16 @@ export async function diagnosePublicContractOffers(input: {
       blockers.push(invoiceFeeReadiness.code);
     }
 
-    const strictLegal =
-      blockers.length === 0
-        ? await offerWithLegalVersions({ offer, companyLegalVersions: null })
-        : null;
-    if (blockers.length === 0 && !strictLegal)
+    const legalBundleVersionId = clean(offer.legal_bundle_version_id);
+    const strictLegal = legalBundleVersionId
+      ? legalByBundle.get(legalBundleVersionId) ?? null
+      : null;
+    if (blockers.length === 0 && !hasExactCanonicalLegalVersions(strictLegal))
       blockers.push("Erbjudandets exakta juridikpaket kunde inte verifieras");
 
     const visible = blockers.length === 0;
     diagnostics.push({
-      id: offer.id,
+      id: offer.canonical_offer_reference ?? null,
       name: offer.public_name,
       product_code: offer.product_code,
       publication_status: publicationStatus,
@@ -1343,7 +1516,21 @@ export async function diagnosePublicContractOffers(input: {
       customer_type: offer.customer_type,
       visible,
       blockers: Array.from(new Set(blockers)),
-      offer_reference: visible ? publicOfferReference(offer) : null,
+      offer_reference: offer.canonical_offer_reference ?? null,
+      graph: graph
+        ? {
+            canonical_graph_consistent: graph.canonical_graph_consistent,
+            forward_publication_link_valid:
+              graph.forward_publication_link_valid,
+            reverse_legacy_link_valid: graph.reverse_legacy_link_valid,
+            company_chain_valid: graph.company_chain_valid,
+            tenant_assignment_valid: graph.tenant_assignment_valid,
+            channel_valid: graph.channel_valid,
+            product_version_valid: graph.product_version_valid,
+            source_offer_consistent: graph.source_offer_consistent,
+            publication_active: graph.publication_active,
+          }
+        : null,
       pricing_readiness: { invoice_fee: invoiceFeeReadiness },
     });
   }

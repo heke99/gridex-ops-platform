@@ -46,7 +46,7 @@ has('lib/website/applicationReview.ts', /canSendAgreementConfirmation\s*=\s*Bool
 
 const publicContracts = read('lib/website/publicContracts.ts')
 check(/diagnosePublicContractOffers/.test(publicContracts), 'Publiceringsdiagnostik finns per tenant')
-check(/offerWithLegalVersions\(\{\s*offer,\s*companyLegalVersions:\s*null\s*\}/.test(publicContracts), 'Erbjudandet verifieras mot sitt exakta juridikpaket utan latest-fallback')
+check(/loadLegalVersionsByBundle/.test(publicContracts) && /legal_bundle_version_id/.test(publicContracts) && /hasExactCanonicalLegalVersions\(legalVersions\)/.test(publicContracts), 'Erbjudandet verifieras i bulk mot sitt exakta juridikpaket utan latest-fallback')
 const route = read('app/api/v1/website/public-contracts/route.ts')
 check(/diagnostics/.test(route) && /diagnosePublicContractOffers/.test(route), 'public-contracts stöder diagnostics=1')
 
