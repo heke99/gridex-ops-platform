@@ -120,6 +120,9 @@ begin
   if coalesce((select currently_sellable from public.canonical_internal_contract_offers_v where id=v_offer_id),true) then
     raise exception 'draft_became_sellable';
   end if;
+  if abs(coalesce((select vat_rate from public.contract_offers where id=v_offer_id),-1)-0.25)>0.000001 then
+    raise exception 'vat_percent_input_was_not_normalized_to_fraction';
+  end if;
 
   v_published:=public.gridex_publish_internal_contract_version(
     v_company_id,v_offer_id,v_actor_id
@@ -180,6 +183,7 @@ begin
   -- Create a changed successor draft. The currently published predecessor must
   -- remain sellable until the successor is explicitly published.
   v_payload:=jsonb_set(v_payload,'{monthly_fee_sek}','50.75'::jsonb,true);
+  v_payload:=jsonb_set(v_payload,'{vat_rate}','0.25'::jsonb,true);
   v_payload:=jsonb_set(v_payload,'{lifecycle_status}','"draft"'::jsonb,true);
   v_snapshot:=jsonb_set(
     v_snapshot,'{price_components,1,amount}','50.75'::jsonb,true
@@ -197,6 +201,9 @@ begin
   end if;
   if coalesce((select currently_sellable from public.canonical_internal_contract_offers_v where id=v_successor_id),true) then
     raise exception 'successor_draft_became_sellable';
+  end if;
+  if abs(coalesce((select vat_rate from public.contract_offers where id=v_successor_id),-1)-0.25)>0.000001 then
+    raise exception 'canonical_fraction_input_was_not_preserved';
   end if;
 
   v_deleted:=public.gridex_delete_unused_contract(

@@ -204,6 +204,29 @@ includesAll(migration, [
 ], "legacy public contract types map to canonical internal types");
 
 includesAll(migration, [
+  "check(vat_rate is null or (vat_rate>=0 and vat_rate<=1))",
+  "if v_vat_rate>1 and v_vat_rate<=100 then v_vat_rate:=v_vat_rate/100; end if;",
+  "when r.vat_rate>1 and r.vat_rate<=100 then r.vat_rate/100",
+  "alter column vat_rate set default 0.25",
+  "legacy_public_offer_vat_rate_invalid",
+], "VAT is normalized from admin percent input to canonical fractional storage");
+
+includesAll(migration, [
+  "drop constraint if exists contract_offers_default_binding_months_check",
+  "drop constraint if exists contract_offers_default_notice_months_check",
+  "contract_offers_months_nonnegative_check",
+  "default_binding_months>=0",
+  "default_notice_months>=0",
+], "binding and notice month schema drift is normalized to nonnegative canonical semantics");
+
+includesAll(migration, [
+  "automatic_renewal,automatic_renewal_term_months",
+  "legacy_public_offer_requires_canonical_republication",
+  "r.metadata->>'automatic_renewal_term_months'",
+  "nullif(r.binding_months,0)",
+], "legacy automatic renewal is only retained when a positive renewal term can be resolved");
+
+includesAll(migration, [
   "gridex_guard_canonical_public_offer",
   "if new.source_contract_offer_id is null",
   "canonical_contract_source_required",

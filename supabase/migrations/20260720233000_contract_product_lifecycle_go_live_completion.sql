@@ -60,6 +60,18 @@ alter table public.contract_offers add constraint contract_offers_valid_window_c
 alter table public.contract_offers drop constraint if exists contract_offers_max_customers_check;
 alter table public.contract_offers add constraint contract_offers_max_customers_check
   check(max_customers is null or max_customers>0);
+-- Older production schemas may still require binding/notice months to be > 0.
+-- Gridex uses 0 to mean no binding/no notice, so normalize those drifted checks
+-- before any canonical legacy backfill inserts rows.
+alter table public.contract_offers drop constraint if exists contract_offers_default_binding_months_check;
+alter table public.contract_offers drop constraint if exists contract_offers_default_notice_months_check;
+alter table public.contract_offers drop constraint if exists contract_offers_months_check;
+alter table public.contract_offers drop constraint if exists contract_offers_months_nonnegative_check;
+alter table public.contract_offers add constraint contract_offers_months_nonnegative_check
+  check(
+    (default_binding_months is null or default_binding_months>=0)
+    and (default_notice_months is null or default_notice_months>=0)
+  ) not valid;
 alter table public.contract_offers drop constraint if exists contract_offers_discount_value_check;
 alter table public.contract_offers add constraint contract_offers_discount_value_check
   check(discount_value is null or discount_value>=0) not valid;
@@ -74,7 +86,7 @@ alter table public.contract_offers add constraint contract_offers_renewal_consis
   check(not coalesce(automatic_renewal,false) or automatic_renewal_term_months is not null) not valid;
 alter table public.contract_offers drop constraint if exists contract_offers_vat_rate_range_check;
 alter table public.contract_offers add constraint contract_offers_vat_rate_range_check
-  check(vat_rate is null or (vat_rate>=0 and vat_rate<=100)) not valid;
+  check(vat_rate is null or (vat_rate>=0 and vat_rate<=1)) not valid;
 alter table public.contract_offers drop constraint if exists contract_offers_nonnegative_fees_check;
 alter table public.contract_offers add constraint contract_offers_nonnegative_fees_check
   check(
@@ -122,7 +134,13 @@ begin
   -- to attach lifecycle metadata without forcing a false new version.
   perform set_config('gridex.public_offer_write','on',true);
   update public.public_contract_offers
-  set lifecycle_status=coalesce(
+  set vat_rate=case
+        when vat_rate is null then 0.25
+        when vat_rate>=0 and vat_rate<=1 then vat_rate
+        when vat_rate>1 and vat_rate<=100 then vat_rate/100
+        else vat_rate
+      end,
+      lifecycle_status=coalesce(
     lifecycle_status,
     case
       when is_archived or publication_status='archived' then 'archived'
@@ -132,9 +150,19 @@ begin
       else 'paused'
     end
   )
-  where lifecycle_status is null;
+  where lifecycle_status is null
+     or vat_rate is null
+     or (vat_rate>1 and vat_rate<=100);
+
+  if exists(
+    select 1 from public.public_contract_offers
+    where vat_rate is not null and (vat_rate<0 or vat_rate>1)
+  ) then
+    raise exception using errcode='23514',message='legacy_public_offer_vat_rate_invalid';
+  end if;
 end $$;
 
+alter table public.public_contract_offers alter column vat_rate set default 0.25;
 alter table public.public_contract_offers alter column lifecycle_status set default 'draft';
 alter table public.public_contract_offers alter column lifecycle_status set not null;
 alter table public.public_contract_offers drop constraint if exists public_contract_offers_lifecycle_status_check;
@@ -276,7 +304,7 @@ begin
   if o.price_book_id is null then v_blockers:=array_append(v_blockers,'price_book_missing'); end if;
   if o.invoice_fee_sek is null then v_blockers:=array_append(v_blockers,'invoice_fee_missing'); end if;
   if o.invoice_fee_sek is not null and o.invoice_fee_sek<0 then v_blockers:=array_append(v_blockers,'invoice_fee_invalid'); end if;
-  if o.vat_rate is null or o.vat_rate<0 or o.vat_rate>100 then v_blockers:=array_append(v_blockers,'vat_rate_invalid'); end if;
+  if o.vat_rate is null or o.vat_rate<0 or o.vat_rate>1 then v_blockers:=array_append(v_blockers,'vat_rate_invalid'); end if;
   if o.contract_type='fixed' and (o.fixed_price_ore_per_kwh is null or o.fixed_price_ore_per_kwh<=0) then v_blockers:=array_append(v_blockers,'fixed_price_missing'); end if;
   if jsonb_array_length(
        case when jsonb_typeof(v_snapshot->'price_areas')='array'
@@ -654,6 +682,9 @@ begin
   v_auto_renewal:=coalesce((p_payload->>'automatic_renewal')::boolean,false);
   v_auto_renewal_term:=nullif(p_payload->>'automatic_renewal_term_months','')::integer;
   v_vat_rate:=coalesce(nullif(replace(coalesce(p_payload->>'vat_rate',''),',','.'),'')::numeric,25);
+  -- Admin UI sends VAT as percent (25), while canonical database rows store
+  -- a fraction (0.25). Direct callers may already send the canonical fraction.
+  if v_vat_rate>1 and v_vat_rate<=100 then v_vat_rate:=v_vat_rate/100; end if;
   if v_poa_mode not in ('always_required','required_when_information_missing','not_required') then
     raise exception using errcode='22023',message='invalid_power_of_attorney_mode';
   end if;
@@ -666,7 +697,7 @@ begin
   if v_auto_renewal and coalesce(v_auto_renewal_term,0)<1 then
     raise exception using errcode='23514',message='automatic_renewal_term_missing';
   end if;
-  if v_vat_rate<0 or v_vat_rate>100 then
+  if v_vat_rate<0 or v_vat_rate>1 then
     raise exception using errcode='23514',message='invalid_vat_rate';
   end if;
   if coalesce(nullif(p_payload->>'start_fee_sek','')::numeric,0)<0
@@ -2110,9 +2141,33 @@ begin
     end if;
 
     v_lifecycle:=case
-      when r.contract_product_id is not null and r.contract_product_version_id is not null
-           and r.publication_status='published' and r.is_public then 'published'
       when r.publication_status in ('archived','expired') or r.is_archived then 'archived'
+      when r.contract_product_id is not null and r.contract_product_version_id is not null
+           and r.publication_status='published' and r.is_public
+           and (
+             r.discount_value is null
+             or (
+               r.discount_value>=0
+               and (r.discount_unit is distinct from 'percent' or r.discount_value<=100)
+               and coalesce(r.discount_months,0)>0
+             )
+           )
+           and (
+             not coalesce(r.automatic_renewal,false)
+             or coalesce(
+               case
+                 when coalesce(r.metadata->>'automatic_renewal_term_months','') ~ '^[1-9][0-9]*$'
+                   then (r.metadata->>'automatic_renewal_term_months')::integer
+               end,
+               nullif(r.binding_months,0)
+             ) is not null
+           )
+           and (r.start_fee_sek is null or r.start_fee_sek>=0)
+           and (r.administration_fee_sek is null or r.administration_fee_sek>=0)
+           and (r.break_fee_sek is null or r.break_fee_sek>=0)
+           and (r.monthly_fee_sek is null or r.monthly_fee_sek>=0)
+           and (r.invoice_fee_sek is null or r.invoice_fee_sek>=0)
+        then 'published'
       else 'draft'
     end;
     v_series:=case when v_lifecycle='draft' then gen_random_uuid()
@@ -2130,7 +2185,8 @@ begin
       monthly_fee_sek,invoice_fee_sek,green_fee_mode,green_fee_value,
       default_binding_months,default_notice_months,is_active,valid_from,valid_to,
       price_plan_id,price_plan_version_id,price_book_id,commercial_snapshot,
-      automatic_renewal,power_of_attorney_required,created_by,updated_by,archived_at
+      automatic_renewal,automatic_renewal_term_months,
+      power_of_attorney_required,created_by,updated_by,archived_at
     ) values(
       r.company_id,v_series,r.contract_product_id,r.contract_product_version_id,
       r.legal_bundle_version_id,r.public_name,'legacy-public-'||r.id::text,
@@ -2149,16 +2205,68 @@ begin
         when 'mixed' then 'mixed'
         else 'variable_monthly'
       end,
-      r.customer_type,
+      case lower(coalesce(r.customer_type,''))
+        when 'private' then 'private'
+        when 'business' then 'business'
+        when 'both' then 'both'
+        else 'both'
+      end,
       coalesce(r.metadata->>'price_version_label','legacy-v'||v_version_number::text),
       r.terms_version,v_version_number,r.public_description,null,
-      r.discount_value,r.discount_unit,r.discount_months,r.start_fee_sek,r.administration_fee_sek,r.break_fee_sek,
-      coalesce(r.vat_rate,25),r.fixed_price_ore_per_kwh,r.spot_markup_ore_per_kwh,r.variable_fee_ore_per_kwh,
-      r.monthly_fee_sek,r.invoice_fee_sek,coalesce(r.green_fee_mode,'none'),r.green_fee_value,
-      r.binding_months,r.notice_months,v_lifecycle='published',r.valid_from,r.valid_to,
+      case
+        when r.discount_value is null then null
+        when r.discount_value<0 then null
+        when r.discount_unit='percent' and r.discount_value>100 then null
+        when coalesce(r.discount_months,0)<1 then null
+        else r.discount_value
+      end,
+      case
+        when r.discount_value is null or r.discount_value<0 then null
+        when r.discount_unit='percent' and r.discount_value>100 then null
+        when coalesce(r.discount_months,0)<1 then null
+        else r.discount_unit
+      end,
+      case
+        when r.discount_value is null or r.discount_value<0 then null
+        when r.discount_unit='percent' and r.discount_value>100 then null
+        when coalesce(r.discount_months,0)<1 then null
+        else r.discount_months
+      end,
+      case when r.start_fee_sek is null or r.start_fee_sek>=0 then r.start_fee_sek end,
+      case when r.administration_fee_sek is null or r.administration_fee_sek>=0 then r.administration_fee_sek end,
+      case when r.break_fee_sek is null or r.break_fee_sek>=0 then r.break_fee_sek end,
+      case
+        when r.vat_rate is null then 0.25
+        when r.vat_rate>=0 and r.vat_rate<=1 then r.vat_rate
+        when r.vat_rate>1 and r.vat_rate<=100 then r.vat_rate/100
+        else null
+      end,r.fixed_price_ore_per_kwh,r.spot_markup_ore_per_kwh,r.variable_fee_ore_per_kwh,
+      case when r.monthly_fee_sek is null or r.monthly_fee_sek>=0 then r.monthly_fee_sek end,
+      case when r.invoice_fee_sek is null or r.invoice_fee_sek>=0 then r.invoice_fee_sek end,
+      coalesce(r.green_fee_mode,'none'),r.green_fee_value,
+      case when r.binding_months is null or r.binding_months>=0 then r.binding_months end,
+      case when r.notice_months is null or r.notice_months>=0 then r.notice_months end,
+      v_lifecycle='published',r.valid_from,r.valid_to,
       r.price_plan_id,r.price_plan_version_id,r.price_book_id,
       coalesce(r.metadata->'pricing_snapshot','{}'::jsonb),
-      coalesce(r.automatic_renewal,false),coalesce(r.power_of_attorney_required,true),
+      (
+        coalesce(r.automatic_renewal,false)
+        and coalesce(
+          case
+                 when coalesce(r.metadata->>'automatic_renewal_term_months','') ~ '^[1-9][0-9]*$'
+                   then (r.metadata->>'automatic_renewal_term_months')::integer
+               end,
+          nullif(r.binding_months,0)
+        ) is not null
+      ),
+      coalesce(
+        case
+                 when coalesce(r.metadata->>'automatic_renewal_term_months','') ~ '^[1-9][0-9]*$'
+                   then (r.metadata->>'automatic_renewal_term_months')::integer
+               end,
+        nullif(r.binding_months,0)
+      ),
+      coalesce(r.power_of_attorney_required,true),
       r.created_by,r.updated_by,case when v_lifecycle='archived' then coalesce(r.archived_at,now()) end
     ) returning id into v_source_id;
 
