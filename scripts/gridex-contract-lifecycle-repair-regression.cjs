@@ -5,6 +5,7 @@ const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const migration = read("supabase/migrations/20260721123000_contract_lifecycle_unpublish_delete_backfill.sql");
 const pgcryptoHotfix = read("supabase/migrations/20260721130000_contract_lifecycle_pgcrypto_search_path_hotfix.sql");
+const validToHotfix = read("supabase/migrations/20260721131500_contract_lifecycle_valid_to_qualification_hotfix.sql");
 const actions = read("app/admin/contracts/actions.ts");
 const page = read("app/admin/contracts/page.tsx");
 const tenantActions = read("app/admin/companies/[id]/tenant-platform-actions.ts");
@@ -64,6 +65,17 @@ includesAll(pgcryptoHotfix, [
   "search_path = public",
   "gridex_backfill_contract_lifecycle(null)",
 ], "pgcrypto runtime search path hotfix");
+
+includesAll(validToHotfix, [
+  "gridex_sync_internal_offer_to_canonical(uuid)",
+  "coalesce(ch.valid_to,now())",
+  "coalesce(old_channel.valid_to,now())",
+  "coalesce(old_publication_version.valid_to,now())",
+  "coalesce(pv.valid_to,now())",
+  "coalesce(ta.valid_to,current_date)",
+  "gridex_backfill_contract_lifecycle(null)",
+], "qualified valid_to lifecycle hotfix");
+check(!validToHotfix.includes("coalesce(valid_to,now()),updated_at=now()'\n  'set status"), "hotfix replacements are explicit");
 
 includesAll(migration, [
   "contract_lifecycle_backfill_issues",
