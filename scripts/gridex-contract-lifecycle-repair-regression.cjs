@@ -4,6 +4,7 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const migration = read("supabase/migrations/20260721123000_contract_lifecycle_unpublish_delete_backfill.sql");
+const pgcryptoHotfix = read("supabase/migrations/20260721130000_contract_lifecycle_pgcrypto_search_path_hotfix.sql");
 const actions = read("app/admin/contracts/actions.ts");
 const page = read("app/admin/contracts/page.tsx");
 const tenantActions = read("app/admin/companies/[id]/tenant-platform-actions.ts");
@@ -53,6 +54,16 @@ includesAll(migration, [
   "'can_delete'",
 ], "business usage is separated from removable system data");
 check(!migration.includes("locked_product_versions>0 or v_locked_publication_versions>0"), "locked technical versions no longer block deletion by themselves");
+
+includesAll(pgcryptoHotfix, [
+  "gridex_sync_internal_offer_to_canonical(uuid)",
+  "gridex_publish_contract_channel(uuid,uuid,text,uuid)",
+  "gridex_backfill_contract_lifecycle(uuid)",
+  "pg_extension",
+  "alter function",
+  "search_path = public",
+  "gridex_backfill_contract_lifecycle(null)",
+], "pgcrypto runtime search path hotfix");
 
 includesAll(migration, [
   "contract_lifecycle_backfill_issues",
