@@ -8,8 +8,11 @@ import {
 import { listContractOffers } from "@/lib/customer-contracts/db";
 import {
   archiveContractOfferAction,
+  cleanupUnusedContractDraftsAction,
   deleteContractOfferAction,
-  saveContractOfferAction,
+  pauseContractOfferAction,
+  publishContractChannelAction,
+  publishContractVersionAction,
   updateTenantContractChannelAction,
 } from "./actions";
 import {
@@ -28,9 +31,7 @@ import {
 } from "@/lib/contracts/canonical";
 import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile";
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
-import WebsitePricingField from "@/components/admin/contracts/WebsitePricingField";
-import PortfolioPricingEditor from "@/components/admin/contracts/PortfolioPricingEditor";
-import PricingCalculationBaseField from "@/components/admin/contracts/PricingCalculationBaseField";
+import ContractOfferAdminForm from "@/components/admin/contracts/ContractOfferAdminForm";
 
 export const dynamic = "force-dynamic";
 
@@ -236,34 +237,9 @@ async function TenantCustomerContracts({
                               <option value="ended">Avslutad</option>
                             </select>
                           </div>
-                          <div className="mt-3 grid grid-cols-2 gap-2">
-                            <input
-                              name="valid_from"
-                              type="datetime-local"
-                              defaultValue={
-                                entry.row?.valid_from?.slice(0, 16) ?? ""
-                              }
-                              className="rounded-xl border border-slate-300 px-3 py-2 text-xs"
-                            />
-                            <input
-                              name="valid_to"
-                              type="datetime-local"
-                              defaultValue={
-                                entry.row?.valid_to?.slice(0, 16) ?? ""
-                              }
-                              className="rounded-xl border border-slate-300 px-3 py-2 text-xs"
-                            />
-                          </div>
-                          {entry.channel === "website" ? (
-                            <textarea
-                              name="marketing_text"
-                              defaultValue={String(
-                                entry.row?.marketing_content?.text ?? "",
-                              )}
-                              placeholder="Godkänd marknadsföringstext"
-                              className="mt-2 min-h-20 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                            />
-                          ) : null}
+                          <p className="mt-3 text-xs leading-5 text-slate-600">
+                            Kanalens giltighet följer den låsta avtalsversionens datum. Aktiv status publicerar via canonical RPC; pausad eller avslutad status avpublicerar endast denna kanal.
+                          </p>
                           <button
                             disabled={!entry.allowed}
                             className="mt-3 rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
@@ -494,6 +470,97 @@ function typeLabel(value: string): string {
   }
 }
 
+function contractCustomerPreview(
+  offer: ContractOfferRow,
+): Array<[string, string]> {
+  const discount = offer.discount_value
+    ? `${formatNumber(offer.discount_value)} ${offer.discount_unit ?? ""}`.trim() +
+      (offer.discount_months ? ` i ${offer.discount_months} mån` : "")
+    : "Ingen rabatt";
+  const validity = `${offer.valid_from ?? "omedelbart"} – ${offer.valid_to ?? "tills vidare"}`;
+  const renewal = offer.automatic_renewal
+    ? `Ja, ${offer.automatic_renewal_term_months ?? "—"} mån`
+    : "Nej";
+  const poa =
+    offer.power_of_attorney_mode === "always_required"
+      ? "Alltid"
+      : offer.power_of_attorney_mode === "not_required"
+        ? "Krävs inte"
+        : "När uppgifter saknas";
+  const otherFees =
+    (offer.optional_fee_lines ?? [])
+      .filter((fee) => fee.website_visibility !== false)
+      .map((fee) =>
+        `${String(fee.label ?? "Avgift")}: ${formatNumber(Number(fee.amount ?? 0))} ${String(fee.unit ?? "")}`.trim(),
+      )
+      .join(" · ") || "Inga synliga extraavgifter";
+
+  return [
+    ["Avtal", offer.name],
+    ["Typ", typeLabel(offer.contract_type)],
+    ["Fast pris", `${formatNumber(offer.fixed_price_ore_per_kwh)} öre/kWh`],
+    ["Spotpåslag", `${formatNumber(offer.spot_markup_ore_per_kwh)} öre/kWh`],
+    [
+      "Rörlig avgift",
+      `${formatNumber(offer.variable_fee_ore_per_kwh)} öre/kWh`,
+    ],
+    ["Månadsavgift", `${formatNumber(offer.monthly_fee_sek)} kr/mån`],
+    [
+      "Fakturaavgift",
+      `${formatNumber(offer.invoice_fee_sek ?? null)} kr/faktura`,
+    ],
+    ["Rabatt", discount],
+    [
+      "Bindning / uppsägning",
+      `${offer.default_binding_months ?? 0} / ${offer.default_notice_months ?? 0} mån`,
+    ],
+    ["Automatisk förlängning", renewal],
+    ["Fullmakt", poa],
+    ["Giltighet", validity],
+    ["Extraavgifter", otherFees],
+  ];
+}
+
+function contractVersionDiff(
+  current: ContractOfferRow,
+  previous: ContractOfferRow | null,
+): string[] {
+  if (!previous) return ["Första versionen i produktserien."];
+  const fields: Array<[keyof ContractOfferRow, string]> = [
+    ["name", "Namn"],
+    ["contract_type", "Avtalstyp"],
+    ["fixed_price_ore_per_kwh", "Fast pris"],
+    ["spot_markup_ore_per_kwh", "Spotpåslag"],
+    ["variable_fee_ore_per_kwh", "Rörlig avgift"],
+    ["monthly_fee_sek", "Månadsavgift"],
+    ["invoice_fee_sek", "Fakturaavgift"],
+    ["discount_value", "Rabatt"],
+    ["discount_months", "Rabattperiod"],
+    ["default_binding_months", "Bindningstid"],
+    ["default_notice_months", "Uppsägningstid"],
+    ["automatic_renewal", "Automatisk förlängning"],
+    ["power_of_attorney_mode", "Fullmaktsregel"],
+    ["valid_from", "Giltig från"],
+    ["valid_to", "Giltig till"],
+  ];
+  const changes = fields.flatMap(([field, label]) => {
+    const before = previous[field];
+    const after = current[field];
+    return JSON.stringify(before) === JSON.stringify(after)
+      ? []
+      : [`${label}: ${String(before ?? "—")} → ${String(after ?? "—")}`];
+  });
+  if (
+    JSON.stringify(previous.optional_fee_lines ?? []) !==
+    JSON.stringify(current.optional_fee_lines ?? [])
+  ) {
+    changes.push("Extraavgifter eller deras synlighet har ändrats.");
+  }
+  return changes.length
+    ? changes
+    : ["Inga kommersiella skillnader mot föregående version."];
+}
+
 function statusTone(status: string, isActive: boolean): string {
   if (!isActive) {
     return "border-slate-200 bg-slate-50 text-slate-700 ";
@@ -561,6 +628,9 @@ export default async function AdminContractsPage({
       )
     : [];
   const requestedCompanyId = firstSearchValue(resolvedSearchParams.company_id);
+  const editOfferId = firstSearchValue(resolvedSearchParams.edit_offer);
+  const showArchived =
+    firstSearchValue(resolvedSearchParams.show_archived) === "true";
   const selectedPlatformCompany = isPlatformAdmin
     ? (platformCompanies.find((company) => company.id === requestedCompanyId) ??
       platformCompanies.find(
@@ -597,11 +667,26 @@ export default async function AdminContractsPage({
     });
   }
   let offers: ContractOfferRow[] = [];
+  let allSeriesOffers: ContractOfferRow[] = [];
+  let editOffer: ContractOfferRow | null = null;
   let portfolioOptions: Array<{ id: string; name: string; code: string }> = [];
   let listError: string | undefined;
   if (scope.companyId) {
     try {
-      offers = await listContractOffers({ companyId: scope.companyId });
+      allSeriesOffers = await listContractOffers({
+        companyId: scope.companyId,
+        includeArchived: true,
+      });
+      offers = showArchived
+        ? allSeriesOffers
+        : allSeriesOffers.filter(
+            (offer) =>
+              offer.lifecycle_status !== "archived" &&
+              offer.lifecycle_status !== "superseded",
+          );
+      editOffer = editOfferId
+        ? (allSeriesOffers.find((offer) => offer.id === editOfferId) ?? null)
+        : null;
       const portfolioResult = await supabase
         .from("portfolios")
         .select("id,name,code")
@@ -622,6 +707,23 @@ export default async function AdminContractsPage({
       });
     }
   }
+  const previousOfferById = new Map<string, ContractOfferRow | null>();
+  for (const offer of allSeriesOffers) {
+    const previous =
+      allSeriesOffers
+        .filter(
+          (candidate) =>
+            candidate.version_series_id === offer.version_series_id &&
+            Number(candidate.version_number ?? 0) <
+              Number(offer.version_number ?? 0),
+        )
+        .sort(
+          (a, b) =>
+            Number(b.version_number ?? 0) - Number(a.version_number ?? 0),
+        )[0] ?? null;
+    previousOfferById.set(offer.id, previous);
+  }
+
   const actionSuccess = firstSearchValue(resolvedSearchParams.success);
   const actionError = firstSearchValue(resolvedSearchParams.error) ?? listError;
 
@@ -709,385 +811,24 @@ export default async function AdminContractsPage({
         </section>
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
           <h2 className="text-lg font-semibold text-slate-950 ">
-            Skapa eller uppdatera avtalsmall (platform admin)
+            Skapa utkast eller ny immutable avtalsversion
           </h2>
           <p className="mt-1 text-sm text-slate-700 ">
-            Skapa avtalet och första prisversionen i samma steg. API krävs inte
-            för internt aktiva avtal; API krävs bara när avtalet ska visas på
-            hemsidan.
+            Ett avtal får en permanent produktserie. Utkast kan redigeras;
+            publicerade och historiska versioner skapar alltid en ny version.
           </p>
 
-          <form action={saveContractOfferAction} className="mt-6 space-y-4">
-            <input
-              type="hidden"
-              name="company_id"
-              value={scope.companyId ?? ""}
-            />
-            <input type="hidden" name="id" />
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700 ">
-                Avtalsnamn
-              </label>
-              <input
-                name="name"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 "
-                placeholder="t.ex. Rörlig Timkampanj SE3"
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 ">
-                  Slug
-                </label>
-                <input
-                  name="slug"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 "
-                  placeholder="Skapas automatiskt om tomt"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 ">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  defaultValue="active"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 "
-                >
-                  <option value="active">Aktiv</option>
-                  <option value="draft">Förbereds</option>
-                  <option value="inactive">Inaktiv</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 ">
-                  Avtalstyp
-                </label>
-                <select
-                  name="contract_type"
-                  defaultValue="variable_hourly"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 "
-                >
-                  <option value="fixed">Fast</option>
-                  <option value="variable_monthly">Rörlig månad</option>
-                  <option value="variable_hourly">Rörlig tim</option>
-                  <option value="variable_quarterly">Rörlig kvart</option>
-                  <option value="portfolio">Portfölj</option>
-                  <option value="mixed">Mix</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 ">
-                  Kundtyp
-                </label>
-                <select
-                  name="customer_type"
-                  defaultValue="both"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 "
-                >
-                  <option value="private">Privatkund</option>
-                  <option value="business">Företagskund</option>
-                  <option value="both">Privat och företag</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 ">
-                  Kampanjnamn
-                </label>
-                <input
-                  name="campaign_name"
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 "
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-4">
-              <input
-                name="campaign_code"
-                placeholder="Kampanjkod"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-              <input
-                name="campaign_version"
-                placeholder="Kampanjversion"
-                defaultValue="v1"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-              <input
-                name="price_version"
-                placeholder="Prisversion skapas automatiskt om tom"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-              <input
-                name="terms_version"
-                placeholder="Villkorsversion"
-                defaultValue="v1"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700 ">
-                Beskrivning
-              </label>
-              <textarea
-                name="description"
-                rows={3}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-            </div>
-
-            <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm leading-6 text-indigo-950">
-              <strong>Offentlig prisvisning:</strong> varje pris eller avgift
-              har en egen kontroll för avtalskortet. En dold avgift används
-              fortfarande i offert, kostnadssammanställning, avtal och faktura.
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <WebsitePricingField
-                name="fixed_price_ore_per_kwh"
-                placeholder="Generellt fast pris öre/kWh"
-                visibilityName="show_fixed_price_on_website"
-                defaultVisible
-              />
-              <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:col-span-2">
-                Fastpris anges som ett gemensamt pris per kWh. Prisområden styr
-                bara var avtalet är tillgängligt.
-              </p>
-              <WebsitePricingField
-                name="spot_markup_ore_per_kwh"
-                placeholder="Fast påslag öre/kWh"
-                visibilityName="show_spot_markup_on_website"
-                defaultVisible
-              />
-              <WebsitePricingField
-                name="variable_fee_ore_per_kwh"
-                placeholder="Rörlig avgift öre/kWh"
-                visibilityName="show_variable_fee_on_website"
-              />
-              <WebsitePricingField
-                name="monthly_fee_sek"
-                placeholder="Fast månadsavgift kr"
-                visibilityName="show_monthly_fee_on_website"
-              />
-            </div>
-
-            <select
-              name="spot_interval_resolution"
-              defaultValue="monthly"
-              className="rounded-2xl border border-slate-300 px-4 py-3"
-            >
-              <option value="monthly">Spotandel: månadspris</option>
-              <option value="hourly">Spotandel: timpris</option>
-              <option value="quarterly">Spotandel: kvartspris</option>
-            </select>
-
-            <input
-              name="price_areas"
-              defaultValue="SE1,SE2,SE3,SE4"
-              placeholder="Prisområden, t.ex. SE1, SE2, SE3, SE4"
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-            />
-
-            <PortfolioPricingEditor
+          {scope.companyId ? (
+            <ContractOfferAdminForm
+              companyId={scope.companyId}
+              offer={editOffer}
               portfolios={portfolioOptions}
-              defaultSpotWeight={100}
-              defaultPortfolioWeight={0}
-              defaultFixedWeight={0}
             />
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <WebsitePricingField
-                name="invoice_fee_sek"
-                label="Fakturaavgift, kr per faktura"
-                placeholder="Ange 0 om avgiftsfritt"
-                visibilityName="show_invoice_fee_on_website"
-                visibilityLabel="Visa fakturaavgiften på avtalskortet"
-                helpText="Avgiften används alltid i offert, avtal och fakturering. Inställningen nedan styr endast om avgiften visas på hemsidans sammanfattande avtalskort."
-                required
-              />
-              <WebsitePricingField
-                name="electricity_certificate_ore_per_kwh"
-                placeholder="Elcertifikat öre/kWh"
-                visibilityName="show_electricity_certificate_on_website"
-              />
-            </div>
-
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-              <label className="flex items-center gap-3 text-sm font-semibold text-emerald-950">
-                <input type="checkbox" name="production_enabled" />
-                Avtalet kan även avräkna producerad överskottsel
-              </label>
-              <div className="mt-3 grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl border border-emerald-200 bg-white p-3">
-                  <input
-                    name="production_compensation_ore_per_kwh"
-                    placeholder="Produktionsersättning öre/kWh"
-                    className="w-full rounded-xl border border-emerald-200 px-4 py-3"
-                  />
-                  <label className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-emerald-950">
-                    <span>Visa på hemsidans avtalskort</span>
-                    <input
-                      type="checkbox"
-                      name="show_production_compensation_on_website"
-                    />
-                  </label>
-                </div>
-                <input
-                  name="production_vat_rate"
-                  defaultValue="0"
-                  placeholder="Moms på produktionsersättning %"
-                  className="rounded-2xl border border-emerald-200 bg-white px-4 py-3"
-                />
-                <select
-                  name="production_settlement_mode"
-                  defaultValue="credit_invoice"
-                  className="rounded-2xl border border-emerald-200 bg-white px-4 py-3"
-                >
-                  <option value="credit_invoice">Kreditunderlag</option>
-                  <option value="self_billing">Självfakturering</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <select
-                name="green_fee_mode"
-                defaultValue="none"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              >
-                <option value="none">Ingen grön el-avgift</option>
-                <option value="sek_month">Grön el i kr/mån</option>
-                <option value="ore_per_kwh">Grön el i öre/kWh</option>
-              </select>
-
-              <WebsitePricingField
-                name="green_fee_value"
-                placeholder="Grön el-värde"
-                visibilityName="show_green_fee_on_website"
-              />
-
-              <label className="flex items-center gap-3 rounded-2xl border border-slate-300 px-4 py-3 text-sm ">
-                <input type="checkbox" name="is_active" defaultChecked />
-                Aktiv i kundintag
-              </label>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-4">
-              <WebsitePricingField
-                name="discount_value"
-                placeholder="Rabattvärde"
-                visibilityName="show_discount_on_website"
-              />
-              <select
-                name="discount_unit"
-                defaultValue="sek_month"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              >
-                <option value="sek_month">Rabatt kr/mån</option>
-                <option value="ore_per_kwh">Rabatt öre/kWh</option>
-                <option value="percent">Rabatt %</option>
-                <option value="sek_once">Rabatt kr engångsvis</option>
-              </select>
-              <PricingCalculationBaseField name="discount_calculation_base" />
-              <WebsitePricingField
-                name="start_fee_sek"
-                placeholder="Startavgift kr"
-                visibilityName="show_start_fee_on_website"
-              />
-              <WebsitePricingField
-                name="admin_fee_sek"
-                placeholder="Administrativ avgift kr"
-                visibilityName="show_admin_fee_on_website"
-              />
-              <WebsitePricingField
-                name="break_fee_sek"
-                placeholder="Brytavgift kr"
-                visibilityName="show_break_fee_on_website"
-              />
-              <input
-                name="max_customers"
-                placeholder="Max antal kunder"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-              <input
-                name="vat_rate"
-                placeholder="Moms i procent, t.ex. 25"
-                defaultValue="25"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <input
-                name="default_binding_months"
-                placeholder="Bindningstid månader"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-              <input
-                name="default_notice_months"
-                placeholder="Uppsägningstid månader"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <input
-                type="date"
-                name="valid_from"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-              <input
-                type="date"
-                name="valid_to"
-                className="rounded-2xl border border-slate-300 px-4 py-3 "
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700 ">
-                Övriga avgifter
-              </label>
-              <textarea
-                name="optional_fee_lines"
-                rows={4}
-                placeholder={
-                  "Etablering | 395 | sek_contract | nej\nPappersfaktura | 39 | sek_invoice | ja"
-                }
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 font-mono text-sm "
-              />
-              <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-                <span>
-                  Visa övriga avgifter på hemsidans avtalskort som standard
-                </span>
-                <input type="checkbox" name="show_optional_fees_on_website" />
-              </label>
-              <p className="mt-2 text-xs text-slate-500">
-                Fjärde kolumnen kan vara ja eller nej och styr varje rad
-                separat. Avgiften finns alltid kvar i offert, checkout,
-                avtalsdokument och fakturering.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900">
-              <strong>Internt aktivt vs hemsida/API:</strong> ett aktivt avtal
-              kan användas när admin lägger in kunder manuellt. Publicering till
-              hemsida/API kräver separat website-readiness och API-scope.
-            </div>
-            <button className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 ">
-              Spara avtal och prisversion
-            </button>
-          </form>
+          ) : (
+            <p className="mt-6 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+              Välj ett bolag innan du skapar avtal.
+            </p>
+          )}
         </section>
 
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
@@ -1098,6 +839,40 @@ export default async function AdminContractsPage({
             <p className="mt-1 text-sm text-slate-700 ">
               Dessa används som valbara avtal i kundintaget.
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href={`/admin/contracts?company_id=${scope.companyId ?? ""}&show_archived=${showArchived ? "false" : "true"}`}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700"
+              >
+                {showArchived ? "Dölj arkiverade" : "Visa arkiverade"}
+              </Link>
+              {scope.companyId ? (
+                <>
+                  <form action={cleanupUnusedContractDraftsAction}>
+                    <input
+                      type="hidden"
+                      name="company_id"
+                      value={scope.companyId}
+                    />
+                    <input type="hidden" name="apply" value="false" />
+                    <button className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800">
+                      Dry-run rensning
+                    </button>
+                  </form>
+                  <form action={cleanupUnusedContractDraftsAction}>
+                    <input
+                      type="hidden"
+                      name="company_id"
+                      value={scope.companyId}
+                    />
+                    <input type="hidden" name="apply" value="true" />
+                    <button className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800">
+                      Rensa oanvända utkast
+                    </button>
+                  </form>
+                </>
+              ) : null}
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -1151,6 +926,48 @@ export default async function AdminContractsPage({
                           Prisversion:{" "}
                           {offer.price_version || "skapad vid sparning"}
                         </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          Produktserie: {offer.version_series_id ?? "—"} ·
+                          version {offer.version_number ?? 1}
+                        </div>
+                        {offer.readiness?.blockers?.length ? (
+                          <div className="mt-2 text-xs font-semibold text-amber-700">
+                            Blockerare: {offer.readiness.blockers.join(" · ")}
+                          </div>
+                        ) : null}
+                        <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                          <summary className="cursor-pointer font-black text-slate-900">
+                            Kundförhandsgranskning och versionsskillnad
+                          </summary>
+                          <dl className="mt-3 grid gap-2">
+                            {contractCustomerPreview(offer).map(
+                              ([label, value]) => (
+                                <div
+                                  key={label}
+                                  className="grid grid-cols-[130px_1fr] gap-2"
+                                >
+                                  <dt className="font-semibold text-slate-500">
+                                    {label}
+                                  </dt>
+                                  <dd>{value}</dd>
+                                </div>
+                              ),
+                            )}
+                          </dl>
+                          <div className="mt-4 border-t border-slate-200 pt-3">
+                            <div className="font-black text-slate-900">
+                              Skillnad mot föregående version
+                            </div>
+                            <ul className="mt-2 grid gap-1">
+                              {contractVersionDiff(
+                                offer,
+                                previousOfferById.get(offer.id) ?? null,
+                              ).map((change) => (
+                                <li key={change}>• {change}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </details>
                       </td>
 
                       <td className="px-6 py-4 text-slate-700 ">
@@ -1182,22 +999,117 @@ export default async function AdminContractsPage({
                             offer.is_active,
                           )}`}
                         >
-                          {offer.archived_at
-                            ? "Arkiverat"
-                            : offer.status === "active"
-                              ? "Internt aktivt"
-                              : offer.status === "draft"
-                                ? "Utkast"
-                                : "Inaktivt"}
-                          {offer.is_active && !offer.archived_at
-                            ? " • kan användas i kundintag"
-                            : " • dolt"}
+                          {offer.lifecycle_status === "published"
+                            ? "Publicerat"
+                            : offer.lifecycle_status === "ready"
+                              ? "Redo"
+                              : offer.lifecycle_status === "paused"
+                                ? "Pausat"
+                                : offer.lifecycle_status === "expired"
+                                  ? "Utgånget"
+                                  : offer.lifecycle_status === "archived"
+                                    ? "Arkiverat"
+                                    : offer.lifecycle_status === "superseded"
+                                      ? "Ersatt version"
+                                      : "Utkast"}
+                          {offer.currently_sellable
+                            ? " • teckningsbart nu"
+                            : " • inte teckningsbart"}
                         </span>
                       </td>
 
                       <td className="px-6 py-4">
                         <div className="grid gap-2">
-                          {!offer.archived_at ? (
+                          <Link
+                            href={`/admin/contracts?company_id=${scope.companyId ?? ""}&edit_offer=${offer.id}&show_archived=${showArchived}`}
+                            className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-center text-xs font-black text-indigo-800"
+                          >
+                            {offer.lifecycle_status === "draft" ||
+                            offer.lifecycle_status === "ready"
+                              ? "Redigera utkast"
+                              : "Skapa ny version"}
+                          </Link>
+                          {offer.lifecycle_status === "draft" ||
+                          offer.lifecycle_status === "ready" ||
+                          offer.lifecycle_status === "paused" ? (
+                            <form action={publishContractVersionAction}>
+                              <input
+                                type="hidden"
+                                name="company_id"
+                                value={scope.companyId ?? ""}
+                              />
+                              <input type="hidden" name="id" value={offer.id} />
+                              <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
+                                {offer.lifecycle_status === "paused"
+                                  ? "Återpublicera internt"
+                                  : "Readiness-kontrollera och publicera"}
+                              </button>
+                            </form>
+                          ) : null}
+                          {offer.lifecycle_status === "published" ? (
+                            <>
+                              <form action={publishContractChannelAction}>
+                                <input
+                                  type="hidden"
+                                  name="company_id"
+                                  value={scope.companyId ?? ""}
+                                />
+                                <input
+                                  type="hidden"
+                                  name="id"
+                                  value={offer.id}
+                                />
+                                <input
+                                  type="hidden"
+                                  name="channel"
+                                  value="website"
+                                />
+                                <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
+                                  Publicera hemsida
+                                </button>
+                              </form>
+                              <form action={publishContractChannelAction}>
+                                <input
+                                  type="hidden"
+                                  name="company_id"
+                                  value={scope.companyId ?? ""}
+                                />
+                                <input
+                                  type="hidden"
+                                  name="id"
+                                  value={offer.id}
+                                />
+                                <input
+                                  type="hidden"
+                                  name="channel"
+                                  value="api"
+                                />
+                                <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
+                                  Publicera API
+                                </button>
+                              </form>
+                              <form action={pauseContractOfferAction}>
+                                <input
+                                  type="hidden"
+                                  name="company_id"
+                                  value={scope.companyId ?? ""}
+                                />
+                                <input
+                                  type="hidden"
+                                  name="id"
+                                  value={offer.id}
+                                />
+                                <button className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800">
+                                  Pausa alla kanaler
+                                </button>
+                              </form>
+                            </>
+                          ) : null}
+                          {offer.lifecycle_status === "archived" ? (
+                            <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+                              Arkivering är irreversibel. Använd “Skapa ny version” för att återlansera samma produktserie utan att återuppliva gammal juridik eller kanalstatus.
+                            </p>
+                          ) : (
                             <form action={archiveContractOfferAction}>
                               <input
                                 type="hidden"
@@ -1205,11 +1117,11 @@ export default async function AdminContractsPage({
                                 value={scope.companyId ?? ""}
                               />
                               <input type="hidden" name="id" value={offer.id} />
-                              <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
-                                Arkivera
+                              <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700">
+                                Arkivera avtal
                               </button>
                             </form>
-                          ) : null}
+                          )}
                           <form action={deleteContractOfferAction}>
                             <input
                               type="hidden"
@@ -1217,10 +1129,20 @@ export default async function AdminContractsPage({
                               value={scope.companyId ?? ""}
                             />
                             <input type="hidden" name="id" value={offer.id} />
-                            <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100">
-                              Ta bort om oanvänt
+                            <button
+                              disabled={
+                                offer.deletion_preview?.deletable !== true
+                              }
+                              className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Radera oanvänt utkast permanent
                             </button>
                           </form>
+                          <p className="text-[11px] leading-4 text-slate-500">
+                            {offer.deletion_preview?.deletable
+                              ? "Kan raderas med exklusiva olåsta canonical- och prisobjekt."
+                              : "Har historik eller låsta versioner och får endast arkiveras."}
+                          </p>
                         </div>
                       </td>
                     </tr>

@@ -132,7 +132,7 @@ Hämta alltid säljerbjudanden från `GET /api/v1/website/public-contracts`. Ett
 
 Vid tomt svar kan tenantens backend använda `?diagnostics=1`. Varje rad visar om erbjudandet är synligt och vilka blockerare som finns, till exempel publiceringsstatus, datum, kundtyp, prisbok, prisplansversion eller exakt juridikpaket.
 
-`offer_reference` är den enda avtalsväljaren i POST. Skicka inte `product_code`, `price_plan_id`, `price_plan_version_id` eller internt erbjudande-UUID som alternativ väljare. Motstridiga legacyfält returnerar `422 offer_selector_mismatch`.
+`offer_reference` är den enda avtalsväljaren i POST. Skicka inte `product_code`, `price_plan_id`, `price_plan_version_id` eller internt erbjudande-UUID som alternativ väljare. Motstridiga legacyfält returnerar `422 offer_reference_mismatch`.
 
 ## Rate limits och 429
 

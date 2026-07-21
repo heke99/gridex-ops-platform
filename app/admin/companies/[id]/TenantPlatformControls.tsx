@@ -7,6 +7,7 @@ import {
 import {
   deleteTenantPublicContractOfferAction,
   saveTenantPublicContractOfferAction,
+  unpublishTenantPublicContractOfferAction,
 } from "./tenant-platform-actions";
 import {
   repairCompanyEmailAutomationAction,
@@ -16,40 +17,20 @@ import {
   CANONICAL_EMAIL_EVENT_LABELS,
   DEFAULT_EMAIL_EVENT_RULES,
 } from "@/lib/email/emailEvents";
-import WebsitePricingField from "@/components/admin/contracts/WebsitePricingField";
-import PortfolioPricingEditor from "@/components/admin/contracts/PortfolioPricingEditor";
-import PricingCalculationBaseField from "@/components/admin/contracts/PricingCalculationBaseField";
 import {
   updateIntegrationApiClientPermissionsAction,
   setIntegrationApiClientStatusAction,
 } from "@/app/admin/platform/api-clients/actions";
 
-type PricePlan = {
-  id: string;
-  name: string;
-  pricing_model: string | null;
-  status: string | null;
-};
-
-type PricePlanVersion = {
-  id: string;
-  price_plan_id: string;
-  version_label: string | null;
-  status: string | null;
-  valid_from: string | null;
-  valid_to: string | null;
-};
-
-type PortfolioOption = {
-  id: string;
-  name: string;
-  code: string;
-};
-
 type InternalContractOffer = {
   id: string;
   name: string;
   status: string | null;
+  lifecycle_status: string | null;
+  version_series_id: string | null;
+  version_number: number | null;
+  contract_product_id: string | null;
+  contract_product_version_id: string | null;
   price_version: string | null;
   terms_version: string | null;
   contract_type: string | null;
@@ -62,6 +43,9 @@ type InternalContractOffer = {
 
 type PublicOffer = {
   id: string;
+  source_contract_offer_id: string | null;
+  contract_product_id: string | null;
+  contract_product_version_id: string | null;
   offer_code: string | null;
   public_name: string;
   public_description: string | null;
@@ -129,22 +113,6 @@ type MailReadiness = {
   can_send: boolean | null;
   requires_platform_fallback?: boolean | null;
   issues: string[] | null;
-};
-
-type LegalBundle = {
-  id: string;
-  name: string | null;
-  status: string | null;
-  updated_at: string | null;
-};
-
-type PriceBook = {
-  id: string;
-  name: string | null;
-  status: string | null;
-  valid_from: string | null;
-  valid_to: string | null;
-  updated_at: string | null;
 };
 
 function formatDate(value: string | null | undefined) {
@@ -305,49 +273,14 @@ export default async function TenantPlatformControls({
       "Hemsideavtal",
       "public_contract_offers",
       companyId,
-      "id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,legal_bundle_version_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at",
+      "id,source_contract_offer_id,contract_product_id,contract_product_version_id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,legal_bundle_version_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at",
       "sort_order",
     ),
     safeRows<InternalContractOffer>(
       "Interna avtal",
       "contract_offers",
       companyId,
-      "id,name,status,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at",
-      "updated_at",
-    ),
-    safeRows<PricePlan>(
-      "Prisplaner",
-      "price_plans",
-      companyId,
-      "id,name,pricing_model,status",
-      "name",
-    ),
-    safeRows<PricePlanVersion>(
-      "Prisversioner",
-      "price_plan_versions",
-      companyId,
-      "id,price_plan_id,version_label,status,valid_from,valid_to",
-      "valid_from",
-    ),
-    safeRows<PortfolioOption>(
-      "Portföljer",
-      "portfolios",
-      companyId,
-      "id,name,code",
-      "name",
-    ),
-    safeRows<LegalBundle>(
-      "Juridiska paket",
-      "legal_bundles",
-      companyId,
-      "id,name,status,updated_at",
-      "updated_at",
-    ),
-    safeRows<PriceBook>(
-      "Prislistor",
-      "price_books",
-      companyId,
-      "id,name,status,valid_from,valid_to,updated_at",
+      "id,name,status,lifecycle_status,version_series_id,version_number,contract_product_id,contract_product_version_id,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at",
       "updated_at",
     ),
     safeRows<ApiClient>(
@@ -376,22 +309,12 @@ export default async function TenantPlatformControls({
   const [
     offersResult,
     internalContractsResult,
-    pricePlansResult,
-    priceVersionsResult,
-    portfoliosResult,
-    legalBundlesResult,
-    priceBooksResult,
     apiClientsResult,
     offerApiDiagnosticsResult,
     mailReadinessResult,
   ] = results;
   const offers = offersResult.rows;
   const internalContracts = internalContractsResult.rows;
-  const pricePlans = pricePlansResult.rows;
-  const priceVersions = priceVersionsResult.rows;
-  const portfolios = portfoliosResult.rows;
-  const legalBundles = legalBundlesResult.rows;
-  const priceBooks = priceBooksResult.rows;
   const apiClients = apiClientsResult.rows;
   const offerApiDiagnostics = offerApiDiagnosticsResult.rows;
   const mailReadiness = mailReadinessResult.rows;
@@ -411,6 +334,13 @@ export default async function TenantPlatformControls({
   );
   const internalActiveContracts = internalContracts.filter(
     (contract) => contract.status === "active" && contract.is_active !== false,
+  );
+  const publishableContracts = internalContracts.filter(
+    (contract) =>
+      contract.lifecycle_status === "published" &&
+      contract.is_active !== false &&
+      Boolean(contract.contract_product_id) &&
+      Boolean(contract.contract_product_version_id),
   );
   const emailProviderConfigured = Boolean(process.env.RESEND_API_KEY);
   const platformFallbackConfigured = Boolean(
@@ -454,10 +384,10 @@ export default async function TenantPlatformControls({
           Avtal, priser, API och automatiska utskick för {companyName}
         </h2>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-emerald-900">
-          Den här delen ska användas av platform admin. Interna avtal används
-          för manuell kundhantering i OPS utan API. Hemsideavtal publiceras
-          separat och kräver API-klient när de ska visas på webb eller Mina
-          sidor.
+          Den här delen ska användas av behörig plattformsadministratör.
+          Avtalet skapas och versionshanteras en gång i den canonical
+          avtalsmodellen. Intern försäljning, hemsida och API är endast separata
+          kanaler för exakt samma låsta avtalsversion.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-emerald-200 bg-white p-4">
@@ -622,371 +552,63 @@ export default async function TenantPlatformControls({
       >
         <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <h3 className="text-lg font-black text-slate-950">
-            Skapa hemsideavtal för {companyName}
+            Publicera canonical avtal på hemsidan
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Fyll i avtalet och priset. Systemet skapar automatiskt en låst
-            prisplan, prisversion och exakt prislista. Identiska priser
-            återanvänder samma version; varje verklig prisändring skapar nästa
-            version.
+            Skapa och redigera avtalet på den gemensamma Avtalssidan. Här
+            aktiveras endast webbkanalen för en redan readiness-godkänd och
+            publicerad version. Ingen separat pris-, juridik- eller produktkopia
+            skapas.
           </p>
-          <div className="mt-3 grid min-w-0 gap-2 break-words rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold text-slate-700">
-            <div>
-              Prisplaner: <strong>{pricePlans.length}</strong> · Prisversioner:{" "}
-              <strong>{priceVersions.length}</strong> · Äldre juridikpaket:{" "}
-              <strong>{legalBundles.length}</strong> · Prislistor:{" "}
-              <strong>{priceBooks.length}</strong>
-            </div>
-            <div>
-              Vid publicering väljs alla obligatoriska canonical juridikmoduler
-              automatiskt för kundtyp och avtalstyp. Paketversionen renderas,
-              publiceras och låses tillsammans med pris- och avtalsversionen.
-            </div>
-            <div>
-              Endpoint:{" "}
-              <code className="break-all rounded bg-white px-1 py-0.5">
-                GET /api/v1/website/public-contracts?customer_type=private
-              </code>
-              . Tenant väljs alltid från API-klientens bolag, inte från
-              frontend.
-            </div>
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs font-semibold leading-5 text-blue-900">
+            Samma <code>contract_product_id</code>,
+            <code className="ml-1">contract_product_version_id</code>, prisversion
+            och juridikversion används i OPS, webb, offert, kundansökan och
+            fakturering.
           </div>
           <form
             action={saveTenantPublicContractOfferAction}
-            className="mt-5 grid min-w-0 gap-2.5"
+            className="mt-5 grid min-w-0 gap-3"
           >
             <input type="hidden" name="company_id" value={companyId} />
-            <input type="hidden" name="pricing_mode" value="version" />
-            <input
-              name="offer_code"
-              placeholder="Avtalskod, t.ex. GRIDEX-MIX-70-30-2026"
-              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-            />
-            <input
-              name="public_name"
-              required
-              placeholder="Avtalsnamn"
-              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-            />
-            <textarea
-              name="public_description"
-              rows={2}
-              placeholder="Kort beskrivning på hemsidan"
-              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-            />
-            <div className="min-w-0 w-full rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-900">
-              Publik pristext genereras automatiskt från den låsta prisversionen
-              och kan inte avvika från prisdatan.
-            </div>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+            <label className="grid gap-2 text-xs font-black text-slate-700">
+              Publicerad avtalsversion
               <select
-                name="contract_type"
-                defaultValue="spot"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              >
-                <option value="spot">Rörligt spotpris</option>
-                <option value="variable_monthly">Rörlig månad</option>
-                <option value="variable_hourly">Rörlig tim</option>
-                <option value="variable_quarterly">Rörlig kvart</option>
-                <option value="fixed">Fast</option>
-                <option value="portfolio">Portfölj</option>
-                <option value="mixed">Mix rörligt/portfölj/fast</option>
-              </select>
-              <select
-                name="customer_type"
-                defaultValue="both"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              >
-                <option value="both">Privat och företag</option>
-                <option value="private">Privat</option>
-                <option value="business">Företag</option>
-              </select>
-            </div>
-            <PortfolioPricingEditor
-              compact
-              portfolios={portfolios}
-              defaultSpotWeight={100}
-              defaultPortfolioWeight={0}
-              defaultFixedWeight={0}
-            />
-            <select
-              name="spot_interval_resolution"
-              defaultValue="monthly"
-              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-            >
-              <option value="monthly">Spotandel: månadspris</option>
-              <option value="hourly">Spotandel: timpris</option>
-              <option value="quarterly">Spotandel: kvartspris</option>
-            </select>
-            <div className="grid min-w-0 gap-2.5 md:grid-cols-2">
-              <WebsitePricingField
-                compact
-                name="fixed_price_ore_per_kwh"
-                label="Fast pris"
-                placeholder="öre/kWh"
-                visibilityName="show_fixed_price_on_website"
-                defaultVisible
-              />
-              <WebsitePricingField
-                compact
-                name="spot_markup_ore_per_kwh"
-                label="Spotpåslag"
-                placeholder="öre/kWh"
-                visibilityName="show_spot_markup_on_website"
-                defaultVisible
-              />
-              <WebsitePricingField
-                compact
-                name="variable_fee_ore_per_kwh"
-                label="Rörlig avgift"
-                placeholder="öre/kWh"
-                visibilityName="show_variable_fee_on_website"
-              />
-              <WebsitePricingField
-                compact
-                name="markup_ore_per_kwh"
-                label="Generellt påslag"
-                placeholder="öre/kWh"
-                visibilityName="show_spot_markup_on_website_legacy"
-              />
-              <WebsitePricingField
-                compact
-                name="monthly_fee_sek"
-                label="Månadsavgift"
-                placeholder="kr/mån"
-                visibilityName="show_monthly_fee_on_website"
-              />
-              <WebsitePricingField
-                compact
-                name="invoice_fee_sek"
-                label="Fakturaavgift, kr per faktura"
-                placeholder="Ange 0 om avgiftsfritt"
-                visibilityName="show_invoice_fee_on_website"
-                visibilityLabel="Visa fakturaavgiften på avtalskortet"
-                helpText="Avgiften används alltid i offert, avtal och fakturering. Inställningen nedan styr endast om avgiften visas på hemsidans sammanfattande avtalskort."
+                name="source_contract_offer_id"
                 required
-              />
-            </div>
-            <div className="grid min-w-0 gap-2.5 md:grid-cols-2">
-              <select
-                name="green_fee_mode"
-                defaultValue="none"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                defaultValue=""
+                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold"
               >
-                <option value="none">Ingen grön el-avgift</option>
-                <option value="ore_per_kwh">Grön el öre/kWh</option>
-                <option value="sek_month">Grön el kr/mån</option>
+                <option value="" disabled>
+                  Välj canonical avtal
+                </option>
+                {publishableContracts.map((contract) => (
+                  <option key={contract.id} value={contract.id}>
+                    {contract.name} · v{contract.version_number ?? "?"} · {contract.contract_type}
+                  </option>
+                ))}
               </select>
-              <WebsitePricingField
-                compact
-                name="green_fee_value"
-                label="Grön el-avgift"
-                placeholder="Belopp"
-                visibilityName="show_green_fee_on_website"
-              />
-              <WebsitePricingField
-                compact
-                name="electricity_certificate_ore_per_kwh"
-                label="Elcertifikat"
-                placeholder="öre/kWh"
-                visibilityName="show_electricity_certificate_on_website"
-              />
-              <WebsitePricingField
-                compact
-                name="start_fee_sek"
-                label="Startavgift"
-                placeholder="kr engångsvis"
-                visibilityName="show_start_fee_on_website"
-              />
-              <WebsitePricingField
-                compact
-                name="administration_fee_sek"
-                label="Administrativ avgift"
-                placeholder="kr engångsvis"
-                visibilityName="show_admin_fee_on_website"
-              />
-              <WebsitePricingField
-                compact
-                name="break_fee_sek"
-                label="Brytavgift"
-                placeholder="kr vid förtida avslut"
-                visibilityName="show_break_fee_on_website"
-              />
-            </div>
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-              <label className="flex items-center gap-3 text-sm font-semibold text-emerald-950">
-                <input type="checkbox" name="production_enabled" />
-                Hantera producerad överskottsel som separat kreditunderlag
-              </label>
-              <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-3">
-                <WebsitePricingField
-                  compact
-                  name="production_compensation_ore_per_kwh"
-                  label="Produktionsersättning"
-                  placeholder="öre/kWh"
-                  visibilityName="show_production_compensation_on_website"
-                />
-                <input
-                  name="production_vat_rate"
-                  defaultValue="0"
-                  placeholder="Produktionsmoms %"
-                  className="min-w-0 w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm"
-                />
-                <select
-                  name="production_settlement_mode"
-                  defaultValue="credit_invoice"
-                  className="min-w-0 w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm"
-                >
-                  <option value="credit_invoice">Kreditunderlag</option>
-                  <option value="self_billing">Självfakturering</option>
-                </select>
+            </label>
+            {publishableContracts.length === 0 ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-semibold text-amber-900">
+                Det finns ingen publicerad canonical avtalsversion att aktivera
+                på hemsidan. Slutför readiness och publicera först under
+                Avtal.
               </div>
-            </div>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-              <WebsitePricingField
-                compact
-                name="discount_value"
-                label="Kampanjrabatt"
-                placeholder="Belopp enligt vald enhet"
-                visibilityName="show_discount_on_website"
-              />
-              <select
-                name="discount_unit"
-                defaultValue="sek_month"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              >
-                <option value="sek_month">kr/mån</option>
-                <option value="ore_per_kwh">öre/kWh</option>
-                <option value="percent">%</option>
-                <option value="sek_once">kr engångsvis</option>
-              </select>
-              <PricingCalculationBaseField
-                compact
-                name="discount_calculation_base"
-              />
-              <input
-                name="discount_months"
-                placeholder="Rabattperiod månader"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-              <input
-                name="vat_rate"
-                defaultValue="25"
-                placeholder="Moms %"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-            </div>
-            <input
-              name="price_areas"
-              defaultValue="SE1,SE2,SE3,SE4"
-              placeholder="Prisområden, t.ex. SE1, SE2, SE3, SE4"
-              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-            />
-            <p className="min-w-0 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Fastpris är ett gemensamt pris per kWh. Prisområden styr avtalets
-              tillgänglighet.
-            </p>
-            <div className="rounded-2xl border border-slate-200 bg-white p-3">
-              <textarea
-                name="optional_fee_lines"
-                rows={3}
-                placeholder={
-                  "Övriga avgifter: Namn|Belopp|enhet|ja/nej\nExempel: Pappersfaktura|39|sek_invoice|nej"
-                }
-                className="min-w-0 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"
-              />
-              <label className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-700">
-                <span>Visa övriga avgifter på hemsidan som standard</span>
-                <input type="checkbox" name="show_optional_fees_on_website" />
-              </label>
-            </div>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-              <input
-                name="terms_version"
-                required
-                placeholder="Villkorsversion"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-              <input
-                name="terms_url"
-                placeholder="Villkorslänk"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-            </div>
-            <p className="min-w-0 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Juridikpaketet skapas automatiskt från publicerade canonical
-              juridikmallar och låses till den exakta avtalsversionen vid
-              publicering. Äldre juridikpaket väljs inte manuellt.
-            </p>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-              <input
-                name="binding_months"
-                placeholder="Bindningstid månader"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-              <input
-                name="notice_months"
-                placeholder="Uppsägningstid månader"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-              <input
-                type="date"
-                name="valid_from"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-              <input
-                type="date"
-                name="valid_to"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-            </div>
-            <label className="min-w-0 w-full flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-              <input type="checkbox" name="automatic_renewal" />
-              Automatisk förlängning
-            </label>
-            <label className="min-w-0 w-full flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-              <input
-                type="checkbox"
-                name="power_of_attorney_required"
-                defaultChecked
-              />
-              Fullmakt krävs
-            </label>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-              <select
-                name="publication_status"
-                defaultValue="draft"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              >
-                <option value="draft">Utkast</option>
-                <option value="review">Redo för granskning</option>
-                <option value="published">Publicera</option>
-                <option value="unpublished">Avpublicerat</option>
-                <option value="archived">Arkiverat</option>
-              </select>
-              <input
-                name="sort_order"
-                defaultValue="100"
-                placeholder="Sortering"
-                className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-              />
-            </div>
-            <label className="min-w-0 w-full flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-              <input type="checkbox" name="website_enabled" defaultChecked />
-              Visa på hemsidan
-            </label>
-            <label className="min-w-0 w-full flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-              <input
-                type="checkbox"
-                name="website_cta_enabled"
-                defaultChecked
-              />
-              Teckna-knapp aktiv
-            </label>
-            <button className="min-w-0 w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800">
-              Spara och versionshantera avtal
+            ) : null}
+            <button
+              disabled={publishableContracts.length === 0}
+              className="min-w-0 w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Aktivera webbkanal för vald version
             </button>
           </form>
+          <Link
+            href={`/admin/contracts?company_id=${companyId}`}
+            className="mt-3 inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+          >
+            Öppna canonical avtalsadministration
+          </Link>
         </div>
 
         <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -1109,162 +731,65 @@ export default async function TenantPlatformControls({
                     signerad historik arkiveras i stället, så snapshots och
                     kundhistorik inte förstörs.
                   </div>
-                  <details className="mt-3">
-                    <summary className="cursor-pointer text-xs font-black text-slate-700">
-                      Ändra status / publicering
-                    </summary>
-                    <form
-                      action={saveTenantPublicContractOfferAction}
-                      className="mt-3 grid min-w-0 gap-3 rounded-2xl border border-slate-200 bg-white p-3"
-                    >
-                      <input
-                        type="hidden"
-                        name="company_id"
-                        value={companyId}
-                      />
-                      <input
-                        type="hidden"
-                        name="pricing_mode"
-                        value="preserve"
-                      />
-                      <input type="hidden" name="id" value={offer.id} />
-                      <input
-                        type="hidden"
-                        name="offer_code"
-                        value={offer.offer_code ?? ""}
-                      />
-                      <input
-                        type="hidden"
-                        name="public_name"
-                        value={offer.public_name}
-                      />
-                      <input
-                        type="hidden"
-                        name="public_description"
-                        value={offer.public_description ?? ""}
-                      />
-                      <input
-                        type="hidden"
-                        name="public_price_text"
-                        value={offer.public_price_text ?? ""}
-                      />
-                      <input
-                        type="hidden"
-                        name="contract_type"
-                        value={offer.contract_type}
-                      />
-                      <input
-                        type="hidden"
-                        name="customer_type"
-                        value={offer.customer_type}
-                      />
-                      <input
-                        type="hidden"
-                        name="price_plan_id"
-                        value={offer.price_plan_id ?? ""}
-                      />
-                      <input
-                        type="hidden"
-                        name="price_plan_version_id"
-                        value={offer.price_plan_version_id ?? ""}
-                      />
-                      <input
-                        type="hidden"
-                        name="price_book_id"
-                        value={offer.price_book_id ?? ""}
-                      />
-                      <input
-                        type="hidden"
-                        name="spot_weight_percent"
-                        value={String(offer.spot_weight_percent ?? 100)}
-                      />
-                      <input
-                        type="hidden"
-                        name="portfolio_weight_percent"
-                        value={String(offer.portfolio_weight_percent ?? 0)}
-                      />
-                      <input
-                        type="hidden"
-                        name="fixed_weight_percent"
-                        value={String(offer.fixed_weight_percent ?? 0)}
-                      />
-                      <input
-                        type="hidden"
-                        name="terms_version"
-                        value={offer.terms_version ?? ""}
-                      />
-                      <input
-                        type="hidden"
-                        name="terms_url"
-                        value={offer.terms_url ?? ""}
-                      />
-                      <input
-                        type="hidden"
-                        name="sort_order"
-                        value={String(offer.sort_order ?? 100)}
-                      />
-                      <select
-                        name="publication_status"
-                        defaultValue={offer.publication_status}
-                        className="min-w-0 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {offer.source_contract_offer_id ? (
+                      <Link
+                        href={`/admin/contracts?company_id=${companyId}&edit=${offer.source_contract_offer_id}`}
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
                       >
-                        <option value="draft">Utkast</option>
-                        <option value="review">Redo för granskning</option>
-                        <option value="published">Publicera</option>
-                        <option value="unpublished">Avpublicera</option>
-                        <option value="archived">Arkivera</option>
-                      </select>
-                      <label className="flex gap-2 text-xs font-semibold text-slate-700">
+                        Visa canonical version
+                      </Link>
+                    ) : (
+                      <span className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800">
+                        Canonical källa saknas – publicering blockerad
+                      </span>
+                    )}
+                    {offer.source_contract_offer_id &&
+                    (offer.is_public || offer.website_enabled) ? (
+                      <form action={unpublishTenantPublicContractOfferAction}>
+                        <input type="hidden" name="company_id" value={companyId} />
+                        <input type="hidden" name="id" value={offer.id} />
                         <input
-                          type="checkbox"
-                          name="website_enabled"
-                          defaultChecked={offer.website_enabled}
+                          type="hidden"
+                          name="source_contract_offer_id"
+                          value={offer.source_contract_offer_id}
                         />
-                        Visa på hemsidan
-                      </label>
-                      <label className="flex gap-2 text-xs font-semibold text-slate-700">
-                        <input
-                          type="checkbox"
-                          name="website_cta_enabled"
-                          defaultChecked={offer.website_cta_enabled}
-                        />
-                        Teckna-knapp aktiv
-                      </label>
-                      <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
-                        Spara status
-                      </button>
-                    </form>
-                  </details>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <form action={deleteTenantPublicContractOfferAction}>
-                      <input
-                        type="hidden"
-                        name="company_id"
-                        value={companyId}
-                      />
-                      <input type="hidden" name="id" value={offer.id} />
-                      <input type="hidden" name="delete_mode" value="archive" />
-                      <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
-                        Arkivera avtal
-                      </button>
-                    </form>
-                    <form action={deleteTenantPublicContractOfferAction}>
-                      <input
-                        type="hidden"
-                        name="company_id"
-                        value={companyId}
-                      />
-                      <input type="hidden" name="id" value={offer.id} />
-                      <input
-                        type="hidden"
-                        name="delete_mode"
-                        value="safe_delete"
-                      />
-                      <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100">
-                        Ta bort om oanvänt
-                      </button>
-                    </form>
+                        <button className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-900 hover:bg-amber-100">
+                          Avpublicera endast webbkanalen
+                        </button>
+                      </form>
+                    ) : null}
                   </div>
+                  {offer.source_contract_offer_id ? (
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <form action={deleteTenantPublicContractOfferAction}>
+                        <input type="hidden" name="company_id" value={companyId} />
+                        <input type="hidden" name="id" value={offer.id} />
+                        <input
+                          type="hidden"
+                          name="source_contract_offer_id"
+                          value={offer.source_contract_offer_id}
+                        />
+                        <input type="hidden" name="delete_mode" value="archive" />
+                        <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
+                          Arkivera hela avtalsserien
+                        </button>
+                      </form>
+                      <form action={deleteTenantPublicContractOfferAction}>
+                        <input type="hidden" name="company_id" value={companyId} />
+                        <input type="hidden" name="id" value={offer.id} />
+                        <input
+                          type="hidden"
+                          name="source_contract_offer_id"
+                          value={offer.source_contract_offer_id}
+                        />
+                        <input type="hidden" name="delete_mode" value="safe_delete" />
+                        <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100">
+                          Radera endast om hela utkastet är oanvänt
+                        </button>
+                      </form>
+                    </div>
+                  ) : null}
                 </article>
               );
             })}

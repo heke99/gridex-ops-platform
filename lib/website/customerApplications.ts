@@ -6138,6 +6138,7 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
       price_area_used: input.readiness.priceArea,
       grid_area_code_used: input.readiness.gridAreaCode,
       resolution_status: input.readiness.resolutionStatus,
+      // Browser supplied signed_at is deliberately ignored; the signing RPC sets server time.
       signed_at: null,
       monthly_fee_sek: selected.monthlyFeeSek,
       invoice_fee_sek: selected.invoiceFeeSek,
@@ -6799,11 +6800,11 @@ export async function processWebsiteCustomerApplication(input: {
         message:
           "Kundansökan innehåller avtalsfält som motsäger valt offer_reference.",
         status: 422,
-        code: "offer_selector_mismatch",
+        code: "offer_reference_mismatch",
         field: selectorMismatches[0],
         stage: "public_contract_lookup",
         hint: "Ta bort äldre avtalsidentifierare från POST-payloaden och använd uppgifterna som returneras för samma offer_reference.",
-        details: { mismatched_fields: selectorMismatches },
+        details: { mismatched_fields: selectorMismatches, legacy_code: "offer_selector_mismatch" },
       });
     }
 

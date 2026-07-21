@@ -32,7 +32,7 @@ has('app/admin/contracts/page.tsx', /customer_contracts/, 'Tenantens avtalsregis
 
 const applications = read('lib/website/customerApplications.ts')
 check(/code:\s*hasLegacyOfferSelector\s*\?\s*['"]offer_reference_required/.test(applications), 'Legacy väljare utan offer_reference blockeras')
-check(/code:\s*['"]offer_selector_mismatch/.test(applications), 'Motstridiga avtalsväljare blockeras')
+check(/code:\s*['"]offer_reference_mismatch/.test(applications), 'Motstridiga avtalsväljare blockeras')
 check(/resolvePublicContractOffer\(\{[\s\S]*offerReference:\s*selectedOfferReference[\s\S]*customerType/.test(applications), 'Tecknande löser avtal från exakt offer_reference')
 check(/gridex_finalize_website_contract_signature/.test(applications), 'Serverstyrd atomisk signeringsfunktion används')
 check(/signed_at:\s*null,[\s\S]*Browser supplied signed_at is deliberately ignored|Browser supplied signed_at[\s\S]*signed_at:\s*null/.test(applications), 'Klientens signed_at ignoreras')
@@ -74,12 +74,12 @@ const portalData = read('lib/customer-portal/apiData.ts')
 check(/public_contract_offer_id/.test(portalData) && /offer_reference/.test(portalData) && /signature_snapshot_sha256/.test(portalData), 'Kundportalens avtal exponerar kanonisk offer- och signaturkoppling')
 
 const docsPage = read('app/developers/customer-portal-api/page.tsx')
-for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_selector_mismatch', 'signature_snapshot_sha256', '2026-07-18.3']) {
+for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_reference_mismatch', 'signature_snapshot_sha256', '2026-07-20.2']) {
   check(docsPage.includes(term), `Publika dokumentationssidan innehåller ${term}`)
 }
 const docs = read('docs/openapi/customer-portal-v1.json')
-check(/offer_selector_mismatch/.test(docs) && /diagnostics/.test(docs), 'OpenAPI dokumenterar strikt offer_reference och diagnostik')
-check(/signature_snapshot_sha256/.test(docs) && /2026-07-18\.3/.test(docs), 'OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion')
+check(/offer_reference_mismatch/.test(docs) && /diagnostics/.test(docs), 'OpenAPI dokumenterar strikt offer_reference och diagnostik')
+check(/signature_snapshot_sha256/.test(docs) && /2026-07-20\.2/.test(docs), 'OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion')
 
 if (failed) process.exit(1)
 console.log('Gridex contract API/signature/visibility regression passed.')

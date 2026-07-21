@@ -1,0 +1,28 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "plugins": [],
+    "noEmit": true,
+    "incremental": false
+  },
+  "include": [
+    "next-env.d.ts",
+    "app/admin/contracts/actions.ts",
+    "app/admin/contracts/page.tsx",
+    "components/admin/contracts/ContractOfferAdminForm.tsx",
+    "lib/contracts/adminContractSchema.ts",
+    "lib/contracts/permissions.ts",
+    "lib/customer-contracts/db.ts",
+    "lib/customer-contracts/types.ts",
+    "lib/pricing/contractPricingVersioning.ts",
+    "lib/rbac/catalog.ts",
+    "app/admin/companies/[id]/tenant-platform-actions.ts",
+    "app/admin/companies/[id]/TenantPlatformControls.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "scripts",
+    "supabase"
+  ]
+}

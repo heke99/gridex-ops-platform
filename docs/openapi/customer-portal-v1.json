@@ -1481,7 +1481,7 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable",
-            "description": "Valideringsfel, t.ex. offer_reference_required, offer_selector_mismatch, offer_legal_version_mismatch eller legal_acceptance_missing."
+            "description": "Valideringsfel, t.ex. offer_reference_required, offer_reference_mismatch, offer_legal_version_mismatch eller legal_acceptance_missing."
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"

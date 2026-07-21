@@ -9,6 +9,7 @@ const must = (condition, message) => {
 };
 
 const internalAction = read("app/admin/contracts/actions.ts");
+const internalSchema = read("lib/contracts/adminContractSchema.ts");
 const tenantAction = read(
   "app/admin/companies/[id]/tenant-platform-actions.ts",
 );
@@ -17,7 +18,7 @@ const publicContracts = read("lib/website/publicContracts.ts");
 const migration = read(
   "supabase/migrations/20260720183000_invoice_fee_canonical_contract_completion.sql",
 );
-const adminUi = read("app/admin/contracts/page.tsx");
+const adminUi = read("app/admin/contracts/page.tsx") + read("components/admin/contracts/ContractOfferAdminForm.tsx");
 const tenantUi = read("app/admin/companies/[id]/TenantPlatformControls.tsx");
 const developerPage = read("app/developers/customer-portal-api/page.tsx");
 const openapi = JSON.parse(read("docs/openapi/customer-portal-v1.json"));
@@ -27,9 +28,12 @@ must(
   "internal contract command persists invoice_fee_sek",
 );
 must(
-  /parseCanonicalInvoiceFee/.test(internalAction) &&
-    /parseCanonicalInvoiceFee/.test(tenantAction),
-  "both admin flows preserve zero and reject missing publication values",
+  /buildCanonicalContractPricingCommand/.test(internalAction) &&
+    /invoiceFeeSek/.test(internalSchema) &&
+    /Publicering kräver fakturaavgift/.test(internalSchema) &&
+    /gridex_publish_contract_channel/.test(tenantAction) &&
+    !/parseCanonicalInvoiceFee/.test(tenantAction),
+  "canonical admin preserves zero and company page cannot create a parallel invoice fee",
 );
 must(
   /invoice_fee_sek,/.test(migration) &&
@@ -76,13 +80,13 @@ must(
 );
 must(
   /Fakturaavgift, kr per faktura/.test(adminUi) &&
-    /Fakturaavgift, kr per faktura/.test(tenantUi),
-  "both admin UIs explain the invoice fee unit",
+    /Publicera canonical avtal på hemsidan/.test(tenantUi),
+  "pricing is edited only in canonical admin and tenant page is channel-only",
 );
 must(
   /Avgiften används alltid i offert, avtal och fakturering/.test(adminUi) &&
-    /Avgiften används alltid i offert, avtal och fakturering/.test(tenantUi),
-  "admin UIs separate calculation from card visibility",
+    !/name="invoice_fee_sek"/.test(tenantUi),
+  "calculation is separated from card visibility without duplicate tenant pricing fields",
 );
 must(
   openapi.info.version === "2026-07-20.2",

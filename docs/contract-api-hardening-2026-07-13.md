@@ -60,7 +60,7 @@ A successful diagnostics response includes:
 Relevant validation errors include:
 
 - `offer_reference_required`
-- `offer_selector_mismatch`
+- `offer_reference_mismatch`
 - `offer_legal_versions_missing`
 - `offer_legal_versions_invalid`
 - `offer_legal_version_mismatch`

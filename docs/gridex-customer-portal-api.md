@@ -204,7 +204,7 @@ Idempotency-Key: website-order-12345
 ### Publiceringsdiagnostik och signeringsrespons
 
 - `GET /api/v1/website/public-contracts?customer_type=private&diagnostics=1` returnerar tenant-scopade publiceringsblockerare för server-side felsökning.
-- `offer_reference` är enda avtalsväljaren. Motstridiga legacyfält ger `422 offer_selector_mismatch`.
+- `offer_reference` är enda avtalsväljaren. Motstridiga legacyfält ger `422 offer_reference_mismatch`.
 - Efter lyckad serververifiering returneras `contract_status = signed`, `signed_at`, `withdrawal_deadline_at` och `signature_snapshot_sha256`.
 - `signature_snapshot_sha256` är SHA-256 över OPS frysta signeringssnapshot och genereras endast av servern.
 - `can_send_agreement_confirmation` visar att hela den databasdrivna, exakt

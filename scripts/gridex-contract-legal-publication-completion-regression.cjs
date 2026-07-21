@@ -38,6 +38,9 @@ const singleSourceMigration = read(
 const canonicalApiDiagnosticMigration = read(
   "supabase/migrations/20260717234500_canonical_public_contract_api_diagnostics.sql",
 );
+const contractGoLiveMigration = read(
+  "supabase/migrations/20260720233000_contract_product_lifecycle_go_live_completion.sql",
+);
 const tenantPlatformControls = read(
   "app/admin/companies/[id]/TenantPlatformControls.tsx",
 );
@@ -135,13 +138,16 @@ const required = [
   [
     "strict offer selector documented",
     docs.includes("offer_reference") &&
-      docs.includes("offer_selector_mismatch"),
+      docs.includes("offer_reference_mismatch"),
   ],
   [
-    "publication readiness receives selected price ids",
-    tenantPlatformActions.includes("gridex_publish_contract_version") &&
-      singleSourceMigration.includes("gridex_upsert_public_contract_offer") &&
-      endToEndMigration.includes("v_pricing->>'price_plan_version_id'"),
+    "publication readiness uses the exact canonical price and product ids",
+    tenantPlatformActions.includes("gridex_publish_contract_channel") &&
+      !tenantPlatformActions.includes("gridex_publish_contract_version") &&
+      contractGoLiveMigration.includes("gridex_publish_internal_contract_version") &&
+      contractGoLiveMigration.includes("contract_pricing_identity_changed_during_publish") &&
+      contractGoLiveMigration.includes("o.price_plan_version_id") &&
+      contractGoLiveMigration.includes("o.contract_product_version_id"),
   ],
   [
     "price book reuse is exact-version scoped",

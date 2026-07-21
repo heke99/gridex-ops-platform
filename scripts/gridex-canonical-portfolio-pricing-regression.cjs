@@ -48,13 +48,26 @@ excludes(
   "Gemensam metodeditor",
 );
 
-for (const action of [
+contains(
   "app/admin/contracts/actions.ts",
+  ["portfolioId", "portfolioSettlementTiming", "portfolioEstimateRule"],
+  "Canonical avtalsadministration",
+);
+excludes(
+  "app/admin/contracts/actions.ts",
+  ["portfolioMonthlyPrices"],
+  "Canonical avtalsadministration",
+);
+contains(
   "app/admin/companies/[id]/tenant-platform-actions.ts",
-]) {
-  contains(action, ["portfolioId", "portfolioSettlementTiming", "portfolioEstimateRule"], action);
-  excludes(action, ["portfolioMonthlyPrices"], action);
-}
+  ["gridex_publish_contract_channel", "source_contract_offer_id", 'p_channel: "website"'],
+  "Bolagssidans kanalpublicering",
+);
+excludes(
+  "app/admin/companies/[id]/tenant-platform-actions.ts",
+  ["normalizeContractPricing", "portfolioMonthlyPrices", "portfolioSettlementTiming"],
+  "Bolagssidans kanalpublicering",
+);
 
 contains(
   "lib/pricing/contractPricingVersioning.ts",
@@ -216,7 +229,7 @@ contains(
 checks += 1;
 const openapi = JSON.parse(read("docs/openapi/customer-portal-v1.json"));
 if (
-  openapi?.info?.version !== "2026-07-18.3" ||
+  openapi?.info?.version !== "2026-07-20.2" ||
   !openapi?.paths?.["/api/v1/website/portfolio-prices"]?.get
 ) {
   failures.push("OpenAPI: portföljendpoint eller dokumentationsversion saknas");

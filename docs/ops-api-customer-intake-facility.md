@@ -143,7 +143,7 @@ Diagnostiksvaret visar `visible`, `hidden` och konkreta `blockers` per erbjudand
 POST /api/v1/website/customer-applications
 ```
 
-Kundansökan måste skicka exakt `offer_reference` från public-contracts. Legacyidentifierare utan `offer_reference` ger `422 offer_reference_required`; motstridiga identifierare ger `422 offer_selector_mismatch`.
+Kundansökan måste skicka exakt `offer_reference` från public-contracts. Legacyidentifierare utan `offer_reference` ger `422 offer_reference_required`; motstridiga identifierare ger `422 offer_reference_mismatch`.
 
 Avtalet skapas först som `pending_signature`. När exakt fem offer-bundna juridiska accepter har sparats kör OPS en atomisk serverfunktion som sätter `status = signed`, serverns `signed_at`, permanent `withdrawal_deadline_at`, `public_contract_offer_id`, `offer_reference`, juridiksnapshot och signaturhash. Klientens egna signeringstid används inte som juridisk avtalstid.
 

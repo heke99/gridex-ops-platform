@@ -10,7 +10,7 @@ const must = (condition, message) => {
 
 const pricing = read("lib/pricing/contractPricingVersioning.ts");
 const api = read("lib/website/publicContracts.ts");
-const ui = read("app/admin/contracts/page.tsx");
+const ui = read("app/admin/contracts/page.tsx") + read("components/admin/contracts/ContractOfferAdminForm.tsx");
 const actions = read("app/admin/contracts/actions.ts");
 const migration = read(
   "supabase/migrations/20260718001000_public_pricing_component_website_visibility.sql",

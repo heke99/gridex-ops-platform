@@ -10,7 +10,7 @@ No secrets in this file — env var *names* only.
 - Headers: `Content-Type: application/json`, `Idempotency-Key: <stable key>`
 - Request: customer + site + exact published `offer_reference`, five consents,
   optional structured `powerOfAttorney`. Legacy price/product identifiers are
-  not alternative selectors and conflicting values return `offer_selector_mismatch`.
+  not alternative selectors and conflicting values return `offer_reference_mismatch`.
 - Response 200: created chain ids, server-signed contract state, withdrawal
   deadline, immutable offer/legal/signature linkage and truthful communication
   status; duplicate key replays the stored response with `idempotent: true`

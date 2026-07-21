@@ -339,22 +339,42 @@ function parseOptionalFeeLines(
   value: unknown,
   defaultWebsiteCardVisible: boolean,
 ): PricingComponent[] {
-  const rows = String(value ?? "").trim();
-  if (!rows) return [];
-  return rows.split(/\r?\n/).map((line, index) => {
-    const [nameRaw, amountRaw, unitRaw, websiteVisibilityRaw] = line
-      .split("|")
-      .map((part) => part.trim());
-    if (!nameRaw)
+  const rawRows: Array<Record<string, unknown>> = Array.isArray(value)
+    ? value.filter(
+        (item): item is Record<string, unknown> =>
+          Boolean(item) && typeof item === "object" && !Array.isArray(item),
+      )
+    : String(value ?? "").trim()
+      ? String(value)
+          .split(/\r?\n/)
+          .map((line, index) => {
+            const [name, amount, unit, websiteVisibility] = line
+              .split("|")
+              .map((part) => part.trim());
+            return {
+              id: `optional_${index + 1}`,
+              label: name,
+              amount,
+              unit,
+              website_visibility: websiteVisibility,
+              sort_order: 900 + index,
+            };
+          })
+      : [];
+
+  return rawRows.map((row, index) => {
+    const name = String(row.label ?? row.name ?? "").trim();
+    if (!name)
       throw new Error(`Övrig avgift på rad ${index + 1} saknar namn.`);
     const amount = optionalNumber(
-      amountRaw,
+      row.amount,
       `Övrig avgift på rad ${index + 1}`,
       { min: 0 },
     );
     if (amount === null)
       throw new Error(`Övrig avgift på rad ${index + 1} saknar belopp.`);
-    const unit = unitRaw || "sek_once";
+
+    const unit = String(row.unit ?? "sek_contract").trim();
     const allowedUnits = new Set([
       "sek_once",
       "sek_contract",
@@ -364,37 +384,54 @@ function parseOptionalFeeLines(
     ]);
     if (!allowedUnits.has(unit))
       throw new Error(`Övrig avgift på rad ${index + 1} har en ogiltig enhet.`);
-    const websiteCardVisible = booleanFlag(
-      websiteVisibilityRaw,
-      defaultWebsiteCardVisible,
+
+    const websiteCardVisible =
+      typeof row.website_visibility === "boolean"
+        ? row.website_visibility
+        : booleanFlag(row.website_visibility, defaultWebsiteCardVisible);
+    const lifecycle = String(
+      row.lifecycle ??
+        (unit === "sek_invoice"
+          ? "per_invoice"
+          : unit === "sek_once" || unit === "sek_contract"
+            ? "once_per_contract"
+            : "recurring"),
     );
-    const lifecycle =
-      unit === "sek_invoice"
-        ? "per_invoice"
-        : unit === "sek_once" || unit === "sek_contract"
-          ? "once_per_contract"
-          : "recurring";
-    return {
-      component_code: `optional_${index + 1}`,
-      component_type: "optional_fee",
-      name: nameRaw,
-      amount,
-      calculation_type: unit.includes("kwh")
+    const calculationType =
+      unit === "ore_per_kwh"
         ? "per_kwh"
-        : unit.includes("month")
+        : unit === "sek_month"
           ? "per_month"
           : unit === "sek_invoice"
             ? "per_invoice"
-            : "fixed_once",
+            : "fixed_once";
+    const sortOrder = optionalNumber(row.sort_order, `Sortering för ${name}`, {
+      min: 0,
+      integer: true,
+    }) ?? 900 + index;
+    const vatTreatment = String(row.vat_treatment ?? "standard");
+
+    return {
+      component_code: String(row.id ?? `optional_${index + 1}`),
+      component_type: "optional_fee",
+      name,
+      amount,
+      calculation_type: calculationType,
       unit,
-      vat_applicable: true,
+      vat_applicable: vatTreatment !== "exempt",
       invoice_line_visible: true,
       website_card_visible: websiteCardVisible,
-      calculation_base: null,
-      priority: 900 + index,
+      calculation_base:
+        typeof row.calculation_base === "string" && row.calculation_base.trim()
+          ? row.calculation_base.trim()
+          : null,
+      priority: sortOrder,
       metadata: {
         lifecycle,
-        component_key: `optional_${index + 1}`,
+        billing_frequency: row.billing_frequency ?? calculationType,
+        vat_treatment: vatTreatment,
+        component_key: String(row.id ?? `optional_${index + 1}`),
+        calculation_base: row.calculation_base ?? null,
         visibility: {
           website_card: websiteCardVisible,
           quote_breakdown: true,

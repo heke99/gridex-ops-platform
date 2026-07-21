@@ -309,6 +309,7 @@ export async function listContractOffers(
   options: {
     activeOnly?: boolean;
     companyId?: string | null;
+    includeArchived?: boolean;
   } = {},
 ): Promise<ContractOfferRow[]> {
   let query = supabaseService
@@ -322,7 +323,11 @@ export async function listContractOffers(
   }
 
   if (options.activeOnly) {
-    query = query.eq("is_active", true).eq("status", "active");
+    query = query
+      .eq("lifecycle_status", "published")
+      .eq("currently_sellable", true);
+  } else if (!options.includeArchived) {
+    query = query.not("lifecycle_status", "in", "(archived,superseded)");
   }
 
   const { data, error } = await query;

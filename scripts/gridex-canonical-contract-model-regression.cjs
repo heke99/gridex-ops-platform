@@ -73,8 +73,8 @@ if (!application.includes("offer_reference_mismatch"))
   );
 if (!application.includes("loadOfferBoundLegalVersions"))
   throw new Error("Application flow must load offer-bound legal versions");
-if (!application.includes("gridex_create_website_customer_contract"))
+if (!application.includes("gridex_finalize_website_contract_signature"))
   throw new Error(
-    "Application flow must create contract and price evidence atomically",
+    "Application flow must finalize exact contract/legal/signature evidence atomically",
   );
 console.log("Canonical contract/legal/publication regression: OK");

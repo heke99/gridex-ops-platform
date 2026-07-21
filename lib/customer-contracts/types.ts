@@ -13,6 +13,15 @@ export type CustomerContractTerminationReason =
 
 export type ContractOfferStatus = "draft" | "active" | "inactive";
 
+export type ContractLifecycleStatus =
+  | "draft"
+  | "ready"
+  | "published"
+  | "paused"
+  | "expired"
+  | "archived"
+  | "superseded";
+
 export type CustomerContractStatus =
   | "draft"
   | "pending_signature"
@@ -28,7 +37,30 @@ export type ContractOfferRow = {
   name: string;
   slug: string;
   status: ContractOfferStatus;
+  lifecycle_status?: ContractLifecycleStatus;
+  version_series_id?: string | null;
+  supersedes_offer_id?: string | null;
+  superseded_at?: string | null;
+  version_number?: number | null;
+  contract_product_id?: string | null;
+  contract_product_version_id?: string | null;
+  legal_bundle_version_id?: string | null;
+  canonical_product_code?: string | null;
+  canonical_product_status?: string | null;
+  canonical_version_number?: number | null;
+  canonical_version_status?: string | null;
+  canonical_content_sha256?: string | null;
+  currently_sellable?: boolean;
+  readiness?: { status?: string; can_publish?: boolean; blockers?: string[] } | null;
+  deletion_preview?: {
+    ok?: boolean;
+    deletable?: boolean;
+    result_mode?: "delete" | "archive_only";
+    business_references?: Record<string, number>;
+    system_references?: Record<string, number>;
+  } | null;
   contract_type: ContractType;
+  customer_type?: "private" | "business" | "both";
   campaign_name: string | null;
   campaign_code?: string | null;
   campaign_version?: string | null;
@@ -40,6 +72,9 @@ export type ContractOfferRow = {
   max_customers?: number | null;
   discount_value?: number | null;
   discount_unit?: string | null;
+  discount_months?: number | null;
+  discount_calculation_base?: string | null;
+  discount_starts_on_mode?: string | null;
   start_fee_sek?: number | null;
   admin_fee_sek?: number | null;
   break_fee_sek?: number | null;
@@ -53,6 +88,15 @@ export type ContractOfferRow = {
   green_fee_value: number | null;
   default_binding_months: number | null;
   default_notice_months: number | null;
+  automatic_renewal?: boolean | null;
+  automatic_renewal_term_months?: number | null;
+  power_of_attorney_required?: boolean | null;
+  power_of_attorney_mode?: "always_required" | "required_when_information_missing" | "not_required" | null;
+  invoice_fee_sek?: number | null;
+  price_plan_id?: string | null;
+  price_plan_version_id?: string | null;
+  price_book_id?: string | null;
+  commercial_snapshot?: Record<string, unknown> | null;
   optional_fee_lines: Array<Record<string, unknown>> | null;
   is_active: boolean;
   valid_from: string | null;

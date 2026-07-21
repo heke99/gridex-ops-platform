@@ -372,7 +372,7 @@ Vanliga 422-koder:
 - public_contract_required
 - offer_reference_required
 - offer_reference_mismatch
-- offer_selector_mismatch
+- offer_reference_mismatch
 - public_contract_not_available
 - offer_legal_versions_missing
 - offer_legal_versions_invalid
@@ -759,7 +759,7 @@ export default function CustomerPortalApiDocsPage() {
             <code>price_plan_version_id</code> och{" "}
             <code>contract_offer_id</code> får inte användas för att välja
             avtal; motstridiga legacyfält ger{" "}
-            <code>422 offer_selector_mismatch</code>.
+            <code>422 offer_reference_mismatch</code>.
           </p>
           <p>
             <code>customer_type=both</code> kompletteras med{" "}
