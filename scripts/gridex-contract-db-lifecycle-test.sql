@@ -31,6 +31,9 @@ declare
   v_successor_website jsonb;
   v_deleted jsonb;
   v_archived jsonb;
+  v_delete_preview jsonb;
+  v_delete_created jsonb;
+  v_delete_offer_id uuid;
   v_offer_id uuid;
   v_successor_id uuid;
   v_product_id uuid;
@@ -305,7 +308,39 @@ begin
     raise exception 'archive_left_public_channel_enabled';
   end if;
 
-  raise notice 'Gridex contract lifecycle DB test passed for temporary offer %',v_offer_id;
+  -- Regression: a contract that was published and then unpublished, but never
+  -- used by a customer, remains permanently deletable together with its
+  -- exclusive technical publication graph.
+  v_payload:=jsonb_set(v_payload,'{name}',to_jsonb('GRIDEX DELETE ROUNDTRIP '||v_token),true);
+  v_payload:=jsonb_set(v_payload,'{slug}',to_jsonb('gridex-delete-roundtrip-'||lower(v_token)),true);
+  v_payload:=jsonb_set(v_payload,'{lifecycle_status}','"draft"'::jsonb,true);
+  v_delete_created:=public.gridex_upsert_internal_contract_offer(
+    v_company_id,null,v_payload,v_snapshot,v_actor_id
+  );
+  v_delete_offer_id:=(v_delete_created#>>'{offer,id}')::uuid;
+  perform public.gridex_publish_internal_contract_version(v_company_id,v_delete_offer_id,v_actor_id);
+  perform public.gridex_publish_contract_channel(v_company_id,v_delete_offer_id,'website',v_actor_id);
+  perform public.gridex_unpublish_contract_channel(v_company_id,v_delete_offer_id,'website',v_actor_id);
+  if not coalesce((select ta.website_publication_allowed
+      from public.tenant_contract_assignments ta
+      join public.contract_offers o on o.contract_product_version_id=ta.contract_product_version_id
+      where o.id=v_delete_offer_id),false) then
+    raise exception 'unpublish_removed_website_permission';
+  end if;
+  perform public.gridex_unpublish_contract_channel(v_company_id,v_delete_offer_id,'internal',v_actor_id);
+  v_delete_preview:=public.gridex_preview_delete_unused_contract(v_company_id,v_delete_offer_id);
+  if not coalesce((v_delete_preview->>'can_delete')::boolean,false)
+     or coalesce((v_delete_preview->>'has_business_usage')::boolean,true) then
+    raise exception 'previously_published_unused_contract_not_deletable:%',v_delete_preview;
+  end if;
+  v_deleted:=public.gridex_delete_unused_contract(v_company_id,v_delete_offer_id,v_actor_id);
+  if not coalesce((v_deleted->>'ok')::boolean,false)
+     or not coalesce((v_deleted->>'deleted')::boolean,false)
+     or exists(select 1 from public.contract_offers where id=v_delete_offer_id) then
+    raise exception 'previously_published_unused_contract_delete_failed:%',v_deleted;
+  end if;
+
+  raise notice 'Gridex contract lifecycle DB test passed for temporary offers %, %',v_offer_id,v_delete_offer_id;
 end
 $test$;
 

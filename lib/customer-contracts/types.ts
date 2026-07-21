@@ -51,13 +51,27 @@ export type ContractOfferRow = {
   canonical_version_status?: string | null;
   canonical_content_sha256?: string | null;
   currently_sellable?: boolean;
+  internal_sales_allowed?: boolean;
+  website_publication_allowed?: boolean;
+  internal_channel_status?: "active" | "paused" | "ended" | "missing" | string;
+  website_channel_status?: "active" | "paused" | "ended" | "missing" | string;
+  api_channel_status?: "active" | "paused" | "ended" | "missing" | string;
+  active_publication_version_count?: number;
   readiness?: { status?: string; can_publish?: boolean; blockers?: string[] } | null;
   deletion_preview?: {
     ok?: boolean;
+    can_delete?: boolean;
     deletable?: boolean;
+    has_business_usage?: boolean;
+    requires_archive?: boolean;
+    requires_unpublish?: boolean;
     result_mode?: "delete" | "archive_only";
+    business_blockers?: Record<string, number>;
     business_references?: Record<string, number>;
+    removable_system_dependencies?: Record<string, number>;
     system_references?: Record<string, number>;
+    shared_or_unsafe_dependencies?: Record<string, number | boolean | string>;
+    reason_codes?: string[];
   } | null;
   contract_type: ContractType;
   customer_type?: "private" | "business" | "both";

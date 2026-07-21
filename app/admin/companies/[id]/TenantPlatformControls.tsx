@@ -39,6 +39,18 @@ type InternalContractOffer = {
   valid_to: string | null;
   created_at: string;
   updated_at: string;
+  internal_sales_allowed?: boolean;
+  website_publication_allowed?: boolean;
+  internal_channel_status?: string;
+  website_channel_status?: string;
+  api_channel_status?: string;
+  deletion_preview?: {
+    can_delete?: boolean;
+    deletable?: boolean;
+    business_blockers?: Record<string, number>;
+    removable_system_dependencies?: Record<string, number>;
+    reason_codes?: string[];
+  } | null;
 };
 
 type PublicOffer = {
@@ -278,9 +290,9 @@ export default async function TenantPlatformControls({
     ),
     safeRows<InternalContractOffer>(
       "Interna avtal",
-      "contract_offers",
+      "canonical_internal_contract_offers_v",
       companyId,
-      "id,name,status,lifecycle_status,version_series_id,version_number,contract_product_id,contract_product_version_id,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at",
+      "id,name,status,lifecycle_status,version_series_id,version_number,contract_product_id,contract_product_version_id,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at,internal_sales_allowed,website_publication_allowed,internal_channel_status,website_channel_status,api_channel_status,deletion_preview",
       "updated_at",
     ),
     safeRows<ApiClient>(
@@ -322,6 +334,9 @@ export default async function TenantPlatformControls({
 
   const diagnosticsByOfferId = new Map(
     offerApiDiagnostics.map((row) => [row.id, row]),
+  );
+  const internalContractsById = new Map(
+    internalContracts.map((row) => [row.id, row]),
   );
   const activeOffers = offers.filter(
     (offer) =>
@@ -626,6 +641,13 @@ export default async function TenantPlatformControls({
               const blockers = valueList(offer.readiness_blockers);
               const apiDiagnostic = diagnosticsByOfferId.get(offer.id);
               const apiBlockers = valueList(apiDiagnostic?.api_blockers);
+              const sourceContract = offer.source_contract_offer_id
+                ? internalContractsById.get(offer.source_contract_offer_id)
+                : undefined;
+              const canDelete = sourceContract
+                ? (sourceContract.deletion_preview?.can_delete ?? sourceContract.deletion_preview?.deletable) === true
+                : false;
+              const deleteReasons = sourceContract?.deletion_preview?.reason_codes ?? [];
               return (
                 <article
                   key={offer.id}
@@ -727,14 +749,14 @@ export default async function TenantPlatformControls({
                   </div>
                   <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
                     <strong className="text-slate-800">Radera säkert:</strong>{" "}
-                    oanvända avtal kan tas bort. Avtal som redan används i
-                    signerad historik arkiveras i stället, så snapshots och
-                    kundhistorik inte förstörs.
+                    {canDelete
+                      ? `Ingen affärshistorik blockerar radering. ${Object.values(sourceContract?.deletion_preview?.removable_system_dependencies ?? {}).reduce((sum, value) => sum + Number(value || 0), 0)} tekniska rader kan tas bort atomiskt.`
+                      : `Permanent radering är blockerad: ${deleteReasons.join(" · ") || "affärshistorik eller osäker canonical referens"}. Arkivering bevarar kundhistoriken.`}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {offer.source_contract_offer_id ? (
                       <Link
-                        href={`/admin/contracts?company_id=${companyId}&edit=${offer.source_contract_offer_id}`}
+                        href={`/admin/contracts?company_id=${companyId}&edit_offer=${offer.source_contract_offer_id}`}
                         className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
                       >
                         Visa canonical version
@@ -784,8 +806,11 @@ export default async function TenantPlatformControls({
                           value={offer.source_contract_offer_id}
                         />
                         <input type="hidden" name="delete_mode" value="safe_delete" />
-                        <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100">
-                          Radera endast om hela utkastet är oanvänt
+                        <button
+                          disabled={!canDelete}
+                          className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Radera endast om hela avtalet är affärsmässigt oanvänt
                         </button>
                       </form>
                     </div>

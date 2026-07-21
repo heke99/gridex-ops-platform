@@ -148,9 +148,9 @@ includesAll(form, [
 includesAll(page, [
   "Visa arkiverade",
   "Radera oanvänt utkast permanent",
-  "Publicera hemsida",
-  "Publicera API",
-  "Pausa alla kanaler",
+  "Publicera på hemsida",
+  "Publicera i API",
+  "Pausa alla aktiva kanaler för denna version",
   "deletion_preview",
   "Kundförhandsgranskning och versionsskillnad",
   "contractVersionDiff",

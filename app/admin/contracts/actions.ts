@@ -39,6 +39,44 @@ function errorMessage(
   return toSafeContractError(error, context);
 }
 
+type ContractLifecycleRpcResult = {
+  ok?: boolean;
+  changed?: boolean;
+  deleted?: boolean;
+  mode?: string;
+  code?: string;
+  reason_codes?: string[];
+  already_unpublished?: boolean;
+  affected_channels?: number;
+};
+
+const CONTRACT_REASON_MESSAGES: Record<string, string> = {
+  HAS_CUSTOMER_CONTRACTS: "Avtalet används av ett eller flera kundavtal och kan därför endast arkiveras.",
+  HAS_ACCEPTED_APPLICATIONS: "Avtalet används av en kundansökan och kan därför endast arkiveras.",
+  HAS_EXTERNAL_INTAKES: "Avtalet används av ett externt kundintag och kan därför endast arkiveras.",
+  HAS_BINDING_PRICE_SNAPSHOTS: "Avtalet har bindande kundprissnapshots och kan därför endast arkiveras.",
+  HAS_INVOICES: "Avtalet har fakturahistorik och kan därför endast arkiveras.",
+  HAS_BILLING_HISTORY: "Avtalet används i faktureringsunderlag och kan därför endast arkiveras.",
+  HAS_CHARGE_LEDGER: "Avtalet används i avgiftsliggaren och kan därför endast arkiveras.",
+  HAS_LEGAL_ACCEPTANCES: "Avtalet har juridiska accepter och kan därför endast arkiveras.",
+  HAS_SUCCESSOR_VERSION: "Avtalsversionen har en efterföljande version och kan inte raderas separat.",
+  HAS_SHARED_CANONICAL_VERSION: "Den canonical avtalsversionen delas av annan data och kan inte raderas automatiskt.",
+  HAS_SHARED_LEGAL_VERSION: "Juridikversionen delas av annan data och kan inte raderas automatiskt.",
+  INCOMPLETE_CANONICAL_MAPPING: "Avtalet har ofullständig äldre systemdata. Kör eller reparera canonical backfill innan åtgärden genomförs.",
+  ACTIVE_PUBLICATION_REQUIRES_UNPUBLISH: "Avtalet är fortfarande publicerat. Avpublicera samtliga aktiva kanaler innan permanent radering.",
+};
+
+function contractLifecycleFailure(result: ContractLifecycleRpcResult | null, fallback: string): Error {
+  const reason = result?.reason_codes?.find((code) => CONTRACT_REASON_MESSAGES[code]);
+  if (reason) return new Error(CONTRACT_REASON_MESSAGES[reason]);
+  if (result?.code && CONTRACT_REASON_MESSAGES[result.code]) {
+    return new Error(CONTRACT_REASON_MESSAGES[result.code]);
+  }
+  if (result?.code === "contract_channel_not_found") return new Error("Försäljningskanalen saknas för avtalet. Canonical backfill behöver repareras.");
+  if (result?.code === "active_publication_version_not_found") return new Error("Kanalen är aktiv men saknar en aktiv publiceringsversion. Canonical backfill behöver repareras.");
+  return new Error(fallback);
+}
+
 function revalidateContractSurfaces(companyId: string): void {
   revalidatePath("/admin/contracts");
   revalidatePath("/admin/customers/intake");
@@ -424,19 +462,9 @@ async function deleteContractOfferActionImpl(
     },
   );
   if (error) throw error;
-  const result = data as {
-    ok?: boolean;
-    mode?: string;
-    code?: string;
-    recommended_action?: string;
-  } | null;
+  const result = data as ContractLifecycleRpcResult | null;
   if (!result?.ok || result.mode !== "deleted") {
-    if (result?.code === "unused_contract_delete_blocked") {
-      throw new Error(
-        "Avtalet har historik, låsta versioner eller beroenden och kan inte raderas permanent. Använd den separata åtgärden Arkivera avtal.",
-      );
-    }
-    throw new Error("Avtalet kunde inte tas bort säkert.");
+    throw contractLifecycleFailure(result, "Avtalet kunde inte tas bort säkert.");
   }
 
   revalidateContractSurfaces(companyId);
@@ -531,8 +559,12 @@ async function updateTenantContractChannelActionImpl(
     p_actor_user_id: actor.userId,
   });
   if (error) throw error;
-  if (!(data as { ok?: boolean } | null)?.ok) {
-    throw new Error("Kanaländringen kunde inte genomföras atomärt.");
+  const result = data as ContractLifecycleRpcResult | null;
+  if (!result?.ok) {
+    throw contractLifecycleFailure(result, "Kanaländringen kunde inte genomföras atomärt.");
+  }
+  if (result.changed === false && !result.already_unpublished) {
+    throw contractLifecycleFailure(result, "Kanaländringen påverkade inga rader.");
   }
 
   revalidateContractSurfaces(companyId);
@@ -556,7 +588,9 @@ export async function pauseContractOfferAction(formData: FormData) {
       p_actor_user_id: actor.userId,
     });
     if (error) throw error;
-    if (!(data as { ok?: boolean } | null)?.ok) throw new Error("Avtalet kunde inte pausas.");
+    const result = data as ContractLifecycleRpcResult | null;
+    if (!result?.ok) throw contractLifecycleFailure(result, "Avtalet kunde inte pausas.");
+    if (result.changed === false) throw new Error("Avtalet hade inga aktiva försäljningskanaler att pausa.");
     revalidateContractSurfaces(companyId);
   } catch (error) {
     redirectBack({ companyId, error: errorMessage(error, { action: "pause_contract_offer", companyId }) });
@@ -623,12 +657,45 @@ export async function publishContractChannelAction(formData: FormData) {
       p_actor_user_id: actor.userId,
     });
     if (error) throw error;
-    if (!(data as { ok?: boolean } | null)?.ok) throw new Error("Kanalen kunde inte publiceras.");
+    const result = data as ContractLifecycleRpcResult | null;
+    if (!result?.ok) throw contractLifecycleFailure(result, "Kanalen kunde inte publiceras.");
+    if (result.changed === false) throw new Error("Kanalen var redan publicerad och inga rader ändrades.");
     revalidateContractSurfaces(companyId);
   } catch (error) {
     redirectBack({ companyId, error: errorMessage(error, { action: "publish_contract_channel", companyId }) });
   }
   redirectBack({ companyId, success: `${channel === "website" ? "Hemsidan" : "API-kanalen"} publicerades från samma canonical avtalsversion.` });
+}
+
+export async function unpublishContractChannelAction(formData: FormData) {
+  const companyId = getString(formData, "company_id") || null;
+  const channel = getString(formData, "channel") || "website";
+  try {
+    const actor = await requireContractPermissionAction("contracts.pause");
+    if (!companyId) throw new Error("Bolag saknas.");
+    await assertUserCanOperateCompany(actor.userId, companyId);
+    const offerId = getString(formData, "id");
+    if (!offerId) throw new Error("Avtal saknas.");
+    const { data, error } = await supabaseService.rpc("gridex_unpublish_contract_channel", {
+      p_company_id: companyId,
+      p_offer_id: offerId,
+      p_channel: channel,
+      p_actor_user_id: actor.userId,
+    });
+    if (error) throw error;
+    const result = data as ContractLifecycleRpcResult | null;
+    if (!result?.ok) throw contractLifecycleFailure(result, "Kanalen kunde inte avpubliceras.");
+    if (result.changed === false && !result.already_unpublished) {
+      throw contractLifecycleFailure(result, "Avpubliceringen påverkade inga rader.");
+    }
+    revalidateContractSurfaces(companyId);
+  } catch (error) {
+    redirectBack({ companyId, error: errorMessage(error, { action: "unpublish_contract_channel", companyId }) });
+  }
+  redirectBack({
+    companyId,
+    success: `${channel === "website" ? "Hemsidan" : channel === "api" ? "API-kanalen" : "Den interna kanalen"} avpublicerades. Publiceringsbehörigheten finns kvar.`,
+  });
 }
 
 export async function cleanupUnusedContractDraftsAction(formData: FormData) {

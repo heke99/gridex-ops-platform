@@ -13,6 +13,7 @@ import {
   pauseContractOfferAction,
   publishContractChannelAction,
   publishContractVersionAction,
+  unpublishContractChannelAction,
   updateTenantContractChannelAction,
 } from "./actions";
 import {
@@ -1046,61 +1047,48 @@ export default async function AdminContractsPage({
                               </button>
                             </form>
                           ) : null}
-                          {offer.lifecycle_status === "published" ? (
+                          {offer.lifecycle_status === "published" || offer.lifecycle_status === "paused" ? (
                             <>
-                              <form action={publishContractChannelAction}>
-                                <input
-                                  type="hidden"
-                                  name="company_id"
-                                  value={scope.companyId ?? ""}
-                                />
-                                <input
-                                  type="hidden"
-                                  name="id"
-                                  value={offer.id}
-                                />
-                                <input
-                                  type="hidden"
-                                  name="channel"
-                                  value="website"
-                                />
-                                <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
-                                  Publicera hemsida
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600">
+                                <div>Intern: {offer.internal_channel_status ?? "missing"} · behörighet {offer.internal_sales_allowed ? "ja" : "nej"}</div>
+                                <div>Hemsida: {offer.website_channel_status ?? "missing"} · behörighet {offer.website_publication_allowed ? "ja" : "nej"}</div>
+                                <div>API: {offer.api_channel_status ?? "missing"}</div>
+                              </div>
+                              <form action={offer.website_channel_status === "active" ? unpublishContractChannelAction : publishContractChannelAction}>
+                                <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+                                <input type="hidden" name="id" value={offer.id} />
+                                <input type="hidden" name="channel" value="website" />
+                                <button
+                                  disabled={offer.website_channel_status !== "active" && !offer.website_publication_allowed}
+                                  className={`w-full rounded-xl border px-3 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-50 ${offer.website_channel_status === "active" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}
+                                >
+                                  {offer.website_channel_status === "active" ? "Avpublicera från hemsida" : "Publicera på hemsida"}
                                 </button>
                               </form>
-                              <form action={publishContractChannelAction}>
-                                <input
-                                  type="hidden"
-                                  name="company_id"
-                                  value={scope.companyId ?? ""}
-                                />
-                                <input
-                                  type="hidden"
-                                  name="id"
-                                  value={offer.id}
-                                />
-                                <input
-                                  type="hidden"
-                                  name="channel"
-                                  value="api"
-                                />
-                                <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
-                                  Publicera API
+                              <form action={offer.api_channel_status === "active" ? unpublishContractChannelAction : publishContractChannelAction}>
+                                <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+                                <input type="hidden" name="id" value={offer.id} />
+                                <input type="hidden" name="channel" value="api" />
+                                <button className={`w-full rounded-xl border px-3 py-2 text-xs font-black ${offer.api_channel_status === "active" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
+                                  {offer.api_channel_status === "active" ? "Avpublicera från API" : "Publicera i API"}
+                                </button>
+                              </form>
+                              <form action={offer.internal_channel_status === "active" ? unpublishContractChannelAction : publishContractChannelAction}>
+                                <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+                                <input type="hidden" name="id" value={offer.id} />
+                                <input type="hidden" name="channel" value="internal" />
+                                <button
+                                  disabled={offer.internal_channel_status !== "active" && !offer.internal_sales_allowed}
+                                  className={`w-full rounded-xl border px-3 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-50 ${offer.internal_channel_status === "active" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}
+                                >
+                                  {offer.internal_channel_status === "active" ? "Pausa intern försäljning" : "Aktivera intern försäljning"}
                                 </button>
                               </form>
                               <form action={pauseContractOfferAction}>
-                                <input
-                                  type="hidden"
-                                  name="company_id"
-                                  value={scope.companyId ?? ""}
-                                />
-                                <input
-                                  type="hidden"
-                                  name="id"
-                                  value={offer.id}
-                                />
+                                <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+                                <input type="hidden" name="id" value={offer.id} />
                                 <button className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800">
-                                  Pausa alla kanaler
+                                  Pausa alla aktiva kanaler för denna version
                                 </button>
                               </form>
                             </>
@@ -1131,7 +1119,7 @@ export default async function AdminContractsPage({
                             <input type="hidden" name="id" value={offer.id} />
                             <button
                               disabled={
-                                offer.deletion_preview?.deletable !== true
+                                (offer.deletion_preview?.can_delete ?? offer.deletion_preview?.deletable) !== true
                               }
                               className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 disabled:cursor-not-allowed disabled:opacity-50"
                             >
@@ -1139,9 +1127,9 @@ export default async function AdminContractsPage({
                             </button>
                           </form>
                           <p className="text-[11px] leading-4 text-slate-500">
-                            {offer.deletion_preview?.deletable
-                              ? "Kan raderas med exklusiva olåsta canonical- och prisobjekt."
-                              : "Har historik eller låsta versioner och får endast arkiveras."}
+                            {(offer.deletion_preview?.can_delete ?? offer.deletion_preview?.deletable)
+                              ? `Ingen affärshistorik. Teknisk systemdata tas bort atomiskt: ${Object.values(offer.deletion_preview?.removable_system_dependencies ?? offer.deletion_preview?.system_references ?? {}).reduce((sum, value) => sum + Number(value || 0), 0)} rader.`
+                              : `Permanent radering blockerad: ${(offer.deletion_preview?.reason_codes ?? []).join(" · ") || "verklig affärshistorik eller osäker delad referens"}.`}
                           </p>
                         </div>
                       </td>

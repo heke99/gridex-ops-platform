@@ -1,10 +1,21 @@
 # Gridex OPS – canonical avtalslivscykel, go-live implementation
 
 Datum: 2026-07-21  
-Bas: `gridex-ops-platform-main(52).zip`  
-Migration: `20260720233000_contract_product_lifecycle_go_live_completion.sql`
+Bas: `gridex-ops-platform-main(55).zip`  
+Migrationer: `20260720233000_contract_product_lifecycle_go_live_completion.sql` och reparationsmigrationen `20260721123000_contract_lifecycle_unpublish_delete_backfill.sql`
 
 ## Resultat
+
+## Lifecycle-reparation 2026-07-21
+
+Reparationsmigrationen rättar tre produktionsfel i den ursprungliga go-live-migrationen:
+
+1. Avpublicering, återpublicering och arkivering använder en begränsad `gridex.version_transition` för tillåtna lifecycle-fält. Pris, avgifter, snapshots och juridiskt innehåll är fortfarande immutable.
+2. Permanent radering baseras på verklig affärsanvändning. Tekniska produkt-, juridik-, kanal- och publiceringsversioner blockerar inte längre ett avtal som aldrig har använts av kund, faktura eller bindande accept.
+3. `gridex_backfill_contract_lifecycle` reparerar alla befintliga tenants idempotent och `gridex_verify_contract_lifecycle_backfill` rapporterar saknade canonical kopplingar, aktiva kanaler utan publiceringsversion, dubletter och öppna legacy-konflikter.
+
+Kanalbehörighet och runtime-status är separata. Avpublicering ändrar kanalens status till pausad men tar inte bort tenantens rätt att publicera på nytt.
+
 
 Avtalsadministrationen är ombyggd kring en permanent canonical produktserie. Intern försäljning, webb, API, partner och telefon är kanaler för exakta immutable produktversioner. Ett formulär kan endast spara `draft` eller `ready`; publicering, kanalväxling, paus, arkivering och permanent radering är separata readiness- och RBAC-skyddade kommandon.
 
@@ -32,7 +43,7 @@ contract_products                      permanent produktserie
 - Publicering är ett separat kommando och låser samma pris-, produkt- och juridikidentitet.
 - Publicerad data skrivs inte över. En kommersiell ändring skapar en efterföljande version i samma serie.
 - Kanalväxling sker kanal för kanal. En ny intern version stänger inte gammal webb/API-version innan motsvarande kanal har publicerats för efterföljaren.
-- Ett oanvänt utkast kan raderas exakt, även när en äldre version i samma serie har kundhistorik.
+- Ett affärsmässigt oanvänt avtal kan raderas exakt även efter tidigare publicering, förutsatt att det saknar kund-, accept-, faktura- och annan bindande affärshistorik.
 - Permanent radering faller aldrig tyst tillbaka till arkivering.
 - Arkivering är serieomfattande och irreversibel. Återstart sker genom ny version, så gammal juridik eller gamla kanaler inte kan återupplivas av misstag.
 - Kundavtal, signaturer, snapshots, fakturor och andra affärshändelser blockerar permanent radering.
@@ -50,8 +61,8 @@ contract_products                      permanent produktserie
 ### 3. Fullständig arkivering
 **Implementerat.** `gridex_archive_contract_product` låser serien, stänger assignments, kanaler, publikationer och publika kompatibilitetsrader, behåller kundhistorik och skriver audit-logg.
 
-### 4. Permanent radering av oanvända utkast
-**Implementerat.** `gridex_preview_delete_unused_contract` och `gridex_delete_unused_contract` arbetar på exakt offer-/produktversion och raderar endast exklusiva olåsta systemreferenser.
+### 4. Permanent radering av affärsmässigt oanvända avtal
+**Implementerat och reparerat.** `gridex_preview_delete_unused_contract` separerar `business_blockers`, `removable_system_dependencies` och `shared_or_unsafe_dependencies`. Låsta tekniska versioner blockerar inte i sig. `gridex_delete_unused_contract` gör en ny låst preview i samma transaktion och raderar endast exklusiva canonical objekt.
 
 ### 5. Foreign-key-säker radering
 **Implementerat.** Den cirkulära kompatibilitetskopplingen mellan `public_contract_offers.contract_publication_version_id` och `contract_publication_versions.legacy_public_contract_offer_id` bryts explicit innan radering. Källa och kompatibilitetsrad tas bort före juridik- och produktversioner.
@@ -63,7 +74,7 @@ contract_products                      permanent produktserie
 **Implementerat.** Standardfrågor filtrerar `archived` och `superseded`; administrationsvyn har separat `Visa arkiverade`.
 
 ### 8. Tydliga raderingsåtgärder
-**Implementerat.** UI skiljer `Arkivera avtal` från `Radera oanvänt utkast permanent`. Raderingsknappen aktiveras endast när preview anger `deletable=true`.
+**Implementerat och reparerat.** UI skiljer `Arkivera avtal` från permanent radering, visar verkliga reason codes och mängden teknisk systemdata som tas bort. Samma `can_delete`-preview används i huvudvyn och tenantkortet.
 
 ### 9. Giltighetsperiod verkställs
 **Implementerat.** Listning, canonical view, publicering och atomisk kundavtalstrigger kontrollerar lifecycle, assignment, kanal, `valid_from` och `valid_to`.
@@ -166,6 +177,8 @@ contract_products                      permanent produktserie
 - `gridex_preview_delete_unused_contract`
 - `gridex_delete_unused_contract`
 - `gridex_cleanup_unused_contract_drafts`
+- `gridex_backfill_contract_lifecycle`
+- `gridex_verify_contract_lifecycle_backfill`
 - `gridex_verify_contract_schema_alignment`
 
 # Testverktyg
@@ -204,37 +217,25 @@ Testet bevisar:
 1. utkast och canonical identitet,
 2. readiness-publicering utan byte av pris-/produkt-ID,
 3. webbpublicering,
-4. avpublicering och återpublicering med samma publication identity,
-5. efterföljande utkast utan tidig supersede,
-6. exakt säker radering av efterföljande utkast,
-7. kanalvis intern/webb-handover utan webbglapp,
-8. serieomfattande arkivering,
-9. full rollback.
+4. avpublicering och återpublicering med samma publication identity och bibehållen kanalbehörighet,
+5. tidigare publicerat men aldrig kundanvänt avtal kan avpubliceras och raderas,
+6. efterföljande utkast utan tidig supersede,
+7. exakt säker radering av efterföljande utkast,
+8. kanalvis intern/webb-handover utan webbglapp,
+9. serieomfattande arkivering,
+10. full rollback.
 
-# Verifieringsstatus i byggmiljön
+# Verifiering för reparationspatchen
 
-Grönt:
+Kör efter synk:
 
-- PostgreSQL-parser: 97 migrationsstatements.
-- DB lifecycle-testparser: 6 statements efter psql-variabelsubstitution.
-- Fokuserad TypeScript-kontroll.
-- Fokuserad ESLint för samtliga ändrade TS/TSX-filer.
-- `verify:contract-go-live`.
-- 148 go-live-strukturkontroller.
-- 20 fokuserade Vitest-tester.
-- 118 canonical portfolio-kontroller.
-- Canonical contract/legal/publication regression.
-- Canonical invoice fee regression.
-- Public pricing visibility regression.
-- Contract API/signature/visibility regression.
-- Legal publication completion regression.
-- Next.js control-flow regression.
-- Migration checksum/integritetskontroll: 286 migrationsfiler.
+```bash
+npm run db:migrations:check
+npm run gridex:contract-lifecycle-repair-regression
+npm run verify:contract-go-live
+npm run typecheck
+npm run lint
+npm run build
+```
 
-Inte verifierat mot live/staging-databas i denna miljö:
-
-- faktisk applicering av migrationen,
-- live-schema-check,
-- transaktionellt DB lifecycle-test.
-
-Full projekt-`typecheck` och full projekt-`lint` gav inga rapporterade fel men nådde miljöns timeout. Fokuserade kontroller för hela patchytan är gröna. Full production build måste slutföras lokalt/CI efter synk och migration innan go-live-signering.
+Efter att migrationen har applicerats i staging ska även integritetsrapporten och det transaktionella lifecycle-testet köras. Live-databasresultat får inte antas från en statisk buildmiljö.

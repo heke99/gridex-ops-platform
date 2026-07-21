@@ -32,6 +32,34 @@ function errorMessage(error: unknown, companyId?: string | null): string {
   });
 }
 
+type LifecycleResult = {
+  ok?: boolean;
+  changed?: boolean;
+  already_unpublished?: boolean;
+  mode?: "archived" | "deleted" | "blocked";
+  code?: string;
+  reason_codes?: string[];
+  delete_preview?: unknown;
+};
+
+const reasonMessage: Record<string, string> = {
+  HAS_CUSTOMER_CONTRACTS: "Avtalet används av kundavtal och kan därför endast arkiveras.",
+  HAS_ACCEPTED_APPLICATIONS: "Avtalet används av en kundansökan och kan därför endast arkiveras.",
+  HAS_INVOICES: "Avtalet har fakturahistorik och kan därför endast arkiveras.",
+  HAS_BILLING_HISTORY: "Avtalet används i faktureringsunderlag och kan därför endast arkiveras.",
+  HAS_SHARED_CANONICAL_VERSION: "Avtalsversionen delas av annan data och kan inte raderas automatiskt.",
+  HAS_SHARED_LEGAL_VERSION: "Juridikversionen delas av annan data och kan inte raderas automatiskt.",
+  INCOMPLETE_CANONICAL_MAPPING: "Avtalet har ofullständig äldre systemdata. Reparera canonical backfill innan åtgärden genomförs.",
+};
+
+function assertLifecycleResult(result: LifecycleResult | null, fallback: string): LifecycleResult {
+  if (result?.ok) return result;
+  const reason = result?.reason_codes?.find((code) => reasonMessage[code]);
+  if (reason) throw new Error(reasonMessage[reason]);
+  if (result?.code && reasonMessage[result.code]) throw new Error(reasonMessage[result.code]);
+  throw new Error(fallback);
+}
+
 function revalidateContractSurfaces(companyId: string): void {
   revalidatePath(`/admin/companies/${companyId}`);
   revalidatePath("/admin/contracts");
@@ -147,9 +175,8 @@ async function publishCanonicalWebsiteContractImpl(
     },
   );
   if (error) throw error;
-  if (!data || typeof data !== "object") {
-    throw new Error("Publiceringskommandot returnerade inget resultat.");
-  }
+  const result = assertLifecycleResult(data as LifecycleResult | null, "Publiceringskommandot returnerade inget giltigt resultat.");
+  if (result.changed === false) throw new Error("Webbkanalen var redan publicerad och inga rader ändrades.");
 
   await logAdminActionAndUsage({
     companyId,
@@ -159,7 +186,7 @@ async function publishCanonicalWebsiteContractImpl(
     action: "contract.channel.website.published",
     label: "Canonical avtalsversion publicerad på hemsidan",
     oldValues: null,
-    newValues: data,
+    newValues: result,
     source: "company_card_contracts_tab",
     billable: false,
     metadata: {
@@ -218,6 +245,10 @@ async function unpublishCanonicalWebsiteContractImpl(
     },
   );
   if (error) throw error;
+  const result = assertLifecycleResult(data as LifecycleResult | null, "Avpubliceringskommandot returnerade inget giltigt resultat.");
+  if (result.changed === false && !result.already_unpublished) {
+    throw new Error("Avpubliceringen påverkade inga rader.");
+  }
 
   await logAdminActionAndUsage({
     companyId,
@@ -227,7 +258,7 @@ async function unpublishCanonicalWebsiteContractImpl(
     action: "contract.channel.website.unpublished",
     label: "Hemsidekanal avpublicerad",
     oldValues: null,
-    newValues: data,
+    newValues: result,
     source: "company_card_contracts_tab",
     billable: false,
     metadata: {
@@ -294,20 +325,10 @@ async function removeCanonicalContractImpl(
     throw new Error("Raderingskommandot returnerade inget resultat.");
   }
 
-  const result = data as {
-    ok?: boolean;
-    mode?: "archived" | "deleted" | "blocked";
-    code?: string;
-    recommended_action?: string;
-    delete_preview?: unknown;
-  };
-  if (result.ok === false || !result.mode || result.mode === "blocked") {
-    if (result.code === "unused_contract_delete_blocked") {
-      throw new Error(
-        "Avtalet kan inte raderas permanent eftersom det har historik eller låsta beroenden. Välj Arkivera hela avtalsserien i stället.",
-      );
-    }
-    throw new Error("Avtalet kunde inte arkiveras eller raderas.");
+  const result = assertLifecycleResult(data as LifecycleResult | null, "Avtalet kunde inte arkiveras eller raderas.");
+  if (!result.mode || result.mode === "blocked") {
+    const reason = result.reason_codes?.find((code) => reasonMessage[code]);
+    throw new Error(reason ? reasonMessage[reason] : "Avtalet kunde inte arkiveras eller raderas.");
   }
 
   await logAdminActionAndUsage({
