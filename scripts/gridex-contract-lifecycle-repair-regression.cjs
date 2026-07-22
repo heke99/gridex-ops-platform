@@ -129,6 +129,30 @@ includesAll(graphMigration, [
   "where legacy_public_contract_offer_id=any(v_public_offer_ids)",
   "contract_public_offer_still_referenced",
 ], "forward-only graph/FK repair migration");
+
+const repairFunctionStart = graphMigration.indexOf("create or replace function public.gridex_repair_contract_publication_links");
+const repairFunctionEnd = graphMigration.indexOf("create or replace function public.gridex_assert_no_public_offer_fk_references", repairFunctionStart);
+const repairFunction = graphMigration.slice(repairFunctionStart, repairFunctionEnd);
+includesAll(repairFunction, [
+  "perform set_config('gridex.version_transition','on',true)",
+  "perform set_config('gridex.publication_link_repair','on',true)",
+], "locked compatibility repair uses the approved lifecycle transition");
+
+const forwardSyncStart = graphMigration.indexOf("create or replace function public.gridex_public_contract_offer_forward_link_sync");
+const forwardSyncEnd = graphMigration.indexOf("drop trigger if exists trg_public_contract_offer_forward_link_sync", forwardSyncStart);
+const forwardSync = graphMigration.slice(forwardSyncStart, forwardSyncEnd);
+includesAll(forwardSync, [
+  "perform set_config('gridex.version_transition','on',true)",
+  "perform set_config('gridex.publication_link_repair','on',true)",
+], "forward link synchronization can update locked compatibility pointers");
+
+const safeRepairStart = graphMigration.indexOf("-- Safe idempotent repair");
+const safeRepairEnd = graphMigration.indexOf("create or replace view public.contract_publication_graph_integrity_v", safeRepairStart);
+const safeRepair = graphMigration.slice(safeRepairStart, safeRepairEnd);
+includesAll(safeRepair, [
+  "perform set_config('gridex.version_transition','on',true)",
+  "perform set_config('gridex.publication_link_repair','on',true)",
+], "migration data repair can update locked compatibility pointers");
 includesAll(types, [
   "can_delete?: boolean",
   "business_blockers?: Record<string, number>",

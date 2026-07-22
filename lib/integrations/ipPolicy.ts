@@ -75,10 +75,7 @@ export function ipAllowedByRules(ip: string | null, rules: string[]): boolean {
   return Boolean(ip && rules.some((rule) => ipMatchesRule(ip, rule)))
 }
 
-type ProxyTrustEnv = {
-  INTEGRATION_API_TRUST_PROXY_HEADERS?: string;
-  VERCEL?: string;
-};
+type ProxyTrustEnv = Readonly<Record<string, string | undefined>>
 
 export function trustIntegrationProxyHeaders(
   env: ProxyTrustEnv = process.env,

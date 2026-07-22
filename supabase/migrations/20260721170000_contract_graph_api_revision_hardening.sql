@@ -666,6 +666,10 @@ begin
   select coalesce(array_agg(value::uuid),'{}'::uuid[]) into v_public_offer_ids
   from jsonb_array_elements_text(g->'public_contract_offer_ids');
 
+  -- The compatibility pointer is mutable only inside an explicit canonical
+  -- lifecycle transition. Both flags are transaction-local and the immutable
+  -- trigger still rejects changes to every non-lifecycle field.
+  perform set_config('gridex.version_transition','on',true);
   perform set_config('gridex.publication_link_repair','on',true);
   update public.contract_publication_versions cpv
   set legacy_public_contract_offer_id=null
@@ -929,6 +933,7 @@ set search_path=public,pg_temp
 as $$
 begin
   if current_setting('gridex.publication_link_repair',true)='on' then return new; end if;
+  perform set_config('gridex.version_transition','on',true);
   perform set_config('gridex.publication_link_repair','on',true);
   if old.contract_publication_version_id is not null
      and old.contract_publication_version_id is distinct from new.contract_publication_version_id then
@@ -997,6 +1002,10 @@ on conflict do nothing;
 -- same tenant, and only the compatibility reverse pointer is changed.
 do $$
 begin
+  -- This migration runs in one transaction. The earlier version failed here
+  -- with immutable_version_locked because it enabled only the link-repair
+  -- guard bypass and not the immutable-version lifecycle transition.
+  perform set_config('gridex.version_transition','on',true);
   perform set_config('gridex.publication_link_repair','on',true);
   update public.contract_publication_versions cpv
   set legacy_public_contract_offer_id=null

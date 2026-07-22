@@ -367,6 +367,7 @@ begin
     raise exception 'fk_reproducer_fixture_missing';
   end if;
 
+  perform set_config('gridex.version_transition','on',true);
   perform set_config('gridex.publication_link_repair','on',true);
   update public.contract_publication_versions
   set legacy_public_contract_offer_id=v_delete_public_offer_id
