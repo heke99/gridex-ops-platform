@@ -219,9 +219,19 @@ contains(
     '"website_contracts.read"',
     "offer_reference_required",
     "historical_final_prices",
-    "indications",
-    "non_binding: true",
+    'market_price_responsibility: "tenant"',
+    "calculator_market_price_supplied_by_ops: false",
     'final_billing_rule: "locked_settlement_only"',
+  ],
+  "Publikt portfölj-API",
+);
+excludes(
+  "app/api/v1/website/portfolio-prices/route.ts",
+  [
+    "price_plan_version_id:",
+    "legal_bundle_version_id:",
+    "indications,",
+    "non_binding: true",
   ],
   "Publikt portfölj-API",
 );
@@ -229,10 +239,25 @@ contains(
 checks += 1;
 const openapi = JSON.parse(read("docs/openapi/customer-portal-v1.json"));
 if (
-  openapi?.info?.version !== "2026-07-20.2" ||
+  openapi?.info?.version !== "2026-07-22.2" ||
   !openapi?.paths?.["/api/v1/website/portfolio-prices"]?.get
 ) {
   failures.push("OpenAPI: portföljendpoint eller dokumentationsversion saknas");
+}
+const publicPortfolioContract = JSON.stringify({
+  operation: openapi?.paths?.["/api/v1/website/portfolio-prices"]?.get ?? {},
+  historical: openapi?.components?.schemas?.PortfolioHistoricalFinalPrice ?? {},
+});
+for (const forbidden of [
+  "PortfolioPriceIndication",
+  "price_plan_version_id",
+  "legal_bundle_version_id",
+  "portfolio_id",
+  "revision_no",
+]) {
+  checks += 1;
+  if (publicPortfolioContract.includes(forbidden))
+    failures.push(`OpenAPI: publikt portföljkontrakt innehåller ${forbidden}`);
 }
 
 if (failures.length > 0) {

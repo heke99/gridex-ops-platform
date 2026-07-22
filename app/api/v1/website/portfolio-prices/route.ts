@@ -122,10 +122,6 @@ export async function GET(request: NextRequest) {
     const historical = records(pricing.portfolio_monthly_prices).filter(
       (row) => !priceArea || row.price_area_code === priceArea,
     );
-    const indications = records(pricing.portfolio_indications).filter(
-      (row) => !priceArea || row.price_area_code === priceArea,
-    );
-
     await logIntegrationApiRequest({
       client: auth.client,
       request,
@@ -135,19 +131,15 @@ export async function GET(request: NextRequest) {
         offer_reference: offerReference,
         price_area: priceArea ?? null,
         historical_count: historical.length,
-        indication_count: indications.length,
       },
     });
     return customerPortalJson({
       data: {
         offer_reference: offerReference,
-        price_plan_version_id: offer.price_plan_version_id,
-        legal_bundle_version_id: offer.legal_bundle_version_id ?? null,
         method: pricing.portfolio_method ?? null,
         historical_final_prices: historical,
-        indications,
-        indication_available: indications.length > 0,
-        non_binding: true,
+        market_price_responsibility: "tenant",
+        calculator_market_price_supplied_by_ops: false,
         final_billing_rule: "locked_settlement_only",
       },
     });

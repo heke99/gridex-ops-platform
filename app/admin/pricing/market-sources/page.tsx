@@ -63,7 +63,7 @@ export default async function MarketSourcesPage() {
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title="Marknadsdatapolicy"
-        subtitle="Tenantens källor, prioritet, färskhetskrav, upplösningar och fallback styr OPS canonical quote-motor. Inga providerhemligheter exponeras till externa klienter."
+        subtitle="Källor, prioritet, färskhetskrav, upplösningar och fallback används endast av OPS interna avräknings-, settlement- och faktureringsflöden. Externa tenants hämtar själva marknadspris till sina publika kalkylatorer."
         userEmail={admin.email}
         workspaceName={scope?.companyName}
       />

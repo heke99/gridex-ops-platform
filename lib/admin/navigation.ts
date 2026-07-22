@@ -79,7 +79,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Tenantens publicering och marknadsdatapolicy',
     items: [
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog, publicering och teckningsbarhet', pageKey: 'contracts.catalog' },
-      { key: 'market_sources', label: 'Marknadsdatapolicy', href: '/admin/pricing/market-sources', description: 'Källor, prioritet, färskhet, upplösning och fallback för quote', pageKey: 'pricing.engine' },
+      { key: 'market_sources', label: 'Marknadsdatapolicy', href: '/admin/pricing/market-sources', description: 'Interna källor för fakturering, avräkning och settlement', pageKey: 'pricing.engine' },
     ],
   },
   {

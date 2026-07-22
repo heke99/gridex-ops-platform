@@ -52,6 +52,8 @@ export function parsePublicContractsQuery(request: NextRequest): PublicContracts
   }
 }
 
+export const PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION = '2026-07-22.2' as const
+
 export type PublicationRevision = {
   revision: number
   token: string
@@ -69,7 +71,8 @@ export async function loadPublicationRevision(companyId: string, channel: 'websi
   if (error) throw error
   const revision = Number(data?.revision ?? 0)
   const token = String(data?.revision_token ?? 'initial')
-  const opaque = createHash('sha256').update(`${companyId}:${channel}:${revision}:${token}`).digest('base64url').slice(0, 32)
+  const representationVersion = channel === 'website' ? PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION : 'api-v1'
+  const opaque = createHash('sha256').update(`${companyId}:${channel}:${revision}:${token}:${representationVersion}`).digest('base64url').slice(0, 32)
   return {
     revision,
     token,

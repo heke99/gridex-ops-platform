@@ -14,17 +14,12 @@ function read(rel) {
   }
   return fs.readFileSync(full, 'utf8')
 }
-
 function has(rel, needle, message) {
-  const source = read(rel)
-  if (!source.includes(needle)) failures.push(message || `${rel} saknar ${needle}`)
+  if (!read(rel).includes(needle)) failures.push(message || `${rel} saknar ${needle}`)
 }
-
 function lacks(rel, needle, message) {
-  const source = read(rel)
-  if (source.includes(needle)) failures.push(message || `${rel} innehåller förbjudet ${needle}`)
+  if (read(rel).includes(needle)) failures.push(message || `${rel} innehåller förbjudet ${needle}`)
 }
-
 function json(rel) {
   try {
     return JSON.parse(read(rel))
@@ -34,130 +29,109 @@ function json(rel) {
   }
 }
 
-const migration = 'supabase/migrations/20260722133000_external_tenant_quote_api_completion.sql'
+const previousMigration = 'supabase/migrations/20260722133000_external_tenant_quote_api_completion.sql'
+const boundaryMigration = 'supabase/migrations/20260722233000_external_tenant_pricing_boundary.sql'
 
-// 1. Opaque tenant identity and scopes.
-has(migration, 'external_tenant_reference', 'Migrationen ska skapa opak tenantreferens')
-lacks(migration, 'gen_random_bytes(', 'Tenantreferensen får inte bero på schema-känslig gen_random_bytes')
-has(migration, "replace(gen_random_uuid()::text, '-', '')", 'Tenantreferensen ska använda portable UUID-entropi')
-has(migration, "'integration_context.read'", 'Migrationen ska registrera integration_context.read')
-has('app/api/v1/integration/context/route.ts', "['integration_context.read']", 'Tenant context-route ska kräva rätt scope')
-has('lib/integrations/tenantContext.ts', 'authoritative_identity', 'Tenant context ska markera API-nyckeln som auktoritativ')
-lacks('app/api/v1/integration/context/route.ts', 'request.nextUrl.searchParams.get(\'company_id\')', 'Extern tenant context får inte välja company_id')
+// Tenant identity remains API-key authoritative.
+has(previousMigration, 'external_tenant_reference', 'Opak tenantreferens ska finnas')
+has('app/api/v1/integration/context/route.ts', "['integration_context.read']", 'Integration context ska kräva rätt scope')
+has('lib/integrations/tenantContext.ts', 'authoritative_identity', 'API-nyckeln ska vara auktoritativ tenantidentitet')
+lacks('app/api/v1/integration/context/route.ts', "searchParams.get('company_id')", 'Extern klient får inte välja company_id')
 
-// 2. Customer type normalization.
-has('lib/customers/externalCustomerType.ts', "normalized === 'company'", 'company-alias ska normaliseras')
-has('lib/customers/externalCustomerType.ts', "value: 'business'", 'company ska mappas till business')
-has('lib/website/publicContractApi.ts', 'invalid_query_parameter', 'Ogiltig customer_type-query ska ge strukturerat 400')
-
-// 3-5. Canonical quote and application binding.
-has(migration, 'create table if not exists public.website_contract_quotes', 'Quotes ska persisteras canonical')
-has('lib/pricing/offerQuote.ts', 'persistWebsiteQuote', 'Quote-motorn ska spara quote')
-has('lib/pricing/offerQuote.ts', 'pricing_snapshot_schema_version', 'Quote ska exponera snapshotversion')
-has('lib/pricing/offerQuote.ts', 'market_data_timestamp', 'Quote ska exponera marknadsdatatimestamp')
-has('lib/pricing/offerQuote.ts', 'valid_until: persisted.validUntil', 'Quote ska exponera giltighetstid')
-has('lib/pricing/websiteQuotes.ts', 'quote_already_consumed', 'Quote ska skyddas mot återanvändning')
-has('lib/pricing/websiteQuotes.ts', ".eq('status', 'active')", 'Quote-konsumtion ska använda atomisk compare-and-set')
-has('lib/pricing/websiteQuotes.ts', 'contract_product_version_id', 'Quote ska bindas till produktversion')
-has('lib/pricing/websiteQuotes.ts', 'legal_bundle_version_id', 'Quote ska bindas till juridikversion')
-has('lib/website/customerApplications.ts', 'validateWebsiteQuote', 'Kundansökan ska verifiera quote')
-has('lib/website/customerApplications.ts', 'markWebsiteQuoteConsumed', 'Kundansökan ska konsumera quote')
-has('lib/website/customerApplications.ts', 'await stage("quote_consume"', 'Quote ska reserveras innan kundgrafen skapas')
-has('lib/website/customerApplications.ts', 'quote_snapshot', 'Kundansökan ska låsa hela quote-snapshotet')
-has('lib/website/customerApplications.ts', 'annual_consumption_kwh', 'Årsförbrukning ska sparas canonical')
-
-// 6. Channel-scoped revision, ETag and 304.
-has('app/api/v1/website/public-contracts/route.ts', 'ifNoneMatchMatches', 'Website-feed ska stödja If-None-Match')
-has('app/api/v1/website/public-contracts/route.ts', 'status: 304', 'Website-feed ska returnera 304')
-has('app/api/v1/contracts/route.ts', "loadPublicationRevision(auth.client.company_id, 'api')", 'API-feed ska ha separat revisionsström')
-has('app/api/v1/contracts/route.ts', 'status: 304', 'API-feed ska returnera 304')
-has(migration, 'after insert or update or delete on public.contract_publication_versions', 'Alla publication-versionmutationer ska höja revisionen')
-
-// 7. Publication webhook must use the live delivery pipeline.
-has(migration, "'contracts.publication.changed'", 'Publication changed-event ska finnas')
-has(migration, 'insert into public.webhook_deliveries', 'Publication event ska använda webhook_deliveries')
-lacks(migration, 'insert into public.event_outbox', 'Ny publication pipeline får inte skriva till legacy event_outbox')
-has('lib/integrations/webhooks.ts', 'tenant_reference', 'Runtime-webhooks ska innehålla tenant_reference')
-
-// 8. Real API channel feed without internal company IDs.
-has('app/api/v1/contracts/route.ts', "['api_contracts.read']", 'API-feed ska kräva separat scope')
-has(migration, "cp.channel='api'", 'API-feed ska filtrera api-kanalen')
-has(migration, "- 'company_id' - 'companyId'", 'API-feed ska ta bort internt company_id')
-has(migration, "publication_snapshot->'commercial_snapshot'", 'API-feed ska sanera company_id även i nested commercial_snapshot')
-has('lib/api/publicRouteRegistry.ts', "path: '/api/v1/contracts'", 'API-feed ska vara dokumenterad i route-registret')
-
-// 9. Diagnostics from canonical readiness graph.
-for (const field of [
-  'canonical_graph_consistent',
-  'forward_publication_link_valid',
-  'reverse_legacy_link_valid',
-  'company_chain_valid',
-  'tenant_assignment_valid',
-  'channel_valid',
-  'source_offer_consistent',
-  'pricing_ready',
-  'legal_ready',
-  'invoice_fee_ready',
-  'publication_active',
-  'application_acceptance_ready',
-]) has('lib/website/publicContracts.ts', field, `Diagnostics saknar ${field}`)
-has('app/api/v1/website/public-contracts/route.ts', "headers.Deprecation = 'true'", 'diagnostics=1 ska markeras deprecated')
-has('app/api/v1/website/public-contracts/route.ts', "headers.Sunset =", 'diagnostics=1 ska ha sunset-header')
-
-// 10. Tenant-admin market source configuration.
-has('app/admin/pricing/market-sources/page.tsx', 'Max dataålder', 'Tenantadmin ska kunna ange max dataålder')
-has('app/admin/pricing/market-sources/page.tsx', 'Testa anslutning', 'Tenantadmin ska kunna testa provider')
-has('app/admin/pricing/market-sources/actions.ts', 'testMarketSourceConnectionAction', 'Backend för anslutningstest ska finnas')
-has('app/admin/pricing/market-sources/page.tsx', "requireAdminPageKeyAccess('pricing.engine')", 'Marknadsdatapolicy ska kräva pricing-behörighet')
-has('app/admin/pricing/market-sources/actions.ts', "['pricing.write', 'pricing.publish']", 'Marknadsdataåtgärder ska kräva pricing-behörighet')
-has('lib/admin/navigation.ts', "href: '/admin/pricing/market-sources'", 'Tenantadmin ska hitta marknadsdatapolicyn i navigationen')
-has(migration, 'forecast_policy', 'Forecast-policy ska finnas i DB')
-has(migration, 'portfolio_policy', 'Portfolio-policy ska finnas i DB')
-has('lib/pricing/priceSourceResolver.ts', 'policySupports', 'Quote-motorn ska använda tenantens område/upplösningspolicy')
-has('lib/pricing/priceSourceResolver.ts', 'allowIndicativeLatest', 'Quote-motorn ska tillämpa indikativ fallback-policy')
-
-// 11-12. Canonical routes, OpenAPI, types and public docs.
-has('lib/integrations/apiClientScopes.ts', 'website_quotes.validate', 'API-klient-UI ska stödja quote-valideringsscope')
-has('lib/integrations/apiClientScopes.ts', 'api_contracts.read', 'API-klient-UI ska stödja api feed-scope')
-has('lib/integrations/apiClientScopes.ts', 'website_energy_area.resolve', 'API-klient-UI ska stödja canonical energy-area-scope')
-has('lib/integrations/apiClientScopes.ts', 'website_switch_status.read', 'API-klient-UI ska stödja canonical switch-status-scope')
-has('app/api/v1/website/energy-area/resolve/route.ts', 'resolveEnergyContext', 'Canonical energy-area-route ska använda OPS resolver')
-has('app/api/v1/website/switch-status/route.ts', 'loadWebsiteSwitchStatus', 'Canonical switch-status-route ska finnas')
-has('lib/website/switchStatus.ts', 'opaqueSwitchReference', 'Switch-status får inte exponera internt switch-UUID')
-has('lib/integrations/websiteApiContract.ts', 'ContractsPublicationChangedWebhook', 'Publika TypeScript-kontrakt ska inkludera webhooken')
-has('app/developers/customer-portal-api/page.tsx', '2026-07-22.1', 'Utvecklarsidan ska ha ny kontraktsversion')
-has('docs/external-website-api-integration-guide.md', 'Canonical uppdatering 2026-07-22.1', 'Tenantens integrationsguide ska peka på canonical kontrakt')
-has('docs/ops-summary-1-api-completion-2026-07-22.md', 'releasekrav', 'Canonical dokumentation ska finnas')
-
-const spec = json('docs/openapi/website-integration-v1.json')
-const paths = spec.paths || {}
-for (const route of [
-  '/api/v1/integration/context',
-  '/api/v1/contracts',
-  '/api/v1/website/public-contracts',
-  '/api/v1/website/public-contracts/diagnostics',
-  '/api/v1/website/quote',
-  '/api/v1/website/quote/validate',
-  '/api/v1/website/energy-area/resolve',
-  '/api/v1/website/switch-status',
-  '/api/v1/website/customer-applications',
+// Public contract is now the complete tenant calculation contract.
+for (const needle of [
+  'calculation_components',
+  'display_components',
+  'calculation_inclusion',
+  'website_visibility',
+  'hidden_components_must_be_calculated',
+  'market_price_supplied_by_ops: false',
+  'market_price_responsibility',
 ]) {
-  if (!paths[route]) failures.push(`OpenAPI saknar ${route}`)
+  has('lib/website/publicContracts.ts', needle, `Public contract DTO saknar ${needle}`)
 }
-const schemas = spec.components?.schemas || {}
-const quoteProps = schemas.Quote?.properties || schemas.WebsiteQuote?.properties || schemas.QuoteResponse?.properties || {}
-for (const field of ['offer_reference', 'quote_reference', 'pricing_interval', 'market_data_timestamp', 'valid_until']) {
-  if (!quoteProps[field]) failures.push(`OpenAPI quote-schema saknar ${field}`)
+has('lib/website/publicContracts.ts', 'fixed_price: fixedPrice', 'Fastpris ska alltid projiceras från OPS')
+has('lib/website/publicContracts.ts', 'offer.contract_type === "fixed"', 'Fastpris ska alltid vara synligt för fastprisavtal')
+has('lib/pricing/contractPricingVersioning.ts', 'websiteVisibility.fixed_price = true', 'Nya fastprisversioner ska låsa fastprisets synlighet')
+has('lib/website/publicContracts.ts', 'invoice_fee: invoiceFee', 'Fakturaavgift ska alltid projiceras från OPS')
+has('lib/website/publicContracts.ts', 'components: calculationComponents', 'Kompatibilitetsfältet components ska innehålla hela kalkylen')
+has('lib/website/publicContracts.ts', 'display_components: displayComponents', 'Separat presentationslista ska finnas')
+lacks('lib/website/publicContracts.ts', 'visibleComponents', 'API får inte filtrera bort dolda kalkylkomponenter')
+has('lib/website/publicContracts.ts', 'publicComponentMetadata', 'Publik komponentmetadata ska allowlistas')
+const publicContractsSource = read('lib/website/publicContracts.ts')
+const publicResponseProjection = publicContractsSource.slice(publicContractsSource.indexOf('export function publicContractResponse'), publicContractsSource.indexOf('export type WebsiteLegalBundle'))
+if (publicResponseProjection.includes('...(offer.pricing_snapshot ?? {})')) failures.push('API får inte sprida hela interna pricing_snapshot i publicContractResponse')
+has('lib/website/publicContracts.ts', 'portfolio_indications: []', 'Interna marknadsindikationer ska inte exponeras')
+
+// Pricing versioning and database distinguish calculation from presentation.
+has('lib/pricing/contractPricingVersioning.ts', 'calculation_inclusion: "included"', 'Nya prisversioner ska markera beräkningspåverkan')
+has('lib/pricing/contractPricingVersioning.ts', 'website:', 'Nya prisversioner ska markera website visibility')
+has(boundaryMigration, 'calculation_inclusion', 'DB ska lagra beräkningspåverkan')
+has(boundaryMigration, 'website_summary_visible', 'DB ska stödja sammanställningssynlighet')
+has(boundaryMigration, "website_quotes.write", 'Migrationen ska återkalla gammalt quote-scope')
+has(boundaryMigration, "website_energy_area.resolve", 'Migrationen ska återkalla gammalt energy-area-scope')
+
+// External quote and public energy-area APIs are removed, while internal pricing remains.
+for (const [route, code] of [
+  ['app/api/v1/website/quote/route.ts', 'tenant_managed_pricing_required'],
+  ['app/api/v1/website/quote/validate/route.ts', 'quote_validation_removed'],
+  ['app/api/v1/website/energy-area/resolve/route.ts', 'tenant_managed_energy_area_required'],
+  ['app/api/public/energy-area/route.ts', 'public_energy_area_removed'],
+]) {
+  has(route, 'status: 410', `${route} ska returnera 410`)
+  has(route, code, `${route} ska returnera stabil felkod ${code}`)
 }
-if (quoteProps.source_period?.type !== 'string') failures.push('OpenAPI quote source_period ska vara canonical YYYY-MM-sträng')
-const webhook = schemas.ContractsPublicationChangedWebhook || schemas.PublicationChangedWebhook || {}
-if (!JSON.stringify(webhook).includes('tenant_reference')) failures.push('OpenAPI webhook-schema saknar tenant_reference')
-if (!JSON.stringify(webhook).includes('publication_revision')) failures.push('OpenAPI webhook-schema saknar publication_revision')
+lacks('app/api/v1/website/quote/route.ts', 'calculateOfferQuote', 'Extern quote-route får inte anropa OPS prismotor')
+lacks('app/api/v1/website/energy-area/resolve/route.ts', 'resolveEnergyContext', 'Extern area-route får inte anropa OPS resolver')
+has('lib/pricing/offerQuote.ts', 'calculateOfferQuote', 'Intern prismotor ska finnas kvar för OPS')
+has('lib/energy/resolver.ts', 'resolveEnergyContext', 'Intern operativ elområdesresolver ska finnas kvar')
+
+// Removed scopes may not be provisioned in the active API client catalog.
+for (const scope of ['website_quotes.write', 'website_quotes.validate', 'website_energy_area.resolve']) {
+  lacks('lib/integrations/apiClientScopes.ts', scope, `Aktiv scope-katalog får inte innehålla ${scope}`)
+}
+has('lib/integrations/apiClientScopes.ts', 'website_contracts.read', 'Public contracts scope ska finnas')
+has('lib/integrations/apiClientScopes.ts', 'website_applications.write', 'Application scope ska finnas')
+
+// Application binds directly to offer_reference and ignores legacy quote_reference.
+lacks('lib/website/customerApplications.ts', 'validateWebsiteQuote', 'Ansökan får inte kräva quote-validering')
+lacks('lib/website/customerApplications.ts', 'markWebsiteQuoteConsumed', 'Ansökan får inte konsumera quote')
+has('lib/website/customerApplications.ts', 'quote_reference är deprecated och ignorerades', 'Legacy quote_reference ska uttryckligen ignoreras')
+has('lib/website/customerApplications.ts', 'deprecated_quote_reference_ignored', 'Svaret ska diagnostisera ignorerad legacy quote')
+has('lib/website/customerApplications.ts', 'runEnergyResolution', 'OPS ska fortsatt verifiera anläggning/elområde operativt')
+
+// Existing publication revision, webhook and API feed protections remain.
+has('app/api/v1/website/public-contracts/route.ts', 'ifNoneMatchMatches', 'Website-feed ska stödja If-None-Match')
+has('app/api/v1/website/public-contracts/route.ts', 'status: 304', 'Website-feed ska stödja 304')
+has('lib/website/publicContractApi.ts', 'PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION', 'ETag ska versionssaltas när DTO-kontraktet ändras')
+has('app/api/v1/website/public-contracts/route.ts', 'X-Gridex-Contract-Version', 'Public contract-svaret ska exponera representationsversion')
+has('app/api/v1/contracts/route.ts', 'status: 304', 'API-feed ska stödja 304')
+has(previousMigration, "'contracts.publication.changed'", 'Publication webhook-event ska finnas')
+has(previousMigration, 'insert into public.webhook_deliveries', 'Webhook ska använda delivery pipeline')
+has('lib/integrations/webhooks.ts', 'tenant_reference', 'Webhook ska använda opak tenantreferens')
+
+// Public documentation and both OpenAPI specifications describe the new boundary.
+has('app/developers/customer-portal-api/page.tsx', '2026-07-22.2', 'Utvecklarsidan ska visa API 2026-07-22.2')
+has('app/developers/customer-portal-api/page.tsx', 'hidden_components_must_be_calculated', 'Utvecklarsidan ska dokumentera dolda kalkylkomponenter')
+has('docs/external-website-api-integration-guide.md', 'API 2026-07-22.2', 'Integrationsguiden ska vara uppdaterad')
+has('docs/ops-summary-1-api-completion-2026-07-22.md', 'market_price_supplied_by_ops', 'Canonical målbild ska dokumentera marknadsprisgränsen')
+
+for (const specFile of ['docs/openapi/website-integration-v1.json', 'docs/openapi/customer-portal-v1.json']) {
+  const spec = json(specFile)
+  if (spec.info?.version !== '2026-07-22.2') failures.push(`${specFile} har fel version`)
+  const quote = spec.paths?.['/api/v1/website/quote']?.post
+  if (!quote?.deprecated || !quote?.responses?.['410']) failures.push(`${specFile} ska markera quote som borttagen med 410`)
+  const offer = spec.components?.schemas?.PublicContractOffer || spec.components?.schemas?.PublicContract
+  const serialized = JSON.stringify({ offer: offer || {}, schemas: spec.components?.schemas || {} })
+  for (const field of ['calculation_components', 'display_components', 'calculation_inclusion', 'website_visibility']) {
+    if (!serialized.includes(field)) failures.push(`${specFile} saknar ${field} i public contract-schema`)
+  }
+  if (!serialized.includes('market_price_responsibility')) failures.push(`${specFile} saknar market_price_responsibility`)
+}
 
 if (failures.length) {
-  console.error('Gridex OPS summary 1 regression failed:')
+  console.error('Gridex OPS pricing boundary regression failed:')
   for (const failure of failures) console.error(`- ${failure}`)
   process.exit(1)
 }
-
-console.log('Gridex OPS summary 1 regression passed.')
+console.log('Gridex OPS pricing boundary regression passed.')

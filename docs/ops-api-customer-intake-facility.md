@@ -116,26 +116,15 @@ both     -> ["private", "business"]
 
 Tenantens UI ska visa `both` som **Privat och företag**. Ett okänt värde får inte automatiskt behandlas som privatkund.
 
-### Versionslåst synlighet per avgift
+### Versionslåst beräkning och presentation per avgift
 
-Varje pris- eller avgiftskomponent kan ha `website_card_visible`. Samma beslut exponeras i `pricing.visibility`. Endast poster som är markerade för webbens avtalskort finns i `pricing.components`, de namngivna `pricing.*`-fälten och top-level kompatibilitetsfälten.
+Varje pris- eller avgiftskomponent har separata egenskaper för beräkningspåverkan och presentation:
 
-Synlighetsflaggan är endast presentation. En dold avgift finns fortfarande kvar i den fullständiga låsta prisversionen och används i:
+- `calculation_inclusion` anger `included`, `excluded` eller `conditional`;
+- `website_visibility` anger `visible`, `hidden` eller `summary_only`;
+- `website_card_visible` finns kvar som kompatibilitetsalias.
 
-- offert och prisberäkning,
-- checkout/kostnadssammanställning före accept,
-- avtalsdokument och kundens snapshots,
-- fakturering och bokföringsunderlag.
-
-Ändrad webbvisning på ett publicerat avtal ska skapa en ny pris- och publiceringsversion. Redan tecknade kundavtal får aldrig skrivas om.
-
-Teknisk diagnostik kan hämtas server-side med:
-
-```http
-GET /api/v1/website/public-contracts?customer_type=private&diagnostics=1
-```
-
-Diagnostiksvaret visar `visible`, `hidden` och konkreta `blockers` per erbjudande. Det får inte visas i normal kund-UI.
+Alla tillämpliga komponenter finns i `pricing.calculation_components` och `pricing.components`, även när de är dolda på avtalskortet. Endast `pricing.display_components` är filtrerad för separat rendering. En dold avgift används därför fortsatt i tenantens kalkyl, checkout, avtalsunderlag och OPS interna fakturering. Ändrad presentation på ett publicerat avtal skapar en ny pris- och publiceringsversion; redan tecknade avtal skrivs aldrig om.
 
 ## Kundansökan
 
@@ -495,15 +484,18 @@ Fakturering sker per månadsunderlag. En fakturaperiod som omfattar flera månad
 
 `pricing.visibility.portfolio_price` och komponentens `website_card_visible` påverkar endast tenantens publika avtalskort. Dolda avgifter och priser finns fortfarande kvar i bindande prisöversikt, avtalssnapshot och fakturering.
 
-## Kanoniskt fakturaavgifts- och quote-kontrakt (`2026-07-20.2`)
+## Fullständigt prisunderlag och tenantens kalkylator (`2026-07-22.2`)
 
-Den bindande integrationsordningen är:
+Den aktiva integrationsordningen är:
 
-1. `GET /api/v1/website/public-contracts` används för avtalskort, urval, marknadstext, kundtyp, juridiska länkar och `offer_reference`.
-2. `POST /api/v1/website/quote` används för all faktisk prisberäkning från exakt låst prisversion.
-3. `POST /api/v1/website/customer-applications` tecknar samma `offer_reference` och exakt publicerings-/prisversion.
+1. `GET /api/v1/website/public-contracts` används för avtalsurval och som fullständigt maskinläsbart beräkningsunderlag.
+2. Tenantens webbplats löser själv kundens prisområde och hämtar själv extern marknadsprisindikation för rörligt månads-, tim- och kvartspris.
+3. Tenantens kalkylator kombinerar marknadspriset med OPS-publicerade påslag, avgifter, momsregler och förbrukning.
+4. `POST /api/v1/website/customer-applications` tecknar direkt med samma `offer_reference`; OPS verifierar inskickat prisområde och låser publicerings-, pris-, avgifts- och juridikversion.
 
-`public-contracts` är ett presentations-API. En prisdel kan vara `null` eller saknas i kortets `pricing.components` när `website_card_visible=false`, men den kan fortfarande vara en verklig debiteringskomponent. Dolda komponenter ingår därför fortsatt i quote, checkout, avtalsdokument, låst avtalssnapshot och fakturering. Tenantens frontend får inte återskapa totalsumman från kort-DTO:n.
+För fastprisavtal skickar OPS alltid det publicerade fasta priset per kWh. Fastpriset är alltid synligt för kunden och kan inte döljas av presentationsinställningen för ett fastprisavtal. Tenantens kalkylator använder det tillsammans med samtliga tillämpliga fasta och förbrukningsbaserade avgifter för att visa beräknad månads- och årskostnad.
+
+`pricing.calculation_components` och kompatibilitetsfältet `pricing.components` innehåller **alla** tillämpliga pris- och avgiftskomponenter. En komponent med `website_visibility=hidden` eller `website_card_visible=false` får inte filtreras bort: den ska fortfarande skickas till tenantens backend och användas när `calculation_inclusion=included` eller dess villkor uppfylls. `pricing.display_components` är den separata listan över sådant som får visas som egna sälj-/avtalsrader.
 
 För penningvärden gäller:
 
@@ -512,13 +504,6 @@ För penningvärden gäller:
 - använd aldrig truthy/falsy-kontroller för pengar;
 - kontrollera uttryckligen `value === null || value === undefined`.
 
-Quote-requesten kräver `offer_reference`, `price_area`, `annual_consumption_kwh > 0` och `start_date` i formatet `YYYY-MM-DD`. `customer_type` får, när det anges, endast vara `private` eller `business`. Svarets `lines` innehåller de verkliga beräkningskomponenterna, inklusive `invoice_fee` med `unit=sek_invoice` och `calculation_type=per_invoice` även när fakturaavgiften är dold på avtalskortet.
+OPS externa tenant-API returnerar inte Nord Pool-, spot-, tim- eller kvartsspotpris, interna spot-ID:n, marknadskällor eller fallbackkedjor. De tidigare rutterna `/api/v1/website/quote`, `/api/v1/website/quote/validate`, `/api/v1/website/energy-area/resolve` och `/api/public/energy-area` returnerar `410 Gone` från API `2026-07-22.2`.
 
-`GET /api/v1/website/public-contracts?diagnostics=1` är tenant-scopad och visar `pricing_readiness.invoice_fee`. Ready-status innehåller belopp, enhet, beräkningstyp, kortsynlighet och källa. Blockerad status använder någon av:
-
-- `invoice_fee_missing`
-- `invoice_fee_conflict`
-- `invoice_fee_ambiguous`
-
-Befintliga publicerade avtal rättas versionssäkert: en ny pris- och publiceringsversion skapas och den gamla markeras `superseded`. Redan signerade kundavtal behåller sin tidigare exakta version. Entydiga draftavtal kan uppdateras via det kanoniska kommandot. Saknade eller motstridiga värden sätts aldrig automatiskt till `0`, utan hamnar i manuell remediation med auditspår.
-
+`GET /api/v1/website/public-contracts?diagnostics=1` är tenant-scopad och visar readiness för publicering och kanoniska avgifter. Saknade eller motstridiga avgiftsvärden sätts aldrig automatiskt till `0`, utan hanteras versionssäkert med auditspår.

@@ -174,7 +174,25 @@ export default function ContractOfferAdminForm({
         <h3 className="font-black text-slate-950">Pris och publik synlighet</h3>
         <p className="mt-1 text-xs leading-5 text-slate-600">Dold på avtalskort betyder inte borttagen. Avgiften finns fortsatt i offert, snapshot, avtal och fakturering.</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <WebsitePricingField name="fixed_price_ore_per_kwh" placeholder="Fast pris öre/kWh" visibilityName="show_fixed_price_on_website" defaultValue={offer?.fixed_price_ore_per_kwh} defaultVisible={asBoolean(snapshotValue(offer, "show_fixed_price_on_website"), true)} />
+          <WebsitePricingField
+            name="fixed_price_ore_per_kwh"
+            placeholder="Fast pris öre/kWh"
+            visibilityName="show_fixed_price_on_website"
+            visibilityLabel={
+              contractType === "fixed"
+                ? "Fastpriset visas alltid för kunden"
+                : "Visa på hemsidans avtalskort"
+            }
+            visibilityLocked={contractType === "fixed"}
+            defaultValue={offer?.fixed_price_ore_per_kwh}
+            defaultVisible={
+              contractType === "fixed" ||
+              asBoolean(
+                snapshotValue(offer, "show_fixed_price_on_website"),
+                true,
+              )
+            }
+          />
           <WebsitePricingField name="spot_markup_ore_per_kwh" placeholder="Spotpåslag öre/kWh" visibilityName="show_spot_markup_on_website" defaultValue={offer?.spot_markup_ore_per_kwh} defaultVisible={asBoolean(snapshotValue(offer, "show_spot_markup_on_website"), true)} />
           <WebsitePricingField name="variable_fee_ore_per_kwh" placeholder="Rörlig avgift öre/kWh" visibilityName="show_variable_fee_on_website" defaultValue={offer?.variable_fee_ore_per_kwh} defaultVisible={asBoolean(snapshotValue(offer, "show_variable_fee_on_website"))} />
           <WebsitePricingField name="monthly_fee_sek" placeholder="Månadsavgift kr" visibilityName="show_monthly_fee_on_website" defaultValue={offer?.monthly_fee_sek} defaultVisible={asBoolean(snapshotValue(offer, "show_monthly_fee_on_website"), true)} />

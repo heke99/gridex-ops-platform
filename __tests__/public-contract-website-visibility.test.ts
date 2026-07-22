@@ -34,7 +34,8 @@ function offer(
     metadata: {},
     canonical_offer_reference: "offer_visibility_v1",
     pricing_snapshot: {
-      schema_version: 3,
+      schema_version: 5,
+      vat_rate: 0.25,
       public_price_text:
         "Portföljförvaltat elpris, påslag 4 öre/kWh. Moms 25%.",
       website_visibility: {
@@ -57,6 +58,7 @@ function offer(
         {
           component_code: "spot_markup",
           component_type: "spot_markup",
+          name: "Påslag",
           amount: 4,
           unit: "ore_per_kwh",
           website_card_visible: true,
@@ -64,6 +66,7 @@ function offer(
         {
           component_code: "variable_fee",
           component_type: "variable_fee",
+          name: "Rörlig avgift",
           amount: 2,
           unit: "ore_per_kwh",
           website_card_visible: false,
@@ -71,6 +74,7 @@ function offer(
         {
           component_code: "invoice_fee",
           component_type: "invoice_fee",
+          name: "Fakturaavgift",
           amount: 29,
           unit: "sek_invoice",
           website_card_visible: false,
@@ -81,25 +85,127 @@ function offer(
   };
 }
 
-describe("public contract website pricing visibility", () => {
-  it("keeps hidden fees in the immutable source but removes them from the public card DTO", () => {
+describe("public contract calculation and website visibility", () => {
+  it("always returns hidden fees to the tenant calculation contract", () => {
     const source = offer();
     const response = publicContractResponse(source);
 
     expect(source.pricing_snapshot?.price_components).toHaveLength(3);
     expect(response.customer_type).toBe("both");
     expect(response.customer_types).toEqual(["private", "business"]);
-    expect(response.pricing.markup).toEqual({ amount: 4, unit: "ore_per_kwh" });
-    expect(response.pricing.variable_fee).toBeNull();
-    expect(response.pricing.invoice_fee).toBeNull();
-    expect(response.variable_fee_ore_per_kwh).toBeNull();
-    expect(response.invoice_fee_sek).toBeNull();
-    expect(response.pricing.components).toHaveLength(1);
-    expect(response.pricing.components[0]).toMatchObject({
-      component_code: "spot_markup",
+    expect(response.pricing.markup).toMatchObject({
+      amount: 4,
+      unit: "ore_per_kwh",
+      website_visibility: "visible",
+      calculation_inclusion: "included",
     });
-    expect(response.public_price_text).not.toMatch(
-      /rörlig avgift|fakturaavgift/i,
+    expect(response.pricing.variable_fee).toMatchObject({
+      amount: 2,
+      website_visibility: "summary_only",
+      calculation_inclusion: "included",
+    });
+    expect(response.pricing.invoice_fee).toMatchObject({
+      amount: 29,
+      website_visibility: "summary_only",
+      calculation_inclusion: "included",
+    });
+    expect(response.variable_fee_ore_per_kwh).toBe(2);
+    expect(response.invoice_fee_sek).toBe(29);
+    expect(response.pricing.calculation_components).toHaveLength(4);
+    expect(response.pricing.components).toEqual(
+      response.pricing.calculation_components,
+    );
+    expect(response.pricing.calculation_components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          component_code: "variable_fee",
+          website_visibility: "summary_only",
+          calculation_inclusion: "included",
+        }),
+        expect.objectContaining({
+          component_code: "invoice_fee",
+          website_visibility: "summary_only",
+          calculation_inclusion: "included",
+        }),
+        expect.objectContaining({
+          component_code: "monthly_fee",
+          website_visibility: "summary_only",
+          calculation_inclusion: "included",
+        }),
+      ]),
+    );
+    expect(response.pricing.display_components).toHaveLength(1);
+    expect(response.pricing.display_components[0]).toMatchObject({
+      component_code: "spot_markup",
+      website_visibility: "visible",
+    });
+    expect(response.pricing.summary_components).toHaveLength(4);
+    expect(response.pricing.summary_components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ component_code: "variable_fee" }),
+        expect.objectContaining({ component_code: "invoice_fee" }),
+        expect.objectContaining({ component_code: "monthly_fee" }),
+      ]),
+    );
+    expect(response.pricing.calculation_contract).toEqual({
+      includes_all_applicable_components: true,
+      hidden_components_must_be_calculated: true,
+      market_price_supplied_by_ops: false,
+    });
+    expect(response.pricing.market_price_responsibility).toBe("tenant");
+  });
+
+  it("always exposes and displays fixed price for fixed agreements", () => {
+    const response = publicContractResponse(
+      offer({
+        contract_type: "fixed",
+        billing_model: "fixed",
+        fixed_price_ore_per_kwh: 140,
+        pricing_snapshot: {
+          schema_version: 5,
+          vat_rate: 0.25,
+          website_visibility: {
+            fixed_price: false,
+            monthly_fee: true,
+            invoice_fee: false,
+          },
+          price_components: [
+            {
+              component_code: "fixed_price",
+              component_type: "fixed_price",
+              name: "Fast elpris",
+              amount: 140,
+              unit: "ore_per_kwh",
+              website_card_visible: false,
+              website_summary_visible: false,
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(response.pricing.fixed_price).toEqual({
+      amount: 140,
+      unit: "ore_per_kwh",
+      vat_included: false,
+      vat_rate: 0.25,
+      website_visibility: "visible",
+      calculation_inclusion: "included",
+    });
+    expect(response.fixed_price_ore_per_kwh).toBe(140);
+    expect(response.pricing.display_components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          component_code: "fixed_price",
+          website_visibility: "visible",
+        }),
+      ]),
+    );
+    expect(response.pricing.market_price_responsibility).toBe(
+      "not_applicable",
+    );
+    expect(response.pricing.calculation_contract.market_price_supplied_by_ops).toBe(
+      false,
     );
   });
 
@@ -151,7 +257,7 @@ describe("public contract website pricing visibility", () => {
         amount: 81.1,
       }),
     ]);
-    expect(response.pricing.portfolio_management_fee).toEqual({
+    expect(response.pricing.portfolio_management_fee).toMatchObject({
       amount: 3,
       unit: "percent",
       calculation_base: "portfolio_cost",
@@ -164,7 +270,7 @@ describe("public contract website pricing visibility", () => {
     expect(response.portfolio_price_ore_per_kwh).toBeNull();
   });
 
-  it("preserves legacy visibility when an older snapshot has no explicit flags", () => {
+  it("preserves legacy visibility while still returning the fee for calculation", () => {
     const response = publicContractResponse(
       offer({
         customer_type: "private",
@@ -174,6 +280,7 @@ describe("public contract website pricing visibility", () => {
             {
               component_code: "invoice_fee",
               component_type: "invoice_fee",
+              name: "Fakturaavgift",
               amount: 29,
               unit: "sek_invoice",
             },
@@ -183,10 +290,137 @@ describe("public contract website pricing visibility", () => {
     );
 
     expect(response.customer_types).toEqual(["private"]);
-    expect(response.pricing.invoice_fee).toEqual({
+    expect(response.pricing.invoice_fee).toMatchObject({
       amount: 29,
       currency: "SEK",
       unit: "invoice",
+      calculation_inclusion: "included",
+      website_visibility: "visible",
     });
+    expect(response.pricing.calculation_components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          component_code: "invoice_fee",
+          calculation_inclusion: "included",
+        }),
+      ]),
+    );
   });
+  it("never exposes internal market-source or database metadata", () => {
+    const response = publicContractResponse(
+      offer({
+        pricing_snapshot: {
+          schema_version: 5,
+          market_sources: [{ provider_id: "provider-secret" }],
+          market_data_timestamp: "2026-07-22T10:00:00Z",
+          source_price_sek_per_kwh: 0.62,
+          spot_price_summary_id: "spot-summary-secret",
+          base_components: [
+            {
+              source_type: "spot",
+              label: "Tenantens marknadspris",
+              weight_percent: 100,
+              provider_id: "provider-secret",
+              metadata: { source_table_id: "internal-source-id" },
+            },
+          ],
+          price_components: [
+            {
+              component_code: "spot_markup",
+              component_type: "spot_markup",
+              name: "Påslag",
+              amount: 4,
+              unit: "ore_per_kwh",
+              metadata: {
+                source: "internal_source",
+                provider_id: "provider-secret",
+                calculation_base: "spot_cost",
+                visibility: {
+                  website_card: true,
+                  website: "visible",
+                  summary: true,
+                },
+              },
+            },
+          ],
+          portfolio_method: {
+            pricing_model: "portfolio_monthly_settlement",
+            portfolio_id: "portfolio-secret",
+            calculation_base: "portfolio_cost",
+            final_billing_requires: "locked_settlement",
+          },
+          portfolio_indications: [
+            { source_price_sek_per_kwh: 0.81, provider_id: "provider-secret" },
+          ],
+        },
+      }),
+    );
+
+    const serialized = JSON.stringify(response);
+    for (const forbidden of [
+      "market_sources",
+      "market_data_timestamp",
+      "source_price_sek_per_kwh",
+      "spot_price_summary_id",
+      "provider_id",
+      "portfolio_id",
+      "provider-secret",
+      "internal-source-id",
+    ]) {
+      expect(serialized).not.toContain(forbidden);
+    }
+    expect(response.pricing.portfolio_indications).toEqual([]);
+    expect(response.pricing.calculation_components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          component_code: "spot_markup",
+          metadata: expect.objectContaining({
+            calculation_base: "spot_cost",
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it("keeps explicitly summary-hidden components in calculation only", () => {
+    const response = publicContractResponse(
+      offer({
+        pricing_snapshot: {
+          schema_version: 5,
+          price_components: [
+            {
+              component_code: "invoice_fee",
+              component_type: "invoice_fee",
+              name: "Fakturaavgift",
+              amount: 29,
+              unit: "sek_invoice",
+              website_card_visible: false,
+              website_summary_visible: false,
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(response.pricing.calculation_components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          component_code: "invoice_fee",
+          website_visibility: "hidden",
+          calculation_inclusion: "included",
+        }),
+      ]),
+    );
+    expect(response.pricing.display_components).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ component_code: "invoice_fee" }),
+      ]),
+    );
+    expect(response.pricing.summary_components).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ component_code: "invoice_fee" }),
+      ]),
+    );
+  });
+
 });

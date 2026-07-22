@@ -65,7 +65,6 @@ import {
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
 import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/documents";
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
-import { markWebsiteQuoteConsumed, validateWebsiteQuote, WebsiteQuoteValidationError, type WebsiteQuoteRecord } from "@/lib/pricing/websiteQuotes";
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) =>
@@ -5957,7 +5956,6 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
   applicationNumber: string;
   publicOffer: PublicContractOffer;
   offerReference: string;
-  quote: WebsiteQuoteRecord | null;
   readiness: WebsiteApplicationReadiness;
   legalVersions: WebsiteLegalAcceptanceVersion[];
   structuredPoa: NormalizedStructuredPoa | null;
@@ -6189,8 +6187,8 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         website_application_id: input.applicationRowId,
         application_number: input.applicationNumber,
         offer_reference: input.offerReference,
-        quote_reference: input.quote?.quote_reference ?? null,
-        quote_valid_until: input.quote?.valid_until ?? null,
+        quote_reference: null,
+        quote_valid_until: null,
         missing_fields: input.readiness.missingFields,
         blocking_reasons: input.readiness.blockingReasons,
       },
@@ -6220,14 +6218,14 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         base_price_components_snapshot: compatibilitySnapshot.basePriceComponents,
         price_components_snapshot: compatibilitySnapshot.priceComponents,
         requested_start_date: requestedStartDate,
-        quote_reference: input.quote?.quote_reference ?? null,
-        quote_valid_until: input.quote?.valid_until ?? null,
-        quote_market_data_timestamp: input.quote?.market_data_timestamp ?? null,
-        quote_market_sources: input.quote?.market_sources ?? [],
-        quote_assumptions: input.quote?.assumptions ?? [],
+        quote_reference: null,
+        quote_valid_until: null,
+        quote_market_data_timestamp: null,
+        quote_market_sources: [],
+        quote_assumptions: [],
         quote_pricing_snapshot_schema_version:
-          input.quote?.pricing_snapshot_schema_version ?? null,
-        quote_snapshot: input.quote?.quote_snapshot ?? null,
+          null,
+        quote_snapshot: null,
         annual_consumption_kwh: requestedAnnualConsumption(input.body),
         price_area: input.readiness.priceArea,
         grid_area_code: input.readiness.gridAreaCode,
@@ -6529,7 +6527,6 @@ export async function processWebsiteCustomerApplication(input: {
     null;
   let contract: WebsiteContractCreateResult | null = null;
   let publicOffer: PublicContractOffer | null = null;
-  let validatedQuote: WebsiteQuoteRecord | null = null;
   let legalAcceptanceVersions: WebsiteLegalAcceptanceVersion[] = [];
   let applicationNumber: string | null = null;
   let existingIdentity: Awaited<ReturnType<typeof loadExistingIdentity>> = null;
@@ -6955,48 +6952,14 @@ export async function processWebsiteCustomerApplication(input: {
       }
     }
 
-    if (selectedQuoteReference && publicOffer) {
-      const quoteOffer = publicOffer;
-      const quoteOfferReference = selectedOfferReference as string;
-      try {
-        validatedQuote = await stage("quote_validation", () =>
-          validateWebsiteQuote({
-            client: input.client,
-            quoteReference: selectedQuoteReference,
-            offerReference: quoteOfferReference,
-            publicOffer: quoteOffer,
-            customerType: body.customer.customer_type,
-            priceArea: readiness.priceArea,
-            gridAreaCode:
-              readiness.gridAreaCode ?? explicitSiteGridAreaCode(body),
-            postalCode: clean(body.site?.postal_code),
-            annualConsumptionKwh: requestedAnnualConsumption(body),
-            startDate:
-              readiness.requestedStartDate ?? requestedSiteMoveInDate(body),
-            applicationId: applicationRowId,
-          }),
-        );
-        await stage("quote_consume", () =>
-          markWebsiteQuoteConsumed({
-            companyId: input.client.company_id,
-            quoteReference: validatedQuote!.quote_reference,
-            applicationId: applicationRowId as string,
-          }),
-        );
-      } catch (error) {
-        if (error instanceof WebsiteQuoteValidationError) {
-          throw new WebsiteApplicationError({
-            message: error.message,
-            status: error.status,
-            code: error.code,
-            field: error.field,
-            stage: "quote_validation",
-            hint: "Hämta en ny quote från POST /api/v1/website/quote och skicka samma quote_reference tillsammans med oförändrat beräkningsunderlag.",
-            details: error.details ?? null,
-          });
-        }
-        throw error;
-      }
+    if (selectedQuoteReference) {
+      readiness = {
+        ...readiness,
+        warnings: [
+          ...readiness.warnings,
+          "quote_reference är deprecated och ignorerades. Nya ansökningar binds direkt till offer_reference och den publicerade avtalsversionen.",
+        ],
+      };
     }
 
     const canonicalGraph = await stage("customer_create", () =>
@@ -7010,7 +6973,6 @@ export async function processWebsiteCustomerApplication(input: {
         applicationNumber: applicationNumber as string,
         publicOffer: publicOffer as PublicContractOffer,
         offerReference: selectedOfferReference as string,
-        quote: validatedQuote,
         readiness,
         legalVersions: legalAcceptanceVersions,
         structuredPoa,
@@ -7149,8 +7111,8 @@ export async function processWebsiteCustomerApplication(input: {
       contract_id: contract?.id ?? null,
       contract_number: contract?.contract_number ?? null,
       offer_reference: publicOffer ? selectedOfferReference : null,
-      quote_reference:
-        validatedQuote?.quote_reference ?? selectedQuoteReference ?? null,
+      quote_reference: null,
+      deprecated_quote_reference_ignored: Boolean(selectedQuoteReference),
       price_plan_id:
         contract?.price_plan_id ??
         publicOffer?.price_plan_id ??
@@ -7271,13 +7233,7 @@ export async function processWebsiteCustomerApplication(input: {
       }),
     );
     applicationRowId = application.id;
-    if (validatedQuote) {
-      const consumedQuote = validatedQuote;
-      responsePayload.quote_reference = consumedQuote.quote_reference;
-      responsePayload.quote_valid_until = consumedQuote.valid_until;
-      responsePayload.pricing_snapshot_schema_version =
-        consumedQuote.pricing_snapshot_schema_version;
-    }
+
     const email = normalizedEmail(body.customer.email);
     let initialCommunicationResults: WebsiteEmailDispatchResult[] = [];
 

@@ -92,6 +92,9 @@ type PricingComponent = {
   vat_applicable: boolean;
   invoice_line_visible: boolean;
   website_card_visible: boolean;
+  website_summary_visible: boolean;
+  website_visibility: "visible" | "summary_only" | "hidden";
+  calculation_inclusion: "included" | "excluded" | "conditional";
   calculation_base: string | null;
   priority: number;
   metadata?: Record<string, unknown>;
@@ -297,16 +300,31 @@ function addComponent(
     | "vat_applicable"
     | "invoice_line_visible"
     | "website_card_visible"
+    | "website_summary_visible"
+    | "website_visibility"
+    | "calculation_inclusion"
     | "calculation_base"
   > & {
     vat_applicable?: boolean;
     invoice_line_visible?: boolean;
     website_card_visible?: boolean;
+    website_summary_visible?: boolean;
+    website_visibility?: "visible" | "summary_only" | "hidden";
+    calculation_inclusion?: "included" | "excluded" | "conditional";
     calculation_base?: string | null;
   },
 ) {
   const invoiceLineVisible = input.invoice_line_visible ?? true;
   const websiteCardVisible = input.website_card_visible ?? true;
+  const websiteSummaryVisible = input.website_summary_visible ?? true;
+  const websiteVisibility =
+    input.website_visibility ??
+    (websiteCardVisible
+      ? "visible"
+      : websiteSummaryVisible
+        ? "summary_only"
+        : "hidden");
+  const calculationInclusion = input.calculation_inclusion ?? "included";
   const existingVisibility =
     input.metadata?.visibility &&
     typeof input.metadata.visibility === "object" &&
@@ -318,14 +336,20 @@ function addComponent(
     vat_applicable: input.vat_applicable ?? true,
     invoice_line_visible: invoiceLineVisible,
     website_card_visible: websiteCardVisible,
+    website_summary_visible: websiteSummaryVisible,
+    website_visibility: websiteVisibility,
+    calculation_inclusion: calculationInclusion,
     calculation_base: input.calculation_base ?? null,
     metadata: {
       ...(input.metadata ?? {}),
       component_key: input.component_code,
       calculation_base: input.calculation_base ?? null,
+      calculation_inclusion: calculationInclusion,
       visibility: {
         ...existingVisibility,
         website_card: websiteCardVisible,
+        website: websiteVisibility,
+        summary: websiteSummaryVisible,
         quote_breakdown: true,
         checkout: true,
         contract_document: true,
@@ -421,6 +445,9 @@ function parseOptionalFeeLines(
       vat_applicable: vatTreatment !== "exempt",
       invoice_line_visible: true,
       website_card_visible: websiteCardVisible,
+      website_summary_visible: true,
+      website_visibility: websiteCardVisible ? "visible" : "summary_only",
+      calculation_inclusion: "included",
       calculation_base:
         typeof row.calculation_base === "string" && row.calculation_base.trim()
           ? row.calculation_base.trim()
@@ -432,8 +459,11 @@ function parseOptionalFeeLines(
         vat_treatment: vatTreatment,
         component_key: String(row.id ?? `optional_${index + 1}`),
         calculation_base: row.calculation_base ?? null,
+        calculation_inclusion: "included",
         visibility: {
           website_card: websiteCardVisible,
+          website: websiteCardVisible ? "visible" : "summary_only",
+          summary: true,
           quote_breakdown: true,
           checkout: true,
           contract_document: true,
@@ -505,6 +535,9 @@ export function normalizeContractPricing(
   const websiteVisibility = normalizeWebsiteVisibility(
     input.websiteCardVisibility,
   );
+  // A fixed-price agreement must always disclose its canonical kWh price.
+  // Other fees keep independent presentation controls.
+  if (input.contractType === "fixed") websiteVisibility.fixed_price = true;
 
   const monthlyFeeSek = optionalNumber(input.monthlyFeeSek, "Månadsavgift", {
     min: 0,

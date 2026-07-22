@@ -1,3 +1,5 @@
+> **Ersatt av API 2026-07-22.2.** Detta dokument beskriver den historiska implementationen vid lanseringen den 18 juli 2026. Nuvarande externa tenantkontrakt finns i `docs/external-website-api-integration-guide.md`. Dolda avgifter skickas numera alltid i `calculation_components`, medan `display_components` endast styr presentationen. OPS externa quote- och elområdesresolver är borttagna.
+
 # Public pricing visibility and customer-type normalization
 
 Date: 2026-07-18

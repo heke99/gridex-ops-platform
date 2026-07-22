@@ -190,7 +190,7 @@
     "verify:canonical-onboarding": "npm run typecheck && npm run test:canonical-onboarding && npm run gridex:canonical-onboarding-regression && node scripts/ediel-certification-regression.cjs && node scripts/ediel-completion-regression.cjs",
     "gridex:invoice-fee-canonical-regression": "node scripts/gridex-invoice-fee-canonical-regression.cjs",
     "gridex:contract-go-live-regression": "node scripts/gridex-contract-go-live-regression.cjs",
-    "test:contract-go-live": "vitest run __tests__/contract-admin-schema.test.ts __tests__/canonical-invoice-fee.test.ts __tests__/contract-pricing-snapshot.test.ts __tests__/public-contract-website-visibility.test.ts __tests__/public-contract-api-hardening.test.ts __tests__/market-price-source-selection.test.ts __tests__/contract-lifecycle-errors.test.ts __tests__/integration-ip-policy.test.ts",
+    "test:contract-go-live": "vitest run __tests__/contract-admin-schema.test.ts __tests__/canonical-invoice-fee.test.ts __tests__/contract-pricing-snapshot.test.ts __tests__/public-contract-website-visibility.test.ts __tests__/public-contract-api-hardening.test.ts __tests__/market-price-source-selection.test.ts __tests__/contract-lifecycle-errors.test.ts __tests__/integration-ip-policy.test.ts __tests__/external-pricing-boundary.test.ts",
     "verify:contract-go-live": "npm run verify:contract-go-live:static && npm run gridex:contract-db-lifecycle-test && npm run gridex:contract-multitenant-test",
     "typecheck:contract-go-live": "tsc --noEmit -p tsconfig.contract-patch.json",
     "gridex:contract-live-schema-check": "node scripts/gridex-contract-live-schema-check.cjs",
@@ -201,7 +201,8 @@
     "verify:contract-go-live:static": "npm run typecheck:contract-go-live && npm run gridex:contract-go-live-regression && npm run gridex:contract-lifecycle-repair-regression && npm run test:contract-go-live && npm run api:contract && npm run gridex:contract-single-source-regression && npm run gridex:canonical-contract-model-regression && npm run gridex:canonical-portfolio-pricing-regression && npm run gridex:invoice-fee-canonical-regression && npm run gridex:public-pricing-visibility-regression && npm run gridex:contract-api-signature-visibility-regression && npm run gridex:contract-legal-publication-completion-regression && npm run gridex:next-control-flow-regression",
     "gridex:contract-multitenant-test": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_a_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -v company_b_id=\"$GRIDEX_CONTRACT_TEST_SECOND_COMPANY_ID\" -v actor_id=\"$GRIDEX_CONTRACT_TEST_ACTOR_ID\" -f scripts/gridex-contract-multitenant-isolation-test.sql",
     "gridex:contract-publication-graph-repair": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_REPAIR_COMPANY_ID\" -v offer_id=\"$GRIDEX_CONTRACT_REPAIR_OFFER_ID\" -v actor_id=\"$GRIDEX_CONTRACT_REPAIR_ACTOR_ID\" -f scripts/gridex-contract-publication-graph-repair.sql",
-    "gridex:ops-summary-1-regression": "node scripts/gridex-ops-summary-1-regression.cjs"
+    "gridex:ops-summary-1-regression": "node scripts/gridex-ops-summary-1-regression.cjs",
+    "verify:external-pricing-boundary": "node scripts/gridex-ops-summary-1-regression.cjs && node scripts/gridex-invoice-fee-canonical-regression.cjs && node scripts/gridex-public-pricing-visibility-regression.cjs && vitest run __tests__/public-contract-website-visibility.test.ts __tests__/external-pricing-boundary.test.ts && node scripts/check-public-api-contract.cjs && node scripts/check-migration-versions.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-20.2",
-    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. GET /api/v1/website/public-contracts är ett presentations- och urvals-API, medan POST /api/v1/website/quote är den enda kanoniska prisberäkningen och använder den låsta prisversionen även för komponenter som är dolda på avtalskortet. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs endast med opak offer_reference och slutmarkeras server-side mot varje exakt dokument i erbjudandets låsta juridikpaket. Portföljmetod, final historik och icke-bindande indikationer hålls isär; slutlig fakturering kräver en exakt låst avräkningsrevision."
+    "version": "2026-07-22.2",
+    "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. GET /api/v1/website/public-contracts returnerar den fullständiga versionslåsta prismodellen, inklusive alla tillämpliga avgifter även när de inte ska visas separat på hemsidan. Beräkningspåverkan och presentation är separata egenskaper. Fastpris per kWh kommer alltid från OPS och används av tenantens kalkylator. För rörligt månads-, tim- och kvartspris löser tenanten själv prisområde, hämtar extern marknadsprisindikation och kombinerar den med OPS-publicerade påslag och avgifter. OPS externa API levererar inte Nord Pool-pris. company_id accepteras aldrig som fri tenantväljare. Website-avtal väljs med opak offer_reference och binds server-side mot exakt publicerings-, pris- och juridikversion."
   },
   "servers": [
     {
@@ -1426,7 +1426,7 @@
     "/api/v1/website/customer-applications": {
       "post": {
         "operationId": "postApiV1WebsiteCustomerApplications",
-        "summary": "Skapa idempotent kundansökan.",
+        "summary": "Skapa idempotent kundansökan från offer_reference.",
         "security": [
           {
             "bearerAuth": [
@@ -1490,7 +1490,7 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
-        "description": "Skapar en idempotent ansökan från exakt offer_reference som först har offererats via POST /api/v1/website/quote. OPS binder exakt publicerings- och prisversion, fem juridiska accepter och slutmarkerar avtalet atomiskt som signed. Klienten får inte rekonstruera pris från GET public-contracts."
+        "description": "Skapar en idempotent ansökan direkt från exakt offer_reference. OPS verifierar att tenantens inskickade price_area_code är giltigt och tillåtet och binder exakt publicerings-, pris-, avgifts-, moms- och juridikversion. quote_reference är deprecated och ignoreras. Tenantens indikativa externa marknadspris blir inte canonical avtalspris."
       }
     },
     "/api/v1/website/customer-events": {
@@ -1622,8 +1622,8 @@
     "/api/v1/website/portfolio-prices": {
       "get": {
         "operationId": "getApiV1WebsitePortfolioPrices",
-        "summary": "Hämta portföljmetod, final historik och icke-bindande indikationer.",
-        "description": "Read-only och tenant-scopad från API-token. offer_reference väljer exakt publicerat portfölj-/mixavtal. Indikationer är alltid non_binding och slutlig fakturering kräver exakt locked settlement.",
+        "summary": "Hämta publik portföljmetod och sanerad final historik.",
+        "description": "Read-only och tenant-scopad från API-token. offer_reference väljer exakt publicerat portfölj-/mixavtal. Svaret innehåller inga marknadsindikationer eller interna databas- och versions-ID:n och får inte användas som tenantens aktuella marknadspriskälla.",
         "security": [
           {
             "bearerAuth": [
@@ -1665,7 +1665,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Metod, historiska finala avräkningar och tillgängliga icke-bindande indikationer.",
+            "description": "Publik metod och sanerade historiska finala avräkningar.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1679,27 +1679,13 @@
                       "required": [
                         "offer_reference",
                         "historical_final_prices",
-                        "indications",
-                        "non_binding",
+                        "market_price_responsibility",
+                        "calculator_market_price_supplied_by_ops",
                         "final_billing_rule"
                       ],
                       "properties": {
                         "offer_reference": {
                           "type": "string"
-                        },
-                        "price_plan_version_id": {
-                          "type": [
-                            "string",
-                            "null"
-                          ],
-                          "format": "uuid"
-                        },
-                        "legal_bundle_version_id": {
-                          "type": [
-                            "string",
-                            "null"
-                          ],
-                          "format": "uuid"
                         },
                         "method": {
                           "type": [
@@ -1714,18 +1700,13 @@
                             "$ref": "#/components/schemas/PortfolioHistoricalFinalPrice"
                           }
                         },
-                        "indications": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/PortfolioPriceIndication"
-                          }
+                        "market_price_responsibility": {
+                          "type": "string",
+                          "const": "tenant"
                         },
-                        "indication_available": {
-                          "type": "boolean"
-                        },
-                        "non_binding": {
+                        "calculator_market_price_supplied_by_ops": {
                           "type": "boolean",
-                          "const": true
+                          "const": false
                         },
                         "final_billing_rule": {
                           "type": "string",
@@ -1762,7 +1743,7 @@
     "/api/v1/website/public-contracts": {
       "get": {
         "operationId": "getApiV1WebsitePublicContracts",
-        "summary": "Lista publicerade avtalskort och välj offer_reference.",
+        "summary": "Lista publicerade avtal med komplett beräkningsunderlag och visningsregler.",
         "security": [
           {
             "bearerAuth": [
@@ -1858,6 +1839,15 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-07-22.2"
+                },
+                "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
+              }
             }
           },
           "400": {
@@ -1888,74 +1878,30 @@
             "description": "Oförändrad tenant- och kanalbunden publication revision för angiven If-None-Match."
           }
         },
-        "description": "Presentations- och urvals-API. Returnerar endast publiceringsklara erbjudanden för API-nyckelns tenant. Dolda komponenter kan visas som null eller saknas i kortets pricing/components utan att de upphör att vara debiterbara. Värdet 0 är ett giltigt publicerat numeriskt värde och får inte testas med truthy/falsy. Integratören ska kontrollera value === null || value === undefined. offer_reference ska skickas till POST /quote och därefter till customer-applications. diagnostics=1 ger tenant-scopad readiness, inklusive fakturaavgiftens status och källa. Svaret innehåller tenant- och kanalbunden publication_revision samt ETag; aktuell If-None-Match ger 304."
+        "description": "Returnerar endast publiceringsklara erbjudanden för API-nyckelns tenant. pricing.calculation_components och pricing.components innehåller samtliga tillämpliga pris- och avgiftskomponenter, även sådana som har website_visibility=hidden. pricing.display_components innehåller endast komponenter som får visas separat. Fastprisavtal innehåller alltid det publicerade fasta priset per kWh. För rörliga avtal är pricing.market_price_responsibility=tenant och OPS returnerar inget Nord Pool- eller spotpris. offer_reference skickas direkt till customer-applications. diagnostics=1 ger tenant-scopad readiness. Svaret innehåller tenant- och kanalbunden publication_revision samt ETag; aktuell If-None-Match ger 304."
       }
     },
     "/api/v1/website/quote": {
       "post": {
-        "operationId": "postApiV1WebsiteQuote",
-        "summary": "Beräkna offert för publicerat erbjudande utan mutation.",
-        "security": [
-          {
-            "bearerAuth": [
-              "website_contracts.read"
-            ]
-          }
-        ],
-        "x-required-scopes": [
-          "website_contracts.read"
-        ],
+        "operationId": "postApiV1WebsiteQuoteRemoved",
+        "summary": "Borttagen: tenantens webbplats beräknar priset.",
+        "deprecated": true,
+        "security": [],
+        "x-required-scopes": [],
         "x-idempotency-required": false,
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/RequestId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WebsiteQuoteRequest"
-              }
-            }
-          }
-        },
         "responses": {
-          "200": {
-            "description": "Komplett offert från exakt låst prisversion.",
+          "410": {
+            "description": "Quote-endpointen togs bort i API 2026-07-22.2. Läs fullständigt beräkningsunderlag från public-contracts.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WebsiteQuoteResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "422": {
-            "$ref": "#/components/responses/Unprocessable",
-            "description": "Beräkningen kan inte genomföras, exempelvis invoice_fee_missing, invoice_fee_conflict, invoice_fee_ambiguous eller portfolio_price_missing."
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
           }
         },
-        "description": "Kanonisk server-side prisberäkning från exakt offer_reference och låst prisversion. Fakturaavgift, månadsavgift, påslag och övriga verkliga komponenter räknas även när de inte visas på avtalskortet. Svarets lines är det beräkningsunderlag som checkout och tecknande ska visa; GET public-contracts får inte användas för lokal totalsummering."
+        "description": "OPS externa API beräknar inte längre tenantens publika marknadspris. Fastpris och samtliga avtalsavgifter hämtas från public-contracts; rörligt marknadspris hämtas och beräknas av tenanten."
       }
     },
     "/api/v1/website/public-contracts/diagnostics": {
@@ -2558,6 +2504,16 @@
             }
           }
         }
+      },
+      "Gone": {
+        "description": "Endpoint removed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
       }
     },
     "schemas": {
@@ -2579,34 +2535,18 @@
       "PortfolioHistoricalFinalPrice": {
         "type": "object",
         "required": [
-          "id",
-          "portfolio_id",
-          "price_plan_version_id",
           "period_month",
           "price_area_code",
           "amount",
           "unit",
-          "status",
-          "revision_no",
-          "historical"
+          "vat_included",
+          "status"
         ],
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "portfolio_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "price_plan_version_id": {
-            "type": "string",
-            "format": "uuid"
-          },
           "period_month": {
             "type": "string",
             "format": "date",
-            "description": "Canonical delivery_month."
+            "description": "Historisk leveransmånad."
           },
           "price_area_code": {
             "type": "string",
@@ -2635,109 +2575,9 @@
               "final",
               "locked"
             ]
-          },
-          "revision_no": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "final_at": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "historical": {
-            "type": "boolean",
-            "const": true
           }
         },
         "additionalProperties": false
-      },
-      "PortfolioPriceIndication": {
-        "type": "object",
-        "required": [
-          "id",
-          "portfolio_id",
-          "price_plan_version_id",
-          "estimate_month",
-          "price_area_code",
-          "estimate_source",
-          "estimate_price_ore_per_kwh",
-          "estimate_generated_at",
-          "non_binding"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "portfolio_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "price_plan_version_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "estimate_month": {
-            "type": "string",
-            "format": "date"
-          },
-          "price_area_code": {
-            "type": "string",
-            "enum": [
-              "SE1",
-              "SE2",
-              "SE3",
-              "SE4"
-            ]
-          },
-          "estimate_source": {
-            "type": "string",
-            "enum": [
-              "latest_final",
-              "rolling_3",
-              "forecast",
-              "manual"
-            ]
-          },
-          "estimate_price_ore_per_kwh": {
-            "type": "number"
-          },
-          "estimate_generated_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "confidence": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "low",
-              "medium",
-              "high",
-              null
-            ]
-          },
-          "expires_at": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "non_binding": {
-            "type": "boolean",
-            "const": true
-          },
-          "label": {
-            "type": "string",
-            "const": "Uppskattning – ej bindande"
-          }
-        },
-        "additionalProperties": true
       },
       "ApiError": {
         "type": "object",
@@ -2842,117 +2682,143 @@
             "type": "object",
             "required": [
               "visibility",
-              "components"
+              "calculation_components",
+              "display_components",
+              "calculation_contract",
+              "summary_components"
             ],
             "properties": {
               "monthly_fee": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "invoice_fee": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true,
-                "description": "Presentationsfält för avtalskortet. null kan betyda dold på kortet; använd POST /quote för verklig beräkningsavgift. 0 är ett giltigt belopp."
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "markup": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "spot_markup": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "variable_fee": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "fixed_price": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true
+                "description": "Komplett beräkningsvärde. För fastprisavtal returneras fastpriset alltid med website_visibility=visible; övriga avgifter filtreras inte bort av presentationsregler."
               },
               "green_fee": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "electricity_certificate": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "start_fee": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "administration_fee": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "break_fee": {
-                "type": [
-                  "object",
-                  "null"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "additionalProperties": true
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "portfolio_management_fee": {
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "amount": {
-                    "type": [
-                      "number",
-                      "null"
-                    ]
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ContractPriceValue"
                   },
-                  "unit": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "calculation_base": {
-                    "oneOf": [
-                      {
-                        "$ref": "#/components/schemas/PricingCalculationBase"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
+                  {
+                    "type": "null"
                   }
-                },
-                "additionalProperties": false
+                ],
+                "description": "Komplett beräkningsvärde. Fastpris returneras alltid för fastprisavtal; avgifter filtreras inte bort av presentationsregler."
               },
               "discount": {
                 "type": [
@@ -2969,7 +2835,7 @@
                 "items": {
                   "$ref": "#/components/schemas/PublicPricingComponent"
                 },
-                "description": "Innehåller endast komponenter som får visas på hemsidans avtalskort."
+                "description": "Kompatibilitetsalias för calculation_components. Innehåller även dolda komponenter."
               },
               "public_price_text": {
                 "type": [
@@ -2986,7 +2852,56 @@
                 "items": {
                   "$ref": "#/components/schemas/PortfolioMonthlyPrice"
                 },
-                "description": "Exact tenant- and price-plan-version-scoped published monthly prices. Empty when portfolio_price visibility is false."
+                "description": "Exact tenant- and price-plan-version-scoped published monthly portfolio prices. Presentation styrs separat och filtrerar inte beräkningsdata."
+              },
+              "market_price_responsibility": {
+                "type": "string",
+                "enum": [
+                  "tenant",
+                  "not_applicable"
+                ],
+                "description": "tenant för rörliga månads-, tim- och kvartsavtal; OPS externa API levererar inget marknadspris."
+              },
+              "calculation_contract": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "includes_all_applicable_components",
+                  "hidden_components_must_be_calculated",
+                  "market_price_supplied_by_ops"
+                ],
+                "properties": {
+                  "includes_all_applicable_components": {
+                    "const": true
+                  },
+                  "hidden_components_must_be_calculated": {
+                    "const": true
+                  },
+                  "market_price_supplied_by_ops": {
+                    "const": false
+                  }
+                }
+              },
+              "calculation_components": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicPricingComponent"
+                },
+                "description": "Samtliga komponenter tenantens kalkylmotor ska utvärdera enligt calculation_inclusion."
+              },
+              "display_components": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicPricingComponent"
+                },
+                "description": "Endast komponenter som får visas separat enligt website_visibility."
+              },
+              "summary_components": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicPricingComponent"
+                },
+                "description": "Komponenter som får ingå som separata rader i en fullständig prissammanställning. Dolda komponenter finns fortfarande i calculation_components och totalsumman."
               }
             },
             "additionalProperties": true
@@ -3249,6 +3164,24 @@
           "signed_at": {
             "deprecated": true,
             "description": "Ignorerad som juridisk signeringstid. OPS använder serverns acceptanstid."
+          },
+          "quote_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "deprecated": true,
+            "description": "Deprecated och ignorerad. Nya ansökningar binds direkt till offer_reference."
+          },
+          "price_area_code": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ],
+            "description": "Prisområde löst av tenantens webbplats. OPS verifierar giltighet och att avtalet tillåter området."
           }
         },
         "anyOf": [
@@ -3436,7 +3369,7 @@
       },
       "PublicPricingVisibility": {
         "type": "object",
-        "description": "Versionslåst presentation för tenantens publika avtalskort. False påverkar inte offert, checkout, avtal eller fakturering.",
+        "description": "Versionslåsta presentationsregler. False döljer endast separat rendering och får aldrig filtrera bort komponenten från API eller kalkyl.",
         "properties": {
           "fixed_price": {
             "type": "boolean"
@@ -3495,7 +3428,9 @@
           "name",
           "amount",
           "unit",
-          "website_card_visible"
+          "website_card_visible",
+          "calculation_inclusion",
+          "website_visibility"
         ],
         "properties": {
           "component_code": {
@@ -3522,7 +3457,8 @@
           },
           "website_card_visible": {
             "type": "boolean",
-            "description": "True endast när komponenten får renderas på tenantens publika avtalskort."
+            "description": "Kompatibilitetsalias. Använd website_visibility.",
+            "deprecated": true
           },
           "metadata": {
             "type": "object",
@@ -3537,9 +3473,16 @@
                 "type": "null"
               }
             ]
+          },
+          "calculation_inclusion": {
+            "$ref": "#/components/schemas/CalculationInclusion"
+          },
+          "website_visibility": {
+            "$ref": "#/components/schemas/WebsiteVisibilityMode"
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Maskinläsbar pris- eller avgiftskomponent. Alla tillämpliga komponenter returneras oavsett presentationsstatus."
       },
       "PricingCalculationBase": {
         "type": "string",
@@ -3680,407 +3623,79 @@
       },
       "WebsiteQuoteRequest": {
         "type": "object",
+        "deprecated": true,
+        "description": "Deprecated i API 2026-07-22.2. Extern OPS quote har tagits bort; använd public-contracts och tenantens egen kalkylator.",
         "additionalProperties": false,
-        "required": [
-          "offer_reference",
-          "price_area",
-          "annual_consumption_kwh",
-          "start_date"
-        ],
         "properties": {
-          "offer_reference": {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$",
-            "description": "Exakt opak referens från GET /api/v1/website/public-contracts. Acceptera även historiska opaka referenser som OPS returnerar."
-          },
-          "price_area": {
-            "type": "string",
-            "enum": [
-              "SE1",
-              "SE2",
-              "SE3",
-              "SE4"
-            ]
-          },
-          "annual_consumption_kwh": {
-            "type": "number",
-            "exclusiveMinimum": 0
-          },
-          "start_date": {
-            "type": "string",
-            "format": "date",
-            "description": "Obligatoriskt startdatum i YYYY-MM-DD."
-          },
-          "customer_type": {
-            "type": "string",
-            "enum": [
-              "private",
-              "business"
-            ]
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
           }
-        },
-        "example": {
-          "offer_reference": "offer_example",
-          "price_area": "SE3",
-          "annual_consumption_kwh": 5000,
-          "start_date": "2026-09-01",
-          "customer_type": "private"
         }
       },
       "WebsiteQuoteLine": {
         "type": "object",
+        "deprecated": true,
+        "description": "Deprecated i API 2026-07-22.2. Extern OPS quote har tagits bort; använd public-contracts och tenantens egen kalkylator.",
         "additionalProperties": false,
-        "required": [
-          "component_code",
-          "name",
-          "quantity",
-          "unit",
-          "amount_ex_vat",
-          "vat_amount",
-          "amount_inc_vat"
-        ],
         "properties": {
-          "component_code": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "quantity": {
-            "type": [
-              "number",
-              "null"
-            ]
-          },
-          "unit": {
-            "type": "string"
-          },
-          "calculation_type": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "unit_price_ex_vat": {
-            "type": [
-              "number",
-              "null"
-            ]
-          },
-          "amount_ex_vat": {
-            "type": "number"
-          },
-          "vat_rate": {
-            "type": "number"
-          },
-          "vat_amount": {
-            "type": "number"
-          },
-          "amount_inc_vat": {
-            "type": "number"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": true
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
           }
-        },
-        "description": "Verklig beräkningsrad från den låsta prisversionen. Rader kan finnas här även när samma komponent är dold på avtalskortet."
+        }
       },
       "WebsiteQuoteOffer": {
         "type": "object",
+        "deprecated": true,
+        "description": "Deprecated i API 2026-07-22.2. Extern OPS quote har tagits bort; använd public-contracts och tenantens egen kalkylator.",
         "additionalProperties": false,
-        "required": [
-          "offer_reference",
-          "public_name",
-          "contract_type",
-          "pricing_model"
-        ],
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "offer_reference": {
-            "type": "string",
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$"
-          },
-          "public_name": {
-            "type": "string"
-          },
-          "product_code": {
-            "type": "string"
-          },
-          "contract_type": {
-            "type": "string"
-          },
-          "pricing_model": {
-            "type": "string"
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
           }
         }
       },
       "WebsiteQuoteInput": {
         "type": "object",
+        "deprecated": true,
+        "description": "Deprecated i API 2026-07-22.2. Extern OPS quote har tagits bort; använd public-contracts och tenantens egen kalkylator.",
         "additionalProperties": false,
-        "required": [
-          "price_area",
-          "annual_consumption_kwh",
-          "estimated_monthly_consumption_kwh",
-          "start_date",
-          "billing_month"
-        ],
         "properties": {
-          "price_area": {
-            "type": "string",
-            "enum": [
-              "SE1",
-              "SE2",
-              "SE3",
-              "SE4"
-            ]
-          },
-          "annual_consumption_kwh": {
-            "type": "number"
-          },
-          "estimated_monthly_consumption_kwh": {
-            "type": "number"
-          },
-          "start_date": {
-            "type": "string",
-            "format": "date"
-          },
-          "billing_month": {
-            "type": "string",
-            "pattern": "^[0-9]{4}-[0-9]{2}$"
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
           }
         }
       },
       "WebsiteQuoteEstimate": {
         "type": "object",
+        "deprecated": true,
+        "description": "Deprecated i API 2026-07-22.2. Extern OPS quote har tagits bort; använd public-contracts och tenantens egen kalkylator.",
         "additionalProperties": false,
-        "required": [
-          "monthly_ex_vat",
-          "monthly_vat",
-          "monthly_inc_vat",
-          "annual_ex_vat",
-          "annual_vat",
-          "annual_inc_vat"
-        ],
         "properties": {
-          "monthly_ex_vat": {
-            "type": "number"
-          },
-          "monthly_vat": {
-            "type": "number"
-          },
-          "monthly_inc_vat": {
-            "type": "number"
-          },
-          "annual_ex_vat": {
-            "type": "number"
-          },
-          "annual_vat": {
-            "type": "number"
-          },
-          "annual_inc_vat": {
-            "type": "number"
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
           }
         }
       },
       "WebsiteQuoteData": {
         "type": "object",
+        "deprecated": true,
+        "description": "Deprecated i API 2026-07-22.2. Extern OPS quote har tagits bort; använd public-contracts och tenantens egen kalkylator.",
         "additionalProperties": false,
-        "required": [
-          "offer",
-          "input",
-          "estimate",
-          "lines",
-          "warnings",
-          "assumptions",
-          "snapshot_schema",
-          "pricing_interval",
-          "estimate_method",
-          "source_period",
-          "market_data_timestamp",
-          "is_binding",
-          "market_sources"
-        ],
         "properties": {
-          "offer": {
-            "$ref": "#/components/schemas/WebsiteQuoteOffer"
-          },
-          "input": {
-            "$ref": "#/components/schemas/WebsiteQuoteInput"
-          },
-          "estimate": {
-            "$ref": "#/components/schemas/WebsiteQuoteEstimate"
-          },
-          "lines": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WebsiteQuoteLine"
-            }
-          },
-          "warnings": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "assumptions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "snapshot_schema": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Exakt schema-version från den låsta canonical pris-snapshoten; skrivs inte om av quote-API:t."
-          },
-          "pricing_interval": {
-            "type": "string",
-            "enum": [
-              "monthly",
-              "hourly",
-              "quarterly",
-              "fixed",
-              "portfolio",
-              "mixed"
-            ]
-          },
-          "estimate_method": {
-            "type": "string"
-          },
-          "source_period": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "start",
-              "end",
-              "billing_month"
-            ],
-            "properties": {
-              "start": {
-                "type": "string",
-                "format": "date"
-              },
-              "end": {
-                "type": "string",
-                "format": "date"
-              },
-              "billing_month": {
-                "type": "string",
-                "pattern": "^\\d{4}-\\d{2}$"
-              }
-            }
-          },
-          "market_data_timestamp": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "is_binding": {
-            "type": "boolean",
-            "const": false
-          },
-          "market_sources": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "spot": {
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "additionalProperties": true
-              },
-              "portfolio": {
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "additionalProperties": true
-              }
-            }
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
           }
         }
       },
       "WebsiteQuoteResponse": {
         "type": "object",
+        "deprecated": true,
+        "description": "Deprecated i API 2026-07-22.2. Extern OPS quote har tagits bort; använd public-contracts och tenantens egen kalkylator.",
         "additionalProperties": false,
-        "required": [
-          "data",
-          "request_id"
-        ],
         "properties": {
-          "data": {
-            "$ref": "#/components/schemas/WebsiteQuoteData"
-          },
-          "request_id": {
-            "type": "string"
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
           }
-        },
-        "example": {
-          "data": {
-            "offer": {
-              "offer_reference": "offer_example",
-              "public_name": "Rörligt elpris",
-              "contract_type": "variable_monthly",
-              "pricing_model": "spot"
-            },
-            "input": {
-              "price_area": "SE3",
-              "annual_consumption_kwh": 5000,
-              "estimated_monthly_consumption_kwh": 416.67,
-              "start_date": "2026-09-01",
-              "billing_month": "2026-09"
-            },
-            "estimate": {
-              "monthly_ex_vat": 500,
-              "monthly_vat": 125,
-              "monthly_inc_vat": 625,
-              "annual_ex_vat": 6000,
-              "annual_vat": 1500,
-              "annual_inc_vat": 7500
-            },
-            "lines": [
-              {
-                "component_code": "invoice_fee",
-                "name": "Fakturaavgift",
-                "quantity": 1,
-                "unit": "sek_invoice",
-                "calculation_type": "per_invoice",
-                "unit_price_ex_vat": 19,
-                "amount_ex_vat": 19,
-                "vat_rate": 0.25,
-                "vat_amount": 4.75,
-                "amount_inc_vat": 23.75,
-                "metadata": {}
-              }
-            ],
-            "warnings": [],
-            "assumptions": [],
-            "snapshot_schema": "gridex_contract_pricing_v5",
-            "pricing_interval": "monthly",
-            "estimate_method": "canonical_monthly_preview",
-            "source_period": {
-              "start": "2026-09-01",
-              "end": "2026-10-01",
-              "billing_month": "2026-09"
-            },
-            "market_data_timestamp": "2026-09-30T23:59:59Z",
-            "is_binding": false,
-            "market_sources": {
-              "spot": {
-                "source": "configured-provider",
-                "delivery_month": "2026-09"
-              },
-              "portfolio": null
-            }
-          },
-          "request_id": "request_example"
         }
       },
       "PublicContractResponseMeta": {
@@ -4090,7 +3705,8 @@
           "api_version",
           "channel",
           "publication_revision",
-          "deprecated_aliases"
+          "deprecated_aliases",
+          "contract_schema_version"
         ],
         "properties": {
           "api_version": {
@@ -4115,6 +3731,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "contract_schema_version": {
+            "const": "2026-07-22.2"
           }
         }
       },
@@ -4156,6 +3775,65 @@
             "type": "string"
           }
         }
+      },
+      "WebsiteVisibilityMode": {
+        "type": "string",
+        "enum": [
+          "visible",
+          "hidden",
+          "summary_only"
+        ],
+        "description": "Presentationsregel. hidden påverkar aldrig om komponenten skickas eller används i kalkylen."
+      },
+      "CalculationInclusion": {
+        "type": "string",
+        "enum": [
+          "included",
+          "excluded",
+          "conditional"
+        ],
+        "description": "Anger hur komponenten ska användas i tenantens prisberäkning."
+      },
+      "ContractPriceValue": {
+        "type": "object",
+        "required": [
+          "amount",
+          "unit",
+          "vat_included",
+          "calculation_inclusion",
+          "website_visibility"
+        ],
+        "properties": {
+          "amount": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "vat_included": {
+            "type": "boolean"
+          },
+          "vat_rate": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "calculation_inclusion": {
+            "$ref": "#/components/schemas/CalculationInclusion"
+          },
+          "website_visibility": {
+            "$ref": "#/components/schemas/WebsiteVisibilityMode"
+          }
+        },
+        "additionalProperties": true,
+        "description": "Publicerat avtalsvärde. Returneras även när website_visibility är hidden."
       }
     }
   }

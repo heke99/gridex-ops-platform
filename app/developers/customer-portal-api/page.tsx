@@ -13,23 +13,13 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 const baseUrl = "https://app.gridex.se";
-const documentationVersion = "2026-07-22.1";
+const documentationVersion = "2026-07-22.2";
 
 const permissions = [
   [
     "Verifiera tenantkontext",
     "integration_context.read",
     "Hämta opak tenant_reference för API-nyckeln. company_id används aldrig som extern tenantväljare.",
-  ],
-  [
-    "Skapa canonical quote",
-    "website_quotes.write",
-    "Beräkna och spara en tenantbunden quote för alla prismodeller.",
-  ],
-  [
-    "Verifiera quote",
-    "website_quotes.validate",
-    "Kontrollera quote, giltighet och oförändrat beräkningsunderlag före ansökan.",
   ],
   [
     "Läsa API-publicerade avtal",
@@ -155,120 +145,106 @@ const publicContractsExample = `curl -X GET "${baseUrl}/api/v1/website/public-co
 const publicContractsResponse = `{
   "data": [
     {
-      "id": "offer_...",
       "offer_reference": "offer_...",
-      "code": "RORLIGT-ELPRIS",
-      "name": "Rörligt elpris",
-      "type": "variable_spot",
-      "customer_type": "both",
-      "customer_types": ["private", "business"],
+      "name": "Fast elpris",
+      "contract_type": "fixed",
+      "customer_type": "private",
+      "fixed_price_ore_per_kwh": 112,
+      "monthly_fee_sek": 49,
+      "invoice_fee_sek": 19,
       "pricing": {
-        "monthly_fee": null,
-        "markup": { "amount": 4, "unit": "ore_per_kwh" },
-        "invoice_fee": null,
-        "visibility": {
-          "monthly_fee": false,
-          "spot_markup": true,
-          "variable_fee": false,
-          "invoice_fee": false
+        "fixed_price": {
+          "amount": 112,
+          "unit": "ore_per_kwh",
+          "vat_included": false,
+          "vat_rate": 0.25,
+          "calculation_inclusion": "included",
+          "website_visibility": "visible"
         },
-        "components": [
+        "monthly_fee": {
+          "amount": 49,
+          "currency": "SEK",
+          "unit": "month",
+          "calculation_inclusion": "included",
+          "website_visibility": "visible"
+        },
+        "invoice_fee": {
+          "amount": 19,
+          "currency": "SEK",
+          "unit": "invoice",
+          "calculation_inclusion": "included",
+          "website_visibility": "summary_only"
+        },
+        "market_price_responsibility": "not_applicable",
+        "calculation_contract": {
+          "includes_all_applicable_components": true,
+          "hidden_components_must_be_calculated": true,
+          "market_price_supplied_by_ops": false
+        },
+        "calculation_components": [
           {
-            "component_code": "spot_markup",
-            "name": "Spotpåslag",
-            "amount": 4,
-            "unit": "ore_per_kwh",
-            "website_card_visible": true
+            "component_code": "monthly_fee",
+            "amount": 49,
+            "unit": "sek_month",
+            "calculation_inclusion": "included",
+            "website_visibility": "visible"
+          },
+          {
+            "component_code": "invoice_fee",
+            "amount": 19,
+            "unit": "sek_invoice",
+            "calculation_inclusion": "included",
+            "website_visibility": "summary_only"
           }
         ],
-        "spot_share": null,
-        "portfolio_share": null
+        "display_components": [
+          {
+            "component_code": "monthly_fee",
+            "amount": 49,
+            "unit": "sek_month",
+            "website_visibility": "visible"
+          }
+        ],
+        "summary_components": [
+          {
+            "component_code": "monthly_fee",
+            "amount": 49,
+            "unit": "sek_month",
+            "website_visibility": "visible"
+          },
+          {
+            "component_code": "invoice_fee",
+            "amount": 19,
+            "unit": "sek_invoice",
+            "website_visibility": "summary_only"
+          }
+        ]
       },
-      "legal": {
-        "terms_version": "2026-06",
-        "terms_version_id": "legal_terms_uuid",
-        "terms_url": "https://app.gridex.se/legal/.../terms/legal_terms_uuid",
-        "privacy_policy_version": "2026-06",
-        "privacy_policy_version_id": "legal_privacy_uuid",
-        "privacy_policy_url": "https://app.gridex.se/legal/.../privacy/legal_privacy_uuid",
-        "withdrawal_version": "2026-06",
-        "withdrawal_version_id": "legal_withdrawal_uuid",
-        "withdrawal_url": "https://app.gridex.se/legal/.../withdrawal/legal_withdrawal_uuid",
-        "power_of_attorney_required": true,
-        "power_of_attorney_version": "2026-06",
-        "power_of_attorney_version_id": "legal_poa_uuid",
-        "power_of_attorney_url": "https://app.gridex.se/legal/.../power-of-attorney/legal_poa_uuid",
-        "price_terms_version": "2026-06",
-        "price_terms_version_id": "legal_price_terms_uuid",
-        "price_terms_url": "https://app.gridex.se/legal/.../price-terms/legal_price_terms_uuid"
-      },
-      "valid_from": "2026-06-01",
+      "price_areas": ["SE1", "SE2", "SE3", "SE4"],
+      "legal": { "requirements": [] },
+      "valid_from": "2026-07-22",
       "valid_to": null
     }
   ]
 }`;
 
-const quoteExample = `curl -X POST "${baseUrl}/api/v1/website/quote" \
-  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "offer_reference": "offer_...",
-    "price_area": "SE3",
-    "grid_area_code": "SE3-GRID-001",
-    "postal_code": "11122",
-    "annual_consumption_kwh": 5000,
-    "start_date": "2026-09-01",
-    "customer_type": "private"
-  }'`;
+const calculatorExample = `// Tenantens backend, inte OPS
+const monthlyKwh = annualConsumptionKwh / 12
 
-const quoteResponse = `{
-  "data": {
-    "offer_reference": "offer_...",
-    "quote_reference": "quote_...",
-    "pricing_interval": "monthly",
-    "estimate_method": "latest_available_market_indication",
-    "source_period": "2026-07",
-    "source_window": { "start": "2026-07-01", "end": "2026-07-31" },
-    "market_data_timestamp": "2026-07-22T10:00:00.000Z",
-    "is_binding": false,
-    "valid_until": "2026-07-22T10:15:00.000Z",
-    "offer": {
-      "offer_reference": "offer_...",
-      "public_name": "Rörligt elpris",
-      "contract_type": "variable_monthly",
-      "pricing_model": "spot"
-    },
-    "input": {
-      "price_area": "SE3",
-      "grid_area_code": "SE3-GRID-001",
-      "postal_code": "11122",
-      "annual_consumption_kwh": 5000,
-      "estimated_monthly_consumption_kwh": 416.67,
-      "start_date": "2026-09-01",
-      "billing_month": "2026-09"
-    },
-    "estimate": {
-      "monthly_ex_vat": 500,
-      "monthly_vat": 125,
-      "monthly_inc_vat": 625,
-      "annual_ex_vat": 6000,
-      "annual_vat": 1500,
-      "annual_inc_vat": 7500
-    },
-    "lines": [],
-    "warnings": [],
-    "assumptions": [],
-    "market_sources": [],
-    "pricing_snapshot_schema_version": "gridex_contract_pricing_v5",
-    "snapshot_schema": "gridex_contract_pricing_v5"
-  },
-  "meta": {
-    "tenant_reference": "tenant_...",
-    "api_version": "v1",
-    "channel": "website"
-  },
-  "request_id": "..."
-}`;
+if (contract.contract_type === "fixed") {
+  const energyExVat =
+    monthlyKwh * (contract.pricing.fixed_price.amount / 100)
+
+  const applicableFees = contract.pricing.calculation_components
+    .filter((component) => component.calculation_inclusion === "included")
+
+  // Alla avgifter används, även website_visibility="hidden".
+  const totalExVat = calculateTotal(energyExVat, applicableFees)
+  const totalIncVat = totalExVat * (1 + contract.pricing.vat_rate)
+}
+
+// För rörliga avtal löser tenantens backend prisområde och marknadspris,
+// och kombinerar marknadspriset med OPS-publicerade påslag och avgifter.`;
 
 const publicContractsDiagnosticsExample = `curl -X GET "${baseUrl}/api/v1/website/public-contracts/diagnostics?customer_type=private" \\
   -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
@@ -281,9 +257,9 @@ const portfolioPricesExample = `curl -X GET "${baseUrl}/api/v1/website/portfolio
   -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
   -H "Accept: application/json"
 
-# data.method beskriver avtalsmetoden.
-# data.historical_final_prices är finala/låsta revisioner.
-# data.indications är alltid non_binding och får aldrig faktureras.
+# data.method beskriver den publika avtalsmetoden utan interna ID:n.
+# data.historical_final_prices innehåller sanerade finala/låsta historikrader.
+# Endpointen returnerar inga marknadsindikationer till tenantens kalkylator.
 # data.final_billing_rule är alltid locked_settlement_only.`;
 
 const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-applications" \\
@@ -293,7 +269,6 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
   -d '{
     "external_customer_id": "CUSTOMER-12345",
     "source": "exempel.se",
-    "quote_reference": "quote_...",
     "customer": {
       "customer_type": "private",
       "first_name": "Anna",
@@ -385,7 +360,6 @@ const applicationResponse = `{
     "contract_number": "AVT-DX-100025-001",
     "contract_price_snapshot_id": "uuid",
     "offer_reference": "offer_...",
-    "quote_reference": "quote_...",
     "contract_status": "signed",
     "signed_at": "2026-06-26T09:00:01.123Z",
     "withdrawal_deadline_at": "2026-07-10T09:00:01.123Z",
@@ -798,25 +772,24 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{publicContractsExample}</CodeBlock>
           <CodeBlock>{publicContractsResponse}</CodeBlock>
           <p>
-            <code>GET /public-contracts</code> är endast ett presentations- och
-            urvals-API. Ett fält som är <code>null</code> kan vara dolt på
-            avtalskortet; värdet <code>0</code> är däremot ett giltigt
-            publicerat penningvärde. Använd aldrig truthy/falsy för pengar, utan
-            kontrollera uttryckligen{" "}
-            <code>value === null || value === undefined</code>.
+            <code>GET /public-contracts</code> är både urvals-API och komplett
+            maskinläsbart beräkningsunderlag. <code>pricing.calculation_components</code>
+            innehåller alla tillämpliga prisdelar och avgifter, även när
+            <code>website_visibility=hidden</code>. <code>pricing.display_components</code>
+            är endast avtalskortets synliga delmängd. <code>pricing.summary_components</code>
+            anger vilka komponenter som får visas separat i en fullständig
+            prissammanställning. Värdet <code>0</code> är
+            ett giltigt publicerat penningvärde; kontrollera uttryckligen null/undefined.
           </p>
           <p>
-            När kunden valt avtal ska tenantens backend alltid anropa
-            <code>POST /api/v1/website/quote</code>. Quote använder den exakta
-            låsta prisversionen och räknar fakturaavgift samt andra verkliga
-            komponenter även när de är dolda på avtalskortet. Därefter skickas
-            samma <code>offer_reference</code> och exakt
-            <code>quote_reference</code> till kundansökan. OPS verifierar tenant,
-            avtal, produktversion, prisversion, juridikversion, kundtyp,
-            elområde, förbrukning, startdatum, marknadsdata och giltighet.
+            För fastpris ska tenantens kalkylator använda OPS-publicerat
+            <code>pricing.fixed_price</code> tillsammans med förbrukning, samtliga
+            avgifter och moms. För rörligt månads-, tim- och kvartspris löser
+            tenantens backend själv prisområde och extern marknadsprisindikation,
+            och kombinerar den med OPS-publicerade påslag och avgifter. OPS lämnar
+            aldrig ut tenantens Nord Pool-pris.
           </p>
-          <CodeBlock>{quoteExample}</CodeBlock>
-          <CodeBlock>{quoteResponse}</CodeBlock>
+          <CodeBlock>{calculatorExample}</CodeBlock>
           <p>
             Hemsidan ska använda exakt <code>offer_reference</code> från svaret
             när kunden tecknar avtal. Det är den enda avtalsväljaren.{" "}
@@ -835,37 +808,33 @@ export default function CustomerPortalApiDocsPage() {
             inte behandla okända värden som privatkund.
           </p>
           <p>
-            Varje publicerad priskomponent har versionslåst{" "}
-            <code>website_card_visible</code> och motsvarande nyckel i{" "}
-            <code>pricing.visibility</code>. Endast komponenter markerade för
-            avtalskortet finns i <code>pricing.components</code> och i top-level
-            kompatibilitetsfälten. Dolda avgifter används fortfarande i offert,
-            checkout, avtalsdokument och fakturering och får inte räknas bort av
-            tenantens backend.
+            Varje publicerad priskomponent skiljer på
+            <code>calculation_inclusion</code> och <code>website_visibility</code>.
+            Dold presentation får aldrig ta bort komponenten från API:t eller
+            kalkylen. <code>pricing.components</code> är ett kompatibilitetsalias
+            för hela <code>calculation_components</code>; använd
+            <code>display_components</code> för avtalskortet och
+            <code>summary_components</code> för den fullständiga prisuppdelningen.
           </p>
           <p>
-            Historiska slutpriser returneras i{" "}
-            <code>pricing.portfolio_monthly_prices</code> och är bundna till
-            exakt <code>price_plan_version_id</code>, månad, elområde och
-            avräkningsrevision. De är aldrig ett krav för att teckna eller
-            publicera ett framtida avtal. Portföljandel, portföljpris och
+            Historiska slutpriser kan returneras i{" "}
+            <code>pricing.portfolio_monthly_prices</code>. De är sanerade,
+            historiska och får inte behandlas som ett aktuellt marknadspris i
+            tenantens kalkylator. Portföljandel, portföljpris och
             portföljförvaltningsavgift är olika begrepp. En procentuell
             förvaltningsavgift använder värden i intervallet <code>0..100</code>{" "}
-            och måste ange en explicit Beräkningsbas i{" "}
-            <code>calculation_base</code>. Saknas exakt månad/prisområde får en
-            bindande kalkyl inte falla tillbaka till en annan version eller
-            tidigare månad.
+            och måste ange en explicit beräkningsbas i{" "}
+            <code>calculation_base</code>.
           </p>
           <p>
-            För en separat portföljvy används{" "}
+            För en separat historikvy används{" "}
             <code>GET /api/v1/website/portfolio-prices</code>. Endpointen är
             read-only, tenant-scopad från API-nyckeln och kräver exakt{" "}
-            <code>offer_reference</code>. En prognos eller manuell indikation
-            sparas med källa, estimatmånad, genereringstid och märks alltid{" "}
-            <code>non_binding=true</code>; slutlig fakturering kräver exakt låst
-            avräkning och får inte använda estimat. OPS-statusflödet är{" "}
-            <code>draft → calculated → reviewed → final → locked</code> och en
-            rättelse skapar alltid en ny <code>revision_no</code>.
+            <code>offer_reference</code>. Svaret innehåller endast publik metod
+            och sanerade finala historikrader. OPS returnerar inga prognoser,
+            interna portfölj-ID:n, prisplansversions-ID:n eller
+            marknadsindikationer till tenantens kalkylator. Slutlig fakturering
+            kräver fortfarande exakt låst intern avräkning.
           </p>
           <CodeBlock>{portfolioPricesExample}</CodeBlock>
           <p>
@@ -892,9 +861,8 @@ export default function CustomerPortalApiDocsPage() {
 
         <Section title="5. Skicka kundansökan">
           <p>
-            Kundansökan ska innehålla valt <code>offer_reference</code>, samma
-            <code>quote_reference</code>, canonical
-            <code>annual_consumption_kwh</code>, prisområde, elnätsområde,
+            Kundansökan ska innehålla valt <code>offer_reference</code>,
+            <code>annual_consumption_kwh</code>, tenantens lösta prisområde, eventuellt elnätsområde,
             postnummer och startdatum samt de dokumenterade juridiska godkännandena och, när kunden redan är
             inloggad på hemsidan, webbens Supabase <code>session.user.id</code>{" "}
             som både <code>customer_portal_user_id</code> och{" "}
@@ -1143,7 +1111,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
         </Section>
 
-        <Section title="11. Canonical integrationskontrakt 2026-07-22">
+        <Section title="11. Canonical integrationskontrakt 2026-07-22.2">
           <h3 className="text-lg font-bold text-slate-900">Kundtyp och routes</h3>
           <p>
             Canonical kundtyper är <code>private</code> och <code>business</code>.
@@ -1152,8 +1120,6 @@ export default function CustomerPortalApiDocsPage() {
             ger strukturerat <code>400</code>. Canonical routes är
             <code>/api/v1/website/public-contracts</code>,
             <code>/api/v1/website/public-contracts/diagnostics</code>,
-            <code>/api/v1/website/quote</code>,
-            <code>/api/v1/website/quote/validate</code>,
             <code>/api/v1/website/customer-applications</code>,
             <code>/api/v1/contracts</code> och
             <code>/api/v1/customer/portal-bundle</code>. Parametern
@@ -1164,7 +1130,7 @@ export default function CustomerPortalApiDocsPage() {
           <h3 className="mt-6 text-lg font-bold text-slate-900">Kanaler</h3>
           <ul className="list-disc space-y-1 pl-5">
             <li><code>internal</code>: endast OPS interna sälj- och administrationsflöden.</li>
-            <li><code>website</code>: public feed, quote och teckning på tenantens hemsida.</li>
+            <li><code>website</code>: public feed och teckning på tenantens hemsida. Indikativ marknadspriskalkyl sker i tenantens backend.</li>
             <li><code>api</code>: separat partnerfeed via <code>GET /api/v1/contracts</code> och scope <code>api_contracts.read</code>.</li>
           </ul>
           <p>
@@ -1175,22 +1141,18 @@ export default function CustomerPortalApiDocsPage() {
             och avgiftsändringar höjer revisionen.
           </p>
 
-          <h3 className="mt-6 text-lg font-bold text-slate-900">Quote-livscykel</h3>
+          <h3 className="mt-6 text-lg font-bold text-slate-900">Pris- och elområdesansvar</h3>
           <p>
-            OPS är ensam prismotor för fast, rörligt månadspris, timpris,
-            kvartspris, portfolio, mixed/hybrid och komponentbaserade modeller.
-            Quote är indikativ om <code>is_binding=false</code> och innehåller
-            marknadsdatatimestamp, källperiod, antaganden, källor, snapshotversion
-            och <code>valid_until</code>. Tenantens marknadsdatapolicy styr
-            providerprioritet, elområden, upplösning, max dataålder, fallback,
-            forecast och portfolio. Interna providerhemligheter exponeras aldrig.
+            OPS är source of truth för publicerad prismodell, fast pris, påslag,
+            alla avgifter, moms, synlighetsregler och versionskopplingar. Tenantens
+            backend är source of truth för publik elområdesresolution och extern
+            marknadsprisindikation. De tidigare quote- och energy-area-rutterna
+            returnerar <code>410 Gone</code> från API 2026-07-22.2.
           </p>
           <p>
-            Validering kan ge <code>quote_not_found</code>,
-            <code>quote_expired</code>, <code>quote_revoked</code>,
-            <code>quote_already_consumed</code>, <code>quote_mismatch</code> eller
-            <code>market_price_unavailable</code>. En godkänd ansökan låser hela
-            quote-snapshotet och quote kan inte konsumeras av en annan ansökan.
+            OPS behåller sin interna spotpris-, avräknings- och faktureringsmotor.
+            Den interna marknadsdatan exponeras inte till tenantens webbplats och
+            blir inte en del av en ny kundansökans publika kalkylsnapshot.
           </p>
 
           <h3 className="mt-6 text-lg font-bold text-slate-900">Diagnostics och webhook</h3>

@@ -10,6 +10,7 @@ import {
   loadPublicationRevision,
   parsePublicContractsQuery,
   PublicContractsQueryError,
+  PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
   requestId,
 } from '@/lib/website/publicContractApi'
 
@@ -20,6 +21,7 @@ function responseHeaders(input: { etag: string; limit: number; remaining: number
   return {
     'Cache-Control': 'private, max-age=0, must-revalidate',
     ETag: input.etag,
+    'X-Gridex-Contract-Version': PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
     'X-RateLimit-Limit': String(input.limit),
     'X-RateLimit-Remaining': String(input.remaining),
     ...(input.resetAt ? { 'X-RateLimit-Reset': input.resetAt } : {}),
@@ -100,6 +102,7 @@ export async function GET(request: NextRequest) {
         channel: 'website',
         publication_revision: revision.revision,
         publication_updated_at: revision.updatedAt,
+        contract_schema_version: PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
         deprecated_aliases: ['contracts', 'contract_offer_id', 'publication_reference'],
       },
       ...(diagnostics ? { diagnostics: { publication: diagnostics, source_of_truth: 'contract_publication_versions' } } : {}),

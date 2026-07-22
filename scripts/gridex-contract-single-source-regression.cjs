@@ -156,7 +156,7 @@ const publicPath = openapi.paths['/api/v1/website/public-contracts']?.get
 const diagnosticPath = openapi.paths['/api/v1/website/public-contracts/diagnostics']?.get
 check(Boolean(publicPath?.responses?.['304']), 'OpenAPI documents ETag 304')
 check(diagnosticPath?.['x-required-scopes']?.includes('website_contracts.diagnostics'), 'OpenAPI diagnostics scope matches runtime')
-check(openapi.components.schemas.WebsiteQuoteData.properties.snapshot_schema.const === undefined, 'OpenAPI quote schema no longer falsely claims V4')
+check(openapi.components.schemas.WebsiteQuoteData?.deprecated === true && openapi.paths['/api/v1/website/quote']?.post?.responses?.['410'], 'OpenAPI marks external quote contract removed')
 check(openapi.components.schemas.PublicContractOffer.properties.contract_offer_id.deprecated === true, 'OpenAPI marks contract_offer_id deprecated')
 check(openapi.components.schemas.PublicContractOffer.properties.publication_reference.deprecated === true, 'OpenAPI marks publication_reference deprecated')
 

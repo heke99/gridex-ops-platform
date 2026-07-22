@@ -10,6 +10,7 @@ export default function WebsitePricingField({
   required = false,
   inputMode = "decimal",
   compact = false,
+  visibilityLocked = false,
 }: {
   name: string;
   label?: string;
@@ -22,6 +23,7 @@ export default function WebsitePricingField({
   required?: boolean;
   inputMode?: "decimal" | "numeric" | "text";
   compact?: boolean;
+  visibilityLocked?: boolean;
 }) {
   return (
     <div
@@ -59,11 +61,15 @@ export default function WebsitePricingField({
         }`}
       >
         <span>{visibilityLabel}</span>
+        {visibilityLocked ? (
+          <input type="hidden" name={visibilityName} value="on" />
+        ) : null}
         <input
           type="checkbox"
           name={visibilityName}
-          defaultChecked={defaultVisible}
-          className="h-4 w-4 rounded border-slate-300"
+          defaultChecked={visibilityLocked ? true : defaultVisible}
+          disabled={visibilityLocked}
+          className="h-4 w-4 rounded border-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
         />
       </label>
     </div>

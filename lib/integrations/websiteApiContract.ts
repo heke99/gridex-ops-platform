@@ -4,7 +4,56 @@ export type TenantReference = `tenant_${string}`
 export type QuoteReference = `quote_${string}`
 export type OfferReference = `offer_${string}`
 export type PublicationChannel = 'website' | 'api'
-export type QuotePricingInterval = 'monthly' | 'hourly' | 'quarterly' | 'fixed' | 'portfolio' | 'mixed'
+export type WebsiteVisibilityMode = 'visible' | 'hidden' | 'summary_only'
+export type CalculationInclusion = 'included' | 'excluded' | 'conditional'
+
+export type WebsitePricingComponent = {
+  component_code: string | null
+  component_type?: string | null
+  name?: string | null
+  amount: number
+  unit: string
+  calculation_type?: string | null
+  calculation_base?: string | null
+  vat_applicable?: boolean
+  calculation_inclusion: CalculationInclusion
+  website_visibility: WebsiteVisibilityMode
+  website_card_visible?: boolean
+  [key: string]: unknown
+}
+
+export type WebsitePublicContractPricing = {
+  fixed_price?: Record<string, unknown> | null
+  monthly_fee?: Record<string, unknown> | null
+  invoice_fee?: Record<string, unknown> | null
+  markup?: Record<string, unknown> | null
+  variable_fee?: Record<string, unknown> | null
+  vat_rate: number | null
+  market_price_responsibility: 'tenant' | 'not_applicable'
+  calculation_components: WebsitePricingComponent[]
+  components: WebsitePricingComponent[]
+  display_components: WebsitePricingComponent[]
+  summary_components: WebsitePricingComponent[]
+  calculation_contract: {
+    includes_all_applicable_components: true
+    hidden_components_must_be_calculated: true
+    market_price_supplied_by_ops: false
+  }
+  [key: string]: unknown
+}
+
+export type WebsitePublicContract = {
+  offer_reference: OfferReference | string
+  contract_type: string
+  customer_type: ExternalCustomerType | 'both'
+  fixed_price_ore_per_kwh: number | null
+  monthly_fee_sek: number | null
+  invoice_fee_sek: number | null
+  pricing: WebsitePublicContractPricing
+  price_areas: string[]
+  legal: Record<string, unknown>
+  [key: string]: unknown
+}
 
 export type ExternalApiMeta = {
   tenant_reference: TenantReference
@@ -12,66 +61,34 @@ export type ExternalApiMeta = {
   channel?: PublicationChannel
   publication_revision?: number
   publication_updated_at?: string | null
+  contract_schema_version?: '2026-07-22.2'
 }
 
-export type WebsiteQuoteRequest = {
-  offer_reference: OfferReference | string
-  price_area: string
-  grid_area_code?: string | null
-  postal_code?: string | null
-  annual_consumption_kwh: number
-  start_date?: string | null
-  customer_type: ExternalCustomerType | 'company'
+export type RemovedWebsiteEndpointResponse = {
+  error: {
+    code:
+      | 'tenant_managed_pricing_required'
+      | 'quote_validation_removed'
+      | 'tenant_managed_energy_area_required'
+      | 'public_energy_area_removed'
+    message: string
+  }
 }
 
-export type WebsiteQuoteResponse = {
-  offer_reference: OfferReference | string
-  quote_reference: QuoteReference | string
-  pricing_interval: QuotePricingInterval
-  estimate_method: string
-  source_period: string
-  source_window: { start: string; end: string }
-  market_data_timestamp: string | null
-  is_binding: boolean
-  assumptions: string[]
-  market_sources: Array<Record<string, unknown>>
-  pricing_snapshot_schema_version: string
-  valid_until: string
-  offer: Record<string, unknown>
-  input: Record<string, unknown>
-  estimate: Record<string, number>
-  lines: Array<Record<string, unknown>>
-  warnings: string[]
-}
+/** @deprecated External OPS quote calculation was removed in API 2026-07-22.2. */
+export type WebsiteQuoteRequest = never
 
-export type WebsiteQuoteValidationRequest = WebsiteQuoteRequest & {
-  quote_reference: QuoteReference | string
-}
+/** @deprecated The quote endpoint only returns RemovedWebsiteEndpointResponse. */
+export type WebsiteQuoteResponse = RemovedWebsiteEndpointResponse
 
-export type WebsiteEnergyAreaResolveRequest = {
-  grid_area_code?: string | null
-  postal_code?: string | null
-  street?: string | null
-  street_number?: string | null
-  city?: string | null
-  country?: string | null
-  facility_id?: string | null
-  metering_point_id?: string | null
-}
+/** @deprecated quote_reference is not part of new signup flows. */
+export type WebsiteQuoteValidationRequest = never
 
-export type WebsiteEnergyAreaResolveResponse = {
-  grid_area_code: string | null
-  grid_area_name: string | null
-  grid_owner_name: string | null
-  price_area: string | null
-  resolution_status: string
-  confidence: number
-  source_chain: string[]
-  automation_allowed: boolean
-  next_required_action: string
-  warnings: string[]
-  diagnostics: Record<string, unknown> | null
-}
+/** @deprecated Public energy-area resolution belongs to the tenant. */
+export type WebsiteEnergyAreaResolveRequest = never
+
+/** @deprecated The resolver endpoint only returns RemovedWebsiteEndpointResponse. */
+export type WebsiteEnergyAreaResolveResponse = RemovedWebsiteEndpointResponse
 
 export type WebsiteSwitchStatusResponse = {
   application_number: string
@@ -98,8 +115,9 @@ export type WebsiteSwitchStatusResponse = {
   actual_start_date: string | null
 }
 
-export type WebsiteCustomerApplicationQuoteBinding = {
+export type WebsiteCustomerApplicationBinding = {
   offer_reference: OfferReference | string
+  /** @deprecated Ignored compatibility field. */
   quote_reference?: QuoteReference | string
   annual_consumption_kwh?: number
   price_area_code?: string

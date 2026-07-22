@@ -166,104 +166,21 @@ Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switc
 
 ## Website customer applications
 
-### Portföljmetod, historik och indikation
+### Portföljmetod och sanerad historik
 
 `GET /api/v1/website/portfolio-prices?offer_reference=...&price_area=SE3`
 kräver `website_contracts.read`. API-nyckeln bestämmer bolaget och
-`offer_reference` bestämmer exakt publicerat portfölj-/mixavtal. Svaret skiljer
-alltid på:
+`offer_reference` bestämmer exakt publicerat portfölj-/mixavtal. Svaret innehåller endast:
 
-- `method`: låst avtalsmetod, portfölj, andelar, avgift och avräkningstidpunkt
-- `historical_final_prices`: finala eller låsta revisioner för exakt
-  prisplansversion, månad och elområde
-- `indications`: sparade prognoser/manuella indikationer med
-  `estimate_source`, `estimate_month`, `estimate_price_ore_per_kwh`,
-  `estimate_generated_at` och `non_binding=true`
-- `final_billing_rule=locked_settlement_only`: estimat och historiska
-  fallbackvärden får aldrig användas i slutlig fakturering
+- `method`: den publika avtalsmetoden utan interna portfölj- eller versions-ID:n;
+- `historical_final_prices`: sanerade finala eller låsta historikrader med månad, elområde, belopp, enhet, momsstatus och status;
+- `market_price_responsibility=tenant`;
+- `calculator_market_price_supplied_by_ops=false`;
+- `final_billing_rule=locked_settlement_only`.
 
-Ett framtida faktiskt portföljpris är varken publiceringskrav eller avtalskrav.
-Saknas en explicit indikation returneras ingen siffra; systemet gissar inte.
+Endpointen returnerar inga prognoser, manuella indikationer, marknadskällor, interna prisplansversions-ID:n, juridikpakets-ID:n, avräkningsrevisioner eller portfölj-ID:n. Historikraderna får inte användas som aktuellt marknadspris i tenantens publika kalkylator. Tenantens backend hämtar själv det marknadspris som används för en indikativ beräkning.
 
-OPS-avräkningen använder `delivery_month`, `revision_no`, exakt
-`price_plan_version_id` och statusflödet
-`draft → calculated → reviewed → final → locked`. Rättelser skapar alltid en
-ny revision. Portföljadministration är inte en publik API-scope: de separata
-`portfolio_settlement.*`-behörigheterna är default-deny, tenant-/portföljscopade
-och kan bara tilldelas av `platform_superadmin`.
-
-```http
-POST /api/v1/website/customer-applications
-Authorization: Bearer YOUR_GRIDEX_API_TOKEN
-Content-Type: application/json
-Idempotency-Key: website-order-12345
-```
-
-`Idempotency-Key` är obligatorisk för denna endpoint. Den ska vara 8–200 tecken och får innehålla bokstäver, siffror, punkt, understreck, kolon, plus, tilde och bindestreck. Nyckeln reserveras innan kund/site/avtal/fullmakt skapas, vilket stoppar samtidiga dubletter.
-
-### Publiceringsdiagnostik och signeringsrespons
-
-- `GET /api/v1/website/public-contracts/diagnostics?customer_type=private` returnerar tenant-scopade publiceringsblockerare för server-side felsökning och kräver `website_contracts.diagnostics`.
-- `offer_reference` är enda avtalsväljaren. Motstridiga legacyfält ger `422 offer_reference_mismatch`.
-- Efter lyckad serververifiering returneras `contract_status = signed`, `signed_at`, `withdrawal_deadline_at` och `signature_snapshot_sha256`.
-- `signature_snapshot_sha256` är SHA-256 över OPS frysta signeringssnapshot och genereras endast av servern.
-- `can_send_agreement_confirmation` visar att hela den databasdrivna, exakt
-  erbjudandebundna dokumentuppsättningen har accepterats och att
-  avtalsbekräftelsen får köas. Antalet varierar med kundtyp, produkt,
-  prismodell, kanal och fullmaktskrav. Fältet är oberoende av
-  `can_start_switch`.
-
-### Idempotency-regler
-
-- samma nyckel + exakt samma normaliserade payload: replay av den committed responsen
-- samma nyckel + annan payload: `409 idempotency_key_payload_mismatch`
-- samma nyckel medan första requesten behandlas: `409 idempotency_in_progress`
-- identisk committed ansökan med ny nyckel: `409 duplicate_application`
-- samma externa kund + anläggning + erbjudande + startdatum behandlas redan under annan nyckel: `409 application_business_in_progress`
-- samma externa kund + anläggning + erbjudande + startdatum har redan en aktiv/committed ansökan: `409 application_business_conflict`
-- tidigare misslyckat/partiellt försök: `409 idempotent_failed` om det inte är ett uttryckligen retrybart tekniskt site-provisioneringsfel
-- replay innehåller samma `warnings` och sparade `communication`-snapshot som originalet
-
-Använd alltså inte samma nyckel för en rättad eller affärsmässigt ändrad payload. En ny affärshändelse ska ha en ny nyckel och ett annat affärs-ID (annan anläggning, annat erbjudande eller annat startdatum). Komplettering av en redan committed ansökan ska göras på befintlig ansökan; API:t skapar inte en parallell site/contract/POA/switch-kedja.
-
-### Startdatum och fältvalidering
-
-`requested_start_mode` accepterar:
-
-- `earliest_possible`
-- `specific_date`
-
-Datumfält ska vara verkliga kalenderdatum i `YYYY-MM-DD`. `powerOfAttorney.acceptedAt` ska vara en ISO 8601-tidsstämpel. Okända eller felplacerade top-level- och nested-fält ger `422 unknown_field` och ignoreras inte tyst.
-
-### Nuvarande leverantör och switchstatus
-
-Nuvarande leverantör kan skickas på `site` (eller motsvarande dokumenterade top-level-alias):
-
-```json
-{
-  "site": {
-    "current_supplier_id": "uuid-or-null",
-    "current_supplier_name": "Nuvarande Energi AB",
-    "current_supplier_org_number": "5560000000",
-    "current_supplier_ediel_id": "12345",
-    "current_supplier_unknown": false,
-    "current_supplier_contract_status": "active",
-    "current_supplier_contract_end_date": "2026-08-31",
-    "current_supplier_notice_period": "1 month",
-    "current_supplier_termination_fee": 0,
-    "current_supplier_response_status": "confirmed"
-  }
-}
-```
-
-Svaret skiljer på:
-
-- `can_create_supplier_switch_request`: tillräckligt underlag för att skapa en durable switchrad
-- `can_dispatch_supplier_switch`: switchen får gå vidare till route/preflight/EDIEL
-- `supplier_switch_status`: exempelvis `created`, `already_open` eller `pending_review`
-- `supplier_switch_blockers`: konkreta affärsblockerare
-
-När exempelvis `current_supplier_missing` kompletteras återanvänds den öppna switchraden, dess hanterade affärsblockering rensas och status sätts tillbaka till `queued`. Om switchraden ännu inte finns kan reconcile skapa den när site, mätpunkt och signerad fullmakt blivit kompletta. Separata juridiska/livscykelblockeringar rensas inte automatiskt. `current_supplier_ediel_id` snapshotas både på `customer_sites` och `supplier_switch_requests`.
+OPS fortsätter internt att använda exakt `delivery_month`, revision, prisplansversion och låst settlement vid faktisk avräkning och fakturering. Den interna modellen exponeras inte som tenantens publika marknadspriskälla.
 
 ## Scopes
 
@@ -298,15 +215,18 @@ Fel returneras alltid som JSON `{ "error": "...", "code": "..." }`, aldrig som H
 - `500 customer_portal_internal_error`
 - `503 customer_portal_schema_missing`
 
-## Kanoniskt fakturaavgifts- och quote-kontrakt (`2026-07-20.2`)
+## Fullständigt prisunderlag och tenantens kalkylator (`2026-07-22.2`)
 
-Den bindande integrationsordningen är:
+Den aktiva integrationsordningen är:
 
-1. `GET /api/v1/website/public-contracts` används för avtalskort, urval, marknadstext, kundtyp, juridiska länkar och `offer_reference`.
-2. `POST /api/v1/website/quote` används för all faktisk prisberäkning från exakt låst prisversion.
-3. `POST /api/v1/website/customer-applications` tecknar samma `offer_reference` och exakt publicerings-/prisversion.
+1. `GET /api/v1/website/public-contracts` används för avtalsurval och som fullständigt maskinläsbart beräkningsunderlag.
+2. Tenantens webbplats löser själv kundens prisområde och hämtar själv extern marknadsprisindikation för rörligt månads-, tim- och kvartspris.
+3. Tenantens kalkylator kombinerar marknadspriset med OPS-publicerade påslag, avgifter, momsregler och förbrukning.
+4. `POST /api/v1/website/customer-applications` tecknar direkt med samma `offer_reference`; OPS verifierar inskickat prisområde och låser publicerings-, pris-, avgifts- och juridikversion.
 
-`public-contracts` är ett presentations-API. En prisdel kan vara `null` eller saknas i kortets `pricing.components` när `website_card_visible=false`, men den kan fortfarande vara en verklig debiteringskomponent. Dolda komponenter ingår därför fortsatt i quote, checkout, avtalsdokument, låst avtalssnapshot och fakturering. Tenantens frontend får inte återskapa totalsumman från kort-DTO:n.
+För fastprisavtal skickar OPS alltid det publicerade fasta priset per kWh. Fastpriset är alltid synligt för kunden och kan inte döljas av presentationsinställningen för ett fastprisavtal. Tenantens kalkylator använder det tillsammans med samtliga tillämpliga fasta och förbrukningsbaserade avgifter för att visa beräknad månads- och årskostnad.
+
+`pricing.calculation_components` och kompatibilitetsfältet `pricing.components` innehåller **alla** tillämpliga pris- och avgiftskomponenter. En komponent med `website_visibility=hidden` eller `website_card_visible=false` får inte filtreras bort: den ska fortfarande skickas till tenantens backend och användas när `calculation_inclusion=included` eller dess villkor uppfylls. `pricing.display_components` är den separata listan över sådant som får visas som egna sälj-/avtalsrader.
 
 För penningvärden gäller:
 
@@ -315,17 +235,9 @@ För penningvärden gäller:
 - använd aldrig truthy/falsy-kontroller för pengar;
 - kontrollera uttryckligen `value === null || value === undefined`.
 
-Quote-requesten kräver `offer_reference`, `price_area`, `annual_consumption_kwh > 0` och `start_date` i formatet `YYYY-MM-DD`. `customer_type` får, när det anges, endast vara `private` eller `business`. Svarets `lines` innehåller de verkliga beräkningskomponenterna, inklusive `invoice_fee` med `unit=sek_invoice` och `calculation_type=per_invoice` även när fakturaavgiften är dold på avtalskortet.
+OPS externa tenant-API returnerar inte Nord Pool-, spot-, tim- eller kvartsspotpris, interna spot-ID:n, marknadskällor eller fallbackkedjor. De tidigare rutterna `/api/v1/website/quote`, `/api/v1/website/quote/validate`, `/api/v1/website/energy-area/resolve` och `/api/public/energy-area` returnerar `410 Gone` från API `2026-07-22.2`.
 
-`GET /api/v1/website/public-contracts/diagnostics` är tenant-scopad och visar `pricing_readiness.invoice_fee`. Ready-status innehåller belopp, enhet, beräkningstyp, kortsynlighet och källa. Blockerad status använder någon av:
-
-- `invoice_fee_missing`
-- `invoice_fee_conflict`
-- `invoice_fee_ambiguous`
-
-Befintliga publicerade avtal rättas versionssäkert: en ny pris- och publiceringsversion skapas och den gamla markeras `superseded`. Redan signerade kundavtal behåller sin tidigare exakta version. Entydiga draftavtal kan uppdateras via det kanoniska kommandot. Saknade eller motstridiga värden sätts aldrig automatiskt till `0`, utan hamnar i manuell remediation med auditspår.
-
-
+`GET /api/v1/website/public-contracts?diagnostics=1` är tenant-scopad och visar readiness för publicering och kanoniska avgifter. Saknade eller motstridiga avgiftsvärden sätts aldrig automatiskt till `0`, utan hanteras versionssäkert med auditspår.
 
 ## Publication revision, cache och kanaler
 
@@ -340,3 +252,6 @@ API-nycklar är server-side secrets. `allowed_origins` är ett kompletterande dr
 `offer_reference` är den enda canonical externa avtalsidentiteten. Aliasen `contract_offer_id`, `publication_reference` och toppnivåfältet `contracts` finns kvar i V1 men är deprecated. Nya klienter ska använda `data` och `offer_reference`. Aliasen tas tidigast bort i en framtida major-version efter publicerad sunset-period.
 
 Nya publiceringar får en opak tenantoberoende referens i formatet `offer_<sha256>`. Redan publicerade referenser behålls exakt som de är eftersom de kan vara bundna till ansökningar, kundavtal, juridiska accepter och pris-snapshots. Klienten ska därför behandla värdet som en opak sträng och aldrig validera varumärke, UUID-format eller produktnamn lokalt.
+
+
+API-svaret innehåller `contract_schema_version=2026-07-22.2` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.

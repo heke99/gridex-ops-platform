@@ -304,6 +304,7 @@
     "20260721131500_contract_lifecycle_valid_to_qualification_hotfix.sql": "038b5a0d096044ddfd8438723aff5f77d6339ee2b4ca5b3a6b6a44d81133f598",
     "20260721170000_contract_graph_api_revision_hardening.sql": "e87320bf6ce798bc9b46f0cd34e65bc677fc0b2a26f0d095dc9ba211609cef5f",
     "20260722133000_external_tenant_quote_api_completion.sql": "9049ada1a4ebad92b8f1e71cef62442f778bb121df39aa7f30c70aec515951e5",
+    "20260722233000_external_tenant_pricing_boundary.sql": "57ebf035c752a6b25febcb9de531370bcdc37c8a376e8f0fc1ddb179115b5bad",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

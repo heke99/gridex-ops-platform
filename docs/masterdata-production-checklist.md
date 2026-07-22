@@ -12,7 +12,7 @@ Verify before go-live — platform level once, tenant level per launching compan
       manual info requests (recipient email + domain for sender credibility)
 - [ ] Spot price import green (`/api/cron/pricing/spot-prices`, price areas SE1–SE4)
 - [ ] Postal-code → price-area lookup working (`PAPILITE_*`,
-      `/api/public/energy-area`)
+      `/api/public/energy-area`, removed and returning 410)
 - [ ] Platform legal master templates published
       (`app/admin/platform/legal-templates`: terms, privacy, withdrawal,
       power_of_attorney)
