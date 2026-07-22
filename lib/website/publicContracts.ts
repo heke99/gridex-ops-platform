@@ -1422,6 +1422,20 @@ export type PublicContractOfferDiagnostic = {
   pricing_readiness: {
     invoice_fee: CanonicalInvoiceFeeReadiness;
   };
+  readiness: {
+    canonical_graph_consistent: boolean;
+    forward_publication_link_valid: boolean;
+    reverse_legacy_link_valid: boolean;
+    company_chain_valid: boolean;
+    tenant_assignment_valid: boolean;
+    channel_valid: boolean;
+    source_offer_consistent: boolean;
+    pricing_ready: boolean;
+    legal_ready: boolean;
+    invoice_fee_ready: boolean;
+    publication_active: boolean;
+    application_acceptance_ready: boolean;
+  };
 };
 
 export async function diagnosePublicContractOffers(input: {
@@ -1504,6 +1518,13 @@ export async function diagnosePublicContractOffers(input: {
     if (blockers.length === 0 && !hasExactCanonicalLegalVersions(strictLegal))
       blockers.push("Erbjudandets exakta juridikpaket kunde inte verifieras");
 
+    const legalReady = hasExactCanonicalLegalVersions(strictLegal);
+    const invoiceFeeReady = invoiceFeeReadiness.status === "ready";
+    const pricingReady = readiness.isReady && invoiceFeeReady;
+    const applicationAcceptanceReady =
+      legalReady &&
+      (!offer.power_of_attorney_required ||
+        Boolean(strictLegal?.some((version) => version.type === "power_of_attorney")));
     const visible = blockers.length === 0;
     diagnostics.push({
       id: offer.canonical_offer_reference ?? null,
@@ -1532,6 +1553,21 @@ export async function diagnosePublicContractOffers(input: {
           }
         : null,
       pricing_readiness: { invoice_fee: invoiceFeeReadiness },
+      readiness: {
+        canonical_graph_consistent: graph?.canonical_graph_consistent === true,
+        forward_publication_link_valid:
+          graph?.forward_publication_link_valid === true,
+        reverse_legacy_link_valid: graph?.reverse_legacy_link_valid === true,
+        company_chain_valid: graph?.company_chain_valid === true,
+        tenant_assignment_valid: graph?.tenant_assignment_valid === true,
+        channel_valid: graph?.channel_valid === true,
+        source_offer_consistent: graph?.source_offer_consistent === true,
+        pricing_ready: pricingReady,
+        legal_ready: legalReady,
+        invoice_fee_ready: invoiceFeeReady,
+        publication_active: graph?.publication_active === true,
+        application_acceptance_ready: applicationAcceptanceReady,
+      },
     });
   }
 

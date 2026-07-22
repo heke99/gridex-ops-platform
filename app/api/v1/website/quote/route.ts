@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
+import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import { calculateOfferQuote, OfferQuoteError } from '@/lib/pricing/offerQuote'
 
 export const runtime = 'nodejs'
@@ -15,7 +16,7 @@ function text(value: unknown): string {
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
-  const auth = await requireIntegrationApiAccess(request, ['website_contracts.read'])
+  const auth = await requireIntegrationApiAccess(request, ['website_quotes.write'])
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return customerPortalJson({ error: { code: auth.errorCode, message: auth.error, request_id: requestId } }, { status: auth.status })
@@ -28,14 +29,28 @@ export async function POST(request: NextRequest) {
       return customerPortalJson({ error: { code: parsed.code, message: 'Ogiltig eller för stor JSON-payload.', request_id: requestId } }, { status })
     }
     const body = (parsed.body ?? {}) as Record<string, unknown>
-    const result = await calculateOfferQuote({
-      client: auth.client,
-      offerReference: text(body.offer_reference),
-      priceArea: text(body.price_area),
-      annualConsumptionKwh: Number(body.annual_consumption_kwh),
-      startDate: text(body.start_date) || null,
-      customerType: text(body.customer_type) || null,
-    })
+    const customerType = text(body.customer_type)
+    if (!customerType) {
+      throw new OfferQuoteError(
+        'customer_type måste anges som private eller business. company accepteras tillfälligt som deprecated alias för business.',
+        'invalid_customer_type',
+        400,
+        'customer_type',
+      )
+    }
+    const [result, tenant] = await Promise.all([
+      calculateOfferQuote({
+        client: auth.client,
+        offerReference: text(body.offer_reference),
+        priceArea: text(body.price_area),
+        annualConsumptionKwh: Number(body.annual_consumption_kwh),
+        startDate: text(body.start_date) || null,
+        customerType,
+        gridAreaCode: text(body.grid_area_code) || null,
+        postalCode: text(body.postal_code) || null,
+      }),
+      loadExternalTenantContext(auth.client),
+    ])
     await logIntegrationApiRequest({
       client: auth.client,
       request,
@@ -47,7 +62,7 @@ export async function POST(request: NextRequest) {
         price_area: text(body.price_area),
       },
     })
-    return customerPortalJson({ data: result, request_id: requestId }, { status: 200 })
+    return customerPortalJson({ data: result, meta: { tenant_reference: tenant.tenant_reference, api_version: 'v1', channel: 'website' }, request_id: requestId }, { status: 200 })
   } catch (error) {
     const known = error instanceof OfferQuoteError
     const status = known ? error.status : 500

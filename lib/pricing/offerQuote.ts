@@ -1,4 +1,6 @@
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
+import { normalizeExternalCustomerType } from "@/lib/customers/externalCustomerType";
+import { persistWebsiteQuote } from "@/lib/pricing/websiteQuotes";
 import { calculateBasePrice } from "@/lib/pricing/basePriceCalculator";
 import { assessCanonicalInvoiceFee } from "@/lib/pricing/canonicalInvoiceFee";
 import { buildCanonicalContractSnapshot } from "@/lib/pricing/contractSnapshot";
@@ -100,6 +102,8 @@ export async function calculateOfferQuote(input: {
   annualConsumptionKwh: number;
   startDate?: string | null;
   customerType?: string | null;
+  gridAreaCode?: string | null;
+  postalCode?: string | null;
 }) {
   const offerReference = input.offerReference.trim();
   if (!offerReference)
@@ -116,28 +120,29 @@ export async function calculateOfferQuote(input: {
       400,
       "price_area",
     );
-  if (
-    input.customerType &&
-    !["private", "business"].includes(input.customerType.trim())
-  ) {
-    throw new OfferQuoteError(
-      "customer_type måste vara private eller business.",
-      "invalid_customer_type",
-      400,
-      "customer_type",
-    );
-  }
-
   const annualConsumptionKwh = positiveNumber(
     input.annualConsumptionKwh,
     "annual_consumption_kwh",
   );
   const startDate = dateOnly(input.startDate);
+
+  // The external HTTP route requires customer_type. The calculator keeps the
+  // historical private-customer default for internal callers and unit tests.
+  const normalizedCustomerType = normalizeExternalCustomerType(input.customerType);
+  if (!normalizedCustomerType.ok) {
+    throw new OfferQuoteError(
+      "customer_type måste vara private eller business. company accepteras tillfälligt som deprecated alias för business.",
+      "invalid_customer_type",
+      400,
+      "customer_type",
+    );
+  }
+  const customerType = normalizedCustomerType.value ?? "private";
   const { billingMonth, periodStart, periodEnd } = monthPeriod(startDate);
   const offer = await resolvePublicContractOffer({
     client: input.client,
     offerReference,
-    customerType: input.customerType,
+    customerType,
   });
   if (!offer)
     throw new OfferQuoteError(
@@ -239,7 +244,28 @@ export async function calculateOfferQuote(input: {
       offer.fixed_price_ore_per_kwh !== null
         ? offer.fixed_price_ore_per_kwh / 100
         : null,
+    requiredResolution:
+      pricingInterval === "hourly" || pricingInterval === "quarterly"
+        ? pricingInterval
+        : "monthly",
   });
+  const requiredBaseSources = new Set(config.baseComponents.map((component) => component.sourceType));
+  if (requiredBaseSources.has("spot") && sourceValues.spotSekPerKwh === null) {
+    throw new OfferQuoteError(
+      `Marknadspris saknas eller uppfyller inte tenantens policy för ${input.priceArea}, ${billingMonth} och upplösningen ${pricingInterval}.`,
+      "market_price_unavailable",
+      422,
+      "price_area",
+    );
+  }
+  if (requiredBaseSources.has("portfolio") && sourceValues.portfolioSekPerKwh === null) {
+    throw new OfferQuoteError(
+      `Portföljpris saknas för ${input.priceArea} och ${billingMonth}. Avtalet kan inte beräknas enligt tenantens portfolio-policy.`,
+      "portfolio_price_missing",
+      422,
+      "offer_reference",
+    );
+  }
   const base = calculateBasePrice({
     underlay,
     components: config.baseComponents,
@@ -291,7 +317,30 @@ export async function calculateOfferQuote(input: {
   }
 
   const annualFactor = annualConsumptionKwh / monthlyConsumptionKwh;
-  return {
+  const usedSpotFallback = sourceValues.spotSource?.is_indicative === true;
+  const usedPortfolioEstimate = sourceValues.portfolioSource?.non_binding === true;
+  const assumptions = [
+    "Årsförbrukningen fördelas jämnt över 12 månader i förhandskalkylen.",
+    pricingInterval === "hourly" || pricingInterval === "quarterly"
+      ? "Tim- och kvartspris visas som en icke-bindande månadsindikation; slutpriset beror på verklig förbrukningsprofil per intervall."
+      : "Rörligt spot- och portföljpris hämtas för valt elområde och startmånad.",
+    usedSpotFallback
+      ? "Spotpriset är den senaste tillåtna indikationen enligt tenantens fallback- och freshness-policy."
+      : "Spotpriset kommer från exakt efterfrågad period när spot ingår i avtalet.",
+    usedPortfolioEstimate
+      ? "Portföljpriset är en uttryckligen icke-bindande uppskattning tills låst periodpris finns."
+      : "Portföljpris används endast från låst avräkning när portfolio ingår i avtalet.",
+    "Slutlig faktura använder verkliga mätvärden och prisperiodens låsta underlag.",
+  ];
+  const marketSources = [
+    sourceValues.spotSource ? { type: "spot", ...sourceValues.spotSource } : null,
+    sourceValues.portfolioSource ? { type: "portfolio", ...sourceValues.portfolioSource } : null,
+  ].filter(Boolean) as Array<Record<string, unknown>>;
+  const marketDataTimestamp =
+    textValue(sourceValues.spotSource?.market_data_timestamp) ??
+    textValue(sourceValues.portfolioSource?.locked_at) ??
+    textValue(sourceValues.portfolioSource?.estimate_generated_at) ?? null;
+  const quotePayload = {
     offer: {
       id: offerReference,
       offer_reference: offerReference,
@@ -302,6 +351,8 @@ export async function calculateOfferQuote(input: {
     },
     input: {
       price_area: input.priceArea,
+      grid_area_code: input.gridAreaCode ?? null,
+      postal_code: input.postalCode ?? null,
       annual_consumption_kwh: annualConsumptionKwh,
       estimated_monthly_consumption_kwh: monthlyConsumptionKwh,
       start_date: startDate,
@@ -341,23 +392,43 @@ export async function calculateOfferQuote(input: {
       metadata: line.metadata ?? {},
     })),
     pricing_interval: pricingInterval,
-    estimate_method: pricingInterval === "hourly" || pricingInterval === "quarterly"
-      ? "even_monthly_consumption_with_period_average"
-      : "canonical_monthly_preview",
-    source_period: { start: periodStart, end: periodEnd, billing_month: billingMonth },
-    market_data_timestamp:
-      textValue(sourceValues.spotSource?.market_data_timestamp) ??
-      textValue(sourceValues.portfolioSource?.locked_at) ?? null,
+    estimate_method: usedSpotFallback || usedPortfolioEstimate
+      ? "latest_available_market_indication"
+      : pricingInterval === "hourly" || pricingInterval === "quarterly"
+        ? "even_monthly_consumption_with_period_average"
+        : "canonical_monthly_preview",
+    source_period: billingMonth,
+    source_window: { start: periodStart, end: periodEnd },
+    market_data_timestamp: marketDataTimestamp,
     is_binding: false,
-    market_sources: { spot: sourceValues.spotSource ?? null, portfolio: sourceValues.portfolioSource ?? null },
+    market_sources: marketSources,
     warnings: preview.warnings,
-    assumptions: [
-      "Årsförbrukningen fördelas jämnt över 12 månader i förhandskalkylen.",
-      pricingInterval === "hourly" || pricingInterval === "quarterly"
-        ? "Tim- och kvartspris visas som en icke-bindande månadsindikation; slutpriset beror på verklig förbrukningsprofil per intervall."
-        : "Rörligt spot- och portföljpris hämtas för valt elområde och startmånad.",
-      "Slutlig faktura använder verkliga mätvärden och prisperiodens låsta underlag.",
-    ],
+    assumptions,
+    pricing_snapshot_schema_version: snapshotSchema,
     snapshot_schema: snapshotSchema,
+  };
+
+  const persisted = await persistWebsiteQuote({
+    client: input.client,
+    offer,
+    offerReference,
+    customerType,
+    priceArea: input.priceArea,
+    gridAreaCode: input.gridAreaCode ?? null,
+    postalCode: input.postalCode ?? null,
+    annualConsumptionKwh,
+    startDate,
+    marketDataTimestamp,
+    marketSources,
+    assumptions,
+    pricingSnapshotSchemaVersion: snapshotSchema,
+    quoteSnapshot: quotePayload,
+  });
+
+  return {
+    ...quotePayload,
+    offer_reference: offerReference,
+    quote_reference: persisted.quoteReference,
+    valid_until: persisted.validUntil,
   };
 }

@@ -9,10 +9,15 @@ export type PublicApiRouteContract = {
 
 /** Canonical source for the public V1 endpoint catalogue and documentation. */
 export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
+  { method: 'GET', path: '/api/v1/integration/context', scopes: ['integration_context.read'], description: 'Verifiera opak tenantreferens för den autentiserade API-nyckeln.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/contracts', scopes: ['api_contracts.read'], description: 'Hämta avtal som tenant har publicerat till API-kanalen.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/website/public-contracts', scopes: ['website_contracts.read'], description: 'Hämta publicerade avtal som hemsidan får visa.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/website/public-contracts/diagnostics', scopes: ['website_contracts.diagnostics'], description: 'Hämta tenant-skopad diagnostik för publiceringsgrafen.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/website/portfolio-prices', scopes: ['website_contracts.read'], description: 'Hämta metod, historiska finala avräkningar och uttryckligt icke-bindande indikationer för ett publicerat portföljavtal.', rateLimitClass: 'read' },
-  { method: 'POST', path: '/api/v1/website/quote', scopes: ['website_contracts.read'], description: 'Beräkna pris för ett publicerat erbjudande.', rateLimitClass: 'expensive' },
+  { method: 'POST', path: '/api/v1/website/quote', scopes: ['website_quotes.write'], description: 'Skapa en tenant- och versionsbunden canonical quote i OPS.', rateLimitClass: 'expensive' },
+  { method: 'POST', path: '/api/v1/website/quote/validate', scopes: ['website_quotes.validate'], description: 'Verifiera quote mot tenant, erbjudande och oförändrat beräkningsunderlag.', rateLimitClass: 'read' },
+  { method: 'POST', path: '/api/v1/website/energy-area/resolve', scopes: ['website_energy_area.resolve'], description: 'Lös prisområde, nätområde och nätägare genom OPS canonical energy resolver.', rateLimitClass: 'expensive' },
+  { method: 'GET', path: '/api/v1/website/switch-status', scopes: ['website_switch_status.read'], description: 'Läs aktuell leverantörsbytesstatus via tenantens application_number.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/website/legal-bundle', scopes: ['website_legal.read', 'website_contracts.read'], description: 'Hämta publicerade juridikversioner och länkar. Ett av angivna scopes räcker.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/website/customer-applications', scopes: ['website_applications.write'], description: 'Skapa kundansökan och juridiska godkännanden.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/website/customer-events', scopes: ['website_events.write'], description: 'Skicka kundhändelse från hemsida eller kundportal.', idempotencyRequired: true, rateLimitClass: 'write' },

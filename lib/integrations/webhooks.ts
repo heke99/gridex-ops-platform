@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto'
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import type { DomainEventRow } from '@/lib/events/domainEvents'
+import { loadExternalTenantReference } from '@/lib/integrations/tenantContext'
 
 type WebhookSubscriptionRow = {
   id: string
@@ -59,15 +60,18 @@ function eventEnvironment(data: Record<string, unknown>): 'test' | 'production' 
   return value === 'test' || value === 'production' ? value : null
 }
 
-function canonicalPayload(event: DomainEventRow) {
-  const data = event.payload ?? {}
+function canonicalPayload(event: DomainEventRow, tenantReference: string) {
+  const data: Record<string, unknown> = {
+    ...(event.payload ?? {}),
+    tenant_reference: tenantReference,
+  }
   return {
     id: event.id,
     type: event.event_type,
     event_id: event.id,
     event_type: event.event_type,
     created_at: event.occurred_at,
-    company_id: event.company_id,
+    tenant_reference: tenantReference,
     // Surface environment so consumers can never confuse a test event with a
     // production event. Route/outbox/customer-operation events carry it in data.
     environment: eventEnvironment(data),
@@ -164,6 +168,8 @@ export async function enqueueWebhookDeliveriesForEvent(event: DomainEventRow, op
     throw error
   }
 
+  const tenantReference = await loadExternalTenantReference(event.company_id)
+
   const subscriptions = ((data ?? []) as WebhookSubscriptionRow[])
     .filter((subscription) => options.force || eventMatchesSubscription(event.event_type, subscription.event_types ?? []))
 
@@ -177,7 +183,7 @@ export async function enqueueWebhookDeliveriesForEvent(event: DomainEventRow, op
     max_attempts: subscription.max_attempts,
     target_url: subscription.endpoint_url,
     idempotency_key: `webhook:${subscription.id}:${event.id}`,
-    payload: canonicalPayload(event),
+    payload: canonicalPayload(event, tenantReference),
   }))
 
   const { error: insertError } = await supabaseService

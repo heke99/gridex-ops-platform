@@ -13,9 +13,34 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 const baseUrl = "https://app.gridex.se";
-const documentationVersion = "2026-07-20.2";
+const documentationVersion = "2026-07-22.1";
 
 const permissions = [
+  [
+    "Verifiera tenantkontext",
+    "integration_context.read",
+    "Hämta opak tenant_reference för API-nyckeln. company_id används aldrig som extern tenantväljare.",
+  ],
+  [
+    "Skapa canonical quote",
+    "website_quotes.write",
+    "Beräkna och spara en tenantbunden quote för alla prismodeller.",
+  ],
+  [
+    "Verifiera quote",
+    "website_quotes.validate",
+    "Kontrollera quote, giltighet och oförändrat beräkningsunderlag före ansökan.",
+  ],
+  [
+    "Läsa API-publicerade avtal",
+    "api_contracts.read",
+    "Hämta avtal som uttryckligen publicerats till kanalen api.",
+  ],
+  [
+    "Diagnostisera publicering",
+    "website_contracts.diagnostics",
+    "Läsa canonical readiness utan att ändra normal public feed.",
+  ],
   [
     "Läsa avtal på hemsidan",
     "website_contracts.read",
@@ -92,6 +117,7 @@ const activeWebhookEvents = [
   "invoice.sent",
   "invoice.disputed",
   "metering_values.updated",
+  "contracts.publication.changed",
 ];
 
 const plannedWebhookEvents = [
@@ -106,6 +132,21 @@ const plannedWebhookEvents = [
 const authExample = `Authorization: Bearer YOUR_GRIDEX_API_TOKEN
 Origin: https://www.exempel.se
 Content-Type: application/json`;
+
+const tenantContextExample = `curl -X GET "${baseUrl}/api/v1/integration/context" \
+  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \
+  -H "Accept: application/json"
+
+{
+  "data": {
+    "tenant_reference": "tenant_0123456789abcdef0123456789abcdef0123",
+    "api_version": "v1"
+  },
+  "meta": {
+    "tenant_reference": "tenant_0123456789abcdef0123456789abcdef0123",
+    "api_version": "v1"
+  }
+}`;
 
 const publicContractsExample = `curl -X GET "${baseUrl}/api/v1/website/public-contracts?customer_type=private" \\
   -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
@@ -173,6 +214,8 @@ const quoteExample = `curl -X POST "${baseUrl}/api/v1/website/quote" \
   -d '{
     "offer_reference": "offer_...",
     "price_area": "SE3",
+    "grid_area_code": "SE3-GRID-001",
+    "postal_code": "11122",
     "annual_consumption_kwh": 5000,
     "start_date": "2026-09-01",
     "customer_type": "private"
@@ -180,6 +223,15 @@ const quoteExample = `curl -X POST "${baseUrl}/api/v1/website/quote" \
 
 const quoteResponse = `{
   "data": {
+    "offer_reference": "offer_...",
+    "quote_reference": "quote_...",
+    "pricing_interval": "monthly",
+    "estimate_method": "latest_available_market_indication",
+    "source_period": "2026-07",
+    "source_window": { "start": "2026-07-01", "end": "2026-07-31" },
+    "market_data_timestamp": "2026-07-22T10:00:00.000Z",
+    "is_binding": false,
+    "valid_until": "2026-07-22T10:15:00.000Z",
     "offer": {
       "offer_reference": "offer_...",
       "public_name": "Rörligt elpris",
@@ -188,6 +240,8 @@ const quoteResponse = `{
     },
     "input": {
       "price_area": "SE3",
+      "grid_area_code": "SE3-GRID-001",
+      "postal_code": "11122",
       "annual_consumption_kwh": 5000,
       "estimated_monthly_consumption_kwh": 416.67,
       "start_date": "2026-09-01",
@@ -201,21 +255,17 @@ const quoteResponse = `{
       "annual_vat": 1500,
       "annual_inc_vat": 7500
     },
-    "lines": [
-      {
-        "component_code": "invoice_fee",
-        "name": "Fakturaavgift",
-        "quantity": 1,
-        "unit": "sek_invoice",
-        "calculation_type": "per_invoice",
-        "amount_ex_vat": 19,
-        "vat_amount": 4.75,
-        "amount_inc_vat": 23.75
-      }
-    ],
+    "lines": [],
     "warnings": [],
     "assumptions": [],
+    "market_sources": [],
+    "pricing_snapshot_schema_version": "gridex_contract_pricing_v5",
     "snapshot_schema": "gridex_contract_pricing_v5"
+  },
+  "meta": {
+    "tenant_reference": "tenant_...",
+    "api_version": "v1",
+    "channel": "website"
   },
   "request_id": "..."
 }`;
@@ -243,6 +293,7 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
   -d '{
     "external_customer_id": "CUSTOMER-12345",
     "source": "exempel.se",
+    "quote_reference": "quote_...",
     "customer": {
       "customer_type": "private",
       "first_name": "Anna",
@@ -257,6 +308,8 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
       "postal_code": "21122",
       "city": "Malmö",
       "price_area_code": "SE4",
+      "grid_area_code": "SE4-GRID-001",
+      "annual_consumption_kwh": 5000,
       "move_in_date": "2026-07-01",
       "current_supplier_name": "Nuvarande Energi AB",
       "current_supplier_org_number": "5560000000",
@@ -332,6 +385,7 @@ const applicationResponse = `{
     "contract_number": "AVT-DX-100025-001",
     "contract_price_snapshot_id": "uuid",
     "offer_reference": "offer_...",
+    "quote_reference": "quote_...",
     "contract_status": "signed",
     "signed_at": "2026-06-26T09:00:01.123Z",
     "withdrawal_deadline_at": "2026-07-10T09:00:01.123Z",
@@ -655,6 +709,14 @@ export default function CustomerPortalApiDocsPage() {
           </p>
           <CodeBlock>{authExample}</CodeBlock>
           <p>
+            Verifiera alltid nyckelns opaka tenantidentitet via
+            <code>GET /api/v1/integration/context</code>. Värdet
+            <code>tenant_reference</code> är stabilt och tenantunikt men är inte
+            samma sak som internt <code>company_id</code>. Externa klienter får
+            aldrig skicka <code>company_id</code> som tenantväljare.
+          </p>
+          <CodeBlock>{tenantContextExample}</CodeBlock>
+          <p>
             Allowed origins skyddar webbläsaranrop. Server-till-server-anrop kan
             sakna Origin-header och ska därför alltid hålla API-nyckeln hemlig.
             API:t filtrerar data per bolag från nyckeln; klienten ska inte
@@ -748,7 +810,10 @@ export default function CustomerPortalApiDocsPage() {
             <code>POST /api/v1/website/quote</code>. Quote använder den exakta
             låsta prisversionen och räknar fakturaavgift samt andra verkliga
             komponenter även när de är dolda på avtalskortet. Därefter skickas
-            samma <code>offer_reference</code> till kundansökan.
+            samma <code>offer_reference</code> och exakt
+            <code>quote_reference</code> till kundansökan. OPS verifierar tenant,
+            avtal, produktversion, prisversion, juridikversion, kundtyp,
+            elområde, förbrukning, startdatum, marknadsdata och giltighet.
           </p>
           <CodeBlock>{quoteExample}</CodeBlock>
           <CodeBlock>{quoteResponse}</CodeBlock>
@@ -827,8 +892,10 @@ export default function CustomerPortalApiDocsPage() {
 
         <Section title="5. Skicka kundansökan">
           <p>
-            Kundansökan ska innehålla valt <code>offer_reference</code>, de
-            dokumenterade juridiska godkännandena och, när kunden redan är
+            Kundansökan ska innehålla valt <code>offer_reference</code>, samma
+            <code>quote_reference</code>, canonical
+            <code>annual_consumption_kwh</code>, prisområde, elnätsområde,
+            postnummer och startdatum samt de dokumenterade juridiska godkännandena och, när kunden redan är
             inloggad på hemsidan, webbens Supabase <code>session.user.id</code>{" "}
             som både <code>customer_portal_user_id</code> och{" "}
             <code>auth_user_id</code>. OPS skapar kund, kundnummer, portal
@@ -1073,6 +1140,86 @@ export default function CustomerPortalApiDocsPage() {
             <code>external_customer_id krävs</code> för stabil kundlänkning;
             mailinställningar stödjer <code>sender_email</code> och{" "}
             <code>reply_to_email</code>.
+          </p>
+        </Section>
+
+        <Section title="11. Canonical integrationskontrakt 2026-07-22">
+          <h3 className="text-lg font-bold text-slate-900">Kundtyp och routes</h3>
+          <p>
+            Canonical kundtyper är <code>private</code> och <code>business</code>.
+            <code>company</code> accepteras tillfälligt som deprecated alias för
+            <code>business</code> till och med 2026-10-31. Ogiltiga queryvärden
+            ger strukturerat <code>400</code>. Canonical routes är
+            <code>/api/v1/website/public-contracts</code>,
+            <code>/api/v1/website/public-contracts/diagnostics</code>,
+            <code>/api/v1/website/quote</code>,
+            <code>/api/v1/website/quote/validate</code>,
+            <code>/api/v1/website/customer-applications</code>,
+            <code>/api/v1/contracts</code> och
+            <code>/api/v1/customer/portal-bundle</code>. Parametern
+            <code>?diagnostics=1</code> är deprecated till 2026-10-31 och
+            returnerar deprecation- och sunset-headers.
+          </p>
+
+          <h3 className="mt-6 text-lg font-bold text-slate-900">Kanaler</h3>
+          <ul className="list-disc space-y-1 pl-5">
+            <li><code>internal</code>: endast OPS interna sälj- och administrationsflöden.</li>
+            <li><code>website</code>: public feed, quote och teckning på tenantens hemsida.</li>
+            <li><code>api</code>: separat partnerfeed via <code>GET /api/v1/contracts</code> och scope <code>api_contracts.read</code>.</li>
+          </ul>
+          <p>
+            Revision, ETag och cache är bundna till <code>tenant + channel</code>.
+            Skicka <code>If-None-Match</code> med föregående ETag; oförändrad feed
+            ger <code>304 Not Modified</code>. Publish, unpublish, pause,
+            republish, archive, delete samt publiceringspåverkande pris-, juridik-
+            och avgiftsändringar höjer revisionen.
+          </p>
+
+          <h3 className="mt-6 text-lg font-bold text-slate-900">Quote-livscykel</h3>
+          <p>
+            OPS är ensam prismotor för fast, rörligt månadspris, timpris,
+            kvartspris, portfolio, mixed/hybrid och komponentbaserade modeller.
+            Quote är indikativ om <code>is_binding=false</code> och innehåller
+            marknadsdatatimestamp, källperiod, antaganden, källor, snapshotversion
+            och <code>valid_until</code>. Tenantens marknadsdatapolicy styr
+            providerprioritet, elområden, upplösning, max dataålder, fallback,
+            forecast och portfolio. Interna providerhemligheter exponeras aldrig.
+          </p>
+          <p>
+            Validering kan ge <code>quote_not_found</code>,
+            <code>quote_expired</code>, <code>quote_revoked</code>,
+            <code>quote_already_consumed</code>, <code>quote_mismatch</code> eller
+            <code>market_price_unavailable</code>. En godkänd ansökan låser hela
+            quote-snapshotet och quote kan inte konsumeras av en annan ansökan.
+          </p>
+
+          <h3 className="mt-6 text-lg font-bold text-slate-900">Diagnostics och webhook</h3>
+          <p>
+            Diagnostics använder samma canonical graf och readinesskälla som
+            normal feed och rapporterar minst
+            <code>canonical_graph_consistent</code>,
+            <code>forward_publication_link_valid</code>,
+            <code>reverse_legacy_link_valid</code>,
+            <code>company_chain_valid</code>,
+            <code>tenant_assignment_valid</code>, <code>channel_valid</code>,
+            <code>source_offer_consistent</code>, <code>pricing_ready</code>,
+            <code>legal_ready</code>, <code>invoice_fee_ready</code>,
+            <code>publication_active</code> och
+            <code>application_acceptance_ready</code>. Normalfältet
+            <code>data</code> byter aldrig typ.
+          </p>
+          <p>
+            <code>contracts.publication.changed</code> levereras genom samma
+            signerade <code>webhook_deliveries</code>-pipeline som övriga events.
+            Payloaden innehåller event-ID, opak tenantreferens, kanal, revision,
+            orsak och timestamp. Mottagaren ska verifiera HMAC, avvisa gamla
+            timestamps, deduplicera på event-ID/idempotency key och returnera 2xx.
+            OPS hanterar retries, leveranshistorik och dead-letter-status.
+          </p>
+          <p>
+            Maskinläsbart kontrakt finns i
+            <code>docs/openapi/website-integration-v1.json</code>. Runtime,
+            OpenAPI, scopes, exempel och regressionstest uppdateras tillsammans.
           </p>
         </Section>
       </div>

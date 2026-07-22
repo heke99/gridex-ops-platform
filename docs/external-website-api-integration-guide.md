@@ -1,3 +1,5 @@
+> **Canonical uppdatering 2026-07-22.1:** Tenantidentitet, quote-livscykel, API-kanal, ETag, diagnostics och publication webhook regleras nu av [`ops-summary-1-api-completion-2026-07-22.md`](./ops-summary-1-api-completion-2026-07-22.md) och den maskinläsbara OpenAPI-filen `docs/openapi/website-integration-v1.json`. Vid konflikt gäller det nyare canonical kontraktet.
+
 # Gridex Customer Portal API
 
 debtRow amount = belopp exkl. moms; vatCode = SE25.
@@ -339,3 +341,9 @@ Quote-requesten kräver `offer_reference`, `price_area`, `annual_consumption_kwh
 
 Befintliga publicerade avtal rättas versionssäkert: en ny pris- och publiceringsversion skapas och den gamla markeras `superseded`. Redan signerade kundavtal behåller sin tidigare exakta version. Entydiga draftavtal kan uppdateras via det kanoniska kommandot. Saknade eller motstridiga värden sätts aldrig automatiskt till `0`, utan hamnar i manuell remediation med auditspår.
 
+
+## Canonical elområdesresolution och bytesstatus (2026-07-22.1)
+
+Använd `POST /api/v1/website/energy-area/resolve` för elområde, nätområde och nätägare. OPS använder samma resolver som kundansökan, så webbplatsen ska inte återskapa nätområdeslogik eller välja egen källa.
+
+Efter inskickad ansökan används `GET /api/v1/website/switch-status?application_number=APP-...` för aktuell leverantörsbytesstatus. `application_number` är tenant-skopat av API-nyckeln. Klienten får en opak `switch_reference`; interna UUID:n ska inte sparas eller användas som tenantväljare.

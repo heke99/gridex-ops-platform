@@ -74,6 +74,15 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     ],
   },
   {
+    key: 'pricing',
+    title: 'Avtal & pris',
+    description: 'Tenantens publicering och marknadsdatapolicy',
+    items: [
+      { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog, publicering och teckningsbarhet', pageKey: 'contracts.catalog' },
+      { key: 'market_sources', label: 'Marknadsdatapolicy', href: '/admin/pricing/market-sources', description: 'Källor, prioritet, färskhet, upplösning och fallback för quote', pageKey: 'pricing.engine' },
+    ],
+  },
+  {
     key: 'settings',
     title: 'Inställningar',
     description: 'Bolagets egna inställningar',

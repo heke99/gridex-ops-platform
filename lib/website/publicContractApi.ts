@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
+import { normalizeExternalCustomerType } from '@/lib/customers/externalCustomerType'
 
 export type PublicContractsQuery = {
   customerType: 'private' | 'business' | null
@@ -30,10 +31,12 @@ export function parsePublicContractsQuery(request: NextRequest): PublicContracts
     if (!supported.has(key)) throw new PublicContractsQueryError(key, `Query-parametern ${key} stöds inte.`)
   }
 
-  const customerType = oneValue(request, 'customer_type')
-  if (customerType !== null && customerType !== 'private' && customerType !== 'business') {
-    throw new PublicContractsQueryError('customer_type', 'customer_type måste vara private eller business.')
+  const rawCustomerType = oneValue(request, 'customer_type')
+  const normalizedCustomerType = normalizeExternalCustomerType(rawCustomerType)
+  if (!normalizedCustomerType.ok) {
+    throw new PublicContractsQueryError('customer_type', 'customer_type måste vara private eller business. company accepteras tillfälligt som deprecated alias för business.')
   }
+  const customerType = normalizedCustomerType.value
   const channel = oneValue(request, 'channel') ?? 'website'
   if (channel !== 'website') {
     throw new PublicContractsQueryError('channel', 'Den publika website-endpointen accepterar endast channel=website.')

@@ -7,6 +7,7 @@ import {
   resolvePricingConfiguration,
 } from "@/lib/pricing/priceSourceResolver";
 import { calculateOfferQuote } from "@/lib/pricing/offerQuote";
+import { persistWebsiteQuote } from "@/lib/pricing/websiteQuotes";
 
 vi.mock("@/lib/website/publicContracts", async (importOriginal) => {
   const actual =
@@ -27,6 +28,10 @@ vi.mock("@/lib/pricing/basePriceCalculator", () => ({
     warnings: [],
     errors: [],
   })),
+}));
+
+vi.mock("@/lib/pricing/websiteQuotes", () => ({
+  persistWebsiteQuote: vi.fn(),
 }));
 
 const client: IntegrationApiClient = {
@@ -96,6 +101,11 @@ beforeEach(() => {
   vi.mocked(resolvePublicContractOffer).mockReset();
   vi.mocked(resolvePricingConfiguration).mockReset();
   vi.mocked(resolveBasePriceSourceValues).mockReset();
+  vi.mocked(persistWebsiteQuote).mockReset();
+  vi.mocked(persistWebsiteQuote).mockResolvedValue({
+    quoteReference: "quote_test_reference",
+    validUntil: "2026-09-01T00:15:00.000Z",
+  });
   vi.mocked(resolvePricingConfiguration).mockResolvedValue({
     vatRate: 0.25,
     baseComponents: [],

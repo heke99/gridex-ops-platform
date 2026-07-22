@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { diagnosePublicContractOffers } from '@/lib/website/publicContracts'
+import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import { loadPublicationRevision, parsePublicContractsQuery, PublicContractsQueryError, requestId } from '@/lib/website/publicContractApi'
 
 export const runtime = 'nodejs'
@@ -25,9 +26,10 @@ export async function GET(request: NextRequest) {
     return customerPortalJson({ error: { code: auth.errorCode, message: auth.error, request_id: currentRequestId } }, { status: auth.status })
   }
   try {
-    const [publication, revision] = await Promise.all([
+    const [publication, revision, tenant] = await Promise.all([
       diagnosePublicContractOffers({ client: auth.client, customerType: query.customerType }),
       loadPublicationRevision(auth.client.company_id, 'website'),
+      loadExternalTenantContext(auth.client),
     ])
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: currentRequestId } })
     return customerPortalJson({
@@ -36,7 +38,7 @@ export async function GET(request: NextRequest) {
         publication,
         graph: { source_of_truth: 'contract_publication_versions', canonical_graph_consistent: publication.hidden === 0 },
       },
-      meta: { api_version: 'v1', channel: 'website', publication_revision: revision.revision },
+      meta: { tenant_reference: tenant.tenant_reference, api_version: 'v1', channel: 'website', publication_revision: revision.revision },
       request_id: currentRequestId,
     }, { status: 200, headers: { ETag: revision.etag, 'Cache-Control': 'no-store' } })
   } catch (error) {

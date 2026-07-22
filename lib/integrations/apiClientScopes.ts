@@ -11,6 +11,56 @@ export type ApiPermissionGroup = {
 
 export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
   {
+    groupKey: 'integration_context',
+    label: 'Verifiera tenantidentitet',
+    description: 'Integrationen får verifiera API-nyckelns opaka tenant_reference utan att exponera internt company_id.',
+    category: 'website',
+    scopes: ['integration_context.read'],
+    recommendedDefault: true,
+    riskLevel: 'low',
+    sortOrder: 5,
+  },
+  {
+    groupKey: 'website_quotes',
+    label: 'Beräkna och verifiera priser',
+    description: 'Hemsidan får skapa och verifiera canonical quotes som binds till kundansökan.',
+    category: 'website',
+    scopes: ['website_quotes.write', 'website_quotes.validate'],
+    recommendedDefault: true,
+    riskLevel: 'normal',
+    sortOrder: 8,
+  },
+  {
+    groupKey: 'website_energy_area',
+    label: 'Lös el- och nätområde',
+    description: 'Hemsidan får använda OPS canonical resolver för prisområde, nätområde och nätägare.',
+    category: 'website',
+    scopes: ['website_energy_area.resolve'],
+    recommendedDefault: true,
+    riskLevel: 'normal',
+    sortOrder: 9,
+  },
+  {
+    groupKey: 'website_switch_status',
+    label: 'Läs leverantörsbytesstatus',
+    description: 'Hemsidan får läsa aktuell tenant-skopad status och händelser för en inskickad kundansökan.',
+    category: 'website',
+    scopes: ['website_switch_status.read'],
+    recommendedDefault: true,
+    riskLevel: 'normal',
+    sortOrder: 10,
+  },
+  {
+    groupKey: 'api_contracts',
+    label: 'Hämta API-publicerade avtal',
+    description: 'Partnerintegrationer får läsa avtal som publicerats till den separata api-kanalen.',
+    category: 'website',
+    scopes: ['api_contracts.read'],
+    recommendedDefault: false,
+    riskLevel: 'low',
+    sortOrder: 11,
+  },
+  {
     groupKey: 'website_contracts',
     label: 'Hämta avtal till hemsidan',
     description: 'Hemsidan får läsa publicerade elavtal för rätt bolag.',
@@ -93,6 +143,12 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
 ]
 
 export const CUSTOMER_PORTAL_SCOPES = [
+  'integration_context.read',
+  'website_quotes.write',
+  'website_quotes.validate',
+  'website_energy_area.resolve',
+  'website_switch_status.read',
+  'api_contracts.read',
   'customer_portal.read',
   'customer_portal.write',
 

@@ -4,6 +4,7 @@ import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { diagnosePublicContractOffers, listPublicContractOffers, publicContractResponse } from '@/lib/website/publicContracts'
 import { logUsageEvent } from '@/lib/audit/actionLogger'
+import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import {
   ifNoneMatchMatches,
   loadPublicationRevision,
@@ -15,7 +16,7 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function responseHeaders(input: { etag: string; limit: number; remaining: number; resetAt: string | null }) {
+function responseHeaders(input: { etag: string; limit: number; remaining: number; resetAt: string | null }): Record<string, string> {
   return {
     'Cache-Control': 'private, max-age=0, must-revalidate',
     ETag: input.etag,
@@ -50,7 +51,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const revision = await loadPublicationRevision(auth.client.company_id, 'website')
+    const [revision, tenant] = await Promise.all([
+      loadPublicationRevision(auth.client.company_id, 'website'),
+      loadExternalTenantContext(auth.client),
+    ])
     const headers = responseHeaders({ etag: revision.etag, limit: auth.rateLimit.limit, remaining: auth.rateLimit.remaining, resetAt: auth.rateLimit.resetAt })
     if (!query.diagnostics && ifNoneMatchMatches(request, revision.etag)) {
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: 304, startedAt, metadata: { request_id: currentRequestId, publication_revision: revision.revision } })
@@ -82,10 +86,16 @@ export async function GET(request: NextRequest) {
       metadata: { result_count: offers.length, customer_type: query.customerType, diagnostics: query.diagnostics },
     })
 
+    if (query.diagnostics) {
+      headers.Deprecation = 'true'
+      headers.Sunset = 'Sat, 31 Oct 2026 23:59:59 GMT'
+    }
+
     return NextResponse.json({
       data,
       contracts: data,
       meta: {
+        tenant_reference: tenant.tenant_reference,
         api_version: 'v1',
         channel: 'website',
         publication_revision: revision.revision,
