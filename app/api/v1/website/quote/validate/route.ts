@@ -1,30 +1,170 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
+import { readJsonWithLimit } from '@/lib/http/payloadLimit'
+import {
+  logIntegrationApiRequest,
+  requireIntegrationApiAccess,
+} from '@/lib/integrations/apiAuth'
+import { normalizeExternalCustomerType } from '@/lib/customers/externalCustomerType'
+import {
+  validateWebsiteQuote,
+  WebsiteQuoteValidationError,
+} from '@/lib/pricing/websiteQuotes'
+import { resolvePublicContractOffer } from '@/lib/website/publicContracts'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-/** Legacy quote validation was removed together with external OPS quotes. */
-export async function POST(_request: NextRequest) {
+function text(body: Record<string, unknown>, ...keys: string[]): string | null {
+  for (const key of keys) {
+    const value = body[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
+
+function numeric(body: Record<string, unknown>, ...keys: string[]): number | null {
+  for (const key of keys) {
+    const value = body[key]
+    if (value === null || value === undefined || value === '') continue
+    const parsed = typeof value === 'number' ? value : Number(String(value).replace(',', '.'))
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return null
+}
+
+function responseError(input: {
+  code: string
+  message: string
+  requestId: string
+  field?: string | null
+  details?: Record<string, unknown>
+}) {
+  return {
+    error: {
+      code: input.code,
+      message: input.message,
+      field: input.field ?? null,
+      request_id: input.requestId,
+      ...(input.details ? { details: input.details } : {}),
+    },
+    code: input.code,
+    message: input.message,
+    field: input.field ?? null,
+    details: input.details ?? null,
+    request_id: input.requestId,
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const startedAt = Date.now()
   const requestId = randomUUID()
-  return customerPortalJson(
-    {
-      error: {
-        code: 'quote_validation_removed',
-        message:
-          'quote_reference används inte längre i nya kundansökningar. Skicka offer_reference, kundtyp, tenantens lösta prisområde och juridiska godkännanden.',
-        replacement: '/api/v1/website/customer-applications',
+  const auth = await requireIntegrationApiAccess(request, ['website_quotes.validate'])
+  if (!auth.ok) {
+    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    return customerPortalJson(responseError({ code: auth.errorCode, message: auth.error, requestId }), { status: auth.status })
+  }
+
+  try {
+    const parsed = await readJsonWithLimit(request)
+    if (!parsed.ok) {
+      const status = parsed.code === 'payload_too_large' ? 413 : 400
+      return customerPortalJson(
+        responseError({
+          code: parsed.code,
+          message: status === 413 ? 'Förfrågans innehåll är för stort.' : 'Ogiltig JSON i förfrågan.',
+          requestId,
+        }),
+        { status },
+      )
+    }
+    const body = (parsed.body ?? {}) as Record<string, unknown>
+    const quoteReference = text(body, 'quote_reference', 'quoteReference') ?? ''
+    const offerReference = text(body, 'offer_reference', 'offerReference') ?? ''
+    const normalizedCustomerType = normalizeExternalCustomerType(text(body, 'customer_type', 'customerType'))
+    if (!normalizedCustomerType.ok || !normalizedCustomerType.value) {
+      return customerPortalJson(
+        responseError({
+          code: 'invalid_customer_type',
+          message: 'customer_type måste vara private eller business.',
+          requestId,
+          field: 'customer_type',
+        }),
+        { status: 400 },
+      )
+    }
+    const publicOffer = await resolvePublicContractOffer({
+      client: auth.client,
+      offerReference,
+      customerType: normalizedCustomerType.value,
+    })
+    if (!publicOffer) {
+      return customerPortalJson(
+        responseError({
+          code: 'offer_not_found',
+          message: 'Avtalet hittades inte eller är inte publicerat för denna tenant.',
+          requestId,
+          field: 'offer_reference',
+        }),
+        { status: 404 },
+      )
+    }
+
+    const quote = await validateWebsiteQuote({
+      client: auth.client,
+      quoteReference,
+      offerReference,
+      publicOffer,
+      customerType: normalizedCustomerType.value,
+      priceArea: text(body, 'price_area', 'priceArea', 'price_area_code', 'priceAreaCode')?.toUpperCase() ?? null,
+      gridAreaCode: text(body, 'grid_area_code', 'gridAreaCode'),
+      postalCode: text(body, 'postal_code', 'postalCode'),
+      annualConsumptionKwh: numeric(body, 'annual_consumption_kwh', 'annualConsumptionKwh'),
+      startDate: text(body, 'start_date', 'startDate', 'requested_start_date', 'requestedStartDate'),
+      applicationId: text(body, 'application_id', 'applicationId'),
+    })
+
+    await logIntegrationApiRequest({
+      client: auth.client,
+      request,
+      statusCode: 200,
+      startedAt,
+      metadata: { request_id: requestId, quote_reference: quote.quote_reference, offer_reference: quote.offer_reference },
+    })
+    return customerPortalJson(
+      {
+        data: {
+          valid: true,
+          quote_reference: quote.quote_reference,
+          offer_reference: quote.offer_reference,
+          valid_until: quote.valid_until,
+          status: quote.status,
+          selected_area_price: (quote.quote_snapshot as Record<string, unknown>).selected_area_price ?? null,
+        },
         request_id: requestId,
       },
-    },
-    {
-      status: 410,
-      headers: {
-        'Cache-Control': 'no-store',
-        Deprecation: 'true',
-        Sunset: 'Wed, 22 Jul 2026 23:59:59 GMT',
-      },
-    },
-  )
+      { status: 200, headers: { 'Cache-Control': 'no-store' } },
+    )
+  } catch (error) {
+    if (error instanceof WebsiteQuoteValidationError) {
+      await logIntegrationApiRequest({ client: auth.client, request, statusCode: error.status, startedAt, errorCode: error.code, metadata: { request_id: requestId } })
+      return customerPortalJson(
+        responseError({
+          code: error.code,
+          message: error.message,
+          requestId,
+          field: error.field,
+          details: error.details,
+        }),
+        { status: error.status, headers: { 'Cache-Control': 'no-store' } },
+      )
+    }
+    console.error('[website-quote-validate] failed', { requestId, error })
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'website_quote_validation_failed', metadata: { request_id: requestId } })
+    return customerPortalJson(
+      responseError({ code: 'website_quote_validation_failed', message: 'Prisquote kunde inte valideras just nu.', requestId }),
+      { status: 500, headers: { 'Cache-Control': 'no-store' } },
+    )
+  }
 }

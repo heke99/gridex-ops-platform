@@ -7,6 +7,7 @@ import { supabaseService } from "@/lib/supabase/service";
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
+import { commonFixedPriceOrePerKwh } from "@/lib/pricing/fixedAreaPricing";
 import { buildCanonicalContractPricingCommand } from "@/lib/pricing/canonicalInvoiceFee";
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 import { parseAdminContractForm } from "@/lib/contracts/adminContractSchema";
@@ -126,6 +127,7 @@ async function saveContractOfferActionImpl(
     contractType: input.contractType,
     customerType: input.customerType,
     fixedPriceOrePerKwh: input.fixedPriceOrePerKwh,
+    fixedPricesByArea: input.fixedPricesByArea,
     spotMarkupOrePerKwh: input.spotMarkupOrePerKwh,
     variableFeeOrePerKwh: input.variableFeeOrePerKwh,
     monthlyFeeSek: input.monthlyFeeSek,
@@ -189,6 +191,12 @@ async function saveContractOfferActionImpl(
     },
   });
 
+  const legacyCommonFixedPriceOrePerKwh = commonFixedPriceOrePerKwh(
+    normalizedPricing.snapshot,
+    input.fixedPriceOrePerKwh,
+    normalizedPricing.snapshot.price_areas,
+  );
+
   const canonicalPricingCommand = buildCanonicalContractPricingCommand({
     pricingModel: normalizedPricing.pricingModel,
     pricingSnapshot: {
@@ -224,7 +232,9 @@ async function saveContractOfferActionImpl(
     break_fee_sek: input.breakFeeSek,
     vat_rate: input.vatRate,
     description: input.description,
-    fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh,
+    // Legacy scalar is retained only when all area rows share one value.
+    // Different SE prices live canonically in the immutable base components.
+    fixed_price_ore_per_kwh: legacyCommonFixedPriceOrePerKwh,
     spot_markup_ore_per_kwh: input.spotMarkupOrePerKwh,
     variable_fee_ore_per_kwh: input.variableFeeOrePerKwh,
     monthly_fee_sek: input.monthlyFeeSek,

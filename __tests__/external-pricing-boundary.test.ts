@@ -9,59 +9,53 @@ import {
   INTEGRATION_API_PERMISSION_GROUPS,
 } from "@/lib/integrations/apiClientScopes";
 
-async function expectGone(
-  response: Response,
-  expectedCode: string,
-): Promise<void> {
-  expect(response.status).toBe(410);
-  expect(response.headers.get("cache-control")).toBe("no-store");
-  expect(response.headers.get("deprecation")).toBe("true");
-  const payload = (await response.json()) as {
-    error?: { code?: string };
-  };
-  expect(payload.error?.code).toBe(expectedCode);
+async function expectAuthenticatedEndpoint(response: Response): Promise<void> {
+  expect(response.status).toBe(401);
+  expect(response.status).not.toBe(410);
+  const payload = (await response.json()) as { error?: { code?: string } };
+  expect(payload.error?.code).toBeTruthy();
 }
 
-describe("external tenant pricing responsibility boundary", () => {
-  it("removes OPS quote and public energy-area resolution", async () => {
-    await expectGone(
+describe("canonical external pricing and area boundary", () => {
+  it("keeps quote and OPS area resolver as authenticated tenant endpoints", async () => {
+    await expectAuthenticatedEndpoint(
       await quote(
         new NextRequest("https://app.gridex.se/api/v1/website/quote", {
           method: "POST",
           body: "{}",
         }),
       ),
-      "tenant_managed_pricing_required",
     );
-    await expectGone(
+    await expectAuthenticatedEndpoint(
       await validateQuote(
         new NextRequest(
           "https://app.gridex.se/api/v1/website/quote/validate",
           { method: "POST", body: "{}" },
         ),
       ),
-      "quote_validation_removed",
     );
-    await expectGone(
+    await expectAuthenticatedEndpoint(
       await resolveArea(
         new NextRequest(
           "https://app.gridex.se/api/v1/website/energy-area/resolve",
           { method: "POST", body: "{}" },
         ),
       ),
-      "tenant_managed_energy_area_required",
-    );
-    await expectGone(
-      await publicArea(
-        new NextRequest(
-          "https://app.gridex.se/api/public/energy-area?postal_code=58220",
-        ),
-      ),
-      "public_energy_area_removed",
     );
   });
 
-  it("does not provision removed scopes to external API clients", () => {
+  it("keeps the unauthenticated legacy postal resolver removed", async () => {
+    const response = await publicArea(
+      new NextRequest(
+        "https://app.gridex.se/api/public/energy-area?postal_code=58220",
+      ),
+    );
+    expect(response.status).toBe(410);
+    const payload = (await response.json()) as { error?: { code?: string } };
+    expect(payload.error?.code).toBe("public_energy_area_removed");
+  });
+
+  it("provisions only the tenant-scoped quote and resolver permissions", () => {
     const activeScopes = new Set<string>(CUSTOMER_PORTAL_SCOPES);
     const groupedScopes = new Set(
       INTEGRATION_API_PERMISSION_GROUPS.flatMap((group) => group.scopes),
@@ -72,8 +66,8 @@ describe("external tenant pricing responsibility boundary", () => {
       "website_quotes.validate",
       "website_energy_area.resolve",
     ]) {
-      expect(activeScopes.has(scope)).toBe(false);
-      expect(groupedScopes.has(scope)).toBe(false);
+      expect(activeScopes.has(scope)).toBe(true);
+      expect(groupedScopes.has(scope)).toBe(true);
     }
   });
 });

@@ -8,6 +8,7 @@ import PortfolioPricingEditor, {
   type PortfolioOption,
 } from "@/components/admin/contracts/PortfolioPricingEditor";
 import PricingCalculationBaseField from "@/components/admin/contracts/PricingCalculationBaseField";
+import { fixedAreaPricesAsAdminText } from "@/lib/pricing/fixedAreaPricing";
 
 function snapshotValue(
   offer: ContractOfferRow | null,
@@ -96,6 +97,14 @@ export default function ContractOfferAdminForm({
   const locked = ["published", "paused", "expired", "archived", "superseded"].includes(lifecycle);
   const editableLifecycle = locked ? "draft" : lifecycle === "ready" ? "ready" : "draft";
   const formKey = `${offer?.id ?? "new"}:${contractType}`;
+  const priceAreas = Array.isArray(snapshotValue(offer, "price_areas"))
+    ? (snapshotValue(offer, "price_areas") as unknown[]).map(String)
+    : ["SE1", "SE2", "SE3", "SE4"];
+  const fixedAreaPrices = fixedAreaPricesAsAdminText(
+    offer?.commercial_snapshot ?? null,
+    offer?.fixed_price_ore_per_kwh ?? null,
+    priceAreas,
+  );
 
   return (
     <form action={saveContractOfferAction} className="mt-6 space-y-5">
@@ -176,7 +185,7 @@ export default function ContractOfferAdminForm({
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <WebsitePricingField
             name="fixed_price_ore_per_kwh"
-            placeholder="Fast pris öre/kWh"
+            placeholder="Gemensamt fastpris/fallback öre per kWh"
             visibilityName="show_fixed_price_on_website"
             visibilityLabel={
               contractType === "fixed"
@@ -193,6 +202,21 @@ export default function ContractOfferAdminForm({
               )
             }
           />
+          {(contractType === "fixed" || contractType === "mixed") && (
+            <label className="grid gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 p-3 text-sm font-semibold text-indigo-950 md:col-span-2">
+              Fastpris per elområde
+              <textarea
+                name="fixed_prices_by_area"
+                defaultValue={fixedAreaPrices}
+                rows={4}
+                placeholder={"SE1 | 112,00\nSE2 | 115,00\nSE3 | 128,00\nSE4 | 140,00"}
+                className="rounded-xl border border-indigo-200 bg-white px-4 py-3 font-mono text-sm"
+              />
+              <span className="text-xs font-normal leading-5 text-indigo-800">
+                Ett canonicalt avtal publiceras en gång. Varje rad anger endast vilket fastpris som väljs och låses för kundens verifierade SE-område. Det gemensamma fältet ovan används bara som fallback.
+              </span>
+            </label>
+          )}
           <WebsitePricingField name="spot_markup_ore_per_kwh" placeholder="Spotpåslag öre/kWh" visibilityName="show_spot_markup_on_website" defaultValue={offer?.spot_markup_ore_per_kwh} defaultVisible={asBoolean(snapshotValue(offer, "show_spot_markup_on_website"), true)} />
           <WebsitePricingField name="variable_fee_ore_per_kwh" placeholder="Rörlig avgift öre/kWh" visibilityName="show_variable_fee_on_website" defaultValue={offer?.variable_fee_ore_per_kwh} defaultVisible={asBoolean(snapshotValue(offer, "show_variable_fee_on_website"))} />
           <WebsitePricingField name="monthly_fee_sek" placeholder="Månadsavgift kr" visibilityName="show_monthly_fee_on_website" defaultValue={offer?.monthly_fee_sek} defaultVisible={asBoolean(snapshotValue(offer, "show_monthly_fee_on_website"), true)} />
@@ -213,7 +237,7 @@ export default function ContractOfferAdminForm({
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-slate-700">Prisområden
-            <input name="price_areas" defaultValue={Array.isArray(snapshotValue(offer, "price_areas")) ? (snapshotValue(offer, "price_areas") as unknown[]).join(",") : "SE1,SE2,SE3,SE4"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+            <input name="price_areas" defaultValue={priceAreas.join(",")} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
           </label>
         </div>
       </section>

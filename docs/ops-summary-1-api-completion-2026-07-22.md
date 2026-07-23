@@ -1,21 +1,12 @@
-# Gridex OPS Website API 2026-07-22.2
+# Gridex OPS Website API 2026-07-23.1
 
-## Status
+> **Ersätter API 2026-07-22.2 för tenantautentiserad resolver och canonical quote.** Den historiska 7.22.2-gränsen nedan förklarar varför interna marknadskällor inte exponeras, men påståenden om att `POST /api/v1/website/quote`, `POST /api/v1/website/quote/validate` och `POST /api/v1/website/energy-area/resolve` returnerar 410 är inte längre aktuella. Endast den oautentiserade legacyrutten `GET /api/public/energy-area` är fortsatt borttagen.
 
-Detta dokument är canonical integrationskontrakt för OPS externa website-API från och med **2026-07-22.2**. Det ersätter quote- och elområdesansvaret i 2026-07-22.1.
-
-De tidigare rutterna nedan är borttagna ur det aktiva kontraktet och returnerar `410 Gone`:
-
-- `POST /api/v1/website/quote`
-- `POST /api/v1/website/quote/validate`
-- `POST /api/v1/website/energy-area/resolve`
-- `GET /api/public/energy-area`
-
-De tidigare scopesen `website_quotes.write`, `website_quotes.validate` och `website_energy_area.resolve` är avaktiverade och tas bort från befintliga API-klienter av migrationen `20260722233000_external_tenant_pricing_boundary.sql`.
-
-Maskinläsbart kontrakt finns i `docs/openapi/website-integration-v1.json`. Den publika utvecklarsidan finns på `/developers/customer-portal-api`.
+Canonical 7.23.1 innebär ett publicerat fastprisavtal med områdesrader under samma produkt/version, tenantbunden area resolution, quote som låser vald rad och en idempotent kundkedja till kundnummer, anläggning, avtal, mail, uppgiftsbegäran, leverantörsbyte och faktureringssnapshot.
 
 ---
+
+## Historik: 2026-07-22.2
 # Gridex OPS – korrekt ansvarsfördelning för avtal, priser, avgifter och tenanternas kalkylatorer
 
 ## 1. Övergripande mål
@@ -818,7 +809,7 @@ Idempotency-Key: required
 
 `offer_reference` är den enda kommersiella väljaren. Tenantens backend skickar sitt lösta `price_area_code`. OPS verifierar att området är giltigt och tillåtet för den publicerade avtalsversionen.
 
-`quote_reference` ska inte skickas i nya integrationer. Ett legacyvärde ignoreras och returneras inte som bindande avtalsunderlag.
+`quote_reference` ska skickas av nya integrationer efter att OPS skapat en canonical quote. Legacy omission stöds tillfälligt och fryser då samma publicerade version direkt.
 
 ## Intern OPS-prissättning
 
@@ -830,11 +821,11 @@ En release är inte klar förrän följande är grönt:
 
 1. TypeScript typecheck.
 2. Public contract visibility- och calculation-contract-tester.
-3. API boundary-regression för borttagna quote- och resolverroutes.
-4. OpenAPI-validering mot version `2026-07-22.2`.
+3. API-regression för aktiva tenantautentiserade quote-/resolverroutes samt fortsatt borttagen publik legacyresolver.
+4. OpenAPI-validering mot version `2026-07-23.1`.
 5. Migration checksum-verifiering.
 6. Full Next.js-produktionsbuild.
-7. Kontroll att inga aktiva API-klienter behåller borttagna scopes efter migration.
+7. Kontroll att website-klienter får endast de återaktiverade quote-/resolver-scopes som deras websitekontrakt kräver.
 8. Kontroll att fastpris och dolda avgifter finns i public contract DTO.
 9. Kontroll att ingen tenant-route returnerar Nord Pool-, spot- eller market-source-data.
 
@@ -842,4 +833,4 @@ En release är inte klar förrän följande är grönt:
 `pricing.summary_components` används för fullständig prissammanställning, medan totalsumman alltid utgår från `pricing.calculation_components`.
 
 
-API-svaret innehåller `contract_schema_version=2026-07-22.2` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
+API-svaret innehåller `contract_schema_version=2026-07-23.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.

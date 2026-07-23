@@ -65,6 +65,16 @@ import {
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
 import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/documents";
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
+import {
+  markWebsiteQuoteConsumed,
+  validateWebsiteQuote,
+  WebsiteQuoteValidationError,
+  type WebsiteQuoteRecord,
+} from "@/lib/pricing/websiteQuotes";
+import {
+  fixedPriceOreForArea,
+  selectBaseComponentsForPriceArea,
+} from "@/lib/pricing/fixedAreaPricing";
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) =>
@@ -244,6 +254,8 @@ const ApplicationSchema = z.object({
   offerReference: OPTIONAL_TEXT,
   external_customer_id: OPTIONAL_TEXT,
   customer_external_id: OPTIONAL_TEXT,
+  external_customer_reference: OPTIONAL_TEXT,
+  customer_reference: OPTIONAL_TEXT,
   external_account_id: OPTIONAL_TEXT,
   auth_user_id: OPTIONAL_TEXT,
   customer_portal_user_id: OPTIONAL_TEXT,
@@ -4064,10 +4076,26 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
     external_customer_id:
       raw.external_customer_id ??
       raw.customer_external_id ??
+      raw.external_customer_reference ??
+      raw.customer_reference ??
       raw.externalCustomerId,
     customer_external_id:
       raw.customer_external_id ??
       raw.external_customer_id ??
+      raw.external_customer_reference ??
+      raw.customer_reference ??
+      raw.externalCustomerId,
+    external_customer_reference:
+      raw.external_customer_reference ??
+      raw.customer_reference ??
+      raw.external_customer_id ??
+      raw.customer_external_id ??
+      raw.externalCustomerId,
+    customer_reference:
+      raw.customer_reference ??
+      raw.external_customer_reference ??
+      raw.external_customer_id ??
+      raw.customer_external_id ??
       raw.externalCustomerId,
     external_account_id: firstDefined(
       raw.external_account_id,
@@ -4777,7 +4805,16 @@ type WebsiteContractCreateResult = {
 function selectedOfferFields(
   offer: PublicContractOffer | null,
   contract: ApplicationInput["contract"],
+  priceArea?: string | null,
 ) {
+  const selectedAreaFixedPrice = offer
+    ? fixedPriceOreForArea(
+        offer.pricing_snapshot,
+        priceArea,
+        offer.fixed_price_ore_per_kwh,
+        offer.price_areas ?? [],
+      )
+    : null;
   return {
     // Client-supplied fallbacks are UUID-gated: these values are written to
     // uuid columns (customer_contracts / contract_price_snapshots /
@@ -4812,6 +4849,7 @@ function selectedOfferFields(
       contract?.variable_fee_ore_per_kwh ??
       null,
     fixedPriceOrePerKwh:
+      selectedAreaFixedPrice ??
       offer?.fixed_price_ore_per_kwh ??
       contract?.fixed_price_ore_per_kwh ??
       null,
@@ -5956,6 +5994,7 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
   applicationNumber: string;
   publicOffer: PublicContractOffer;
   offerReference: string;
+  websiteQuote: WebsiteQuoteRecord | null;
   readiness: WebsiteApplicationReadiness;
   legalVersions: WebsiteLegalAcceptanceVersion[];
   structuredPoa: NormalizedStructuredPoa | null;
@@ -5965,7 +6004,11 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
 }) {
   const companyId = input.client.company_id;
   const customer = input.body.customer;
-  const selected = selectedOfferFields(input.publicOffer, input.body.contract);
+  const selected = selectedOfferFields(
+    input.publicOffer,
+    input.body.contract,
+    input.readiness.priceArea,
+  );
   if (!isUuid(selected.pricePlanId) || !isUuid(selected.pricePlanVersionId)) {
     throw new WebsiteApplicationError({
       message: "Det publicerade avtalet saknar verifierad prisplanskoppling.",
@@ -6031,6 +6074,14 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
   });
   assertCanonicalSnapshot(compatibilitySnapshot);
   const exactPricing = input.publicOffer.pricing_snapshot ?? {};
+  const selectedAreaBaseComponents = selectBaseComponentsForPriceArea(
+    exactPricing,
+    input.readiness.priceArea,
+  );
+  const frozenBaseComponents = selectedAreaBaseComponents.length > 0
+    ? selectedAreaBaseComponents
+    : compatibilitySnapshot.basePriceComponents;
+  const quoteSnapshot = input.websiteQuote?.quote_snapshot ?? null;
   const legalSnapshot = websiteLegalVersionsSnapshot(input.legalVersions);
   const poaLegal = input.legalVersions.find((version) => version.type === "power_of_attorney") ?? null;
   const siteInput = input.body.site;
@@ -6187,8 +6238,10 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         website_application_id: input.applicationRowId,
         application_number: input.applicationNumber,
         offer_reference: input.offerReference,
-        quote_reference: null,
-        quote_valid_until: null,
+        quote_reference: input.websiteQuote?.quote_reference ?? null,
+        quote_valid_until: input.websiteQuote?.valid_until ?? null,
+        selected_area_price_ore_per_kwh: selected.fixedPriceOrePerKwh,
+        selected_price_area: input.readiness.priceArea,
         missing_fields: input.readiness.missingFields,
         blocking_reasons: input.readiness.blockingReasons,
       },
@@ -6205,7 +6258,7 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
       price_plan_version_id: selected.pricePlanVersionId,
       campaign_version_id: selected.campaignVersionId,
       pricing_model: compatibilitySnapshot.pricingModel,
-      base_price_components_snapshot: compatibilitySnapshot.basePriceComponents,
+      base_price_components_snapshot: frozenBaseComponents,
       price_components_snapshot: compatibilitySnapshot.priceComponents,
       snapshot_json: {
         ...exactPricing,
@@ -6215,17 +6268,18 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         price_plan_version_id: selected.pricePlanVersionId,
         public_contract_offer_id: selected.publicContractOfferId,
         pricing_model: compatibilitySnapshot.pricingModel,
-        base_price_components_snapshot: compatibilitySnapshot.basePriceComponents,
+        base_price_components_snapshot: frozenBaseComponents,
         price_components_snapshot: compatibilitySnapshot.priceComponents,
         requested_start_date: requestedStartDate,
-        quote_reference: null,
-        quote_valid_until: null,
-        quote_market_data_timestamp: null,
-        quote_market_sources: [],
-        quote_assumptions: [],
+        quote_reference: input.websiteQuote?.quote_reference ?? null,
+        quote_valid_until: input.websiteQuote?.valid_until ?? null,
+        quote_market_data_timestamp: input.websiteQuote?.market_data_timestamp ?? null,
+        quote_market_sources: input.websiteQuote?.market_sources ?? [],
+        quote_assumptions: input.websiteQuote?.assumptions ?? [],
         quote_pricing_snapshot_schema_version:
-          null,
-        quote_snapshot: null,
+          input.websiteQuote?.pricing_snapshot_schema_version ?? null,
+        quote_snapshot: quoteSnapshot,
+        selected_area_price_ore_per_kwh: selected.fixedPriceOrePerKwh,
         annual_consumption_kwh: requestedAnnualConsumption(input.body),
         price_area: input.readiness.priceArea,
         grid_area_code: input.readiness.gridAreaCode,
@@ -6495,13 +6549,16 @@ export async function processWebsiteCustomerApplication(input: {
   const payloadHash = applicationPayloadHash(body);
 
   const externalCustomerId =
-    clean(body.external_customer_id) ?? clean(body.customer_external_id);
+    clean(body.external_customer_id) ??
+    clean(body.customer_external_id) ??
+    clean(body.external_customer_reference) ??
+    clean(body.customer_reference);
   if (!externalCustomerId) {
     return failureResponse(
       validationError(
-        "external_customer_id krävs.",
+        "external_customer_id eller external_customer_reference krävs.",
         "external_customer_id",
-        "Skicka ett stabilt kund-ID från hemsidan som external_customer_id.",
+        "Skicka tenantens stabila kundreferens som external_customer_id eller external_customer_reference.",
       ),
     );
   }
@@ -6527,6 +6584,7 @@ export async function processWebsiteCustomerApplication(input: {
     null;
   let contract: WebsiteContractCreateResult | null = null;
   let publicOffer: PublicContractOffer | null = null;
+  let websiteQuote: WebsiteQuoteRecord | null = null;
   let legalAcceptanceVersions: WebsiteLegalAcceptanceVersion[] = [];
   let applicationNumber: string | null = null;
   let existingIdentity: Awaited<ReturnType<typeof loadExistingIdentity>> = null;
@@ -6953,11 +7011,45 @@ export async function processWebsiteCustomerApplication(input: {
     }
 
     if (selectedQuoteReference) {
+      try {
+        websiteQuote = await validateWebsiteQuote({
+          client: input.client,
+          quoteReference: selectedQuoteReference,
+          offerReference: selectedOfferReference,
+          publicOffer: publicOffer as PublicContractOffer,
+          customerType: body.customer.customer_type,
+          priceArea: readiness.priceArea,
+          gridAreaCode: readiness.gridAreaCode,
+          postalCode: clean(body.site?.postal_code),
+          annualConsumptionKwh: requestedAnnualConsumption(body),
+          startDate: readiness.requestedStartDate,
+          applicationId: applicationRowId,
+        });
+        await markWebsiteQuoteConsumed({
+          companyId: input.client.company_id,
+          quoteReference: selectedQuoteReference,
+          applicationId: applicationRowId as string,
+        });
+      } catch (error) {
+        if (error instanceof WebsiteQuoteValidationError) {
+          throw new WebsiteApplicationError({
+            message: error.message,
+            status: error.status,
+            code: error.code,
+            field: error.field,
+            stage: "quote_validation",
+            details: error.details,
+            hint: "Skapa en ny quote från samma offer_reference, kundtyp, SE-område, förbrukning och startdatum och gör sedan retry med samma Idempotency-Key.",
+          });
+        }
+        throw error;
+      }
+    } else {
       readiness = {
         ...readiness,
         warnings: [
           ...readiness.warnings,
-          "quote_reference är deprecated och ignorerades. Nya ansökningar binds direkt till offer_reference och den publicerade avtalsversionen.",
+          "quote_reference saknades. OPS låste den publicerade prisversionen och vald SE-prisrad direkt för bakåtkompatibilitet; nya integrationer bör skapa canonical quote före teckning.",
         ],
       };
     }
@@ -6973,6 +7065,7 @@ export async function processWebsiteCustomerApplication(input: {
         applicationNumber: applicationNumber as string,
         publicOffer: publicOffer as PublicContractOffer,
         offerReference: selectedOfferReference as string,
+        websiteQuote,
         readiness,
         legalVersions: legalAcceptanceVersions,
         structuredPoa,
@@ -7104,6 +7197,7 @@ export async function processWebsiteCustomerApplication(input: {
       customer_number: customerNumber,
       application_number: applicationNumber,
       external_customer_id: externalCustomerId,
+      external_customer_reference: externalCustomerId,
       portal_identity_id: identity.id,
       customer_site_id: site?.id ?? null,
       site_id: site?.id ?? null,
@@ -7111,8 +7205,9 @@ export async function processWebsiteCustomerApplication(input: {
       contract_id: contract?.id ?? null,
       contract_number: contract?.contract_number ?? null,
       offer_reference: publicOffer ? selectedOfferReference : null,
-      quote_reference: null,
-      deprecated_quote_reference_ignored: Boolean(selectedQuoteReference),
+      quote_reference: websiteQuote?.quote_reference ?? null,
+      quote_valid_until: websiteQuote?.valid_until ?? null,
+      quote_bound: Boolean(websiteQuote),
       price_plan_id:
         contract?.price_plan_id ??
         publicOffer?.price_plan_id ??

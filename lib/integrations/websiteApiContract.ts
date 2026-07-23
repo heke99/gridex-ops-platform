@@ -24,6 +24,7 @@ export type WebsitePricingComponent = {
 
 export type WebsitePublicContractPricing = {
   fixed_price?: Record<string, unknown> | null
+  area_pricing: Array<{ price_area: string; energy_price_ore_per_kwh: number; unit: 'ore_per_kwh' }>
   monthly_fee?: Record<string, unknown> | null
   invoice_fee?: Record<string, unknown> | null
   markup?: Record<string, unknown> | null
@@ -61,34 +62,68 @@ export type ExternalApiMeta = {
   channel?: PublicationChannel
   publication_revision?: number
   publication_updated_at?: string | null
-  contract_schema_version?: '2026-07-22.2'
+  contract_schema_version?: '2026-07-23.1'
 }
 
-export type RemovedWebsiteEndpointResponse = {
-  error: {
-    code:
-      | 'tenant_managed_pricing_required'
-      | 'quote_validation_removed'
-      | 'tenant_managed_energy_area_required'
-      | 'public_energy_area_removed'
-    message: string
+export type WebsiteQuoteRequest = {
+  offer_reference: OfferReference | string
+  customer_type: ExternalCustomerType | 'company'
+  price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4'
+  annual_consumption_kwh: number
+  start_date: string
+  grid_area_code?: string | null
+  postal_code?: string | null
+}
+
+export type WebsiteQuoteResponse = {
+  data: {
+    quote_reference: QuoteReference | string
+    offer_reference: OfferReference | string
+    valid_until: string
+    selected_area_price: null | {
+      price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4'
+      energy_price_ore_per_kwh: number
+      unit: 'ore_per_kwh'
+    }
+    estimate: Record<string, number>
+    lines: Array<Record<string, unknown>>
+    [key: string]: unknown
   }
+  request_id: string
 }
 
-/** @deprecated External OPS quote calculation was removed in API 2026-07-22.2. */
-export type WebsiteQuoteRequest = never
+export type WebsiteQuoteValidationRequest = WebsiteQuoteRequest & {
+  quote_reference: QuoteReference | string
+  application_id?: string | null
+}
 
-/** @deprecated The quote endpoint only returns RemovedWebsiteEndpointResponse. */
-export type WebsiteQuoteResponse = RemovedWebsiteEndpointResponse
+export type WebsiteEnergyAreaResolveRequest = {
+  street?: string | null
+  street_number?: string | null
+  postal_code?: string | null
+  city?: string | null
+  country?: string | null
+  grid_area_code?: string | null
+  facility_id?: string | null
+  metering_point_id?: string | null
+}
 
-/** @deprecated quote_reference is not part of new signup flows. */
-export type WebsiteQuoteValidationRequest = never
-
-/** @deprecated Public energy-area resolution belongs to the tenant. */
-export type WebsiteEnergyAreaResolveRequest = never
-
-/** @deprecated The resolver endpoint only returns RemovedWebsiteEndpointResponse. */
-export type WebsiteEnergyAreaResolveResponse = RemovedWebsiteEndpointResponse
+export type WebsiteEnergyAreaResolveResponse = {
+  data: {
+    resolution_id: string | null
+    price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4' | null
+    grid_area_code: string | null
+    grid_area_name: string | null
+    grid_owner_id: string | null
+    grid_owner_name: string | null
+    resolution_status: string
+    confidence: number
+    automation_allowed: boolean
+    next_required_action: string
+    warnings: string[]
+  }
+  request_id: string
+}
 
 export type WebsiteSwitchStatusResponse = {
   application_number: string
@@ -117,7 +152,7 @@ export type WebsiteSwitchStatusResponse = {
 
 export type WebsiteCustomerApplicationBinding = {
   offer_reference: OfferReference | string
-  /** @deprecated Ignored compatibility field. */
+  /** Canonical quote. Omitted only by legacy clients; OPS then freezes the published price version directly. */
   quote_reference?: QuoteReference | string
   annual_consumption_kwh?: number
   price_area_code?: string

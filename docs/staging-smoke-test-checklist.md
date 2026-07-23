@@ -75,26 +75,16 @@ sections marked *post-deploy* also run against production after deploy).
 - [ ] Pricing preview for a test contract; monthly run on staging data;
       invoice export dry-run; provider webhook test event processed
 
-## Fullständigt prisunderlag och tenantens kalkylator (`2026-07-22.2`)
+## Canonical fastpris/quote/teckning (`2026-07-23.1`)
 
-Den aktiva integrationsordningen är:
-
-1. `GET /api/v1/website/public-contracts` används för avtalsurval och som fullständigt maskinläsbart beräkningsunderlag.
-2. Tenantens webbplats löser själv kundens prisområde och hämtar själv extern marknadsprisindikation för rörligt månads-, tim- och kvartspris.
-3. Tenantens kalkylator kombinerar marknadspriset med OPS-publicerade påslag, avgifter, momsregler och förbrukning.
-4. `POST /api/v1/website/customer-applications` tecknar direkt med samma `offer_reference`; OPS verifierar inskickat prisområde och låser publicerings-, pris-, avgifts- och juridikversion.
-
-För fastprisavtal skickar OPS alltid det publicerade fasta priset per kWh. Fastpriset är alltid synligt för kunden och kan inte döljas av presentationsinställningen för ett fastprisavtal. Tenantens kalkylator använder det tillsammans med samtliga tillämpliga fasta och förbrukningsbaserade avgifter för att visa beräknad månads- och årskostnad.
-
-`pricing.calculation_components` och kompatibilitetsfältet `pricing.components` innehåller **alla** tillämpliga pris- och avgiftskomponenter. En komponent med `website_visibility=hidden` eller `website_card_visible=false` får inte filtreras bort: den ska fortfarande skickas till tenantens backend och användas när `calculation_inclusion=included` eller dess villkor uppfylls. `pricing.display_components` är den separata listan över sådant som får visas som egna sälj-/avtalsrader.
-
-För penningvärden gäller:
-
-- `0` är ett giltigt publicerat numeriskt värde och betyder avgiftsfritt;
-- blankt, `null` och `undefined` betyder inte automatiskt `0`;
-- använd aldrig truthy/falsy-kontroller för pengar;
-- kontrollera uttryckligen `value === null || value === undefined`.
-
-OPS externa tenant-API returnerar inte Nord Pool-, spot-, tim- eller kvartsspotpris, interna spot-ID:n, marknadskällor eller fallbackkedjor. De tidigare rutterna `/api/v1/website/quote`, `/api/v1/website/quote/validate`, `/api/v1/website/energy-area/resolve` och `/api/public/energy-area` returnerar `410 Gone` från API `2026-07-22.2`.
-
-`GET /api/v1/website/public-contracts?diagnostics=1` är tenant-scopad och visar readiness för publicering och kanoniska avgifter. Saknade eller motstridiga avgiftsvärden sätts aldrig automatiskt till `0`, utan hanteras versionssäkert med auditspår.
+- [ ] `public-contracts` returnerar ett fastprisavtal en gång med SE1–SE4 i `area_pricing`.
+- [ ] Olika SE-priser ger `fixed_price_ore_per_kwh=null`; klienten använder vald rad i `area_pricing`.
+- [ ] Tenantautentiserad `energy-area/resolve` löser korrekt prisområde och nätägare; legacy `GET /api/public/energy-area` ger fortsatt 410.
+- [ ] `quote` skapar en tenantbunden immutable quote och `quote/validate` godkänner exakt samma offer/kundtyp/område/förbrukning/startdatum.
+- [ ] Dubbel submit med samma `Idempotency-Key` skapar inte ny kund, nytt kundnummer, nytt avtal eller nytt leverantörsbyte.
+- [ ] Kund med inkommande `external_customer_reference` får referensen bevarad och samma OPS-kundnummer i ansökan, kundportal och fakturering.
+- [ ] Avtalsbekräftelse köas en gång och innehåller kundnummer samt rätt avtal/startstatus.
+- [ ] Saknat anläggningsunderlag köar uppgiftsbegäran; komplett underlag startar leverantörsbyte automatiskt när route/fullmakt/readiness är godkänd.
+- [ ] `contract_price_snapshots.base_price_components_snapshot` innehåller endast kundens valda SE-prisrad för fastpris.
+- [ ] Fakturaunderlaget använder låst snapshot, inklusive dolda avgifter och publicerad nollavgift.
+- [ ] OpenAPI, utvecklarsida och runtime rapporterar kontraktsversion `2026-07-23.1`.

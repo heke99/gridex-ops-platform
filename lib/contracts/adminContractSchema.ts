@@ -184,6 +184,7 @@ export type ParsedAdminContractForm = {
   breakFeeSek: number | null;
   vatRate: number;
   fixedPriceOrePerKwh: number | null;
+  fixedPricesByArea: string;
   spotMarkupOrePerKwh: number | null;
   variableFeeOrePerKwh: number | null;
   monthlyFeeSek: number | null;
@@ -337,7 +338,8 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     adminFeeSek: nullableNumber(raw(formData, "admin_fee_sek"), "Administrativ avgift"),
     breakFeeSek: nullableNumber(raw(formData, "break_fee_sek"), "Brytavgift"),
     vatRate,
-    fixedPriceOrePerKwh: nullableNumber(raw(formData, "fixed_price_ore_per_kwh"), "Fast pris"),
+    fixedPriceOrePerKwh: nullableNumber(raw(formData, "fixed_price_ore_per_kwh"), "Gemensamt fast pris"),
+    fixedPricesByArea: raw(formData, "fixed_prices_by_area"),
     spotMarkupOrePerKwh: nullableNumber(raw(formData, "spot_markup_ore_per_kwh"), "Spotpåslag"),
     variableFeeOrePerKwh: nullableNumber(raw(formData, "variable_fee_ore_per_kwh"), "Rörlig avgift"),
     monthlyFeeSek: nullableNumber(raw(formData, "monthly_fee_sek"), "Månadsavgift"),

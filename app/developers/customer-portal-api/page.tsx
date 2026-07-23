@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 const baseUrl = "https://app.gridex.se";
-const documentationVersion = "2026-07-22.2";
+const documentationVersion = "2026-07-23.1";
 
 const permissions = [
   [
@@ -1111,7 +1111,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
         </Section>
 
-        <Section title="11. Canonical integrationskontrakt 2026-07-22.2">
+        <Section title="11. Canonical integrationskontrakt 2026-07-23.1">
           <h3 className="text-lg font-bold text-slate-900">Kundtyp och routes</h3>
           <p>
             Canonical kundtyper är <code>private</code> och <code>business</code>.
@@ -1130,7 +1130,7 @@ export default function CustomerPortalApiDocsPage() {
           <h3 className="mt-6 text-lg font-bold text-slate-900">Kanaler</h3>
           <ul className="list-disc space-y-1 pl-5">
             <li><code>internal</code>: endast OPS interna sälj- och administrationsflöden.</li>
-            <li><code>website</code>: public feed och teckning på tenantens hemsida. Indikativ marknadspriskalkyl sker i tenantens backend.</li>
+            <li><code>website</code>: public feed, tenantautentiserad elområdesresolution, canonical quote och teckning på tenantens hemsida.</li>
             <li><code>api</code>: separat partnerfeed via <code>GET /api/v1/contracts</code> och scope <code>api_contracts.read</code>.</li>
           </ul>
           <p>
@@ -1143,11 +1143,14 @@ export default function CustomerPortalApiDocsPage() {
 
           <h3 className="mt-6 text-lg font-bold text-slate-900">Pris- och elområdesansvar</h3>
           <p>
-            OPS är source of truth för publicerad prismodell, fast pris, påslag,
-            alla avgifter, moms, synlighetsregler och versionskopplingar. Tenantens
-            backend är source of truth för publik elområdesresolution och extern
-            marknadsprisindikation. De tidigare quote- och energy-area-rutterna
-            returnerar <code>410 Gone</code> från API 2026-07-22.2.
+            OPS är source of truth för publicerad prismodell, fast pris per SE-område,
+            påslag, alla avgifter, moms, synlighetsregler och versionskopplingar.
+            Ett fastprisavtal publiceras en gång och innehåller sin prismatris i
+            <code>area_pricing</code>. Tenantens backend använder den autentiserade
+            <code>/api/v1/website/energy-area/resolve</code>, skapar en tenantbunden
+            <code>/api/v1/website/quote</code> och validerar den före teckning.
+            Endast den oautentiserade legacyrutten <code>/api/public/energy-area</code>
+            är fortsatt borttagen.
           </p>
           <p>
             OPS behåller sin interna spotpris-, avräknings- och faktureringsmotor.

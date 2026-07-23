@@ -202,7 +202,11 @@
     "gridex:contract-multitenant-test": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_a_id=\"$GRIDEX_CONTRACT_TEST_COMPANY_ID\" -v company_b_id=\"$GRIDEX_CONTRACT_TEST_SECOND_COMPANY_ID\" -v actor_id=\"$GRIDEX_CONTRACT_TEST_ACTOR_ID\" -f scripts/gridex-contract-multitenant-isolation-test.sql",
     "gridex:contract-publication-graph-repair": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -v company_id=\"$GRIDEX_CONTRACT_REPAIR_COMPANY_ID\" -v offer_id=\"$GRIDEX_CONTRACT_REPAIR_OFFER_ID\" -v actor_id=\"$GRIDEX_CONTRACT_REPAIR_ACTOR_ID\" -f scripts/gridex-contract-publication-graph-repair.sql",
     "gridex:ops-summary-1-regression": "node scripts/gridex-ops-summary-1-regression.cjs",
-    "verify:external-pricing-boundary": "node scripts/gridex-ops-summary-1-regression.cjs && node scripts/gridex-invoice-fee-canonical-regression.cjs && node scripts/gridex-public-pricing-visibility-regression.cjs && vitest run __tests__/public-contract-website-visibility.test.ts __tests__/external-pricing-boundary.test.ts && node scripts/check-public-api-contract.cjs && node scripts/check-migration-versions.cjs"
+    "verify:external-pricing-boundary": "node scripts/gridex-ops-summary-1-regression.cjs && node scripts/gridex-invoice-fee-canonical-regression.cjs && node scripts/gridex-public-pricing-visibility-regression.cjs && vitest run __tests__/public-contract-website-visibility.test.ts __tests__/external-pricing-boundary.test.ts && node scripts/check-public-api-contract.cjs && node scripts/check-migration-versions.cjs",
+    "gridex:canonical-fixed-area-flow-regression": "node scripts/gridex-canonical-fixed-area-flow-regression.cjs",
+    "test:canonical-fixed-area-flow": "vitest run __tests__/canonical-fixed-area-flow.test.ts __tests__/external-pricing-boundary.test.ts __tests__/offer-quote-invoice-fee.test.ts __tests__/public-contract-website-visibility.test.ts",
+    "verify:canonical-fixed-area-flow": "npm run db:migrations:check && npm run gridex:canonical-fixed-area-flow-regression && npm run typecheck && npm run test:canonical-fixed-area-flow && npm run build",
+    "sync:canonical-fixed-area-flow": "bash scripts/sync-canonical-fixed-area-flow.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

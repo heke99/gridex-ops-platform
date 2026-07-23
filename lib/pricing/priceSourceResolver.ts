@@ -423,11 +423,12 @@ function filterBaseComponentsForUnderlay(
       underlay.periodEnd,
     ),
   );
-  const areaRows = periodRows.filter((component) => component.priceArea);
-  if (areaRows.length === 0) return periodRows;
+  const hasAreaRows = periodRows.some((component) => component.priceArea);
+  if (!hasAreaRows) return periodRows;
   if (!underlay.priceArea) return [];
-  return areaRows.filter(
-    (component) => component.priceArea === underlay.priceArea,
+  return periodRows.filter(
+    (component) =>
+      !component.priceArea || component.priceArea === underlay.priceArea,
   );
 }
 

@@ -563,19 +563,9 @@ export function normalizeContractPricing(
   const fixedPricesByArea = parseFixedPricesByArea(input.fixedPricesByArea);
   const fixedPriceOrePerKwh = optionalNumber(
     input.fixedPriceOrePerKwh,
-    "Fast pris",
+    "Gemensamt fast pris",
     { min: 0 },
   );
-  const legacyAreaFixedValues = Array.from(
-    new Set(Object.values(fixedPricesByArea)),
-  );
-  if (legacyAreaFixedValues.length > 1) {
-    throw new Error(
-      "Fastpris ska vara samma öre/kWh i alla prisområden. Ange ett gemensamt fastpris.",
-    );
-  }
-  const effectiveFixedPriceOrePerKwh =
-    fixedPriceOrePerKwh ?? legacyAreaFixedValues[0] ?? null;
   const greenFeeValue = optionalNumber(input.greenFeeValue, "Grön el-avgift", {
     min: 0,
   });
@@ -725,19 +715,34 @@ export function normalizeContractPricing(
 
   if (["mixed", "portfolio"].includes(input.contractType) && weightSum !== 100)
     throw new Error("Prisandelarna måste tillsammans bli exakt 100 procent.");
-  if (
-    input.contractType === "fixed" &&
-    (effectiveFixedPriceOrePerKwh === null || effectiveFixedPriceOrePerKwh <= 0)
-  )
-    throw new Error("Fastprisavtal kräver ett gemensamt fastpris i öre/kWh.");
-  if (
-    input.contractType === "mixed" &&
-    fixedWeight > 0 &&
-    (effectiveFixedPriceOrePerKwh === null || effectiveFixedPriceOrePerKwh <= 0)
-  )
-    throw new Error(
-      "Mixavtal med fast andel kräver ett gemensamt fastpris i öre/kWh.",
-    );
+  const requestedPriceAreas = parsePriceAreas(input.priceAreas);
+  const areaPriceKeys = Object.keys(fixedPricesByArea).filter((area) =>
+    ["SE1", "SE2", "SE3", "SE4"].includes(area),
+  );
+  const priceAreas = requestedPriceAreas.length > 0
+    ? requestedPriceAreas
+    : areaPriceKeys.length > 0
+      ? areaPriceKeys
+      : input.contractType === "fixed" || fixedWeight > 0
+        ? ["SE1", "SE2", "SE3", "SE4"]
+        : [];
+  const fixedPriceForArea = (area: string): number | null =>
+    fixedPricesByArea[area as keyof typeof fixedPricesByArea] ??
+    fixedPriceOrePerKwh ??
+    null;
+  const fixedPriceRequired = input.contractType === "fixed" ||
+    (input.contractType === "mixed" && fixedWeight > 0);
+  if (fixedPriceRequired) {
+    const missingFixedAreas = priceAreas.filter((area) => {
+      const amount = fixedPriceForArea(area);
+      return amount === null || amount <= 0;
+    });
+    if (missingFixedAreas.length > 0) {
+      throw new Error(
+        `Fastpris saknas för ${missingFixedAreas.join(", ")}. Ange pris per elområde eller ett gemensamt fallbackpris.`,
+      );
+    }
+  }
   if (input.contractType === "portfolio" && portfolioWeight <= 0)
     throw new Error("Portföljavtal måste ha en portföljandel över 0 procent.");
   if (input.validFrom && input.validTo && input.validTo < input.validFrom)
@@ -745,7 +750,6 @@ export function normalizeContractPricing(
   if (discountValue !== null && discountMonths === null)
     throw new Error("Rabatt kräver en angiven rabattperiod i månader.");
 
-  const priceAreas = parsePriceAreas(input.priceAreas);
   const usesPortfolio = ["portfolio", "mixed"].includes(input.contractType);
   const portfolioId = String(input.portfolioId ?? "").trim();
   if (
@@ -781,8 +785,9 @@ export function normalizeContractPricing(
         `Fastpris har angetts för ${area}, men området finns inte i avtalets prisområden.`,
       );
   }
-  // Gridex fastpris är ett gemensamt pris per kWh. Prisområden styr
-  // tillgänglighet, inte olika fastprisnivåer.
+  // One canonical product can carry one fixed-price row per Swedish price
+  // area. The selected area row is later frozen into quote, customer contract
+  // and billing snapshot; it must never create separate product cards.
   const componentAreas = priceAreas.length > 0 ? priceAreas : [null];
   const baseComponents: BasePriceComponent[] = [];
   for (const priceArea of componentAreas) {
@@ -808,7 +813,7 @@ export function normalizeContractPricing(
         label: "Fast pris",
         weight_percent: fixedWeight || 100,
         fixed_price_sek_per_kwh: (() => {
-          const ore = effectiveFixedPriceOrePerKwh;
+          const ore = priceArea ? fixedPriceForArea(priceArea) : fixedPriceOrePerKwh;
           return ore === null || ore === undefined
             ? null
             : Math.round((ore / 100) * 100_000_000) / 100_000_000;
@@ -986,10 +991,16 @@ export function normalizeContractPricing(
 
   const priceParts: string[] = [];
   if (input.contractType === "fixed") {
+    const fixedValues = priceAreas
+      .map((area) => fixedPriceForArea(area))
+      .filter((value): value is number => value !== null);
+    const uniqueFixedValues = Array.from(new Set(fixedValues));
     priceParts.push(
-      effectiveFixedPriceOrePerKwh !== null && websiteVisibility.fixed_price
-        ? `Fast pris ${formatNumber(effectiveFixedPriceOrePerKwh)} öre/kWh`
-        : "Fastprisavtal",
+      websiteVisibility.fixed_price && uniqueFixedValues.length === 1
+        ? `Fast pris ${formatNumber(uniqueFixedValues[0])} öre/kWh`
+        : websiteVisibility.fixed_price && uniqueFixedValues.length > 1
+          ? "Fast pris per elområde"
+          : "Fastprisavtal",
     );
   } else if (input.contractType === "portfolio")
     priceParts.push("Portföljförvaltat elpris");

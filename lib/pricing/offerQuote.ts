@@ -16,6 +16,7 @@ import {
   type PriceArea,
 } from "@/lib/pricing/types";
 import { resolvePublicContractOffer } from "@/lib/website/publicContracts";
+import { fixedPriceOreForArea } from "@/lib/pricing/fixedAreaPricing";
 
 
 function textValue(value: unknown): string | null {
@@ -151,6 +152,29 @@ export async function calculateOfferQuote(input: {
       404,
       "offer_reference",
     );
+  const allowedPriceAreas = new Set((offer.price_areas ?? []).map((area) => area.toUpperCase()));
+  if (allowedPriceAreas.size > 0 && !allowedPriceAreas.has(input.priceArea)) {
+    throw new OfferQuoteError(
+      `Avtalet är inte publicerat för ${input.priceArea}.`,
+      "offer_price_area_not_available",
+      422,
+      "price_area",
+    );
+  }
+  const selectedFixedPriceOrePerKwh = fixedPriceOreForArea(
+    offer.pricing_snapshot,
+    input.priceArea,
+    offer.fixed_price_ore_per_kwh,
+    offer.price_areas ?? [],
+  );
+  if (offer.contract_type === "fixed" && selectedFixedPriceOrePerKwh === null) {
+    throw new OfferQuoteError(
+      `Fastpris saknas för ${input.priceArea} i den publicerade avtalsversionen.`,
+      "fixed_area_price_missing",
+      422,
+      "price_area",
+    );
+  }
 
   const invoiceFeeReadiness = assessCanonicalInvoiceFee({
     rowAmount: offer.invoice_fee_sek,
@@ -182,7 +206,8 @@ export async function calculateOfferQuote(input: {
     markupOrePerKwh: offer.markup_ore_per_kwh,
     spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh,
     variableFeeOrePerKwh: offer.variable_fee_ore_per_kwh,
-    fixedPriceOrePerKwh: offer.fixed_price_ore_per_kwh,
+    fixedPriceOrePerKwh:
+      selectedFixedPriceOrePerKwh ?? offer.fixed_price_ore_per_kwh,
     greenFeeMode: offer.green_fee_mode,
     greenFeeValue: offer.green_fee_value,
     spotWeightPercent: offer.spot_weight_percent,
@@ -241,9 +266,11 @@ export async function calculateOfferQuote(input: {
     billingMonth,
     pricePlanVersionId: offer.price_plan_version_id,
     fixedSekPerKwh:
-      offer.fixed_price_ore_per_kwh !== null
-        ? offer.fixed_price_ore_per_kwh / 100
-        : null,
+      selectedFixedPriceOrePerKwh !== null
+        ? selectedFixedPriceOrePerKwh / 100
+        : offer.fixed_price_ore_per_kwh !== null
+          ? offer.fixed_price_ore_per_kwh / 100
+          : null,
     requiredResolution:
       pricingInterval === "hourly" || pricingInterval === "quarterly"
         ? pricingInterval
@@ -348,7 +375,21 @@ export async function calculateOfferQuote(input: {
       product_code: offer.product_code,
       contract_type: offer.contract_type,
       pricing_model: canonical.pricingModel,
+      selected_area_price: selectedFixedPriceOrePerKwh === null
+        ? null
+        : {
+            price_area: input.priceArea,
+            energy_price_ore_per_kwh: selectedFixedPriceOrePerKwh,
+            unit: "ore_per_kwh",
+          },
     },
+    selected_area_price: selectedFixedPriceOrePerKwh === null
+      ? null
+      : {
+          price_area: input.priceArea,
+          energy_price_ore_per_kwh: selectedFixedPriceOrePerKwh,
+          unit: "ore_per_kwh",
+        },
     input: {
       price_area: input.priceArea,
       grid_area_code: input.gridAreaCode ?? null,

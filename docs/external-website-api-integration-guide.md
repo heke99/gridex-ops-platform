@@ -1,8 +1,8 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-07-22.2**
+> **Canonical API-version: 2026-07-23.1**
 >
-> OPS levererar publicerade avtalsvillkor, fullständiga pris- och avgiftskomponenter, moms, juridik och versionskopplingar. Tenantens backend löser publik elområde/price area och hämtar extern marknadsprisindikation. OPS levererar inte tenantens Nord Pool-pris.
+> OPS levererar en canonical publicerad produkt, kompletta pris-/avgiftskomponenter, juridik och versionskopplingar. Fastprisets SE1–SE4-rader ligger under samma `offer_reference`. OPS tenant-skopade resolver och quote låser vald SE-prisrad före teckning; den oautentiserade legacyresolvern är fortsatt borttagen.
 
 ## 1. Autentisering och tenantkontext
 
@@ -202,42 +202,36 @@ Exempel:
 
 `offer_reference` är den enda kommersiella väljaren. Skicka inte interna prisplans-, produkt- eller offer-UUID:n.
 
-`quote_reference` är deprecated och ska inte skickas. Ett legacyvärde ignoreras och blir inte del av det låsta avtalspriset.
+`quote_reference` rekommenderas för nya integrationer. OPS validerar och konsumerar den mot samma tenant, `offer_reference`, kundtyp, SE-område, förbrukning och startdatum. Legacyklienter får tillfälligt utelämna den; OPS fryser då exakt publicerad version och vald SE-prisrad direkt.
 
 ## 7. Juridik
 
 OPS är source of truth för juridiska versioner och publika dokumentlänkar. Kraven är databasdrivna och kan variera med kundtyp, avtal, prismodell, kanal och fullmakt. Tenantens klient får inte anta ett fast antal dokument.
 
-## 8. Borttagna endpoints och scopes
+## 8. Canonical resolver och quote
 
-Följande endpoints returnerar `410 Gone` från API 2026-07-22.2:
-
-```text
-POST /api/v1/website/quote
-POST /api/v1/website/quote/validate
-POST /api/v1/website/energy-area/resolve
-GET  /api/public/energy-area
-```
-
-Följande scopes är avaktiverade och tas bort från befintliga website-klienter:
+Aktiva tenantautentiserade endpoints:
 
 ```text
-website_quotes.write
-website_quotes.validate
-website_energy_area.resolve
+POST /api/v1/website/energy-area/resolve   scope website_energy_area.resolve
+POST /api/v1/website/quote                 scope website_quotes.write
+POST /api/v1/website/quote/validate        scope website_quotes.validate
 ```
+
+Den gamla oautentiserade `GET /api/public/energy-area` returnerar fortsatt `410 Gone`. Quote-endpointen levererar inte ett nytt produktkort eller separat kundavtal; den fryser bara rätt prisrad inom samma publicerade produkt.
 
 ## 9. Aktiv minimiuppsättning för en websiteintegration
 
 ```text
 integration_context.read
 website_contracts.read
+website_energy_area.resolve
+website_quotes.write
+website_quotes.validate
 website_legal.read
 website_applications.write
 website_switch_status.read
 ```
-
-Lägg till portal-, dokument-, notifierings- och events-scopes endast när integrationen använder dessa funktioner.
 
 ## 10. Diagnostics och publication webhook
 
@@ -271,4 +265,4 @@ Publik utvecklarsida:
 ```
 
 
-API-svaret innehåller `contract_schema_version=2026-07-22.2` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
+API-svaret innehåller `contract_schema_version=2026-07-23.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.

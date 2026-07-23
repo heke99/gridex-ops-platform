@@ -21,6 +21,26 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
     sortOrder: 5,
   },
   {
+    groupKey: 'website_quotes',
+    label: 'Beräkna och validera canonical prisquote',
+    description: 'Hemsidan får skapa en tenantbunden quote från exakt publicerad avtalsversion och valt SE-område och validera den före teckning.',
+    category: 'website',
+    scopes: ['website_quotes.write', 'website_quotes.validate'],
+    recommendedDefault: true,
+    riskLevel: 'normal',
+    sortOrder: 8,
+  },
+  {
+    groupKey: 'website_energy_area',
+    label: 'Lös el- och nätområde',
+    description: 'Hemsidan får använda OPS canonical resolver för prisområde, nätområde och nätägare före quote och teckning.',
+    category: 'website',
+    scopes: ['website_energy_area.resolve'],
+    recommendedDefault: true,
+    riskLevel: 'normal',
+    sortOrder: 9,
+  },
+  {
     groupKey: 'website_switch_status',
     label: 'Läs leverantörsbytesstatus',
     description: 'Hemsidan får läsa aktuell tenant-skopad status och händelser för en inskickad kundansökan.',
@@ -124,6 +144,9 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
 
 export const CUSTOMER_PORTAL_SCOPES = [
   'integration_context.read',
+  'website_quotes.write',
+  'website_quotes.validate',
+  'website_energy_area.resolve',
   'website_switch_status.read',
   'api_contracts.read',
   'customer_portal.read',

@@ -9,6 +9,10 @@ import {
   loadCompanySlugById,
 } from "@/lib/legal/publicLegalDocuments";
 import { normalizeCustomerType } from "@/lib/customers/normalizeCustomerType";
+import {
+  commonFixedPriceOrePerKwh,
+  fixedAreaPricesFromSnapshot,
+} from "@/lib/pricing/fixedAreaPricing";
 
 export type PublicLegalTextVersion = {
   id: string;
@@ -964,11 +968,27 @@ export function publicContractResponse(offer: PublicContractOffer) {
           website_visibility: visibilityMode("spot_markup", websiteVisibility.spot_markup),
           calculation_inclusion: "included",
         };
+  const areaPricing = fixedAreaPricesFromSnapshot(
+    offer.pricing_snapshot,
+    offer.fixed_price_ore_per_kwh,
+    offer.price_areas ?? [],
+  ).map((row) => ({
+    price_area: row.price_area,
+    energy_price_ore_per_kwh: row.energy_price_ore_per_kwh,
+    unit: "ore_per_kwh",
+    vat_included: false,
+    vat_rate: vatRate,
+  }));
+  const commonFixedPrice = commonFixedPriceOrePerKwh(
+    offer.pricing_snapshot,
+    offer.fixed_price_ore_per_kwh,
+    offer.price_areas ?? [],
+  );
   const fixedPrice =
-    offer.fixed_price_ore_per_kwh === null
+    commonFixedPrice === null
       ? null
       : {
-          amount: offer.fixed_price_ore_per_kwh,
+          amount: commonFixedPrice,
           unit: "ore_per_kwh",
           vat_included: false,
           vat_rate: vatRate,
@@ -991,6 +1011,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
     contract_type: offer.contract_type,
     type: offer.contract_type,
     billing_model: offer.billing_model,
+    area_pricing: areaPricing,
     customer_type: offer.customer_type,
     customer_types: customerTypes,
     pricing: {
@@ -1003,6 +1024,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
           ? null
           : { amount: offer.variable_fee_ore_per_kwh, unit: "ore_per_kwh", vat_included: false, vat_rate: vatRate, website_visibility: visibilityMode("variable_fee", websiteVisibility.variable_fee), calculation_inclusion: "included" },
       fixed_price: fixedPrice,
+      area_pricing: areaPricing,
       green_fee:
         offer.green_fee_value === null
           ? null
@@ -1174,7 +1196,9 @@ export function publicContractResponse(offer: PublicContractOffer) {
     markup_ore_per_kwh: offer.markup_ore_per_kwh,
     spot_markup_ore_per_kwh: offer.spot_markup_ore_per_kwh,
     variable_fee_ore_per_kwh: offer.variable_fee_ore_per_kwh,
-    fixed_price_ore_per_kwh: offer.fixed_price_ore_per_kwh,
+    // Legacy scalar remains populated only when every published SE row has
+    // the same value. Area-dependent fixed contracts use area_pricing.
+    fixed_price_ore_per_kwh: commonFixedPrice,
     green_fee_mode: offer.green_fee_mode,
     green_fee_value: offer.green_fee_value,
     terms_version: offer.terms_version,
