@@ -554,7 +554,7 @@
           "Customer applications"
         ],
         "summary": "Create a customer application bound to a published offer",
-        "description": "Scope: website_applications.write. Idempotency-Key is required. One canonical application binds one tenant customer identity, one site and one selected published offer. top-level quote_reference and top-level resolution_id are required and validated; contract contains no alternate reference-placement mode. OPS creates or reuses the canonical customer/customer_number, freezes the selected SE-area price, creates the site/contract/billing snapshot, queues customer communication and starts data-request or supplier-switch automation when readiness allows.",
+        "description": "Scope: website_applications.write. Idempotency-Key krävs. OPS committar canonical kund, site, avtal, juridik, workflow och ett persistent customer_application_continuation-jobb atomiskt. Svaret är accepted/automatic_processing; därefter äger OPS juridiska mail, nätägarbegäran, Z01/Z02, Z03/Z04, APERAK, aktivering och webhooks.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -577,7 +577,7 @@
         },
         "responses": {
           "200": {
-            "description": "Application created",
+            "description": "Application atomically accepted and durable automatic processing queued",
             "content": {
               "application/json": {
                 "schema": {
@@ -606,6 +606,19 @@
         },
         "x-required-scopes": [
           "website_applications.write"
+        ],
+        "x-automatic-domain-events": [
+          "customer_application.accepted",
+          "customer_application.needs_information",
+          "customer_application.failed",
+          "facility_information.requested",
+          "facility_information.received",
+          "supplier_switch.requested",
+          "supplier_switch.dispatched",
+          "supplier_switch.confirmed",
+          "supplier_switch.rejected",
+          "supply_period.activated",
+          "contract.activated"
         ]
       }
     },
@@ -882,6 +895,62 @@
             "description": "Oförändrad ETag"
           }
         }
+      }
+    },
+    "/api/v1/website/customer-applications/{application_id}": {
+      "get": {
+        "tags": [
+          "Customer applications"
+        ],
+        "summary": "Read tenant-scoped automatic application status",
+        "description": "Scope: website_switch_status.read. Returns a small external status model; internal workflow payload, secrets and other tenants are never exposed.",
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current application status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CustomerApplicationStatus"
+                    },
+                    "meta": {
+                      "type": "object"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found in authenticated tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-required-scopes": [
+          "website_switch_status.read"
+        ]
       }
     }
   },
@@ -1605,8 +1674,7 @@
             "$ref": "#/components/schemas/LegalAcceptances"
           },
           "powerOfAttorney": {
-            "type": "object",
-            "additionalProperties": true
+            "$ref": "#/components/schemas/PowerOfAttorneyInput"
           },
           "external_customer_reference": {
             "type": "string",
@@ -1653,7 +1721,7 @@
             ]
           }
         ],
-        "description": "Canonical kundansökan. offer_reference, quote_reference och resolution_id skickas exakt en gång på top-level. Ingen tenantkonfiguration eller quote-reference-mode används.",
+        "description": "Canonical kundansökan. offer_reference, quote_reference och resolution_id skickas exakt en gång på top-level. Ingen tenantkonfiguration eller quote-reference-mode används. När avtalet kräver fullmakt ska powerOfAttorney vara komplett och externally sendable.",
         "x-canonical-reference-location": "top_level"
       },
       "DiagnosticReadiness": {
@@ -2807,6 +2875,162 @@
         },
         "additionalProperties": true,
         "description": "Proveniens för marknadsreferensen. preview är indikativ och får aldrig användas som slutligt settlementunderlag."
+      },
+      "PowerOfAttorneyInput": {
+        "type": "object",
+        "required": [
+          "accepted",
+          "scope",
+          "signerName",
+          "signerIdentityNumber",
+          "method",
+          "textVersionId"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "const": true
+          },
+          "scope": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "supplier_switch",
+                "facility_information_lookup"
+              ]
+            },
+            "description": "Exakt publicerat authorization scope."
+          },
+          "signerName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "signerIdentityNumber": {
+            "type": "string",
+            "minLength": 6,
+            "description": "Signerande persons identitet. Hanteras som skyddsvärd personuppgift."
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "website_acceptance",
+              "bankid",
+              "electronic_signature",
+              "manual_signature"
+            ]
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "textVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Publicerad power-of-attorney-version från legal bundle."
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "userAgent": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Strukturerad fullmakt som krävs för externally_sendable nätägarkommunikation. Bare consents.power_of_attorney=true är endast juridisk acceptans och kan inte skickas externt."
+      },
+      "CustomerApplicationStatus": {
+        "type": "object",
+        "required": [
+          "application_id",
+          "status",
+          "stage",
+          "missing_customer_action",
+          "updated_at"
+        ],
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "application_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "accepted",
+              "processing",
+              "needs_customer_information",
+              "completed",
+              "rejected",
+              "failed"
+            ]
+          },
+          "stage": {
+            "type": "string"
+          },
+          "customer_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "supplier_switch_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "supply_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "confirmed_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "missing_customer_action": {
+            "type": "boolean"
+          },
+          "next_step": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blocking_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     },
     "responses": {

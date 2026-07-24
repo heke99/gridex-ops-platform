@@ -1,6 +1,7 @@
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { supabaseService } from '@/lib/supabase/service'
 import { normalizeUuidOrNull } from '@/lib/validation/uuid'
+import { enqueueCustomerLifecycleNotification } from '@/lib/customer-notifications/notificationOrchestrator'
 
 type JsonRecord = Record<string, unknown>
 
@@ -100,6 +101,19 @@ export async function emitCustomerOperationEvent(input: OperationEventInput): Pr
     idempotencyKey: input.idempotencyKey ?? null,
   }).catch((error) => {
     console.warn('[customer-operation-events] domain event skipped', error)
+  })
+
+  await enqueueCustomerLifecycleNotification({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    eventType: input.eventType,
+    sourceEventId: input.idempotencyKey ?? `${input.eventType}:${operationId ?? customerSiteId ?? input.customerId}`,
+    siteId: customerSiteId,
+    meteringPointId,
+    contractId: uuidOrNull(payload.contract_id),
+    payload,
+  }).catch((error) => {
+    console.warn('[customer-operation-events] lifecycle notification enqueue skipped', error)
   })
 
   const { error } = await supabaseService

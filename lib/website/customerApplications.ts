@@ -8,10 +8,8 @@ import {
 } from "@/lib/customer-numbers/customerNumbers";
 import { emitDomainEvent } from "@/lib/events/domainEvents";
 import {
-  seedDefaultEmailEventRules,
   triggerEmailEvent,
 } from "@/lib/email/emailEvents";
-import { seedDefaultEmailTemplates } from "@/lib/email/emailTemplates";
 import {
   assessWebsiteApplicationReadiness,
   customerIntakeStatusForReadiness,
@@ -24,12 +22,8 @@ import {
 } from "@/lib/energy/resolutionBinding";
 import { patchMeteringPointEnergyContext } from "@/lib/energy/meteringPointContext";
 import { recordCanonicalEnergyEvent } from "@/lib/energy/canonicalEnergyEvents";
-import { ensureGridOwnerInformationRequest } from "@/lib/energy/gridOwnerRequests";
 import { normalizeGridOwnerIdToOps } from "@/lib/grid-owners/platformGridOwnerResolver";
-import {
-  processWebsiteApplicationIntake,
-  type CustomerIntakeDecision,
-} from "@/lib/customer-operations/customerIntakeOrchestrator";
+import { processWebsiteApplicationIntake } from "@/lib/customer-operations/customerIntakeOrchestrator";
 import {
   publicOfferReference,
   legalAcceptanceTypeForModule,
@@ -49,8 +43,7 @@ import { ensureCustomerPortalUserLink } from "@/lib/customer-portal/customerReso
 import {
   applyCustomerSiteAddressCandidate,
 } from "@/lib/customer-sites/addressIntake";
-import { enqueueCustomerDataRequestAutomation } from "@/lib/customer-operations/automation";
-import { ensureSupplierSwitchForReadyCustomer } from "@/lib/customer-operations/supplierSwitchOrchestration";
+import { evaluateAndRunNextCustomerStep } from "@/lib/customer-operations/customerProcessNextStepEngine";
 import {
   ensureCustomerApplicationWorkflow,
   transitionCustomerApplicationWorkflow,
@@ -1384,25 +1377,6 @@ function emailDispatchStatus(
   return "failed";
 }
 
-function emailTriggerErrorText(value: unknown): string {
-  const values = resultList(value)
-    .map((item) =>
-      typeof item.error === "string"
-        ? item.error
-        : typeof item.error === "object" &&
-            item.error !== null &&
-            "message" in item.error
-          ? String((item.error as { message?: unknown }).message ?? "")
-          : "",
-    )
-    .filter(Boolean);
-  return values.join(" | ");
-}
-
-function pushWarning(warnings: string[], warning: string) {
-  if (!warnings.includes(warning)) warnings.push(warning);
-}
-
 async function loadOfferBoundLegalVersions(input: {
   companyId: string;
   publicOffer: PublicContractOffer;
@@ -2512,6 +2486,7 @@ type ErrorStage =
   | "legal_acceptance"
   | "application_record_create"
   | "application_workflow"
+  | "application_workflow_committed"
   | "application_workflow_transition"
   | "customer_data_automation"
   | "supplier_switch_orchestration"
@@ -2653,80 +2628,6 @@ function missingSchema(error: unknown): boolean {
 
 function schemaRepairStatus(error: unknown): "pending_review" | null {
   return missingSchema(error) ? "pending_review" : null;
-}
-
-function websiteNextActionFromIntake(decision: CustomerIntakeDecision): {
-  code: string;
-  message: string;
-} {
-  const blocker = decision.blockers[0] ?? null;
-  if (
-    decision.nextAction === "wait_for_grid_owner" ||
-    decision.state === "facility_lookup_waiting_response"
-  ) {
-    return {
-      code: "facility_identifier_requested",
-      message:
-        "Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post.",
-    };
-  }
-  if (
-    decision.nextAction === "request_facility_data" ||
-    decision.state === "needs_facility_lookup"
-  ) {
-    return {
-      code: "facility_identifier_required",
-      message:
-        decision.customerMessage ||
-        "Anläggnings-ID saknas. Uppgifter behöver begäras från nätägaren.",
-    };
-  }
-  if (
-    decision.nextAction === "start_supplier_switch" ||
-    decision.state === "ready_for_supplier_switch"
-  ) {
-    return {
-      code: "ready_for_switch",
-      message:
-        decision.customerMessage || "Ansökan är klar för leverantörsbyte.",
-    };
-  }
-  if (blocker?.code) {
-    return {
-      code: blocker.code,
-      message:
-        blocker.message ||
-        decision.customerMessage ||
-        "Ansökan behöver granskas innan vi kan gå vidare.",
-    };
-  }
-  return {
-    code: decision.nextAction,
-    message:
-      decision.customerMessage || decision.adminMessage || "Ansökan behandlas.",
-  };
-}
-
-async function loadWebsiteManualInformationRequest(
-  requestId: string | null,
-): Promise<Record<string, unknown> | null> {
-  if (!requestId) return null;
-  const { data, error } = await supabaseService
-    .from("grid_owner_information_requests")
-    .select("id,status,case_reference,channel")
-    .eq("id", requestId)
-    .maybeSingle();
-  if (error) {
-    if (missingSchema(error)) return null;
-    throw error;
-  }
-  if (!data) return null;
-  return {
-    status: clean((data as Record<string, unknown>).status),
-    case_reference: clean((data as Record<string, unknown>).case_reference),
-    channel: clean((data as Record<string, unknown>).channel),
-    request_id: clean((data as Record<string, unknown>).id),
-  };
 }
 
 // Builds a non-sensitive diagnostic detail from a database error. Only the
@@ -4717,9 +4618,6 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
     if (contractDocumentError) throw contractDocumentError;
   }
 
-  await seedDefaultEmailTemplates(input.companyId);
-  await seedDefaultEmailEventRules(input.companyId);
-
   const legalMailReady = Boolean(
     input.contract?.status === WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS &&
     input.contract.signed_at &&
@@ -4736,8 +4634,10 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
       : []),
   ];
 
-  const results = await Promise.all(
-    events.map(async (eventKey): Promise<WebsiteEmailDispatchResult> => {
+  // Preserve the legal communication order. The next message is not queued
+  // until the previous event has produced its canonical communication row.
+  const results: WebsiteEmailDispatchResult[] = [];
+  for (const eventKey of events) {
       const result = await triggerEmailEvent({
         companyId: input.companyId,
         customerId: input.customer.id,
@@ -4776,14 +4676,13 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
         { ok: false, eventKey, error: errorMessage(error) },
       ]);
 
-      return {
+      results.push({
         eventKey,
         ok: emailTriggerSucceeded(result),
         dispatch_status: emailDispatchStatus(result),
         result,
-      };
-    }),
-  );
+      });
+  }
 
   return { events, results };
 }
@@ -7505,7 +7404,6 @@ export async function processWebsiteCustomerApplication(input: {
     applicationRowId = application.id;
 
     const email = normalizedEmail(body.customer.email);
-    let initialCommunicationResults: WebsiteEmailDispatchResult[] = [];
 
     let legalAcceptanceIds: Record<string, string> = {};
 
@@ -7571,43 +7469,10 @@ export async function processWebsiteCustomerApplication(input: {
     responsePayload.can_send_agreement_confirmation =
       agreementConfirmationEligible;
 
-    try {
-      const initialDispatch = await dispatchInitialWebsiteApplicationEmails({
-        companyId: input.client.company_id,
-        applicationId: application.id,
-        customer: resolvedCustomerResult.customer,
-        rawCustomer: body.customer,
-        customerNumber,
-        externalCustomerId,
-        siteId: site?.id ?? null,
-        facilityId: site?.facility_id ?? clean(body.site?.facility_id),
-        meteringPointId: meteringPoint?.id ?? null,
-        contract,
-        publicOffer,
-        offerReference: selectedOfferReference,
-        legalVersions: legalAcceptanceVersions,
-        legalAcceptanceIds,
-        startDate:
-          readiness.requestedStartDate ??
-          contract?.starts_at ??
-          clean(body.contract?.starts_at) ??
-          clean(body.site?.move_in_date),
-      });
-      initialCommunicationResults = initialDispatch.results;
-    } catch (error) {
-      const expectedEvents = [
-        "contract.application_received",
-        ...(agreementConfirmationEligible
-          ? ["contract.confirmation_sent", "contract.cooling_off_sent"]
-          : []),
-      ];
-      initialCommunicationResults = expectedEvents.map((eventKey) => ({
-        eventKey,
-        ok: false,
-        dispatch_status: "failed" as const,
-        result: { error: errorMessage(error), stage: "communication_trigger" },
-      }));
-    }
+    // External effects are intentionally deferred until after the durable
+    // provisioning commit. The canonical continuation job created by the RPC
+    // is the source of truth for mail, grid-owner, Ediel, switch and webhook
+    // orchestration; the API request lifetime is never relied upon.
 
     // Collected here and merged into the final response warnings later, because
     // the main `warnings` array is assembled further down.
@@ -7696,447 +7561,97 @@ export async function processWebsiteCustomerApplication(input: {
           application_status: applicationStatus,
           resolver_status: energyResolution.resolution.resolutionStatus,
           grid_area_code: readiness.gridAreaCode,
+          grid_owner_id: energyResolution.resolution.gridOwnerId ?? null,
+          resolution_id: energyResolution.resolution.resolutionId ?? null,
           price_area: readiness.priceArea,
           legal_acceptance_complete: Boolean(powerOfAttorneyId),
           facility_verified: readiness.facilityVerified,
-        },
-      }),
-    );
-
-    const committedSiteId = site?.id ?? null;
-    const facilityMissing = Boolean(committedSiteId) && !site?.facility_id;
-    // Missing facility id must use MANUAL grid-owner communication only (handled
-    // in the nextAction block below via requestMissingFacilityInformation). It
-    // must never create the Ediel-channel grid_owner_information_request or the
-    // PRODAT Z01-first customer-data automation, which would race the manual
-    // request and produce a parallel open request for the same site.
-    const gridOwnerRequestMayBeCreated =
-      readiness.canRequestGridOwnerInformation && !facilityMissing;
-
-    const gridOwnerRequest = gridOwnerRequestMayBeCreated
-      ? await stage("grid_owner_information_request", () =>
-          ensureGridOwnerInformationRequest({
-            companyId: input.client.company_id,
-            customerId: resolvedCustomerResult.customer.id,
-            customerSiteId: site?.id ?? null,
-            customerApplicationId: application.id,
-            resolutionId: energyResolution.resolution.resolutionId ?? null,
-            gridOwnerId: energyResolution.resolution.gridOwnerId ?? null,
-            gridAreaCode: readiness.gridAreaCode,
-            priceArea: readiness.priceArea,
-          }),
-        )
-      : null;
-
-    if (committedSiteId && powerOfAttorneyId && !facilityMissing) {
-      await stage("customer_data_automation", () =>
-        enqueueCustomerDataRequestAutomation({
-          companyId: input.client.company_id,
-          customerId: resolvedCustomerResult.customer.id,
-          siteId: committedSiteId,
-          meteringPointId: meteringPoint?.id ?? null,
-          source: "website_application_committed",
-          operationId: workflow.operationId,
-        }),
-      );
-    }
-
-    // Automatic supplier switch orchestration. When intake ends ready_for_switch
-    // with can_start_switch=true (facility, metering point, contract, signed POA
-    // and a requested start/move-in date all exist), the switch request is
-    // created immediately (customer appears in company_switch_queue_v) and the
-    // canonical start_supplier_switch job is enqueued. Route/preflight then
-    // decides Z03 dispatch vs. an exact blocker. The helper is NON-THROWING:
-    // the application is already durably committed at this point, so
-    // orchestration issues surface as warnings/events — never a failed intake.
-    const supplierSwitchWarnings: string[] = [];
-    let supplierSwitchOrchestration: Awaited<
-      ReturnType<typeof ensureSupplierSwitchForReadyCustomer>
-    > | null = null;
-    const siteMoveInDate = clean(body.site?.move_in_date);
-    const supplierSwitchStartDate =
-      readiness.requestedStartDate ?? siteMoveInDate;
-    if (
-      applicationStatus === "ready_for_switch" &&
-      readiness.canStartSwitch === true &&
-      committedSiteId &&
-      !facilityMissing &&
-      meteringPoint?.id &&
-      contract?.id &&
-      powerOfAttorneyId &&
-      supplierSwitchStartDate
-    ) {
-      supplierSwitchOrchestration = await stage(
-        "supplier_switch_orchestration",
-        () =>
-          ensureSupplierSwitchForReadyCustomer({
-            companyId: input.client.company_id,
-            customerId: resolvedCustomerResult.customer.id,
-            siteId: committedSiteId,
-            meteringPointId: meteringPoint?.id ?? null,
-            actorUserId: null,
-            operationId: workflow.operationId,
-            applicationId: application.id,
-            source: "website_customer_applications",
-            requestedStartDate: supplierSwitchStartDate,
-            externalReference: externalCustomerId,
-            context: {
-              externalCustomerId,
-              contractId: contract?.id ?? null,
-              powerOfAttorneyId,
-              requestedStartDate: readiness.requestedStartDate,
-              requestedStartMode: readiness.requestedStartMode,
-              moveInDate: siteMoveInDate,
-              facilityId: clean(site?.facility_id),
-              gridOwnerId: energyResolution.resolution.gridOwnerId,
-              gridAreaCode: readiness.gridAreaCode,
-              priceAreaCode: readiness.priceArea,
-              // Canonical site patch sets bidding_zone_code from the price area.
-              biddingZoneCode: readiness.priceArea,
-            },
-          }),
-      );
-
-      if (supplierSwitchOrchestration.ok) {
-        responsePayload.supplier_switch_request_id =
-          supplierSwitchOrchestration.supplierSwitchRequestId;
-        responsePayload.supplier_switch_job_id =
-          supplierSwitchOrchestration.jobId;
-        responsePayload.supplier_switch_requested_start_date =
-          supplierSwitchOrchestration.requestedStartDate;
-
-        if (supplierSwitchOrchestration.blockers.length > 0) {
-          supplierSwitchWarnings.push("supplier_switch_pending_review");
-          responsePayload.supplier_switch_status = "pending_review";
-          responsePayload.supplier_switch_blockers =
-            supplierSwitchOrchestration.blockers;
-          responsePayload.can_create_supplier_switch_request = true;
-          responsePayload.can_dispatch_supplier_switch = false;
-          responsePayload.can_start_switch = false;
-        } else {
-          responsePayload.can_create_supplier_switch_request = true;
-          responsePayload.can_dispatch_supplier_switch = true;
-          responsePayload.supplier_switch_status =
-            supplierSwitchOrchestration.created
-              ? "created"
-              : supplierSwitchOrchestration.reusedExisting
-                ? "already_open"
-                : "queued";
-        }
-      } else {
-        supplierSwitchWarnings.push("supplier_switch_orchestration_pending");
-        responsePayload.supplier_switch_status = "pending_review";
-        responsePayload.supplier_switch_blockers =
-          supplierSwitchOrchestration.blockers;
-        responsePayload.can_create_supplier_switch_request = false;
-        responsePayload.can_dispatch_supplier_switch = false;
-        responsePayload.can_start_switch = false;
-      }
-    }
-
-    if (gridOwnerRequest?.requestId) {
-      await supabaseService
-        .from("website_customer_applications")
-        .update({
-          grid_owner_information_request_id: gridOwnerRequest.requestId,
-          status:
-            gridOwnerRequest.status === "ready_to_send"
-              ? "information_request_ready"
-              : applicationStatus,
-          response_payload: {
-            ...responsePayload,
-            grid_owner_information_request_id: gridOwnerRequest.requestId,
-            grid_owner_information_request_status: gridOwnerRequest.status,
-            grid_owner_information_request_channel: gridOwnerRequest.channel,
-          },
-          next_step: gridOwnerRequest.nextStep,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", application.id)
-        .eq("company_id", input.client.company_id);
-    }
-
-    // Operational nextAction + (optional) manual information request block. These
-    // expose only operational status to the website/API caller — never technical
-    // Ediel diagnostics. When facility_id is missing and POA exists, the manual
-    // e-mail information request is queued (PRODAT Z01 is never rendered here).
-    let nextAction: { code: string; message: string };
-    let manualInformationRequest: Record<string, unknown> | null = null;
-
-    if (!powerOfAttorneyId && facilityMissing) {
-      nextAction = {
-        code: "power_of_attorney_required",
-        message:
-          "Fullmakt krävs innan anläggningsuppgifter kan begäras från nätägaren.",
-      };
-    } else if (powerOfAttorneyId && facilityMissing && !poaExternallySendable) {
-      nextAction = {
-        code: "poa_not_externally_sendable",
-        message:
-          "Fullmakten är registrerad men kan inte skickas automatiskt till nätägaren. Komplettera med signerName, signerIdentityNumber och method i strukturerad powerOfAttorney.",
-      };
-    } else if (powerOfAttorneyId && facilityMissing) {
-      const intakeDecision = await stage("customer_intake_orchestrator", () =>
-        processWebsiteApplicationIntake({
-          companyId: input.client.company_id,
-          customerId: resolvedCustomerResult.customer.id,
-          siteId: committedSiteId as string,
-          actorUserId: null,
-        }),
-      );
-      manualInformationRequest = await stage(
-        "manual_information_request_summary",
-        () =>
-          loadWebsiteManualInformationRequest(
-            intakeDecision.references.gridOwnerInformationRequestId,
-          ),
-      );
-      nextAction = websiteNextActionFromIntake(intakeDecision);
-    } else if (supplierSwitchOrchestration?.blockers?.length) {
-      const blocker = supplierSwitchOrchestration.blockers[0];
-      nextAction =
-        blocker.code === "current_supplier_missing"
-          ? {
-              code: "current_supplier_required",
-              message:
-                "Registrera nuvarande elleverantör för att fortsätta leverantörsbytet.",
-            }
-          : { code: blocker.code, message: blocker.message };
-    } else if (readiness.canStartSwitch) {
-      nextAction = {
-        code: "ready_for_switch",
-        message: "Ansökan är klar för leverantörsbyte.",
-      };
-    } else {
-      nextAction = {
-        code: "in_progress",
-        message: readiness.nextStep ?? "Ansökan behandlas.",
-      };
-    }
-
-    responsePayload.next_action = nextAction;
-    responsePayload.nextAction = nextAction;
-    if (manualInformationRequest) {
-      responsePayload.manual_information_request = manualInformationRequest;
-      responsePayload.manualInformationRequest = manualInformationRequest;
-    }
-    await supabaseService
-      .from("website_customer_applications")
-      .update({
-        response_payload: { ...responsePayload },
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", application.id)
-      .eq("company_id", input.client.company_id)
-      .then(
-        () => undefined,
-        () => undefined,
-      );
-
-    await stage("application_workflow_transition", () =>
-      transitionCustomerApplicationWorkflow({
-        companyId: input.client.company_id,
-        applicationId: application.id,
-        state: readiness.canStartSwitch
-          ? "ready_for_switch"
-          : gridOwnerRequest?.requestId || (site?.id && powerOfAttorneyId)
-            ? "pending_customer_data"
-            : "pending_review",
-        snapshotPatch: {
-          grid_owner_information_request_id:
-            gridOwnerRequest?.requestId ?? null,
-          grid_owner_information_request_status:
-            gridOwnerRequest?.status ?? null,
-          customer_operation_requested: Boolean(site?.id && powerOfAttorneyId),
-        },
-      }),
-    );
-
-    const warnings: string[] = [
-      ...readiness.warnings,
-      ...(gridOwnerRequest?.warnings ?? []),
-      ...poaWarnings,
-      ...supplierSwitchWarnings,
-    ];
-    const communicationResults: unknown[] = [...initialCommunicationResults];
-
-    const failedEmailResults = initialCommunicationResults.filter(
-      (item) => item.ok === false,
-    );
-    if (failedEmailResults.length > 0) {
-      pushWarning(warnings, "communication_failed");
-      pushWarning(warnings, "confirmation_email_pending");
-      if (
-        failedEmailResults.some(
-          (item) =>
-            item.eventKey === "contract.confirmation_sent" ||
-            item.eventKey === "contract.cooling_off_sent",
-        )
-      ) {
-        pushWarning(warnings, "legal_email_pending");
-      }
-      if (
-        failedEmailResults.some((item) =>
-          /sender|avsändare|domain|domän|verified|verifierad/i.test(
-            emailTriggerErrorText(item.result),
-          ),
-        )
-      ) {
-        pushWarning(warnings, "legal_email_sender_not_verified");
-      }
-    }
-
-    try {
-      await emitDomainEvent({
-        companyId: input.client.company_id,
-        eventType: resolvedCustomerResult.created
-          ? "customer.created"
-          : "customer.updated",
-        aggregateType: "customer",
-        aggregateId: resolvedCustomerResult.customer.id,
-        subjectCustomerId: resolvedCustomerResult.customer.id,
-        source: "website_customer_applications",
-        idempotencyKey: input.idempotencyKey
-          ? `website-customer:${input.client.company_id}:${input.idempotencyKey}:customer`
-          : null,
-        payload: {
-          customer_number: customerNumber,
+          poa_externally_sendable: poaExternallySendable,
           external_customer_id: externalCustomerId,
-          application_id: application.id,
-          api_client_id: input.client.id,
-          application_status: applicationStatus,
-          missing_fields: readiness.missingFields,
-          next_step: readiness.nextStep,
+          customer_number: customerNumber,
+          raw_customer: body.customer,
+          offer_reference: selectedOfferReference,
+          public_offer_snapshot: publicOffer,
+          legal_versions: legalAcceptanceVersions,
+          legal_acceptance_ids: legalAcceptanceIds,
+          agreement_confirmation_eligible: agreementConfirmationEligible,
+          requested_start_date:
+            readiness.requestedStartDate ??
+            contract?.starts_at ??
+            clean(body.contract?.starts_at) ??
+            clean(body.site?.move_in_date),
         },
-      });
+      }),
+    );
 
-      if (resolvedCustomerResult.customerNumberAssigned) {
-        await emitDomainEvent({
+    if (workflow.continuationJobId) {
+      const queuedWarnings = [...readiness.warnings, ...poaWarnings];
+      const processingResponsePayload: Record<string, unknown> = {
+        ...responsePayload,
+        application_id: application.id,
+        workflow_id: workflow.workflowId,
+        workflow_state: "canonical_data_committed",
+        continuation_job_id: workflow.continuationJobId,
+        status: "accepted",
+        next_step: "automatic_processing",
+        next_action: {
+          code: "automatic_processing",
+          message:
+            "Ansökan är mottagen och OPS fortsätter automatiskt med utskick, anläggningsuppgifter och leverantörsbyte.",
+        },
+        communication: {
+          triggered: [],
+          queued: [],
+          sent: [],
+          failed: [],
+          pending: true,
+          source_of_truth: "communication_logs",
+        },
+      };
+
+      await stage("application_workflow_committed", () =>
+        transitionCustomerApplicationWorkflow({
           companyId: input.client.company_id,
-          eventType: "customer_number.assigned",
-          aggregateType: "customer",
-          aggregateId: resolvedCustomerResult.customer.id,
-          subjectCustomerId: resolvedCustomerResult.customer.id,
-          source: "website_customer_applications",
-          idempotencyKey: input.idempotencyKey
-            ? `website-customer-number:${input.client.company_id}:${input.idempotencyKey}`
-            : `customer-number:${input.client.company_id}:${resolvedCustomerResult.customer.id}:${customerNumber}`,
-          payload: {
-            customer_number: customerNumber,
-            external_customer_id: externalCustomerId,
-            application_id: application.id,
-            api_client_id: input.client.id,
+          applicationId: application.id,
+          state: "canonical_data_committed",
+          eventCode: "workflow.canonical_data_committed",
+          idempotencyKey: `workflow.canonical_data_committed:${application.id}`,
+          snapshotPatch: {
+            next_action: "customer_application_continuation",
+            continuation_job_id: workflow.continuationJobId,
+            initial_readiness_state: workflow.state,
           },
-        });
-      }
-
-      if (contract?.id) {
-        // Website submission emits only the application lifecycle event here.
-        // Legal mail events with names ending in `_sent` are emitted after the
-        // actual communication_log is marked sent by the email outbox/provider
-        // webhook, never inferred from application creation or switch readiness.
-        const contractLifecycleEvents = ["contract.application_received"];
-        for (const eventType of contractLifecycleEvents) {
-          await emitDomainEvent({
-            companyId: input.client.company_id,
-            eventType,
-            aggregateType: "customer_contract",
-            aggregateId: contract.id,
-            subjectCustomerId: resolvedCustomerResult.customer.id,
-            source: "website_customer_applications",
-            idempotencyKey: input.idempotencyKey
-              ? `website-contract:${eventType}:${input.client.company_id}:${input.idempotencyKey}`
-              : null,
-            payload: {
-              customer_number: customerNumber,
-              external_customer_id: externalCustomerId,
-              contract_id: contract.id,
-              application_id: application.id,
-              communication_results: communicationResults,
-              application_status: applicationStatus,
-              missing_fields: readiness.missingFields,
-              next_step: readiness.nextStep,
-            },
-          });
-        }
-      }
-    } catch (error) {
-      pushWarning(warnings, "domain_event_pending");
-      pushWarning(warnings, "webhook_delivery_pending");
-      await supabaseService
-        .from("website_customer_applications")
-        .update({ warnings, updated_at: new Date().toISOString() })
-        .eq("id", application.id)
-        .then(() => null);
-      console.warn(
-        "[website-applications] domain event/webhook enqueue failed",
-        error,
+        }),
       );
-    }
 
-    if (warnings.length > 0) {
-      await supabaseService
-        .from("website_customer_applications")
-        .update({ warnings, updated_at: new Date().toISOString() })
-        .eq("id", application.id)
-        .then(() => null);
-    }
-
-    const communicationStatusOf = (statuses: string[]) =>
-      communicationResults
-        .filter(
-          (item): item is { eventKey: string; dispatch_status?: string } =>
-            Boolean(item) &&
-            typeof item === "object" &&
-            typeof (item as { eventKey?: unknown }).eventKey === "string",
-        )
-        .filter((item) => statuses.includes(String(item.dispatch_status ?? "")))
-        .map((item) => item.eventKey);
-
-    const finalResponsePayload = {
-      ...responsePayload,
-      application_id: application.id,
-      communication: {
-        // 'triggered' lists events where an email row actually exists in the
-        // source of truth (communication_logs), not events that merely were
-        // attempted. queued/sent/failed break the state down truthfully.
-        triggered: email ? communicationStatusOf(["queued", "sent"]) : [],
-        queued: email ? communicationStatusOf(["queued"]) : [],
-        sent: email ? communicationStatusOf(["sent"]) : [],
-        failed: email ? communicationStatusOf(["failed"]) : [],
-        source_of_truth: "communication_logs",
-        snapshot_persisted: true,
-        results: communicationResults,
-      },
-    };
-    let snapshotPersisted = false;
-    let snapshotError: unknown = null;
-    for (let attempt = 0; attempt < 2 && !snapshotPersisted; attempt += 1) {
-      const snapshotUpdate = await supabaseService
+      const { error: processingUpdateError } = await supabaseService
         .from("website_customer_applications")
         .update({
-          response_payload: finalResponsePayload,
-          warnings,
+          status: "processing",
+          next_step: "automatic_processing",
+          response_payload: processingResponsePayload,
+          warnings: queuedWarnings,
           updated_at: new Date().toISOString(),
         })
         .eq("id", application.id)
         .eq("company_id", input.client.company_id);
-      snapshotError = snapshotUpdate.error;
-      snapshotPersisted = !snapshotUpdate.error;
-    }
-    if (!snapshotPersisted) {
-      pushWarning(warnings, "response_snapshot_persist_failed");
-      finalResponsePayload.communication.snapshot_persisted = false;
-      console.warn(
-        "[website-applications] final response snapshot could not be persisted",
-        {
-          application_id: application.id,
-          error: snapshotError,
-        },
-      );
+      if (processingUpdateError) throw processingUpdateError;
+
+      return successResponse(processingResponsePayload, queuedWarnings);
     }
 
-    return successResponse(finalResponsePayload, warnings);
+    throw new WebsiteApplicationError({
+      message:
+        "Kundansökan är committad men fortsättningsjobbet saknas. Kör migrationen för canonical customer_application_continuation innan API-kanalen används.",
+      status: 503,
+      code: "customer_application_continuation_not_ready",
+      stage: "application_workflow_committed",
+      details: {
+        application_id: application.id,
+        workflow_id: workflow.workflowId,
+        operation_id: workflow.operationId,
+      },
+    });
   } catch (error) {
     const appError =
       error instanceof WebsiteApplicationError
@@ -8707,6 +8222,423 @@ export type RepairWebsiteCustomerApplicationResult = {
   applicationId: string;
   powerOfAttorneyId?: string | null;
 };
+
+
+export type WebsiteCustomerApplicationContinuationOutcome = {
+  status: "completed" | "needs_review" | "blocked";
+  result: Record<string, unknown>;
+};
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function continuationStateForDecision(
+  decision: Awaited<ReturnType<typeof evaluateAndRunNextCustomerStep>>["decision"],
+): "switch_request_queued" | "waiting_for_customer_data_response" | "switch_blocked" | "manual_review" {
+  if (decision === "prepare_supplier_switch") return "switch_request_queued";
+  if (decision === "prepare_z01" || decision === "wait_for_ack") return "waiting_for_customer_data_response";
+  if (decision === "manual_review") return "manual_review";
+  return "switch_blocked";
+}
+
+/**
+ * Durable post-commit continuation for website customer applications.
+ *
+ * This function is called only by the canonical customer-operation worker. It
+ * may be executed repeatedly: document storage, email events, domain events,
+ * facility lookup and switch creation all use stable idempotency identities.
+ */
+export async function continueWebsiteCustomerApplication(input: {
+  companyId: string;
+  applicationId: string;
+  operationId: string;
+  workflowId?: string | null;
+  jobId?: string | null;
+}): Promise<WebsiteCustomerApplicationContinuationOutcome> {
+  const { data: appRow, error: appError } = await supabaseService
+    .from("website_customer_applications")
+    .select("*")
+    .eq("id", input.applicationId)
+    .eq("company_id", input.companyId)
+    .maybeSingle();
+  if (appError) throw appError;
+  if (!appRow) {
+    return {
+      status: "needs_review",
+      result: { reason_code: "customer_application_not_found", application_id: input.applicationId },
+    };
+  }
+
+  const application = appRow as Record<string, unknown>;
+  const customerId = clean(application.customer_id);
+  if (!customerId) {
+    return {
+      status: "needs_review",
+      result: { reason_code: "customer_missing", application_id: input.applicationId },
+    };
+  }
+
+  const { data: workflowRow, error: workflowError } = await supabaseService
+    .from("customer_application_workflows")
+    .select("id,operation_id,state,snapshot,customer_site_id,metering_point_id,contract_id,workflow_version")
+    .eq("company_id", input.companyId)
+    .eq("customer_application_id", input.applicationId)
+    .maybeSingle();
+  if (workflowError) throw workflowError;
+  if (!workflowRow) {
+    return {
+      status: "needs_review",
+      result: { reason_code: "customer_application_workflow_not_found", application_id: input.applicationId },
+    };
+  }
+
+  const workflow = workflowRow as Record<string, unknown>;
+  const snapshot = recordValue(workflow.snapshot);
+  const siteId = clean(workflow.customer_site_id) ?? clean(application.customer_site_id);
+  const meteringPointId = clean(workflow.metering_point_id) ?? clean(application.metering_point_id);
+  const contractId = clean(workflow.contract_id) ?? clean(application.contract_id);
+  const operationId = clean(workflow.operation_id) ?? input.operationId;
+
+  const storedPayload = recordValue(application.payload ?? application.raw_payload);
+  const parsed = ApplicationSchema.safeParse(normalizeRawApplication(storedPayload));
+  if (!parsed.success) {
+    await transitionCustomerApplicationWorkflow({
+      companyId: input.companyId,
+      applicationId: input.applicationId,
+      state: "manual_review",
+      eventCode: "workflow.stored_payload_invalid",
+      reasonCode: "stored_application_payload_invalid",
+      idempotencyKey: `workflow.stored_payload_invalid:${input.applicationId}`,
+      snapshotPatch: { next_action: "review_stored_payload" },
+    });
+    return {
+      status: "needs_review",
+      result: {
+        reason_code: "stored_application_payload_invalid",
+        application_id: input.applicationId,
+        issues: parsed.error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })),
+      },
+    };
+  }
+  const body = parsed.data;
+
+  const [customerResult, siteResult, meteringResult, contractResult] = await Promise.all([
+    supabaseService
+      .from("customers")
+      .select("id,customer_number,email,full_name,company_name")
+      .eq("company_id", input.companyId)
+      .eq("id", customerId)
+      .maybeSingle(),
+    siteId
+      ? supabaseService.from("customer_sites").select("*").eq("company_id", input.companyId).eq("id", siteId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    meteringPointId
+      ? supabaseService.from("metering_points").select("*").eq("company_id", input.companyId).eq("id", meteringPointId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    contractId
+      ? supabaseService.from("customer_contracts").select("*").eq("company_id", input.companyId).eq("id", contractId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+  for (const result of [customerResult, siteResult, meteringResult, contractResult]) {
+    if (result.error) throw result.error;
+  }
+  if (!customerResult.data) {
+    return { status: "needs_review", result: { reason_code: "customer_missing", customer_id: customerId } };
+  }
+
+  const customer = customerResult.data as CustomerRow;
+  const site = recordValue(siteResult.data);
+  const meteringPoint = recordValue(meteringResult.data);
+  const contract = contractResult.data ? (contractResult.data as WebsiteContractCreateResult) : null;
+  const publicOffer = Object.keys(recordValue(snapshot.public_offer_snapshot)).length > 0
+    ? (recordValue(snapshot.public_offer_snapshot) as unknown as PublicContractOffer)
+    : null;
+  const legalVersions = Array.isArray(snapshot.legal_versions)
+    ? (snapshot.legal_versions as WebsiteLegalAcceptanceVersion[])
+    : [];
+  const legalAcceptanceIds = recordValue(snapshot.legal_acceptance_ids) as Record<string, string>;
+  const responsePayload = recordValue(application.response_payload);
+  const externalCustomerId =
+    clean(snapshot.external_customer_id) ??
+    clean(application.external_customer_id) ??
+    customerId;
+  const customerNumber =
+    clean(snapshot.customer_number) ??
+    clean(customer.customer_number) ??
+    externalCustomerId;
+  const offerReference = clean(snapshot.offer_reference) ?? clean(responsePayload.offer_reference);
+  const startDate = clean(snapshot.requested_start_date) ?? clean(contract?.starts_at);
+
+  await transitionCustomerApplicationWorkflow({
+    companyId: input.companyId,
+    applicationId: input.applicationId,
+    state: "initial_notifications_pending",
+    eventCode: "workflow.initial_notifications_pending",
+    idempotencyKey: `workflow.initial_notifications_pending:${input.applicationId}`,
+    snapshotPatch: { next_action: "queue_initial_notifications", continuation_job_id: input.jobId ?? null },
+  });
+
+  const communication = await dispatchInitialWebsiteApplicationEmails({
+    companyId: input.companyId,
+    applicationId: input.applicationId,
+    customer,
+    rawCustomer: body.customer,
+    customerNumber,
+    externalCustomerId,
+    siteId,
+    facilityId: clean(site.facility_id) ?? clean(body.site?.facility_id),
+    meteringPointId,
+    contract,
+    publicOffer,
+    offerReference,
+    legalVersions,
+    legalAcceptanceIds,
+    startDate,
+  });
+  const failedCommunication = communication.results.filter((item) => !item.ok);
+  if (failedCommunication.length > 0) {
+    throw new Error(
+      `initial_customer_communication_failed:${failedCommunication.map((item) => item.eventKey).join(",")}`,
+    );
+  }
+
+  await transitionCustomerApplicationWorkflow({
+    companyId: input.companyId,
+    applicationId: input.applicationId,
+    state: "initial_notifications_queued",
+    eventCode: "workflow.initial_notifications_queued",
+    idempotencyKey: `workflow.initial_notifications_queued:${input.applicationId}`,
+    snapshotPatch: {
+      next_action: "facility_information_check",
+      communication_events: communication.events,
+    },
+  });
+
+  await emitDomainEvent({
+    companyId: input.companyId,
+    eventType: "customer_application.accepted",
+    aggregateType: "website_customer_application",
+    aggregateId: input.applicationId,
+    subjectCustomerId: customerId,
+    source: "customer_application_continuation",
+    idempotencyKey: `customer-application-accepted:${input.companyId}:${input.applicationId}`,
+    payload: {
+      application_id: input.applicationId,
+      customer_id: customerId,
+      customer_number: customerNumber,
+      site_id: siteId,
+      metering_point_id: meteringPointId,
+      contract_id: contractId,
+      workflow_id: clean(workflow.id),
+      operation_id: operationId,
+    },
+  });
+
+  const poaExternallySendable = snapshot.poa_externally_sendable === true;
+  const powerOfAttorneyId = clean(responsePayload.power_of_attorney_id) ?? clean(recordValue(responsePayload.power_of_attorney).id);
+  if (!powerOfAttorneyId || !poaExternallySendable) {
+    const email = normalizedEmail(body.customer.email) ?? normalizedEmail(customer.email);
+    if (email) {
+      const company = await companyEmailContext(input.companyId, contractId);
+      const powerOfAttorneyDispatch = await triggerEmailEvent({
+        companyId: input.companyId,
+        customerId,
+        siteId,
+        meteringPointId,
+        eventKey: "contract.power_of_attorney_required",
+        to: email,
+        adminTo: company.adminEmail,
+        variables: eventVariables({
+          companyName: company.name,
+          customer,
+          rawCustomer: body.customer,
+          customerNumber,
+          siteId,
+          facilityId: clean(site.facility_id),
+          meteringPointId,
+          contractName: contract?.contract_name,
+          contractNumber: contract?.contract_number,
+          offerReference,
+          startDate,
+          supportEmail: company.supportEmail,
+          portalUrl: company.portalUrl,
+        }),
+        idempotencyKey: `website_application:${input.applicationId}:contract.power_of_attorney_required`,
+        metadata: { application_id: input.applicationId, contract_id: contractId, reason_code: "power_of_attorney_not_externally_sendable" },
+      });
+      if (!emailTriggerSucceeded(powerOfAttorneyDispatch)) {
+        throw new Error("power_of_attorney_required_notification_not_queued");
+      }
+    }
+    await transitionCustomerApplicationWorkflow({
+      companyId: input.companyId,
+      applicationId: input.applicationId,
+      state: "facility_information_required",
+      eventCode: "workflow.power_of_attorney_completion_required",
+      reasonCode: powerOfAttorneyId ? "power_of_attorney_not_externally_sendable" : "power_of_attorney_missing",
+      idempotencyKey: `workflow.power_of_attorney_completion_required:${input.applicationId}`,
+      snapshotPatch: { next_action: "request_power_of_attorney_completion" },
+    });
+    const result = {
+      reason_code: powerOfAttorneyId ? "power_of_attorney_not_externally_sendable" : "power_of_attorney_missing",
+      application_id: input.applicationId,
+      workflow_id: clean(workflow.id),
+      communication_events: communication.events,
+    };
+    await supabaseService
+      .from("website_customer_applications")
+      .update({
+        status: "needs_information",
+        next_step: "complete_power_of_attorney",
+        response_payload: { ...responsePayload, status: "needs_customer_information", workflow_state: "facility_information_required", next_step: "complete_power_of_attorney", communication: { events: communication.events, pending: false } },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.applicationId)
+      .eq("company_id", input.companyId);
+    await emitDomainEvent({
+      companyId: input.companyId,
+      eventType: "customer_application.needs_information",
+      aggregateType: "website_customer_application",
+      aggregateId: input.applicationId,
+      subjectCustomerId: customerId,
+      source: "customer_application_continuation",
+      idempotencyKey: `customer-application-needs-poa:${input.companyId}:${input.applicationId}`,
+      payload: result,
+    });
+    return { status: "needs_review", result };
+  }
+
+  await transitionCustomerApplicationWorkflow({
+    companyId: input.companyId,
+    applicationId: input.applicationId,
+    state: "facility_information_check",
+    eventCode: "workflow.facility_information_check",
+    idempotencyKey: `workflow.facility_information_check:${input.applicationId}`,
+    snapshotPatch: { next_action: "determine_next_customer_operation" },
+  });
+
+  const facilityId = clean(site.facility_id) ?? clean(site.normalized_facility_id);
+  const meteringIdentity =
+    clean(meteringPoint.metering_point_id) ??
+    clean(meteringPoint.ediel_metering_point_id) ??
+    clean(meteringPoint.meter_point_id);
+
+  if (!siteId || (!facilityId && !meteringIdentity)) {
+    const intakeDecision = await processWebsiteApplicationIntake({
+      companyId: input.companyId,
+      customerId,
+      siteId,
+      actorUserId: null,
+    });
+    const waiting = intakeDecision.state === "facility_lookup_waiting_response" || intakeDecision.nextAction === "wait_for_grid_owner";
+    const state = waiting ? "waiting_for_facility_response" : intakeDecision.state === "needs_admin_review" ? "manual_review" : "facility_request_pending";
+    await transitionCustomerApplicationWorkflow({
+      companyId: input.companyId,
+      applicationId: input.applicationId,
+      state,
+      eventCode: waiting ? "workflow.facility_request_sent" : "workflow.facility_request_evaluated",
+      reasonCode: intakeDecision.blockers[0]?.code ?? null,
+      idempotencyKey: `workflow.facility_lookup:${input.applicationId}:${state}`,
+      snapshotPatch: {
+        next_action: intakeDecision.nextAction,
+        intake_decision: intakeDecision,
+      },
+    });
+    const status = intakeDecision.state === "needs_admin_review" ? "needs_review" : "completed";
+    const result = {
+      application_id: input.applicationId,
+      workflow_id: clean(workflow.id),
+      workflow_state: state,
+      next_action: intakeDecision.nextAction,
+      blockers: intakeDecision.blockers,
+      warnings: intakeDecision.warnings,
+      references: intakeDecision.references,
+      communication_events: communication.events,
+    };
+    await supabaseService
+      .from("website_customer_applications")
+      .update({
+        status: status === "needs_review" ? "pending_review" : "processing",
+        next_step: intakeDecision.nextAction,
+        response_payload: { ...responsePayload, status: status === "needs_review" ? "needs_customer_information" : "processing", workflow_state: state, next_step: intakeDecision.nextAction, communication: { events: communication.events, pending: false } },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.applicationId)
+      .eq("company_id", input.companyId);
+    if (waiting) {
+      await emitDomainEvent({
+        companyId: input.companyId,
+        eventType: "facility_information.requested",
+        aggregateType: "website_customer_application",
+        aggregateId: input.applicationId,
+        subjectCustomerId: customerId,
+        source: "customer_application_continuation",
+        idempotencyKey: `facility-information-requested:${input.companyId}:${input.applicationId}`,
+        payload: result,
+      });
+    }
+    return { status, result };
+  }
+
+  await transitionCustomerApplicationWorkflow({
+    companyId: input.companyId,
+    applicationId: input.applicationId,
+    state: "switch_readiness_check",
+    eventCode: "workflow.switch_readiness_check",
+    idempotencyKey: `workflow.switch_readiness_check:${input.applicationId}`,
+    snapshotPatch: { next_action: "determine_z01_or_supplier_switch" },
+  });
+
+  const next = await evaluateAndRunNextCustomerStep({
+    companyId: input.companyId,
+    customerId,
+    siteId,
+    operationId,
+    trigger: "supplier_switch_ready",
+    actorUserId: null,
+    source: "system",
+  });
+  const finalState = continuationStateForDecision(next.decision);
+  await transitionCustomerApplicationWorkflow({
+    companyId: input.companyId,
+    applicationId: input.applicationId,
+    state: finalState,
+    eventCode: `workflow.${finalState}`,
+    reasonCode: next.blockers[0]?.code ?? null,
+    idempotencyKey: `workflow.next-operation:${input.applicationId}:${finalState}`,
+    snapshotPatch: {
+      next_action: next.actionTaken ?? next.decision,
+      next_operation_decision: next,
+    },
+  });
+
+  const terminalStatus = next.decision === "blocked" || next.decision === "manual_review" ? "needs_review" : "completed";
+  const result = {
+    application_id: input.applicationId,
+    workflow_id: clean(workflow.id),
+    workflow_state: finalState,
+    decision: next.decision,
+    action_taken: next.actionTaken,
+    blockers: next.blockers,
+    supplier_switch_request_id: next.supplierSwitchRequestId ?? null,
+    z01: next.z01 ?? null,
+    communication_events: communication.events,
+  };
+  await supabaseService
+    .from("website_customer_applications")
+    .update({
+      status: terminalStatus === "needs_review" ? "pending_review" : "processing",
+      next_step: next.actionTaken ?? next.decision,
+      response_payload: { ...responsePayload, status: terminalStatus === "needs_review" ? "needs_customer_information" : "processing", workflow_state: finalState, next_step: next.actionTaken ?? next.decision, communication: { events: communication.events, pending: false }, supplier_switch_request_id: next.supplierSwitchRequestId ?? null },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.applicationId)
+    .eq("company_id", input.companyId);
+  return { status: terminalStatus, result };
+}
 
 // Admin/platform-guarded repair for an application whose power of attorney was
 // lost during a partial/failed run. It re-reads the stored payload, re-creates

@@ -18,6 +18,7 @@ import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { startSupplierSwitch } from '@/lib/operations/businessActions/startSupplierSwitch'
 import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
+import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
 import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
 import { ensureFacilityLookupAutomation } from '@/lib/customer-operations/facilityLookupAutomation'
 import {
@@ -40,6 +41,8 @@ import {
 } from '@/lib/customer-operations/automationConfig'
 
 export type CustomerOperationJobType =
+  | 'customer_application_continuation'
+  | 'dispatch_lifecycle_notification'
   | 'request_customer_data'
   | 'start_supplier_switch'
   | 'apply_inbound_grid_owner_response'
@@ -65,6 +68,7 @@ type JobRow = {
   customer_id: string
   customer_site_id: string | null
   metering_point_id: string | null
+  workflow_id?: string | null
   job_type: CustomerOperationJobType
   status: CustomerOperationJobStatus
   priority: number
@@ -327,6 +331,8 @@ function safeRunAfter(value?: string | null): string {
 
 function operationTitle(type: CustomerOperationJobType): string {
   switch (type) {
+    case 'customer_application_continuation': return 'Systemet fortsätter kundansökan efter atomisk commit'
+    case 'dispatch_lifecycle_notification': return 'Systemet köar kundens statusmeddelande'
     case 'request_customer_data': return 'Systemet söker nätägare och förbereder uppgiftsbegäran'
     case 'apply_inbound_grid_owner_response': return 'Systemet bearbetar svar från nätägaren'
     case 'start_supplier_switch':
@@ -2038,11 +2044,32 @@ async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
     idempotencyKey: `supplier-switch-requested:${request.id}`,
   })
 
+  await transitionCorrelatedCustomerApplicationWorkflow({
+    companyId: job.company_id,
+    customerId: job.customer_id,
+    siteId,
+    operationId,
+    state: 'waiting_for_switch_response',
+    eventCode: 'workflow.supplier_switch_dispatched',
+    idempotencyKey: `workflow.supplier_switch_dispatched:${request.id}`,
+    snapshotPatch: {
+      next_action: 'wait_for_switch_response',
+      supplier_switch_request_id: request.id,
+      supplier_switch_dispatched_at: new Date().toISOString(),
+    },
+  }).catch((error) => {
+    console.warn('[customer-operation-worker] supplier-switch workflow transition skipped', error)
+  })
+
   return { status: 'completed', result: { supplier_switch_request_id: request.id, duplicate: Boolean(started.duplicate) } }
 }
 
 async function processJob(job: JobRow): Promise<JobOutcome> {
-  const staleReason = await staleSnapshotReason(job)
+  // The continuation payload is a workflow snapshot, not a site-operation
+  // snapshot. Site freshness is evaluated by the selected downstream operation.
+  const staleReason = ['customer_application_continuation', 'dispatch_lifecycle_notification'].includes(job.job_type)
+    ? null
+    : await staleSnapshotReason(job)
   if (staleReason) {
     const blocker = makeCustomerOperationBlocker('invalid_customer_site_snapshot', {
       blocker_reason: 'Kundens anläggningssnapshot är inte längre giltig.',
@@ -2059,6 +2086,55 @@ async function processJob(job: JobRow): Promise<JobOutcome> {
     }
   }
   switch (job.job_type) {
+    case 'dispatch_lifecycle_notification': {
+      const payload = record(job.payload)
+      const eventType = clean(payload.event_type)
+      const sourceEventId = clean(payload.source_event_id)
+      if (!eventType || !sourceEventId) {
+        return {
+          status: 'needs_review',
+          result: blockerResult('application_validation_failed', {
+            blocker_reason: 'Notifieringsjobbet saknar event_type eller source_event_id.',
+          }, { operation_id: job.operation_id }),
+        }
+      }
+      const { notifyCustomerForLifecycleEvent } = await import('@/lib/customer-notifications/notificationOrchestrator')
+      const dispatched = await notifyCustomerForLifecycleEvent({
+        companyId: job.company_id,
+        customerId: job.customer_id,
+        eventType,
+        sourceEventId,
+        siteId: job.customer_site_id,
+        meteringPointId: job.metering_point_id,
+        contractId: clean(payload.contract_id),
+        payload: record(payload.payload),
+      })
+      if (dispatched.skippedReason) {
+        return { status: 'needs_review', result: { ...dispatched, reason_code: dispatched.skippedReason } }
+      }
+      return { status: 'completed', result: dispatched }
+    }
+    case 'customer_application_continuation': {
+      const applicationId = clean(record(job.payload).application_id)
+      if (!applicationId) {
+        return {
+          status: 'needs_review',
+          result: blockerResult('application_validation_failed', {
+            blocker_reason: 'Fortsättningsjobbet saknar application_id.',
+          }, { operation_id: job.operation_id }),
+        }
+      }
+      // Dynamic import avoids a static cycle: customerApplications enqueues
+      // canonical operation jobs, while this worker executes the continuation.
+      const { continueWebsiteCustomerApplication } = await import('@/lib/website/customerApplications')
+      return continueWebsiteCustomerApplication({
+        companyId: job.company_id,
+        applicationId,
+        operationId: job.operation_id,
+        workflowId: clean(job.workflow_id) ?? clean(record(job.payload).workflow_id),
+        jobId: job.id,
+      })
+    }
     case 'request_customer_data': return processCustomerDataRequest(job)
     case 'apply_inbound_grid_owner_response': return processInboundResponse(job)
     case 'start_supplier_switch':
@@ -2097,6 +2173,8 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
           locked_by: null,
           lock_token: null,
           last_error: null,
+          last_error_code: null,
+          last_error_message: null,
           completed_at: ['completed', 'needs_review', 'blocked', 'delivery_uncertain', 'failed', 'skipped', 'cancelled'].includes(outcome.status) ? nowIso() : null,
         })
         await emitCustomerOperationEvent({
@@ -2147,6 +2225,8 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
             lock_token: null,
             heartbeat_at: null,
             last_error: message,
+            last_error_code: 'automation_configuration_missing',
+            last_error_message: message,
             completed_at: nowIso(),
           })
           await emitCustomerOperationEvent({
@@ -2220,6 +2300,8 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
           // Terminal states keep the last error too: an operator must see WHY
           // the job ended in needs_review/failed without digging into logs.
           last_error: message,
+          last_error_code: clean(pgError?.code as string | null) ?? (terminal ? 'customer_operation_failed' : 'customer_operation_retry'),
+          last_error_message: message,
           completed_at: terminal ? nowIso() : null,
         })
         if (terminal) {

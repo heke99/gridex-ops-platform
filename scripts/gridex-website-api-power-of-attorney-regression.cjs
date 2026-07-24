@@ -4,8 +4,8 @@
 // Static source assertions proving the website/API customer-applications
 // endpoint accepts a structured powerOfAttorney object, loads the legal text by
 // textVersionId (never trusting frontend text), creates a real powers_of_attorney
-// row with evidence + scopes + events + document snapshot, links it, and returns
-// an operational nextAction / manualInformationRequest / powerOfAttorney block.
+// row with evidence + scopes + events + document snapshot, links it, and hands
+// the application to the durable continuation/status flow.
 
 const fs = require('fs')
 const path = require('path')
@@ -117,11 +117,11 @@ ok(src.includes('power_of_attorney_events') && (src.includes("event_type: 'creat
 ok(src.includes('createPowerOfAttorneyDocumentSnapshot') && src.includes('document_id: documentId'), 'POA generates + links an immutable document snapshot')
 
 // 5) Operational response blocks (no technical Ediel leakage).
-ok(src.includes('responsePayload.nextAction = nextAction'), 'response exposes nextAction')
-ok(src.includes("code: 'power_of_attorney_required'") || src.includes('code: "power_of_attorney_required"'), 'response nextAction covers the missing-POA state')
+ok(src.includes('next_step: \'automatic_processing\'') || src.includes('next_step: "automatic_processing"'), 'accepted response exposes automatic_processing while OPS owns downstream work')
+ok(src.includes('next_step: \'complete_power_of_attorney\'') || src.includes('next_step: "complete_power_of_attorney"'), 'continuation status exposes the missing-POA completion action')
 const poaOrchestrator = read('lib/customer-operations/requestMissingFacilityInformation.ts')
 ok(poaOrchestrator.includes('grid_owner_contact_required') && poaOrchestrator.includes('facility_identifier_requested'), 'orchestrator nextAction covers contact-required + facility-requested states')
-ok(src.includes('manualInformationRequest') && src.includes('requestMissingFacilityInformation'), 'response includes manualInformationRequest from the orchestrator')
+ok(src.includes('processWebsiteApplicationIntake({') && src.includes('references: intakeDecision.references'), 'continuation status includes canonical facility-request references from the orchestrator')
 ok(src.includes('responsePayload.power_of_attorney = {'), 'response includes a power_of_attorney status block')
 
 // 6) Docs updated.
@@ -130,7 +130,7 @@ ok(opsDoc.includes('powerOfAttorney') && opsDoc.includes('manualInformationReque
 const extDoc = read('docs/external-website-api-integration-guide.md')
 ok(extDoc.includes('powerOfAttorney') && extDoc.includes('textVersionId'), 'external integration guide documents structured POA')
 const devPage = read('app/developers/customer-portal-api/page.tsx')
-ok(devPage.includes('powerOfAttorney') && devPage.includes('nextAction') && devPage.includes('manualInformationRequest'), 'developer API page documents structured POA + nextAction')
+ok(devPage.includes('powerOfAttorney') && devPage.includes('nextAction') && devPage.includes('automatic_processing'), 'developer API page documents structured POA and asynchronous next-step semantics')
 
 // 8) Identity aliases normalized to canonical columns (Task D).
 for (const alias of [
@@ -152,11 +152,11 @@ ok(!src.includes('signerNameFallback') && !src.includes('signerIdentityFallback'
 ok(src.includes('structuredPoaIsExternallySendable') && src.includes('externally_sendable') && src.includes('requires_completion'), 'response marks weak POA as not externally sendable via structured POA policy')
 ok((src.includes("event_type: 'snapshot_created'") || src.includes('event_type: "snapshot_created"')) && !src.includes("event_type: 'pdf_generated'") && !src.includes('event_type: "pdf_generated"'), 'JSON snapshot uses snapshot_created (not pdf_generated)')
 ok(src.includes('internal_snapshot_document_id'), 'internal JSON snapshot document id is tracked distinctly')
-ok((src.includes("code: 'poa_not_externally_sendable'") || src.includes('code: "poa_not_externally_sendable"')) && src.includes('!poaExternallySendable'), 'weak POA missing facility returns poa_not_externally_sendable before manual outbox')
+ok(src.includes('!poaExternallySendable') && src.includes('power_of_attorney_not_externally_sendable') && src.includes('complete_power_of_attorney'), 'weak POA is stopped before facility dispatch and exposed as a completion requirement')
 // Missing facility now routes through the MANUAL pipeline only: the Ediel
 // grid-owner request must never be created when the facility id is missing
 // (continuation-hardening behaviour, replacing the old POA-sendability gate).
-ok(src.includes('gridOwnerRequestMayBeCreated') && src.includes('readiness.canRequestGridOwnerInformation && !facilityMissing'), 'Ediel grid-owner request is not created when facility is missing (manual pipeline owns it)')
+ok(src.includes('processWebsiteApplicationIntake({') && src.indexOf('processWebsiteApplicationIntake({') < src.indexOf('const next = await evaluateAndRunNextCustomerStep'), 'missing facility is resolved by the manual intake branch before Z01/supplier-switch evaluation')
 
 // 9b) Website intake schema hardening: optional DB columns must fall back to
 // controlled pending_review/repair status, not uncontrolled crashes.
@@ -174,7 +174,7 @@ ok(poaOrchestrator.includes('signer_identity_number') && poaOrchestrator.include
 for (const token of ['personal_identity_number', 'poa_not_externally_sendable', 'missing_customer_identity', 'externally_sendable']) {
   ok(opsDoc.includes(token), `ops API doc documents ${token}`)
 }
-ok(extDoc.includes('poa_not_externally_sendable') && extDoc.includes('organisationsnummer'), 'external guide documents weak POA + identity aliases')
+ok(extDoc.includes('externally_sendable') && extDoc.includes('personal_identity_number') && extDoc.includes('organisationsnummer'), 'external guide documents POA sendability and transitional identity aliases')
 
 // 12) Package script entry.
 ok(read('package.json').includes('gridex:website-api-power-of-attorney-regression'), 'package script exposes regression command')

@@ -5,6 +5,7 @@ import { validateAutomationUserConfig } from '@/lib/customer-operations/automati
 import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-operations/facilityLookupEdifactDispatch'
 import { resumeStuckEdielIntents } from '@/lib/ediel/intent/resumeStuckIntents'
 import { expireOverduePowersOfAttorney } from '@/lib/operations/powerOfAttorneyExpiry'
+import { reconcileCustomerApplicationContinuationJobs } from '@/lib/website/customerApplicationReconciliation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -51,6 +52,9 @@ async function run(request: NextRequest) {
         message: automationUserConfig.message,
       })
     }
+    const customerApplicationReconciliation = await reconcileCustomerApplicationContinuationJobs({
+      limit: Math.min(requestedLimit * 2, 100),
+    })
     const customerOperations = await processCustomerOperationJobs({
       workerId: `customer-operations-cron:${new Date().toISOString()}`,
       limit: requestedLimit,
@@ -69,6 +73,7 @@ async function run(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       result: {
+        customerApplicationReconciliation,
         customerOperations,
         facilityLookupDispatch,
         resumedIntents,

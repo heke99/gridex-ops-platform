@@ -3,6 +3,8 @@ import { createEdielMessageEvent } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { gridexBusinessMessageLabel } from '@/lib/ediel/businessLabels'
 import { decideProdatLifecycle } from '@/lib/ediel/stateMachines/prodatLifecycle'
+import { enqueueCustomerLifecycleNotification } from '@/lib/customer-notifications/notificationOrchestrator'
+import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
 
 export type InboundBusinessOutcome =
   | 'grid_owner_information_received'
@@ -355,5 +357,57 @@ export async function applyInboundBusinessStateMachine(input: {
   }
 
   if (outcome !== 'ignored') await recordEvent({ actorUserId: input.actorUserId, message: input.message, result })
+
+  const workflowState =
+    outcome === 'supplier_switch_accepted' ? 'switch_confirmed'
+      : outcome === 'supplier_switch_completed' || outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started' ? 'completed'
+        : outcome === 'business_rejection' || outcome === 'technical_rejection' ? 'switch_rejected'
+          : outcome === 'supplier_switch_review_required' || outcome === 'manual_review_required' ? 'manual_review'
+            : null
+  if (workflowState && companyId && input.message.customer_id) {
+    await transitionCorrelatedCustomerApplicationWorkflow({
+      companyId,
+      customerId: input.message.customer_id,
+      siteId: input.message.site_id ?? null,
+      operationId: text(readPayloadRecord(input.message).operation_id),
+      state: workflowState,
+      eventCode: `workflow.ediel.${outcome}`,
+      reasonCode: workflowState === 'switch_rejected' || workflowState === 'manual_review' ? outcome : null,
+      idempotencyKey: `workflow.ediel:${input.message.id}:${outcome}`,
+      snapshotPatch: {
+        next_action: workflowState === 'completed' ? 'none' : workflowState,
+        ediel_message_id: input.message.id,
+        supplier_switch_request_id: input.matchedSwitchRequestId ?? null,
+        inbound_outcome: outcome,
+      },
+    }).catch((error) => {
+      console.warn('[inbound-business-state] workflow transition skipped', error)
+    })
+  }
+
+  const notificationEvent =
+    outcome === 'supplier_switch_accepted' ? 'supplier_switch.accepted'
+      : outcome === 'supplier_switch_completed' || outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started' ? 'supply_period.activated'
+        : outcome === 'business_rejection' || outcome === 'technical_rejection' || outcome === 'supplier_switch_review_required' ? 'supplier_switch.rejected'
+          : null
+  if (notificationEvent && companyId && input.message.customer_id) {
+    await enqueueCustomerLifecycleNotification({
+      companyId,
+      customerId: input.message.customer_id,
+      eventType: notificationEvent,
+      sourceEventId: `ediel:${input.message.id}:${outcome}`,
+      siteId: input.message.site_id ?? null,
+      meteringPointId: input.message.metering_point_id ?? null,
+      contractId: text(readPayloadRecord(input.message).contract_id),
+      payload: {
+        ediel_message_id: input.message.id,
+        supplier_switch_request_id: input.matchedSwitchRequestId ?? null,
+        outcome,
+        ...result.metadata,
+      },
+    }).catch((error) => {
+      console.warn('[inbound-business-state] lifecycle notification enqueue skipped', error)
+    })
+  }
   return result
 }

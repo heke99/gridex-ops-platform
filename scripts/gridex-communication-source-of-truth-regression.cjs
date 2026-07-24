@@ -30,12 +30,15 @@ mustInclude(confirmation, 'triggerEmailEvent', 'confirmation must use the canoni
 mustNotInclude(confirmation, "from('customer_communications')", 'orphan customer_communications write removed')
 mustInclude(confirmation, 'communication_logs', 'source of truth documented in the action result')
 
-// 2. API queued-vs-sent truth for website intake communication block.
+// 2. API handoff truth: accepted response is pending; worker results derive
+//    queued-vs-sent from communication_logs after durable continuation.
 mustInclude(website, 'function emailDispatchStatus', 'per-event dispatch status from communication_logs')
 mustInclude(website, "dispatch_status: emailDispatchStatus(result)", 'each event result exposes dispatch_status')
 mustInclude(website, "source_of_truth: 'communication_logs'", 'response declares the source of truth')
-mustInclude(website, "queued: email ? communicationStatusOf(['queued'])", 'queued events listed separately')
-mustInclude(website, "sent: email ? communicationStatusOf(['sent'])", 'sent only when provider-confirmed')
+mustInclude(website, 'queued: [],', 'accepted response does not claim that worker e-mails are already queued')
+mustInclude(website, 'sent: [],', 'accepted response does not claim provider-confirmed delivery')
+mustInclude(website, 'pending: true', 'accepted response declares asynchronous communication pending')
+mustInclude(website, 'initial_customer_communication_failed:', 'failed communication-log/outbox creation fails the durable continuation for retry')
 
 // 3. Workflow step: EDIEL SMTP send claims require dispatch proof.
 mustInclude(workflow, "label: 'EDIEL-utskick (SMTP)'", 'SMTP step is channel-specific')
@@ -44,7 +47,9 @@ mustInclude(workflow, "status: facilityDispatchSent ? 'done' : facilityDispatchQ
 
 // 4. Legal *_sent domain events still only fire after actual send.
 mustInclude('lib/email/emailDomainEvents.ts', 'emitCommunicationSentDomainEvents', 'sent domain events stay post-send')
-mustInclude(website, 'actual communication_log is marked sent', 'website intake keeps post-send event contract')
+mustInclude('lib/email/emailOutbox.ts', 'const sentLog = await markCommunicationSent(', 'outbox marks the communication log sent before emitting domain events')
+mustInclude('lib/email/emailOutbox.ts', "emitCommunicationSentDomainEvents(sentLog, { source: 'email_outbox' })", 'outbox emits legal sent events only from the provider-confirmed sent log')
+mustInclude('lib/email/resendWebhookEvents.ts', "if (eventType === 'email.sent')", 'provider webhook emits sent events only for an explicit email.sent event')
 
 if (failures.length > 0) {
   for (const failure of failures) console.error(`FAIL: ${failure}`)

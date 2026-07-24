@@ -14,6 +14,7 @@ import {
   checkWebsiteApplicationReadinessAction,
   markWebsiteApplicationFacilityDataReceivedAction,
   requestWebsiteApplicationGridOwnerInfoAction,
+  requeueWebsiteApplicationContinuationAction,
   resolveWebsiteApplicationEnergyAction,
   updateWebsiteApplicationReviewAction,
 } from '../actions'
@@ -153,7 +154,21 @@ async function listByCustomer(table: string, companyId: string, customerId: stri
 }
 
 async function loadOperationalChain(item: WebsiteApplicationAdminRow) {
-  const [customer, site, meter, contract, gridOwnerRequest, customerInfoRequests, powerOfAttorneys, operationTasks] = await Promise.all([
+  const workflowResult = item.source_table === 'external_contract_intakes'
+    ? { data: null, error: null }
+    : await supabaseService
+      .from('customer_application_workflows')
+      .select('id,operation_id,state,next_action,workflow_version,last_job_id,last_transition_at,snapshot,created_at,updated_at')
+      .eq('company_id', item.company_id)
+      .eq('customer_application_id', item.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+  if (workflowResult.error && !missingSchema(workflowResult.error)) throw workflowResult.error
+  const workflow = (workflowResult.data as unknown as JsonRecord | null) ?? null
+  const workflowId = typeof workflow?.id === 'string' ? workflow.id : null
+
+  const [customer, site, meter, contract, gridOwnerRequest, customerInfoRequests, powerOfAttorneys, operationTasks, workflowEventsResult, workflowJobsResult] = await Promise.all([
     maybeById('customers', item.customer_id, 'id,customer_number,status,full_name,company_name,email,phone,customer_type,source,intake_status,intake_missing_fields,intake_warnings,created_at,updated_at'),
     maybeById('customer_sites', item.customer_site_id, 'id,status,site_name,facility_id,street,postal_code,city,grid_owner_id,grid_area_code,price_area_code,move_in_date,created_at,updated_at'),
     maybeById('metering_points', item.metering_point_id, 'id,status,metering_point_id,meter_point_id,site_id,customer_site_id,site_facility_id,grid_area_code,price_area_code,verification_status,onboarding_status,created_at,updated_at'),
@@ -162,9 +177,32 @@ async function loadOperationalChain(item: WebsiteApplicationAdminRow) {
     listByCustomer('customer_info_requests', item.company_id, item.customer_id, 'id,status,request_type,target_party_type,automation_origin,automation_key,created_at,updated_at', 8),
     listByCustomer('powers_of_attorney', item.company_id, item.customer_id, 'id,status,scope,source,created_at,signed_at,expires_at', 8),
     listByCustomer('customer_operation_tasks', item.company_id, item.customer_id, 'id,status,priority,task_type,title,description,created_at,updated_at', 8),
+    workflowId
+      ? supabaseService
+        .from('customer_application_workflow_events')
+        .select('id,status:to_state,event_code,from_state,to_state,reason_code,idempotency_key,occurred_at,created_at')
+        .eq('company_id', item.company_id)
+        .eq('workflow_id', workflowId)
+        .order('occurred_at', { ascending: false })
+        .limit(25)
+      : Promise.resolve({ data: [], error: null }),
+    workflowId
+      ? supabaseService
+        .from('customer_operation_jobs')
+        .select('id,status,job_type,attempts,max_attempts,run_after,locked_at,locked_by,last_error_code,last_error_message,last_error,completed_at,created_at,updated_at')
+        .eq('company_id', item.company_id)
+        .eq('workflow_id', workflowId)
+        .order('created_at', { ascending: false })
+        .limit(25)
+      : Promise.resolve({ data: [], error: null }),
   ])
 
-  return { customer, site, meter, contract, gridOwnerRequest, customerInfoRequests, powerOfAttorneys, operationTasks }
+  if (workflowEventsResult.error && !missingSchema(workflowEventsResult.error)) throw workflowEventsResult.error
+  if (workflowJobsResult.error && !missingSchema(workflowJobsResult.error)) throw workflowJobsResult.error
+  const workflowEvents = workflowEventsResult.error ? [] : (((workflowEventsResult.data ?? []) as unknown) as JsonRecord[])
+  const workflowJobs = workflowJobsResult.error ? [] : (((workflowJobsResult.data ?? []) as unknown) as JsonRecord[])
+
+  return { customer, site, meter, contract, gridOwnerRequest, customerInfoRequests, powerOfAttorneys, operationTasks, workflow, workflowEvents, workflowJobs }
 }
 
 function ChainCard({ title, row, fields, href }: { title: string; row: JsonRecord | null; fields: Array<[string, string]>; href?: string }) {
@@ -313,6 +351,7 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
         <button formAction={requestWebsiteApplicationGridOwnerInfoAction} className="rounded-2xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50">Begär uppgifter från nätägare</button>
         <button formAction={markWebsiteApplicationFacilityDataReceivedAction} className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">Markera mottaget</button>
         <button formAction={checkWebsiteApplicationReadinessAction} className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Kontrollera om redo</button>
+        <button formAction={requeueWebsiteApplicationContinuationAction} className="rounded-2xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-800 hover:bg-violet-50">Återkö automation</button>
       </div>
     </form>
   )
@@ -330,7 +369,7 @@ function RelatedRows({ title, rows }: { title: string; rows: JsonRecord[] }) {
               <p className="font-mono text-xs text-slate-500">{String(row.id)}</p>
               <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(String(row.status ?? ''))}`}>{intakeStatusLabel(String(row.status ?? ''))}</span>
             </div>
-            <p className="mt-2 font-semibold text-slate-950">{String(row.title ?? row.request_type ?? row.task_type ?? row.source ?? 'Rad')}</p>
+            <p className="mt-2 font-semibold text-slate-950">{String(row.title ?? row.event_code ?? row.job_type ?? row.request_type ?? row.task_type ?? row.source ?? 'Rad')}</p>
             <p className="mt-1 text-xs text-slate-500">{formatDate(String(row.created_at ?? ''))}</p>
           </div>
         ))}
@@ -437,12 +476,17 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
         <ChainCard title="Avtal" row={chain.contract} href={item.customer_id && item.contract_id ? `/admin/customers/${item.customer_id}?tab=contracts` : undefined} fields={[
           ['Status', 'status'], ['Avtalsnamn', 'contract_name'], ['Typ', 'contract_type'], ['Källa', 'source_type'], ['Start', 'starts_at'], ['Önskad start', 'requested_start_date'],
         ]} />
+        <ChainCard title="Automationsworkflow" row={chain.workflow} fields={[
+          ['Status', 'state'], ['Nästa åtgärd', 'next_action'], ['Version', 'workflow_version'], ['Senaste övergång', 'last_transition_at'], ['Continuation-jobb', 'last_job_id'], ['Operation', 'operation_id'],
+        ]} />
         <ChainCard title="Nätägarbegäran" row={chain.gridOwnerRequest} fields={[
           ['Status', 'status'], ['Dispatch', 'dispatch_status'], ['Typ', 'request_type'], ['Kanal', 'channel'], ['Nätområde', 'grid_area_code'], ['Elområde', 'price_area'],
         ]} />
         <RelatedRows title="Customer info requests" rows={chain.customerInfoRequests} />
         <RelatedRows title="Fullmakter" rows={chain.powerOfAttorneys} />
         <RelatedRows title="Operationsuppgifter" rows={chain.operationTasks} />
+        <RelatedRows title="Workflowhändelser" rows={chain.workflowEvents} />
+        <RelatedRows title="Workflowjobb" rows={chain.workflowJobs} />
       </section>
 
       <section className="grid gap-5 lg:grid-cols-2">

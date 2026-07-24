@@ -2,6 +2,7 @@ import { completeFacilityLookup, type CompleteFacilityLookupInput } from '@/lib/
 import { evaluateCustomerIntake } from '@/lib/customer-operations/customerIntakeOrchestrator'
 import { evaluateAndRunNextCustomerStep } from '@/lib/customer-operations/customerProcessNextStepEngine'
 import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProcessEvents'
+import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
 
 type JsonRecord = Record<string, unknown>
 
@@ -54,6 +55,33 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
         skipZ01Finalization: true,
       })
     }
+
+    const workflowState = supplierSwitchResult?.decision === 'prepare_supplier_switch'
+      ? 'switch_request_queued'
+      : supplierSwitchResult?.decision === 'prepare_z01' || supplierSwitchResult?.decision === 'wait_for_ack'
+        ? 'waiting_for_customer_data_response'
+        : supplierSwitchResult?.decision === 'manual_review'
+          ? 'manual_review'
+          : supplierSwitchResult?.decision === 'blocked'
+            ? 'switch_blocked'
+            : 'facility_information_completed'
+    await transitionCorrelatedCustomerApplicationWorkflow({
+      companyId: input.companyId,
+      customerId: completion.customerId,
+      siteId: completion.customerSiteId,
+      operationId: completion.operationId,
+      state: workflowState,
+      eventCode: `workflow.facility_response.${workflowState}`,
+      reasonCode: supplierSwitchResult?.blockers[0]?.code ?? null,
+      idempotencyKey: `workflow.facility_response:${input.requestId}:${workflowState}`,
+      snapshotPatch: {
+        next_action: supplierSwitchResult?.actionTaken ?? intakeDecision?.nextAction ?? 'facility_information_completed',
+        facility_request_id: input.requestId,
+        supplier_switch_request_id: supplierSwitchResult?.supplierSwitchRequestId ?? null,
+      },
+    }).catch((error) => {
+      console.warn('[facility-response-orchestrator] workflow transition skipped', error)
+    })
 
     await emitCustomerProcessEvent({
       companyId: input.companyId,

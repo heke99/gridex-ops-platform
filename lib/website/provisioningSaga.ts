@@ -46,7 +46,7 @@ export async function commitApplicationProvisioning(input: {
   powerOfAttorneyId?: string | null
   desiredState: 'pending_customer_data' | 'ready_for_switch' | 'pending_review'
   snapshot: Record<string, unknown>
-}): Promise<{ operationId: string; state: string }> {
+}): Promise<{ operationId: string; state: string; workflowId: string | null; continuationJobId: string | null }> {
   const operationId = randomUUID()
   const { data, error } = await supabaseService.rpc('gridex_commit_customer_application_provisioning', {
     p_company_id: input.companyId,
@@ -65,9 +65,17 @@ export async function commitApplicationProvisioning(input: {
     throw error
   }
   const row = Array.isArray(data) ? data[0] : data
+  const result = row as {
+    operation_id?: unknown
+    state?: unknown
+    workflow_id?: unknown
+    continuation_job_id?: unknown
+  } | null
   return {
-    operationId: clean((row as { operation_id?: unknown } | null)?.operation_id) ?? operationId,
-    state: clean((row as { state?: unknown } | null)?.state) ?? input.desiredState,
+    operationId: clean(result?.operation_id) ?? operationId,
+    state: clean(result?.state) ?? input.desiredState,
+    workflowId: clean(result?.workflow_id),
+    continuationJobId: clean(result?.continuation_job_id),
   }
 }
 

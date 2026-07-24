@@ -1129,3 +1129,88 @@ export async function repairWebsiteApplicationPowerOfAttorneyAction(formData: Fo
   revalidateWebsiteApplicationPaths(application)
   redirect(safeReturnPath(formData, '/admin/website-applications'))
 }
+
+// Safe admin replay: reuse the workflow's single canonical continuation row.
+// The unique workflow/job constraint and downstream idempotency keys prevent a
+// second customer-intake chain from being created.
+export async function requeueWebsiteApplicationContinuationAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  if (!applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(applicationId)
+  const admin = await authorizeForCompany(application.company_id)
+
+  const workflowResult = await supabaseService
+    .from('customer_application_workflows')
+    .select('id,state,last_job_id')
+    .eq('company_id', application.company_id)
+    .eq('customer_application_id', application.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (workflowResult.error) throw workflowResult.error
+  const workflow = workflowResult.data as { id: string; state: string; last_job_id: string | null } | null
+  if (!workflow) throw new Error('Automationsworkflow saknas. Kör migration och reconciliation först.')
+  if (['completed', 'cancelled'].includes(workflow.state)) {
+    throw new Error('Ett avslutat workflow kan inte återköras från denna åtgärd.')
+  }
+
+  const jobResult = await supabaseService
+    .from('customer_operation_jobs')
+    .select('id,status,attempts,max_attempts')
+    .eq('company_id', application.company_id)
+    .eq('workflow_id', workflow.id)
+    .eq('job_type', 'customer_application_continuation')
+    .maybeSingle()
+  if (jobResult.error) throw jobResult.error
+  const job = jobResult.data as { id: string; status: string; attempts: number; max_attempts: number } | null
+  if (!job) throw new Error('Continuation-jobb saknas. Kör reconciliation innan manuell återköning.')
+  if (job.status === 'running') throw new Error('Automationen körs redan och kan inte återköas parallellt.')
+
+  const now = new Date().toISOString()
+  const updateResult = await supabaseService
+    .from('customer_operation_jobs')
+    .update({
+      status: 'queued',
+      attempts: 0,
+      run_after: now,
+      locked_at: null,
+      locked_by: null,
+      last_error: null,
+      last_error_code: null,
+      last_error_message: null,
+      completed_at: null,
+      updated_at: now,
+    })
+    .eq('id', job.id)
+    .eq('company_id', application.company_id)
+    .eq('workflow_id', workflow.id)
+  if (updateResult.error) throw updateResult.error
+
+  await supabaseService
+    .from('customer_application_workflows')
+    .update({ next_action: 'admin_replay_queued', last_job_id: job.id, updated_at: now })
+    .eq('id', workflow.id)
+    .eq('company_id', application.company_id)
+
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId: application.customer_id,
+    entityType: 'customer_application_workflow',
+    entityId: workflow.id,
+    action: 'customer_application_continuation.requeued',
+    label: 'Återköade kundintagets automationsworkflow',
+    source: 'website_application_review',
+    billable: false,
+    metadata: {
+      application_id: application.id,
+      continuation_job_id: job.id,
+      previous_job_status: job.status,
+      workflow_state: workflow.state,
+    },
+  })
+
+  revalidateWebsiteApplicationPaths(application)
+  redirect(safeReturnPath(formData, websiteApplicationDetailPath(application.id)))
+}
+

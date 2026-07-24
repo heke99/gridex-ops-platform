@@ -55,8 +55,9 @@ expect(
   'final agreement/cooling-off e-mails require a signed contract, immutable PDF and exact legal evidence',
 )
 expect(
-  /failedEmailResults\.some\([\s\S]{0,220}contract\.confirmation_sent[\s\S]{0,160}contract\.cooling_off_sent[\s\S]{0,120}pushWarning\(warnings, ["']legal_email_pending["']\)/.test(website),
-  'legal_email_pending warning is only used after a failed final agreement e-mail event',
+  /const failedCommunication = communication\.results\.filter\(\(item\) => !item\.ok\)/.test(website) &&
+    website.includes('initial_customer_communication_failed:'),
+  'failed legal e-mail creation fails the durable continuation job so reconciliation can retry it',
 )
 expect(
   /function resolveRequestPriceArea/.test(manual) &&

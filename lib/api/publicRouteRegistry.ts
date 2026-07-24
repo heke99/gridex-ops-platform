@@ -22,6 +22,7 @@ export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
   { method: 'GET', path: '/api/v1/website/switch-status', scopes: ['website_switch_status.read'], description: 'Läs aktuell leverantörsbytesstatus via tenantens application_number.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/website/legal-bundle', scopes: ['website_legal.read', 'website_contracts.read'], description: 'Hämta publicerade juridikversioner och länkar. Ett av angivna scopes räcker.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/website/customer-applications', scopes: ['website_applications.write'], description: 'Skapa kundansökan och juridiska godkännanden.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'GET', path: '/api/v1/website/customer-applications/[applicationId]', scopes: ['website_switch_status.read'], description: 'Läs tenant-skopad status för en accepterad kundansökan och OPS fortsatta automation.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/website/customer-events', scopes: ['website_events.write'], description: 'Skicka kundhändelse från hemsida eller kundportal.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/events', scopes: ['website_events.write'], description: 'Skicka kundhändelse.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'GET', path: '/api/v1/events', scopes: ['events.read'], description: 'Läs bolagets domänhändelser.', rateLimitClass: 'read' },

@@ -49,33 +49,42 @@ const operationsDb = read('lib/operations/db.ts')
 const cronRoute = read('app/api/internal/customer-operations/cron/route.ts')
 const idempotencyMigration = read('supabase/migrations/20260709150000_supplier_switch_automation_key_idempotency.sql')
 
-// 1. Complete-facility website intake starts switch orchestration -------------
+// 1. Complete-facility website intake hands off to durable orchestration -------
 expect(
-  intake.includes('ensureSupplierSwitchForReadyCustomer'),
-  'website intake calls the supplier switch orchestration helper'
+  intake.includes('export async function continueWebsiteCustomerApplication') &&
+    intake.includes('evaluateAndRunNextCustomerStep({'),
+  'durable website continuation invokes the canonical next-step engine'
 )
 expect(
-  /applicationStatus === 'ready_for_switch' &&\s*readiness\.canStartSwitch === true/.test(intake),
-  'orchestration is gated on ready_for_switch + can_start_switch'
+  intake.includes("state: 'switch_readiness_check'") &&
+    intake.includes("trigger: 'supplier_switch_ready'"),
+  'continuation performs an explicit switch-readiness transition before dispatch'
 )
 expect(
-  /meteringPoint\?\.id &&\s*contract\?\.id &&\s*powerOfAttorneyId &&\s*supplierSwitchStartDate/.test(intake),
-  'orchestration requires metering point, contract, signed POA and a requested start/move-in date'
+  /const facilityId = clean\(site\.facility_id\)/.test(intake) &&
+    /const meteringIdentity =/.test(intake) &&
+    /if \(!siteId \|\| \(!facilityId && !meteringIdentity\)\)/.test(intake),
+  'continuation requires a canonical site and facility or metering identity before switch evaluation'
 )
 expect(
-  /const siteMoveInDate = clean\(body\.site\?\.move_in_date\)/.test(intake) &&
-    /readiness\.requestedStartDate \?\? siteMoveInDate/.test(intake),
-  'requested start date falls back to the site move-in date'
+  nextStepEngine.includes('ensureSupplierSwitchRequestForReadySite') &&
+    automation.includes('clean(jobPayload.requested_start_date) ?? site.move_in_date'),
+  'requested start date is resolved by the canonical next-step/switch worker path'
 )
 expect(
-  intake.includes('supplier_switch_request_id') && intake.includes('supplier_switch_status'),
-  'response_payload exposes supplier_switch_request_id and status additively'
+  intake.includes('supplier_switch_request_id: next.supplierSwitchRequestId ?? null') &&
+    intake.includes("workflow_state: finalState"),
+  'asynchronous application status exposes supplier-switch reference and workflow state additively'
 )
-expect(
-  /!facilityMissing/.test(intake.split('ensureSupplierSwitchForReadyCustomer')[1] ?? '') ||
-    /!facilityMissing[\s\S]{0,400}ensureSupplierSwitchForReadyCustomer/.test(intake),
-  'website intake never starts switch orchestration when facility is missing'
-)
+{
+  const facilityBranch = intake.indexOf('if (!siteId || (!facilityId && !meteringIdentity))')
+  const nextStepCall = intake.indexOf('const next = await evaluateAndRunNextCustomerStep', facilityBranch)
+  const facilityReturn = intake.indexOf('return { status, result };', facilityBranch)
+  expect(
+    facilityBranch > -1 && facilityReturn > facilityBranch && nextStepCall > facilityReturn,
+    'missing facility returns through the grid-owner intake path before supplier-switch evaluation'
+  )
+}
 
 // 2. Orchestration helper contract --------------------------------------------
 expect(
@@ -175,8 +184,10 @@ expect(
 
 // 5. Missing-facility path -------------------------------------------------------
 expect(
-  /const gridOwnerRequestMayBeCreated =\s*readiness\.canRequestGridOwnerInformation && !facilityMissing/.test(intake),
-  'missing facility keeps the manual grid-owner information path (no Ediel request)'
+  intake.includes('processWebsiteApplicationIntake({') &&
+    intake.includes("'waiting_for_facility_response'") &&
+    intake.includes("eventType: 'facility_information.requested'"),
+  'missing facility uses the durable manual grid-owner information path before Ediel switch work'
 )
 expect(
   /facilityIdentity\.siteExists && !facilityIdentity\.facilityReady/.test(automation) &&

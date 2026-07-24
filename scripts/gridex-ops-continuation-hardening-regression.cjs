@@ -47,7 +47,7 @@ for (const code of ['power_of_attorney_missing']) {
 }
 ok(apps.includes('idempotent_application_missing_poa'), 'intake keeps idempotent_application_missing_poa as repair fallback code')
 // Whitespace/quote tolerant: the stage call may be wrapped by the formatter.
-ok(/await stage\('power_of_attorney', \(\) =>\s*ensureWebsitePowerOfAttorney\(/.test(apps), 'POA persistence runs under the power_of_attorney stage')
+ok(apps.includes('canonicalPowerOfAttorneyId = canonicalGraph.result.power_of_attorney_id') && /await stage\('power_of_attorney', \(\) =>\s*repairMissingPoaOnIdempotentApplication\(/.test(apps), 'canonical graph persists POA atomically and idempotent repair remains under the power_of_attorney stage')
 
 // 2) Structured POA required when the contract publishes a POA version.
 ok(
@@ -119,7 +119,7 @@ ok(/export function normalizeCustomerIdentityType\(/.test(normalizeSrc), 'normal
   for (const alias of priv) ok(normalizeSrc.includes(`'${alias}'`), `private alias ${alias} present`)
   for (const alias of biz) ok(normalizeSrc.includes(`'${alias}'`), `business alias ${alias} present`)
 }
-ok(apps.includes("from '@/lib/customers/normalizeCustomerType'"), 'website intake imports the shared normalizer')
+ok(apps.includes("from '@/lib/customers/externalCustomerType'") && apps.includes('normalizeExternalCustomerType'), 'website intake imports the strict external customer-type normalizer')
 ok(publicContracts.includes("from '@/lib/customers/normalizeCustomerType'"), 'public-contracts imports the shared normalizer')
 ok(
   /const normalized = normalizeCustomerType\(customerType\)/.test(publicContracts),
@@ -130,12 +130,13 @@ ok(read('lib/external-contracts/intake.ts').includes('isBusinessCustomerType'), 
 
 // 8) Missing-facility intake uses the manual pipeline only.
 ok(
-  /const gridOwnerRequestMayBeCreated =\s*readiness\.canRequestGridOwnerInformation && !facilityMissing/.test(apps),
-  'Ediel grid-owner request is not created when facility is missing',
+  /if \(!siteId \|\| \(!facilityId && !meteringIdentity\)\)/.test(apps) && apps.includes('processWebsiteApplicationIntake({'),
+  'missing facility is routed to the manual grid-owner intake before Ediel operations',
 )
 ok(
-  /if \(committedSiteId && powerOfAttorneyId && !facilityMissing\)/.test(apps),
-  'Z01-first automation is skipped when facility is missing',
+  apps.indexOf('return { status, result };', apps.indexOf('if (!siteId || (!facilityId && !meteringIdentity))')) <
+    apps.indexOf('const next = await evaluateAndRunNextCustomerStep', apps.indexOf('if (!siteId || (!facilityId && !meteringIdentity))')),
+  'Z01 or supplier-switch evaluation only runs after the missing-facility branch returns',
 )
 // The website flow now delegates the missing-facility case to the shared
 // customer-intake orchestrator, which owns the manual information request.

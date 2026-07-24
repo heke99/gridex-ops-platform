@@ -1,4 +1,5 @@
 import { supabaseService } from "@/lib/supabase/service";
+import { evaluateCustomerApplicationAutomationReadiness } from "@/lib/website/customerApplicationAutomationReadiness";
 import {
   REQUIRED_LEGAL_TEXT_TYPES,
   type LegalTextType,
@@ -455,6 +456,7 @@ export async function getCompanyGoLiveSetupSummary(
     legalRows,
     websiteReadiness,
     senderSettings,
+    customerApplicationAutomation,
   ] = await Promise.all([
     safeRows<DbRow>("ediel_actor_settings", async () =>
       supabaseService
@@ -518,6 +520,14 @@ export async function getCompanyGoLiveSetupSummary(
         .eq("company_id", companyId)
         .limit(20),
     ),
+    evaluateCustomerApplicationAutomationReadiness(companyId).catch((error) => ({
+      ready: false,
+      blockers: [
+        `Kundintagets automations-readiness kunde inte kontrolleras: ${error instanceof Error ? error.message : String(error)}`,
+      ],
+      warnings: [],
+      checks: {},
+    })),
   ]);
 
   const activeActors = actors.filter(
@@ -567,7 +577,7 @@ export async function getCompanyGoLiveSetupSummary(
   if (!hasSharedMailbox)
     blockers.push("Production mailbox/transport saknas eller är inte aktiv.");
   if (!hasSenderIdentity)
-    warnings.push("Verifierad avsändaridentitet för kundmail saknas.");
+    blockers.push("Verifierad avsändaridentitet för kundmail saknas.");
   if (!hasPublishedContracts)
     warnings.push(
       "Hemsida/API saknar publicerat avtal. Påverkar bara hemsidan och Mina sidor; Ediel production och intern kundhantering kan fortsätta.",
@@ -578,6 +588,8 @@ export async function getCompanyGoLiveSetupSummary(
       blockers.push(`Publicerad juridisk text saknas: ${type}.`);
   }
 
+  blockers.push(...customerApplicationAutomation.blockers);
+  warnings.push(...customerApplicationAutomation.warnings);
   blockers.push(...routeSimulation.blockers);
   warnings.push(...routeSimulation.warnings);
 

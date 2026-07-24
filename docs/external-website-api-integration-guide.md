@@ -274,6 +274,20 @@ Idempotency-Key: required
     "withdrawal": true,
     "power_of_attorney": true,
     "price_terms": true
+  },
+  "powerOfAttorney": {
+    "accepted": true,
+    "scope": [
+      "supplier_switch",
+      "facility_information_lookup"
+    ],
+    "signerName": "Anna Andersson",
+    "signerIdentityNumber": "YYYYMMDDXXXX",
+    "method": "website_acceptance",
+    "acceptedAt": "2026-07-24T10:30:00+02:00",
+    "textVersionId": "uuid-från-publicerat-legal-bundle",
+    "ipAddress": "203.0.113.10",
+    "userAgent": "Mozilla/5.0"
   }
 }
 ```
@@ -281,6 +295,41 @@ Idempotency-Key: required
 `offer_reference`, `quote_reference` och `resolution_id` ligger alltid på requestens top-level. `contract` innehåller endast kompletterande avtalsuppgifter. `quote_reference` och `resolution_id` måste matcha den validerade quoten. Dubbel submit med samma idempotency key och samma request hash returnerar samma canonicala kund-, site-, mätpunkts- och avtals-ID:n.
 
 OPS använder samma tenantbundna kundmatchning i alla intakekanaler. Organisationsnummer eller verifierat personnummer väger starkare än e-post. E-post ensam slår inte automatiskt ihop osäker identitet.
+
+Använd de canonicala fälten `customer.personal_number` för privatkund och `customer.org_number` för företagskund. Under en övergångsperiod normaliserar API:t även identitetsalias som `personal_identity_number`, `personalIdentityNumber`, `identity_number`, `personnummer`, `organization_number`, `organisation_number`, `organisationsnummer` och `orgnr`, men nya integrationer ska alltid skicka de canonicala fälten.
+
+`consents.power_of_attorney=true` registrerar den juridiska acceptansen, men räcker inte ensam för automatisk kommunikation med nätägaren. När fullmakt krävs ska tenant även skicka den strukturerade `powerOfAttorney`-modellen med signerande namn, signerande identitet, metod, exakt scope och publicerat `textVersionId`. OPS blockerar nätägarutskick om fullmakten inte är `externally_sendable`.
+
+Ett accepterat svar betyder att OPS har committat kund, anläggning, avtal, juridik och ett persistent fortsättningsjobb. Därefter äger OPS hela processen. Tenant ska inte själv skicka nätägarbegäran, skapa Z01/Z03, starta leverantörsbyte eller skicka juridiska avtalsmail.
+
+Exempel på accepterat svar:
+
+```json
+{
+  "data": {
+    "application_id": "uuid",
+    "customer_id": "uuid",
+    "customer_number": "DX-123456",
+    "site_id": "uuid",
+    "contract_id": "uuid",
+    "workflow_id": "uuid",
+    "status": "accepted",
+    "workflow_state": "canonical_data_committed",
+    "next_step": "automatic_processing",
+    "missing_fields": [],
+    "blocking_reasons": []
+  }
+}
+```
+
+Tenant kan följa samma process utan interna OPS-tillstånd via:
+
+```http
+GET /api/v1/website/customer-applications/{application_id}
+Scope: website_switch_status.read
+```
+
+Externa statusar är `accepted`, `processing`, `needs_customer_information`, `completed`, `rejected` och `failed`.
 
 ## 8. Avtal och fakturering
 
@@ -298,7 +347,7 @@ Fakturering läser kundavtalets snapshot, faktisk förbrukning och separat verif
 
 ## 9. Leverantörsbyte
 
-När anläggningsuppgifter saknas fortsätter samma idempotenta process med `request_site_information`. När canonical mätpunkt, fullmakt, avtal och route-readiness är kompletta fortsätter samma process-ID med `supplier_switch`. `needs_review` skapar inte en ny parallell process vid retry.
+När anläggningsuppgifter saknas fortsätter samma idempotenta process med `request_site_information`. När canonical mätpunkt, fullmakt, avtal och route-readiness är kompletta fortsätter samma process-ID med `supplier_switch`. `needs_review` skapar inte en ny parallell process vid retry. OPS väljer exakt ett nästa huvudsteg; Z01 och Z03 startas inte som konkurrerande parallella flöden.
 
 ## 10. Felkoder
 

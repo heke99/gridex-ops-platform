@@ -390,51 +390,48 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
 // externally_sendable=false / requires_completion=true och skickas aldrig till
 // nätägaren.
 //
-// When facility_id is missing but an externally sendable power of attorney exists,
-// the API blocks PRODAT Z01 (no ediel_outbox), queues a manual e-mail information
-// request to the grid owner and returns an operational nextAction. Possible
-// nextAction.code values: missing_customer_identity, missing_customer_details,
-// power_of_attorney_required, poa_not_externally_sendable,
-// grid_owner_contact_required, manual_mailbox_required,
-// facility_identifier_requested, ready_for_switch, in_progress.
+// När POST-svaret är accepted fortsätter OPS från ett persistent
+// customer_application_continuation-jobb. Workern väljer exakt ett nästa steg:
+// fullmaktskomplettering, manuell nätägarbegäran, Z01, supplier switch eller
+// manuell granskning. API-requestens livstid styr aldrig fortsättningen.
 const applicationResponse = `{
   "data": {
     "customer_id": "uuid",
     "customer_number": "DX-100025",
     "application_id": "uuid",
-    "application_number": "APP-20260616-0001",
-    "external_customer_id": "CUSTOMER-12345",
-    "portal_identity_id": "uuid",
+    "application_number": "APP-20260724-0001",
     "customer_site_id": "uuid",
     "metering_point_id": "uuid",
     "contract_id": "uuid",
-    "contract_number": "AVT-DX-100025-001",
-    "contract_price_snapshot_id": "uuid",
-    "offer_reference": "offer_...",
-    "contract_status": "signed",
-    "signed_at": "2026-06-26T09:00:01.123Z",
-    "withdrawal_deadline_at": "2026-07-10T09:00:01.123Z",
-    "signature_snapshot_sha256": "4d7f...64_hex_characters...9a2c",
-    "can_send_agreement_confirmation": true,
-    "can_start_switch": false,
-    "status": "application_received",
+    "workflow_id": "uuid",
+    "continuation_job_id": "uuid",
+    "status": "accepted",
+    "workflow_state": "canonical_data_committed",
+    "next_step": "automatic_processing",
     "missing_fields": [],
     "blocking_reasons": [],
-    "power_of_attorney_id": "uuid",
-    "power_of_attorney": { "status": "signed", "scope": ["supplier_switch", "facility_information_lookup"], "method": "website_acceptance", "externally_sendable": true, "requires_completion": false },
-    "nextAction": { "code": "facility_identifier_requested", "message": "Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post." },
-    "manualInformationRequest": { "status": "manual_email_queued", "case_reference": "GX-FIR-AB12CD34", "channel": "manual_email", "request_id": "uuid" },
-    "next_step": "Granska ansökan och fortsätt enligt bolagets process.",
     "communication": {
-      "triggered": ["contract.application_received", "contract.confirmation_sent", "contract.cooling_off_sent"],
-      "queued": ["contract.application_received", "contract.confirmation_sent", "contract.cooling_off_sent"],
+      "triggered": [],
+      "queued": [],
       "sent": [],
       "failed": [],
+      "pending": true,
       "source_of_truth": "communication_logs"
-    },
-    "warnings": []
+    }
   }
-}`;
+}
+
+# accepted betyder att OPS atomiskt har sparat kund, anläggning, avtal,
+# juridik, workflow och ett persistent continuation-jobb. OPS äger därefter
+# kundmail, nätägarbegäran, Z01/Z02, Z03/Z04, APERAK och aktivering. Tenant
+# ska inte själv starta de stegen.
+
+curl -X GET "${apiBaseUrl}/website/customer-applications/<application_id>" \
+  -H "Authorization: Bearer $GRIDEX_API_KEY" \
+  -H "Accept: application/json"
+
+# Statusendpointen returnerar endast tenant-skopad extern status:
+# accepted | processing | needs_customer_information | completed | rejected | failed.`;
 
 const applicationValidationErrors = `HTTP/1.1 422 Unprocessable Entity
 {

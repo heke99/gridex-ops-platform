@@ -158,34 +158,30 @@ export async function seedDefaultEmailEventRules(companyId: string): Promise<Ema
 
   const existing = (existingRows ?? []) as EmailEventRule[]
   const exactByPair = new Map(existing.map((row) => [`${row.event_key}:${row.template_key}`, row]))
-  let created = 0
-  let repaired = 0
-  let preserved = 0
-
-  const canonicalRows = DEFAULT_EMAIL_EVENT_RULES.map((rule) => {
-    const current = exactByPair.get(`${rule.event_key}:${rule.template_key}`)
-    if (!current) created += 1
-    else if (current.enabled !== true || current.is_active === false || current.send_to_customer !== true) repaired += 1
-    else preserved += 1
-
-    return {
+  const missingRows = DEFAULT_EMAIL_EVENT_RULES
+    .filter((rule) => !exactByPair.has(`${rule.event_key}:${rule.template_key}`))
+    .map((rule) => ({
       company_id: companyId,
       event_key: rule.event_key,
       template_key: rule.template_key,
       enabled: true,
       is_active: true,
-      delay_minutes: current?.delay_minutes ?? 0,
+      delay_minutes: 0,
       send_to_customer: true,
-      send_to_admin: current?.send_to_admin ?? false,
+      send_to_admin: false,
       updated_at: now,
-    }
-  })
+    }))
 
-  const { error } = await supabaseService
-    .from('email_event_rules')
-    .upsert(canonicalRows, { onConflict: 'company_id,event_key,template_key' })
-  if (error) throw error
+  if (missingRows.length > 0) {
+    const { error } = await supabaseService
+      .from('email_event_rules')
+      .insert(missingRows)
+    if (error && error.code !== '23505') throw error
+  }
 
+  // Legacy/competing mappings are disabled, but an existing canonical rule is
+  // never re-enabled or overwritten. Tenant choices therefore survive future
+  // provisioning and repair runs.
   const canonicalByEvent = new Map(DEFAULT_EMAIL_EVENT_RULES.map((rule) => [rule.event_key, rule.template_key]))
   const legacyIds = existing
     .filter((row) => LEGACY_TEMPLATE_KEYS.has(row.template_key) || (canonicalByEvent.has(row.event_key) && canonicalByEvent.get(row.event_key) !== row.template_key))
@@ -202,9 +198,9 @@ export async function seedDefaultEmailEventRules(companyId: string): Promise<Ema
 
   return {
     checked: DEFAULT_EMAIL_EVENT_RULES.length,
-    created,
-    repaired,
-    preserved,
+    created: missingRows.length,
+    repaired: 0,
+    preserved: DEFAULT_EMAIL_EVENT_RULES.length - missingRows.length,
     legacyDisabled: legacyIds.length,
   }
 }

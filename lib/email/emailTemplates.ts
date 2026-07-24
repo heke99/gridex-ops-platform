@@ -236,53 +236,36 @@ export async function seedDefaultEmailTemplates(companyId: string): Promise<Emai
   if (existingError && !['42P01', '42703', 'PGRST205'].includes(existingError.code ?? '')) throw existingError
 
   const existing = (existingRows ?? []) as CompanyEmailTemplate[]
-  const byKey = new Map(existing.map((row) => [row.template_key, row]))
+  const existingKeys = new Set(existing.map((row) => row.template_key))
   const now = new Date().toISOString()
-  let created = 0
-  let repaired = 0
-  let preserved = 0
-
-  const rows = DEFAULT_EMAIL_TEMPLATES.map((fallback) => {
-    const current = byKey.get(fallback.template_key)
-    const subject = current?.subject?.trim() || fallback.subject
-    const bodyHtml = current?.body_html?.trim() || fallback.body_html
-    const bodyText = current?.body_text?.trim() || fallback.body_text
-    const name = current?.name?.trim() || fallback.name
-    const needsRepair = Boolean(current) && (
-      current?.is_active !== true ||
-      !current?.name?.trim() ||
-      !current?.subject?.trim() ||
-      !current?.body_html?.trim() ||
-      !current?.body_text?.trim()
-    )
-
-    if (!current) created += 1
-    else if (needsRepair) repaired += 1
-    else preserved += 1
-
-    return {
+  const missingRows = DEFAULT_EMAIL_TEMPLATES
+    .filter((fallback) => !existingKeys.has(fallback.template_key))
+    .map((fallback) => ({
       company_id: companyId,
       template_key: fallback.template_key,
-      name,
-      subject,
-      body_html: bodyHtml,
-      body_text: bodyText,
+      name: fallback.name,
+      subject: fallback.subject,
+      body_html: fallback.body_html,
+      body_text: fallback.body_text,
       language: 'sv',
       is_active: true,
       updated_at: now,
-    }
-  })
+    }))
 
-  const { error } = await supabaseService
-    .from('company_email_templates')
-    .upsert(rows, { onConflict: 'company_id,template_key,language' })
-  if (error) throw error
+  if (missingRows.length > 0) {
+    const { error } = await supabaseService
+      .from('company_email_templates')
+      .insert(missingRows)
+    if (error && error.code !== '23505') throw error
+  }
 
+  // Seeding is create-only. Existing inactive or customised templates are an
+  // explicit tenant choice and may only be changed via admin/reset actions.
   return {
     checked: DEFAULT_EMAIL_TEMPLATES.length,
-    created,
-    repaired,
-    preserved,
+    created: missingRows.length,
+    repaired: 0,
+    preserved: DEFAULT_EMAIL_TEMPLATES.length - missingRows.length,
   }
 }
 
