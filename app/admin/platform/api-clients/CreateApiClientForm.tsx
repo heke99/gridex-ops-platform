@@ -6,6 +6,7 @@ import {
   type CreateApiClientState,
 } from './actions'
 import { INTEGRATION_API_PERMISSION_GROUPS, recommendedPermissionGroups } from '@/lib/integrations/apiClientScopes'
+import { WEBSITE_INTEGRATION_BASE_URL, WEBSITE_INTEGRATION_OPENAPI_URL } from '@/lib/integrations/websiteIntegrationContract'
 
 type CompanyOption = {
   id: string
@@ -29,7 +30,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Ny API-klient</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Koppla hemsida och Mina sidor</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Skapa en token som hemsidan använder server-side. Från start får klienten standardpaketet med alla behörigheter som normalt behövs, och du kan ta bort grupper som inte ska användas.
+          Skapa en enda server-side API-nyckel för hemsida, teckning och Mina sidor. Tenantens produktion behöver bara miljövariabeln GRIDEX_API_KEY; tenant, company_id, base-URL och payloadläge ska inte konfigureras separat.
         </p>
       </div>
 
@@ -41,7 +42,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Token · visas bara en gång</p>
               <code className="mt-2 block break-all rounded-xl bg-slate-950 p-3 text-xs text-emerald-100">{state.token}</code>
               <p className="mt-3 text-xs leading-5 text-slate-600">
-                Lägg den som server secret på Gridex hemsidan, exempelvis <strong>GRIDEX_API_KEY</strong>. Använd headern <strong>Authorization: Bearer &lt;token&gt;</strong>.
+                Lägg den som enda Gridex-secret: <strong>GRIDEX_API_KEY</strong>. Använd <strong>Authorization: Bearer &lt;GRIDEX_API_KEY&gt;</strong> mot <strong>{WEBSITE_INTEGRATION_BASE_URL}</strong>. OpenAPI finns på <strong>{WEBSITE_INTEGRATION_OPENAPI_URL}</strong>.
               </p>
             </div>
           ) : null}
@@ -77,7 +78,7 @@ export default function CreateApiClientForm({ companies }: { companies: CompanyO
         <fieldset className="rounded-3xl border border-slate-200 p-4">
           <legend className="px-2 text-sm font-semibold text-slate-800">Behörigheter i vanliga ord</legend>
           <p className="mt-1 text-xs leading-5 text-slate-600">
-            Standardpaketet är förvalt. Ta bort grupper som hemsidan inte ska använda. Tekniska scopes visas under varje grupp för felsökning.
+            Standardpaketet provisioneras på samma API-nyckel. Scopes styrs i OPS och är inte miljövariabler hos tenant. Tekniska scopes visas endast för administration och felsökning.
           </p>
           <div className="mt-3 grid gap-3">
             {INTEGRATION_API_PERMISSION_GROUPS.map((group) => (

@@ -123,8 +123,12 @@ assertContains('lib/customer-portal/customerEvents.ts', [
 // The developer page was rebuilt around the Website API / Mina sidor docs.
 assertContains('app/developers/customer-portal-api/page.tsx', [
   'Website API, Mina sidor-koppling',
-  'https://app.gridex.se',
+  'WEBSITE_INTEGRATION_BASE_URL',
   'Authorization: Bearer',
+])
+assertContains('lib/integrations/websiteIntegrationContract.ts', [
+  "WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se'",
+  "WEBSITE_INTEGRATION_BASE_PATH = '/api/v1'",
 ])
 
 assertContains('scripts/customer-portal-live-test.sh', [

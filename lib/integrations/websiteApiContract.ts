@@ -1,3 +1,4 @@
+import type { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import type { ExternalCustomerType } from '@/lib/customers/externalCustomerType'
 
 export type TenantReference = `tenant_${string}`
@@ -62,7 +63,7 @@ export type ExternalApiMeta = {
   channel?: PublicationChannel
   publication_revision?: number
   publication_updated_at?: string | null
-  contract_schema_version?: '2026-07-24.1'
+  contract_schema_version?: typeof WEBSITE_INTEGRATION_CONTRACT_VERSION
 }
 
 export type WebsiteQuoteRequest = {
@@ -154,15 +155,19 @@ export type WebsiteSwitchStatusResponse = {
 }
 
 export type WebsiteCustomerApplicationBinding = {
+  /** Canonical public offer selected from OPS public-contracts. Always top-level. */
   offer_reference: OfferReference | string
-  /** Canonical quote. Omitted only by legacy clients; OPS then freezes the published price version directly. */
-  quote_reference?: QuoteReference | string
-  annual_consumption_kwh?: number
-  price_area_code?: string
-  grid_area_code?: string
-  postal_code?: string
-  start_date?: string
+  /** Canonical OPS quote created from the same resolution. Always top-level. */
+  quote_reference: QuoteReference | string
+  /** Tenant-bound OPS energy resolution used by the quote. Always top-level. */
+  resolution_id: string
+  annual_consumption_kwh: number
+  start_date: string
   customer_type: ExternalCustomerType | 'company'
+  contract?: {
+    requested_start_mode?: 'asap' | 'specific_date' | 'move_in'
+    requested_start_date?: string
+  }
 }
 
 export type ContractsPublicationChangedWebhook = {

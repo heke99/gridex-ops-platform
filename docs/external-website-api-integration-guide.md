@@ -4,12 +4,34 @@
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
+## 0. Tenantkonfiguration: en enda API-nyckel
+
+Tenantens produktion ska endast konfigurera:
+
+```env
+GRIDEX_API_KEY=gridex_live_xxxxxxxxx
+```
+
+Följande är fasta delar av API-kontraktet och ska **inte** vara tenantens miljövariabler:
+
+```text
+API base URL: https://app.gridex.se/api/v1
+quote_reference: top-level i kundansökan
+resolution_id: top-level i kundansökan
+Website OpenAPI: https://app.gridex.se/api/v1/openapi/website-integration-v1.json
+Customer Portal OpenAPI: https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
+```
+
+API-nyckeln avgör tenant, bolag och scopes. OpenAPI används för utveckling och typgenerering, aldrig som runtime-spärr. Tenantens webb ska därför inte ha separata miljövariabler för payloadläge, company-ID, tenantreferens, tenant-ID eller OpenAPI-sökväg.
+
 ## 1. Autentisering och tenantkontext
+
+Frontend får aldrig anropa OPS direkt med API-nyckel. Tenantens server ska aldrig skicka ett fritt `company_id`; OPS härleder tenant och bolag från nyckeln.
 
 Alla anrop görs server-side med tenantens API-nyckel:
 
 ```http
-Authorization: Bearer YOUR_GRIDEX_API_TOKEN
+Authorization: Bearer ${GRIDEX_API_KEY}
 ```
 
 Verifiera nyckelns opaka tenantreferens:
@@ -223,9 +245,11 @@ Idempotency-Key: required
 ```json
 {
   "external_customer_id": "CUSTOMER-12345",
+  "offer_reference": "offer_...",
   "quote_reference": "quote_...",
   "resolution_id": "uuid",
-  "offer_reference": "offer_...",
+  "annual_consumption_kwh": 5000,
+  "start_date": "2026-09-01",
   "customer": {
     "customer_type": "private",
     "first_name": "Anna",
@@ -241,9 +265,6 @@ Idempotency-Key: required
     "move_in_date": "2026-09-01"
   },
   "contract": {
-    "offer_reference": "offer_...",
-    "quote_reference": "quote_...",
-    "resolution_id": "uuid",
     "requested_start_mode": "specific_date",
     "requested_start_date": "2026-09-01"
   },
@@ -257,7 +278,7 @@ Idempotency-Key: required
 }
 ```
 
-`offer_reference` är den enda kommersiella produktväljaren. `quote_reference` och `resolution_id` måste matcha den validerade quoten. Dubbel submit med samma idempotency key och samma request hash returnerar samma canonicala kund-, site-, mätpunkts- och avtals-ID:n.
+`offer_reference`, `quote_reference` och `resolution_id` ligger alltid på requestens top-level. `contract` innehåller endast kompletterande avtalsuppgifter. `quote_reference` och `resolution_id` måste matcha den validerade quoten. Dubbel submit med samma idempotency key och samma request hash returnerar samma canonicala kund-, site-, mätpunkts- och avtals-ID:n.
 
 OPS använder samma tenantbundna kundmatchning i alla intakekanaler. Organisationsnummer eller verifierat personnummer väger starkare än e-post. E-post ensam slår inte automatiskt ihop osäker identitet.
 
@@ -327,13 +348,13 @@ Scope: website_contracts.diagnostics
 
 Publication-event: `contracts.publication.changed`. När revisionen ändras invalidierar tenantens backend sin cache och hämtar feeden igen med ETag.
 
-OpenAPI:
+Publika OpenAPI-kontrakt:
 
 ```text
-docs/openapi/website-integration-v1.json
-docs/openapi/customer-portal-v1.json
+https://app.gridex.se/api/v1/openapi/website-integration-v1.json
+https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
 ```
 
-Publik utvecklarsida: `/developers/customer-portal-api`.
+Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
 API-svaret innehåller `contract_schema_version=2026-07-24.1` och headern `X-Gridex-Contract-Version`.

@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { normalizeExternalCustomerType } from '@/lib/customers/externalCustomerType'
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 export type PublicContractsQuery = {
   customerType: 'private' | 'business' | null
@@ -52,7 +53,7 @@ export function parsePublicContractsQuery(request: NextRequest): PublicContracts
   }
 }
 
-export const PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION = '2026-07-24.1' as const
+export const PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION = WEBSITE_INTEGRATION_CONTRACT_VERSION
 
 export type PublicationRevision = {
   revision: number

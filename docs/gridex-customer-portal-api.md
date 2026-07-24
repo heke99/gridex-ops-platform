@@ -4,6 +4,25 @@ Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
 Dokumentationsversion: `2026-07-24.1`.
 
+## Tenantkonfiguration
+
+Tenantens hemsida eller Mina sidor behöver endast en server-side hemlighet:
+
+```env
+GRIDEX_API_KEY=gridex_live_xxxxxxxxx
+```
+
+API base URL är alltid `https://app.gridex.se/api/v1`. API-nyckeln avgör tenant, `company_id` och scopes. Tenantens miljö ska inte innehålla separat tenant-ID, company-ID, quote-reference-läge eller OpenAPI-sökväg.
+
+Canonical `quote_reference`, `resolution_id` och `offer_reference` skickas alltid top-level i `POST /api/v1/website/customer-applications`. OpenAPI publiceras på:
+
+```text
+https://app.gridex.se/api/v1/openapi/website-integration-v1.json
+https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
+```
+
+OpenAPI används för utveckling/typgenerering och är inte ett runtimeberoende.
+
 ## Grundmodell
 
 Tenantens hemsida/Mina sidor äger inloggningssessionen. OPS är master för kund, kundnummer, avtal, anläggningar, fullmakter, juridiska godkännanden, dokument, status och processflöden.
@@ -22,7 +41,7 @@ Rekommenderad endpoint:
 
 ```http
 POST /api/v1/customer/portal-bundle
-Authorization: Bearer YOUR_GRIDEX_API_TOKEN
+Authorization: Bearer ${GRIDEX_API_KEY}
 Content-Type: application/json
 ```
 
@@ -112,7 +131,7 @@ Tenant ska skicka godkända fullmakter, juridiska godkännanden och dokument til
 
 ```http
 POST /api/v1/customer/sync
-Authorization: Bearer YOUR_GRIDEX_API_TOKEN
+Authorization: Bearer ${GRIDEX_API_KEY}
 Content-Type: application/json
 ```
 
@@ -223,7 +242,7 @@ Den aktiva integrationsordningen är:
 2. `POST /api/v1/website/energy-area/resolve` använder OPS tenant-skopade canonical resolver för prisområde, nätområde och nätägare. Den gamla oautentiserade `GET /api/public/energy-area` är fortsatt borttagen.
 3. `POST /api/v1/website/quote` skapar en tenantbunden quote som fryser exakt publicerad version, valt SE-område, vald områdesprisrad, förbrukning, startdatum, avgifter, moms och beräkningsantaganden.
 4. `POST /api/v1/website/quote/validate` validerar samma bindning före teckning.
-5. `POST /api/v1/website/customer-applications` konsumerar `quote_reference`, skapar eller återanvänder en canonical kund och ett kundnummer, skapar en anläggningsbunden avtalsrelation och låser vald SE-prisrad i avtalets pris-/faktureringssnapshot. Kundansökan kräver canonical `quote_reference` och samma `resolution_id`; ingen legacyfallback skapar avtal utan quote.
+5. `POST /api/v1/website/customer-applications` konsumerar `quote_reference`, skapar eller återanvänder en canonical kund och ett kundnummer, skapar en anläggningsbunden avtalsrelation och låser vald SE-prisrad i avtalets pris-/faktureringssnapshot. Kundansökan kräver top-level `offer_reference`, `quote_reference` och samma top-level `resolution_id`; `contract` innehåller endast kompletterande start-/avtalsuppgifter och ingen legacyfallback skapar avtal utan quote.
 
 Kundansökan kan även skicka aktuell leverantörsidentitet, inklusive `current_supplier_ediel_id`, när den är känd. Svaret skiljer på om ett leverantörsbytesärende kan skapas och om det faktiskt får skickas: `can_create_supplier_switch_request` kan vara `true` samtidigt som `can_dispatch_supplier_switch` är `false` tills mätpunkt, fullmakt, nuvarande leverantör och övriga readinesskrav är verifierade.
 

@@ -9,6 +9,14 @@ import {
   parseMultiValueText,
 } from '@/lib/integrations/apiClientSecrets'
 import { recommendedPermissionGroups, scopesForPermissionGroups } from '@/lib/integrations/apiClientScopes'
+import { missingIntegrationApiScopes } from '@/lib/integrations/apiAuth'
+import {
+  TENANT_WEBSITE_RECOMMENDED_SCOPES,
+  WEBSITE_APPLICATION_REFERENCE_LOCATION,
+  WEBSITE_INTEGRATION_BASE_URL,
+  WEBSITE_INTEGRATION_OPENAPI_URL,
+  WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES,
+} from '@/lib/integrations/websiteIntegrationContract'
 
 export type CreateApiClientState = {
   ok: boolean
@@ -34,6 +42,10 @@ function nullableDate(formData: FormData, key: string): string | null {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
   return date.toISOString()
+}
+
+function missingRecommendedTenantWebsiteScopes(scopes: string[]): string[] {
+  return missingIntegrationApiScopes(scopes, TENANT_WEBSITE_RECOMMENDED_SCOPES)
 }
 
 
@@ -104,6 +116,7 @@ export async function createIntegrationApiClientAction(
     const directScopes = normalizeIntegrationApiScopes(formData.getAll('scopes'))
     const scopes = Array.from(new Set([...groupedScopes, ...directScopes]))
     if (scopes.length === 0) return { ok: false, message: 'Välj minst en behörighetsgrupp.' }
+    const missingRecommendedScopes = missingRecommendedTenantWebsiteScopes(scopes)
 
     const allowedOrigins = parseMultiValueText(formData.get('allowedOrigins'))
     const allowedIps = parseMultiValueText(formData.get('allowedIps'))
@@ -142,6 +155,11 @@ export async function createIntegrationApiClientAction(
           secret_hash: tokenData.secretHash,
           scopes,
           permission_groups: permissionGroups,
+          profile_key: 'tenant_website',
+          launch_ready: missingRecommendedScopes.length === 0,
+          launch_blockers: missingRecommendedScopes.length === 0
+            ? []
+            : [{ code: 'missing_recommended_scope', scopes: missingRecommendedScopes }],
           purpose_label: frontendApp,
           allowed_origins: allowedOrigins,
           allowed_ips: allowedIps,
@@ -156,7 +174,13 @@ export async function createIntegrationApiClientAction(
             permission_groups: permissionGroups,
             token_display: 'shown_once_on_create',
             created_from: 'superadmin_api_client_ui',
-            recommended_header: 'Authorization: Bearer <token>',
+            recommended_header: 'Authorization: Bearer <GRIDEX_API_KEY>',
+            required_environment_variables: WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES,
+            api_base_url: WEBSITE_INTEGRATION_BASE_URL,
+            openapi_url: WEBSITE_INTEGRATION_OPENAPI_URL,
+            application_reference_location: WEBSITE_APPLICATION_REFERENCE_LOCATION,
+            tenant_identity_source: 'api_key',
+            missing_recommended_scopes: missingRecommendedScopes,
           },
         })
         .select('id')
@@ -285,6 +309,7 @@ export async function updateIntegrationApiClientPermissionsAction(formData: Form
   const groupedScopes = scopesForPermissionGroups(permissionGroups)
   const directScopes = normalizeIntegrationApiScopes(formData.getAll('scopes'))
   const scopes = Array.from(new Set([...groupedScopes, ...directScopes]))
+  const missingRecommendedScopes = missingRecommendedTenantWebsiteScopes(scopes)
   const allowedOrigins = parseMultiValueText(formData.get('allowedOrigins'))
 
   if (scopes.length === 0) throw new Error('Välj minst en behörighetsgrupp.')
@@ -307,8 +332,24 @@ export async function updateIntegrationApiClientPermissionsAction(formData: Form
     .update({
       scopes,
       permission_groups: permissionGroups,
+      profile_key: 'tenant_website',
+      launch_ready: missingRecommendedScopes.length === 0,
+      launch_blockers: missingRecommendedScopes.length === 0
+        ? []
+        : [{ code: 'missing_recommended_scope', scopes: missingRecommendedScopes }],
       allowed_origins: allowedOrigins,
-      metadata: { ...metadata, permission_groups: permissionGroups, allowed_origins: allowedOrigins, updated_from: 'superadmin_api_permission_ui' },
+      metadata: {
+        ...metadata,
+        permission_groups: permissionGroups,
+        allowed_origins: allowedOrigins,
+        required_environment_variables: WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES,
+        api_base_url: WEBSITE_INTEGRATION_BASE_URL,
+        openapi_url: WEBSITE_INTEGRATION_OPENAPI_URL,
+        application_reference_location: WEBSITE_APPLICATION_REFERENCE_LOCATION,
+        tenant_identity_source: 'api_key',
+        missing_recommended_scopes: missingRecommendedScopes,
+        updated_from: 'superadmin_api_permission_ui',
+      },
       updated_at: new Date().toISOString(),
     })
     .eq('id', clientId)

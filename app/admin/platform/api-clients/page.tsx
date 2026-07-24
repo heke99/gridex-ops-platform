@@ -4,6 +4,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import CreateApiClientForm from './CreateApiClientForm'
 import { deleteIntegrationApiClientAction, setIntegrationApiClientStatusAction, updateIntegrationApiClientPermissionsAction } from './actions'
 import { INTEGRATION_API_PERMISSION_GROUPS, permissionGroupLabelsForScopes } from '@/lib/integrations/apiClientScopes'
+import { WEBSITE_INTEGRATION_BASE_URL, WEBSITE_INTEGRATION_OPENAPI_URL } from '@/lib/integrations/websiteIntegrationContract'
 
 export const dynamic = 'force-dynamic'
 
@@ -149,7 +150,7 @@ export default async function PlatformApiClientsPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Platform · API</p>
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">API-klienter för Mina sidor och webhooks</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              Skapa server-side API-klienter för Gridex hemsida, externa hemsidor, kundportaler och partners. Här styrs bolagskoppling, behörigheter, domäner, rate limits, webhook endpoints och nyckelrotation.
+              Skapa en enda server-side API-nyckel per tenanthemsida, exempelvis Gridex hemsida. Nyckeln avgör bolag och behörigheter i OPS; tenantens produktion ska endast konfigurera GRIDEX_API_KEY.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -188,22 +189,28 @@ export default async function PlatformApiClientsPage() {
         <aside className="space-y-5">
           <div className="rounded-[32px] border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-950">
             <h2 className="text-lg font-semibold text-slate-950">Viktigt för externa hemsidor</h2>
-            <p className="mt-3">API-token ska ligga i hemsidans servermiljö, aldrig i browsern. Bolag väljs via API-token och kunden väljs via external_customer_id.</p>
+            <p className="mt-3">API-token ska ligga i hemsidans servermiljö, aldrig i browsern. GRIDEX_API_KEY är den enda obligatoriska tenantvariabeln. Bolag, tenantreferens och scopes hämtas från nyckeln; customer/application-data skickas per request.</p>
             <code className="mt-4 block rounded-2xl bg-slate-950 p-4 text-xs text-amber-100">
-              Authorization: Bearer {'<GRIDEX_API_KEY>'}
+              GRIDEX_API_KEY={'<token>'}{'\n'}Authorization: Bearer {'<GRIDEX_API_KEY>'}{'\n'}Base URL: {WEBSITE_INTEGRATION_BASE_URL}
             </code>
           </div>
 
           <div className="rounded-[32px] border border-slate-200 bg-white p-6 text-sm leading-6 text-slate-700">
             <h2 className="text-lg font-semibold text-slate-950">Website endpoints</h2>
             <div className="mt-4 space-y-2 font-mono text-xs">
+              <div>GET /api/v1/integration/context</div>
+              <div>GET /api/v1/website/public-contracts</div>
+              <div>POST /api/v1/website/energy-area/resolve</div>
+              <div>POST /api/v1/website/quote</div>
+              <div>POST /api/v1/website/quote/validate</div>
               <div>POST /api/v1/website/customer-applications</div>
               <div>POST /api/v1/customer-portal/sync</div>
               <div>GET /api/v1/customer/contracts</div>
               <div>GET /api/v1/customer/invoices</div>
               <div>GET /api/v1/customer/sites</div>
               <div>GET /api/v1/customer/metering-values</div>
-              <div>POST /api/internal/webhooks/dispatch</div>
+              <div>GET /api/v1/openapi/website-integration-v1.json</div>
+              <div className="pt-2 font-sans text-slate-500">{WEBSITE_INTEGRATION_OPENAPI_URL}</div>
             </div>
           </div>
         </aside>

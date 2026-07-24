@@ -209,7 +209,9 @@
     "sync:canonical-fixed-area-flow": "bash scripts/sync-canonical-fixed-area-flow.sh",
     "gridex:canonical-market-flow-regression": "node scripts/gridex-canonical-market-resolution-quote-billing-regression.cjs",
     "test:canonical-market-flow": "vitest run __tests__/elpriset-just-nu-client.test.ts __tests__/spot-interval-coverage.test.ts __tests__/spot-settlement-separation.test.ts __tests__/canonical-fixed-area-flow.test.ts __tests__/offer-quote-invoice-fee.test.ts __tests__/idempotency.test.ts",
-    "verify:canonical-market-flow": "npm run db:migrations:check && npm run gridex:canonical-market-flow-regression && npm run gridex:canonical-fixed-area-flow-regression && npm run gridex:energy-resolver-contract-regression && npm run gridex:canonical-onboarding-regression && npm run gridex:website-application-idempotency-hardening-regression && npm run gridex:pricing-flow-regression && npm run gridex:billing-readiness-regression && npm run api:contract && npm run typecheck && npm run test:canonical-market-flow && npm run build"
+    "verify:canonical-market-flow": "npm run db:migrations:check && npm run gridex:canonical-market-flow-regression && npm run gridex:canonical-fixed-area-flow-regression && npm run gridex:energy-resolver-contract-regression && npm run gridex:canonical-onboarding-regression && npm run gridex:website-application-idempotency-hardening-regression && npm run gridex:pricing-flow-regression && npm run gridex:billing-readiness-regression && npm run api:contract && npm run typecheck && npm run test:canonical-market-flow && npm run build",
+    "gridex:single-api-key-integration-regression": "node scripts/gridex-single-api-key-tenant-integration-regression.cjs",
+    "verify:single-api-key-integration": "npm run db:migrations:check && npm run api:contract && npm run gridex:single-api-key-integration-regression && npm run gridex:energy-resolver-contract-regression && npm run gridex:website-application-idempotency-hardening-regression"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

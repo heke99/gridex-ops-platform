@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { PUBLIC_API_ENDPOINT_ROWS } from "@/lib/api/publicRouteRegistry";
+import {
+  WEBSITE_INTEGRATION_BASE_URL,
+  WEBSITE_INTEGRATION_CONTRACT_VERSION,
+  WEBSITE_INTEGRATION_OPENAPI_URL,
+  CUSTOMER_PORTAL_OPENAPI_URL,
+} from "@/lib/integrations/websiteIntegrationContract";
 
 export const metadata: Metadata = {
   title: "Website API, Mina sidor-koppling & Webhooks | Gridex Developers",
@@ -12,8 +18,10 @@ export const metadata: Metadata = {
 // Safe to serve from the CDN with ISR (Group A).
 export const revalidate = 3600;
 
-const baseUrl = "https://app.gridex.se";
-const documentationVersion = "2026-07-24.1";
+const apiBaseUrl = WEBSITE_INTEGRATION_BASE_URL;
+const documentationVersion = WEBSITE_INTEGRATION_CONTRACT_VERSION;
+const websiteOpenApiUrl = WEBSITE_INTEGRATION_OPENAPI_URL;
+const customerPortalOpenApiUrl = CUSTOMER_PORTAL_OPENAPI_URL;
 
 const permissions = [
   [
@@ -35,6 +43,31 @@ const permissions = [
     "Läsa avtal på hemsidan",
     "website_contracts.read",
     "Hämta publicerade elavtal för rätt bolag.",
+  ],
+  [
+    "Lösa elområde",
+    "website_energy_area.resolve",
+    "Skapa tenantbunden canonical resolution från adress och anläggningsuppgifter.",
+  ],
+  [
+    "Skapa quote",
+    "website_quotes.write",
+    "Skapa OPS-ägd quote från offer_reference och resolution_id.",
+  ],
+  [
+    "Validera quote",
+    "website_quotes.validate",
+    "Verifiera quote, resolution, expiry och immutable prissnapshot före teckning.",
+  ],
+  [
+    "Läsa juridik",
+    "website_legal.read",
+    "Hämta OPS-versionerade juridiska dokument och acceptanskrav.",
+  ],
+  [
+    "Läsa bytesstatus",
+    "website_switch_status.read",
+    "Läsa status för kundansökan och leverantörsbytesprocess.",
   ],
   [
     "Skicka kundansökningar",
@@ -119,27 +152,39 @@ const plannedWebhookEvents = [
   "invoice.paid",
 ];
 
-const authExample = `Authorization: Bearer YOUR_GRIDEX_API_TOKEN
+const tenantSetupExample = `# .env / Vercel – enda obligatoriska tenantvariabeln
+GRIDEX_API_KEY=gridex_live_xxxxxxxxx`;
+
+const authExample = `Authorization: Bearer $GRIDEX_API_KEY
 Origin: https://www.exempel.se
 Content-Type: application/json`;
 
-const tenantContextExample = `curl -X GET "${baseUrl}/api/v1/integration/context" \
-  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \
+const tenantContextExample = `curl -X GET "${apiBaseUrl}/integration/context" \
+  -H "Authorization: Bearer $GRIDEX_API_KEY" \
   -H "Accept: application/json"
 
 {
   "data": {
     "tenant_reference": "tenant_0123456789abcdef0123456789abcdef0123",
-    "api_version": "v1"
-  },
-  "meta": {
-    "tenant_reference": "tenant_0123456789abcdef0123456789abcdef0123",
-    "api_version": "v1"
+    "api_version": "v1",
+    "contract_version": "${documentationVersion}",
+    "configuration": {
+      "required_environment_variables": ["GRIDEX_API_KEY"],
+      "api_base_url": "${apiBaseUrl}",
+      "application_reference_location": "top_level",
+      "tenant_identity_from_api_key": true,
+      "tenant_id_environment_required": false,
+      "company_id_environment_required": false
+    },
+    "capabilities": {
+      "website_checkout_ready": true,
+      "missing_website_checkout_scopes": []
+    }
   }
-}`;
+}`
 
-const publicContractsExample = `curl -X GET "${baseUrl}/api/v1/website/public-contracts?customer_type=private" \\
-  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
+const publicContractsExample = `curl -X GET "${apiBaseUrl}/website/public-contracts?customer_type=private" \\
+  -H "Authorization: Bearer $GRIDEX_API_KEY" \\
   -H "Accept: application/json"`;
 
 const publicContractsResponse = `{
@@ -247,15 +292,15 @@ renderPriceSummary(quote.data)
 // market_reference är indikativ provenance för rörligt pris.
 // Den är aldrig slutlig settlementdata för fakturering.`;
 
-const publicContractsDiagnosticsExample = `curl -X GET "${baseUrl}/api/v1/website/public-contracts/diagnostics?customer_type=private" \\
-  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
+const publicContractsDiagnosticsExample = `curl -X GET "${apiBaseUrl}/website/public-contracts/diagnostics?customer_type=private" \\
+  -H "Authorization: Bearer $GRIDEX_API_KEY" \\
   -H "Accept: application/json"
 
 # Svaret innehåller visible/hidden och blockers per public_contract_offer.
 # Använd detta server-side vid publiceringsfelsökning; visa inte intern diagnostik i kundens UI.`;
 
-const portfolioPricesExample = `curl -X GET "${baseUrl}/api/v1/website/portfolio-prices?offer_reference=offer_...&price_area=SE3" \\
-  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
+const portfolioPricesExample = `curl -X GET "${apiBaseUrl}/website/portfolio-prices?offer_reference=offer_...&price_area=SE3" \\
+  -H "Authorization: Bearer $GRIDEX_API_KEY" \\
   -H "Accept: application/json"
 
 # data.method beskriver den publika avtalsmetoden utan interna ID:n.
@@ -263,13 +308,18 @@ const portfolioPricesExample = `curl -X GET "${baseUrl}/api/v1/website/portfolio
 # Endpointen returnerar inga marknadsindikationer till tenantens kalkylator.
 # data.final_billing_rule är alltid locked_settlement_only.`;
 
-const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-applications" \\
-  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -H "Idempotency-Key: website-order-12345" \\
+const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applications" \
+  -H "Authorization: Bearer $GRIDEX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: website-order-12345" \
   -d '{
     "external_customer_id": "CUSTOMER-12345",
     "source": "exempel.se",
+    "offer_reference": "offer_...",
+    "quote_reference": "quote_...",
+    "resolution_id": "uuid",
+    "annual_consumption_kwh": 5000,
+    "start_date": "2026-09-01",
     "customer": {
       "customer_type": "private",
       "first_name": "Anna",
@@ -283,18 +333,15 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
       "street": "Storgatan 1",
       "postal_code": "21122",
       "city": "Malmö",
-      "price_area_code": "SE4",
-      "grid_area_code": "SE4-GRID-001",
       "annual_consumption_kwh": 5000,
-      "move_in_date": "2026-07-01",
+      "move_in_date": "2026-09-01",
       "current_supplier_name": "Nuvarande Energi AB",
       "current_supplier_org_number": "5560000000",
       "current_supplier_ediel_id": "12345"
     },
     "contract": {
-      "offer_reference": "offer_...",
       "requested_start_mode": "specific_date",
-      "requested_start_date": "2026-07-01"
+      "requested_start_date": "2026-09-01"
     },
     "customer_portal_user_id": "<gridex-web-supabase-session-user-id>",
     "auth_user_id": "<gridex-web-supabase-session-user-id>",
@@ -311,12 +358,15 @@ const applicationExample = `curl -X POST "${baseUrl}/api/v1/website/customer-app
       "signerName": "Anna Andersson",
       "signerIdentityNumber": "YYYYMMDDXXXX",
       "method": "website_acceptance",
-      "acceptedAt": "2026-06-26T09:00:00Z",
+      "acceptedAt": "2026-07-24T09:00:00Z",
       "textVersionId": "legal_poa_uuid",
       "ipAddress": "203.0.113.10",
       "userAgent": "Mozilla/5.0 ..."
     }
-  }'`;
+  }'
+
+# offer_reference, quote_reference och resolution_id ligger alltid top-level.
+# Inga extra integrationslägen eller OpenAPI-fält behöver konfigureras i ENV.`
 
 // Identity aliases: the customer identity is always stored in the canonical
 // personal_number / org_number columns. Accepted private aliases:
@@ -441,11 +491,11 @@ const portalBundlePayload = `{
   "external_customer_id": "GRIDEX-WEB-20260616-8191257d-88d3-4929-ab02-1d3ca5ed986f"
 }`;
 
-const customerFetchExample = `fetch("${baseUrl}/api/v1/customer/portal-bundle", {
+const customerFetchExample = `fetch("${apiBaseUrl}/customer/portal-bundle", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    Authorization: "Bearer YOUR_GRIDEX_API_TOKEN"
+    Authorization: "Bearer $GRIDEX_API_KEY"
   },
   body: JSON.stringify({
     email: session.user.email,
@@ -455,9 +505,9 @@ const customerFetchExample = `fetch("${baseUrl}/api/v1/customer/portal-bundle", 
   cache: "no-store"
 })`;
 
-const customerFetchHeaderExample = `fetch("${baseUrl}/api/v1/customer/portal-bundle", {
+const customerFetchHeaderExample = `fetch("${apiBaseUrl}/customer/portal-bundle", {
   headers: {
-    Authorization: "Bearer YOUR_GRIDEX_API_TOKEN",
+    Authorization: "Bearer $GRIDEX_API_KEY",
     "x-gridex-customer-portal-user-id": "<gridex-web-supabase-session-user-id>",
     "x-gridex-auth-user-id": "<gridex-web-supabase-session-user-id>",
     "x-gridex-external-customer-id": "CUSTOMER-12345",
@@ -466,7 +516,7 @@ const customerFetchHeaderExample = `fetch("${baseUrl}/api/v1/customer/portal-bun
   cache: "no-store"
 })`;
 
-const authLinkingRequiredHeaders = `Authorization: Bearer YOUR_GRIDEX_API_TOKEN
+const authLinkingRequiredHeaders = `Authorization: Bearer $GRIDEX_API_KEY
 x-gridex-customer-portal-user-id: <gridex-web-supabase-session-user-id>
 x-gridex-auth-user-id: <gridex-web-supabase-session-user-id>
 x-gridex-external-customer-id: <external_customer_id>
@@ -492,8 +542,8 @@ const authLinkingChecklist = `Tenantens backend ska:
 5. aldrig skicka company_id eller customer_id från frontend
 6. använda POST /api/v1/customer/portal-bundle som huvudendpoint för Mina sidor`;
 
-const customerSyncExample = `curl -X POST "${baseUrl}/api/v1/customer/sync" \
-  -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \
+const customerSyncExample = `curl -X POST "${apiBaseUrl}/customer/sync" \
+  -H "Authorization: Bearer $GRIDEX_API_KEY" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: tenant-sync-12345" \
   -d '{
@@ -642,9 +692,10 @@ export default function CustomerPortalApiDocsPage() {
           </h1>
           <p className="mt-5 max-w-3xl text-base leading-8 text-slate-700">
             Den här guiden är den publika online-dokumentationen för tenants och
-            webbteam. Den visar hur en hemsida hämtar publicerade avtal, skickar
-            kundansökningar, kopplar Mina sidor mot webbens Supabase-inloggning
-            och tar emot händelser via webhook.
+            webbteam. En tenant behöver endast en server-side
+            <code>GRIDEX_API_KEY</code>. API-nyckeln identifierar tenant, bolag
+            och scopes; bas-URL, payloadplacering och OpenAPI-version är fasta
+            delar av kontraktet.
           </p>
           <p className="mt-3 text-sm font-semibold text-slate-600">
             Dokumentationsversion: <code>{documentationVersion}</code>
@@ -652,10 +703,10 @@ export default function CustomerPortalApiDocsPage() {
           <div className="mt-6 grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-xs font-bold uppercase text-slate-500">
-                Base URL
+                API Base URL
               </div>
-              <div className="mt-2 font-mono text-sm text-slate-950">
-                {baseUrl}
+              <div className="mt-2 break-all font-mono text-sm text-slate-950">
+                {apiBaseUrl}
               </div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -679,9 +730,13 @@ export default function CustomerPortalApiDocsPage() {
 
         <Section title="1. Autentisering och säkerhet">
           <p>
-            API-nyckeln identifierar vilket bolag integrationen tillhör. Lägg
-            nyckeln i servermiljö, aldrig i publik frontend.
+            Tenantens enda obligatoriska miljövariabel är
+            <code>GRIDEX_API_KEY</code>. API-nyckeln identifierar tenant, bolag
+            och behörigheter. Lägg nyckeln i servermiljö, aldrig i publik
+            frontend. Lägg inte in tenant-ID, company-ID, separat payloadläge,
+            separat tenantreferens eller OpenAPI-sökväg som miljövariabler.
           </p>
+          <CodeBlock>{tenantSetupExample}</CodeBlock>
           <CodeBlock>{authExample}</CodeBlock>
           <p>
             Verifiera alltid nyckelns opaka tenantidentitet via
@@ -723,9 +778,9 @@ export default function CustomerPortalApiDocsPage() {
             </table>
           </div>
           <p>
-            Standardpaketet för hemsida/Mina sidor bör innehålla alla
-            rekommenderade behörigheter. Kundroutes filtrerar alltid per bolag
-            från API-nyckeln.
+            OPS provisionerar standardpaketet för hemsida/Mina sidor på samma
+            API-nyckel. Tenantens webb ska inte konfigurera scopes som
+            miljövariabler. Kundroutes filtrerar alltid per bolag från nyckeln.
           </p>
           <ul className="list-disc pl-5">
             {futurePermissions.map((row) => (
@@ -861,12 +916,16 @@ export default function CustomerPortalApiDocsPage() {
 
         <Section title="5. Skicka kundansökan">
           <p>
-            Kundansökan ska innehålla valt <code>offer_reference</code>,
-            <code>annual_consumption_kwh</code>, tenantens lösta prisområde, eventuellt elnätsområde,
-            postnummer och startdatum samt de dokumenterade juridiska godkännandena och, när kunden redan är
-            inloggad på hemsidan, webbens Supabase <code>session.user.id</code>{" "}
-            som både <code>customer_portal_user_id</code> och{" "}
-            <code>auth_user_id</code>. OPS skapar kund, kundnummer, portal
+            Kundansökan ska innehålla canonical top-level
+            <code>offer_reference</code>, <code>quote_reference</code> och
+            <code>resolution_id</code> från samma OPS-flöde, tillsammans med
+            <code>annual_consumption_kwh</code>, startdatum, kund, adress och de
+            dokumenterade juridiska godkännandena. Tenantens webb skickar inte
+            ett eget prisområde som sanning och lägger inte referenserna under
+            <code>contract</code>. När kunden redan är inloggad skickas webbens
+            Supabase <code>session.user.id</code> som både
+            <code>customer_portal_user_id</code> och <code>auth_user_id</code>.
+            OPS skapar kund, kundnummer, portal
             identity, prissnapshot och ett först väntande avtal. Därefter
             verifierar en atomisk serverfunktion de exakta juridikversionerna
             och sätter <code>status=signed</code>, <code>signed_at</code>,
@@ -1184,9 +1243,15 @@ export default function CustomerPortalApiDocsPage() {
             OPS hanterar retries, leveranshistorik och dead-letter-status.
           </p>
           <p>
-            Maskinläsbart kontrakt finns i
-            <code>docs/openapi/website-integration-v1.json</code>. Runtime,
-            OpenAPI, scopes, exempel och regressionstest uppdateras tillsammans.
+            Maskinläsbara kontrakt publiceras stabilt på
+            <a className="ml-1 font-mono text-emerald-700 underline" href={websiteOpenApiUrl}>
+              {websiteOpenApiUrl}
+            </a>{" "}
+            och
+            <a className="ml-1 font-mono text-emerald-700 underline" href={customerPortalOpenApiUrl}>
+              {customerPortalOpenApiUrl}
+            </a>. OpenAPI används för utveckling och typgenerering, aldrig som
+            runtime-spärr eller tenantkonfiguration.
           </p>
         </Section>
       </div>

@@ -148,7 +148,7 @@ export const CUSTOMER_PORTAL_SCOPES = [
   'website_quotes.validate',
   'website_energy_area.resolve',
   'website_switch_status.read',
-  'api_contracts.read',
+  'website_contracts.read',
   'customer_portal.read',
   'customer_portal.write',
 

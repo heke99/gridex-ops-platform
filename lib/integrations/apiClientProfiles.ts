@@ -9,6 +9,7 @@
 export type ApiClientProfileKey =
   | 'website_read_only'
   | 'website_signup'
+  | 'tenant_website'
   | 'customer_portal'
   | 'events_webhooks'
   | 'internal_system_integration'
@@ -32,13 +33,41 @@ export const API_CLIENT_PROFILES: Record<ApiClientProfileKey, ApiClientProfile> 
   },
   website_signup: {
     key: 'website_signup',
-    label: 'Hemsida (kundintag)',
+    label: 'Hemsida (canonical teckning)',
     defaultScopes: [
+      'integration_context.read',
       'website_contracts.read',
+      'website_energy_area.resolve',
+      'website_quotes.write',
+      'website_quotes.validate',
       'website_legal.read',
       'website_applications.write',
+      'website_switch_status.read',
       'website_events.write',
       'events.read',
+    ],
+    requireAllowedOrigins: true,
+  },
+  tenant_website: {
+    key: 'tenant_website',
+    label: 'Tenanthemsida + Mina sidor (en API-nyckel)',
+    defaultScopes: [
+      'integration_context.read',
+      'website_contracts.read',
+      'website_energy_area.resolve',
+      'website_quotes.write',
+      'website_quotes.validate',
+      'website_legal.read',
+      'website_applications.write',
+      'website_switch_status.read',
+      'customer_portal.read',
+      'customer_portal.write',
+      'website_events.write',
+      'events.read',
+      'customer_documents.read',
+      'customer_documents.write',
+      'customer_notifications.read',
+      'customer_notifications.write',
       'customer_contact.write',
       'customer_facility_data.write',
       'customer_power_of_attorney.write',

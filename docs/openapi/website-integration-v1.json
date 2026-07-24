@@ -554,7 +554,7 @@
           "Customer applications"
         ],
         "summary": "Create a customer application bound to a published offer",
-        "description": "Scope: website_applications.write. Idempotency-Key is required. One canonical application binds one tenant customer identity, one site and one selected published offer. quote_reference is recommended and validated/consumed when present; legacy omission remains temporarily backwards compatible. OPS creates or reuses the canonical customer/customer_number, freezes the selected SE-area price, creates the site/contract/billing snapshot, queues customer communication and starts data-request or supplier-switch automation when readiness allows.",
+        "description": "Scope: website_applications.write. Idempotency-Key is required. One canonical application binds one tenant customer identity, one site and one selected published offer. top-level quote_reference and top-level resolution_id are required and validated; contract contains no alternate reference-placement mode. OPS creates or reuses the canonical customer/customer_number, freezes the selected SE-area price, creates the site/contract/billing snapshot, queues customer communication and starts data-request or supplier-switch automation when readiness allows.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -813,6 +813,76 @@
           }
         }
       }
+    },
+    "/api/v1/openapi/website-integration-v1.json": {
+      "get": {
+        "summary": "Hämta Website Integration OpenAPI",
+        "description": "Publik dokumentationsendpoint. Ingen API-nyckel krävs och endpointen används endast för utveckling, typgenerering och kontraktskontroll — aldrig som runtime-konfiguration.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "const": "2026-07-24.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Oförändrad ETag"
+          }
+        }
+      }
+    },
+    "/api/v1/openapi/customer-portal-v1.json": {
+      "get": {
+        "summary": "Hämta Customer Portal OpenAPI",
+        "description": "Publik dokumentationsendpoint. Ingen API-nyckel krävs och endpointen används endast för utveckling, typgenerering och kontraktskontroll — aldrig som runtime-konfiguration.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "const": "2026-07-24.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Oförändrad ETag"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -930,7 +1000,10 @@
           "tenant_reference",
           "api_client_reference",
           "api_version",
-          "authoritative_identity"
+          "authoritative_identity",
+          "contract_version",
+          "configuration",
+          "capabilities"
         ],
         "properties": {
           "tenant_reference": {
@@ -944,6 +1017,130 @@
           },
           "authoritative_identity": {
             "const": "api_key"
+          },
+          "contract_version": {
+            "const": "2026-07-24.1"
+          },
+          "configuration": {
+            "type": "object",
+            "required": [
+              "required_environment_variables",
+              "api_base_url",
+              "authentication",
+              "openapi_url",
+              "application_reference_location",
+              "tenant_id_environment_required",
+              "company_id_environment_required"
+            ],
+            "properties": {
+              "required_environment_variables": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "const": "GRIDEX_API_KEY"
+                  }
+                ],
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "api_base_url": {
+                "const": "https://app.gridex.se/api/v1"
+              },
+              "authentication": {
+                "type": "object",
+                "required": [
+                  "header",
+                  "scheme",
+                  "server_side_only"
+                ],
+                "properties": {
+                  "header": {
+                    "const": "Authorization"
+                  },
+                  "scheme": {
+                    "const": "Bearer"
+                  },
+                  "server_side_only": {
+                    "const": true
+                  }
+                }
+              },
+              "openapi_url": {
+                "const": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json"
+              },
+              "customer_portal_openapi_url": {
+                "const": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json"
+              },
+              "application_reference_location": {
+                "const": "top_level"
+              },
+              "tenant_id_environment_required": {
+                "const": false
+              },
+              "company_id_environment_required": {
+                "const": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "capabilities": {
+            "type": "object",
+            "required": [
+              "website_checkout_ready",
+              "customer_portal_ready",
+              "complete_tenant_website_ready",
+              "missing_website_scopes",
+              "missing_customer_portal_scopes",
+              "missing_recommended_scopes"
+            ],
+            "properties": {
+              "website_checkout_ready": {
+                "type": "boolean"
+              },
+              "customer_portal_ready": {
+                "type": "boolean"
+              },
+              "complete_tenant_website_ready": {
+                "type": "boolean"
+              },
+              "required_website_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "missing_website_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "required_customer_portal_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "missing_customer_portal_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "recommended_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "missing_recommended_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
           }
         }
       },
@@ -1298,11 +1495,12 @@
             "description": "Tenant-stable external customer identity."
           },
           "offer_reference": {
-            "type": "string"
+            "type": "string",
+            "description": "Canonical opak offer_reference. Måste skickas på top-level."
           },
           "quote_reference": {
             "type": "string",
-            "description": "Obligatorisk canonical quote från OPS. Quote och resolution valideras atomiskt före kundavtal."
+            "description": "Obligatorisk canonical OPS-quote. Fältet ligger alltid på top-level; inget konfigurerbart referensplaceringsläge finns eller behövs."
           },
           "annual_consumption_kwh": {
             "type": "number",
@@ -1418,7 +1616,24 @@
           "resolution_id": {
             "type": "string",
             "format": "uuid",
-            "description": "Samma tenantbundna OPS-resolution som användes när quote skapades."
+            "description": "Samma tenantbundna OPS-resolution som användes när quote skapades. Fältet ligger alltid på top-level."
+          },
+          "contract": {
+            "type": "object",
+            "description": "Kompletterande start- och avtalsuppgifter. Lägg inte offer_reference, quote_reference eller resolution_id här.",
+            "properties": {
+              "requested_start_mode": {
+                "enum": [
+                  "earliest_possible",
+                  "specific_date"
+                ]
+              },
+              "requested_start_date": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "additionalProperties": true
           }
         },
         "additionalProperties": true,
@@ -1437,7 +1652,9 @@
               }
             ]
           }
-        ]
+        ],
+        "description": "Canonical kundansökan. offer_reference, quote_reference och resolution_id skickas exakt en gång på top-level. Ingen tenantkonfiguration eller quote-reference-mode används.",
+        "x-canonical-reference-location": "top_level"
       },
       "DiagnosticReadiness": {
         "type": "object",
@@ -2635,5 +2852,18 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-24.1"
+  "x-contract-schema-version": "2026-07-24.1",
+  "x-gridex-tenant-setup": {
+    "required_environment_variables": [
+      "GRIDEX_API_KEY"
+    ],
+    "api_base_url": "https://app.gridex.se/api/v1",
+    "authentication": "Authorization: Bearer <GRIDEX_API_KEY>",
+    "tenant_identity_source": "api_key",
+    "tenant_id_environment_required": false,
+    "company_id_environment_required": false,
+    "application_reference_location": "top_level",
+    "website_openapi_url": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json",
+    "customer_portal_openapi_url": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json"
+  }
 }

@@ -132,7 +132,7 @@ Alla tillämpliga komponenter finns i `pricing.calculation_components` och `pric
 POST /api/v1/website/customer-applications
 ```
 
-Kundansökan måste skicka exakt `offer_reference` från public-contracts. Legacyidentifierare utan `offer_reference` ger `422 offer_reference_required`; motstridiga identifierare ger `422 offer_reference_mismatch`.
+Kundansökan måste skicka exakt top-level `offer_reference`, `quote_reference` och `resolution_id` från samma canonicala OPS-flöde. `contract` innehåller endast kompletterande start-/avtalsuppgifter. Legacyidentifierare utan `offer_reference` ger `422 offer_reference_required`; motstridiga identifierare ger `422 offer_reference_mismatch`.
 
 Avtalet skapas först som `pending_signature`. När exakt fem offer-bundna juridiska accepter har sparats kör OPS en atomisk serverfunktion som sätter `status = signed`, serverns `signed_at`, permanent `withdrawal_deadline_at`, `public_contract_offer_id`, `offer_reference`, juridiksnapshot och signaturhash. Klientens egna signeringstid används inte som juridisk avtalstid.
 
@@ -142,26 +142,30 @@ Minsta rekommenderade payload:
 {
   "external_customer_id": "WEB-20260612-0001",
   "source": "elbolagets-hemsida.se",
+  "offer_reference": "offer_opaque_reference",
+  "quote_reference": "quote_opaque_reference",
+  "resolution_id": "resolution_uuid",
+  "annual_consumption_kwh": 5000,
+  "start_date": "2026-07-01",
   "customer": {
-    "type": "consumer",
+    "customer_type": "private",
     "first_name": "Sara",
     "last_name": "Karlsson",
-    "personal_identity_number": "19900101-1234",
+    "personal_number": "199001011234",
     "email": "sara@example.se",
     "phone": "+46700000000"
   },
   "site": {
-    "address": "Exempelgatan 1",
+    "street": "Exempelgatan 1",
     "postal_code": "11434",
     "city": "Stockholm",
     "move_in_date": "2026-07-01",
     "facility_id": null,
-    "metering_point_id": null,
-    "price_area": "SE3"
+    "metering_point_id": null
   },
   "contract": {
-    "offer_reference": "offer_opaque_reference",
-    "requested_start_date": "asap"
+    "requested_start_mode": "specific_date",
+    "requested_start_date": "2026-07-01"
   },
   "consents": {
     "terms": true,

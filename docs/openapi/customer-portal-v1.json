@@ -293,10 +293,10 @@
         }
       }
     },
-    "/api/v1/customer/invoices/{id}": {
+    "/api/v1/customer/invoices": {
       "get": {
-        "operationId": "getApiV1CustomerInvoicesId}",
-        "summary": "Hämta en tenant- och kundbunden faktura.",
+        "operationId": "getApiV1CustomerInvoices",
+        "summary": "Hämta kundens fakturor.",
         "security": [
           {
             "bearerAuth": [
@@ -311,15 +311,6 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/RequestId"
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
           },
           {
             "$ref": "#/components/parameters/ExternalCustomerId"
@@ -366,10 +357,10 @@
         }
       }
     },
-    "/api/v1/customer/invoices": {
+    "/api/v1/customer/invoices/{id}": {
       "get": {
-        "operationId": "getApiV1CustomerInvoices",
-        "summary": "Hämta kundens fakturor.",
+        "operationId": "getApiV1CustomerInvoicesId}",
+        "summary": "Hämta en tenant- och kundbunden faktura.",
         "security": [
           {
             "bearerAuth": [
@@ -384,6 +375,15 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "$ref": "#/components/parameters/ExternalCustomerId"
@@ -700,6 +700,70 @@
         }
       }
     },
+    "/api/v1/customer/notifications": {
+      "get": {
+        "operationId": "getApiV1CustomerNotifications",
+        "summary": "Hämta kundnotiser.",
+        "security": [
+          {
+            "bearerAuth": [
+              "customer_notifications.read"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "customer_notifications.read"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ExternalCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerNumber"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerEmail"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckat svar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
     "/api/v1/customer/notifications/read": {
       "post": {
         "operationId": "postApiV1CustomerNotificationsRead",
@@ -743,70 +807,6 @@
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": "Lyckat svar.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "422": {
-            "$ref": "#/components/responses/Unprocessable"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        }
-      }
-    },
-    "/api/v1/customer/notifications": {
-      "get": {
-        "operationId": "getApiV1CustomerNotifications",
-        "summary": "Hämta kundnotiser.",
-        "security": [
-          {
-            "bearerAuth": [
-              "customer_notifications.read"
-            ]
-          }
-        ],
-        "x-required-scopes": [
-          "customer_notifications.read"
-        ],
-        "x-idempotency-required": false,
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/RequestId"
-          },
-          {
-            "$ref": "#/components/parameters/ExternalCustomerId"
-          },
-          {
-            "$ref": "#/components/parameters/CustomerNumber"
-          },
-          {
-            "$ref": "#/components/parameters/CustomerEmail"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Lyckat svar.",
@@ -1423,6 +1423,111 @@
         }
       }
     },
+    "/api/v1/integration/context": {
+      "get": {
+        "tags": [
+          "Integration context"
+        ],
+        "summary": "Verify the API key tenant context",
+        "description": "Scope: integration_context.read. The API key is authoritative; company_id is never accepted as a tenant selector.",
+        "responses": {
+          "200": {
+            "description": "Tenant context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/IntegrationContext"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/IntegrationContext"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/openapi/customer-portal-v1.json": {
+      "get": {
+        "summary": "Hämta Customer Portal OpenAPI",
+        "description": "Publik dokumentationsendpoint. Ingen API-nyckel krävs och endpointen används endast för utveckling, typgenerering och kontraktskontroll — aldrig som runtime-konfiguration.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "const": "2026-07-24.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Oförändrad ETag"
+          }
+        }
+      }
+    },
+    "/api/v1/openapi/website-integration-v1.json": {
+      "get": {
+        "summary": "Hämta Website Integration OpenAPI",
+        "description": "Publik dokumentationsendpoint. Ingen API-nyckel krävs och endpointen används endast för utveckling, typgenerering och kontraktskontroll — aldrig som runtime-konfiguration.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "const": "2026-07-24.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Oförändrad ETag"
+          }
+        }
+      }
+    },
     "/api/v1/website/customer-applications": {
       "post": {
         "operationId": "postApiV1WebsiteCustomerApplications",
@@ -1490,7 +1595,7 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
-        "description": "Scope: website_applications.write. Idempotency-Key is required. One canonical application binds one tenant customer identity, one site and one selected published offer. quote_reference is recommended and validated/consumed when present; legacy omission remains temporarily backwards compatible. OPS creates or reuses the canonical customer/customer_number, freezes the selected SE-area price, creates the site/contract/billing snapshot, queues customer communication and starts data-request or supplier-switch automation when readiness allows."
+        "description": "Scope: website_applications.write. Idempotency-Key is required. One canonical application binds one tenant customer identity, one site and one selected published offer. top-level quote_reference and top-level resolution_id are required and validated; contract contains no alternate reference-placement mode. OPS creates or reuses the canonical customer/customer_number, freezes the selected SE-area price, creates the site/contract/billing snapshot, queues customer communication and starts data-request or supplier-switch automation when readiness allows."
       }
     },
     "/api/v1/website/customer-events": {
@@ -1558,6 +1663,90 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/website/energy-area/resolve": {
+      "post": {
+        "tags": [
+          "Website energy area"
+        ],
+        "summary": "Resolve canonical SE area, grid area and grid owner before quote and application",
+        "description": "Scope: website_energy_area.resolve. Uses the tenant-scoped OPS resolver. The unauthenticated legacy GET /api/public/energy-area remains removed.",
+        "x-required-scopes": [
+          "website_energy_area.resolve"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsiteEnergyAreaResolveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resolution completed or requires a next action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteEnergyAreaResolveResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resolution failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteEnergyAreaResolveResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resolver failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -1881,6 +2070,80 @@
         "description": "Returnerar endast publiceringsklara erbjudanden för API-nyckelns tenant. Ett fastprisavtal returneras en gång med SE1-SE4 i area_pricing. pricing.calculation_components innehåller alla tillämpliga avgifter, även dolda. offer_reference används för canonical quote och customer-applications. Svaret innehåller tenant- och kanalbunden publication_revision samt ETag."
       }
     },
+    "/api/v1/website/public-contracts/diagnostics": {
+      "get": {
+        "operationId": "getApiV1WebsitePublicContractsDiagnostics",
+        "summary": "Diagnostisera tenantens website-publiceringsgraf.",
+        "security": [
+          {
+            "bearerAuth": [
+              "website_contracts.diagnostics"
+            ]
+          }
+        ],
+        "x-required-scopes": [
+          "website_contracts.diagnostics"
+        ],
+        "x-idempotency-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "name": "customer_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "business"
+              ]
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "website"
+              ],
+              "default": "website"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-skopad diagnostik med stabil data-typ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicContractDiagnosticsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "description": "Separat diagnostikscope. data är alltid en array och diagnostics ändrar inte typen på normalfeedens data."
+      }
+    },
     "/api/v1/website/quote": {
       "post": {
         "tags": [
@@ -1983,80 +2246,6 @@
             }
           }
         }
-      }
-    },
-    "/api/v1/website/public-contracts/diagnostics": {
-      "get": {
-        "operationId": "getApiV1WebsitePublicContractsDiagnostics",
-        "summary": "Diagnostisera tenantens website-publiceringsgraf.",
-        "security": [
-          {
-            "bearerAuth": [
-              "website_contracts.diagnostics"
-            ]
-          }
-        ],
-        "x-required-scopes": [
-          "website_contracts.diagnostics"
-        ],
-        "x-idempotency-required": false,
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/RequestId"
-          },
-          {
-            "name": "customer_type",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "private",
-                "business"
-              ]
-            }
-          },
-          {
-            "name": "channel",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "website"
-              ],
-              "default": "website"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Tenant-skopad diagnostik med stabil data-typ.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicContractDiagnosticsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        },
-        "description": "Separat diagnostikscope. data är alltid en array och diagnostics ändrar inte typen på normalfeedens data."
       }
     },
     "/api/v1/website/quote/validate": {
@@ -2199,90 +2388,6 @@
           },
           "500": {
             "description": "Validation failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/website/energy-area/resolve": {
-      "post": {
-        "tags": [
-          "Website energy area"
-        ],
-        "summary": "Resolve canonical SE area, grid area and grid owner before quote and application",
-        "description": "Scope: website_energy_area.resolve. Uses the tenant-scoped OPS resolver. The unauthenticated legacy GET /api/public/energy-area remains removed.",
-        "x-required-scopes": [
-          "website_energy_area.resolve"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WebsiteEnergyAreaResolveRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Resolution completed or requires a next action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebsiteEnergyAreaResolveResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Payload too large",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Resolution failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebsiteEnergyAreaResolveResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Resolver failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -3451,7 +3556,8 @@
           "customer",
           "consents",
           "quote_reference",
-          "resolution_id"
+          "resolution_id",
+          "offer_reference"
         ],
         "properties": {
           "external_customer_id": {
@@ -3461,7 +3567,8 @@
           },
           "offer_reference": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$"
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$",
+            "description": "Canonical opak offer_reference på top-level."
           },
           "customer": {
             "type": "object",
@@ -3476,17 +3583,17 @@
           },
           "contract": {
             "type": "object",
+            "description": "Kompletterande startuppgifter. Canonicala referenser ska inte placeras under contract.",
             "properties": {
-              "offer_reference": {
-                "type": "string",
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$"
+              "requested_start_mode": {
+                "enum": [
+                  "earliest_possible",
+                  "specific_date"
+                ]
               },
-              "quote_reference": {
-                "type": "string"
-              },
-              "resolution_id": {
+              "requested_start_date": {
                 "type": "string",
-                "format": "uuid"
+                "format": "date"
               }
             },
             "additionalProperties": true
@@ -3529,7 +3636,7 @@
           },
           "quote_reference": {
             "type": "string",
-            "description": "Obligatorisk canonical quote från OPS. Quote och resolution valideras atomiskt före kundavtal."
+            "description": "Obligatorisk canonical OPS-quote på top-level. Inget konfigurerbart payloadläge används."
           },
           "price_area_code": {
             "type": "string",
@@ -3550,25 +3657,9 @@
           "resolution_id": {
             "type": "string",
             "format": "uuid",
-            "description": "Samma tenantbundna OPS-resolution som användes när quote skapades."
+            "description": "Samma tenantbundna OPS-resolution som användes av quoten, på top-level."
           }
         },
-        "anyOf": [
-          {
-            "required": [
-              "offer_reference"
-            ]
-          },
-          {
-            "properties": {
-              "contract": {
-                "required": [
-                  "offer_reference"
-                ]
-              }
-            }
-          }
-        ],
         "additionalProperties": true,
         "allOf": [
           {
@@ -3585,7 +3676,9 @@
               }
             ]
           }
-        ]
+        ],
+        "description": "Canonical kundansökan. offer_reference, quote_reference och resolution_id skickas exakt en gång på top-level. Tenantens enda runtime-secret är GRIDEX_API_KEY.",
+        "x-canonical-reference-location": "top_level"
       },
       "WebsiteCustomerApplicationResponse": {
         "type": "object",
@@ -4734,8 +4827,177 @@
         },
         "additionalProperties": true,
         "description": "Proveniens för marknadsreferensen. preview är indikativ och får aldrig användas som slutligt settlementunderlag."
+      },
+      "IntegrationContext": {
+        "type": "object",
+        "required": [
+          "tenant_reference",
+          "api_client_reference",
+          "api_version",
+          "authoritative_identity",
+          "contract_version",
+          "configuration",
+          "capabilities"
+        ],
+        "properties": {
+          "tenant_reference": {
+            "type": "string"
+          },
+          "api_client_reference": {
+            "type": "string"
+          },
+          "api_version": {
+            "const": "v1"
+          },
+          "authoritative_identity": {
+            "const": "api_key"
+          },
+          "contract_version": {
+            "const": "2026-07-24.1"
+          },
+          "configuration": {
+            "type": "object",
+            "required": [
+              "required_environment_variables",
+              "api_base_url",
+              "authentication",
+              "openapi_url",
+              "application_reference_location",
+              "tenant_id_environment_required",
+              "company_id_environment_required"
+            ],
+            "properties": {
+              "required_environment_variables": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "const": "GRIDEX_API_KEY"
+                  }
+                ],
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "api_base_url": {
+                "const": "https://app.gridex.se/api/v1"
+              },
+              "authentication": {
+                "type": "object",
+                "required": [
+                  "header",
+                  "scheme",
+                  "server_side_only"
+                ],
+                "properties": {
+                  "header": {
+                    "const": "Authorization"
+                  },
+                  "scheme": {
+                    "const": "Bearer"
+                  },
+                  "server_side_only": {
+                    "const": true
+                  }
+                }
+              },
+              "openapi_url": {
+                "const": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json"
+              },
+              "customer_portal_openapi_url": {
+                "const": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json"
+              },
+              "application_reference_location": {
+                "const": "top_level"
+              },
+              "tenant_id_environment_required": {
+                "const": false
+              },
+              "company_id_environment_required": {
+                "const": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "capabilities": {
+            "type": "object",
+            "required": [
+              "website_checkout_ready",
+              "customer_portal_ready",
+              "complete_tenant_website_ready",
+              "missing_website_scopes",
+              "missing_customer_portal_scopes",
+              "missing_recommended_scopes"
+            ],
+            "properties": {
+              "website_checkout_ready": {
+                "type": "boolean"
+              },
+              "customer_portal_ready": {
+                "type": "boolean"
+              },
+              "complete_tenant_website_ready": {
+                "type": "boolean"
+              },
+              "required_website_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "missing_website_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "required_customer_portal_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "missing_customer_portal_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "recommended_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "missing_recommended_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
       }
     }
   },
-  "x-contract-schema-version": "2026-07-24.1"
+  "x-contract-schema-version": "2026-07-24.1",
+  "x-gridex-tenant-setup": {
+    "required_environment_variables": [
+      "GRIDEX_API_KEY"
+    ],
+    "api_base_url": "https://app.gridex.se/api/v1",
+    "authentication": "Authorization: Bearer <GRIDEX_API_KEY>",
+    "tenant_identity_source": "api_key",
+    "tenant_id_environment_required": false,
+    "company_id_environment_required": false,
+    "application_reference_location": "top_level",
+    "website_openapi_url": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json",
+    "customer_portal_openapi_url": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json"
+  },
+  "tags": [
+    {
+      "name": "Integration context",
+      "description": "Verifiera API-nyckelns tenantkontext, fasta base URL och one-secret readiness."
+    }
+  ]
 }

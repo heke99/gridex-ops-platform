@@ -9,6 +9,8 @@ export type PublicApiRouteContract = {
 
 /** Canonical source for the public V1 endpoint catalogue and documentation. */
 export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = [
+  { method: 'GET', path: '/api/v1/openapi/website-integration-v1.json', scopes: [], description: 'Publik versionerad OpenAPI-specifikation för tenantens websiteintegration.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/customer-portal-v1.json', scopes: [], description: 'Publik versionerad OpenAPI-specifikation för kundportalen.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/integration/context', scopes: ['integration_context.read'], description: 'Verifiera opak tenantreferens för den autentiserade API-nyckeln.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/contracts', scopes: ['api_contracts.read'], description: 'Hämta avtal som tenant har publicerat till API-kanalen.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/website/public-contracts', scopes: ['website_contracts.read'], description: 'Hämta publicerade avtal med komplett beräkningsunderlag och separata visningsregler.', rateLimitClass: 'read' },

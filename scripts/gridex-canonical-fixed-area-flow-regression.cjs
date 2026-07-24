@@ -126,7 +126,8 @@ includes('supabase/migrations/20260723120000_canonical_fixed_area_quote_flow.sql
 ], 'Migrationen ska återaktivera endast etablerade scopes och lägga till audit/read model')
 
 // Runtime/API/docs version alignment.
-includes('lib/website/publicContractApi.ts', ['2026-07-24.1'], 'Runtime contract schema version ska vara 2026-07-24.1')
+includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-07-24.1'"], 'Canonical runtime contract version ska vara 2026-07-24.1')
+includes('lib/website/publicContractApi.ts', ['WEBSITE_INTEGRATION_CONTRACT_VERSION'], 'Public contract runtime ska använda den canonicala kontraktsversionen')
 includes('app/developers/customer-portal-api/page.tsx', [
   '2026-07-24.1',
   'area_pricing',

@@ -70,7 +70,8 @@ for (const rel of ['docs/openapi/website-integration-v1.json', 'docs/openapi/cus
   check(JSON.stringify(spec).includes('MarketReference'), `${rel} ska dokumentera market_reference`)
 }
 includes('docs/external-website-api-integration-guide.md', ['Preview är aldrig slutligt settlementpris', 'grid_area_address_mismatch', 'quote_reference'], 'Utvecklardokumentationen ska beskriva det canonicala flödet')
-includes('lib/website/publicContractApi.ts', ['2026-07-24.1'], 'Runtime och dokumentation ska ha samma kontraktsversion')
+includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-07-24.1'"], 'Runtime och dokumentation ska ha samma canonicala kontraktsversion')
+includes('lib/website/publicContractApi.ts', ['WEBSITE_INTEGRATION_CONTRACT_VERSION'], 'Public contract runtime ska använda den canonicala kontraktsversionen')
 
 if (failures.length) {
   console.error(`Canonical market/resolution/quote/billing regression failed (${failures.length}/${checks}):`)

@@ -603,6 +603,39 @@ function nestedRecord(
     : null;
 }
 
+function validateCanonicalApplicationReferencePlacement(
+  value: unknown,
+): WebsiteApplicationError | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const root = value as Record<string, unknown>;
+  const contract = nestedRecord(value, "contract");
+  const fields: Array<{
+    canonical: "offer_reference" | "quote_reference" | "resolution_id";
+    alias: "offerReference" | "quoteReference" | "resolutionId";
+    conflictCode: string;
+  }> = [
+    { canonical: "offer_reference", alias: "offerReference", conflictCode: "offer_reference_mismatch" },
+    { canonical: "quote_reference", alias: "quoteReference", conflictCode: "quote_reference_mismatch" },
+    { canonical: "resolution_id", alias: "resolutionId", conflictCode: "quote_resolution_mismatch" },
+  ];
+
+  for (const field of fields) {
+    const topLevel = clean(root[field.canonical]) ?? clean(root[field.alias]);
+    const nested = clean(contract?.[field.canonical]) ?? clean(contract?.[field.alias]);
+    if (topLevel && nested && topLevel !== nested) {
+      return new WebsiteApplicationError({
+        message: `${field.canonical} under contract motsäger det canonicala top-level-värdet.`,
+        status: 422,
+        code: field.conflictCode,
+        field: `contract.${field.canonical}`,
+        stage: "validation",
+        hint: `Skicka ${field.canonical} en gång på top-level. Ta bort det duplicerade contract.${field.canonical}-fältet.`,
+      });
+    }
+  }
+  return null;
+}
+
 function validateApplicationDates(
   input: Record<string, unknown>,
 ): WebsiteApplicationError | null {
@@ -3963,16 +3996,16 @@ function normalizeRawApplication(rawBody: unknown): Record<string, unknown> {
       raw.contractNumber,
     ),
     offer_reference: firstDefined(
-      nestedContract?.offer_reference,
-      nestedContract?.offerReference,
       raw.offer_reference,
       raw.offerReference,
+      nestedContract?.offer_reference,
+      nestedContract?.offerReference,
     ),
     quote_reference: firstDefined(
-      nestedContract?.quote_reference,
-      nestedContract?.quoteReference,
       raw.quote_reference,
       raw.quoteReference,
+      nestedContract?.quote_reference,
+      nestedContract?.quoteReference,
     ),
     price_plan_id: firstDefined(
       nestedContract?.price_plan_id,
@@ -6510,6 +6543,8 @@ export async function processWebsiteCustomerApplication(input: {
 
   const nestedFieldValidation = validateNestedPayloadFields(input.rawBody);
   if (nestedFieldValidation) return failureResponse(nestedFieldValidation);
+  const referencePlacementValidation = validateCanonicalApplicationReferencePlacement(input.rawBody);
+  if (referencePlacementValidation) return failureResponse(referencePlacementValidation);
 
   const normalizedRaw = normalizeRawApplication(input.rawBody);
   const startModeValidation = validateRequestedStartMode(normalizedRaw);

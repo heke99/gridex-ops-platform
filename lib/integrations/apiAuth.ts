@@ -49,9 +49,9 @@ function bearerToken(request: NextRequest): string | null {
   return apiKey || null
 }
 
-function hasRequiredScopes(clientScopes: string[], requiredScopes: string[]): boolean {
-  if (clientScopes.includes('*')) return true
+export function expandIntegrationApiScopes(clientScopes: string[]): Set<string> {
   const expanded = new Set(clientScopes)
+  if (expanded.has('*')) return expanded
   if (expanded.has('customer_portal.read')) {
     for (const scope of [
       'customer_profile.read', 'customer_sites.read', 'customer_contracts.read', 'customer_invoices.read',
@@ -65,7 +65,17 @@ function hasRequiredScopes(clientScopes: string[], requiredScopes: string[]): bo
       'customer_power_of_attorney.write', 'customer_notifications.write', 'customer_documents.write',
     ]) expanded.add(scope)
   }
-  return requiredScopes.every((scope) => expanded.has(scope))
+  return expanded
+}
+
+export function missingIntegrationApiScopes(clientScopes: string[], requiredScopes: readonly string[]): string[] {
+  if (clientScopes.includes('*')) return []
+  const expanded = expandIntegrationApiScopes(clientScopes)
+  return requiredScopes.filter((scope) => !expanded.has(scope))
+}
+
+function hasRequiredScopes(clientScopes: string[], requiredScopes: string[]): boolean {
+  return missingIntegrationApiScopes(clientScopes, requiredScopes).length === 0
 }
 
 function requestIp(request: NextRequest): string | null {
