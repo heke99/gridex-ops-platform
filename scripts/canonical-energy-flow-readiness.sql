@@ -1,5 +1,5 @@
 -- Read-only production readiness report for the canonical market/resolver/quote/billing flow.
--- Prerequisite: migration 20260724120000_canonical_market_resolution_quote_billing_flow.sql.
+-- Prerequisite: migrations through 20260724223000_market_price_api_documentation_completion.sql.
 begin transaction read only;
 
 select 'latest_spot_price_rows' as metric, count(*)::bigint as finding_count
@@ -16,6 +16,8 @@ union all
 select 'locked_spot_periods_missing_evidence', count(*) from public.gridex_locked_spot_periods_missing_evidence_v
 union all
 select 'stale_market_previews', count(*) from public.gridex_stale_market_previews_v
+union all
+select 'market_price_readiness_blockers', coalesce(sum(issue_count),0)::bigint from public.gridex_market_price_readiness_v where status='blocking'
 union all
 select 'stuck_spot_import_jobs', count(*) from public.gridex_stuck_spot_import_jobs_v
 union all
@@ -41,6 +43,8 @@ select * from public.gridex_spot_incomplete_days_v order by price_date desc, pri
 select * from public.gridex_spot_complete_unlocked_periods_v order by period_key desc, price_area limit 200;
 select * from public.gridex_locked_spot_periods_missing_evidence_v order by period_key desc, price_area limit 200;
 select * from public.gridex_stale_market_previews_v order by stale_after limit 200;
+select * from public.gridex_market_price_readiness_v order by case status when 'blocking' then 0 when 'warning' then 1 else 2 end,check_key;
+select * from public.gridex_market_preview_coverage_v where status='active' order by price_area,reference_period;
 select * from public.gridex_stuck_spot_import_jobs_v order by started_at nulls last limit 200;
 select * from public.gridex_old_geodata_versions_v order by age desc limit 50;
 select * from public.gridex_energy_resolutions_needing_review_v order by created_at desc limit 200;

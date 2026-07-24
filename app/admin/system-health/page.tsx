@@ -4,6 +4,7 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { humanizeLaunchError, safeCount } from '@/lib/launch/readiness'
 import { supabaseService } from '@/lib/supabase/service'
 import { runProductionConsistencyChecks, type ReconciliationCheckResult } from '@/lib/ops/reconciliation'
+import { getOpsHealth } from '@/lib/ops/health'
 import { requeueUncertainEmailAction } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -111,6 +112,7 @@ export default async function SystemHealthPage() {
     failedJobs,
     errors,
     reconciliation,
+    opsHealth,
   ] = await Promise.all([
     safeCount('integration_api_requests', companyId, [{ column: 'status_code', operator: 'in', value: [400, 401, 403, 404, 409, 422, 429, 500] }]).catch(() => 0),
     safeCount('webhook_deliveries', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'dead_letter'] }]).catch(() => 0),
@@ -136,9 +138,11 @@ export default async function SystemHealthPage() {
       criticalCount: 0,
       warningCount: 0,
     })),
+    getOpsHealth().catch(() => ({ rows: [], schemaReady: false })),
   ])
 
   const uncertainEmails = isPlatformAdmin ? await loadUncertainEmails() : []
+  const marketPriceHealth = opsHealth.rows.filter((row) => row.check_key.startsWith('spot_'))
 
   return (
     <main className="space-y-6">
@@ -163,6 +167,43 @@ export default async function SystemHealthPage() {
         <Card label="Mailfel" value={emailFailures} hint="Kundmail och switch-notiser" danger />
         <Card label="DB-varningar" value={dbSecurityWarnings} hint="RLS, anon grants och security-definer" danger />
         <Card label="Failed jobs" value={failedJobs} hint="Outbox/jobb som behöver retry eller manuell åtgärd" danger />
+      </section>
+
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">Marknadspris och tenant-API</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Canonical readiness för Elpriset Just Nu, SE1–SE4, rolling 30, freshness och tenantens fallback-policy.
+        </p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-3 py-3">Status</th>
+                <th className="px-3 py-3">Kontroll</th>
+                <th className="px-3 py-3">Antal</th>
+                <th className="px-3 py-3">Detaljer</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {marketPriceHealth.map((row) => (
+                <tr key={row.check_key} className={row.status === 'blocking' ? 'bg-red-50/50' : row.status === 'warning' ? 'bg-amber-50/50' : ''}>
+                  <td className="px-3 py-3">
+                    <span className={`rounded-full border px-2 py-1 text-xs font-medium ${row.status === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : tone(row.status)}`}>
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 font-mono text-xs font-medium text-slate-900">{row.check_key}</td>
+                  <td className="px-3 py-3 text-slate-700">{row.issue_count}</td>
+                  <td className="px-3 py-3 text-xs text-slate-600">{row.details ? JSON.stringify(row.details) : '–'}</td>
+                </tr>
+              ))}
+              {marketPriceHealth.length === 0 ? (
+                <tr><td colSpan={4} className="px-3 py-8 text-center text-slate-500">Marknadspriskontroller saknas tills den nya migreringen är applicerad.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {isPlatformAdmin && uncertainEmails.length > 0 ? (

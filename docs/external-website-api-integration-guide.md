@@ -1,6 +1,6 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-07-24.1**
+> **Canonical API-version: 2026-07-24.2**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
@@ -406,4 +406,48 @@ https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-07-24.1` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-07-24.2` och headern `X-Gridex-Contract-Version`.
+
+## Canonical marknadsprisflöde i API 2026-07-24.2
+
+Det finns tre separata operationer:
+
+| Operation | Syfte | Aktuellt spotpris | Komplett kundpris |
+|---|---|---:|---:|
+| `GET /api/v1/website/public-contracts` | Produkt- och urvalsfeed | Nej | Nej |
+| `POST /api/v1/website/market-price/current` | Aktuellt marknadsintervall | Ja | Nej |
+| `POST /api/v1/website/quote` | Canonical kundkalkyl | Som `market_reference` | Ja |
+
+`resolution_id` från `POST /api/v1/website/energy-area/resolve` är alltid styrande för SE1–SE4. Ett frivilligt `price_area` är endast en assertion och ger `409 price_area_mismatch` om det motsäger resolutionen. Tenant ska aldrig mappa postnummer lokalt eller skicka `company_id`.
+
+`market-price/current` kräver scope `website_market_prices.read` och returnerar det intervall där `time_start <= now < time_end`. Priset är exklusive moms, leverantörsavgifter, energiskatt och elnätsavgifter. Det får inte användas som komplett kundpris eller settlement.
+
+En rörlig quote returnerar ett självbärande `market_reference` med:
+
+- `price_sek_per_kwh` och `price_ore_per_kwh`;
+- `price_ex_vat_sek_per_kwh` och `price_ex_vat_ore_per_kwh`;
+- `requested_days` och `included_days`;
+- `source_as_of`, `generated_at`, `stale_after` och `effective_stale_at`;
+- `fallback_used` och `fallback_reason`.
+
+`source_as_of` kommer från underliggande provider-evidens. `generated_at` är endast när beräkningen kördes. En omberäkning med oförändrad `source_checksum` får inte ge artificiellt ny freshness.
+
+Om tenantens policy har `allow_indicative_latest=false` returneras inte en partiell fallback. OPS returnerar i stället `409 market_reference_window_incomplete` med `requested_days` och `included_days` i `details`.
+
+### Felkoder för aktuellt marknadspris
+
+| HTTP | Kod | Retryable | Tenantens åtgärd |
+|---:|---|:---:|---|
+| 400 | `invalid_request` | Nej | Rätta request enligt OpenAPI. |
+| 401 | `invalid_api_key` | Nej | Använd den aktiva Gridex API-nyckeln. |
+| 403 | `missing_scope` | Nej | Lägg till `website_market_prices.read` på API-klienten. |
+| 404 | `resolution_not_found` | Nej | Kör områdesresolution på nytt inom samma tenant. |
+| 409 | `resolution_expired` | Nej | Skapa en ny `resolution_id`. |
+| 409 | `resolution_not_ready` | Nej | Komplettera eller granska adress-/nätområdesunderlaget i OPS. |
+| 409 | `price_area_mismatch` | Nej | Ta bort lokalt område och använd resolutionens område. |
+| 409 | `market_price_stale` | Ja | Försök igen efter att OPS-importen har uppdaterats. Räkna inte lokalt. |
+| 429 | `rate_limited` | Ja | Använd backoff och respektera rate-limit headers. |
+| 503 | `current_market_price_unavailable` | Ja | Försök igen; behåll föregående visning endast om produktens UX-policy tillåter det. |
+| 500 | `market_price_provider_unavailable` | Ja | Försök igen och använd `request_id` vid support. |
+
+Alla fel returnerar `error.code`, `error.message`, `error.field`, `error.request_id`, `error.correlation_id`, `error.retryable` och top-level `request_id`. Tenant ska aldrig ersätta ett marknadsprisfel med en egen prisberäkning.

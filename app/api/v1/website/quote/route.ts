@@ -35,6 +35,8 @@ function retryableErrorCode(code: string): boolean {
     'market_price_unavailable',
     'market_price_stale',
     'market_price_provider_unavailable',
+    'market_reference_window_incomplete',
+    'current_market_price_unavailable',
     'website_quote_failed',
   ].includes(code)
 }
@@ -168,6 +170,7 @@ export async function POST(request: NextRequest) {
           message: error.message,
           requestId,
           field: error.field ?? null,
+          details: error.details,
         }),
         { status: error.status, headers: { 'Cache-Control': 'no-store' } },
       )

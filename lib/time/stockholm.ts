@@ -113,3 +113,18 @@ export function previousStockholmCalendarDate(now = new Date()): string {
   const previous = new Date(Date.UTC(parts.year, parts.month - 1, parts.day - 1))
   return `${previous.getUTCFullYear()}-${String(previous.getUTCMonth() + 1).padStart(2, '0')}-${String(previous.getUTCDate()).padStart(2, '0')}`
 }
+
+export function currentStockholmCalendarDate(now = new Date()): string {
+  return stockholmDateForInstant(now)
+}
+
+export function nextStockholmCalendarDate(now = new Date()): string {
+  const current = currentStockholmCalendarDate(now)
+  const [year, month, day] = current.split('-').map(Number)
+  const next = new Date(Date.UTC(year, month - 1, day + 1))
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`
+}
+
+export function stockholmHourForInstant(now = new Date()): number {
+  return partsFor(now).hour
+}

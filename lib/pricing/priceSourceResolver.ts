@@ -1,5 +1,5 @@
 import { supabaseService } from "@/lib/supabase/service";
-import { loadMarketPriceSourcePolicies, policySupports, selectMarketPriceRow } from "@/lib/pricing/marketPriceSources";
+import { loadMarketPriceSourcePolicies, policySupports, selectMarketPricePreviewRow, selectMarketPriceRow } from "@/lib/pricing/marketPriceSources";
 import type {
   BasePriceComponent,
   BasePriceSourceValues,
@@ -7,6 +7,25 @@ import type {
   PriceComponent,
   PriceArea,
 } from "@/lib/pricing/types";
+
+export class MarketPriceResolutionError extends Error {
+  readonly code: "market_price_unavailable" | "market_price_stale" | "market_reference_window_incomplete"
+  readonly status: number
+  readonly details: Record<string, unknown>
+
+  constructor(input: {
+    message: string
+    code: MarketPriceResolutionError["code"]
+    status?: number
+    details?: Record<string, unknown>
+  }) {
+    super(input.message)
+    this.name = "MarketPriceResolutionError"
+    this.code = input.code
+    this.status = input.status ?? 422
+    this.details = input.details ?? {}
+  }
+}
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -575,7 +594,7 @@ export async function resolveBasePriceSourceValues(input: {
   if (matchingPolicies.length > 0 && purpose === "quote_preview") {
     const previewResult = await supabaseService
       .from("market_price_previews")
-      .select("id,provider,price_area,reference_period,period_start,period_end,as_of,price_sek_per_kwh,source_currency,unit,includes_vat,includes_supplier_fees,includes_grid_fees,is_indicative,fallback_used,fallback_reason,stale_after,status,source_checksum,updated_at")
+      .select("id,provider,price_area,reference_period,period_start,period_end,as_of,source_as_of,generated_at,price_sek_per_kwh,source_currency,unit,includes_vat,includes_supplier_fees,includes_grid_fees,is_indicative,fallback_used,fallback_reason,stale_after,requested_days,included_days,source_resolution,status,source_checksum,metadata,updated_at")
       .in("provider", matchingPolicies.map((policy) => policy.sourceKey))
       .eq("price_area", input.priceArea)
       .eq("status", "active")
@@ -583,36 +602,81 @@ export async function resolveBasePriceSourceValues(input: {
       .limit(20);
 
     if (previewResult.error && !databaseShapeError(previewResult.error)) throw previewResult.error;
-    const now = Date.now();
     const candidates = ((previewResult.data ?? []) as Array<Record<string, unknown>>)
-      .filter((row) => numberValue(row.price_sek_per_kwh) !== null)
-      .sort((left, right) => Date.parse(String(right.as_of ?? 0)) - Date.parse(String(left.as_of ?? 0)));
-    const fresh = candidates.find((row) => {
-      const staleAt = Date.parse(String(row.stale_after ?? ""));
-      return Number.isFinite(staleAt) && staleAt > now;
+      .filter((row) => numberValue(row.price_sek_per_kwh) !== null);
+    const selected = selectMarketPricePreviewRow(candidates, matchingPolicies, {
+      requiredResolution,
+      priceArea: input.priceArea,
+      referencePeriods: ["rolling_30_days", "rolling_7_days", "latest_complete_day"],
     });
-    const selectedPreview = fresh ?? candidates[0] ?? null;
-    if (selectedPreview) {
+    if (selected) {
+      const selectedPreview = selected.row;
       spotRow = {
         ...selectedPreview,
         id: selectedPreview.id,
         source: selectedPreview.provider,
         average_sek_per_kwh: selectedPreview.price_sek_per_kwh,
         status: "preview",
-        market_data_timestamp: selectedPreview.as_of,
+        market_data_timestamp: selectedPreview.source_as_of ?? selectedPreview.as_of,
         is_indicative: true,
-        is_stale: !fresh,
+        is_stale: selected.isStale,
+        effective_stale_at: selected.effectiveStaleAt,
+        requested_days: selected.requestedDays,
+        included_days: selected.includedDays,
         reference_type: "preview",
       };
+    } else if (candidates.length > 0) {
+      const now = Date.now();
+      const staleCandidate = candidates.find((row) => {
+        const source = String(row.provider ?? "");
+        const policy = matchingPolicies.find((candidate) => candidate.sourceKey === source);
+        if (!policy) return false;
+        const globalStale = Date.parse(String(row.stale_after ?? ""));
+        const sourceAsOf = Date.parse(String(row.source_as_of ?? row.as_of ?? ""));
+        const tenantStale = Number.isFinite(sourceAsOf) ? sourceAsOf + policy.maxAgeMinutes * 60_000 : Number.NaN;
+        const effective = Math.min(
+          Number.isFinite(globalStale) ? globalStale : Number.POSITIVE_INFINITY,
+          Number.isFinite(tenantStale) ? tenantStale : Number.POSITIVE_INFINITY,
+        );
+        return Number.isFinite(effective) && effective <= now;
+      });
+      if (staleCandidate) {
+        throw new MarketPriceResolutionError({
+          message: `Marknadsreferensen för ${input.priceArea} är stale enligt tenantens freshness-policy.`,
+          code: "market_price_stale",
+          status: 409,
+          details: { price_area: input.priceArea, required_resolution: requiredResolution },
+        });
+      }
+      const partial = candidates.find((row) => {
+        const metadata = isObject(row.metadata) ? row.metadata : {};
+        const requested = numberValue(row.requested_days) ?? numberValue(metadata.requested_days);
+        const included = numberValue(row.included_days) ?? numberValue(metadata.included_days);
+        return row.fallback_used === true || (requested !== null && included !== null && included < requested);
+      });
+      if (partial) {
+        const metadata = isObject(partial.metadata) ? partial.metadata : {};
+        throw new MarketPriceResolutionError({
+          message: "En fullständig marknadsreferens saknas och tenantens policy tillåter inte partiell fallback.",
+          code: "market_reference_window_incomplete",
+          status: 409,
+          details: {
+            price_area: input.priceArea,
+            requested_days: numberValue(partial.requested_days) ?? numberValue(metadata.requested_days),
+            included_days: numberValue(partial.included_days) ?? numberValue(metadata.included_days),
+            allow_indicative_latest: false,
+          },
+        });
+      }
     }
 
     // Safe compatibility fallback while preview rows are being populated. Only
     // verified/locked historical day evidence from the same area/provider may
     // be used, and it remains explicitly indicative.
-    if (!spotRow) {
+    if (!spotRow && matchingPolicies.some((policy) => policy.allowIndicativeLatest)) {
       const daily = await supabaseService
         .from("spot_price_daily_summaries")
-        .select("id,source,price_area,price_date,period_start,period_end,average_sek_per_kwh,status,verified_at,locked_at,provider_fetched_at,updated_at,source_checksum,covered_duration_minutes,expected_duration_minutes")
+        .select("id,source,price_area,price_date,period_start,period_end,average_sek_per_kwh,status,verified_at,locked_at,provider_fetched_at,updated_at,source_checksum,covered_duration_minutes,expected_duration_minutes,resolution")
         .in("source", matchingPolicies.map((policy) => policy.sourceKey))
         .eq("price_area", input.priceArea)
         .in("status", ["verified", "locked"])
@@ -632,30 +696,50 @@ export async function resolveBasePriceSourceValues(input: {
         const latest = weightedRows[0];
         const oldest = weightedRows[weightedRows.length - 1];
         const policy = matchingPolicies.find((candidate) => candidate.sourceKey === String(latest.source)) ?? matchingPolicies[0];
-        const asOf = stringValue(latest.updated_at) ?? stringValue(latest.verified_at) ?? stringValue(latest.locked_at);
-        const ageMinutes = asOf ? Math.max(0, Date.now() - Date.parse(asOf)) / 60_000 : Number.POSITIVE_INFINITY;
+        const sourceAsOf = stringValue(latest.provider_fetched_at) ?? stringValue(latest.verified_at) ?? stringValue(latest.locked_at) ?? stringValue(latest.updated_at);
+        const sourceAsOfMs = sourceAsOf ? Date.parse(sourceAsOf) : Number.NaN;
+        const effectiveStaleAt = Number.isFinite(sourceAsOfMs)
+          ? new Date(sourceAsOfMs + Math.max(1, policy.maxAgeMinutes) * 60_000).toISOString()
+          : null;
+        const generatedAt = new Date().toISOString();
         spotRow = {
           id: null,
           source: latest.source,
+          provider: latest.source,
           price_area: input.priceArea,
           average_sek_per_kwh: average,
           status: "preview",
           reference_type: "preview",
-          reference_period: weightedRows.length >= 30 ? "rolling_30_days" : "latest_verified_days",
+          reference_period: "rolling_30_days",
           period_start: oldest.price_date,
           period_end: latest.price_date,
-          as_of: asOf,
-          market_data_timestamp: asOf,
+          as_of: sourceAsOf,
+          source_as_of: sourceAsOf,
+          generated_at: generatedAt,
+          stale_after: effectiveStaleAt,
+          effective_stale_at: effectiveStaleAt,
+          market_data_timestamp: sourceAsOf,
           source_currency: "SEK",
           unit: "sek_per_kwh",
+          source_resolution: Array.from(new Set(weightedRows.map((row) => stringValue(row.resolution)).filter(Boolean))).join(",") || "daily",
           includes_vat: false,
           includes_supplier_fees: false,
           includes_grid_fees: false,
+          requested_days: 30,
+          included_days: weightedRows.length,
           is_indicative: true,
-          is_stale: !Number.isFinite(ageMinutes) || ageMinutes > policy.maxAgeMinutes,
+          is_stale: !effectiveStaleAt || Date.parse(effectiveStaleAt) <= Date.now(),
           fallback_used: true,
           fallback_reason: "preview_cache_missing",
           source_summary_ids: weightedRows.map((row) => row.id).filter(Boolean),
+          source_checksum: weightedRows.map((row) => stringValue(row.source_checksum)).filter(Boolean).join(":"),
+          metadata: {
+            requested_days: 30,
+            included_days: weightedRows.length,
+            source_as_of: sourceAsOf,
+            generated_at: generatedAt,
+            fallback_reason: "preview_cache_missing",
+          },
         };
       }
     }
@@ -693,7 +777,18 @@ export async function resolveBasePriceSourceValues(input: {
           verified_at: stringValue(spotRow.verified_at),
           locked_at: stringValue(spotRow.locked_at),
           as_of: stringValue(spotRow.as_of) ?? stringValue(spotRow.market_data_timestamp) ?? stringValue(spotRow.updated_at),
-          market_data_timestamp: stringValue(spotRow.as_of) ?? stringValue(spotRow.market_data_timestamp) ?? stringValue(spotRow.updated_at),
+          market_data_timestamp: stringValue(spotRow.source_as_of) ?? stringValue(spotRow.as_of) ?? stringValue(spotRow.market_data_timestamp) ?? stringValue(spotRow.updated_at),
+          price_sek_per_kwh: numberValue(spotRow.average_sek_per_kwh),
+          price_ore_per_kwh: numberValue(spotRow.average_sek_per_kwh) === null ? null : numberValue(spotRow.average_sek_per_kwh)! * 100,
+          price_ex_vat_sek_per_kwh: numberValue(spotRow.average_sek_per_kwh),
+          price_ex_vat_ore_per_kwh: numberValue(spotRow.average_sek_per_kwh) === null ? null : numberValue(spotRow.average_sek_per_kwh)! * 100,
+          requested_days: numberValue(spotRow.requested_days) ?? (isObject(spotRow.metadata) ? numberValue(spotRow.metadata.requested_days) : null),
+          included_days: numberValue(spotRow.included_days) ?? (isObject(spotRow.metadata) ? numberValue(spotRow.metadata.included_days) : null),
+          source_as_of: stringValue(spotRow.source_as_of) ?? stringValue(spotRow.as_of) ?? stringValue(spotRow.market_data_timestamp) ?? stringValue(spotRow.updated_at),
+          generated_at: stringValue(spotRow.generated_at) ?? stringValue(spotRow.updated_at),
+          stale_after: stringValue(spotRow.stale_after),
+          effective_stale_at: stringValue(spotRow.effective_stale_at) ?? stringValue(spotRow.stale_after),
+          source_resolution: stringValue(spotRow.source_resolution),
           source_currency: stringValue(spotRow.source_currency) ?? "SEK",
           unit: stringValue(spotRow.unit) ?? "sek_per_kwh",
           includes_vat: spotRow.includes_vat === true,

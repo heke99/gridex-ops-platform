@@ -7,7 +7,7 @@ export type PublicApiError = {
   trace_id: string
 }
 
-const SCHEMA_CODES = new Set(['42P01', '42703', 'PGRST200', 'PGRST201', 'PGRST204', 'PGRST205'])
+const SCHEMA_CODES = new Set(['42P01', '42703', 'PGRST200', 'PGRST201', 'PGRST202', 'PGRST204', 'PGRST205'])
 
 export function errorCode(error: unknown): string | null {
   const value = error && typeof error === 'object' ? error as { code?: unknown } : null

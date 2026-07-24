@@ -1,6 +1,6 @@
 # Gridex tenantintegration med en API-nyckel
 
-Kontraktsversion: `2026-07-24.1`.
+Kontraktsversion: `2026-07-24.2`.
 
 ## Produktion
 
@@ -44,3 +44,19 @@ POST /website/customer-applications
 ```
 
 Ett integrationssammanhang kan verifieras med `GET /integration/context`. Svaret beskriver nyckelns tenantkontext, kontraktsversion och om nyckeln har alla scopes för checkout.
+
+## Aktuellt spotpris med samma API-nyckel
+
+Ingen ny miljövariabel krävs. När nyckeln har scope `website_market_prices.read` används samma `GRIDEX_API_KEY`:
+
+```http
+POST /api/v1/website/market-price/current
+Authorization: Bearer $GRIDEX_API_KEY
+Content-Type: application/json
+
+{
+  "resolution_id": "f8249704-7ce8-4885-93cb-fbb9922ed77d"
+}
+```
+
+API-nyckeln avgör tenant och `resolution_id` avgör canonical SE1–SE4. Tenant ska inte konfigurera en egen Elpriset Just Nu-URL, eget tenant-ID eller lokal områdesmappning.

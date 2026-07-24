@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-07-24.1",
-    "description": "Canonical V1 contract publication, tenant-bound energy-area resolution, OPS-owned quote and website application API. OPS supplies complete versioned contract prices, fees, VAT, presentation rules and normalized indicative market-reference metadata. Tenant backends display the OPS quote but cannot override price area, product version or pricing components. Preview is never final settlement evidence."
+    "version": "2026-07-24.2",
+    "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
     {
@@ -39,6 +39,9 @@
     },
     {
       "name": "Switch status"
+    },
+    {
+      "name": "Market price"
     }
   ],
   "paths": {
@@ -127,7 +130,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-24.1"
+                  "const": "2026-07-24.2"
                 },
                 "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
               }
@@ -147,7 +150,7 @@
                       "$ref": "#/components/schemas/TenantMeta",
                       "properties": {
                         "contract_schema_version": {
-                          "const": "2026-07-24.1"
+                          "const": "2026-07-24.2"
                         }
                       },
                       "required": [
@@ -320,6 +323,52 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WebsiteQuoteResponse"
+                },
+                "example": {
+                  "data": {
+                    "quote_reference": "quote_example",
+                    "offer_reference": "offer_example",
+                    "valid_until": "2026-07-24T17:00:00Z",
+                    "input": {
+                      "resolution_id": "f8249704-7ce8-4885-93cb-fbb9922ed77d",
+                      "price_area": "SE3"
+                    },
+                    "market_reference": {
+                      "provider": "elprisetjustnu",
+                      "price_area": "SE3",
+                      "reference_type": "preview",
+                      "reference_period": "rolling_30_days",
+                      "price_sek_per_kwh": 0.655699,
+                      "price_ore_per_kwh": 65.5699,
+                      "price_ex_vat_sek_per_kwh": 0.655699,
+                      "price_ex_vat_ore_per_kwh": 65.5699,
+                      "requested_days": 30,
+                      "included_days": 30,
+                      "period_start": "2026-06-24",
+                      "period_end": "2026-07-23",
+                      "source_as_of": "2026-07-24T14:02:14Z",
+                      "generated_at": "2026-07-24T14:05:00Z",
+                      "stale_after": "2026-07-24T17:05:00Z",
+                      "effective_stale_at": "2026-07-24T17:02:14Z",
+                      "source_currency": "SEK",
+                      "unit": "sek_per_kwh",
+                      "includes_vat": false,
+                      "includes_supplier_fees": false,
+                      "includes_grid_fees": false,
+                      "is_indicative": true,
+                      "is_stale": false,
+                      "fallback_used": false,
+                      "fallback_reason": null,
+                      "source_checksum": "sha256-example"
+                    },
+                    "estimate": {
+                      "monthly_ex_vat": 1000,
+                      "monthly_vat": 250,
+                      "monthly_inc_vat": 1250
+                    },
+                    "lines": []
+                  },
+                  "request_id": "0153b491-b4be-444d-b9a4-56573af449e8"
                 }
               }
             }
@@ -843,7 +892,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-24.1"
+                  "const": "2026-07-24.2"
                 }
               }
             },
@@ -878,7 +927,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-24.1"
+                  "const": "2026-07-24.2"
                 }
               }
             },
@@ -951,6 +1000,424 @@
         "x-required-scopes": [
           "website_switch_status.read"
         ]
+      }
+    },
+    "/api/v1/website/market-price/current": {
+      "post": {
+        "tags": [
+          "Market price"
+        ],
+        "summary": "Get the current normalized spot-price interval for a tenant-bound energy resolution",
+        "description": "Scope: website_market_prices.read. resolution_id is authoritative for SE1-SE4. The response is the current wholesale market interval before VAT, supplier fees, energy tax and grid fees. It is not a complete customer price or settlement input.",
+        "x-required-scopes": [
+          "website_market_prices.read"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CurrentMarketPriceRequest"
+              },
+              "example": {
+                "resolution_id": "f8249704-7ce8-4885-93cb-fbb9922ed77d"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current market interval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentMarketPriceResponse"
+                },
+                "example": {
+                  "data": {
+                    "provider": "elprisetjustnu",
+                    "resolution_id": "f8249704-7ce8-4885-93cb-fbb9922ed77d",
+                    "price_area": "SE3",
+                    "reference_type": "current_interval",
+                    "resolution": "quarterly",
+                    "time_start": "2026-07-24T16:00:00+02:00",
+                    "time_end": "2026-07-24T16:15:00+02:00",
+                    "price_sek_per_kwh": 0.655699,
+                    "price_ore_per_kwh": 65.5699,
+                    "price_ex_vat_sek_per_kwh": 0.655699,
+                    "price_ex_vat_ore_per_kwh": 65.5699,
+                    "includes_vat": false,
+                    "includes_supplier_fees": false,
+                    "includes_grid_fees": false,
+                    "is_indicative": false,
+                    "is_stale": false,
+                    "source_as_of": "2026-07-24T14:02:14Z",
+                    "next_update_at": "2026-07-24T16:15:00+02:00"
+                  },
+                  "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
+                  "contract_schema_version": "2026-07-24.2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing scope or resolution tenant mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resolution not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resolution expired, price-area mismatch or stale price",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                },
+                "examples": {
+                  "price_area_mismatch": {
+                    "value": {
+                      "error": {
+                        "code": "price_area_mismatch",
+                        "message": "Inskickat price_area motsäger OPS-resolutionen.",
+                        "field": "price_area",
+                        "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+                        "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+                        "retryable": false,
+                        "details": {
+                          "asserted_price_area": "SE4",
+                          "canonical_price_area": "SE3"
+                        }
+                      },
+                      "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21"
+                    }
+                  },
+                  "market_price_stale": {
+                    "value": {
+                      "error": {
+                        "code": "market_price_stale",
+                        "message": "Aktuellt spotpris för SE3 är stale enligt tenantens freshness-policy.",
+                        "field": null,
+                        "request_id": "04fc8fb2-a035-480e-a16c-728761126809",
+                        "correlation_id": "04fc8fb2-a035-480e-a16c-728761126809",
+                        "retryable": true,
+                        "details": {
+                          "price_area": "SE3"
+                        }
+                      },
+                      "request_id": "04fc8fb2-a035-480e-a16c-728761126809"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected provider or runtime failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Current market price unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPriceErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/website/portfolio-prices": {
+      "get": {
+        "tags": [
+          "Website contracts"
+        ],
+        "summary": "Get public portfolio method and sanitized final historical prices",
+        "description": "Scope: website_contracts.read. This endpoint never returns current market indications and is not the calculator market-price source.",
+        "x-required-scopes": [
+          "website_contracts.read"
+        ],
+        "parameters": [
+          {
+            "name": "offer_reference",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "price_area",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SE1",
+                "SE2",
+                "SE3",
+                "SE4"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public method and final history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Offer not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Offer cannot be used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/website/legal-bundle": {
+      "get": {
+        "tags": [
+          "Customer applications"
+        ],
+        "summary": "Get the published legal bundle",
+        "description": "Scope: website_legal.read or website_contracts.read. One scope is sufficient.",
+        "x-required-scopes": [
+          "website_legal.read",
+          "website_contracts.read"
+        ],
+        "responses": {
+          "200": {
+            "description": "Published legal bundle",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Publication conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/website/customer-events": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Write a website customer event",
+        "description": "Scope: website_events.write. Idempotency-Key is required.",
+        "x-required-scopes": [
+          "website_events.write"
+        ],
+        "x-idempotency-required": true,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -1088,7 +1555,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-24.1"
+            "const": "2026-07-24.2"
           },
           "configuration": {
             "type": "object",
@@ -2774,44 +3241,43 @@
           "price_area",
           "reference_type",
           "reference_period",
-          "as_of",
+          "price_sek_per_kwh",
+          "price_ore_per_kwh",
+          "price_ex_vat_sek_per_kwh",
+          "price_ex_vat_ore_per_kwh",
+          "requested_days",
+          "included_days",
+          "source_as_of",
+          "generated_at",
+          "stale_after",
+          "effective_stale_at",
           "unit",
+          "includes_vat",
+          "includes_supplier_fees",
+          "includes_grid_fees",
           "is_indicative",
           "is_stale",
           "fallback_used"
         ],
         "properties": {
           "provider": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "price_area": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "enum": [
               "SE1",
               "SE2",
               "SE3",
-              "SE4",
-              null
+              "SE4"
             ]
           },
           "reference_type": {
             "type": "string",
-            "enum": [
-              "preview",
-              "settlement"
-            ]
+            "const": "preview"
           },
           "reference_period": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "period_start": {
             "type": [
@@ -2871,10 +3337,57 @@
               "string",
               "null"
             ]
+          },
+          "price_sek_per_kwh": {
+            "type": "number",
+            "description": "Canonical market reference in SEK/kWh. May be negative."
+          },
+          "price_ore_per_kwh": {
+            "type": "number",
+            "description": "Canonical market reference in öre/kWh. Equals price_sek_per_kwh × 100 and may be negative."
+          },
+          "price_ex_vat_sek_per_kwh": {
+            "type": "number"
+          },
+          "price_ex_vat_ore_per_kwh": {
+            "type": "number"
+          },
+          "requested_days": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "included_days": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "source_as_of": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp derived from the newest underlying provider evidence."
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the preview calculation was generated."
+          },
+          "stale_after": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effective_stale_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Minimum of the global preview limit and tenant max_age_minutes applied to source_as_of."
+          },
+          "source_resolution": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "additionalProperties": true,
-        "description": "Proveniens för marknadsreferensen. preview är indikativ och får aldrig användas som slutligt settlementunderlag."
+        "description": "Self-contained market reference used by the OPS quote. preview is indicative and never final settlement evidence. requested_days and included_days expose window completeness. A partial fallback is returned only when tenant policy allows it."
       },
       "PowerOfAttorneyInput": {
         "type": "object",
@@ -3031,6 +3544,231 @@
             "format": "date-time"
           }
         }
+      },
+      "CurrentMarketPriceRequest": {
+        "type": "object",
+        "required": [
+          "resolution_id"
+        ],
+        "properties": {
+          "resolution_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "price_area": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4",
+              null
+            ],
+            "description": "Optional assertion only. It cannot override the canonical area stored on resolution_id."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CurrentMarketPrice": {
+        "type": "object",
+        "required": [
+          "provider",
+          "resolution_id",
+          "price_area",
+          "reference_type",
+          "resolution",
+          "time_start",
+          "time_end",
+          "price_sek_per_kwh",
+          "price_ore_per_kwh",
+          "price_ex_vat_sek_per_kwh",
+          "price_ex_vat_ore_per_kwh",
+          "includes_vat",
+          "includes_supplier_fees",
+          "includes_grid_fees",
+          "is_indicative",
+          "is_stale",
+          "source_as_of",
+          "next_update_at"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "resolution_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "price_area": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "reference_type": {
+            "type": "string",
+            "const": "current_interval"
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "hourly",
+              "quarterly"
+            ]
+          },
+          "time_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "time_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "price_sek_per_kwh": {
+            "type": "number",
+            "description": "Current spot price in SEK/kWh, excluding VAT and all supplier/grid fees."
+          },
+          "price_ore_per_kwh": {
+            "type": "number",
+            "description": "Current spot price in öre/kWh. Equals price_sek_per_kwh × 100."
+          },
+          "price_ex_vat_sek_per_kwh": {
+            "type": "number",
+            "description": "May be negative. Decimal value is returned without local tenant rounding."
+          },
+          "price_ex_vat_ore_per_kwh": {
+            "type": "number",
+            "description": "May be negative. Decimal value is returned without local tenant rounding."
+          },
+          "includes_vat": {
+            "type": "boolean",
+            "const": false
+          },
+          "includes_supplier_fees": {
+            "type": "boolean",
+            "const": false
+          },
+          "includes_grid_fees": {
+            "type": "boolean",
+            "const": false
+          },
+          "is_indicative": {
+            "type": "boolean",
+            "const": false
+          },
+          "is_stale": {
+            "type": "boolean"
+          },
+          "source_as_of": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "next_update_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CurrentMarketPriceResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "request_id",
+          "contract_schema_version"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CurrentMarketPrice"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "const": "2026-07-24.2"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MarketPriceErrorEnvelope": {
+        "type": "object",
+        "required": [
+          "error",
+          "request_id"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "field",
+              "request_id",
+              "correlation_id",
+              "retryable"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalid_request",
+                  "invalid_json",
+                  "payload_too_large",
+                  "missing_scope",
+                  "rate_limited",
+                  "resolution_not_found",
+                  "resolution_expired",
+                  "resolution_not_ready",
+                  "price_area_mismatch",
+                  "current_market_price_unavailable",
+                  "market_price_stale",
+                  "market_price_provider_unavailable"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "field": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "request_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "correlation_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "details": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": true
+              }
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       }
     },
     "responses": {
@@ -3076,7 +3814,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-24.1",
+  "x-contract-schema-version": "2026-07-24.2",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

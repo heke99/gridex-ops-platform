@@ -22,7 +22,7 @@ function asRows(value: unknown): OpsHealthRow[] {
 }
 
 export async function getOpsHealth(): Promise<{ rows: OpsHealthRow[]; schemaReady: boolean }> {
-  const { data, error } = await supabaseService.rpc('gridex_ops_health_checks_v2')
+  const { data, error } = await supabaseService.rpc('gridex_ops_health_checks_v3')
   if (error) {
     if (isSchemaError(error)) {
       return {

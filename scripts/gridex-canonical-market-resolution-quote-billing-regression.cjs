@@ -30,7 +30,7 @@ includes('lib/pricing/spot/intervalCoverage.ts', [
 includes('__tests__/spot-interval-coverage.test.ts', ['96', '92', '100', 'gap', 'overlap', 'duplicate'], 'DST- och kvalitetsregressioner ska finnas')
 includes('lib/pricing/spot/elprisetJustNuClient.ts', ['AbortController', 'retry-after', '429', 'content-type', 'provider_not_published'], 'Providerklienten ska ha timeout, bounded retry och payloadvalidering')
 includes('lib/pricing/spot/spotImportJobs.ts', ['gridex_claim_spot_price_import_job', 'retry_wait', 'maxAttempts = 5'], 'Importen ska använda canonical jobb och bounded retries')
-includes('lib/pricing/spot/spotPriceImporter.ts', ['validateSpotPriceDay', 'market_price.import.started', 'market_price.period.verified', 'rebuildRollingMarketPreview'], 'Importen ska validera full coverage och skriva audit/preview')
+includes('lib/pricing/spot/spotPriceImporter.ts', ['validateSpotPriceDay', 'market_price.import.started', 'market_price.period.verified', 'rebuildMarketPreviews'], 'Importen ska validera full coverage och skriva audit/preview')
 excludes('lib/pricing/spot/spotPriceImporter.ts', ["intervals.length > 0 ? 'complete'"], 'Minst en prisrad får inte markera dygn komplett')
 
 includes('lib/pricing/priceSourceResolver.ts', ["purpose === \"quote_preview\"", ".eq(\"status\", \"locked\")", 'market_price_previews'], 'Preview och settlement ska använda separata datakällor')
@@ -62,15 +62,17 @@ includes('lib/energy/svkGeometryImport.ts', ['gridex_stage_energy_geodata_featur
 includes('supabase/migrations/20260724120000_canonical_market_resolution_quote_billing_flow.sql', ['energy_geodata_features_staging', 'geodata_version_id', 'gridex_promote_energy_geodata_version', 'is_active=false'], 'Geodata promotion ska byta aktiv polygonversion atomiskt och inaktivera borttagna features')
 includes('lib/energy/canonicalEnergyEvents.ts', ['CanonicalEnergyAuditError', 'attempt <= 3', "error.code === '23505'", "remediation_type: 'audit_event_repair'"], 'Applikationsaudit ska vara idempotent, ha bounded retry och eskalera ett bestående fel till remediation')
 
-for (const rel of ['docs/openapi/website-integration-v1.json', 'docs/openapi/customer-portal-v1.json']) {
-  const spec = json(rel)
-  check(spec.info?.version === '2026-07-24.1', `${rel} ska rapportera 2026-07-24.1`)
-  const quoteSchema = spec.components?.schemas?.WebsiteQuoteRequest ?? spec.components?.schemas?.QuoteRequest ?? {}
-  check(JSON.stringify(quoteSchema).includes('resolution_id'), `${rel} ska dokumentera resolution_id för quote`)
-  check(JSON.stringify(spec).includes('MarketReference'), `${rel} ska dokumentera market_reference`)
-}
+const websiteSpec = json('docs/openapi/website-integration-v1.json')
+const portalSpec = json('docs/openapi/customer-portal-v1.json')
+check(websiteSpec.info?.version === '2026-07-24.2', 'Website OpenAPI ska rapportera 2026-07-24.2')
+check(portalSpec.info?.version === '2026-07-24.2', 'Customer portal OpenAPI ska rapportera 2026-07-24.2')
+const quoteSchema = websiteSpec.components?.schemas?.WebsiteQuoteRequest ?? websiteSpec.components?.schemas?.QuoteRequest ?? {}
+check(JSON.stringify(quoteSchema).includes('resolution_id'), 'Website OpenAPI ska dokumentera resolution_id för quote')
+check(JSON.stringify(websiteSpec).includes('MarketReference'), 'Website OpenAPI ska dokumentera market_reference')
+check(Boolean(websiteSpec.paths?.['/api/v1/website/market-price/current']), 'Website OpenAPI ska dokumentera current market price')
+check(!Object.keys(portalSpec.paths ?? {}).some((route) => route.startsWith('/api/v1/website/')), 'Customer portal OpenAPI ska inte duplicera website-rutter')
 includes('docs/external-website-api-integration-guide.md', ['Preview är aldrig slutligt settlementpris', 'grid_area_address_mismatch', 'quote_reference'], 'Utvecklardokumentationen ska beskriva det canonicala flödet')
-includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-07-24.1'"], 'Runtime och dokumentation ska ha samma canonicala kontraktsversion')
+includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-07-24.2'"], 'Runtime och dokumentation ska ha samma canonicala kontraktsversion')
 includes('lib/website/publicContractApi.ts', ['WEBSITE_INTEGRATION_CONTRACT_VERSION'], 'Public contract runtime ska använda den canonicala kontraktsversionen')
 
 if (failures.length) {

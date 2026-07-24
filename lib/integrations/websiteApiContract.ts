@@ -66,6 +66,66 @@ export type ExternalApiMeta = {
   contract_schema_version?: typeof WEBSITE_INTEGRATION_CONTRACT_VERSION
 }
 
+
+export type MarketReference = {
+  provider: string
+  price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4'
+  reference_type: 'preview'
+  reference_period: string
+  price_sek_per_kwh: number
+  price_ore_per_kwh: number
+  price_ex_vat_sek_per_kwh: number
+  price_ex_vat_ore_per_kwh: number
+  requested_days: number
+  included_days: number
+  period_start: string | null
+  period_end: string | null
+  source_as_of: string
+  generated_at: string
+  stale_after: string
+  effective_stale_at: string
+  source_currency: 'SEK' | string
+  unit: 'sek_per_kwh'
+  includes_vat: boolean
+  includes_supplier_fees: boolean
+  includes_grid_fees: boolean
+  is_indicative: boolean
+  is_stale: boolean
+  fallback_used: boolean
+  fallback_reason: string | null
+  source_checksum: string | null
+}
+
+export type WebsiteCurrentMarketPriceRequest = {
+  resolution_id: string
+  price_area?: 'SE1' | 'SE2' | 'SE3' | 'SE4'
+}
+
+export type WebsiteCurrentMarketPriceResponse = {
+  data: {
+    provider: string
+    resolution_id: string
+    price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4'
+    reference_type: 'current_interval'
+    resolution: 'hourly' | 'quarterly'
+    time_start: string
+    time_end: string
+    price_sek_per_kwh: number
+    price_ore_per_kwh: number
+    price_ex_vat_sek_per_kwh: number
+    price_ex_vat_ore_per_kwh: number
+    includes_vat: false
+    includes_supplier_fees: false
+    includes_grid_fees: false
+    is_indicative: false
+    is_stale: boolean
+    source_as_of: string
+    next_update_at: string
+  }
+  request_id: string
+  contract_schema_version: typeof WEBSITE_INTEGRATION_CONTRACT_VERSION
+}
+
 export type WebsiteQuoteRequest = {
   offer_reference: OfferReference | string
   customer_type: ExternalCustomerType | 'company'
@@ -83,7 +143,7 @@ export type WebsiteQuoteResponse = {
     offer_reference: OfferReference | string
     valid_until: string
     resolution_id: string
-    market_reference?: Record<string, unknown>
+    market_reference?: MarketReference
     selected_area_price: null | {
       price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4'
       energy_price_ore_per_kwh: number

@@ -5,6 +5,7 @@ import {
   type IntegrationApiClient,
 } from '@/lib/integrations/apiAuth'
 import { portalIdentifiersFromRequest, resolvePortalCustomer, type CustomerPortalIdentifiers } from '@/lib/customer-portal/customerResolver'
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 export type LinkedPortalIdentity = {
   id: string | null
@@ -29,6 +30,7 @@ export type CustomerPortalApiContext = {
 export function customerPortalJson<T>(body: T, init: ResponseInit = {}) {
   const headers = new Headers(init.headers)
   headers.set('Cache-Control', 'no-store')
+  headers.set('X-Gridex-Contract-Version', WEBSITE_INTEGRATION_CONTRACT_VERSION)
   return NextResponse.json(body, { ...init, headers })
 }
 

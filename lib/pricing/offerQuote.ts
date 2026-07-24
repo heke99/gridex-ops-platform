@@ -7,6 +7,7 @@ import { buildCanonicalContractSnapshot } from "@/lib/pricing/contractSnapshot";
 import { finalizePricingPreview } from "@/lib/pricing/pricePreviewBuilder";
 import { calculatePriceComponents } from "@/lib/pricing/priceComponentCalculator";
 import {
+  MarketPriceResolutionError,
   resolveBasePriceSourceValues,
   resolvePricingConfiguration,
 } from "@/lib/pricing/priceSourceResolver";
@@ -50,13 +51,15 @@ export class OfferQuoteError extends Error {
   readonly code: string;
   readonly status: number;
   readonly field?: string;
+  readonly details?: Record<string, unknown>;
 
-  constructor(message: string, code: string, status = 422, field?: string) {
+  constructor(message: string, code: string, status = 422, field?: string, details?: Record<string, unknown>) {
     super(message);
     this.name = "OfferQuoteError";
     this.code = code;
     this.status = status;
     this.field = field;
+    this.details = details;
   }
 }
 
@@ -318,23 +321,31 @@ export async function calculateOfferQuote(input: {
     underlay,
     contract: null,
   });
-  const sourceValues = await resolveBasePriceSourceValues({
-    companyId: input.client.company_id,
-    priceArea: canonicalPriceArea as PriceArea,
-    billingMonth,
-    pricePlanVersionId: offer.price_plan_version_id,
-    fixedSekPerKwh:
-      selectedFixedPriceOrePerKwh !== null
-        ? selectedFixedPriceOrePerKwh / 100
-        : offer.fixed_price_ore_per_kwh !== null
-          ? offer.fixed_price_ore_per_kwh / 100
-          : null,
-    purpose: "quote_preview",
-    requiredResolution:
-      pricingInterval === "hourly" || pricingInterval === "quarterly"
-        ? pricingInterval
-        : "monthly",
-  });
+  let sourceValues: Awaited<ReturnType<typeof resolveBasePriceSourceValues>>;
+  try {
+    sourceValues = await resolveBasePriceSourceValues({
+      companyId: input.client.company_id,
+      priceArea: canonicalPriceArea as PriceArea,
+      billingMonth,
+      pricePlanVersionId: offer.price_plan_version_id,
+      fixedSekPerKwh:
+        selectedFixedPriceOrePerKwh !== null
+          ? selectedFixedPriceOrePerKwh / 100
+          : offer.fixed_price_ore_per_kwh !== null
+            ? offer.fixed_price_ore_per_kwh / 100
+            : null,
+      purpose: "quote_preview",
+      requiredResolution:
+        pricingInterval === "hourly" || pricingInterval === "quarterly"
+          ? pricingInterval
+          : "monthly",
+    });
+  } catch (error) {
+    if (error instanceof MarketPriceResolutionError) {
+      throw new OfferQuoteError(error.message, error.code, error.status, "resolution_id", error.details);
+    }
+    throw error;
+  }
   const requiredBaseSources = new Set(config.baseComponents.map((component) => component.sourceType));
   if (requiredBaseSources.has("spot") && sourceValues.spotSource?.is_stale === true) {
     throw new OfferQuoteError(

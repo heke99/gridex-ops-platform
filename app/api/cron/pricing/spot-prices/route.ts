@@ -3,7 +3,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { importSpotPricesForDay } from '@/lib/pricing/spot/spotPriceImporter'
 import { normalizeSpotAutoImportAreas } from '@/lib/pricing/spot/spotImportScheduler'
-import { previousStockholmCalendarDate, strictIsoDate } from '@/lib/time/stockholm'
+import {
+  currentStockholmCalendarDate,
+  nextStockholmCalendarDate,
+  previousStockholmCalendarDate,
+  stockholmHourForInstant,
+  strictIsoDate,
+} from '@/lib/time/stockholm'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -33,6 +39,12 @@ function parseForce(request: NextRequest): boolean {
   return ['1', 'true', 'yes'].includes((request.nextUrl.searchParams.get('force') ?? '').toLowerCase())
 }
 
+function shouldIncludeNextDay(request: NextRequest, now: Date): boolean {
+  const explicit = request.nextUrl.searchParams.get('include_next') ?? request.nextUrl.searchParams.get('includeNext')
+  if (explicit !== null) return ['1', 'true', 'yes'].includes(explicit.toLowerCase())
+  return stockholmHourForInstant(now) >= 13
+}
+
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
   if (request.nextUrl.searchParams.get('company_id') || request.nextUrl.searchParams.get('companyId')) {
@@ -41,10 +53,36 @@ export async function POST(request: NextRequest) {
 
   try {
     const requestedDate = request.nextUrl.searchParams.get('calendar_date') ?? request.nextUrl.searchParams.get('calendarDate')
-    const calendarDate = requestedDate ? strictIsoDate(requestedDate, 'calendar_date') : previousStockholmCalendarDate()
     const priceAreas = normalizeSpotAutoImportAreas(request.nextUrl.searchParams.get('price_areas') ?? request.nextUrl.searchParams.get('priceAreas'))
-    const result = await importSpotPricesForDay({ calendarDate, priceAreas, force: parseForce(request) })
-    return NextResponse.json({ ok: true, mode: 'preview', result })
+    const force = parseForce(request)
+    const now = new Date()
+    const dates = requestedDate
+      ? [strictIsoDate(requestedDate, 'calendar_date')]
+      : [
+          previousStockholmCalendarDate(now),
+          currentStockholmCalendarDate(now),
+          ...(shouldIncludeNextDay(request, now) ? [nextStockholmCalendarDate(now)] : []),
+        ]
+
+    const results = []
+    for (const calendarDate of dates) {
+      const currentDay = calendarDate === currentStockholmCalendarDate(now)
+      const nextDay = calendarDate === nextStockholmCalendarDate(now)
+      results.push(await importSpotPricesForDay({
+        calendarDate,
+        priceAreas,
+        // Current and next day are refreshed so source_as_of represents real
+        // provider evidence rather than a preview recalculation timestamp.
+        force: force || currentDay || nextDay,
+      }))
+    }
+
+    return NextResponse.json({
+      ok: true,
+      mode: 'preview',
+      calendar_dates: dates,
+      result: results,
+    })
   } catch (error) {
     return internalApiError({ context: 'spot_price_preview_cron_failed', error, code: 'spot_price_preview_cron_failed', message: 'Previewimporten av spotpris kunde inte slutföras.' })
   }

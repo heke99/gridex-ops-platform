@@ -5,7 +5,7 @@ import { fetchElprisetJustNuDay, SpotPriceProviderError } from '@/lib/pricing/sp
 import { aggregateMonthlySpotPrices } from '@/lib/pricing/spot/monthlySpotAggregator'
 import { validateSpotPriceDay } from '@/lib/pricing/spot/intervalCoverage'
 import { claimSpotImportJob, completeSpotImportJob, failSpotImportJob } from '@/lib/pricing/spot/spotImportJobs'
-import { rebuildRollingMarketPreview } from '@/lib/pricing/spot/marketPreviewBuilder'
+import { rebuildMarketPreviews } from '@/lib/pricing/spot/marketPreviewBuilder'
 import { stockholmMonthBounds } from '@/lib/time/stockholm'
 
 const PROVIDER = 'elprisetjustnu'
@@ -67,12 +67,97 @@ async function emitMarketEvent(input: {
   if (error) console.error('[spot-price-import] audit_event_failed', { eventType: input.eventType, error })
 }
 
+
+async function verifyStoredCompleteDay(input: {
+  calendarDate: string
+  priceArea: PriceArea
+}): Promise<{ verified: boolean; intervalCount: number; checksum: string | null }> {
+  const { data: summary, error: summaryError } = await supabaseService
+    .from('spot_price_daily_summaries')
+    .select('status,source_checksum,interval_count')
+    .eq('source', PROVIDER)
+    .eq('price_area', input.priceArea)
+    .eq('price_date', input.calendarDate)
+    .maybeSingle()
+  if (summaryError) throw summaryError
+  if (summary?.status === 'verified' || summary?.status === 'locked') {
+    return {
+      verified: true,
+      intervalCount: Number(summary.interval_count ?? 0),
+      checksum: typeof summary.source_checksum === 'string' ? summary.source_checksum : null,
+    }
+  }
+  if (summary?.status !== 'complete') return { verified: false, intervalCount: 0, checksum: null }
+
+  const emptyCoverage = validateSpotPriceDay({
+    calendarDate: input.calendarDate,
+    priceArea: input.priceArea,
+    intervals: [],
+  })
+  const { data: stored, error: intervalError } = await supabaseService
+    .from('spot_price_intervals')
+    .select('source,price_area,time_start,time_end,sek_per_kwh,eur_per_kwh,exchange_rate,resolution')
+    .eq('source', PROVIDER)
+    .eq('price_area', input.priceArea)
+    .gte('time_start', emptyCoverage.periodStart)
+    .lt('time_start', emptyCoverage.periodEnd)
+    .order('time_start', { ascending: true })
+  if (intervalError) throw intervalError
+
+  const intervals = ((stored ?? []) as Array<Record<string, unknown>>).map(rowToInterval)
+  const coverage = validateSpotPriceDay({
+    calendarDate: input.calendarDate,
+    priceArea: input.priceArea,
+    intervals,
+  })
+  if (coverage.status !== 'complete') return { verified: false, intervalCount: intervals.length, checksum: null }
+
+  const sourceChecksum = checksum(coverage.sourceChecksumInput)
+  const verifiedAt = new Date().toISOString()
+  const { error: updateError } = await supabaseService
+    .from('spot_price_daily_summaries')
+    .update({
+      period_start: coverage.periodStart,
+      period_end: coverage.periodEnd,
+      average_sek_per_kwh: coverage.averageSekPerKwh,
+      min_sek_per_kwh: coverage.minSekPerKwh,
+      max_sek_per_kwh: coverage.maxSekPerKwh,
+      interval_count: coverage.intervalCount,
+      expected_interval_count: coverage.expectedIntervalCount,
+      covered_duration_minutes: coverage.coveredDurationMinutes,
+      expected_duration_minutes: coverage.expectedDurationMinutes,
+      resolution: coverage.resolution,
+      quality_issues: [],
+      verified_at: verifiedAt,
+      status: 'verified',
+      source_checksum: sourceChecksum,
+      updated_at: verifiedAt,
+    })
+    .eq('source', PROVIDER)
+    .eq('price_area', input.priceArea)
+    .eq('price_date', input.calendarDate)
+    .eq('status', 'complete')
+  if (updateError) throw updateError
+
+  return { verified: true, intervalCount: coverage.intervalCount, checksum: sourceChecksum }
+}
+
 export async function importSpotPricesForDayArea(input: {
   calendarDate: string
   priceArea: PriceArea
   fetchImpl?: typeof fetch
   force?: boolean
 }): Promise<{ imported: number; status: string; error?: string }> {
+  if (input.force !== true) {
+    const stored = await verifyStoredCompleteDay({
+      calendarDate: input.calendarDate,
+      priceArea: input.priceArea,
+    })
+    if (stored.verified) {
+      return { imported: 0, status: 'verified' }
+    }
+  }
+
   const job = await claimSpotImportJob({
     provider: PROVIDER,
     priceArea: input.priceArea,
@@ -297,7 +382,7 @@ export async function importSpotPricesForDay(input: {
     if (day.error) errors.push(`${priceArea} ${input.calendarDate}: ${day.error}`)
     if (day.status === 'verified' || day.status === 'completed') {
       try {
-        await rebuildRollingMarketPreview({ priceArea, provider: PROVIDER, referencePeriod: 'rolling_30_days' })
+        await rebuildMarketPreviews({ priceArea, provider: PROVIDER })
       } catch (error) {
         errors.push(`${priceArea} preview: ${error instanceof Error ? error.message : 'kunde inte byggas'}`)
       }
@@ -351,7 +436,7 @@ export async function importSpotPricesForMonth(input: {
       }
       result[priceArea] = await aggregateMonth(priceArea, input.billingMonth)
       try {
-        await rebuildRollingMarketPreview({ priceArea, provider: PROVIDER, referencePeriod: 'rolling_30_days' })
+        await rebuildMarketPreviews({ priceArea, provider: PROVIDER })
       } catch (error) {
         errors.push(`${priceArea} preview: ${error instanceof Error ? error.message : 'kunde inte byggas'}`)
       }
@@ -371,4 +456,77 @@ export async function importSpotPricesForMonth(input: {
       .eq('id', run.id)
     throw error
   }
+}
+
+
+function dateRange(startDate: string, endDate: string): string[] {
+  const start = Date.parse(`${startDate}T00:00:00Z`)
+  const end = Date.parse(`${endDate}T00:00:00Z`)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    throw new Error('Datumintervallet måste vara giltigt och startdatum får inte ligga efter slutdatum.')
+  }
+  const days: string[] = []
+  for (let value = start; value <= end; value += 24 * 60 * 60_000) {
+    days.push(new Date(value).toISOString().slice(0, 10))
+  }
+  return days
+}
+
+export async function ensureSpotPriceCoverage(input: {
+  startDate: string
+  endDate: string
+  priceAreas?: PriceArea[]
+  fetchImpl?: typeof fetch
+  force?: boolean
+}) {
+  const priceAreas = input.priceAreas?.length ? input.priceAreas : PRICE_AREAS
+  const dates = dateRange(input.startDate, input.endDate)
+  const { data, error } = await supabaseService
+    .from('spot_price_daily_summaries')
+    .select('price_area,price_date,status')
+    .eq('source', PROVIDER)
+    .in('price_area', priceAreas)
+    .gte('price_date', input.startDate)
+    .lte('price_date', input.endDate)
+  if (error) throw error
+
+  const statusByKey = new Map<string, string>()
+  for (const row of (data ?? []) as Array<Record<string, unknown>>) {
+    statusByKey.set(`${String(row.price_area)}:${String(row.price_date)}`, String(row.status))
+  }
+
+  const report: Record<string, unknown> = {
+    provider: PROVIDER,
+    start_date: input.startDate,
+    end_date: input.endDate,
+    imported: [],
+    already_verified: [],
+    failed: [],
+    previews: {},
+  }
+
+  for (const priceArea of priceAreas) {
+    for (const calendarDate of dates) {
+      const currentStatus = statusByKey.get(`${priceArea}:${calendarDate}`)
+      if (!input.force && (currentStatus === 'verified' || currentStatus === 'locked')) {
+        ;(report.already_verified as unknown[]).push({ price_area: priceArea, calendar_date: calendarDate, status: currentStatus })
+        continue
+      }
+      const result = await importSpotPricesForDayArea({
+        calendarDate,
+        priceArea,
+        fetchImpl: input.fetchImpl,
+        force: input.force === true || currentStatus !== 'complete',
+      })
+      const item = { price_area: priceArea, calendar_date: calendarDate, ...result }
+      if (result.error) (report.failed as unknown[]).push(item)
+      else (report.imported as unknown[]).push(item)
+    }
+    report.previews = {
+      ...(report.previews as Record<string, unknown>),
+      [priceArea]: await rebuildMarketPreviews({ priceArea, provider: PROVIDER }),
+    }
+  }
+
+  return report
 }

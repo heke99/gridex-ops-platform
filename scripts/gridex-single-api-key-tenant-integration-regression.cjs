@@ -75,8 +75,10 @@ for (const [name, spec] of [['website', websiteSpec], ['portal', portalSpec]]) {
   assert(JSON.stringify(setup.required_environment_variables) === JSON.stringify(['GRIDEX_API_KEY']), `${name} OpenAPI must require only GRIDEX_API_KEY`)
   assert(setup.api_base_url === 'https://app.gridex.se/api/v1', `${name} OpenAPI wrong base URL`)
   assert(setup.application_reference_location === 'top_level', `${name} OpenAPI wrong application reference location`)
-  assert(Boolean(spec.paths['/api/v1/openapi/website-integration-v1.json']), `${name} OpenAPI missing public website spec route`)
-  assert(Boolean(spec.paths['/api/v1/openapi/customer-portal-v1.json']), `${name} OpenAPI missing public portal spec route`)
+  const ownSpecRoute = name === 'website'
+    ? '/api/v1/openapi/website-integration-v1.json'
+    : '/api/v1/openapi/customer-portal-v1.json'
+  assert(Boolean(spec.paths[ownSpecRoute]), `${name} OpenAPI missing its public specification route`)
 }
 
 const requestSchema = websiteSpec.components.schemas.CustomerApplicationRequest
@@ -89,13 +91,8 @@ for (const field of ['offer_reference', 'quote_reference', 'resolution_id']) {
   assert(!requestSchema.properties.contract.properties[field], `contract must not define ${field}`)
 }
 
-const portalRequest = portalSpec.components.schemas.WebsiteCustomerApplicationRequest
-assert(portalRequest, 'Portal OpenAPI missing WebsiteCustomerApplicationRequest')
-for (const field of ['offer_reference', 'quote_reference', 'resolution_id']) {
-  assert(portalRequest.required.includes(field), `WebsiteCustomerApplicationRequest must require top-level ${field}`)
-  assert(Boolean(portalRequest.properties[field]), `WebsiteCustomerApplicationRequest missing top-level ${field}`)
-  assert(!portalRequest.properties.contract.properties[field], `Portal contract must not define ${field}`)
-}
+assert(!Object.keys(portalSpec.paths ?? {}).some((route) => route.startsWith('/api/v1/website/')), 'Portal OpenAPI must not duplicate website routes')
+assert(!portalSpec.components?.schemas?.WebsiteCustomerApplicationRequest, 'Portal OpenAPI must not duplicate website application schema')
 
 for (const rel of [
   'docs/external-website-api-integration-guide.md',
@@ -129,6 +126,7 @@ for (const scope of [
   'integration_context.read',
   'website_contracts.read',
   'website_energy_area.resolve',
+  'website_market_prices.read',
   'website_quotes.write',
   'website_quotes.validate',
   'website_legal.read',
@@ -136,7 +134,12 @@ for (const scope of [
   'website_switch_status.read',
 ]) {
   includes('lib/integrations/apiClientProfiles.ts', `'${scope}'`)
-  includes('supabase/migrations/20260724170000_single_api_key_tenant_website_integration.sql', `'${scope}'`)
+  includes(
+    scope === 'website_market_prices.read'
+      ? 'supabase/migrations/20260724223000_market_price_api_documentation_completion.sql'
+      : 'supabase/migrations/20260724170000_single_api_key_tenant_website_integration.sql',
+    `'${scope}'`,
+  )
 }
 includes('lib/integrations/apiClientProfiles.ts', "key: 'tenant_website'")
 includes('supabase/migrations/20260724170000_single_api_key_tenant_website_integration.sql', "'tenant_website'")

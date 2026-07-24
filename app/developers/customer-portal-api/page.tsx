@@ -50,6 +50,11 @@ const permissions = [
     "Skapa tenantbunden canonical resolution från adress och anläggningsuppgifter.",
   ],
   [
+    "Hämta aktuellt marknadspris",
+    "website_market_prices.read",
+    "Hämta aktuellt normaliserat spotpris för elområdet i en tenantbunden OPS-resolution.",
+  ],
+  [
     "Skapa quote",
     "website_quotes.write",
     "Skapa OPS-ägd quote från offer_reference och resolution_id.",
@@ -273,10 +278,106 @@ const publicContractsResponse = `{
   ]
 }`;
 
+const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-price/current" \
+  -H "Authorization: Bearer $GRIDEX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"resolution_id":"f8249704-7ce8-4885-93cb-fbb9922ed77d"}'
+
+{
+  "data": {
+    "provider": "elprisetjustnu",
+    "resolution_id": "f8249704-7ce8-4885-93cb-fbb9922ed77d",
+    "price_area": "SE3",
+    "reference_type": "current_interval",
+    "resolution": "quarterly",
+    "time_start": "2026-07-24T16:00:00+02:00",
+    "time_end": "2026-07-24T16:15:00+02:00",
+    "price_sek_per_kwh": 0.655699,
+    "price_ore_per_kwh": 65.5699,
+    "price_ex_vat_sek_per_kwh": 0.655699,
+    "price_ex_vat_ore_per_kwh": 65.5699,
+    "includes_vat": false,
+    "includes_supplier_fees": false,
+    "includes_grid_fees": false,
+    "is_indicative": false,
+    "is_stale": false,
+    "source_as_of": "2026-07-24T14:02:14Z",
+    "next_update_at": "2026-07-24T16:15:00+02:00"
+  },
+  "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
+  "contract_schema_version": "2026-07-24.2"
+}`;
+
+const marketReferenceExample = `{
+  "market_reference": {
+    "provider": "elprisetjustnu",
+    "price_area": "SE3",
+    "reference_type": "preview",
+    "reference_period": "rolling_30_days",
+    "price_sek_per_kwh": 0.655699,
+    "price_ore_per_kwh": 65.5699,
+    "price_ex_vat_sek_per_kwh": 0.655699,
+    "price_ex_vat_ore_per_kwh": 65.5699,
+    "requested_days": 30,
+    "included_days": 30,
+    "period_start": "2026-06-24",
+    "period_end": "2026-07-23",
+    "source_as_of": "2026-07-24T14:02:14Z",
+    "generated_at": "2026-07-24T14:05:00Z",
+    "stale_after": "2026-07-24T17:05:00Z",
+    "effective_stale_at": "2026-07-24T17:02:14Z",
+    "unit": "sek_per_kwh",
+    "includes_vat": false,
+    "includes_supplier_fees": false,
+    "includes_grid_fees": false,
+    "is_indicative": true,
+    "is_stale": false,
+    "fallback_used": false,
+    "fallback_reason": null
+  }
+}`;
+
+const marketPriceErrorExample = `{
+  "error": {
+    "code": "market_reference_window_incomplete",
+    "message": "En fullständig marknadsreferens saknas och tenantens policy tillåter inte partiell fallback.",
+    "field": "resolution_id",
+    "request_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+    "correlation_id": "0e4366ee-eb3c-426d-8e82-55ec01e94b21",
+    "retryable": true,
+    "details": {
+      "price_area": "SE3",
+      "requested_days": 30,
+      "included_days": 1,
+      "allow_indicative_latest": false
+    }
+  }
+}`;
+
+const marketPriceErrors = [
+  ['400', 'invalid_request', 'Begäran saknar eller innehåller ogiltiga fält.', 'Nej'],
+  ['401', 'invalid_api_key', 'API-nyckeln saknas eller är ogiltig.', 'Nej'],
+  ['403', 'missing_scope', 'Nyckeln saknar website_market_prices.read.', 'Nej'],
+  ['404', 'resolution_not_found', 'Resolutionen saknas eller tillhör inte tenant.', 'Nej'],
+  ['409', 'resolution_expired', 'Resolutionen har gått ut och måste lösas på nytt.', 'Nej'],
+  ['409', 'resolution_not_ready', 'OPS-resolutionen är inte redo för automatisk prisleverans.', 'Nej'],
+  ['409', 'price_area_mismatch', 'Inskickat price_area motsäger resolutionen.', 'Nej'],
+  ['409', 'market_price_stale', 'Provider-evidensen överskrider tenantens max_age_minutes.', 'Ja'],
+  ['429', 'rate_limited', 'Klienten har överskridit sin rate limit.', 'Ja'],
+  ['503', 'current_market_price_unavailable', 'Aktuellt intervall eller verifierad evidens saknas.', 'Ja'],
+  ['500', 'market_price_provider_unavailable', 'Ett oväntat provider- eller driftfel inträffade.', 'Ja'],
+] as const;
+
+
 const calculatorExample = `// Tenantens backend använder OPS canonicala flöde.
 const resolution = await gridex.post("/api/v1/website/energy-area/resolve", {
   street, postal_code, city, grid_area_code: claimedGridAreaCode
 })
+
+const currentPrice = await gridex.post("/api/v1/website/market-price/current", {
+  resolution_id: resolution.data.resolution_id
+})
+renderCurrentSpotPrice(currentPrice.data)
 
 const quote = await gridex.post("/api/v1/website/quote", {
   resolution_id: resolution.data.resolution_id,
@@ -289,8 +390,9 @@ const quote = await gridex.post("/api/v1/website/quote", {
 // Visa quote.data exakt. Bygg inte om energipris, avgifter, rabatt eller moms.
 renderPriceSummary(quote.data)
 
-// market_reference är indikativ provenance för rörligt pris.
-// Den är aldrig slutlig settlementdata för fakturering.`;
+// market-price/current är spotmarknaden för aktuellt intervall, inte komplett kundpris.
+// market_reference är den självbärande indikativa referensen som quote faktiskt använder.
+// Ingen av dem är slutlig settlementdata för fakturering.`;
 
 const publicContractsDiagnosticsExample = `curl -X GET "${apiBaseUrl}/website/public-contracts/diagnostics?customer_type=private" \\
   -H "Authorization: Bearer $GRIDEX_API_KEY" \\
@@ -833,6 +935,55 @@ export default function CustomerPortalApiDocsPage() {
             avtalskortets synliga delmängd. Värdet <code>0</code> är ett giltigt
             publicerat penningvärde; kontrollera uttryckligen null/undefined.
           </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="py-2">Operation</th>
+                  <th>Syfte</th>
+                  <th>Aktuellt spotpris</th>
+                  <th>Komplett kundpris</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b"><td className="py-2 font-mono text-xs">GET /website/public-contracts</td><td>Produkt- och urvalsfeed</td><td>Nej</td><td>Nej</td></tr>
+                <tr className="border-b"><td className="py-2 font-mono text-xs">POST /website/market-price/current</td><td>Aktuellt spotprisintervall</td><td>Ja</td><td>Nej</td></tr>
+                <tr><td className="py-2 font-mono text-xs">POST /website/quote</td><td>Canonical kundkalkyl</td><td>Som market_reference</td><td>Ja</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            <code>public-contracts</code> returnerar inte dynamiskt aktuellt spotpris.
+            Använd <code>market-price/current</code> när sidan ska visa "Elpriset just nu".
+            Det svaret är före moms, energiskatt, leverantörspåslag, månadsavgift,
+            fakturaavgift och elnätsavgifter. Använd alltid <code>quote</code> för kundens
+            kompletta beräkning.
+          </p>
+          <CodeBlock>{currentMarketPriceExample}</CodeBlock>
+          <CodeBlock>{marketReferenceExample}</CodeBlock>
+          <p>
+            <code>requested_days</code> beskriver önskat referensfönster och
+            <code>included_days</code> hur många verifierade dygn som faktiskt ingår.
+            En partiell fallback returneras endast om tenantens policy uttryckligen tillåter den.
+            <code>source_as_of</code> kommer från provider-evidensen medan
+            <code>generated_at</code> bara är beräkningstiden.
+          </p>
+          <CodeBlock>{marketPriceErrorExample}</CodeBlock>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead><tr className="border-b"><th className="py-2">HTTP</th><th>Kod</th><th>När</th><th>Retry</th></tr></thead>
+              <tbody>
+                {marketPriceErrors.map((row) => (
+                  <tr key={row[1]} className="border-b last:border-0">
+                    <td className="py-2 font-mono text-xs">{row[0]}</td>
+                    <td className="font-mono text-xs">{row[1]}</td>
+                    <td>{row[2]}</td>
+                    <td>{row[3]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p>
             Tenantens backend ska först skapa en tenantbunden områdesresolution
             och därefter en OPS-quote. Det gäller fastpris, rörligt månadspris,
@@ -1167,7 +1318,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
         </Section>
 
-        <Section title="11. Canonical integrationskontrakt 2026-07-24.1">
+        <Section title={`11. Canonical integrationskontrakt ${documentationVersion}`}>
           <h3 className="text-lg font-bold text-slate-900">Kundtyp och routes</h3>
           <p>
             Canonical kundtyper är <code>private</code> och <code>business</code>.
@@ -1210,9 +1361,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
           <p>
             OPS äger både den indikativa marknadsreferensen och slutlig settlement.
-            Quotens <code>market_reference</code> exponeras additivt med provider,
-            referensperiod, <code>as_of</code>, <code>is_indicative</code>, freshness
-            och fallback. Settlementdata exponeras inte som preview och får endast
+            Quotens <code>market_reference</code> är självbärande och innehåller direkt pris i SEK/kWh och öre/kWh, requested/included days, <code>source_as_of</code>, <code>generated_at</code>, effective freshness och fallback. Settlementdata exponeras inte som preview och får endast
             användas efter full täckning, verifiering och explicit immutable låsning.
           </p>
 
