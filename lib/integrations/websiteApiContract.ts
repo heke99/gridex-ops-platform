@@ -39,7 +39,7 @@ export type WebsitePublicContractPricing = {
   calculation_contract: {
     includes_all_applicable_components: true
     hidden_components_must_be_calculated: true
-    market_price_supplied_by_ops: true
+    market_price_supplied_by_ops: boolean
   }
   [key: string]: unknown
 }

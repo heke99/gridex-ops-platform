@@ -19,7 +19,7 @@ const migration = read(
 
 for (const [needle, label] of [
   ['requestedSpotIntervalResolution !== "monthly"', "monthly-only portfolio mix"],
-  ["Fastpris ska vara samma öre/kWh", "common fixed-price invariant"],
+  ["fixedPriceForArea", "area-specific fixed-price selection"],
   ['starts_on_mode: "contract_start"', "contract-start discount"],
   ["productionCompensationOrePerKwh", "production compensation snapshot"],
 ]) requireText(pricing, needle, label);

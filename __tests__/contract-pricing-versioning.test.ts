@@ -129,16 +129,26 @@ describe("contract pricing versioning snapshot", () => {
     expect(result.publicPriceText).toContain("Fast pris 85,5 öre/kWh");
   });
 
-  it("rejects different legacy fixed prices between price areas", () => {
-    expect(() =>
-      normalizeContractPricing({
-        name: "Fast felaktigt område",
-        contractType: "fixed",
-        customerType: "private",
-        priceAreas: "SE1,SE2",
-        fixedPricesByArea: "SE1|85\nSE2|99",
+  it("preserves different fixed prices as canonical rows for each price area", () => {
+    const result = normalizeContractPricing({
+      name: "Fast områdespris",
+      contractType: "fixed",
+      customerType: "private",
+      priceAreas: "SE1,SE2",
+      fixedPricesByArea: "SE1|85\nSE2|99",
+    });
+
+    expect(result.snapshot.base_components).toEqual([
+      expect.objectContaining({
+        price_area: "SE1",
+        fixed_price_sek_per_kwh: 0.85,
       }),
-    ).toThrow(/samma öre\/kWh/i);
+      expect.objectContaining({
+        price_area: "SE2",
+        fixed_price_sek_per_kwh: 0.99,
+      }),
+    ]);
+    expect(result.publicPriceText).toContain("Fast pris per elområde");
   });
 
   it("models percentage discounts as a negative percentage campaign component", () => {

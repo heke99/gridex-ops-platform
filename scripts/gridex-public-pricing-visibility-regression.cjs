@@ -36,6 +36,7 @@ must(!/\.\.\.\(offer\.pricing_snapshot/.test(responseProjection), 'API sprider i
 must(/portfolio_indications:\s*\[\]/.test(api), 'API exponerar inte interna marknadsindikationer')
 must(/schemaVersion\s*<\s*3/.test(api), 'legacy snapshots retain historic visibility')
 must(/offer\.contract_type === "fixed"/.test(api), 'fixed agreements force fixed-price disclosure in public API')
+must(/market_price_supplied_by_ops:\s*offer\.contract_type !== "fixed"/.test(api), 'fixed agreements do not claim a separate OPS market price')
 must(/input\.contractType === "fixed"/.test(pricing), 'new fixed-price versions force fixed-price disclosure')
 must(/visibilityLocked=\{contractType === "fixed"\}/.test(ui), 'admin cannot hide fixed kWh price on fixed agreements')
 must(/website_card_visible boolean not null default true/.test(originalMigration), 'database retains legacy card visibility')

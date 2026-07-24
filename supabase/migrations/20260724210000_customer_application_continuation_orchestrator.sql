@@ -215,7 +215,15 @@ grant execute on function public.gridex_transition_customer_application_workflow
 -- ---------------------------------------------------------------------------
 -- 4. Atomic provisioning commit + durable continuation job.
 -- ---------------------------------------------------------------------------
-create or replace function public.gridex_commit_customer_application_provisioning(
+-- PostgreSQL does not allow CREATE OR REPLACE to change a function's OUT-row
+-- shape. The previously deployed signature returned only (operation_id,state),
+-- while this version also returns workflow_id and continuation_job_id. Drop the
+-- exact overload before recreating it; callers are restored by the GRANT below.
+drop function if exists public.gridex_commit_customer_application_provisioning(
+  uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb
+);
+
+create function public.gridex_commit_customer_application_provisioning(
   p_company_id uuid,
   p_customer_application_id uuid,
   p_customer_id uuid,

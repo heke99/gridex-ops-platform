@@ -1040,7 +1040,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
       calculation_contract: {
         includes_all_applicable_components: true,
         hidden_components_must_be_calculated: true,
-        market_price_supplied_by_ops: true,
+        market_price_supplied_by_ops: offer.contract_type !== "fixed",
       },
       interval_resolution: clean(offer.pricing_snapshot?.interval_resolution),
       base_components: baseComponents,
@@ -1159,7 +1159,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
       calculation_contract: {
         includes_all_applicable_components: true,
         hidden_components_must_be_calculated: true,
-        market_price_supplied_by_ops: true,
+        market_price_supplied_by_ops: offer.contract_type !== "fixed",
       },
       portfolio_method: portfolioMethod,
       portfolio_monthly_prices: portfolioMonthlyPrices,

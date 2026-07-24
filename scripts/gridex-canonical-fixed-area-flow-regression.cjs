@@ -62,6 +62,12 @@ includes('app/api/v1/website/energy-area/resolve/route.ts', [
   "['website_energy_area.resolve']",
   'resolveEnergyContext',
 ], 'Tenantautentiserad OPS resolver ska vara aktiv')
+const apiAuth = read('lib/integrations/apiAuth.ts')
+check(
+  apiAuth.indexOf('const token = bearerToken(request)') > -1 &&
+    apiAuth.indexOf('const token = bearerToken(request)') < apiAuth.indexOf('await assertPlatformSchemaReady()'),
+  'Saknad API-token ska ge 401 före databas- och schemakontroll',
+)
 includes('app/api/v1/website/quote/route.ts', [
   "['website_quotes.write']",
   'calculateOfferQuote',
@@ -98,10 +104,14 @@ includes('lib/website/customerApplications.ts', [
   'contract.application_received',
   'contract.confirmation_sent',
 ], 'Kundmail ska gå genom samma idempotenta ansökningskedja')
+includes('lib/customer-operations/automation.ts', [
+  "case 'customer_application_continuation':",
+  'continueWebsiteCustomerApplication',
+], 'Den durable workern ska återuppta samma canonical kundansökan')
 includes('lib/website/customerApplications.ts', [
-  'enqueueCustomerDataRequestAutomation',
-  'ensureSupplierSwitchForReadyCustomer',
-], 'Uppgiftsbegäran och leverantörsbyte ska startas från samma canonical ansökan')
+  'processWebsiteApplicationIntake',
+  'evaluateAndRunNextCustomerStep',
+], 'Uppgiftsbegäran, Z01 och leverantörsbyte ska väljas från samma continuation-flöde')
 includes('lib/billing/underlayEngine.ts', [
   'contract_price_snapshots',
   'base_price_components_snapshot',

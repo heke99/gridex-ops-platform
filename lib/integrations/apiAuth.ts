@@ -256,13 +256,17 @@ export async function requireIntegrationApiAccess(
   request: NextRequest,
   requiredScopes: string[]
 ): Promise<IntegrationApiAuthResult> {
+  // Reject unauthenticated traffic before touching Supabase. Besides being the
+  // correct security boundary, this keeps public 401 responses deterministic
+  // during schema outages and prevents route tests from waiting on the network.
+  const token = bearerToken(request)
+  if (!token) return publicError({ status: 401, code: 'missing_api_token', message: 'API-token saknas.' })
+
   try {
     await assertPlatformSchemaReady()
   } catch {
     return publicError({ status: 503, code: 'platform_schema_not_ready', message: 'API:t är tillfälligt avstängt tills databasschemat är verifierat.' })
   }
-  const token = bearerToken(request)
-  if (!token) return publicError({ status: 401, code: 'missing_api_token', message: 'API-token saknas.' })
 
   const keyPrefix = token.slice(0, 12)
   const secretHash = hashIntegrationApiSecret(token)

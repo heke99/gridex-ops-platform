@@ -27,6 +27,7 @@ const openapi = fs.readFileSync(path.join(root, 'docs/openapi/website-integratio
 const lifecycle = read('lib/customer-notifications/notificationOrchestrator.ts')
 
 expect(migration.includes("'customer_application_continuation','queued'"), 'atomic commit creates the canonical continuation job')
+expect(migration.includes('drop function if exists public.gridex_commit_customer_application_provisioning('), 'migration drops the prior OUT-row signature before changing the return type')
 expect(migration.includes("'workflow_committed','completed'") && migration.includes("'external_automation_queued','completed'"), 'provisioning saga records commit and queued continuation')
 expect(migration.includes('for update skip locked') || read('supabase/migrations/20260618110000_customer_operation_automation_jobs.sql').includes('for update skip locked'), 'canonical job claim is atomic')
 expect(migration.includes('customer_application_workflow_events_idempotency_uidx'), 'workflow transitions have a unique idempotency identity')
