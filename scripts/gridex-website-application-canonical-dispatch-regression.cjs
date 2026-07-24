@@ -24,27 +24,30 @@ function expect(condition, message) {
 const website = read('lib/website/customerApplications.ts')
 const manual = read('lib/customer-operations/requestMissingFacilityInformation.ts')
 const requests = read('lib/energy/gridOwnerRequests.ts')
+const context = read('lib/energy/meteringPointContext.ts')
 const migration = read('supabase/migrations/20260708210000_website_application_canonical_dispatch_alignment.sql')
 
 expect(
-  /function explicitMeteringGridAreaCode/.test(website) &&
-    /function explicitMeteringPriceAreaCode/.test(website) &&
-    /function explicitMeteringGridOwnerId/.test(website),
-  'website flow has canonical metering context helpers',
+  /import \{ patchMeteringPointEnergyContext \} from ["']@\/lib\/energy\/meteringPointContext["']/.test(website) &&
+    /patchMeteringPointEnergyContext\(\{[\s\S]{0,220}companyId:[\s\S]{0,120}meteringPointId:[\s\S]{0,120}resolution:/.test(website),
+  'website flow applies the shared tenant-bound canonical metering context helper after onboarding',
 )
 expect(
-  /async function patchMeteringPointCanonicalFields/.test(website) &&
-    /\.from\(['"]metering_points['"]\)[\s\S]{0,500}\.update\(patch\)/.test(website) &&
-    /await patchMeteringPointCanonicalFields\(\{[\s\S]{0,260}existing\.id/.test(website),
-  'existing idempotent metering_points rows are patched with canonical fields',
+  /\.from\(['"]metering_points['"]\)/.test(context) &&
+    /\.eq\(['"]company_id['"], input\.companyId\)/.test(context) &&
+    /\.eq\(['"]id['"], input\.meteringPointId\)/.test(context) &&
+    /energy_resolution_id: input\.resolution\.resolutionId/.test(context),
+  'shared helper patches the exact tenant metering point and binds it to the canonical resolution',
 )
 expect(
-  /grid_area_code:\s*gridAreaCode/.test(website) &&
-    /price_area_code:\s*priceAreaCode/.test(website) &&
-    /bidding_zone_code:\s*priceAreaCode/.test(website) &&
-    /grid_owner_id:\s*gridOwnerId/.test(website) &&
-    /estimated_annual_consumption_kwh:\s*annualConsumption/.test(website),
-  'metering_points insert writes grid area, price area, bidding zone, grid owner and consumption canonical columns',
+  /grid_area_code: input\.resolution\.gridAreaCode/.test(context) &&
+    /price_area: canonicalArea/.test(context) &&
+    /price_area_code: canonicalArea/.test(context) &&
+    /bidding_zone_code: canonicalArea/.test(context) &&
+    /grid_owner_id: input\.resolution\.gridOwnerId/.test(context) &&
+    /resolution_status: ['"]needs_review['"]/.test(context) &&
+    /energy_context_conflicts/.test(context),
+  'canonical helper synchronizes full area context and blocks conflicting existing values for review',
 )
 expect(
   /const legalMailReady = Boolean\([\s\S]*WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS[\s\S]*agreementAttachment[\s\S]*contractLegalMailEvidenceReady/.test(website) &&

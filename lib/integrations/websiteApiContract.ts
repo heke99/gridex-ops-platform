@@ -30,7 +30,7 @@ export type WebsitePublicContractPricing = {
   markup?: Record<string, unknown> | null
   variable_fee?: Record<string, unknown> | null
   vat_rate: number | null
-  market_price_responsibility: 'tenant' | 'not_applicable'
+  market_price_responsibility: 'ops_quote' | 'not_applicable'
   calculation_components: WebsitePricingComponent[]
   components: WebsitePricingComponent[]
   display_components: WebsitePricingComponent[]
@@ -38,7 +38,7 @@ export type WebsitePublicContractPricing = {
   calculation_contract: {
     includes_all_applicable_components: true
     hidden_components_must_be_calculated: true
-    market_price_supplied_by_ops: false
+    market_price_supplied_by_ops: true
   }
   [key: string]: unknown
 }
@@ -62,13 +62,14 @@ export type ExternalApiMeta = {
   channel?: PublicationChannel
   publication_revision?: number
   publication_updated_at?: string | null
-  contract_schema_version?: '2026-07-23.1'
+  contract_schema_version?: '2026-07-24.1'
 }
 
 export type WebsiteQuoteRequest = {
   offer_reference: OfferReference | string
   customer_type: ExternalCustomerType | 'company'
-  price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4'
+  resolution_id: string
+  price_area?: 'SE1' | 'SE2' | 'SE3' | 'SE4'
   annual_consumption_kwh: number
   start_date: string
   grid_area_code?: string | null
@@ -80,6 +81,8 @@ export type WebsiteQuoteResponse = {
     quote_reference: QuoteReference | string
     offer_reference: OfferReference | string
     valid_until: string
+    resolution_id: string
+    market_reference?: Record<string, unknown>
     selected_area_price: null | {
       price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4'
       energy_price_ore_per_kwh: number

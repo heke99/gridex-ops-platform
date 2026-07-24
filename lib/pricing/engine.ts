@@ -373,11 +373,11 @@ export async function calculatePricingPreviewForUnderlay(input: {
     const spotImport = await ensureSpotPricesForBillingMonth({
       billingMonth,
       priceAreas: [underlay.priceArea as PriceArea],
-      reason: "pricing_preview",
+      reason: "billing_underlay",
     });
     if (spotImport.imported)
       warnings.push(
-        "Spotpris saknades och importerades automatiskt innan prisberäkningen kördes.",
+        "Spotprisunderlag saknades och importerades för verifiering. Perioden måste fortfarande låsas uttryckligen innan fakturering.",
       );
   }
 

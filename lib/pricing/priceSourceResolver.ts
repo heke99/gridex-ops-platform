@@ -539,64 +539,125 @@ export async function resolveBasePriceSourceValues(input: {
   fixedSekPerKwh?: number | null;
   manualSekPerKwh?: number | null;
   requiredResolution?: "monthly" | "hourly" | "quarterly";
+  purpose?: "quote_preview" | "settlement";
 }): Promise<BasePriceSourceValues> {
   const policies = await loadMarketPriceSourcePolicies(input.companyId);
   const requiredResolution = input.requiredResolution ?? "monthly";
-  const monthlyPolicies = policies.filter((policy) =>
+  const purpose = input.purpose ?? "settlement";
+  const matchingPolicies = policies.filter((policy) =>
     policySupports({ policy, priceArea: input.priceArea, resolution: requiredResolution }),
   );
-  const portfolioPolicy = monthlyPolicies[0]?.portfolioPolicy ?? "require_locked_period_price";
+  const portfolioPolicy = matchingPolicies[0]?.portfolioPolicy ?? "require_locked_period_price";
+  let spotRow: Record<string, unknown> | null = null;
 
-  let spotRows: Array<Record<string, unknown>> = [];
-  if (monthlyPolicies.length > 0) {
-    const exactSpot = await supabaseService
+  if (matchingPolicies.length > 0 && purpose === "settlement") {
+    const lockedSpot = await supabaseService
       .from("spot_price_monthly_summaries")
-      .select("id,source,price_area,billing_month,average_sek_per_kwh,status,locked_at,updated_at,interval_count,expected_interval_count")
-      .in("source", monthlyPolicies.map((policy) => policy.sourceKey))
+      .select("id,source,price_area,billing_month,period_start,period_end,average_sek_per_kwh,status,locked_at,locked_by,lock_reason,verified_at,provider_fetched_at,updated_at,interval_count,expected_interval_count,covered_duration_minutes,expected_duration_minutes,quality_issues,source_checksum")
+      .in("source", matchingPolicies.map((policy) => policy.sourceKey))
       .eq("price_area", input.priceArea)
       .eq("billing_month", input.billingMonth)
-      .in("status", ["complete", "locked"]);
-    if (exactSpot.error) throw exactSpot.error;
-    spotRows = (exactSpot.data ?? []) as Array<Record<string, unknown>>;
+      .eq("status", "locked")
+      .not("locked_at", "is", null);
+    if (lockedSpot.error) throw lockedSpot.error;
+    spotRow = selectMarketPriceRow(
+      (lockedSpot.data ?? []) as Array<Record<string, unknown>>,
+      matchingPolicies,
+      {
+        requiredResolution,
+        priceArea: input.priceArea,
+        enforceFreshness: false,
+        dataKind: "settlement",
+      },
+    );
   }
 
-  let selectedPolicies = monthlyPolicies;
-  let spotRow = selectMarketPriceRow(spotRows, selectedPolicies, {
-    requiredResolution,
-    priceArea: input.priceArea,
-    enforceFreshness: true,
-  });
-  let usedIndicativeFallback = false;
+  if (matchingPolicies.length > 0 && purpose === "quote_preview") {
+    const previewResult = await supabaseService
+      .from("market_price_previews")
+      .select("id,provider,price_area,reference_period,period_start,period_end,as_of,price_sek_per_kwh,source_currency,unit,includes_vat,includes_supplier_fees,includes_grid_fees,is_indicative,fallback_used,fallback_reason,stale_after,status,source_checksum,updated_at")
+      .in("provider", matchingPolicies.map((policy) => policy.sourceKey))
+      .eq("price_area", input.priceArea)
+      .eq("status", "active")
+      .order("as_of", { ascending: false })
+      .limit(20);
 
-  if (!spotRow) {
-    const fallbackPolicies = monthlyPolicies.filter(
-      (policy) =>
-        policy.allowIndicativeLatest &&
-        policy.forecastPolicy === "latest_available_indication",
-    );
-    if (fallbackPolicies.length > 0) {
-      const fallbackSpot = await supabaseService
-        .from("spot_price_monthly_summaries")
-        .select("id,source,price_area,billing_month,average_sek_per_kwh,status,locked_at,updated_at,interval_count,expected_interval_count")
-        .in("source", fallbackPolicies.map((policy) => policy.sourceKey))
+    if (previewResult.error && !databaseShapeError(previewResult.error)) throw previewResult.error;
+    const now = Date.now();
+    const candidates = ((previewResult.data ?? []) as Array<Record<string, unknown>>)
+      .filter((row) => numberValue(row.price_sek_per_kwh) !== null)
+      .sort((left, right) => Date.parse(String(right.as_of ?? 0)) - Date.parse(String(left.as_of ?? 0)));
+    const fresh = candidates.find((row) => {
+      const staleAt = Date.parse(String(row.stale_after ?? ""));
+      return Number.isFinite(staleAt) && staleAt > now;
+    });
+    const selectedPreview = fresh ?? candidates[0] ?? null;
+    if (selectedPreview) {
+      spotRow = {
+        ...selectedPreview,
+        id: selectedPreview.id,
+        source: selectedPreview.provider,
+        average_sek_per_kwh: selectedPreview.price_sek_per_kwh,
+        status: "preview",
+        market_data_timestamp: selectedPreview.as_of,
+        is_indicative: true,
+        is_stale: !fresh,
+        reference_type: "preview",
+      };
+    }
+
+    // Safe compatibility fallback while preview rows are being populated. Only
+    // verified/locked historical day evidence from the same area/provider may
+    // be used, and it remains explicitly indicative.
+    if (!spotRow) {
+      const daily = await supabaseService
+        .from("spot_price_daily_summaries")
+        .select("id,source,price_area,price_date,period_start,period_end,average_sek_per_kwh,status,verified_at,locked_at,provider_fetched_at,updated_at,source_checksum,covered_duration_minutes,expected_duration_minutes")
+        .in("source", matchingPolicies.map((policy) => policy.sourceKey))
         .eq("price_area", input.priceArea)
-        .lte("billing_month", input.billingMonth)
-        .in("status", ["complete", "locked"])
-        .order("billing_month", { ascending: false })
-        .order("updated_at", { ascending: false })
-        .limit(100);
-      if (fallbackSpot.error) throw fallbackSpot.error;
-      selectedPolicies = fallbackPolicies;
-      spotRow = selectMarketPriceRow(
-        (fallbackSpot.data ?? []) as Array<Record<string, unknown>>,
-        selectedPolicies,
-        {
-          requiredResolution,
-          priceArea: input.priceArea,
-          enforceFreshness: true,
-        },
-      );
-      usedIndicativeFallback = Boolean(spotRow);
+        .in("status", ["verified", "locked"])
+        .order("price_date", { ascending: false })
+        .limit(30);
+      if (daily.error && !databaseShapeError(daily.error)) throw daily.error;
+      const rows = (daily.data ?? []) as Array<Record<string, unknown>>;
+      const weightedRows = rows.filter((row) => numberValue(row.average_sek_per_kwh) !== null);
+      if (weightedRows.length > 0) {
+        const totalMinutes = weightedRows.reduce((sum, row) => sum + Math.max(0, numberValue(row.covered_duration_minutes) ?? numberValue(row.expected_duration_minutes) ?? 1440), 0);
+        const average = totalMinutes > 0
+          ? weightedRows.reduce((sum, row) => {
+              const minutes = Math.max(0, numberValue(row.covered_duration_minutes) ?? numberValue(row.expected_duration_minutes) ?? 1440);
+              return sum + (numberValue(row.average_sek_per_kwh) ?? 0) * minutes;
+            }, 0) / totalMinutes
+          : weightedRows.reduce((sum, row) => sum + (numberValue(row.average_sek_per_kwh) ?? 0), 0) / weightedRows.length;
+        const latest = weightedRows[0];
+        const oldest = weightedRows[weightedRows.length - 1];
+        const policy = matchingPolicies.find((candidate) => candidate.sourceKey === String(latest.source)) ?? matchingPolicies[0];
+        const asOf = stringValue(latest.updated_at) ?? stringValue(latest.verified_at) ?? stringValue(latest.locked_at);
+        const ageMinutes = asOf ? Math.max(0, Date.now() - Date.parse(asOf)) / 60_000 : Number.POSITIVE_INFINITY;
+        spotRow = {
+          id: null,
+          source: latest.source,
+          price_area: input.priceArea,
+          average_sek_per_kwh: average,
+          status: "preview",
+          reference_type: "preview",
+          reference_period: weightedRows.length >= 30 ? "rolling_30_days" : "latest_verified_days",
+          period_start: oldest.price_date,
+          period_end: latest.price_date,
+          as_of: asOf,
+          market_data_timestamp: asOf,
+          source_currency: "SEK",
+          unit: "sek_per_kwh",
+          includes_vat: false,
+          includes_supplier_fees: false,
+          includes_grid_fees: false,
+          is_indicative: true,
+          is_stale: !Number.isFinite(ageMinutes) || ageMinutes > policy.maxAgeMinutes,
+          fallback_used: true,
+          fallback_reason: "preview_cache_missing",
+          source_summary_ids: weightedRows.map((row) => row.id).filter(Boolean),
+        };
+      }
     }
   }
 
@@ -607,6 +668,7 @@ export async function resolveBasePriceSourceValues(input: {
   if (portfolio.error && portfolio.error.code !== "PGRST116") throw portfolio.error;
   const portfolioRow = portfolio.data;
 
+  const isPreview = purpose === "quote_preview";
   return {
     spotSekPerKwh: numberValue(spotRow?.average_sek_per_kwh),
     portfolioSekPerKwh: (() => {
@@ -618,17 +680,32 @@ export async function resolveBasePriceSourceValues(input: {
     spotSource: spotRow
       ? {
           spot_price_summary_id: stringValue(spotRow.id),
+          provider: stringValue(spotRow.provider) ?? stringValue(spotRow.source),
           source: stringValue(spotRow.source),
+          price_area: stringValue(spotRow.price_area) ?? input.priceArea,
+          reference_type: isPreview ? "preview" : "settlement",
+          reference_period: stringValue(spotRow.reference_period) ?? (isPreview ? "latest_verified_days" : "billing_month"),
+          period_start: stringValue(spotRow.period_start),
+          period_end: stringValue(spotRow.period_end),
           delivery_month: stringValue(spotRow.billing_month),
           requested_delivery_month: input.billingMonth,
-          price_area: stringValue(spotRow.price_area),
           status: stringValue(spotRow.status),
+          verified_at: stringValue(spotRow.verified_at),
           locked_at: stringValue(spotRow.locked_at),
-          market_data_timestamp: stringValue(spotRow.updated_at),
+          as_of: stringValue(spotRow.as_of) ?? stringValue(spotRow.market_data_timestamp) ?? stringValue(spotRow.updated_at),
+          market_data_timestamp: stringValue(spotRow.as_of) ?? stringValue(spotRow.market_data_timestamp) ?? stringValue(spotRow.updated_at),
+          source_currency: stringValue(spotRow.source_currency) ?? "SEK",
+          unit: stringValue(spotRow.unit) ?? "sek_per_kwh",
+          includes_vat: spotRow.includes_vat === true,
+          includes_supplier_fees: spotRow.includes_supplier_fees === true,
+          includes_grid_fees: spotRow.includes_grid_fees === true,
           interval_count: numberValue(spotRow.interval_count),
           expected_interval_count: numberValue(spotRow.expected_interval_count),
-          is_indicative: usedIndicativeFallback,
-          fallback_policy: usedIndicativeFallback ? "latest_available_indication" : null,
+          is_indicative: isPreview,
+          is_stale: spotRow.is_stale === true,
+          fallback_used: spotRow.fallback_used === true,
+          fallback_reason: stringValue(spotRow.fallback_reason),
+          source_checksum: stringValue(spotRow.source_checksum),
         }
       : null,
     portfolioSource: portfolioRow

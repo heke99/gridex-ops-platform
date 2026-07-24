@@ -11,8 +11,8 @@ import { supabaseService } from '@/lib/supabase/service'
  *  - EDIEL inbound automation candidate lookup (lib/ediel/matching/customerMatcher.ts)
  *
  * Matching rules:
- *  - Private customer: normalized personal number → normalized email → phone (weak signal only)
- *  - Company customer: normalized org number → normalized email → phone (weak signal only)
+ *  - Private customer: normalized personal number → email/phone as candidate signals only
+ *  - Company customer: normalized org number → email/phone as candidate signals only
  *  - Matching never crosses tenants (company_id is always required).
  *  - Multiple distinct customers on a strong signal → `ambiguous` (needs review),
  *    never silently merged.
@@ -164,8 +164,9 @@ async function findCustomersBySignal(input: {
 
 /**
  * Match an incoming customer identity against existing customers in the same
- * tenant. Strong identity (person/org number) wins over email. Phone is only a
- * weak candidate signal and never produces an automatic match on its own.
+ * tenant. Only strong identity (person/org number) may produce an automatic
+ * match. Email and phone are weak candidate signals and never merge customers
+ * on their own.
  */
 export async function matchCustomerIdentity(input: CustomerMatchInput): Promise<CustomerMatchDecision> {
   if (!input.companyId) {
@@ -198,7 +199,7 @@ export async function matchCustomerIdentity(input: CustomerMatchInput): Promise<
       signal: 'email',
       normalizedValue: normalizeMatchEmail(input.email),
       rawValue: typeof input.email === 'string' ? input.email.trim() || null : null,
-      strength: 'medium',
+      strength: 'weak',
     },
     {
       signal: 'phone',

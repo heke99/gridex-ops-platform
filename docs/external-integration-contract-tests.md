@@ -48,7 +48,7 @@ No secrets in this file — env var *names* only.
 - Returns published offers only; `offer_reference` is HMAC-signed and is the
   only canonical selector (`WEBSITE_OFFER_REFERENCE_SECRET` — required in production)
 - `?diagnostics=1` returns tenant-scoped publication blockers for server-side support
-- `GET /api/public/energy-area?postal_code=` — removed before API 2026-07-23.1 and remains unavailable; returns `410 Gone`
+- `GET /api/public/energy-area?postal_code=` — removed before API 2026-07-24.1 and remains unavailable; returns `410 Gone`
   rate limit 60/min/IP
 
 ## 4. Resend (email provider)
@@ -107,7 +107,7 @@ No secrets in this file — env var *names* only.
 - Contract: bounded batches, safe re-entry (locks), JSON result summary
 - Smoke: call each with and without secret (staging checklist)
 
-## 11. Canonical fastpris, quote och kundkedja (`2026-07-23.1`)
+## 11. Canonical fastpris, quote och kundkedja (`2026-07-24.1`)
 
 - `GET /api/v1/website/public-contracts`: ett offer per produkt; SE1–SE4 ligger i `area_pricing`.
 - `POST /api/v1/website/energy-area/resolve`: kräver `website_energy_area.resolve` och tenantautentisering.
@@ -116,3 +116,7 @@ No secrets in this file — env var *names* only.
 - `POST /api/v1/website/customer-applications`: kräver `Idempotency-Key`; accepterar `external_customer_id` eller `external_customer_reference`; använder samma canonical kund/kundnummer genom portal, automation och fakturering.
 - `GET /api/public/energy-area`: fortsatt borttagen och returnerar `410 Gone`.
 - Kontraktstester ska verifiera att olika SE-priser inte ger fyra offers, att vald rad finns i quote och immutable billing snapshot samt att retry inte duplicerar mail, kund, avtal, uppgiftsbegäran eller leverantörsbyte.
+- Resolverkontrakt ska verifiera tenantisolering, expiry, gammal geodata, adress/nätområdesmismatch och att klientens `price_area` aldrig skriver över resolutionen.
+- Spotkontrakt ska verifiera 96-, 92- och 100-intervallsdygn, lucka, överlapp, dublett, timeout, 429, 5xx och providerdata som ännu inte publicerats.
+- Settlementkontrakt ska verifiera att endast `locked` månad får faktureras, att låst historik inte blir stale och att `market_reference.is_indicative=true` aldrig accepteras som settlement.
+- Cronkontrakt ska verifiera separat previewimport och settlementverifiering samt att settlementcron aldrig låser automatiskt.

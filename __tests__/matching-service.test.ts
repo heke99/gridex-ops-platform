@@ -107,7 +107,7 @@ describe('matchCustomerIdentity', () => {
     expect(decision.customer?.id).toBe('customer-org')
   })
 
-  it('falls back to email when no strong identity matches', async () => {
+  it('never auto-matches on email alone (weak signal)', async () => {
     state.tables.customers = [
       customer({ id: 'customer-email', normalized_personal_number: '999999999999', personal_number: null }),
     ]
@@ -118,9 +118,10 @@ describe('matchCustomerIdentity', () => {
       email: 'Anna@Example.com',
     })
 
-    expect(decision.outcome).toBe('matched')
-    expect(decision.matchedBy).toBe('email')
-    expect(decision.customer?.id).toBe('customer-email')
+    expect(decision.outcome).toBe('no_match')
+    expect(decision.customer).toBeNull()
+    expect(decision.candidates.map((candidate) => candidate.customer.id)).toContain('customer-email')
+    expect(decision.candidates.find((candidate) => candidate.customer.id === 'customer-email')?.strength).toBe('weak')
   })
 
   it('flags ambiguity (needs review) when a strong signal hits multiple customers', async () => {

@@ -13,6 +13,10 @@ import { logUsageEvent } from "@/lib/audit/actionLogger";
 import { getContractOfferById } from "@/lib/customer-contracts/db";
 import { isBusinessCustomerType } from "@/lib/customers/normalizeCustomerType";
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
+import {
+  matchCustomerIdentity,
+  type CustomerMatchDecision,
+} from "@/lib/customers/matchingService";
 
 type ExternalContractInput = {
   companySlug: string;
@@ -91,6 +95,43 @@ function hashKey(input: ExternalContractInput): string {
   return createHash("sha256").update(parts).digest("hex");
 }
 
+function shouldReplayExisting(status: string): boolean {
+  // A retryable failure continues on the same intake row. Running, completed
+  // and needs-review operations are replayed as their existing canonical state
+  // so a duplicate request never starts a parallel customer graph.
+  return status === "failed";
+}
+
+async function findExistingCustomerForIntake(input: {
+  companyId: string;
+  personalNumber: string | null;
+  orgNumber: string | null;
+  email: string | null;
+  phone: string | null;
+}): Promise<CustomerMatchDecision> {
+  return matchCustomerIdentity({
+    companyId: input.companyId,
+    personalNumber: input.personalNumber,
+    orgNumber: input.orgNumber,
+    email: input.email,
+    phone: input.phone,
+  });
+}
+
+async function ensureCustomerForIntake(input: {
+  companyId: string;
+  personalNumber: string | null;
+  orgNumber: string | null;
+  email: string | null;
+  phone: string | null;
+}): Promise<CustomerMatchDecision> {
+  // This preflight uses exactly the same tenant-scoped matcher as the website,
+  // admin and EDIEL entry points. Only person/org number may link a customer;
+  // email and phone remain review/audit candidates. The canonical onboarding
+  // RPC still performs the atomic final identity/facility/metering-point check.
+  return findExistingCustomerForIntake(input);
+}
+
 export function parseExternalContractFormData(
   formData: FormData,
 ): ExternalContractInput {
@@ -159,7 +200,7 @@ export async function createExternalContractIntake(
 
   if (
     existing?.id &&
-    ["needs_review", "created", "completed"].includes(String(existing.status ?? ""))
+    !shouldReplayExisting(String(existing.status ?? ""))
   ) {
     return {
       intakeId: String(existing.id),
@@ -217,6 +258,14 @@ export async function createExternalContractIntake(
   }
 
   try {
+    const customerMatch = await ensureCustomerForIntake({
+      companyId,
+      personalNumber: input.personalNumber,
+      orgNumber: input.orgNumber,
+      email: input.email,
+      phone: input.phone,
+    });
+
     const offer = input.contractOfferId
       ? await getContractOfferById(input.contractOfferId, companyId)
       : null;
@@ -229,10 +278,11 @@ export async function createExternalContractIntake(
         companyId,
         sourceId: intakeId,
       }),
-      matching_policy: "link_unique",
+      matching_policy: customerMatch.customer ? "link_selected" : "link_unique",
+      existing_customer_id: customerMatch.customer?.id ?? null,
       customer: {
         customer_type: input.customerType,
-        status: "pending_review",
+        status: "draft",
         first_name: input.firstName,
         last_name: input.lastName,
         full_name: displayName || input.email || "Extern ansökan",
@@ -242,7 +292,11 @@ export async function createExternalContractIntake(
         personal_number: input.personalNumber,
         org_number: input.orgNumber,
         source: "external_contract_intake",
-        metadata: { externalContractIntakeId: intakeId, validationIssues: issues },
+        metadata: {
+          externalContractIntakeId: intakeId,
+          validationIssues: issues,
+          customerMatch: customerMatch.auditMetadata,
+        },
       },
       contact: input.email || input.phone
         ? {
@@ -425,6 +479,7 @@ export async function createExternalContractIntake(
         case_id: result.task_id,
         correlation_id: result.correlation_id,
         issue_count: issues.length,
+        customer_match: customerMatch.auditMetadata,
       },
     });
 

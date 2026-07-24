@@ -34,12 +34,17 @@ function numeric(body: Record<string, unknown>, ...keys: string[]): number | nul
   return null
 }
 
+function retryableErrorCode(code: string): boolean {
+  return ['market_price_unavailable', 'market_price_stale', 'website_quote_validation_failed'].includes(code)
+}
+
 function responseError(input: {
   code: string
   message: string
   requestId: string
   field?: string | null
   details?: Record<string, unknown>
+  retryable?: boolean
 }) {
   return {
     error: {
@@ -47,13 +52,18 @@ function responseError(input: {
       message: input.message,
       field: input.field ?? null,
       request_id: input.requestId,
+      correlation_id: input.requestId,
+      retryable: input.retryable ?? retryableErrorCode(input.code),
       ...(input.details ? { details: input.details } : {}),
     },
     code: input.code,
+    error_code: input.code,
     message: input.message,
     field: input.field ?? null,
     details: input.details ?? null,
     request_id: input.requestId,
+    correlation_id: input.requestId,
+    retryable: input.retryable ?? retryableErrorCode(input.code),
   }
 }
 
@@ -118,6 +128,7 @@ export async function POST(request: NextRequest) {
       publicOffer,
       customerType: normalizedCustomerType.value,
       priceArea: text(body, 'price_area', 'priceArea', 'price_area_code', 'priceAreaCode')?.toUpperCase() ?? null,
+      resolutionId: text(body, 'resolution_id', 'resolutionId'),
       gridAreaCode: text(body, 'grid_area_code', 'gridAreaCode'),
       postalCode: text(body, 'postal_code', 'postalCode'),
       annualConsumptionKwh: numeric(body, 'annual_consumption_kwh', 'annualConsumptionKwh'),
@@ -140,6 +151,10 @@ export async function POST(request: NextRequest) {
           offer_reference: quote.offer_reference,
           valid_until: quote.valid_until,
           status: quote.status,
+          resolution_id: quote.energy_resolution_id,
+          resolver_version: quote.resolver_version,
+          geodata_version: quote.geodata_version,
+          market_reference: quote.market_reference,
           selected_area_price: (quote.quote_snapshot as Record<string, unknown>).selected_area_price ?? null,
         },
         request_id: requestId,

@@ -1,8 +1,8 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-07-23.1**
+> **Canonical API-version: 2026-07-24.1**
 >
-> OPS levererar en canonical publicerad produkt, kompletta pris-/avgiftskomponenter, juridik och versionskopplingar. Fastprisets SE1–SE4-rader ligger under samma `offer_reference`. OPS tenant-skopade resolver och quote låser vald SE-prisrad före teckning; den oautentiserade legacyresolvern är fortsatt borttagen.
+> OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
 ## 1. Autentisering och tenantkontext
 
@@ -19,51 +19,47 @@ GET /api/v1/integration/context
 Scope: integration_context.read
 ```
 
-Skicka aldrig internt `company_id`, `tenant_id` eller databas-UUID som tenantväljare.
+Skicka aldrig internt `company_id`, `tenant_id` eller databas-UUID som tenantväljare. Alla resolutioner, quotes, ansökningar och idempotensposter binds till API-nyckelns tenant.
 
-## 2. Hämta publicerade avtal
+## 2. Canonical ordning
+
+```text
+GET public-contracts
+→ POST energy-area/resolve
+→ POST quote
+→ POST quote/validate
+→ POST customer-applications
+→ status/portal
+```
+
+En kundansökan utan canonical `quote_reference` och samma `resolution_id` avvisas. Klienten får inte hoppa direkt från produktfeed till avtal.
+
+## 3. Hämta publicerade avtal
 
 ```http
 GET /api/v1/website/public-contracts?customer_type=private
 Scope: website_contracts.read
 ```
 
-Canonical kundtyper är `private` och `business`. Aliaset `company` normaliseras till `business` under övergångsperioden.
+Canonical kundtyper är `private` och `business`. Aliaset `company` normaliseras till `business` under dokumenterad övergångsperiod.
 
-Feedens ETag är bunden till `tenant + channel`. Skicka `If-None-Match`; oförändrad feed ger `304 Not Modified`.
+Feedens ETag är bunden till `tenant + channel + contract_schema_version`. Skicka `If-None-Match`; oförändrad feed ger `304 Not Modified`.
 
-### Komplett beräkningskontrakt
+### En fastprisprodukt med flera områdesrader
 
-`public-contracts` returnerar alltid de prisdelar som behövs för en korrekt kalkyl:
-
-- fast pris per kWh för fastprisavtal;
-- spotpåslag;
-- rörlig avgift;
-- månadsavgift;
-- fakturaavgift;
-- elcertifikat, miljöavgifter och övriga avgifter;
-- momsstatus och momssats;
-- alla publicerade beräkningskomponenter;
-- presentationsregler.
-
-Dolda komponenter filtreras inte bort från API:t.
+Ett fastprisavtal publiceras en gång. SE1–SE4 är prisrader under samma produktversion och `offer_reference`:
 
 ```json
 {
   "offer_reference": "offer_...",
   "contract_type": "fixed",
-  "fixed_price_ore_per_kwh": 112,
-  "monthly_fee_sek": 49,
-  "invoice_fee_sek": 19,
+  "area_pricing": [
+    { "price_area": "SE1", "energy_price_ore_per_kwh": 112 },
+    { "price_area": "SE2", "energy_price_ore_per_kwh": 115 },
+    { "price_area": "SE3", "energy_price_ore_per_kwh": 128 },
+    { "price_area": "SE4", "energy_price_ore_per_kwh": 140 }
+  ],
   "pricing": {
-    "fixed_price": {
-      "amount": 112,
-      "unit": "ore_per_kwh",
-      "vat_included": false,
-      "vat_rate": 0.25,
-      "calculation_inclusion": "included",
-      "website_visibility": "visible"
-    },
     "calculation_components": [
       {
         "component_code": "monthly_fee",
@@ -79,84 +75,144 @@ Dolda komponenter filtreras inte bort från API:t.
         "calculation_inclusion": "included",
         "website_visibility": "summary_only"
       }
-    ],
-    "display_components": [
-      {
-        "component_code": "monthly_fee",
-        "amount": 49,
-        "unit": "sek_month",
-        "website_visibility": "visible"
-      }
-    ],
-    "calculation_contract": {
-      "includes_all_applicable_components": true,
-      "hidden_components_must_be_calculated": true,
-      "market_price_supplied_by_ops": false
-    }
+    ]
   }
 }
 ```
 
-### Beräkning och presentation är olika saker
+`calculation_components` innehåller alla publicerade pris- och avgiftsvillkor, även dolda komponenter. Dolda komponenter filtreras inte bort från kalkylunderlaget: en rad med `website_visibility=hidden` ska fortfarande ingå när `calculation_inclusion=included`. `display_components` styr endast presentation. Produktfeeden är inte en ersättning för kundens canonical quote.
 
-- `calculation_inclusion=included`: komponenten ska räknas med.
-- `calculation_inclusion=conditional`: komponenten ska räknas med när villkoret inträffar, exempelvis förtida uppsägning.
-- `calculation_inclusion=excluded`: komponenten ska inte ingå i aktuell kalkyl.
-- `website_visibility=visible`: får visas på avtalskortet.
-- `website_visibility=hidden`: visas inte som säljrad, men finns kvar i kalkylen.
-- `website_visibility=summary_only`: visas i fullständig prissammanställning men inte nödvändigtvis på avtalskortet.
+## 4. Lös elområdet
 
-`pricing.components` är ett kompatibilitetsalias för hela `pricing.calculation_components`. Använd `pricing.display_components` när avtalskortet renderas. `pricing.summary_components` innehåller de komponenter som får visas separat i en fullständig prissammanställning; totalsumman ska fortfarande använda hela `calculation_components`.
-
-## 3. Fastpris i tenantens kalkylator
-
-OPS fasta pris används direkt. Tenantens backend ska kombinera det med kundens förbrukning, samtliga tillämpliga avgifter och moms.
-
-```text
-månadsförbrukning = årsförbrukning / 12
-energikostnad exkl. moms = månadsförbrukning × fixed_price_ore_per_kwh / 100
-subtotal exkl. moms = energikostnad + alla included-komponenter
-månadskostnad inkl. moms = subtotal × (1 + vat_rate)
+```http
+POST /api/v1/website/energy-area/resolve
+Scope: website_energy_area.resolve
+Content-Type: application/json
 ```
 
-En avgift med `website_visibility=hidden` ska fortfarande ingå i subtotalen.
+```json
+{
+  "street": "Storgatan 1",
+  "postal_code": "21122",
+  "city": "Malmö",
+  "grid_area_code": "MALMO-CLAIM",
+  "facility_id": "optional",
+  "metering_point_id": "optional"
+}
+```
 
-## 4. Rörligt månads-, tim- och kvartspris
+`grid_area_code` är ett klientpåstående. När adress och kod finns korsvaliderar OPS dem mot canonical geodata. Påstående och adress som inte matchar ger:
 
-Tenantens backend ansvarar för att:
+```json
+{
+  "code": "grid_area_address_mismatch",
+  "resolution_status": "needs_review",
+  "automation_allowed": false
+}
+```
 
-1. lösa kundens prisområde;
-2. hämta extern marknadsprisindikation;
-3. välja egen leverantör och fallbackpolicy;
-4. kombinera marknadspriset med OPS-publicerade påslag och avgifter;
-5. visa att resultatet är indikativt;
-6. lämna en begriplig månads- och årssammanställning.
+Ett lyckat svar innehåller minst:
 
-OPS externa website-API returnerar inte:
+```json
+{
+  "data": {
+    "resolution_id": "uuid",
+    "price_area": "SE4",
+    "grid_area_code": "...",
+    "grid_owner": { "id": "uuid", "name": "..." },
+    "confidence": 0.98,
+    "resolution_status": "grid_area_master_validated",
+    "automation_allowed": true,
+    "resolver_version": "energy-resolver-v2",
+    "geodata_version": "svk_arcgis:...",
+    "resolved_at": "2026-07-24T13:30:00+02:00",
+    "expires_at": "2026-07-25T13:30:00+02:00"
+  }
+}
+```
 
-- Nord Pool-pris;
-- spotpris per månad;
-- tim- eller kvartsspotpris;
-- `market_sources`;
-- `market_data_timestamp`;
-- interna spotpris-ID:n;
-- OPS interna provider- eller fallbackpolicy.
+Resolutionen är tenantbunden och tidsbegränsad. Gammal geodata, låg confidence eller konflikt blockerar automation.
 
-OPS interna spotprisdata används fortsatt för fakturering, avräkning och settlement.
+SVK-geometrin är versionsstyrd. En ny polygonuppsättning blir aktiv först efter fullständig staging, coveragekontroll och atomisk promotion. `geodata_version` identifierar exakt vilken verifierad geodataversion som användes, och polygoner som saknas i en ny version inaktiveras i samma transaktion.
 
-## 5. Elområde
+## 5. Skapa quote
 
-Tenantens publika webbplats löser `price_area_code`, exempelvis `SE3`, själv.
+```http
+POST /api/v1/website/quote
+Scope: website_quotes.write
+```
 
-Vid kundansökan verifierar OPS:
+```json
+{
+  "resolution_id": "uuid",
+  "offer_reference": "offer_...",
+  "annual_consumption_kwh": 12000,
+  "customer_type": "private",
+  "start_date": "2026-09-01"
+}
+```
 
-- att värdet är ett giltigt svenskt prisområde;
-- att det valda avtalet är publicerat för området;
-- att tenant, avtalsversion och kundtyp matchar.
+`price_area` behöver inte skickas. Skickas det ändå behandlas det som ett påstående. Om det motsäger resolutionen returnerar OPS `409 price_area_mismatch` eller `409 quote_resolution_mismatch`; klientvärdet skriver aldrig över resolutionen.
 
-OPS kan senare verifiera nätområde, nätägare och anläggningsinformation internt inför leverantörsbyte.
+OPS quoten låser:
 
-## 6. Kundansökan
+- publicerad produkt- och publiceringsversion;
+- vald SE-områdesrad;
+- avgifter, rabatter och momsmodell;
+- resolver- och geodataversion;
+- indikativ marknadsreferens för rörliga avtal;
+- beräkningsantaganden och giltighetstid;
+- SHA-256-hash över immutable quote-snapshot.
+
+### Indikativ marknadsreferens
+
+För rörligt månads-, tim- och kvartspris kan quoten innehålla:
+
+```json
+{
+  "market_reference": {
+    "provider": "elprisetjustnu",
+    "price_area": "SE4",
+    "reference_type": "preview",
+    "reference_period": "rolling_30_days",
+    "period_start": "2026-06-25",
+    "period_end": "2026-07-24",
+    "as_of": "2026-07-24T13:30:00+02:00",
+    "source_currency": "SEK",
+    "unit": "sek_per_kwh",
+    "includes_vat": false,
+    "includes_supplier_fees": false,
+    "includes_grid_fees": false,
+    "is_indicative": true,
+    "is_stale": false,
+    "fallback_used": false
+  }
+}
+```
+
+Tenant får visa quoten men får inte bygga om energipris, påslag, avgifter, rabatt, moms eller prisområde. Preview är aldrig slutligt settlementpris.
+
+### Freshness och fallback
+
+Preview väljs i denna ordning:
+
+1. färsk providerdata;
+2. färsk OPS-cache;
+3. senast verifierad preview inom tenantens tillåtna maxålder;
+4. inget pris.
+
+Fallback anges med `fallback_used`, `fallback_reason` och `is_stale`. Quote blockeras när affärens freshnesskrav inte uppfylls. OPS hittar aldrig på ett pris, byter aldrig SE-område och använder inte settlement som om det vore livepris.
+
+## 6. Validera quote
+
+```http
+POST /api/v1/website/quote/validate
+Scope: website_quotes.validate
+```
+
+Skicka samma `quote_reference`, `resolution_id`, `offer_reference`, kundtyp, förbrukning och startdatum som ska tecknas. OPS kontrollerar tenant, expiry, hash, publicerad version och resolution. Manipulation eller mismatch ger stabil maskinläsbar felkod.
+
+## 7. Skicka kundansökan
 
 ```http
 POST /api/v1/website/customer-applications
@@ -164,11 +220,11 @@ Scope: website_applications.write
 Idempotency-Key: required
 ```
 
-Exempel:
-
 ```json
 {
   "external_customer_id": "CUSTOMER-12345",
+  "quote_reference": "quote_...",
+  "resolution_id": "uuid",
   "offer_reference": "offer_...",
   "customer": {
     "customer_type": "private",
@@ -181,12 +237,13 @@ Exempel:
     "street": "Storgatan 1",
     "postal_code": "21122",
     "city": "Malmö",
-    "price_area_code": "SE4",
     "annual_consumption_kwh": 5000,
     "move_in_date": "2026-09-01"
   },
   "contract": {
     "offer_reference": "offer_...",
+    "quote_reference": "quote_...",
+    "resolution_id": "uuid",
     "requested_start_mode": "specific_date",
     "requested_start_date": "2026-09-01"
   },
@@ -200,27 +257,55 @@ Exempel:
 }
 ```
 
-`offer_reference` är den enda kommersiella väljaren. Skicka inte interna prisplans-, produkt- eller offer-UUID:n.
+`offer_reference` är den enda kommersiella produktväljaren. `quote_reference` och `resolution_id` måste matcha den validerade quoten. Dubbel submit med samma idempotency key och samma request hash returnerar samma canonicala kund-, site-, mätpunkts- och avtals-ID:n.
 
-`quote_reference` rekommenderas för nya integrationer. OPS validerar och konsumerar den mot samma tenant, `offer_reference`, kundtyp, SE-område, förbrukning och startdatum. Legacyklienter får tillfälligt utelämna den; OPS fryser då exakt publicerad version och vald SE-prisrad direkt.
+OPS använder samma tenantbundna kundmatchning i alla intakekanaler. Organisationsnummer eller verifierat personnummer väger starkare än e-post. E-post ensam slår inte automatiskt ihop osäker identitet.
 
-## 7. Juridik
+## 8. Avtal och fakturering
 
-OPS är source of truth för juridiska versioner och publika dokumentlänkar. Kraven är databasdrivna och kan variera med kundtyp, avtal, prismodell, kanal och fullmakt. Tenantens klient får inte anta ett fast antal dokument.
+Vid acceptans sparas en immutable pricing snapshot med:
 
-## 8. Canonical resolver och quote
+- quote-ID och quote-hash;
+- produkt-, publicerings-, prisplans- och juridikversion;
+- price area och area pricing row;
+- avgifter, rabatter och momsmodell;
+- resolver- och geodataversion;
+- marknadsreferensens provenance;
+- bindningstid, uppsägningstid, juridiska accepter och kanal.
 
-Aktiva tenantautentiserade endpoints:
+Fakturering läser kundavtalets snapshot, faktisk förbrukning och separat verifierad/explicit låst settlementperiod. Den läser inte dagens publicerade produktpris och använder aldrig preview som slutpris.
+
+## 9. Leverantörsbyte
+
+När anläggningsuppgifter saknas fortsätter samma idempotenta process med `request_site_information`. När canonical mätpunkt, fullmakt, avtal och route-readiness är kompletta fortsätter samma process-ID med `supplier_switch`. `needs_review` skapar inte en ny parallell process vid retry.
+
+## 10. Felkoder
+
+Centrala felkoder:
 
 ```text
-POST /api/v1/website/energy-area/resolve   scope website_energy_area.resolve
-POST /api/v1/website/quote                 scope website_quotes.write
-POST /api/v1/website/quote/validate        scope website_quotes.validate
+energy_area_unresolved
+energy_area_needs_review
+grid_area_address_mismatch
+resolution_not_found
+resolution_tenant_mismatch
+resolution_expired
+resolution_not_automation_ready
+price_area_mismatch
+market_price_unavailable
+market_price_stale
+market_price_incomplete
+market_price_provider_unavailable
+quote_expired
+quote_reference_mismatch
+quote_resolution_mismatch
+idempotency_conflict
+supplier_switch_not_ready
 ```
 
-Den gamla oautentiserade `GET /api/public/energy-area` returnerar fortsatt `410 Gone`. Quote-endpointen levererar inte ett nytt produktkort eller separat kundavtal; den fryser bara rätt prisrad inom samma publicerade produkt.
+Fel innehåller HTTP-status, `error.code`, kundtext, fält, `request_id`/correlation ID och där det är relevant retryability eller detaljer.
 
-## 9. Aktiv minimiuppsättning för en websiteintegration
+## 11. Scopes
 
 ```text
 integration_context.read
@@ -233,36 +318,22 @@ website_applications.write
 website_switch_status.read
 ```
 
-## 10. Diagnostics och publication webhook
-
-Canonical diagnostics:
+## 12. Diagnostics, cache och dokumentation
 
 ```http
 GET /api/v1/website/public-contracts/diagnostics
 Scope: website_contracts.diagnostics
 ```
 
-Publication-event:
-
-```text
-contracts.publication.changed
-```
-
-När revisionen ändras ska tenantens backend invalidiera sin cache och hämta feeden igen med ETag.
-
-## 11. Maskinläsbar dokumentation
+Publication-event: `contracts.publication.changed`. När revisionen ändras invalidierar tenantens backend sin cache och hämtar feeden igen med ETag.
 
 OpenAPI:
 
 ```text
 docs/openapi/website-integration-v1.json
+docs/openapi/customer-portal-v1.json
 ```
 
-Publik utvecklarsida:
+Publik utvecklarsida: `/developers/customer-portal-api`.
 
-```text
-/developers/customer-portal-api
-```
-
-
-API-svaret innehåller `contract_schema_version=2026-07-23.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
+API-svaret innehåller `contract_schema_version=2026-07-24.1` och headern `X-Gridex-Contract-Version`.

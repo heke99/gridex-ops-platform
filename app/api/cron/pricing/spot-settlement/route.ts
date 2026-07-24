@@ -1,9 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { importSpotPricesForDay } from '@/lib/pricing/spot/spotPriceImporter'
-import { normalizeSpotAutoImportAreas } from '@/lib/pricing/spot/spotImportScheduler'
-import { previousStockholmCalendarDate, strictIsoDate } from '@/lib/time/stockholm'
+import { ensureSpotPricesForBillingMonth, normalizeSpotAutoImportAreas, normalizeSpotAutoImportMonth } from '@/lib/pricing/spot/spotImportScheduler'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,17 +34,22 @@ function parseForce(request: NextRequest): boolean {
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
   if (request.nextUrl.searchParams.get('company_id') || request.nextUrl.searchParams.get('companyId')) {
-    return NextResponse.json({ ok: false, error: 'company_id får inte skickas till spotpris-cron. Spotpris är global marknadsdata per elområde.' }, { status: 400 })
+    return NextResponse.json({ ok: false, error: 'company_id får inte skickas till settlement-cron. Spotpris är global marknadsdata per elområde.' }, { status: 400 })
   }
 
   try {
-    const requestedDate = request.nextUrl.searchParams.get('calendar_date') ?? request.nextUrl.searchParams.get('calendarDate')
-    const calendarDate = requestedDate ? strictIsoDate(requestedDate, 'calendar_date') : previousStockholmCalendarDate()
+    const billingMonth = normalizeSpotAutoImportMonth(request.nextUrl.searchParams.get('billing_month') ?? request.nextUrl.searchParams.get('billingMonth'))
     const priceAreas = normalizeSpotAutoImportAreas(request.nextUrl.searchParams.get('price_areas') ?? request.nextUrl.searchParams.get('priceAreas'))
-    const result = await importSpotPricesForDay({ calendarDate, priceAreas, force: parseForce(request) })
-    return NextResponse.json({ ok: true, mode: 'preview', result })
+    const result = await ensureSpotPricesForBillingMonth({ billingMonth, priceAreas, force: parseForce(request), reason: 'cron' })
+    return NextResponse.json({
+      ok: true,
+      mode: 'settlement_verification',
+      settlement_locked: false,
+      message: 'Perioden importeras och verifieras. Låsning kräver separat explicit settlement-operation.',
+      result,
+    })
   } catch (error) {
-    return internalApiError({ context: 'spot_price_preview_cron_failed', error, code: 'spot_price_preview_cron_failed', message: 'Previewimporten av spotpris kunde inte slutföras.' })
+    return internalApiError({ context: 'spot_price_settlement_cron_failed', error, code: 'spot_price_settlement_cron_failed', message: 'Settlementförberedelsen av spotpris kunde inte slutföras.' })
   }
 }
 

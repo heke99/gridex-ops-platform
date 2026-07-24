@@ -37,19 +37,42 @@ export async function GET(request: NextRequest) {
       .limit(1)
       .maybeSingle()
     if (error) throw error
-    if (!data?.id) return NextResponse.json({ ok: true, resumed: false, reason: 'no_running_import' })
-    const metadata = data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
-      ? data.metadata as Record<string, unknown>
-      : {}
+    if (data?.id) {
+      const metadata = data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
+        ? data.metadata as Record<string, unknown>
+        : {}
+      const result = await runSvkGeometryImport({
+        runId: String(data.id),
+        serviceUrl: metadata.service_url,
+        layerId: metadata.layer_id,
+        limit: metadata.page_size,
+        offset: metadata.next_offset,
+        actorUserId: process.env.GRIDEX_AUTOMATION_USER_ID ?? null,
+      })
+      return NextResponse.json({ ok: true, resumed: true, started: false, result })
+    }
+
+    const maxAgeDaysRaw = Number(process.env.ENERGY_GEODATA_MAX_AGE_DAYS ?? '30')
+    const maxAgeDays = Number.isFinite(maxAgeDaysRaw) ? Math.min(Math.max(maxAgeDaysRaw, 1), 365) : 30
+    const latest = await supabaseService
+      .from('energy_geodata_versions')
+      .select('version_key,verified_at,completed_at')
+      .eq('provider', 'svk_arcgis')
+      .eq('status', 'verified')
+      .order('verified_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (latest.error) throw latest.error
+    const verifiedAt = latest.data?.verified_at ?? latest.data?.completed_at ?? null
+    const stale = !verifiedAt || Date.now() - Date.parse(String(verifiedAt)) > maxAgeDays * 24 * 60 * 60 * 1000
+    if (!stale) {
+      return NextResponse.json({ ok: true, resumed: false, started: false, reason: 'verified_geodata_is_fresh', geodata_version: latest.data?.version_key ?? null })
+    }
+
     const result = await runSvkGeometryImport({
-      runId: String(data.id),
-      serviceUrl: metadata.service_url,
-      layerId: metadata.layer_id,
-      limit: metadata.page_size,
-      offset: metadata.next_offset,
       actorUserId: process.env.GRIDEX_AUTOMATION_USER_ID ?? null,
     })
-    return NextResponse.json({ ok: true, resumed: true, result })
+    return NextResponse.json({ ok: true, resumed: false, started: true, reason: 'geodata_missing_or_stale', result })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[svk-geometry-import-cron] failed', { traceId, error })

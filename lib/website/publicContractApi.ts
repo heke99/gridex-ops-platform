@@ -52,7 +52,7 @@ export function parsePublicContractsQuery(request: NextRequest): PublicContracts
   }
 }
 
-export const PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION = '2026-07-23.1' as const
+export const PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION = '2026-07-24.1' as const
 
 export type PublicationRevision = {
   revision: number

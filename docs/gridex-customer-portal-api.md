@@ -2,7 +2,7 @@
 
 Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
-Dokumentationsversion: `2026-07-20.2`.
+Dokumentationsversion: `2026-07-24.1`.
 
 ## Grundmodell
 
@@ -174,13 +174,13 @@ kräver `website_contracts.read`. API-nyckeln bestämmer bolaget och
 
 - `method`: den publika avtalsmetoden utan interna portfölj- eller versions-ID:n;
 - `historical_final_prices`: sanerade finala eller låsta historikrader med månad, elområde, belopp, enhet, momsstatus och status;
-- `market_price_responsibility=tenant`;
-- `calculator_market_price_supplied_by_ops=false`;
+- `market_price_responsibility=ops_quote`;
+- `calculator_market_price_supplied_by_ops=true`;
 - `final_billing_rule=locked_settlement_only`.
 
-Endpointen returnerar inga prognoser, manuella indikationer, marknadskällor, interna prisplansversions-ID:n, juridikpakets-ID:n, avräkningsrevisioner eller portfölj-ID:n. Historikraderna får inte användas som aktuellt marknadspris i tenantens publika kalkylator. Tenantens backend hämtar själv det marknadspris som används för en indikativ beräkning.
+Historiska portföljrader får inte användas som aktuell marknadsreferens i tenantens kalkylator. För kundspecifik preview skapar tenantens backend i stället en OPS-quote. Quotens additiva `market_reference` anger provider, prisområde, referensperiod, `as_of`, freshness, fallback och att värdet är indikativt.
 
-OPS fortsätter internt att använda exakt `delivery_month`, revision, prisplansversion och låst settlement vid faktisk avräkning och fakturering. Den interna modellen exponeras inte som tenantens publika marknadspriskälla.
+OPS använder separat verifierad och explicit låst settlement vid faktisk avräkning och fakturering. Preview och settlement är skilda datatyper; `market_reference` får aldrig användas som slutligt fakturapris.
 
 ## Scopes
 
@@ -215,7 +215,7 @@ Fel returneras alltid som JSON `{ "error": "...", "code": "..." }`, aldrig som H
 - `500 customer_portal_internal_error`
 - `503 customer_portal_schema_missing`
 
-## Canonical fastpris, quote och teckningsflöde (`2026-07-23.1`)
+## Canonical fastpris, quote och teckningsflöde (`2026-07-24.1`)
 
 Den aktiva integrationsordningen är:
 
@@ -223,7 +223,11 @@ Den aktiva integrationsordningen är:
 2. `POST /api/v1/website/energy-area/resolve` använder OPS tenant-skopade canonical resolver för prisområde, nätområde och nätägare. Den gamla oautentiserade `GET /api/public/energy-area` är fortsatt borttagen.
 3. `POST /api/v1/website/quote` skapar en tenantbunden quote som fryser exakt publicerad version, valt SE-område, vald områdesprisrad, förbrukning, startdatum, avgifter, moms och beräkningsantaganden.
 4. `POST /api/v1/website/quote/validate` validerar samma bindning före teckning.
-5. `POST /api/v1/website/customer-applications` konsumerar `quote_reference`, skapar eller återanvänder en canonical kund och ett kundnummer, skapar en anläggningsbunden avtalsrelation och låser vald SE-prisrad i avtalets pris-/faktureringssnapshot. Legacyklienter får tillfälligt utelämna quote; OPS fryser då samma publicerade version direkt.
+5. `POST /api/v1/website/customer-applications` konsumerar `quote_reference`, skapar eller återanvänder en canonical kund och ett kundnummer, skapar en anläggningsbunden avtalsrelation och låser vald SE-prisrad i avtalets pris-/faktureringssnapshot. Kundansökan kräver canonical `quote_reference` och samma `resolution_id`; ingen legacyfallback skapar avtal utan quote.
+
+Kundansökan kan även skicka aktuell leverantörsidentitet, inklusive `current_supplier_ediel_id`, när den är känd. Svaret skiljer på om ett leverantörsbytesärende kan skapas och om det faktiskt får skickas: `can_create_supplier_switch_request` kan vara `true` samtidigt som `can_dispatch_supplier_switch` är `false` tills mätpunkt, fullmakt, nuvarande leverantör och övriga readinesskrav är verifierade.
+
+`resolution_id` är obligatoriskt i quote och teckning. OPS läser området genom `company_id + resolution_id`, kontrollerar expiry, automation-readiness, resolverversion och geodataversion och avvisar motstridigt `price_area` eller `grid_area_code`. För rörliga avtal innehåller quoten en additiv `market_reference` med provider, referensperiod, `as_of`, `is_indicative`, `is_stale` och fallbackmetadata. Preview får aldrig användas som settlement.
 
 För fastpris gäller:
 
@@ -242,7 +246,7 @@ För penningvärden gäller:
 - använd aldrig truthy/falsy-kontroller för pengar;
 - kontrollera uttryckligen `value === null || value === undefined`.
 
-Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-07-23.1`; versionsvärdet ingår i ETag-underlaget.
+Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-07-24.1`; versionsvärdet ingår i ETag-underlaget.
 
 ## Publication revision, cache och kanaler
 
@@ -259,4 +263,4 @@ API-nycklar är server-side secrets. `allowed_origins` är ett kompletterande dr
 Nya publiceringar får en opak tenantoberoende referens i formatet `offer_<sha256>`. Redan publicerade referenser behålls exakt som de är eftersom de kan vara bundna till ansökningar, kundavtal, juridiska accepter och pris-snapshots. Klienten ska därför behandla värdet som en opak sträng och aldrig validera varumärke, UUID-format eller produktnamn lokalt.
 
 
-API-svaret innehåller `contract_schema_version=2026-07-23.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
+API-svaret innehåller `contract_schema_version=2026-07-24.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.

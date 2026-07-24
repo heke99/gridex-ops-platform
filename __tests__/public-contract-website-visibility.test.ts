@@ -150,9 +150,9 @@ describe("public contract calculation and website visibility", () => {
     expect(response.pricing.calculation_contract).toEqual({
       includes_all_applicable_components: true,
       hidden_components_must_be_calculated: true,
-      market_price_supplied_by_ops: false,
+      market_price_supplied_by_ops: true,
     });
-    expect(response.pricing.market_price_responsibility).toBe("tenant");
+    expect(response.pricing.market_price_responsibility).toBe("ops_quote");
   });
 
   it("always exposes and displays fixed price for fixed agreements", () => {

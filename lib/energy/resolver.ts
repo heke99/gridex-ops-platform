@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { recordCanonicalEnergyEvent } from '@/lib/energy/canonicalEnergyEvents'
 import { normaliseSwedishAddress } from '@/lib/energy/address'
 import type {
   EnergyResolverDiagnostics,
@@ -11,6 +12,9 @@ import { getGridOwnerVerification } from '@/lib/grid-owners/verification'
 
 const PRICE_AREAS: PriceArea[] = ['SE1', 'SE2', 'SE3', 'SE4']
 const GEOCODE_TIMEOUT_MS = 10_000
+const RESOLVER_VERSION = 'energy-resolver-v2'
+const DEFAULT_RESOLUTION_TTL_HOURS = 24
+const DEFAULT_GEODATA_MAX_AGE_DAYS = 30
 
 type Coordinates = {
   addressKey: string
@@ -134,6 +138,9 @@ function result(input: EnergyResolverInput, patch: Partial<EnergyResolverResult>
     nextRequiredAction: 'Granska adress- och nätområdesuppgifter manuellt.',
     lookupKey: lookupKey(input),
     warnings: [],
+    resolverVersion: RESOLVER_VERSION,
+    geodataVersion: null,
+    conflictCode: null,
     diagnostics: {
       addressAttempts: [],
       geocodeProvider: process.env.PAPILITE_GEOCODE_URL ? 'papilite' : null,
@@ -475,6 +482,31 @@ async function lookupPapilite(input: EnergyResolverInput): Promise<GeocodeLookup
   return { coordinates: null, warnings: [warning], diagnostics }
 }
 
+
+async function currentGeodataVersion(): Promise<{ version: string | null; stale: boolean }> {
+  const maxAgeDaysRaw = Number(process.env.ENERGY_GEODATA_MAX_AGE_DAYS ?? DEFAULT_GEODATA_MAX_AGE_DAYS)
+  const maxAgeDays = Number.isFinite(maxAgeDaysRaw) ? Math.min(Math.max(maxAgeDaysRaw, 1), 365) : DEFAULT_GEODATA_MAX_AGE_DAYS
+  const { data, error } = await supabaseService
+    .from('energy_geodata_versions')
+    .select('version_key,verified_at,completed_at,started_at')
+    .eq('provider', 'svk_arcgis')
+    .eq('status', 'verified')
+    .order('verified_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    if (missingSchema(error)) return { version: null, stale: true }
+    throw error
+  }
+  if (!data) return { version: null, stale: true }
+  const timestamp = clean(data.verified_at) ?? clean(data.completed_at) ?? clean(data.started_at)
+  const ageMs = timestamp ? Date.now() - Date.parse(timestamp) : Number.POSITIVE_INFINITY
+  return {
+    version: clean(data.version_key),
+    stale: !Number.isFinite(ageMs) || ageMs > maxAgeDays * 24 * 60 * 60 * 1000,
+  }
+}
+
 async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordinates): Promise<EnergyResolverResult | null> {
   let data: unknown = null
   let error: unknown = null
@@ -503,7 +535,8 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
     : 'grid_area_resolved'
   const opsGridOwnerId = await mapPlatformGridOwnerToOpsGridOwner(clean(row.grid_owner_id))
   const mappingMissing = Boolean(clean(row.grid_owner_id) && !opsGridOwnerId)
-  return applyGridOwnerVerification(result(input, {
+  const geodata = await currentGeodataVersion()
+  const resolved = await applyGridOwnerVerification(result(input, {
     gridAreaCode: clean(row.grid_area_code),
     gridAreaName: clean(row.grid_area_name),
     gridOwnerId: opsGridOwnerId,
@@ -512,7 +545,8 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
     resolutionStatus: status,
     confidence: Math.max(0.75, numberOrNull(row.confidence) ?? coordinates.confidence ?? 0.84),
     sourceChain: ['address', 'papilite/cache', 'svk_arcgis_polygon', 'platform_grid_areas'],
-    automationAllowed: status === 'grid_area_master_validated' && !mappingMissing,
+    automationAllowed: status === 'grid_area_master_validated' && !mappingMissing && !geodata.stale,
+    geodataVersion: geodata.version,
     nextRequiredAction: mappingMissing
       ? 'Nätområdet är känt men saknar OPS-nätägar-mappning. Granska masterdata innan Ediel skickas.'
       : nextActionFor(status, Boolean(clean(input.facilityId) && clean(input.meteringPointId))),
@@ -522,7 +556,10 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
       sweref99X: coordinates.sweref99X,
       sweref99Y: coordinates.sweref99Y,
     },
-    warnings: mappingMissing ? ['platform_to_ops_grid_owner_mapping_missing'] : [],
+    warnings: [
+      ...(mappingMissing ? ['platform_to_ops_grid_owner_mapping_missing'] : []),
+      ...(geodata.stale ? ['svk_geodata_stale_or_unverified'] : []),
+    ],
     diagnostics: {
       addressAttempts: [],
       geocodeProvider: 'papilite',
@@ -535,6 +572,14 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
       mappingStatus: mappingMissing ? 'platform_to_ops_missing' : 'mapped',
     },
   }))
+  if (geodata.stale) {
+    return {
+      ...resolved,
+      automationAllowed: false,
+      nextRequiredAction: 'SVK-geometrin är för gammal eller ej verifierad. Uppdatera geodata innan automation fortsätter.',
+    }
+  }
+  return resolved
 }
 
 async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResolverResult | null> {
@@ -594,6 +639,9 @@ async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResol
 async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolverResult): Promise<EnergyResolverResult> {
   if (!input.companyId) return resolved
   const now = new Date().toISOString()
+  const ttlRaw = Number(process.env.ENERGY_RESOLUTION_TTL_HOURS ?? DEFAULT_RESOLUTION_TTL_HOURS)
+  const ttlHours = Number.isFinite(ttlRaw) ? Math.min(Math.max(ttlRaw, 1), 168) : DEFAULT_RESOLUTION_TTL_HOURS
+  const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000).toISOString()
   const row = {
     company_id: input.companyId,
     customer_id: clean(input.customerId),
@@ -611,6 +659,12 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
     result_snapshot: resolved,
     automation_allowed: Boolean(resolved.automationAllowed && resolved.gridOwnerId && resolved.gridAreaCode && resolved.priceArea && resolved.gridOwnerVerificationStatus === 'verified'),
     next_required_action: resolved.nextRequiredAction,
+    resolved_at: now,
+    expires_at: expiresAt,
+    resolver_version: resolved.resolverVersion ?? RESOLVER_VERSION,
+    geodata_version: resolved.geodataVersion ?? null,
+    source_claims: { grid_area_code: normaliseGridAreaCode(input.gridAreaCode) },
+    conflict_code: resolved.conflictCode ?? null,
     updated_at: now,
   }
 
@@ -682,24 +736,37 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
     }
   }
 
-  return { ...resolved, resolutionId: data.id as string }
+  const saved = { ...resolved, resolutionId: data.id as string, resolvedAt: now, expiresAt, resolverVersion: resolved.resolverVersion ?? RESOLVER_VERSION }
+  await recordCanonicalEnergyEvent({
+    eventType: saved.resolutionStatus === 'needs_review' || saved.resolutionStatus === 'failed'
+      ? 'energy_area.needs_review'
+      : 'energy_area.resolved',
+    companyId: input.companyId,
+    customerId: input.customerId ?? null,
+    siteId: input.customerSiteId ?? null,
+    resolutionId: saved.resolutionId,
+    source: 'ops_energy_resolver',
+    payload: {
+      price_area: saved.priceArea,
+      grid_area_code: saved.gridAreaCode,
+      grid_owner_id: saved.gridOwnerId,
+      resolution_status: saved.resolutionStatus,
+      confidence: saved.confidence,
+      automation_allowed: saved.automationAllowed,
+      resolver_version: saved.resolverVersion,
+      geodata_version: saved.geodataVersion,
+      conflict_code: saved.conflictCode ?? null,
+    },
+  })
+  return saved
 }
 
 export async function resolveEnergyContext(input: EnergyResolverInput): Promise<EnergyResolverResult> {
   const warnings: string[] = []
   try {
     const explicitCode = normaliseGridAreaCode(input.gridAreaCode)
-    if (explicitCode) {
-      const explicit = await findGridAreaByCode(explicitCode)
-      if (explicit) {
-        return saveResolution(input, {
-          ...explicit,
-          lookupKey: lookupKey(input),
-          nextRequiredAction: nextActionFor(explicit.resolutionStatus, Boolean(clean(input.facilityId) && clean(input.meteringPointId))),
-        })
-      }
-      warnings.push('grid_area_code_not_found_in_master')
-    }
+    const explicit = explicitCode ? await findGridAreaByCode(explicitCode) : null
+    if (explicitCode && !explicit) warnings.push('grid_area_code_not_found_in_master')
 
     if (hasFullAddress(input)) {
       const cached = await cachedAddressCoordinates(input)
@@ -724,8 +791,21 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
       if (geocode.coordinates) {
         const polygon = await pointToGridArea(input, geocode.coordinates)
         if (polygon) {
+          if (explicitCode && polygon.gridAreaCode && explicitCode !== normaliseGridAreaCode(polygon.gridAreaCode)) {
+            return saveResolution(input, {
+              ...polygon,
+              resolutionStatus: 'needs_review',
+              automationAllowed: false,
+              conflictCode: 'grid_area_address_mismatch',
+              sourceChain: [...polygon.sourceChain, 'client_grid_area_claim_cross_validation'],
+              nextRequiredAction: 'Inskickad nätområdeskod matchar inte adressens polygon. Granska uppgifterna innan quote eller leverantörsbyte.',
+              warnings: [...warnings, ...polygon.warnings, 'grid_area_address_mismatch'],
+              diagnostics: { ...geocode.diagnostics, ...polygon.diagnostics, polygonStatus: 'matched' },
+            })
+          }
           return saveResolution(input, {
             ...polygon,
+            sourceChain: explicitCode ? [...polygon.sourceChain, 'client_grid_area_claim_validated'] : polygon.sourceChain,
             warnings: [...warnings, ...polygon.warnings],
             diagnostics: { ...geocode.diagnostics, ...polygon.diagnostics, polygonStatus: 'matched' },
           })
@@ -746,6 +826,23 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
           diagnostics: { ...geocode.diagnostics, polygonStatus: 'no_match' },
         }))
       }
+    }
+
+    if (explicit) {
+      return saveResolution(input, result(input, {
+        gridAreaCode: explicit.gridAreaCode,
+        gridAreaName: explicit.gridAreaName,
+        gridOwnerId: explicit.gridOwnerId,
+        gridOwnerName: explicit.gridOwnerName,
+        priceArea: explicit.priceArea,
+        resolutionStatus: 'needs_review',
+        confidence: Math.min(explicit.confidence, 0.6),
+        sourceChain: ['client_grid_area_claim', 'platform_grid_areas'],
+        automationAllowed: false,
+        conflictCode: 'grid_area_claim_unverified',
+        nextRequiredAction: 'Nätområdeskoden är endast ett klientpåstående. Komplettera full adress eller invänta verifierade anläggningsuppgifter från OPS/nätägaren.',
+        warnings: [...warnings, 'grid_area_claim_requires_address_cross_validation'],
+      }))
     }
 
     const postal = await postalSuggestion(input)

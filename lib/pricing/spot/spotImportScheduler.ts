@@ -39,7 +39,7 @@ export function normalizeSpotAutoImportAreas(values?: unknown): PriceArea[] {
 function isSummaryComplete(row: SpotMonthlySummaryRow | undefined): boolean {
   if (!row) return false
   if (row.status === 'locked') return true
-  if (row.status !== 'complete') return false
+  if (!['complete', 'verified'].includes(row.status)) return false
   const intervalCount = Number(row.interval_count ?? 0)
   const expected = Number(row.expected_interval_count ?? 0)
   return expected > 0 && intervalCount >= expected
@@ -93,6 +93,7 @@ export async function ensureSpotPricesForBillingMonth(input: {
     priceAreas: missingAreas,
     createdBy: input.createdBy ?? null,
     fetchImpl: input.fetchImpl,
+    force: input.force ?? false,
     triggerSource: input.reason ?? 'pricing_preview',
   })
 

@@ -17,6 +17,12 @@ import {
 } from "@/lib/pricing/types";
 import { resolvePublicContractOffer } from "@/lib/website/publicContracts";
 import { fixedPriceOreForArea } from "@/lib/pricing/fixedAreaPricing";
+import {
+  EnergyResolutionBindingError,
+  loadBoundEnergyResolution,
+  resolutionSnapshot,
+  type BoundEnergyResolution,
+} from "@/lib/energy/resolutionBinding";
 
 
 function textValue(value: unknown): string | null {
@@ -99,7 +105,9 @@ function positiveNumber(value: unknown, field: string): number {
 export async function calculateOfferQuote(input: {
   client: IntegrationApiClient;
   offerReference: string;
-  priceArea: string;
+  priceArea?: string | null;
+  resolutionId?: string | null;
+  resolutionBindingRequired?: boolean;
   annualConsumptionKwh: number;
   startDate?: string | null;
   customerType?: string | null;
@@ -114,13 +122,63 @@ export async function calculateOfferQuote(input: {
       400,
       "offer_reference",
     );
-  if (!isPriceArea(input.priceArea))
+  let boundResolution: BoundEnergyResolution | null = null;
+  if (input.resolutionId?.trim()) {
+    try {
+      boundResolution = await loadBoundEnergyResolution({
+        client: input.client,
+        resolutionId: input.resolutionId,
+      });
+    } catch (error) {
+      if (error instanceof EnergyResolutionBindingError) {
+        throw new OfferQuoteError(error.message, error.code, error.status, error.field);
+      }
+      throw error;
+    }
+  } else if (input.resolutionBindingRequired) {
+    throw new OfferQuoteError(
+      "resolution_id saknas. Lös kundens elområde genom OPS innan quote skapas.",
+      "resolution_not_found",
+      400,
+      "resolution_id",
+    );
+  }
+
+  const clientPriceArea = input.priceArea?.trim().toUpperCase() || null;
+  if (clientPriceArea && !isPriceArea(clientPriceArea)) {
     throw new OfferQuoteError(
       "price_area måste vara SE1, SE2, SE3 eller SE4.",
       "invalid_price_area",
       400,
       "price_area",
     );
+  }
+  if (boundResolution && clientPriceArea && clientPriceArea !== boundResolution.priceArea) {
+    throw new OfferQuoteError(
+      "Inskickat price_area motsäger OPS-resolutionen.",
+      "price_area_mismatch",
+      409,
+      "price_area",
+    );
+  }
+  if (boundResolution && input.gridAreaCode?.trim() && input.gridAreaCode.trim().toUpperCase() !== boundResolution.gridAreaCode.toUpperCase()) {
+    throw new OfferQuoteError(
+      "Inskickad grid_area_code motsäger OPS-resolutionen.",
+      "quote_resolution_mismatch",
+      409,
+      "grid_area_code",
+    );
+  }
+  const canonicalPriceArea = boundResolution?.priceArea ?? clientPriceArea;
+  if (!canonicalPriceArea || !isPriceArea(canonicalPriceArea)) {
+    throw new OfferQuoteError(
+      "price_area saknas och kunde inte hämtas från resolution_id.",
+      "energy_area_unresolved",
+      422,
+      "resolution_id",
+    );
+  }
+  const canonicalGridAreaCode = boundResolution?.gridAreaCode ?? input.gridAreaCode?.trim() ?? null;
   const annualConsumptionKwh = positiveNumber(
     input.annualConsumptionKwh,
     "annual_consumption_kwh",
@@ -153,9 +211,9 @@ export async function calculateOfferQuote(input: {
       "offer_reference",
     );
   const allowedPriceAreas = new Set((offer.price_areas ?? []).map((area) => area.toUpperCase()));
-  if (allowedPriceAreas.size > 0 && !allowedPriceAreas.has(input.priceArea)) {
+  if (allowedPriceAreas.size > 0 && !allowedPriceAreas.has(canonicalPriceArea)) {
     throw new OfferQuoteError(
-      `Avtalet är inte publicerat för ${input.priceArea}.`,
+      `Avtalet är inte publicerat för ${canonicalPriceArea}.`,
       "offer_price_area_not_available",
       422,
       "price_area",
@@ -163,13 +221,13 @@ export async function calculateOfferQuote(input: {
   }
   const selectedFixedPriceOrePerKwh = fixedPriceOreForArea(
     offer.pricing_snapshot,
-    input.priceArea,
+    canonicalPriceArea,
     offer.fixed_price_ore_per_kwh,
     offer.price_areas ?? [],
   );
   if (offer.contract_type === "fixed" && selectedFixedPriceOrePerKwh === null) {
     throw new OfferQuoteError(
-      `Fastpris saknas för ${input.priceArea} i den publicerade avtalsversionen.`,
+      `Fastpris saknas för ${canonicalPriceArea} i den publicerade avtalsversionen.`,
       "fixed_area_price_missing",
       422,
       "price_area",
@@ -247,7 +305,7 @@ export async function calculateOfferQuote(input: {
     meteringPointId: null,
     pricePlanId: offer.price_plan_id,
     pricePlanVersionId: offer.price_plan_version_id,
-    priceArea: input.priceArea as PriceArea,
+    priceArea: canonicalPriceArea as PriceArea,
     quantityKwh: monthlyConsumptionKwh,
     periodStart,
     periodEnd,
@@ -262,7 +320,7 @@ export async function calculateOfferQuote(input: {
   });
   const sourceValues = await resolveBasePriceSourceValues({
     companyId: input.client.company_id,
-    priceArea: input.priceArea as PriceArea,
+    priceArea: canonicalPriceArea as PriceArea,
     billingMonth,
     pricePlanVersionId: offer.price_plan_version_id,
     fixedSekPerKwh:
@@ -271,15 +329,24 @@ export async function calculateOfferQuote(input: {
         : offer.fixed_price_ore_per_kwh !== null
           ? offer.fixed_price_ore_per_kwh / 100
           : null,
+    purpose: "quote_preview",
     requiredResolution:
       pricingInterval === "hourly" || pricingInterval === "quarterly"
         ? pricingInterval
         : "monthly",
   });
   const requiredBaseSources = new Set(config.baseComponents.map((component) => component.sourceType));
+  if (requiredBaseSources.has("spot") && sourceValues.spotSource?.is_stale === true) {
+    throw new OfferQuoteError(
+      `Marknadsreferensen för ${canonicalPriceArea} är stale och får inte användas för en ny quote.`,
+      "market_price_stale",
+      409,
+      "resolution_id",
+    );
+  }
   if (requiredBaseSources.has("spot") && sourceValues.spotSekPerKwh === null) {
     throw new OfferQuoteError(
-      `Marknadspris saknas eller uppfyller inte tenantens policy för ${input.priceArea}, ${billingMonth} och upplösningen ${pricingInterval}.`,
+      `Marknadspris saknas eller uppfyller inte tenantens policy för ${canonicalPriceArea}, ${billingMonth} och upplösningen ${pricingInterval}.`,
       "market_price_unavailable",
       422,
       "price_area",
@@ -287,7 +354,7 @@ export async function calculateOfferQuote(input: {
   }
   if (requiredBaseSources.has("portfolio") && sourceValues.portfolioSekPerKwh === null) {
     throw new OfferQuoteError(
-      `Portföljpris saknas för ${input.priceArea} och ${billingMonth}. Avtalet kan inte beräknas enligt tenantens portfolio-policy.`,
+      `Portföljpris saknas för ${canonicalPriceArea} och ${billingMonth}. Avtalet kan inte beräknas enligt tenantens portfolio-policy.`,
       "portfolio_price_missing",
       422,
       "offer_reference",
@@ -336,7 +403,7 @@ export async function calculateOfferQuote(input: {
     );
     throw new OfferQuoteError(
       missingPortfolio
-        ? `Portföljpris saknas för ${input.priceArea} och ${billingMonth}. Avtalet kan inte beräknas innan tenantens pris är bekräftat.`
+        ? `Portföljpris saknas för ${canonicalPriceArea} och ${billingMonth}. Avtalet kan inte beräknas innan tenantens pris är bekräftat.`
         : preview.errors.join(" "),
       missingPortfolio ? "portfolio_price_missing" : "quote_calculation_failed",
       422,
@@ -378,7 +445,7 @@ export async function calculateOfferQuote(input: {
       selected_area_price: selectedFixedPriceOrePerKwh === null
         ? null
         : {
-            price_area: input.priceArea,
+            price_area: canonicalPriceArea,
             energy_price_ore_per_kwh: selectedFixedPriceOrePerKwh,
             unit: "ore_per_kwh",
           },
@@ -386,19 +453,22 @@ export async function calculateOfferQuote(input: {
     selected_area_price: selectedFixedPriceOrePerKwh === null
       ? null
       : {
-          price_area: input.priceArea,
+          price_area: canonicalPriceArea,
           energy_price_ore_per_kwh: selectedFixedPriceOrePerKwh,
           unit: "ore_per_kwh",
         },
     input: {
-      price_area: input.priceArea,
-      grid_area_code: input.gridAreaCode ?? null,
+      resolution_id: boundResolution?.id ?? null,
+      price_area: canonicalPriceArea,
+      grid_area_code: canonicalGridAreaCode,
       postal_code: input.postalCode ?? null,
       annual_consumption_kwh: annualConsumptionKwh,
       estimated_monthly_consumption_kwh: monthlyConsumptionKwh,
       start_date: startDate,
       billing_month: billingMonth,
     },
+    resolution: boundResolution ? resolutionSnapshot(boundResolution) : null,
+    market_reference: sourceValues.spotSource ?? null,
     estimate: {
       monthly_ex_vat: preview.totalExVat,
       monthly_vat: preview.vatAmount,
@@ -454,8 +524,8 @@ export async function calculateOfferQuote(input: {
     offer,
     offerReference,
     customerType,
-    priceArea: input.priceArea,
-    gridAreaCode: input.gridAreaCode ?? null,
+    priceArea: canonicalPriceArea,
+    gridAreaCode: canonicalGridAreaCode,
     postalCode: input.postalCode ?? null,
     annualConsumptionKwh,
     startDate,
@@ -463,6 +533,12 @@ export async function calculateOfferQuote(input: {
     marketSources,
     assumptions,
     pricingSnapshotSchemaVersion: snapshotSchema,
+    resolutionId: boundResolution?.id ?? null,
+    resolutionSnapshot: boundResolution ? resolutionSnapshot(boundResolution) : {},
+    resolverVersion: boundResolution?.resolverVersion ?? null,
+    geodataVersion: boundResolution?.geodataVersion ?? null,
+    marketReference: sourceValues.spotSource ?? {},
+    resolutionBindingStatus: boundResolution ? "verified" : "legacy_unverified",
     quoteSnapshot: quotePayload,
   });
 

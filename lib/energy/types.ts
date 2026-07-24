@@ -95,6 +95,11 @@ export type EnergyResolverResult = {
   gridOwnerVerificationIssues?: string[]
   raw?: Record<string, unknown>
   diagnostics?: EnergyResolverDiagnostics
+  resolverVersion?: string | null
+  geodataVersion?: string | null
+  resolvedAt?: string | null
+  expiresAt?: string | null
+  conflictCode?: string | null
 }
 
 export type GridOwnerInformationRequestInput = {

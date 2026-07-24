@@ -75,16 +75,21 @@ sections marked *post-deploy* also run against production after deploy).
 - [ ] Pricing preview for a test contract; monthly run on staging data;
       invoice export dry-run; provider webhook test event processed
 
-## Canonical fastpris/quote/teckning (`2026-07-23.1`)
+## Canonical fastpris/quote/teckning (`2026-07-24.1`)
 
 - [ ] `public-contracts` returnerar ett fastprisavtal en gång med SE1–SE4 i `area_pricing`.
 - [ ] Olika SE-priser ger `fixed_price_ore_per_kwh=null`; klienten använder vald rad i `area_pricing`.
 - [ ] Tenantautentiserad `energy-area/resolve` löser korrekt prisområde och nätägare; legacy `GET /api/public/energy-area` ger fortsatt 410.
 - [ ] `quote` skapar en tenantbunden immutable quote och `quote/validate` godkänner exakt samma offer/kundtyp/område/förbrukning/startdatum.
+- [ ] Quote kräver `resolution_id`; ett motstridigt klientinskickat `price_area` eller `grid_area_code` ger konflikt och ändrar inte OPS-resolutionen.
+- [ ] Rörlig quote innehåller `market_reference` med provider, referensperiod, `as_of`, `is_indicative`, freshness och fallbackmetadata.
+- [ ] Senaste kompletta svenska dygn importeras för SE1–SE4; 92-/100-intervallsdygn godkänns genom faktisk tidscoverage och en lucka/överlapp blockeras.
+- [ ] Avslutad månad blir `verified`, låses explicit och används därefter som settlement. Preview eller olåst `verified` period blockeras i fakturering.
+- [ ] SVK-cron startar ny version när geodata är gammal och resolver blockerar automation innan en komplett version är verifierad.
 - [ ] Dubbel submit med samma `Idempotency-Key` skapar inte ny kund, nytt kundnummer, nytt avtal eller nytt leverantörsbyte.
 - [ ] Kund med inkommande `external_customer_reference` får referensen bevarad och samma OPS-kundnummer i ansökan, kundportal och fakturering.
 - [ ] Avtalsbekräftelse köas en gång och innehåller kundnummer samt rätt avtal/startstatus.
 - [ ] Saknat anläggningsunderlag köar uppgiftsbegäran; komplett underlag startar leverantörsbyte automatiskt när route/fullmakt/readiness är godkänd.
 - [ ] `contract_price_snapshots.base_price_components_snapshot` innehåller endast kundens valda SE-prisrad för fastpris.
 - [ ] Fakturaunderlaget använder låst snapshot, inklusive dolda avgifter och publicerad nollavgift.
-- [ ] OpenAPI, utvecklarsida och runtime rapporterar kontraktsversion `2026-07-23.1`.
+- [ ] OpenAPI, utvecklarsida och runtime rapporterar kontraktsversion `2026-07-24.1`.

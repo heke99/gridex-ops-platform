@@ -30,12 +30,22 @@ function numeric(body: Record<string, unknown>, ...keys: string[]): number | nul
   return null
 }
 
+function retryableErrorCode(code: string): boolean {
+  return [
+    'market_price_unavailable',
+    'market_price_stale',
+    'market_price_provider_unavailable',
+    'website_quote_failed',
+  ].includes(code)
+}
+
 function errorBody(input: {
   code: string
   message: string
   requestId: string
   field?: string | null
   details?: Record<string, unknown>
+  retryable?: boolean
 }) {
   return {
     error: {
@@ -43,12 +53,17 @@ function errorBody(input: {
       message: input.message,
       field: input.field ?? null,
       request_id: input.requestId,
+      correlation_id: input.requestId,
+      retryable: input.retryable ?? retryableErrorCode(input.code),
       ...(input.details ? { details: input.details } : {}),
     },
     code: input.code,
+    error_code: input.code,
     message: input.message,
     field: input.field ?? null,
     request_id: input.requestId,
+    correlation_id: input.requestId,
+    retryable: input.retryable ?? retryableErrorCode(input.code),
   }
 }
 
@@ -95,7 +110,9 @@ export async function POST(request: NextRequest) {
     const result = await calculateOfferQuote({
       client: auth.client,
       offerReference: text(body, 'offer_reference', 'offerReference') ?? '',
-      priceArea: (text(body, 'price_area', 'priceArea', 'price_area_code', 'priceAreaCode') ?? '').toUpperCase(),
+      resolutionId: text(body, 'resolution_id', 'resolutionId'),
+      resolutionBindingRequired: true,
+      priceArea: text(body, 'price_area', 'priceArea', 'price_area_code', 'priceAreaCode')?.toUpperCase() ?? null,
       annualConsumptionKwh: numeric(body, 'annual_consumption_kwh', 'annualConsumptionKwh') ?? Number.NaN,
       startDate: text(body, 'start_date', 'startDate', 'requested_start_date', 'requestedStartDate'),
       customerType: text(body, 'customer_type', 'customerType'),

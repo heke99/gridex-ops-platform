@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-23.1",
+    "version": "2026-07-24.1",
     "description": "Kanoniskt kontrakt för samtliga /api/v1-routes. API-token bestämmer company_id. Website public-contracts returnerar en produkt per publicerat erbjudande; fastpris per SE1-SE4 ligger i area_pricing under samma offer_reference. Tenantautentiserad energy-area resolution och canonical quote låser vald prisrad före den idempotenta kundansökan. OPS skapar eller återanvänder samma canonical kund, kundnummer, anläggning, avtal och faktureringssnapshot. Interna spot-ID:n och råa marknadskällor exponeras inte, och company_id accepteras aldrig som fri tenantväljare."
   },
   "servers": [
@@ -1702,11 +1702,11 @@
                         },
                         "market_price_responsibility": {
                           "type": "string",
-                          "const": "tenant"
+                          "const": "ops_quote"
                         },
                         "calculator_market_price_supplied_by_ops": {
                           "type": "boolean",
-                          "const": false
+                          "const": true
                         },
                         "final_billing_rule": {
                           "type": "string",
@@ -1844,7 +1844,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-23.1"
+                  "const": "2026-07-24.1"
                 },
                 "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
               }
@@ -2933,6 +2933,17 @@
                   "string",
                   "null"
                 ]
+              },
+              "correlation_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Correlation ID for support and audit; normally identical to request_id."
+              },
+              "retryable": {
+                "type": "boolean",
+                "description": "Whether the same operation can be retried after the underlying condition changes."
               }
             }
           },
@@ -2944,6 +2955,18 @@
           },
           "request_id": {
             "type": "string"
+          },
+          "error_code": {
+            "type": "string",
+            "description": "Additive machine-readable alias of error.code."
+          },
+          "correlation_id": {
+            "type": "string",
+            "description": "Correlation ID for logs, audit and support."
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Whether retry may succeed after a transient dependency or data condition is resolved."
           }
         }
       },
@@ -3173,10 +3196,10 @@
               "market_price_responsibility": {
                 "type": "string",
                 "enum": [
-                  "tenant",
+                  "ops_quote",
                   "not_applicable"
                 ],
-                "description": "tenant för rörliga månads-, tim- och kvartsavtal; OPS externa API levererar inget marknadspris."
+                "description": "ops_quote för rörliga månads-, tim- och kvartsavtal. OPS quote levererar en normaliserad indikativ market_reference med provenance; rå intervalldata exponeras inte och preview får aldrig användas som settlement."
               },
               "calculation_contract": {
                 "type": "object",
@@ -3194,7 +3217,7 @@
                     "const": true
                   },
                   "market_price_supplied_by_ops": {
-                    "const": false
+                    "const": true
                   }
                 }
               },
@@ -3426,7 +3449,9 @@
         "type": "object",
         "required": [
           "customer",
-          "consents"
+          "consents",
+          "quote_reference",
+          "resolution_id"
         ],
         "properties": {
           "external_customer_id": {
@@ -3457,10 +3482,11 @@
                 "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$"
               },
               "quote_reference": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
+              },
+              "resolution_id": {
+                "type": "string",
+                "format": "uuid"
               }
             },
             "additionalProperties": true
@@ -3502,11 +3528,8 @@
             "description": "Ignorerad som juridisk signeringstid. OPS använder serverns acceptanstid."
           },
           "quote_reference": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Recommended canonical quote reference. Legacy clients may omit it temporarily; OPS then freezes the exact published version and selected area directly."
+            "type": "string",
+            "description": "Obligatorisk canonical quote från OPS. Quote och resolution valideras atomiskt före kundavtal."
           },
           "price_area_code": {
             "type": "string",
@@ -3516,12 +3539,18 @@
               "SE3",
               "SE4"
             ],
-            "description": "Prisområde löst av tenantens webbplats. OPS verifierar giltighet och att avtalet tillåter området."
+            "description": "Deprecated klientpåstående. OPS använder price_area från resolution_id och returnerar konflikt vid mismatch.",
+            "deprecated": true
           },
           "external_customer_reference": {
             "type": "string",
             "minLength": 1,
             "description": "Alias for external_customer_id. Preserved while OPS assigns or reuses the canonical customer_number."
+          },
+          "resolution_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Samma tenantbundna OPS-resolution som användes när quote skapades."
           }
         },
         "anyOf": [
@@ -3982,7 +4011,7 @@
         "required": [
           "offer_reference",
           "customer_type",
-          "price_area",
+          "resolution_id",
           "annual_consumption_kwh",
           "start_date"
         ],
@@ -4006,7 +4035,8 @@
               "SE2",
               "SE3",
               "SE4"
-            ]
+            ],
+            "description": "Valfritt klientpåstående för korsvalidering. Måste matcha resolution_id och kan aldrig skriva över OPS."
           },
           "annual_consumption_kwh": {
             "type": "number",
@@ -4020,20 +4050,26 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Valfritt klientpåstående för korsvalidering. Måste matcha resolution_id."
           },
           "postal_code": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "resolution_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Tenantbunden OPS-resolution. Dess price_area och grid_area_code är canonical."
           }
         },
         "additionalProperties": false
       },
       "WebsiteQuoteLine": {
         "type": "object",
-        "description": "Aktiv del av canonical website quote i API 2026-07-23.1 (WebsiteQuoteLine).",
+        "description": "Aktiv del av canonical website quote i API 2026-07-24.1 (WebsiteQuoteLine).",
         "additionalProperties": false,
         "properties": {
           "error": {
@@ -4043,7 +4079,7 @@
       },
       "WebsiteQuoteOffer": {
         "type": "object",
-        "description": "Aktiv del av canonical website quote i API 2026-07-23.1 (WebsiteQuoteOffer).",
+        "description": "Aktiv del av canonical website quote i API 2026-07-24.1 (WebsiteQuoteOffer).",
         "additionalProperties": false,
         "properties": {
           "error": {
@@ -4053,7 +4089,7 @@
       },
       "WebsiteQuoteInput": {
         "type": "object",
-        "description": "Aktiv del av canonical website quote i API 2026-07-23.1 (WebsiteQuoteInput).",
+        "description": "Aktiv del av canonical website quote i API 2026-07-24.1 (WebsiteQuoteInput).",
         "additionalProperties": false,
         "properties": {
           "error": {
@@ -4063,7 +4099,7 @@
       },
       "WebsiteQuoteEstimate": {
         "type": "object",
-        "description": "Aktiv del av canonical website quote i API 2026-07-23.1 (WebsiteQuoteEstimate).",
+        "description": "Aktiv del av canonical website quote i API 2026-07-24.1 (WebsiteQuoteEstimate).",
         "additionalProperties": false,
         "properties": {
           "error": {
@@ -4121,6 +4157,34 @@
           "pricing": {
             "type": "object",
             "additionalProperties": true
+          },
+          "resolution": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          },
+          "market_reference": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MarketReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "is_binding": {
+            "type": "boolean",
+            "const": false
+          },
+          "market_data_timestamp": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
           }
         },
         "additionalProperties": true
@@ -4179,7 +4243,7 @@
             }
           },
           "contract_schema_version": {
-            "const": "2026-07-23.1"
+            "const": "2026-07-24.1"
           }
         }
       },
@@ -4503,9 +4567,48 @@
             "items": {
               "type": "string"
             }
+          },
+          "resolved_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "resolver_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geodata_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "conflict_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Tenantbunden OPS-resolution. automation_allowed=false och needs_review blockerar quote och leverantörsbyte."
       },
       "WebsiteEnergyAreaResolveResponse": {
         "type": "object",
@@ -4522,8 +4625,117 @@
           }
         },
         "additionalProperties": true
+      },
+      "MarketReference": {
+        "type": "object",
+        "required": [
+          "provider",
+          "price_area",
+          "reference_type",
+          "reference_period",
+          "as_of",
+          "unit",
+          "is_indicative",
+          "is_stale",
+          "fallback_used"
+        ],
+        "properties": {
+          "provider": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price_area": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4",
+              null
+            ]
+          },
+          "reference_type": {
+            "type": "string",
+            "enum": [
+              "preview",
+              "settlement"
+            ]
+          },
+          "reference_period": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "period_start": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "period_end": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "as_of": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "source_currency": {
+            "type": "string",
+            "default": "SEK"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "sek_per_kwh"
+            ]
+          },
+          "includes_vat": {
+            "type": "boolean"
+          },
+          "includes_supplier_fees": {
+            "type": "boolean"
+          },
+          "includes_grid_fees": {
+            "type": "boolean"
+          },
+          "is_indicative": {
+            "type": "boolean"
+          },
+          "is_stale": {
+            "type": "boolean"
+          },
+          "fallback_used": {
+            "type": "boolean"
+          },
+          "fallback_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_checksum": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true,
+        "description": "Proveniens för marknadsreferensen. preview är indikativ och får aldrig användas som slutligt settlementunderlag."
       }
     }
   },
-  "x-contract-schema-version": "2026-07-23.1"
+  "x-contract-schema-version": "2026-07-24.1"
 }

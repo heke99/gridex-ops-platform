@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 const baseUrl = "https://app.gridex.se";
-const documentationVersion = "2026-07-23.1";
+const documentationVersion = "2026-07-24.1";
 
 const permissions = [
   [
@@ -228,23 +228,24 @@ const publicContractsResponse = `{
   ]
 }`;
 
-const calculatorExample = `// Tenantens backend, inte OPS
-const monthlyKwh = annualConsumptionKwh / 12
+const calculatorExample = `// Tenantens backend använder OPS canonicala flöde.
+const resolution = await gridex.post("/api/v1/website/energy-area/resolve", {
+  street, postal_code, city, grid_area_code: claimedGridAreaCode
+})
 
-if (contract.contract_type === "fixed") {
-  const energyExVat =
-    monthlyKwh * (contract.pricing.fixed_price.amount / 100)
+const quote = await gridex.post("/api/v1/website/quote", {
+  resolution_id: resolution.data.resolution_id,
+  offer_reference: contract.offer_reference,
+  annual_consumption_kwh: annualConsumptionKwh,
+  customer_type: "private",
+  start_date: "2026-09-01"
+})
 
-  const applicableFees = contract.pricing.calculation_components
-    .filter((component) => component.calculation_inclusion === "included")
+// Visa quote.data exakt. Bygg inte om energipris, avgifter, rabatt eller moms.
+renderPriceSummary(quote.data)
 
-  // Alla avgifter används, även website_visibility="hidden".
-  const totalExVat = calculateTotal(energyExVat, applicableFees)
-  const totalIncVat = totalExVat * (1 + contract.pricing.vat_rate)
-}
-
-// För rörliga avtal löser tenantens backend prisområde och marknadspris,
-// och kombinerar marknadspriset med OPS-publicerade påslag och avgifter.`;
+// market_reference är indikativ provenance för rörligt pris.
+// Den är aldrig slutlig settlementdata för fakturering.`;
 
 const publicContractsDiagnosticsExample = `curl -X GET "${baseUrl}/api/v1/website/public-contracts/diagnostics?customer_type=private" \\
   -H "Authorization: Bearer YOUR_GRIDEX_API_TOKEN" \\
@@ -772,22 +773,21 @@ export default function CustomerPortalApiDocsPage() {
           <CodeBlock>{publicContractsExample}</CodeBlock>
           <CodeBlock>{publicContractsResponse}</CodeBlock>
           <p>
-            <code>GET /public-contracts</code> är både urvals-API och komplett
-            maskinläsbart beräkningsunderlag. <code>pricing.calculation_components</code>
-            innehåller alla tillämpliga prisdelar och avgifter, även när
-            <code>website_visibility=hidden</code>. <code>pricing.display_components</code>
-            är endast avtalskortets synliga delmängd. <code>pricing.summary_components</code>
-            anger vilka komponenter som får visas separat i en fullständig
-            prissammanställning. Värdet <code>0</code> är
-            ett giltigt publicerat penningvärde; kontrollera uttryckligen null/undefined.
+            <code>GET /public-contracts</code> är urvals-API och publicerat
+            produktunderlag. <code>pricing.calculation_components</code> innehåller
+            alla tillämpliga prisdelar och avgifter, även när
+            <code>website_visibility=hidden</code>, men kundens slutliga preview ska
+            alltid hämtas från OPS quote. <code>pricing.display_components</code> är
+            avtalskortets synliga delmängd. Värdet <code>0</code> är ett giltigt
+            publicerat penningvärde; kontrollera uttryckligen null/undefined.
           </p>
           <p>
-            För fastpris ska tenantens kalkylator använda OPS-publicerat
-            <code>pricing.fixed_price</code> tillsammans med förbrukning, samtliga
-            avgifter och moms. För rörligt månads-, tim- och kvartspris löser
-            tenantens backend själv prisområde och extern marknadsprisindikation,
-            och kombinerar den med OPS-publicerade påslag och avgifter. OPS lämnar
-            aldrig ut tenantens Nord Pool-pris.
+            Tenantens backend ska först skapa en tenantbunden områdesresolution
+            och därefter en OPS-quote. Det gäller fastpris, rörligt månadspris,
+            timpris och kvartspris. Tenant får visa den returnerade quoten men får
+            inte räkna om energipris, områdesrad, påslag, avgifter, rabatt eller moms.
+            För rörliga produkter innehåller quoten en indikativ
+            <code>market_reference</code> med källa, period, as-of, freshness och fallback.
           </p>
           <CodeBlock>{calculatorExample}</CodeBlock>
           <p>
@@ -1111,7 +1111,7 @@ export default function CustomerPortalApiDocsPage() {
           </p>
         </Section>
 
-        <Section title="11. Canonical integrationskontrakt 2026-07-23.1">
+        <Section title="11. Canonical integrationskontrakt 2026-07-24.1">
           <h3 className="text-lg font-bold text-slate-900">Kundtyp och routes</h3>
           <p>
             Canonical kundtyper är <code>private</code> och <code>business</code>.
@@ -1153,9 +1153,11 @@ export default function CustomerPortalApiDocsPage() {
             är fortsatt borttagen.
           </p>
           <p>
-            OPS behåller sin interna spotpris-, avräknings- och faktureringsmotor.
-            Den interna marknadsdatan exponeras inte till tenantens webbplats och
-            blir inte en del av en ny kundansökans publika kalkylsnapshot.
+            OPS äger både den indikativa marknadsreferensen och slutlig settlement.
+            Quotens <code>market_reference</code> exponeras additivt med provider,
+            referensperiod, <code>as_of</code>, <code>is_indicative</code>, freshness
+            och fallback. Settlementdata exponeras inte som preview och får endast
+            användas efter full täckning, verifiering och explicit immutable låsning.
           </p>
 
           <h3 className="mt-6 text-lg font-bold text-slate-900">Diagnostics och webhook</h3>

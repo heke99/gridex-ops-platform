@@ -169,7 +169,7 @@ contains(
 );
 excludes(
   "lib/pricing/priceSourceResolver.ts",
-  ['.from("portfolio_monthly_prices")', "rolling_3", "latest_final"],
+  ['.from("portfolio_monthly_prices")', "rolling_3_months", "latest_final"],
   "Runtime source of truth",
 );
 
@@ -219,8 +219,8 @@ contains(
     '"website_contracts.read"',
     "offer_reference_required",
     "historical_final_prices",
-    'market_price_responsibility: "tenant"',
-    "calculator_market_price_supplied_by_ops: false",
+    'market_price_responsibility: "ops_quote"',
+    "calculator_market_price_supplied_by_ops: true",
     'final_billing_rule: "locked_settlement_only"',
   ],
   "Publikt portfölj-API",
@@ -239,7 +239,7 @@ excludes(
 checks += 1;
 const openapi = JSON.parse(read("docs/openapi/customer-portal-v1.json"));
 if (
-  openapi?.info?.version !== "2026-07-23.1" ||
+  openapi?.info?.version !== "2026-07-24.1" ||
   !openapi?.paths?.["/api/v1/website/portfolio-prices"]?.get
 ) {
   failures.push("OpenAPI: portföljendpoint eller dokumentationsversion saknas");

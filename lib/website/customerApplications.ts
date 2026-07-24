@@ -18,6 +18,12 @@ import {
   type WebsiteApplicationReadiness,
 } from "@/lib/website/applicationReview";
 import { resolveEnergyContext } from "@/lib/energy/resolver";
+import {
+  EnergyResolutionBindingError,
+  loadBoundEnergyResolution,
+} from "@/lib/energy/resolutionBinding";
+import { patchMeteringPointEnergyContext } from "@/lib/energy/meteringPointContext";
+import { recordCanonicalEnergyEvent } from "@/lib/energy/canonicalEnergyEvents";
 import { ensureGridOwnerInformationRequest } from "@/lib/energy/gridOwnerRequests";
 import { normalizeGridOwnerIdToOps } from "@/lib/grid-owners/platformGridOwnerResolver";
 import {
@@ -189,6 +195,8 @@ const ContractSchema = z
     offerReference: OPTIONAL_TEXT,
     quote_reference: OPTIONAL_TEXT,
     quoteReference: OPTIONAL_TEXT,
+    resolution_id: OPTIONAL_TEXT,
+    resolutionId: OPTIONAL_TEXT,
     contract_name: OPTIONAL_TEXT,
     contract_type: OPTIONAL_TEXT,
     contract_number: OPTIONAL_TEXT,
@@ -288,6 +296,8 @@ const ApplicationSchema = z.object({
   price_plan_version_id: OPTIONAL_TEXT,
   quote_reference: OPTIONAL_TEXT,
   quoteReference: OPTIONAL_TEXT,
+  resolution_id: OPTIONAL_TEXT,
+  resolutionId: OPTIONAL_TEXT,
   contract_offer_id: OPTIONAL_TEXT,
   product_code: OPTIONAL_TEXT,
   requested_start_date: OPTIONAL_TEXT,
@@ -3220,6 +3230,7 @@ function enrichApplicationWithEnergyResolution(
 }
 
 async function runEnergyResolution(input: {
+  client: IntegrationApiClient;
   companyId: string;
   customerId?: string | null;
   customerSiteId?: string | null;
@@ -3227,7 +3238,30 @@ async function runEnergyResolution(input: {
   body: ApplicationInput;
 }): Promise<{ body: ApplicationInput; resolution: EnergyResolverResult }> {
   const body = input.body;
-  const resolution = await resolveEnergyContext({
+  const submittedResolutionId = clean(body.resolution_id) ?? clean(body.resolutionId) ?? clean(body.contract?.resolution_id) ?? clean(body.contract?.resolutionId);
+  const resolution = submittedResolutionId
+    ? await loadBoundEnergyResolution({ client: input.client, resolutionId: submittedResolutionId }).then((bound): EnergyResolverResult => ({
+        resolutionId: bound.id,
+        gridAreaCode: bound.gridAreaCode,
+        gridAreaName: bound.gridAreaName,
+        gridOwnerId: bound.gridOwnerId,
+        gridOwnerName: bound.gridOwnerName,
+        priceArea: bound.priceArea,
+        resolutionStatus: bound.resolutionStatus as EnergyResolverResult['resolutionStatus'],
+        confidence: bound.confidence,
+        sourceChain: Array.isArray(bound.sourceChain) ? bound.sourceChain.map(String) : [],
+        automationAllowed: bound.automationAllowed,
+        nextRequiredAction: 'Resolutionen är verifierad och bunden till kundintaget.',
+        lookupKey: bound.id,
+        warnings: [],
+        gridOwnerVerificationStatus: 'verified',
+        gridOwnerVerificationIssues: [],
+        resolverVersion: bound.resolverVersion,
+        geodataVersion: bound.geodataVersion,
+        resolvedAt: bound.resolvedAt,
+        expiresAt: bound.expiresAt,
+      }))
+    : await resolveEnergyContext({
     companyId: input.companyId,
     customerId: input.customerId,
     customerSiteId: input.customerSiteId,
@@ -3372,14 +3406,25 @@ async function stage<T>(
     return await fn();
   } catch (error) {
     if (error instanceof WebsiteApplicationError) throw error;
-    const coded = error as { code?: unknown; details?: unknown };
+    if (error instanceof EnergyResolutionBindingError) {
+      throw new WebsiteApplicationError({
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        field: error.field,
+        stage: stageName,
+        hint: "Lös kundens elområde på nytt genom OPS och använd den nya resolution_id i både quote och kundansökan.",
+      });
+    }
+    const coded = error as { code?: unknown; details?: unknown; status?: unknown; field?: unknown };
     throw new WebsiteApplicationError({
       message: errorMessage(error),
-      status: 500,
+      status: typeof coded?.status === "number" ? coded.status : 500,
       code:
         typeof coded?.code === "string" && coded.code
           ? coded.code
           : "internal_error",
+      field: typeof coded?.field === "string" ? coded.field : undefined,
       stage: stageName,
       details:
         typeof coded?.details === "object" && coded.details !== null
@@ -6239,7 +6284,12 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         application_number: input.applicationNumber,
         offer_reference: input.offerReference,
         quote_reference: input.websiteQuote?.quote_reference ?? null,
+        quote_hash: input.websiteQuote?.quote_hash ?? null,
         quote_valid_until: input.websiteQuote?.valid_until ?? null,
+        energy_resolution_id: input.websiteQuote?.energy_resolution_id ?? null,
+        resolver_version: input.websiteQuote?.resolver_version ?? null,
+        geodata_version: input.websiteQuote?.geodata_version ?? null,
+        market_reference: input.websiteQuote?.market_reference ?? {},
         selected_area_price_ore_per_kwh: selected.fixedPriceOrePerKwh,
         selected_price_area: input.readiness.priceArea,
         missing_fields: input.readiness.missingFields,
@@ -6272,7 +6322,13 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         price_components_snapshot: compatibilitySnapshot.priceComponents,
         requested_start_date: requestedStartDate,
         quote_reference: input.websiteQuote?.quote_reference ?? null,
+        quote_hash: input.websiteQuote?.quote_hash ?? null,
         quote_valid_until: input.websiteQuote?.valid_until ?? null,
+        energy_resolution_id: input.websiteQuote?.energy_resolution_id ?? null,
+        resolution_snapshot: input.websiteQuote?.resolution_snapshot ?? {},
+        resolver_version: input.websiteQuote?.resolver_version ?? null,
+        geodata_version: input.websiteQuote?.geodata_version ?? null,
+        market_reference: input.websiteQuote?.market_reference ?? {},
         quote_market_data_timestamp: input.websiteQuote?.market_data_timestamp ?? null,
         quote_market_sources: input.websiteQuote?.market_sources ?? [],
         quote_assumptions: input.websiteQuote?.assumptions ?? [],
@@ -6299,6 +6355,9 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         legal_versions: legalSnapshot,
         consents: input.body.consents ?? {},
         offer_reference: input.offerReference,
+        quote_reference: input.websiteQuote?.quote_reference ?? null,
+        quote_hash: input.websiteQuote?.quote_hash ?? null,
+        energy_resolution_id: input.websiteQuote?.energy_resolution_id ?? null,
         request_audit: input.requestAudit ?? null,
       },
     },
@@ -6976,6 +7035,7 @@ export async function processWebsiteCustomerApplication(input: {
 
     const energyResolution = await stage("energy_resolution", () =>
       runEnergyResolution({
+        client: input.client,
         companyId: input.client.company_id,
         customerId: existingIdentity?.customer_id ?? null,
         customerSiteId: null,
@@ -7019,6 +7079,7 @@ export async function processWebsiteCustomerApplication(input: {
           publicOffer: publicOffer as PublicContractOffer,
           customerType: body.customer.customer_type,
           priceArea: readiness.priceArea,
+          resolutionId: energyResolution.resolution.resolutionId ?? null,
           gridAreaCode: readiness.gridAreaCode,
           postalCode: clean(body.site?.postal_code),
           annualConsumptionKwh: requestedAnnualConsumption(body),
@@ -7045,13 +7106,14 @@ export async function processWebsiteCustomerApplication(input: {
         throw error;
       }
     } else {
-      readiness = {
-        ...readiness,
-        warnings: [
-          ...readiness.warnings,
-          "quote_reference saknades. OPS låste den publicerade prisversionen och vald SE-prisrad direkt för bakåtkompatibilitet; nya integrationer bör skapa canonical quote före teckning.",
-        ],
-      };
+      throw new WebsiteApplicationError({
+        message: "quote_reference saknas. Skapa och acceptera en canonical OPS-quote innan kundansökan skickas.",
+        status: 422,
+        code: "quote_reference_required",
+        field: "quote_reference",
+        stage: "quote_validation",
+        hint: "Anropa quote-endpointen med samma resolution_id, offer_reference, kundtyp, förbrukning och startdatum och skicka sedan quote_reference i kundansökan.",
+      });
     }
 
     const canonicalGraph = await stage("customer_create", () =>
@@ -7081,6 +7143,84 @@ export async function processWebsiteCustomerApplication(input: {
     meteringPoint = canonicalGraph.meteringPoint;
     contract = canonicalGraph.contract;
     canonicalPowerOfAttorneyId = canonicalGraph.result.power_of_attorney_id;
+
+    if (contract?.id) {
+      await recordCanonicalEnergyEvent({
+        eventType: "contract.created",
+        companyId: input.client.company_id,
+        customerId: resolvedCustomerResult.customer.id,
+        siteId: site?.id ?? null,
+        meteringPointId: meteringPoint?.id ?? null,
+        resolutionId: energyResolution.resolution.resolutionId ?? null,
+        quoteId: websiteQuote?.id ?? null,
+        contractId: contract.id,
+        source: "website_customer_application",
+        actorType: "api_client",
+        actorId: input.client.id,
+        payload: {
+          application_id: applicationRowId,
+          customer_number: customerNumber,
+          quote_reference: websiteQuote?.quote_reference ?? null,
+          quote_hash: websiteQuote?.quote_hash ?? null,
+          price_plan_version_id: contract.price_plan_version_id ?? null,
+          contract_price_snapshot_id: contract.contract_price_snapshot_id ?? null,
+        },
+      });
+      await recordCanonicalEnergyEvent({
+        eventType: "billing_price_snapshot.created",
+        companyId: input.client.company_id,
+        customerId: resolvedCustomerResult.customer.id,
+        siteId: site?.id ?? null,
+        meteringPointId: meteringPoint?.id ?? null,
+        resolutionId: energyResolution.resolution.resolutionId ?? null,
+        quoteId: websiteQuote?.id ?? null,
+        contractId: contract.id,
+        source: "website_customer_application",
+        actorType: "api_client",
+        actorId: input.client.id,
+        payload: {
+          contract_price_snapshot_id: contract.contract_price_snapshot_id ?? null,
+          quote_reference: websiteQuote?.quote_reference ?? null,
+          price_area: readiness.priceArea,
+          market_reference: websiteQuote?.market_reference ?? {},
+        },
+      });
+    }
+
+    if (meteringPoint?.id && energyResolution.resolution.resolutionId) {
+      const contextPatch = await stage("metering_point_create", () =>
+        patchMeteringPointEnergyContext({
+          companyId: input.client.company_id,
+          meteringPointId: meteringPoint!.id,
+          resolution: energyResolution.resolution,
+        }),
+      );
+      if (contextPatch.needsReview) {
+        const contextConflictIssue = {
+          field: "metering_point.energy_context",
+          label: "Mätpunktens områdeskontext",
+          severity: "blocking" as const,
+          message: `Mätpunktens sparade områdesdata motsäger OPS-resolutionen: ${contextPatch.conflicts.join(", ")}.`,
+          action: "Granska nätområde, nätägare och prisområde innan leverantörsbyte fortsätter.",
+        };
+        readiness = {
+          ...readiness,
+          status: "manual_review",
+          blockingReasons: [...readiness.blockingReasons, contextConflictIssue],
+          warnings: Array.from(new Set([...readiness.warnings, ...contextPatch.conflicts.map((field) => `metering_point_conflict:${field}`)])),
+          nextStep: "Granska mätpunktens nätområde innan leverantörsbyte fortsätter.",
+          canStartSwitch: false,
+          canActivateCustomer: false,
+        };
+        if (contract?.id) {
+          await supabaseService
+            .from("customer_contracts")
+            .update({ status: "needs_review", resolution_status: "needs_review", updated_at: new Date().toISOString() })
+            .eq("company_id", input.client.company_id)
+            .eq("id", contract.id);
+        }
+      }
+    }
 
     const siteAddress = body.site;
     if (

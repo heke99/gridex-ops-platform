@@ -50,6 +50,7 @@ export type MarketPriceSelectionOptions = {
   enforceFreshness?: boolean
   now?: Date
   allowStaleLocked?: boolean
+  dataKind?: 'preview' | 'historical_period' | 'settlement'
 }
 
 export function policySupports(input: {
@@ -73,9 +74,29 @@ export function selectMarketPriceRow<T extends Record<string, unknown>>(
     const policy = policyBySource.get(String(row.source))
     if (!policy) return false
     if (!policySupports({ policy, priceArea: options.priceArea, resolution: options.requiredResolution })) return false
+    if (options.dataKind === 'settlement') {
+      if (row.status !== 'locked' || row.is_indicative === true) return false
+      const periodStart = Date.parse(String(row.period_start ?? ''))
+      const periodEnd = Date.parse(String(row.period_end ?? ''))
+      const verifiedAt = Date.parse(String(row.verified_at ?? ''))
+      const lockedAt = Date.parse(String(row.locked_at ?? ''))
+      const coveredMinutes = Number(row.covered_duration_minutes)
+      const expectedMinutes = Number(row.expected_duration_minutes)
+      const qualityIssues = Array.isArray(row.quality_issues) ? row.quality_issues : null
+      const sourceChecksum = typeof row.source_checksum === 'string' ? row.source_checksum.trim() : ''
+      if (
+        !Number.isFinite(periodStart) || !Number.isFinite(periodEnd) || periodEnd <= periodStart ||
+        !Number.isFinite(verifiedAt) || !Number.isFinite(lockedAt) || lockedAt < verifiedAt ||
+        !Number.isFinite(coveredMinutes) || !Number.isFinite(expectedMinutes) ||
+        coveredMinutes !== expectedMinutes || qualityIssues === null || qualityIssues.length > 0 ||
+        !sourceChecksum
+      ) return false
+    }
+    if (options.dataKind === 'historical_period' && !['verified', 'locked'].includes(String(row.status))) return false
     // Locked evidence is immutable historical/final input. Non-locked market
     // evidence must be fresh enough for the tenant's configured policy.
-    if (options.enforceFreshness && row.status !== 'locked') {
+    const historicalFinal = options.dataKind === 'settlement' || options.dataKind === 'historical_period'
+    if (options.enforceFreshness && row.status !== 'locked' && !historicalFinal) {
       const timestampMs = Date.parse(String(row.updated_at ?? row.created_at ?? ''))
       if (!Number.isFinite(timestampMs)) return false
       const ageMinutes = Math.max(0, nowMs - timestampMs) / 60_000

@@ -1036,11 +1036,11 @@ export function publicContractResponse(offer: PublicContractOffer) {
       visibility: websiteVisibility,
       price_areas: offer.price_areas ?? [],
       vat_rate: vatRate,
-      market_price_responsibility: offer.contract_type === "fixed" ? "not_applicable" : "tenant",
+      market_price_responsibility: offer.contract_type === "fixed" ? "not_applicable" : "ops_quote",
       calculation_contract: {
         includes_all_applicable_components: true,
         hidden_components_must_be_calculated: true,
-        market_price_supplied_by_ops: false,
+        market_price_supplied_by_ops: true,
       },
       interval_resolution: clean(offer.pricing_snapshot?.interval_resolution),
       base_components: baseComponents,
@@ -1155,11 +1155,11 @@ export function publicContractResponse(offer: PublicContractOffer) {
       summary_price_components: summaryComponents,
       website_visibility: websiteVisibility,
       market_price_responsibility:
-        offer.contract_type === "fixed" ? "not_applicable" : "tenant",
+        offer.contract_type === "fixed" ? "not_applicable" : "ops_quote",
       calculation_contract: {
         includes_all_applicable_components: true,
         hidden_components_must_be_calculated: true,
-        market_price_supplied_by_ops: false,
+        market_price_supplied_by_ops: true,
       },
       portfolio_method: portfolioMethod,
       portfolio_monthly_prices: portfolioMonthlyPrices,

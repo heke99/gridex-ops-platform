@@ -1,7 +1,9 @@
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import type { PublicContractOffer } from '@/lib/website/publicContracts'
+import { recordCanonicalEnergyEvent } from '@/lib/energy/canonicalEnergyEvents'
+import { EnergyResolutionBindingError, loadBoundEnergyResolution } from '@/lib/energy/resolutionBinding'
 
 export type WebsiteQuoteRecord = {
   id: string
@@ -16,6 +18,13 @@ export type WebsiteQuoteRecord = {
   customer_type: 'private' | 'business'
   price_area: string
   grid_area_code: string | null
+  energy_resolution_id: string | null
+  resolution_snapshot: Record<string, unknown>
+  resolver_version: string | null
+  geodata_version: string | null
+  market_reference: Record<string, unknown>
+  quote_hash: string | null
+  resolution_binding_status: 'verified' | 'legacy_unverified'
   postal_code: string | null
   annual_consumption_kwh: number
   start_date: string
@@ -57,6 +66,21 @@ function newQuoteReference(): string {
   return `quote_${randomBytes(18).toString('base64url')}`
 }
 
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, nested]) => `${JSON.stringify(key)}:${canonicalJson(nested)}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value) ?? 'null'
+}
+
+function quoteHash(snapshot: Record<string, unknown>): string {
+  return createHash('sha256').update(canonicalJson(snapshot)).digest('hex')
+}
+
 export async function persistWebsiteQuote(input: {
   client: IntegrationApiClient
   offer: PublicContractOffer
@@ -71,11 +95,18 @@ export async function persistWebsiteQuote(input: {
   marketSources: unknown
   assumptions: unknown
   pricingSnapshotSchemaVersion: string
+  resolutionId?: string | null
+  resolutionSnapshot?: Record<string, unknown>
+  resolverVersion?: string | null
+  geodataVersion?: string | null
+  marketReference?: Record<string, unknown>
+  resolutionBindingStatus?: 'verified' | 'legacy_unverified'
   quoteSnapshot: Record<string, unknown>
 }): Promise<{ quoteReference: string; validUntil: string }> {
   const quoteReference = newQuoteReference()
   const validUntil = new Date(Date.now() + quoteLifetimeMinutes() * 60_000).toISOString()
-  const { error } = await supabaseService.from('website_contract_quotes').insert({
+  const immutableQuoteHash = quoteHash(input.quoteSnapshot)
+  const { data: inserted, error } = await supabaseService.from('website_contract_quotes').insert({
     company_id: input.client.company_id,
     api_client_id: input.client.id,
     quote_reference: quoteReference,
@@ -87,6 +118,13 @@ export async function persistWebsiteQuote(input: {
     customer_type: input.customerType,
     price_area: input.priceArea,
     grid_area_code: input.gridAreaCode ?? null,
+    energy_resolution_id: input.resolutionId ?? null,
+    resolution_snapshot: input.resolutionSnapshot ?? {},
+    resolver_version: input.resolverVersion ?? null,
+    geodata_version: input.geodataVersion ?? null,
+    market_reference: input.marketReference ?? {},
+    quote_hash: immutableQuoteHash,
+    resolution_binding_status: input.resolutionBindingStatus ?? 'legacy_unverified',
     postal_code: input.postalCode ?? null,
     annual_consumption_kwh: input.annualConsumptionKwh,
     start_date: input.startDate,
@@ -97,8 +135,26 @@ export async function persistWebsiteQuote(input: {
     quote_snapshot: input.quoteSnapshot,
     valid_until: validUntil,
     status: 'active',
-  })
+  }).select('id').single()
   if (error) throw error
+  await recordCanonicalEnergyEvent({
+    eventType: 'quote.created',
+    companyId: input.client.company_id,
+    resolutionId: input.resolutionId ?? null,
+    quoteId: inserted?.id ? String(inserted.id) : null,
+    correlationId: input.client.id,
+    source: 'website_quote_api',
+    actorType: 'api_client',
+    actorId: input.client.id,
+    payload: {
+      quote_reference: quoteReference,
+      offer_reference: input.offerReference,
+      price_area: input.priceArea,
+      valid_until: validUntil,
+      quote_hash: immutableQuoteHash,
+      market_reference: input.marketReference ?? {},
+    },
+  })
   return { quoteReference, validUntil }
 }
 
@@ -115,6 +171,7 @@ export async function validateWebsiteQuote(input: {
   publicOffer: PublicContractOffer
   customerType: 'private' | 'business'
   priceArea: string | null
+  resolutionId?: string | null
   gridAreaCode?: string | null
   postalCode?: string | null
   annualConsumptionKwh: number | null
@@ -134,6 +191,53 @@ export async function validateWebsiteQuote(input: {
   }
 
   const quote = data as WebsiteQuoteRecord
+  let canonicalResolution: Awaited<ReturnType<typeof loadBoundEnergyResolution>> | null = null
+  if (input.resolutionId?.trim()) {
+    try {
+      canonicalResolution = await loadBoundEnergyResolution({
+        client: input.client,
+        resolutionId: input.resolutionId,
+      })
+    } catch (error) {
+      if (error instanceof EnergyResolutionBindingError) {
+        throw new WebsiteQuoteValidationError({
+          message: error.message,
+          code: error.code,
+          status: error.status,
+          field: error.field,
+        })
+      }
+      throw error
+    }
+  }
+  if (canonicalResolution && input.priceArea && input.priceArea.toUpperCase() !== canonicalResolution.priceArea) {
+    throw new WebsiteQuoteValidationError({
+      message: 'Inskickat price_area motsäger OPS-resolutionen.',
+      code: 'price_area_mismatch',
+      status: 409,
+      field: 'price_area',
+    })
+  }
+  if (canonicalResolution && input.gridAreaCode && input.gridAreaCode.toUpperCase() !== canonicalResolution.gridAreaCode.toUpperCase()) {
+    throw new WebsiteQuoteValidationError({
+      message: 'Inskickad grid_area_code motsäger OPS-resolutionen.',
+      code: 'quote_resolution_mismatch',
+      status: 409,
+      field: 'grid_area_code',
+    })
+  }
+  const canonicalPriceArea = canonicalResolution?.priceArea ?? input.priceArea
+  const canonicalGridAreaCode = canonicalResolution?.gridAreaCode ?? input.gridAreaCode ?? null
+  const computedQuoteHash = quoteHash(quote.quote_snapshot)
+  if (!quote.quote_hash || quote.quote_hash !== computedQuoteHash) {
+    throw new WebsiteQuoteValidationError({
+      message: 'Quote-underlaget har ändrats efter att det skapades.',
+      code: 'quote_reference_mismatch',
+      status: 409,
+      field: 'quote_reference',
+      details: { reason: 'quote_hash_mismatch' },
+    })
+  }
   if (quote.status === 'revoked') {
     throw new WebsiteQuoteValidationError({ message: 'Quote har återkallats.', code: 'quote_revoked', status: 409 })
   }
@@ -157,8 +261,16 @@ export async function validateWebsiteQuote(input: {
   const mismatches: string[] = []
   if (quote.offer_reference !== input.offerReference) mismatches.push('offer_reference')
   if (quote.customer_type !== input.customerType) mismatches.push('customer_type')
-  if (quote.price_area !== input.priceArea) mismatches.push('price_area')
-  if (input.gridAreaCode && quote.grid_area_code && quote.grid_area_code !== input.gridAreaCode) mismatches.push('grid_area_code')
+  if (quote.price_area !== canonicalPriceArea) mismatches.push('price_area')
+  if (input.resolutionId && quote.energy_resolution_id !== input.resolutionId) mismatches.push('resolution_id')
+  if (quote.resolution_binding_status === 'verified' && !input.resolutionId) mismatches.push('resolution_id')
+  if (quote.resolution_binding_status === 'verified' && String(quote.resolution_snapshot?.price_area ?? '') !== quote.price_area) mismatches.push('resolution_snapshot.price_area')
+  if (quote.resolution_binding_status === 'verified' && String(quote.resolution_snapshot?.resolution_id ?? '') !== String(quote.energy_resolution_id ?? '')) mismatches.push('resolution_snapshot.resolution_id')
+  if (canonicalResolution && quote.energy_resolution_id !== canonicalResolution.id) mismatches.push('resolution_id')
+  if (canonicalResolution && quote.resolver_version !== canonicalResolution.resolverVersion) mismatches.push('resolver_version')
+  if (canonicalResolution && (quote.geodata_version ?? null) !== (canonicalResolution.geodataVersion ?? null)) mismatches.push('geodata_version')
+  if (canonicalResolution && String(quote.resolution_snapshot?.grid_area_code ?? '') !== canonicalResolution.gridAreaCode) mismatches.push('resolution_snapshot.grid_area_code')
+  if (canonicalGridAreaCode && quote.grid_area_code !== canonicalGridAreaCode) mismatches.push('grid_area_code')
   if (input.postalCode && quote.postal_code && quote.postal_code !== input.postalCode) mismatches.push('postal_code')
   if (input.annualConsumptionKwh === null || !sameNumber(quote.annual_consumption_kwh, input.annualConsumptionKwh)) mismatches.push('annual_consumption_kwh')
   if (quote.start_date !== input.startDate) mismatches.push('start_date')
@@ -170,13 +282,23 @@ export async function validateWebsiteQuote(input: {
   if (mismatches.length > 0) {
     throw new WebsiteQuoteValidationError({
       message: 'Quote matchar inte kundansökans avtals- eller beräkningsunderlag.',
-      code: 'quote_mismatch',
+      code: mismatches.includes('resolution_id') ? 'quote_resolution_mismatch' : 'quote_reference_mismatch',
       status: 409,
       field: mismatches[0],
       details: { mismatches },
     })
   }
 
+  await recordCanonicalEnergyEvent({
+    eventType: 'quote.validated',
+    companyId: input.client.company_id,
+    resolutionId: quote.energy_resolution_id,
+    quoteId: quote.id,
+    source: 'website_quote_validation',
+    actorType: 'api_client',
+    actorId: input.client.id,
+    payload: { quote_reference: quote.quote_reference, application_id: input.applicationId ?? null },
+  })
   return quote
 }
 

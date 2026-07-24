@@ -106,3 +106,10 @@ export function stockholmDateForInstant(value: string | Date): string {
   const parts = partsFor(date)
   return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`
 }
+
+
+export function previousStockholmCalendarDate(now = new Date()): string {
+  const parts = partsFor(now)
+  const previous = new Date(Date.UTC(parts.year, parts.month - 1, parts.day - 1))
+  return `${previous.getUTCFullYear()}-${String(previous.getUTCMonth() + 1).padStart(2, '0')}-${String(previous.getUTCDate()).padStart(2, '0')}`
+}

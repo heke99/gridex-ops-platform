@@ -30,7 +30,11 @@
     },
     {
       "path": "/api/cron/pricing/spot-prices",
-      "schedule": "15 3 * * *"
+      "schedule": "15 2,8,14,20 * * *"
+    },
+    {
+      "path": "/api/cron/pricing/spot-settlement",
+      "schedule": "35 3 * * *"
     },
     {
       "path": "/api/cron/ediel/actor-readiness?mode=full",
