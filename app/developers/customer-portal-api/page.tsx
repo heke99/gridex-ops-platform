@@ -884,6 +884,16 @@ export default function CustomerPortalApiDocsPage() {
             API:t filtrerar data per bolag från nyckeln; klienten ska inte
             skicka egen bolagsidentifierare.
           </p>
+          <p>
+            API-klientens status och tenantens driftstatus kontrolleras separat
+            vid varje anrop. En tenant i <code>onboarding</code> får
+            <code>403 tenant_not_operationally_ready</code>, en pausad tenant
+            får <code>423 tenant_paused</code>, och en terminalt stängd tenant
+            får <code>410 tenant_closed</code>. Pausning och stängning blockerar
+            därmed även public contracts, nya quotes och kundansökningar; det
+            räcker inte att API-nyckeln fortfarande ser aktiv ut i en gammal
+            klientcache.
+          </p>
         </Section>
 
         <Section title="2. Behörigheter">

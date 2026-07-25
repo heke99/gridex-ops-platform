@@ -451,6 +451,44 @@ async function deleteContractOfferActionImpl(
   };
 }
 
+export async function closeContractOfferAction(formData: FormData) {
+  const companyId = getString(formData, "company_id") || null;
+  let success: string;
+  try {
+    const actor = await requireContractPermissionAction("contracts.close");
+    if (!companyId) throw new Error("Bolag saknas.");
+    await assertUserCanOperateCompany(actor.userId, companyId);
+    const offerId = getString(formData, "id");
+    const reason = getString(formData, "reason");
+    if (!offerId) throw new Error("Avtal saknas.");
+    if (!reason) throw new Error("Ange varför avtalet ska stängas.");
+
+    const { data, error } = await supabaseService.rpc(
+      "gridex_close_contract_product",
+      {
+        p_company_id: companyId,
+        p_offer_id: offerId,
+        p_actor_user_id: actor.userId,
+        p_reason: reason,
+      },
+    );
+    if (error) throw error;
+    const result = data as ContractLifecycleRpcResult | null;
+    if (!result?.ok) {
+      throw contractLifecycleFailure(result, "Avtalet kunde inte stängas.");
+    }
+    revalidateContractSurfaces(companyId);
+    success =
+      "Avtalet stängdes terminalt för nyförsäljning. Historiska kundavtal och snapshots bevarades.";
+  } catch (error) {
+    redirectBack({
+      companyId,
+      error: errorMessage(error, { action: "close_contract_offer", companyId }),
+    });
+  }
+  redirectBack({ companyId, success });
+}
+
 export async function updateTenantContractChannelAction(formData: FormData) {
   let success: string;
   try {

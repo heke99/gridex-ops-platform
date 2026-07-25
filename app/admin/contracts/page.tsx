@@ -10,6 +10,7 @@ import {
   archiveContractOfferAction,
   cleanupUnusedContractDraftsAction,
   deleteContractOfferAction,
+  closeContractOfferAction,
   pauseContractOfferAction,
   publishContractChannelAction,
   publishContractVersionAction,
@@ -683,6 +684,7 @@ export default async function AdminContractsPage({
         : allSeriesOffers.filter(
             (offer) =>
               offer.lifecycle_status !== "archived" &&
+              offer.lifecycle_status !== "closed" &&
               offer.lifecycle_status !== "superseded",
           );
       editOffer = editOfferId
@@ -1008,6 +1010,8 @@ export default async function AdminContractsPage({
                                 ? "Pausat"
                                 : offer.lifecycle_status === "expired"
                                   ? "Utgånget"
+                                  : offer.lifecycle_status === "closed"
+                                    ? "Stängt"
                                   : offer.lifecycle_status === "archived"
                                     ? "Arkiverat"
                                     : offer.lifecycle_status === "superseded"
@@ -1093,9 +1097,11 @@ export default async function AdminContractsPage({
                               </form>
                             </>
                           ) : null}
-                          {offer.lifecycle_status === "archived" ? (
+                          {offer.lifecycle_status === "archived" || offer.lifecycle_status === "closed" ? (
                             <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-                              Arkivering är irreversibel. Använd “Skapa ny version” för att återlansera samma produktserie utan att återuppliva gammal juridik eller kanalstatus.
+                              {offer.lifecycle_status === "closed"
+                                ? "Stängning är terminal för produktserien. Historisk juridik, kundavtal och snapshots bevaras."
+                                : "Arkivering är irreversibel. Använd “Skapa ny version” för att återlansera samma produktserie utan att återuppliva gammal juridik eller kanalstatus."}
                             </p>
                           ) : (
                             <form action={archiveContractOfferAction}>
@@ -1110,6 +1116,21 @@ export default async function AdminContractsPage({
                               </button>
                             </form>
                           )}
+                          {offer.lifecycle_status !== "closed" && offer.lifecycle_status !== "archived" ? (
+                            <form action={closeContractOfferAction} className="grid gap-2 rounded-xl border border-red-200 bg-red-50 p-2">
+                              <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+                              <input type="hidden" name="id" value={offer.id} />
+                              <input
+                                name="reason"
+                                required
+                                placeholder="Obligatorisk stängningsorsak"
+                                className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs text-slate-800"
+                              />
+                              <button className="w-full rounded-xl border border-red-300 bg-white px-3 py-2 text-xs font-black text-red-800">
+                                Stäng avtal terminalt
+                              </button>
+                            </form>
+                          ) : null}
                           <form action={deleteContractOfferAction}>
                             <input
                               type="hidden"
@@ -1119,6 +1140,7 @@ export default async function AdminContractsPage({
                             <input type="hidden" name="id" value={offer.id} />
                             <button
                               disabled={
+                                offer.lifecycle_status === "closed" ||
                                 (offer.deletion_preview?.can_delete ?? offer.deletion_preview?.deletable) !== true
                               }
                               className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 disabled:cursor-not-allowed disabled:opacity-50"

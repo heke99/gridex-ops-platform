@@ -6,6 +6,7 @@ export const CONTRACT_LIFECYCLE_STATUSES = [
   "published",
   "paused",
   "expired",
+  "closed",
   "archived",
 ] as const;
 

@@ -38,6 +38,7 @@ const GOVERNANCE_COMPANY_STATUSES: CompanyOperationalStatus[] = [
   'active',
   'paused',
   'suspended',
+  'closed',
   'archived',
   'pending_deletion',
 ]
@@ -167,49 +168,10 @@ function governanceActionForStatus(status: CompanyOperationalStatus): Governance
   if (status === 'active') return 'SUPERADMIN_COMPANY_REACTIVATED'
   if (status === 'paused') return 'SUPERADMIN_COMPANY_PAUSED'
   if (status === 'suspended') return 'SUPERADMIN_COMPANY_SUSPENDED'
+  if (status === 'closed') return 'SUPERADMIN_COMPANY_CLOSED'
   if (status === 'archived') return 'SUPERADMIN_COMPANY_ARCHIVED'
   return 'SUPERADMIN_COMPANY_DELETION_REQUESTED'
 }
-
-function statusUpdatePayload(status: CompanyOperationalStatus, actorUserId: string, reason: string | null) {
-  const now = new Date().toISOString()
-  const base: Record<string, unknown> = {
-    status,
-    status_reason: reason,
-    updated_at: now,
-  }
-
-  if (status === 'active') {
-    return {
-      ...base,
-      reactivated_at: now,
-      reactivated_by: actorUserId,
-      paused_at: null,
-      paused_by: null,
-      suspended_at: null,
-      suspended_by: null,
-      archived_at: null,
-      archived_by: null,
-      deletion_requested_at: null,
-      deletion_requested_by: null,
-    }
-  }
-
-  if (status === 'paused') {
-    return { ...base, paused_at: now, paused_by: actorUserId }
-  }
-
-  if (status === 'suspended') {
-    return { ...base, suspended_at: now, suspended_by: actorUserId }
-  }
-
-  if (status === 'archived') {
-    return { ...base, archived_at: now, archived_by: actorUserId }
-  }
-
-  return { ...base, deletion_requested_at: now, deletion_requested_by: actorUserId }
-}
-
 
 async function assertCanManageCompanyUsers(companyId: string) {
   const context = await requireAdminActionAccess({ anyOf: ['tenants.invite', 'users.write'] })
@@ -231,15 +193,40 @@ async function setCompanyStatus(input: {
   actorUserId: string
   reason: string | null
 }) {
-  const payload = statusUpdatePayload(input.status, input.actorUserId, input.reason)
+  const { data: transition, error: transitionError } = await supabaseService.rpc(
+    'gridex_transition_tenant_lifecycle',
+    {
+      p_company_id: input.companyId,
+      p_next_status: input.status,
+      p_actor_user_id: input.actorUserId,
+      p_reason: input.reason,
+    },
+  )
+  if (transitionError) throw transitionError
+  const result = transition as {
+    ok?: boolean
+    code?: string
+    blocking_reasons?: Array<{ code?: string; message?: string; task_key?: string }>
+  } | null
+  if (!result?.ok) {
+    const blockers = (result?.blocking_reasons ?? [])
+      .map((item) => item.message ?? item.code)
+      .filter(Boolean)
+    const error = new Error(
+      blockers.length > 0
+        ? `Bolaget kan inte aktiveras eller stängas: ${blockers.join(' ')}`
+        : `Bolagsåtgärden blockerades (${result?.code ?? 'tenant_lifecycle_conflict'}).`,
+    ) as Error & { code?: string; blockingReasons?: typeof blockers }
+    error.code = result?.code ?? 'tenant_lifecycle_conflict'
+    error.blockingReasons = blockers
+    throw error
+  }
 
   const { data, error } = await supabaseService
     .from('companies')
-    .update(payload)
+    .select('id,name,status')
     .eq('id', input.companyId)
-    .select('id, name, status')
     .single()
-
   if (error) throw error
   return data as { id: string; name: string; status: string }
 }

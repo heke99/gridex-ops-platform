@@ -19,6 +19,7 @@ export type ContractLifecycleStatus =
   | "published"
   | "paused"
   | "expired"
+  | "closed"
   | "archived"
   | "superseded";
 

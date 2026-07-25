@@ -15,3 +15,18 @@
   production build.
 - Confirmed database apply verification is blocked by the absent Supabase
   runtime; recorded the exact staging continuation.
+
+## 2026-07-26
+
+- Traced contract deletion, tenant governance and integration API access across
+  database, server actions, UI, tests and documentation.
+- Added terminal contract closure and canonical tenant lifecycle RPCs in one
+  append-only migration with a registered checksum.
+- Added structured tenant activation blockers, close preconditions and
+  tenant-status enforcement for API clients.
+- Removed competing direct company-status mutation paths.
+- Synchronized the admin UI, API docs, OpenAPI files and delivery guide.
+- Verified typecheck, 354 tests, API docs/parity, migration history, dedicated
+  lifecycle regression, lint and production build.
+- Recorded that database application and transactional staging tests remain
+  blocked by the absent Supabase/PostgreSQL environment.

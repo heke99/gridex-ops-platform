@@ -6,6 +6,7 @@ export type CompanyOperationalStatus =
   | 'onboarding'
   | 'paused'
   | 'suspended'
+  | 'closed'
   | 'archived'
   | 'pending_deletion'
   | 'deleted_test_only'
@@ -22,6 +23,7 @@ export type GovernanceEventAction =
   | 'SUPERADMIN_COMPANY_PAUSED'
   | 'SUPERADMIN_COMPANY_REACTIVATED'
   | 'SUPERADMIN_COMPANY_SUSPENDED'
+  | 'SUPERADMIN_COMPANY_CLOSED'
   | 'SUPERADMIN_COMPANY_ARCHIVED'
   | 'SUPERADMIN_COMPANY_DELETION_REQUESTED'
   | 'SUPERADMIN_COMPANY_DELETED_TEST_ONLY'
@@ -210,6 +212,7 @@ const HISTORY_TABLES: Array<{ table: string; label: string }> = [
 export const BLOCKED_TENANT_WRITE_STATUSES = new Set<CompanyOperationalStatus>([
   'paused',
   'suspended',
+  'closed',
   'archived',
   'pending_deletion',
   'deleted_test_only',
@@ -221,6 +224,7 @@ export function normalizeCompanyStatus(value: string | null | undefined): Compan
     value === 'onboarding' ||
     value === 'paused' ||
     value === 'suspended' ||
+    value === 'closed' ||
     value === 'archived' ||
     value === 'pending_deletion' ||
     value === 'deleted_test_only'
@@ -259,6 +263,11 @@ export function getCompanyStatusCopy(status: string | null | undefined) {
       label: 'Avstängt',
       tone: 'border-red-200 bg-red-50 text-red-800',
       description: 'Bolaget är permanent stoppat men historiken bevaras.',
+    },
+    closed: {
+      label: 'Stängt',
+      tone: 'border-red-300 bg-red-100 text-red-900',
+      description: 'Bolaget är terminalt stängt för nyförsäljning. Historik och juridisk retention bevaras.',
     },
     archived: {
       label: 'Arkiverat',

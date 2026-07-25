@@ -34,6 +34,12 @@ export const CONTRACT_LIFECYCLE_REASON_MESSAGES: Readonly<Record<string, string>
   contract_channel_not_found: 'Försäljningskanalen saknas för avtalet. Canonical backfill behöver repareras.',
   active_publication_version_not_found: 'Kanalen är aktiv men saknar en aktiv publiceringsversion. Canonical backfill behöver repareras.',
   contract_public_offer_still_referenced: 'Avtalet kunde inte raderas eftersom publiceringshistorik fortfarande refererar till det. Avtalsgrafen behöver repareras eller avtalet arkiveras.',
+  contract_not_found: 'Avtalet hittades inte för valt bolag.',
+  contract_close_reason_required: 'Ange varför avtalet ska stängas.',
+  contract_already_closed: 'Avtalet är redan stängt.',
+  contract_already_archived: 'Avtalet är redan arkiverat.',
+  contract_closed_terminal: 'Ett stängt avtal är terminalt och kan inte raderas eller återpubliceras.',
+  contract_closed: 'Avtalet stängdes för all nyförsäljning.',
 }
 
 export function contractLifecycleMessage(

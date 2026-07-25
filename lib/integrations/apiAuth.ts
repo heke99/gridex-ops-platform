@@ -26,6 +26,16 @@ export type IntegrationApiRateLimit = {
   resetAt: string | null
 }
 
+export type IntegrationTenantApiStatus =
+  | 'active'
+  | 'onboarding'
+  | 'paused'
+  | 'suspended'
+  | 'closed'
+  | 'archived'
+  | 'pending_deletion'
+  | 'deleted_test_only'
+
 export type IntegrationApiAuthResult =
   | { ok: true; client: IntegrationApiClient; rateLimit: IntegrationApiRateLimit }
   | {
@@ -135,6 +145,54 @@ function publicError(input: {
     client: input.client ?? null,
     retryAfterSeconds: input.retryAfterSeconds,
     rateLimit: input.rateLimit,
+  }
+}
+
+export function tenantApiAccessError(status: string | null | undefined): {
+  status: number
+  code: string
+  message: string
+} | null {
+  if (status === 'active') return null
+  if (status === 'onboarding') {
+    return {
+      status: 403,
+      code: 'tenant_not_operationally_ready',
+      message: 'Tenantens onboarding är inte klar.',
+    }
+  }
+  if (status === 'paused') {
+    return {
+      status: 423,
+      code: 'tenant_paused',
+      message: 'Tenantens API-åtkomst är pausad.',
+    }
+  }
+  if (status === 'closed') {
+    return {
+      status: 410,
+      code: 'tenant_closed',
+      message: 'Tenantens konto är stängt.',
+    }
+  }
+  if (status === 'suspended') {
+    return {
+      status: 403,
+      code: 'tenant_suspended',
+      message: 'Tenantens konto är avstängt.',
+    }
+  }
+  if (status === 'archived' || status === 'pending_deletion' || status === 'deleted_test_only') {
+    return {
+      status: 410,
+      code: 'tenant_inactive',
+      message: 'Tenantens konto är inte aktivt.',
+    }
+  }
+  return {
+    status: 503,
+    code: 'tenant_status_unavailable',
+    message: 'Tenantens driftstatus kunde inte verifieras.',
   }
 }
 
@@ -286,6 +344,33 @@ export async function requireIntegrationApiAccess(
   if (client.expires_at && new Date(client.expires_at).getTime() <= Date.now()) {
     return publicError({ status: 403, code: 'api_token_expired', message: 'API-token har gått ut.', client })
   }
+
+  // API-client state and tenant state are independent controls. Always resolve
+  // the owning tenant server-side from the key and fail closed before scopes,
+  // rate limiting or route code can perform a sale-related operation.
+  const { data: company, error: companyError } = await supabaseService
+    .from('companies')
+    .select('id,status')
+    .eq('id', client.company_id)
+    .maybeSingle()
+  if (companyError || !company) {
+    return publicError({
+      status: 503,
+      code: 'tenant_status_unavailable',
+      message: 'Tenantens driftstatus kunde inte verifieras.',
+      client,
+    })
+  }
+  const tenantAccessError = tenantApiAccessError(String(company.status ?? ''))
+  if (tenantAccessError) {
+    return publicError({
+      status: tenantAccessError.status,
+      code: tenantAccessError.code,
+      message: tenantAccessError.message,
+      client,
+    })
+  }
+
   if (!hasRequiredScopes(client.scopes ?? [], requiredScopes)) {
     return publicError({ status: 403, code: 'api_scope_missing', message: 'API-klienten saknar scope.', client })
   }

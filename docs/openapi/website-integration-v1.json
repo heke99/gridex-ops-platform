@@ -1482,7 +1482,7 @@
           },
           "error_code": {
             "type": "string",
-            "description": "Additive machine-readable alias of error.code."
+            "description": "Additive machine-readable alias of error.code. Authentication may fail before route logic with tenant_not_operationally_ready (403), tenant_paused (423), tenant_suspended (403), tenant_closed (410), tenant_inactive (410), or tenant_status_unavailable (503)."
           },
           "correlation_id": {
             "type": "string",

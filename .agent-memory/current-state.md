@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-07-25T15:40:00+02:00
+Last updated: 2026-07-26T18:00:00+02:00
 
 - PHASE-00: VERIFIED — permanent memory, Cursor rules and superseded legacy
   task marker are installed.
@@ -16,10 +16,15 @@ Last updated: 2026-07-25T15:40:00+02:00
 - PHASE-16–18: IMPLEMENTED/STATIC_VERIFIED — billing readiness uses real tenant,
   profile/provider/payment/address inputs with immutable evidence; portal
   invoices use only `customer_invoices`; canonical paid events are emitted.
-- PHASE-22: STATIC_VERIFIED — 299 migration files and manifest checksums pass;
-  the new migration is not applied because no Supabase CLI/database is present.
-- PHASE-23–24: VERIFIED locally — typecheck, 346 tests, API checks, lint and
+- PHASE-22: STATIC_VERIFIED — 300 migration files and manifest checksums pass;
+  the two pending migrations are not applied because no Supabase
+  CLI/database is present.
+- PHASE-23–24: VERIFIED locally — typecheck, 354 tests, API checks, lint and
   production build pass. Lint reports 125 pre-existing warnings and no errors.
+- PHASE-25: IMPLEMENTED/STATIC_VERIFIED — contract closure is terminal,
+  tenant activation is readiness-gated, tenant closure has explicit
+  preconditions, and integration API access now fails closed for non-active
+  tenants.
 
 Repository provenance remains unavailable because the uploaded archive excludes
 `.git`. The live deployed documentation observed during this task is older than

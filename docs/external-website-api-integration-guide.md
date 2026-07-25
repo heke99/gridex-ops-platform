@@ -43,6 +43,26 @@ Scope: integration_context.read
 
 Skicka aldrig internt `company_id`, `tenant_id` eller databas-UUID som tenantväljare. Alla resolutioner, quotes, ansökningar och idempotensposter binds till API-nyckelns tenant.
 
+API-klientens status och tenantens driftstatus är två separata spärrar som
+kontrolleras centralt före endpointens affärslogik:
+
+| Tenantstatus | HTTP/kod | Beteende |
+|---|---|---|
+| `active` | — | API-anrop fortsätter till scope- och rate-limitkontroll. |
+| `onboarding` | `403 tenant_not_operationally_ready` | Ingen extern försäljning innan server-side readiness är komplett. |
+| `paused` | `423 tenant_paused` | API, nya quotes och kundansökningar stoppas; historik bevaras. Oanvända quotes återkallas. |
+| `suspended` | `403 tenant_suspended` | API-åtkomst och ny operativ drift stoppas. |
+| `closed` | `410 tenant_closed` | Terminalt stängd för ny drift; nycklar återkallas och historik bevaras. |
+| `archived` / `pending_deletion` | `410 tenant_inactive` | Ingen extern API-åtkomst. |
+
+Ett avtal har separata operationer för avpublicering, paus, stängning,
+arkivering och säker radering. Ett pausat eller stängt avtal returneras aldrig
+som teckningsbart. Pausning och terminal stängning återkallar befintliga,
+oanvända quotes omedelbart; konsumerade quotes och juridisk historik muteras
+inte. Ett tidigare publicerat avtal kan endast hårdraderas när samtliga kanaler
+är avpublicerade och dependency-kontrollen bevisar att ingen affärshistorik
+finns. Stängda avtal är terminala och hårdraderas inte.
+
 UUID-fält som `customer_id`, `application_id`, `contract_id` och `resolution_id`
 är dokumenterade, opaka och tenantbundna publika resurs-ID:n. De ger aldrig
 behörighet i sig. Interna prisplans-, publicerings-, portalidentitets- och

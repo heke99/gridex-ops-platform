@@ -22,13 +22,20 @@ Status: VERIFIED LOCALLY
 - Added canonical `supply.started` and `invoice.paid` webhook events and
   documented active/internal/planned event names.
 - Synchronized OpenAPI, runtime, developer page and guides at `2026-07-25.1`.
+- Added an explicit terminal contract-close operation with dependency cleanup,
+  immutable closure metadata, audit, domain event and transactional outbox.
+- Added canonical tenant lifecycle transitions with structured activation
+  blockers and close preconditions.
+- Enforced owning-tenant operational status for every integration API client.
+- Removed direct company-status writes outside the canonical transition RPC.
 
 ## Verification
 
 - Typecheck: pass.
-- Full Vitest: 53 files, 346 tests pass.
+- Full Vitest: 54 files, 354 tests pass.
 - Targeted P0/P1 suite: 11 files, 80 tests pass.
 - API contract/OpenAPI/docs checks: pass.
-- Migration integrity: 299 files, 204 groups, checksums pass.
+- Migration integrity: 300 files, 205 groups, checksums pass.
+- Dedicated contract/tenant lifecycle regression: pass.
 - ESLint: pass with 125 existing warnings and no errors.
 - Next.js production build: pass; `.next/BUILD_ID` generated.

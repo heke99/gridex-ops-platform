@@ -573,8 +573,9 @@ function CompanyProfileEditor({ company, profile }: { company: GovernanceCompany
 
         <fieldset className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <legend className="mb-3 w-full text-base font-black text-slate-950">Status</legend>
-          <label className="grid gap-1 text-sm font-bold text-slate-800">Bolagsstatus<select name="status" defaultValue={company.status} className="rounded-2xl border border-slate-300 px-4 py-3"><option value="onboarding">Onboarding</option><option value="active">Aktivt</option><option value="paused">Pausat</option><option value="suspended">Avstängt</option><option value="archived">Arkiverat</option></select></label>
-          <label className="grid gap-1 text-sm font-bold text-slate-800 md:col-span-2">Intern statusnotering<input name="status_reason" defaultValue={company.status_reason ?? ''} className="rounded-2xl border border-slate-300 px-4 py-3" /></label>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 md:col-span-3">
+            Bolagsstatus: {company.status}. Status ändras endast genom de auditerade styrningsåtgärderna på bolagsöversikten; profilformuläret kan inte kringgå readiness eller stängningskontroller.
+          </div>
         </fieldset>
 
         <button className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800">Spara bolagsuppgifter och synkronisera juridik</button>

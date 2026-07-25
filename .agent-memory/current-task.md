@@ -1,18 +1,18 @@
 # Current task
 
-Last updated: 2026-07-25T15:40:00+02:00
+Last updated: 2026-07-26T18:00:00+02:00
 Branch: UNVERIFIED (uploaded archive excludes `.git`)
 Last verified commit: null
 Working tree status: patch tracking is byte-diffed against the uploaded ZIP
 
 ## Active phase
 
-PHASE-22 — migration and production verification.
+PHASE-25 — contract and tenant lifecycle completion.
 
 ## Active work item
 
-WP-022 — apply and validate the forward migration in an authorized Supabase
-environment.
+WP-025 — apply and transaction-test the lifecycle migration in an authorized
+Supabase environment.
 
 ## Completed release scope
 
@@ -27,18 +27,23 @@ environment.
 - atomic supply activation RPC and transactional outboxes;
 - truthful active/internal/planned event documentation;
 - OpenAPI/docs/runtime version `2026-07-25.1`.
+- terminal contract closure with dependent-channel cleanup and audit/outbox;
+- readiness-gated tenant activation and precondition-gated tenant closure;
+- tenant-status enforcement for integration API clients;
+- removal of competing direct company-status mutations.
 
 ## Verification performed
 
-`npm run typecheck`, `npm test -- --testTimeout=15000` (346/346),
+`npm run typecheck`, `npm test -- --testTimeout=15000` (354/354),
 `npm run api:docs`, `npm run db:migrations:check`, `npm run lint` (0 errors)
-and `npm run build` all pass locally.
+and `npm run build` all pass locally. The dedicated contract/tenant lifecycle
+regression also passes.
 
 ## Exact next action
 
-Apply `20260725120000_billing_readiness_and_supply_activation_v1.sql` in a
-staging Supabase project, then run transactional replay, rollback and
-two-tenant isolation tests against `activate_customer_supply_v1`.
+Apply both pending forward migrations in a staging Supabase project, then run
+transactional close/reactivation/replay and two-tenant isolation tests. Start
+with `20260726010000_contract_tenant_lifecycle_completion.sql`.
 
 ## Blockers
 

@@ -309,6 +309,7 @@ export default async function CompaniesPage({
                           <GovernanceActionForm companyId={company.id} status="paused" label="Pausa" reasonPlaceholder="Anledning till paus" />
                           <GovernanceActionForm companyId={company.id} status="active" label="Återaktivera" reasonPlaceholder="Anledning, valfritt" />
                           <GovernanceActionForm companyId={company.id} status="suspended" label="Stäng av" reasonPlaceholder="Anledning till avstängning" danger />
+                          <GovernanceActionForm companyId={company.id} status="closed" label="Stäng tenant terminalt" reasonPlaceholder="Obligatorisk stängningsorsak" danger />
                           <GovernanceActionForm companyId={company.id} status="archived" label="Arkivera" reasonPlaceholder="Anledning till arkivering" />
                           <form action={requestCompanyDeletionFormAction} className="grid gap-2 rounded-2xl border border-orange-200 bg-orange-50 p-3">
                             <input type="hidden" name="company_id" value={company.id} />

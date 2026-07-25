@@ -17,8 +17,6 @@ import {
 } from '@/lib/tenant/companyLegalProfile'
 import { toSafeCompanyProfileError } from '@/lib/errors/safeActionErrors'
 
-const COMPANY_STATUSES = new Set(['active', 'onboarding', 'paused', 'suspended', 'archived'])
-
 function text(value: FormDataEntryValue | null): string {
   return String(value ?? '').trim()
 }
@@ -106,9 +104,6 @@ export async function saveCompanyProfileAction(formData: FormData) {
     const name = text(formData.get('name'))
     if (!name) throw new Error('Bolagsnamn krävs.')
 
-    const status = text(formData.get('status')) || 'onboarding'
-    if (!COMPANY_STATUSES.has(status)) throw new Error('Ogiltig bolagsstatus.')
-
     const customerNumberPrefix = normalizeCustomerNumberPrefix(formData.get('customer_number_prefix'))
     await assertCustomerPrefixCanChange(companyId, customerNumberPrefix)
 
@@ -162,8 +157,6 @@ export async function saveCompanyProfileAction(formData: FormData) {
         billing_city: optionalText(formData.get('billing_city')),
         billing_country_code: billingCountryCode,
         billing_terms_summary: optionalText(formData.get('billing_terms_summary')),
-        status,
-        status_reason: optionalText(formData.get('status_reason')),
       },
     })
 

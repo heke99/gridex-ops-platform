@@ -11,12 +11,15 @@
 | VM-007 | Interval binding | VERIFIED | Hourly/quarterly selection tests |
 | VM-008 | Cron tree/auth | VERIFIED | 22 registered crons mapped to authenticated routes |
 | VM-009 | Atomic activation | STATIC VERIFIED | Migration/state-machine regression |
-| VM-010 | Migration history | VERIFIED | 299 files; 204 groups; checksums |
+| VM-010 | Migration history | VERIFIED | 300 files; 205 groups; checksums |
 | VM-011 | API/OpenAPI/docs | VERIFIED | `npm run api:docs` |
 | VM-012 | Typecheck | VERIFIED | `npm run typecheck` |
-| VM-013 | Full tests | VERIFIED | 53 files; 346 tests |
+| VM-013 | Full tests | VERIFIED | 54 files; 354 tests |
 | VM-014 | Lint | VERIFIED | 0 errors; 125 existing warnings |
 | VM-015 | Production build | VERIFIED | Next build generated `.next/BUILD_ID` |
 | VM-016 | PostgreSQL migration apply | BLOCKED | No Supabase CLI/database |
 | VM-017 | Two-tenant DB isolation/E2E | BLOCKED | Requires authorized test DB |
 | VM-018 | Live deployed parity | PENDING DEPLOY | Live contract older than local |
+| VM-019 | Terminal contract lifecycle | STATIC VERIFIED | Migration regression, types and admin flow |
+| VM-020 | Tenant lifecycle readiness | STATIC VERIFIED | RPC regression and governance tests |
+| VM-021 | Integration tenant gate | VERIFIED LOCALLY | Status mapping tests and full suite |
