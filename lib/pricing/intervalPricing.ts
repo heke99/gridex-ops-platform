@@ -48,6 +48,15 @@ function intervalResolution(milliseconds: number): "hour" | "quarter" | null {
   return null;
 }
 
+export function spotPriceResolutionMatches(
+  requiredResolution: "hourly" | "quarterly",
+  sourceResolution: unknown,
+): boolean {
+  return requiredResolution === "quarterly"
+    ? text(sourceResolution) === "quarter_hour"
+    : text(sourceResolution) === "hourly";
+}
+
 export async function resolveIntervalSpotPricing(input: {
   companyId: string;
   billingUnderlayId: string;
@@ -139,10 +148,7 @@ export async function resolveIntervalSpotPricing(input: {
     const candidates = prices.filter((price) => {
       const priceStart = Date.parse(String(price.time_start));
       const priceEnd = Date.parse(String(price.time_end));
-      if (
-        input.requiredResolution === "quarterly" &&
-        text(price.resolution) !== "quarter_hour"
-      )
+      if (!spotPriceResolutionMatches(input.requiredResolution, price.resolution))
         return false;
       return priceStart <= startMs && priceEnd >= endMs;
     }).sort((a, b) =>

@@ -1,0 +1,11 @@
+---
+description: Mandatory security, tenancy and verification controls
+alwaysApply: true
+---
+
+Evaluate authentication, authorization, tenant isolation, RLS, service-role
+usage, validation, output exposure, idempotency, transaction safety, audit,
+secrets, personal data and API compatibility for every change.
+
+Use the status vocabulary in `.agent-memory/README.md`. Never claim a
+verification that was not executed.

@@ -1,0 +1,70 @@
+{
+  "project": "gridex-ops-platform",
+  "updated_at": "2026-07-25T15:40:00+02:00",
+  "branch": null,
+  "last_verified_commit": null,
+  "active_phase": "PHASE-22",
+  "active_task": "WP-022",
+  "active_subtask": "Apply and transaction-test the new migration in staging",
+  "status": "BLOCKED_BY_ENVIRONMENT",
+  "completed_tasks": [
+    "WP-000",
+    "WP-001",
+    "WP-002",
+    "WP-004",
+    "WP-005",
+    "WP-006",
+    "WP-007"
+  ],
+  "implemented_not_database_verified": [
+    "WP-013 atomic supply activation",
+    "WP-016 immutable billing configuration evidence"
+  ],
+  "active_blockers": [
+    "Uploaded archive excludes Git metadata",
+    "Supabase CLI and authorized database are unavailable",
+    "Production contract requires deployment"
+  ],
+  "migrations_added": [
+    "supabase/migrations/20260725120000_billing_readiness_and_supply_activation_v1.sql"
+  ],
+  "verification": [
+    {
+      "name": "typecheck",
+      "status": "VERIFIED",
+      "evidence": "npm run typecheck"
+    },
+    {
+      "name": "tests",
+      "status": "VERIFIED",
+      "evidence": "53 files, 346 tests passed"
+    },
+    {
+      "name": "api documentation",
+      "status": "VERIFIED",
+      "evidence": "all api:docs checks passed at 2026-07-25.1"
+    },
+    {
+      "name": "migration integrity",
+      "status": "VERIFIED",
+      "evidence": "299 files, 204 groups, checksums verified"
+    },
+    {
+      "name": "lint",
+      "status": "VERIFIED",
+      "evidence": "0 errors, 125 existing warnings"
+    },
+    {
+      "name": "production build",
+      "status": "VERIFIED",
+      "evidence": ".next/BUILD_ID generated"
+    }
+  ],
+  "next_action": "Apply the forward migration in staging and prove rollback, replay and tenant isolation",
+  "resume_from": "supabase/migrations/20260725120000_billing_readiness_and_supply_activation_v1.sql",
+  "context_notes": [
+    "Do not repeat repository inventory",
+    "Do not treat static migration checks as a database apply test",
+    "Deploy runtime and migration together before live contract verification"
+  ]
+}

@@ -684,7 +684,13 @@ export async function resolveBasePriceSourceValues(input: {
         .limit(30);
       if (daily.error && !databaseShapeError(daily.error)) throw daily.error;
       const rows = (daily.data ?? []) as Array<Record<string, unknown>>;
-      const weightedRows = rows.filter((row) => numberValue(row.average_sek_per_kwh) !== null);
+      const weightedRows = rows.filter((row) => {
+        if (numberValue(row.average_sek_per_kwh) === null) return false;
+        const resolution = stringValue(row.resolution);
+        if (requiredResolution === "hourly") return resolution === "hourly";
+        if (requiredResolution === "quarterly") return resolution === "quarter_hour";
+        return true;
+      });
       if (weightedRows.length > 0) {
         const totalMinutes = weightedRows.reduce((sum, row) => sum + Math.max(0, numberValue(row.covered_duration_minutes) ?? numberValue(row.expected_duration_minutes) ?? 1440), 0);
         const average = totalMinutes > 0

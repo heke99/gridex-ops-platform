@@ -31,7 +31,7 @@ must(/Avgiften används alltid i offert, avtal och fakturering/.test(adminUi) &&
 must(/invoice_fee: invoiceFee/.test(publicContracts) && /invoice_fee_sek: offer\.invoice_fee_sek/.test(publicContracts), 'invoice fee is always returned to tenant calculation API')
 must(/calculation_inclusion/.test(publicContracts) && /website_visibility/.test(publicContracts), 'invoice fee calculation and presentation are separate')
 must(/website_summary_visible/.test(boundaryMigration), 'database supports summary visibility independently')
-must(openapi.info.version === '2026-07-24.2', 'OpenAPI contract version is 2026-07-24.2')
+must(openapi.info.version === '2026-07-25.1', 'OpenAPI contract version is 2026-07-25.1')
 must(Boolean(openapi.paths['/api/v1/website/quote'].post.responses['201']) && openapi.paths['/api/v1/website/quote'].post['x-required-scopes'].includes('website_quotes.write'), 'canonical quote endpoint is documented as active')
 must(Boolean(openapi.components.schemas.PublicPricingComponent.properties.calculation_inclusion), 'OpenAPI documents calculation inclusion')
 must(Boolean(openapi.components.schemas.PublicPricingComponent.properties.website_visibility), 'OpenAPI documents website visibility')

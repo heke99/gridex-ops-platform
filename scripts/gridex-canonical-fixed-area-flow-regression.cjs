@@ -136,16 +136,16 @@ includes('supabase/migrations/20260723120000_canonical_fixed_area_quote_flow.sql
 ], 'Migrationen ska återaktivera endast etablerade scopes och lägga till audit/read model')
 
 // Runtime/API/docs version alignment.
-includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-07-24.2'"], 'Canonical runtime contract version ska vara 2026-07-24.2')
+includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-07-25.1'"], 'Canonical runtime contract version ska vara 2026-07-25.1')
 includes('lib/website/publicContractApi.ts', ['WEBSITE_INTEGRATION_CONTRACT_VERSION'], 'Public contract runtime ska använda den canonicala kontraktsversionen')
 includes('app/developers/customer-portal-api/page.tsx', [
-  '2026-07-24.2',
+  '2026-07-25.1',
   'area_pricing',
   '/api/v1/website/quote',
 ], 'Utvecklarsidan ska beskriva canonical area pricing och quote')
 for (const rel of ['docs/openapi/website-integration-v1.json', 'docs/openapi/customer-portal-v1.json']) {
   const spec = json(rel)
-  check(spec.info?.version === '2026-07-24.2', `${rel} ska ha version 2026-07-24.2`)
+  check(spec.info?.version === '2026-07-25.1', `${rel} ska ha version 2026-07-25.1`)
   check(Boolean(spec.paths?.['/api/v1/website/quote']?.post?.responses?.['201']), `${rel} ska dokumentera aktiv quote 201`)
   check(Boolean(spec.paths?.['/api/v1/website/quote/validate']?.post?.responses?.['200']), `${rel} ska dokumentera aktiv quote validation 200`)
   check(Boolean(spec.paths?.['/api/v1/website/energy-area/resolve']?.post?.responses?.['200']), `${rel} ska dokumentera aktiv resolver 200`)

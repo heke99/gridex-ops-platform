@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
+import { deriveEnergyResolutionReadiness } from '@/lib/energy/resolutionBinding'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 import {
@@ -35,19 +36,77 @@ export async function POST(request: NextRequest) {
       return customerPortalJson({ error: { code: parsed.code, message: status === 413 ? 'Förfrågans innehåll är för stort.' : 'Ogiltig JSON i förfrågan.', request_id: requestId, correlation_id: requestId, retryable: false }, error_code: parsed.code, correlation_id: requestId, retryable: false }, { status })
     }
     const body = (parsed.body ?? {}) as Record<string, unknown>
+    const allowedFields = new Set([
+      'street',
+      'street_number',
+      'postal_code',
+      'city',
+      'country',
+      'grid_area_code',
+      'facility_id',
+      'metering_point_id',
+      'requested_start_mode',
+      'requested_start_date',
+    ])
+    const unknownFields = Object.keys(body).filter((key) => !allowedFields.has(key))
+    if (unknownFields.length > 0) {
+      return customerPortalJson({
+        error: {
+          code: 'unknown_field',
+          message: 'Förfrågan innehåller fält som inte ingår i API-kontraktet.',
+          field: unknownFields[0],
+          request_id: requestId,
+          correlation_id: requestId,
+          retryable: false,
+          details: { unknown_fields: unknownFields },
+        },
+        request_id: requestId,
+        correlation_id: requestId,
+      }, { status: 400 })
+    }
+    const hasLookupInput = Boolean(
+      text(body, 'metering_point_id') ||
+      text(body, 'facility_id') ||
+      text(body, 'grid_area_code') ||
+      text(body, 'postal_code') ||
+      (text(body, 'street') && text(body, 'city')),
+    )
+    if (!hasLookupInput) {
+      return customerPortalJson({
+        error: {
+          code: 'invalid_request',
+          message: 'Ange mätpunkt, anläggnings-ID, nätområde, fullständig adress eller postnummer.',
+          field: null,
+          request_id: requestId,
+          correlation_id: requestId,
+          retryable: false,
+        },
+        request_id: requestId,
+        correlation_id: requestId,
+      }, { status: 400 })
+    }
     const resolution = await resolveEnergyContext({
       companyId: auth.client.company_id,
-      street: text(body, 'street', 'address'),
-      streetNumber: text(body, 'street_number', 'streetNumber'),
-      postalCode: text(body, 'postal_code', 'postalCode'),
+      street: text(body, 'street'),
+      streetNumber: text(body, 'street_number'),
+      postalCode: text(body, 'postal_code'),
       city: text(body, 'city'),
       country: text(body, 'country') ?? 'SE',
-      gridAreaCode: text(body, 'grid_area_code', 'gridAreaCode'),
-      facilityId: text(body, 'facility_id', 'facilityId'),
-      meteringPointId: text(body, 'metering_point_id', 'meteringPointId'),
-      requestedStartMode: text(body, 'requested_start_mode', 'requestedStartMode'),
-      requestedStartDate: text(body, 'requested_start_date', 'requestedStartDate'),
+      gridAreaCode: text(body, 'grid_area_code'),
+      facilityId: text(body, 'facility_id'),
+      meteringPointId: text(body, 'metering_point_id'),
+      requestedStartMode: text(body, 'requested_start_mode'),
+      requestedStartDate: text(body, 'requested_start_date'),
       metadata: { source: 'website_energy_area_api', api_client_id: auth.client.id },
+    })
+    const readiness = deriveEnergyResolutionReadiness({
+      priceArea: resolution.priceArea,
+      gridAreaCode: resolution.gridAreaCode,
+      gridOwnerId: resolution.gridOwnerId,
+      resolutionStatus: resolution.resolutionStatus,
+      confidence: resolution.confidence,
+      conflictCode: resolution.conflictCode,
+      expiresAt: resolution.expiresAt,
     })
 
     const status = resolution.resolutionStatus === 'failed'
@@ -75,16 +134,21 @@ export async function POST(request: NextRequest) {
           price_area: resolution.priceArea,
           grid_area_code: resolution.gridAreaCode,
           grid_area_name: resolution.gridAreaName,
-          grid_owner_id: resolution.gridOwnerId,
           grid_owner_name: resolution.gridOwnerName,
           resolution_status: resolution.resolutionStatus,
           confidence: resolution.confidence,
-          automation_allowed: resolution.automationAllowed,
           next_required_action: resolution.nextRequiredAction,
           resolved_at: resolution.resolvedAt ?? null,
           expires_at: resolution.expiresAt ?? null,
           resolver_version: resolution.resolverVersion ?? null,
           geodata_version: resolution.geodataVersion ?? null,
+          source: {
+            chain: resolution.sourceChain,
+            resolver_version: resolution.resolverVersion ?? null,
+            geodata_version: resolution.geodataVersion ?? null,
+          },
+          capabilities: readiness.capabilities,
+          blockers: readiness.blockers,
           conflict_code: resolution.conflictCode ?? null,
           error_code: resolution.conflictCode ?? (resolution.resolutionStatus === 'needs_review' ? 'energy_area_needs_review' : null),
           retryable: false,

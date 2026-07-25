@@ -141,6 +141,22 @@ function sourceKey(row: Record<string, unknown>): string {
   return String(row.provider ?? row.source ?? '')
 }
 
+function previewSupportsResolution(
+  row: Record<string, unknown>,
+  requiredResolution: string | undefined,
+): boolean {
+  if (!requiredResolution || requiredResolution === 'monthly') return true
+  const raw = String(row.source_resolution ?? '').toLowerCase()
+  const tokens = new Set(raw.split(/[^a-z0-9_]+/).filter(Boolean))
+  if (requiredResolution === 'hourly') {
+    return tokens.has('hourly') || tokens.has('hour')
+  }
+  if (requiredResolution === 'quarterly') {
+    return tokens.has('quarterly') || tokens.has('quarter_hour') || tokens.has('quarter')
+  }
+  return false
+}
+
 function effectivePreviewStaleAt(
   row: Record<string, unknown>,
   policy: MarketPriceSourcePolicy,
@@ -179,6 +195,7 @@ export function selectMarketPricePreviewRow<T extends Record<string, unknown>>(
       priceArea: options.priceArea,
       resolution: options.requiredResolution,
     })) return []
+    if (!previewSupportsResolution(row, options.requiredResolution)) return []
     if (String(row.status ?? '') !== 'active') return []
     if (previewNumber(row.price_sek_per_kwh) === null) return []
 

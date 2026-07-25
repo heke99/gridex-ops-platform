@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { parseBillingMonth } from '@/lib/time/stockholm'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
@@ -30,6 +31,58 @@ type BillingPeriodLockRow = {
   lock_reason?: string | null
   reason?: string | null
   metadata?: Record<string, unknown> | null
+}
+
+type JsonRecord = Record<string, unknown>
+
+function object(value: unknown): JsonRecord {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonRecord
+    : {}
+}
+
+function readPath(source: JsonRecord, path: string): unknown {
+  return path.split('.').reduce<unknown>((value, key) => object(value)[key], source)
+}
+
+function firstText(sources: JsonRecord[], paths: string[]): string | null {
+  for (const source of sources) {
+    for (const path of paths) {
+      const value = readPath(source, path)
+      if (typeof value === 'string' && value.trim()) return value.trim()
+    }
+  }
+  return null
+}
+
+function firstNumber(sources: JsonRecord[], paths: string[]): number | null {
+  for (const source of sources) {
+    for (const path of paths) {
+      const raw = readPath(source, path)
+      const value = typeof raw === 'number'
+        ? raw
+        : typeof raw === 'string' && raw.trim()
+          ? Number(raw)
+          : Number.NaN
+      if (Number.isFinite(value)) return value
+    }
+  }
+  return null
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value as JsonRecord)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value) ?? 'null'
+}
+
+function sha256(value: unknown): string {
+  return createHash('sha256').update(stableJson(value)).digest('hex')
 }
 
 function isMissingRelationError(error: unknown): boolean {
@@ -247,7 +300,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   for (let from = 0; ; from += pageSize) {
     const underlayResult = await supabaseService
       .from('billing_underlays')
-      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end')
+      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at')
       .eq('company_id', input.companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -292,17 +345,88 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
 
   const companyResult = await supabaseService
     .from('companies')
-    .select('id,name,legal_name,org_number')
+    .select('id,name,legal_name,org_number,operating_environment,billing_settings')
     .eq('id', input.companyId)
     .maybeSingle()
   if (companyResult.error) throw companyResult.error
-  const company = companyResult.data as { name?: string | null; legal_name?: string | null; org_number?: string | null } | null
+  const company = companyResult.data as {
+    name?: string | null
+    legal_name?: string | null
+    org_number?: string | null
+    operating_environment?: string | null
+    billing_settings?: JsonRecord | null
+  } | null
+
+  const billingSettings = object(company?.billing_settings)
+  const desiredProvider = firstText([billingSettings], ['provider', 'billing_provider', 'invoice_provider'])
+  const desiredEnvironment = firstText([billingSettings], ['environment', 'provider_environment'])
+    ?? (typeof company?.operating_environment === 'string' ? company.operating_environment : null)
+  const providerResult = await supabaseService
+    .from('billing_provider_connections')
+    .select('id,provider,environment,status,settings,updated_at')
+    .eq('company_id', input.companyId)
+    .in('status', ['ready', 'active'])
+    .order('updated_at', { ascending: false })
+  if (providerResult.error) throw providerResult.error
+  const matchingProviderRows = ((providerResult.data ?? []) as JsonRecord[]).filter((row) => {
+    if (desiredProvider && row.provider !== desiredProvider) return false
+    if (desiredEnvironment && row.environment !== desiredEnvironment) return false
+    return true
+  })
+  const activeProviderRows = matchingProviderRows.filter((row) => row.status === 'active')
+  const paymentProvider = activeProviderRows[0] ?? matchingProviderRows[0] ?? null
+  const providerSettings = object(paymentProvider?.settings)
+  const billingSources = [billingSettings, providerSettings]
+  const paymentTerms = {
+    dueDays: firstNumber(billingSources, [
+      'payment_terms.due_days',
+      'invoice_profile.payment_terms.due_days',
+      'payment_terms_due_days',
+      'due_days',
+    ]),
+    defaulted: false,
+  }
+  const billingProfileBase = {
+    profileId: firstText(billingSources, [
+      'invoice_profile.id',
+      'invoice_profile.profile_id',
+      'invoice_profile_id',
+      'billing_profile_id',
+    ]),
+    status: firstText(billingSources, [
+      'invoice_profile.status',
+      'invoice_profile_status',
+    ]) ?? (typeof paymentProvider?.status === 'string' ? paymentProvider.status : null),
+    distributionMethod: firstText(billingSources, [
+      'invoice_profile.distribution_method',
+      'distribution_method',
+      'invoice_distribution_method',
+      'default_preferred_channel',
+    ]),
+    ocrPolicy: firstText(billingSources, [
+      'invoice_profile.ocr_policy',
+      'ocr_policy',
+      'default_ocr_policy',
+    ]),
+    paymentReferencePolicy: firstText(billingSources, [
+      'invoice_profile.payment_reference_policy',
+      'payment_reference_policy',
+      'reference_policy',
+      'default_payment_code',
+    ]),
+  }
+  const providerBlockers = matchingProviderRows.length > 1
+    ? [{
+        code: 'billing_provider_ambiguous',
+        message: 'Flera fakturapartneranslutningar matchar tenantens provider och miljö.',
+      }]
+    : []
 
   const contractsById = new Map<string, BillingReadinessContract & { id: string; customer_id?: string | null; customer_site_id?: string | null; site_id?: string | null }>()
   if (contractIds.length > 0) {
     const contractResult = await supabaseService
       .from('customer_contracts')
-      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,pricing_snapshot_id,price_snapshot,invoice_recipient,invoice_email,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons')
+      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,pricing_snapshot_id,price_snapshot,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons')
       .eq('company_id', input.companyId)
       .in('id', contractIds)
     if (contractResult.error) throw contractResult.error
@@ -328,7 +452,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   if (siteIds.length > 0) {
     const siteResult = await supabaseService
       .from('customer_sites')
-      .select('id,company_id,customer_id,price_area_code')
+      .select('id,company_id,customer_id,price_area_code,street,postal_code,city')
       .eq('company_id', input.companyId)
       .in('id', siteIds)
     if (siteResult.error) throw siteResult.error
@@ -401,15 +525,76 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
         estimatedOnly: false,
         estimationAllowed: false,
       },
-      paymentTerms: { dueDays: null, defaulted: true },
-      paymentProvider: null,
-      externalBlockers: null,
+      paymentTerms,
+      paymentProvider: paymentProvider ? {
+        connectionId: typeof paymentProvider.id === 'string' ? paymentProvider.id : null,
+        provider: typeof paymentProvider.provider === 'string' ? paymentProvider.provider : null,
+        environment: typeof paymentProvider.environment === 'string' ? paymentProvider.environment : null,
+        status: typeof paymentProvider.status === 'string' ? paymentProvider.status : null,
+      } : null,
+      billingProfile: {
+        ...billingProfileBase,
+        siteAddress: site ? {
+          street: typeof site.street === 'string' ? site.street : null,
+          postalCode: typeof site.postal_code === 'string' ? site.postal_code : null,
+          city: typeof site.city === 'string' ? site.city : null,
+        } : null,
+      },
+      externalBlockers: providerBlockers,
     })
     for (const blocker of readiness.blockers) {
       issues.push({ code: blocker.code, message: `${blocker.message} (underlag ${underlayId})`, severity: 'blocked' })
     }
     for (const warning of readiness.warnings) {
       issues.push({ code: warning.code, message: `${warning.message} (underlag ${underlayId})`, severity: 'warning' })
+    }
+
+    const billingConfigurationSnapshot = {
+      schema: 'billing_configuration_v1',
+      company_id: input.companyId,
+      customer_id: customerId || null,
+      contract_id: contractId || null,
+      payment_terms: paymentTerms,
+      invoice_profile: billingProfileBase,
+      provider: paymentProvider ? {
+        connection_id: paymentProvider.id ?? null,
+        provider: paymentProvider.provider ?? null,
+        environment: paymentProvider.environment ?? null,
+        status: paymentProvider.status ?? null,
+      } : null,
+      invoice_recipient: readiness.evidence.invoice_recipient ?? null,
+      invoice_email: readiness.evidence.invoice_email ?? null,
+      has_postal_invoice_address: readiness.evidence.has_postal_invoice_address ?? false,
+      vat_rate: readiness.evidence.vat_rate ?? null,
+    }
+    const configurationHash = sha256(billingConfigurationSnapshot)
+    const storedHash = typeof underlay.billing_configuration_snapshot_sha256 === 'string'
+      ? underlay.billing_configuration_snapshot_sha256
+      : null
+    if (storedHash && storedHash !== configurationHash) {
+      issues.push({
+        code: 'billing_configuration_changed_after_snapshot',
+        message: `Faktureringskonfigurationen har ändrats efter att underlag ${underlayId} låstes. Skapa en ny revision.`,
+        severity: 'blocked',
+      })
+    } else if (!storedHash && readiness.billable) {
+      const snapshottedAt = new Date().toISOString()
+      const snapshotUpdate = await supabaseService
+        .from('billing_underlays')
+        .update({
+          billing_configuration_snapshot: billingConfigurationSnapshot,
+          billing_configuration_snapshot_sha256: configurationHash,
+          billing_configuration_snapshotted_at: snapshottedAt,
+          updated_at: snapshottedAt,
+        })
+        .eq('company_id', input.companyId)
+        .eq('id', underlayId)
+        .is('billing_configuration_snapshot_sha256', null)
+        .select('id')
+      if (snapshotUpdate.error) throw snapshotUpdate.error
+      if ((snapshotUpdate.data ?? []).length !== 1) {
+        throw new Error(`Faktureringskonfigurationen för underlag ${underlayId} kunde inte låsas atomiskt.`)
+      }
     }
   }
 

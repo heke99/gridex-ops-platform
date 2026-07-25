@@ -265,6 +265,27 @@ async function processSingleEvent(event: JsonRecord, token: string): Promise<Pro
     payload: { provider, environment, provider_invoice_guid: invoiceGuid, provider_state: state, export_item_status: nextStatus ?? currentStatus },
     idempotencyKey: `invoice-provider-state:${companyId}:${eventId}`,
   })
+  const publicEventType = state === 'paid'
+    ? 'invoice.paid'
+    : state === 'disputed'
+      ? 'invoice.disputed'
+      : null
+  if (publicEventType) {
+    await emitDomainEvent({
+      companyId,
+      eventType: publicEventType,
+      aggregateType: 'invoice_export_item',
+      aggregateId: itemId,
+      subjectCustomerId: text(item.customer_id),
+      source: 'billing_provider_webhook',
+      payload: {
+        provider_invoice_guid: invoiceGuid,
+        invoice_number: text(item.provider_invoice_number),
+        provider_state: state,
+      },
+      idempotencyKey: `invoice-public-state:${companyId}:${eventId}:${publicEventType}`,
+    })
+  }
   return { eventId, outcome: 'processed' }
 }
 

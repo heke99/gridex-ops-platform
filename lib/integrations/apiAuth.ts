@@ -342,6 +342,11 @@ export async function logIntegrationApiRequest(input: {
   errorCode?: string | null
   metadata?: Record<string, unknown>
 }) {
+  // Anonymous 401 traffic has no tenant-safe persistence target. Skipping the
+  // database write also prevents unauthenticated requests from turning an
+  // integration-database outage into a slow public endpoint.
+  if (!input.client && input.statusCode === 401) return
+
   const route = input.request.nextUrl.pathname
 
   await supabaseService

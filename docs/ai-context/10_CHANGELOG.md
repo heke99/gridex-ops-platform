@@ -2,6 +2,58 @@
 
 Use this file after every Cursor task.
 
+## 2026-07-25 — Canonical P0/P1 lifecycle completion candidate
+
+### Runtime and public API
+
+- Split energy resolution into independent pricing, quote, facility lookup,
+  switch creation and switch dispatch capabilities with stable blockers.
+- Market-price and quote loading no longer depends on grid-owner/PRODAT
+  automation readiness; exact selected/available spot resolution is exposed.
+- Closed canonical resolver, market-price, quote and quote-validation requests;
+  unknown fields fail with `unknown_field`.
+- Added an explicit allowlisted website-application response. Internal pricing,
+  publication, portal-identity and provider IDs are removed; allowed UUIDs are
+  documented as opaque tenant-bound public resource IDs.
+- Replaced canonical `can_start_switch` use with structured
+  `supplier_switch.can_create_request` / `can_dispatch`; the old portal field is
+  only a deprecated dispatch alias.
+- Anonymous 401 integration requests no longer wait on a tenantless audit write.
+
+### Billing, invoices, activation and events
+
+- Invoice readiness now loads real company billing settings, active provider
+  connection/environment, invoice profile/distribution, recipient/address,
+  payment terms, OCR/reference policy and VAT evidence.
+- Billable underlays lock a stable SHA-256 billing configuration snapshot.
+- Portal invoice list/detail now expose only persisted `customer_invoices`;
+  pricing previews and billing underlays are never presented as invoices.
+- Hourly products require hourly spot rows and quarterly products require
+  quarter-hour rows throughout preview and pricing source selection.
+- Added authenticated `/api/cron/reconciliation/daily` and a test mapping all
+  registered Vercel crons to authenticated route files.
+- Added forward migration
+  `20260725120000_billing_readiness_and_supply_activation_v1.sql` with immutable
+  billing snapshot evidence and idempotent `activate_customer_supply_v1`.
+  Confirmed inbound completion now commits supply period, switch, contract
+  billing eligibility, application workflow/projection, one `supply.started`
+  event and durable notification/webhook outboxes in one transaction.
+- Canonical `invoice.paid` is emitted from provider reconciliation. Developer
+  docs now distinguish active public, internal and planned event names.
+
+### Contract and verification
+
+- API/OpenAPI/docs version is `2026-07-25.1`.
+- Added public-ID policy and synchronized tenant guides/developer examples.
+- `npm run typecheck`: pass.
+- `npm test -- --testTimeout=15000`: 53 files, 346 tests pass.
+- `npm run api:docs`: all contract/parity/version/example/component checks pass.
+- `npm run db:migrations:check`: 299 files, 204 version groups, checksums pass.
+- `npm run lint`: 0 errors; 125 pre-existing warnings.
+- `npm run build`: production build completed and generated `.next/BUILD_ID`.
+- Database apply/rollback/replay/two-tenant verification remains pending because
+  no Supabase CLI or authorized database is available in this environment.
+
 ## 2026-07-19 — Canonical customer flow hardening: customer numbers, billing readiness, POA scopes, regression repair
 
 ### Database (new forward migrations)

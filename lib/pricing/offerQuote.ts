@@ -20,7 +20,7 @@ import { resolvePublicContractOffer } from "@/lib/website/publicContracts";
 import { fixedPriceOreForArea } from "@/lib/pricing/fixedAreaPricing";
 import {
   EnergyResolutionBindingError,
-  loadBoundEnergyResolution,
+  loadQuoteEnergyResolution,
   resolutionSnapshot,
   type BoundEnergyResolution,
 } from "@/lib/energy/resolutionBinding";
@@ -128,7 +128,7 @@ export async function calculateOfferQuote(input: {
   let boundResolution: BoundEnergyResolution | null = null;
   if (input.resolutionId?.trim()) {
     try {
-      boundResolution = await loadBoundEnergyResolution({
+      boundResolution = await loadQuoteEnergyResolution({
         client: input.client,
         resolutionId: input.resolutionId,
       });
@@ -164,7 +164,12 @@ export async function calculateOfferQuote(input: {
       "price_area",
     );
   }
-  if (boundResolution && input.gridAreaCode?.trim() && input.gridAreaCode.trim().toUpperCase() !== boundResolution.gridAreaCode.toUpperCase()) {
+  if (
+    boundResolution &&
+    boundResolution.gridAreaCode &&
+    input.gridAreaCode?.trim() &&
+    input.gridAreaCode.trim().toUpperCase() !== boundResolution.gridAreaCode.toUpperCase()
+  ) {
     throw new OfferQuoteError(
       "Inskickad grid_area_code motsäger OPS-resolutionen.",
       "quote_resolution_mismatch",

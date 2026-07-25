@@ -19,6 +19,13 @@ export type PortalCustomerStatus = {
     | 'needs_review'
   label: string
   message: string
+  supplier_switch: {
+    can_create_request: boolean
+    can_dispatch: boolean
+    blockers: PortalStatusIssue[]
+    next_action: 'complete_application' | 'create_request' | 'dispatch_request' | 'await_response' | null
+  }
+  /** @deprecated Use supplier_switch.can_dispatch. */
   can_start_switch: boolean
   severity: 'info' | 'warning' | 'blocking' | 'success'
   issues: PortalStatusIssue[]
@@ -202,7 +209,6 @@ export function buildPortalCustomerStatus(input: StatusInput): PortalCustomerSta
     || (hasMeteringPoint && hasGridOwner)
   const hasPower = hasSignedPowerOfAttorney(powersOfAttorney)
   const hasLegal = hasLegalAcceptance(legalAcceptances)
-  const canStartSwitch = hasContract && hasMeteringPoint && hasGridOwner && facilityVerified && hasPower && hasPricePlan
   const isActive = contracts.some((contract) => ACTIVE_CONTRACT_STATUSES.has(textAt(contract, ['status'])?.toLowerCase() ?? ''))
   const isReady = contracts.some((contract) => READY_CONTRACT_STATUSES.has(textAt(contract, ['status'])?.toLowerCase() ?? ''))
 
@@ -218,71 +224,98 @@ export function buildPortalCustomerStatus(input: StatusInput): PortalCustomerSta
     hasPricePlan ? null : 'missing_price_plan',
   ])
 
-  if (isActive && canStartSwitch) {
+  const canCreateSwitchRequest = !isActive
+    && hasContract
+    && contractStatus !== 'draft'
+    && hasMeteringPoint
+    && hasGridOwner
+    && facilityVerified
+    && hasPricePlan
+  const canDispatchSwitchRequest = canCreateSwitchRequest && hasPower && hasLegal && isReady
+
+  function status(
+    value: Omit<PortalCustomerStatus, 'supplier_switch' | 'can_start_switch'>,
+  ): PortalCustomerStatus {
+    const awaitingResponse = value.code === 'pending_supplier_switch' && !canDispatchSwitchRequest
     return {
+      ...value,
+      supplier_switch: {
+        can_create_request: canCreateSwitchRequest,
+        can_dispatch: canDispatchSwitchRequest,
+        blockers: issues,
+        next_action: isActive
+          ? null
+          : canDispatchSwitchRequest
+            ? 'dispatch_request'
+            : canCreateSwitchRequest
+              ? 'create_request'
+              : awaitingResponse
+                ? 'await_response'
+                : 'complete_application',
+      },
+      can_start_switch: canDispatchSwitchRequest,
+    }
+  }
+
+  if (isActive) {
+    return status({
       code: 'active',
       label: 'Aktivt avtal',
       message: 'Avtalet är aktivt och kundens grunduppgifter är verifierade.',
-      can_start_switch: true,
       severity: 'success',
       issues,
-    }
+    })
   }
 
-  if (canStartSwitch || isReady) {
-    return {
+  if (canCreateSwitchRequest || isReady) {
+    return status({
       code: 'pending_supplier_switch',
       label: 'Leverantörsbyte förbereds',
       message: 'Kundens uppgifter är tillräckliga för nästa operativa steg.',
-      can_start_switch: canStartSwitch,
       severity: 'info',
       issues,
-    }
+    })
   }
 
   if (!hasMeteringPoint || !hasFacilityId || !facilityVerified) {
-    return {
+    return status({
       code: 'needs_facility_data',
       label: 'Ansökan behandlas',
       message: hasPower
         ? 'Vi har registrerat ansökan och fullmakten. Anläggningsuppgifter behöver kompletteras innan leverantörsbytet kan starta.'
         : 'Ansökan är mottagen. Fullmakt och anläggningsuppgifter behöver kompletteras innan leverantörsbytet kan starta.',
-      can_start_switch: false,
       severity: 'blocking',
       issues,
-    }
+    })
   }
 
   if (!hasGridOwner) {
-    return {
+    return status({
       code: 'needs_grid_owner_review',
       label: 'Nätägare behöver verifieras',
       message: 'Nätägare och nätområdesdata behöver verifieras innan leverantörsbyte kan starta.',
-      can_start_switch: false,
       severity: 'blocking',
       issues,
-    }
+    })
   }
 
   if (!hasPower || !hasLegal || !hasPricePlan || !hasContract) {
-    return {
+    return status({
       code: 'needs_review',
       label: 'Behöver granskas',
       message: 'Kundkedjan är skapad men några uppgifter behöver kontrolleras innan nästa steg.',
-      can_start_switch: false,
       severity: 'warning',
       issues,
-    }
+    })
   }
 
-  return {
+  return status({
     code: 'application_received',
     label: 'Ansökan mottagen',
     message: 'Ansökan är mottagen och behandlas.',
-    can_start_switch: false,
     severity: 'info',
     issues,
-  }
+  })
 }
 
 export function buildAdminDataChain(input: StatusInput) {

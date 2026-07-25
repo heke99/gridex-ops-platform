@@ -88,4 +88,27 @@ describe('canonical market preview selection', () => {
     })
     expect(selected?.row.price_sek_per_kwh).toBe(-0.12)
   })
+
+  it('never selects quarter-hour evidence for an hourly quote', () => {
+    const selected = selectMarketPricePreviewRow([
+      row({ id: 'quarter', source_resolution: 'quarter_hour' }),
+      row({ id: 'hour', source_resolution: 'hourly' }),
+    ], [policy()], {
+      priceArea: 'SE3',
+      requiredResolution: 'hourly',
+      now: new Date('2026-07-24T15:00:00Z'),
+    })
+    expect(selected?.row.id).toBe('hour')
+  })
+
+  it('requires quarter-hour evidence for a quarterly quote', () => {
+    const selected = selectMarketPricePreviewRow([
+      row({ id: 'hour', source_resolution: 'hourly' }),
+    ], [policy()], {
+      priceArea: 'SE3',
+      requiredResolution: 'quarterly',
+      now: new Date('2026-07-24T15:00:00Z'),
+    })
+    expect(selected).toBeNull()
+  })
 })

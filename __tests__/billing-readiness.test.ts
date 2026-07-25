@@ -213,6 +213,50 @@ describe('evaluateBillingReadinessCore', () => {
     expect(result.blockers.map((blocker) => blocker.code)).toContain('billing_account_incomplete')
   })
 
+  it('requires the complete data-backed billing profile when the month gate supplies it', () => {
+    const result = evaluateBillingReadinessCore(
+      billableInput({
+        billingProfile: {},
+        paymentProvider: null,
+      }),
+    )
+    expect(result.billable).toBe(false)
+    expect(result.blockers.map((blocker) => blocker.code)).toEqual(expect.arrayContaining([
+      'invoice_profile_missing',
+      'invoice_distribution_method_missing',
+      'ocr_policy_missing',
+      'payment_reference_policy_missing',
+      'payment_provider_connection_missing',
+    ]))
+  })
+
+  it('accepts a complete invoice profile and provider environment', () => {
+    const result = evaluateBillingReadinessCore(
+      billableInput({
+        billingProfile: {
+          profileId: 'invoice-profile-1',
+          status: 'active',
+          distributionMethod: 'email',
+          ocrPolicy: 'provider_generated',
+          paymentReferencePolicy: 'customer_number_and_invoice_number',
+        },
+        paymentProvider: {
+          connectionId: 'connection-1',
+          provider: 'capway_aptic',
+          environment: 'production',
+          status: 'active',
+        },
+      }),
+    )
+    expect(result.billable).toBe(true)
+    expect(result.evidence).toMatchObject({
+      invoice_profile_id: 'invoice-profile-1',
+      invoice_distribution_method: 'email',
+      payment_provider_connection_id: 'connection-1',
+      payment_provider_environment: 'production',
+    })
+  })
+
   it('merges structured contract blocker reasons and external blockers', () => {
     const result = evaluateBillingReadinessCore(
       billableInput({

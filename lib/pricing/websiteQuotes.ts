@@ -3,7 +3,7 @@ import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import type { PublicContractOffer } from '@/lib/website/publicContracts'
 import { recordCanonicalEnergyEvent } from '@/lib/energy/canonicalEnergyEvents'
-import { EnergyResolutionBindingError, loadBoundEnergyResolution } from '@/lib/energy/resolutionBinding'
+import { EnergyResolutionBindingError, loadQuoteEnergyResolution } from '@/lib/energy/resolutionBinding'
 
 export type WebsiteQuoteRecord = {
   id: string
@@ -191,10 +191,10 @@ export async function validateWebsiteQuote(input: {
   }
 
   const quote = data as WebsiteQuoteRecord
-  let canonicalResolution: Awaited<ReturnType<typeof loadBoundEnergyResolution>> | null = null
+  let canonicalResolution: Awaited<ReturnType<typeof loadQuoteEnergyResolution>> | null = null
   if (input.resolutionId?.trim()) {
     try {
-      canonicalResolution = await loadBoundEnergyResolution({
+      canonicalResolution = await loadQuoteEnergyResolution({
         client: input.client,
         resolutionId: input.resolutionId,
       })
@@ -218,7 +218,11 @@ export async function validateWebsiteQuote(input: {
       field: 'price_area',
     })
   }
-  if (canonicalResolution && input.gridAreaCode && input.gridAreaCode.toUpperCase() !== canonicalResolution.gridAreaCode.toUpperCase()) {
+  if (
+    canonicalResolution?.gridAreaCode
+    && input.gridAreaCode
+    && input.gridAreaCode.toUpperCase() !== canonicalResolution.gridAreaCode.toUpperCase()
+  ) {
     throw new WebsiteQuoteValidationError({
       message: 'Inskickad grid_area_code motsäger OPS-resolutionen.',
       code: 'quote_resolution_mismatch',

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-07-24.2",
+    "version": "2026-07-25.1",
     "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
@@ -130,7 +130,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-24.2"
+                  "const": "2026-07-25.1"
                 },
                 "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
               }
@@ -150,7 +150,7 @@
                       "$ref": "#/components/schemas/TenantMeta",
                       "properties": {
                         "contract_schema_version": {
-                          "const": "2026-07-24.2"
+                          "const": "2026-07-25.1"
                         }
                       },
                       "required": [
@@ -630,8 +630,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/WebsiteCustomerApplicationResponse"
                 }
               }
             }
@@ -892,7 +891,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-24.2"
+                  "const": "2026-07-25.1"
                 }
               }
             },
@@ -927,7 +926,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-24.2"
+                  "const": "2026-07-25.1"
                 }
               }
             },
@@ -1055,7 +1054,7 @@
                     "next_update_at": "2026-07-24T16:15:00+02:00"
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-07-24.2"
+                  "contract_schema_version": "2026-07-25.1"
                 }
               }
             }
@@ -1555,7 +1554,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-24.2"
+            "const": "2026-07-25.1"
           },
           "configuration": {
             "type": "object",
@@ -1968,29 +1967,66 @@
         "additionalProperties": true
       },
       "QuoteValidationRequest": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WebsiteQuoteRequest"
+        "type": "object",
+        "required": [
+          "quote_reference",
+          "offer_reference",
+          "customer_type",
+          "resolution_id",
+          "annual_consumption_kwh",
+          "start_date"
+        ],
+        "properties": {
+          "quote_reference": {
+            "type": "string"
           },
-          {
-            "type": "object",
-            "required": [
-              "quote_reference"
+          "offer_reference": {
+            "type": "string"
+          },
+          "customer_type": {
+            "$ref": "#/components/schemas/CustomerType"
+          },
+          "resolution_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "annual_consumption_kwh": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "price_area": {
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "grid_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "postal_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "application_id": {
+            "type": [
+              "string",
+              "null"
             ],
-            "properties": {
-              "quote_reference": {
-                "type": "string"
-              },
-              "application_id": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "format": "uuid"
-              }
-            }
+            "format": "uuid"
           }
-        ]
+        },
+        "additionalProperties": false
       },
       "LegalAcceptances": {
         "type": "object",
@@ -2099,14 +2135,51 @@
               },
               "org_number": {
                 "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              },
+              "invoice_email": {
+                "type": "string",
+                "format": "email"
+              },
+              "billing_street": {
+                "type": "string"
+              },
+              "billing_postal_code": {
+                "type": "string"
+              },
+              "billing_city": {
+                "type": "string"
+              },
+              "billing_country": {
+                "type": "string"
               }
             },
-            "additionalProperties": true
+            "additionalProperties": false
           },
           "site": {
             "type": "object",
             "properties": {
+              "facility_id": {
+                "type": "string"
+              },
+              "site_name": {
+                "type": "string"
+              },
+              "site_type": {
+                "type": "string"
+              },
+              "street": {
+                "type": "string"
+              },
               "postal_code": {
+                "type": "string"
+              },
+              "city": {
+                "type": "string"
+              },
+              "country": {
                 "type": "string"
               },
               "price_area_code": {
@@ -2120,6 +2193,22 @@
               "grid_area_code": {
                 "type": "string"
               },
+              "grid_owner_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "current_supplier_name": {
+                "type": "string"
+              },
+              "current_supplier_org_number": {
+                "type": "string"
+              },
+              "current_supplier_ediel_id": {
+                "type": "string"
+              },
+              "current_supplier_unknown": {
+                "type": "boolean"
+              },
               "annual_consumption_kwh": {
                 "type": "number"
               },
@@ -2128,11 +2217,48 @@
                 "format": "date"
               }
             },
-            "additionalProperties": true
+            "additionalProperties": false
           },
           "metering_point": {
             "type": "object",
-            "additionalProperties": true
+            "properties": {
+              "metering_point_id": {
+                "type": "string"
+              },
+              "site_facility_id": {
+                "type": "string"
+              },
+              "reading_frequency": {
+                "type": "string"
+              },
+              "measurement_type": {
+                "type": "string"
+              },
+              "price_area_code": {
+                "enum": [
+                  "SE1",
+                  "SE2",
+                  "SE3",
+                  "SE4"
+                ]
+              },
+              "grid_area_code": {
+                "type": "string"
+              },
+              "grid_owner_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "start_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "installation_date": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "additionalProperties": false
           },
           "legal_acceptances": {
             "$ref": "#/components/schemas/LegalAcceptances"
@@ -2168,10 +2294,10 @@
                 "format": "date"
               }
             },
-            "additionalProperties": true
+            "additionalProperties": false
           }
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
         "allOf": [
           {
             "anyOf": [
@@ -2190,6 +2316,454 @@
         ],
         "description": "Canonical kundansökan. offer_reference, quote_reference och resolution_id skickas exakt en gång på top-level. Ingen tenantkonfiguration eller quote-reference-mode används. När avtalet kräver fullmakt ska powerOfAttorney vara komplett och externally sendable.",
         "x-canonical-reference-location": "top_level"
+      },
+      "PublicResourceId": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Opaque, tenant-bound public resource identifier. It has no business meaning and must not be used outside the authenticated tenant context."
+      },
+      "WebsiteSupplierSwitchState": {
+        "type": "object",
+        "required": [
+          "request_id",
+          "status",
+          "can_create_request",
+          "can_dispatch",
+          "blockers",
+          "next_action"
+        ],
+        "properties": {
+          "request_id": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublicResourceId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_created",
+              "created"
+            ]
+          },
+          "can_create_request": {
+            "type": "boolean"
+          },
+          "can_dispatch": {
+            "type": "boolean",
+            "description": "Dispatch readiness is customer-specific and is never inferred from area resolution alone."
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_action": {
+            "type": "string",
+            "enum": [
+              "create_supplier_switch_request",
+              "await_supplier_switch_processing",
+              "resolve_switch_blockers"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteApplicationNextAction": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteApplicationCommunicationItem": {
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteApplicationCommunication": {
+        "type": "object",
+        "required": [
+          "pending",
+          "source_of_truth",
+          "triggered",
+          "queued",
+          "sent",
+          "failed"
+        ],
+        "properties": {
+          "pending": {
+            "type": "boolean"
+          },
+          "source_of_truth": {
+            "type": "string",
+            "const": "communication_logs"
+          },
+          "triggered": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebsiteApplicationCommunicationItem"
+            }
+          },
+          "queued": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebsiteApplicationCommunicationItem"
+            }
+          },
+          "sent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebsiteApplicationCommunicationItem"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebsiteApplicationCommunicationItem"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebsiteCustomerApplicationData": {
+        "type": "object",
+        "required": [
+          "missing_fields",
+          "blocking_reasons",
+          "grid_owner_verification_issues",
+          "warnings",
+          "supplier_switch"
+        ],
+        "properties": {
+          "customer_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "customer_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "application_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "application_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "external_customer_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "external_customer_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customer_site_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "site_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "metering_point_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "contract_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "contract_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "offer_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quote_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quote_valid_until": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "quote_bound": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_customer": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "next_step": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "confirmed_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "actual_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "requested_start_mode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "calculated_earliest_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "grid_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price_area_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resolution_id": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublicResourceId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolution_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resolution_confidence": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "grid_owner_verification_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "can_request_grid_owner_information": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "can_send_agreement_confirmation": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "can_activate_customer": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "signed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "withdrawal_deadline_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "signature_snapshot_sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "workflow_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "workflow_state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "continuation_job_id": {
+            "$ref": "#/components/schemas/PublicResourceId"
+          },
+          "missing_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blocking_reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grid_owner_verification_issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_action": {
+            "$ref": "#/components/schemas/WebsiteApplicationNextAction"
+          },
+          "communication": {
+            "$ref": "#/components/schemas/WebsiteApplicationCommunication"
+          },
+          "supplier_switch": {
+            "$ref": "#/components/schemas/WebsiteSupplierSwitchState"
+          },
+          "power_of_attorney": {
+            "type": "object",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "signed",
+                  "missing"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "description": "Explicit public DTO. Internal price-plan, publication, portal-identity, provider-connection and contract-price-snapshot identifiers are never exposed."
+      },
+      "WebsiteCustomerApplicationResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "request_id",
+          "correlation_id"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WebsiteCustomerApplicationData"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "correlation_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
       },
       "DiagnosticReadiness": {
         "type": "object",
@@ -2284,7 +2858,8 @@
               "id": {
                 "type": "string"
               }
-            }
+            },
+            "additionalProperties": false
           },
           "data": {
             "type": "object",
@@ -2323,9 +2898,11 @@
                 "type": "string",
                 "format": "date-time"
               }
-            }
+            },
+            "additionalProperties": false
           }
-        }
+        },
+        "additionalProperties": false
       },
       "EnergyAreaResolveRequest": {
         "type": "object",
@@ -2418,79 +2995,9 @@
         ]
       },
       "EnergyAreaResolution": {
-        "type": "object",
-        "required": [
-          "resolution_status",
-          "automation_allowed",
-          "warnings"
-        ],
-        "properties": {
-          "resolution_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "price_area": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "SE1",
-              "SE2",
-              "SE3",
-              "SE4",
-              null
-            ]
-          },
-          "grid_area_code": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "grid_area_name": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "grid_owner_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "grid_owner_name": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "resolution_status": {
-            "type": "string"
-          },
-          "confidence": {
-            "type": "number"
-          },
-          "automation_allowed": {
-            "type": "boolean"
-          },
-          "next_required_action": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "warnings": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "additionalProperties": true
+        "$ref": "#/components/schemas/WebsiteEnergyAreaResolution",
+        "deprecated": true,
+        "description": "Compatibility schema name. Use WebsiteEnergyAreaResolution."
       },
       "SwitchStatus": {
         "type": "object",
@@ -2849,16 +3356,6 @@
             ],
             "description": "company is a deprecated alias for business."
           },
-          "price_area": {
-            "type": "string",
-            "enum": [
-              "SE1",
-              "SE2",
-              "SE3",
-              "SE4"
-            ],
-            "description": "Valfritt klientpåstående för korsvalidering. Måste matcha resolution_id och kan aldrig skriva över OPS."
-          },
           "annual_consumption_kwh": {
             "type": "number",
             "exclusiveMinimum": 0
@@ -2866,19 +3363,6 @@
           "start_date": {
             "type": "string",
             "format": "date"
-          },
-          "grid_area_code": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Valfritt klientpåstående för korsvalidering. Måste matcha resolution_id."
-          },
-          "postal_code": {
-            "type": [
-              "string",
-              "null"
-            ]
           },
           "resolution_id": {
             "type": "string",
@@ -2990,29 +3474,7 @@
         "additionalProperties": true
       },
       "WebsiteQuoteValidationRequest": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WebsiteQuoteRequest"
-          },
-          {
-            "type": "object",
-            "required": [
-              "quote_reference"
-            ],
-            "properties": {
-              "quote_reference": {
-                "type": "string"
-              },
-              "application_id": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "format": "uuid"
-              }
-            }
-          }
-        ]
+        "$ref": "#/components/schemas/QuoteValidationRequest"
       },
       "WebsiteEnergyAreaResolveRequest": {
         "type": "object",
@@ -3104,11 +3566,107 @@
           }
         ]
       },
+      "LifecycleBlocker": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnergyResolutionCapabilities": {
+        "type": "object",
+        "required": [
+          "pricing_ready",
+          "quote_ready",
+          "facility_lookup_ready",
+          "switch_request_creatable",
+          "switch_dispatch_ready"
+        ],
+        "properties": {
+          "pricing_ready": {
+            "type": "boolean"
+          },
+          "quote_ready": {
+            "type": "boolean"
+          },
+          "facility_lookup_ready": {
+            "type": "boolean"
+          },
+          "switch_request_creatable": {
+            "type": "boolean"
+          },
+          "switch_dispatch_ready": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnergyResolutionBlockers": {
+        "type": "object",
+        "required": [
+          "pricing",
+          "quote",
+          "facility_lookup",
+          "switch_creation",
+          "switch_dispatch"
+        ],
+        "properties": {
+          "pricing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleBlocker"
+            }
+          },
+          "quote": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleBlocker"
+            }
+          },
+          "facility_lookup": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleBlocker"
+            }
+          },
+          "switch_creation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleBlocker"
+            }
+          },
+          "switch_dispatch": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleBlocker"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "WebsiteEnergyAreaResolution": {
         "type": "object",
         "required": [
+          "resolution_id",
+          "price_area",
           "resolution_status",
-          "automation_allowed",
+          "confidence",
+          "capabilities",
+          "blockers",
+          "retryable",
           "warnings"
         ],
         "properties": {
@@ -3116,7 +3674,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "format": "uuid"
           },
           "price_area": {
             "type": [
@@ -3143,12 +3702,6 @@
               "null"
             ]
           },
-          "grid_owner_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "grid_owner_name": {
             "type": [
               "string",
@@ -3159,10 +3712,9 @@
             "type": "string"
           },
           "confidence": {
-            "type": "number"
-          },
-          "automation_allowed": {
-            "type": "boolean"
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
           },
           "next_required_action": {
             "type": [
@@ -3202,6 +3754,16 @@
               "null"
             ]
           },
+          "source": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/EnergyResolutionCapabilities"
+          },
+          "blockers": {
+            "$ref": "#/components/schemas/EnergyResolutionBlockers"
+          },
           "conflict_code": {
             "type": [
               "string",
@@ -3213,16 +3775,21 @@
               "string",
               "null"
             ]
+          },
+          "retryable": {
+            "type": "boolean"
           }
         },
-        "additionalProperties": true,
-        "description": "Tenantbunden OPS-resolution. automation_allowed=false och needs_review blockerar quote och leverantörsbyte."
+        "additionalProperties": false,
+        "description": "Tenantbunden OPS-resolution with independent pricing, quote, facility lookup, switch creation and switch dispatch readiness. Pricing and quote never depend on PRODAT transport readiness."
       },
       "WebsiteEnergyAreaResolveResponse": {
         "type": "object",
         "required": [
           "data",
-          "request_id"
+          "request_id",
+          "correlation_id",
+          "retryable"
         ],
         "properties": {
           "data": {
@@ -3230,9 +3797,15 @@
           },
           "request_id": {
             "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
           }
         },
-        "additionalProperties": true
+        "additionalProperties": false
       },
       "MarketReference": {
         "type": "object",
@@ -3580,6 +4153,8 @@
           "price_area",
           "reference_type",
           "resolution",
+          "selected_resolution",
+          "available_resolutions",
           "time_start",
           "time_end",
           "price_sek_per_kwh",
@@ -3591,6 +4166,7 @@
           "includes_grid_fees",
           "is_indicative",
           "is_stale",
+          "fallback_used",
           "source_as_of",
           "next_update_at"
         ],
@@ -3620,7 +4196,27 @@
             "enum": [
               "hourly",
               "quarterly"
+            ],
+            "deprecated": true,
+            "description": "Compatibility alias. Use selected_resolution."
+          },
+          "selected_resolution": {
+            "type": "string",
+            "enum": [
+              "hourly",
+              "quarterly"
             ]
+          },
+          "available_resolutions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "hourly",
+                "quarterly"
+              ]
+            }
           },
           "time_start": {
             "type": "string",
@@ -3665,6 +4261,11 @@
           "is_stale": {
             "type": "boolean"
           },
+          "fallback_used": {
+            "type": "boolean",
+            "const": false,
+            "description": "The current interval endpoint never substitutes a historical or cross-area fallback."
+          },
           "source_as_of": {
             "type": "string",
             "format": "date-time"
@@ -3693,7 +4294,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-24.2"
+            "const": "2026-07-25.1"
           }
         },
         "additionalProperties": false
@@ -3722,13 +4323,14 @@
                 "type": "string",
                 "enum": [
                   "invalid_request",
+                  "unknown_field",
                   "invalid_json",
                   "payload_too_large",
                   "missing_scope",
                   "rate_limited",
                   "resolution_not_found",
                   "resolution_expired",
-                  "resolution_not_ready",
+                  "resolution_pricing_not_ready",
                   "price_area_mismatch",
                   "current_market_price_unavailable",
                   "market_price_stale",
@@ -3814,7 +4416,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-24.2",
+  "x-contract-schema-version": "2026-07-25.1",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

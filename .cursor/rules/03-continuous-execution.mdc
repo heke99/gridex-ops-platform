@@ -1,0 +1,13 @@
+---
+description: Continue work from the latest verified checkpoint
+alwaysApply: true
+---
+
+Maintain one active work item and subtask. After each atomic subtask: review
+changes, run the smallest relevant verification, record the result, update
+`current-task.md`, `checkpoint.json` and `verification-matrix.md`, set the exact
+next action, and continue.
+
+When an item becomes VERIFIED, update completed work, work plan and current
+state before selecting the next item. Persist checkpoint and handover before
+session end or context loss.

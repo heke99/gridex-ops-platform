@@ -10,6 +10,7 @@ import {
 import { processWebsiteCustomerApplication } from '@/lib/website/customerApplications'
 import { logUsageEvent } from '@/lib/audit/actionLogger'
 import { readJsonWithLimit } from '@/lib/http/payloadLimit'
+import { publicWebsiteCustomerApplicationData } from '@/lib/website/publicCustomerApplication'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -135,7 +136,14 @@ export async function POST(request: NextRequest) {
       metadata: applicationMetadata,
     })
 
-    const responseBody = result.ok ? result.body : buildErrorBody(result.body as Record<string, unknown>, requestId)
+    const responseBody = result.ok
+      ? {
+          ...result.body,
+          data: publicWebsiteCustomerApplicationData(result.body.data),
+          request_id: requestId,
+          correlation_id: requestId,
+        }
+      : buildErrorBody(result.body as Record<string, unknown>, requestId)
     return customerPortalJson(responseBody, { status: result.status })
   } catch (error) {
     console.error('[website-customer-application] failed', { requestId, error })

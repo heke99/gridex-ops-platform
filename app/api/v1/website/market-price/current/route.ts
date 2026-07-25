@@ -15,9 +15,6 @@ function publicResolutionError(error: EnergyResolutionBindingError) {
   if (error.code === 'resolution_tenant_mismatch') {
     return { code: 'resolution_not_found', status: 404, message: 'Elområdesresolutionen hittades inte.' }
   }
-  if (error.code === 'resolution_not_automation_ready' || error.code === 'energy_area_needs_review') {
-    return { code: 'resolution_not_ready', status: 409, message: error.message }
-  }
   return { code: error.code, status: error.status, message: error.message }
 }
 
@@ -88,12 +85,12 @@ export async function POST(request: NextRequest) {
       )
     }
     const body = (parsed.body ?? {}) as Record<string, unknown>
-    const allowedFields = new Set(['resolution_id', 'resolutionId', 'price_area', 'priceArea'])
+    const allowedFields = new Set(['resolution_id', 'price_area'])
     const unknownFields = Object.keys(body).filter((key) => !allowedFields.has(key))
     if (unknownFields.length > 0) {
       return customerPortalJson(
         errorBody({
-          code: 'invalid_request',
+          code: 'unknown_field',
           message: 'Förfrågan innehåller fält som inte ingår i API-kontraktet.',
           requestId,
           field: unknownFields[0],
@@ -103,7 +100,7 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       )
     }
-    const resolutionId = text(body, 'resolution_id', 'resolutionId')
+    const resolutionId = text(body, 'resolution_id')
     if (!resolutionId) {
       return customerPortalJson(
         errorBody({
@@ -129,7 +126,7 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       )
     }
-    const assertedPriceArea = text(body, 'price_area', 'priceArea')?.toUpperCase() ?? null
+    const assertedPriceArea = text(body, 'price_area')?.toUpperCase() ?? null
     if (assertedPriceArea && !['SE1', 'SE2', 'SE3', 'SE4'].includes(assertedPriceArea)) {
       return customerPortalJson(
         errorBody({
@@ -168,7 +165,7 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     if (error instanceof CurrentMarketPriceError || error instanceof EnergyResolutionBindingError) {
-      const details = error instanceof CurrentMarketPriceError ? error.details : {}
+      const details = error.details
       const field = error.field
       const publicError = error instanceof EnergyResolutionBindingError
         ? publicResolutionError(error)

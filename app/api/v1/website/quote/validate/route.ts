@@ -16,22 +16,29 @@ import { resolvePublicContractOffer } from '@/lib/website/publicContracts'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function text(body: Record<string, unknown>, ...keys: string[]): string | null {
-  for (const key of keys) {
-    const value = body[key]
-    if (typeof value === 'string' && value.trim()) return value.trim()
-  }
-  return null
+const ALLOWED_FIELDS = new Set([
+  'quote_reference',
+  'offer_reference',
+  'customer_type',
+  'resolution_id',
+  'annual_consumption_kwh',
+  'start_date',
+  'price_area',
+  'grid_area_code',
+  'postal_code',
+  'application_id',
+])
+
+function text(body: Record<string, unknown>, key: string): string | null {
+  const value = body[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function numeric(body: Record<string, unknown>, ...keys: string[]): number | null {
-  for (const key of keys) {
-    const value = body[key]
-    if (value === null || value === undefined || value === '') continue
-    const parsed = typeof value === 'number' ? value : Number(String(value).replace(',', '.'))
-    if (Number.isFinite(parsed)) return parsed
-  }
-  return null
+function numeric(body: Record<string, unknown>, key: string): number | null {
+  const value = body[key]
+  if (value === null || value === undefined || value === '') return null
+  const parsed = typeof value === 'number' ? value : Number(String(value).replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 function retryableErrorCode(code: string): boolean {
@@ -90,9 +97,23 @@ export async function POST(request: NextRequest) {
       )
     }
     const body = (parsed.body ?? {}) as Record<string, unknown>
-    const quoteReference = text(body, 'quote_reference', 'quoteReference') ?? ''
-    const offerReference = text(body, 'offer_reference', 'offerReference') ?? ''
-    const normalizedCustomerType = normalizeExternalCustomerType(text(body, 'customer_type', 'customerType'))
+    const unknownFields = Object.keys(body).filter((key) => !ALLOWED_FIELDS.has(key))
+    if (unknownFields.length > 0) {
+      return customerPortalJson(
+        responseError({
+          code: 'unknown_field',
+          message: 'Payloaden innehåller okända eller felplacerade fält.',
+          requestId,
+          field: unknownFields[0],
+          details: { fields: unknownFields },
+          retryable: false,
+        }),
+        { status: 400 },
+      )
+    }
+    const quoteReference = text(body, 'quote_reference') ?? ''
+    const offerReference = text(body, 'offer_reference') ?? ''
+    const normalizedCustomerType = normalizeExternalCustomerType(text(body, 'customer_type'))
     if (!normalizedCustomerType.ok || !normalizedCustomerType.value) {
       return customerPortalJson(
         responseError({
@@ -127,13 +148,13 @@ export async function POST(request: NextRequest) {
       offerReference,
       publicOffer,
       customerType: normalizedCustomerType.value,
-      priceArea: text(body, 'price_area', 'priceArea', 'price_area_code', 'priceAreaCode')?.toUpperCase() ?? null,
-      resolutionId: text(body, 'resolution_id', 'resolutionId'),
-      gridAreaCode: text(body, 'grid_area_code', 'gridAreaCode'),
-      postalCode: text(body, 'postal_code', 'postalCode'),
-      annualConsumptionKwh: numeric(body, 'annual_consumption_kwh', 'annualConsumptionKwh'),
-      startDate: text(body, 'start_date', 'startDate', 'requested_start_date', 'requestedStartDate'),
-      applicationId: text(body, 'application_id', 'applicationId'),
+      priceArea: text(body, 'price_area')?.toUpperCase() ?? null,
+      resolutionId: text(body, 'resolution_id'),
+      gridAreaCode: text(body, 'grid_area_code'),
+      postalCode: text(body, 'postal_code'),
+      annualConsumptionKwh: numeric(body, 'annual_consumption_kwh'),
+      startDate: text(body, 'start_date'),
+      applicationId: text(body, 'application_id'),
     })
 
     await logIntegrationApiRequest({

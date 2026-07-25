@@ -143,9 +143,21 @@ const activeWebhookEvents = [
   "facility_data.verified",
   "invoice.created",
   "invoice.sent",
+  "invoice.paid",
   "invoice.disputed",
+  "supply.started",
   "metering_values.updated",
   "contracts.publication.changed",
+];
+
+const internalLifecycleEvents = [
+  "supplier_switch.requested",
+  "supplier_switch.accepted",
+  "supplier_switch.rejected",
+  "supply_period.activated",
+  "invoice.provider.partially_paid",
+  "invoice.provider.overdue",
+  "invoice.provider.credited",
 ];
 
 const plannedWebhookEvents = [
@@ -154,7 +166,9 @@ const plannedWebhookEvents = [
   "contract.activated",
   "supplier_switch.started",
   "supplier_switch.completed",
-  "invoice.paid",
+  "invoice.partially_paid",
+  "invoice.overdue",
+  "invoice.credited",
 ];
 
 const tenantSetupExample = `# .env / Vercel – enda obligatoriska tenantvariabeln
@@ -290,6 +304,8 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "price_area": "SE3",
     "reference_type": "current_interval",
     "resolution": "quarterly",
+    "selected_resolution": "quarterly",
+    "available_resolutions": ["quarterly", "hourly"],
     "time_start": "2026-07-24T16:00:00+02:00",
     "time_end": "2026-07-24T16:15:00+02:00",
     "price_sek_per_kwh": 0.655699,
@@ -301,11 +317,12 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "includes_grid_fees": false,
     "is_indicative": false,
     "is_stale": false,
+    "fallback_used": false,
     "source_as_of": "2026-07-24T14:02:14Z",
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-07-24.2"
+  "contract_schema_version": "2026-07-25.1"
 }`;
 
 const marketReferenceExample = `{
@@ -360,7 +377,7 @@ const marketPriceErrors = [
   ['403', 'missing_scope', 'Nyckeln saknar website_market_prices.read.', 'Nej'],
   ['404', 'resolution_not_found', 'Resolutionen saknas eller tillhör inte tenant.', 'Nej'],
   ['409', 'resolution_expired', 'Resolutionen har gått ut och måste lösas på nytt.', 'Nej'],
-  ['409', 'resolution_not_ready', 'OPS-resolutionen är inte redo för automatisk prisleverans.', 'Nej'],
+  ['409', 'resolution_pricing_not_ready', 'Resolutionens blockerare för prissättning måste åtgärdas. PRODAT-readiness påverkar inte prisleverans.', 'Nej'],
   ['409', 'price_area_mismatch', 'Inskickat price_area motsäger resolutionen.', 'Nej'],
   ['409', 'market_price_stale', 'Provider-evidensen överskrider tenantens max_age_minutes.', 'Ja'],
   ['429', 'rate_limited', 'Klienten har överskridit sin rate limit.', 'Ja'],
@@ -519,8 +536,18 @@ const applicationResponse = `{
       "failed": [],
       "pending": true,
       "source_of_truth": "communication_logs"
+    },
+    "supplier_switch": {
+      "request_id": null,
+      "status": "not_created",
+      "can_create_request": true,
+      "can_dispatch": false,
+      "blockers": [],
+      "next_action": "create_supplier_switch_request"
     }
-  }
+  },
+  "request_id": "uuid",
+  "correlation_id": "uuid"
 }
 
 # accepted betyder att OPS atomiskt har sparat kund, anläggning, avtal,
@@ -688,6 +715,12 @@ const customerStatusResponseExample = `{
       "code": "needs_facility_data",
       "label": "Ansökan behandlas",
       "message": "Vi behöver komplettera anläggningsuppgifter innan leverantörsbytet kan starta.",
+      "supplier_switch": {
+        "can_create_request": false,
+        "can_dispatch": false,
+        "blockers": ["missing_metering_point", "missing_grid_owner", "facility_not_verified"],
+        "next_action": "complete_application"
+      },
       "can_start_switch": false
     },
     "data_quality": {
@@ -954,7 +987,7 @@ export default function CustomerPortalApiDocsPage() {
           </div>
           <p>
             <code>public-contracts</code> returnerar inte dynamiskt aktuellt spotpris.
-            Använd <code>market-price/current</code> när sidan ska visa "Elpriset just nu".
+            Använd <code>market-price/current</code> när sidan ska visa &quot;Elpriset just nu&quot;.
             Det svaret är före moms, energiskatt, leverantörspåslag, månadsavgift,
             fakturaavgift och elnätsavgifter. Använd alltid <code>quote</code> för kundens
             kompletta beräkning.
@@ -1087,7 +1120,8 @@ export default function CustomerPortalApiDocsPage() {
             regler. Detta är frikopplat från anläggningsuppslagning och
             leverantörsbyte. <code>can_send_agreement_confirmation</code>{" "}
             beskriver juridisk behörighet att skicka bekräftelsen och är därför
-            oberoende av <code>can_start_switch</code>. Läs{" "}
+            oberoende av <code>supplier_switch.can_create_request</code> och{" "}
+            <code>supplier_switch.can_dispatch</code>. Läs{" "}
             <code>communication.queued/sent/failed</code> för faktisk status.
           </p>
           <CodeBlock>{applicationExample}</CodeBlock>
@@ -1125,10 +1159,10 @@ export default function CustomerPortalApiDocsPage() {
             <code>current_supplier_ediel_id</code> och kompletterande
             avtalsfält. Leverantörs-ID:t snapshotas på både site och switch
             request. Svaret skiljer på{" "}
-            <code>can_create_supplier_switch_request</code> och{" "}
-            <code>can_dispatch_supplier_switch</code>. En skapad men blockerad
-            switch returnerar <code>supplier_switch_status=pending_review</code>{" "}
-            och en konkret <code>nextAction</code>. När site, mätpunkt,
+            <code>supplier_switch.can_create_request</code> och{" "}
+            <code>supplier_switch.can_dispatch</code>. En skapad men blockerad
+            switch returnerar en konkret blockerare och{" "}
+            <code>supplier_switch.next_action</code>. När site, mätpunkt,
             nuvarande leverantör eller signerad fullmakt kompletteras körs
             reconcile och en saknad/öppen switch kan skapas eller återupptas.
           </p>
@@ -1191,6 +1225,11 @@ export default function CustomerPortalApiDocsPage() {
             <code>409 ambiguous_customer_match</code>. Saknade listor returneras
             som tomma arrayer, inte 500.
           </p>
+          <p>
+            <code>customer_status.supplier_switch</code> skiljer på att skapa
+            och att skicka en bytesbegäran. <code>can_start_switch</code> är en
+            utfasad kompatibilitetsalias för <code>can_dispatch</code>.
+          </p>
         </Section>
 
         <Section title="8. Synka dokument, fullmakt och juridiska godkännanden till OPS">
@@ -1223,6 +1262,14 @@ export default function CustomerPortalApiDocsPage() {
           <ul className="grid gap-1 md:grid-cols-2">
             {activeWebhookEvents.map((event) => (
               <li key={event} className="font-mono text-xs text-slate-800">
+                {event}
+              </li>
+            ))}
+          </ul>
+          <p>Interna livscykelhändelser (inte ett publikt webhooklöfte):</p>
+          <ul className="grid gap-1 md:grid-cols-2">
+            {internalLifecycleEvents.map((event) => (
+              <li key={event} className="font-mono text-xs text-slate-500">
                 {event}
               </li>
             ))}

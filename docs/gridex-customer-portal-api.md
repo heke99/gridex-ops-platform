@@ -2,7 +2,7 @@
 
 Publik onlineversion efter deploy: `/developers/customer-portal-api`.
 
-Dokumentationsversion: `2026-07-24.2`.
+Dokumentationsversion: `2026-07-25.1`.
 
 ## Tenantkonfiguration
 
@@ -34,6 +34,11 @@ Tenant Mina sidor → tenant server route → OPS API → OPS company_id från A
 ```
 
 Frontend får aldrig anropa OPS direkt med API-nyckel och får aldrig skicka ett fritt `company_id`.
+
+Publika UUID:n är opaka och tenantbundna; de är aldrig en
+auktoriseringsmekanism. Interna prisplans-, publicerings-, portalidentitets- och
+provider-ID:n får inte förekomma i externa DTO:er. Se
+[Public API ID policy](./public-api-id-policy.md).
 
 ## Portal bundle payload
 
@@ -88,6 +93,12 @@ Om flera kunder matchar samma e-post returneras `409 ambiguous_customer_match` o
       "code": "needs_facility_data",
       "label": "Ansökan behandlas",
       "message": "Vi behöver komplettera anläggningsuppgifter innan leverantörsbytet kan starta.",
+      "supplier_switch": {
+        "can_create_request": false,
+        "can_dispatch": false,
+        "blockers": ["missing_metering_point", "missing_grid_owner", "facility_not_verified"],
+        "next_action": "complete_application"
+      },
       "can_start_switch": false
     },
     "data_quality": {
@@ -97,6 +108,10 @@ Om flera kunder matchar samma e-post returneras `409 ambiguous_customer_match` o
   }
 }
 ```
+
+`supplier_switch.can_create_request` och `supplier_switch.can_dispatch` är
+separata beslut. `can_start_switch` är en utfasad kompatibilitetsalias för
+`supplier_switch.can_dispatch`.
 
 Det fullständiga svaret innehåller även `customer`, `contracts`, `sites`,
 `metering_points`, `invoices`, `metering_values`, `documents`,
@@ -112,7 +127,7 @@ Samtliga kräver `customer_portal.read` (GET) och identifierare via headers/quer
 - `GET /api/v1/customer/contracts`
 - `GET /api/v1/customer/sites`
 - `GET /api/v1/customer/invoices`
-- `GET /api/v1/customer/invoices/{id}` – faller tillbaka till `invoice_export_items`/`pricing_runs` om ingen `customer_invoices`-rad finns
+- `GET /api/v1/customer/invoices/{id}` – returnerar endast en publicerbar rad från `customer_invoices`
 - `GET /api/v1/customer/metering-values?from=&to=&facility_id=&limit=`
 - `GET /api/v1/customer/documents`
 - `GET /api/v1/customer/legal-acceptances`
@@ -123,7 +138,7 @@ Skriv-endpoints (`POST /sync`, `/profile-update`, `/move-out`, `/notifications/r
 
 ## Kundens tecknade avtal
 
-`GET /api/v1/customer/contracts` och portal bundle läser tenantens `customer_contracts`, inte website-endpointens säljerbjudanden. Varje modernt webbavtal kan innehålla `public_contract_offer_id`, `offer_reference`, `signed_at`, `withdrawal_deadline_at`, `signature_snapshot_sha256` och `legal_versions_snapshot`. Kundresolvern måste länka portalidentiteten till rätt `company_id` och `customer_id`; annars returneras ett tydligt identitetsfel i stället för andra kunders data.
+`GET /api/v1/customer/contracts` och portal bundle läser tenantens `customer_contracts`, inte website-endpointens säljerbjudanden. Externa DTO:er använder dokumenterade, opaka och tenantbundna resurs-ID:n; interna publicerings-, prisplans-, provider- och snapshot-ID:n exponeras inte. Kundresolvern måste länka portalidentiteten till rätt tenant och kund; annars returneras ett tydligt identitetsfel i stället för andra kunders data.
 
 ## Dokument, fullmakt och juridiska godkännanden
 
@@ -181,6 +196,22 @@ OPS sparar:
 - dokument i `customer_documents`
 - processhändelser som domain events/webhooks
 
+## Eventstatus
+
+Publikt aktiva webhookevents omfattar bland annat `supply.started`,
+`invoice.created`, `invoice.sent`, `invoice.paid` och `invoice.disputed`.
+
+Interna livscykelhändelser omfattar `supplier_switch.requested`,
+`supplier_switch.accepted`, `supplier_switch.rejected`,
+`supply_period.activated` samt `invoice.provider.partially_paid`,
+`invoice.provider.overdue` och `invoice.provider.credited`. De interna namnen är
+inte ett publikt webhooklöfte.
+
+Följande publika namn är planerade och ska inte prenumereras på ännu:
+`contract.activated`, `supplier_switch.started`,
+`supplier_switch.completed`, `invoice.partially_paid`, `invoice.overdue` och
+`invoice.credited`.
+
 Om anläggningsinfo saknas ska OPS visa `needs_facility_data` och blockera switch tills mätpunkt/nätägare är verifierade.
 
 ## Website customer applications
@@ -234,7 +265,7 @@ Fel returneras alltid som JSON `{ "error": "...", "code": "..." }`, aldrig som H
 - `500 customer_portal_internal_error`
 - `503 customer_portal_schema_missing`
 
-## Canonical fastpris, quote och teckningsflöde (`2026-07-24.2`)
+## Canonical fastpris, quote och teckningsflöde (`2026-07-25.1`)
 
 Den aktiva integrationsordningen är:
 
@@ -244,9 +275,9 @@ Den aktiva integrationsordningen är:
 4. `POST /api/v1/website/quote/validate` validerar samma bindning före teckning.
 5. `POST /api/v1/website/customer-applications` konsumerar `quote_reference`, skapar eller återanvänder en canonical kund och ett kundnummer, skapar en anläggningsbunden avtalsrelation och låser vald SE-prisrad i avtalets pris-/faktureringssnapshot. Kundansökan kräver top-level `offer_reference`, `quote_reference` och samma top-level `resolution_id`; `contract` innehåller endast kompletterande start-/avtalsuppgifter och ingen legacyfallback skapar avtal utan quote.
 
-Kundansökan kan även skicka aktuell leverantörsidentitet, inklusive `current_supplier_ediel_id`, när den är känd. Svaret skiljer på om ett leverantörsbytesärende kan skapas och om det faktiskt får skickas: `can_create_supplier_switch_request` kan vara `true` samtidigt som `can_dispatch_supplier_switch` är `false` tills mätpunkt, fullmakt, nuvarande leverantör och övriga readinesskrav är verifierade.
+Kundansökan kan även skicka aktuell leverantörsidentitet, inklusive `current_supplier_ediel_id`, när den är känd. Svaret skiljer på skapande och dispatch i `supplier_switch`: `can_create_request` kan vara `true` samtidigt som `can_dispatch` är `false` tills mätpunkt, fullmakt, nuvarande leverantör, route och transportkrav är verifierade.
 
-`resolution_id` är obligatoriskt i quote och teckning. OPS läser området genom `company_id + resolution_id`, kontrollerar expiry, automation-readiness, resolverversion och geodataversion och avvisar motstridigt `price_area` eller `grid_area_code`. För rörliga avtal innehåller quoten en additiv `market_reference` med provider, referensperiod, `as_of`, `is_indicative`, `is_stale` och fallbackmetadata. Preview får aldrig användas som settlement.
+`resolution_id` är obligatoriskt i quote och teckning. OPS läser området genom den autentiserade tenanten och `resolution_id`, kontrollerar expiry samt den ändamålsspecifika capabilityn och avvisar motstridigt område. Pricing/quote blockeras aldrig av saknad PRODAT-route eller transportkonfiguration. För rörliga avtal innehåller quoten en additiv `market_reference` med provider, referensperiod, `as_of`, `is_indicative`, `is_stale` och fallbackmetadata. Preview får aldrig användas som settlement.
 
 För fastpris gäller:
 
@@ -265,7 +296,7 @@ För penningvärden gäller:
 - använd aldrig truthy/falsy-kontroller för pengar;
 - kontrollera uttryckligen `value === null || value === undefined`.
 
-Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-07-24.2`; versionsvärdet ingår i ETag-underlaget.
+Aktiva scopes är `website_contracts.read`, `website_energy_area.resolve`, `website_market_prices.read`, `website_quotes.write`, `website_quotes.validate` och `website_applications.write`. API-svaret innehåller `contract_schema_version=2026-07-25.1`; versionsvärdet ingår i ETag-underlaget.
 
 ## Publication revision, cache och kanaler
 
@@ -282,9 +313,9 @@ API-nycklar är server-side secrets. `allowed_origins` är ett kompletterande dr
 Nya publiceringar får en opak tenantoberoende referens i formatet `offer_<sha256>`. Redan publicerade referenser behålls exakt som de är eftersom de kan vara bundna till ansökningar, kundavtal, juridiska accepter och pris-snapshots. Klienten ska därför behandla värdet som en opak sträng och aldrig validera varumärke, UUID-format eller produktnamn lokalt.
 
 
-API-svaret innehåller `contract_schema_version=2026-07-24.2` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
+API-svaret innehåller `contract_schema_version=2026-07-25.1` och headern `X-Gridex-Contract-Version`. Versionsvärdet ingår i ETag-underlaget så att klienter inte får `304 Not Modified` mot en äldre DTO när kontraktsrepresentationen ändras.
 
-## Avgränsning mot Website Integration API 2026-07-24.2
+## Avgränsning mot Website Integration API 2026-07-25.1
 
 Den här guiden beskriver kundportal och Mina sidor. Website checkout, publicerade erbjudanden, elområdesresolution, aktuellt marknadspris och quote dokumenteras canonicalt i `website-integration-v1.json`.
 

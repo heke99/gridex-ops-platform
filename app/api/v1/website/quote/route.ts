@@ -109,17 +109,38 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (parsed.body ?? {}) as Record<string, unknown>
+    const allowedFields = new Set([
+      'resolution_id',
+      'offer_reference',
+      'customer_type',
+      'annual_consumption_kwh',
+      'start_date',
+    ])
+    const unknownFields = Object.keys(body).filter((key) => !allowedFields.has(key))
+    if (unknownFields.length > 0) {
+      return customerPortalJson(
+        errorBody({
+          code: 'unknown_field',
+          message: 'Förfrågan innehåller fält som inte ingår i API-kontraktet.',
+          requestId,
+          field: unknownFields[0],
+          details: { unknown_fields: unknownFields },
+          retryable: false,
+        }),
+        { status: 400 },
+      )
+    }
     const result = await calculateOfferQuote({
       client: auth.client,
-      offerReference: text(body, 'offer_reference', 'offerReference') ?? '',
-      resolutionId: text(body, 'resolution_id', 'resolutionId'),
+      offerReference: text(body, 'offer_reference') ?? '',
+      resolutionId: text(body, 'resolution_id'),
       resolutionBindingRequired: true,
-      priceArea: text(body, 'price_area', 'priceArea', 'price_area_code', 'priceAreaCode')?.toUpperCase() ?? null,
-      annualConsumptionKwh: numeric(body, 'annual_consumption_kwh', 'annualConsumptionKwh') ?? Number.NaN,
-      startDate: text(body, 'start_date', 'startDate', 'requested_start_date', 'requestedStartDate'),
-      customerType: text(body, 'customer_type', 'customerType'),
-      gridAreaCode: text(body, 'grid_area_code', 'gridAreaCode'),
-      postalCode: text(body, 'postal_code', 'postalCode'),
+      priceArea: null,
+      annualConsumptionKwh: numeric(body, 'annual_consumption_kwh') ?? Number.NaN,
+      startDate: text(body, 'start_date'),
+      customerType: text(body, 'customer_type'),
+      gridAreaCode: null,
+      postalCode: null,
     })
 
     await logIntegrationApiRequest({

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-24.2",
+    "version": "2026-07-25.1",
     "description": "Canonical V1 contract for the authenticated customer portal and customer self-service APIs. Website checkout, public contracts, energy-area resolution, current market price and quote are documented exclusively in website-integration-v1.json."
   },
   "servers": [
@@ -1474,7 +1474,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-24.2"
+                  "const": "2026-07-25.1"
                 }
               }
             },
@@ -2566,7 +2566,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-24.2"
+            "const": "2026-07-25.1"
           },
           "configuration": {
             "type": "object",
@@ -2693,7 +2693,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-24.2",
+  "x-contract-schema-version": "2026-07-25.1",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

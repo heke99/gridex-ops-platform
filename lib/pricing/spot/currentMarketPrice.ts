@@ -1,5 +1,5 @@
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
-import { loadBoundEnergyResolution } from '@/lib/energy/resolutionBinding'
+import { loadPricingEnergyResolution } from '@/lib/energy/resolutionBinding'
 import { loadMarketPriceSourcePolicies, policySupports } from '@/lib/pricing/marketPriceSources'
 import { supabaseService } from '@/lib/supabase/service'
 import { stockholmDateForInstant } from '@/lib/time/stockholm'
@@ -9,7 +9,10 @@ export type CurrentMarketPrice = {
   resolution_id: string
   price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4'
   reference_type: 'current_interval'
+  /** @deprecated Use selected_resolution. */
   resolution: 'hourly' | 'quarterly'
+  selected_resolution: 'hourly' | 'quarterly'
+  available_resolutions: Array<'hourly' | 'quarterly'>
   time_start: string
   time_end: string
   price_sek_per_kwh: number
@@ -21,6 +24,7 @@ export type CurrentMarketPrice = {
   includes_grid_fees: false
   is_indicative: false
   is_stale: boolean
+  fallback_used: false
   source_as_of: string
   next_update_at: string
 }
@@ -66,7 +70,7 @@ export async function loadCurrentMarketPrice(input: {
   now?: Date
 }): Promise<CurrentMarketPrice> {
   const now = input.now ?? new Date()
-  const resolution = await loadBoundEnergyResolution({
+  const resolution = await loadPricingEnergyResolution({
     client: input.client,
     resolutionId: input.resolutionId,
     now,
@@ -114,13 +118,25 @@ export async function loadCurrentMarketPrice(input: {
     .limit(20)
   if (intervalError) throw intervalError
 
-  const rows = (intervals ?? []) as Array<Record<string, unknown>>
   const policyBySource = new Map(policies.map((policy) => [policy.sourceKey, policy]))
+  const rows = ((intervals ?? []) as Array<Record<string, unknown>>).filter((row) => {
+    const policy = policyBySource.get(String(row.source))
+    const rowResolution = text(row.resolution) === 'quarter_hour' ? 'quarterly' : 'hourly'
+    return Boolean(policy && policySupports({
+      policy,
+      priceArea: resolution.priceArea,
+      resolution: rowResolution,
+    }))
+  })
   rows.sort((left, right) => {
     const leftPolicy = policyBySource.get(String(left.source))
     const rightPolicy = policyBySource.get(String(right.source))
-    return (leftPolicy?.priority ?? Number.MAX_SAFE_INTEGER) -
+    const priority = (leftPolicy?.priority ?? Number.MAX_SAFE_INTEGER) -
       (rightPolicy?.priority ?? Number.MAX_SAFE_INTEGER)
+    if (priority !== 0) return priority
+    const leftRank = text(left.resolution) === 'quarter_hour' ? 0 : 1
+    const rightRank = text(right.resolution) === 'quarter_hour' ? 0 : 1
+    return leftRank - rightRank
   })
   const selected = rows[0]
   if (!selected) {
@@ -188,6 +204,9 @@ export async function loadCurrentMarketPrice(input: {
     })
   }
   const intervalResolution = text(selected.resolution) === 'quarter_hour' ? 'quarterly' : 'hourly'
+  const availableResolutions = Array.from(new Set(
+    rows.map((row) => text(row.resolution) === 'quarter_hour' ? 'quarterly' as const : 'hourly' as const),
+  ))
 
   return {
     provider,
@@ -195,6 +214,8 @@ export async function loadCurrentMarketPrice(input: {
     price_area: resolution.priceArea,
     reference_type: 'current_interval',
     resolution: intervalResolution,
+    selected_resolution: intervalResolution,
+    available_resolutions: availableResolutions,
     time_start: timeStart,
     time_end: timeEnd,
     price_sek_per_kwh: price,
@@ -206,6 +227,7 @@ export async function loadCurrentMarketPrice(input: {
     includes_grid_fees: false,
     is_indicative: false,
     is_stale: false,
+    fallback_used: false,
     source_as_of: sourceAsOf,
     next_update_at: timeEnd,
   }

@@ -1,0 +1,15 @@
+---
+description: Mandatory persistent project-memory workflow
+alwaysApply: true
+---
+
+Before non-trivial work, read `AGENTS.md`, `.agent-memory/README.md`,
+`.agent-memory/current-state.md`, `.agent-memory/current-task.md`,
+`.agent-memory/checkpoint.json`, `.agent-memory/handover.md`,
+`.agent-memory/open-blockers.md`, `.agent-memory/work-plan.md` and relevant
+domain memory.
+
+Inspect code and, when available, Git status and diff. Continue from the
+recorded next action. Do not restart verified work. Update project memory when
+code, schema, API, security, architecture, progress or verification changes.
+Never store secrets or production customer data in memory files.

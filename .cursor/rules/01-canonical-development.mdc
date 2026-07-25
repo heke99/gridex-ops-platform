@@ -1,0 +1,15 @@
+---
+description: Preserve canonical architecture and prevent duplicate implementations
+alwaysApply: true
+---
+
+Before implementing, locate the canonical owner, trace the complete call path,
+inspect related routes/RPCs/jobs/events, search decisions and known failures,
+identify tenant/authorization/transaction/idempotency boundaries, and compare
+OpenAPI with runtime.
+
+Do not create competing implementations, duplicate pricing or resolution
+logic, bypass OPS, implement security only in UI, replace atomic operations
+with sequential writes, silently change public contracts, introduce new
+required tenant environment variables, or return raw database rows from public
+APIs.

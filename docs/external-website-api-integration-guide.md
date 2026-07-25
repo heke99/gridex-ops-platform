@@ -1,6 +1,6 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-07-24.2**
+> **Canonical API-version: 2026-07-25.1**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
@@ -42,6 +42,11 @@ Scope: integration_context.read
 ```
 
 Skicka aldrig internt `company_id`, `tenant_id` eller databas-UUID som tenantväljare. Alla resolutioner, quotes, ansökningar och idempotensposter binds till API-nyckelns tenant.
+
+UUID-fält som `customer_id`, `application_id`, `contract_id` och `resolution_id`
+är dokumenterade, opaka och tenantbundna publika resurs-ID:n. De ger aldrig
+behörighet i sig. Interna prisplans-, publicerings-, portalidentitets- och
+provider-ID:n returneras inte. Se [Public API ID policy](./public-api-id-policy.md).
 
 ## 2. Canonical ordning
 
@@ -127,9 +132,10 @@ Content-Type: application/json
 
 ```json
 {
-  "code": "grid_area_address_mismatch",
-  "resolution_status": "needs_review",
-  "automation_allowed": false
+  "error": {
+    "code": "grid_area_address_mismatch",
+    "message": "Adress och påstått nätområde motsäger varandra."
+  }
 }
 ```
 
@@ -141,10 +147,29 @@ Ett lyckat svar innehåller minst:
     "resolution_id": "uuid",
     "price_area": "SE4",
     "grid_area_code": "...",
-    "grid_owner": { "id": "uuid", "name": "..." },
+    "grid_owner_name": "Exempel Nät AB",
     "confidence": 0.98,
     "resolution_status": "grid_area_master_validated",
-    "automation_allowed": true,
+    "capabilities": {
+      "pricing_ready": true,
+      "quote_ready": true,
+      "facility_lookup_ready": true,
+      "switch_request_creatable": true,
+      "switch_dispatch_ready": false
+    },
+    "blockers": {
+      "pricing": [],
+      "quote": [],
+      "facility_lookup": [],
+      "switch_creation": [],
+      "switch_dispatch": [
+        {
+          "code": "switch_context_required",
+          "message": "Dispatch kräver kundspecifik fullmakt, route och transportkonfiguration.",
+          "retryable": false
+        }
+      ]
+    },
     "resolver_version": "energy-resolver-v2",
     "geodata_version": "svk_arcgis:...",
     "resolved_at": "2026-07-24T13:30:00+02:00",
@@ -153,7 +178,7 @@ Ett lyckat svar innehåller minst:
 }
 ```
 
-Resolutionen är tenantbunden och tidsbegränsad. Gammal geodata, låg confidence eller konflikt blockerar automation.
+Resolutionen är tenantbunden och tidsbegränsad. Pris- och quote-readiness är oberoende av PRODAT-transport. Gammal geodata, låg confidence eller konflikt blockerar bara de capabilities som faktiskt påverkas.
 
 SVK-geometrin är versionsstyrd. En ny polygonuppsättning blir aktiv först efter fullständig staging, coveragekontroll och atomisk promotion. `geodata_version` identifierar exakt vilken verifierad geodataversion som användes, och polygoner som saknas i en ny version inaktiveras i samma transaktion.
 
@@ -317,8 +342,18 @@ Exempel på accepterat svar:
     "workflow_state": "canonical_data_committed",
     "next_step": "automatic_processing",
     "missing_fields": [],
-    "blocking_reasons": []
-  }
+    "blocking_reasons": [],
+    "supplier_switch": {
+      "request_id": null,
+      "status": "not_created",
+      "can_create_request": true,
+      "can_dispatch": false,
+      "blockers": [],
+      "next_action": "create_supplier_switch_request"
+    }
+  },
+  "request_id": "uuid",
+  "correlation_id": "uuid"
 }
 ```
 
@@ -360,7 +395,10 @@ grid_area_address_mismatch
 resolution_not_found
 resolution_tenant_mismatch
 resolution_expired
-resolution_not_automation_ready
+resolution_pricing_not_ready
+resolution_quote_not_ready
+resolution_facility_lookup_not_ready
+resolution_switch_not_ready
 price_area_mismatch
 market_price_unavailable
 market_price_stale
@@ -370,7 +408,8 @@ quote_expired
 quote_reference_mismatch
 quote_resolution_mismatch
 idempotency_conflict
-supplier_switch_not_ready
+facility_information_required
+prodat_route_not_ready
 ```
 
 Fel innehåller HTTP-status, `error.code`, kundtext, fält, `request_id`/correlation ID och där det är relevant retryability eller detaljer.
@@ -406,9 +445,9 @@ https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-07-24.2` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-07-25.1` och headern `X-Gridex-Contract-Version`.
 
-## Canonical marknadsprisflöde i API 2026-07-24.2
+## Canonical marknadsprisflöde i API 2026-07-25.1
 
 Det finns tre separata operationer:
 
@@ -443,7 +482,7 @@ Om tenantens policy har `allow_indicative_latest=false` returneras inte en parti
 | 403 | `missing_scope` | Nej | Lägg till `website_market_prices.read` på API-klienten. |
 | 404 | `resolution_not_found` | Nej | Kör områdesresolution på nytt inom samma tenant. |
 | 409 | `resolution_expired` | Nej | Skapa en ny `resolution_id`. |
-| 409 | `resolution_not_ready` | Nej | Komplettera eller granska adress-/nätområdesunderlaget i OPS. |
+| 409 | `resolution_pricing_not_ready` | Nej | Kör resolvern igen eller åtgärda blockeraren i `blockers.pricing`. PRODAT-readiness påverkar inte priset. |
 | 409 | `price_area_mismatch` | Nej | Ta bort lokalt område och använd resolutionens område. |
 | 409 | `market_price_stale` | Ja | Försök igen efter att OPS-importen har uppdaterats. Räkna inte lokalt. |
 | 429 | `rate_limited` | Ja | Använd backoff och respektera rate-limit headers. |

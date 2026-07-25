@@ -148,6 +148,32 @@ async function ensureSupplyPeriodFromSwitch(input: {
   })
 }
 
+async function activateCustomerSupplyAtomically(input: {
+  message: EdielMessageRow
+  switchRequestId: string
+  actorUserId: string
+}) {
+  const payload = readPayloadRecord(input.message)
+  const companyId = input.message.company_id ?? text(payload.resolved_company_id)
+  if (!companyId) throw new Error('supply_activation_company_required')
+  const actualStartDate = dateOnly(payload.actual_start_date)
+    ?? dateOnly(payload.start_date)
+    ?? dateOnly(payload.startDate)
+    ?? dateOnly(payload.supply_start_date)
+  const response = await supabaseService.rpc('activate_customer_supply_v1', {
+    p_company_id: companyId,
+    p_supplier_switch_request_id: input.switchRequestId,
+    p_source_message_id: input.message.id,
+    p_actual_start_date: actualStartDate,
+    p_actor_user_id: input.actorUserId,
+    p_idempotency_key: `activate_customer_supply_v1:${input.message.id}:${input.switchRequestId}`,
+  })
+  if (response.error) throw response.error
+  const row = Array.isArray(response.data) ? response.data[0] : response.data
+  if (!row || typeof row !== 'object') throw new Error('supply_activation_result_missing')
+  return row as Record<string, unknown>
+}
+
 async function endActiveSupplyPeriod(message: EdielMessageRow): Promise<string> {
   const payload = readPayloadRecord(message)
   const companyId = message.company_id ?? text(payload.resolved_company_id)
@@ -236,6 +262,7 @@ export async function applyInboundBusinessStateMachine(input: {
   const prodatLifecycle = String(input.message.message_family ?? '').toUpperCase() === 'PRODAT'
     ? decideProdatLifecycle(input.message)
     : null
+  let supplyActivationCommitted = false
 
   if (outcome === 'grid_owner_information_received') {
     const customerInfoRequestId = input.customerInfoRequestId ?? text(readPayloadRecord(input.message).customer_info_request_id) ?? null
@@ -282,14 +309,22 @@ export async function applyInboundBusinessStateMachine(input: {
   }
 
   if (outcome === 'supplier_switch_completed' && input.matchedSwitchRequestId) {
-    if (await strictUpdate('supplier_switch_requests', {
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-      external_reference: input.message.external_reference ?? undefined,
-      updated_at: new Date().toISOString(),
-    }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
-    const supplyPeriodId = await ensureSupplyPeriodFromSwitch({ message: input.message, status: 'active' })
-    if (supplyPeriodId) updated.push('customer_supply_periods')
+    await activateCustomerSupplyAtomically({
+      message: input.message,
+      switchRequestId: input.matchedSwitchRequestId,
+      actorUserId: input.actorUserId,
+    })
+    supplyActivationCommitted = true
+    updated.push(
+      'supplier_switch_requests',
+      'customer_supply_periods',
+      'customer_contracts',
+      'customer_application_workflows',
+      'website_customer_applications',
+      'domain_events',
+      'customer_operation_jobs',
+      'webhook_deliveries',
+    )
   }
 
   if (outcome === 'supplier_switch_review_required' && input.matchedSwitchRequestId) {
@@ -364,7 +399,7 @@ export async function applyInboundBusinessStateMachine(input: {
         : outcome === 'business_rejection' || outcome === 'technical_rejection' ? 'switch_rejected'
           : outcome === 'supplier_switch_review_required' || outcome === 'manual_review_required' ? 'manual_review'
             : null
-  if (workflowState && companyId && input.message.customer_id) {
+  if (!supplyActivationCommitted && workflowState && companyId && input.message.customer_id) {
     await transitionCorrelatedCustomerApplicationWorkflow({
       companyId,
       customerId: input.message.customer_id,
@@ -390,7 +425,7 @@ export async function applyInboundBusinessStateMachine(input: {
       : outcome === 'supplier_switch_completed' || outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started' ? 'supply_period.activated'
         : outcome === 'business_rejection' || outcome === 'technical_rejection' || outcome === 'supplier_switch_review_required' ? 'supplier_switch.rejected'
           : null
-  if (notificationEvent && companyId && input.message.customer_id) {
+  if (!supplyActivationCommitted && notificationEvent && companyId && input.message.customer_id) {
     await enqueueCustomerLifecycleNotification({
       companyId,
       customerId: input.message.customer_id,

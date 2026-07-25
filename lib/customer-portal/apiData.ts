@@ -310,6 +310,7 @@ export async function listPortalInvoices(context: PortalCustomerContext, route =
       .select(CUSTOMER_INVOICE_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
+      .in('status', ['issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited'])
       .order('period_start', { ascending: false, nullsFirst: false })
       .limit(100) as ListResult,
     async () => await supabaseService
@@ -317,63 +318,36 @@ export async function listPortalInvoices(context: PortalCustomerContext, route =
       .select(CUSTOMER_INVOICE_MINIMAL_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
+      .in('status', ['issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited'])
       .order('period_start', { ascending: false, nullsFirst: false })
       .limit(100) as ListResult,
   ])
 
-  if (invoices.length > 0) return invoices
-
-  const exported = await listWithSchemaFallback([
-    async () => await supabaseService
-      .from('invoice_export_items')
-      .select('id,status,provider,provider_invoice_guid,provider_invoice_number,provider_payment_reference,provider_ocr,provider_status,purchase_status,recourse_status,amount_ex_vat,vat_amount,amount_inc_vat,created_at,sent_at,metadata')
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
-      .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
-  ])
-
-  if (exported.length > 0) return exported
-
-  return listWithSchemaFallback([
-    async () => await supabaseService
-      .from('pricing_runs')
-      .select('id,billing_underlay_id,status,total_ex_vat,vat_amount,total_inc_vat,billing_period_start,billing_period_end,created_at')
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
-      .in('status', ['success', 'locked'])
-      .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
-  ])
+  return invoices
 }
 
 export async function getPortalInvoice(context: PortalCustomerContext, invoiceId: string, route = '/api/v1/customer/invoices/[id]') {
   await logPortalAccess({ context, route, action: 'read_invoice', metadata: { invoice_id: invoiceId } })
 
-  const exported = await supabaseService
-    .from('invoice_export_items')
-    .select('id,status,provider,provider_invoice_guid,provider_invoice_number,provider_payment_reference,provider_ocr,provider_status,purchase_status,recourse_status,amount_ex_vat,vat_amount,amount_inc_vat,created_at,sent_at')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .eq('id', invoiceId)
-    .maybeSingle()
-
-  if (!exported.error && exported.data) return exported.data
-  if (exported.error && !isMissingSchemaError(exported.error)) throw exported.error
-
-  const pricing = await supabaseService
-    .from('pricing_runs')
-    .select('id,billing_underlay_id,status,total_ex_vat,vat_amount,total_inc_vat,billing_period_start,billing_period_end,created_at,pricing_preview_lines(id,line_type,description,quantity,unit,unit_price,amount_ex_vat,vat_rate,vat_amount,amount_inc_vat)')
-    .eq('company_id', context.companyId)
-    .eq('customer_id', context.customerId)
-    .eq('id', invoiceId)
-    .maybeSingle()
-
-  if (pricing.error) {
-    if (isMissingSchemaError(pricing.error)) return null
-    throw pricing.error
-  }
-  return pricing.data ?? null
+  const invoices = await listWithSchemaFallback([
+    async () => await supabaseService
+      .from('customer_invoices')
+      .select(CUSTOMER_INVOICE_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .eq('id', invoiceId)
+      .in('status', ['issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited'])
+      .limit(1) as ListResult,
+    async () => await supabaseService
+      .from('customer_invoices')
+      .select(CUSTOMER_INVOICE_MINIMAL_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .eq('id', invoiceId)
+      .in('status', ['issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited'])
+      .limit(1) as ListResult,
+  ])
+  return invoices[0] ?? null
 }
 
 const DOCUMENT_SELECT = 'id,document_type,title,file_name,mime_type,file_size_bytes,status,public_url,source_system,source,power_of_attorney_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,document_version,created_at'

@@ -79,6 +79,7 @@ export type BillingReadinessContract = {
   vat_rate?: number | string | null
   invoice_recipient?: string | null
   invoice_email?: string | null
+  invoice_reference?: string | null
   billing_street?: string | null
   billing_postal_code?: string | null
   billing_city?: string | null
@@ -136,7 +137,29 @@ export type BillingReadinessInput = {
   /** Payment terms configuration; defaulted=true means a documented provider default applies. */
   paymentTerms?: { dueDays?: number | null; defaulted?: boolean } | null
   /** Active billing/invoicing provider connection (Capway/Fortnox/manual export). */
-  paymentProvider?: { provider?: string | null; status?: string | null } | null
+  paymentProvider?: {
+    connectionId?: string | null
+    provider?: string | null
+    environment?: string | null
+    status?: string | null
+  } | null
+  /**
+   * Normalized tenant/provider billing profile. When supplied, every field is
+   * a canonical readiness requirement; undefined keeps legacy pure-core
+   * callers compatible while the database-backed month gate always supplies it.
+   */
+  billingProfile?: {
+    profileId?: string | null
+    status?: string | null
+    distributionMethod?: string | null
+    ocrPolicy?: string | null
+    paymentReferencePolicy?: string | null
+    siteAddress?: {
+      street?: string | null
+      postalCode?: string | null
+      city?: string | null
+    } | null
+  }
   /** Externally supplied blockers (e.g. customer_operation_tasks of blocking type). */
   externalBlockers?: BillingBlocker[] | null
 }
@@ -149,6 +172,7 @@ export function evaluateContractBillingAccountReadiness(input: {
   contract: BillingReadinessContract | null
   customer?: BillingReadinessCustomer | null
   paymentTerms?: { dueDays?: number | null; defaulted?: boolean } | null
+  billingProfile?: BillingReadinessInput['billingProfile']
 }): { blockers: BillingBlocker[]; warnings: BillingWarning[]; evidence: BillingReadinessEvidence } {
   const blockers: BillingBlocker[] = []
   const warnings: BillingWarning[] = []
@@ -172,7 +196,12 @@ export function evaluateContractBillingAccountReadiness(input: {
   const billingCity = clean(contract?.billing_city) ?? clean(customer?.billing_city)
   const hasPostalAddress = Boolean(billingStreet && billingPostalCode && billingCity)
   const sameAsSite = contract?.billing_address_same_as_site === true
-  const hasDistribution = Boolean(invoiceEmail || hasPostalAddress || sameAsSite)
+  const siteAddress = input.billingProfile?.siteAddress
+  const siteAddressComplete = siteAddress === undefined
+    ? sameAsSite
+    : Boolean(clean(siteAddress?.street) && clean(siteAddress?.postalCode) && clean(siteAddress?.city))
+  const hasResolvedPostalAddress = hasPostalAddress || (sameAsSite && siteAddressComplete)
+  const hasDistribution = Boolean(invoiceEmail || hasResolvedPostalAddress)
   if (!hasDistribution) {
     blockers.push({
       code: 'invoice_distribution_missing',
@@ -207,17 +236,79 @@ export function evaluateContractBillingAccountReadiness(input: {
     }
   }
 
+  const profile = input.billingProfile
+  const profileId = clean(profile?.profileId)
+  const profileStatus = clean(profile?.status)?.toLowerCase() ?? null
+  const distributionMethod = clean(profile?.distributionMethod)?.toLowerCase() ?? null
+  const ocrPolicy = clean(profile?.ocrPolicy)
+  const paymentReferencePolicy = clean(profile?.paymentReferencePolicy)
+  if (profile !== undefined) {
+    if (!profileId) {
+      blockers.push({
+        code: 'invoice_profile_missing',
+        message: 'Tenantens fakturaprofil saknar ett stabilt profil-ID.',
+      })
+    }
+    if (profileStatus && !['ready', 'active'].includes(profileStatus)) {
+      blockers.push({
+        code: 'invoice_profile_not_ready',
+        message: `Tenantens fakturaprofil har status "${profileStatus}".`,
+      })
+    }
+    if (!distributionMethod) {
+      blockers.push({
+        code: 'invoice_distribution_method_missing',
+        message: 'Fakturaprofilen saknar distributionsmetod.',
+      })
+    } else if (['email', 'e-mail'].includes(distributionMethod) && !invoiceEmail) {
+      blockers.push({
+        code: 'invoice_distribution_missing',
+        message: 'Fakturaprofilen kräver e-post men faktura-e-post saknas.',
+      })
+    } else if (['postal', 'post', 'letter'].includes(distributionMethod) && !hasResolvedPostalAddress) {
+      blockers.push({
+        code: 'invoice_distribution_missing',
+        message: 'Fakturaprofilen kräver postadress men en komplett fakturaadress saknas.',
+      })
+    } else if (
+      ['einvoice', 'e_invoice', 'e-faktura'].includes(distributionMethod) &&
+      !clean(contract?.invoice_reference)
+    ) {
+      blockers.push({
+        code: 'invoice_reference_missing',
+        message: 'Fakturaprofilen kräver e-fakturareferens men avtalet saknar fakturareferens.',
+      })
+    }
+    if (!ocrPolicy) {
+      blockers.push({
+        code: 'ocr_policy_missing',
+        message: 'Fakturaprofilen saknar OCR-policy.',
+      })
+    }
+    if (!paymentReferencePolicy) {
+      blockers.push({
+        code: 'payment_reference_policy_missing',
+        message: 'Fakturaprofilen saknar betalningsreferenspolicy.',
+      })
+    }
+  }
+
   return {
     blockers,
     warnings,
     evidence: {
       invoice_recipient: recipient,
       invoice_email: invoiceEmail,
-      has_postal_invoice_address: hasPostalAddress,
+      has_postal_invoice_address: hasResolvedPostalAddress,
       billing_address_same_as_site: sameAsSite,
       vat_rate: vatRate,
       payment_terms_due_days: dueDays,
       payment_terms_defaulted: Boolean(input.paymentTerms?.defaulted),
+      invoice_profile_id: profileId,
+      invoice_profile_status: profileStatus,
+      invoice_distribution_method: distributionMethod,
+      ocr_policy: ocrPolicy,
+      payment_reference_policy: paymentReferencePolicy,
     },
   }
 }
@@ -398,6 +489,7 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
     contract,
     customer: input.customer ?? null,
     paymentTerms: input.paymentTerms ?? null,
+    billingProfile: input.billingProfile,
   })
   blockers.push(...account.blockers)
   warnings.push(...account.warnings)
@@ -405,10 +497,17 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
   // 13: payment provider ---------------------------------------------------------
   const providerStatus = clean(input.paymentProvider?.status)?.toLowerCase() ?? null
   if (!input.paymentProvider || !clean(input.paymentProvider.provider)) {
-    warnings.push({
-      code: 'payment_provider_connection_missing',
-      message: 'Ingen fakturapartner/betalkanal är konfigurerad – manuell export krävs.',
-    })
+    if (input.billingProfile !== undefined) {
+      blockers.push({
+        code: 'payment_provider_connection_missing',
+        message: 'Ingen fakturapartner/betalkanal är konfigurerad för tenantens fakturaprofil.',
+      })
+    } else {
+      warnings.push({
+        code: 'payment_provider_connection_missing',
+        message: 'Ingen fakturapartner/betalkanal är konfigurerad – manuell export krävs.',
+      })
+    }
   } else if (providerStatus && !['ready', 'active'].includes(providerStatus)) {
     blockers.push({
       code: 'billing_account_incomplete',
@@ -465,6 +564,8 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
       meter_values: meterValues,
       ...account.evidence,
       payment_provider: clean(input.paymentProvider?.provider),
+      payment_provider_connection_id: clean(input.paymentProvider?.connectionId),
+      payment_provider_environment: clean(input.paymentProvider?.environment),
       payment_provider_status: providerStatus,
     },
   }

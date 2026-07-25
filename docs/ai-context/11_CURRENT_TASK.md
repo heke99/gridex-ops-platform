@@ -1,4 +1,11 @@
-# Current task — Canonical customer flow hardening (2026-07-19)
+# SUPERSEDED — historical current-task record
+
+Canonical progress and the active task now live in
+`.agent-memory/current-task.md` and `.agent-memory/checkpoint.json`. The content
+below is retained as historical context and must not be used as the active
+checkpoint.
+
+# Historical task — Canonical customer flow hardening (2026-07-19)
 
 Latest batch (see 10_CHANGELOG.md 2026-07-19) hardened the canonical customer
 flow end to end:
