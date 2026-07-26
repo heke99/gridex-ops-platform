@@ -32,7 +32,7 @@ function redirectBack(params: {
   redirect(`/admin/contracts?${search.toString()}`);
 }
 
-function errorMessage(
+async function errorMessage(
   error: unknown,
   context: {
     action: string;
@@ -41,7 +41,19 @@ function errorMessage(
     metadata?: Record<string, unknown>;
   },
 ): Promise<string> {
-  return toSafeContractErrorPersisted(error, context);
+  let userId = context.userId ?? null;
+  if (!userId) {
+    try {
+      const supabase = await createSupabaseServerClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      // Error persistence must never mask the original action error.
+    }
+  }
+  return toSafeContractErrorPersisted(error, { ...context, userId });
 }
 
 function contractLifecycleFailure(result: ContractLifecycleRpcResult | null, fallback: string): Error {
@@ -638,8 +650,12 @@ export async function publishContractVersionAction(formData: FormData) {
       },
     );
     if (error) throw error;
-    if (!(data as { ok?: boolean } | null)?.ok) {
-      throw new Error("Avtalsversionen kunde inte publiceras.");
+    const result = data as ContractLifecycleRpcResult | null;
+    if (!result?.ok) {
+      throw contractLifecycleFailure(
+        result,
+        "Avtalsversionen kunde inte publiceras.",
+      );
     }
     revalidateContractSurfaces(companyId);
   } catch (error) {
@@ -648,6 +664,7 @@ export async function publishContractVersionAction(formData: FormData) {
       error: await errorMessage(error, {
         action: "publish_contract_version",
         companyId,
+        metadata: { offerId: getString(formData, "id") || null },
       }),
     });
   }

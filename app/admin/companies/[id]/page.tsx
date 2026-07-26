@@ -1452,7 +1452,13 @@ export default async function CompanyDetailPage({
 
         <CompanyEdielConfiguration company={company} config={edielConfig} />
 
-        <TenantPlatformControls companyId={company.id} companyName={company.name} />
+        <TenantPlatformControls
+          companyId={company.id}
+          companyName={company.name}
+          diagnoseContractId={
+            firstSearchValue(resolvedSearchParams.diagnose_contract) ?? null
+          }
+        />
 
         <section id="tenant-intake-tracking" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">

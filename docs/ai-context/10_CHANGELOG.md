@@ -2,6 +2,34 @@
 
 Use this file after every Cursor task.
 
+## 2026-07-26 — Canonical offer-reference, readiness and safe-delete repair
+
+- Added append-only migration
+  `20260727020000_contract_lifecycle_reference_readiness_repair.sql`.
+- Removed the final runtime dependency on the nonexistent
+  `public_contract_offers.canonical_offer_reference`; lifecycle and deletion
+  functions now resolve the canonical external reference from
+  `contract_publication_versions.offer_reference`, with metadata fallback only
+  for legacy rows.
+- Replaced generic publish SQLSTATE failures with structured readiness blockers
+  carrying code, field and user-facing message. Already-published versions are
+  idempotent, while terminal lifecycle states remain blocked.
+- Reused one tenant-safe dependency graph for delete preview and delete commit;
+  business references, removable system rows and restricting foreign keys are
+  exposed separately.
+- Corrected the admin readiness RPC argument to `p_contract_offer_id` and added
+  lazy readiness/delete diagnostics to both `/admin/contracts?company_id=...`
+  and `/admin/companies/<company-id>`. Permanent delete remains disabled until
+  the preview explicitly permits it.
+- Preserved authenticated actor IDs in safe-action error logs for both admin
+  entry points.
+- Verification: 305 migration files/checksums pass; contract lifecycle
+  completion and repair regressions pass; all six changed TypeScript/TSX files
+  pass syntax transpilation; public API/OpenAPI/version/examples/shared-component
+  parity checks pass. Dependency installation, full typecheck, lint and build
+  are blocked in this environment by package-registry HTTP 503. Database apply
+  and live-row verification remain pending against an authorized staging DB.
+
 ## 2026-07-26 — Contract visibility, lifecycle security and API alignment
 
 - Added append-only migration

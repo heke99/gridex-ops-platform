@@ -22,6 +22,41 @@ import {
   setIntegrationApiClientStatusAction,
 } from "@/app/admin/platform/api-clients/actions";
 
+type ContractDeletePreview = {
+  ok?: boolean;
+  code?: string | null;
+  can_delete?: boolean;
+  deletable?: boolean;
+  recommended_action?: string;
+  business_blockers?: Record<string, number>;
+  removable_system_dependencies?: Record<string, number>;
+  reason_codes?: string[];
+  blockers?: Array<{
+    resource_type?: string;
+    count?: number;
+    reason?: string;
+    message?: string;
+  }>;
+};
+
+type ContractReadinessDiagnostic = {
+  status?: string;
+  can_publish?: boolean;
+  blockers?: string[];
+  blocker_details?: Array<{
+    code?: string;
+    field?: string;
+    message?: string;
+  }>;
+};
+
+type SelectedContractDiagnostic = {
+  sourceOfferId: string;
+  readiness: ContractReadinessDiagnostic | null;
+  deletion_preview: ContractDeletePreview | null;
+  error: string | null;
+};
+
 type InternalContractOffer = {
   id: string;
   name: string;
@@ -44,13 +79,6 @@ type InternalContractOffer = {
   internal_channel_status?: string;
   website_channel_status?: string;
   api_channel_status?: string;
-  deletion_preview?: {
-    can_delete?: boolean;
-    deletable?: boolean;
-    business_blockers?: Record<string, number>;
-    removable_system_dependencies?: Record<string, number>;
-    reason_codes?: string[];
-  } | null;
 };
 
 type PublicOffer = {
@@ -276,9 +304,11 @@ async function safeRows<T>(
 export default async function TenantPlatformControls({
   companyId,
   companyName,
+  diagnoseContractId = null,
 }: {
   companyId: string;
   companyName: string;
+  diagnoseContractId?: string | null;
 }) {
   const results = await Promise.all([
     safeRows<PublicOffer>(
@@ -292,7 +322,7 @@ export default async function TenantPlatformControls({
       "Interna avtal",
       "canonical_internal_contract_offers_v",
       companyId,
-      "id,name,status,lifecycle_status,version_series_id,version_number,contract_product_id,contract_product_version_id,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at,internal_sales_allowed,website_publication_allowed,internal_channel_status,website_channel_status,api_channel_status,deletion_preview",
+      "id,name,status,lifecycle_status,version_series_id,version_number,contract_product_id,contract_product_version_id,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at,internal_sales_allowed,website_publication_allowed,internal_channel_status,website_channel_status,api_channel_status",
       "updated_at",
     ),
     safeRows<ApiClient>(
@@ -331,6 +361,59 @@ export default async function TenantPlatformControls({
   const offerApiDiagnostics = offerApiDiagnosticsResult.rows;
   const mailReadiness = mailReadinessResult.rows;
   const loadErrors = results.filter((result) => result.error !== null);
+
+  let selectedContractDiagnostic: SelectedContractDiagnostic | null = null;
+  if (diagnoseContractId) {
+    const selectedSource = internalContracts.find(
+      (contract) => contract.id === diagnoseContractId,
+    );
+    if (!selectedSource) {
+      selectedContractDiagnostic = {
+        sourceOfferId: diagnoseContractId,
+        readiness: null,
+        deletion_preview: null,
+        error: "Det valda canonical avtalet hittades inte för bolaget.",
+      };
+    } else {
+      try {
+        const [readinessResult, deletionResult] = await Promise.all([
+          supabaseService.rpc("gridex_validate_contract_readiness", {
+            p_company_id: companyId,
+            p_contract_offer_id: selectedSource.id,
+          }),
+          supabaseService.rpc("gridex_preview_delete_unused_contract", {
+            p_company_id: companyId,
+            p_offer_id: selectedSource.id,
+          }),
+        ]);
+        if (readinessResult.error) throw readinessResult.error;
+        if (deletionResult.error) throw deletionResult.error;
+        selectedContractDiagnostic = {
+          sourceOfferId: selectedSource.id,
+          readiness:
+            readinessResult.data &&
+            typeof readinessResult.data === "object" &&
+            !Array.isArray(readinessResult.data)
+              ? (readinessResult.data as ContractReadinessDiagnostic)
+              : null,
+          deletion_preview:
+            deletionResult.data &&
+            typeof deletionResult.data === "object" &&
+            !Array.isArray(deletionResult.data)
+              ? (deletionResult.data as ContractDeletePreview)
+              : null,
+          error: null,
+        };
+      } catch (error) {
+        selectedContractDiagnostic = {
+          sourceOfferId: selectedSource.id,
+          readiness: null,
+          deletion_preview: null,
+          error: databaseErrorMessage(error),
+        };
+      }
+    }
+  }
 
   const diagnosticsByOfferId = new Map(
     offerApiDiagnostics.map((row) => [row.id, row]),
@@ -512,7 +595,7 @@ export default async function TenantPlatformControls({
             </p>
           </div>
           <Link
-            href="/admin/contracts"
+            href={`/admin/contracts?company_id=${companyId}`}
             className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-100"
           >
             Hantera interna avtal
@@ -524,40 +607,128 @@ export default async function TenantPlatformControls({
               Inga interna avtal finns ännu.
             </div>
           ) : null}
-          {internalContracts.map((contract) => (
-            <article
-              key={contract.id}
-              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h4 className="text-base font-black text-slate-950">
-                    {contract.name}
-                  </h4>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {contractTypeLabel(contract.contract_type ?? "spot")} ·
-                    prisversion {contract.price_version ?? "saknas"} · villkor{" "}
-                    {contract.terms_version ?? "saknas"}
-                  </p>
+          {internalContracts.map((contract) => {
+            const selectedDiagnostic =
+              selectedContractDiagnostic?.sourceOfferId === contract.id
+                ? selectedContractDiagnostic
+                : null;
+            const deletionPreview = selectedDiagnostic?.deletion_preview ?? null;
+            const canDelete =
+              (deletionPreview?.can_delete ?? deletionPreview?.deletable) ===
+              true;
+            return (
+              <article
+                key={contract.id}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-base font-black text-slate-950">
+                      {contract.name}
+                    </h4>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {contractTypeLabel(contract.contract_type ?? "spot")} ·
+                      prisversion {contract.price_version ?? "saknas"} · villkor{" "}
+                      {contract.terms_version ?? "saknas"}
+                    </p>
+                  </div>
+                  {badge(
+                    contract.status === "active" &&
+                      contract.is_active !== false
+                      ? "green"
+                      : contract.status === "draft"
+                        ? "amber"
+                        : "slate",
+                    contract.status === "active" &&
+                      contract.is_active !== false
+                      ? "Internt aktivt"
+                      : (contract.status ?? "Utkast"),
+                  )}
                 </div>
-                {badge(
-                  contract.status === "active" && contract.is_active !== false
-                    ? "green"
-                    : contract.status === "draft"
-                      ? "amber"
-                      : "slate",
-                  contract.status === "active" && contract.is_active !== false
-                    ? "Internt aktivt"
-                    : (contract.status ?? "Utkast"),
-                )}
-              </div>
-              <p className="mt-3 text-xs font-semibold leading-5 text-slate-600">
-                Giltighet: {contract.valid_from ?? "start saknas"} –{" "}
-                {contract.valid_to ?? "tills vidare"} · senast ändrad{" "}
-                {formatDate(contract.updated_at)}
-              </p>
-            </article>
-          ))}
+                <p className="mt-3 text-xs font-semibold leading-5 text-slate-600">
+                  Giltighet: {contract.valid_from ?? "start saknas"} –{" "}
+                  {contract.valid_to ?? "tills vidare"} · senast ändrad{" "}
+                  {formatDate(contract.updated_at)}
+                </p>
+                {selectedDiagnostic?.error ? (
+                  <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-800">
+                    {selectedDiagnostic.error}
+                  </p>
+                ) : null}
+                {selectedDiagnostic?.readiness?.blocker_details?.length ? (
+                  <ul className="mt-3 list-disc rounded-xl border border-amber-200 bg-amber-50 p-3 pl-7 text-xs text-amber-900">
+                    {selectedDiagnostic.readiness.blocker_details.map(
+                      (blocker, index) => (
+                        <li key={`${blocker.code ?? "readiness"}-${index}`}>
+                          <strong>{blocker.code ?? "blockerad"}</strong>
+                          {blocker.field ? ` · ${blocker.field}` : ""}
+                          {blocker.message ? `: ${blocker.message}` : ""}
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                ) : null}
+                {deletionPreview?.blockers?.length ? (
+                  <ul className="mt-3 list-disc rounded-xl border border-red-200 bg-red-50 p-3 pl-7 text-xs text-red-900">
+                    {deletionPreview.blockers.map((blocker, index) => (
+                      <li key={`${blocker.reason ?? "delete"}-${index}`}>
+                        <strong>{blocker.reason ?? "blockerad"}</strong>
+                        {typeof blocker.count === "number"
+                          ? ` · ${blocker.count} st`
+                          : ""}
+                        {blocker.message ? `: ${blocker.message}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/admin/contracts?company_id=${companyId}&edit_offer=${contract.id}`}
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                  >
+                    Öppna och redigera
+                  </Link>
+                  <Link
+                    href={`/admin/companies/${companyId}?diagnose_contract=${contract.id}#tenant-internal-contracts`}
+                    className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800"
+                  >
+                    {selectedDiagnostic ? "Kör om preview" : "Readiness + delete preview"}
+                  </Link>
+                  <form action={deleteTenantPublicContractOfferAction}>
+                    <input type="hidden" name="company_id" value={companyId} />
+                    <input
+                      type="hidden"
+                      name="source_contract_offer_id"
+                      value={contract.id}
+                    />
+                    <input type="hidden" name="delete_mode" value="archive" />
+                    <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700">
+                      Arkivera
+                    </button>
+                  </form>
+                  <form action={deleteTenantPublicContractOfferAction}>
+                    <input type="hidden" name="company_id" value={companyId} />
+                    <input
+                      type="hidden"
+                      name="source_contract_offer_id"
+                      value={contract.id}
+                    />
+                    <input
+                      type="hidden"
+                      name="delete_mode"
+                      value="safe_delete"
+                    />
+                    <button
+                      disabled={!canDelete}
+                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Radera permanent
+                    </button>
+                  </form>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -644,10 +815,18 @@ export default async function TenantPlatformControls({
               const sourceContract = offer.source_contract_offer_id
                 ? internalContractsById.get(offer.source_contract_offer_id)
                 : undefined;
-              const canDelete = sourceContract
-                ? (sourceContract.deletion_preview?.can_delete ?? sourceContract.deletion_preview?.deletable) === true
-                : false;
-              const deleteReasons = sourceContract?.deletion_preview?.reason_codes ?? [];
+              const selectedDiagnostic =
+                sourceContract &&
+                selectedContractDiagnostic?.sourceOfferId === sourceContract.id
+                  ? selectedContractDiagnostic
+                  : null;
+              const deletionPreview = selectedDiagnostic?.deletion_preview ?? null;
+              const canDelete =
+                (deletionPreview?.can_delete ?? deletionPreview?.deletable) === true;
+              const deleteReasons = deletionPreview?.reason_codes ?? [];
+              const deleteBlockers = deletionPreview?.blockers ?? [];
+              const readinessDetails =
+                selectedDiagnostic?.readiness?.blocker_details ?? [];
               return (
                 <article
                   key={offer.id}
@@ -748,10 +927,54 @@ export default async function TenantPlatformControls({
                     ) : null}
                   </div>
                   <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
-                    <strong className="text-slate-800">Radera säkert:</strong>{" "}
-                    {canDelete
-                      ? `Ingen affärshistorik blockerar radering. ${Object.values(sourceContract?.deletion_preview?.removable_system_dependencies ?? {}).reduce((sum, value) => sum + Number(value || 0), 0)} tekniska rader kan tas bort atomiskt.`
-                      : `Permanent radering är blockerad: ${deleteReasons.join(" · ") || "affärshistorik eller osäker canonical referens"}. Arkivering bevarar kundhistoriken.`}
+                    <strong className="text-slate-800">Readiness och raderingspreview:</strong>{" "}
+                    {!sourceContract ? (
+                      "Canonical källa saknas."
+                    ) : selectedDiagnostic?.error ? (
+                      <span className="font-bold text-red-800">
+                        {selectedDiagnostic.error}
+                      </span>
+                    ) : !selectedDiagnostic ? (
+                      "Kör diagnostiken innan permanent radering."
+                    ) : canDelete ? (
+                      `Ingen affärshistorik blockerar radering. ${Object.values(deletionPreview?.removable_system_dependencies ?? {}).reduce((sum, value) => sum + Number(value || 0), 0)} tekniska rader kan tas bort atomiskt.`
+                    ) : (
+                      `Permanent radering är blockerad: ${deleteReasons.join(" · ") || "affärshistorik eller osäker canonical relation"}. Arkivering bevarar kundhistoriken.`
+                    )}
+                    {sourceContract ? (
+                      <Link
+                        href={`/admin/companies/${companyId}?diagnose_contract=${sourceContract.id}#tenant-avtal`}
+                        className="mt-2 block font-black text-indigo-700 underline"
+                      >
+                        {selectedDiagnostic
+                          ? "Kör om readiness och delete preview"
+                          : "Kör readiness och delete preview"}
+                      </Link>
+                    ) : null}
+                    {readinessDetails.length > 0 ? (
+                      <ul className="mt-3 list-disc pl-5 text-amber-900">
+                        {readinessDetails.map((blocker, index) => (
+                          <li key={`${blocker.code ?? "readiness"}-${index}`}>
+                            <strong>{blocker.code ?? "blockerad"}</strong>
+                            {blocker.field ? ` · ${blocker.field}` : ""}
+                            {blocker.message ? `: ${blocker.message}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {deleteBlockers.length > 0 ? (
+                      <ul className="mt-3 list-disc pl-5 text-red-900">
+                        {deleteBlockers.map((blocker, index) => (
+                          <li key={`${blocker.reason ?? "delete"}-${index}`}>
+                            <strong>{blocker.reason ?? "blockerad"}</strong>
+                            {typeof blocker.count === "number"
+                              ? ` · ${blocker.count} st`
+                              : ""}
+                            {blocker.message ? `: ${blocker.message}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {offer.source_contract_offer_id ? (

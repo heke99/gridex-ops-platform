@@ -1,0 +1,37 @@
+== migration integrity ==
+Migration integrity check passed (305 files; 210 version groups; checksums verified).
+== lifecycle regressions ==
+contract/tenant lifecycle completion regression: PASS
+Contract lifecycle repair regression passed (81 checks).
+== changed TS/TSX syntax ==
+PASS app/admin/contracts/actions.ts
+PASS app/admin/contracts/page.tsx
+PASS app/admin/companies/[id]/tenant-platform-actions.ts
+PASS app/admin/companies/[id]/TenantPlatformControls.tsx
+PASS app/admin/companies/[id]/page.tsx
+PASS lib/contracts/lifecycleErrors.ts
+== API/OpenAPI/docs parity ==
+Public API contract OK (34 route files).
+OpenAPI/runtime parity OK (36 registry routes, 38 OpenAPI operations).
+API documentation version parity OK (2026-07-25.1).
+API documentation examples OK.
+OpenAPI responsibility boundaries OK.
+== targeted source assertions ==
+PASS canonical reference comes from publication version
+PASS final repair never queries missing pco column
+PASS publish returns structured blocker details
+PASS delete preview exposes FK blockers
+PASS delete commit repeats preview
+PASS central admin uses correct readiness arg
+PASS central admin renders exact FK blockers
+PASS company admin performs lazy delete preview
+PASS company admin gates permanent delete
+PASS central safe-action error resolves actor
+PASS company safe-action error resolves actor
+== full project typecheck status ==
+BLOCKED: npm dependency installation did not complete because the package registry returned HTTP 503. A direct npm run typecheck therefore reports missing next/react/@supabase/node type modules rather than a grounded source-code type result.
+== artifact verification ==
+Patch ZIP integrity: PASS
+Full source ZIP integrity: PASS
+Unified patch dry-run/apply against original upload: PASS
+Changed-file byte comparison after patch apply: PASS

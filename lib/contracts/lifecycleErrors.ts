@@ -1,3 +1,12 @@
+export type ContractLifecycleBlocker = {
+  code?: string
+  field?: string
+  message?: string
+  resource_type?: string
+  count?: number
+  reason?: string
+}
+
 export type ContractLifecycleRpcResult = {
   ok?: boolean
   changed?: boolean
@@ -5,18 +14,39 @@ export type ContractLifecycleRpcResult = {
   mode?: string
   code?: string
   reason_codes?: string[]
+  blocker_codes?: string[]
+  blockers?: ContractLifecycleBlocker[]
+  lifecycle_status?: string
+  readiness?: {
+    status?: string
+    can_publish?: boolean
+    blockers?: string[]
+    blocker_details?: ContractLifecycleBlocker[]
+    resolution?: string | null
+    expected_resolution?: string | null
+    energy_direction?: string | null
+  }
   recommended_action?: string
   already_unpublished?: boolean
   affected_channels?: number
   delete_preview?: {
+    code?: string
     reason_codes?: string[]
+    blockers?: ContractLifecycleBlocker[]
+    lifecycle_status?: string
     recommended_action?: string
     foreign_key_blockers?: {
       count?: number
-      items?: Array<{ relation?: string; rows?: number }>
+      items?: Array<{
+        constraint?: string
+        relation?: string
+        referenced_columns?: string[]
+        rows?: number
+      }>
     }
   }
 }
+
 
 export const CONTRACT_LIFECYCLE_REASON_MESSAGES: Readonly<Record<string, string>> = {
   HAS_CUSTOMER_CONTRACTS: 'Avtalet används av ett eller flera kundavtal och kan därför endast arkiveras.',
@@ -51,12 +81,46 @@ export const CONTRACT_LIFECYCLE_REASON_MESSAGES: Readonly<Record<string, string>
   contract_already_archived: 'Avtalet är redan arkiverat.',
   contract_closed_terminal: 'Ett stängt avtal är terminalt och kan inte raderas eller återpubliceras.',
   contract_closed: 'Avtalet stängdes för all nyförsäljning.',
+  contract_already_published: 'Avtalsversionen är redan publicerad.',
+  contract_version_not_publishable: 'Avtalsversionen kan inte publiceras förrän blockerarna är åtgärdade.',
+  contract_delete_blocked: 'Avtalet kan inte raderas permanent. Se blockerarna och arkivera vid affärshistorik.',
+  unused_contract_delete_blocked: 'Avtalet kan inte raderas permanent. Se blockerarna och arkivera vid affärshistorik.',
+  lifecycle_status_not_publishable: 'Nuvarande lifecycle-status kan inte publiceras.',
+  canonical_product_missing: 'Canonical avtalsprodukt saknas.',
+  canonical_product_version_missing: 'Canonical immutable avtalsversion saknas.',
+  canonical_product_version_mismatch: 'Canonical avtalsversion tillhör inte vald produkt.',
+  tenant_assignment_missing: 'Aktiv tenanttilldelning saknas för avtalsversionen.',
+  internal_channel_missing: 'Intern försäljningskanal saknas för avtalsversionen.',
+  price_plan_missing: 'Prisplan saknas.',
+  price_plan_version_missing: 'Låst prisversion saknas.',
+  price_book_missing: 'Prisbok eller prissnapshot saknas.',
+  invoice_fee_missing: 'Fakturaavgiften måste vara explicit angiven, även när den är 0.',
+  invoice_fee_invalid: 'Fakturaavgiften får inte vara negativ.',
+  vat_rate_invalid: 'Momsinställningen är ogiltig.',
+  fixed_price_missing: 'Fastprisavtalet saknar ett positivt pris per kWh.',
+  price_areas_missing: 'Minst ett elområde måste anges.',
+  duplicate_price_areas: 'Elområdeslistan innehåller dubbletter.',
+  resolution_missing: 'Prisupplösning saknas i den immutable snapshoten.',
+  resolution_mismatch: 'Prisupplösningen matchar inte avtalsmodellen.',
+  tenant_go_live_not_ready: 'Tenantens produktionsrouting eller avsändaridentitet är inte redo.',
+  tenant_legal_profile_not_ready: 'Tenantens juridiska profil är inte komplett och granskad.',
+  required_legal_modules_missing: 'Obligatoriska juridikmoduler saknar en publicerad låst version.',
 }
 
 export function contractLifecycleMessage(
   result: ContractLifecycleRpcResult | null | undefined,
   fallback: string,
 ): string {
+  const detailedMessage =
+    result?.blockers?.find((blocker) => blocker.message)?.message ??
+    result?.readiness?.blocker_details?.find((blocker) => blocker.message)?.message
+  if (detailedMessage) return detailedMessage
+
+  const blockerCode =
+    result?.blocker_codes?.find((code) => CONTRACT_LIFECYCLE_REASON_MESSAGES[code]) ??
+    result?.readiness?.blockers?.find((code) => CONTRACT_LIFECYCLE_REASON_MESSAGES[code])
+  if (blockerCode) return CONTRACT_LIFECYCLE_REASON_MESSAGES[blockerCode]
+
   const reason = result?.reason_codes?.find((code) => CONTRACT_LIFECYCLE_REASON_MESSAGES[code])
   if (reason) return CONTRACT_LIFECYCLE_REASON_MESSAGES[reason]
   if (result?.code && CONTRACT_LIFECYCLE_REASON_MESSAGES[result.code]) {

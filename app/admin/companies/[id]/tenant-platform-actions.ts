@@ -6,6 +6,7 @@ import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
 import { contractLifecycleMessage, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
 import { toSafeContractErrorPersisted } from "@/lib/errors/safeActionErrors";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
@@ -26,14 +27,25 @@ function redirectBack(
   );
 }
 
-function errorMessage(
+async function errorMessage(
   error: unknown,
   companyId?: string | null,
   offerId?: string | null,
 ): Promise<string> {
+  let userId: string | null = null;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  } catch {
+    // Error persistence must never mask the original action error.
+  }
   return toSafeContractErrorPersisted(error, {
     action: "tenant_canonical_contract_channel",
     companyId,
+    userId,
     metadata: { offerId: offerId ?? null },
   });
 }

@@ -41,6 +41,65 @@ import ContractOfferAdminForm from "@/components/admin/contracts/ContractOfferAd
 
 export const dynamic = "force-dynamic";
 
+type ContractDiagnosticBlocker = {
+  code?: string;
+  field?: string;
+  message?: string;
+  resource_type?: string;
+  count?: number;
+  reason?: string;
+};
+
+function diagnosticBlockers(
+  value: Record<string, unknown> | null | undefined,
+): ContractDiagnosticBlocker[] {
+  if (!value) return [];
+  const direct = value.blockers;
+  if (Array.isArray(direct)) {
+    return direct.filter(
+      (item): item is ContractDiagnosticBlocker =>
+        Boolean(item) && typeof item === "object" && !Array.isArray(item),
+    );
+  }
+  const detailed = value.blocker_details;
+  if (Array.isArray(detailed)) {
+    return detailed.filter(
+      (item): item is ContractDiagnosticBlocker =>
+        Boolean(item) && typeof item === "object" && !Array.isArray(item),
+    );
+  }
+  return [];
+}
+
+type ForeignKeyBlocker = {
+  constraint?: string;
+  relation?: string;
+  referenced_columns?: string[];
+  rows?: number;
+};
+
+function diagnosticObject(
+  value: Record<string, unknown> | null | undefined,
+  key: string,
+): Record<string, unknown> | null {
+  const nested = value?.[key];
+  return nested && typeof nested === "object" && !Array.isArray(nested)
+    ? (nested as Record<string, unknown>)
+    : null;
+}
+
+function foreignKeyBlockers(
+  value: Record<string, unknown> | null | undefined,
+): ForeignKeyBlocker[] {
+  const foreign_key_blockers = diagnosticObject(value, "foreign_key_blockers");
+  const items = foreign_key_blockers?.items;
+  if (!Array.isArray(items)) return [];
+  return items.filter(
+    (item): item is ForeignKeyBlocker =>
+      Boolean(item) && typeof item === "object" && !Array.isArray(item),
+  );
+}
+
 type TenantCustomerSummary = {
   id: string;
   customer_number: string | null;
@@ -767,7 +826,7 @@ export default async function AdminContractsPage({
       const [readinessResult, deletionResult] = await Promise.all([
         supabaseService.rpc("gridex_validate_contract_readiness", {
           p_company_id: scope.companyId,
-          p_offer_id: diagnoseOfferId,
+          p_contract_offer_id: diagnoseOfferId,
         }),
         supabaseService.rpc("gridex_preview_delete_unused_contract", {
           p_company_id: scope.companyId,
@@ -879,16 +938,101 @@ export default async function AdminContractsPage({
                 {diagnostic.error}
               </p>
             ) : (
-              <pre className="mt-3 max-h-80 overflow-auto rounded-2xl bg-white p-4 text-xs text-slate-800">
-                {JSON.stringify(
+              <div className="mt-3 grid gap-4 lg:grid-cols-2">
+                {[
                   {
-                    readiness: diagnostic.readiness,
-                    deletion_preview: diagnostic.deletionPreview,
+                    title: "Publiceringsreadiness",
+                    value: diagnostic.readiness,
+                    empty: "Inga publiceringsblockerare.",
                   },
-                  null,
-                  2,
-                )}
-              </pre>
+                  {
+                    title: "Permanent radering",
+                    value: diagnostic.deletionPreview,
+                    empty: "Inga raderingsblockerare.",
+                  },
+                ].map((group) => {
+                  const blockers = diagnosticBlockers(group.value);
+                  const foreign_key_blockers = foreignKeyBlockers(group.value);
+                  const removable_system_dependencies = diagnosticObject(
+                    group.value,
+                    "removable_system_dependencies",
+                  );
+                  const removableDependencyEntries = Object.entries(
+                    removable_system_dependencies ?? {},
+                  ).filter(([, count]) => typeof count === "number" && count > 0);
+                  return (
+                    <article
+                      key={group.title}
+                      className="rounded-2xl border border-indigo-200 bg-white p-4"
+                    >
+                      <h3 className="text-sm font-black text-slate-950">
+                        {group.title}
+                      </h3>
+                      {blockers.length > 0 ? (
+                        <ul className="mt-3 grid gap-2 text-xs text-slate-800">
+                          {blockers.map((blocker, index) => (
+                            <li
+                              key={`${blocker.code ?? blocker.reason ?? "blocker"}-${index}`}
+                              className="rounded-xl border border-amber-200 bg-amber-50 p-3"
+                            >
+                              <strong>
+                                {blocker.code ?? blocker.reason ?? "blockerad"}
+                              </strong>
+                              {blocker.field ? ` · ${blocker.field}` : ""}
+                              {typeof blocker.count === "number"
+                                ? ` · ${blocker.count} st`
+                                : ""}
+                              <span className="mt-1 block">
+                                {blocker.message ?? "Åtgärden är blockerad."}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-3 text-xs font-bold text-emerald-700">
+                          {group.empty}
+                        </p>
+                      )}
+                      {foreign_key_blockers.length > 0 ? (
+                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-900">
+                          <strong>Begränsande foreign keys</strong>
+                          <ul className="mt-2 grid gap-1">
+                            {foreign_key_blockers.map((blocker, index) => (
+                              <li key={`${blocker.constraint ?? blocker.relation ?? "fk"}-${index}`}>
+                                {blocker.relation ?? "okänd relation"}
+                                {blocker.constraint ? ` · ${blocker.constraint}` : ""}
+                                {typeof blocker.rows === "number"
+                                  ? ` · ${blocker.rows} rad(er)`
+                                  : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {removableDependencyEntries.length > 0 ? (
+                        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800">
+                          <strong>Systemberoenden som tas bort atomiskt</strong>
+                          <ul className="mt-2 grid gap-1">
+                            {removableDependencyEntries.map(([resource, count]) => (
+                              <li key={resource}>
+                                {resource}: {String(count)}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-xs font-bold text-indigo-800">
+                          Visa rå diagnostik
+                        </summary>
+                        <pre className="mt-2 max-h-80 overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-100">
+                          {JSON.stringify(group.value, null, 2)}
+                        </pre>
+                      </details>
+                    </article>
+                  );
+                })}
+              </div>
             )}
           </section>
         ) : null}
