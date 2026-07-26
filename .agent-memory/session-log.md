@@ -30,3 +30,12 @@
   lifecycle regression, lint and production build.
 - Recorded that database application and transactional staging tests remain
   blocked by the absent Supabase/PostgreSQL environment.
+- Reproduced the final-function overwrite behind SQLSTATE `42702` and mapped
+  the missing backfill, quote, portfolio and FK delete dependencies.
+- Added the forward-only canonical contract deletion graph completion.
+- Restricted delete/bulk semantics, removed legacy canonicalization-on-delete,
+  qualified all final `valid_to` updates and made close null-safe.
+- Added terminal list filters, server-side pagination, exact blocker display,
+  bulk item summaries and durable bulk error references.
+- Verified 302 migrations/207 groups, PostgreSQL parsing, typecheck, 354 tests,
+  targeted lifecycle regressions, lint with 0 errors and production build.

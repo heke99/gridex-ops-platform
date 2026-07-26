@@ -72,6 +72,19 @@ export type ContractOfferRow = {
     removable_system_dependencies?: Record<string, number>;
     system_references?: Record<string, number>;
     shared_or_unsafe_dependencies?: Record<string, number | boolean | string>;
+    foreign_key_blockers?: {
+      count?: number;
+      items?: Array<{
+        constraint?: string;
+        relation?: string;
+        column?: string;
+        rows?: number;
+        delete_rule?: string;
+      }>;
+    };
+    canonical_mapping_complete?: boolean;
+    legacy_cleanup_supported?: boolean;
+    recommended_action?: string;
     reason_codes?: string[];
   } | null;
   contract_type: ContractType;

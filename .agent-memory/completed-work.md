@@ -28,6 +28,13 @@ Status: VERIFIED LOCALLY
   blockers and close preconditions.
 - Enforced owning-tenant operational status for every integration API client.
 - Removed direct company-status writes outside the canonical transition RPC.
+- Added one canonical contract delete preview covering quotes, business usage,
+  graph integrity, backfill diagnostics and real FK delete rules.
+- Restricted permanent/bulk delete to unused `draft/ready`; published and
+  terminal states now use lifecycle actions and separate list views.
+- Removed delete-time legacy canonicalization and shared price-version cleanup.
+- Added per-offer bulk subtransactions, durable technical references and
+  server-side contract pagination.
 
 ## Verification
 
@@ -35,7 +42,9 @@ Status: VERIFIED LOCALLY
 - Full Vitest: 54 files, 354 tests pass.
 - Targeted P0/P1 suite: 11 files, 80 tests pass.
 - API contract/OpenAPI/docs checks: pass.
-- Migration integrity: 300 files, 205 groups, checksums pass.
+- Migration integrity: 302 files, 207 groups, checksums pass.
+- New delete-graph migration: PostgreSQL parser accepts 32 statements.
+- Dedicated contract delete-graph regression: pass.
 - Dedicated contract/tenant lifecycle regression: pass.
 - ESLint: pass with 125 existing warnings and no errors.
 - Next.js production build: pass; `.next/BUILD_ID` generated.

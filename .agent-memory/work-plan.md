@@ -352,3 +352,31 @@ Files changed: changelog, public guides, developer page, OpenAPI and memory
 Migrations: none
 Last updated: 2026-07-25
 Exact next subtask: deploy and compare live contracts
+
+## WP-025: Contract and tenant lifecycle completion
+Status: IMPLEMENTED_STATIC_VERIFIED
+Phase: PHASE-25
+Priority: P0
+Depends on: WP-021
+Affected domains: contract close, tenant lifecycle, integration API
+Acceptance criteria: terminal close, readiness-gated tenant activation and fail-closed API
+Required verification: database transaction/replay/isolation
+Evidence: typecheck, full tests, dedicated regression and build pass
+Files changed: lifecycle migration, governance, admin actions/UI, API docs
+Migrations: `20260726010000_contract_tenant_lifecycle_completion.sql`
+Last updated: 2026-07-26
+Exact next subtask: apply and transaction-test in staging
+
+## WP-026: Canonical contract deletion graph
+Status: IMPLEMENTED_STATIC_VERIFIED
+Phase: PHASE-26
+Priority: P0
+Depends on: WP-025
+Affected domains: contract preview/delete/bulk, admin UI, error evidence
+Acceptance criteria: one dependency model; draft-only delete; isolated bulk; terminal pagination
+Required verification: PostgreSQL apply plus quote/backfill/FK/two-tenant scenarios
+Evidence: SQL parser, checksum, typecheck, 354 tests, targeted regressions and build pass
+Files changed: append-only migration, contract actions/UI/db/types/errors, tests/docs
+Migrations: `20260726140000_contract_deletion_graph_completion.sql`
+Last updated: 2026-07-26
+Exact next subtask: apply migration and run post-apply plus transactional staging matrix

@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-07-26T18:00:00+02:00
+Last updated: 2026-07-26T20:00:00+02:00
 
 - PHASE-00: VERIFIED — permanent memory, Cursor rules and superseded legacy
   task marker are installed.
@@ -16,8 +16,8 @@ Last updated: 2026-07-26T18:00:00+02:00
 - PHASE-16–18: IMPLEMENTED/STATIC_VERIFIED — billing readiness uses real tenant,
   profile/provider/payment/address inputs with immutable evidence; portal
   invoices use only `customer_invoices`; canonical paid events are emitted.
-- PHASE-22: STATIC_VERIFIED — 300 migration files and manifest checksums pass;
-  the two pending migrations are not applied because no Supabase
+- PHASE-22: STATIC_VERIFIED — 302 migration files, 207 version groups and
+  manifest checksums pass; the pending migrations are not applied because no Supabase
   CLI/database is present.
 - PHASE-23–24: VERIFIED locally — typecheck, 354 tests, API checks, lint and
   production build pass. Lint reports 125 pre-existing warnings and no errors.
@@ -25,6 +25,9 @@ Last updated: 2026-07-26T18:00:00+02:00
   tenant activation is readiness-gated, tenant closure has explicit
   preconditions, and integration API access now fails closed for non-active
   tenants.
+- PHASE-26: IMPLEMENTED/STATIC_VERIFIED — permanent deletion is restricted to
+  unused draft/ready offers; quote/FK/backfill dependencies share one preview;
+  bulk failures are isolated; terminal list views and pagination are present.
 
 Repository provenance remains unavailable because the uploaded archive excludes
 `.git`. The live deployed documentation observed during this task is older than

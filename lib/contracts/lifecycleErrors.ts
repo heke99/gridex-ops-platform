@@ -8,6 +8,14 @@ export type ContractLifecycleRpcResult = {
   recommended_action?: string
   already_unpublished?: boolean
   affected_channels?: number
+  delete_preview?: {
+    reason_codes?: string[]
+    recommended_action?: string
+    foreign_key_blockers?: {
+      count?: number
+      items?: Array<{ relation?: string; rows?: number }>
+    }
+  }
 }
 
 export const CONTRACT_LIFECYCLE_REASON_MESSAGES: Readonly<Record<string, string>> = {
@@ -19,6 +27,7 @@ export const CONTRACT_LIFECYCLE_REASON_MESSAGES: Readonly<Record<string, string>
   HAS_BILLING_HISTORY: 'Avtalet används i faktureringsunderlag och kan därför endast arkiveras.',
   HAS_CHARGE_LEDGER: 'Avtalet används i avgiftsliggaren och kan därför endast arkiveras.',
   HAS_LEGAL_ACCEPTANCES: 'Avtalet har juridiska accepter och kan därför endast arkiveras.',
+  HAS_WEBSITE_QUOTES: 'Avtalet har utfärdade offerter. Arkivera avtalet så att offert- och prishistoriken bevaras.',
   HAS_SUCCESSOR_VERSION: 'Avtalsversionen har en efterföljande version och kan inte raderas separat.',
   HAS_SHARED_CANONICAL_VERSION: 'Den canonical avtalsversionen delas av annan data och kan inte raderas automatiskt.',
   HAS_SHARED_LEGAL_VERSION: 'Juridikversionen delas av annan data och kan inte raderas automatiskt.',
@@ -31,6 +40,8 @@ export const CONTRACT_LIFECYCLE_REASON_MESSAGES: Readonly<Record<string, string>
   PUBLICATION_VERSION_LINK_MISMATCH: 'Avtalets framåt- och bakåtlänk pekar på olika publiceringsversioner.',
   SOURCE_OFFER_MISMATCH: 'Publiceringen pekar på fel internt avtal och måste repareras.',
   PRODUCT_VERSION_MISMATCH: 'Publiceringen pekar på fel avtalsversion och måste repareras.',
+  PERMANENT_DELETE_REQUIRES_DRAFT: 'Permanent radering är endast tillåten för oanvända utkast eller redo-versioner. Avpublicera eller arkivera avtalet först.',
+  HAS_RESTRICTING_FOREIGN_KEYS: 'En skyddad databasrelation refererar fortfarande till avtalet. Se blockerande tabell i raderingsanalysen.',
   contract_channel_not_found: 'Försäljningskanalen saknas för avtalet. Canonical backfill behöver repareras.',
   active_publication_version_not_found: 'Kanalen är aktiv men saknar en aktiv publiceringsversion. Canonical backfill behöver repareras.',
   contract_public_offer_still_referenced: 'Avtalet kunde inte raderas eftersom publiceringshistorik fortfarande refererar till det. Avtalsgrafen behöver repareras eller avtalet arkiveras.',
@@ -74,6 +85,10 @@ export function contractDatabaseErrorMessage(error: unknown): string | null {
   if (code === '23503') {
     return 'Avtalet kunde inte raderas eftersom annan avtals- eller publiceringshistorik fortfarande refererar till det. Reparera grafen eller arkivera avtalet.'
   }
+  if (code === '42702') {
+    return 'Databasfunktionen innehåller en tvetydig kolumnreferens. Applicera den senaste avtalsmigrationen innan åtgärden körs igen.'
+  }
+  if (code === '23502') return 'Äldre avtalsdata saknar en obligatorisk canonical referens. Den senaste lifecycle-migrationen behöver appliceras.'
   if (code === '23505') return 'Åtgärden skulle skapa en dubblerad avtals- eller publiceringsrad.'
   if (code === '23514') return 'Avtalsgrafen bryter mot en integritetsregel och måste repareras innan åtgärden kan genomföras.'
   if (code === '42501') return 'Du saknar behörighet att genomföra den här avtalsåtgärden.'

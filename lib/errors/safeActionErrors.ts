@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { contractDatabaseErrorMessage } from '@/lib/contracts/lifecycleErrors'
+import { supabaseService } from '@/lib/supabase/service'
 
 type DatabaseLikeError = {
   code?: unknown
@@ -90,9 +91,11 @@ export function toSafeCompanyProfileError(error: unknown, context: ErrorContext)
   return withReference('Bolagsuppgifterna kunde inte behandlas på grund av ett internt fel.', reference)
 }
 
-export function toSafeContractError(error: unknown, context: ErrorContext): string {
-  const reference = correlationReference()
-  logTechnicalError(error, context, reference)
+function safeContractErrorWithReference(
+  error: unknown,
+  context: ErrorContext,
+  reference: string,
+): string {
   const message = rawMessage(error)
 
   if (isDeploymentMigrationDrift(error)) {
@@ -122,4 +125,60 @@ export function toSafeContractError(error: unknown, context: ErrorContext): stri
     return withReference(message, reference)
   }
   return withReference('Avtalet kunde inte behandlas på grund av ett internt fel.', reference)
+}
+
+export function toSafeContractError(error: unknown, context: ErrorContext): string {
+  const reference = correlationReference()
+  logTechnicalError(error, context, reference)
+  return safeContractErrorWithReference(error, context, reference)
+}
+
+export async function toSafeContractErrorPersisted(
+  error: unknown,
+  context: ErrorContext,
+): Promise<string> {
+  const reference = correlationReference()
+  logTechnicalError(error, context, reference)
+  const record = errorRecord(error)
+  const metadata = context.metadata ?? {}
+  const offerId =
+    typeof metadata.offerId === 'string' ? metadata.offerId : null
+  const contractProductId =
+    typeof metadata.contractProductId === 'string'
+      ? metadata.contractProductId
+      : null
+
+  try {
+    const { error: persistError } = await supabaseService
+      .from('contract_lifecycle_operation_errors')
+      .insert({
+        reference,
+        company_id: context.companyId ?? null,
+        actor_user_id: context.userId ?? null,
+        action: context.action,
+        offer_id: offerId,
+        contract_product_id: contractProductId,
+        sqlstate: errorCode(error) || null,
+        error_message: rawMessage(error) || 'unknown_error',
+        error_detail:
+          typeof record.details === 'string' ? record.details : null,
+        error_hint: typeof record.hint === 'string' ? record.hint : null,
+        metadata,
+      })
+    if (persistError) {
+      console.error('[safe-action-error-persistence-failed]', {
+        reference,
+        code: persistError.code ?? null,
+        message: persistError.message,
+      })
+    }
+  } catch (persistError) {
+    console.error('[safe-action-error-persistence-failed]', {
+      reference,
+      message:
+        persistError instanceof Error ? persistError.message : 'unknown_error',
+    })
+  }
+
+  return safeContractErrorWithReference(error, context, reference)
 }

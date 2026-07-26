@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
 import { contractLifecycleMessage, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
-import { toSafeContractError } from "@/lib/errors/safeActionErrors";
+import { toSafeContractErrorPersisted } from "@/lib/errors/safeActionErrors";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
@@ -26,10 +26,15 @@ function redirectBack(
   );
 }
 
-function errorMessage(error: unknown, companyId?: string | null): string {
-  return toSafeContractError(error, {
+function errorMessage(
+  error: unknown,
+  companyId?: string | null,
+  offerId?: string | null,
+): Promise<string> {
+  return toSafeContractErrorPersisted(error, {
     action: "tenant_canonical_contract_channel",
     companyId,
+    metadata: { offerId: offerId ?? null },
   });
 }
 
@@ -113,7 +118,9 @@ export async function saveTenantPublicContractOfferAction(formData: FormData) {
   try {
     success = (await publishCanonicalWebsiteContractImpl(formData)).success;
   } catch (error) {
-    redirectBack(companyId, { error: errorMessage(error, companyId) });
+    redirectBack(companyId, {
+      error: await errorMessage(error, companyId, text(formData, "offer_id")),
+    });
   }
   redirectBack(companyId, { success });
 }
@@ -194,7 +201,9 @@ export async function unpublishTenantPublicContractOfferAction(
   try {
     success = (await unpublishCanonicalWebsiteContractImpl(formData)).success;
   } catch (error) {
-    redirectBack(companyId, { error: errorMessage(error, companyId) });
+    redirectBack(companyId, {
+      error: await errorMessage(error, companyId, text(formData, "offer_id")),
+    });
   }
   redirectBack(companyId, { success });
 }
@@ -264,7 +273,9 @@ export async function deleteTenantPublicContractOfferAction(
   try {
     success = (await removeCanonicalContractImpl(formData)).success;
   } catch (error) {
-    redirectBack(companyId, { error: errorMessage(error, companyId) });
+    redirectBack(companyId, {
+      error: await errorMessage(error, companyId, text(formData, "offer_id")),
+    });
   }
   redirectBack(companyId, { success });
 }

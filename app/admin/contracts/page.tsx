@@ -5,7 +5,10 @@ import {
   isPlatformAdminContext,
   requireAdminPageAccess,
 } from "@/lib/admin/guards";
-import { listContractOffers } from "@/lib/customer-contracts/db";
+import {
+  getContractOfferById,
+  listContractOffers,
+} from "@/lib/customer-contracts/db";
 import {
   archiveContractOfferAction,
   cleanupUnusedContractDraftsAction,
@@ -631,8 +634,28 @@ export default async function AdminContractsPage({
     : [];
   const requestedCompanyId = firstSearchValue(resolvedSearchParams.company_id);
   const editOfferId = firstSearchValue(resolvedSearchParams.edit_offer);
-  const showArchived =
-    firstSearchValue(resolvedSearchParams.show_archived) === "true";
+  const contractView = ["active", "terminal", "all"].includes(
+    firstSearchValue(resolvedSearchParams.view) ?? "",
+  )
+    ? (firstSearchValue(resolvedSearchParams.view) as
+        | "active"
+        | "terminal"
+        | "all")
+    : "active";
+  const requestedPage = Number(
+    firstSearchValue(resolvedSearchParams.page) ?? "1",
+  );
+  const currentPage =
+    Number.isSafeInteger(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : 1;
+  const pageSize = 25;
+  const lifecycleStatuses =
+    contractView === "active"
+      ? ["draft", "ready", "published", "paused"]
+      : contractView === "terminal"
+        ? ["expired", "closed", "archived", "superseded"]
+        : undefined;
   const selectedPlatformCompany = isPlatformAdmin
     ? (platformCompanies.find((company) => company.id === requestedCompanyId) ??
       platformCompanies.find(
@@ -672,23 +695,23 @@ export default async function AdminContractsPage({
   let allSeriesOffers: ContractOfferRow[] = [];
   let editOffer: ContractOfferRow | null = null;
   let portfolioOptions: Array<{ id: string; name: string; code: string }> = [];
+  let hasNextPage = false;
   let listError: string | undefined;
   if (scope.companyId) {
     try {
       allSeriesOffers = await listContractOffers({
         companyId: scope.companyId,
         includeArchived: true,
+        lifecycleStatuses,
+        limit: pageSize + 1,
+        offset: (currentPage - 1) * pageSize,
       });
-      offers = showArchived
-        ? allSeriesOffers
-        : allSeriesOffers.filter(
-            (offer) =>
-              offer.lifecycle_status !== "archived" &&
-              offer.lifecycle_status !== "closed" &&
-              offer.lifecycle_status !== "superseded",
-          );
+      hasNextPage = allSeriesOffers.length > pageSize;
+      offers = allSeriesOffers.slice(0, pageSize);
+      allSeriesOffers = offers;
       editOffer = editOfferId
-        ? (allSeriesOffers.find((offer) => offer.id === editOfferId) ?? null)
+        ? (allSeriesOffers.find((offer) => offer.id === editOfferId) ??
+          (await getContractOfferById(editOfferId, scope.companyId)))
         : null;
       const portfolioResult = await supabase
         .from("portfolios")
@@ -843,12 +866,23 @@ export default async function AdminContractsPage({
               Dessa används som valbara avtal i kundintaget.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link
-                href={`/admin/contracts?company_id=${scope.companyId ?? ""}&show_archived=${showArchived ? "false" : "true"}`}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700"
-              >
-                {showArchived ? "Dölj arkiverade" : "Visa arkiverade"}
-              </Link>
+              {[
+                ["active", "Aktiva och utkast"],
+                ["terminal", "Stängda och historiska"],
+                ["all", "Alla statusar"],
+              ].map(([view, label]) => (
+                <Link
+                  key={view}
+                  href={`/admin/contracts?company_id=${scope.companyId ?? ""}&view=${view}&page=1`}
+                  className={`rounded-xl border px-3 py-2 text-xs font-black ${
+                    contractView === view
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-300 bg-white text-slate-700"
+                  }`}
+                >
+                  {label}
+                </Link>
+              ))}
               {scope.companyId ? (
                 <>
                   <form action={cleanupUnusedContractDraftsAction}>
@@ -1026,7 +1060,7 @@ export default async function AdminContractsPage({
                       <td className="px-6 py-4">
                         <div className="grid gap-2">
                           <Link
-                            href={`/admin/contracts?company_id=${scope.companyId ?? ""}&edit_offer=${offer.id}&show_archived=${showArchived}`}
+                            href={`/admin/contracts?company_id=${scope.companyId ?? ""}&edit_offer=${offer.id}&view=${contractView}&page=${currentPage}`}
                             className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-center text-xs font-black text-indigo-800"
                           >
                             {offer.lifecycle_status === "draft" ||
@@ -1140,14 +1174,14 @@ export default async function AdminContractsPage({
                             <input type="hidden" name="id" value={offer.id} />
                             <button
                               disabled={
-                                offer.lifecycle_status === "closed" ||
-                                offer.deletion_preview?.has_business_usage === true
+                                (offer.deletion_preview?.can_delete ??
+                                  offer.deletion_preview?.deletable) !== true
                               }
                               className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {(offer.deletion_preview?.can_delete ?? offer.deletion_preview?.deletable)
                                 ? "Radera oanvänt utkast permanent"
-                                : "Reparera och försök säker radering"}
+                                : "Permanent radering blockerad"}
                             </button>
                           </form>
                           <p className="text-[11px] leading-4 text-slate-500">
@@ -1155,7 +1189,7 @@ export default async function AdminContractsPage({
                               ? `Ingen affärshistorik. Teknisk systemdata tas bort atomiskt: ${Object.values(offer.deletion_preview?.removable_system_dependencies ?? offer.deletion_preview?.system_references ?? {}).reduce((sum, value) => sum + Number(value || 0), 0)} rader.`
                               : offer.deletion_preview?.has_business_usage
                                 ? `Permanent radering blockerad av affärshistorik: ${(offer.deletion_preview?.reason_codes ?? []).join(" · ") || "kund- eller faktureringshistorik finns"}. Arkivera avtalet i stället.`
-                                : `Avtalet behöver först repareras eller kontrolleras: ${(offer.deletion_preview?.reason_codes ?? []).join(" · ") || "canonical mappning saknas"}. Servern försöker reparera ett oanvänt legacyutkast innan radering och stoppar alltid osäkra eller delade referenser.`}
+                                : `Permanent radering är inte säker: ${(offer.deletion_preview?.reason_codes ?? []).join(" · ") || "skyddad relation finns"}.${offer.deletion_preview?.foreign_key_blockers?.items?.length ? ` Blockerande tabeller: ${offer.deletion_preview.foreign_key_blockers.items.map((item) => `${item.relation ?? "okänd"} (${item.rows ?? 0})`).join(", ")}.` : ""}`}
                           </p>
                         </div>
                       </td>
@@ -1164,6 +1198,29 @@ export default async function AdminContractsPage({
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 text-sm">
+            <span className="font-semibold text-slate-600">
+              Sida {currentPage} · högst {pageSize} avtal per sida
+            </span>
+            <div className="flex gap-2">
+              {currentPage > 1 ? (
+                <Link
+                  href={`/admin/contracts?company_id=${scope.companyId ?? ""}&view=${contractView}&page=${currentPage - 1}`}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-700"
+                >
+                  Föregående
+                </Link>
+              ) : null}
+              {hasNextPage ? (
+                <Link
+                  href={`/admin/contracts?company_id=${scope.companyId ?? ""}&view=${contractView}&page=${currentPage + 1}`}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-700"
+                >
+                  Nästa
+                </Link>
+              ) : null}
+            </div>
           </div>
         </section>
       </div>

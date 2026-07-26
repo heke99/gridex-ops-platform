@@ -1,18 +1,18 @@
 # Current task
 
-Last updated: 2026-07-26T18:00:00+02:00
+Last updated: 2026-07-26T20:00:00+02:00
 Branch: UNVERIFIED (uploaded archive excludes `.git`)
 Last verified commit: null
 Working tree status: patch tracking is byte-diffed against the uploaded ZIP
 
 ## Active phase
 
-PHASE-25 — contract and tenant lifecycle completion.
+PHASE-26 — canonical contract deletion graph completion.
 
 ## Active work item
 
-WP-025 — apply and transaction-test the lifecycle migration in an authorized
-Supabase environment.
+WP-026 — apply and transaction-test the contract deletion graph migration in
+an authorized Supabase environment.
 
 ## Completed release scope
 
@@ -31,19 +31,23 @@ Supabase environment.
 - readiness-gated tenant activation and precondition-gated tenant closure;
 - tenant-status enforcement for integration API clients;
 - removal of competing direct company-status mutations.
+- qualified final delete/close SQL, backfill cleanup, quote-aware preview,
+  safe legacy deletion, isolated bulk cleanup and terminal list pagination.
 
 ## Verification performed
 
 `npm run typecheck`, `npm test -- --testTimeout=15000` (354/354),
 `npm run api:docs`, `npm run db:migrations:check`, `npm run lint` (0 errors)
-and `npm run build` all pass locally. The dedicated contract/tenant lifecycle
-regression also passes.
+and `npm run build` all pass locally. Dedicated contract/tenant lifecycle and
+delete-graph regressions pass. PostgreSQL parser accepts all 32 migration
+statements.
 
 ## Exact next action
 
-Apply both pending forward migrations in a staging Supabase project, then run
-transactional close/reactivation/replay and two-tenant isolation tests. Start
-with `20260726010000_contract_tenant_lifecycle_completion.sql`.
+Apply pending forward migrations in a staging Supabase project, then run
+`npm run gridex:contract-delete-graph-post-apply` followed by transactional
+delete/bulk/two-tenant tests. The newest migration is
+`20260726140000_contract_deletion_graph_completion.sql`.
 
 ## Blockers
 

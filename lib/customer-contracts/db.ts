@@ -310,6 +310,9 @@ export async function listContractOffers(
     activeOnly?: boolean;
     companyId?: string | null;
     includeArchived?: boolean;
+    lifecycleStatuses?: string[];
+    limit?: number;
+    offset?: number;
   } = {},
 ): Promise<ContractOfferRow[]> {
   let query = supabaseService
@@ -326,9 +329,15 @@ export async function listContractOffers(
     query = query
       .eq("lifecycle_status", "published")
       .eq("currently_sellable", true);
+  } else if (options.lifecycleStatuses?.length) {
+    query = query.in("lifecycle_status", options.lifecycleStatuses);
   } else if (!options.includeArchived) {
     query = query.not("lifecycle_status", "in", "(archived,superseded)");
   }
+
+  const limit = Math.min(Math.max(options.limit ?? 100, 1), 200);
+  const offset = Math.max(options.offset ?? 0, 0);
+  query = query.range(offset, offset + limit - 1);
 
   const { data, error } = await query;
   if (error) throw error;

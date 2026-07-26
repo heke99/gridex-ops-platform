@@ -9,7 +9,7 @@ import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
 import { commonFixedPriceOrePerKwh } from "@/lib/pricing/fixedAreaPricing";
 import { buildCanonicalContractPricingCommand } from "@/lib/pricing/canonicalInvoiceFee";
-import { toSafeContractError } from "@/lib/errors/safeActionErrors";
+import { toSafeContractErrorPersisted } from "@/lib/errors/safeActionErrors";
 import { parseAdminContractForm } from "@/lib/contracts/adminContractSchema";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
 import { contractLifecycleError, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
@@ -36,9 +36,10 @@ function errorMessage(
     action: string;
     companyId?: string | null;
     userId?: string | null;
+    metadata?: Record<string, unknown>;
   },
-): string {
-  return toSafeContractError(error, context);
+): Promise<string> {
+  return toSafeContractErrorPersisted(error, context);
 }
 
 function contractLifecycleFailure(result: ContractLifecycleRpcResult | null, fallback: string): Error {
@@ -69,7 +70,11 @@ export async function saveContractOfferAction(formData: FormData) {
   } catch (error) {
     redirectBack({
       companyId,
-      error: errorMessage(error, { action: "save_contract_offer", companyId }),
+      error: await errorMessage(error, {
+        action: "save_contract_offer",
+        companyId,
+        metadata: { offerId: getString(formData, "id") || null },
+      }),
     });
   }
   redirectBack({ companyId, success });
@@ -321,9 +326,10 @@ export async function archiveContractOfferAction(formData: FormData) {
   } catch (error) {
     redirectBack({
       companyId,
-      error: errorMessage(error, {
+      error: await errorMessage(error, {
         action: "archive_contract_offer",
         companyId,
+        metadata: { offerId: getString(formData, "id") || null },
       }),
     });
   }
@@ -381,9 +387,10 @@ export async function deleteContractOfferAction(formData: FormData) {
   } catch (error) {
     redirectBack({
       companyId,
-      error: errorMessage(error, {
+      error: await errorMessage(error, {
         action: "delete_contract_offer",
         companyId,
+        metadata: { offerId: getString(formData, "id") || null },
       }),
     });
   }
@@ -461,7 +468,11 @@ export async function closeContractOfferAction(formData: FormData) {
   } catch (error) {
     redirectBack({
       companyId,
-      error: errorMessage(error, { action: "close_contract_offer", companyId }),
+      error: await errorMessage(error, {
+        action: "close_contract_offer",
+        companyId,
+        metadata: { offerId: getString(formData, "id") || null },
+      }),
     });
   }
   redirectBack({ companyId, success });
@@ -474,7 +485,7 @@ export async function updateTenantContractChannelAction(formData: FormData) {
   } catch (error) {
     redirectBack({
       companyId: getString(formData, "company_id") || null,
-      error: errorMessage(error, {
+      error: await errorMessage(error, {
         action: "update_contract_channel",
         companyId: getString(formData, "company_id") || null,
       }),
@@ -586,7 +597,14 @@ export async function pauseContractOfferAction(formData: FormData) {
     if (result.changed === false) throw new Error("Avtalet hade inga aktiva försäljningskanaler att pausa.");
     revalidateContractSurfaces(companyId);
   } catch (error) {
-    redirectBack({ companyId, error: errorMessage(error, { action: "pause_contract_offer", companyId }) });
+    redirectBack({
+      companyId,
+      error: await errorMessage(error, {
+        action: "pause_contract_offer",
+        companyId,
+        metadata: { offerId: getString(formData, "id") || null },
+      }),
+    });
   }
   redirectBack({ companyId, success: "Avtalet pausades i samtliga aktiva försäljningskanaler." });
 }
@@ -618,7 +636,7 @@ export async function publishContractVersionAction(formData: FormData) {
   } catch (error) {
     redirectBack({
       companyId,
-      error: errorMessage(error, {
+      error: await errorMessage(error, {
         action: "publish_contract_version",
         companyId,
       }),
@@ -655,7 +673,14 @@ export async function publishContractChannelAction(formData: FormData) {
     if (result.changed === false) throw new Error("Kanalen var redan publicerad och inga rader ändrades.");
     revalidateContractSurfaces(companyId);
   } catch (error) {
-    redirectBack({ companyId, error: errorMessage(error, { action: "publish_contract_channel", companyId }) });
+    redirectBack({
+      companyId,
+      error: await errorMessage(error, {
+        action: "publish_contract_channel",
+        companyId,
+        metadata: { offerId: getString(formData, "id") || null },
+      }),
+    });
   }
   redirectBack({ companyId, success: `${channel === "website" ? "Hemsidan" : "API-kanalen"} publicerades från samma canonical avtalsversion.` });
 }
@@ -683,7 +708,14 @@ export async function unpublishContractChannelAction(formData: FormData) {
     }
     revalidateContractSurfaces(companyId);
   } catch (error) {
-    redirectBack({ companyId, error: errorMessage(error, { action: "unpublish_contract_channel", companyId }) });
+    redirectBack({
+      companyId,
+      error: await errorMessage(error, {
+        action: "unpublish_contract_channel",
+        companyId,
+        metadata: { offerId: getString(formData, "id") || null },
+      }),
+    });
   }
   redirectBack({
     companyId,
@@ -705,14 +737,43 @@ export async function cleanupUnusedContractDraftsAction(formData: FormData) {
       p_apply: apply,
     });
     if (error) throw error;
-    const result = data as { ok?: boolean; deleted_count?: number; archive_only_count?: number } | null;
+    const result = data as {
+      ok?: boolean;
+      scanned_count?: number;
+      deletable_count?: number;
+      deleted_count?: number;
+      blocked_count?: number;
+      error_count?: number;
+      items?: Array<{
+        action?: string;
+        name?: string;
+        reference?: string;
+        reason_codes?: string[];
+      }>;
+    } | null;
     if (!result?.ok) throw new Error("Rensningsanalysen misslyckades.");
     revalidateContractSurfaces(companyId);
+    const blockedExamples = (result.items ?? [])
+      .filter((item) => item.action === "blocked" || item.action === "error")
+      .slice(0, 3)
+      .map((item) => {
+        const reason = item.reference
+          ? `referens ${item.reference}`
+          : item.reason_codes?.join(", ") || "okänd blockerare";
+        return `${item.name ?? "Namnlöst avtal"}: ${reason}`;
+      })
+      .join(" · ");
     success = apply
-      ? `${result.deleted_count ?? 0} oanvända avtalsutkast raderades. ${result.archive_only_count ?? 0} avtal med historik lämnades kvar.`
-      : "Dry-run klar. Raderbara och arkiveringspliktiga avtal har analyserats utan ändringar.";
+      ? `${result.deleted_count ?? 0} av ${result.deletable_count ?? 0} raderbara utkast raderades. ${result.blocked_count ?? 0} blockerades och ${result.error_count ?? 0} fick tekniska fel.${blockedExamples ? ` Exempel: ${blockedExamples}` : ""}`
+      : `Dry-run klar: ${result.scanned_count ?? 0} utkast analyserades, ${result.deletable_count ?? 0} kan raderas och ${result.blocked_count ?? 0} är blockerade.${blockedExamples ? ` Exempel: ${blockedExamples}` : ""}`;
   } catch (error) {
-    redirectBack({ companyId, error: errorMessage(error, { action: "cleanup_unused_contract_drafts", companyId }) });
+    redirectBack({
+      companyId,
+      error: await errorMessage(error, {
+        action: "cleanup_unused_contract_drafts",
+        companyId,
+      }),
+    });
   }
   redirectBack({ companyId, success });
 }

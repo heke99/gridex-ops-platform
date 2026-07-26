@@ -1,6 +1,6 @@
 # Handover
 
-Last updated: 2026-07-26T18:00:00+02:00
+Last updated: 2026-07-26T20:00:00+02:00
 
 ## Verified
 
@@ -9,9 +9,11 @@ build. See `verification-matrix.md`.
 
 ## Implemented but not database-verified
 
-Migrations `20260725120000_billing_readiness_and_supply_activation_v1.sql` and
-`20260726010000_contract_tenant_lifecycle_completion.sql`, especially
-transactional rollback/replay/isolation behavior.
+Migrations `20260725120000_billing_readiness_and_supply_activation_v1.sql`,
+`20260726010000_contract_tenant_lifecycle_completion.sql`,
+`20260726090000_contract_create_delete_runtime_alignment.sql` and
+`20260726140000_contract_deletion_graph_completion.sql`, especially
+transactional rollback/replay/isolation and real FK behavior.
 
 ## Active blockers
 
@@ -19,15 +21,16 @@ No Git metadata; no Supabase CLI/database; production deploy not performed.
 
 ## Migration state
 
-300 local migration files. History/checksums pass. Applied remote state unknown.
+302 local migration files, 207 version groups. History/checksums pass. Applied
+remote state unknown.
 
 ## Exact next command
 
 In an authorized staging repository:
 
-`supabase db reset` (disposable local staging only), then run a dedicated SQL
-transaction/replay/two-tenant tests for `activate_customer_supply_v1`,
-`gridex_close_contract_product` and `gridex_transition_tenant_lifecycle`.
+Apply migrations, then run `npm run gridex:contract-delete-graph-post-apply`.
+After that run dedicated transaction/replay/two-tenant tests for delete,
+isolated bulk cleanup, close and `activate_customer_supply_v1`.
 
 ## Risks
 
