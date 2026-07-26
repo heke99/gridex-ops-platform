@@ -397,15 +397,16 @@ begin
     and legacy_public_contract_offer_id=v_delete_public_offer_id;
 
   v_delete_preview:=public.gridex_preview_delete_unused_contract(v_company_id,v_delete_offer_id);
-  if not coalesce((v_delete_preview->>'can_delete')::boolean,false)
+  if coalesce((v_delete_preview->>'can_delete')::boolean,true)
+     or not (coalesce(v_delete_preview->'reason_codes','[]'::jsonb) ? 'PERMANENT_DELETE_REQUIRES_DRAFT')
      or coalesce((v_delete_preview->>'has_business_usage')::boolean,true) then
-    raise exception 'previously_published_unused_contract_not_deletable:%',v_delete_preview;
+    raise exception 'previously_published_contract_delete_boundary_failed:%',v_delete_preview;
   end if;
-  v_deleted:=public.gridex_delete_unused_contract(v_company_id,v_delete_offer_id,v_actor_id);
-  if not coalesce((v_deleted->>'ok')::boolean,false)
-     or not coalesce((v_deleted->>'deleted')::boolean,false)
-     or exists(select 1 from public.contract_offers where id=v_delete_offer_id) then
-    raise exception 'previously_published_unused_contract_delete_failed:%',v_deleted;
+  v_blocked:=public.gridex_delete_unused_contract(v_company_id,v_delete_offer_id,v_actor_id);
+  if coalesce((v_blocked->>'ok')::boolean,true)
+     or coalesce(v_blocked->>'mode','')<>'blocked'
+     or not exists(select 1 from public.contract_offers where id=v_delete_offer_id) then
+    raise exception 'previously_published_contract_was_not_preserved:%',v_blocked;
   end if;
 
   raise notice 'Gridex contract lifecycle DB test passed for temporary offers %, %',v_offer_id,v_delete_offer_id;

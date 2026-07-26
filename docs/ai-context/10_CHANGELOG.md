@@ -2,6 +2,29 @@
 
 Use this file after every Cursor task.
 
+## 2026-07-26 — Contract visibility, lifecycle security and API alignment
+
+- Added append-only migration
+  `20260726230000_contract_admin_api_alignment.sql`.
+- Repaired the final tenant lifecycle definition's ambiguous `valid_to` and
+  made tenant closure end paused as well as active sales channels.
+- Revoked direct authenticated execution of the privileged contract deletion
+  preview; admin runtime uses the tenant-authorized service path.
+- Synchronized the PostgreSQL lifecycle test with the canonical rule that
+  previously published offers are preserved after unpublish.
+- Preserved `company_id` in company-to-contract navigation and revalidated
+  company list/detail pages after every contract mutation.
+- Split admin statistics into contract products, currently published offers
+  and signed/customer contracts.
+- Aligned market-price auth error codes across runtime documentation, OpenAPI
+  and the external integration guide.
+- Added capability guards so a non-ready resolver result cannot continue to
+  pricing or quote on HTTP 200 alone.
+- Verification: typecheck, 354/354 tests, API docs, 303 migration checks,
+  lifecycle/delete regressions, contract-patch typecheck, lint (0 errors/125
+  existing warnings) and production build pass.
+- Database apply and transactional staging verification remain required.
+
 ## 2026-07-25 — Canonical P0/P1 lifecycle completion candidate
 
 ### Runtime and public API

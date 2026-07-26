@@ -409,7 +409,7 @@ function CompanySetupControlPanel({
           status={internalReady ? 'Redo' : 'Åtgärd krävs'}
           tone={internalReady ? 'green' : 'amber'}
           description={internalReady ? 'Minst ett internt aktivt avtal kan användas i OPS utan API eller hemsida.' : `Påverkar manuell kundregistrering. ${internalBlockers.join(' ') || 'Skapa/aktivera avtal och prisversion.'}`}
-          href="/admin/contracts"
+          href={`/admin/contracts?company_id=${company.id}`}
           actionLabel="Hantera interna avtal"
         />
         <SetupCard
@@ -1405,7 +1405,9 @@ export default async function CompanyDetailPage({
           <StatCard label="Aktiva användare" value={company.activeUsers} />
           <StatCard label="Väntande invites" value={company.pendingInvites} />
           <StatCard label="Kunder" value={company.customers} />
-          <StatCard label="Avtal" value={company.contracts} />
+          <StatCard label="Avtalsprodukter" value={company.contractOffers} />
+          <StatCard label="Publicerade avtal" value={company.publishedContractOffers} />
+          <StatCard label="Tecknade kundavtal" value={company.customerContracts} />
           <StatCard label="Ediel-meddelanden" value={company.edielMessages} />
           <StatCard label="Mätvärden" value={company.meteringValues} />
           <StatCard label="Faktureringsunderlag" value={company.billingUnderlays} />

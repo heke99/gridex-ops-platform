@@ -265,6 +265,9 @@ export default async function CompaniesPage({
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         <StatBox label="Användare" value={company.activeUsers} />
                         <StatBox label="Kunder" value={company.customers} />
+                        <StatBox label="Avtalsprodukter" value={company.contractOffers} />
+                        <StatBox label="Publicerade" value={company.publishedContractOffers} />
+                        <StatBox label="Kundavtal" value={company.customerContracts} />
                         <StatBox label="Ediel" value={company.edielMessages} />
                         <StatBox label="Mätvärden" value={company.meteringValues} />
                         <StatBox label="Exporter" value={company.partnerExports} />
@@ -291,6 +294,9 @@ export default async function CompaniesPage({
                       <div className="mt-5 flex flex-wrap gap-2">
                         <Link href={`/admin/companies/${company.id}`} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
                           Översikt & statistik
+                        </Link>
+                        <Link href={`/admin/contracts?company_id=${company.id}`} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+                          Avtalsprodukter
                         </Link>
                         <Link href={`/admin/companies/${company.id}/users`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
                           Användare

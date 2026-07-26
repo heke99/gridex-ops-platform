@@ -92,7 +92,9 @@ export type GovernanceCompany = {
   activeUsers: number
   pendingInvites: number
   customers: number
-  contracts: number
+  contractOffers: number
+  publishedContractOffers: number
+  customerContracts: number
   edielMessages: number
   meteringValues: number
   billingUnderlays: number
@@ -381,7 +383,9 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
     activeUsers,
     pendingInvites,
     customers,
-    contracts,
+    contractOffers,
+    publishedContractOffers,
+    customerContracts,
     edielMessages,
     meteringValues,
     billingUnderlays,
@@ -402,6 +406,11 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
       { column: 'status', value: 'pending' },
     ]),
     safeCount('customers', [{ column: 'company_id', value: companyId }]),
+    safeCount('contract_offers', [{ column: 'company_id', value: companyId }]),
+    safeCount('public_contract_offers', [
+      { column: 'company_id', value: companyId },
+      { column: 'is_public', value: true },
+    ]),
     safeCount('customer_contracts', [{ column: 'company_id', value: companyId }]),
     safeCount('ediel_messages', [{ column: 'company_id', value: companyId }]),
     safeCount('metering_values', [{ column: 'company_id', value: companyId }]),
@@ -433,7 +442,7 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
   // count queries per company).
   const reusedCounts: Record<string, number> = {
     customers,
-    customer_contracts: contracts,
+    customer_contracts: customerContracts,
     ediel_messages: edielMessages,
     metering_values: meteringValues,
     billing_underlays: billingUnderlays,
@@ -497,7 +506,9 @@ export async function getCompanyGovernanceSummary(company: CompanyRow): Promise<
     activeUsers,
     pendingInvites,
     customers,
-    contracts,
+    contractOffers,
+    publishedContractOffers,
+    customerContracts,
     edielMessages,
     meteringValues,
     billingUnderlays,

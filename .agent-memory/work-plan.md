@@ -380,3 +380,17 @@ Files changed: append-only migration, contract actions/UI/db/types/errors, tests
 Migrations: `20260726140000_contract_deletion_graph_completion.sql`
 Last updated: 2026-07-26
 Exact next subtask: apply migration and run post-apply plus transactional staging matrix
+
+## WP-027: Contract/admin/API alignment
+Status: IMPLEMENTED_STATIC_VERIFIED
+Phase: PHASE-27
+Priority: P0
+Depends on: WP-026
+Affected domains: tenant lifecycle, delete security, company admin, external API docs
+Acceptance criteria: qualified final lifecycle; service-only preview; tenant-preserving navigation; distinct contract counts; runtime error parity
+Required verification: PostgreSQL apply/privilege test plus authenticated API smoke
+Evidence: typecheck, 354 tests, API docs, 303 migrations, targeted regressions, lint and build pass
+Files changed: forward migration, DB test, admin actions/UI/governance, OpenAPI/guides/tests/memory
+Migrations: `20260726230000_contract_admin_api_alignment.sql`
+Last updated: 2026-07-26
+Exact next subtask: apply migration and verify tenant-close/preview privileges in staging

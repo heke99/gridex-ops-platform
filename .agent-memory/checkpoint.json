@@ -1,11 +1,11 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-07-26T20:00:00+02:00",
+  "updated_at": "2026-07-26T23:45:00+02:00",
   "branch": null,
   "last_verified_commit": null,
-  "active_phase": "PHASE-26",
-  "active_task": "WP-026",
-  "active_subtask": "Apply and transaction-test the contract deletion graph migration in staging",
+  "active_phase": "PHASE-27",
+  "active_task": "WP-027",
+  "active_subtask": "Apply and transaction-test the contract/admin/API alignment migration in staging",
   "status": "BLOCKED_BY_ENVIRONMENT",
   "completed_tasks": [
     "WP-000",
@@ -21,7 +21,8 @@
     "WP-013 atomic supply activation",
     "WP-016 immutable billing configuration evidence",
     "WP-025 contract and tenant lifecycle completion",
-    "WP-026 canonical contract deletion graph"
+    "WP-026 canonical contract deletion graph",
+    "WP-027 contract/admin/API alignment"
   ],
   "active_blockers": [
     "Uploaded archive excludes Git metadata",
@@ -32,7 +33,8 @@
     "supabase/migrations/20260725120000_billing_readiness_and_supply_activation_v1.sql",
     "supabase/migrations/20260726010000_contract_tenant_lifecycle_completion.sql",
     "supabase/migrations/20260726090000_contract_create_delete_runtime_alignment.sql",
-    "supabase/migrations/20260726140000_contract_deletion_graph_completion.sql"
+    "supabase/migrations/20260726140000_contract_deletion_graph_completion.sql",
+    "supabase/migrations/20260726230000_contract_admin_api_alignment.sql"
   ],
   "verification": [
     {
@@ -53,7 +55,7 @@
     {
       "name": "migration integrity",
       "status": "VERIFIED",
-      "evidence": "302 files, 207 groups, checksums verified"
+      "evidence": "303 files, 208 groups, checksums verified"
     },
     {
       "name": "contract deletion graph",
@@ -71,8 +73,8 @@
       "evidence": ".next/BUILD_ID generated"
     }
   ],
-  "next_action": "Apply pending forward migrations in staging, run the delete-graph post-apply check and prove quote/backfill/FK/bulk/two-tenant behavior",
-  "resume_from": "supabase/migrations/20260726140000_contract_deletion_graph_completion.sql",
+  "next_action": "Apply pending forward migrations in staging, run the delete-graph post-apply check and prove tenant-close, execute-privilege, quote/backfill/FK/bulk/two-tenant behavior",
+  "resume_from": "supabase/migrations/20260726230000_contract_admin_api_alignment.sql",
   "context_notes": [
     "Do not repeat repository inventory",
     "Do not treat static migration checks as a database apply test",

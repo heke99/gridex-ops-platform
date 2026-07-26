@@ -1,18 +1,18 @@
 # Current task
 
-Last updated: 2026-07-26T20:00:00+02:00
+Last updated: 2026-07-26T23:45:00+02:00
 Branch: UNVERIFIED (uploaded archive excludes `.git`)
 Last verified commit: null
 Working tree status: patch tracking is byte-diffed against the uploaded ZIP
 
 ## Active phase
 
-PHASE-26 — canonical contract deletion graph completion.
+PHASE-27 — contract/admin/API alignment.
 
 ## Active work item
 
-WP-026 — apply and transaction-test the contract deletion graph migration in
-an authorized Supabase environment.
+WP-027 — apply and transaction-test the final contract/admin/API alignment
+migration in an authorized Supabase environment.
 
 ## Completed release scope
 
@@ -33,21 +33,23 @@ an authorized Supabase environment.
 - removal of competing direct company-status mutations.
 - qualified final delete/close SQL, backfill cleanup, quote-aware preview,
   safe legacy deletion, isolated bulk cleanup and terminal list pagination.
+- service-only delete preview, final tenant lifecycle qualification, tenant-
+  preserving admin navigation/statistics and canonical API auth/error docs.
 
 ## Verification performed
 
 `npm run typecheck`, `npm test -- --testTimeout=15000` (354/354),
 `npm run api:docs`, `npm run db:migrations:check`, `npm run lint` (0 errors)
 and `npm run build` all pass locally. Dedicated contract/tenant lifecycle and
-delete-graph regressions pass. PostgreSQL parser accepts all 32 migration
-statements.
+delete-graph regressions pass. The new migration is statically verified but
+requires PostgreSQL application.
 
 ## Exact next action
 
 Apply pending forward migrations in a staging Supabase project, then run
 `npm run gridex:contract-delete-graph-post-apply` followed by transactional
 delete/bulk/two-tenant tests. The newest migration is
-`20260726140000_contract_deletion_graph_completion.sql`.
+`20260726230000_contract_admin_api_alignment.sql`.
 
 ## Blockers
 

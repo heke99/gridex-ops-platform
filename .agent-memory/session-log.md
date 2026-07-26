@@ -39,3 +39,13 @@
   bulk item summaries and durable bulk error references.
 - Verified 302 migrations/207 groups, PostgreSQL parsing, typecheck, 354 tests,
   targeted lifecycle regressions, lint with 0 errors and production build.
+- Repaired the final tenant lifecycle `valid_to` definition with a new
+  append-only migration and ended paused channels on tenant closure.
+- Revoked direct authenticated delete-preview execution and aligned the DB
+  lifecycle test with draft/ready-only permanent deletion.
+- Added company-scoped contract navigation, three distinct contract counts and
+  cross-surface revalidation.
+- Aligned API auth error codes and resolver capability gating across runtime
+  documentation, OpenAPI and the external integration guide.
+- Verified 303 migrations/208 groups, typecheck, 354 tests, API docs, targeted
+  regressions, lint with 0 errors and production build.

@@ -48,6 +48,8 @@ function contractLifecycleFailure(result: ContractLifecycleRpcResult | null, fal
 
 function revalidateContractSurfaces(companyId: string): void {
   revalidatePath("/admin/contracts");
+  revalidatePath("/admin/companies");
+  revalidatePath(`/admin/companies/${companyId}`);
   revalidatePath("/admin/customers/intake");
   revalidatePath("/admin/customers");
   revalidatePath("/api/v1/public/contracts");

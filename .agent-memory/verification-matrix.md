@@ -11,7 +11,7 @@
 | VM-007 | Interval binding | VERIFIED | Hourly/quarterly selection tests |
 | VM-008 | Cron tree/auth | VERIFIED | 22 registered crons mapped to authenticated routes |
 | VM-009 | Atomic activation | STATIC VERIFIED | Migration/state-machine regression |
-| VM-010 | Migration history | VERIFIED | 302 files; 207 groups; checksums |
+| VM-010 | Migration history | VERIFIED | 303 files; 208 groups; checksums |
 | VM-011 | API/OpenAPI/docs | VERIFIED | `npm run api:docs` |
 | VM-012 | Typecheck | VERIFIED | `npm run typecheck` |
 | VM-013 | Full tests | VERIFIED | 54 files; 354 tests |
@@ -26,3 +26,6 @@
 | VM-022 | Contract deletion graph | STATIC VERIFIED | Dedicated regression; SQL parser accepted 32 statements |
 | VM-023 | Bulk failure isolation | STATIC VERIFIED | Exception-subtransaction and durable-reference regression |
 | VM-024 | Contract list pagination | VERIFIED LOCALLY | Typecheck and production build |
+| VM-025 | Contract/company admin alignment | VERIFIED LOCALLY | Tenant links, separate counts, revalidation regression and build |
+| VM-026 | Delete preview execute boundary | STATIC VERIFIED | Authenticated execute revoked in append-only migration |
+| VM-027 | Runtime/OpenAPI auth error parity | VERIFIED | API docs checks and alignment regression |

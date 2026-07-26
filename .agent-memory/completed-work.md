@@ -35,6 +35,13 @@ Status: VERIFIED LOCALLY
 - Removed delete-time legacy canonicalization and shared price-version cleanup.
 - Added per-offer bulk subtransactions, durable technical references and
   server-side contract pagination.
+- Repaired the final tenant lifecycle definition and made tenant closure end
+  paused channels.
+- Removed direct authenticated execution of the privileged delete preview.
+- Separated contract-product, published-offer and customer-contract counts in
+  company administration and preserved company selection in navigation.
+- Aligned runtime API auth codes and resolver readiness requirements across
+  OpenAPI, developer UI and the external integration guide.
 
 ## Verification
 
@@ -42,7 +49,7 @@ Status: VERIFIED LOCALLY
 - Full Vitest: 54 files, 354 tests pass.
 - Targeted P0/P1 suite: 11 files, 80 tests pass.
 - API contract/OpenAPI/docs checks: pass.
-- Migration integrity: 302 files, 207 groups, checksums pass.
+- Migration integrity: 303 files, 208 groups, checksums pass.
 - New delete-graph migration: PostgreSQL parser accepts 32 statements.
 - Dedicated contract delete-graph regression: pass.
 - Dedicated contract/tenant lifecycle regression: pass.

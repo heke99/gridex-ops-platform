@@ -198,6 +198,14 @@ Ett lyckat svar innehåller minst:
 }
 ```
 
+HTTP `200` betyder att OPS har skapat en resolution, inte att alla efterföljande
+steg är tillåtna. Klienten måste kontrollera
+`data.capabilities.pricing_ready` före marknadspris och
+`data.capabilities.quote_ready` före offert. Om någon capability är `false`
+ska motsvarande `data.blockers.pricing` eller `data.blockers.quote` visas eller
+hanteras. Ett `postal_suggested`-resultat får inte skickas vidare till
+pris/offert bara för att resolveranropet gav `200`.
+
 Resolutionen är tenantbunden och tidsbegränsad. Pris- och quote-readiness är oberoende av PRODAT-transport. Gammal geodata, låg confidence eller konflikt blockerar bara de capabilities som faktiskt påverkas.
 
 SVK-geometrin är versionsstyrd. En ny polygonuppsättning blir aktiv först efter fullständig staging, coveragekontroll och atomisk promotion. `geodata_version` identifierar exakt vilken verifierad geodataversion som användes, och polygoner som saknas i en ny version inaktiveras i samma transaktion.
@@ -498,8 +506,9 @@ Om tenantens policy har `allow_indicative_latest=false` returneras inte en parti
 | HTTP | Kod | Retryable | Tenantens åtgärd |
 |---:|---|:---:|---|
 | 400 | `invalid_request` | Nej | Rätta request enligt OpenAPI. |
-| 401 | `invalid_api_key` | Nej | Använd den aktiva Gridex API-nyckeln. |
-| 403 | `missing_scope` | Nej | Lägg till `website_market_prices.read` på API-klienten. |
+| 401 | `missing_api_token` | Nej | Skicka `Authorization: Bearer $GRIDEX_API_KEY`. |
+| 401 | `invalid_api_token` | Nej | Använd den aktiva Gridex API-nyckeln. |
+| 403 | `api_scope_missing` | Nej | Lägg till `website_market_prices.read` på API-klienten. |
 | 404 | `resolution_not_found` | Nej | Kör områdesresolution på nytt inom samma tenant. |
 | 409 | `resolution_expired` | Nej | Skapa en ny `resolution_id`. |
 | 409 | `resolution_pricing_not_ready` | Nej | Kör resolvern igen eller åtgärda blockeraren i `blockers.pricing`. PRODAT-readiness påverkar inte priset. |

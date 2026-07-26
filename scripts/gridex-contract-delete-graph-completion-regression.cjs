@@ -9,8 +9,18 @@ const read = (relativePath) =>
 const migration = read(
   "supabase/migrations/20260726140000_contract_deletion_graph_completion.sql",
 );
+const alignmentMigration = read(
+  "supabase/migrations/20260726230000_contract_admin_api_alignment.sql",
+);
 const actions = read("app/admin/contracts/actions.ts");
 const page = read("app/admin/contracts/page.tsx");
+const companiesPage = read("app/admin/companies/page.tsx");
+const companyPage = read("app/admin/companies/[id]/page.tsx");
+const governance = read("lib/tenant/governance.ts");
+const developerPage = read("app/developers/customer-portal-api/page.tsx");
+const websiteOpenApi = read("docs/openapi/website-integration-v1.json");
+const integrationGuide = read("docs/external-website-api-integration-guide.md");
+const databaseLifecycleTest = read("scripts/gridex-contract-db-lifecycle-test.sql");
 const db = read("lib/customer-contracts/db.ts");
 const errors = read("lib/contracts/lifecycleErrors.ts");
 
@@ -76,6 +86,67 @@ assert(
     errors.includes("code === '42702'"),
   "lifecycle errors must map the new blockers and SQLSTATE 42702",
 );
+assert(
+  alignmentMigration.includes("coalesce(ch.valid_to, now())") &&
+    alignmentMigration.includes("else ch.valid_to end") &&
+    alignmentMigration.includes("ch.status in (''active'',''paused'')"),
+  "forward migration must repair final tenant lifecycle valid_to/channel semantics",
+);
+assert(
+  alignmentMigration.includes(
+    "revoke all on function public.gridex_preview_delete_unused_contract(uuid,uuid)",
+  ) &&
+    alignmentMigration.includes("from public,anon,authenticated") &&
+    alignmentMigration.includes("to service_role"),
+  "deletion preview must not be directly executable by authenticated callers",
+);
+assert(
+  actions.includes('revalidatePath("/admin/companies")') &&
+    actions.includes("revalidatePath(`/admin/companies/${companyId}`)"),
+  "contract mutations must revalidate company summaries and details",
+);
+assert(
+  companyPage.includes("`/admin/contracts?company_id=${company.id}`") &&
+    companyPage.includes('label="Avtalsprodukter"') &&
+    companyPage.includes('label="Publicerade avtal"') &&
+    companyPage.includes('label="Tecknade kundavtal"'),
+  "company detail must preserve tenant selection and separate contract concepts",
+);
+assert(
+  companiesPage.includes("company.contractOffers") &&
+    companiesPage.includes("company.publishedContractOffers") &&
+    companiesPage.includes("company.customerContracts") &&
+    governance.includes("safeCount('contract_offers'") &&
+    governance.includes("safeCount('public_contract_offers'") &&
+    governance.includes("safeCount('customer_contracts'"),
+  "company overview must count offer products, published offers and customer contracts separately",
+);
+for (const code of [
+  "missing_api_token",
+  "invalid_api_token",
+  "api_scope_missing",
+]) {
+  assert(
+    developerPage.includes(code) &&
+      websiteOpenApi.includes(code) &&
+      integrationGuide.includes(code),
+    `runtime auth code ${code} must be documented consistently`,
+  );
+}
+assert(
+  developerPage.includes("resolution.data.capabilities.pricing_ready") &&
+    developerPage.includes("resolution.data.capabilities.quote_ready") &&
+    integrationGuide.includes("postal_suggested"),
+  "resolver examples must gate price and quote calls on purpose-specific capabilities",
+);
+assert(
+  databaseLifecycleTest.includes(
+    "previously_published_contract_was_not_preserved",
+  ) &&
+    !databaseLifecycleTest.includes(
+      "previously_published_unused_contract_delete_failed",
+    ),
+  "database lifecycle test must preserve previously published contracts",
+);
 
 console.log("Contract delete graph completion regression passed.");
-

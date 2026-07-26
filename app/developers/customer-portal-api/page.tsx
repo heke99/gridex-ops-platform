@@ -373,8 +373,9 @@ const marketPriceErrorExample = `{
 
 const marketPriceErrors = [
   ['400', 'invalid_request', 'Begäran saknar eller innehåller ogiltiga fält.', 'Nej'],
-  ['401', 'invalid_api_key', 'API-nyckeln saknas eller är ogiltig.', 'Nej'],
-  ['403', 'missing_scope', 'Nyckeln saknar website_market_prices.read.', 'Nej'],
+  ['401', 'missing_api_token', 'Authorization-header eller API-token saknas.', 'Nej'],
+  ['401', 'invalid_api_token', 'API-token är ogiltig.', 'Nej'],
+  ['403', 'api_scope_missing', 'Nyckeln saknar website_market_prices.read.', 'Nej'],
   ['404', 'resolution_not_found', 'Resolutionen saknas eller tillhör inte tenant.', 'Nej'],
   ['409', 'resolution_expired', 'Resolutionen har gått ut och måste lösas på nytt.', 'Nej'],
   ['409', 'resolution_pricing_not_ready', 'Resolutionens blockerare för prissättning måste åtgärdas. PRODAT-readiness påverkar inte prisleverans.', 'Nej'],
@@ -391,10 +392,22 @@ const resolution = await gridex.post("/api/v1/website/energy-area/resolve", {
   street, postal_code, city, grid_area_code: claimedGridAreaCode
 })
 
+// HTTP 200 betyder att resolutionen sparades, inte alltid att den kan prissättas.
+// Exempelvis postal_suggested har blockers och får inte skickas vidare till pris/offert.
+if (!resolution.data.capabilities.pricing_ready) {
+  renderResolutionBlockers(resolution.data.blockers.pricing)
+  return
+}
+
 const currentPrice = await gridex.post("/api/v1/website/market-price/current", {
   resolution_id: resolution.data.resolution_id
 })
 renderCurrentSpotPrice(currentPrice.data)
+
+if (!resolution.data.capabilities.quote_ready) {
+  renderResolutionBlockers(resolution.data.blockers.quote)
+  return
+}
 
 const quote = await gridex.post("/api/v1/website/quote", {
   resolution_id: resolution.data.resolution_id,

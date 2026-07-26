@@ -12,8 +12,10 @@ established. Patch contents are diffed against the uploaded archive.
 Status: BLOCKED_BY_ENVIRONMENT
 
 `supabase`, Docker and an authorized database are unavailable. Migration
-history, PostgreSQL parsing, lifecycle/delete regressions and static checks
-pass, but the pending migrations have not been executed against PostgreSQL.
+history, lifecycle/delete regressions and static checks pass, but the pending
+migrations have not been executed against PostgreSQL. The earlier deletion
+graph migration was parser-checked; the newest dynamic function-repair
+migration requires real PostgreSQL application.
 
 ## BLK-003 — Live deployment parity
 
