@@ -167,6 +167,7 @@ export type NormalizedContractPricing = {
     vat_rate_percent: number;
     interval_resolution:
       "monthly" | "hourly" | "quarterly" | "fixed" | "portfolio" | "mixed";
+    energy_direction: "consumption" | "production";
     production: {
       enabled: boolean;
       compensation_ore_per_kwh: number | null;
@@ -1197,6 +1198,7 @@ export function normalizeContractPricing(
                 : input.contractType === "fixed"
                   ? "fixed"
                   : "portfolio",
+      energy_direction: productionEnabled ? "production" : "consumption",
       production: {
         enabled: productionEnabled,
         compensation_ore_per_kwh: productionCompensationOrePerKwh,

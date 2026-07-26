@@ -137,6 +137,11 @@ async function saveContractOfferActionImpl(
               ? "draft"
               : "paused"),
     );
+    if (previousLifecycle === "closed") {
+      throw new Error(
+        "Ett stängt avtal är terminalt och får inte redigeras eller versioneras. Arkivera avtalet för historisk förvaring.",
+      );
+    }
     if (["published", "paused", "expired", "archived"].includes(previousLifecycle)) {
       await requireContractPermissionAction("contracts.create_version");
     }
@@ -272,7 +277,9 @@ async function saveContractOfferActionImpl(
     valid_from: input.validFrom,
     valid_to: input.validTo,
     channels: {
-      internal: input.lifecycleStatus === "published" ? "active" : "paused",
+      // Draft/ready saves never publish. Channel activation is a separate,
+      // readiness-gated lifecycle command.
+      internal: "paused",
       website: "paused",
       api: "paused",
     },
@@ -333,9 +340,7 @@ async function saveContractOfferActionImpl(
     offerId: String(command.offer.id),
     success: command.created_new_version
       ? `Ny immutable avtalsversion skapades i samma produktserie. Prisversion ${command.pricing.version_label}.`
-      : input.lifecycleStatus === "published"
-        ? `Avtalsversionen publicerades för intern försäljning. Prisversion ${command.pricing.version_label}.`
-        : `Avtalsutkastet sparades. Prisversion ${command.pricing.version_label}.`,
+      : `Avtalsutkastet sparades. Prisversion ${command.pricing.version_label}.`,
   };
 }
 
@@ -384,13 +389,9 @@ async function archiveContractOfferActionImpl(
     },
   );
   if (error) throw error;
-  const result = data as {
-    ok?: boolean;
-    mode?: string;
-    customer_contract_count?: number;
-  } | null;
+  const result = data as ContractLifecycleRpcResult | null;
   if (!result?.ok || result.mode !== "archived") {
-    throw new Error("Avtalet kunde inte arkiveras säkert.");
+    throw contractLifecycleFailure(result, "Avtalet kunde inte arkiveras säkert.");
   }
 
   revalidateContractSurfaces(companyId);
@@ -570,8 +571,8 @@ async function updateTenantContractChannelActionImpl(
     .maybeSingle();
   if (offerError) throw offerError;
   if (!offer) throw new Error("Canonical avtalsversion saknas för tilldelningen.");
-  if (offer.lifecycle_status !== "published" && status === "active") {
-    throw new Error("Endast en readiness-publicerad avtalsversion kan aktiveras i en kanal.");
+  if (!(["published", "paused"] as const).includes(offer.lifecycle_status as "published" | "paused") && status === "active") {
+    throw new Error("Endast en publicerad eller pausad avtalsversion kan aktiveras i en kanal.");
   }
 
   const command = status === "active"
@@ -587,9 +588,6 @@ async function updateTenantContractChannelActionImpl(
   const result = data as ContractLifecycleRpcResult | null;
   if (!result?.ok) {
     throw contractLifecycleFailure(result, "Kanaländringen kunde inte genomföras atomärt.");
-  }
-  if (result.changed === false && !result.already_unpublished) {
-    throw contractLifecycleFailure(result, "Kanaländringen påverkade inga rader.");
   }
 
   revalidateContractSurfaces(companyId);
@@ -615,7 +613,6 @@ export async function pauseContractOfferAction(formData: FormData) {
     if (error) throw error;
     const result = data as ContractLifecycleRpcResult | null;
     if (!result?.ok) throw contractLifecycleFailure(result, "Avtalet kunde inte pausas.");
-    if (result.changed === false) throw new Error("Avtalet hade inga aktiva försäljningskanaler att pausa.");
     revalidateContractSurfaces(companyId);
   } catch (error) {
     redirectBack({
@@ -696,7 +693,6 @@ export async function publishContractChannelAction(formData: FormData) {
     if (error) throw error;
     const result = data as ContractLifecycleRpcResult | null;
     if (!result?.ok) throw contractLifecycleFailure(result, "Kanalen kunde inte publiceras.");
-    if (result.changed === false) throw new Error("Kanalen var redan publicerad och inga rader ändrades.");
     revalidateContractSurfaces(companyId);
   } catch (error) {
     redirectBack({

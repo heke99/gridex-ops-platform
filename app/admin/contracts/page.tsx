@@ -8,6 +8,7 @@ import {
 } from "@/lib/admin/guards";
 import {
   getContractOfferById,
+  getPreviousContractOfferVersion,
   listContractOffers,
 } from "@/lib/customer-contracts/db";
 import {
@@ -38,6 +39,7 @@ import {
 import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile";
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 import ContractOfferAdminForm from "@/components/admin/contracts/ContractOfferAdminForm";
+import { contractLifecycleAllows } from "@/lib/contracts/lifecycle";
 
 export const dynamic = "force-dynamic";
 
@@ -54,20 +56,31 @@ function diagnosticBlockers(
   value: Record<string, unknown> | null | undefined,
 ): ContractDiagnosticBlocker[] {
   if (!value) return [];
-  const direct = value.blockers;
-  if (Array.isArray(direct)) {
-    return direct.filter(
-      (item): item is ContractDiagnosticBlocker =>
-        Boolean(item) && typeof item === "object" && !Array.isArray(item),
-    );
+
+  const objectItems = (candidate: unknown): ContractDiagnosticBlocker[] =>
+    Array.isArray(candidate)
+      ? candidate.filter(
+          (item): item is ContractDiagnosticBlocker =>
+            Boolean(item) && typeof item === "object" && !Array.isArray(item),
+        )
+      : [];
+
+  const direct = objectItems(value.blockers);
+  if (direct.length > 0) return direct;
+
+  // Legacy readiness returned string codes in blockers and structured objects
+  // in blocker_details. Never stop at an empty object-filtered blockers array.
+  const detailed = objectItems(value.blocker_details);
+  if (detailed.length > 0) return detailed;
+
+  const readiness = value.readiness;
+  if (readiness && typeof readiness === "object" && !Array.isArray(readiness)) {
+    const nested = readiness as Record<string, unknown>;
+    const nestedDirect = objectItems(nested.blockers);
+    if (nestedDirect.length > 0) return nestedDirect;
+    return objectItems(nested.blocker_details);
   }
-  const detailed = value.blocker_details;
-  if (Array.isArray(detailed)) {
-    return detailed.filter(
-      (item): item is ContractDiagnosticBlocker =>
-        Boolean(item) && typeof item === "object" && !Array.isArray(item),
-    );
-  }
+
   return [];
 }
 
@@ -767,7 +780,6 @@ export default async function AdminContractsPage({
     });
   }
   let offers: ContractOfferRow[] = [];
-  let allSeriesOffers: ContractOfferRow[] = [];
   let editOffer: ContractOfferRow | null = null;
   let portfolioOptions: Array<{ id: string; name: string; code: string }> = [];
   let hasNextPage = false;
@@ -782,18 +794,17 @@ export default async function AdminContractsPage({
     | null = null;
   if (scope.companyId) {
     try {
-      allSeriesOffers = await listContractOffers({
+      const pagedOffers = await listContractOffers({
         companyId: scope.companyId,
         includeArchived: true,
         lifecycleStatuses,
         limit: pageSize + 1,
         offset: (currentPage - 1) * pageSize,
       });
-      hasNextPage = allSeriesOffers.length > pageSize;
-      offers = allSeriesOffers.slice(0, pageSize);
-      allSeriesOffers = offers;
+      hasNextPage = pagedOffers.length > pageSize;
+      offers = pagedOffers.slice(0, pageSize);
       editOffer = editOfferId
-        ? (allSeriesOffers.find((offer) => offer.id === editOfferId) ??
+        ? (offers.find((offer) => offer.id === editOfferId) ??
           (await getContractOfferById(editOfferId, scope.companyId)))
         : null;
       const portfolioResult = await supabase
@@ -823,10 +834,17 @@ export default async function AdminContractsPage({
         scope.companyId,
       );
       if (!offer) throw new Error("Avtalet hittades inte för valt bolag.");
+      const readinessOperation = ["published", "paused"].includes(
+        String(offer.lifecycle_status),
+      )
+        ? "activate_channel"
+        : "publish_version";
       const [readinessResult, deletionResult] = await Promise.all([
-        supabaseService.rpc("gridex_validate_contract_readiness", {
+        supabaseService.rpc("gridex_validate_contract_readiness_v2", {
           p_company_id: scope.companyId,
           p_contract_offer_id: diagnoseOfferId,
+          p_operation: readinessOperation,
+          p_channel: readinessOperation === "activate_channel" ? "website" : null,
         }),
         supabaseService.rpc("gridex_preview_delete_unused_contract", {
           p_company_id: scope.companyId,
@@ -864,20 +882,29 @@ export default async function AdminContractsPage({
     }
   }
   const previousOfferById = new Map<string, ContractOfferRow | null>();
-  for (const offer of allSeriesOffers) {
-    const previous =
-      allSeriesOffers
-        .filter(
-          (candidate) =>
-            candidate.version_series_id === offer.version_series_id &&
-            Number(candidate.version_number ?? 0) <
-              Number(offer.version_number ?? 0),
-        )
-        .sort(
-          (a, b) =>
-            Number(b.version_number ?? 0) - Number(a.version_number ?? 0),
-        )[0] ?? null;
-    previousOfferById.set(offer.id, previous);
+  if (scope.companyId && offers.length > 0) {
+    const historyResults = await Promise.allSettled(
+      offers.map((offer) =>
+        getPreviousContractOfferVersion({
+          companyId: scope.companyId!,
+          versionSeriesId: offer.version_series_id,
+          versionNumber: offer.version_number,
+        }),
+      ),
+    );
+    historyResults.forEach((result, index) => {
+      previousOfferById.set(
+        offers[index].id,
+        result.status === "fulfilled" ? result.value : null,
+      );
+    });
+    const failedHistoryLoads = historyResults.filter(
+      (result) => result.status === "rejected",
+    ).length;
+    if (failedHistoryLoads > 0) {
+      const historyMessage = `${failedHistoryLoads} versionsjämförelser kunde inte hämtas. Avtalslistan är fortfarande komplett.`;
+      listError = listError ? `${listError} · ${historyMessage}` : historyMessage;
+    }
   }
 
   const actionSuccess = firstSearchValue(resolvedSearchParams.success);
@@ -1347,18 +1374,18 @@ export default async function AdminContractsPage({
 
                       <td className="px-6 py-4">
                         <div className="grid gap-2">
-                          <Link
-                            href={`/admin/contracts?company_id=${scope.companyId ?? ""}&edit_offer=${offer.id}&view=${contractView}&page=${currentPage}`}
-                            className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-center text-xs font-black text-indigo-800"
-                          >
-                            {offer.lifecycle_status === "draft" ||
-                            offer.lifecycle_status === "ready"
-                              ? "Redigera utkast"
-                              : "Skapa ny version"}
-                          </Link>
-                          {offer.lifecycle_status === "draft" ||
-                          offer.lifecycle_status === "ready" ||
-                          offer.lifecycle_status === "paused" ? (
+                          {contractLifecycleAllows(offer.lifecycle_status, "edit_draft") ||
+                          contractLifecycleAllows(offer.lifecycle_status, "create_version") ? (
+                            <Link
+                              href={`/admin/contracts?company_id=${scope.companyId ?? ""}&edit_offer=${offer.id}&view=${contractView}&page=${currentPage}`}
+                              className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-center text-xs font-black text-indigo-800"
+                            >
+                              {contractLifecycleAllows(offer.lifecycle_status, "edit_draft")
+                                ? "Redigera utkast"
+                                : "Skapa ny version"}
+                            </Link>
+                          ) : null}
+                          {contractLifecycleAllows(offer.lifecycle_status, "publish_version") ? (
                             <form action={publishContractVersionAction}>
                               <input
                                 type="hidden"
@@ -1373,7 +1400,7 @@ export default async function AdminContractsPage({
                               </button>
                             </form>
                           ) : null}
-                          {offer.lifecycle_status === "published" || offer.lifecycle_status === "paused" ? (
+                          {contractLifecycleAllows(offer.lifecycle_status, "activate_channel") ? (
                             <>
                               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-600">
                                 <div>Intern: {offer.internal_channel_status ?? "missing"} · behörighet {offer.internal_sales_allowed ? "ja" : "nej"}</div>
@@ -1410,6 +1437,7 @@ export default async function AdminContractsPage({
                                   {offer.internal_channel_status === "active" ? "Pausa intern försäljning" : "Aktivera intern försäljning"}
                                 </button>
                               </form>
+                              {contractLifecycleAllows(offer.lifecycle_status, "pause_channels") ? (
                               <form action={pauseContractOfferAction}>
                                 <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
                                 <input type="hidden" name="id" value={offer.id} />
@@ -1417,6 +1445,7 @@ export default async function AdminContractsPage({
                                   Pausa alla aktiva kanaler för denna version
                                 </button>
                               </form>
+                              ) : null}
                             </>
                           ) : null}
                           {offer.lifecycle_status === "archived" || offer.lifecycle_status === "closed" ? (
@@ -1425,7 +1454,8 @@ export default async function AdminContractsPage({
                                 ? "Stängning är terminal för produktserien. Historisk juridik, kundavtal och snapshots bevaras."
                                 : "Arkivering är irreversibel. Använd “Skapa ny version” för att återlansera samma produktserie utan att återuppliva gammal juridik eller kanalstatus."}
                             </p>
-                          ) : (
+                          ) : null}
+                          {contractLifecycleAllows(offer.lifecycle_status, "archive") ? (
                             <form action={archiveContractOfferAction}>
                               <input
                                 type="hidden"
@@ -1437,8 +1467,8 @@ export default async function AdminContractsPage({
                                 Arkivera avtal
                               </button>
                             </form>
-                          )}
-                          {offer.lifecycle_status !== "closed" && offer.lifecycle_status !== "archived" ? (
+                          ) : null}
+                          {contractLifecycleAllows(offer.lifecycle_status, "close") ? (
                             <form action={closeContractOfferAction} className="grid gap-2 rounded-xl border border-red-200 bg-red-50 p-2">
                               <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
                               <input type="hidden" name="id" value={offer.id} />
@@ -1453,24 +1483,28 @@ export default async function AdminContractsPage({
                               </button>
                             </form>
                           ) : null}
-                          <form action={deleteContractOfferAction}>
-                            <input
-                              type="hidden"
-                              name="company_id"
-                              value={scope.companyId ?? ""}
-                            />
-                            <input type="hidden" name="id" value={offer.id} />
-                            <button
-                              className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800"
-                            >
-                              Kontrollera och radera oanvänt utkast
-                            </button>
-                          </form>
-                          <p className="text-[11px] leading-4 text-slate-500">
-                            Dependency-grafen hämtas och kontrolleras först när
-                            kommandot körs. Commit gör samma kontroll igen under
-                            transaktionslås.
-                          </p>
+                          {contractLifecycleAllows(offer.lifecycle_status, "delete_unused") ? (
+                            <>
+                              <form action={deleteContractOfferAction}>
+                                <input
+                                  type="hidden"
+                                  name="company_id"
+                                  value={scope.companyId ?? ""}
+                                />
+                                <input type="hidden" name="id" value={offer.id} />
+                                <button
+                                  className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800"
+                                >
+                                  Kontrollera och radera oanvänt utkast
+                                </button>
+                              </form>
+                              <p className="text-[11px] leading-4 text-slate-500">
+                                Dependency-grafen hämtas och kontrolleras först när
+                                kommandot körs. Commit gör samma kontroll igen under
+                                transaktionslås.
+                              </p>
+                            </>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

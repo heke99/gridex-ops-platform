@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
-import { contractLifecycleMessage, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
+import { contractLifecycleError, contractLifecycleMessage, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
 import { toSafeContractErrorPersisted } from "@/lib/errors/safeActionErrors";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseService } from "@/lib/supabase/service";
@@ -57,7 +57,7 @@ type LifecycleResult = ContractLifecycleRpcResult & {
 
 function assertLifecycleResult(result: LifecycleResult | null, fallback: string): LifecycleResult {
   if (result?.ok) return result;
-  throw new Error(contractLifecycleMessage(result, fallback));
+  throw contractLifecycleError(result, fallback);
 }
 
 function revalidateContractSurfaces(companyId: string): void {
@@ -158,9 +158,9 @@ async function publishCanonicalWebsiteContractImpl(
     sourceOfferId,
     publicOfferId,
   });
-  if (source.lifecycle_status !== "published") {
+  if (!(["published", "paused"] as const).includes(source.lifecycle_status as "published" | "paused")) {
     throw new Error(
-      "Avtalsversionen måste först vara readiness-godkänd och publicerad på Avtalssidan.",
+      "Avtalsversionen måste först vara readiness-godkänd och publicerad eller pausad på Avtalssidan.",
     );
   }
   if (!source.contract_product_id || !source.contract_product_version_id) {
@@ -178,7 +178,10 @@ async function publishCanonicalWebsiteContractImpl(
   );
   if (error) throw error;
   const result = assertLifecycleResult(data as LifecycleResult | null, "Publiceringskommandot returnerade inget giltigt resultat.");
-  if (result.changed === false) throw new Error("Webbkanalen var redan publicerad och inga rader ändrades.");
+  if (result.changed === false) {
+    revalidateContractSurfaces(companyId);
+    return { success: `${source.name} var redan publicerad på hemsidan.` };
+  }
 
   await logAdminActionAndUsage({
     companyId,
@@ -333,7 +336,7 @@ async function removeCanonicalContractImpl(
 
   const result = assertLifecycleResult(data as LifecycleResult | null, "Avtalet kunde inte arkiveras eller raderas.");
   if (!result.mode || result.mode === "blocked") {
-    throw new Error(contractLifecycleMessage(result, "Avtalet kunde inte arkiveras eller raderas."));
+    throw contractLifecycleError(result, "Avtalet kunde inte arkiveras eller raderas.");
   }
 
   await logAdminActionAndUsage({

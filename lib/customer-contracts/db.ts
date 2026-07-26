@@ -254,6 +254,7 @@ async function prepareManualCanonicalBinding(
     schema: "gridex_manual_contract_pricing_v1",
     pricing_model: pricingModelForContractType(input.contractType),
     contract_type: input.contractType,
+    energy_direction: "consumption",
     price_areas: priceAreas,
     vat_rate: input.vatRate ?? 25,
     fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
@@ -356,6 +357,34 @@ export async function getContractOfferById(
   }
 
   const { data, error } = await query.maybeSingle();
+
+  if (error) throw error;
+  return (data as ContractOfferRow | null) ?? null;
+}
+
+export async function getPreviousContractOfferVersion(input: {
+  companyId: string;
+  versionSeriesId: string | null | undefined;
+  versionNumber: number | null | undefined;
+}): Promise<ContractOfferRow | null> {
+  if (!input.versionSeriesId || !Number.isFinite(Number(input.versionNumber))) {
+    return null;
+  }
+
+  const currentVersion = Number(input.versionNumber);
+  if (currentVersion <= 1) return null;
+
+  const { data, error } = await supabaseService
+    .from("canonical_internal_contract_offers_v")
+    .select("*")
+    .eq("company_id", input.companyId)
+    .eq("version_series_id", input.versionSeriesId)
+    .lt("version_number", currentVersion)
+    .order("version_number", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   if (error) throw error;
   return (data as ContractOfferRow | null) ?? null;

@@ -166,45 +166,60 @@ type TenantContractOfferReadiness = {
   website_blockers: string[] | null
 }
 
-async function getTenantIntakeTracking(companyId: string): Promise<TenantIntakeTracking | null> {
+type LoadResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; code: string; message: string }
+
+function loadFailure(error: unknown, fallback: string): LoadResult<never> {
+  const record = error && typeof error === 'object'
+    ? error as { code?: unknown; message?: unknown; details?: unknown }
+    : {}
+  const code = typeof record.code === 'string' ? record.code : 'load_failed'
+  const message = [record.message, record.details]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .join(' · ') || fallback
+  return { ok: false, code, message }
+}
+
+async function getTenantIntakeTracking(companyId: string): Promise<LoadResult<TenantIntakeTracking | null>> {
   try {
     const { data, error } = await supabaseService
       .from('tenant_customer_intake_tracking_v')
       .select('total_applications,applications_this_month,pending_applications,completed_applications,applications_requiring_action,grid_owner_resolved,last_application_updated_at')
       .eq('company_id', companyId)
       .maybeSingle()
-    if (error) return null
-    return data as TenantIntakeTracking | null
-  } catch {
-    return null
+    if (error) return loadFailure(error, 'Kundintagets statistik kunde inte hämtas.')
+    return { ok: true, data: data as TenantIntakeTracking | null }
+  } catch (error) {
+    return loadFailure(error, 'Kundintagets statistik kunde inte hämtas.')
   }
 }
 
-async function getTenantEventMailReadiness(companyId: string): Promise<TenantEventMailReadiness | null> {
+async function getTenantEventMailReadiness(companyId: string): Promise<LoadResult<TenantEventMailReadiness | null>> {
   try {
     const { data, error } = await supabaseService
       .from('tenant_event_mail_readiness_v')
       .select('sender_email,sender_name,sender_verification_status,sender_is_active,fallback_allowed,active_templates,enabled_event_rules,can_send_customer_mail,blockers')
       .eq('company_id', companyId)
       .maybeSingle()
-    if (error) return null
-    return data as TenantEventMailReadiness | null
-  } catch {
-    return null
+    if (error) return loadFailure(error, 'Eventmail-readiness kunde inte hämtas.')
+    return { ok: true, data: data as TenantEventMailReadiness | null }
+  } catch (error) {
+    return loadFailure(error, 'Eventmail-readiness kunde inte hämtas.')
   }
 }
 
-async function getTenantContractOfferReadiness(companyId: string): Promise<TenantContractOfferReadiness | null> {
+async function getTenantContractOfferReadiness(companyId: string): Promise<LoadResult<TenantContractOfferReadiness | null>> {
   try {
     const { data, error } = await supabaseService
       .from('tenant_contract_offer_readiness_v')
       .select('company_id,total_contract_offers,draft_contracts,internal_active_contracts,website_published_contracts,contracts_with_price_version,contracts_with_terms_version,can_use_internal_customer_intake,can_show_contracts_on_website,internal_blockers,website_blockers')
       .eq('company_id', companyId)
       .maybeSingle()
-    if (error) return null
-    return data as TenantContractOfferReadiness | null
-  } catch {
-    return null
+    if (error) return loadFailure(error, 'Avtalsreadiness kunde inte hämtas.')
+    return { ok: true, data: data as TenantContractOfferReadiness | null }
+  } catch (error) {
+    return loadFailure(error, 'Avtalsreadiness kunde inte hämtas.')
   }
 }
 
@@ -276,16 +291,25 @@ async function getCompanyOperationalStats(companyId: string): Promise<CompanyOpe
 }
 
 
-async function getCompanyApiClients(companyId: string): Promise<Array<{ id: string; name: string; status: string; scopes: string[] | null }>> {
-  const { data, error } = await supabaseService
-    .from('integration_api_clients')
-    .select('id,name,status,scopes')
-    .eq('company_id', companyId)
-    .order('created_at', { ascending: false })
-    .limit(100)
+async function getCompanyApiClients(
+  companyId: string,
+): Promise<LoadResult<Array<{ id: string; name: string; status: string; scopes: string[] | null }>>> {
+  try {
+    const { data, error } = await supabaseService
+      .from('integration_api_clients')
+      .select('id,name,status,scopes')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+      .range(0, 999)
 
-  if (error) return []
-  return (data ?? []) as Array<{ id: string; name: string; status: string; scopes: string[] | null }>
+    if (error) return loadFailure(error, 'API-klienter kunde inte hämtas.')
+    return {
+      ok: true,
+      data: (data ?? []) as Array<{ id: string; name: string; status: string; scopes: string[] | null }>,
+    }
+  } catch (error) {
+    return loadFailure(error, 'API-klienter kunde inte hämtas.')
+  }
 }
 
 async function getCompanyBillingPartnerCount(companyId: string): Promise<number> {
@@ -1289,15 +1313,15 @@ export default async function CompanyDetailPage({
     companyEmailTemplates,
     companyCommunicationLogs,
     effectiveSender,
-    companyApiClients,
+    companyApiClientsResult,
     companyWebhookSubscriptions,
     billingPartnerCount,
     legalTextVersions,
     tenantWebsiteReadiness,
     tenantLegalDefaultStatus,
-    tenantIntakeTracking,
-    tenantEventMailReadiness,
-    tenantContractOfferReadiness,
+    tenantIntakeTrackingResult,
+    tenantEventMailReadinessResult,
+    tenantContractOfferReadinessResult,
     canonicalTenantContractReadiness,
     tenantLegalProfile,
   ] = await Promise.all([
@@ -1323,6 +1347,24 @@ export default async function CompanyDetailPage({
     getCanonicalTenantContractReadiness(row.id),
     getTenantLegalProfile(row.id),
   ])
+  const companyApiClients = companyApiClientsResult.ok ? companyApiClientsResult.data : []
+  const tenantIntakeTracking = tenantIntakeTrackingResult.ok ? tenantIntakeTrackingResult.data : null
+  const tenantEventMailReadiness = tenantEventMailReadinessResult.ok ? tenantEventMailReadinessResult.data : null
+  const tenantContractOfferReadiness = tenantContractOfferReadinessResult.ok ? tenantContractOfferReadinessResult.data : null
+  const tenantReadinessLoadErrors: Array<{ label: string; code: string; message: string }> = []
+  if (!companyApiClientsResult.ok) {
+    tenantReadinessLoadErrors.push({ label: 'API-klienter', code: companyApiClientsResult.code, message: companyApiClientsResult.message })
+  }
+  if (!tenantIntakeTrackingResult.ok) {
+    tenantReadinessLoadErrors.push({ label: 'Kundintag', code: tenantIntakeTrackingResult.code, message: tenantIntakeTrackingResult.message })
+  }
+  if (!tenantEventMailReadinessResult.ok) {
+    tenantReadinessLoadErrors.push({ label: 'Eventmail', code: tenantEventMailReadinessResult.code, message: tenantEventMailReadinessResult.message })
+  }
+  if (!tenantContractOfferReadinessResult.ok) {
+    tenantReadinessLoadErrors.push({ label: 'Avtal', code: tenantContractOfferReadinessResult.code, message: tenantContractOfferReadinessResult.message })
+  }
+
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
   const tenantReadiness = computeTenantReadiness({
@@ -1346,6 +1388,19 @@ export default async function CompanyDetailPage({
 
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <ActionBanner success={actionSuccess} error={actionError} />
+
+        {tenantReadinessLoadErrors.length > 0 ? (
+          <section className="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm text-red-900">
+            <h2 className="font-black">Readinessdata kunde inte hämtas</h2>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {tenantReadinessLoadErrors.map((failure) => (
+                <li key={`${failure.label}-${failure.code}`}>
+                  <strong>{failure.label}</strong> · {failure.code}: {failure.message}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">

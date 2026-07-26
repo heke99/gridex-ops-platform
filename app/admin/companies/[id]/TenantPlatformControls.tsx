@@ -40,13 +40,20 @@ type ContractDeletePreview = {
 };
 
 type ContractReadinessDiagnostic = {
+  ok?: boolean;
   status?: string;
+  can_execute?: boolean;
   can_publish?: boolean;
-  blockers?: string[];
-  blocker_details?: Array<{
+  operation?: string;
+  channel?: string | null;
+  blockers?: Array<{
     code?: string;
     field?: string;
     message?: string;
+    resource_type?: string;
+    resource_id?: string;
+    current_value?: unknown;
+    metadata?: Record<string, unknown>;
   }>;
 };
 
@@ -287,15 +294,30 @@ async function safeRows<T>(
   select: string,
   order = "created_at",
 ): Promise<SafeRowsResult<T>> {
+  const pageSize = 200;
+  const maxRows = 5_000;
+  const rows: T[] = [];
+
   try {
-    const { data, error } = await supabaseService
-      .from(table)
-      .select(select)
-      .eq("company_id", companyId)
-      .order(order, { ascending: order === "sort_order" })
-      .limit(200);
-    if (error) return { rows: [], source, error: databaseErrorMessage(error) };
-    return { rows: (data ?? []) as T[], source, error: null };
+    for (let offset = 0; offset < maxRows; offset += pageSize) {
+      const { data, error } = await supabaseService
+        .from(table)
+        .select(select)
+        .eq("company_id", companyId)
+        .order(order, { ascending: order === "sort_order" })
+        .range(offset, offset + pageSize - 1);
+      if (error) return { rows: [], source, error: databaseErrorMessage(error) };
+
+      const page = (data ?? []) as T[];
+      rows.push(...page);
+      if (page.length < pageSize) return { rows, source, error: null };
+    }
+
+    return {
+      rows: [],
+      source,
+      error: `${source} har fler än ${maxRows} poster. Använd den dedikerade listvyn med pagination.`,
+    };
   } catch (error) {
     return { rows: [], source, error: databaseErrorMessage(error) };
   }
@@ -376,10 +398,17 @@ export default async function TenantPlatformControls({
       };
     } else {
       try {
+        const readinessOperation = ["published", "paused"].includes(
+          String(selectedSource.lifecycle_status),
+        )
+          ? "activate_channel"
+          : "publish_version";
         const [readinessResult, deletionResult] = await Promise.all([
-          supabaseService.rpc("gridex_validate_contract_readiness", {
+          supabaseService.rpc("gridex_validate_contract_readiness_v2", {
             p_company_id: companyId,
             p_contract_offer_id: selectedSource.id,
+            p_operation: readinessOperation,
+            p_channel: readinessOperation === "activate_channel" ? "website" : null,
           }),
           supabaseService.rpc("gridex_preview_delete_unused_contract", {
             p_company_id: companyId,
@@ -655,9 +684,9 @@ export default async function TenantPlatformControls({
                     {selectedDiagnostic.error}
                   </p>
                 ) : null}
-                {selectedDiagnostic?.readiness?.blocker_details?.length ? (
+                {selectedDiagnostic?.readiness?.blockers?.length ? (
                   <ul className="mt-3 list-disc rounded-xl border border-amber-200 bg-amber-50 p-3 pl-7 text-xs text-amber-900">
-                    {selectedDiagnostic.readiness.blocker_details.map(
+                    {selectedDiagnostic.readiness.blockers.map(
                       (blocker, index) => (
                         <li key={`${blocker.code ?? "readiness"}-${index}`}>
                           <strong>{blocker.code ?? "blockerad"}</strong>
@@ -826,7 +855,7 @@ export default async function TenantPlatformControls({
               const deleteReasons = deletionPreview?.reason_codes ?? [];
               const deleteBlockers = deletionPreview?.blockers ?? [];
               const readinessDetails =
-                selectedDiagnostic?.readiness?.blocker_details ?? [];
+                selectedDiagnostic?.readiness?.blockers ?? [];
               return (
                 <article
                   key={offer.id}
