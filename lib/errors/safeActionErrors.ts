@@ -100,6 +100,9 @@ export function toSafeContractError(error: unknown, context: ErrorContext): stri
   }
   const lifecycleMessage = contractDatabaseErrorMessage(error)
   if (lifecycleMessage) return withReference(lifecycleMessage, reference)
+  if (/contract_permission_denied|Du saknar behörigheten|\bForbidden\b|\bUnauthorized\b/i.test(message)) {
+    return withReference('Du saknar behörighet att genomföra den här avtalsåtgärden.', reference)
+  }
   if (/publication_not_ready:/i.test(message)) {
     return withReference('Avtalet är inte publiceringsklart. Komplettera juridik, pris eller bolagsuppgifter enligt readiness-statusen.', reference)
   }

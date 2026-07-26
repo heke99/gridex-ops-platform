@@ -5,10 +5,10 @@ const SUPER_ADMIN_ROLES = new Set([
   "super_admin",
   "superadmin",
   "platform_superadmin",
+  "platform_admin",
 ]);
 
 const DELEGATABLE_CONTRACT_ROLES = new Set([
-  "platform_admin",
   "pricing_manager",
   "contract_manager",
 ]);

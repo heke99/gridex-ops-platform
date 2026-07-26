@@ -1141,17 +1141,21 @@ export default async function AdminContractsPage({
                             <button
                               disabled={
                                 offer.lifecycle_status === "closed" ||
-                                (offer.deletion_preview?.can_delete ?? offer.deletion_preview?.deletable) !== true
+                                offer.deletion_preview?.has_business_usage === true
                               }
                               className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              Radera oanvänt utkast permanent
+                              {(offer.deletion_preview?.can_delete ?? offer.deletion_preview?.deletable)
+                                ? "Radera oanvänt utkast permanent"
+                                : "Reparera och försök säker radering"}
                             </button>
                           </form>
                           <p className="text-[11px] leading-4 text-slate-500">
                             {(offer.deletion_preview?.can_delete ?? offer.deletion_preview?.deletable)
                               ? `Ingen affärshistorik. Teknisk systemdata tas bort atomiskt: ${Object.values(offer.deletion_preview?.removable_system_dependencies ?? offer.deletion_preview?.system_references ?? {}).reduce((sum, value) => sum + Number(value || 0), 0)} rader.`
-                              : `Permanent radering blockerad: ${(offer.deletion_preview?.reason_codes ?? []).join(" · ") || "verklig affärshistorik eller osäker delad referens"}.`}
+                              : offer.deletion_preview?.has_business_usage
+                                ? `Permanent radering blockerad av affärshistorik: ${(offer.deletion_preview?.reason_codes ?? []).join(" · ") || "kund- eller faktureringshistorik finns"}. Arkivera avtalet i stället.`
+                                : `Avtalet behöver först repareras eller kontrolleras: ${(offer.deletion_preview?.reason_codes ?? []).join(" · ") || "canonical mappning saknas"}. Servern försöker reparera ett oanvänt legacyutkast innan radering och stoppar alltid osäkra eller delade referenser.`}
                           </p>
                         </div>
                       </td>

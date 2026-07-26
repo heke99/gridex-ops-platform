@@ -299,30 +299,8 @@ async function saveContractOfferActionImpl(
     );
   }
 
-  await supabaseService.from("audit_logs").insert({
-    actor_user_id: actor.userId,
-    entity_type: "contract_offer",
-    entity_id: String(command.offer.id),
-    company_id: companyId,
-    action: input.id
-      ? command.created_new_version
-        ? "contract.version.created"
-        : "contract.draft.updated"
-      : "contract.draft.created",
-    old_values: previous,
-    new_values: command.offer,
-    metadata: {
-      lifecycle_status: input.lifecycleStatus,
-      contract_product_id: command.contract_product_id,
-      contract_product_version_id: command.contract_product_version_id,
-      price_plan_id: command.pricing.price_plan_id,
-      price_plan_version_id: command.pricing.price_plan_version_id,
-      price_book_id: command.pricing.price_book_id,
-      price_version: command.pricing.version_label,
-      price_version_reused: command.pricing.reused === true,
-      canonical_command: "gridex_upsert_internal_contract_offer",
-    },
-  });
+  // gridex_upsert_internal_contract_offer writes the canonical audit row atomically.
+  // Do not write a second best-effort audit row outside the RPC transaction.
 
   revalidateContractSurfaces(companyId);
 
