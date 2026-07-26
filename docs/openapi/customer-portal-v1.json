@@ -56,11 +56,22 @@
         },
         "responses": {
           "200": {
-            "description": "Lyckat svar.",
+            "description": "Tenant- och kundfiltrerad fakturalista. Varje canonical rad exponerar kundavtal, underlag och exportitem; draft/blockerade adminrader visas inte i portalen.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CustomerInvoice"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -2540,6 +2551,140 @@
         },
         "additionalProperties": true,
         "description": "Publicerat avtalsvärde. Returneras även när website_visibility är hidden."
+      },
+      "CustomerInvoice": {
+        "type": "object",
+        "required": [
+          "id",
+          "customer_id",
+          "customer_contract_id",
+          "invoice_export_item_id",
+          "status",
+          "currency"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "agreement_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Legacy compatibility reference."
+          },
+          "contract_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customer_contract_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "billing_underlay_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoice_export_item_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "canonical_export_item_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "partner_export_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "partner_invoice_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invoice_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "period_start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "period_end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "total_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "amount_ex_vat": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "vat_amount": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "amount_inc_vat": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "issued_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "due_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "issued",
+              "sent",
+              "paid",
+              "overdue",
+              "cancelled",
+              "credited"
+            ]
+          }
+        }
       },
       "IntegrationContext": {
         "type": "object",

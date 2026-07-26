@@ -3,6 +3,8 @@ export type RoleKeyLike = string | null | undefined
 const ROLE_ALIASES: Record<string, string> = {
   superadmin: 'super_admin',
   super_admin: 'super_admin',
+  platform_superadmin: 'super_admin',
+  platformsuperadmin: 'super_admin',
   platformadmin: 'platform_admin',
   platform_admin: 'platform_admin',
   companyadmin: 'company_admin',
@@ -17,6 +19,21 @@ const ROLE_ALIASES: Record<string, string> = {
   ekonomi: 'finance_readonly',
   finance: 'finance_readonly',
   finance_readonly: 'finance_readonly',
+}
+
+const PLATFORM_ADMIN_ROLE_KEYS = new Set(['super_admin', 'platform_admin'])
+
+export function normalizePlatformRole(value: RoleKeyLike): string | null {
+  const normalized = normalizeRoleKey(value)
+  return normalized && PLATFORM_ADMIN_ROLE_KEYS.has(normalized) ? normalized : null
+}
+
+export function isPlatformAdminRole(value: RoleKeyLike): boolean {
+  return normalizePlatformRole(value) !== null
+}
+
+export function isPlatformSuperAdminRole(value: RoleKeyLike): boolean {
+  return normalizePlatformRole(value) === 'super_admin'
 }
 
 export function normalizeRoleKey(value: RoleKeyLike): string | null {

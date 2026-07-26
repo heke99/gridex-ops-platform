@@ -394,3 +394,17 @@ Files changed: forward migration, DB test, admin actions/UI/governance, OpenAPI/
 Migrations: `20260726230000_contract_admin_api_alignment.sql`
 Last updated: 2026-07-26
 Exact next subtask: apply migration and verify tenant-close/preview privileges in staging
+
+## WP-028: Complete contract-flow integrity
+Status: IMPLEMENTED_STATIC_VERIFIED
+Phase: PHASE-28
+Priority: P0
+Depends on: WP-027
+Affected domains: contract admin, tenant scope, customer identity, supply, billing, invoice export, portal, API documentation
+Acceptance criteria: stable list; strict tenant and role handling; safe legal matching; confirmed-only activation; exact underlay identities; one canonical export item and deterministic invoice mirror
+Required verification: typecheck, lint, production build, API/OpenAPI parity, migration integrity, focused regressions, PostgreSQL apply and provider round trip
+Evidence: typecheck/lint/build/API/migration checks pass; focused regressions preserve five intentional readiness failures from identity-incomplete legacy fixtures
+Files changed: runtime/UI, one append-only migration, OpenAPI, deployment guide and delivery report
+Migrations: `20260727010000_contract_flow_integrity_completion.sql`
+Last updated: 2026-07-27
+Exact next subtask: apply the pending migrations in staging and transaction-test the two-tenant and provider flow

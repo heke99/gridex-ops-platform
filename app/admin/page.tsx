@@ -38,6 +38,15 @@ const EMPTY_EDIEL_SUMMARY: EdielSummary = {
 
 const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
 
+function countFailure(error: unknown): string {
+ const code = (error as { code?: string } | null)?.code ?? 'count_failed'
+ return `Kunde inte hämtas (${code})`
+}
+
+function isPositiveCount(value: number | string): boolean {
+ return typeof value === 'number' && value > 0
+}
+
 async function safeVisibleCustomerCount(supabase: SupabaseClient, companyId?: string | null) {
  try {
  let query = supabase
@@ -52,10 +61,10 @@ async function safeVisibleCustomerCount(supabase: SupabaseClient, companyId?: st
  }
 
  const { count, error } = await query
- if (error) return 0
+ if (error) return countFailure(error)
  return count ?? 0
- } catch {
- return 0
+ } catch (error) {
+ return countFailure(error)
  }
 }
 
@@ -91,10 +100,10 @@ async function safeCount(
  }
 
  const { count, error } = await query
- if (error) return 0
+ if (error) return countFailure(error)
  return count ?? 0
- } catch {
- return 0
+ } catch (error) {
+ return countFailure(error)
  }
 }
 
@@ -253,7 +262,10 @@ export default async function AdminDashboardPage() {
  ])
 
  const actor = productionActor ?? testActor
- const liveWarnings = ediel.failedMessages + ediel.ackPendingMessages + ediel.ackOverdueMessages + pendingTasks + openGridOwnerRequests
+ const liveWarnings =
+ typeof pendingTasks === 'number' && typeof openGridOwnerRequests === 'number'
+ ? ediel.failedMessages + ediel.ackPendingMessages + ediel.ackOverdueMessages + pendingTasks + openGridOwnerRequests
+ : null
  const tenantReady = Boolean(companyId && actor?.actor_ediel_id)
 
  return (
@@ -291,7 +303,9 @@ export default async function AdminDashboardPage() {
  ) : (
  <Pill tone={tenantReady ? 'emerald' : 'red'}>{tenantReady ? 'Tenantprofil aktiv' : 'Tenantprofil behöver åtgärd'}</Pill>
  )}
- <Pill tone={liveWarnings > 0 ? 'amber' : 'emerald'}>{liveWarnings > 0 ? `${liveWarnings} driftuppgifter` : 'Inga akuta blockeringar'}</Pill>
+ <Pill tone={liveWarnings === null || liveWarnings > 0 ? 'amber' : 'emerald'}>
+ {liveWarnings === null ? 'Driftantal kunde inte hämtas' : liveWarnings > 0 ? `${liveWarnings} driftuppgifter` : 'Inga akuta blockeringar'}
+ </Pill>
  </div>
  </div>
  </section>
@@ -302,7 +316,7 @@ export default async function AdminDashboardPage() {
  <MetricCard label="Anläggningar" value={sites} hint="Kopplade uttagspunkter" href="/admin/customers" />
  <MetricCard label="Mätpunkter" value={meteringPoints} hint="Fakturagrundande mätpunkter" href="/admin/metering" />
 <MetricCard label={isPlatformAdmin ? 'Ediel-kvittenser' : 'Tekniska kvittenser'} value={ediel.ackPendingMessages} hint={isPlatformAdmin ? `${ediel.ackOverdueMessages} försenade kvittenser` : 'Visas som åtgärder när något behöver hanteras'} href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
- <MetricCard label="Kundansökningar" value={pendingCustomerApplications} hint="Nya/ofullständiga från hemsida" href="/admin/website-applications" tone={pendingCustomerApplications > 0 ? 'amber' : 'emerald'} />
+ <MetricCard label="Kundansökningar" value={pendingCustomerApplications} hint="Nya/ofullständiga från hemsida" href="/admin/website-applications" tone={isPositiveCount(pendingCustomerApplications) ? 'amber' : 'emerald'} />
  </section>
 
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -319,13 +333,13 @@ export default async function AdminDashboardPage() {
  </Link>
  </div>
  <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-7">
- <MetricCard label="Pågående leverantörsbyten" value={ongoingSupplierSwitches} hint="Startade eller väntande byten" href="/admin/operations/switches" tone={ongoingSupplierSwitches > 0 ? 'amber' : 'emerald'} />
- <MetricCard label="Väntar på nätägare" value={waitingForGridOwner} hint="Begäran skickad, svar saknas" href="/admin/customer-info-requests" tone={waitingForGridOwner > 0 ? 'amber' : 'emerald'} />
- <MetricCard label="Negativa kvittenser" value={negativeAcknowledgements} hint="Avvisat - åtgärd krävs" href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={negativeAcknowledgements > 0 ? 'red' : 'emerald'} />
- <MetricCard label="Mätvärden saknas" value={missingMeteringValues} hint="Öppna datakvalitetsuppgifter" href="/admin/outbound/missing-meter-values" tone={missingMeteringValues > 0 ? 'red' : 'emerald'} />
- <MetricCard label="Kunder med åtgärd krävs" value={customersActionRequired} hint="Öppna eller blockerade uppgifter" href="/admin/work-queue" tone={customersActionRequired > 0 ? 'amber' : 'emerald'} />
- <MetricCard label="Senaste mottagna mätvärden" value={latestMeteringValues} hint="Mottagna senaste 7 dagarna" href="/admin/metering" tone={latestMeteringValues > 0 ? 'emerald' : 'amber'} />
- <MetricCard label="Kommande avslut" value={upcomingTerminations} hint="Avtal som slutar inom 30 dagar" href="/admin/contracts" tone={upcomingTerminations > 0 ? 'amber' : 'emerald'} />
+ <MetricCard label="Pågående leverantörsbyten" value={ongoingSupplierSwitches} hint="Startade eller väntande byten" href="/admin/operations/switches" tone={isPositiveCount(ongoingSupplierSwitches) ? 'amber' : 'emerald'} />
+ <MetricCard label="Väntar på nätägare" value={waitingForGridOwner} hint="Begäran skickad, svar saknas" href="/admin/customer-info-requests" tone={isPositiveCount(waitingForGridOwner) ? 'amber' : 'emerald'} />
+ <MetricCard label="Negativa kvittenser" value={negativeAcknowledgements} hint="Avvisat - åtgärd krävs" href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={isPositiveCount(negativeAcknowledgements) ? 'red' : 'emerald'} />
+ <MetricCard label="Mätvärden saknas" value={missingMeteringValues} hint="Öppna datakvalitetsuppgifter" href="/admin/outbound/missing-meter-values" tone={isPositiveCount(missingMeteringValues) ? 'red' : 'emerald'} />
+ <MetricCard label="Kunder med åtgärd krävs" value={customersActionRequired} hint="Öppna eller blockerade uppgifter" href="/admin/work-queue" tone={isPositiveCount(customersActionRequired) ? 'amber' : 'emerald'} />
+ <MetricCard label="Senaste mottagna mätvärden" value={latestMeteringValues} hint="Mottagna senaste 7 dagarna" href="/admin/metering" tone={isPositiveCount(latestMeteringValues) ? 'emerald' : 'amber'} />
+ <MetricCard label="Kommande avslut" value={upcomingTerminations} hint="Avtal som slutar inom 30 dagar" href="/admin/contracts" tone={isPositiveCount(upcomingTerminations) ? 'amber' : 'emerald'} />
  </div>
  </section>
 
@@ -350,10 +364,10 @@ text="Här ser bolagsanvändaren praktiska uppgifter: kunder som saknar data, ne
 href="/admin/work-queue"
 cta="Öppna åtgärder"
 >
-<ActionLine label="Nya kundansökningar" value={pendingCustomerApplications} tone={pendingCustomerApplications > 0 ? 'amber' : 'emerald'} />
-<ActionLine label="Åtgärder" value={pendingTasks} tone={pendingTasks > 0 ? 'amber' : 'emerald'} />
-<ActionLine label="Negativa kvittenser" value={negativeAcknowledgements} tone={negativeAcknowledgements > 0 ? 'red' : 'emerald'} />
-<ActionLine label="Mätvärden saknas" value={missingMeteringValues} tone={missingMeteringValues > 0 ? 'red' : 'emerald'} />
+<ActionLine label="Nya kundansökningar" value={pendingCustomerApplications} tone={isPositiveCount(pendingCustomerApplications) ? 'amber' : 'emerald'} />
+<ActionLine label="Åtgärder" value={pendingTasks} tone={isPositiveCount(pendingTasks) ? 'amber' : 'emerald'} />
+<ActionLine label="Negativa kvittenser" value={negativeAcknowledgements} tone={isPositiveCount(negativeAcknowledgements) ? 'red' : 'emerald'} />
+<ActionLine label="Mätvärden saknas" value={missingMeteringValues} tone={isPositiveCount(missingMeteringValues) ? 'red' : 'emerald'} />
 </WorkAreaCard>
 )}
 
@@ -365,9 +379,9 @@ cta="Öppna åtgärder"
  cta="Öppna kundregister"
  >
  <ActionLine label="Kunder" value={customers} tone="emerald" />
- <ActionLine label="Kundansökningar behöver kontroll" value={pendingCustomerApplications} tone={pendingCustomerApplications > 0 ? 'amber' : 'emerald'} />
- <ActionLine label="Avtal" value={contracts} tone={contracts > 0 ? 'emerald' : 'amber'} />
- <ActionLine label="Mätpunkter" value={meteringPoints} tone={meteringPoints > 0 ? 'emerald' : 'amber'} />
+ <ActionLine label="Kundansökningar behöver kontroll" value={pendingCustomerApplications} tone={isPositiveCount(pendingCustomerApplications) ? 'amber' : 'emerald'} />
+ <ActionLine label="Avtal" value={contracts} tone={isPositiveCount(contracts) ? 'emerald' : 'amber'} />
+ <ActionLine label="Mätpunkter" value={meteringPoints} tone={isPositiveCount(meteringPoints) ? 'emerald' : 'amber'} />
  </WorkAreaCard>
 
  <WorkAreaCard
@@ -377,9 +391,9 @@ cta="Öppna åtgärder"
  href="/admin/work-queue"
  cta="Öppna arbetskö"
  >
- <ActionLine label="Öppna uppgifter" value={pendingTasks} tone={pendingTasks > 0 ? 'amber' : 'emerald'} />
- <ActionLine label="Begäran hos nätägare" value={openGridOwnerRequests} tone={openGridOwnerRequests > 0 ? 'amber' : 'emerald'} />
- <ActionLine label="Aktiva switchar" value={openSwitches} tone={openSwitches > 0 ? 'amber' : 'emerald'} />
+ <ActionLine label="Öppna uppgifter" value={pendingTasks} tone={isPositiveCount(pendingTasks) ? 'amber' : 'emerald'} />
+ <ActionLine label="Begäran hos nätägare" value={openGridOwnerRequests} tone={isPositiveCount(openGridOwnerRequests) ? 'amber' : 'emerald'} />
+ <ActionLine label="Aktiva switchar" value={openSwitches} tone={isPositiveCount(openSwitches) ? 'amber' : 'emerald'} />
  </WorkAreaCard>
  </section>
 
@@ -391,8 +405,8 @@ cta="Öppna åtgärder"
  href="/admin/operations"
  cta="Öppna operations"
  >
- <ActionLine label="Aktiva switchar" value={openSwitches} tone={openSwitches > 0 ? 'amber' : 'emerald'} />
- <ActionLine label="Outboundkö" value={outboundQueue} tone={outboundQueue > 0 ? 'amber' : 'emerald'} />
+ <ActionLine label="Aktiva switchar" value={openSwitches} tone={isPositiveCount(openSwitches) ? 'amber' : 'emerald'} />
+ <ActionLine label="Outboundkö" value={outboundQueue} tone={isPositiveCount(outboundQueue) ? 'amber' : 'emerald'} />
  </WorkAreaCard>
 
  <WorkAreaCard
@@ -402,8 +416,8 @@ cta="Öppna åtgärder"
  href="/admin/billing"
  cta="Öppna faktureringsunderlag"
  >
- <ActionLine label="Mätvärden" value={meteringValues} tone={meteringValues > 0 ? 'emerald' : 'amber'} />
- <ActionLine label="Billingunderlag" value={billingUnderlays} tone={billingUnderlays > 0 ? 'emerald' : 'slate'} />
+ <ActionLine label="Mätvärden" value={meteringValues} tone={isPositiveCount(meteringValues) ? 'emerald' : 'amber'} />
+ <ActionLine label="Billingunderlag" value={billingUnderlays} tone={isPositiveCount(billingUnderlays) ? 'emerald' : 'slate'} />
  </WorkAreaCard>
 
  {isPlatformAdmin ? (
@@ -414,9 +428,9 @@ cta="Öppna åtgärder"
  href="/admin/companies"
  cta="Öppna plattformens bolag"
  >
- <ActionLine label="Bolag" value={companies} tone={companies > 0 ? 'emerald' : 'amber'} />
- <ActionLine label="Nätägare" value={networkOwners} tone={networkOwners > 0 ? 'emerald' : 'amber'} />
- <ActionLine label="Elleverantörer" value={suppliers} tone={suppliers > 0 ? 'emerald' : 'amber'} />
+ <ActionLine label="Bolag" value={companies} tone={isPositiveCount(companies) ? 'emerald' : 'amber'} />
+ <ActionLine label="Nätägare" value={networkOwners} tone={isPositiveCount(networkOwners) ? 'emerald' : 'amber'} />
+ <ActionLine label="Elleverantörer" value={suppliers} tone={isPositiveCount(suppliers) ? 'emerald' : 'amber'} />
  </WorkAreaCard>
  ) : (
  <WorkAreaCard

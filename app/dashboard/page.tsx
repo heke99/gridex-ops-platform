@@ -2,10 +2,9 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { isPlatformAdminRole } from '@/lib/rbac/roleKeys'
 
 export const dynamic = 'force-dynamic'
-
-const PLATFORM_ADMIN_ROLE_KEYS = new Set(['super_admin', 'superadmin', 'platform_admin'])
 
 type RpcRoleRow = string | { role_key?: string | null; key?: string | null; code?: string | null; name?: string | null }
 
@@ -65,7 +64,7 @@ async function userHasPlatformRole(userId: string) {
         : row.role_key ?? row.key ?? row.code ?? row.name ?? null
     if (typeof roleKey !== 'string') return false
     const normalized = roleKey.trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
-    return PLATFORM_ADMIN_ROLE_KEYS.has(normalized)
+    return isPlatformAdminRole(normalized)
   })
 }
 

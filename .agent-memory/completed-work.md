@@ -42,6 +42,14 @@ Status: VERIFIED LOCALLY
   company administration and preserved company selection in navigation.
 - Aligned runtime API auth codes and resolver readiness requirements across
   OpenAPI, developer UI and the external integration guide.
+- Isolated the internal contract list from readiness/delete graph failures.
+- Enforced strict tenants, central role aliases and complete creation results.
+- Enforced legal-identity-only customer reuse and same-customer DB invariants.
+- Unified supply activation and monthly invoice export around canonical,
+  idempotent database commands.
+- Created draft invoice mirrors before provider send and updated them
+  idempotently from provider events.
+- Added lazy tenant-scoped chain tracing and complete portal invoice IDs.
 
 ## Verification
 
@@ -49,7 +57,7 @@ Status: VERIFIED LOCALLY
 - Full Vitest: 54 files, 354 tests pass.
 - Targeted P0/P1 suite: 11 files, 80 tests pass.
 - API contract/OpenAPI/docs checks: pass.
-- Migration integrity: 303 files, 208 groups, checksums pass.
+- Migration integrity: 304 files, 209 groups, checksums pass.
 - New delete-graph migration: PostgreSQL parser accepts 32 statements.
 - Dedicated contract delete-graph regression: pass.
 - Dedicated contract/tenant lifecycle regression: pass.

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { supabaseService } from "@/lib/supabase/service";
 import {
   isPlatformAdminContext,
   requireAdminPageAccess,
@@ -190,6 +191,13 @@ async function TenantCustomerContracts({
                     {blockers.length > 0 ? (
                       <p className="mt-3 text-xs text-amber-800">
                         {blockers.join(" · ")}
+                      </p>
+                    ) : null}
+                    {item.relation_status !== "ok" ? (
+                      <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-800">
+                        Canonical relation är trasig ({item.relation_status}).
+                        Tilldelningen visas för reparation men kan inte
+                        publiceras.
                       </p>
                     ) : null}
                     <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -634,6 +642,9 @@ export default async function AdminContractsPage({
     : [];
   const requestedCompanyId = firstSearchValue(resolvedSearchParams.company_id);
   const editOfferId = firstSearchValue(resolvedSearchParams.edit_offer);
+  const diagnoseOfferId = firstSearchValue(
+    resolvedSearchParams.diagnose_offer,
+  );
   const contractView = ["active", "terminal", "all"].includes(
     firstSearchValue(resolvedSearchParams.view) ?? "",
   )
@@ -656,23 +667,28 @@ export default async function AdminContractsPage({
       : contractView === "terminal"
         ? ["expired", "closed", "archived", "superseded"]
         : undefined;
-  const selectedPlatformCompany = isPlatformAdmin
-    ? (platformCompanies.find((company) => company.id === requestedCompanyId) ??
-      platformCompanies.find(
-        (company) => company.id === membershipScope.companyId,
-      ) ??
-      platformCompanies[0] ??
-      null)
-    : null;
+  const requestedCompanyIsInvalid = Boolean(
+    isPlatformAdmin &&
+      requestedCompanyId &&
+      !platformCompanies.some((company) => company.id === requestedCompanyId),
+  );
+  const selectedPlatformCompany =
+    isPlatformAdmin && requestedCompanyId
+      ? (platformCompanies.find(
+          (company) => company.id === requestedCompanyId,
+        ) ?? null)
+      : null;
   const scope = isPlatformAdmin
     ? {
         ...membershipScope,
         companyId: selectedPlatformCompany?.id ?? null,
         companyName: selectedPlatformCompany?.name ?? null,
         requiresCompany: !selectedPlatformCompany,
-        message: selectedPlatformCompany
-          ? null
-          : "Inget aktivt bolag finns att välja.",
+        message: requestedCompanyIsInvalid
+          ? "Det uttryckligen valda bolaget finns inte eller får inte administreras."
+          : selectedPlatformCompany
+            ? null
+            : "Välj ett bolag innan du läser eller skapar avtal.",
         selectedByPlatformAdmin: true,
       }
     : membershipScope;
@@ -697,6 +713,14 @@ export default async function AdminContractsPage({
   let portfolioOptions: Array<{ id: string; name: string; code: string }> = [];
   let hasNextPage = false;
   let listError: string | undefined;
+  let diagnostic:
+    | {
+        offerId: string;
+        readiness: Record<string, unknown> | null;
+        deletionPreview: Record<string, unknown> | null;
+        error?: string;
+      }
+    | null = null;
   if (scope.companyId) {
     try {
       allSeriesOffers = await listContractOffers({
@@ -733,6 +757,53 @@ export default async function AdminContractsPage({
       });
     }
   }
+  if (scope.companyId && diagnoseOfferId) {
+    try {
+      const offer = await getContractOfferById(
+        diagnoseOfferId,
+        scope.companyId,
+      );
+      if (!offer) throw new Error("Avtalet hittades inte för valt bolag.");
+      const [readinessResult, deletionResult] = await Promise.all([
+        supabaseService.rpc("gridex_validate_contract_readiness", {
+          p_company_id: scope.companyId,
+          p_offer_id: diagnoseOfferId,
+        }),
+        supabaseService.rpc("gridex_preview_delete_unused_contract", {
+          p_company_id: scope.companyId,
+          p_offer_id: diagnoseOfferId,
+        }),
+      ]);
+      if (readinessResult.error) throw readinessResult.error;
+      if (deletionResult.error) throw deletionResult.error;
+      diagnostic = {
+        offerId: diagnoseOfferId,
+        readiness:
+          readinessResult.data &&
+          typeof readinessResult.data === "object" &&
+          !Array.isArray(readinessResult.data)
+            ? (readinessResult.data as Record<string, unknown>)
+            : null,
+        deletionPreview:
+          deletionResult.data &&
+          typeof deletionResult.data === "object" &&
+          !Array.isArray(deletionResult.data)
+            ? (deletionResult.data as Record<string, unknown>)
+            : null,
+      };
+    } catch (error) {
+      diagnostic = {
+        offerId: diagnoseOfferId,
+        readiness: null,
+        deletionPreview: null,
+        error: toSafeContractError(error, {
+          action: "diagnose_contract_offer",
+          companyId: scope.companyId,
+          userId: user?.id ?? null,
+        }),
+      };
+    }
+  }
   const previousOfferById = new Map<string, ContractOfferRow | null>();
   for (const offer of allSeriesOffers) {
     const previous =
@@ -751,7 +822,10 @@ export default async function AdminContractsPage({
   }
 
   const actionSuccess = firstSearchValue(resolvedSearchParams.success);
-  const actionError = firstSearchValue(resolvedSearchParams.error) ?? listError;
+  const actionError =
+    firstSearchValue(resolvedSearchParams.error) ??
+    (requestedCompanyIsInvalid ? scope.message ?? undefined : undefined) ??
+    listError;
 
   return (
     <div className="min-h-screen">
@@ -762,9 +836,62 @@ export default async function AdminContractsPage({
       />
 
       <div className="grid gap-6 p-8 xl:grid-cols-[460px_minmax(0,1fr)]">
+        <nav
+          aria-label="Avtalstyper"
+          className="grid gap-3 xl:col-span-2 md:grid-cols-4"
+        >
+          <span className="rounded-2xl bg-slate-950 p-4 text-sm font-bold text-white">
+            1. Interna avtalsprodukter
+          </span>
+          <a
+            href="#tenant-assignment"
+            className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800"
+          >
+            2. Tenanttilldelningar
+          </a>
+          <a
+            href="#website-publication"
+            className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800"
+          >
+            3. Website-publiceringar
+          </a>
+          <Link
+            href="/admin/platform/contract-trace"
+            className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800"
+          >
+            4. Kundavtal och kedjespårning
+          </Link>
+        </nav>
         <div className="xl:col-span-2">
           <ActionBanner success={actionSuccess} error={actionError} />
         </div>
+        {diagnostic ? (
+          <section className="rounded-3xl border border-indigo-200 bg-indigo-50 p-5 xl:col-span-2">
+            <h2 className="font-black text-indigo-950">
+              Lazy-loadad avtalsdiagnostik
+            </h2>
+            <p className="mt-1 text-xs text-indigo-800">
+              Avtal {diagnostic.offerId}. Denna kontroll kördes endast för den
+              valda raden.
+            </p>
+            {diagnostic.error ? (
+              <p className="mt-3 text-sm font-bold text-red-800">
+                {diagnostic.error}
+              </p>
+            ) : (
+              <pre className="mt-3 max-h-80 overflow-auto rounded-2xl bg-white p-4 text-xs text-slate-800">
+                {JSON.stringify(
+                  {
+                    readiness: diagnostic.readiness,
+                    deletion_preview: diagnostic.deletionPreview,
+                  },
+                  null,
+                  2,
+                )}
+              </pre>
+            )}
+          </section>
+        ) : null}
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 ">
             Avtalsmodell
@@ -937,7 +1064,23 @@ export default async function AdminContractsPage({
                 </tr>
               </thead>
               <tbody>
-                {offers.length === 0 ? (
+                {listError ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-10 text-center text-red-800"
+                    >
+                      <p className="font-bold">Avtalen kunde inte hämtas.</p>
+                      <p className="mt-2 text-sm">{listError}</p>
+                      <Link
+                        href={`/admin/contracts?company_id=${scope.companyId ?? ""}&view=${contractView}&page=${currentPage}`}
+                        className="mt-4 inline-flex rounded-xl bg-red-700 px-4 py-2 text-xs font-bold text-white"
+                      >
+                        Försök igen
+                      </Link>
+                    </td>
+                  </tr>
+                ) : offers.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
@@ -967,11 +1110,12 @@ export default async function AdminContractsPage({
                           Produktserie: {offer.version_series_id ?? "—"} ·
                           version {offer.version_number ?? 1}
                         </div>
-                        {offer.readiness?.blockers?.length ? (
-                          <div className="mt-2 text-xs font-semibold text-amber-700">
-                            Blockerare: {offer.readiness.blockers.join(" · ")}
-                          </div>
-                        ) : null}
+                        <Link
+                          href={`/admin/contracts?company_id=${scope.companyId ?? ""}&diagnose_offer=${offer.id}&view=${contractView}&page=${currentPage}`}
+                          className="mt-2 inline-flex text-xs font-bold text-indigo-700 underline"
+                        >
+                          Hämta readiness för detta avtal
+                        </Link>
                         <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
                           <summary className="cursor-pointer font-black text-slate-900">
                             Kundförhandsgranskning och versionsskillnad
@@ -1173,23 +1317,15 @@ export default async function AdminContractsPage({
                             />
                             <input type="hidden" name="id" value={offer.id} />
                             <button
-                              disabled={
-                                (offer.deletion_preview?.can_delete ??
-                                  offer.deletion_preview?.deletable) !== true
-                              }
-                              className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800"
                             >
-                              {(offer.deletion_preview?.can_delete ?? offer.deletion_preview?.deletable)
-                                ? "Radera oanvänt utkast permanent"
-                                : "Permanent radering blockerad"}
+                              Kontrollera och radera oanvänt utkast
                             </button>
                           </form>
                           <p className="text-[11px] leading-4 text-slate-500">
-                            {(offer.deletion_preview?.can_delete ?? offer.deletion_preview?.deletable)
-                              ? `Ingen affärshistorik. Teknisk systemdata tas bort atomiskt: ${Object.values(offer.deletion_preview?.removable_system_dependencies ?? offer.deletion_preview?.system_references ?? {}).reduce((sum, value) => sum + Number(value || 0), 0)} rader.`
-                              : offer.deletion_preview?.has_business_usage
-                                ? `Permanent radering blockerad av affärshistorik: ${(offer.deletion_preview?.reason_codes ?? []).join(" · ") || "kund- eller faktureringshistorik finns"}. Arkivera avtalet i stället.`
-                                : `Permanent radering är inte säker: ${(offer.deletion_preview?.reason_codes ?? []).join(" · ") || "skyddad relation finns"}.${offer.deletion_preview?.foreign_key_blockers?.items?.length ? ` Blockerande tabeller: ${offer.deletion_preview.foreign_key_blockers.items.map((item) => `${item.relation ?? "okänd"} (${item.rows ?? 0})`).join(", ")}.` : ""}`}
+                            Dependency-grafen hämtas och kontrolleras först när
+                            kommandot körs. Commit gör samma kontroll igen under
+                            transaktionslås.
                           </p>
                         </div>
                       </td>

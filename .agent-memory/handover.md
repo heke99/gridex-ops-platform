@@ -1,42 +1,41 @@
 # Handover
 
-Last updated: 2026-07-26T23:45:00+02:00
+Last updated: 2026-07-27T17:20:00+02:00
 
-## Verified
+## Verified locally
 
-All enumerated P0/P1 code, local API contracts, tests, lint and production
-build. See `verification-matrix.md`.
+Typecheck, lint, API/OpenAPI/docs, migration history, 40 contract tests and 18
+fixed-area tests pass. Focused identity/supply/billing tests pass 49/54; five
+legacy readiness fixtures omit the exact identities now required.
 
 ## Implemented but not database-verified
 
-Migrations `20260725120000_billing_readiness_and_supply_activation_v1.sql`,
-`20260726010000_contract_tenant_lifecycle_completion.sql`,
-`20260726090000_contract_create_delete_runtime_alignment.sql` and
-`20260726140000_contract_deletion_graph_completion.sql` and
-`20260726230000_contract_admin_api_alignment.sql`, especially
-transactional rollback/replay/isolation and real FK behavior.
+`20260727010000_contract_flow_integrity_completion.sql` and earlier pending
+forward migrations. The final migration changes role/contract/onboarding/
+activation/underlay definitions, creates same-customer triggers and reserves
+invoice runs/items/mirrors atomically.
 
 ## Active blockers
 
-No Git metadata; no Supabase CLI/database; production deploy not performed.
+No Git metadata, Supabase/PostgreSQL/Docker runtime, authorized remote database,
+provider credentials or provider sandbox.
 
 ## Migration state
 
-303 local migration files, 208 version groups. History/checksums pass. Applied
-remote state unknown.
+304 local migration files, 209 version groups. History/checksums pass. Applied
+remote state is unknown.
 
-## Exact next command
+## Exact next action
 
-In an authorized staging repository:
-
-Apply migrations, then run `npm run gridex:contract-delete-graph-post-apply`.
-After that run dedicated transaction/replay/two-tenant tests for delete,
-isolated bulk cleanup, close (including paused channels), preview execute
-privileges and `activate_customer_supply_v1`.
+Apply pending migrations in an authorized staging project, ending with
+`20260727010000_contract_flow_integrity_completion.sql`. Run the read-only SQL
+in `docs/contract-flow-integrity-2026-07-27.md`; then transaction-test two
+tenants through contract creation/listing, conflicting identity, confirmed
+supply, missing/complete meter values, canonical export, provider event and
+portal invoice visibility.
 
 ## Risks
 
-Do not deploy the runtime call before the migration. Do not mark the database
-gate verified from static tests alone. Keep `can_dispatch` customer-specific;
-never infer it from area resolution. A closed contract or tenant must never be
-reopened by a generic status mutation.
+Deploy runtime and migration together. Do not mark the database or provider
+gates verified from static checks. Do not relax exact readiness or use a
+delivery-point identifier as a customer identity.

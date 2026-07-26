@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateBillingMonthInvoiceReadiness, lockBillingPeriodForInvoiceExport } from '@/lib/billing/invoiceReadiness'
 import { resolveCapwayConnectionConfig } from '@/lib/integrations/billing/capway/auth'
@@ -54,25 +54,29 @@ export async function createInvoiceExportRun(input: {
   if (readiness.status !== 'ready') {
     throw new Error(`Fakturaperioden är inte exportklar: ${readiness.issues.map((issue) => issue.message).join(' ')}`)
   }
-
-  const { data: run, error } = await supabaseService
+  const runIdempotencyKey = [
+    provider,
+    environment,
+    input.companyId,
+    input.billingMonth,
+    input.financingMode ?? 'invoice_service',
+  ].join(':')
+  const existingRun = await supabaseService
     .from('invoice_export_runs')
-    .insert({
-      company_id: input.companyId,
-      provider,
-      environment,
-      billing_month: input.billingMonth,
-      financing_mode: input.financingMode ?? 'invoice_service',
-      status: 'draft',
-      total_items: readiness.readyUnderlayCount,
-      requested_by: input.actorUserId ?? null,
-      readiness_snapshot: readiness,
-      metadata: { source: 'gridex_invoice_export_core' },
-    })
-    .select('id')
-    .single()
-  if (error) throw error
-  const runId = (run as { id: string }).id
+    .select('id,total_items')
+    .eq('company_id', input.companyId)
+    .eq('idempotency_key', runIdempotencyKey)
+    .maybeSingle()
+  if (existingRun.error && !missingRelation(existingRun.error)) throw existingRun.error
+  if (existingRun.data) {
+    return {
+      runId: String(existingRun.data.id),
+      itemCount: numberValue(existingRun.data.total_items),
+      skippedAlreadyExported: numberValue(existingRun.data.total_items),
+      readiness,
+    }
+  }
+  const runId = randomUUID()
 
   const readyUnderlayIds = readiness.readyUnderlayIds
   if (readyUnderlayIds.length !== readiness.readyUnderlayCount) {
@@ -104,6 +108,25 @@ export async function createInvoiceExportRun(input: {
     if (runs.length !== 1) throw new Error(`Fakturaunderlag ${underlayId} måste ha exakt en låst eller lyckad prisberäkning.`)
   }
 
+  const underlaysById = new Map<string, Record<string, unknown>>()
+  for (let offset = 0; offset < readyUnderlayIds.length; offset += 200) {
+    const ids = readyUnderlayIds.slice(offset, offset + 200)
+    if (ids.length === 0) continue
+    const underlayResult = await supabaseService
+      .from('billing_underlays')
+      .select('id,company_id,customer_id,contract_id,customer_contract_id,metering_point_id,billing_period_start,billing_period_end,total_kwh,currency')
+      .eq('company_id', input.companyId)
+      .in('id', ids)
+    if (underlayResult.error) throw underlayResult.error
+    for (const row of (underlayResult.data ?? []) as Record<string, unknown>[]) {
+      const id = stringValue(row.id)
+      if (id) underlaysById.set(id, row)
+    }
+  }
+  if (underlaysById.size !== readyUnderlayIds.length) {
+    throw new Error('Ett eller flera exportklara underlag saknas i verifierad tenant.')
+  }
+
   const customerIds = Array.from(new Set(pricingRuns.map((pricingRun) => stringValue(pricingRun.customer_id)).filter(Boolean))) as string[]
   const customerNumbers = new Map<string, string>()
   if (customerIds.length > 0) {
@@ -122,12 +145,30 @@ export async function createInvoiceExportRun(input: {
 
   const candidateRows = pricingRuns.map((pricingRun) => {
     const customerId = stringValue(pricingRun.customer_id)
+    const underlayId = stringValue(pricingRun.billing_underlay_id)
+    const underlay = underlayId ? underlaysById.get(underlayId) : null
+    if (!underlay || stringValue(underlay.customer_id) !== customerId) {
+      throw new Error('Fakturaexportens kund motsvarar inte faktureringsunderlagets kund.')
+    }
+    const customerContractId =
+      stringValue(underlay.customer_contract_id)
+      ?? stringValue(underlay.contract_id)
+    if (!customerContractId) {
+      throw new Error('Fakturaexportens underlag saknar canonical kundavtal.')
+    }
     return {
+      id: randomUUID(),
       company_id: input.companyId,
       export_run_id: runId,
       customer_id: customerId,
       customer_number: customerId ? customerNumbers.get(customerId) ?? null : null,
-      billing_underlay_id: stringValue(pricingRun.billing_underlay_id),
+      billing_underlay_id: underlayId,
+      customer_contract_id: customerContractId,
+      metering_point_id: stringValue(underlay.metering_point_id),
+      period_start: stringValue(underlay.billing_period_start)?.slice(0, 10) ?? null,
+      period_end: stringValue(underlay.billing_period_end)?.slice(0, 10) ?? null,
+      total_kwh: numberValue(underlay.total_kwh),
+      currency: stringValue(underlay.currency) ?? 'SEK',
       pricing_run_id: stringValue(pricingRun.id),
       provider,
       environment,
@@ -161,10 +202,56 @@ export async function createInvoiceExportRun(input: {
   const itemRows = candidateRows.filter((row) => !alreadyExportedKeys.has(row.idempotency_key))
 
   if (itemRows.length > 0) {
-    const { error: itemError } = await supabaseService
-      .from('invoice_export_items')
-      .upsert(itemRows, { onConflict: 'company_id,provider,idempotency_key' })
-    if (itemError) throw itemError
+    const invoiceRows = itemRows.map((item) => ({
+      company_id: input.companyId,
+      customer_id: item.customer_id,
+      customer_contract_id: item.customer_contract_id,
+      contract_id: item.customer_contract_id,
+      billing_underlay_id: item.billing_underlay_id,
+      invoice_export_item_id: item.id,
+      canonical_export_item_id: item.id,
+      period_start: item.period_start,
+      period_end: item.period_end,
+      total_kwh: numberValue(item.total_kwh),
+      amount_ex_vat: numberValue(item.amount_ex_vat),
+      vat_amount: numberValue(item.vat_amount),
+      amount_inc_vat: numberValue(item.amount_inc_vat),
+      currency: item.currency,
+      status: 'draft',
+      source_system: 'canonical_invoice_export',
+      metadata: {
+        export_item_id: item.id,
+        idempotency_key: item.idempotency_key,
+        reserved_at: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    }))
+    if (invoiceRows.some((row) => !row.customer_id || !row.customer_contract_id || !row.invoice_export_item_id)) {
+      throw new Error('Kundfakturaspegeln saknar kund-, avtals- eller exportidentitet.')
+    }
+    const graphResult = await supabaseService.rpc(
+      'gridex_create_invoice_export_graph_v1',
+      {
+        p_run: {
+          id: runId,
+          company_id: input.companyId,
+          provider,
+          environment,
+          billing_month: input.billingMonth,
+          financing_mode: input.financingMode ?? 'invoice_service',
+          requested_by: input.actorUserId ?? null,
+          readiness_snapshot: readiness,
+          idempotency_key: runIdempotencyKey,
+          metadata: {
+            source: 'gridex_invoice_export_core',
+            skipped_already_exported: alreadyExportedKeys.size,
+          },
+        },
+        p_items: itemRows,
+        p_invoices: invoiceRows,
+      },
+    )
+    if (graphResult.error) throw graphResult.error
 
     await Promise.all(itemRows.map((row) => row.customer_id ? emitDomainEvent({
       companyId: input.companyId,
@@ -187,15 +274,9 @@ export async function createInvoiceExportRun(input: {
     }).catch(() => null) : Promise.resolve(null)))
   }
 
-  await supabaseService
-    .from('invoice_export_runs')
-    .update({
-      total_items: itemRows.length,
-      metadata: { source: 'gridex_invoice_export_core', skipped_already_exported: alreadyExportedKeys.size },
-      updated_at: new Date().toISOString(),
-    })
-    .eq('company_id', input.companyId)
-    .eq('id', runId)
+  if (itemRows.length === 0) {
+    throw new Error('Inga nya canonical exportitem kunde reserveras för den exportklara perioden.')
+  }
 
   return { runId, itemCount: itemRows.length, skippedAlreadyExported: alreadyExportedKeys.size, readiness }
 }
@@ -426,6 +507,35 @@ async function sendSingleInvoiceExportItem(input: {
       error_payload: {},
       updated_at: new Date().toISOString(),
     })
+    const issuedAt = new Date().toISOString()
+    const payloadRecord = objectValue(payload) ?? {}
+    const invoicePayload = objectValue(payloadRecord.invoice) ?? payloadRecord
+    const mirrorUpdate = await supabaseService
+      .from('customer_invoices')
+      .update({
+        partner_invoice_reference: invoiceGuid,
+        invoice_number:
+          stringValue(response.invoiceNumber)
+          ?? stringValue(response.invoice_number)
+          ?? null,
+        issued_at: issuedAt,
+        due_date:
+          stringValue(invoicePayload.dueDate)
+          ?? stringValue(invoicePayload.due_date)
+          ?? null,
+        status: 'sent',
+        source_system: 'canonical_invoice_export',
+        raw_payload: { create_invoice: response, purchase: purchaseResponse },
+        updated_at: issuedAt,
+      })
+      .eq('company_id', input.companyId)
+      .eq('invoice_export_item_id', itemId)
+      .select('id')
+      .maybeSingle()
+    if (mirrorUpdate.error) throw mirrorUpdate.error
+    if (!mirrorUpdate.data) {
+      throw new Error('Providerexporten saknar reserverad kundfakturaspegel.')
+    }
 
     await recordExportAttempt({
       companyId: input.companyId,
@@ -499,6 +609,32 @@ async function sendSingleInvoiceExportItem(input: {
       ...(status === 'sent' ? { sent_at: new Date().toISOString() } : {}),
       updated_at: new Date().toISOString(),
     })
+    const mirrorStatus =
+      status === 'sent'
+        ? 'sent'
+        : status === 'failed_retryable'
+          ? 'draft'
+          : 'failed'
+    const mirrorFailure = await supabaseService
+      .from('customer_invoices')
+      .update({
+        status: mirrorStatus,
+        raw_payload: {
+          provider_error: classification.message,
+          error_code: errorCode,
+          http_status: classification.httpStatus,
+          retry_at: nextRetryAt,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('company_id', input.companyId)
+      .eq('invoice_export_item_id', itemId)
+      .select('id')
+      .maybeSingle()
+    if (mirrorFailure.error) throw mirrorFailure.error
+    if (!mirrorFailure.data) {
+      throw new Error('Providerfelet saknar canonical kundfakturaspegel.')
+    }
 
     await recordExportAttempt({
       companyId: input.companyId,

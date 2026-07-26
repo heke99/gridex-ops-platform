@@ -20,11 +20,13 @@ function getString(formData: FormData, key: string): string {
 
 function redirectBack(params: {
   companyId?: string | null;
+  offerId?: string | null;
   success?: string;
   error?: string;
 }): never {
   const search = new URLSearchParams();
   if (params.companyId) search.set("company_id", params.companyId);
+  if (params.offerId) search.set("edit_offer", params.offerId);
   if (params.success) search.set("success", params.success);
   if (params.error) search.set("error", params.error);
   redirect(`/admin/contracts?${search.toString()}`);
@@ -52,7 +54,6 @@ function revalidateContractSurfaces(companyId: string): void {
   revalidatePath(`/admin/companies/${companyId}`);
   revalidatePath("/admin/customers/intake");
   revalidatePath("/admin/customers");
-  revalidatePath("/api/v1/public/contracts");
   revalidatePath("/api/v1/website/public-contracts");
   for (const tag of [
     `tenant-contracts:${companyId}`,
@@ -66,9 +67,9 @@ function revalidateContractSurfaces(companyId: string): void {
 
 export async function saveContractOfferAction(formData: FormData) {
   const companyId = getString(formData, "company_id") || null;
-  let success: string;
+  let result: { success: string; offerId: string };
   try {
-    success = (await saveContractOfferActionImpl(formData)).success;
+    result = await saveContractOfferActionImpl(formData);
   } catch (error) {
     redirectBack({
       companyId,
@@ -79,12 +80,12 @@ export async function saveContractOfferAction(formData: FormData) {
       }),
     });
   }
-  redirectBack({ companyId, success });
+  redirectBack({ companyId, offerId: result.offerId, success: result.success });
 }
 
 async function saveContractOfferActionImpl(
   formData: FormData,
-): Promise<{ success: string }> {
+): Promise<{ success: string; offerId: string }> {
   const input = parseAdminContractForm(formData);
   if (!["draft", "ready"].includes(input.lifecycleStatus)) {
     throw new Error(
@@ -266,7 +267,7 @@ async function saveContractOfferActionImpl(
   };
 
   const { data: commandData, error: commandError } = await supabaseService.rpc(
-    "gridex_upsert_internal_contract_offer",
+    "gridex_upsert_internal_contract_offer_v2",
     {
       p_company_id: companyId,
       p_offer_id: input.id,
@@ -290,6 +291,8 @@ async function saveContractOfferActionImpl(
     };
     contract_product_id?: string;
     contract_product_version_id?: string;
+    tenant_contract_assignment_id?: string;
+    company_id?: string;
     created_new_version?: boolean;
   };
   if (
@@ -299,7 +302,10 @@ async function saveContractOfferActionImpl(
     !command.pricing.price_book_id ||
     !command.pricing.version_label ||
     !command.contract_product_id ||
-    !command.contract_product_version_id
+    !command.contract_product_version_id ||
+    !command.tenant_contract_assignment_id ||
+    command.company_id !== companyId ||
+    command.offer.company_id !== companyId
   ) {
     throw new Error(
       "Avtalskommandot returnerade ofullständiga canonical versionsreferenser.",
@@ -312,6 +318,7 @@ async function saveContractOfferActionImpl(
   revalidateContractSurfaces(companyId);
 
   return {
+    offerId: String(command.offer.id),
     success: command.created_new_version
       ? `Ny immutable avtalsversion skapades i samma produktserie. Prisversion ${command.pricing.version_label}.`
       : input.lifecycleStatus === "published"

@@ -2,10 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { generateBillingUnderlaysForMonth } from '@/lib/billing/underlayEngine'
 import {
-  createBillingExportRun,
-  queueReadyBillingExportRunItems,
-  sendBillingExportRunToPartnerApi,
-} from '@/lib/billing/exportCenter'
+  createInvoiceExportRun,
+  sendInvoiceExportRun,
+} from '@/lib/integrations/billing/invoiceExportCore'
 import { withAutomationLock } from '@/lib/automation/locks'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
@@ -154,7 +153,7 @@ export async function runMonthlyBillingAutomationForCompany(input: {
   const actorUserId = text(input.actorUserId) ?? text(process.env.GRIDEX_AUTOMATION_USER_ID)
   const company = input.companyConfig ?? (await listBillingAutomationCompanies(input.companyId))[0]
   validateCompany(company, input.sendToPartner === true)
-  const targetSystem = text(input.targetSystem) ?? text(company.invoice_export_target_system) ?? 'billing_partner'
+  const targetSystem = text(input.targetSystem) ?? text(company.invoice_export_target_system) ?? 'capway_aptic'
   const exportFormat = text(input.exportFormat) ?? text(company.invoice_export_format) ?? 'json'
   const lockKey = `billing-monthly:${input.companyId}:${periodMonth}`
 
@@ -186,19 +185,47 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           billingMonth: periodMonth,
           createdBy: actorUserId,
         })
-        const exportRun = await createBillingExportRun({
+        if (targetSystem !== 'capway_aptic') {
+          throw new Error(`Fakturaexportprovidern ${targetSystem} saknar canonical invoice_export_items-adapter.`)
+        }
+        if (underlayResult.needsReview > 0) {
+          const status: MonthlyBillingAutomationStatus = 'completed_with_blockers'
+          await updateAutomationRun({
+            automationRunId,
+            companyId: input.companyId,
+            actorUserId,
+            status,
+            totalUnderlays: underlayResult.underlays,
+            totalBlocked: underlayResult.needsReview,
+            totalExported: 0,
+            exportConfirmed: false,
+            metadata: { ...metadataBase, underlayResult, exportRunId: null, sent: null },
+          })
+          return {
+            companyId: input.companyId,
+            billingMonth: periodMonth,
+            status,
+            automationRunId,
+            underlayResult,
+            exportRunId: null,
+            queued: 0,
+            blocked: underlayResult.needsReview,
+            skipped: 0,
+            sent: null,
+          }
+        }
+        const exportRun = await createInvoiceExportRun({
           companyId: input.companyId,
           actorUserId,
-          periodMonth,
-          targetSystem,
-          exportFormat,
-          idempotencyKey: `monthly-billing:${input.companyId}:${periodMonth}:${targetSystem}:${exportFormat}`,
+          billingMonth: periodMonth,
+          provider: 'capway_aptic',
+          environment: process.env.NODE_ENV === 'production' ? 'production' : 'test',
         })
-        const queuedResult = await queueReadyBillingExportRunItems({
-          companyId: input.companyId,
-          actorUserId,
-          exportRunId: exportRun.id,
-        })
+        const queuedResult = {
+          queued: exportRun.itemCount,
+          blocked: 0,
+          skipped: exportRun.skippedAlreadyExported,
+        }
 
         let sent: boolean | null = null
         if (input.sendToPartner === true) {
@@ -206,12 +233,12 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           if ((queuedResult.blocked ?? 0) > 0 || underlayResult.needsReview > 0) {
             throw new Error('Fakturaexport blockerad eftersom fakturaunderlag eller exportposter kräver granskning.')
           }
-          const sendResult = await sendBillingExportRunToPartnerApi({
+          const sendResult = await sendInvoiceExportRun({
             companyId: input.companyId,
             actorUserId,
-            exportRunId: exportRun.id,
+            exportRunId: exportRun.runId,
           })
-          sent = sendResult.sent
+          sent = sendResult.status === 'sent'
           if (!sent) throw new Error('Faktureringsportalen bekräftade inte hela exportkörningen.')
         }
 
@@ -226,7 +253,7 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           totalBlocked: (queuedResult.blocked ?? 0) + underlayResult.needsReview,
           totalExported: queuedResult.queued ?? 0,
           exportConfirmed: sent === true,
-          metadata: { ...metadataBase, underlayResult, queuedResult, exportRunId: exportRun.id, sent },
+          metadata: { ...metadataBase, underlayResult, queuedResult, exportRunId: exportRun.runId, sent },
         })
         return {
           companyId: input.companyId,
@@ -234,7 +261,7 @@ export async function runMonthlyBillingAutomationForCompany(input: {
           status,
           automationRunId,
           underlayResult,
-          exportRunId: exportRun.id,
+          exportRunId: exportRun.runId,
           queued: queuedResult.queued,
           blocked: queuedResult.blocked,
           skipped: queuedResult.skipped,

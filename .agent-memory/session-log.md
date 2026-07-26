@@ -49,3 +49,20 @@
   documentation, OpenAPI and the external integration guide.
 - Verified 303 migrations/208 groups, typecheck, 354 tests, API docs, targeted
   regressions, lint with 0 errors and production build.
+
+## 2026-07-27
+
+- Isolated the contract list from readiness/delete graph failures and added
+  explicit error/empty states plus strict tenant selection.
+- Centralized platform role normalization in TypeScript and PostgreSQL.
+- Enforced legal-identity-only matching and verified portal customer IDs.
+- Routed every supply start through confirmed-only canonical activation.
+- Retained missing-meter-value periods as blocked underlays and made readiness
+  compare exact tenant/customer/contract/meter/period identities.
+- Replaced monthly legacy export with canonical invoice export items and an
+  atomic run/item/invoice-mirror reservation.
+- Added full portal invoice traceability, lazy admin chain tracing, OpenAPI and
+  deploy/rollback documentation.
+- Verified typecheck, lint, API docs, migration checksums, 40 contract tests
+  and 18 fixed-area tests. Focused identity/supply/billing tests pass 49/54;
+  five old fixtures omit required exact identities.

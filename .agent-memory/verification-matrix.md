@@ -29,3 +29,13 @@
 | VM-025 | Contract/company admin alignment | VERIFIED LOCALLY | Tenant links, separate counts, revalidation regression and build |
 | VM-026 | Delete preview execute boundary | STATIC VERIFIED | Authenticated execute revoked in append-only migration |
 | VM-027 | Runtime/OpenAPI auth error parity | VERIFIED | API docs checks and alignment regression |
+| VM-028 | Stable contract list/lazy diagnostics | VERIFIED LOCALLY | Typecheck, lint and cheap final view |
+| VM-029 | Strict tenant/role normalization | STATIC VERIFIED | Central TS/SQL predicates |
+| VM-030 | Legal customer matching | VERIFIED LOCALLY | Matching regressions and final RPC |
+| VM-031 | Exact supply/underlay identity | STATIC VERIFIED | Runtime comparison and DB triggers |
+| VM-032 | Canonical invoice export bridge | STATIC VERIFIED | Monthly runtime and atomic graph RPC |
+| VM-033 | Customer invoice traceability | VERIFIED LOCALLY | Portal select and OpenAPI |
+| VM-034 | Focused contract tests | VERIFIED | 40/40 contract, 18/18 fixed-area |
+| VM-035 | Focused identity/supply/billing tests | PARTIAL | 49/54; 5 legacy fixtures lack exact IDs |
+| VM-036 | Migration history | VERIFIED | 304 files; 209 groups; checksums |
+| VM-037 | Provider webhook round trip | BLOCKED | No sandbox/credentials |

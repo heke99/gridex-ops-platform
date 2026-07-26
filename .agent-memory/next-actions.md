@@ -1,14 +1,16 @@
 # Next actions
 
-1. Apply migration `20260725120000_billing_readiness_and_supply_activation_v1.sql`
-   to an authorized staging Supabase database.
-2. Prove RPC rollback on every forced mid-transaction error, idempotent replay,
-   exactly one `supply.started`, and cross-tenant denial.
-3. Exercise billing configuration snapshot creation and mutation rejection with
-   real tenant/provider settings.
-4. Deploy API/docs version `2026-07-25.1`, then compare the live developer page
-   and both live OpenAPI documents with the local release.
-5. Run provider-backed invoice partial/overdue/credited scenarios and decide
-   when their canonical public webhook names graduate from planned.
-6. Continue remaining PHASE-14–21 end-to-end lifecycle matrices after the
-   database gate is green.
+1. Apply all pending forward migrations in staging, ending with
+   `20260727010000_contract_flow_integrity_completion.sql`.
+2. Run the read-only production checks documented in
+   `docs/contract-flow-integrity-2026-07-27.md`.
+3. Prove rollback, idempotent replay and cross-tenant denial for creation,
+   deletion, onboarding, activation and invoice export graph reservation.
+4. Exercise missing and complete meter-value months and compare the exact
+   supply/customer/contract/meter/period readiness evidence.
+5. Run a signed Capway/Aptic sandbox acknowledgement and duplicate/out-of-order
+   webhook against the same `customer_invoices` row.
+6. Update the five legacy readiness fixtures with complete canonical identities
+   without weakening production checks.
+7. Deploy runtime and API docs, then verify live parity and portal invoice
+   visibility for the correct customer/contract only.

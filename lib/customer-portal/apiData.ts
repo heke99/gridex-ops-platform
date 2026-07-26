@@ -298,7 +298,7 @@ export async function listPortalMeteringValues(context: PortalCustomerContext, r
   ])
 }
 
-const CUSTOMER_INVOICE_SELECT = 'id,customer_id,agreement_id,billing_underlay_id,partner_export_id,partner_invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,source_system,metadata,created_at'
+const CUSTOMER_INVOICE_SELECT = 'id,customer_id,agreement_id,contract_id,customer_contract_id,billing_underlay_id,invoice_export_item_id,canonical_export_item_id,partner_export_id,partner_invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,source_system,metadata,created_at'
 const CUSTOMER_INVOICE_MINIMAL_SELECT = 'id,customer_id,invoice_number,period_start,period_end,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,created_at'
 
 export async function listPortalInvoices(context: PortalCustomerContext, route = '/api/v1/customer/invoices') {

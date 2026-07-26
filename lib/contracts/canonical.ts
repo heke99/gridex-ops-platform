@@ -9,6 +9,7 @@ export type CanonicalContractCatalogRow = {
   valid_to: string | null
   internal_sales_allowed: boolean
   website_publication_allowed: boolean
+  relation_status: 'ok' | 'missing_product_version' | 'missing_product'
   contract_product_version_id: string
   version_number: number
   version_status: string
@@ -113,9 +114,9 @@ export async function listCanonicalContractCatalog(companyId: string): Promise<C
     .from('tenant_contract_assignments')
     .select(`
       id,company_id,status,legal_mode,valid_from,valid_to,internal_sales_allowed,website_publication_allowed,
-      contract_product_versions!inner(
+      contract_product_versions(
         id,version_number,status,customer_type,contract_type,pricing_model,commercial_snapshot,required_legal_modules,
-        contract_products!inner(id,product_code,name,product_category)
+        contract_products(id,product_code,name,product_category)
       ),
       tenant_contract_channels(id,channel,status,valid_from,valid_to,marketing_content),
       contract_publications(id,channel,status,contract_publication_versions(id,version_number,status,valid_from,valid_to,offer_reference,locked_at))
@@ -140,6 +141,11 @@ export async function listCanonicalContractCatalog(companyId: string): Promise<C
       valid_to: nullableText(raw.valid_to),
       internal_sales_allowed: bool(raw.internal_sales_allowed),
       website_publication_allowed: bool(raw.website_publication_allowed),
+      relation_status: !version.id
+        ? 'missing_product_version'
+        : !product.id
+          ? 'missing_product'
+          : 'ok',
       contract_product_version_id: text(version.id),
       version_number: integer(version.version_number),
       version_status: text(version.status, 'draft'),

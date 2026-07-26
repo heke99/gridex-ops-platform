@@ -49,6 +49,11 @@ export type CustomerMatchDecision = {
   matchedBy: CustomerMatchSignal | null
   candidates: CustomerMatchCandidate[]
   needsReview: boolean
+  matchMethod: CustomerMatchSignal | null
+  matchStrength: CustomerMatchStrength | null
+  matchedIdentifiers: CustomerMatchSignal[]
+  conflictingIdentifiers: CustomerMatchSignal[]
+  requiresManualReview: boolean
   /** Structured metadata callers should persist on audit/timeline records. */
   auditMetadata: {
     matcher: 'customer_matching_service_v1'
@@ -244,19 +249,50 @@ export async function matchCustomerIdentity(input: CustomerMatchInput): Promise<
   }
 
   const outcome: CustomerMatchOutcome = decidedOutcome ?? 'no_match'
+  const strongCandidates = candidates.filter((candidate) => candidate.strength === 'strong')
+  const strongCustomerIds = new Set(strongCandidates.map((candidate) => candidate.customer.id))
+  const conflictingIdentifiers = new Set<CustomerMatchSignal>()
+  if (strongCustomerIds.size > 1) {
+    for (const candidate of strongCandidates) conflictingIdentifiers.add(candidate.matchedBy)
+  }
+  if (matchedCustomer) {
+    const requestedPersonal = normalizeIdentityDigits(input.personalNumber)
+    const storedPersonal = normalizeIdentityDigits(matchedCustomer.personal_number)
+    const requestedOrg = normalizeIdentityDigits(input.orgNumber)
+    const storedOrg = normalizeIdentityDigits(matchedCustomer.org_number)
+    if (requestedPersonal && storedPersonal && requestedPersonal !== storedPersonal) {
+      conflictingIdentifiers.add('personal_number')
+    }
+    if (requestedOrg && storedOrg && requestedOrg !== storedOrg) {
+      conflictingIdentifiers.add('org_number')
+    }
+  }
+  const requiresManualReview =
+    outcome === 'ambiguous' || conflictingIdentifiers.size > 0
+  const safeOutcome: CustomerMatchOutcome = requiresManualReview
+    ? 'ambiguous'
+    : outcome
+  const matchedIdentifiers = candidates
+    .filter((candidate) => candidate.customer.id === matchedCustomer?.id)
+    .map((candidate) => candidate.matchedBy)
 
   return {
-    outcome,
-    customer: outcome === 'matched' ? matchedCustomer : null,
-    matchedBy: outcome === 'no_match' ? null : matchedBy,
+    outcome: safeOutcome,
+    customer: safeOutcome === 'matched' ? matchedCustomer : null,
+    matchedBy: safeOutcome === 'no_match' ? null : matchedBy,
     candidates,
-    needsReview: outcome === 'ambiguous',
+    needsReview: requiresManualReview,
+    matchMethod: safeOutcome === 'no_match' ? null : matchedBy,
+    matchStrength: safeOutcome === 'matched' ? 'strong' : null,
+    matchedIdentifiers: [...new Set(matchedIdentifiers)],
+    conflictingIdentifiers: [...conflictingIdentifiers],
+    requiresManualReview,
     auditMetadata: {
       matcher: 'customer_matching_service_v1',
       company_id: input.companyId,
-      outcome,
-      matched_by: outcome === 'no_match' ? null : matchedBy,
-      matched_customer_id: outcome === 'matched' && matchedCustomer ? matchedCustomer.id : null,
+      outcome: safeOutcome,
+      matched_by: safeOutcome === 'no_match' ? null : matchedBy,
+      matched_customer_id: safeOutcome === 'matched' && matchedCustomer ? matchedCustomer.id : null,
       candidate_customer_ids: candidates.map((candidate) => candidate.customer.id),
       evaluated_signals: evaluatedSignals,
       evaluated_at: new Date().toISOString(),

@@ -120,6 +120,11 @@ export type BillingReadinessInput = {
   /** Supply periods covering the requested delivery period. */
   supplyPeriods?: Array<{
     id?: string | null
+    company_id?: string | null
+    customer_id?: string | null
+    contract_id?: string | null
+    customer_contract_id?: string | null
+    metering_point_id?: string | null
     status?: string | null
     start_date?: string | null
     end_date?: string | null
@@ -396,6 +401,17 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
   }
   const activeSupplyPeriods = (input.supplyPeriods ?? []).filter((period) => {
     if (!BILLABLE_SUPPLY_PERIOD_STATUSES.has(clean(period.status)?.toLowerCase() ?? '')) return false
+    if (clean(period.company_id) && clean(period.company_id) !== input.companyId) return false
+    if (clean(period.customer_id) !== input.customerId) return false
+    if (
+      clean(input.contract?.id) &&
+      (clean(period.customer_contract_id) ?? clean(period.contract_id)) !==
+        clean(input.contract?.id)
+    ) return false
+    if (
+      clean(input.meteringPoint?.id) &&
+      clean(period.metering_point_id) !== clean(input.meteringPoint?.id)
+    ) return false
     const supplyStart = isoDate(period.actual_start_date) ?? isoDate(period.start_date)
     const supplyEnd = isoDate(period.actual_end_date) ?? isoDate(period.end_date)
     return Boolean(
@@ -409,6 +425,13 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
     blockers.push({
       code: 'delivery_not_started',
       message: 'Ingen aktiv eller nätägarbekräftad leveransperiod överlappar faktureringsperioden.',
+    })
+  }
+  if (activeSupplyPeriods.length > 1) {
+    blockers.push({
+      code: 'supply_period_ambiguous',
+      message:
+        'Flera leveransperioder matchar exakt samma kund, avtal, mätpunkt och faktureringsperiod.',
     })
   }
 

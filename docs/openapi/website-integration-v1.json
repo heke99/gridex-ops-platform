@@ -603,7 +603,7 @@
           "Customer applications"
         ],
         "summary": "Create a customer application bound to a published offer",
-        "description": "Scope: website_applications.write. Idempotency-Key krävs. OPS committar canonical kund, site, avtal, juridik, workflow och ett persistent customer_application_continuation-jobb atomiskt. Svaret är accepted/automatic_processing; därefter äger OPS juridiska mail, nätägarbegäran, Z01/Z02, Z03/Z04, APERAK, aktivering och webhooks.",
+        "description": "Scope: website_applications.write. Idempotency-Key krävs. Tenant hämtas enbart från API-nyckelns integrationskontext. OPS validerar på nytt en aktiv, okonsumerad quote_reference och committar canonical kund, site, avtal, juridik, workflow och ett persistent customer_application_continuation-jobb atomiskt. Endast exakt juridisk identitet inom samma tenant får återanvända kund; leveranspunkt är aldrig ensam kundnyckel. Svaret är accepted/automatic_processing; därefter äger OPS juridiska mail, nätägarbegäran, Z01/Z02, Z03/Z04, APERAK, aktivering och webhooks.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -638,11 +638,30 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "description": "API-nyckel saknas eller är ogiltig"
+          },
+          "403": {
+            "description": "Scope eller tenantbehörighet saknas"
+          },
+          "404": {
+            "description": "Refererad resurs finns inte inom verifierad tenant"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
           "422": {
             "description": "Application validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Temporärt beroendefel eller canonical resolution/workflow är inte tillgänglig",
             "content": {
               "application/json": {
                 "schema": {

@@ -10,7 +10,7 @@ import {
 } from '@/lib/admin/accessModel'
 import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
 import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
-import { normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
+import { isPlatformAdminRole, normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
 
 export type GuardResult = {
   userId: string
@@ -29,7 +29,6 @@ type UserRoleRpcRow = string | {
   name?: string | null
 }
 
-const PLATFORM_ADMIN_ROLES = new Set(['super_admin', 'superadmin', 'platform_admin'])
 const COMPANY_ADMIN_MEMBERSHIP_ROLES = new Set([
   'owner',
   'admin',
@@ -82,7 +81,7 @@ export function isPlatformAdminContext(input: Pick<GuardResult, 'roles' | 'permi
   // but that must never unlock /admin/companies, /admin/users, /admin/roles or /admin/platform/*.
   return input.roles.some((role) => {
     const normalized = normalizeRoleKey(role)
-    return Boolean(normalized && PLATFORM_ADMIN_ROLES.has(normalized))
+    return isPlatformAdminRole(normalized)
   })
 }
 
@@ -121,7 +120,7 @@ const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promis
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
 
   const isAdmin =
-    (permissions.length > 0 || roles.some((role) => PLATFORM_ADMIN_ROLES.has(role))) &&
+    (permissions.length > 0 || roles.some(isPlatformAdminRole)) &&
     !(roles.length === 1 && roles[0] === 'customer')
 
   const base = {

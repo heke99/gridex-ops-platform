@@ -1,62 +1,57 @@
 # Current task
 
-Last updated: 2026-07-26T23:45:00+02:00
-Branch: UNVERIFIED (uploaded archive excludes `.git`)
+Last updated: 2026-07-27T17:20:00+02:00  
+Branch: UNVERIFIED (uploaded archive excludes `.git`)  
 Last verified commit: null
-Working tree status: patch tracking is byte-diffed against the uploaded ZIP
 
 ## Active phase
 
-PHASE-27 — contract/admin/API alignment.
+PHASE-28 — complete contract-flow integrity.
 
 ## Active work item
 
-WP-027 — apply and transaction-test the final contract/admin/API alignment
+WP-028 — apply and transaction-test the canonical contract-flow integrity
 migration in an authorized Supabase environment.
 
 ## Completed release scope
 
-- granular resolver capabilities/blockers;
-- canonical current-market, quote and quote-validation requests;
-- explicit public application DTO and public-ID policy;
-- switch creation/dispatch split;
-- real invoice-readiness inputs and immutable configuration snapshots;
-- invoice-only portal resources;
-- exact hourly/quarter-hour source selection;
-- authenticated reconciliation cron and cron-tree test;
-- atomic supply activation RPC and transactional outboxes;
-- truthful active/internal/planned event documentation;
-- OpenAPI/docs/runtime version `2026-07-25.1`.
-- terminal contract closure with dependent-channel cleanup and audit/outbox;
-- readiness-gated tenant activation and precondition-gated tenant closure;
-- tenant-status enforcement for integration API clients;
-- removal of competing direct company-status mutations.
-- qualified final delete/close SQL, backfill cleanup, quote-aware preview,
-  safe legacy deletion, isolated bulk cleanup and terminal list pagination.
-- service-only delete preview, final tenant lifecycle qualification, tenant-
-  preserving admin navigation/statistics and canonical API auth/error docs.
+- cheap failure-isolated contract list and lazy single-offer diagnostics;
+- strict explicit tenant selection and centralized TS/PostgreSQL role aliases;
+- atomic contract creation result verification and canonical deletion command;
+- legal-identity-only customer matching plus portal identity verification;
+- same-customer contract/site/meter/supply/underlay/export/invoice invariants;
+- confirmed-only canonical supply activation for every start event;
+- blocked monthly underlays for missing meter values;
+- exact company/customer/contract/meter/period invoice readiness;
+- one monthly canonical `invoice_export_items` path;
+- atomic run/item/draft-invoice reservation before provider send;
+- idempotent provider updates of the same customer invoice;
+- full customer portal invoice contract/export references;
+- tenant-scoped lazy end-to-end admin tracing;
+- aligned OpenAPI, deployment checks and rollback documentation.
 
 ## Verification performed
 
-`npm run typecheck`, `npm test -- --testTimeout=15000` (354/354),
-`npm run api:docs`, `npm run db:migrations:check`, `npm run lint` (0 errors)
-and `npm run build` all pass locally. Dedicated contract/tenant lifecycle and
-delete-graph regressions pass. The new migration is statically verified but
-requires PostgreSQL application.
+`npm run typecheck`, `npm run lint -- --quiet`, `npm run api:docs`,
+`npm run db:migrations:check`, the 40-test contract suite and the 18-test
+fixed-area suite pass. The focused customer/supply/billing suite passes 49/54;
+five old readiness fixtures lack exact identity fields and now correctly
+block. The new migration requires PostgreSQL application.
 
 ## Exact next action
 
-Apply pending forward migrations in a staging Supabase project, then run
-`npm run gridex:contract-delete-graph-post-apply` followed by transactional
-delete/bulk/two-tenant tests. The newest migration is
-`20260726230000_contract_admin_api_alignment.sql`.
+Apply pending forward migrations in staging, ending with
+`20260727010000_contract_flow_integrity_completion.sql`. Run the read-only
+checks in `docs/contract-flow-integrity-2026-07-27.md`, then transaction-test
+two-tenant creation, matching, activation, underlay, export, webhook and portal
+visibility.
 
 ## Blockers
 
-No local Supabase CLI, Docker/database runtime or authorized remote database is
-available. Git branch/commit provenance is also unavailable.
+No local Supabase CLI, PostgreSQL/Docker runtime, provider credentials or
+authorized remote database is available. Git provenance is unavailable.
 
 ## Do not repeat
 
-Do not redo the repository inventory or P0/P1 static implementation. Resume
-from database apply verification and production deployment parity.
+Do not weaken exact readiness to satisfy legacy fixtures. Resume from database
+apply verification and provider sandbox/production parity.

@@ -474,7 +474,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   if (meteringPointIds.length > 0) {
     const supplyResult = await supabaseService
       .from('customer_supply_periods')
-      .select('id,company_id,customer_id,metering_point_id,contract_id,status,start_date,end_date,actual_start_date,actual_end_date')
+      .select('id,company_id,customer_id,metering_point_id,contract_id,customer_contract_id,status,start_date,end_date,actual_start_date,actual_end_date')
       .eq('company_id', input.companyId)
       .in('metering_point_id', meteringPointIds)
       .lte('start_date', bounds.end)
@@ -492,7 +492,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     const contractId = typeof underlay.contract_id === 'string' ? underlay.contract_id : ''
     const meterId = typeof underlay.metering_point_id === 'string' ? underlay.metering_point_id : ''
     const contract = contractsById.get(contractId) ?? null
-    const customerId = String(contract?.customer_id ?? underlay.customer_id ?? '')
+    const customerId = String(underlay.customer_id ?? '')
     const customer = customerId ? customersById.get(customerId) ?? null : null
     const siteId = String(contract?.customer_site_id ?? contract?.site_id ?? '')
     const site = siteId ? sitesById.get(siteId) ?? null : null
@@ -513,7 +513,19 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
         site_id: String(meter.customer_site_id ?? meter.site_id ?? ''),
         meter_point_id: meterPointIdentity,
       } : null,
-      supplyPeriods: (supplyPeriodsByMeter.get(meterId) ?? []) as Array<{ id?: string | null; status?: string | null; start_date?: string | null; end_date?: string | null; actual_start_date?: string | null; actual_end_date?: string | null }>,
+      supplyPeriods: (supplyPeriodsByMeter.get(meterId) ?? []) as Array<{
+        id?: string | null
+        company_id?: string | null
+        customer_id?: string | null
+        contract_id?: string | null
+        customer_contract_id?: string | null
+        metering_point_id?: string | null
+        status?: string | null
+        start_date?: string | null
+        end_date?: string | null
+        actual_start_date?: string | null
+        actual_end_date?: string | null
+      }>,
       billingPeriod: {
         start: typeof underlay.billing_period_start === 'string' ? underlay.billing_period_start : bounds.start,
         end: typeof underlay.billing_period_end === 'string' ? underlay.billing_period_end : bounds.end,

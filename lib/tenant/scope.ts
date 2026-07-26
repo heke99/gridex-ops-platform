@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import {
   ADMIN_SELECTED_COMPANY_COOKIE,
 } from '@/lib/admin/navigationPreferences'
-import { normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
+import { isPlatformAdminRole, normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type CompanySummary = {
@@ -66,8 +66,6 @@ type UserRoleRpcRow = string | {
   name?: string | null
 }
 
-const PLATFORM_ADMIN_ROLES = new Set(['super_admin', 'superadmin', 'platform_admin'])
-
 function roleFromRpcRow(row: UserRoleRpcRow): string | null {
   if (typeof row === 'string') return normalizeRoleKey(row)
   if (!row || typeof row !== 'object') return null
@@ -80,7 +78,7 @@ async function isPlatformAdminUser(userId: string): Promise<boolean> {
 
   return (data as UserRoleRpcRow[])
     .map(roleFromRpcRow)
-    .some((role) => Boolean(role && PLATFORM_ADMIN_ROLES.has(role)))
+    .some(isPlatformAdminRole)
 }
 
 async function getSelectedMembershipCompany(

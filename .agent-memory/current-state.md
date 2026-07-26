@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-07-26T23:45:00+02:00
+Last updated: 2026-07-27T17:20:00+02:00
 
 - PHASE-00: VERIFIED — permanent memory, Cursor rules and superseded legacy
   task marker are installed.
@@ -31,6 +31,15 @@ Last updated: 2026-07-26T23:45:00+02:00
 - PHASE-27: VERIFIED_LOCALLY — tenant lifecycle `valid_to`, preview execute
   privileges, company-scoped contract navigation/statistics and API auth/error
   documentation are aligned. Database application remains pending.
+- PHASE-28: IMPLEMENTED/STATIC_VERIFIED — the contract list is cheap and
+  failure-isolated, explicit tenant selection and role normalization are
+  strict, legal-identity-only customer matching is enforced, supply activation
+  accepts only confirmed states, no-meter-value underlays are retained, exact
+  readiness is enforced and monthly billing reserves canonical export items
+  plus invoice mirrors atomically.
+- PHASE-28 verification: 304 migrations/209 version groups, typecheck, lint and
+  API documentation pass. Focused regressions pass 49/54; five legacy
+  readiness fixtures omit the newly mandatory exact identities.
 
 Repository provenance remains unavailable because the uploaded archive excludes
 `.git`. The live deployed documentation observed during this task is older than

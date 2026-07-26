@@ -299,8 +299,36 @@ export async function applyInboundBusinessStateMachine(input: {
   }
 
   if (outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started') {
-    const supplyPeriodId = await ensureSupplyPeriodFromSwitch({ message: input.message, status: 'active' })
-    if (supplyPeriodId) updated.push('customer_supply_periods')
+    if (!input.matchedSwitchRequestId) {
+      throw new Error('regulated_supply_contract_and_switch_required')
+    }
+    const confirmed = await strictUpdate('supplier_switch_requests', {
+      status: 'confirmed',
+      external_reference: input.message.external_reference ?? undefined,
+      inbound_z04_message_id: input.message.id,
+      confirmed_start_date:
+        dateOnly(readPayloadRecord(input.message).actual_start_date)
+        ?? dateOnly(readPayloadRecord(input.message).start_date)
+        ?? undefined,
+      updated_at: new Date().toISOString(),
+    }, { id: input.matchedSwitchRequestId, company_id: companyId })
+    if (!confirmed) throw new Error('regulated_supply_switch_confirmation_failed')
+    await activateCustomerSupplyAtomically({
+      message: input.message,
+      switchRequestId: input.matchedSwitchRequestId,
+      actorUserId: input.actorUserId,
+    })
+    supplyActivationCommitted = true
+    updated.push(
+      'supplier_switch_requests',
+      'customer_supply_periods',
+      'customer_contracts',
+      'customer_application_workflows',
+      'website_customer_applications',
+      'domain_events',
+      'customer_operation_jobs',
+      'webhook_deliveries',
+    )
   }
 
   if (outcome === 'supply_terminated') {

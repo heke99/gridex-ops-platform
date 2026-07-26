@@ -121,12 +121,12 @@ function statusBadge(company: GovernanceCompany) {
 }
 
 type CompanyOperationalStats = {
-  newCustomersThisMonth: number
-  closedCustomersThisMonth: number
-  openWithdrawals: number
-  queuedEmails: number
-  failedEmails: number
-  sentEmailsThisMonth: number
+  newCustomersThisMonth: number | string
+  closedCustomersThisMonth: number | string
+  openWithdrawals: number | string
+  queuedEmails: number | string
+  failedEmails: number | string
+  sentEmailsThisMonth: number | string
 }
 
 
@@ -226,11 +226,23 @@ async function safeCompanyCount(
       else query = query.eq(filter.column, filter.value as string | boolean)
     }
     const { count, error } = await query
-    if (error) return 0
-    return count ?? 0
-  } catch {
-    return 0
+    if (error) return { ok: false as const, errorCode: error.code ?? 'count_failed' }
+    return { ok: true as const, count: count ?? 0 }
+  } catch (error) {
+    return {
+      ok: false as const,
+      errorCode:
+        (error as { code?: string } | null)?.code ?? 'count_failed',
+    }
   }
+}
+
+function countDisplay(
+  result:
+    | { ok: true; count: number }
+    | { ok: false; errorCode: string },
+): number | string {
+  return result.ok ? result.count : `Kunde inte hämtas (${result.errorCode})`
 }
 
 async function getCompanyOperationalStats(companyId: string): Promise<CompanyOperationalStats> {
@@ -253,7 +265,14 @@ async function getCompanyOperationalStats(companyId: string): Promise<CompanyOpe
     ]),
   ])
 
-  return { newCustomersThisMonth, closedCustomersThisMonth, openWithdrawals, queuedEmails, failedEmails, sentEmailsThisMonth }
+  return {
+    newCustomersThisMonth: countDisplay(newCustomersThisMonth),
+    closedCustomersThisMonth: countDisplay(closedCustomersThisMonth),
+    openWithdrawals: countDisplay(openWithdrawals),
+    queuedEmails: countDisplay(queuedEmails),
+    failedEmails: countDisplay(failedEmails),
+    sentEmailsThisMonth: countDisplay(sentEmailsThisMonth),
+  }
 }
 
 
@@ -275,7 +294,7 @@ async function getCompanyBillingPartnerCount(companyId: string): Promise<number>
     .select('id', { count: 'exact', head: true })
     .eq('company_id', companyId)
 
-  if (error) return 0
+  if (error) throw error
   return count ?? 0
 }
 

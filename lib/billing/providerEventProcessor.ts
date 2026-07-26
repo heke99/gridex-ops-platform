@@ -147,8 +147,12 @@ async function upsertPortalInvoice(input: {
   const status = portalInvoiceStatus(input.state)
   if (!status) return
   const providerGuid = text(input.item.provider_invoice_guid)
+  const exportItemId = text(input.item.id)
   const customerId = text(input.item.customer_id)
-  if (!providerGuid || !customerId) throw new Error('Providerfakturan saknar kund- eller provideridentitet.')
+  const customerContractId = text(input.item.customer_contract_id)
+  if (!providerGuid || !exportItemId || !customerId || !customerContractId) {
+    throw new Error('Providerfakturan saknar canonical export-, kund-, avtals- eller provideridentitet.')
+  }
   const metadata = object(input.item.metadata)
   const billingMonth = text(metadata.billing_month)
   const paidAt = input.state === 'paid'
@@ -159,19 +163,26 @@ async function upsertPortalInvoice(input: {
     .upsert({
       company_id: input.companyId,
       customer_id: customerId,
+      customer_contract_id: customerContractId,
+      contract_id: customerContractId,
       billing_underlay_id: text(input.item.billing_underlay_id),
+      partner_export_id: exportItemId,
+      invoice_export_item_id: exportItemId,
+      canonical_export_item_id: exportItemId,
       partner_invoice_reference: providerGuid,
       invoice_number: text(input.item.provider_invoice_number),
-      period_start: billingMonth ? `${billingMonth}-01` : null,
+      period_start: text(input.item.period_start) ?? (billingMonth ? `${billingMonth}-01` : null),
+      period_end: text(input.item.period_end),
+      total_kwh: number(input.item.total_kwh),
       amount_ex_vat: number(input.item.amount_ex_vat),
       vat_amount: number(input.item.vat_amount),
       amount_inc_vat: number(input.item.amount_inc_vat),
       status,
       ...(paidAt ? { paid_at: paidAt } : {}),
-      source_system: 'billing_provider_webhook',
+      source_system: 'canonical_invoice_export',
       raw_payload: input.payload,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'company_id,partner_invoice_reference' })
+    }, { onConflict: 'company_id,invoice_export_item_id' })
     .select('id')
     .maybeSingle()
   if (response.error) throw response.error
@@ -207,6 +218,32 @@ async function processSingleEvent(event: JsonRecord, token: string): Promise<Pro
   }
 
   const payload = object(event.payload)
+  const payloadAmount =
+    number(payload.amount_inc_vat)
+    ?? number(payload.amountIncVat)
+    ?? number(payload.total_amount)
+  const expectedAmount = number(item.amount_inc_vat)
+  const payloadCurrency = text(payload.currency)
+  const expectedCurrency = text(item.currency) ?? 'SEK'
+  if (
+    (payloadAmount !== null &&
+      expectedAmount !== null &&
+      Math.abs(payloadAmount - expectedAmount) > 0.01) ||
+    (payloadCurrency && payloadCurrency.toUpperCase() !== expectedCurrency.toUpperCase())
+  ) {
+    await markEvent({
+      eventId,
+      companyId,
+      token,
+      status: 'needs_review',
+      reason: 'provider_amount_or_currency_mismatch',
+    })
+    return {
+      eventId,
+      outcome: 'needs_review',
+      reason: 'provider_amount_or_currency_mismatch',
+    }
+  }
   const state = resolveProviderInvoiceState(text(event.event_type), payload)
   if (state === 'unknown') {
     await markEvent({ eventId, companyId, token, status: 'needs_review', reason: 'unknown_provider_state' })

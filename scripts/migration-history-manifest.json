@@ -315,6 +315,7 @@
     "20260726090000_contract_create_delete_runtime_alignment.sql": "50a448c4e7819493c5871a90e0dd5895885020f226b53f094fa5fdf2d5f9f48c",
     "20260726140000_contract_deletion_graph_completion.sql": "bc8349365c7f75c99ab8a7d72e647e45d07e2370d54817de485a8a3abc4be066",
     "20260726230000_contract_admin_api_alignment.sql": "44db32789d9d594da78dd968c4e22aaf0198f8e3064b66318f4e91bbebd843fa",
+    "20260727010000_contract_flow_integrity_completion.sql": "392d9e90c4fcec6752644fb75721ed7a113c3dcd2cb68d3185e3bfd44a065c4f",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

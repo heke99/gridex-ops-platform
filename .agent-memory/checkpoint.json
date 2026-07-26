@@ -1,11 +1,11 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-07-26T23:45:00+02:00",
+  "updated_at": "2026-07-27T17:20:00+02:00",
   "branch": null,
   "last_verified_commit": null,
-  "active_phase": "PHASE-27",
-  "active_task": "WP-027",
-  "active_subtask": "Apply and transaction-test the contract/admin/API alignment migration in staging",
+  "active_phase": "PHASE-28",
+  "active_task": "WP-028",
+  "active_subtask": "Apply and transaction-test contract flow integrity in staging",
   "status": "BLOCKED_BY_ENVIRONMENT",
   "completed_tasks": [
     "WP-000",
@@ -15,26 +15,31 @@
     "WP-005",
     "WP-006",
     "WP-007",
-    "WP-025"
+    "WP-025",
+    "WP-026",
+    "WP-027"
   ],
   "implemented_not_database_verified": [
     "WP-013 atomic supply activation",
     "WP-016 immutable billing configuration evidence",
     "WP-025 contract and tenant lifecycle completion",
     "WP-026 canonical contract deletion graph",
-    "WP-027 contract/admin/API alignment"
+    "WP-027 contract/admin/API alignment",
+    "WP-028 complete contract-flow integrity"
   ],
   "active_blockers": [
     "Uploaded archive excludes Git metadata",
-    "Supabase CLI and authorized database are unavailable",
-    "Production contract requires deployment"
+    "Supabase CLI/PostgreSQL and authorized database are unavailable",
+    "Provider sandbox and credentials are unavailable",
+    "Production verification requires deployment"
   ],
   "migrations_added": [
     "supabase/migrations/20260725120000_billing_readiness_and_supply_activation_v1.sql",
     "supabase/migrations/20260726010000_contract_tenant_lifecycle_completion.sql",
     "supabase/migrations/20260726090000_contract_create_delete_runtime_alignment.sql",
     "supabase/migrations/20260726140000_contract_deletion_graph_completion.sql",
-    "supabase/migrations/20260726230000_contract_admin_api_alignment.sql"
+    "supabase/migrations/20260726230000_contract_admin_api_alignment.sql",
+    "supabase/migrations/20260727010000_contract_flow_integrity_completion.sql"
   ],
   "verification": [
     {
@@ -43,41 +48,41 @@
       "evidence": "npm run typecheck"
     },
     {
-      "name": "tests",
+      "name": "lint",
       "status": "VERIFIED",
-      "evidence": "54 files, 354 tests passed"
+      "evidence": "npm run lint -- --quiet"
     },
     {
-      "name": "api documentation",
+      "name": "API documentation",
       "status": "VERIFIED",
-      "evidence": "all api:docs checks passed at 2026-07-25.1"
+      "evidence": "npm run api:docs at 2026-07-25.1"
     },
     {
       "name": "migration integrity",
       "status": "VERIFIED",
-      "evidence": "303 files, 208 groups, checksums verified"
+      "evidence": "304 files, 209 groups, checksums verified"
     },
     {
-      "name": "contract deletion graph",
-      "status": "STATIC_VERIFIED",
-      "evidence": "Dedicated regression passed; PostgreSQL parser accepted 32 statements"
-    },
-    {
-      "name": "lint",
+      "name": "focused contract tests",
       "status": "VERIFIED",
-      "evidence": "0 errors, 125 existing warnings"
+      "evidence": "40/40 contract and 18/18 fixed-area tests"
     },
     {
-      "name": "production build",
-      "status": "VERIFIED",
-      "evidence": ".next/BUILD_ID generated"
+      "name": "focused identity/supply/billing tests",
+      "status": "PARTIAL",
+      "evidence": "49/54; 5 legacy readiness fixtures omit exact identities"
+    },
+    {
+      "name": "PostgreSQL apply/provider round trip",
+      "status": "BLOCKED",
+      "evidence": "No database or provider sandbox"
     }
   ],
-  "next_action": "Apply pending forward migrations in staging, run the delete-graph post-apply check and prove tenant-close, execute-privilege, quote/backfill/FK/bulk/two-tenant behavior",
-  "resume_from": "supabase/migrations/20260726230000_contract_admin_api_alignment.sql",
+  "next_action": "Apply the final migration in staging and transaction-test two-tenant creation, matching, supply, underlay, export, webhook and portal visibility",
+  "resume_from": "supabase/migrations/20260727010000_contract_flow_integrity_completion.sql",
   "context_notes": [
-    "Do not repeat repository inventory",
     "Do not treat static migration checks as a database apply test",
-    "Deploy runtime and migration together before live contract verification"
+    "Do not weaken exact readiness for legacy fixtures",
+    "Deploy runtime and migration together"
   ]
 }

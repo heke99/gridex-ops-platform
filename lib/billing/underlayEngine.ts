@@ -454,14 +454,67 @@ export async function generateBillingUnderlaysForMonth(input: {
 
     for (const entry of overlappingPeriods) {
       const period = entry.period;
+      const customerId = text(period.customer_id);
+      const contractId = text(period.contract_id);
       const clippedRows = (valuesByMeter.get(meteringPointId) ?? [])
         .map((row) => clipMeteringRowToSegment(row, entry.start, entry.end))
         .filter((row): row is JsonRecord => Boolean(row));
-      if (clippedRows.length === 0) continue;
+      if (clippedRows.length === 0) {
+        const issues = readinessIssues([
+          "missing_meter_values: Mätvärden saknas i fakturasegmentet.",
+        ]);
+        pendingStores.push({
+          underlay: {
+            customer_id: customerId,
+            site_id:
+              text(period.customer_site_id) ?? text(period.site_id),
+            customer_site_id:
+              text(period.customer_site_id) ?? text(period.site_id),
+            metering_point_id: meteringPointId,
+            supply_period_id: text(period.id),
+            contract_id: contractId,
+            customer_contract_id: contractId,
+            energy_direction: "consumption",
+            settlement_type: "invoice",
+            underlay_month: bounds.month,
+            underlay_year: bounds.year,
+            billing_period_start: entry.start,
+            billing_period_end: entry.end,
+            status: "pending",
+            readiness_status: "blocked",
+            readiness_issues: issues,
+            billing_block_reason: "missing_meter_values",
+            total_kwh: 0,
+            currency: "SEK",
+            source_system: "normalized_metering_values",
+            source_meter_value_count: 0,
+            missing_values_count: 1,
+            payload: {
+              billing_month: input.billingMonth,
+              source_row_ids: [],
+              supply_period_id: text(period.id),
+              generated_from: "normalized_metering_values",
+              blocker_code: "missing_meter_values",
+              timezone: "Europe/Stockholm",
+            },
+            pricing_snapshot: {},
+            received_at: new Date().toISOString(),
+            validated_at: null,
+          },
+          items: [],
+          result: {
+            status: "needs_review",
+            sourceTable: "normalized_metering_values",
+            sourceRows: 0,
+            warnings: [
+              "missing_meter_values: Mätvärden saknas i fakturasegmentet.",
+            ],
+          },
+        });
+        continue;
+      }
       clippedRows.forEach((row) => coveredValueIds.add(String(row.id)));
 
-      const customerId = text(period.customer_id);
-      const contractId = text(period.contract_id);
       const contract = await loadContract(input.companyId, contractId);
       const snapshot = await loadSnapshot(
         input.companyId,
@@ -670,6 +723,7 @@ export async function generateBillingUnderlaysForMonth(input: {
           metering_point_id: meteringPointId,
           supply_period_id: text(period.id),
           contract_id: contractId,
+          customer_contract_id: contractId,
           pricing_snapshot_id: text(snapshot?.id),
           price_plan_id: pricePlanId,
           price_plan_version_id: pricePlanVersionId,

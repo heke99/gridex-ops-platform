@@ -4690,6 +4690,7 @@ async function dispatchInitialWebsiteApplicationEmails(input: {
 async function loadExistingIdentity(
   companyId: string,
   externalCustomerId: string,
+  customerInput: ApplicationInput["customer"],
 ) {
   const { data, error } = await supabaseService
     .from("customer_portal_identities")
@@ -4703,11 +4704,78 @@ async function loadExistingIdentity(
     .maybeSingle();
 
   if (error) throw error;
-  return data as {
+  const identity = data as {
     id: string;
     customer_id: string | null;
     status: string;
   } | null;
+  if (!identity?.customer_id) return identity;
+
+  const customerResult = await supabaseService
+    .from("customers")
+    .select("id,customer_type,personal_number,org_number,email")
+    .eq("company_id", companyId)
+    .eq("id", identity.customer_id)
+    .maybeSingle();
+  if (customerResult.error) throw customerResult.error;
+  const customer = customerResult.data as
+    | {
+        id: string;
+        customer_type?: string | null;
+        personal_number?: string | null;
+        org_number?: string | null;
+        email?: string | null;
+      }
+    | null;
+  if (!customer) {
+    throw new WebsiteApplicationError({
+      message: "Portalidentiteten pekar på en kund som inte finns i aktuell tenant.",
+      status: 409,
+      code: "portal_identity_customer_invalid",
+      stage: "customer_lookup",
+    });
+  }
+
+  const requestedLegalId =
+    customerInput.customer_type === "business"
+      ? digits(customerInput.org_number)
+      : digits(customerInput.personal_number);
+  const storedLegalId =
+    customerInput.customer_type === "business"
+      ? digits(customer.org_number)
+      : digits(customer.personal_number);
+  const requestedEmail = normalizedEmail(customerInput.email);
+  const storedEmail = normalizedEmail(customer.email);
+  const conflicts = [
+    ...(customer.customer_type &&
+    customer.customer_type !== customerInput.customer_type
+      ? ["customer_type"]
+      : []),
+    ...(!requestedLegalId || !storedLegalId || requestedLegalId !== storedLegalId
+      ? [
+          customerInput.customer_type === "business"
+            ? "org_number"
+            : "personal_number",
+        ]
+      : []),
+    ...(requestedEmail && storedEmail && requestedEmail !== storedEmail
+      ? ["email"]
+      : []),
+  ];
+  if (identity.status !== "active" || conflicts.length > 0) {
+    throw new WebsiteApplicationError({
+      message:
+        "Portalidentiteten motsvarar inte ansökans verifierbara kundidentitet.",
+      status: 409,
+      code: "portal_identity_mismatch",
+      stage: "customer_lookup",
+      details: {
+        conflicting_identifiers: conflicts,
+        requires_manual_review: true,
+      },
+    });
+  }
+  return identity;
 }
 
 async function upsertPortalIdentity(input: {
@@ -4740,8 +4808,14 @@ async function upsertPortalIdentity(input: {
     last_resolved_at: now,
     email: input.email ?? null,
     status: "active",
-    match_strength: "strong",
-    match_method: "website_application",
+    match_strength:
+      input.applicationId && (input.authUserId || input.customerPortalUserId)
+        ? "strong"
+        : "medium",
+    match_method:
+      input.applicationId && (input.authUserId || input.customerPortalUserId)
+        ? "verified_portal_and_legal_identity"
+        : "website_application_legal_identity",
     linked_at: now,
     metadata: {
       source: "website_customer_applications",
@@ -5019,7 +5093,9 @@ type CreateApplicationRowInput = {
   pricePlanVersionId?: string | null;
   contractPriceSnapshotId?: string | null;
   publicContractOfferId?: string | null;
+  contractProductVersionId?: string | null;
   offerReference?: string | null;
+  quoteReference?: string | null;
   payload: ApplicationInput | Record<string, unknown>;
   rawPayload?: unknown;
   responsePayload: Record<string, unknown>;
@@ -5159,6 +5235,9 @@ async function syncExternalContractIntakeRow(
       cleanUuid(contract.contract_offer_id),
     public_contract_offer_id: input.publicContractOfferId ?? null,
     offer_reference: input.offerReference ?? null,
+    quote_reference: clean(
+      (input.payload as { quote_reference?: unknown }).quote_reference,
+    ),
     price_plan_id: cleanUuid(input.pricePlanId),
     price_plan_version_id: cleanUuid(input.pricePlanVersionId),
     requested_start_date:
@@ -5209,7 +5288,9 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     price_plan_version_id: input.pricePlanVersionId ?? null,
     contract_price_snapshot_id: input.contractPriceSnapshotId ?? null,
     public_contract_offer_id: input.publicContractOfferId ?? null,
+    contract_product_version_id: input.contractProductVersionId ?? null,
     offer_reference: input.offerReference ?? null,
+    quote_reference: input.quoteReference ?? null,
     external_customer_id: input.externalCustomerId,
     external_account_id: input.externalAccountId ?? null,
     customer_number: input.customer?.customer_number ?? null,
@@ -6185,6 +6266,7 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
       contract_offer_id: selected.internalContractOfferId,
       public_contract_offer_id: selected.publicContractOfferId,
       offer_reference: publicOfferReference(input.publicOffer),
+      quote_reference: input.websiteQuote?.quote_reference ?? null,
       legal_versions_snapshot: legalSnapshot,
       signature_snapshot: {},
       is_distance_agreement: true,
@@ -6811,7 +6893,11 @@ export async function processWebsiteCustomerApplication(input: {
     applicationRowId = reservation.application.id;
 
     existingIdentity = await stage("customer_lookup", () =>
-      loadExistingIdentity(input.client.company_id, externalCustomerId),
+      loadExistingIdentity(
+        input.client.company_id,
+        externalCustomerId,
+        body.customer,
+      ),
     );
 
     const selectedOfferReference =
@@ -7371,7 +7457,11 @@ export async function processWebsiteCustomerApplication(input: {
           null,
         contractPriceSnapshotId: contract?.contract_price_snapshot_id ?? null,
         publicContractOfferId: publicOffer?.id ?? null,
+        contractProductVersionId:
+          publicOffer?.contract_product_version_id ?? null,
         offerReference: selectedOfferReference,
+        quoteReference:
+          websiteQuote?.quote_reference ?? selectedQuoteReference ?? null,
         payload: body,
         rawPayload: input.rawBody,
         responsePayload,
@@ -7751,6 +7841,19 @@ export async function processWebsiteCustomerApplication(input: {
             clean(body.contract?.price_plan_version_id) ??
             null,
           contractPriceSnapshotId: contract?.contract_price_snapshot_id ?? null,
+          publicContractOfferId: publicOffer?.id ?? null,
+          contractProductVersionId:
+            publicOffer?.contract_product_version_id ?? null,
+          offerReference:
+            (publicOffer ? publicOfferReference(publicOffer) : null) ??
+            clean(body.offer_reference) ??
+            clean(body.contract?.offer_reference) ??
+            null,
+          quoteReference:
+            websiteQuote?.quote_reference ??
+            clean(body.quote_reference) ??
+            clean(body.contract?.quote_reference) ??
+            null,
           payload: body,
           rawPayload: input.rawBody,
           responsePayload: {
