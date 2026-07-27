@@ -7,62 +7,32 @@
 
 begin;
 
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto with schema extensions;
+set local search_path = public, extensions, pg_catalog, pg_temp;
 
 -- ---------------------------------------------------------------------------
--- 1. A live offer slug is unique inside one tenant. Archived offers retain
---    their historical slug and no longer reserve it.
+-- 1. Slug is a presentation and lookup field, never canonical offer identity.
+--    Separate live, closed and archived offers may therefore share a slug.
+--    Identity is carried by offer_reference and the canonical UUID graph.
 -- ---------------------------------------------------------------------------
 lock table public.contract_offers in share row exclusive mode;
 
-do $$
-declare
-  v_duplicates jsonb;
-begin
-  select jsonb_agg(
-    jsonb_build_object(
-      'company_id', duplicate.company_id,
-      'slug', duplicate.slug_key,
-      'offer_ids', duplicate.offer_ids
-    )
-    order by duplicate.company_id, duplicate.slug_key
-  )
-  into v_duplicates
-  from (
-    select
-      company_id,
-      lower(btrim(slug)) as slug_key,
-      array_agg(id order by created_at, id) as offer_ids
-    from public.contract_offers
-    where company_id is not null
-      and nullif(btrim(slug), '') is not null
-      and archived_at is null
-      and lifecycle_status <> 'archived'
-    group by company_id, lower(btrim(slug))
-    having count(*) > 1
-  ) duplicate;
+alter table public.contract_offers
+  drop constraint if exists contract_offers_slug_key;
 
-  if v_duplicates is not null then
-    raise exception using
-      errcode = '23505',
-      message = 'contract_offer_live_slug_duplicates_block_repair',
-      detail = v_duplicates::text,
-      hint = 'Archive or explicitly rename duplicate live offers before retrying the migration.';
-  end if;
-end
-$$;
-
+drop index if exists public.contract_offers_slug_key;
+drop index if exists public.ux_contract_offers_slug;
+drop index if exists public.contract_offers_slug_uidx;
 drop index if exists public.contract_offers_company_live_slug_uidx;
+drop index if exists public.contract_offers_company_slug_lookup_idx;
+drop index if exists public.contract_offers_company_slug_idx;
 
-create unique index contract_offers_company_live_slug_uidx
+create index contract_offers_company_slug_idx
   on public.contract_offers(company_id, lower(btrim(slug)))
-  where company_id is not null
-    and nullif(btrim(slug), '') is not null
-    and archived_at is null
-    and lifecycle_status <> 'archived';
+  where nullif(btrim(slug), '') is not null;
 
-comment on index public.contract_offers_company_live_slug_uidx is
-  'Final canonical invariant: one normalized live offer slug per company; archived offers do not reserve the slug.';
+comment on index public.contract_offers_company_slug_idx is
+  'Non-unique tenant-scoped lookup index. Slug is not canonical contract identity and may be reused by separate, closed or archived offers.';
 
 -- ---------------------------------------------------------------------------
 -- 2. Preserve evidence of repairs as successor versions. Existing immutable

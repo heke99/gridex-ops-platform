@@ -328,7 +328,7 @@
     "20260727150000_contract_offer_slug_identity_completion.sql": "b0558538499350b4d91f0bcef1afcf2daa39d2835bfdbcba4c6acd7ad8d19fb1",
     "20260727160000_contract_valid_to_active_rpc_repair.sql": "43d23965a8842982e30ff90a4d01b0fb374d898672512ec9611191c5d227372f",
     "20260727161000_contract_type_slug_alignment.sql": "4a13d84602f56b88e5307ab1eac486e2c8a209ff9772c6bd597a318e54cb5815",
-    "20260727162000_contract_slug_version_integrity_repair.sql": "c88ffe0e62f2bf6dc8d2edb3da2eb0ddd3a2a899fd88548860819b429d96b80a",
+    "20260727162000_contract_slug_version_integrity_repair.sql": "6618f9f279fdb6daf03e6f01863b99e79bb257b99811a629dbfec5c481bf9e39",
     "20260727163000_contract_offer_copy_command.sql": "bbac83a83e3aca33e5fbd603211528fe11388e9552344855a9a3e7de7b0734bb",
     "20260727164000_canonical_invoice_export_runtime_completion.sql": "e2d41cf4449aeaf3cc1771736ce8fd18529f36a0a873d410748fe444e24f7027",
     "20260727165000_quote_and_customer_contract_event_integrity.sql": "4dfef093b0227530c3313c35333106c3b8b6fa766a5d748493dd8a0972b3cc59",

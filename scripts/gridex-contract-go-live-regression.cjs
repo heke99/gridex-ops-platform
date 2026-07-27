@@ -148,16 +148,16 @@ includesAll(alignmentMigration, [
   "gridex_contract_slugify",
 ], "historical contract type and slug alignment remains inspectable");
 includesAll(integrityRepair, [
-  "contract_offer_live_slug_duplicates_block_repair",
-  "create unique index contract_offers_company_live_slug_uidx",
+  "drop constraint if exists contract_offers_slug_key",
+  "drop index if exists public.contract_offers_company_live_slug_uidx",
+  "create index contract_offers_company_slug_idx",
   "company_id, lower(btrim(slug))",
-  "archived_at is null",
-  "lifecycle_status <> 'archived'",
-], "final live tenant slug invariant");
+  "Slug is not canonical contract identity",
+], "final non-unique tenant slug lookup");
 check(
-  integrityRepair.lastIndexOf("create unique index contract_offers_company_live_slug_uidx")
-    > integrityRepair.lastIndexOf("drop index if exists public.contract_offers_company_live_slug_uidx"),
-  "final migration restores the unique slug index after every historical drop",
+  !integrityRepair.includes("contract_offer_live_slug_duplicates_block_repair") &&
+    !integrityRepair.includes("create unique index contract_offers_company_live_slug_uidx"),
+  "final migration does not restore a unique slug rule",
 );
 includesAll(integrityRepair, [
   "supersedes_contract_product_version_id",
@@ -184,8 +184,9 @@ includesAll(repairPostApply, [
   "ta.valid_to",
   "aclexplode",
   "rolname in ('anon','authenticated')",
-  "contract_offers_company_live_slug_uidx",
-  "contract_offer_live_slug_unique_index_missing",
+  "contract_offer_slug_unique_rule_must_be_absent",
+  "contract_offers_company_slug_idx",
+  "contract_offer_non_unique_slug_lookup_index_missing",
   "gridex_contract_repair_post_apply_verified",
 ], "post-apply live schema verification");
 

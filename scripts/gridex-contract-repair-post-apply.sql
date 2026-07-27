@@ -1,5 +1,3 @@
-\set ON_ERROR_STOP on
-
 select p.oid::regprocedure,p.prosecdef,p.proconfig,pg_get_functiondef(p.oid)
 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
 where n.nspname='public'
@@ -89,36 +87,36 @@ begin
     raise exception using errcode='23514',message='contract_offers_contract_type_check_incomplete';
   end if;
 
+  if exists(
+    select 1
+    from pg_index index_row
+    join pg_class index_relation on index_relation.oid=index_row.indexrelid
+    join pg_class table_relation on table_relation.oid=index_row.indrelid
+    join pg_namespace table_namespace on table_namespace.oid=table_relation.relnamespace
+    where table_namespace.nspname='public'
+      and table_relation.relname='contract_offers'
+      and index_row.indisunique
+      and pg_get_indexdef(index_row.indexrelid) ilike '%slug%'
+  ) then
+    raise exception using
+      errcode='23514',
+      message='contract_offer_slug_unique_rule_must_be_absent';
+  end if;
+
   if not exists(
     select 1
     from pg_indexes
     where schemaname='public'
       and tablename='contract_offers'
-      and indexname='contract_offers_company_live_slug_uidx'
-      and indexdef ilike 'create unique index%'
+      and indexname='contract_offers_company_slug_idx'
+      and indexdef not ilike 'create unique index%'
       and indexdef ilike '%company_id%'
       and indexdef ilike '%lower(btrim(slug))%'
-      and indexdef ilike '%archived_at is null%'
-      and indexdef ilike '%lifecycle_status <>%archived%'
+      and indexdef ilike '%nullif(btrim(slug),%is not null%'
   ) then
     raise exception using
       errcode='23514',
-      message='contract_offer_live_slug_unique_index_missing';
-  end if;
-
-  if exists(
-    select 1
-    from public.contract_offers
-    where company_id is not null
-      and nullif(btrim(slug),'') is not null
-      and archived_at is null
-      and lifecycle_status<>'archived'
-    group by company_id,lower(btrim(slug))
-    having count(*)>1
-  ) then
-    raise exception using
-      errcode='23505',
-      message='contract_offer_live_slug_duplicates_present';
+      message='contract_offer_non_unique_slug_lookup_index_missing';
   end if;
 
   if exists(

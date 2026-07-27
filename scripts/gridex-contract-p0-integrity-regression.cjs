@@ -131,11 +131,19 @@ includesAll(portalBundle, [
 ], "portal bundle fails closed for mandatory sections");
 
 includesAll(repair, [
-  "contract_offer_live_slug_duplicates_block_repair",
-  "create unique index contract_offers_company_live_slug_uidx",
+  "create extension if not exists pgcrypto with schema extensions",
+  "set local search_path = public, extensions, pg_catalog, pg_temp",
+  "drop index if exists public.contract_offers_company_live_slug_uidx",
+  "create index contract_offers_company_slug_idx",
+  "Slug is not canonical contract identity",
   "supersedes_contract_product_version_id",
   "canonical_snapshot_alignment_20260727",
 ], "forward-only database integrity repair");
+check(
+  !repair.includes("contract_offer_live_slug_duplicates_block_repair") &&
+    !repair.includes("create unique index contract_offers_company_live_slug_uidx"),
+  "forward repair never treats slug as canonical identity",
+);
 includesAll(copyMigration, [
   "gridex_copy_contract_offer_v1",
   "copied_from_contract_offer_id",
