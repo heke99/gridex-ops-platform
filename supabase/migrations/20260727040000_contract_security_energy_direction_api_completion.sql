@@ -230,16 +230,22 @@ begin
 end
 $$;
 
+drop trigger if exists contract_product_versions_energy_direction_guard
+  on public.contract_product_versions;
 create trigger contract_product_versions_energy_direction_guard
 before insert or update of contract_product_id,energy_direction
 on public.contract_product_versions
 for each row execute function public.gridex_contract_energy_direction_guard_v1();
 
+drop trigger if exists contract_publication_versions_energy_direction_guard
+  on public.contract_publication_versions;
 create trigger contract_publication_versions_energy_direction_guard
 before insert or update of contract_product_version_id,energy_direction
 on public.contract_publication_versions
 for each row execute function public.gridex_contract_energy_direction_guard_v1();
 
+drop trigger if exists public_contract_offers_energy_direction_guard
+  on public.public_contract_offers;
 create trigger public_contract_offers_energy_direction_guard
 before insert or update of
   contract_product_id,contract_product_version_id,contract_publication_version_id,
@@ -321,6 +327,8 @@ alter table public.website_customer_applications
     references public.contract_publication_versions(id) on delete restrict,
   add column if not exists price_book_id uuid
     references public.price_books(id) on delete restrict,
+  add column if not exists legal_bundle_version_id uuid
+    references public.legal_bundle_versions(id) on delete restrict,
   add column if not exists energy_direction text;
 
 update public.website_customer_applications a
@@ -330,6 +338,10 @@ set contract_product_id=coalesce(a.contract_product_id,q.contract_product_id),
     price_plan_id=coalesce(a.price_plan_id,q.price_plan_id),
     price_plan_version_id=coalesce(a.price_plan_version_id,q.price_plan_version_id),
     price_book_id=coalesce(a.price_book_id,q.price_book_id),
+    legal_bundle_version_id=coalesce(
+      a.legal_bundle_version_id,
+      q.legal_bundle_version_id
+    ),
     energy_direction=coalesce(a.energy_direction,q.energy_direction)
 from public.website_contract_quotes q
 where q.company_id=a.company_id
@@ -342,6 +354,10 @@ set contract_product_id=coalesce(a.contract_product_id,pco.contract_product_id),
     price_plan_id=coalesce(a.price_plan_id,pco.price_plan_id),
     price_plan_version_id=coalesce(a.price_plan_version_id,pco.price_plan_version_id),
     price_book_id=coalesce(a.price_book_id,pco.price_book_id),
+    legal_bundle_version_id=coalesce(
+      a.legal_bundle_version_id,
+      pco.legal_bundle_version_id
+    ),
     energy_direction=coalesce(
       a.energy_direction,
       pco.energy_direction,
@@ -361,7 +377,7 @@ create index if not exists website_customer_applications_canonical_binding_idx
   on public.website_customer_applications(
     company_id,contract_product_id,contract_product_version_id,
     contract_publication_version_id,price_plan_id,price_plan_version_id,
-    price_book_id,energy_direction,created_at desc
+    price_book_id,legal_bundle_version_id,energy_direction,created_at desc
   );
 
 alter table public.customer_contracts
