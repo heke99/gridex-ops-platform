@@ -64,7 +64,7 @@ check(/Skipped historical contract signature repair/.test(migration), 'Ofullstä
 const emailEvents = read('lib/email/emailEvents.ts')
 // Seeding evolved from ignoreDuplicates to a preserve-tenant-choices upsert:
 // tenant-configured delay/admin-copy survive, only broken rules are repaired.
-check(/delay_minutes: current\?\.delay_minutes \?\? 0/.test(emailEvents) && /send_to_admin: current\?\.send_to_admin \?\? false/.test(emailEvents) && /preserved \+= 1/.test(emailEvents), 'Standardregler skriver inte över tenantens mejlval')
+check(/exactByPair/.test(emailEvents) && /\.filter\(\(rule\) => !exactByPair\.has/.test(emailEvents) && /never re-enabled or overwritten/.test(emailEvents) && /preserved: DEFAULT_EMAIL_EVENT_RULES\.length - missingRows\.length/.test(emailEvents), 'Standardregler skriver inte över tenantens mejlval')
 check(/delayMinutes:\s*rule\.delay_minutes/.test(emailEvents), 'Mejlregelns delay_minutes verkställs')
 check(/send_to_customer/.test(emailEvents) && /send_to_admin/.test(emailEvents), 'Kund- och adminmottagarregler verkställs')
 const outbox = read('lib/email/emailOutbox.ts')
@@ -74,12 +74,13 @@ const portalData = read('lib/customer-portal/apiData.ts')
 check(/public_contract_offer_id/.test(portalData) && /offer_reference/.test(portalData) && /signature_snapshot_sha256/.test(portalData), 'Kundportalens avtal exponerar kanonisk offer- och signaturkoppling')
 
 const docsPage = read('app/developers/customer-portal-api/page.tsx')
-for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_reference_mismatch', 'signature_snapshot_sha256', '2026-07-23.1']) {
+for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_reference_mismatch', 'signature_snapshot_sha256', '2026-07-27.1']) {
   check(docsPage.includes(term), `Publika dokumentationssidan innehåller ${term}`)
 }
-const docs = read('docs/openapi/customer-portal-v1.json')
-check(/offer_reference_mismatch/.test(docs) && /diagnostics/.test(docs), 'OpenAPI dokumenterar strikt offer_reference och diagnostik')
-check(/signature_snapshot_sha256/.test(docs) && /2026-07-23\.1/.test(docs), 'OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion')
+const websiteDocs = read('docs/openapi/website-integration-v1.json')
+const portalDocs = read('docs/openapi/customer-portal-v1.json')
+check(/offer_reference_mismatch/.test(websiteDocs) && /diagnostics/.test(websiteDocs), 'Website OpenAPI dokumenterar strikt offer_reference och diagnostik')
+check(/signature_snapshot_sha256/.test(portalDocs) && /2026-07-27\.1/.test(portalDocs), 'Customer portal OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion')
 
 if (failed) process.exit(1)
 console.log('Gridex contract API/signature/visibility regression passed.')

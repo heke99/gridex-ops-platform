@@ -4846,6 +4846,7 @@ type WebsiteContractCreateResult = {
   withdrawal_deadline_at?: string | null;
   public_contract_offer_id?: string | null;
   offer_reference?: string | null;
+  energy_direction?: "consumption" | "production";
   signature_snapshot_sha256?: string | null;
   contract_number: string | null;
   price_plan_id: string | null;
@@ -4854,63 +4855,60 @@ type WebsiteContractCreateResult = {
 };
 
 function selectedOfferFields(
-  offer: PublicContractOffer | null,
+  offer: PublicContractOffer,
   contract: ApplicationInput["contract"],
   priceArea?: string | null,
 ) {
-  const selectedAreaFixedPrice = offer
-    ? fixedPriceOreForArea(
-        offer.pricing_snapshot,
-        priceArea,
-        offer.fixed_price_ore_per_kwh,
-        offer.price_areas ?? [],
-      )
-    : null;
+  const selectedAreaFixedPrice = fixedPriceOreForArea(
+    offer.pricing_snapshot,
+    priceArea,
+    offer.fixed_price_ore_per_kwh,
+    offer.price_areas ?? [],
+  );
   return {
     // Client-supplied fallbacks are UUID-gated: these values are written to
     // uuid columns (customer_contracts / contract_price_snapshots /
     // website_customer_applications). Version *names* like "2026-06-12-v1"
     // previously caused `invalid input syntax for type uuid` 500s mid-flow.
-    pricePlanId: offer?.price_plan_id ?? cleanUuid(contract?.price_plan_id),
+    pricePlanId: offer.price_plan_id ?? cleanUuid(contract?.price_plan_id),
     pricePlanVersionId:
-      offer?.price_plan_version_id ??
+      offer.price_plan_version_id ??
       cleanUuid(contract?.price_plan_version_id),
-    publicContractOfferId: offer?.id ?? null,
-    internalContractOfferId: offer
-      ? null
-      : cleanUuid(contract?.contract_offer_id),
-    campaignVersionId: offer?.campaign_version_id ?? null,
+    publicContractOfferId: offer.id,
+    internalContractOfferId: null,
+    campaignVersionId: offer.campaign_version_id ?? null,
     contractName:
-      offer?.public_name ?? clean(contract?.contract_name) ?? "Elavtal",
+      offer.public_name ?? clean(contract?.contract_name) ?? "Elavtal",
     contractType:
-      offer?.contract_type ??
+      offer.contract_type ??
       clean(contract?.contract_type) ??
       "variable_monthly",
-    monthlyFeeSek: offer?.monthly_fee_sek ?? contract?.monthly_fee_sek ?? null,
-    invoiceFeeSek: offer?.invoice_fee_sek ?? contract?.invoice_fee_sek ?? null,
+    energyDirection: offer.energy_direction ?? null,
+    monthlyFeeSek: offer.monthly_fee_sek ?? contract?.monthly_fee_sek ?? null,
+    invoiceFeeSek: offer.invoice_fee_sek ?? contract?.invoice_fee_sek ?? null,
     markupOrePerKwh:
-      offer?.markup_ore_per_kwh ?? contract?.markup_ore_per_kwh ?? null,
+      offer.markup_ore_per_kwh ?? contract?.markup_ore_per_kwh ?? null,
     spotMarkupOrePerKwh:
-      offer?.spot_markup_ore_per_kwh ??
+      offer.spot_markup_ore_per_kwh ??
       contract?.spot_markup_ore_per_kwh ??
       contract?.markup_ore_per_kwh ??
       null,
     variableFeeOrePerKwh:
-      offer?.variable_fee_ore_per_kwh ??
+      offer.variable_fee_ore_per_kwh ??
       contract?.variable_fee_ore_per_kwh ??
       null,
     fixedPriceOrePerKwh:
       selectedAreaFixedPrice ??
-      offer?.fixed_price_ore_per_kwh ??
+      offer.fixed_price_ore_per_kwh ??
       contract?.fixed_price_ore_per_kwh ??
       null,
     greenFeeMode:
-      offer?.green_fee_mode ?? clean(contract?.green_fee_mode) ?? "none",
-    greenFeeValue: offer?.green_fee_value ?? contract?.green_fee_value ?? null,
+      offer.green_fee_mode ?? clean(contract?.green_fee_mode) ?? "none",
+    greenFeeValue: offer.green_fee_value ?? contract?.green_fee_value ?? null,
     termsVersion:
-      offer?.terms_version ?? clean(contract?.terms_version) ?? null,
-    productCode: offer?.product_code ?? clean(contract?.product_code) ?? null,
-    billingModel: offer?.billing_model ?? null,
+      offer.terms_version ?? clean(contract?.terms_version) ?? null,
+    productCode: offer.product_code ?? clean(contract?.product_code) ?? null,
+    billingModel: offer.billing_model ?? null,
   };
 }
 
@@ -4957,9 +4955,11 @@ function websiteSignatureSnapshot(input: {
     contract_product_id: input.publicOffer.contract_product_id ?? null,
     contract_product_version_id:
       input.publicOffer.contract_product_version_id ?? null,
+    energy_direction: input.publicOffer.energy_direction,
     legal_bundle_version_id: input.publicOffer.legal_bundle_version_id ?? null,
     price_plan_id: input.publicOffer.price_plan_id,
     price_plan_version_id: input.publicOffer.price_plan_version_id,
+    price_book_id: input.publicOffer.price_book_id ?? null,
     contract_price_snapshot_id: input.contractPriceSnapshotId ?? null,
     accepted_at: input.acceptedAt,
     agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
@@ -5093,7 +5093,12 @@ type CreateApplicationRowInput = {
   pricePlanVersionId?: string | null;
   contractPriceSnapshotId?: string | null;
   publicContractOfferId?: string | null;
+  contractProductId?: string | null;
   contractProductVersionId?: string | null;
+  contractPublicationVersionId?: string | null;
+  priceBookId?: string | null;
+  legalBundleVersionId?: string | null;
+  energyDirection?: "consumption" | "production" | null;
   offerReference?: string | null;
   quoteReference?: string | null;
   payload: ApplicationInput | Record<string, unknown>;
@@ -5288,7 +5293,12 @@ async function createApplicationRow(input: CreateApplicationRowInput) {
     price_plan_version_id: input.pricePlanVersionId ?? null,
     contract_price_snapshot_id: input.contractPriceSnapshotId ?? null,
     public_contract_offer_id: input.publicContractOfferId ?? null,
+    contract_product_id: input.contractProductId ?? null,
     contract_product_version_id: input.contractProductVersionId ?? null,
+    contract_publication_version_id: input.contractPublicationVersionId ?? null,
+    price_book_id: input.priceBookId ?? null,
+    legal_bundle_version_id: input.legalBundleVersionId ?? null,
+    energy_direction: input.energyDirection ?? null,
     offer_reference: input.offerReference ?? null,
     quote_reference: input.quoteReference ?? null,
     external_customer_id: input.externalCustomerId,
@@ -6219,7 +6229,7 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
           ...websiteSiteCanonicalFields(input.body, { facilityId: normalizedFacilityId, status: "active" }),
           site_name: clean(siteInput.site_name) ?? "Anläggning",
           facility_id: normalizedFacilityId,
-          site_type: clean(siteInput.site_type) ?? "consumption",
+          site_type: selected.energyDirection,
           status: "active",
           street: clean(siteInput.street),
           postal_code: clean(siteInput.postal_code),
@@ -6239,8 +6249,8 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
           anlage_id: clean(meterInput?.anlage_id) ?? normalizedFacilityId,
           site_facility_id: clean(meterInput?.site_facility_id) ?? normalizedFacilityId,
           status: "active",
-          metering_type: "consumption",
-          measurement_type: clean(meterInput?.measurement_type) ?? "consumption",
+          metering_type: selected.energyDirection,
+          measurement_type: clean(meterInput?.measurement_type) ?? selected.energyDirection,
           reading_frequency: clean(meterInput?.reading_frequency) ?? "monthly",
           grid_area_code: explicitMeteringGridAreaCode(input.body),
           price_area_code: explicitMeteringPriceAreaCode(input.body),
@@ -6261,6 +6271,12 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
       status: contractStatus,
       contract_name: selected.contractName,
       contract_type: selected.contractType,
+      energy_direction: selected.energyDirection,
+      contract_product_id: input.publicOffer.contract_product_id ?? null,
+      contract_product_version_id: input.publicOffer.contract_product_version_id ?? null,
+      contract_publication_version_id: input.publicOffer.contract_publication_version_id ?? null,
+      price_book_id: input.publicOffer.price_book_id ?? null,
+      legal_bundle_version_id: input.publicOffer.legal_bundle_version_id ?? null,
       price_plan_id: selected.pricePlanId,
       price_plan_version_id: selected.pricePlanVersionId,
       contract_offer_id: selected.internalContractOfferId,
@@ -6306,6 +6322,10 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         market_reference: input.websiteQuote?.market_reference ?? {},
         selected_area_price_ore_per_kwh: selected.fixedPriceOrePerKwh,
         selected_price_area: input.readiness.priceArea,
+        energy_direction: selected.energyDirection,
+        production_pricing: selected.energyDirection === "production"
+          ? (input.publicOffer.pricing_snapshot?.production ?? null)
+          : null,
         missing_fields: input.readiness.missingFields,
         blocking_reasons: input.readiness.blockingReasons,
       },
@@ -6313,6 +6333,7 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
     },
     price_snapshot: {
       public_contract_offer_id: input.publicOffer.id,
+      energy_direction: selected.energyDirection,
       public_price_text: input.publicOffer.public_price_text ?? null,
       terms_url: input.publicOffer.terms_url ?? null,
       spot_weight_percent: input.publicOffer.spot_weight_percent ?? null,
@@ -6327,7 +6348,11 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
       snapshot_json: {
         ...exactPricing,
         source: "website_customer_applications",
-            contract_type: selected.contractType,
+        contract_type: selected.contractType,
+        energy_direction: selected.energyDirection,
+        production: selected.energyDirection === "production"
+          ? (input.publicOffer.pricing_snapshot?.production ?? { enabled: true })
+          : { enabled: false },
         price_plan_id: selected.pricePlanId,
         price_plan_version_id: selected.pricePlanVersionId,
         public_contract_offer_id: selected.publicContractOfferId,
@@ -7368,6 +7393,7 @@ export async function processWebsiteCustomerApplication(input: {
       quote_reference: websiteQuote?.quote_reference ?? null,
       quote_valid_until: websiteQuote?.valid_until ?? null,
       quote_bound: Boolean(websiteQuote),
+      energy_direction: publicOffer?.energy_direction ?? null,
       price_plan_id:
         contract?.price_plan_id ??
         publicOffer?.price_plan_id ??
@@ -7457,8 +7483,14 @@ export async function processWebsiteCustomerApplication(input: {
           null,
         contractPriceSnapshotId: contract?.contract_price_snapshot_id ?? null,
         publicContractOfferId: publicOffer?.id ?? null,
+        contractProductId: publicOffer?.contract_product_id ?? null,
         contractProductVersionId:
           publicOffer?.contract_product_version_id ?? null,
+        contractPublicationVersionId:
+          publicOffer?.contract_publication_version_id ?? null,
+        priceBookId: publicOffer?.price_book_id ?? null,
+        legalBundleVersionId: publicOffer?.legal_bundle_version_id ?? null,
+        energyDirection: publicOffer?.energy_direction ?? null,
         offerReference: selectedOfferReference,
         quoteReference:
           websiteQuote?.quote_reference ?? selectedQuoteReference ?? null,
@@ -7842,8 +7874,14 @@ export async function processWebsiteCustomerApplication(input: {
             null,
           contractPriceSnapshotId: contract?.contract_price_snapshot_id ?? null,
           publicContractOfferId: publicOffer?.id ?? null,
+          contractProductId: publicOffer?.contract_product_id ?? null,
           contractProductVersionId:
             publicOffer?.contract_product_version_id ?? null,
+          contractPublicationVersionId:
+            publicOffer?.contract_publication_version_id ?? null,
+          priceBookId: publicOffer?.price_book_id ?? null,
+          legalBundleVersionId: publicOffer?.legal_bundle_version_id ?? null,
+          energyDirection: publicOffer?.energy_direction ?? null,
           offerReference:
             (publicOffer ? publicOfferReference(publicOffer) : null) ??
             clean(body.offer_reference) ??

@@ -11,10 +11,14 @@ export type WebsiteQuoteRecord = {
   api_client_id: string | null
   quote_reference: string
   offer_reference: string
+  contract_product_id: string | null
   contract_product_version_id: string | null
   contract_publication_version_id: string | null
+  price_plan_id: string | null
   price_plan_version_id: string | null
+  price_book_id: string | null
   legal_bundle_version_id: string | null
+  energy_direction: 'consumption' | 'production'
   customer_type: 'private' | 'business'
   price_area: string
   grid_area_code: string | null
@@ -111,10 +115,14 @@ export async function persistWebsiteQuote(input: {
     api_client_id: input.client.id,
     quote_reference: quoteReference,
     offer_reference: input.offerReference,
+    contract_product_id: input.offer.contract_product_id ?? null,
     contract_product_version_id: input.offer.contract_product_version_id ?? null,
     contract_publication_version_id: input.offer.contract_publication_version_id ?? null,
+    price_plan_id: input.offer.price_plan_id ?? null,
     price_plan_version_id: input.offer.price_plan_version_id ?? null,
+    price_book_id: input.offer.price_book_id ?? null,
     legal_bundle_version_id: input.offer.legal_bundle_version_id ?? null,
+    energy_direction: input.offer.energy_direction,
     customer_type: input.customerType,
     price_area: input.priceArea,
     grid_area_code: input.gridAreaCode ?? null,
@@ -153,6 +161,14 @@ export async function persistWebsiteQuote(input: {
       valid_until: validUntil,
       quote_hash: immutableQuoteHash,
       market_reference: input.marketReference ?? {},
+      contract_product_id: input.offer.contract_product_id ?? null,
+      contract_product_version_id: input.offer.contract_product_version_id ?? null,
+      contract_publication_version_id: input.offer.contract_publication_version_id ?? null,
+      price_plan_id: input.offer.price_plan_id ?? null,
+      price_plan_version_id: input.offer.price_plan_version_id ?? null,
+      price_book_id: input.offer.price_book_id ?? null,
+      legal_bundle_version_id: input.offer.legal_bundle_version_id ?? null,
+      energy_direction: input.offer.energy_direction,
     },
   })
   return { quoteReference, validUntil }
@@ -256,7 +272,7 @@ export async function validateWebsiteQuote(input: {
   if (quote.status === 'consumed' && quote.consumed_application_id !== (input.applicationId ?? null)) {
     throw new WebsiteQuoteValidationError({
       message: 'Quote har redan använts av en annan kundansökan.',
-      code: 'quote_already_consumed',
+      code: 'quote_consumed',
       status: 409,
       details: { consumed_application_id: quote.consumed_application_id },
     })
@@ -278,10 +294,14 @@ export async function validateWebsiteQuote(input: {
   if (input.postalCode && quote.postal_code && quote.postal_code !== input.postalCode) mismatches.push('postal_code')
   if (input.annualConsumptionKwh === null || !sameNumber(quote.annual_consumption_kwh, input.annualConsumptionKwh)) mismatches.push('annual_consumption_kwh')
   if (quote.start_date !== input.startDate) mismatches.push('start_date')
+  if ((quote.contract_product_id ?? null) !== (input.publicOffer.contract_product_id ?? null)) mismatches.push('contract_product_id')
   if ((quote.contract_product_version_id ?? null) !== (input.publicOffer.contract_product_version_id ?? null)) mismatches.push('contract_product_version_id')
   if ((quote.contract_publication_version_id ?? null) !== (input.publicOffer.contract_publication_version_id ?? null)) mismatches.push('contract_publication_version_id')
+  if ((quote.price_plan_id ?? null) !== (input.publicOffer.price_plan_id ?? null)) mismatches.push('price_plan_id')
   if ((quote.price_plan_version_id ?? null) !== (input.publicOffer.price_plan_version_id ?? null)) mismatches.push('price_plan_version_id')
+  if ((quote.price_book_id ?? null) !== (input.publicOffer.price_book_id ?? null)) mismatches.push('price_book_id')
   if ((quote.legal_bundle_version_id ?? null) !== (input.publicOffer.legal_bundle_version_id ?? null)) mismatches.push('legal_bundle_version_id')
+  if (quote.energy_direction !== input.publicOffer.energy_direction) mismatches.push('energy_direction')
 
   if (mismatches.length > 0) {
     throw new WebsiteQuoteValidationError({

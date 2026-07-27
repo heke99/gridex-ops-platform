@@ -19,7 +19,7 @@ const ACTIONS_BY_STATUS: Readonly<
   paused: new Set(["create_version", "publish_version", "activate_channel", "pause_channels", "close", "archive"]),
   expired: new Set(["create_version", "archive"]),
   closed: new Set(["archive"]),
-  archived: new Set(["create_version"]),
+  archived: new Set([]),
   superseded: new Set(["create_version", "archive"]),
 };
 

@@ -12,6 +12,7 @@ import {
   WebsiteQuoteValidationError,
 } from '@/lib/pricing/websiteQuotes'
 import { resolvePublicContractOffer } from '@/lib/website/publicContracts'
+import { canonicalApiError } from '@/lib/api/apiError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -53,26 +54,16 @@ function responseError(input: {
   details?: Record<string, unknown>
   retryable?: boolean
 }) {
-  return {
-    error: {
-      code: input.code,
-      message: input.message,
-      field: input.field ?? null,
-      request_id: input.requestId,
-      correlation_id: input.requestId,
-      retryable: input.retryable ?? retryableErrorCode(input.code),
-      ...(input.details ? { details: input.details } : {}),
-    },
+  return canonicalApiError({
     code: input.code,
-    error_code: input.code,
     message: input.message,
-    field: input.field ?? null,
-    details: input.details ?? null,
-    request_id: input.requestId,
-    correlation_id: input.requestId,
+    requestId: input.requestId,
+    field: input.field,
+    details: input.details,
     retryable: input.retryable ?? retryableErrorCode(input.code),
-  }
+  })
 }
+
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
@@ -176,6 +167,7 @@ export async function POST(request: NextRequest) {
           resolver_version: quote.resolver_version,
           geodata_version: quote.geodata_version,
           market_reference: quote.market_reference,
+          energy_direction: quote.energy_direction,
           selected_area_price: (quote.quote_snapshot as Record<string, unknown>).selected_area_price ?? null,
         },
         request_id: requestId,

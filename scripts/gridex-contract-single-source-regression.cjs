@@ -16,7 +16,7 @@ const intervalPricing = read('lib/pricing/intervalPricing.ts')
 const lifecycleErrors = read('lib/contracts/lifecycleErrors.ts')
 const dbTest = read('scripts/gridex-contract-db-lifecycle-test.sql')
 const repairScript = read('scripts/gridex-contract-publication-graph-repair.sql')
-const openapi = JSON.parse(read('docs/openapi/customer-portal-v1.json'))
+const openapi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
 
 const failures = []
 let checks = 0
@@ -157,8 +157,9 @@ const diagnosticPath = openapi.paths['/api/v1/website/public-contracts/diagnosti
 check(Boolean(publicPath?.responses?.['304']), 'OpenAPI documents ETag 304')
 check(diagnosticPath?.['x-required-scopes']?.includes('website_contracts.diagnostics'), 'OpenAPI diagnostics scope matches runtime')
 check(!openapi.components.schemas.WebsiteQuoteData?.deprecated && openapi.paths['/api/v1/website/quote']?.post?.responses?.['201'], 'OpenAPI documents canonical quote bound to the published offer')
-check(openapi.components.schemas.PublicContractOffer.properties.contract_offer_id.deprecated === true, 'OpenAPI marks contract_offer_id deprecated')
-check(openapi.components.schemas.PublicContractOffer.properties.publication_reference.deprecated === true, 'OpenAPI marks publication_reference deprecated')
+const publicContractProperties = openapi.components.schemas.PublicContract?.properties ?? {}
+check(!Object.prototype.hasOwnProperty.call(publicContractProperties, 'contract_offer_id'), 'OpenAPI does not expose internal contract_offer_id')
+check(!Object.prototype.hasOwnProperty.call(publicContractProperties, 'publication_reference'), 'OpenAPI does not expose internal publication_reference')
 
 if (failures.length) {
   console.error(`Contract single-source regression failed (${failures.length}/${checks}):`)

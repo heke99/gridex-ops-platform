@@ -1,9 +1,11 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { supabaseService } from "@/lib/supabase/service";
+import { createSupabaseServiceRequestClient, supabaseService } from "@/lib/supabase/service";
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
@@ -13,6 +15,14 @@ import { toSafeContractErrorPersisted } from "@/lib/errors/safeActionErrors";
 import { parseAdminContractForm } from "@/lib/contracts/adminContractSchema";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
 import { contractLifecycleError, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
+
+function contractMutationServiceClient() {
+  const requestId = randomUUID();
+  return createSupabaseServiceRequestClient({
+    requestId,
+    correlationId: requestId,
+  });
+}
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -142,7 +152,12 @@ async function saveContractOfferActionImpl(
         "Ett stängt avtal är terminalt och får inte redigeras eller versioneras. Arkivera avtalet för historisk förvaring.",
       );
     }
-    if (["published", "paused", "expired", "archived"].includes(previousLifecycle)) {
+    if (previousLifecycle === "archived") {
+      throw new Error(
+        "Ett arkiverat avtal är terminalt. Skapa en separat efterföljande produkt i stället för att återaktivera den arkiverade serien.",
+      );
+    }
+    if (["published", "paused", "expired", "superseded"].includes(previousLifecycle)) {
       await requireContractPermissionAction("contracts.create_version");
     }
   }
@@ -240,6 +255,7 @@ async function saveContractOfferActionImpl(
     status: input.legacyStatus,
     lifecycle_status: input.lifecycleStatus,
     contract_type: input.contractType,
+    energy_direction: normalizedPricing.snapshot.energy_direction,
     customer_type: input.customerType,
     pricing_model: canonicalPricingCommand.pricing_model,
     campaign_name: input.campaignName,
@@ -285,7 +301,7 @@ async function saveContractOfferActionImpl(
     },
   };
 
-  const { data: commandData, error: commandError } = await supabaseService.rpc(
+  const { data: commandData, error: commandError } = await contractMutationServiceClient().rpc(
     "gridex_upsert_internal_contract_offer_v2",
     {
       p_company_id: companyId,
@@ -298,6 +314,14 @@ async function saveContractOfferActionImpl(
   if (commandError) throw commandError;
   if (!commandData || typeof commandData !== "object")
     throw new Error("Avtalskommandot returnerade inget resultat.");
+
+  const lifecycleResult = commandData as ContractLifecycleRpcResult;
+  if (lifecycleResult.ok === false) {
+    throw contractLifecycleFailure(
+      lifecycleResult,
+      "Avtalsutkastet kunde inte sparas.",
+    );
+  }
 
   const command = commandData as unknown as {
     offer?: Record<string, unknown>;
@@ -379,7 +403,7 @@ async function archiveContractOfferActionImpl(
   const id = getString(formData, "id");
   if (!id) throw new Error("Avtal saknas.");
 
-  const { data, error } = await supabaseService.rpc(
+  const { data, error } = await contractMutationServiceClient().rpc(
     "gridex_remove_internal_contract_offer",
     {
       p_company_id: companyId,
@@ -436,7 +460,7 @@ async function deleteContractOfferActionImpl(
   const id = getString(formData, "id");
   if (!id) throw new Error("Avtal saknas.");
 
-  const { data, error } = await supabaseService.rpc(
+  const { data, error } = await contractMutationServiceClient().rpc(
     "gridex_remove_internal_contract_offer",
     {
       p_company_id: companyId,
@@ -470,7 +494,7 @@ export async function closeContractOfferAction(formData: FormData) {
     if (!offerId) throw new Error("Avtal saknas.");
     if (!reason) throw new Error("Ange varför avtalet ska stängas.");
 
-    const { data, error } = await supabaseService.rpc(
+    const { data, error } = await contractMutationServiceClient().rpc(
       "gridex_close_contract_product",
       {
         p_company_id: companyId,
@@ -578,7 +602,7 @@ async function updateTenantContractChannelActionImpl(
   const command = status === "active"
     ? "gridex_publish_contract_channel"
     : "gridex_unpublish_contract_channel";
-  const { data, error } = await supabaseService.rpc(command, {
+  const { data, error } = await contractMutationServiceClient().rpc(command, {
     p_company_id: companyId,
     p_offer_id: offer.id,
     p_channel: channel,
@@ -605,7 +629,7 @@ export async function pauseContractOfferAction(formData: FormData) {
     await assertUserCanOperateCompany(actor.userId, companyId);
     const offerId = getString(formData, "id");
     if (!offerId) throw new Error("Avtal saknas.");
-    const { data, error } = await supabaseService.rpc("gridex_pause_contract_channels", {
+    const { data, error } = await contractMutationServiceClient().rpc("gridex_pause_contract_channels", {
       p_company_id: companyId,
       p_offer_id: offerId,
       p_actor_user_id: actor.userId,
@@ -638,7 +662,7 @@ export async function publishContractVersionAction(formData: FormData) {
     const offerId = getString(formData, "id");
     if (!offerId) throw new Error("Avtal saknas.");
 
-    const { data, error } = await supabaseService.rpc(
+    const { data, error } = await contractMutationServiceClient().rpc(
       "gridex_publish_internal_contract_version",
       {
         p_company_id: companyId,
@@ -684,7 +708,7 @@ export async function publishContractChannelAction(formData: FormData) {
     await requireCompanyOperationalForWrites(companyId);
     const offerId = getString(formData, "id");
     if (!offerId) throw new Error("Avtal saknas.");
-    const { data, error } = await supabaseService.rpc("gridex_publish_contract_channel", {
+    const { data, error } = await contractMutationServiceClient().rpc("gridex_publish_contract_channel", {
       p_company_id: companyId,
       p_offer_id: offerId,
       p_channel: channel,
@@ -716,7 +740,7 @@ export async function unpublishContractChannelAction(formData: FormData) {
     await assertUserCanOperateCompany(actor.userId, companyId);
     const offerId = getString(formData, "id");
     if (!offerId) throw new Error("Avtal saknas.");
-    const { data, error } = await supabaseService.rpc("gridex_unpublish_contract_channel", {
+    const { data, error } = await contractMutationServiceClient().rpc("gridex_unpublish_contract_channel", {
       p_company_id: companyId,
       p_offer_id: offerId,
       p_channel: channel,
@@ -753,7 +777,7 @@ export async function cleanupUnusedContractDraftsAction(formData: FormData) {
     const actor = await requireContractPermissionAction("contracts.delete_unused");
     if (!companyId) throw new Error("Bolag saknas.");
     await assertUserCanOperateCompany(actor.userId, companyId);
-    const { data, error } = await supabaseService.rpc("gridex_cleanup_unused_contract_drafts", {
+    const { data, error } = await contractMutationServiceClient().rpc("gridex_cleanup_unused_contract_drafts", {
       p_company_id: companyId,
       p_actor_user_id: actor.userId,
       p_apply: apply,

@@ -456,10 +456,41 @@ export async function generateBillingUnderlaysForMonth(input: {
       const period = entry.period;
       const customerId = text(period.customer_id);
       const contractId = text(period.contract_id);
+      const contract = await loadContract(input.companyId, contractId);
+      const snapshot = await loadSnapshot(
+        input.companyId,
+        contractId,
+        entry.start,
+      );
+      const snapshotJson = snapshotPayload(snapshot);
+      const production = productionConfiguration(snapshotJson);
+      const contractDirection =
+        text(contract?.energy_direction) ??
+        text(snapshotJson.energy_direction) ??
+        text(period.energy_direction) ??
+        (production.enabled === true ? "production" : null);
+      const canonicalContractDirection: "consumption" | "production" | null =
+        contractDirection === "consumption" || contractDirection === "production"
+          ? contractDirection
+          : null;
+
       const clippedRows = (valuesByMeter.get(meteringPointId) ?? [])
         .map((row) => clipMeteringRowToSegment(row, entry.start, entry.end))
         .filter((row): row is JsonRecord => Boolean(row));
       if (clippedRows.length === 0) {
+        if (!canonicalContractDirection) {
+          results.push({
+            underlayId: null,
+            status: "needs_review",
+            sourceTable: "normalized_metering_values",
+            sourceRows: 0,
+            warnings: [
+              "energy_direction_missing: Kundavtalet saknar explicit consumption/production-riktning.",
+              "missing_meter_values: Mätvärden saknas i fakturasegmentet.",
+            ],
+          });
+          continue;
+        }
         const issues = readinessIssues([
           "missing_meter_values: Mätvärden saknas i fakturasegmentet.",
         ]);
@@ -474,8 +505,13 @@ export async function generateBillingUnderlaysForMonth(input: {
             supply_period_id: text(period.id),
             contract_id: contractId,
             customer_contract_id: contractId,
-            energy_direction: "consumption",
-            settlement_type: "invoice",
+            energy_direction: canonicalContractDirection,
+            settlement_type:
+              canonicalContractDirection === "production"
+                ? (text(production.settlement_mode) === "self_billing"
+                    ? "self_billing"
+                    : "credit_invoice")
+                : "invoice",
             underlay_month: bounds.month,
             underlay_year: bounds.year,
             billing_period_start: entry.start,
@@ -495,6 +531,13 @@ export async function generateBillingUnderlaysForMonth(input: {
               supply_period_id: text(period.id),
               generated_from: "normalized_metering_values",
               blocker_code: "missing_meter_values",
+              energy_direction: canonicalContractDirection,
+              settlement_type:
+                canonicalContractDirection === "production"
+                  ? (text(production.settlement_mode) === "self_billing"
+                      ? "self_billing"
+                      : "credit_invoice")
+                  : "invoice",
               timezone: "Europe/Stockholm",
             },
             pricing_snapshot: {},
@@ -514,15 +557,6 @@ export async function generateBillingUnderlaysForMonth(input: {
         continue;
       }
       clippedRows.forEach((row) => coveredValueIds.add(String(row.id)));
-
-      const contract = await loadContract(input.companyId, contractId);
-      const snapshot = await loadSnapshot(
-        input.companyId,
-        contractId,
-        entry.start,
-      );
-      const snapshotJson = snapshotPayload(snapshot);
-      const production = productionConfiguration(snapshotJson);
 
       const rowsByDirection = new Map<EnergyDirection, JsonRecord[]>();
       for (const clippedRow of clippedRows) {

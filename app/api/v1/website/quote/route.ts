@@ -8,6 +8,7 @@ import {
   requireIntegrationApiAccess,
 } from '@/lib/integrations/apiAuth'
 import { calculateOfferQuote, OfferQuoteError } from '@/lib/pricing/offerQuote'
+import { canonicalApiError } from '@/lib/api/apiError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -49,25 +50,16 @@ function errorBody(input: {
   details?: Record<string, unknown>
   retryable?: boolean
 }) {
-  return {
-    error: {
-      code: input.code,
-      message: input.message,
-      field: input.field ?? null,
-      request_id: input.requestId,
-      correlation_id: input.requestId,
-      retryable: input.retryable ?? retryableErrorCode(input.code),
-      ...(input.details ? { details: input.details } : {}),
-    },
+  return canonicalApiError({
     code: input.code,
-    error_code: input.code,
     message: input.message,
-    field: input.field ?? null,
-    request_id: input.requestId,
-    correlation_id: input.requestId,
+    requestId: input.requestId,
+    field: input.field,
+    details: input.details,
     retryable: input.retryable ?? retryableErrorCode(input.code),
-  }
+  })
 }
+
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()

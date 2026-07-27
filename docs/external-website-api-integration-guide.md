@@ -1,6 +1,6 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-07-25.1**
+> **Canonical API-version: 2026-07-27.1**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
@@ -473,9 +473,9 @@ https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-07-25.1` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-07-27.1` och headern `X-Gridex-Contract-Version`.
 
-## Canonical marknadsprisflöde i API 2026-07-25.1
+## Canonical marknadsprisflöde i API 2026-07-27.1
 
 Det finns tre separata operationer:
 
@@ -519,3 +519,31 @@ Om tenantens policy har `allow_indicative_latest=false` returneras inte en parti
 | 500 | `market_price_provider_unavailable` | Ja | Försök igen och använd `request_id` vid support. |
 
 Alla fel returnerar `error.code`, `error.message`, `error.field`, `error.request_id`, `error.correlation_id`, `error.retryable` och top-level `request_id`. Tenant ska aldrig ersätta ett marknadsprisfel med en egen prisberäkning.
+
+
+## Production och canonical energiriktning
+
+Varje publicerat avtal har obligatoriskt `energy_direction`:
+
+```text
+consumption | production
+```
+
+`consumption` skapar ett vanligt leverans- och faktureringsflöde. `production` använder publiceringens immutable `production_pricing` med `compensation_model`, `resolution`, avdrag/påslag eller fast ersättning, `settlement_mode`, momsbehandling, faktureringsriktning och produktionsmätroll. `settlement_mode=self_billing` skapar kredit-/självfaktureringsunderlag och får aldrig skapa vanlig konsumtionsleverans eller konsumtionsfaktura. Riktningen binds från publicerad produktversion genom quote, quote validation, kundansökan och kundavtal; klienten får inte skicka en egen alternativ riktning.
+
+Canonical juridikroute är:
+
+```http
+GET /api/v1/website/legal-bundle
+Scope: website_legal.read eller website_contracts.read
+```
+
+Tenant härleds från API-nyckeln. Endpointen accepterar inte `company_id`. Sökvägen `/api/v1/website/legal/bundle` har ingen separat runtimeimplementation och ska inte användas.
+
+## Migrering till kontraktsversion 2026-07-27.1
+
+- läs och bevara `energy_direction` i Public Contract, quote och kundansökningssvar;
+- hantera `production_pricing` och `self_billing` för produktionsavtal;
+- använd den canonicala strukturerade felmodellen med `ok=false`, `code`, `message`, `request_id`, `correlation_id` och `blockers`;
+- använd endast `GET /api/v1/website/legal-bundle` för juridikpaketet;
+- generera om externa typer från den nya OpenAPI-versionen.

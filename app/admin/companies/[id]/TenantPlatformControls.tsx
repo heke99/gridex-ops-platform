@@ -265,6 +265,11 @@ type SafeRowsResult<T> = {
   rows: T[];
   source: string;
   error: string | null;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
 };
 
 function databaseErrorMessage(error: unknown): string {
@@ -293,44 +298,95 @@ async function safeRows<T>(
   companyId: string,
   select: string,
   order = "created_at",
+  options: {
+    page?: number;
+    pageSize?: number;
+    ascending?: boolean;
+    stableOrder?: string | null;
+  } = {},
 ): Promise<SafeRowsResult<T>> {
-  const pageSize = 200;
-  const maxRows = 5_000;
-  const rows: T[] = [];
+  const page = Math.max(1, Math.trunc(options.page ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Math.trunc(options.pageSize ?? 50)));
+  const offset = (page - 1) * pageSize;
 
   try {
-    for (let offset = 0; offset < maxRows; offset += pageSize) {
-      const { data, error } = await supabaseService
-        .from(table)
-        .select(select)
-        .eq("company_id", companyId)
-        .order(order, { ascending: order === "sort_order" })
-        .range(offset, offset + pageSize - 1);
-      if (error) return { rows: [], source, error: databaseErrorMessage(error) };
-
-      const page = (data ?? []) as T[];
-      rows.push(...page);
-      if (page.length < pageSize) return { rows, source, error: null };
+    let query = supabaseService
+      .from(table)
+      .select(select, { count: "exact" })
+      .eq("company_id", companyId)
+      .order(order, { ascending: options.ascending ?? order === "sort_order" });
+    const stableOrder = options.stableOrder === undefined ? "id" : options.stableOrder;
+    if (stableOrder && stableOrder !== order) {
+      query = query.order(stableOrder, { ascending: true });
     }
-
+    const { data, error, count } = await query.range(offset, offset + pageSize - 1);
+    if (error) {
+      return {
+        rows: [], source, error: databaseErrorMessage(error), page, pageSize,
+        totalCount: 0, hasPrevious: page > 1, hasNext: false,
+      };
+    }
+    const rows = (data ?? []) as T[];
+    const totalCount = count ?? rows.length;
     return {
-      rows: [],
-      source,
-      error: `${source} har fler än ${maxRows} poster. Använd den dedikerade listvyn med pagination.`,
+      rows, source, error: null, page, pageSize, totalCount,
+      hasPrevious: page > 1,
+      hasNext: offset + rows.length < totalCount,
     };
   } catch (error) {
-    return { rows: [], source, error: databaseErrorMessage(error) };
+    return {
+      rows: [], source, error: databaseErrorMessage(error), page, pageSize,
+      totalCount: 0, hasPrevious: page > 1, hasNext: false,
+    };
   }
 }
+
+function ContractPagination({
+  companyId,
+  result,
+}: {
+  companyId: string;
+  result: SafeRowsResult<unknown>;
+}) {
+  if (result.totalCount <= result.pageSize && !result.hasPrevious) return null;
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+      <span className="font-semibold text-slate-600">
+        Sida {result.page} · {result.totalCount} poster · {result.pageSize} per sida
+      </span>
+      <div className="flex gap-2">
+        {result.hasPrevious ? (
+          <Link
+            href={`/admin/companies/${companyId}?contract_page=${result.page - 1}#tenant-internal-contracts`}
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-black text-slate-800"
+          >
+            Föregående
+          </Link>
+        ) : null}
+        {result.hasNext ? (
+          <Link
+            href={`/admin/companies/${companyId}?contract_page=${result.page + 1}#tenant-internal-contracts`}
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-black text-slate-800"
+          >
+            Nästa
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 
 export default async function TenantPlatformControls({
   companyId,
   companyName,
   diagnoseContractId = null,
+  contractPage = 1,
 }: {
   companyId: string;
   companyName: string;
   diagnoseContractId?: string | null;
+  contractPage?: number;
 }) {
   const results = await Promise.all([
     safeRows<PublicOffer>(
@@ -339,6 +395,7 @@ export default async function TenantPlatformControls({
       companyId,
       "id,source_contract_offer_id,contract_product_id,contract_product_version_id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,legal_bundle_version_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at",
       "sort_order",
+      { page: contractPage, pageSize: 50, ascending: true },
     ),
     safeRows<InternalContractOffer>(
       "Interna avtal",
@@ -346,6 +403,7 @@ export default async function TenantPlatformControls({
       companyId,
       "id,name,status,lifecycle_status,version_series_id,version_number,contract_product_id,contract_product_version_id,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at,internal_sales_allowed,website_publication_allowed,internal_channel_status,website_channel_status,api_channel_status",
       "updated_at",
+      { page: contractPage, pageSize: 50, ascending: false },
     ),
     safeRows<ApiClient>(
       "API-klienter",
@@ -353,6 +411,7 @@ export default async function TenantPlatformControls({
       companyId,
       "id,name,status,key_prefix,scopes,permission_groups,allowed_origins,last_used_at,created_at",
       "created_at",
+      { page: 1, pageSize: 100, ascending: false },
     ),
     safeRows<PublicOfferApiDiagnostic>(
       "API-diagnostik",
@@ -360,6 +419,7 @@ export default async function TenantPlatformControls({
       companyId,
       "id,company_id,offer_code,public_name,publication_status,website_enabled,is_public,is_archived,matched_api_client_count,published_legal_type_count,price_book_status,api_blockers,api_visible,endpoint_path,sort_order",
       "sort_order",
+      { page: contractPage, pageSize: 50, ascending: true },
     ),
     safeRows<MailReadiness>(
       "Mejlberedskap",
@@ -367,6 +427,7 @@ export default async function TenantPlatformControls({
       companyId,
       "event_key,template_key,enabled,template_name,template_active,can_send,requires_platform_fallback,issues",
       "event_key",
+      { page: 1, pageSize: 100, ascending: true, stableOrder: "template_key" },
     ),
   ]);
 
@@ -386,10 +447,21 @@ export default async function TenantPlatformControls({
 
   let selectedContractDiagnostic: SelectedContractDiagnostic | null = null;
   if (diagnoseContractId) {
-    const selectedSource = internalContracts.find(
-      (contract) => contract.id === diagnoseContractId,
-    );
-    if (!selectedSource) {
+    const selectedQuery = await supabaseService
+      .from("canonical_internal_contract_offers_v")
+      .select("id,lifecycle_status")
+      .eq("company_id", companyId)
+      .eq("id", diagnoseContractId)
+      .maybeSingle();
+    const selectedSource = selectedQuery.data as Pick<InternalContractOffer, "id" | "lifecycle_status"> | null;
+    if (selectedQuery.error) {
+      selectedContractDiagnostic = {
+        sourceOfferId: diagnoseContractId,
+        readiness: null,
+        deletion_preview: null,
+        error: databaseErrorMessage(selectedQuery.error),
+      };
+    } else if (!selectedSource) {
       selectedContractDiagnostic = {
         sourceOfferId: diagnoseContractId,
         readiness: null,
@@ -630,6 +702,7 @@ export default async function TenantPlatformControls({
             Hantera interna avtal
           </Link>
         </div>
+        <ContractPagination companyId={companyId} result={internalContractsResult} />
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {internalContracts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
@@ -830,7 +903,8 @@ export default async function TenantPlatformControls({
           <h3 className="text-lg font-black text-slate-950">
             Hemsidans publicerade avtal
           </h3>
-          <div className="mt-4 grid gap-3">
+          <ContractPagination companyId={companyId} result={offersResult} />
+        <div className="mt-4 grid gap-3">
             {offers.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
                 Inga hemsideavtal skapade ännu.

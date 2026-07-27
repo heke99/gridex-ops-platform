@@ -663,6 +663,21 @@ function exportRowFromItem(item: BillingExportRunItemRow) {
     snapshot.pricing && typeof snapshot.pricing === "object"
       ? (snapshot.pricing as Record<string, unknown>)
       : {};
+  const rawEnergyDirection = item.energy_direction ?? underlay.energy_direction;
+  if (rawEnergyDirection !== "consumption" && rawEnergyDirection !== "production" && rawEnergyDirection !== "consumption_correction") {
+    throw new Error("billing_export_energy_direction_missing");
+  }
+  const rawSettlementType = item.settlement_type ?? underlay.settlement_type;
+  const settlementType = rawSettlementType ?? (rawEnergyDirection === "consumption" ? "invoice" : null);
+  if (rawEnergyDirection === "production" && settlementType !== "credit_invoice" && settlementType !== "self_billing") {
+    throw new Error("billing_export_production_settlement_type_invalid");
+  }
+  if (rawEnergyDirection === "consumption_correction" && settlementType !== "credit_invoice") {
+    throw new Error("billing_export_consumption_correction_settlement_invalid");
+  }
+  if (rawEnergyDirection === "consumption" && settlementType !== "invoice") {
+    throw new Error("billing_export_consumption_settlement_type_invalid");
+  }
   return {
     export_run_item_id: item.id,
     idempotency_key: item.idempotency_key ?? null,
@@ -677,10 +692,8 @@ function exportRowFromItem(item: BillingExportRunItemRow) {
     metering_point_id: item.metering_point_id,
     status: item.status,
     readiness_status: item.readiness_status,
-    energy_direction:
-      item.energy_direction ?? underlay.energy_direction ?? "consumption",
-    settlement_type:
-      item.settlement_type ?? underlay.settlement_type ?? "invoice",
+    energy_direction: rawEnergyDirection,
+    settlement_type: settlementType,
     period_year: underlay.underlay_year ?? null,
     period_month: underlay.underlay_month ?? null,
     total_kwh: underlay.total_kwh ?? null,

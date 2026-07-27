@@ -15,6 +15,7 @@ const PUBLIC_SCALAR_FIELDS = [
   'quote_reference',
   'quote_valid_until',
   'quote_bound',
+  'energy_direction',
   'status',
   'created_customer',
   'next_step',

@@ -53,6 +53,11 @@ function firstSearchValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
 }
 
+function positivePage(value: string | string[] | undefined): number {
+  const parsed = Number(firstSearchValue(value) ?? "1")
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
+}
+
 function rowText(row: Record<string, unknown> | null | undefined, ...keys: string[]): string | null {
   if (!row) return null
   for (const key of keys) {
@@ -1513,6 +1518,7 @@ export default async function CompanyDetailPage({
           diagnoseContractId={
             firstSearchValue(resolvedSearchParams.diagnose_contract) ?? null
           }
+          contractPage={positivePage(resolvedSearchParams.contract_page)}
         />
 
         <section id="tenant-intake-tracking" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

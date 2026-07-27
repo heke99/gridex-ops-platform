@@ -38,6 +38,7 @@ export type PublicContractOffer = {
   public_name: string;
   public_description: string | null;
   contract_type: string;
+  energy_direction: "consumption" | "production";
   billing_model: string | null;
   customer_type: "private" | "business" | "both";
   monthly_fee_sek: number | null;
@@ -771,20 +772,57 @@ function publicPortfolioMethod(offer: PublicContractOffer) {
   };
 }
 
-function publicProductionTerms(offer: PublicContractOffer) {
+function publicEnergyDirection(offer: Pick<PublicContractOffer, "energy_direction" | "pricing_snapshot">): "consumption" | "production" {
+  const explicit = clean(offer.pricing_snapshot?.energy_direction) ?? offer.energy_direction;
+  if (explicit === "production") return "production";
+  if (explicit === "consumption") return "consumption";
   const production = objectValue(offer.pricing_snapshot?.production);
-  if (Object.keys(production).length === 0) return null;
+  return production.enabled === true ? "production" : "consumption";
+}
+
+function normalizePublicResolution(value: unknown): "monthly" | "hourly" | "quarterly" | null {
+  const resolution = clean(value);
+  if (resolution === "quarter_hour" || resolution === "quarterly") return "quarterly";
+  if (resolution === "hourly" || resolution === "monthly") return resolution;
+  return null;
+}
+
+function publicProductionTerms(offer: PublicContractOffer) {
+  if (publicEnergyDirection(offer) !== "production") return null;
+  const production = objectValue(offer.pricing_snapshot?.production);
+  const fixedCompensationOre = numberOrNull(
+    production.fixed_compensation_ore_per_kwh ?? production.compensation_ore_per_kwh,
+  );
+  const compensationModel = clean(production.compensation_model) ??
+    (numberOrNull(production.deduction_ore_per_kwh) !== null
+      ? "spot_minus_deduction"
+      : numberOrNull(production.premium_ore_per_kwh) !== null
+        ? "spot_plus_premium"
+        : fixedCompensationOre !== null
+          ? "fixed_compensation"
+          : "custom");
   return {
-    enabled: booleanOrNull(production.enabled) ?? false,
-    compensation_ore_per_kwh: numberOrNull(
-      production.compensation_ore_per_kwh,
+    enabled: true,
+    compensation_model: compensationModel,
+    resolution: normalizePublicResolution(
+      production.resolution ?? offer.pricing_snapshot?.interval_resolution,
     ),
-    compensation_sek_per_kwh: numberOrNull(
-      production.compensation_sek_per_kwh,
-    ),
+    deduction_ore_per_kwh: numberOrNull(production.deduction_ore_per_kwh),
+    premium_ore_per_kwh: numberOrNull(production.premium_ore_per_kwh),
+    fixed_compensation_ore_per_kwh: fixedCompensationOre,
+    compensation_ore_per_kwh: fixedCompensationOre,
+    compensation_sek_per_kwh:
+      numberOrNull(production.compensation_sek_per_kwh) ??
+      (fixedCompensationOre === null ? null : fixedCompensationOre / 100),
     vat_rate: numberOrNull(production.vat_rate),
     vat_rate_percent: numberOrNull(production.vat_rate_percent),
+    vat_treatment: clean(production.vat_treatment) ?? "configured_on_contract",
     settlement_mode: clean(production.settlement_mode),
+    billing_direction:
+      clean(production.settlement_mode) === "self_billing"
+        ? "self_billing"
+        : "credit_invoice",
+    metering_point_role: clean(production.metering_point_role) ?? "production",
   };
 }
 
@@ -837,6 +875,11 @@ function mapOfferRow(row: Record<string, unknown>): PublicContractOffer {
     public_name: clean(row.public_name) ?? clean(row.name) ?? "Elavtal",
     public_description: clean(row.public_description) ?? clean(row.description),
     contract_type: clean(row.contract_type) ?? "spot",
+    energy_direction:
+      clean(pricingSnapshot.energy_direction) === "production" ||
+      objectValue(pricingSnapshot.production).enabled === true
+        ? "production"
+        : "consumption",
     billing_model: clean(row.billing_model),
     customer_type:
       clean(row.customer_type) === "business"
@@ -927,6 +970,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
   const portfolioMonthlyPrices = publicPortfolioMonthlyPrices(offer);
   const portfolioPrice = currentPortfolioPriceBlock(portfolioMonthlyPrices);
   const portfolioMethod = publicPortfolioMethod(offer);
+  const energyDirection = publicEnergyDirection(offer);
   const productionTerms = publicProductionTerms(offer);
   const publicPriceText =
     clean(offer.pricing_snapshot?.public_price_text) ??
@@ -1009,6 +1053,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
     description: offer.public_description,
     public_description: offer.public_description,
     contract_type: offer.contract_type,
+    energy_direction: energyDirection,
     type: offer.contract_type,
     billing_model: offer.billing_model,
     area_pricing: areaPricing,
@@ -1043,6 +1088,8 @@ export function publicContractResponse(offer: PublicContractOffer) {
         market_price_supplied_by_ops: offer.contract_type !== "fixed",
       },
       interval_resolution: clean(offer.pricing_snapshot?.interval_resolution),
+      energy_direction: energyDirection,
+      production_pricing: productionTerms,
       base_components: baseComponents,
       calculation_components: calculationComponents,
       components: calculationComponents,
@@ -1141,6 +1188,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
     pricing_snapshot: {
       schema_version: numberOrNull(offer.pricing_snapshot?.schema_version) ?? 5,
       contract_type: offer.contract_type,
+      energy_direction: energyDirection,
       customer_type: offer.customer_type,
       price_areas: offer.price_areas ?? [],
       valid_from: offer.valid_from,
@@ -1169,6 +1217,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
       interval_resolution: clean(offer.pricing_snapshot?.interval_resolution),
       production: productionTerms,
     },
+    production_pricing: productionTerms,
     // Compatibility field intentionally stays null. Historical final rows and
     // non-binding indications must never masquerade as a future contract price.
     portfolio_price_ore_per_kwh: null,
@@ -1228,7 +1277,6 @@ export function publicContractResponse(offer: PublicContractOffer) {
 
 export type WebsiteLegalBundle = {
   tenant: {
-    id: string;
     name: string | null;
     org_number: string | null;
     brand_name: string | null;
@@ -1273,7 +1321,6 @@ export async function buildWebsiteLegalBundle(
 
   return {
     tenant: {
-      id: client.company_id,
       name: (row.name as string | null) ?? null,
       org_number: (row.org_number as string | null) ?? null,
       brand_name: brandName,

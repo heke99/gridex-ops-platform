@@ -457,6 +457,7 @@ export async function calculateOfferQuote(input: {
       public_name: offer.public_name,
       product_code: offer.product_code,
       contract_type: offer.contract_type,
+      energy_direction: offer.energy_direction,
       pricing_model: canonical.pricingModel,
       selected_area_price: selectedFixedPriceOrePerKwh === null
         ? null
@@ -518,6 +519,10 @@ export async function calculateOfferQuote(input: {
       amount_inc_vat: line.amountIncVat,
       metadata: line.metadata ?? {},
     })),
+    energy_direction: offer.energy_direction,
+    production_pricing: offer.energy_direction === "production"
+      ? ((offer.pricing_snapshot?.production as Record<string, unknown> | undefined) ?? null)
+      : null,
     pricing_interval: pricingInterval,
     estimate_method: usedSpotFallback || usedPortfolioEstimate
       ? "latest_available_market_indication"

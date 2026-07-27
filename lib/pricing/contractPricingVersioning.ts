@@ -170,11 +170,19 @@ export type NormalizedContractPricing = {
     energy_direction: "consumption" | "production";
     production: {
       enabled: boolean;
+      compensation_model: "fixed_compensation";
+      resolution: "monthly" | "hourly" | "quarterly";
+      deduction_ore_per_kwh: number | null;
+      premium_ore_per_kwh: number | null;
+      fixed_compensation_ore_per_kwh: number | null;
       compensation_ore_per_kwh: number | null;
       compensation_sek_per_kwh: number | null;
       vat_rate: number;
       vat_rate_percent: number;
+      vat_treatment: "configured_on_contract";
       settlement_mode: "credit_invoice" | "self_billing";
+      billing_direction: "credit_invoice" | "self_billing";
+      metering_point_role: "production";
     };
   };
 };
@@ -1201,6 +1209,18 @@ export function normalizeContractPricing(
       energy_direction: productionEnabled ? "production" : "consumption",
       production: {
         enabled: productionEnabled,
+        compensation_model: "fixed_compensation",
+        resolution:
+          input.contractType === "variable_quarterly"
+            ? "quarterly"
+            : input.contractType === "variable_hourly"
+              ? "hourly"
+              : input.contractType === "mixed"
+                ? (requestedSpotIntervalResolution as "monthly" | "hourly" | "quarterly")
+                : "monthly",
+        deduction_ore_per_kwh: null,
+        premium_ore_per_kwh: null,
+        fixed_compensation_ore_per_kwh: productionCompensationOrePerKwh,
         compensation_ore_per_kwh: productionCompensationOrePerKwh,
         compensation_sek_per_kwh:
           productionCompensationOrePerKwh === null
@@ -1208,7 +1228,10 @@ export function normalizeContractPricing(
             : productionCompensationOrePerKwh / 100,
         vat_rate: productionVatRate / 100,
         vat_rate_percent: productionVatRate,
+        vat_treatment: "configured_on_contract",
         settlement_mode: productionSettlementMode,
+        billing_direction: productionSettlementMode,
+        metering_point_role: "production",
       },
     },
   };

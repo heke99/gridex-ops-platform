@@ -43,7 +43,7 @@ expect(intake.includes('payload_hash'), 'application row persists payload_hash')
 expect(intake.includes('REPLAYABLE_COMMITTED_STATUSES'), 'committed replay statuses are centrally classified')
 expect(intake.includes('COMMITTED_METERING_REQUIRED_STATUSES'), 'replay validates status-specific durable resources')
 expect(intake.includes('existingIdempotent.warnings ?? []'), 'replay preserves stored warnings')
-expect(intake.includes('communication: {') && intake.includes('finalResponsePayload'), 'communication snapshot is stored in replay payload')
+expect(intake.includes('communication: {') && intake.includes('processingResponsePayload'), 'communication snapshot is stored in replay payload')
 expect(intake.includes("code: 'duplicate_application'"), 'identical committed application under a new key is rejected')
 expect(intake.includes("'application_business_in_progress'"), 'same business event already processing returns a distinct in-progress conflict')
 expect(intake.includes("'application_business_conflict'"), 'same customer/site/offer/start business event cannot create a parallel application')
@@ -54,8 +54,8 @@ expect(intake.includes("code: 'date_invalid'"), 'calendar dates are validated')
 expect(intake.includes("code: 'timestamp_invalid'"), 'POA acceptedAt timestamp is validated')
 expect(intake.includes("code: 'unknown_field'"), 'unknown top-level and nested business fields are rejected')
 expect(intake.includes('current_supplier_ediel_id'), 'current supplier Ediel id is accepted and persisted')
-expect(intake.includes('can_create_supplier_switch_request') && intake.includes('can_dispatch_supplier_switch'), 'response separates switch creation from dispatch readiness')
-expect(intake.includes("code: 'current_supplier_required'"), 'missing current supplier yields a concrete next action')
+expect(intake.includes('continuation_job_id') && intake.includes("next_step: 'automatic_processing'"), 'response hands downstream switch readiness to the durable continuation worker')
+expect(orchestration.includes("'current_supplier_missing'") && orchestration.includes('currentSupplierResponseReviewBlockers'), 'missing current supplier is a concrete continuation blocker')
 
 expect(orchestration.includes('shouldClearManagedBusinessBlock'), 'resolved business blocker is identified')
 expect(orchestration.includes('lifecycle_blocked = false'), 'managed lifecycle blocker is cleared when resolved')
@@ -83,7 +83,7 @@ for (const source of [docs, docsPage]) {
   expect(source.includes('application_business_in_progress'), 'API documentation covers an already-processing business event')
   expect(source.includes('application_business_conflict'), 'API documentation covers business-level duplicate policy')
   expect(source.includes('current_supplier_ediel_id'), 'API documentation covers current supplier fields')
-  expect(source.includes('can_dispatch_supplier_switch'), 'API documentation explains dispatch readiness')
+  expect(source.includes('automatic_processing') && source.includes('customer_application_continuation'), 'API documentation explains durable downstream processing')
 }
 
 if (failures > 0) {

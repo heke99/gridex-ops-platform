@@ -15,7 +15,7 @@ const form = read("components/admin/contracts/ContractOfferAdminForm.tsx");
 const schema = read("lib/contracts/adminContractSchema.ts");
 const db = read("lib/customer-contracts/db.ts");
 const runtime = read("lib/website/customerApplications.ts");
-const openapi = JSON.parse(read("docs/openapi/customer-portal-v1.json"));
+const openapi = JSON.parse(read("docs/openapi/website-integration-v1.json"));
 
 const failures = [];
 let checks = 0;
@@ -146,16 +146,16 @@ includesAll(form, [
 ], "complete admin form");
 
 includesAll(page, [
-  "Visa arkiverade",
-  "Radera oanvänt utkast permanent",
+  "Stängda och historiska",
+  "Kontrollera och radera oanvänt utkast",
   "Publicera på hemsida",
   "Publicera i API",
   "Pausa alla aktiva kanaler för denna version",
-  "deletion_preview",
+  "deletionPreview",
   "Kundförhandsgranskning och versionsskillnad",
   "contractVersionDiff",
   "publishContractVersionAction",
-  "Arkivering är irreversibel",
+  "Arkivering är terminal och irreversibel",
 ], "explicit lifecycle, preview and version comparison UX");
 
 includesAll(actions, [
@@ -266,7 +266,7 @@ includesAll(liveSchemaCheck, [
 check(db.includes('.not("lifecycle_status", "in", "(archived,superseded)")'), "archived/superseded hidden by default");
 check(runtime.includes('code: "offer_reference_mismatch"'), "canonical API mismatch code");
 check(runtime.includes('legacy_code: "offer_selector_mismatch"'), "legacy error code retained only as compatibility detail");
-check(openapi.info.version === "2026-07-23.1", "OpenAPI current version");
+check(openapi.info.version === "2026-07-27.1", "OpenAPI current version");
 check(JSON.stringify(openapi).includes("offer_reference_mismatch"), "OpenAPI documents canonical mismatch code");
 
 includesAll(migration, [

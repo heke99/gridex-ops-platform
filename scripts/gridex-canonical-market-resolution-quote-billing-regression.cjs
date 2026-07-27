@@ -39,10 +39,10 @@ includes('lib/pricing/spot/settlementLocker.ts', ['gridex_lock_spot_price_month'
 includes('app/api/internal/spot/lock-month/route.ts', ["requireAdminApiAccess(['pricing.write'])", 'lockSpotSettlementMonth', 'market_price_incomplete'], 'Settlement ska låsas genom en explicit behörighetskontrollerad operatörsrutt')
 includes('__tests__/spot-settlement-separation.test.ts', ['locked', 'is_indicative', "dataKind: 'settlement'"], 'Regression ska hindra preview/verified data som settlement')
 
-includes('lib/energy/resolutionBinding.ts', ['resolution_tenant_mismatch', 'resolution_expired', 'resolution_not_automation_ready'], 'Resolution ska valideras tenantbundet, med expiry och automation-readiness')
+includes('lib/energy/resolutionBinding.ts', ['resolution_tenant_mismatch', 'resolution_expired', 'resolution_pricing_not_ready', 'resolution_quote_not_ready'], 'Resolution ska valideras tenantbundet, med expiry och automation-readiness')
 includes('lib/energy/resolver.ts', ['grid_area_address_mismatch', 'geodataVersion', 'resolverVersion', 'automationAllowed: false'], 'Resolvern ska korsvalidera claims och spara provenance')
-includes('lib/pricing/offerQuote.ts', ['resolutionBindingRequired', 'loadBoundEnergyResolution', 'quote_resolution_mismatch', 'market_reference'], 'Quote ska bindas till tenantresolution och marknadsproveniens')
-includes('lib/pricing/websiteQuotes.ts', ['quote_hash', 'computedQuoteHash', 'quote_hash_mismatch', 'resolution_snapshot', 'loadBoundEnergyResolution', 'canonicalPriceArea'], 'Quote ska vara hashad, immutable och validera aktuell tenantresolution utan att kräva ett klientvalt price_area')
+includes('lib/pricing/offerQuote.ts', ['resolutionBindingRequired', 'loadQuoteEnergyResolution', 'quote_resolution_mismatch', 'market_reference'], 'Quote ska bindas till tenantresolution och marknadsproveniens')
+includes('lib/pricing/websiteQuotes.ts', ['quote_hash', 'computedQuoteHash', 'quote_hash_mismatch', 'resolution_snapshot', 'loadQuoteEnergyResolution', 'canonicalPriceArea'], 'Quote ska vara hashad, immutable och validera aktuell tenantresolution utan att kräva ett klientvalt price_area')
 includes('lib/website/customerApplications.ts', ['quote_reference_required', 'resolution_id', 'billing_price_snapshot.created', 'patchMeteringPointEnergyContext'], 'Ansökan ska kräva quote/resolution och patcha canonical mätpunktskontext')
 excludes('lib/website/customerApplications.ts', ['quoteValidation = null'], 'Teckning får inte falla tillbaka till avtal utan canonical quote')
 
@@ -64,15 +64,15 @@ includes('lib/energy/canonicalEnergyEvents.ts', ['CanonicalEnergyAuditError', 'a
 
 const websiteSpec = json('docs/openapi/website-integration-v1.json')
 const portalSpec = json('docs/openapi/customer-portal-v1.json')
-check(websiteSpec.info?.version === '2026-07-25.1', 'Website OpenAPI ska rapportera 2026-07-25.1')
-check(portalSpec.info?.version === '2026-07-25.1', 'Customer portal OpenAPI ska rapportera 2026-07-25.1')
+check(websiteSpec.info?.version === '2026-07-27.1', 'Website OpenAPI ska rapportera 2026-07-27.1')
+check(portalSpec.info?.version === '2026-07-27.1', 'Customer portal OpenAPI ska rapportera 2026-07-27.1')
 const quoteSchema = websiteSpec.components?.schemas?.WebsiteQuoteRequest ?? websiteSpec.components?.schemas?.QuoteRequest ?? {}
 check(JSON.stringify(quoteSchema).includes('resolution_id'), 'Website OpenAPI ska dokumentera resolution_id för quote')
 check(JSON.stringify(websiteSpec).includes('MarketReference'), 'Website OpenAPI ska dokumentera market_reference')
 check(Boolean(websiteSpec.paths?.['/api/v1/website/market-price/current']), 'Website OpenAPI ska dokumentera current market price')
 check(!Object.keys(portalSpec.paths ?? {}).some((route) => route.startsWith('/api/v1/website/')), 'Customer portal OpenAPI ska inte duplicera website-rutter')
 includes('docs/external-website-api-integration-guide.md', ['Preview är aldrig slutligt settlementpris', 'grid_area_address_mismatch', 'quote_reference'], 'Utvecklardokumentationen ska beskriva det canonicala flödet')
-includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-07-25.1'"], 'Runtime och dokumentation ska ha samma canonicala kontraktsversion')
+includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-07-27.1'"], 'Runtime och dokumentation ska ha samma canonicala kontraktsversion')
 includes('lib/website/publicContractApi.ts', ['WEBSITE_INTEGRATION_CONTRACT_VERSION'], 'Public contract runtime ska använda den canonicala kontraktsversionen')
 
 if (failures.length) {

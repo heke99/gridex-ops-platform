@@ -8,6 +8,8 @@ export type ContractType =
 
 export type GreenFeeMode = "none" | "sek_month" | "ore_per_kwh";
 
+export type ContractEnergyDirection = "consumption" | "production";
+
 export type CustomerContractTerminationReason =
   "switch_supplier" | "stop_supply" | "move_out" | "manual_override" | "other";
 
@@ -88,6 +90,7 @@ export type ContractOfferRow = {
     reason_codes?: string[];
   } | null;
   contract_type: ContractType;
+  energy_direction: ContractEnergyDirection;
   customer_type?: "private" | "business" | "both";
   campaign_name: string | null;
   campaign_code?: string | null;
@@ -180,6 +183,7 @@ export type CustomerContractRow = {
   status: CustomerContractStatus;
   contract_name: string;
   contract_type: ContractType;
+  energy_direction: ContractEnergyDirection;
   campaign_name: string | null;
   campaign_code?: string | null;
   campaign_version?: string | null;

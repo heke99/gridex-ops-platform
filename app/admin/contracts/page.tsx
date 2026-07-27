@@ -1452,7 +1452,7 @@ export default async function AdminContractsPage({
                             <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
                               {offer.lifecycle_status === "closed"
                                 ? "Stängning är terminal för produktserien. Historisk juridik, kundavtal och snapshots bevaras."
-                                : "Arkivering är irreversibel. Använd “Skapa ny version” för att återlansera samma produktserie utan att återuppliva gammal juridik eller kanalstatus."}
+                                : "Arkivering är terminal och irreversibel. En återlansering ska skapas som en separat efterföljande produkt, inte som en ny version av den arkiverade serien."}
                             </p>
                           ) : null}
                           {contractLifecycleAllows(offer.lifecycle_status, "archive") ? (

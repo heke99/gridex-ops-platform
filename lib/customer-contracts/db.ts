@@ -7,6 +7,7 @@ import type {
   CustomerContractRow,
   GreenFeeMode,
   CustomerContractTerminationReason,
+  ContractEnergyDirection,
 } from "./types";
 import { deriveContractEndsAt } from "./lifecycle";
 
@@ -47,6 +48,7 @@ type CanonicalContractBinding = {
   offer_reference: string;
   commercial_snapshot: Record<string, unknown>;
   legal_snapshot: Record<string, unknown>;
+  energy_direction: ContractEnergyDirection;
 };
 
 type ManualBindingInput = {
@@ -55,6 +57,7 @@ type ManualBindingInput = {
   meteringPointId?: string | null;
   contractName: string;
   contractType: ContractType;
+  energyDirection?: ContractEnergyDirection | null;
   campaignName?: string | null;
   campaignCode?: string | null;
   campaignVersion?: string | null;
@@ -86,6 +89,24 @@ function pricingModelForContractType(contractType: ContractType): string {
   if (contractType === "portfolio") return "portfolio";
   if (contractType === "mixed") return "mixed";
   return "spot";
+}
+
+function resolveManualEnergyDirection(input: ManualBindingInput): ContractEnergyDirection {
+  const snapshotDirection = input.priceSnapshot?.energy_direction;
+  const explicit = input.energyDirection ??
+    (snapshotDirection === "production" || snapshotDirection === "consumption"
+      ? snapshotDirection
+      : null);
+  if (explicit) return explicit;
+  const production = input.priceSnapshot?.production;
+  if (production && typeof production === "object" && !Array.isArray(production)) {
+    const enabled = (production as Record<string, unknown>).enabled;
+    if (enabled === true) return "production";
+    if (enabled === false) return "consumption";
+  }
+  throw new Error(
+    "energy_direction måste anges explicit för manuella avtal som versionslåses.",
+  );
 }
 
 function pushPriceComponent(
@@ -157,6 +178,7 @@ async function prepareManualCanonicalBinding(
   input: ManualBindingInput,
 ): Promise<CanonicalContractBinding> {
   const priceAreas = await resolveContractPriceAreas(input);
+  const energyDirection = resolveManualEnergyDirection(input);
   const priceComponents: Array<Record<string, unknown>> = [];
   pushPriceComponent(priceComponents, {
     code: "monthly_fee",
@@ -254,7 +276,7 @@ async function prepareManualCanonicalBinding(
     schema: "gridex_manual_contract_pricing_v1",
     pricing_model: pricingModelForContractType(input.contractType),
     contract_type: input.contractType,
-    energy_direction: "consumption",
+    energy_direction: energyDirection,
     price_areas: priceAreas,
     vat_rate: input.vatRate ?? 25,
     fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
@@ -278,6 +300,7 @@ async function prepareManualCanonicalBinding(
         contract_type: input.contractType,
         customer_type: "both",
         pricing_model: pricingModelForContractType(input.contractType),
+        energy_direction: energyDirection,
         campaign_name: input.campaignName ?? null,
         campaign_code: input.campaignCode ?? null,
         campaign_version: input.campaignVersion ?? null,
@@ -303,7 +326,10 @@ async function prepareManualCanonicalBinding(
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     throw new Error("canonical_manual_contract_binding_missing");
   }
-  return data as CanonicalContractBinding;
+  return {
+    ...(data as Omit<CanonicalContractBinding, "energy_direction">),
+    energy_direction: energyDirection,
+  };
 }
 
 export async function listContractOffers(
@@ -588,6 +614,7 @@ export async function createCustomerContract(input: {
   companyId?: string | null;
   contractName: string;
   contractType: ContractType;
+  energyDirection?: ContractEnergyDirection | null;
   campaignName?: string | null;
   campaignCode?: string | null;
   campaignVersion?: string | null;
@@ -658,6 +685,7 @@ export async function createCustomerContract(input: {
           meteringPointId: input.meteringPointId,
           contractName: input.contractName,
           contractType: input.contractType,
+          energyDirection: input.energyDirection,
           campaignName: input.campaignName,
           campaignCode: input.campaignCode,
           campaignVersion: input.campaignVersion,
@@ -711,6 +739,7 @@ export async function createCustomerContract(input: {
       status,
       contract_name: input.contractName,
       contract_type: input.contractType,
+      energy_direction: manualBinding?.energy_direction ?? input.energyDirection ?? undefined,
       campaign_name: input.campaignName ?? null,
       campaign_code: input.campaignCode ?? null,
       campaign_version: input.campaignVersion ?? null,
@@ -831,6 +860,7 @@ export async function updateCustomerContract(input: {
   companyId?: string | null;
   contractName: string;
   contractType: ContractType;
+  energyDirection?: ContractEnergyDirection | null;
   campaignName?: string | null;
   campaignCode?: string | null;
   campaignVersion?: string | null;
@@ -891,6 +921,7 @@ export async function updateCustomerContract(input: {
           meteringPointId: input.meteringPointId,
           contractName: input.contractName,
           contractType: input.contractType,
+          energyDirection: input.energyDirection,
           campaignName: input.campaignName,
           campaignCode: input.campaignCode,
           campaignVersion: input.campaignVersion,
@@ -947,6 +978,7 @@ export async function updateCustomerContract(input: {
       status: input.status,
       contract_name: input.contractName,
       contract_type: input.contractType,
+      energy_direction: manualBinding?.energy_direction ?? input.energyDirection ?? undefined,
       campaign_name: input.campaignName ?? null,
       campaign_code: input.campaignCode ?? null,
       campaign_version: input.campaignVersion ?? null,

@@ -7,6 +7,7 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { buildWebsiteLegalBundle } from '@/lib/website/publicContracts'
 import { logUsageEvent } from '@/lib/audit/actionLogger'
+import { canonicalApiError } from '@/lib/api/apiError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,6 +28,7 @@ function hasAcceptedScope(scopes: string[] | null | undefined): boolean {
 
 export async function GET(request: NextRequest) {
   const startedAt = Date.now()
+  const requestId = randomUUID()
   // Authenticate without enforcing a single scope, then accept either the
   // dedicated legal scope or the existing website_contracts.read so existing
   // tenant website keys keep working without re-provisioning.
@@ -34,13 +36,17 @@ export async function GET(request: NextRequest) {
 
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
-    return customerPortalJson({ error: { code: auth.errorCode, message: auth.error } }, { status: auth.status })
+    return customerPortalJson(canonicalApiError({ code: auth.errorCode, message: auth.error, requestId }), { status: auth.status })
   }
 
   if (!hasAcceptedScope(auth.client.scopes)) {
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 403, startedAt, errorCode: 'api_scope_missing' })
     return customerPortalJson(
-      { error: { code: 'api_scope_missing', message: 'API-klienten saknar scope för juridik (website_legal.read eller website_contracts.read).' } },
+      canonicalApiError({
+        code: 'api_scope_missing',
+        message: 'API-klienten saknar scope för juridik (website_legal.read eller website_contracts.read).',
+        requestId,
+      }),
       { status: 403 },
     )
   }
@@ -65,11 +71,25 @@ export async function GET(request: NextRequest) {
       billable: false,
       metadata: { complete: bundle.complete, missing_types: bundle.missing_types },
     })
-    return legalBundleJson(bundle)
+    return legalBundleJson({ data: bundle, request_id: requestId, correlation_id: requestId })
   } catch (error) {
-    const traceId = randomUUID()
-    console.error('[website-legal-bundle] failed', { traceId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'legal_bundle_unavailable', metadata: { trace_id: traceId } })
-    return customerPortalJson({ error: { code: 'legal_bundle_unavailable', message: 'Juridiskt paket kunde inte hämtas.', trace_id: traceId } }, { status: 500 })
+    console.error('[website-legal-bundle] failed', { requestId, error })
+    await logIntegrationApiRequest({
+      client: auth.client,
+      request,
+      statusCode: 503,
+      startedAt,
+      errorCode: 'legal_bundle_unavailable',
+      metadata: { request_id: requestId },
+    })
+    return customerPortalJson(
+      canonicalApiError({
+        code: 'legal_bundle_unavailable',
+        message: 'Juridiskt paket kunde inte hämtas.',
+        requestId,
+        retryable: true,
+      }),
+      { status: 503 },
+    )
   }
 }

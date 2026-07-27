@@ -1,3 +1,13 @@
+
+## 2026-07-27 – Contract security, production direction and API contract 2026-07-27.1
+
+- Contract mutation RPCs are service-role only; admin server actions bind the authenticated actor and tenant before calling them.
+- Audit rows now carry actor type, explicit system actor, request/correlation IDs, resource identity and before/after status.
+- `energy_direction` and exact pricing/publication identities are immutable through quote, application and customer contract.
+- Archived contracts are terminal; compatibility restore returns a structured failure and recommends a successor product.
+- Company contract lists use true server-side pagination and direct diagnostics by tenant + contract ID.
+- Website OpenAPI and developer documentation now model production pricing, canonical errors and `GET /api/v1/website/legal-bundle` at version `2026-07-27.1`.
+
 # Changelog
 
 Use this file after every Cursor task.
@@ -94,7 +104,7 @@ Use this file after every Cursor task.
 
 ### Contract and verification
 
-- API/OpenAPI/docs version is `2026-07-25.1`.
+- API/OpenAPI/docs version is `2026-07-27.1`.
 - Added public-ID policy and synchronized tenant guides/developer examples.
 - `npm run typecheck`: pass.
 - `npm test -- --testTimeout=15000`: 53 files, 346 tests pass.

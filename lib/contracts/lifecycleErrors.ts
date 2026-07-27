@@ -1,14 +1,38 @@
 export type ContractLifecycleBlocker = {
-  code?: string
-  field?: string
-  message?: string
-  resource_type?: string
-  resource_id?: string
-  count?: number
-  reason?: string
-  current_value?: unknown
+  code: string
+  field?: string | null
+  message: string
+  resourceType?: string | null
+  resourceId?: string | null
+  count?: number | null
+  recommendedAction?: string | null
   metadata?: Record<string, unknown>
+  // Snake-case compatibility returned by PostgreSQL RPCs.
+  resource_type?: string | null
+  resource_id?: string | null
+  recommended_action?: string | null
+  reason?: string | null
+  current_value?: unknown
 }
+
+export type ContractLifecycleFailure = {
+  ok: false
+  code: string
+  message: string
+  requestId?: string | null
+  correlationId?: string | null
+  blockers: ContractLifecycleBlocker[]
+}
+
+export type ContractLifecycleSuccess<T> = {
+  ok: true
+  code: string
+  data: T
+}
+
+export type ContractLifecycleResult<T> =
+  | ContractLifecycleSuccess<T>
+  | ContractLifecycleFailure
 
 export type ContractReadinessResult = {
   ok?: boolean
@@ -18,6 +42,7 @@ export type ContractReadinessResult = {
   operation?: string
   channel?: string | null
   code?: string
+  message?: string
   blockers?: ContractLifecycleBlocker[] | string[]
   blocker_details?: ContractLifecycleBlocker[]
   lifecycle_status?: string
@@ -32,6 +57,9 @@ export type ContractLifecycleRpcResult = {
   deleted?: boolean
   mode?: string
   code?: string
+  message?: string
+  request_id?: string | null
+  correlation_id?: string | null
   reason_codes?: string[]
   blocker_codes?: string[]
   blockers?: ContractLifecycleBlocker[] | string[]
@@ -55,6 +83,74 @@ export type ContractLifecycleRpcResult = {
         rows?: number
       }>
     }
+  }
+}
+
+function textValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+export function normalizeContractLifecycleBlocker(value: unknown): ContractLifecycleBlocker | null {
+  if (typeof value === 'string' && value.trim()) {
+    const code = value.trim()
+    return {
+      code,
+      message: CONTRACT_LIFECYCLE_REASON_MESSAGES[code] ?? code,
+    }
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const row = value as Record<string, unknown>
+  const code = textValue(row.code) ?? textValue(row.reason) ?? 'contract_blocked'
+  const message = textValue(row.message)
+    ?? CONTRACT_LIFECYCLE_REASON_MESSAGES[code]
+    ?? code
+  return {
+    code,
+    message,
+    field: textValue(row.field),
+    resourceType: textValue(row.resourceType) ?? textValue(row.resource_type),
+    resourceId: textValue(row.resourceId) ?? textValue(row.resource_id),
+    count: typeof row.count === 'number' ? row.count : null,
+    recommendedAction: textValue(row.recommendedAction) ?? textValue(row.recommended_action),
+    metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+      ? row.metadata as Record<string, unknown>
+      : undefined,
+    resource_type: textValue(row.resource_type),
+    resource_id: textValue(row.resource_id),
+    recommended_action: textValue(row.recommended_action),
+    reason: textValue(row.reason),
+    current_value: row.current_value,
+  }
+}
+
+export function normalizeContractLifecycleResult<T = Record<string, unknown>>(
+  value: unknown,
+  fallbackMessage = 'Avtalsåtgärden kunde inte genomföras.',
+): ContractLifecycleResult<T> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { ok: false, code: 'invalid_contract_rpc_result', message: fallbackMessage, blockers: [] }
+  }
+  const row = value as Record<string, unknown>
+  const code = textValue(row.code) ?? (row.ok === true ? 'contract_action_completed' : 'contract_action_failed')
+  if (row.ok === true) {
+    return { ok: true, code, data: value as T }
+  }
+  const blockers = Array.isArray(row.blockers)
+    ? row.blockers.map(normalizeContractLifecycleBlocker).filter((item): item is ContractLifecycleBlocker => Boolean(item))
+    : []
+  const blockerMessage = textValue(
+    blockers.map((blocker) => blocker.message).filter(Boolean).join(' · '),
+  )
+  return {
+    ok: false,
+    code,
+    message: textValue(row.message)
+      ?? blockerMessage
+      ?? CONTRACT_LIFECYCLE_REASON_MESSAGES[code]
+      ?? fallbackMessage,
+    requestId: textValue(row.request_id),
+    correlationId: textValue(row.correlation_id),
+    blockers,
   }
 }
 

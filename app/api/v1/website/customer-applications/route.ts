@@ -11,6 +11,7 @@ import { processWebsiteCustomerApplication } from '@/lib/website/customerApplica
 import { logUsageEvent } from '@/lib/audit/actionLogger'
 import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 import { publicWebsiteCustomerApplicationData } from '@/lib/website/publicCustomerApplication'
+import { canonicalApiError } from '@/lib/api/apiError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,29 +44,29 @@ function readField(value: unknown, field: string): unknown {
 // Legacy flat keys (code, error_stage, field, hint, details) are preserved
 // alongside the nested object for backward compatibility.
 function buildErrorBody(body: Record<string, unknown>, requestId: string) {
-  const message = typeof body.error === 'string' ? body.error : (typeof body.message === 'string' ? body.message : 'Begäran kunde inte behandlas.')
-  const stage = (readField(body, 'error_stage') as string | null) ?? (readField(body, 'stage') as string | null) ?? null
-  const action = readField(body, 'action') as string | null
-  return {
-    error: {
-      code: (body.code as string | undefined) ?? 'website_application_error',
-      message,
-      stage,
-      field: (body.field as string | null | undefined) ?? null,
-      request_id: requestId,
-      ...(action ? { action } : {}),
-    },
-    // Backward-compatible flat fields.
+  const message = typeof body.error === 'string'
+    ? body.error
+    : typeof body.message === 'string'
+      ? body.message
+      : 'Begäran kunde inte behandlas.'
+  const stage = (readField(body, 'error_stage') as string | null)
+    ?? (readField(body, 'stage') as string | null)
+    ?? null
+  return canonicalApiError({
     code: (body.code as string | undefined) ?? 'website_application_error',
     message,
+    requestId,
+    correlationId: typeof body.correlation_id === 'string' ? body.correlation_id : requestId,
     field: (body.field as string | null | undefined) ?? null,
+    blockers: body.blockers ?? body.blocking_reasons,
+    details: body.details ?? null,
+    stage,
+    action: readField(body, 'action') as string | null,
     hint: (body.hint as string | null | undefined) ?? null,
-    error_stage: stage,
-    ...(action ? { action } : {}),
-    details: (body.details as unknown) ?? null,
-    request_id: requestId,
-  }
+    retryable: body.retryable === true,
+  })
 }
+
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()

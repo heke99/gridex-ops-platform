@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-07-25.1",
+    "version": "2026-07-27.1",
     "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
@@ -130,7 +130,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-25.1"
+                  "const": "2026-07-27.1"
                 },
                 "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
               }
@@ -150,7 +150,7 @@
                       "$ref": "#/components/schemas/TenantMeta",
                       "properties": {
                         "contract_schema_version": {
-                          "const": "2026-07-25.1"
+                          "const": "2026-07-27.1"
                         }
                       },
                       "required": [
@@ -171,7 +171,10 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           }
-        }
+        },
+        "x-required-scopes": [
+          "website_contracts.read"
+        ]
       }
     },
     "/api/v1/website/public-contracts/diagnostics": {
@@ -229,7 +232,10 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "x-required-scopes": [
+          "website_contracts.diagnostics"
+        ]
       }
     },
     "/api/v1/contracts": {
@@ -910,7 +916,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-25.1"
+                  "const": "2026-07-27.1"
                 }
               }
             },
@@ -945,7 +951,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-25.1"
+                  "const": "2026-07-27.1"
                 }
               }
             },
@@ -1073,7 +1079,7 @@
                     "next_update_at": "2026-07-24T16:15:00+02:00"
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-07-25.1"
+                  "contract_schema_version": "2026-07-27.1"
                 }
               }
             }
@@ -1311,7 +1317,7 @@
           "Customer applications"
         ],
         "summary": "Get the published legal bundle",
-        "description": "Scope: website_legal.read or website_contracts.read. One scope is sufficient.",
+        "description": "Canonical GET route. Scope: website_legal.read or website_contracts.read; one scope is sufficient. Tenant is derived from the API key and no company_id payload is accepted.",
         "x-required-scopes": [
           "website_legal.read",
           "website_contracts.read"
@@ -1322,8 +1328,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/WebsiteLegalBundleResponse"
                 }
               }
             }
@@ -1348,8 +1353,8 @@
               }
             }
           },
-          "409": {
-            "description": "Publication conflict",
+          "503": {
+            "description": "Legal bundle storage is temporarily unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -1450,15 +1455,93 @@
     "schemas": {
       "ErrorEnvelope": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
-          "error"
+          "ok",
+          "code",
+          "message",
+          "request_id",
+          "correlation_id",
+          "blockers"
         ],
         "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": false
+          },
+          "code": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiBlocker"
+            }
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "error_stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "error": {
             "type": "object",
+            "additionalProperties": true,
             "required": [
               "code",
-              "message"
+              "message",
+              "request_id",
+              "correlation_id",
+              "blockers"
             ],
             "properties": {
               "code": {
@@ -1467,51 +1550,31 @@
               "message": {
                 "type": "string"
               },
+              "request_id": {
+                "type": "string"
+              },
+              "correlation_id": {
+                "type": "string"
+              },
               "field": {
                 "type": [
                   "string",
                   "null"
                 ]
               },
-              "request_id": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "details": {
-                "type": [
-                  "object",
-                  "array",
-                  "null"
-                ]
-              },
-              "correlation_id": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Correlation ID for support and audit; normally identical to request_id."
-              },
               "retryable": {
-                "type": "boolean",
-                "description": "Whether the same operation can be retried after the underlying condition changes."
+                "type": "boolean"
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApiBlocker"
+                }
               }
             }
-          },
-          "error_code": {
-            "type": "string",
-            "description": "Additive machine-readable alias of error.code. Authentication may fail before route logic with tenant_not_operationally_ready (403), tenant_paused (423), tenant_suspended (403), tenant_closed (410), tenant_inactive (410), or tenant_status_unavailable (503)."
-          },
-          "correlation_id": {
-            "type": "string",
-            "description": "Correlation ID for logs, audit and support."
-          },
-          "retryable": {
-            "type": "boolean",
-            "description": "Whether retry may succeed after a transient dependency or data condition is resolved."
           }
-        }
+        },
+        "description": "Canonical error envelope. Expected business conflicts use 409/422; provider readiness uses 503. Codes include contract_version_not_publishable, contract_not_ready, contract_closed, contract_archived, contract_delete_blocked, quote_expired, quote_revoked, quote_consumed, quote_mismatch, offer_reference_mismatch, resolution_not_ready, price_area_not_supported and legal_bundle_not_ready."
       },
       "TenantMeta": {
         "type": "object",
@@ -1573,7 +1636,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-25.1"
+            "const": "2026-07-27.1"
           },
           "configuration": {
             "type": "object",
@@ -1709,7 +1772,12 @@
       "PublicContract": {
         "type": "object",
         "required": [
-          "offer_reference"
+          "offer_reference",
+          "name",
+          "contract_type",
+          "energy_direction",
+          "customer_type",
+          "pricing"
         ],
         "properties": {
           "offer_reference": {
@@ -1808,7 +1876,7 @@
                     "const": true
                   },
                   "market_price_supplied_by_ops": {
-                    "const": true
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": false
@@ -1826,6 +1894,19 @@
                   "$ref": "#/components/schemas/FixedAreaPrice"
                 },
                 "description": "Canonical area-price matrix for the same offer."
+              },
+              "energy_direction": {
+                "$ref": "#/components/schemas/EnergyDirection"
+              },
+              "production_pricing": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ProductionPricing"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "additionalProperties": true
@@ -1872,6 +1953,88 @@
               "$ref": "#/components/schemas/FixedAreaPrice"
             },
             "description": "SE1-SE4 prices belonging to this one canonical product/version. They are not separate offers."
+          },
+          "name": {
+            "type": "string"
+          },
+          "public_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_code": {
+            "type": "string"
+          },
+          "energy_direction": {
+            "$ref": "#/components/schemas/EnergyDirection"
+          },
+          "production_pricing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProductionPricing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "customer_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "private",
+                "business"
+              ]
+            }
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "price_areas": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "SE1",
+                "SE2",
+                "SE3",
+                "SE4"
+              ]
+            }
+          },
+          "binding_months": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "notice_months": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "automatic_renewal": {
+            "type": "boolean"
+          },
+          "power_of_attorney_required": {
+            "type": "boolean"
           }
         },
         "additionalProperties": true,
@@ -2757,6 +2920,16 @@
               }
             },
             "additionalProperties": false
+          },
+          "energy_direction": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EnergyDirection"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -3469,6 +3642,19 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "energy_direction": {
+            "$ref": "#/components/schemas/EnergyDirection"
+          },
+          "production_pricing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProductionPricing"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": true
@@ -4313,7 +4499,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-25.1"
+            "const": "2026-07-27.1"
           }
         },
         "additionalProperties": false
@@ -4392,6 +4578,567 @@
             "format": "uuid"
           }
         }
+      },
+      "EnergyDirection": {
+        "type": "string",
+        "enum": [
+          "consumption",
+          "production"
+        ],
+        "description": "Canonical economic direction. Consumption creates ordinary supply/invoice flows; production creates compensation settlement flows."
+      },
+      "ProductionPricing": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "compensation_model",
+          "resolution",
+          "settlement_mode",
+          "billing_direction",
+          "metering_point_role"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "const": true
+          },
+          "compensation_model": {
+            "type": "string",
+            "enum": [
+              "fixed_compensation"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "hourly",
+              "quarterly"
+            ]
+          },
+          "deduction_ore_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "premium_ore_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "fixed_compensation_ore_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "compensation_ore_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "compensation_sek_per_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "settlement_mode": {
+            "type": "string",
+            "enum": [
+              "credit_invoice",
+              "self_billing"
+            ]
+          },
+          "billing_direction": {
+            "type": "string",
+            "enum": [
+              "credit_invoice",
+              "self_billing"
+            ]
+          },
+          "vat_rate": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "vat_rate_percent": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "vat_treatment": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metering_point_role": {
+            "type": "string",
+            "const": "production"
+          }
+        },
+        "description": "Explicit production compensation contract. Runtime currently supports fixed compensation; additional compensation models require a future contract-version bump."
+      },
+      "ApiBlocker": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resource_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resource_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "recommended_action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metadata": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "code",
+          "message",
+          "request_id",
+          "correlation_id",
+          "blockers"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": false
+          },
+          "code": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiBlocker"
+            }
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "error_stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "code",
+              "message",
+              "request_id",
+              "correlation_id",
+              "blockers"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "correlation_id": {
+                "type": "string"
+              },
+              "field": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApiBlocker"
+                }
+              }
+            }
+          }
+        },
+        "description": "Canonical error envelope. Expected business conflicts use 409/422; provider readiness uses 503. Codes include contract_version_not_publishable, contract_not_ready, contract_closed, contract_archived, contract_delete_blocked, quote_expired, quote_revoked, quote_consumed, quote_mismatch, offer_reference_mismatch, resolution_not_ready, price_area_not_supported and legal_bundle_not_ready."
+      },
+      "LegalBundleDocument": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "module_key",
+          "version",
+          "title",
+          "origin"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Opaque immutable legal document identifier."
+          },
+          "module_key": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "content_sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "origin": {
+            "type": "string"
+          },
+          "legal_bundle_version_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Opaque immutable bundle version identifier."
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          }
+        }
+      },
+      "WebsiteLegalBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "required_modules",
+          "module_versions",
+          "immutable"
+        ],
+        "properties": {
+          "terms_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "privacy_policy_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "withdrawal_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "power_of_attorney_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price_terms_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "terms_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "privacy_policy_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "withdrawal_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price_terms_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "power_of_attorney_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "legal_bundle_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "terms_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "privacy_policy_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "withdrawal_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "price_terms_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "power_of_attorney_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "terms_required": {
+            "type": "boolean"
+          },
+          "privacy_policy_required": {
+            "type": "boolean"
+          },
+          "withdrawal_required": {
+            "type": "boolean"
+          },
+          "price_terms_required": {
+            "type": "boolean"
+          },
+          "power_of_attorney_required": {
+            "type": "boolean"
+          },
+          "immutable": {
+            "type": "boolean"
+          },
+          "required_modules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "module_versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LegalBundleDocument"
+            }
+          }
+        }
+      },
+      "WebsiteLegalBundle": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant",
+          "legal",
+          "complete",
+          "missing_types"
+        ],
+        "properties": {
+          "tenant": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "org_number",
+              "brand_name",
+              "slug"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "org_number": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "brand_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "slug": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "legal": {
+            "$ref": "#/components/schemas/WebsiteLegalBlock"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "missing_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "WebsiteLegalBundleResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "request_id",
+          "correlation_id"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WebsiteLegalBundle"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          }
+        }
       }
     },
     "responses": {
@@ -4437,7 +5184,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-25.1",
+  "x-contract-schema-version": "2026-07-27.1",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

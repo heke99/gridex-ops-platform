@@ -19,45 +19,34 @@ export type PriceBook = {
 
 /**
  * Retrieve the most recent active price book for a company. This helper is
- * intentionally permissive: if no table exists or there are no rows the
- * function returns null. Additional filtering (e.g. by product) can be
- * implemented at call sites.
+ * It returns null only when no active row exists. Database and schema failures
+ * are propagated so callers cannot mistake a broken query for an empty state.
  */
 export async function getActivePriceBook(companyId: string): Promise<PriceBook | null> {
-  try {
-    const { data, error } = await supabaseService
-      .from('price_books')
-      .select('*')
-      .eq('company_id', companyId)
-      .in('status', ['active', 'published'])
-      .order('valid_from', { ascending: false, nullsFirst: false })
-      .limit(1)
-      .maybeSingle()
-    if (error) throw error
-    return (data as PriceBook) ?? null
-  } catch (err) {
-    // On schema mismatch or missing table simply return null to allow the
-    // application to continue. The readiness checks will surface issues.
-    return null
-  }
+  const { data, error } = await supabaseService
+    .from('price_books')
+    .select('*')
+    .eq('company_id', companyId)
+    .in('status', ['active', 'published'])
+    .order('valid_from', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return (data as PriceBook) ?? null
 }
 
 /**
  * Retrieve price lines for a given price book. Price lines include
  * individual components such as spot markup, fixed fees and taxes. This
- * function returns an empty array if the table is missing or no lines
- * exist. Consumers should not rely on the ordering of lines.
+ * function returns an empty array only when no lines exist. Database failures
+ * are propagated. Consumers should not rely on the ordering of lines.
  */
 export async function listPriceBookLines(priceBookId: string): Promise<Record<string, unknown>[]> {
-  try {
-    const { data, error } = await supabaseService
-      .from('price_book_lines')
-      .select('*')
-      .eq('price_book_id', priceBookId)
-      .order('sort_order', { ascending: true })
-    if (error) throw error
-    return (data ?? []) as Record<string, unknown>[]
-  } catch (err) {
-    return []
-  }
+  const { data, error } = await supabaseService
+    .from('price_book_lines')
+    .select('*')
+    .eq('price_book_id', priceBookId)
+    .order('sort_order', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as Record<string, unknown>[]
 }

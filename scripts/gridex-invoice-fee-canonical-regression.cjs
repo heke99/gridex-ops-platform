@@ -18,7 +18,7 @@ const boundaryMigration = read('supabase/migrations/20260722233000_external_tena
 const adminUi = read('app/admin/contracts/page.tsx') + read('components/admin/contracts/ContractOfferAdminForm.tsx')
 const tenantUi = read('app/admin/companies/[id]/TenantPlatformControls.tsx')
 const developerPage = read('app/developers/customer-portal-api/page.tsx')
-const openapi = JSON.parse(read('docs/openapi/customer-portal-v1.json'))
+const openapi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
 
 must(/invoice_fee_sek:\s*canonicalPricingCommand\.invoice_fee_sek/.test(internalAction), 'internal contract command persists invoice_fee_sek')
 must(/buildCanonicalContractPricingCommand/.test(internalAction) && /invoiceFeeSek/.test(internalSchema) && /Publicering kräver fakturaavgift/.test(internalSchema) && /gridex_publish_contract_channel/.test(tenantAction) && !/parseCanonicalInvoiceFee/.test(tenantAction), 'canonical admin preserves zero and company page cannot create parallel invoice fee')
@@ -31,10 +31,10 @@ must(/Avgiften används alltid i offert, avtal och fakturering/.test(adminUi) &&
 must(/invoice_fee: invoiceFee/.test(publicContracts) && /invoice_fee_sek: offer\.invoice_fee_sek/.test(publicContracts), 'invoice fee is always returned to tenant calculation API')
 must(/calculation_inclusion/.test(publicContracts) && /website_visibility/.test(publicContracts), 'invoice fee calculation and presentation are separate')
 must(/website_summary_visible/.test(boundaryMigration), 'database supports summary visibility independently')
-must(openapi.info.version === '2026-07-25.1', 'OpenAPI contract version is 2026-07-25.1')
+must(openapi.info.version === '2026-07-27.1', 'OpenAPI contract version is 2026-07-27.1')
 must(Boolean(openapi.paths['/api/v1/website/quote'].post.responses['201']) && openapi.paths['/api/v1/website/quote'].post['x-required-scopes'].includes('website_quotes.write'), 'canonical quote endpoint is documented as active')
-must(Boolean(openapi.components.schemas.PublicPricingComponent.properties.calculation_inclusion), 'OpenAPI documents calculation inclusion')
-must(Boolean(openapi.components.schemas.PublicPricingComponent.properties.website_visibility), 'OpenAPI documents website visibility')
+must(Boolean(openapi.components.schemas.PricingComponent.properties.calculation_inclusion), 'OpenAPI documents calculation inclusion')
+must(Boolean(openapi.components.schemas.PricingComponent.properties.website_visibility), 'OpenAPI documents website visibility')
 must(/calculation_components/.test(developerPage) && /display_components/.test(developerPage), 'developer guide documents complete calculation data and separate display data')
 
 console.log('Canonical invoice fee regression passed.')

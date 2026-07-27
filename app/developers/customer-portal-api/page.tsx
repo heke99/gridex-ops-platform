@@ -212,6 +212,7 @@ const publicContractsResponse = `{
       "offer_reference": "offer_...",
       "name": "Fast elpris",
       "contract_type": "fixed",
+      "energy_direction": "consumption",
       "customer_type": "private",
       "fixed_price_ore_per_kwh": 112,
       "monthly_fee_sek": 49,
@@ -322,7 +323,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-07-25.1"
+  "contract_schema_version": "2026-07-27.1"
 }`;
 
 const marketReferenceExample = `{
@@ -1096,6 +1097,22 @@ export default function CustomerPortalApiDocsPage() {
             kräver fortfarande exakt låst intern avräkning.
           </p>
           <CodeBlock>{portfolioPricesExample}</CodeBlock>
+          <p>
+            <code>energy_direction</code> är obligatoriskt och är antingen
+            <code>consumption</code> eller <code>production</code>. Ett
+            produktionsavtal har dessutom explicit <code>production_pricing</code>
+            med ersättningsmodell, upplösning, avdrag/påslag eller fast
+            ersättning, momsbehandling och <code>settlement_mode</code>. Vid
+            <code>self_billing</code> skapas kredit-/självfaktureringsflöde och
+            aldrig en vanlig konsumtionsleverans eller konsumtionsfaktura.
+          </p>
+          <p>
+            Juridikpaketet hämtas canonicalt med
+            <code>GET /api/v1/website/legal-bundle</code>. Tenant härleds från
+            API-nyckeln; endpointen accepterar inget <code>company_id</code>.
+            Den äldre sökvägen <code>/website/legal/bundle</code> finns inte och
+            ska inte användas.
+          </p>
           <p>
             Juridiken i <code>legal</code> är OPS source of truth. Visa
             dokumentlänkarna från OPS och skicka separata consent-flaggor. OPS

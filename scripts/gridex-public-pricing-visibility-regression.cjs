@@ -15,7 +15,7 @@ const actions = read('app/admin/contracts/actions.ts')
 const originalMigration = read('supabase/migrations/20260718001000_public_pricing_component_website_visibility.sql')
 const boundaryMigration = read('supabase/migrations/20260722233000_external_tenant_pricing_boundary.sql')
 const docs = read('docs/external-website-api-integration-guide.md')
-const openapi = JSON.parse(read('docs/openapi/customer-portal-v1.json'))
+const openapi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
 
 must(/schema_version:\s*5/.test(pricing), 'pricing snapshot schema is v5')
 must(/website_card_visible/.test(pricing), 'price components carry legacy website visibility')
@@ -43,7 +43,7 @@ must(/website_card_visible boolean not null default true/.test(originalMigration
 must(/calculation_inclusion text not null default 'included'/.test(boundaryMigration), 'database stores calculation inclusion')
 must(/website_summary_visible boolean not null default true/.test(boundaryMigration), 'database stores summary visibility')
 must(/Dolda komponenter filtreras inte bort/.test(docs) && /website_visibility=hidden/.test(docs), 'integration guide documents hidden versus calculated semantics')
-must(Boolean(openapi.components.schemas.PublicPricingVisibility), 'OpenAPI documents pricing visibility')
+must(Boolean(openapi.components.schemas.PricingComponent?.properties?.website_visibility), 'OpenAPI documents pricing visibility')
 must(Boolean(openapi.components.schemas.CalculationInclusion), 'OpenAPI documents calculation inclusion')
 must(Boolean(openapi.components.schemas.WebsiteVisibilityMode), 'OpenAPI documents visibility modes')
 
