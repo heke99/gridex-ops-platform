@@ -58,6 +58,7 @@ function offer(amount: number): PublicContractOffer {
     public_name: "Rörligt elpris",
     public_description: null,
     contract_type: "variable_monthly",
+    energy_direction: "consumption",
     billing_model: "spot",
     customer_type: "both",
     monthly_fee_sek: null,

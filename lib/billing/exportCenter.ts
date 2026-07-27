@@ -1,4 +1,4 @@
-import { createHmac, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertPlatformSchemaReady } from "@/lib/platform/schemaReadiness";
 import { assertOutboundAllowed } from "@/lib/platform/outboundFreeze";
@@ -301,21 +301,6 @@ export async function createBillingExportRun(input: {
   await requireCompanyOperationalForWrites(input.companyId);
 
   const idempotencyKey = input.idempotencyKey?.trim() || null;
-  if (idempotencyKey) {
-    const { data: existingRun, error: existingError } = await supabaseService
-      .from("billing_export_runs")
-      .select("*")
-      .eq("company_id", input.companyId)
-      .eq("idempotency_key", idempotencyKey)
-      .maybeSingle();
-    if (
-      existingError &&
-      !["42703", "PGRST204", "PGRST205"].includes(existingError.code ?? "")
-    ) {
-      throw existingError;
-    }
-    if (existingRun) return existingRun as BillingExportRunRow;
-  }
 
   const underlays = await listAllBillingUnderlays({
     companyId: input.companyId,
@@ -473,6 +458,15 @@ export async function createBillingExportRun(input: {
           exportFormat: input.exportFormat,
         },
       },
+      pricing_run_id: pricing.pricingRunId,
+      customer_contract_id: contract?.id ?? null,
+      period_start: underlay.billing_period_start ?? null,
+      period_end: underlay.billing_period_end ?? null,
+      total_kwh: underlay.total_kwh,
+      currency: underlay.currency || "SEK",
+      amount_ex_vat: pricing.subtotalSekExVat,
+      vat_amount: pricing.vatSek,
+      amount_inc_vat: pricing.totalSekIncVat,
     });
   }
 
@@ -487,6 +481,21 @@ export async function createBillingExportRun(input: {
     }));
 
   const now = new Date().toISOString();
+  const effectiveIdempotencyKey =
+    idempotencyKey ??
+    `billing-export:${createHash("sha256")
+      .update(
+        JSON.stringify({
+          companyId: input.companyId,
+          periodMonth: input.periodMonth,
+          targetSystem: input.targetSystem,
+          exportFormat: input.exportFormat,
+          underlayIds: items
+            .map((item) => item.billing_underlay_id)
+            .sort(),
+        }),
+      )
+      .digest("hex")}`;
   const runDraft: BillingExportRunRow & { idempotency_key?: string | null } = {
     id: randomUUID(),
     company_id: input.companyId,
@@ -511,7 +520,7 @@ export async function createBillingExportRun(input: {
       exactContractBinding: true,
       atomicCreation: true,
     },
-    idempotency_key: idempotencyKey,
+    idempotency_key: effectiveIdempotencyKey,
   };
   const preparedItems = items.map((item) => {
     const prepared = {
@@ -530,15 +539,113 @@ export async function createBillingExportRun(input: {
     };
   });
 
+  const canonicalItems = preparedItems
+    .filter((item) => item.status === "ready")
+    .map((item) => {
+      const row = item as BillingExportRunItemRow & {
+        pricing_run_id?: string | null;
+        customer_contract_id?: string | null;
+        period_start?: string | null;
+        period_end?: string | null;
+        total_kwh?: number | null;
+        currency?: string | null;
+        amount_ex_vat?: number | null;
+        vat_amount?: number | null;
+        amount_inc_vat?: number | null;
+      };
+      if (
+        !row.customer_contract_id ||
+        !row.pricing_run_id ||
+        !row.period_start ||
+        !row.period_end ||
+        row.total_kwh === null ||
+        row.total_kwh === undefined ||
+        !Number.isFinite(row.amount_ex_vat) ||
+        !Number.isFinite(row.vat_amount) ||
+        !Number.isFinite(row.amount_inc_vat)
+      ) {
+        throw new Error(
+          `canonical_invoice_export_item_incomplete:${row.billing_underlay_id}`,
+        );
+      }
+      return {
+        id: row.id,
+        company_id: input.companyId,
+        billing_underlay_id: row.billing_underlay_id,
+        pricing_run_id: row.pricing_run_id,
+        customer_contract_id: row.customer_contract_id,
+        customer_id: row.customer_id,
+        metering_point_id: row.metering_point_id,
+        period_start: row.period_start,
+        period_end: row.period_end,
+        total_kwh: row.total_kwh,
+        currency: row.currency ?? "SEK",
+        provider: input.targetSystem,
+        environment: "production",
+        financing_mode: "invoice_service",
+        amount_ex_vat: row.amount_ex_vat,
+        vat_amount: row.vat_amount,
+        amount_inc_vat: row.amount_inc_vat,
+        idempotency_key: row.idempotency_key,
+        metadata: {
+          legacy_billing_export_run_id: runDraft.id,
+          legacy_billing_export_run_item_id: row.id,
+        },
+      };
+    });
+  const canonicalInvoices = canonicalItems.map((item) => ({
+    invoice_export_item_id: item.id,
+    customer_id: item.customer_id,
+    customer_contract_id: item.customer_contract_id,
+    period_start: item.period_start,
+    period_end: item.period_end,
+    total_kwh: item.total_kwh,
+    currency: item.currency,
+    amount_ex_vat: item.amount_ex_vat,
+    vat_amount: item.vat_amount,
+    amount_inc_vat: item.amount_inc_vat,
+    metadata: {
+      source: "gridex_create_invoice_export_graph_v1",
+      billing_export_run_id: runDraft.id,
+    },
+  }));
+
   const { data: atomicResult, error } = await supabaseService.rpc(
-    "gridex_create_billing_export_run",
+    "gridex_create_invoice_export_graph_v1",
     {
-      p_run: runDraft,
-      p_items: preparedItems,
+      p_run: {
+        id: runDraft.id,
+        company_id: input.companyId,
+        provider: input.targetSystem,
+        environment: "production",
+        billing_month: input.periodMonth,
+        financing_mode: "invoice_service",
+        readiness_snapshot: {
+          rows_total: items.length,
+          rows_ready: rowsReady,
+          rows_blocked: rowsBlocked,
+          blockers: blockerSummary,
+        },
+        metadata: runDraft.metadata,
+        requested_by: input.actorUserId,
+        idempotency_key: effectiveIdempotencyKey,
+        legacy_run: runDraft,
+        legacy_items: preparedItems,
+      },
+      p_items: canonicalItems,
+      p_invoices: canonicalInvoices,
     },
   );
   if (error) throw error;
-  const run = atomicResult as BillingExportRunRow;
+  const atomic = atomicResult as {
+    run_id?: string;
+    existing?: boolean;
+    legacy_run?: BillingExportRunRow;
+  };
+  const run = atomic.legacy_run;
+  if (!run?.id || run.id !== atomic.run_id) {
+    throw new Error("canonical_invoice_export_graph_invalid_response");
+  }
 
   await createBlockedBillingCasesForItems({
     companyId: input.companyId,

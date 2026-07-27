@@ -35,6 +35,7 @@ export type CanonicalOnboardingCommand = {
   contract?: Record<string, unknown> | null
   price_snapshot?: Record<string, unknown> | null
   legal?: Record<string, unknown> | null
+  quote?: Record<string, unknown> | null
   power_of_attorney?: Record<string, unknown> | null
   authorization_document?: Record<string, unknown> | null
   application?: Record<string, unknown> | null

@@ -82,6 +82,7 @@ function offer(
       ],
     },
     ...overrides,
+    energy_direction: overrides.energy_direction ?? "consumption",
   };
 }
 

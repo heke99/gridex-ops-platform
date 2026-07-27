@@ -26,6 +26,7 @@ import {
   parseCheckbox,
 } from "@/lib/masterdata/validators";
 import { supabaseService } from "@/lib/supabase/service";
+import { addCustomerContractEvent } from "@/lib/customer-contracts/db";
 import {
   createSupplierSwitchRequest,
   findCustomerSiteById,
@@ -3608,11 +3609,18 @@ export async function registerCustomerLifecycleDecisionAction(
       .eq("company_id", companyId);
     if (error) throw error;
   } else if (scopeType === "contract" && scopeId) {
-    const { error } = await supabaseService
-      .from("customer_contracts")
-      .update({
-        status: decisionType === "withdrawal" ? "cancelled_by_customer" : "cancelled",
-        withdrawal_requested_at: decisionType === "withdrawal" ? receivedAt : null,
+    await addCustomerContractEvent({
+      companyId,
+      customerContractId: scopeId,
+      customerId,
+      eventType: "cancelled",
+      happenedAt: receivedAt,
+      note: reason,
+      metadata: {
+        reason_code:
+          decisionType === "withdrawal" ? "cancelled_by_customer" : decisionType,
+        withdrawal_requested_at:
+          decisionType === "withdrawal" ? receivedAt : null,
         rejected_reason: decisionType === "rejected" ? reason : null,
         termination_reason:
           decisionType === "withdrawal"
@@ -3621,12 +3629,9 @@ export async function registerCustomerLifecycleDecisionAction(
               ? "customer_request"
               : "other",
         ends_at: now.slice(0, 10),
-        updated_by: actor.id,
-      })
-      .eq("id", scopeId)
-      .eq("customer_id", customerId)
-      .eq("company_id", companyId);
-    if (error && !isDatabaseShapeError(error)) throw error;
+      },
+      actorUserId: actor.id,
+    });
   } else if (scopeType === "site" && scopeId) {
     const { error } = await supabaseService
       .from("customer_sites")

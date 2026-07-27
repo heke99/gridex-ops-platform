@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import type {
   ContractOfferRow,
@@ -1079,8 +1080,11 @@ export async function addCustomerContractEvent(input: {
   metadata?: Record<string, unknown> | null;
   actorUserId?: string | null;
 }): Promise<CustomerContractEventRow> {
+  if (!input.companyId) {
+    throw new Error("Bolag krävs för att registrera en avtalslivscykelhändelse.");
+  }
   const eventPayload = {
-    company_id: input.companyId ?? null,
+    company_id: input.companyId,
     customer_contract_id: input.customerContractId,
     customer_id: input.customerId,
     event_type: input.eventType,
@@ -1090,85 +1094,67 @@ export async function addCustomerContractEvent(input: {
     actor_user_id: input.actorUserId ?? null,
   };
 
-  const { data, error } = await supabaseService
-    .from("customer_contract_events")
-    .insert(eventPayload)
-    .select("*")
-    .single();
-
-  if (error) throw error;
-
-  // Contract status side effects always stay inside the event's tenant scope
-  // when the caller knows the company.
-  const scopedContractUpdate = (patch: Record<string, unknown>) => {
-    let query = supabaseService
-      .from("customer_contracts")
-      .update(patch)
-      .eq("id", input.customerContractId);
-    if (input.companyId) query = query.eq("company_id", input.companyId);
-    return query;
-  };
-
-  if (input.eventType === "signed" || input.eventType === "activated") {
-    const patch =
-      input.eventType === "activated"
-        ? {
-            status: "active",
-            updated_by: input.actorUserId ?? null,
-          }
-        : {
-            status: "signed",
-            signed_at: eventPayload.happened_at,
-            updated_by: input.actorUserId ?? null,
-          };
-
-    const { error: updateError } = await scopedContractUpdate(patch);
-
-    if (updateError) throw updateError;
-  }
-
-  if (input.eventType === "terminated" || input.eventType === "cancelled") {
-    const { error: updateError } = await scopedContractUpdate({
-      status: input.eventType === "terminated" ? "terminated" : "cancelled",
-      updated_by: input.actorUserId ?? null,
-    });
-
-    if (updateError) throw updateError;
-  }
-
+  let derivedEndsAt: string | null = null;
   if (input.eventType === "termination_notice_received") {
-    let currentQuery = supabaseService
+    const { data: current, error: currentError } = await supabaseService
       .from("customer_contracts")
       .select(
         "starts_at, ends_at, binding_months, notice_months, status, auto_renew_enabled, auto_renew_term_months, termination_reason",
       )
-      .eq("id", input.customerContractId);
-    if (input.companyId)
-      currentQuery = currentQuery.eq("company_id", input.companyId);
-
-    const { data: current, error: currentError } =
-      await currentQuery.maybeSingle();
-
+      .eq("id", input.customerContractId)
+      .eq("company_id", input.companyId)
+      .eq("customer_id", input.customerId)
+      .maybeSingle();
     if (currentError) throw currentError;
-
-    const { error: updateError } = await scopedContractUpdate({
-      termination_notice_date: eventPayload.happened_at,
-      ends_at: deriveContractEndsAt({
-        startsAt: current?.starts_at ?? null,
-        endsAt: current?.ends_at ?? null,
-        bindingMonths: current?.binding_months ?? null,
-        noticeMonths: current?.notice_months ?? null,
-        terminationNoticeDate: eventPayload.happened_at,
-        terminationReason: current?.termination_reason ?? null,
-        autoRenewEnabled: current?.auto_renew_enabled ?? null,
-        autoRenewTermMonths: current?.auto_renew_term_months ?? null,
-        status: current?.status ?? null,
-      }),
-      updated_by: input.actorUserId ?? null,
+    if (!current) throw new Error("Kundavtalet hittades inte för valt bolag.");
+    derivedEndsAt = deriveContractEndsAt({
+      startsAt: current.starts_at ?? null,
+      endsAt: current.ends_at ?? null,
+      bindingMonths: current.binding_months ?? null,
+      noticeMonths: current.notice_months ?? null,
+      terminationNoticeDate: eventPayload.happened_at,
+      terminationReason: current.termination_reason ?? null,
+      autoRenewEnabled: current.auto_renew_enabled ?? null,
+      autoRenewTermMonths: current.auto_renew_term_months ?? null,
+      status: current.status ?? null,
     });
-
-    if (updateError) throw updateError;
   }
 
-  return data as CustomerContractEventRow;
+  const idempotencyKey = createHash("sha256")
+    .update(
+      JSON.stringify({
+        companyId: input.companyId,
+        contractId: input.customerContractId,
+        customerId: input.customerId,
+        eventType: input.eventType,
+        happenedAt: eventPayload.happened_at,
+        note: input.note ?? null,
+        metadata: input.metadata ?? {},
+      }),
+    )
+    .digest("hex");
+  const { data, error } = await supabaseService.rpc(
+    "gridex_record_customer_contract_event_v1",
+    {
+      p_company_id: input.companyId,
+      p_customer_contract_id: input.customerContractId,
+      p_customer_id: input.customerId,
+      p_event_type: input.eventType,
+      p_happened_at: eventPayload.happened_at,
+      p_note: input.note ?? null,
+      p_metadata: input.metadata ?? {},
+      p_actor_user_id: input.actorUserId ?? null,
+      p_derived_ends_at: derivedEndsAt,
+      p_idempotency_key: idempotencyKey,
+    },
+  );
+  if (error) throw error;
+  const result =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? (data as { event?: CustomerContractEventRow })
+      : null;
+  if (!result?.event?.id) {
+    throw new Error("Kanoniskt avtalsevent saknas i RPC-svaret.");
+  }
+  return result.event;
 }

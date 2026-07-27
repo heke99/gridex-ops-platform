@@ -190,6 +190,7 @@
     "verify:canonical-onboarding": "npm run typecheck && npm run test:canonical-onboarding && npm run gridex:canonical-onboarding-regression && node scripts/ediel-certification-regression.cjs && node scripts/ediel-completion-regression.cjs",
     "gridex:invoice-fee-canonical-regression": "node scripts/gridex-invoice-fee-canonical-regression.cjs",
     "gridex:contract-go-live-regression": "node scripts/gridex-contract-go-live-regression.cjs",
+    "gridex:contract-p0-integrity-regression": "node scripts/gridex-contract-p0-integrity-regression.cjs",
     "test:contract-go-live": "vitest run __tests__/contract-admin-schema.test.ts __tests__/canonical-invoice-fee.test.ts __tests__/contract-pricing-snapshot.test.ts __tests__/public-contract-website-visibility.test.ts __tests__/public-contract-api-hardening.test.ts __tests__/market-price-source-selection.test.ts __tests__/contract-lifecycle-errors.test.ts __tests__/integration-ip-policy.test.ts __tests__/external-pricing-boundary.test.ts",
     "verify:contract-go-live": "npm run verify:contract-go-live:static && npm run gridex:contract-db-lifecycle-test && npm run gridex:contract-multitenant-test",
     "typecheck:contract-go-live": "tsc --noEmit -p tsconfig.contract-patch.json",

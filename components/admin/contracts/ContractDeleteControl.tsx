@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import {
   archiveContractAction,
@@ -54,11 +54,12 @@ export default function ContractDeleteControl({
     previewContractDeleteAction,
     INITIAL_CONTRACT_DELETE_PREVIEW_STATE,
   );
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (state.requestId) setOpen(true);
-  }, [state.requestId]);
+  const [dismissedRequestId, setDismissedRequestId] = useState<string | null>(
+    null,
+  );
+  const open = Boolean(
+    state.requestId && state.requestId !== dismissedRequestId,
+  );
 
   const preview = state.preview;
   const canDelete = Boolean(
@@ -131,7 +132,7 @@ export default function ContractDeleteControl({
               </div>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => setDismissedRequestId(state.requestId)}
                 className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-black text-slate-700"
               >
                 Stäng
@@ -184,7 +185,7 @@ export default function ContractDeleteControl({
                 <div className="mt-5 flex flex-wrap justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => setOpen(false)}
+                    onClick={() => setDismissedRequestId(state.requestId)}
                     className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700"
                   >
                     Avbryt

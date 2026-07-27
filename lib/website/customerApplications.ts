@@ -65,7 +65,6 @@ import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementP
 import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/documents";
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
 import {
-  markWebsiteQuoteConsumed,
   validateWebsiteQuote,
   WebsiteQuoteValidationError,
   type WebsiteQuoteRecord,
@@ -6400,6 +6399,15 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         request_audit: input.requestAudit ?? null,
       },
     },
+    quote: input.websiteQuote
+      ? {
+          quote_reference: input.websiteQuote.quote_reference,
+          quote_hash: input.websiteQuote.quote_hash,
+          quote_hash_version: input.websiteQuote.quote_hash_version,
+          application_id: input.applicationRowId,
+          offer_reference: input.offerReference,
+        }
+      : null,
     power_of_attorney: input.structuredPoa?.accepted
       ? {
           signed_scopes: exactSignedScopes,
@@ -7131,11 +7139,6 @@ export async function processWebsiteCustomerApplication(input: {
           startDate: readiness.requestedStartDate,
           applicationId: applicationRowId,
         });
-        await markWebsiteQuoteConsumed({
-          companyId: input.client.company_id,
-          quoteReference: selectedQuoteReference,
-          applicationId: applicationRowId as string,
-        });
       } catch (error) {
         if (error instanceof WebsiteQuoteValidationError) {
           throw new WebsiteApplicationError({
@@ -7260,7 +7263,10 @@ export async function processWebsiteCustomerApplication(input: {
         if (contract?.id) {
           await supabaseService
             .from("customer_contracts")
-            .update({ status: "needs_review", resolution_status: "needs_review", updated_at: new Date().toISOString() })
+            .update({
+              resolution_status: "needs_review",
+              updated_at: new Date().toISOString(),
+            })
             .eq("company_id", input.client.company_id)
             .eq("id", contract.id);
         }

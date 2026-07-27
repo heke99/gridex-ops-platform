@@ -1317,10 +1317,21 @@
           "Customer applications"
         ],
         "summary": "Get the published legal bundle",
-        "description": "Canonical GET route. Scope: website_legal.read or website_contracts.read; one scope is sufficient. Tenant is derived from the API key and no company_id payload is accepted.",
+        "description": "Canonical offer-specific GET route. Scope: website_legal.read. Tenant is derived from the API key; offer_reference resolves the exact publication and immutable legal bundle.",
         "x-required-scopes": [
-          "website_legal.read",
-          "website_contracts.read"
+          "website_legal.read"
+        ],
+        "parameters": [
+          {
+            "name": "offer_reference",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Opaque canonical offer_reference returned by the public-contract feed."
+          }
         ],
         "responses": {
           "200": {
@@ -1329,6 +1340,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WebsiteLegalBundleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "offer_reference is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -1349,6 +1370,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The offer_reference is not published for this tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The exact offer legal bundle is incomplete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteLegalBundleResponse"
                 }
               }
             }
@@ -5064,12 +5105,35 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
+          "offer_reference",
+          "bundle_version",
+          "required_types",
+          "present_types",
           "tenant",
           "legal",
           "complete",
           "missing_types"
         ],
         "properties": {
+          "offer_reference": {
+            "type": "string"
+          },
+          "bundle_version": {
+            "type": "string",
+            "description": "Opaque immutable legal bundle version."
+          },
+          "required_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "present_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "tenant": {
             "type": "object",
             "additionalProperties": false,

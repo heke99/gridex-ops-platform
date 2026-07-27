@@ -402,14 +402,19 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
   const activeSupplyPeriods = (input.supplyPeriods ?? []).filter((period) => {
     if (!BILLABLE_SUPPLY_PERIOD_STATUSES.has(clean(period.status)?.toLowerCase() ?? '')) return false
     if (clean(period.company_id) && clean(period.company_id) !== input.companyId) return false
-    if (clean(period.customer_id) !== input.customerId) return false
+    if (
+      clean(period.customer_id) &&
+      clean(period.customer_id) !== input.customerId
+    ) return false
     if (
       clean(input.contract?.id) &&
+      (clean(period.customer_contract_id) ?? clean(period.contract_id)) &&
       (clean(period.customer_contract_id) ?? clean(period.contract_id)) !==
         clean(input.contract?.id)
     ) return false
     if (
       clean(input.meteringPoint?.id) &&
+      clean(period.metering_point_id) &&
       clean(period.metering_point_id) !== clean(input.meteringPoint?.id)
     ) return false
     const supplyStart = isoDate(period.actual_start_date) ?? isoDate(period.start_date)

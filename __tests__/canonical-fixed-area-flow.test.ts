@@ -22,6 +22,7 @@ function fixedOffer(snapshot: Record<string, unknown>): PublicContractOffer {
     public_name: "Fastpris 12 månader",
     public_description: null,
     contract_type: "fixed",
+    energy_direction: "consumption",
     billing_model: "fixed",
     customer_type: "both",
     monthly_fee_sek: 79,

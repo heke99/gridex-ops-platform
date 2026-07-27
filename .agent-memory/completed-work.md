@@ -64,3 +64,15 @@ Status: VERIFIED LOCALLY
 - ESLint: pass with 125 existing warnings and no errors.
 - Next.js production build: pass; `.next/BUILD_ID` generated.
 - Added the service-only actor-aware contract delete v2 path with a shared dependency graph, preview token, concurrency-safe idempotent commit, explicit archive fallback, shared admin repository/actions and status filters across both admin entry points.
+
+## 2026-07-27 P0 completion pass
+
+- Repaired migration collision/checksum history and live slug/version integrity.
+- Bound manual/web intakes and legal bundles to exact public offer identities.
+- Made quote consume and canonical onboarding transactional.
+- Removed status-derived signature evidence and added the contract state machine.
+- Added energy-direction-aware active contract uniqueness.
+- Moved invoice export runtime to the canonical graph.
+- Added offer copy, fail-closed portal bundle and RBAC/lint corrections.
+- Verified 356 tests, all TypeScript targets, lint, RBAC, API/OpenAPI,
+  318/222 migration history, 122 P0 controls and 208 go-live controls.

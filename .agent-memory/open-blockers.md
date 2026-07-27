@@ -2,45 +2,28 @@
 
 ## BLK-001 — Repository provenance
 
-Status: BLOCKED
+Status: BLOCKED. The uploaded ZIP excludes `.git`; branch and commit cannot be
+established. Diff evidence is against the exact uploaded archive.
 
-The source ZIP excludes `.git`; branch, commit and prior dirty state cannot be
-established. Patch contents are diffed against the uploaded archive.
+## BLK-002 — Database apply and concurrency verification
 
-## BLK-002 — Database apply verification
+Status: BLOCKED_BY_ENVIRONMENT. No Supabase CLI, `psql`, database URL or
+authorized staging project exists. Static history/regression checks pass, but
+the six new forward migrations have not been executed against PostgreSQL.
 
-Status: BLOCKED_BY_ENVIRONMENT
+## BLK-003 — Provider runtime verification
 
-`supabase`, Docker and an authorized database are unavailable. Migration
-history, lifecycle/delete regressions and static checks pass, but the pending
-migrations have not been executed against PostgreSQL. The newest migration
-repairs final function definitions dynamically and creates transactional
-invoice graph reservations; both require real PostgreSQL application.
+Status: BLOCKED_BY_ENVIRONMENT. No provider sandbox or credentials are
+available for a signed invoice/event round trip.
 
-## BLK-003 — Live deployment parity
+## BLK-004 — Deployment parity
 
-Status: DEPLOYMENT_REQUIRED
+Status: DEPLOYMENT_REQUIRED. Runtime and migrations must deploy together, after
+which live API/docs/provider parity must be verified.
 
-The live developer page inspected on 2026-07-25 reports an older deployed
-contract. Local runtime/OpenAPI/docs are aligned at `2026-07-27.1`; production
-parity can only be verified after deployment.
+## Resolved
 
-## BLK-004 — Provider runtime verification
-
-Status: BLOCKED_BY_ENVIRONMENT
-
-Capway/Aptic credentials and a provider sandbox are unavailable. Signature
-verification, idempotent event claiming and canonical invoice matching are
-implemented, but a signed provider round trip cannot be executed locally.
-
-## BLK-005 — Legacy readiness fixtures
-
-Status: TEST_FIXTURE_UPDATE_REQUIRED
-
-Five existing unit fixtures construct supply periods without company,
-customer, contract and metering-point identities. Exact readiness correctly
-blocks them. Production code was not relaxed and the tests were not edited.
-
-## 2026-07-27 contract delete runtime verification
-
-Local migration, API and targeted contract regressions pass. Full `npm ci`, typecheck, lint and build remain blocked in the delivery environment by the package registry HTTP 503/cache miss. Staging migration/RPC scenarios remain blocked because no Supabase/Postgres CLI or credentials are available. The quote-to-customer-application flow is still not proven as one all-or-nothing SQL transaction.
+- Legacy readiness fixtures are corrected; billing readiness is 52/52.
+- Package install, full typecheck, test, lint, build and RBAC are no longer
+  environment-blocked.
+- Quote-to-customer graph is now one database transaction at runtime.

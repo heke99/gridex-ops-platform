@@ -10,7 +10,6 @@
 import { createHash } from "crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import { logUsageEvent } from "@/lib/audit/actionLogger";
-import { getContractOfferById } from "@/lib/customer-contracts/db";
 import { isBusinessCustomerType } from "@/lib/customers/normalizeCustomerType";
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
 import {
@@ -20,6 +19,7 @@ import {
 
 type ExternalContractInput = {
   companySlug: string;
+  offerReference: string;
   customerType: "private" | "business";
   firstName: string | null;
   lastName: string | null;
@@ -35,7 +35,6 @@ type ExternalContractInput = {
   city: string | null;
   moveInDate: string | null;
   priceAreaCode: string | null;
-  contractOfferId: string | null;
   requestedStartDate: string | null;
 };
 
@@ -58,12 +57,16 @@ function isEmail(value: string | null): boolean {
 
 function isIsoDate(value: string | null): boolean {
   if (!value) return true;
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value;
 }
 
 function validate(input: ExternalContractInput): string[] {
   const issues: string[] = [];
   if (!input.companySlug) issues.push("Bolag saknas.");
+  if (!input.offerReference) issues.push("Publicerad offer_reference saknas.");
   if (!isEmail(input.email)) issues.push("E-post krävs och måste ha korrekt format.");
   if (input.customerType === "private") {
     if (!input.firstName) issues.push("Förnamn krävs.");
@@ -81,12 +84,13 @@ function validate(input: ExternalContractInput): string[] {
 
 function hashKey(input: ExternalContractInput): string {
   const parts = [
-    input.companySlug,
-    input.email,
-    input.personalNumber,
-    input.orgNumber,
-    input.facilityId,
-    input.meterPointId,
+    input.companySlug.toLowerCase(),
+    input.offerReference.toLowerCase(),
+    input.email?.toLowerCase(),
+    input.personalNumber?.replace(/\D/g, ""),
+    input.orgNumber?.replace(/\D/g, ""),
+    input.facilityId?.replace(/\s+/g, "").toUpperCase(),
+    input.meterPointId?.replace(/\s+/g, "").toUpperCase(),
     input.requestedStartDate,
   ]
     .map((value) => value ?? "")
@@ -142,6 +146,7 @@ export function parseExternalContractFormData(
     : "private";
   return {
     companySlug: clean(formData.get("company_slug")) ?? "",
+    offerReference: clean(formData.get("offer_reference")) ?? "",
     customerType,
     firstName: clean(formData.get("first_name")),
     lastName: clean(formData.get("last_name")),
@@ -161,9 +166,74 @@ export function parseExternalContractFormData(
     city: clean(formData.get("city")),
     moveInDate: clean(formData.get("move_in_date")),
     priceAreaCode: clean(formData.get("price_area_code")),
-    contractOfferId: clean(formData.get("contract_offer_id")),
     requestedStartDate: clean(formData.get("requested_start_date")),
   };
+}
+
+type CanonicalPublicOfferBinding = {
+  source_contract_offer_id: string;
+  contract_product_id: string;
+  contract_product_version_id: string;
+  contract_publication_version_id: string;
+  legal_bundle_version_id: string;
+  canonical_offer_reference: string;
+  public_name: string;
+  contract_type: string;
+  energy_direction: string;
+  canonical_pricing_snapshot: Record<string, unknown>;
+  valid_from: string | null;
+  valid_to: string | null;
+};
+
+async function resolveCanonicalPublicOffer(input: {
+  companyId: string;
+  offerReference: string;
+}): Promise<CanonicalPublicOfferBinding> {
+  const { data, error } = await supabaseService
+    .from("canonical_public_contract_offers_v")
+    .select(
+      "source_contract_offer_id,contract_product_id,contract_product_version_id,contract_publication_version_id,legal_bundle_version_id,canonical_offer_reference,public_name,contract_type,energy_direction,canonical_pricing_snapshot,valid_from,valid_to,publication_status,is_public,website_enabled,website_cta_enabled",
+    )
+    .eq("company_id", input.companyId)
+    .eq("canonical_offer_reference", input.offerReference)
+    .maybeSingle();
+  if (error) throw error;
+
+  const row = data as Record<string, unknown> | null;
+  const requiredIds = [
+    "source_contract_offer_id",
+    "contract_product_id",
+    "contract_product_version_id",
+    "contract_publication_version_id",
+    "legal_bundle_version_id",
+  ] as const;
+  if (
+    !row ||
+    row.publication_status !== "published" ||
+    row.is_public !== true ||
+    row.website_enabled !== true ||
+    row.website_cta_enabled !== true ||
+    requiredIds.some(
+      (field) => typeof row[field] !== "string" || !String(row[field]).trim(),
+    )
+  ) {
+    throw new Error(
+      "Det valda avtalet är inte komplett publicerat eller saknar canonical versionskopplingar.",
+    );
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const validFrom =
+    typeof row.valid_from === "string" ? row.valid_from : null;
+  const validTo = typeof row.valid_to === "string" ? row.valid_to : null;
+  if (
+    (validFrom && validFrom > today) ||
+    (validTo && validTo < today)
+  ) {
+    throw new Error("Det valda avtalet är inte tillgängligt idag.");
+  }
+
+  return row as unknown as CanonicalPublicOfferBinding;
 }
 
 export async function createExternalContractIntake(
@@ -171,7 +241,7 @@ export async function createExternalContractIntake(
 ): Promise<ExternalContractResult> {
   const { data: company, error: companyError } = await supabaseService
     .from("companies")
-    .select("id, name, status")
+    .select("id, name, status, production_status, live_approved_at")
     .eq("slug", input.companySlug)
     .maybeSingle();
 
@@ -179,11 +249,19 @@ export async function createExternalContractIntake(
   if (!company?.id) {
     throw new Error("Bolaget hittades inte. Kontrollera länken till avtalsformuläret.");
   }
-  if (!["active", "onboarding"].includes(String(company.status ?? "active"))) {
+  if (
+    String(company.status ?? "") !== "active" ||
+    String(company.production_status ?? "") !== "live" ||
+    !company.live_approved_at
+  ) {
     throw new Error("Bolaget tar inte emot nya avtal just nu.");
   }
 
   const companyId = String(company.id);
+  const offer = await resolveCanonicalPublicOffer({
+    companyId,
+    offerReference: input.offerReference,
+  });
   const issues = validate(input);
   const sourceKey = hashKey(input);
   const displayName = input.customerType === "business"
@@ -246,7 +324,7 @@ export async function createExternalContractIntake(
         city: input.city,
         move_in_date: input.moveInDate,
         price_area_code: input.priceAreaCode,
-        contract_offer_id: input.contractOfferId,
+        contract_offer_id: offer.source_contract_offer_id,
         requested_start_date: input.requestedStartDate,
         payload: input,
         issues,
@@ -266,10 +344,6 @@ export async function createExternalContractIntake(
       phone: input.phone,
     });
 
-    const offer = input.contractOfferId
-      ? await getContractOfferById(input.contractOfferId, companyId)
-      : null;
-    const contractType = offer?.contract_type ?? "variable_hourly";
     const result = await onboardCustomerGraph({
       company_id: companyId,
       channel: "external_contract",
@@ -344,61 +418,49 @@ export async function createExternalContractIntake(
             is_settlement_relevant: true,
           }
         : null,
-      contract: {
-        contract_offer_id: offer?.id ?? null,
-        source_type: offer ? "catalog" : "manual_override",
-        status: "pending_signature",
-        contract_name: offer?.name ?? "Kundspecifikt avtal via extern ingång",
-        contract_type: contractType,
-        campaign_name: offer?.campaign_name ?? null,
-        campaign_code: offer?.campaign_code ?? null,
-        campaign_version: offer?.campaign_version ?? "v1",
-        price_version: offer?.price_version ?? "v1",
-        terms_version: offer?.terms_version ?? "v1",
-        fixed_price_ore_per_kwh: offer?.fixed_price_ore_per_kwh ?? null,
-        spot_markup_ore_per_kwh: offer?.spot_markup_ore_per_kwh ?? null,
-        variable_fee_ore_per_kwh: offer?.variable_fee_ore_per_kwh ?? null,
-        monthly_fee_sek: offer?.monthly_fee_sek ?? null,
-        green_fee_mode: offer?.green_fee_mode ?? "none",
-        green_fee_value: offer?.green_fee_value ?? null,
-        binding_months: offer?.default_binding_months ?? null,
-        notice_months: offer?.default_notice_months ?? null,
-        optional_fee_lines: offer?.optional_fee_lines ?? [],
-        starts_at: input.requestedStartDate,
-        expected_start_at: input.requestedStartDate,
-        metadata: { externalContractIntakeId: intakeId },
-      },
-      price_snapshot: {
-        pricing_model: contractType,
-        snapshot_json: {
-          offerId: offer?.id ?? null,
-          priceVersion: offer?.price_version ?? "v1",
-          termsVersion: offer?.terms_version ?? "v1",
-          fixedPriceOrePerKwh: offer?.fixed_price_ore_per_kwh ?? null,
-          spotMarkupOrePerKwh: offer?.spot_markup_ore_per_kwh ?? null,
-          variableFeeOrePerKwh: offer?.variable_fee_ore_per_kwh ?? null,
-          monthlyFeeSek: offer?.monthly_fee_sek ?? null,
-          greenFeeMode: offer?.green_fee_mode ?? "none",
-          greenFeeValue: offer?.green_fee_value ?? null,
-          vatRate: offer?.vat_rate ?? 25,
-        },
-        valid_from: input.requestedStartDate,
-      },
+      // This is a review intake, not a signing operation. A customer contract
+      // is created only by the canonical quote/application commit after an
+      // operator has collected the missing quote and legal acceptances.
+      contract: null,
+      price_snapshot: null,
       application: {
         source_record_type: "external_contract_intake",
         source_record_id: intakeId,
         status: "pending_review",
-        payload_snapshot: input,
+        payload_snapshot: {
+          ...input,
+          canonical_offer: {
+            offer_reference: offer.canonical_offer_reference,
+            source_contract_offer_id: offer.source_contract_offer_id,
+            contract_product_id: offer.contract_product_id,
+            contract_product_version_id: offer.contract_product_version_id,
+            contract_publication_version_id:
+              offer.contract_publication_version_id,
+            legal_bundle_version_id: offer.legal_bundle_version_id,
+            contract_type: offer.contract_type,
+            energy_direction: offer.energy_direction,
+            valid_from: offer.valid_from,
+            valid_to: offer.valid_to,
+          },
+        },
       },
       task: {
         task_type: "external_contract_intake_review",
         status: "open",
         priority: issues.length > 0 ? "high" : "normal",
-        title: "Ansökan från hemsida mottagen",
+        title: `Ansökan för ${offer.public_name} mottagen`,
         description: issues.length > 0
           ? `Ansökan behöver kompletteras: ${issues.join(" ")}`
           : "Granska kund, anläggning, mätpunkt och avtal innan operativt flöde fortsätter.",
-        metadata: { externalContractIntakeId: intakeId, issues },
+        metadata: {
+          externalContractIntakeId: intakeId,
+          issues,
+          offer_reference: offer.canonical_offer_reference,
+          contract_product_version_id: offer.contract_product_version_id,
+          contract_publication_version_id:
+            offer.contract_publication_version_id,
+          legal_bundle_version_id: offer.legal_bundle_version_id,
+        },
       },
       info_request: {
         request_type: "external_contract_onboarding",
@@ -479,6 +541,7 @@ export async function createExternalContractIntake(
         case_id: result.task_id,
         correlation_id: result.correlation_id,
         issue_count: issues.length,
+        offer_reference: offer.canonical_offer_reference,
         customer_match: customerMatch.auditMetadata,
       },
     });

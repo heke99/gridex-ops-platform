@@ -1276,6 +1276,10 @@ export function publicContractResponse(offer: PublicContractOffer) {
 }
 
 export type WebsiteLegalBundle = {
+  offer_reference: string;
+  bundle_version: string;
+  required_types: string[];
+  present_types: string[];
   tenant: {
     name: string | null;
     org_number: string | null;
@@ -1287,24 +1291,95 @@ export type WebsiteLegalBundle = {
   missing_types: string[];
 };
 
+export class WebsiteLegalBundleError extends Error {
+  readonly status: number;
+  readonly code: string;
+
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.name = "WebsiteLegalBundleError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
 // Builds the standalone tenant legal bundle for the website API. Source of truth
 // is OPS: published, tenant-scoped legal versions + the tenant identity. Used by
 // GET /api/v1/website/legal-bundle.
 export async function buildWebsiteLegalBundle(
   client: IntegrationApiClient,
+  offerReference: string,
 ): Promise<WebsiteLegalBundle> {
-  const companyLegalVersions = await listPublishedLegalVersions(
-    client.company_id,
-  );
+  const offer = await resolvePublicContractOffer({
+    client,
+    offerReference,
+    allowLegacyLookup: false,
+  });
+  if (!offer) {
+    throw new WebsiteLegalBundleError(
+      404,
+      "offer_reference_not_found",
+      "Det publicerade avtalet hittades inte.",
+    );
+  }
+  if (
+    !offer.contract_product_version_id ||
+    !offer.legal_bundle_version_id
+  ) {
+    throw new WebsiteLegalBundleError(
+      422,
+      "legal_bundle_not_ready",
+      "Avtalet saknar en låst canonical juridikversion.",
+    );
+  }
+
+  const [companyLegalVersions, productVersion] = await Promise.all([
+    listBundleLegalVersions({
+      companyId: client.company_id,
+      legalBundleVersionId: offer.legal_bundle_version_id,
+    }),
+    supabaseService
+      .from("contract_product_versions")
+      .select("id,required_legal_modules")
+      .eq("id", offer.contract_product_version_id)
+      .maybeSingle(),
+  ]);
+  if (productVersion.error) throw productVersion.error;
+  if (!productVersion.data) {
+    throw new WebsiteLegalBundleError(
+      422,
+      "contract_product_version_not_found",
+      "Avtalets canonical produktversion kunde inte verifieras.",
+    );
+  }
   const tenantSlug = await loadCompanySlugById(client.company_id);
   const versions = companyLegalVersions ?? [];
   const legal = buildPublicLegalBlock({ legalVersions: versions, tenantSlug });
+  const requiredTypes = Array.isArray(
+    productVersion.data.required_legal_modules,
+  )
+    ? productVersion.data.required_legal_modules.map(String)
+    : [];
+  const presentTypes = Array.from(
+    new Set(versions.map((version) => version.type)),
+  ).sort();
+  const missingTypes = requiredTypes.filter(
+    (type) => !presentTypes.includes(type),
+  );
 
-  const { data } = await supabaseService
+  const { data, error: companyError } = await supabaseService
     .from("companies")
     .select("id,name,org_number,branding,metadata")
     .eq("id", client.company_id)
     .maybeSingle();
+  if (companyError) throw companyError;
+  if (!data) {
+    throw new WebsiteLegalBundleError(
+      404,
+      "tenant_not_found",
+      "Tenantidentiteten kunde inte verifieras.",
+    );
+  }
   const row = (data ?? {}) as Record<string, unknown>;
   const branding = (row.branding as Record<string, unknown> | null) ?? null;
   const metadata = (row.metadata as Record<string, unknown> | null) ?? null;
@@ -1320,6 +1395,10 @@ export async function buildWebsiteLegalBundle(
     ) ?? null;
 
   return {
+    offer_reference: offerReference,
+    bundle_version: offer.legal_bundle_version_id,
+    required_types: requiredTypes,
+    present_types: presentTypes,
     tenant: {
       name: (row.name as string | null) ?? null,
       org_number: (row.org_number as string | null) ?? null,
@@ -1327,11 +1406,11 @@ export async function buildWebsiteLegalBundle(
       slug: tenantSlug,
     },
     legal,
-    // Legal completeness is offer-specific and is enforced by the exact
-    // canonical publication readiness. This endpoint only reports whether the
-    // tenant has any published legal material available.
-    complete: companyLegalVersions !== null && versions.length > 0,
-    missing_types: [],
+    complete:
+      companyLegalVersions !== null &&
+      versions.length > 0 &&
+      missingTypes.length === 0,
+    missing_types: missingTypes,
   };
 }
 

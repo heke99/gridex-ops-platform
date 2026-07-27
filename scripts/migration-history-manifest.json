@@ -7,6 +7,10 @@
     "20260616123000": [
       "20260616123000_contract_offer_unique_code_and_safe_delete.sql",
       "20260616123000_website_api_webhook_contract_hardening.sql"
+    ],
+    "20260727150000": [
+      "20260727150000_contract_offer_archived_slug_reuse.sql",
+      "20260727150000_contract_offer_slug_identity_completion.sql"
     ]
   },
   "allowedUnversionedFiles": [
@@ -320,14 +324,21 @@
     "20260727030000_contract_operation_readiness_completion.sql": "29b9b451cb20bdd13906c7260dfa918b1d83c3d69072e4c739b938ce04da3abb",
     "20260727040000_contract_security_energy_direction_api_completion.sql": "c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e",
     "20260727143000_contract_delete_runtime_completion.sql": "851dbde670aac5b28a20740d2e2550c79530cab0991d52f06f79b3a7b9944802",
+    "20260727150000_contract_offer_archived_slug_reuse.sql": "674184b2e0f3a96b8abd0bc1cd2f3434bf4e921b8d31d55fa51452ab07b68447",
     "20260727150000_contract_offer_slug_identity_completion.sql": "b0558538499350b4d91f0bcef1afcf2daa39d2835bfdbcba4c6acd7ad8d19fb1",
     "20260727160000_contract_valid_to_active_rpc_repair.sql": "43d23965a8842982e30ff90a4d01b0fb374d898672512ec9611191c5d227372f",
     "20260727161000_contract_type_slug_alignment.sql": "4a13d84602f56b88e5307ab1eac486e2c8a209ff9772c6bd597a318e54cb5815",
+    "20260727162000_contract_slug_version_integrity_repair.sql": "c88ffe0e62f2bf6dc8d2edb3da2eb0ddd3a2a899fd88548860819b429d96b80a",
+    "20260727163000_contract_offer_copy_command.sql": "bbac83a83e3aca33e5fbd603211528fe11388e9552344855a9a3e7de7b0734bb",
+    "20260727164000_canonical_invoice_export_runtime_completion.sql": "e2d41cf4449aeaf3cc1771736ce8fd18529f36a0a873d410748fe444e24f7027",
+    "20260727165000_quote_and_customer_contract_event_integrity.sql": "4dfef093b0227530c3313c35333106c3b8b6fa766a5d748493dd8a0972b3cc59",
+    "20260727166000_atomic_quote_application_onboarding_commit.sql": "2a55d8f9015c7dc74a2c53b560b4987fea1d25de3ebb7d1235d71ad78c0c7e81",
+    "20260727167000_customer_contract_state_machine_and_active_invariant.sql": "485b4628640770ec8f371bb2c61f2ad311c2d0795c6fdf2c0fbd715f6d29ab3b",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2"
   },
-  "generatedAt": "2026-07-27T15:07:57.829668Z",
+  "generatedAt": "2026-07-27T20:58:00.000000Z",
   "schemaVersion": 1
 }

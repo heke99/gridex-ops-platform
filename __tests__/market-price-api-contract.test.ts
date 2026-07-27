@@ -33,12 +33,12 @@ describe('market-price public API contract', () => {
     expect(customerPortalOpenApi.paths['/api/v1/website/market-price/current']).toBeUndefined()
     const response = websiteSpec.components.schemas.CurrentMarketPriceResponse
     expect(response.required).toContain('contract_schema_version')
-    expect(response.properties.contract_schema_version.const).toBe('2026-07-27.1')
+    expect(response.properties.contract_schema_version?.const).toBe('2026-07-27.1')
   })
 
   it('requires direct numeric price and evidence fields in MarketReference', () => {
     const schema = websiteSpec.components.schemas.MarketReference
-    expect(schema.properties.reference_type.const).toBe('preview')
+    expect(schema.properties.reference_type?.const).toBe('preview')
     for (const field of [
       'price_sek_per_kwh',
       'price_ore_per_kwh',

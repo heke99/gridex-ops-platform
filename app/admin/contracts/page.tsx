@@ -13,6 +13,7 @@ import {
 import {
   cleanupUnusedContractDraftsAction,
   closeContractOfferAction,
+  copyContractOfferAction,
   pauseContractOfferAction,
   publishContractChannelAction,
   publishContractVersionAction,
@@ -1443,11 +1444,26 @@ export default async function AdminContractsPage({
                             </>
                           ) : null}
                           {offer.lifecycle_status === "archived" || offer.lifecycle_status === "closed" ? (
-                            <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-                              {offer.lifecycle_status === "closed"
-                                ? "Stängt betyder stängt för ny försäljning. Avtalet kan därefter arkiveras och döljas medan historiken bevaras."
-                                : "Arkivering är terminal och irreversibel. En återlansering ska skapas som en separat efterföljande produkt, inte som en ny version av den arkiverade serien."}
-                            </p>
+                            <div className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                              <p className="px-1 text-xs font-semibold text-slate-600">
+                                {offer.lifecycle_status === "closed"
+                                  ? "Stängt betyder stängt för ny försäljning. Historiken bevaras."
+                                  : "Arkivering är terminal och irreversibel. En återlansering skapas som en separat produkt."}
+                              </p>
+                              <Link
+                                href={`/admin/contracts?company_id=${scope.companyId ?? ""}&edit_offer=${offer.id}&view=${contractView}&page=${currentPage}`}
+                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-center text-xs font-black text-slate-800"
+                              >
+                                Visa historik
+                              </Link>
+                              <form action={copyContractOfferAction}>
+                                <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
+                                <input type="hidden" name="id" value={offer.id} />
+                                <button className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800">
+                                  Skapa liknande avtal
+                                </button>
+                              </form>
+                            </div>
                           ) : null}
                           {contractLifecycleAllows(offer.lifecycle_status, "close") ? (
                             <form action={closeContractOfferAction} className="grid gap-2 rounded-xl border border-red-200 bg-red-50 p-2">

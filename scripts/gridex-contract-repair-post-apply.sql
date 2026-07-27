@@ -89,10 +89,48 @@ begin
     raise exception using errcode='23514',message='contract_offers_contract_type_check_incomplete';
   end if;
 
-  if exists(select 1 from pg_indexes
-    where schemaname='public' and tablename='contract_offers'
-      and indexdef ilike 'create unique index%' and indexdef ilike '%slug%') then
-    raise exception using errcode='23505',message='contract_offer_unique_slug_index_present';
+  if not exists(
+    select 1
+    from pg_indexes
+    where schemaname='public'
+      and tablename='contract_offers'
+      and indexname='contract_offers_company_live_slug_uidx'
+      and indexdef ilike 'create unique index%'
+      and indexdef ilike '%company_id%'
+      and indexdef ilike '%lower(btrim(slug))%'
+      and indexdef ilike '%archived_at is null%'
+      and indexdef ilike '%lifecycle_status <>%archived%'
+  ) then
+    raise exception using
+      errcode='23514',
+      message='contract_offer_live_slug_unique_index_missing';
+  end if;
+
+  if exists(
+    select 1
+    from public.contract_offers
+    where company_id is not null
+      and nullif(btrim(slug),'') is not null
+      and archived_at is null
+      and lifecycle_status<>'archived'
+    group by company_id,lower(btrim(slug))
+    having count(*)>1
+  ) then
+    raise exception using
+      errcode='23505',
+      message='contract_offer_live_slug_duplicates_present';
+  end if;
+
+  if exists(
+    select 1
+    from public.contract_product_versions version
+    where version.created_at >= timestamp with time zone '2026-07-27 00:00:00+00'
+      and version.commercial_snapshot->>'contract_type'
+        is distinct from version.contract_type
+  ) then
+    raise exception using
+      errcode='23514',
+      message='contract_product_version_snapshot_alignment_failed';
   end if;
 end
 $$;

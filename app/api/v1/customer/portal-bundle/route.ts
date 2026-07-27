@@ -114,6 +114,15 @@ type BundleWarning = {
   trace_id: string
 }
 
+const REQUIRED_BUNDLE_SECTIONS = new Set<BundleSection>([
+  'contracts',
+  'sites',
+  'metering_points',
+  'legal_acceptances',
+  'powers_of_attorney',
+  'website_applications',
+])
+
 function safeWarning(section: BundleSection, error: unknown): BundleWarning {
   const traceId = randomUUID()
   // Keep provider/schema details in server logs only; the portal response must
@@ -195,6 +204,10 @@ async function buildBundleResponse(input: {
       () => listPortalMeteringPoints(portalContext, sites, route),
       warnings
     )
+    const requiredWarnings = warnings.filter((warning) =>
+      REQUIRED_BUNDLE_SECTIONS.has(warning.section)
+    )
+    const responseStatus = requiredWarnings.length > 0 ? 503 : 200
     const hasPricePlan = rawContracts.some(hasContractPricePlan) || rawWebsiteApplications.some((application) => {
       const response = application.response_payload && typeof application.response_payload === 'object'
         ? application.response_payload as Record<string, unknown>
@@ -247,7 +260,7 @@ async function buildBundleResponse(input: {
     })
 
     timer.stop({
-      status: 200,
+      status: responseStatus,
       count: contracts.length + sites.length + meteringPoints.length + invoices.length,
       companyId: input.client.company_id,
       meta: { summary: options.summary, partial: warnings.length > 0 },
@@ -292,7 +305,6 @@ async function buildBundleResponse(input: {
         documents,
         legal_acceptances: legalAcceptances,
         powers_of_attorney: powersOfAttorney,
-        powersOfAttorney,
         notifications,
         events,
         website_applications: websiteApplications,
@@ -303,11 +315,13 @@ async function buildBundleResponse(input: {
           false_blockers_removed: hasPricePlan,
         },
         bundle_status: {
-          status: warnings.length > 0 ? 'partial' : 'complete',
+          status: requiredWarnings.length > 0 ? 'unavailable' : warnings.length > 0 ? 'partial' : 'complete',
+          complete: requiredWarnings.length === 0,
           unavailable_sections: warnings.map((warning) => warning.section),
+          warnings,
         },
       },
-    })
+    }, { status: responseStatus })
   } catch (error) {
     timer.stop({ status: 500, companyId: input.client.company_id })
     return handleCustomerPortalRouteError({ request: input.request, client: input.client, startedAt: input.startedAt, error })

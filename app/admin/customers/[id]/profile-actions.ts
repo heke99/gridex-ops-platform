@@ -587,21 +587,6 @@ async function closeCustomerLifecycleImpl(
   }>;
 
   for (const contract of contracts) {
-    const { error: contractUpdateError } = await supabaseService
-      .from("customer_contracts")
-      .update({
-        status: "terminated",
-        ends_at: moveOutDate,
-        termination_notice_date: nowIso,
-        termination_reason: "move_out",
-        updated_by: actorUserId,
-      })
-      .eq("id", contract.id)
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId);
-
-    if (contractUpdateError) throw contractUpdateError;
-
     await addCustomerContractEvent({
       companyId: contract.company_id ?? companyId,
       customerContractId: contract.id,
@@ -612,7 +597,12 @@ async function closeCustomerLifecycleImpl(
         mode === "terminate"
           ? "Avtalet avslutades via kundens livscykelåtgärd."
           : "Avtalet avslutades eftersom kunden registrerades som utflyttad.",
-      metadata: lifecycleMetadata,
+      metadata: {
+        ...lifecycleMetadata,
+        ends_at: moveOutDate,
+        termination_notice_date: nowIso,
+        termination_reason: "move_out",
+      },
       actorUserId,
     });
   }
@@ -1527,20 +1517,22 @@ async function archiveCustomerImpl(
 
   if (contractIds.length > 0) {
     await runBestEffortCustomerArchiveStep("archive.contracts.cancel_failed", async () => {
-      const { error } = await supabaseService
-        .from("customer_contracts")
-        .update({
-          status: "cancelled",
-          ends_at: nowIso.slice(0, 10),
-          termination_reason: "other",
-          rejected_reason: archiveReason,
-          updated_at: nowIso,
-        })
-        .eq("company_id", companyId)
-        .eq("customer_id", customerId)
-        .in("id", contractIds);
-
-      if (error) throw error;
+      for (const contractId of contractIds) {
+        await addCustomerContractEvent({
+          companyId,
+          customerContractId: contractId,
+          customerId,
+          eventType: "cancelled",
+          happenedAt: nowIso,
+          note: "Avtalet avslutades när kunden arkiverades.",
+          metadata: {
+            ends_at: nowIso.slice(0, 10),
+            termination_reason: "other",
+            rejected_reason: archiveReason,
+          },
+          actorUserId,
+        });
+      }
     });
   }
 

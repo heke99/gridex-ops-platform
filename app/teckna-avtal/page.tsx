@@ -1,9 +1,10 @@
 import { submitExternalContractAction } from './actions'
 
 
-export default async function PublicContractIntakePage({ searchParams }: { searchParams?: Promise<{ bolag?: string; status?: string; message?: string }> }) {
+export default async function PublicContractIntakePage({ searchParams }: { searchParams?: Promise<{ bolag?: string; offer_reference?: string; status?: string; message?: string }> }) {
   const params = searchParams ? await searchParams : {}
   const companySlug = params?.bolag?.trim() ?? ''
+  const offerReference = params?.offer_reference?.trim() ?? ''
 
   return (
     <main className="min-h-screen bg-slate-100 px-6 py-10 text-slate-950">
@@ -22,13 +23,14 @@ export default async function PublicContractIntakePage({ searchParams }: { searc
           </section>
         ) : null}
 
-        {!companySlug ? (
+        {!companySlug || !offerReference ? (
           <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-900">
-            Avtalsformuläret saknar bolagskoppling. Öppna formuläret via bolagets unika länk.
+            Avtalsformuläret saknar en verifierbar bolags- eller avtalsreferens. Öppna formuläret via knappen på det publicerade avtalet.
           </section>
         ) : (
         <form action={submitExternalContractAction} className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
           <input type="hidden" name="company_slug" value={companySlug} />
+          <input type="hidden" name="offer_reference" value={offerReference} />
 
           <div className="grid gap-5 md:grid-cols-2">
             <label className="text-sm font-medium text-slate-700">Kundtyp

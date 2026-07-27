@@ -17,6 +17,7 @@ const db = read("lib/customer-contracts/db.ts");
 const runtime = read("lib/website/customerApplications.ts");
 const openapi = JSON.parse(read("docs/openapi/website-integration-v1.json"));
 const alignmentMigration = read("supabase/migrations/20260727161000_contract_type_slug_alignment.sql");
+const integrityRepair = read("supabase/migrations/20260727162000_contract_slug_version_integrity_repair.sql");
 const lifecycle = read("lib/contracts/lifecycle.ts");
 const lifecycleErrors = read("lib/contracts/lifecycleErrors.ts");
 const slug = read("lib/contracts/slug.ts");
@@ -145,8 +146,25 @@ includesAll(alignmentMigration, [
   "drop index if exists public.contract_offers_company_live_slug_uidx",
   "contract_offers_company_slug_idx",
   "gridex_contract_slugify",
-], "contract type and non-unique slug alignment");
-check(!alignmentMigration.includes("create unique index"), "slug alignment creates no unique slug index");
+], "historical contract type and slug alignment remains inspectable");
+includesAll(integrityRepair, [
+  "contract_offer_live_slug_duplicates_block_repair",
+  "create unique index contract_offers_company_live_slug_uidx",
+  "company_id, lower(btrim(slug))",
+  "archived_at is null",
+  "lifecycle_status <> 'archived'",
+], "final live tenant slug invariant");
+check(
+  integrityRepair.lastIndexOf("create unique index contract_offers_company_live_slug_uidx")
+    > integrityRepair.lastIndexOf("drop index if exists public.contract_offers_company_live_slug_uidx"),
+  "final migration restores the unique slug index after every historical drop",
+);
+includesAll(integrityRepair, [
+  "supersedes_contract_product_version_id",
+  "canonical_snapshot_alignment_20260727",
+  "gridex_contract_product_version_integrity_guard_v1",
+  "contract_product_version_content_hash_mismatch",
+], "immutable version repair creates successors and guards new evidence");
 includesAll(slug, ['å: \"a\"', 'ä: \"a\"', 'ö: \"o\"', 'slugifyContract'], 'Swedish slug transliteration');
 includesAll(lifecycle, [
   "CONTRACT_CHANNEL_LABELS",
@@ -166,7 +184,8 @@ includesAll(repairPostApply, [
   "ta.valid_to",
   "aclexplode",
   "rolname in ('anon','authenticated')",
-  "contract_offer_unique_slug_index_present",
+  "contract_offers_company_live_slug_uidx",
+  "contract_offer_live_slug_unique_index_missing",
   "gridex_contract_repair_post_apply_verified",
 ], "post-apply live schema verification");
 

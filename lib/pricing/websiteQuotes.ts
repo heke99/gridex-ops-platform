@@ -28,6 +28,7 @@ export type WebsiteQuoteRecord = {
   geodata_version: string | null
   market_reference: Record<string, unknown>
   quote_hash: string | null
+  quote_hash_version: 'v1_snapshot_only' | 'v2_full_quote'
   resolution_binding_status: 'verified' | 'legacy_unverified'
   postal_code: string | null
   annual_consumption_kwh: number
@@ -81,8 +82,71 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(value) ?? 'null'
 }
 
-function quoteHash(snapshot: Record<string, unknown>): string {
-  return createHash('sha256').update(canonicalJson(snapshot)).digest('hex')
+function quoteHash(payload: Record<string, unknown>): string {
+  return createHash('sha256').update(canonicalJson(payload)).digest('hex')
+}
+
+function fullQuoteIntegrityPayload(input: {
+  quoteReference: string
+  companyId: string
+  offerReference: string
+  contractProductId?: string | null
+  contractProductVersionId?: string | null
+  contractPublicationVersionId?: string | null
+  pricePlanId?: string | null
+  pricePlanVersionId?: string | null
+  priceBookId?: string | null
+  legalBundleVersionId?: string | null
+  energyDirection: string
+  customerType: string
+  priceArea: string
+  gridAreaCode?: string | null
+  postalCode?: string | null
+  annualConsumptionKwh: number
+  startDate: string
+  energyResolutionId?: string | null
+  resolutionSnapshot?: Record<string, unknown>
+  resolverVersion?: string | null
+  geodataVersion?: string | null
+  marketReference?: Record<string, unknown>
+  marketDataTimestamp?: string | null
+  marketSources: unknown
+  assumptions: unknown
+  pricingSnapshotSchemaVersion: string
+  quoteSnapshot: Record<string, unknown>
+  validUntil: string
+}): Record<string, unknown> {
+  return {
+    quote_reference: input.quoteReference,
+    company_id: input.companyId,
+    offer_reference: input.offerReference,
+    contract_product_id: input.contractProductId ?? null,
+    contract_product_version_id: input.contractProductVersionId ?? null,
+    contract_publication_version_id:
+      input.contractPublicationVersionId ?? null,
+    price_plan_id: input.pricePlanId ?? null,
+    price_plan_version_id: input.pricePlanVersionId ?? null,
+    price_book_id: input.priceBookId ?? null,
+    legal_bundle_version_id: input.legalBundleVersionId ?? null,
+    energy_direction: input.energyDirection,
+    customer_type: input.customerType,
+    price_area: input.priceArea,
+    grid_area_code: input.gridAreaCode ?? null,
+    postal_code: input.postalCode ?? null,
+    annual_consumption_kwh: input.annualConsumptionKwh,
+    start_date: input.startDate,
+    energy_resolution_id: input.energyResolutionId ?? null,
+    resolution_snapshot: input.resolutionSnapshot ?? {},
+    resolver_version: input.resolverVersion ?? null,
+    geodata_version: input.geodataVersion ?? null,
+    market_reference: input.marketReference ?? {},
+    market_data_timestamp: input.marketDataTimestamp ?? null,
+    market_sources: input.marketSources,
+    assumptions: input.assumptions,
+    pricing_snapshot_schema_version: input.pricingSnapshotSchemaVersion,
+    quote_snapshot: input.quoteSnapshot,
+    valid_until: input.validUntil,
+  }
 }
 
 export async function persistWebsiteQuote(input: {
@@ -109,7 +173,36 @@ export async function persistWebsiteQuote(input: {
 }): Promise<{ quoteReference: string; validUntil: string }> {
   const quoteReference = newQuoteReference()
   const validUntil = new Date(Date.now() + quoteLifetimeMinutes() * 60_000).toISOString()
-  const immutableQuoteHash = quoteHash(input.quoteSnapshot)
+  const immutableQuoteHash = quoteHash(fullQuoteIntegrityPayload({
+    quoteReference,
+    companyId: input.client.company_id,
+    offerReference: input.offerReference,
+    contractProductId: input.offer.contract_product_id,
+    contractProductVersionId: input.offer.contract_product_version_id,
+    contractPublicationVersionId: input.offer.contract_publication_version_id,
+    pricePlanId: input.offer.price_plan_id,
+    pricePlanVersionId: input.offer.price_plan_version_id,
+    priceBookId: input.offer.price_book_id,
+    legalBundleVersionId: input.offer.legal_bundle_version_id,
+    energyDirection: input.offer.energy_direction,
+    customerType: input.customerType,
+    priceArea: input.priceArea,
+    gridAreaCode: input.gridAreaCode,
+    postalCode: input.postalCode,
+    annualConsumptionKwh: input.annualConsumptionKwh,
+    startDate: input.startDate,
+    energyResolutionId: input.resolutionId,
+    resolutionSnapshot: input.resolutionSnapshot,
+    resolverVersion: input.resolverVersion,
+    geodataVersion: input.geodataVersion,
+    marketReference: input.marketReference,
+    marketDataTimestamp: input.marketDataTimestamp,
+    marketSources: input.marketSources,
+    assumptions: input.assumptions,
+    pricingSnapshotSchemaVersion: input.pricingSnapshotSchemaVersion,
+    quoteSnapshot: input.quoteSnapshot,
+    validUntil,
+  }))
   const { data: inserted, error } = await supabaseService.from('website_contract_quotes').insert({
     company_id: input.client.company_id,
     api_client_id: input.client.id,
@@ -132,6 +225,7 @@ export async function persistWebsiteQuote(input: {
     geodata_version: input.geodataVersion ?? null,
     market_reference: input.marketReference ?? {},
     quote_hash: immutableQuoteHash,
+    quote_hash_version: 'v2_full_quote',
     resolution_binding_status: input.resolutionBindingStatus ?? 'legacy_unverified',
     postal_code: input.postalCode ?? null,
     annual_consumption_kwh: input.annualConsumptionKwh,
@@ -248,7 +342,39 @@ export async function validateWebsiteQuote(input: {
   }
   const canonicalPriceArea = canonicalResolution?.priceArea ?? input.priceArea
   const canonicalGridAreaCode = canonicalResolution?.gridAreaCode ?? input.gridAreaCode ?? null
-  const computedQuoteHash = quoteHash(quote.quote_snapshot)
+  const computedQuoteHash =
+    quote.quote_hash_version === 'v2_full_quote'
+      ? quoteHash(fullQuoteIntegrityPayload({
+          quoteReference: quote.quote_reference,
+          companyId: quote.company_id,
+          offerReference: quote.offer_reference,
+          contractProductId: quote.contract_product_id,
+          contractProductVersionId: quote.contract_product_version_id,
+          contractPublicationVersionId: quote.contract_publication_version_id,
+          pricePlanId: quote.price_plan_id,
+          pricePlanVersionId: quote.price_plan_version_id,
+          priceBookId: quote.price_book_id,
+          legalBundleVersionId: quote.legal_bundle_version_id,
+          energyDirection: quote.energy_direction,
+          customerType: quote.customer_type,
+          priceArea: quote.price_area,
+          gridAreaCode: quote.grid_area_code,
+          postalCode: quote.postal_code,
+          annualConsumptionKwh: quote.annual_consumption_kwh,
+          startDate: quote.start_date,
+          energyResolutionId: quote.energy_resolution_id,
+          resolutionSnapshot: quote.resolution_snapshot,
+          resolverVersion: quote.resolver_version,
+          geodataVersion: quote.geodata_version,
+          marketReference: quote.market_reference,
+          marketDataTimestamp: quote.market_data_timestamp,
+          marketSources: quote.market_sources,
+          assumptions: quote.assumptions,
+          pricingSnapshotSchemaVersion: quote.pricing_snapshot_schema_version,
+          quoteSnapshot: quote.quote_snapshot,
+          validUntil: quote.valid_until,
+        }))
+      : quoteHash(quote.quote_snapshot)
   if (!quote.quote_hash || quote.quote_hash !== computedQuoteHash) {
     throw new WebsiteQuoteValidationError({
       message: 'Quote-underlaget har ändrats efter att det skapades.',
@@ -324,38 +450,4 @@ export async function validateWebsiteQuote(input: {
     payload: { quote_reference: quote.quote_reference, application_id: input.applicationId ?? null },
   })
   return quote
-}
-
-export async function markWebsiteQuoteConsumed(input: {
-  companyId: string
-  quoteReference: string
-  applicationId: string
-}): Promise<void> {
-  const now = new Date().toISOString()
-  const { data, error } = await supabaseService
-    .from('website_contract_quotes')
-    .update({ status: 'consumed', consumed_at: now, consumed_application_id: input.applicationId, updated_at: now })
-    .eq('company_id', input.companyId)
-    .eq('quote_reference', input.quoteReference)
-    .eq('status', 'active')
-    .select('id,consumed_application_id')
-    .maybeSingle()
-  if (error) throw error
-  if (data) return
-
-  const { data: current, error: readError } = await supabaseService
-    .from('website_contract_quotes')
-    .select('status,consumed_application_id')
-    .eq('company_id', input.companyId)
-    .eq('quote_reference', input.quoteReference)
-    .maybeSingle()
-  if (readError) throw readError
-  if (current?.status === 'consumed' && current.consumed_application_id === input.applicationId) return
-
-  throw new WebsiteQuoteValidationError({
-    message: 'Quote har redan reserverats av en annan kundansökan.',
-    code: current ? 'quote_already_consumed' : 'quote_not_found',
-    status: current ? 409 : 404,
-    details: current ? { consumed_application_id: current.consumed_application_id } : undefined,
-  })
 }

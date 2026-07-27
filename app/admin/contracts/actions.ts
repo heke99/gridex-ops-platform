@@ -389,6 +389,64 @@ export async function archiveContractOfferAction(formData: FormData) {
   redirectBack({ companyId, success });
 }
 
+export async function copyContractOfferAction(formData: FormData) {
+  const companyId = getString(formData, "company_id") || null;
+  const sourceOfferId = getString(formData, "id");
+  let newOfferId: string;
+  try {
+    if (!companyId || !sourceOfferId) {
+      throw new Error("Bolag och källavtal krävs för att skapa en kopia.");
+    }
+    const actor = await requireContractPermissionAction("contracts.create");
+    const scopedCompanyId = await assertUserCanOperateCompany(
+      actor.userId,
+      companyId,
+    );
+    await requireCompanyOperationalForWrites(scopedCompanyId);
+
+    const { data, error } = await contractMutationServiceClient().rpc(
+      "gridex_copy_contract_offer_v1",
+      {
+        p_company_id: scopedCompanyId,
+        p_source_offer_id: sourceOfferId,
+        p_actor_user_id: actor.userId,
+      },
+    );
+    if (error) throw error;
+    const result = data as ContractLifecycleRpcResult & {
+      new_contract_offer_id?: string;
+    };
+    if (result?.ok === false) {
+      throw contractLifecycleFailure(
+        result,
+        "Avtalskopian kunde inte skapas.",
+      );
+    }
+    newOfferId = String(result?.new_contract_offer_id ?? "");
+    if (!newOfferId) {
+      throw new Error(
+        "Kopieringskommandot returnerade inte det nya avtalsutkastet.",
+      );
+    }
+    revalidateContractSurfaces(scopedCompanyId);
+  } catch (error) {
+    redirectBack({
+      companyId,
+      error: await errorMessage(error, {
+        action: "copy_contract_offer",
+        companyId,
+        metadata: { sourceOfferId: sourceOfferId || null },
+      }),
+    });
+  }
+  redirectBack({
+    companyId,
+    offerId: newOfferId,
+    success:
+      "Ett nytt opublicerat avtalsutkast skapades. Kundavtal, offerter, signaturer, fullmakter och publiceringar kopierades inte.",
+  });
+}
+
 async function archiveContractOfferActionImpl(
   formData: FormData,
 ): Promise<{ success: string }> {

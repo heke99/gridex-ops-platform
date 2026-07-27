@@ -1,9 +1,30 @@
 import { describe, expect, it } from 'vitest'
-import { selectMarketPriceRow } from '@/lib/pricing/marketPriceSources'
+import {
+  selectMarketPriceRow,
+  type MarketPriceSourcePolicy,
+} from '@/lib/pricing/marketPriceSources'
 
-const policies = [
-  { sourceKey: 'primary', priority: 10, maxAgeMinutes: 60, allowIndicativeLatest: false, supportedResolutions: ['monthly'] },
-  { sourceKey: 'secondary', priority: 20, maxAgeMinutes: 60, allowIndicativeLatest: false, supportedResolutions: ['monthly'] },
+const policies: MarketPriceSourcePolicy[] = [
+  {
+    sourceKey: 'primary',
+    priority: 10,
+    maxAgeMinutes: 60,
+    allowIndicativeLatest: false,
+    supportedResolutions: ['monthly'],
+    priceAreas: ['SE1', 'SE2', 'SE3', 'SE4'],
+    forecastPolicy: 'latest_available_indication',
+    portfolioPolicy: 'require_locked_period_price',
+  },
+  {
+    sourceKey: 'secondary',
+    priority: 20,
+    maxAgeMinutes: 60,
+    allowIndicativeLatest: false,
+    supportedResolutions: ['monthly'],
+    priceAreas: ['SE1', 'SE2', 'SE3', 'SE4'],
+    forecastPolicy: 'latest_available_indication',
+    portfolioPolicy: 'require_locked_period_price',
+  },
 ]
 
 describe('market price source selection', () => {
