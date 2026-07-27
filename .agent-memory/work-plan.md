@@ -39,7 +39,7 @@ Depends on: WP-001
 Affected domains: website API, customer portal API, docs
 Acceptance criteria: runtime/OpenAPI/docs/scopes/errors/examples match
 Required verification: API parity, contract and docs checks
-Evidence: `npm run api:docs` passes at `2026-07-25.1`
+Evidence: `npm run api:docs` passes at `2026-07-27.1`
 Files changed: website/customer OpenAPI, developer page and integration guides
 Migrations: none
 Last updated: 2026-07-25

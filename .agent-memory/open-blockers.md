@@ -22,7 +22,7 @@ invoice graph reservations; both require real PostgreSQL application.
 Status: DEPLOYMENT_REQUIRED
 
 The live developer page inspected on 2026-07-25 reports an older deployed
-contract. Local runtime/OpenAPI/docs are aligned at `2026-07-25.1`; production
+contract. Local runtime/OpenAPI/docs are aligned at `2026-07-27.1`; production
 parity can only be verified after deployment.
 
 ## BLK-004 — Provider runtime verification
@@ -40,3 +40,7 @@ Status: TEST_FIXTURE_UPDATE_REQUIRED
 Five existing unit fixtures construct supply periods without company,
 customer, contract and metering-point identities. Exact readiness correctly
 blocks them. Production code was not relaxed and the tests were not edited.
+
+## 2026-07-27 contract delete runtime verification
+
+Local migration, API and targeted contract regressions pass. Full `npm ci`, typecheck, lint and build remain blocked in the delivery environment by the package registry HTTP 503/cache miss. Staging migration/RPC scenarios remain blocked because no Supabase/Postgres CLI or credentials are available. The quote-to-customer-application flow is still not proven as one all-or-nothing SQL transaction.

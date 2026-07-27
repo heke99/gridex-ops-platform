@@ -18,6 +18,7 @@ import { getEmailEventRules, type EmailEventRule } from '@/lib/email/emailEvents
 import { DEFAULT_EMAIL_TEMPLATES, EMAIL_TEMPLATE_VARIABLES, getCompanyEmailTemplates, type CompanyEmailTemplate } from '@/lib/email/emailTemplates'
 import { getCompanyCommunicationLogs, type CommunicationLog } from '@/lib/email/communicationLogs'
 import TenantPlatformControls from './TenantPlatformControls'
+import { parseContractAdminView } from '@/lib/contracts/adminDto'
 import { computeTenantReadiness, listWebhookSubscriptions } from '@/lib/admin/websiteIntegrationOps'
 import { getTenantWebsiteReadiness, listCompanyLegalTextVersions, type LegalTextVersion, type TenantWebsiteReadiness } from '@/lib/opsMaster/readiness'
 import { getTenantLegalDefaultStatus, type TenantLegalDefaultStatus } from '@/lib/tenant/legalDefaults'
@@ -1519,6 +1520,10 @@ export default async function CompanyDetailPage({
             firstSearchValue(resolvedSearchParams.diagnose_contract) ?? null
           }
           contractPage={positivePage(resolvedSearchParams.contract_page)}
+          contractView={parseContractAdminView(
+            firstSearchValue(resolvedSearchParams.contract_view),
+          )}
+          actorUserId={admin.userId}
         />
 
         <section id="tenant-intake-tracking" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

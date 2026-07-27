@@ -41,3 +41,86 @@ export const CONTRACT_LIFECYCLE_TRANSITIONS = {
   archived: [],
   superseded: ["archived"],
 } as const satisfies Readonly<Record<ContractLifecycleStatus, readonly string[]>>;
+
+export const CONTRACT_LIFECYCLE_LABELS: Readonly<
+  Record<ContractLifecycleStatus, string>
+> = {
+  draft: "Utkast",
+  ready: "Redo",
+  published: "Publicerat",
+  paused: "Pausat",
+  expired: "Utgånget",
+  closed: "Stängt",
+  archived: "Arkiverat",
+  superseded: "Ersatt version",
+};
+
+export type ContractImmutableVersionStatus =
+  | "draft"
+  | "ready"
+  | "published"
+  | "superseded";
+
+export type ContractChannelStatus = "scheduled" | "active" | "paused" | "ended";
+
+export type ContractPublicationVersionStatus =
+  | "draft"
+  | "scheduled"
+  | "published"
+  | "paused"
+  | "closed"
+  | "superseded";
+
+export const CONTRACT_IMMUTABLE_VERSION_TRANSITIONS = {
+  draft: ["ready"],
+  ready: ["draft", "published"],
+  published: ["superseded"],
+  superseded: [],
+} as const satisfies Readonly<
+  Record<ContractImmutableVersionStatus, readonly ContractImmutableVersionStatus[]>
+>;
+
+export const CONTRACT_CHANNEL_TRANSITIONS = {
+  scheduled: ["active", "paused", "ended"],
+  active: ["paused", "ended"],
+  paused: ["active", "ended"],
+  ended: [],
+} as const satisfies Readonly<
+  Record<ContractChannelStatus, readonly ContractChannelStatus[]>
+>;
+
+export const CONTRACT_PUBLICATION_VERSION_TRANSITIONS = {
+  draft: ["scheduled", "published", "closed"],
+  scheduled: ["published", "paused", "closed"],
+  published: ["paused", "closed", "superseded"],
+  paused: ["published", "closed", "superseded"],
+  closed: [],
+  superseded: [],
+} as const satisfies Readonly<
+  Record<
+    ContractPublicationVersionStatus,
+    readonly ContractPublicationVersionStatus[]
+  >
+>;
+
+export const CONTRACT_TERMINAL_LIFECYCLE_STATUSES: ReadonlySet<ContractLifecycleStatus> =
+  new Set(["archived"]);
+
+export function isContractLifecycleTerminal(
+  status: ContractLifecycleStatus | string | null | undefined,
+): boolean {
+  return Boolean(status) &&
+    CONTRACT_TERMINAL_LIFECYCLE_STATUSES.has(status as ContractLifecycleStatus);
+}
+
+export function isContractSellable(input: {
+  lifecycleStatus: ContractLifecycleStatus | string | null | undefined;
+  channelStatus: ContractChannelStatus | string | null | undefined;
+  currentlySellable?: boolean | null;
+}): boolean {
+  return (
+    input.lifecycleStatus === "published" &&
+    input.channelStatus === "active" &&
+    input.currentlySellable === true
+  );
+}

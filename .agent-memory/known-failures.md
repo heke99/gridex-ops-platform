@@ -39,4 +39,4 @@ transaction-tested because Supabase CLI and an authorized database are absent.
 Status: PENDING_DEPLOY
 
 The live developer page observed on 2026-07-25 exposes an older contract than
-local `2026-07-25.1`.
+local `2026-07-27.1`.

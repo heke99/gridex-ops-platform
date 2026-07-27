@@ -9,12 +9,9 @@ import {
 import {
   getContractOfferById,
   getPreviousContractOfferVersion,
-  listContractOffers,
 } from "@/lib/customer-contracts/db";
 import {
-  archiveContractOfferAction,
   cleanupUnusedContractDraftsAction,
-  deleteContractOfferAction,
   closeContractOfferAction,
   pauseContractOfferAction,
   publishContractChannelAction,
@@ -39,7 +36,17 @@ import {
 import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile";
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 import ContractOfferAdminForm from "@/components/admin/contracts/ContractOfferAdminForm";
+import ContractDeleteControl from "@/components/admin/contracts/ContractDeleteControl";
 import { contractLifecycleAllows } from "@/lib/contracts/lifecycle";
+import {
+  listTenantContractProducts,
+  previewContractDelete,
+} from "@/lib/contracts/adminRepository";
+import {
+  CONTRACT_ADMIN_VIEW_LABELS,
+  parseContractAdminView,
+  type ContractAdminView,
+} from "@/lib/contracts/adminDto";
 
 export const dynamic = "force-dynamic";
 
@@ -717,14 +724,9 @@ export default async function AdminContractsPage({
   const diagnoseOfferId = firstSearchValue(
     resolvedSearchParams.diagnose_offer,
   );
-  const contractView = ["active", "terminal", "all"].includes(
-    firstSearchValue(resolvedSearchParams.view) ?? "",
-  )
-    ? (firstSearchValue(resolvedSearchParams.view) as
-        | "active"
-        | "terminal"
-        | "all")
-    : "active";
+  const contractView = parseContractAdminView(
+    firstSearchValue(resolvedSearchParams.view),
+  );
   const requestedPage = Number(
     firstSearchValue(resolvedSearchParams.page) ?? "1",
   );
@@ -733,12 +735,6 @@ export default async function AdminContractsPage({
       ? requestedPage
       : 1;
   const pageSize = 25;
-  const lifecycleStatuses =
-    contractView === "active"
-      ? ["draft", "ready", "published", "paused"]
-      : contractView === "terminal"
-        ? ["expired", "closed", "archived", "superseded"]
-        : undefined;
   const requestedCompanyIsInvalid = Boolean(
     isPlatformAdmin &&
       requestedCompanyId &&
@@ -794,15 +790,14 @@ export default async function AdminContractsPage({
     | null = null;
   if (scope.companyId) {
     try {
-      const pagedOffers = await listContractOffers({
+      const pagedOffers = await listTenantContractProducts({
         companyId: scope.companyId,
-        includeArchived: true,
-        lifecycleStatuses,
-        limit: pageSize + 1,
-        offset: (currentPage - 1) * pageSize,
+        view: contractView,
+        page: currentPage,
+        pageSize,
       });
-      hasNextPage = pagedOffers.length > pageSize;
-      offers = pagedOffers.slice(0, pageSize);
+      hasNextPage = pagedOffers.hasNext;
+      offers = pagedOffers.rows;
       editOffer = editOfferId
         ? (offers.find((offer) => offer.id === editOfferId) ??
           (await getContractOfferById(editOfferId, scope.companyId)))
@@ -846,10 +841,11 @@ export default async function AdminContractsPage({
           p_operation: readinessOperation,
           p_channel: readinessOperation === "activate_channel" ? "website" : null,
         }),
-        supabaseService.rpc("gridex_preview_delete_unused_contract", {
-          p_company_id: scope.companyId,
-          p_offer_id: diagnoseOfferId,
-        }),
+        previewContractDelete({
+          companyId: scope.companyId,
+          offerId: diagnoseOfferId,
+          actorUserId: user?.id ?? admin.userId,
+        }).then((data) => ({ data, error: null })),
       ]);
       if (readinessResult.error) throw readinessResult.error;
       if (deletionResult.error) throw deletionResult.error;
@@ -1164,11 +1160,9 @@ export default async function AdminContractsPage({
               Dessa används som valbara avtal i kundintaget.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {[
-                ["active", "Aktiva och utkast"],
-                ["terminal", "Stängda och historiska"],
-                ["all", "Alla statusar"],
-              ].map(([view, label]) => (
+              {(Object.entries(CONTRACT_ADMIN_VIEW_LABELS) as Array<
+                [ContractAdminView, string]
+              >).map(([view, label]) => (
                 <Link
                   key={view}
                   href={`/admin/contracts?company_id=${scope.companyId ?? ""}&view=${view}&page=1`}
@@ -1455,19 +1449,6 @@ export default async function AdminContractsPage({
                                 : "Arkivering är terminal och irreversibel. En återlansering ska skapas som en separat efterföljande produkt, inte som en ny version av den arkiverade serien."}
                             </p>
                           ) : null}
-                          {contractLifecycleAllows(offer.lifecycle_status, "archive") ? (
-                            <form action={archiveContractOfferAction}>
-                              <input
-                                type="hidden"
-                                name="company_id"
-                                value={scope.companyId ?? ""}
-                              />
-                              <input type="hidden" name="id" value={offer.id} />
-                              <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700">
-                                Arkivera avtal
-                              </button>
-                            </form>
-                          ) : null}
                           {contractLifecycleAllows(offer.lifecycle_status, "close") ? (
                             <form action={closeContractOfferAction} className="grid gap-2 rounded-xl border border-red-200 bg-red-50 p-2">
                               <input type="hidden" name="company_id" value={scope.companyId ?? ""} />
@@ -1483,25 +1464,22 @@ export default async function AdminContractsPage({
                               </button>
                             </form>
                           ) : null}
-                          {contractLifecycleAllows(offer.lifecycle_status, "delete_unused") ? (
+                          {contractLifecycleAllows(offer.lifecycle_status, "delete_unused") ||
+                          contractLifecycleAllows(offer.lifecycle_status, "archive") ? (
                             <>
-                              <form action={deleteContractOfferAction}>
-                                <input
-                                  type="hidden"
-                                  name="company_id"
-                                  value={scope.companyId ?? ""}
-                                />
-                                <input type="hidden" name="id" value={offer.id} />
-                                <button
-                                  className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800"
-                                >
-                                  Kontrollera och radera oanvänt utkast
-                                </button>
-                              </form>
+                              <ContractDeleteControl
+                                companyId={scope.companyId ?? ""}
+                                offerId={offer.id}
+                                productId={offer.contract_product_id}
+                                productName={offer.name}
+                                companyName={scope.companyName}
+                                surface="contracts"
+                                view={contractView}
+                                page={currentPage}
+                              />
                               <p className="text-[11px] leading-4 text-slate-500">
-                                Dependency-grafen hämtas och kontrolleras först när
-                                kommandot körs. Commit gör samma kontroll igen under
-                                transaktionslås.
+                                Preview och commit använder samma dependency-graf.
+                                Commit kör om kontrollen under advisory- och radlås.
                               </p>
                             </>
                           ) : null}

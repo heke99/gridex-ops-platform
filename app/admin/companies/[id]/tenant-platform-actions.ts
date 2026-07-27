@@ -4,7 +4,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
-import { contractLifecycleError, contractLifecycleMessage, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
+import { contractLifecycleError, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
+import { archiveContractProduct, deleteContractProduct } from "@/lib/contracts/adminMutations";
 import { toSafeContractErrorPersisted } from "@/lib/errors/safeActionErrors";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseService } from "@/lib/supabase/service";
@@ -320,21 +321,22 @@ async function removeCanonicalContractImpl(
     publicOfferId,
   });
 
-  const { data, error } = await supabaseService.rpc(
-    "gridex_remove_internal_contract_offer",
-    {
-      p_company_id: companyId,
-      p_offer_id: source.id,
-      p_mode: mode,
-      p_actor_user_id: actor.userId,
-    },
+  const result = assertLifecycleResult(
+    mode === "archive"
+      ? await archiveContractProduct({
+          companyId,
+          offerId: source.id,
+          actorUserId: actor.userId,
+        })
+      : await deleteContractProduct({
+          companyId,
+          offerId: source.id,
+          actorUserId: actor.userId,
+          expectedPreviewToken:
+            text(formData, "expected_preview_token") || null,
+        }),
+    "Avtalet kunde inte arkiveras eller raderas.",
   );
-  if (error) throw error;
-  if (!data || typeof data !== "object") {
-    throw new Error("Raderingskommandot returnerade inget resultat.");
-  }
-
-  const result = assertLifecycleResult(data as LifecycleResult | null, "Avtalet kunde inte arkiveras eller raderas.");
   if (!result.mode || result.mode === "blocked") {
     throw contractLifecycleError(result, "Avtalet kunde inte arkiveras eller raderas.");
   }
@@ -358,7 +360,7 @@ async function removeCanonicalContractImpl(
     billable: false,
     metadata: {
       requestedMode: mode,
-      canonicalCommand: "gridex_remove_internal_contract_offer",
+      canonicalCommand: "gridex_remove_internal_contract_offer_v2",
       deletePreview: result.delete_preview ?? null,
     },
   });

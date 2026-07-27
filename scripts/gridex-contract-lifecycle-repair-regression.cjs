@@ -14,6 +14,9 @@ const types = read("lib/customer-contracts/types.ts");
 const dbTest = read("scripts/gridex-contract-db-lifecycle-test.sql");
 const lifecycleErrors = read("lib/contracts/lifecycleErrors.ts");
 const graphMigration = read("supabase/migrations/20260721170000_contract_graph_api_revision_hardening.sql");
+const adminRepository = read("lib/contracts/adminRepository.ts");
+const adminActions = read("lib/contracts/adminActions.ts");
+const deleteControl = read("components/admin/contracts/ContractDeleteControl.tsx");
 
 const failures = [];
 let checks = 0;
@@ -108,17 +111,36 @@ includesAll(page, [
   "removable_system_dependencies",
 ], "admin UI supports channel-by-channel lifecycle");
 includesAll(tenantControls, [
-  "canonical_internal_contract_offers_v",
+  "listTenantContractProducts",
+  "previewContractDelete",
+  "ContractDeleteControl",
   "edit_offer=",
-  "disabled={!canDelete}",
   "deletion_preview",
-], "tenant card uses same canonical preview and route");
+  "contract_view=",
+], "tenant card uses the shared canonical repository, preview and route");
+includesAll(adminRepository, [
+  "gridex_preview_delete_unused_contract_v2",
+  "listTenantContractProducts",
+], "shared contract admin repository");
+includesAll(adminActions, [
+  "previewContractDeleteAction",
+  "deleteContractPermanentlyAction",
+  "archiveContractAction",
+], "shared actor-bound contract actions");
+includesAll(deleteControl, [
+  "Radera permanent",
+  "Bekräfta permanent radering",
+  "expected_preview_token",
+  "Arkivera och dölj",
+], "preview-driven delete confirmation control");
 check(!tenantControls.includes("&edit=${offer.source_contract_offer_id}"), "legacy edit query parameter removed");
 includesAll(tenantActions, [
   "assertLifecycleResult",
   "result.changed === false",
-  "contractLifecycleMessage",
-], "tenant actions reject false success through the centralized reason parser");
+  "contractLifecycleError",
+  "deleteContractProduct",
+  "archiveContractProduct",
+], "tenant actions reject false success and delegate to shared canonical mutations");
 includesAll(lifecycleErrors, [
   "reason_codes",
   "PUBLICATION_VERSION_LINK_MISMATCH",

@@ -8,7 +8,7 @@ Last updated: 2026-07-27T17:20:00+02:00
   invoice, switch, cron and event call paths were inventoried against the
   uploaded source.
 - PHASE-02: VERIFIED locally — runtime/OpenAPI/docs are synchronized at
-  `2026-07-25.1`; all API documentation checks pass.
+  `2026-07-27.1`; all API documentation checks pass.
 - PHASE-04–07: VERIFIED locally — resolution capabilities are purpose-specific,
   market/quote inputs are canonical and pricing is independent of PRODAT.
 - PHASE-12–13: IMPLEMENTED/STATIC_VERIFIED — switch creation and dispatch are

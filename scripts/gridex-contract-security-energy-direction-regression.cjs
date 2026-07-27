@@ -11,6 +11,7 @@ function check(condition, message) {
 }
 
 const migration = read('supabase/migrations/20260727040000_contract_security_energy_direction_api_completion.sql')
+const deleteRuntimeMigration = read('supabase/migrations/20260727143000_contract_delete_runtime_completion.sql')
 for (const signature of [
   'gridex_upsert_internal_contract_offer(uuid,uuid,jsonb,jsonb,uuid)',
   'gridex_upsert_internal_contract_offer_v2(uuid,uuid,jsonb,jsonb,uuid)',
@@ -29,6 +30,18 @@ for (const signature of [
   check(new RegExp(`revoke all on function public\\.${escaped}\\s+from public,anon,authenticated;[\\s\\S]*?grant execute on function public\\.${escaped}\\s+to service_role;`, 'i').test(migration), `${signature} är service-only`)
 }
 check(/security definer[\s\S]*set search_path=public,pg_temp/.test(migration), 'Ny SECURITY DEFINER-funktion har explicit search_path')
+for (const signature of [
+  'gridex_contract_delete_dependency_graph_v2(uuid,uuid)',
+  'gridex_preview_delete_unused_contract_v2(uuid,uuid,uuid)',
+  'gridex_delete_unused_contract_v2(uuid,uuid,uuid,text)',
+  'gridex_remove_internal_contract_offer_v2(uuid,uuid,text,uuid,text)',
+]) {
+  const escaped = signature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  check(new RegExp(`revoke all on function public\\.${escaped}\\s+from public,anon,authenticated;[\\s\\S]*?grant execute on function public\\.${escaped}\\s+to service_role;`, 'i').test(deleteRuntimeMigration), `${signature} är service-only`)
+}
+check(/security definer[\s\S]*set search_path=public,auth,pg_temp/.test(deleteRuntimeMigration), 'Delete v2 SECURITY DEFINER-funktioner har explicit search_path')
+check(/pg_advisory_xact_lock/.test(deleteRuntimeMigration) && /for update/i.test(deleteRuntimeMigration) && /contract_delete_preview_stale/.test(deleteRuntimeMigration), 'Delete v2 upprepar dependency graph under advisory- och radlås')
+check(/contract_already_deleted/.test(deleteRuntimeMigration), 'Delete v2 har canonical idempotent resultat')
 check(/contract_products[\s\S]*contract_product_versions[\s\S]*contract_publication_versions[\s\S]*public_contract_offers[\s\S]*energy_direction/.test(migration) && /website_contract_quotes[\s\S]*contract_product_id[\s\S]*price_plan_id[\s\S]*price_book_id[\s\S]*energy_direction/.test(migration), 'Produkt, immutable version, publicering och quote får explicit canonical energiriktning och prisidentiteter')
 check(/website_customer_applications[\s\S]*contract_publication_version_id[\s\S]*price_book_id[\s\S]*energy_direction/.test(migration), 'Kundansökan binds till publiceringsversion, prisbok och energiriktning')
 check(/gridex_enforce_quote_binding_v2/.test(migration) && /quote_binding_energy_direction_mismatch/.test(migration), 'Databasen stoppar quote/application/contract mismatch')

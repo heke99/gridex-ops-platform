@@ -55,7 +55,7 @@
     {
       "name": "API documentation",
       "status": "VERIFIED",
-      "evidence": "npm run api:docs at 2026-07-25.1"
+      "evidence": "npm run api:docs at 2026-07-27.1"
     },
     {
       "name": "migration integrity",

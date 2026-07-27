@@ -21,7 +21,7 @@ Status: VERIFIED LOCALLY
 - Added idempotent transactional `activate_customer_supply_v1`.
 - Added canonical `supply.started` and `invoice.paid` webhook events and
   documented active/internal/planned event names.
-- Synchronized OpenAPI, runtime, developer page and guides at `2026-07-25.1`.
+- Synchronized OpenAPI, runtime, developer page and guides at `2026-07-27.1`.
 - Added an explicit terminal contract-close operation with dependency cleanup,
   immutable closure metadata, audit, domain event and transactional outbox.
 - Added canonical tenant lifecycle transitions with structured activation
@@ -63,3 +63,4 @@ Status: VERIFIED LOCALLY
 - Dedicated contract/tenant lifecycle regression: pass.
 - ESLint: pass with 125 existing warnings and no errors.
 - Next.js production build: pass; `.next/BUILD_ID` generated.
+- Added the service-only actor-aware contract delete v2 path with a shared dependency graph, preview token, concurrency-safe idempotent commit, explicit archive fallback, shared admin repository/actions and status filters across both admin entry points.

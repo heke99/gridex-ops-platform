@@ -222,12 +222,26 @@ begin
     raise exception 'canonical_fraction_input_was_not_preserved';
   end if;
 
-  v_deleted:=public.gridex_delete_unused_contract(
+  v_delete_preview:=public.gridex_preview_delete_unused_contract_v2(
     v_company_id,v_successor_id,v_actor_id
+  );
+  if not coalesce((v_delete_preview->>'can_delete')::boolean,false)
+     or nullif(v_delete_preview->>'preview_token','') is null then
+    raise exception 'unused_successor_preview_failed:%',v_delete_preview;
+  end if;
+  v_deleted:=public.gridex_delete_unused_contract_v2(
+    v_company_id,v_successor_id,v_actor_id,v_delete_preview->>'preview_token'
   );
   if not coalesce((v_deleted->>'ok')::boolean,false)
      or coalesce(v_deleted->>'mode','')<>'deleted' then
     raise exception 'unused_successor_not_deleted:%',v_deleted;
+  end if;
+  v_deleted:=public.gridex_delete_unused_contract_v2(
+    v_company_id,v_successor_id,v_actor_id,v_delete_preview->>'preview_token'
+  );
+  if not coalesce((v_deleted->>'ok')::boolean,false)
+     or coalesce(v_deleted->>'code','')<>'contract_already_deleted' then
+    raise exception 'unused_successor_delete_not_idempotent:%',v_deleted;
   end if;
   if not exists(select 1 from public.contract_offers where id=v_offer_id and lifecycle_status='published') then
     raise exception 'deleting_successor_removed_predecessor';
@@ -377,12 +391,16 @@ begin
   if not (v_graph->'direct_reverse_legacy_publication_version_ids' @> to_jsonb(array[v_stale_publication_version_id])) then
     raise exception 'direct_reverse_reference_was_not_resolved:%',v_graph;
   end if;
-  v_delete_preview:=public.gridex_preview_delete_unused_contract(v_company_id,v_delete_offer_id);
+  v_delete_preview:=public.gridex_preview_delete_unused_contract_v2(
+    v_company_id,v_delete_offer_id,v_actor_id
+  );
   if coalesce((v_delete_preview->>'can_delete')::boolean,true)
      or not (coalesce(v_delete_preview->'reason_codes','[]'::jsonb) ? 'PUBLICATION_PRODUCT_VERSION_MISMATCH') then
     raise exception 'preview_promised_unsafe_delete:%',v_delete_preview;
   end if;
-  v_blocked:=public.gridex_delete_unused_contract(v_company_id,v_delete_offer_id,v_actor_id);
+  v_blocked:=public.gridex_delete_unused_contract_v2(
+    v_company_id,v_delete_offer_id,v_actor_id,v_delete_preview->>'preview_token'
+  );
   if coalesce((v_blocked->>'ok')::boolean,true)
      or coalesce(v_blocked->>'mode','')<>'blocked' then
     raise exception 'delete_did_not_return_structured_graph_blocker:%',v_blocked;
@@ -396,13 +414,17 @@ begin
   where id=v_stale_publication_version_id
     and legacy_public_contract_offer_id=v_delete_public_offer_id;
 
-  v_delete_preview:=public.gridex_preview_delete_unused_contract(v_company_id,v_delete_offer_id);
+  v_delete_preview:=public.gridex_preview_delete_unused_contract_v2(
+    v_company_id,v_delete_offer_id,v_actor_id
+  );
   if coalesce((v_delete_preview->>'can_delete')::boolean,true)
      or not (coalesce(v_delete_preview->'reason_codes','[]'::jsonb) ? 'PERMANENT_DELETE_REQUIRES_DRAFT')
      or coalesce((v_delete_preview->>'has_business_usage')::boolean,true) then
     raise exception 'previously_published_contract_delete_boundary_failed:%',v_delete_preview;
   end if;
-  v_blocked:=public.gridex_delete_unused_contract(v_company_id,v_delete_offer_id,v_actor_id);
+  v_blocked:=public.gridex_delete_unused_contract_v2(
+    v_company_id,v_delete_offer_id,v_actor_id,v_delete_preview->>'preview_token'
+  );
   if coalesce((v_blocked->>'ok')::boolean,true)
      or coalesce(v_blocked->>'mode','')<>'blocked'
      or not exists(select 1 from public.contract_offers where id=v_delete_offer_id) then

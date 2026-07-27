@@ -1,11 +1,21 @@
 import Link from "next/link";
 import { supabaseService } from "@/lib/supabase/service";
+import ContractDeleteControl from "@/components/admin/contracts/ContractDeleteControl";
+import {
+  CONTRACT_ADMIN_VIEW_LABELS,
+  type ContractAdminView,
+  type ContractDeletePreview,
+} from "@/lib/contracts/adminDto";
+import {
+  listTenantContractProducts,
+  previewContractDelete,
+} from "@/lib/contracts/adminRepository";
+import type { ContractOfferRow } from "@/lib/customer-contracts/types";
 import {
   INTEGRATION_API_PERMISSION_GROUPS,
   permissionGroupLabelsForScopes,
 } from "@/lib/integrations/apiClientScopes";
 import {
-  deleteTenantPublicContractOfferAction,
   saveTenantPublicContractOfferAction,
   unpublishTenantPublicContractOfferAction,
 } from "./tenant-platform-actions";
@@ -21,23 +31,6 @@ import {
   updateIntegrationApiClientPermissionsAction,
   setIntegrationApiClientStatusAction,
 } from "@/app/admin/platform/api-clients/actions";
-
-type ContractDeletePreview = {
-  ok?: boolean;
-  code?: string | null;
-  can_delete?: boolean;
-  deletable?: boolean;
-  recommended_action?: string;
-  business_blockers?: Record<string, number>;
-  removable_system_dependencies?: Record<string, number>;
-  reason_codes?: string[];
-  blockers?: Array<{
-    resource_type?: string;
-    count?: number;
-    reason?: string;
-    message?: string;
-  }>;
-};
 
 type ContractReadinessDiagnostic = {
   ok?: boolean;
@@ -64,29 +57,7 @@ type SelectedContractDiagnostic = {
   error: string | null;
 };
 
-type InternalContractOffer = {
-  id: string;
-  name: string;
-  status: string | null;
-  lifecycle_status: string | null;
-  version_series_id: string | null;
-  version_number: number | null;
-  contract_product_id: string | null;
-  contract_product_version_id: string | null;
-  price_version: string | null;
-  terms_version: string | null;
-  contract_type: string | null;
-  is_active: boolean | null;
-  valid_from: string | null;
-  valid_to: string | null;
-  created_at: string;
-  updated_at: string;
-  internal_sales_allowed?: boolean;
-  website_publication_allowed?: boolean;
-  internal_channel_status?: string;
-  website_channel_status?: string;
-  api_channel_status?: string;
-};
+type InternalContractOffer = ContractOfferRow;
 
 type PublicOffer = {
   id: string;
@@ -303,6 +274,10 @@ async function safeRows<T>(
     pageSize?: number;
     ascending?: boolean;
     stableOrder?: string | null;
+    filters?: Array<
+      | { column: string; operator: "eq" | "neq"; value: string | boolean | number }
+      | { column: string; operator: "in"; value: Array<string | number> }
+    >;
   } = {},
 ): Promise<SafeRowsResult<T>> {
   const page = Math.max(1, Math.trunc(options.page ?? 1));
@@ -315,6 +290,15 @@ async function safeRows<T>(
       .select(select, { count: "exact" })
       .eq("company_id", companyId)
       .order(order, { ascending: options.ascending ?? order === "sort_order" });
+    for (const filter of options.filters ?? []) {
+      if (filter.operator === "in") {
+        query = query.in(filter.column, filter.value);
+      } else if (filter.operator === "eq") {
+        query = query.eq(filter.column, filter.value);
+      } else {
+        query = query.neq(filter.column, filter.value);
+      }
+    }
     const stableOrder = options.stableOrder === undefined ? "id" : options.stableOrder;
     if (stableOrder && stableOrder !== order) {
       query = query.order(stableOrder, { ascending: true });
@@ -341,12 +325,50 @@ async function safeRows<T>(
   }
 }
 
+async function safeInternalContracts(
+  companyId: string,
+  view: ContractAdminView,
+  page: number,
+): Promise<SafeRowsResult<InternalContractOffer>> {
+  try {
+    const result = await listTenantContractProducts({
+      companyId,
+      view,
+      page,
+      pageSize: 50,
+    });
+    return {
+      rows: result.rows,
+      source: "Interna avtal",
+      error: null,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalCount: result.totalCount,
+      hasPrevious: result.hasPrevious,
+      hasNext: result.hasNext,
+    };
+  } catch (error) {
+    return {
+      rows: [],
+      source: "Interna avtal",
+      error: databaseErrorMessage(error),
+      page,
+      pageSize: 50,
+      totalCount: 0,
+      hasPrevious: page > 1,
+      hasNext: false,
+    };
+  }
+}
+
 function ContractPagination({
   companyId,
   result,
+  view,
 }: {
   companyId: string;
   result: SafeRowsResult<unknown>;
+  view: ContractAdminView;
 }) {
   if (result.totalCount <= result.pageSize && !result.hasPrevious) return null;
   return (
@@ -357,7 +379,7 @@ function ContractPagination({
       <div className="flex gap-2">
         {result.hasPrevious ? (
           <Link
-            href={`/admin/companies/${companyId}?contract_page=${result.page - 1}#tenant-internal-contracts`}
+            href={`/admin/companies/${companyId}?contract_view=${view}&contract_page=${result.page - 1}#tenant-internal-contracts`}
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-black text-slate-800"
           >
             Föregående
@@ -365,7 +387,7 @@ function ContractPagination({
         ) : null}
         {result.hasNext ? (
           <Link
-            href={`/admin/companies/${companyId}?contract_page=${result.page + 1}#tenant-internal-contracts`}
+            href={`/admin/companies/${companyId}?contract_view=${view}&contract_page=${result.page + 1}#tenant-internal-contracts`}
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-black text-slate-800"
           >
             Nästa
@@ -382,11 +404,15 @@ export default async function TenantPlatformControls({
   companyName,
   diagnoseContractId = null,
   contractPage = 1,
+  contractView = "active",
+  actorUserId,
 }: {
   companyId: string;
   companyName: string;
   diagnoseContractId?: string | null;
   contractPage?: number;
+  contractView?: ContractAdminView;
+  actorUserId: string;
 }) {
   const results = await Promise.all([
     safeRows<PublicOffer>(
@@ -395,16 +421,21 @@ export default async function TenantPlatformControls({
       companyId,
       "id,source_contract_offer_id,contract_product_id,contract_product_version_id,offer_code,public_name,public_description,contract_type,customer_type,price_plan_id,price_plan_version_id,legal_bundle_id,legal_bundle_version_id,price_book_id,public_price_text,terms_version,terms_url,publication_status,website_enabled,website_cta_enabled,is_public,is_archived,sort_order,spot_weight_percent,portfolio_weight_percent,fixed_weight_percent,readiness_issues,readiness_status,readiness_blockers,created_at,updated_at",
       "sort_order",
-      { page: contractPage, pageSize: 50, ascending: true },
+      {
+        page: contractPage,
+        pageSize: 50,
+        ascending: true,
+        filters:
+          contractView === "all"
+            ? []
+            : [{
+                column: "is_archived",
+                operator: "eq" as const,
+                value: contractView === "archived",
+              }],
+      },
     ),
-    safeRows<InternalContractOffer>(
-      "Interna avtal",
-      "canonical_internal_contract_offers_v",
-      companyId,
-      "id,name,status,lifecycle_status,version_series_id,version_number,contract_product_id,contract_product_version_id,price_version,terms_version,contract_type,is_active,valid_from,valid_to,created_at,updated_at,internal_sales_allowed,website_publication_allowed,internal_channel_status,website_channel_status,api_channel_status",
-      "updated_at",
-      { page: contractPage, pageSize: 50, ascending: false },
-    ),
+    safeInternalContracts(companyId, contractView, contractPage),
     safeRows<ApiClient>(
       "API-klienter",
       "integration_api_clients",
@@ -419,7 +450,19 @@ export default async function TenantPlatformControls({
       companyId,
       "id,company_id,offer_code,public_name,publication_status,website_enabled,is_public,is_archived,matched_api_client_count,published_legal_type_count,price_book_status,api_blockers,api_visible,endpoint_path,sort_order",
       "sort_order",
-      { page: contractPage, pageSize: 50, ascending: true },
+      {
+        page: contractPage,
+        pageSize: 50,
+        ascending: true,
+        filters:
+          contractView === "all"
+            ? []
+            : [{
+                column: "is_archived",
+                operator: "eq" as const,
+                value: contractView === "archived",
+              }],
+      },
     ),
     safeRows<MailReadiness>(
       "Mejlberedskap",
@@ -482,10 +525,11 @@ export default async function TenantPlatformControls({
             p_operation: readinessOperation,
             p_channel: readinessOperation === "activate_channel" ? "website" : null,
           }),
-          supabaseService.rpc("gridex_preview_delete_unused_contract", {
-            p_company_id: companyId,
-            p_offer_id: selectedSource.id,
-          }),
+          previewContractDelete({
+            companyId,
+            offerId: selectedSource.id,
+            actorUserId,
+          }).then((data) => ({ data, error: null })),
         ]);
         if (readinessResult.error) throw readinessResult.error;
         if (deletionResult.error) throw deletionResult.error;
@@ -518,9 +562,6 @@ export default async function TenantPlatformControls({
 
   const diagnosticsByOfferId = new Map(
     offerApiDiagnostics.map((row) => [row.id, row]),
-  );
-  const internalContractsById = new Map(
-    internalContracts.map((row) => [row.id, row]),
   );
   const activeOffers = offers.filter(
     (offer) =>
@@ -702,9 +743,30 @@ export default async function TenantPlatformControls({
             Hantera interna avtal
           </Link>
         </div>
-        <ContractPagination companyId={companyId} result={internalContractsResult} />
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(Object.entries(CONTRACT_ADMIN_VIEW_LABELS) as Array<
+            [ContractAdminView, string]
+          >).map(([view, label]) => (
+            <Link
+              key={view}
+              href={`/admin/companies/${companyId}?contract_view=${view}&contract_page=1#tenant-internal-contracts`}
+              className={`rounded-xl border px-3 py-2 text-xs font-black ${
+                contractView === view
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-300 bg-white text-slate-700"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+        <ContractPagination
+          companyId={companyId}
+          result={internalContractsResult}
+          view={contractView}
+        />
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {internalContracts.length === 0 ? (
+          {internalContracts.length === 0 && !internalContractsResult.error ? (
             <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
               Inga interna avtal finns ännu.
             </div>
@@ -715,9 +777,6 @@ export default async function TenantPlatformControls({
                 ? selectedContractDiagnostic
                 : null;
             const deletionPreview = selectedDiagnostic?.deletion_preview ?? null;
-            const canDelete =
-              (deletionPreview?.can_delete ?? deletionPreview?.deletable) ===
-              true;
             return (
               <article
                 key={contract.id}
@@ -791,42 +850,22 @@ export default async function TenantPlatformControls({
                     Öppna och redigera
                   </Link>
                   <Link
-                    href={`/admin/companies/${companyId}?diagnose_contract=${contract.id}#tenant-internal-contracts`}
+                    href={`/admin/companies/${companyId}?contract_view=${contractView}&contract_page=${contractPage}&diagnose_contract=${contract.id}#tenant-internal-contracts`}
                     className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800"
                   >
                     {selectedDiagnostic ? "Kör om preview" : "Readiness + delete preview"}
                   </Link>
-                  <form action={deleteTenantPublicContractOfferAction}>
-                    <input type="hidden" name="company_id" value={companyId} />
-                    <input
-                      type="hidden"
-                      name="source_contract_offer_id"
-                      value={contract.id}
-                    />
-                    <input type="hidden" name="delete_mode" value="archive" />
-                    <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700">
-                      Arkivera
-                    </button>
-                  </form>
-                  <form action={deleteTenantPublicContractOfferAction}>
-                    <input type="hidden" name="company_id" value={companyId} />
-                    <input
-                      type="hidden"
-                      name="source_contract_offer_id"
-                      value={contract.id}
-                    />
-                    <input
-                      type="hidden"
-                      name="delete_mode"
-                      value="safe_delete"
-                    />
-                    <button
-                      disabled={!canDelete}
-                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Radera permanent
-                    </button>
-                  </form>
+                  <ContractDeleteControl
+                    companyId={companyId}
+                    offerId={contract.id}
+                    productId={contract.contract_product_id}
+                    productName={contract.name}
+                    companyName={companyName}
+                    surface="company"
+                    view={contractView}
+                    page={contractPage}
+                    compact
+                  />
                 </div>
               </article>
             );
@@ -903,9 +942,13 @@ export default async function TenantPlatformControls({
           <h3 className="text-lg font-black text-slate-950">
             Hemsidans publicerade avtal
           </h3>
-          <ContractPagination companyId={companyId} result={offersResult} />
+          <ContractPagination
+            companyId={companyId}
+            result={offersResult}
+            view={contractView}
+          />
         <div className="mt-4 grid gap-3">
-            {offers.length === 0 ? (
+            {offers.length === 0 && !offersResult.error ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
                 Inga hemsideavtal skapade ännu.
               </div>
@@ -915,12 +958,10 @@ export default async function TenantPlatformControls({
               const blockers = valueList(offer.readiness_blockers);
               const apiDiagnostic = diagnosticsByOfferId.get(offer.id);
               const apiBlockers = valueList(apiDiagnostic?.api_blockers);
-              const sourceContract = offer.source_contract_offer_id
-                ? internalContractsById.get(offer.source_contract_offer_id)
-                : undefined;
+              const sourceContractId = offer.source_contract_offer_id;
               const selectedDiagnostic =
-                sourceContract &&
-                selectedContractDiagnostic?.sourceOfferId === sourceContract.id
+                sourceContractId &&
+                selectedContractDiagnostic?.sourceOfferId === sourceContractId
                   ? selectedContractDiagnostic
                   : null;
               const deletionPreview = selectedDiagnostic?.deletion_preview ?? null;
@@ -1031,7 +1072,7 @@ export default async function TenantPlatformControls({
                   </div>
                   <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
                     <strong className="text-slate-800">Readiness och raderingspreview:</strong>{" "}
-                    {!sourceContract ? (
+                    {!sourceContractId ? (
                       "Canonical källa saknas."
                     ) : selectedDiagnostic?.error ? (
                       <span className="font-bold text-red-800">
@@ -1040,13 +1081,15 @@ export default async function TenantPlatformControls({
                     ) : !selectedDiagnostic ? (
                       "Kör diagnostiken innan permanent radering."
                     ) : canDelete ? (
-                      `Ingen affärshistorik blockerar radering. ${Object.values(deletionPreview?.removable_system_dependencies ?? {}).reduce((sum, value) => sum + Number(value || 0), 0)} tekniska rader kan tas bort atomiskt.`
+                      `Ingen affärshistorik blockerar radering. ${Object.values(
+                        deletionPreview?.removable_system_dependencies ?? {},
+                      ).reduce<number>((sum, value) => sum + Number(value || 0), 0)} tekniska rader kan tas bort atomiskt.`
                     ) : (
                       `Permanent radering är blockerad: ${deleteReasons.join(" · ") || "affärshistorik eller osäker canonical relation"}. Arkivering bevarar kundhistoriken.`
                     )}
-                    {sourceContract ? (
+                    {sourceContractId ? (
                       <Link
-                        href={`/admin/companies/${companyId}?diagnose_contract=${sourceContract.id}#tenant-avtal`}
+                        href={`/admin/companies/${companyId}?contract_view=${contractView}&contract_page=${contractPage}&diagnose_contract=${sourceContractId}#tenant-avtal`}
                         className="mt-2 block font-black text-indigo-700 underline"
                       >
                         {selectedDiagnostic
@@ -1109,36 +1152,17 @@ export default async function TenantPlatformControls({
                     ) : null}
                   </div>
                   {offer.source_contract_offer_id ? (
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      <form action={deleteTenantPublicContractOfferAction}>
-                        <input type="hidden" name="company_id" value={companyId} />
-                        <input type="hidden" name="id" value={offer.id} />
-                        <input
-                          type="hidden"
-                          name="source_contract_offer_id"
-                          value={offer.source_contract_offer_id}
-                        />
-                        <input type="hidden" name="delete_mode" value="archive" />
-                        <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
-                          Arkivera hela avtalsserien
-                        </button>
-                      </form>
-                      <form action={deleteTenantPublicContractOfferAction}>
-                        <input type="hidden" name="company_id" value={companyId} />
-                        <input type="hidden" name="id" value={offer.id} />
-                        <input
-                          type="hidden"
-                          name="source_contract_offer_id"
-                          value={offer.source_contract_offer_id}
-                        />
-                        <input type="hidden" name="delete_mode" value="safe_delete" />
-                        <button
-                          disabled={!canDelete}
-                          className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Radera endast om hela avtalet är affärsmässigt oanvänt
-                        </button>
-                      </form>
+                    <div className="mt-3">
+                      <ContractDeleteControl
+                        companyId={companyId}
+                        offerId={offer.source_contract_offer_id}
+                        productId={offer.contract_product_id}
+                        productName={offer.public_name}
+                        companyName={companyName}
+                        surface="company"
+                        view={contractView}
+                        page={contractPage}
+                      />
                     </div>
                   ) : null}
                 </article>

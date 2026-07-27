@@ -15,6 +15,7 @@ import { toSafeContractErrorPersisted } from "@/lib/errors/safeActionErrors";
 import { parseAdminContractForm } from "@/lib/contracts/adminContractSchema";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
 import { contractLifecycleError, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
+import { archiveContractProduct, deleteContractProduct } from "@/lib/contracts/adminMutations";
 
 function contractMutationServiceClient() {
   const requestId = randomUUID();
@@ -403,17 +404,11 @@ async function archiveContractOfferActionImpl(
   const id = getString(formData, "id");
   if (!id) throw new Error("Avtal saknas.");
 
-  const { data, error } = await contractMutationServiceClient().rpc(
-    "gridex_remove_internal_contract_offer",
-    {
-      p_company_id: companyId,
-      p_offer_id: id,
-      p_mode: "archive",
-      p_actor_user_id: actor.userId,
-    },
-  );
-  if (error) throw error;
-  const result = data as ContractLifecycleRpcResult | null;
+  const result = await archiveContractProduct({
+    companyId,
+    offerId: id,
+    actorUserId: actor.userId,
+  });
   if (!result?.ok || result.mode !== "archived") {
     throw contractLifecycleFailure(result, "Avtalet kunde inte arkiveras säkert.");
   }
@@ -460,17 +455,13 @@ async function deleteContractOfferActionImpl(
   const id = getString(formData, "id");
   if (!id) throw new Error("Avtal saknas.");
 
-  const { data, error } = await contractMutationServiceClient().rpc(
-    "gridex_remove_internal_contract_offer",
-    {
-      p_company_id: companyId,
-      p_offer_id: id,
-      p_mode: "safe_delete",
-      p_actor_user_id: actor.userId,
-    },
-  );
-  if (error) throw error;
-  const result = data as ContractLifecycleRpcResult | null;
+  const result = await deleteContractProduct({
+    companyId,
+    offerId: id,
+    actorUserId: actor.userId,
+    expectedPreviewToken:
+      getString(formData, "expected_preview_token") || null,
+  });
   if (!result?.ok || result.mode !== "deleted") {
     throw contractLifecycleFailure(result, "Avtalet kunde inte tas bort säkert.");
   }
