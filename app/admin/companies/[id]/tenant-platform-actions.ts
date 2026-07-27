@@ -66,6 +66,7 @@ function revalidateContractSurfaces(companyId: string): void {
   revalidatePath("/admin/contracts");
   revalidatePath("/admin/customers/intake");
   revalidatePath("/api/v1/website/public-contracts");
+  revalidatePath("/api/v1/website/public-contracts/diagnostics");
   revalidatePath("/api/v1/public/contracts");
   for (const tag of [
     `tenant-contracts:${companyId}`,

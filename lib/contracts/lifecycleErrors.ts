@@ -367,7 +367,7 @@ export function contractDatabaseErrorMessage(error: unknown): string | null {
     return 'Avtalet kunde inte raderas eftersom annan avtals- eller publiceringshistorik fortfarande refererar till det. Reparera grafen eller arkivera avtalet.'
   }
   if (code === '42702') {
-    return 'Databasfunktionen innehåller en tvetydig kolumnreferens. Applicera den senaste avtalsmigrationen innan åtgärden körs igen.'
+    return 'Databasens aktiva avtalsfunktion innehåller en tvetydig kolumnreferens. Applicera den framåtriktade valid_to-reparationen och verifiera den aktiva RPC-definitionen.'
   }
   if (code === '42703') {
     return 'Databasfunktionen refererar till en kolumn eller variabel som saknas. Applicera den senaste avtalsmigrationen innan åtgärden körs igen.'

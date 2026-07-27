@@ -16,6 +16,7 @@ import { parseAdminContractForm } from "@/lib/contracts/adminContractSchema";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
 import { contractLifecycleError, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
 import { archiveContractProduct, deleteContractProduct } from "@/lib/contracts/adminMutations";
+import { contractChannelLabel } from "@/lib/contracts/lifecycle";
 
 function contractMutationServiceClient() {
   const requestId = randomUUID();
@@ -78,6 +79,7 @@ function revalidateContractSurfaces(companyId: string): void {
   revalidatePath("/admin/customers/intake");
   revalidatePath("/admin/customers");
   revalidatePath("/api/v1/website/public-contracts");
+  revalidatePath("/api/v1/website/public-contracts/diagnostics");
   for (const tag of [
     `tenant-contracts:${companyId}`,
     `public-contracts:${companyId}`,
@@ -501,7 +503,7 @@ export async function closeContractOfferAction(formData: FormData) {
     }
     revalidateContractSurfaces(companyId);
     success =
-      "Avtalet stängdes terminalt för nyförsäljning. Historiska kundavtal och snapshots bevarades.";
+      "Avtalet stängdes för ny försäljning och kan nu arkiveras. Historiska kundavtal och snapshots bevarades.";
   } catch (error) {
     redirectBack({
       companyId,
@@ -719,7 +721,7 @@ export async function publishContractChannelAction(formData: FormData) {
       }),
     });
   }
-  redirectBack({ companyId, success: `${channel === "website" ? "Hemsidan" : "API-kanalen"} publicerades från samma canonical avtalsversion.` });
+  redirectBack({ companyId, success: `${contractChannelLabel(channel)} publicerades från samma canonical avtalsversion.` });
 }
 
 export async function unpublishContractChannelAction(formData: FormData) {
@@ -756,7 +758,7 @@ export async function unpublishContractChannelAction(formData: FormData) {
   }
   redirectBack({
     companyId,
-    success: `${channel === "website" ? "Hemsidan" : channel === "api" ? "API-kanalen" : "Den interna kanalen"} avpublicerades. Publiceringsbehörigheten finns kvar.`,
+    success: `${contractChannelLabel(channel)} avpublicerades. Publiceringsbehörigheten finns kvar.`,
   });
 }
 

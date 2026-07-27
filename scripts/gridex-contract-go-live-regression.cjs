@@ -16,6 +16,12 @@ const schema = read("lib/contracts/adminContractSchema.ts");
 const db = read("lib/customer-contracts/db.ts");
 const runtime = read("lib/website/customerApplications.ts");
 const openapi = JSON.parse(read("docs/openapi/website-integration-v1.json"));
+const alignmentMigration = read("supabase/migrations/20260727161000_contract_type_slug_alignment.sql");
+const lifecycle = read("lib/contracts/lifecycle.ts");
+const lifecycleErrors = read("lib/contracts/lifecycleErrors.ts");
+const slug = read("lib/contracts/slug.ts");
+const deleteControl = read("components/admin/contracts/ContractDeleteControl.tsx");
+const repairPostApply = read("scripts/gridex-contract-repair-post-apply.sql");
 
 const failures = [];
 let checks = 0;
@@ -132,6 +138,38 @@ includesAll(schema, [
   "Prisandelarna måste tillsammans bli exakt 100 procent",
 ], "shared form schema");
 
+includesAll(alignmentMigration, [
+  "variable_quarterly",
+  "mixed",
+  "drop constraint if exists contract_offers_slug_key",
+  "drop index if exists public.contract_offers_company_live_slug_uidx",
+  "contract_offers_company_slug_idx",
+  "gridex_contract_slugify",
+], "contract type and non-unique slug alignment");
+check(!alignmentMigration.includes("create unique index"), "slug alignment creates no unique slug index");
+includesAll(slug, ['å: \"a\"', 'ä: \"a\"', 'ö: \"o\"', 'slugifyContract'], 'Swedish slug transliteration');
+includesAll(lifecycle, [
+  "CONTRACT_CHANNEL_LABELS",
+  'internal: "den interna kanalen"',
+  'api: "API-kanalen"',
+  'website: "hemsidan"',
+  'partner: "partnerkanalen"',
+  'phone: "telefonkanalen"',
+], "central channel labels");
+check(lifecycleErrors.includes("framåtriktade valid_to-reparationen"), "42702 points to active RPC repair");
+includesAll(repairPostApply, [
+  "pg_get_functiondef",
+  "old_channel.valid_to",
+  "old_publication_version.valid_to",
+  "ch.valid_to",
+  "pv.valid_to",
+  "ta.valid_to",
+  "aclexplode",
+  "rolname in ('anon','authenticated')",
+  "contract_offer_unique_slug_index_present",
+  "gridex_contract_repair_post_apply_verified",
+], "post-apply live schema verification");
+
 includesAll(form, [
   "Skapa canonical avtalsutkast",
   "editableLifecycle",
@@ -146,8 +184,7 @@ includesAll(form, [
 ], "complete admin form");
 
 includesAll(page, [
-  "Stängda och historiska",
-  "Kontrollera och radera oanvänt utkast",
+  "Stäng för ny försäljning",
   "Publicera på hemsida",
   "Publicera i API",
   "Pausa alla aktiva kanaler för denna version",
@@ -157,6 +194,10 @@ includesAll(page, [
   "publishContractVersionAction",
   "Arkivering är terminal och irreversibel",
 ], "explicit lifecycle, preview and version comparison UX");
+includesAll(deleteControl, [
+  "Radera permanent",
+  "Arkivera och dölj",
+], "current delete/archive control labels");
 
 includesAll(actions, [
   "requireContractPermissionAction",

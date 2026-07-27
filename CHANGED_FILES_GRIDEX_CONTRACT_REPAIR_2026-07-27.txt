@@ -1,0 +1,54 @@
+Ändrade filer
+==============
+app/admin/companies/[id]/tenant-platform-actions.ts
+  Invaliderar även public-contract diagnostics efter kanal-/arkivåtgärder.
+app/admin/contracts/actions.ts
+  Central kanaletikett, korrekt close-text och utökad cacheinvalidering.
+app/admin/contracts/page.tsx
+  Skiljer tydligt "Stäng för ny försäljning" från arkivering.
+lib/contracts/adminContractSchema.ts
+  Använder central svensk-kompatibel slugnormalisering.
+lib/contracts/lifecycle.ts
+  Central explicit mapping för internal/api/website/partner/phone.
+lib/contracts/lifecycleErrors.ts
+  Korrigerat säkert 42702-meddelande.
+scripts/gridex-contract-go-live-regression.cjs
+  Verifierar ny UI-, slug-, typ-, kanal- och post-apply-modell.
+scripts/gridex-contract-lifecycle-repair-regression.cjs
+  Analyserar sista aktiva funktionsdefinitionen i hela migrationskedjan.
+scripts/gridex-platform-tenant-contracts-api-mail-regression.cjs
+  Ersätter föråldrade antaganden med canonical readiness/actor/audit-kontroller.
+scripts/migration-history-manifest.json
+  Registrerar slugmigrationen och de två nya repairmigrationerna.
+
+Tillagda produktions-/testfiler
+==============================
+__tests__/contract-slug.test.ts
+  Enhetstest för svensk translitterering och slugnormalisering.
+lib/contracts/slug.ts
+  Central slugfunktion.
+scripts/gridex-contract-delete-graph-regression.cjs
+  Canonical wrapper för efterfrågat regressionskommando.
+scripts/gridex-contract-repair-post-apply.sql
+  Live post-apply verifiering av RPC, grants, constraints och slugindex.
+scripts/gridex-contract-tenant-lifecycle-regression.cjs
+  Canonical wrapper för efterfrågat regressionskommando.
+supabase/migrations/20260727160000_contract_valid_to_active_rpc_repair.sql
+  Framåtriktad reparation av sista aktiva RPC-definitioner och grants.
+supabase/migrations/20260727161000_contract_type_slug_alignment.sql
+  Canonicala kontraktstyper, icke-unik slugmodell och SQL-slugnormalisering.
+
+Tillagda leverans-/evidensfiler
+==============================
+FINAL_ACTIVE_RPC_DEFINITIONS_2026-07-27.txt
+  Evidens för sista aktiva funktionsdefinitioner.
+GRIDEX_CONTRACT_REPAIR_SEARCH_AUDIT_2026-07-27.md
+  Förklaring av relevanta kvarvarande sökträffar.
+GRIDEX_CONTRACT_REPAIR_FINAL_REPORT_2026-07-27.md
+  Komplett slutrapport och acceptansmatris.
+GRIDEX_CONTRACT_REPAIR_VERIFICATION_2026-07-27.log
+  Kommandon, tider, exitkoder och relevanta utdata.
+README_APPLY_GRIDEX_CONTRACT_REPAIR_2026-07-27.md
+  Exakta lokala apply-, staging-, smoke- och rollbackkommandon.
+CHANGED_FILES_GRIDEX_CONTRACT_REPAIR_2026-07-27.txt
+  Denna fil.

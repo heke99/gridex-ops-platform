@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { slugifyContract } from "@/lib/contracts/slug";
+
 export const CONTRACT_LIFECYCLE_STATUSES = [
   "draft",
   "ready",
@@ -318,7 +320,7 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     id: raw(formData, "id") || null,
     companyId,
     name,
-    slug: raw(formData, "slug") || null,
+    slug: slugifyContract(raw(formData, "slug") || name) || null,
     lifecycleStatus,
     legacyStatus,
     isActive,

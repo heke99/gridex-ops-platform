@@ -1,0 +1,71 @@
+GRIDEX OPS – FINAL ACTIVE RPC DEFINITIONS EVIDENCE
+Generated: 2026-07-27
+Method: migrations sorted lexicographically; signature whitespace/comma/equals normalized; last CREATE OR REPLACE FUNCTION per normalized signature wins.
+
+gridex_archive_contract_product(p_company_id uuid,p_offer_id uuid,p_actor_user_id uuid)
+  source: 20260727160000_contract_valid_to_active_rpc_repair.sql
+  sha256(definition): f633c11aa9edc32ab6f17b592261f61dbde65e84d45ede1acf86e894a34a0127
+  SECURITY DEFINER: yes
+  qualified valid_to refs: ch.valid_to, pv.valid_to, ta.valid_to
+  unqualified coalesce(valid_to,...): no
+
+gridex_backfill_contract_lifecycle(p_company_id uuid default null)
+  source: 20260727160000_contract_valid_to_active_rpc_repair.sql
+  sha256(definition): 22f05252e3b9cfd7ffe04f1b588230756723f5408e55c21ea8c2275bbe95a65c
+  SECURITY DEFINER: yes
+  qualified valid_to refs: backfill_publication_version.valid_to
+  unqualified coalesce(valid_to,...): no
+
+gridex_delete_unused_contract(p_company_id uuid,p_offer_id uuid,p_actor_user_id uuid)
+  source: 20260727160000_contract_valid_to_active_rpc_repair.sql
+  sha256(definition): ab4e6e48267c9c7bf80af78f558d4d80d2c0e3747d977849f1ecedfe45fda8d1
+  SECURITY DEFINER: yes
+  qualified valid_to refs: ch.valid_to, cpv.valid_to
+  unqualified coalesce(valid_to,...): no
+
+gridex_pause_contract_channels(p_company_id uuid,p_offer_id uuid,p_actor_user_id uuid)
+  source: 20260727160000_contract_valid_to_active_rpc_repair.sql
+  sha256(definition): a32273d63f987da84871c82fea7e86a1b77dc7d7dab21b4b6a9bb1f047b6cb36
+  SECURITY DEFINER: yes
+  qualified valid_to refs: pv.valid_to
+  unqualified coalesce(valid_to,...): no
+
+gridex_publish_contract_channel(p_company_id uuid,p_offer_id uuid,p_channel text,p_actor_user_id uuid)
+  source: 20260727160000_contract_valid_to_active_rpc_repair.sql
+  sha256(definition): 7e06e019abfbc93a1a7e795bb7bdfe941747893be5d0e78a286ea7fc319c4f4c
+  SECURITY DEFINER: yes
+  qualified valid_to refs: ch.valid_to, old_assignment.valid_to, old_channel.valid_to, old_publication_version.valid_to
+  unqualified coalesce(valid_to,...): no
+
+gridex_sync_internal_offer_to_canonical(p_offer_id uuid)
+  source: 20260727160000_contract_valid_to_active_rpc_repair.sql
+  sha256(definition): c99c0891d6e5deb759507c1927150b578fb7a861b41b8881e0b3a6ff4aff3233
+  SECURITY DEFINER: yes
+  qualified valid_to refs: ch.valid_to, ta.valid_to
+  unqualified coalesce(valid_to,...): no
+
+gridex_sync_public_offer_to_canonical(p_offer_id uuid)
+  source: 20260727160000_contract_valid_to_active_rpc_repair.sql
+  sha256(definition): c5b84dfda47c442e4fda6109475404efbf39248d3bea11eed6bbfd26769bb92f
+  SECURITY DEFINER: yes
+  qualified valid_to refs: ta.valid_to
+  unqualified coalesce(valid_to,...): no
+
+gridex_transition_tenant_lifecycle(p_company_id uuid,p_next_status text,p_actor_user_id uuid,p_reason text default null)
+  source: 20260727160000_contract_valid_to_active_rpc_repair.sql
+  sha256(definition): 59544c34fd486bd90ceaae4a05c7c85b6de5f5678f2a586076845212bc0f569c
+  SECURITY DEFINER: yes
+  qualified valid_to refs: ch.valid_to
+  unqualified coalesce(valid_to,...): no
+
+gridex_unpublish_contract_channel(p_company_id uuid,p_offer_id uuid,p_channel text,p_actor_user_id uuid)
+  source: 20260727160000_contract_valid_to_active_rpc_repair.sql
+  sha256(definition): 705295fa5a07c11a313bf4e2977260cf992906e31b93e1357e899a8d6203a5ca
+  SECURITY DEFINER: yes
+  qualified valid_to refs: ch.valid_to, pv.valid_to
+  unqualified coalesce(valid_to,...): no
+
+All final active public functions scanned: 390 normalized signatures
+Final active functions with unqualified coalesce(valid_to,...): 0
+
+Expected source of truth for publish/archive: 20260727160000_contract_valid_to_active_rpc_repair.sql

@@ -18,6 +18,41 @@ const adminRepository = read("lib/contracts/adminRepository.ts");
 const adminActions = read("lib/contracts/adminActions.ts");
 const deleteControl = read("components/admin/contracts/ContractDeleteControl.tsx");
 
+const migrationsDirectory = path.join(root, "supabase/migrations");
+const migrationFiles = fs
+  .readdirSync(migrationsDirectory)
+  .filter((file) => file.endsWith(".sql"))
+  .sort((left, right) => left.localeCompare(right));
+
+function normalizeFunctionSignature(signature) {
+  return signature
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*/g, ",")
+    .replace(/\s*=\s*/g, "=")
+    .trim()
+    .toLowerCase();
+}
+
+function finalFunctionDefinitions() {
+  const definitions = new Map();
+  const pattern = /create\s+or\s+replace\s+function\s+public\.([a-zA-Z0-9_]+)\s*\((.*?)\).*?\bas\s+(\$[A-Za-z0-9_]*\$)(.*?)\3\s*;/gis;
+  for (const file of migrationFiles) {
+    const source = read(`supabase/migrations/${file}`);
+    for (const match of source.matchAll(pattern)) {
+      const signature = normalizeFunctionSignature(match[2]);
+      definitions.set(`${match[1].toLowerCase()}(${signature})`, {
+        name: match[1], signature, file, definition: match[0],
+      });
+    }
+  }
+  return definitions;
+}
+
+const activeFunctions = finalFunctionDefinitions();
+function activeFunction(name, signature) {
+  return activeFunctions.get(`${name.toLowerCase()}(${normalizeFunctionSignature(signature)})`);
+}
+
 const failures = [];
 let checks = 0;
 const check = (condition, label) => {
@@ -80,7 +115,38 @@ includesAll(validToHotfix, [
   "coalesce(ta.valid_to,current_date)",
   "gridex_backfill_contract_lifecycle(null)",
 ], "qualified valid_to lifecycle hotfix");
-check(!validToHotfix.includes("coalesce(valid_to,now()),updated_at=now()'\n  'set status"), "hotfix replacements are explicit");
+check(!validToHotfix.includes("coalesce(valid_to,now()),updated_at=now()\'\n  \'set status"), "hotfix replacements are explicit");
+
+const activePublish = activeFunction(
+  "gridex_publish_contract_channel",
+  "p_company_id uuid,p_offer_id uuid,p_channel text,p_actor_user_id uuid",
+);
+const activeArchive = activeFunction(
+  "gridex_archive_contract_product",
+  "p_company_id uuid,p_offer_id uuid,p_actor_user_id uuid",
+);
+check(Boolean(activePublish), "active publish RPC definition found");
+check(Boolean(activeArchive), "active archive RPC definition found");
+if (activePublish) {
+  check(activePublish.file === "20260727160000_contract_valid_to_active_rpc_repair.sql",
+    `publish RPC source of truth is repair migration: ${activePublish.file}`);
+  includesAll(activePublish.definition, ["old_channel.valid_to", "old_publication_version.valid_to"],
+    "active publish RPC qualifies valid_to");
+  check(!/coalesce\s*\(\s*valid_to\b/i.test(activePublish.definition),
+    "active publish RPC has no unqualified valid_to");
+}
+if (activeArchive) {
+  check(activeArchive.file === "20260727160000_contract_valid_to_active_rpc_repair.sql",
+    `archive RPC source of truth is repair migration: ${activeArchive.file}`);
+  includesAll(activeArchive.definition, ["ch.valid_to", "pv.valid_to", "ta.valid_to", "contract_already_archived"],
+    "active archive RPC qualifies valid_to and stays idempotent");
+  check(!/coalesce\s*\(\s*valid_to\b/i.test(activeArchive.definition),
+    "active archive RPC has no unqualified valid_to");
+}
+for (const definition of activeFunctions.values()) {
+  check(!/coalesce\s*\(\s*valid_to\b/i.test(definition.definition),
+    `final active RPC has no unqualified valid_to: ${definition.name} in ${definition.file}`);
+}
 
 includesAll(migration, [
   "contract_lifecycle_backfill_issues",

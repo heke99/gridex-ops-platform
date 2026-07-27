@@ -30,9 +30,9 @@ contains(migration, /contract_price_snapshots[\s\S]*public_contract_offer_id/, '
 contains('app/admin/companies/[id]/page.tsx', /TenantPlatformControls/, 'Bolagskortet visar avtal/API/mail-kontroller')
 contains('app/admin/companies/[id]/TenantPlatformControls.tsx', /saveTenantPublicContractOfferAction/, 'Avtal skapas via bolagets kort')
 contains('app/admin/companies/[id]/TenantPlatformControls.tsx', /spot_weight_percent[\s\S]*portfolio_weight_percent/, 'Bolagskortets avtalsformulär har mix/procentfält')
-contains('app/admin/companies/[id]/tenant-platform-actions.ts', /publicationIssues[\s\S]*Fördelningen måste bli 100%/, 'Publicering blockerar fel portföljmix')
-contains('app/admin/companies/[id]/tenant-platform-actions.ts', /assertSameTenantReference/, 'Prisplan/prisversion valideras mot samma tenant')
-contains('app/admin/companies/[id]/tenant-platform-actions.ts', /contract_plan\.published|contract_plan\.created/, 'Avtal audit-loggas med avtalsevents')
+contains('supabase/migrations/20260727030000_contract_operation_readiness_completion.sql', /gridex_validate_contract_readiness_v2[\s\S]*v_spot_weight\+v_portfolio_weight\+v_fixed_weight<>100/, 'Canonical readiness blockerar fel portföljmix')
+contains('app/admin/companies/[id]/tenant-platform-actions.ts', /requireContractPermissionAction[\s\S]*assertUserCanOperateCompany[\s\S]*gridex_publish_contract_channel[\s\S]*p_actor_user_id:\s*actor\.userId/, 'Tenant och verklig actor valideras före canonical publicerings-RPC')
+contains('supabase/migrations/20260727030000_contract_operation_readiness_completion.sql', /insert into public\.audit_logs[\s\S]*contract\.channel\.published/, 'Canonical kanalpublicering audit-loggas med avtalsevent')
 
 contains('lib/integrations/apiClientScopes.ts', /INTEGRATION_API_PERMISSION_GROUPS/, 'API-scopes är grupperade i vanliga ord')
 contains('lib/integrations/apiClientScopes.ts', /website_contracts\.read[\s\S]*website_applications\.write[\s\S]*customer_portal\.read[\s\S]*customer_portal\.write[\s\S]*website_events\.write[\s\S]*events\.read/, 'Standardscopes för hemsida/Mina sidor finns')

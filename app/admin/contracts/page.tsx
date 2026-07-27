@@ -1445,7 +1445,7 @@ export default async function AdminContractsPage({
                           {offer.lifecycle_status === "archived" || offer.lifecycle_status === "closed" ? (
                             <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
                               {offer.lifecycle_status === "closed"
-                                ? "Stängning är terminal för produktserien. Historisk juridik, kundavtal och snapshots bevaras."
+                                ? "Stängt betyder stängt för ny försäljning. Avtalet kan därefter arkiveras och döljas medan historiken bevaras."
                                 : "Arkivering är terminal och irreversibel. En återlansering ska skapas som en separat efterföljande produkt, inte som en ny version av den arkiverade serien."}
                             </p>
                           ) : null}
@@ -1460,7 +1460,7 @@ export default async function AdminContractsPage({
                                 className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs text-slate-800"
                               />
                               <button className="w-full rounded-xl border border-red-300 bg-white px-3 py-2 text-xs font-black text-red-800">
-                                Stäng avtal terminalt
+                                Stäng för ny försäljning
                               </button>
                             </form>
                           ) : null}

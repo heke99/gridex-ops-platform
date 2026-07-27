@@ -63,6 +63,22 @@ export type ContractImmutableVersionStatus =
 
 export type ContractChannelStatus = "scheduled" | "active" | "paused" | "ended";
 
+export const CONTRACT_CHANNEL_LABELS = {
+  internal: "den interna kanalen",
+  api: "API-kanalen",
+  website: "hemsidan",
+  partner: "partnerkanalen",
+  phone: "telefonkanalen",
+} as const;
+
+export type ContractChannel = keyof typeof CONTRACT_CHANNEL_LABELS;
+
+export function contractChannelLabel(channel: string): string {
+  return channel in CONTRACT_CHANNEL_LABELS
+    ? CONTRACT_CHANNEL_LABELS[channel as ContractChannel]
+    : "försäljningskanalen";
+}
+
 export type ContractPublicationVersionStatus =
   | "draft"
   | "scheduled"

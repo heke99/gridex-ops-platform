@@ -1,0 +1,390 @@
+GRIDEX OPS CONTRACT REPAIR – VERIFICATION LOG
+Date: 2026-07-27
+Timezone for execution timestamps: UTC
+
+=== STATIC VERIFICATION (all exit 0) ===
+
+[01] command: node scripts/check-migration-versions.cjs
+start: 2026-07-27T14:46:09Z
+end:   2026-07-27T14:46:09Z
+exit:  0
+output:
+  Migration integrity check passed (311 files; 216 version groups; checksums verified).
+
+[02] command: npm run db:migrations:check
+start: 2026-07-27T14:46:09Z
+end:   2026-07-27T14:46:09Z
+exit:  0
+output:
+
+  > gridex-ops-platform@0.1.0 db:migrations:check
+  > node scripts/check-migration-versions.cjs
+
+  Migration integrity check passed (311 files; 216 version groups; checksums verified).
+
+[03] command: node scripts/gridex-contract-lifecycle-repair-regression.cjs
+start: 2026-07-27T14:46:09Z
+end:   2026-07-27T14:46:09Z
+exit:  0
+output:
+  Contract lifecycle repair regression passed (496 checks).
+
+[04] command: node scripts/gridex-contract-go-live-regression.cjs
+start: 2026-07-27T14:46:09Z
+end:   2026-07-27T14:46:09Z
+exit:  0
+output:
+  Contract go-live regression passed (198 controls).
+
+[05] command: node scripts/gridex-contract-delete-graph-regression.cjs
+start: 2026-07-27T14:46:09Z
+end:   2026-07-27T14:46:10Z
+exit:  0
+output:
+  Contract delete graph completion regression passed.
+
+[06] command: node scripts/gridex-contract-security-energy-direction-regression.cjs
+start: 2026-07-27T14:46:10Z
+end:   2026-07-27T14:46:10Z
+exit:  0
+output:
+  PASS gridex_upsert_internal_contract_offer(uuid,uuid,jsonb,jsonb,uuid) är service-only
+  PASS gridex_upsert_internal_contract_offer_v2(uuid,uuid,jsonb,jsonb,uuid) är service-only
+  PASS gridex_publish_contract_version(uuid,uuid,text,jsonb,jsonb,uuid) är service-only
+  PASS gridex_publish_internal_contract_version(uuid,uuid,uuid) är service-only
+  PASS gridex_publish_contract_channel(uuid,uuid,text,uuid) är service-only
+  PASS gridex_unpublish_contract_channel(uuid,uuid,text,uuid) är service-only
+  PASS gridex_pause_contract_channels(uuid,uuid,uuid) är service-only
+  PASS gridex_close_contract_product(uuid,uuid,uuid,text) är service-only
+  PASS gridex_archive_contract_product(uuid,uuid,uuid) är service-only
+  PASS gridex_preview_delete_unused_contract(uuid,uuid) är service-only
+  PASS gridex_delete_unused_contract(uuid,uuid,uuid) är service-only
+  PASS gridex_remove_internal_contract_offer(uuid,uuid,text,uuid) är service-only
+  PASS Ny SECURITY DEFINER-funktion har explicit search_path
+  PASS gridex_contract_delete_dependency_graph_v2(uuid,uuid) är service-only
+  PASS gridex_preview_delete_unused_contract_v2(uuid,uuid,uuid) är service-only
+  PASS gridex_delete_unused_contract_v2(uuid,uuid,uuid,text) är service-only
+  PASS gridex_remove_internal_contract_offer_v2(uuid,uuid,text,uuid,text) är service-only
+  PASS Delete v2 SECURITY DEFINER-funktioner har explicit search_path
+  PASS Delete v2 upprepar dependency graph under advisory- och radlås
+  PASS Delete v2 har canonical idempotent resultat
+  PASS Produkt, immutable version, publicering och quote får explicit canonical energiriktning och prisidentiteter
+  PASS Kundansökan binds till publiceringsversion, prisbok och energiriktning
+  PASS Databasen stoppar quote/application/contract mismatch
+  PASS Databasen håller energiriktningen identisk genom hela immutable publiceringsgrafen
+  PASS public_contract_offers använder endast kolumner som finns i canonical schemat
+  PASS Public-offer-triggern följer canonical version/source/metadata utan saknad commercial_snapshot-kolumn
+  PASS Nya quotes kräver fullständig canonical produkt-, pris-, juridik- och publiceringsidentitet
+  PASS Ansökan och kundavtal kan inte utelämna quote-bindningens canonical identiteter
+  PASS Arkiverad produkt är terminal och hänvisar till efterföljare
+  PASS Audit normaliserar actor och request/correlation context
+  PASS Kontrakts-RPC skickar request context till databasen
+  PASS UI-statusmaskinen har inga actions eller övergångar från archived
+  PASS Server action stoppar versionering av arkiverat avtal
+  PASS Adminmutation verifierar sessionens tenant före service-role-RPC
+  PASS Quote binder contract_product_id
+  PASS Quote binder contract_product_version_id
+  PASS Quote binder contract_publication_version_id
+  PASS Quote binder price_plan_id
+  PASS Quote binder price_plan_version_id
+  PASS Quote binder price_book_id
+  PASS Quote binder legal_bundle_version_id
+  PASS Quote binder energy_direction
+  PASS Quote valideras direkt före konsumering/ansökningscommit
+  PASS Kundavtal skapas med publicerad energiriktning
+  PASS Kundavtalsrepository saknar hårdkodad consumption
+  PASS Billing underlay saknar hårdkodad consumption
+  PASS Företagssidan använder riktig server-side pagination med total count
+  PASS Globalt 5000-tak är borttaget
+  PASS Diagnostik hämtar valt avtal direkt med tenant och ID
+  PASS Publikt ansökningssvar exponerar energiriktning
+  PASS Public Contract DTO modellerar consumption/production och settlement
+  PASS Website OpenAPI har höjd kontraktsversion
+  PASS Website OpenAPI modellerar energiriktning och production pricing
+  PASS Website OpenAPI har canonical strukturerad felmodell
+  PASS GET /website/legal-bundle är enda canonical legal route
+  PASS Gammal externa kontraktsversionen är borttagen från website OpenAPI
+  Gridex contract security/energy-direction regression passed.
+
+[07] command: node scripts/gridex-contract-tenant-lifecycle-regression.cjs
+start: 2026-07-27T14:46:10Z
+end:   2026-07-27T14:46:10Z
+exit:  0
+output:
+  contract/tenant lifecycle completion regression: PASS
+
+[08] command: node scripts/gridex-contract-single-source-regression.cjs
+start: 2026-07-27T14:46:10Z
+end:   2026-07-27T14:46:10Z
+exit:  0
+output:
+  Contract single-source regression passed (90 controls).
+
+[09] command: node scripts/gridex-canonical-contract-model-regression.cjs
+start: 2026-07-27T14:46:10Z
+end:   2026-07-27T14:46:10Z
+exit:  0
+output:
+  Canonical contract/legal/publication regression: OK
+
+[10] command: node scripts/gridex-contract-api-signature-visibility-regression.cjs
+start: 2026-07-27T14:46:10Z
+end:   2026-07-27T14:46:10Z
+exit:  0
+output:
+  ✅ Tenant med contracts.read får se avtalsfliken
+  ✅ Skrivbehörighet är separat från läsbehörighet
+  ✅ Kundens tecknade avtal renderas för behörig tenant
+  ✅ Kundkortet tar inte bort aktiv avtalsflik efter laddning
+  ✅ Tabblänkar är stabila vid omladdning och använder verkligt sektions-ID
+  ✅ Avtalsmallskortet får kund-ID för stabil avtalsnavigering
+  ✅ Avtalsmallskortet länkar till verklig avtalsflik, inte dött ankare
+  ✅ Tenantens avtalsregister kräver contracts.read, inte plattformsadmin
+  ✅ Tenantens avtalsregister läser tecknade customer_contracts
+  ✅ Legacy väljare utan offer_reference blockeras
+  ✅ Motstridiga avtalsväljare blockeras
+  ✅ Tecknande löser avtal från exakt offer_reference
+  ✅ Serverstyrd atomisk signeringsfunktion används
+  ✅ Klientens signed_at ignoreras
+  ✅ Avtalsmejl köas före operativ POA/nätägar-/switchhantering
+  ✅ Avtals-PDF innehåller frysta juridiska texter
+  ✅ API-svaret kopplar avtalsbekräftelse till juridisk signering, inte switch
+  ✅ Kundansökan returnerar serverns signeringshash
+  ✅ Readiness kräver fem juridiska accepter men inte anläggnings- eller switchstatus
+  ✅ Publiceringsdiagnostik finns per tenant
+  ✅ Erbjudandet verifieras i bulk mot sitt exakta juridikpaket utan latest-fallback
+  ✅ public-contracts stöder diagnostics=1
+  ✅ Migration innehåller public_contract_offer_id
+  ✅ Migration innehåller offer_reference
+  ✅ Migration innehåller legal_versions_snapshot
+  ✅ Migration innehåller signature_snapshot_sha256
+  ✅ Migration innehåller withdrawal_deadline_at
+  ✅ Signerings-RPC mappar varje juridiktyp till rätt acceptanstyp
+  ✅ Signerings-RPC kan endast köras av service role
+  ✅ Migration backfillar befintliga webbavtals offer-identitet via durable länkar
+  ✅ Migration reparerar äldre intake-rader med fel ID-typ
+  ✅ Migration reparerar äldre pending_signature endast via exakta accepter och signerings-RPC
+  ✅ Ofullständig äldre signeringsbevisning lämnas säkert för manuell granskning
+  ✅ Standardregler skriver inte över tenantens mejlval
+  ✅ Mejlregelns delay_minutes verkställs
+  ✅ Kund- och adminmottagarregler verkställs
+  ✅ PDF-bilagor lagras och skickas via durable outbox
+  ✅ Kundportalens avtal exponerar kanonisk offer- och signaturkoppling
+  ✅ Publika dokumentationssidan innehåller diagnostics=1
+  ✅ Publika dokumentationssidan innehåller can_send_agreement_confirmation
+  ✅ Publika dokumentationssidan innehåller offer_reference_mismatch
+  ✅ Publika dokumentationssidan innehåller signature_snapshot_sha256
+  ✅ Publika dokumentationssidan innehåller 2026-07-27.1
+  ✅ Website OpenAPI dokumenterar strikt offer_reference och diagnostik
+  ✅ Customer portal OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion
+  Gridex contract API/signature/visibility regression passed.
+
+[11] command: node scripts/gridex-contract-legal-publication-completion-regression.cjs
+start: 2026-07-27T14:46:10Z
+end:   2026-07-27T14:46:10Z
+exit:  0
+output:
+  Canonical contract completion regression passed (34 controls).
+
+[12] command: node scripts/gridex-platform-tenant-contracts-api-mail-regression.cjs
+start: 2026-07-27T14:46:10Z
+end:   2026-07-27T14:46:10Z
+exit:  0
+output:
+  ✅ Tenant-avtal stödjer procentfördelning rörligt/portfölj
+  ✅ Adminvy för avtals-readiness finns
+  ✅ API-behörighetsgrupper finns i DB/config
+  ✅ Automatmail-readiness finns per tenant
+  ✅ Snapshot sparar publicerat avtal
+  ✅ Bolagskortet visar avtal/API/mail-kontroller
+  ✅ Avtal skapas via bolagets kort
+  ✅ Bolagskortets avtalsformulär har mix/procentfält
+  ✅ Canonical readiness blockerar fel portföljmix
+  ✅ Tenant och verklig actor valideras före canonical publicerings-RPC
+  ✅ Canonical kanalpublicering audit-loggas med avtalsevent
+  ✅ API-scopes är grupperade i vanliga ord
+  ✅ Standardscopes för hemsida/Mina sidor finns
+  ✅ Support-scopes är exkluderade från OPS API
+  ✅ API UI visar grupper i vanliga ord
+  ✅ API-klienter sparar behörighetsgrupper
+  ✅ Superadmin kan ändra API-behörigheter utan kodändring
+  ✅ Publik avtals-API skickar pristext och mix
+  ✅ Publik avtals-API exponerar opak offer_reference
+  ✅ Legacy contract_offer_id i publik avtals-API är opak referens
+  ✅ Publik avtals-API exponerar inte intern price_plan_id
+  ✅ Publik avtals-API exponerar inte intern price_plan_version_id
+  ✅ Kundteckning sparar juridiskt snapshot av avtal/mix
+  ✅ Kundteckning kan lösa publicerat avtal via offer_reference
+  ✅ Fallback-avsändare är miljöstyrd och inte hårdkodad till Gridex
+  ✅ Juridiska/kritiska kundmail blockeras utan verifierad bolagsdomän
+  Gridex platform tenant contracts/API/mail regression passed.
+
+[13] command: npm run api:docs
+start: 2026-07-27T14:46:10Z
+end:   2026-07-27T14:46:10Z
+exit:  0
+output:
+
+  > gridex-ops-platform@0.1.0 api:docs
+  > npm run api:contract && npm run api:openapi-parity && npm run api:docs-version && npm run api:docs-examples && npm run api:shared-components
+
+
+  > gridex-ops-platform@0.1.0 api:contract
+  > node scripts/check-public-api-contract.cjs
+
+  Public API contract OK (34 route files).
+
+  > gridex-ops-platform@0.1.0 api:openapi-parity
+  > node scripts/check-openapi-runtime-parity.cjs
+
+  OpenAPI/runtime parity OK (36 registry routes, 38 OpenAPI operations).
+
+  > gridex-ops-platform@0.1.0 api:docs-version
+  > node scripts/check-api-documentation-version.cjs
+
+  API documentation version parity OK (2026-07-27.1).
+
+  > gridex-ops-platform@0.1.0 api:docs-examples
+  > node scripts/check-api-documentation-examples.cjs
+
+  API documentation examples OK.
+
+  > gridex-ops-platform@0.1.0 api:shared-components
+  > node scripts/check-shared-openapi-components.cjs
+
+  OpenAPI responsibility boundaries OK.
+
+[14] command: tsc --noEmit --target ES2022 --lib ES2022 lib/contracts/slug.ts
+start: 2026-07-27T14:46:10Z
+end:   2026-07-27T14:46:11Z
+exit:  0
+output:
+
+=== NPM DEPENDENCY INSTALLATION ===
+
+command: npm ci --fetch-retries=0 --fetch-timeout=10000
+start: 2026-07-27T14:45:41Z
+end:   2026-07-27T14:45:43Z
+exit:  1
+output:
+  npm error code E503
+  npm error 503 Service Temporarily Unavailable - GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/zod-validation-error/-/zod-validation-error-4.0.2.tgz
+  npm error A complete log of this run can be found in: /home/oai/.npm/_logs/2026-07-27T14_45_41_921Z-debug-0.log
+
+command: npm ci --registry=https://registry.npmjs.org/ --fetch-retries=0 --fetch-timeout=10000
+start: 2026-07-27T14:45:52Z
+end:   2026-07-27T14:45:52Z
+exit:  1
+output:
+  npm error code EAI_AGAIN
+  npm error syscall getaddrinfo
+  npm error errno EAI_AGAIN
+  npm error request to https://registry.npmjs.org/zod-validation-error failed, reason: getaddrinfo EAI_AGAIN registry.npmjs.org
+  npm error A complete log of this run can be found in: /home/oai/.npm/_logs/2026-07-27T14_45_52_717Z-debug-0.log
+
+=== DEPENDENCY-BASED COMMANDS ===
+
+command: npm run typecheck
+start: 2026-07-27T14:47:55Z
+end:   2026-07-27T14:48:06Z
+exit:  2
+output (first relevant lines):
+
+  > gridex-ops-platform@0.1.0 typecheck
+  > tsc --noEmit -p tsconfig.app.json
+
+  app/admin/agreements/grid-owners/actions.ts(4,32): error TS2307: Cannot find module 'next/cache' or its corresponding type declarations.
+  app/admin/agreements/grid-owners/actions.ts(130,18): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+  app/admin/agreements/grid-owners/documents/route.ts(1,43): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+  app/admin/agreements/grid-owners/documents/route.ts(12,20): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+  app/admin/agreements/grid-owners/page.tsx(36,42): error TS7006: Parameter 'agreement' implicitly has an 'any' type.
+  app/admin/agreements/grid-owners/page.tsx(37,43): error TS7006: Parameter 'agreement' implicitly has an 'any' type.
+  app/admin/agreements/grid-owners/page.tsx(40,5): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(40,5): error TS2875: This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Make sure you have types for the appropriate package installed.
+  app/admin/agreements/grid-owners/page.tsx(48,7): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(49,9): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(50,11): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(51,13): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(51,100): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(52,13): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(52,90): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(53,13): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(53,89): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(54,11): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(55,11): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(56,13): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+  app/admin/agreements/grid-owners/page.tsx(56,101): error TS7026: JSX element implicitly has type 'any' because no interface 'JSX.IntrinsicElements' exists.
+
+command: npm run lint
+start: 2026-07-27T14:48:06Z
+end:   2026-07-27T14:48:06Z
+exit:  127
+output (first relevant lines):
+
+  > gridex-ops-platform@0.1.0 lint
+  > eslint
+
+  sh: 1: eslint: not found
+
+command: npm run build
+start: 2026-07-27T14:48:06Z
+end:   2026-07-27T14:48:06Z
+exit:  127
+output (first relevant lines):
+
+  > gridex-ops-platform@0.1.0 build
+  > next build --webpack
+
+  sh: 1: next: not found
+
+Assessment: BLOCKED – dependencies unavailable. Typecheck output is dominated by missing Next/React/Node modules; lint reports eslint not found; build reports next not found.
+
+=== JAVASCRIPT SYNTAX CHECKS ===
+node_check_lifecycle start=2026-07-27T14:48:06Z end=2026-07-27T14:48:06Z exit=0
+node_check_golive start=2026-07-27T14:48:06Z end=2026-07-27T14:48:06Z exit=0
+node_check_delete start=2026-07-27T14:48:06Z end=2026-07-27T14:48:07Z exit=0
+node_check_tenant start=2026-07-27T14:48:07Z end=2026-07-27T14:48:07Z exit=0
+
+=== GIT DIFF VALIDATION AGAINST UPLOADED BASELINE ===
+command: git status --short
+   M app/admin/companies/[id]/tenant-platform-actions.ts
+   M app/admin/contracts/actions.ts
+   M app/admin/contracts/page.tsx
+   M lib/contracts/adminContractSchema.ts
+   M lib/contracts/lifecycle.ts
+   M lib/contracts/lifecycleErrors.ts
+   M scripts/gridex-contract-go-live-regression.cjs
+   M scripts/gridex-contract-lifecycle-repair-regression.cjs
+   M scripts/gridex-platform-tenant-contracts-api-mail-regression.cjs
+   M scripts/migration-history-manifest.json
+  ?? CHANGED_FILES_GRIDEX_CONTRACT_REPAIR_2026-07-27.txt
+  ?? FINAL_ACTIVE_RPC_DEFINITIONS_2026-07-27.txt
+  ?? GRIDEX_CONTRACT_REPAIR_FINAL_REPORT_2026-07-27.md
+  ?? GRIDEX_CONTRACT_REPAIR_SEARCH_AUDIT_2026-07-27.md
+  ?? README_APPLY_GRIDEX_CONTRACT_REPAIR_2026-07-27.md
+  ?? __tests__/contract-slug.test.ts
+  ?? lib/contracts/slug.ts
+  ?? scripts/gridex-contract-delete-graph-regression.cjs
+  ?? scripts/gridex-contract-repair-post-apply.sql
+  ?? scripts/gridex-contract-tenant-lifecycle-regression.cjs
+  ?? supabase/migrations/20260727160000_contract_valid_to_active_rpc_repair.sql
+  ?? supabase/migrations/20260727161000_contract_type_slug_alignment.sql
+command: git diff --check
+exit: 0
+  (no whitespace errors)
+
+=== STAGING AVAILABILITY ===
+SUPABASE_ACCESS_TOKEN=unset
+SUPABASE_DB_PASSWORD=unset
+SUPABASE_PROJECT_REF=unset
+DATABASE_URL=unset
+DIRECT_URL=unset
+POSTGRES_URL=unset
+supabase CLI=unavailable
+psql=unavailable
+Assessment: BLOCKED – staging credentials unavailable.
+
+=== MIGRATION CHECKSUMS ===
+b0558538499350b4d91f0bcef1afcf2daa39d2835bfdbcba4c6acd7ad8d19fb1  supabase/migrations/20260727150000_contract_offer_slug_identity_completion.sql
+43d23965a8842982e30ff90a4d01b0fb374d898672512ec9611191c5d227372f  supabase/migrations/20260727160000_contract_valid_to_active_rpc_repair.sql
+597fee23ffd2a123521a279236d236acfa1899cb97a56b0e9032175d639d0cc7  supabase/migrations/20260727161000_contract_type_slug_alignment.sql
