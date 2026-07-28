@@ -1,4 +1,14 @@
 
+## 2026-07-28 – Live schema/code canonical synchronization and API contract 2026-07-28.1
+
+- Added one fail-closed forward-only repair based on the exported production
+  schema, active function definitions and live database lint.
+- Repaired canonical publication energy/hash/type integrity, website onboarding,
+  invoice export, signature recovery, terminal channel lifecycle and internal
+  wrapper privileges.
+- Website and customer portal OpenAPI, runtime constants, documentation and
+  regression controls now report `2026-07-28.1`.
+
 ## 2026-07-27 – Contract security, production direction and API contract 2026-07-27.1
 
 - Contract mutation RPCs are service-role only; admin server actions bind the authenticated actor and tenant before calling them.

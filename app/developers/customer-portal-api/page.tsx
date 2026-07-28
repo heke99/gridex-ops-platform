@@ -323,7 +323,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-07-27.1"
+  "contract_schema_version": "2026-07-28.1"
 }`;
 
 const marketReferenceExample = `{
@@ -564,10 +564,13 @@ const applicationResponse = `{
   "correlation_id": "uuid"
 }
 
-# accepted betyder att OPS atomiskt har sparat kund, anläggning, avtal,
-# juridik, workflow och ett persistent continuation-jobb. OPS äger därefter
-# kundmail, nätägarbegäran, Z01/Z02, Z03/Z04, APERAK och aktivering. Tenant
-# ska inte själv starta de stegen.
+# accepted betyder att canonical kund/site/avtal/juridiksnapshot och quote
+# committades atomiskt och att efterföljande idempotenta signatur-, workflow-
+# och continuation-steg också slutfördes. Fel i eftersteg ger partial/failed,
+# aldrig ett missvisande accepted. OPS äger därefter kundmail,
+# nätägarbegäran, Z01/Z02, Z03/Z04, APERAK och aktivering. Tenant ska inte
+# själv starta de stegen. Integrationsklienten följer nextAction/next_action
+# i statusresponsen.
 
 curl -X GET "${apiBaseUrl}/website/customer-applications/<application_id>" \
   -H "Authorization: Bearer $GRIDEX_API_KEY" \

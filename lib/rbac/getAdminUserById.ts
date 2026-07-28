@@ -47,8 +47,8 @@ type RawOverrideRow = {
   reason?: string | null
   valid_from?: string | null
   valid_to?: string | null
-  created_at?: string | null
-  updated_at?: string | null
+  granted_at?: string | null
+  expires_at?: string | null
 }
 
 function normalizeRoleKey(value: string | null | undefined) {
@@ -86,7 +86,7 @@ export async function getAdminUserById(userId: string) {
 
   const { data: overrides, error: overridesError } = await supabaseService
     .from('user_permission_overrides')
-    .select('id, permission_key, effect, reason, valid_from, valid_to, created_at, updated_at')
+    .select('id, permission_key, effect, reason, valid_from, valid_to, granted_at, expires_at')
     .eq('user_id', userId)
     .eq('is_active', true)
 
@@ -117,8 +117,8 @@ export async function getAdminUserById(userId: string) {
         id: row.id,
         effect: row.effect as 'allow' | 'deny',
         reason: row.reason ?? null,
-        granted_at: row.valid_from ?? row.created_at ?? row.updated_at ?? null,
-        expires_at: row.valid_to ?? null,
+        granted_at: row.valid_from ?? row.granted_at ?? null,
+        expires_at: row.valid_to ?? row.expires_at ?? null,
         permissions: permissionsByKey.get(key) ?? (key ? { id: key, key, name: key } : null),
       }
     })

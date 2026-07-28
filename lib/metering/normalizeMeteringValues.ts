@@ -69,7 +69,7 @@ async function resolveMeteringPoint(input: NormalizedMeteringValueInput): Promis
 
   let query = supabaseService
     .from('metering_points')
-    .select('id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,normalized_metering_point_id,facility_id,site_facility_id,status')
+    .select('id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,normalized_metering_point_id,site_facility_id,status')
     .eq('company_id', input.companyId)
     .limit(3)
 
@@ -81,7 +81,6 @@ async function resolveMeteringPoint(input: NormalizedMeteringValueInput): Promis
       `meter_point_id.eq.${escaped}`,
       `metering_point_id.eq.${escaped}`,
       `normalized_metering_point_id.eq.${escaped}`,
-      `facility_id.eq.${escaped}`,
       `site_facility_id.eq.${escaped}`,
     ].join(','))
   } else {

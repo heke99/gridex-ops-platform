@@ -76,3 +76,22 @@ Status: VERIFIED LOCALLY
 - Added offer copy, fail-closed portal bundle and RBAC/lint corrections.
 - Verified 356 tests, all TypeScript targets, lint, RBAC, API/OpenAPI,
   318/222 migration history, 122 P0 controls and 208 go-live controls.
+
+## 2026-07-28 live-schema/code canonical synchronization
+
+- Parsed the active live schema, functions, views, triggers, indexes, grants,
+  RLS and remote migration history.
+- Covered all 23 active live-lint function failures.
+- Added a fail-closed forward migration with 41 exact active-definition
+  patches and canonical schema repairs.
+- Added missing onboarding/communication relations, invoice/provider fields,
+  uniqueness, RLS and grants.
+- Repaired canonical contract graph, energy direction, inclusive validity,
+  signature retry, channel ending, legal/onboarding crypto and wrapper grants.
+- Removed public quote UUID leakage and aligned runtime/OpenAPI at
+  `2026-07-28.1`.
+- Added preflight, rollback-only post-apply and full code/schema path
+  regression.
+- Verified 357 tests, TypeScript, lint with 0 errors, API docs, 319/223
+  migration history, P0/go-live suites, SQL parse and production build.
+- Produced the complete Swedish audit report and Docker-free apply runbook.

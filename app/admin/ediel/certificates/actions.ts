@@ -270,7 +270,7 @@ async function invalidateRoutesForCertificateChange(input: {
 }) {
   const { data, error } = await supabaseService
     .from("ediel_route_profiles")
-    .select("company_id,message_family,actor_role")
+    .select("company_id,message_family,counterparty_role")
     .eq("environment", input.environment)
     .ilike("mailbox", input.mailboxEmail);
 
@@ -287,7 +287,10 @@ async function invalidateRoutesForCertificateChange(input: {
     seen.add(companyId);
     await invalidateEdielAgtReadiness({
       companyId,
-      actorRole: typeof row.actor_role === "string" ? row.actor_role : null,
+      actorRole:
+        typeof row.counterparty_role === "string"
+          ? row.counterparty_role
+          : null,
       messageFamily:
         typeof row.message_family === "string" ? row.message_family : null,
       sourceType: "certificate_change",

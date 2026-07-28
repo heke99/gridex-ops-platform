@@ -1074,16 +1074,16 @@ export async function createEdielTestRun(
       .insert({
         test_run_id: row.id,
         step_no: 1,
-        title: rulebookCase.title,
+        name: rulebookCase.title,
         status: 'pending',
         expected_family: rulebookCase.family,
         expected_code: rulebookCase.code,
         expected_direction: null,
-        expected_ack: {
+        expected_ack: JSON.stringify({
           contrl: rulebookCase.expectedContrl,
           aperak: rulebookCase.expectedAperak,
           utiltsErr: rulebookCase.expectedUtiltsErr,
-        },
+        }),
         validation_report: {
           source: 'rulebook',
           processGroup: rulebookCase.processGroup,

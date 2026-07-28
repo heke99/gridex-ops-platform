@@ -515,9 +515,10 @@ export async function getCompanyGoLiveSetupSummary(
       supabaseService
         .from("company_email_settings")
         .select(
-          "id,company_id,sender_email,verification_status,is_default,provider",
+          "id,company_id,sender_email,verification_status,is_active,provider",
         )
         .eq("company_id", companyId)
+        .order("is_active", { ascending: false })
         .limit(20),
     ),
     evaluateCustomerApplicationAutomationReadiness(companyId).catch((error) => ({

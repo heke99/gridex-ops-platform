@@ -28,6 +28,7 @@ export type ContractLifecycleStatus =
 export type CustomerContractStatus =
   | "draft"
   | "pending_signature"
+  | "signature_failed"
   | "signed"
   | "active"
   | "terminated"
@@ -252,6 +253,8 @@ export type CustomerContractRow = {
 export type CustomerContractEventType =
   | "created"
   | "signature_requested"
+  | "signature_failed"
+  | "signature_retry_requested"
   | "signed"
   | "activated"
   | "updated"

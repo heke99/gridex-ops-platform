@@ -16,6 +16,7 @@ export function customerStatusLabel(value: string | null | undefined): string {
     case 'moved': return 'Utflyttad'
     case 'draft': return 'Utkast'
     case 'pending_signature': return 'Väntar signering'
+    case 'signature_failed': return 'Signering misslyckades'
     case 'signed': return 'Signerad'
     case 'failed': return 'Fel kräver åtgärd'
     case 'manual_review': return 'Kräver manuell kontroll'

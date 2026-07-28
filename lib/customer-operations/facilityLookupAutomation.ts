@@ -42,7 +42,7 @@ async function readSite(input: { companyId: string; customerId: string; siteId: 
 async function readCanonicalMeteringPoint(input: { companyId: string; customerId: string; siteId: string }): Promise<JsonRecord | null> {
   const { data, error } = await supabaseService
     .from('metering_points')
-    .select('id,facility_id,metering_point_id,ediel_metering_point_id,status,is_active,customer_site_id,site_id')
+    .select('id,site_facility_id,metering_point_id,ediel_metering_point_id,status,archived_at,customer_site_id,site_id')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .or(`customer_site_id.eq.${input.siteId},site_id.eq.${input.siteId}`)
@@ -50,7 +50,15 @@ async function readCanonicalMeteringPoint(input: { companyId: string; customerId
     .limit(10)
   if (error) throw error
   const rows = (data ?? []) as JsonRecord[]
-  return rows.find((row) => Boolean(clean(row.facility_id) && (clean(row.metering_point_id) || clean(row.ediel_metering_point_id)))) ?? null
+  return rows.find((row) => {
+    const status = clean(row.status)?.toLowerCase() ?? ''
+    const active = !row.archived_at && !['inactive', 'archived', 'closed'].includes(status)
+    return Boolean(
+      active &&
+        clean(row.site_facility_id) &&
+        (clean(row.metering_point_id) || clean(row.ediel_metering_point_id)),
+    )
+  }) ?? null
 }
 
 function mapStatus(status: string): FacilityLookupAutomationResult['status'] {

@@ -66,6 +66,7 @@
     "gridex:customer-operation-events-regression": "node scripts/gridex-customer-operation-events-regression.cjs",
     "ops:hardening-regression": "node scripts/ops-hardening-regression.cjs",
     "db:migrations:check": "node scripts/check-migration-versions.cjs",
+    "gridex:live-schema-code-sync-regression": "node scripts/gridex-live-schema-code-sync-regression.cjs",
     "security:audit-production": "npm audit --omit=dev --audit-level=high",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",

@@ -10,6 +10,7 @@ function contractStatusLabel(status: string | null) {
   const map: Record<string, string> = {
     draft: "Utkast",
     pending_signature: "Väntar på signering",
+    signature_failed: "Signering misslyckades – försök igen",
     signed: "Signerat",
     active: "Aktivt",
     terminated: "Avslutat",

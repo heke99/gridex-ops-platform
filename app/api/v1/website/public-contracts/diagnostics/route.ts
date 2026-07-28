@@ -31,12 +31,18 @@ export async function GET(request: NextRequest) {
       loadPublicationRevision(auth.client.company_id, 'website'),
       loadExternalTenantContext(auth.client),
     ])
+    const canonicalGraphConsistent = publication.offers.every(
+      (offer) => offer.graph?.canonical_graph_consistent === true,
+    )
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: currentRequestId } })
     return customerPortalJson({
       data: [],
       diagnostics: {
         publication,
-        graph: { source_of_truth: 'contract_publication_versions', canonical_graph_consistent: publication.hidden === 0 },
+        graph: {
+          source_of_truth: 'contract_publication_versions',
+          canonical_graph_consistent: canonicalGraphConsistent,
+        },
       },
       meta: { tenant_reference: tenant.tenant_reference, api_version: 'v1', channel: 'website', publication_revision: revision.revision },
       request_id: currentRequestId,

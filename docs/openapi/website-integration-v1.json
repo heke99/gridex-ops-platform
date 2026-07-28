@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-07-27.1",
+    "version": "2026-07-28.1",
     "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
@@ -130,7 +130,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-27.1"
+                  "const": "2026-07-28.1"
                 },
                 "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
               }
@@ -150,7 +150,7 @@
                       "$ref": "#/components/schemas/TenantMeta",
                       "properties": {
                         "contract_schema_version": {
-                          "const": "2026-07-27.1"
+                          "const": "2026-07-28.1"
                         }
                       },
                       "required": [
@@ -609,7 +609,7 @@
           "Customer applications"
         ],
         "summary": "Create a customer application bound to a published offer",
-        "description": "Scope: website_applications.write. Idempotency-Key krävs. Tenant hämtas enbart från API-nyckelns integrationskontext. OPS validerar på nytt en aktiv, okonsumerad quote_reference och committar canonical kund, site, avtal, juridik, workflow och ett persistent customer_application_continuation-jobb atomiskt. Endast exakt juridisk identitet inom samma tenant får återanvända kund; leveranspunkt är aldrig ensam kundnyckel. Svaret är accepted/automatic_processing; därefter äger OPS juridiska mail, nätägarbegäran, Z01/Z02, Z03/Z04, APERAK, aktivering och webhooks.",
+        "description": "Scope: website_applications.write. Idempotency-Key krävs. Tenant hämtas enbart från API-nyckelns integrationskontext. I en databastransaktion validerar OPS en aktiv, okonsumerad quote_reference, skapar eller länkar canonical kund och valfri site/mätpunkt, skapar avtals- och juridiksnapshot, reserverar ansökningsidentiteten och konsumerar quoten. Exakt signaturbevis, workflow, portalidentitet och customer_application_continuation skrivs därefter idempotent. Om ett sådant eftersteg misslyckas returneras inte accepted: ansökan markeras partial/failed med reparerbart workflow och ett osignerat avtal markeras signature_failed. Endast exakt juridisk identitet inom samma tenant får återanvända kund; leveranspunkt är aldrig ensam kundnyckel. Därefter äger OPS juridiska mail, nätägarbegäran, Z01/Z02, Z03/Z04, APERAK, aktivering och webhooks.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -632,7 +632,7 @@
         },
         "responses": {
           "200": {
-            "description": "Application atomically accepted and durable automatic processing queued",
+            "description": "Canonical graph and quote committed; all required idempotent post-commit evidence/workflow steps also completed and durable automatic processing queued",
             "content": {
               "application/json": {
                 "schema": {
@@ -916,7 +916,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-27.1"
+                  "const": "2026-07-28.1"
                 }
               }
             },
@@ -951,7 +951,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-27.1"
+                  "const": "2026-07-28.1"
                 }
               }
             },
@@ -1079,7 +1079,7 @@
                     "next_update_at": "2026-07-24T16:15:00+02:00"
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-07-27.1"
+                  "contract_schema_version": "2026-07-28.1"
                 }
               }
             }
@@ -1677,7 +1677,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-27.1"
+            "const": "2026-07-28.1"
           },
           "configuration": {
             "type": "object",
@@ -4540,7 +4540,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-27.1"
+            "const": "2026-07-28.1"
           }
         },
         "additionalProperties": false
@@ -5248,7 +5248,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-27.1",
+  "x-contract-schema-version": "2026-07-28.1",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

@@ -1,36 +1,34 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-07-27T23:20:00+02:00",
+  "updated_at": "2026-07-28T11:28:30+02:00",
   "branch": null,
   "last_verified_commit": null,
-  "active_phase": "PHASE-28",
-  "active_task": "WP-028",
-  "active_subtask": "Apply and concurrency-test P0 forward migrations in staging",
-  "status": "BLOCKED_BY_ENVIRONMENT",
+  "active_phase": "PHASE-29",
+  "active_task": "WP-029",
+  "active_subtask": "Controlled production apply and post-apply proof",
+  "status": "READY_FOR_CONTROLLED_APPLY",
   "implemented_not_database_verified": [
-    "20260727162000 contract slug/version integrity",
-    "20260727163000 contract copy command",
-    "20260727164000 canonical invoice export runtime",
-    "20260727165000 quote/customer event integrity",
-    "20260727166000 atomic quote/application onboarding commit",
-    "20260727167000 customer contract state and active invariant"
+    "20260728170000 live schema/code canonical synchronization",
+    "read-only live repair preflight",
+    "rollback-only post-apply verification",
+    "canonical migration baseline cutover"
   ],
   "active_blockers": [
     "Uploaded archive excludes Git metadata",
-    "Supabase CLI, psql and authorized database are unavailable",
+    "Authorized production database connection is unavailable",
     "Provider sandbox and credentials are unavailable",
-    "Production verification requires deployment"
+    "Historical remote/local migration history is noncanonical"
   ],
   "verification": [
     {
       "name": "typecheck",
       "status": "VERIFIED",
-      "evidence": "app, contract and tests TypeScript pass"
+      "evidence": "tsc --noEmit -p tsconfig.app.json passes"
     },
     {
       "name": "tests",
       "status": "VERIFIED",
-      "evidence": "55 files, 356 tests pass; billing/onboarding 52/52"
+      "evidence": "55 files, 357 tests pass"
     },
     {
       "name": "lint",
@@ -38,31 +36,42 @@
       "evidence": "0 errors; 124 existing unused-code warnings"
     },
     {
-      "name": "RBAC",
-      "status": "VERIFIED",
-      "evidence": "24 checks, 0 warnings"
-    },
-    {
       "name": "migration integrity",
       "status": "VERIFIED",
-      "evidence": "318 files, 222 groups, checksums verified"
+      "evidence": "319 files, 223 version groups, checksums verified"
     },
     {
-      "name": "P0 regressions",
+      "name": "live definition patch simulation",
       "status": "VERIFIED",
-      "evidence": "122 P0 and 208 go-live controls"
+      "evidence": "41/41 exact patches match; 23/23 lint errors covered"
     },
     {
-      "name": "PostgreSQL apply/concurrency/provider",
+      "name": "code/schema path scan",
+      "status": "VERIFIED",
+      "evidence": "4759 writes, 3679 accesses and 120 literal RPC calls verified"
+    },
+    {
+      "name": "API/OpenAPI",
+      "status": "VERIFIED",
+      "evidence": "contract, runtime parity, examples and version 2026-07-28.1 pass"
+    },
+    {
+      "name": "production build",
+      "status": "VERIFIED",
+      "evidence": "Next.js build completes"
+    },
+    {
+      "name": "PostgreSQL production apply/postflight",
       "status": "BLOCKED",
-      "evidence": "No database or provider sandbox"
+      "evidence": "No authorized database connection in workspace"
     }
   ],
-  "next_action": "Apply through 20260727167000 in staging and run PostgreSQL concurrency/two-tenant tests",
-  "resume_from": "supabase/migrations/20260727162000_contract_slug_version_integrity_repair.sql",
+  "next_action": "Run the Docker-free controlled apply runbook against the correct production project",
+  "resume_from": "GRIDEX_LIVE_REPAIR_RUNBOOK_2026-07-28.md",
   "context_notes": [
-    "Do not treat static migration checks as a database apply test",
-    "Deploy runtime and migrations together",
-    "Do not restore standalone quote consume or status-derived signing evidence"
+    "Do not run db push against the noncanonical historical chain",
+    "Register only 20260728170000 after green post-apply and lint",
+    "Production remains NO-GO until apply and smoke tests pass",
+    "Create a fresh canonical baseline only from the verified post-apply schema"
   ]
 }

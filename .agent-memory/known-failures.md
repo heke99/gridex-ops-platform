@@ -29,14 +29,32 @@ cannot be verified from this input.
 
 ## KF-005 — Database apply unavailable
 
-Status: BLOCKED_BY_ENVIRONMENT
+Status: READY_FOR_AUTHORIZED_OPERATOR
 
-The new forward migration is static-verified but cannot be applied or
-transaction-tested because Supabase CLI and an authorized database are absent.
+The new forward migration, preflight and post-apply are static-verified but
+cannot be applied or transaction-tested because an authorized database
+connection is absent.
 
 ## KF-006 — Live contract behind release candidate
 
 Status: PENDING_DEPLOY
 
 The live developer page observed on 2026-07-25 exposes an older contract than
-local `2026-07-27.1`.
+local `2026-07-28.1`.
+
+## KF-007 — Noncanonical remote/local migration history
+
+Status: REPAIR_POINT_IMPLEMENTED_BASELINE_PENDING
+
+Only nine remote historical migrations are registered and their
+versions/content do not match the current local chain, while later definitions
+exist live. The new repair migration safely converges current objects. A clean
+baseline still requires the verified post-apply schema.
+
+## KF-008 — Exported active live function failures
+
+Status: FIX_IMPLEMENTED_STATIC_VERIFIED
+
+All 23 lint errors are covered and all 41 exact function patches match the
+exported definitions. Production closure requires applying the migration and a
+green postflight.

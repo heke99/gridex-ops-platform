@@ -400,7 +400,7 @@ export async function validateWebsiteQuote(input: {
       message: 'Quote har redan använts av en annan kundansökan.',
       code: 'quote_consumed',
       status: 409,
-      details: { consumed_application_id: quote.consumed_application_id },
+      details: { consumed: true },
     })
   }
 

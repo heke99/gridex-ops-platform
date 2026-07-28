@@ -408,3 +408,17 @@ Files changed: runtime/UI, one append-only migration, OpenAPI, deployment guide 
 Migrations: `20260727010000_contract_flow_integrity_completion.sql`
 Last updated: 2026-07-27
 Exact next subtask: apply the pending migrations in staging and transaction-test the two-tenant and provider flow
+
+## WP-029: Synchronize exported live schema with runtime
+Status: READY_FOR_CONTROLLED_APPLY
+Phase: PHASE-29
+Priority: P0
+Depends on: WP-028
+Affected domains: migrations, active PostgreSQL functions, canonical contract graph, onboarding, legal, signature, invoice/provider, EDIEL, metering, RBAC, OpenAPI
+Acceptance criteria: every exported live lint failure covered; every exact patch matches; runtime table/column/RPC paths exist in live plus repair; one fail-closed forward migration; preflight and postflight; full build/tests
+Required verification: authorized production preflight/apply/post-apply, live lint, post-schema export, two-tenant and provider smoke tests
+Evidence: 41/41 exact patches, 23/23 lint errors, 4,759 writes, 3,679 field accesses, 120 RPC calls, 357 tests, typecheck, API docs, 319/223 migration integrity, SQL parse and production build
+Files changed: 57 source/test/doc/migration files plus report/runbook and memory
+Migrations: `20260728170000_live_schema_code_canonical_sync.sql`
+Last updated: 2026-07-28
+Exact next subtask: execute `GRIDEX_LIVE_REPAIR_RUNBOOK_2026-07-28.md` with an authorized operator, then create a canonical baseline from the verified post-apply export

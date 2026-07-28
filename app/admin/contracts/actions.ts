@@ -652,7 +652,9 @@ async function updateTenantContractChannelActionImpl(
 
   const command = status === "active"
     ? "gridex_publish_contract_channel"
-    : "gridex_unpublish_contract_channel";
+    : status === "ended"
+      ? "gridex_end_contract_channel"
+      : "gridex_unpublish_contract_channel";
   const { data, error } = await contractMutationServiceClient().rpc(command, {
     p_company_id: companyId,
     p_offer_id: offer.id,
@@ -668,7 +670,9 @@ async function updateTenantContractChannelActionImpl(
   revalidateContractSurfaces(companyId);
   return status === "active"
     ? "Försäljningskanalen publicerades från samma canonical avtalsversion."
-    : "Försäljningskanalen avpublicerades utan att ändra signerad historik.";
+    : status === "ended"
+      ? "Försäljningskanalen avslutades utan att ändra signerad historik."
+      : "Försäljningskanalen pausades utan att ändra signerad historik.";
 }
 
 

@@ -267,7 +267,6 @@ async function ensureOutboundForSwitch(params: {
         channelType,
       },
       created_by: userId,
-      updated_by: userId,
     });
 
   if (eventError) throw eventError;

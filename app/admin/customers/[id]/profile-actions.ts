@@ -500,7 +500,7 @@ async function closeCustomerLifecycleImpl(
     .select("*")
     .eq("company_id", companyId)
     .eq("customer_id", customerId)
-    .in("status", ["draft", "pending_signature", "signed", "active"]);
+    .in("status", ["draft", "pending_signature", "signature_failed", "signed", "active"]);
 
   if (contractsError) throw contractsError;
 
@@ -587,16 +587,20 @@ async function closeCustomerLifecycleImpl(
   }>;
 
   for (const contract of contracts) {
+    const eventType =
+      contract.status === "signed" || contract.status === "active"
+        ? "terminated"
+        : "cancelled";
     await addCustomerContractEvent({
       companyId: contract.company_id ?? companyId,
       customerContractId: contract.id,
       customerId,
-      eventType: "terminated",
+      eventType,
       happenedAt: nowIso,
       note:
         mode === "terminate"
-          ? "Avtalet avslutades via kundens livscykelåtgärd."
-          : "Avtalet avslutades eftersom kunden registrerades som utflyttad.",
+          ? `${eventType === "terminated" ? "Avtalet avslutades" : "Avtalsprocessen avbröts"} via kundens livscykelåtgärd.`
+          : `${eventType === "terminated" ? "Avtalet avslutades" : "Avtalsprocessen avbröts"} eftersom kunden registrerades som utflyttad.`,
       metadata: {
         ...lifecycleMetadata,
         ends_at: moveOutDate,
@@ -1509,7 +1513,7 @@ async function archiveCustomerImpl(
       .select("id")
       .eq("company_id", companyId)
       .eq("customer_id", customerId)
-      .in("status", ["draft", "pending_signature", "signed", "active"]);
+      .in("status", ["draft", "pending_signature", "signature_failed", "signed", "active"]);
 
     if (error) throw error;
     return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);

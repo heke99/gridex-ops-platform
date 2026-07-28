@@ -1758,6 +1758,10 @@ type PublicationGraphIntegrity = {
   product_version_valid: boolean;
   source_offer_consistent: boolean;
   publication_active: boolean;
+  snapshot_hash_valid: boolean;
+  energy_direction_valid: boolean;
+  contract_type_valid: boolean;
+  successor_chain_valid: boolean;
 };
 
 async function loadPublicationGraphIntegrity(
@@ -1768,7 +1772,7 @@ async function loadPublicationGraphIntegrity(
   const query = await supabaseService
     .from("contract_publication_graph_integrity_v")
     .select(
-      "public_contract_offer_id,canonical_graph_consistent,forward_publication_link_valid,reverse_legacy_link_valid,company_chain_valid,tenant_assignment_valid,channel_valid,product_version_valid,source_offer_consistent,publication_active",
+      "public_contract_offer_id,canonical_graph_consistent,forward_publication_link_valid,reverse_legacy_link_valid,company_chain_valid,tenant_assignment_valid,channel_valid,product_version_valid,source_offer_consistent,publication_active,snapshot_hash_valid,energy_direction_valid,contract_type_valid,successor_chain_valid",
     )
     .eq("company_id", companyId)
     .in("public_contract_offer_id", publicOfferIds);
@@ -1915,6 +1919,10 @@ export type PublicContractOfferDiagnostic = {
     tenant_assignment_valid: boolean;
     channel_valid: boolean;
     source_offer_consistent: boolean;
+    snapshot_hash_valid: boolean;
+    energy_direction_valid: boolean;
+    contract_type_valid: boolean;
+    successor_chain_valid: boolean;
     pricing_ready: boolean;
     legal_ready: boolean;
     invoice_fee_ready: boolean;
@@ -2035,6 +2043,10 @@ export async function diagnosePublicContractOffers(input: {
             product_version_valid: graph.product_version_valid,
             source_offer_consistent: graph.source_offer_consistent,
             publication_active: graph.publication_active,
+            snapshot_hash_valid: graph.snapshot_hash_valid,
+            energy_direction_valid: graph.energy_direction_valid,
+            contract_type_valid: graph.contract_type_valid,
+            successor_chain_valid: graph.successor_chain_valid,
           }
         : null,
       pricing_readiness: { invoice_fee: invoiceFeeReadiness },
@@ -2047,6 +2059,10 @@ export async function diagnosePublicContractOffers(input: {
         tenant_assignment_valid: graph?.tenant_assignment_valid === true,
         channel_valid: graph?.channel_valid === true,
         source_offer_consistent: graph?.source_offer_consistent === true,
+        snapshot_hash_valid: graph?.snapshot_hash_valid === true,
+        energy_direction_valid: graph?.energy_direction_valid === true,
+        contract_type_valid: graph?.contract_type_valid === true,
+        successor_chain_valid: graph?.successor_chain_valid === true,
         pricing_ready: pricingReady,
         legal_ready: legalReady,
         invoice_fee_ready: invoiceFeeReady,

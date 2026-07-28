@@ -216,10 +216,10 @@ async function loadOutbox(input: {
 async function loadMessage(input: {
   companyId: string
   edielMessageId: string
-}): Promise<{ status: string | null; sent_at: string | null } | null> {
+}): Promise<{ status: string | null; message_sent_at: string | null } | null> {
   const { data, error } = await supabaseService
     .from('ediel_messages')
-    .select('status,sent_at')
+    .select('status,message_sent_at')
     .eq('company_id', input.companyId)
     .eq('id', input.edielMessageId)
     .maybeSingle()
@@ -227,7 +227,10 @@ async function loadMessage(input: {
     if (isMissingSchema(error)) return null
     throw error
   }
-  return (data as { status: string | null; sent_at: string | null } | null) ?? null
+  return (data as {
+    status: string | null
+    message_sent_at: string | null
+  } | null) ?? null
 }
 
 async function loadLegacyOutbound(input: {
@@ -296,7 +299,7 @@ export async function resolveEdielDispatchState(input: {
 
   const outboxRowStatus = clean(outbox?.status)
   const messageStatus = clean(message?.status)
-  const messageSentAt = clean(message?.sent_at)
+  const messageSentAt = clean(message?.message_sent_at)
   const outboxSentAt = clean(outbox?.sent_at)
 
   let state: EdielDispatchState

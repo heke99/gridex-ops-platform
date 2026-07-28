@@ -292,6 +292,8 @@ function contractStatusUiLabel(status: string | null | undefined): string {
       return "Utkast";
     case "pending_signature":
       return "Väntar signering";
+    case "signature_failed":
+      return "Signering misslyckades";
     case "signed":
       return "Signerat";
     case "active":

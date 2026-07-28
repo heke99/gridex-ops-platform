@@ -243,7 +243,10 @@ export async function unlockBillingPeriod(input: {
 
   await supabaseService
     .from('price_period_locks')
-    .update({ status: 'unlocked', unlocked_by: input.actorUserId ?? null, unlocked_at: now, updated_at: now })
+    .update({
+      status: 'unlocked',
+      reason: input.reason ?? 'Fakturaperioden har låsts upp.',
+    })
     .eq('company_id', input.companyId)
     .eq('billing_month', billingMonth)
     .in('lock_scope', ['billing_period', 'invoice_export'])
@@ -426,7 +429,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   if (contractIds.length > 0) {
     const contractResult = await supabaseService
       .from('customer_contracts')
-      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,pricing_snapshot_id,price_snapshot,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons')
+      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_snapshot,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons')
       .eq('company_id', input.companyId)
       .in('id', contractIds)
     if (contractResult.error) throw contractResult.error

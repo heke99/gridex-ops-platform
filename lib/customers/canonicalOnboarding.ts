@@ -108,12 +108,23 @@ function clean(value: unknown): string | null {
 function dbErrorCode(error: unknown): string {
   const record = error as { code?: unknown; message?: unknown } | null
   const message = clean(record?.message)?.toLowerCase() ?? ''
+  const code = String(record?.code ?? '')
   if (message.includes('customer_number_assignment_failed')) return 'customer_number_assignment_failed'
   if (message.includes('facility_id_owned_by_another_customer')) return 'facility_identity_conflict'
   if (message.includes('metering_point_owned_by_another_customer')) return 'metering_point_identity_conflict'
   if (message.includes('canonical onboarding')) return 'canonical_onboarding_invalid_command'
-  if (['PGRST202', '42883'].includes(String(record?.code ?? ''))) return 'canonical_onboarding_rpc_missing'
-  return clean(record?.code) ?? 'canonical_onboarding_failed'
+  if (
+    code === 'PGRST202' ||
+    (
+      code === '42883' &&
+      message.includes('gridex_onboard_customer_graph') &&
+      (message.includes('does not exist') || message.includes('could not find'))
+    )
+  ) {
+    return 'canonical_onboarding_rpc_missing'
+  }
+  if (code === '42883') return 'canonical_onboarding_dependency_missing'
+  return clean(code) ?? 'canonical_onboarding_failed'
 }
 
 export function canonicalIdempotencyKey(input: {

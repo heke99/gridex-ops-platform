@@ -66,3 +66,22 @@
 - Verified typecheck, lint, API docs, migration checksums, 40 contract tests
   and 18 fixed-area tests. Focused identity/supply/billing tests pass 49/54;
   five old fixtures omit required exact identities.
+
+## 2026-07-28
+
+- Ingested delivery 93 and the Docker-free live database audit export.
+- Compared active PostgreSQL definitions and schema objects against every
+  relevant runtime table, field and RPC path.
+- Confirmed the noncanonical remote/local migration history and avoided
+  replaying old migrations.
+- Implemented the single fail-closed forward repair migration, preflight,
+  post-apply and live-schema/code regression.
+- Repaired contract graph, crypto resolution, onboarding, legal, signature,
+  publication, invoices, provider events, EDIEL, metering, RBAC and API paths.
+- Verified all 41 exact function patches and all 23 live-lint errors.
+- Verified TypeScript, 357 tests, lint with 0 errors, API docs,
+  319 migrations/223 groups, P0/go-live suites, SQL parsing and production
+  build.
+- Produced the complete report and Docker-free production runbook.
+- Recorded that production is still NO-GO until authorized apply, postflight,
+  live lint and smoke tests pass.

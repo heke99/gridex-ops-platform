@@ -36,3 +36,13 @@ Status: VERIFIED
 Documented UUIDs are opaque tenant-bound public resource identifiers, never
 authorization. Internal pricing/publication/identity/provider IDs are excluded
 through explicit DTO allowlists.
+
+## ADR-006 — One forward live repair point
+
+Status: IMPLEMENTED_STATIC_VERIFIED
+
+The noncanonical historical chain must not be replayed or mass-marked as
+applied. Production convergence uses the single fail-closed
+`20260728170000_live_schema_code_canonical_sync.sql` repair. Only that version
+may be registered after green post-apply and lint. A new canonical baseline is
+derived later from the verified post-apply schema.

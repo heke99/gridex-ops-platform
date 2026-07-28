@@ -112,6 +112,23 @@ describe('canonical customer onboarding client', () => {
     }))
   })
 
+  it('does not mislabel a missing dependency inside an existing RPC', async () => {
+    state.error = {
+      code: '42883',
+      message: 'function digest(bytea, unknown) does not exist',
+    }
+    await expect(onboardCustomerGraph({
+      company_id: 'company-1',
+      channel: 'api',
+      idempotency_key: 'api:dependency-error',
+      correlation_id: success.correlation_id,
+      customer: { full_name: 'Test' },
+    })).rejects.toEqual(expect.objectContaining<Partial<CanonicalOnboardingError>>({
+      code: 'canonical_onboarding_dependency_missing',
+      correlationId: success.correlation_id,
+    }))
+  })
+
 
   it('records an explicit manual resolution through the service-only RPC', async () => {
     state.data = {

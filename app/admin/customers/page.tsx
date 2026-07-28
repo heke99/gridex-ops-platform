@@ -802,6 +802,8 @@ function contractStatusLabel(value: CustomerContractRow['status']): string {
  return 'Förbereds'
  case 'pending_signature':
  return 'Väntar signering'
+ case 'signature_failed':
+ return 'Signering misslyckades'
  case 'signed':
  return 'Signerat'
  case 'active':
@@ -841,6 +843,7 @@ function contractStatusTone(value: CustomerContractRow['status']): string {
  case 'signed':
  return 'border-emerald-200 bg-emerald-50 text-emerald-700'
  case 'pending_signature':
+ case 'signature_failed':
  return 'border-amber-200 bg-amber-50 text-amber-700'
  case 'terminated':
  case 'cancelled':

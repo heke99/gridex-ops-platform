@@ -47,7 +47,6 @@ type CertificateDisplayRow = {
   p12_secret_reference?: string | null;
   p12_secret_ref?: string | null;
   p12_password_secret_ref?: string | null;
-  password_secret_reference?: string | null;
   secret_reference?: string | null;
   is_private_material_available?: boolean | null;
   needs_verification?: boolean | null;
@@ -86,7 +85,6 @@ function p12SecretReference(row: CertificateDisplayRow): string | null {
 function p12PasswordSecretReference(row: CertificateDisplayRow): string | null {
   return (
     row.p12_password_secret_ref ??
-    row.password_secret_reference ??
     textFromMetadata(row, "passwordSecretReference") ??
     textFromMetadata(row, "p12PasswordSecretReference") ??
     textFromMetadata(row, "p12_password_secret_ref")
@@ -115,7 +113,7 @@ async function listCertificateRows(): Promise<{
   const rich = await supabaseService
     .from("ediel_certificates")
     .select(
-      "id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry, owner_ediel_id, owner_subaddress, message_type, purpose, usage, p12_secret_reference, p12_secret_ref, p12_password_secret_ref, password_secret_reference, secret_reference, is_private_material_available, needs_verification, metadata",
+      "id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry, owner_ediel_id, owner_subaddress, message_type, purpose, usage, p12_secret_reference, p12_secret_ref, p12_password_secret_ref, secret_reference, is_private_material_available, needs_verification, metadata",
     )
     .order("updated_at", { ascending: false })
     .limit(100);

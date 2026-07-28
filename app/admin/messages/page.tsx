@@ -180,8 +180,8 @@ export default async function MessagesPage({ searchParams }: PageProps) {
     // Still exclude truly terminal sent/completed/cancelled rows.
     let outboundQuery = supabaseService
       .from('outbound_requests')
-      .select('id,company_id,source_type,source_id,request_type,status,customer_id,site_id,grid_owner_id,message_family,message_code,ediel_route_profile_id,failure_reason,created_at')
-      .is('ediel_message_id', null)
+      .select('id,company_id,source_type,source_id,request_type,status,customer_id,site_id,grid_owner_id,message_family,message_code,ediel_route_profile_id,failure_reason,created_at,linked_ediel_messages:ediel_messages!ediel_messages_outbound_request_id_fkey(id)')
+      .is('linked_ediel_messages', null)
       .not('status', 'in', '("sent","completed","cancelled")')
       .order('created_at', { ascending: false })
       .limit(50)
@@ -193,7 +193,10 @@ export default async function MessagesPage({ searchParams }: PageProps) {
 
     const { data: outboundData, error: outboundError } = await outboundQuery
     if (!outboundError || ['42703', 'PGRST204', '42P01'].includes(String((outboundError as { code?: string }).code ?? ''))) {
-      pendingOutboundRows = ((outboundData ?? []) as PendingOutboundRow[]).map((r) => ({ ...r, _rowKind: 'outbound' as const }))
+      pendingOutboundRows = (outboundData ?? []).map((row) => ({
+        ...(row as unknown as Omit<PendingOutboundRow, '_rowKind'>),
+        _rowKind: 'outbound' as const,
+      }))
     }
 
     let godrQuery = supabaseService

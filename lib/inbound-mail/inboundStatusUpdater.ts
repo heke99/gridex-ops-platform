@@ -915,8 +915,8 @@ async function updateBusinessStatusFromInbound(input: {
     const { error } = await supabaseService
       .from('metering_permissions')
       .update({
-        status: 'terminated',
-        terminated_at: nowIso(),
+        status: 'ended',
+        approved_end_date: nowIso().slice(0, 10),
         metadata: input.responsePayload,
         updated_by: input.actorUserId ?? null,
         updated_at: nowIso(),

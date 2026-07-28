@@ -39,3 +39,13 @@
 | VM-035 | Focused identity/supply/billing tests | PARTIAL | 49/54; 5 legacy fixtures lack exact IDs |
 | VM-036 | Migration history | VERIFIED | 304 files; 209 groups; checksums |
 | VM-037 | Provider webhook round trip | BLOCKED | No sandbox/credentials |
+| VM-038 | Exported live lint coverage | VERIFIED | 23/23 error functions covered |
+| VM-039 | Exact live function patches | VERIFIED | 41/41 match active exported definitions |
+| VM-040 | Code/live relation and RPC paths | VERIFIED | 4,759 writes, 3,679 field accesses, 120 literal RPC calls |
+| VM-041 | Live repair SQL parse | VERIFIED | Migration 141, preflight 12, post-apply 14 statements |
+| VM-042 | Current migration integrity | VERIFIED | 319 files; 223 version groups; checksums |
+| VM-043 | Current full tests | VERIFIED | 55 files; 357 tests |
+| VM-044 | Current API/OpenAPI | VERIFIED | Version `2026-07-28.1`; all parity checks pass |
+| VM-045 | Current production build | VERIFIED | Next.js build completed |
+| VM-046 | Production repair apply/postflight | BLOCKED | Requires authorized operator/database |
+| VM-047 | Historical canonical baseline | PENDING | Must derive from verified post-apply export |

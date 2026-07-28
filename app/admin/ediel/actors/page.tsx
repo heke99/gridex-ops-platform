@@ -105,7 +105,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
   const [actorsResult, partiesResult, addressesResult, marketActorsResult, actorRolesResult, actorRoutesResult, importIssuesResult, semanticsResult, importRunsResult] = await Promise.all([
     supabaseService
     .from('ediel_actor_settings')
-    .select('id, company_id, ediel_id, actor_ediel_id, actor_role, role, sub_role, environment, is_active, status, updated_at')
+    .select('id, company_id, ediel_id, actor_ediel_id, actor_role, role, environment, is_active, updated_at')
     .order('updated_at', { ascending: false })
       .limit(100),
     supabaseService
@@ -576,8 +576,8 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
             <h2 className="mt-2 text-xl font-black text-slate-950">{row.ediel_id ?? row.actor_ediel_id ?? 'Ediel-id saknas'}</h2>
             <dl className="mt-4 space-y-2 text-sm">
               <div><dt className="font-bold text-slate-500">Bolag</dt><dd>{row.company_id ?? 'Plattform'}</dd></div>
-              <div><dt className="font-bold text-slate-500">Roll</dt><dd>{actorRoleLabel(row.actor_role ?? row.role)} / {actorRoleLabel(row.sub_role)}</dd></div>
-              <div><dt className="font-bold text-slate-500">Status</dt><dd>{actorStatusLabel(row.status ?? (row.is_active ? 'active' : 'inactive'))}</dd></div>
+              <div><dt className="font-bold text-slate-500">Roll</dt><dd>{actorRoleLabel(row.actor_role ?? row.role)}</dd></div>
+              <div><dt className="font-bold text-slate-500">Status</dt><dd>{actorStatusLabel(row.is_active ? 'active' : 'inactive')}</dd></div>
             </dl>
           </section>
         ))}

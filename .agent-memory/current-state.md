@@ -1,23 +1,29 @@
 # Current state
 
-Last updated: 2026-07-27T23:20:00+02:00
+Last updated: 2026-07-28T11:28:30+02:00
 
-- PHASE-28/P0 remediation: IMPLEMENTED and LOCALLY VERIFIED.
-- Uploaded delivery 90 was byte-identical to 88/89
-  (`985474d7b9c47bdd70e59783c165ceb0c9ef5dc950eb1734afc715f26444a1dc`).
-- Migration history now has 318 files, 222 version groups and verified
-  checksums. The legacy `20260727150000` collision is explicit.
-- Six forward migrations (`162000`–`167000`) repair slug/version integrity,
-  copy command, canonical invoice export, quote/event integrity, atomic
-  quote/application commit and customer-contract state/active invariants.
-- Contract P0 regression passes 122 controls; go-live regression passes 208.
-- App, contract and test TypeScript checks pass.
-- Full Vitest passes: 55 files, 356 tests. Billing/onboarding passes 52/52.
-- ESLint passes with 124 existing unused-code warnings and no errors.
-- RBAC audit passes 24 checks with 0 warnings.
-- Public API/OpenAPI checks pass at `2026-07-27.1`.
-- Production build compiles and TypeScript validation passes; final route
-  generation completion is recorded in the current verification log.
-- Database apply/concurrency/two-tenant verification is not performed: no
-  Supabase CLI, PostgreSQL client, database URL or authorized staging project.
+- PHASE-29 live-schema/code canonical synchronization: IMPLEMENTED and
+  LOCALLY VERIFIED.
+- Compared delivery 93 with the exported active live schema, 23 live lint
+  errors, active function definitions, views, triggers, grants, indexes, RLS
+  and recorded remote migration history.
+- Added one fail-closed forward migration:
+  `20260728170000_live_schema_code_canonical_sync.sql`.
+- All 41 exact active-function patches match the exported live definitions.
+- All 23 live-lint function errors are covered.
+- Static code/schema analysis verifies 4,759 literal writes, 3,679 query-field
+  accesses and 120 literal RPC calls against live plus repair.
+- Migration history now has 319 files, 223 version groups and verified
+  checksums. Historical remote/local provenance remains noncanonical.
+- Contract P0 regression passes 126 controls; go-live static suites pass.
+- TypeScript passes.
+- Full Vitest passes: 55 files, 357 tests.
+- ESLint passes with 0 errors and 124 existing unused-code warnings.
+- Public API/OpenAPI checks pass at `2026-07-28.1`.
+- Production Next.js build completes.
+- SQL parser accepts the repair migration (141 statements), preflight (12)
+  and post-apply (14).
+- Production database application is not performed: the workspace has no
+  authorized production connection. Production remains NO-GO until preflight,
+  apply, post-apply, live lint and smoke tests pass.
 - Git provenance remains unavailable because the archive excludes `.git`.

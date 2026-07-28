@@ -81,7 +81,7 @@ const publicContracts = read('lib/website/publicContracts.ts')
 check(/energy_direction/.test(publicContracts) && /production_pricing/.test(publicContracts) && /self_billing/.test(publicContracts), 'Public Contract DTO modellerar consumption/production och settlement')
 
 const openapi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
-check(openapi.info.version === '2026-07-27.1' && openapi['x-contract-schema-version'] === '2026-07-27.1', 'Website OpenAPI har höjd kontraktsversion')
+check(openapi.info.version === '2026-07-28.1' && openapi['x-contract-schema-version'] === '2026-07-28.1', 'Website OpenAPI har höjd kontraktsversion')
 check(Boolean(openapi.components.schemas.EnergyDirection && openapi.components.schemas.ProductionPricing), 'Website OpenAPI modellerar energiriktning och production pricing')
 check(Boolean(openapi.components.schemas.ApiError && openapi.components.schemas.ApiBlocker), 'Website OpenAPI har canonical strukturerad felmodell')
 check(Boolean(openapi.paths['/api/v1/website/legal-bundle']?.get) && !openapi.paths['/api/v1/website/legal/bundle'], 'GET /website/legal-bundle är enda canonical legal route')

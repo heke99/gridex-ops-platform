@@ -4988,6 +4988,27 @@ async function finalizeWebsiteContractSignature(input: {
   contract: WebsiteContractCreateResult;
   acceptanceIds: Record<string, string>;
 }> {
+  const { error: retryError } = await supabaseService.rpc(
+    "gridex_retry_website_contract_signature",
+    {
+      p_company_id: input.companyId,
+      p_contract_id: input.contract.id,
+      p_application_id: input.applicationId,
+    },
+  );
+  if (retryError) {
+    throw new WebsiteApplicationError({
+      message:
+        "Avtalets signeringsläge kunde inte förberedas för ett verifierat signeringsförsök.",
+      status: 500,
+      code: "contract_signature_retry_prepare_failed",
+      field: "contract",
+      stage: "legal_acceptance",
+      hint:
+        "Kontrollera den aktiva gridex_retry_website_contract_signature-definitionen och kundavtalets status.",
+      details: schemaErrorDetail(retryError),
+    });
+  }
   const snapshot = websiteSignatureSnapshot({
     companyId: input.companyId,
     customerId: input.customerId,
