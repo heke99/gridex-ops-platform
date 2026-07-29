@@ -1,6 +1,6 @@
 # Canonicalt spotpris-, resolver-, quote- och faktureringsflöde
 
-Version: `2026-07-28.2`
+Version: `2026-07-29.1`
 
 ## Syfte
 

@@ -16,6 +16,7 @@ import {
   getLifecycleSummary,
   type ContractOpsContext,
 } from "./helpers";
+import { commercialModelFromSnapshot } from "@/lib/pricing/commercialModel";
 import {
   createContractAction,
   createContractFromOfferAction,
@@ -919,6 +920,9 @@ export function CreateFromOfferForm({
   siteOptions: SiteOption[];
   meteringPointOptions: MeteringPointOption[];
 }) {
+  const commercialModel = commercialModelFromSnapshot(
+    offer.commercial_snapshot,
+  );
   return (
     <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
       <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
@@ -948,6 +952,89 @@ export function CreateFromOfferForm({
       <form action={createContractFromOfferAction} className="mt-4 space-y-4">
         <input type="hidden" name="customer_id" value={customerId} />
         <input type="hidden" name="contract_offer_id" value={offer.id} />
+
+        {commercialModel && (
+          <SectionCard
+            title="Exakt prisval"
+            description="Valet fryses som kundens kanoniska prisversion. Inga lösa prisfält kopieras från avtalskortet."
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Prisalternativ">
+                <select
+                  name="price_option_reference"
+                  required
+                  defaultValue={
+                    commercialModel.price_options.length === 1
+                      ? commercialModel.price_options[0]
+                          .price_option_reference
+                      : ""
+                  }
+                  className={inputClassName()}
+                >
+                  <option value="">Välj prisalternativ</option>
+                  {commercialModel.price_options
+                    .filter((option) => option.status === "active")
+                    .map((option) => (
+                      <option
+                        key={option.price_option_reference}
+                        value={option.price_option_reference}
+                      >
+                        {option.customer_name} · {option.binding_months} mån
+                      </option>
+                    ))}
+                </select>
+              </Field>
+              <Field label="Faktureringssätt">
+                <select
+                  name="invoice_delivery_method"
+                  required
+                  defaultValue={
+                    commercialModel.invoice_delivery_methods[0]
+                  }
+                  className={inputClassName()}
+                >
+                  {commercialModel.invoice_delivery_methods.map((method) => (
+                    <option key={method} value={method}>
+                      {method}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {commercialModel.components
+                .filter(
+                  (component) =>
+                    component.selection_policy === "customer_optional" ||
+                    component.selection_policy === "admin_optional",
+                )
+                .map((component) => (
+                  <label
+                    key={component.component_reference}
+                    className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      name={
+                        component.selection_policy === "admin_optional"
+                          ? "admin_selected_component_references"
+                          : "selected_component_references"
+                      }
+                      value={component.component_reference}
+                      defaultChecked={component.default_selected}
+                    />
+                    <span>
+                      <strong>{component.customer_name}</strong>
+                      <span className="block text-xs text-slate-600">
+                        {component.amount} {component.unit} ·{" "}
+                        {component.selection_policy}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+            </div>
+          </SectionCard>
+        )}
 
         <SectionCard title="Grunduppgifter">
           <div className="grid gap-4 md:grid-cols-2">

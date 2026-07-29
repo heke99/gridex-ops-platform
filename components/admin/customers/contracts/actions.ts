@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { supabaseService } from '@/lib/supabase/service'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import {
   addCustomerContractEvent,
@@ -30,6 +31,12 @@ import {
   parseStringOrNull,
   parseTerminationReason,
 } from './helpers'
+import {
+  commercialModelFromSnapshot,
+  resolveCommercialSelection,
+  type InvoiceDeliveryMethod,
+} from '@/lib/pricing/commercialModel'
+import { isPriceArea, type PriceArea } from '@/lib/pricing/types'
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
@@ -269,7 +276,154 @@ export async function createContractFromOfferAction(formData: FormData) {
   const autoRenewEnabled = parseBoolean(formData.get('auto_renew_enabled'))
   const autoRenewTermMonths = parseIntOrNull(formData.get('auto_renew_term_months'))
 
-  const priceSnapshot = buildPriceSnapshot({
+  const commercialModel = commercialModelFromSnapshot(
+    offer.commercial_snapshot,
+  )
+  let resolvedSelection: ReturnType<
+    typeof resolveCommercialSelection
+  > | null = null
+  let canonicalPriceArea: PriceArea | null = null
+  const invoiceDeliveryMethod = (
+    getString(formData, 'invoice_delivery_method') || 'email'
+  ) as InvoiceDeliveryMethod
+  if (commercialModel) {
+    const { data: priceAreaSource, error: priceAreaError } =
+      meteringPointId
+        ? await supabaseService
+            .from('metering_points')
+            .select('price_area_code')
+            .eq('company_id', companyId)
+            .eq('id', meteringPointId)
+            .maybeSingle()
+        : siteId
+          ? await supabaseService
+              .from('customer_sites')
+              .select('price_area_code')
+              .eq('company_id', companyId)
+              .eq('id', siteId)
+              .maybeSingle()
+          : { data: null, error: null }
+    if (priceAreaError) throw priceAreaError
+    const area = String(priceAreaSource?.price_area_code ?? '')
+      .trim()
+      .toUpperCase()
+    if (!isPriceArea(area)) {
+      throw new Error(
+        'Vald anläggning eller mätpunkt måste ha verifierat prisområde SE1–SE4.',
+      )
+    }
+    canonicalPriceArea = area
+    const { data: customerRow, error: customerError } = await supabaseService
+      .from('customers')
+      .select('customer_type')
+      .eq('company_id', companyId)
+      .eq('id', customerId)
+      .maybeSingle()
+    if (customerError) throw customerError
+    const customerType =
+      customerRow?.customer_type === 'business' ? 'business' : 'private'
+    const { data: consumptionRow, error: consumptionError } = siteId
+      ? await supabaseService
+          .from('customer_sites')
+          .select('annual_consumption_kwh')
+          .eq('company_id', companyId)
+          .eq('id', siteId)
+          .maybeSingle()
+      : { data: null, error: null }
+    if (consumptionError) throw consumptionError
+    const requiresAnnualConsumption = commercialModel.components.some(
+      (component) =>
+        component.conditions.minimum_annual_consumption_kwh !== null ||
+        component.conditions.maximum_annual_consumption_kwh !== null,
+    )
+    const rawAnnualConsumptionKwh =
+      consumptionRow?.annual_consumption_kwh ?? null
+    const annualConsumptionKwh = Number(rawAnnualConsumptionKwh)
+    const hasAnnualConsumption =
+      rawAnnualConsumptionKwh !== null &&
+      Number.isFinite(annualConsumptionKwh) &&
+      annualConsumptionKwh >= 0
+    if (requiresAnnualConsumption && !hasAnnualConsumption) {
+      throw new Error(
+        'Vald anläggning måste ha verifierad årsförbrukning när avtalet har förbrukningsvillkor.',
+      )
+    }
+    resolvedSelection = resolveCommercialSelection({
+      model: commercialModel,
+      contractType: offer.contract_type,
+      priceOptionReference:
+        getString(formData, 'price_option_reference') || null,
+      priceArea: canonicalPriceArea,
+      customerType,
+      invoiceDeliveryMethod,
+      selectedComponentReferences: formData
+        .getAll('selected_component_references')
+        .map(String),
+      adminSelectedComponentReferences: formData
+        .getAll('admin_selected_component_references')
+        .map(String),
+      annualConsumptionKwh: hasAnnualConsumption
+        ? annualConsumptionKwh
+        : 0,
+      siteCount: 1,
+      startDate: startsAt ?? new Date().toISOString().slice(0, 10),
+      salesChannel: 'internal',
+    })
+  }
+  const selectedFixedOre =
+    resolvedSelection?.areaPrice?.unit === 'sek_per_kwh'
+      ? resolvedSelection.areaPrice.amount * 100
+      : resolvedSelection?.areaPrice?.amount ?? offer.fixed_price_ore_per_kwh
+  const catalogBaseComponents = Array.isArray(
+    offer.commercial_snapshot?.base_components,
+  )
+    ? offer.commercial_snapshot.base_components
+    : Array.isArray(
+          offer.commercial_snapshot?.base_price_components_snapshot,
+        )
+      ? offer.commercial_snapshot.base_price_components_snapshot
+      : []
+  const frozenBaseComponents =
+    resolvedSelection?.areaPrice && canonicalPriceArea
+      ? catalogBaseComponents.map((value) => {
+          const component = value as Record<string, unknown>
+          return (component.source_type ?? component.sourceType) === 'fixed'
+            ? {
+                ...component,
+                fixed_price_sek_per_kwh: selectedFixedOre! / 100,
+                fixedPriceSekPerKwh: selectedFixedOre! / 100,
+                price_area: canonicalPriceArea,
+                priceArea: canonicalPriceArea,
+                price_option_reference:
+                  resolvedSelection!.priceOption.price_option_reference,
+                price_row_reference:
+                  resolvedSelection!.areaPrice!.price_row_reference,
+              }
+            : component
+        })
+      : catalogBaseComponents
+  const priceSnapshot = resolvedSelection
+    ? {
+        ...offer.commercial_snapshot,
+        snapshot_schema: 'gridex_contract_pricing_v6_selection',
+        source: 'internal_customer_contract_selection',
+        contract_type: offer.contract_type,
+        price_area: canonicalPriceArea,
+        price_option_reference:
+          resolvedSelection.priceOption.price_option_reference,
+        area_price_reference:
+          resolvedSelection.areaPrice?.price_row_reference ?? null,
+        invoice_delivery_method: invoiceDeliveryMethod,
+        selected_component_references:
+          resolvedSelection.selectedComponentReferences,
+        mandatory_component_references:
+          resolvedSelection.mandatoryComponentReferences,
+        conditional_component_references:
+          resolvedSelection.conditionalComponentReferences,
+        base_price_components_snapshot: frozenBaseComponents,
+        price_components_snapshot: resolvedSelection.components,
+      }
+    : buildPriceSnapshot({
     fixedPriceOrePerKwh: offer.fixed_price_ore_per_kwh,
     spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh,
     variableFeeOrePerKwh: offer.variable_fee_ore_per_kwh,
@@ -281,8 +435,8 @@ export async function createContractFromOfferAction(formData: FormData) {
     startFeeSek: offer.start_fee_sek,
     adminFeeSek: offer.admin_fee_sek,
     breakFeeSek: offer.break_fee_sek,
-    vatRate: offer.vat_rate,
-  })
+        vatRate: offer.vat_rate,
+      })
   const campaignSnapshot = buildCampaignSnapshot({
     campaignName: offer.campaign_name,
     campaignCode: offer.campaign_code ?? null,
@@ -293,7 +447,38 @@ export async function createContractFromOfferAction(formData: FormData) {
     offer,
   })
 
-  const contract = await createCustomerContract({
+  const canonicalCommand = resolvedSelection
+    ? await supabaseService.rpc('gridex_create_internal_customer_contract_v1', {
+        p_company_id: companyId,
+        p_customer_id: customerId,
+        p_contract_offer_id: offer.id,
+        p_site_id: siteId,
+        p_metering_point_id: meteringPointId,
+        p_selection: priceSnapshot,
+        p_contract: {
+          status,
+          contract_name: offer.name,
+          starts_at: startsAt,
+          ends_at: endsAt,
+          signed_at:
+            status === 'signed' || status === 'active'
+              ? signedAt ?? startsAt
+              : null,
+          termination_notice_date: terminationNoticeDate,
+          termination_reason: terminationReason,
+          auto_renew_enabled: autoRenewEnabled,
+          auto_renew_term_months: autoRenewTermMonths,
+          override_reason: overrideReason,
+        },
+        p_actor_user_id: user.id,
+      })
+    : null
+  if (canonicalCommand?.error) throw canonicalCommand.error
+  const canonicalContract = canonicalCommand?.data
+    ? ((canonicalCommand.data as Record<string, unknown>)
+        .contract as CustomerContractRow | undefined)
+    : undefined
+  const contract = canonicalContract ?? await createCustomerContract({
     companyId,
     customerId,
     siteId,
@@ -316,15 +501,24 @@ export async function createContractFromOfferAction(formData: FormData) {
     vatRate: offer.vat_rate ?? null,
     priceSnapshot,
     campaignSnapshot,
-    fixedPriceOrePerKwh: offer.fixed_price_ore_per_kwh,
+    fixedPriceOrePerKwh: selectedFixedOre,
     spotMarkupOrePerKwh: offer.spot_markup_ore_per_kwh,
     variableFeeOrePerKwh: offer.variable_fee_ore_per_kwh,
     monthlyFeeSek: offer.monthly_fee_sek,
     greenFeeMode: offer.green_fee_mode,
     greenFeeValue: offer.green_fee_value,
-    bindingMonths: offer.default_binding_months,
-    noticeMonths: offer.default_notice_months,
-    optionalFeeLines: offer.optional_fee_lines ?? [],
+    bindingMonths:
+      resolvedSelection?.priceOption.binding_months ??
+      offer.default_binding_months,
+    noticeMonths:
+      resolvedSelection?.priceOption.notice_months ??
+      offer.default_notice_months,
+    optionalFeeLines:
+      resolvedSelection?.components.map((component) => ({
+        ...component,
+        component_reference: component.componentReference,
+        component_code: component.componentCode,
+      })) ?? offer.optional_fee_lines ?? [],
     startsAt,
     endsAt,
     signedAt: status === 'signed' || status === 'active' ? signedAt ?? startsAt : null,

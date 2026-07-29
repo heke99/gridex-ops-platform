@@ -6,6 +6,7 @@ import {
 
 function baseForm(overrides: Record<string, string> = {}): FormData {
   const form = new FormData();
+  const contractType = overrides.contract_type ?? "variable_hourly";
   const values = {
     company_id: "11111111-1111-4111-8111-111111111111",
     name: "Canonical testavtal",
@@ -14,6 +15,44 @@ function baseForm(overrides: Record<string, string> = {}): FormData {
     invoice_fee_sek: "0",
     vat_rate: "25",
     price_areas: "SE1,SE2,SE3,SE4",
+    price_options_json: JSON.stringify([
+      {
+        price_option_reference: "test_price_option",
+        option_code: "test_option",
+        customer_name: "Testalternativ",
+        internal_description: null,
+        contract_type: contractType,
+        binding_months: 0,
+        notice_months: 1,
+        auto_renew_enabled: false,
+        renewal_term_months: null,
+        valid_from: null,
+        valid_to: null,
+        earliest_start_date: null,
+        latest_start_date: null,
+        status: "active",
+        sort_order: 0,
+        version_number: 1,
+        area_prices:
+          contractType === "fixed"
+            ? [
+                {
+                  price_row_reference: "test_area_se3",
+                  price_area: "SE3",
+                  amount: 99.5,
+                  unit: "ore_per_kwh",
+                  vat_treatment: "standard",
+                  valid_from: null,
+                  valid_to: null,
+                  metadata: {},
+                },
+              ]
+            : [],
+        metadata: {},
+      },
+    ]),
+    commercial_components_json: "[]",
+    invoice_delivery_methods_json: '["email"]',
     ...overrides,
   };
   for (const [key, value] of Object.entries(values)) form.set(key, value);

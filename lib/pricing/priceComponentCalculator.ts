@@ -111,7 +111,10 @@ function normalizedCalculationType(component: PriceComponent): string {
   if (component.calculationType === "discount_fixed") return "discount_fixed";
   if (component.calculationType === "rounding") return "rounding";
   if (unit === "ore_per_kwh" || unit === "sek_per_kwh") return "per_kwh";
-  if (unit === "sek_month") return "fixed_monthly";
+  if (unit === "sek_month" || component.unit === "sek_site_month")
+    return "fixed_monthly";
+  if (component.unit === "sek_year") return "fixed_once";
+  if (component.unit === "sek_event") return "event_only";
   if (unit === "sek_invoice" || unit === "sek_once") return "fixed_once";
   if (unit === "percentage") return "percentage";
   return component.calculationType;
@@ -143,6 +146,45 @@ export function calculatePriceComponents(input: {
     (a, b) => (a.priority ?? 100) - (b.priority ?? 100),
   );
   for (const component of activeComponents) {
+    if (
+      component.calculationInclusion === "excluded" ||
+      component.selected === false ||
+      component.eligible === false
+    ) {
+      continue;
+    }
+    if (
+      component.lifecycle === "per_invoice" &&
+      input.underlay.invoiceCreated === false
+    ) {
+      continue;
+    }
+    if (
+      component.lifecycle === "once_per_contract" &&
+      input.underlay.isFirstContractPeriod === false
+    ) {
+      continue;
+    }
+    if (
+      component.lifecycle === "once_per_site" &&
+      input.underlay.isFirstSitePeriod === false
+    ) {
+      continue;
+    }
+    if (
+      component.lifecycle === "annual" &&
+      input.underlay.annualChargeDue === false
+    ) {
+      continue;
+    }
+    if (
+      component.lifecycle === "event_only" &&
+      (!input.underlay.contractEvent ||
+        input.underlay.contractEvent !==
+          metadataString(component.metadata, "event"))
+    ) {
+      continue;
+    }
     const type = normalizedCalculationType(component);
     let quantity: number | null = 1;
     let unit = component.unit ?? "st";
@@ -167,14 +209,28 @@ export function calculatePriceComponents(input: {
       // Fixed monthly fees are charged once per billing period by default. The unit
       // conversion layer may normalize legacy `sek` rows to `sek_month`, but the
       // monetary rule is still: one monthly charge per invoice period.
-      const monthlyQuantity = fixedMonthlyQuantity(input.underlay, component);
+      const siteMultiplier =
+        component.unit === "sek_site_month"
+          ? Math.max(input.underlay.siteCount ?? 1, 1)
+          : 1;
+      const monthlyQuantity =
+        fixedMonthlyQuantity(input.underlay, component) * siteMultiplier;
       quantity = monthlyQuantity;
-      unit = "månad";
+      unit =
+        component.unit === "sek_site_month"
+          ? "anläggningsmånad"
+          : "månad";
       unitPriceExVat = component.amount;
       amountExVat = component.amount * monthlyQuantity;
-    } else if (type === "fixed_once") {
-      amountExVat = component.amount;
-      unit = "st";
+    } else if (type === "fixed_once" || type === "event_only") {
+      const siteMultiplier =
+        component.lifecycle === "once_per_site"
+          ? Math.max(input.underlay.siteCount ?? 1, 1)
+          : 1;
+      quantity = siteMultiplier;
+      amountExVat = component.amount * siteMultiplier;
+      unit =
+        component.lifecycle === "once_per_site" ? "anläggning" : "st";
     } else if (type === "percentage") {
       const calculationBase =
         component.calculationBase ??
@@ -274,6 +330,8 @@ export function calculatePriceComponents(input: {
       sortOrder,
       metadata: {
         ...(component.metadata ?? {}),
+        component_reference: component.componentReference ?? null,
+        component_code: component.componentCode ?? null,
         component_type: component.componentType,
         calculation_type: component.calculationType,
         calculation_base:
@@ -294,6 +352,19 @@ export function calculatePriceComponents(input: {
           }),
         ),
         vat_rate_explicit: true,
+        selection_policy: component.selectionPolicy ?? null,
+        calculation_inclusion:
+          component.calculationInclusion ?? "included",
+        selected: component.selected ?? true,
+        selection_source: component.selectionSource ?? null,
+        // Ineligible components are filtered above and can never become rows.
+        eligibility: "eligible",
+        lifecycle:
+          component.lifecycle ??
+          metadataString(component.metadata, "lifecycle"),
+        periodization_rule: component.periodizationRule ?? null,
+        invoice_delivery_method:
+          component.invoiceDeliveryMethod ?? null,
       },
     });
     sortOrder += 10;

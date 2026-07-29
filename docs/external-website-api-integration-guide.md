@@ -1,6 +1,6 @@
 # Gridex OPS – extern websiteintegration
 
-> **Canonical API-version: 2026-07-28.2**
+> **Canonical API-version: 2026-07-29.1**
 >
 > OPS är source of truth för publicerad produkt, elområdesresolution, quote, kundacceptans och det prisunderlag som låses på kundavtalet. Tenantens webb visar OPS data men skapar inte en parallell pris- eller områdessanning.
 
@@ -221,6 +221,10 @@ Scope: website_quotes.write
 {
   "resolution_id": "uuid",
   "offer_reference": "offer_...",
+  "price_option_reference": "price_option_...",
+  "invoice_delivery_method": "paper",
+  "selected_component_references": ["green_energy_100"],
+  "site_count": 1,
   "annual_consumption_kwh": 12000,
   "customer_type": "private",
   "start_date": "2026-09-01"
@@ -232,12 +236,21 @@ Scope: website_quotes.write
 OPS quoten låser:
 
 - publicerad produkt- och publiceringsversion;
+- exakt prisalternativ och stabil områdesprisreferens;
 - vald SE-områdesrad;
-- avgifter, rabatter och momsmodell;
+- faktureringssätt samt obligatoriska, valda och villkorsstyrda komponenter;
+- fullständiga lösta bas- och avgiftskomponenter;
 - resolver- och geodataversion;
 - indikativ marknadsreferens för rörliga avtal;
 - beräkningsantaganden och giltighetstid;
 - SHA-256-hash över immutable quote-snapshot.
+
+`price_option_reference` hämtas från produktfeedens
+`pricing.price_options`. Endast `customer_optional`-komponenter får skickas i
+`selected_component_references`. Servern lägger själv till `mandatory` och
+tillämpliga `conditional`-komponenter; `admin_optional` kan aldrig väljas av
+webbklienten. Pappersfaktura kan därför exempelvis aktivera 39 kr per faktura,
+medan e-post och e-faktura lämnar samma villkorskomponent exkluderad.
 
 ### Indikativ marknadsreferens
 
@@ -473,9 +486,9 @@ https://app.gridex.se/api/v1/openapi/customer-portal-v1.json
 
 Filerna kan hämtas i CI för typgenerering men får inte hämtas som ett krav när tenantens applikation startar. Publik utvecklarsida: `https://app.gridex.se/developers/customer-portal-api`.
 
-API-svaret innehåller `contract_schema_version=2026-07-28.2` och headern `X-Gridex-Contract-Version`.
+API-svaret innehåller `contract_schema_version=2026-07-29.1` och headern `X-Gridex-Contract-Version`.
 
-## Canonical marknadsprisflöde i API 2026-07-28.2
+## Canonical marknadsprisflöde i API 2026-07-29.1
 
 Det finns tre separata operationer:
 
@@ -540,7 +553,7 @@ Scope: website_legal.read eller website_contracts.read
 
 Tenant härleds från API-nyckeln. Endpointen accepterar inte `company_id`. Sökvägen `/api/v1/website/legal/bundle` har ingen separat runtimeimplementation och ska inte användas.
 
-## Migrering till kontraktsversion 2026-07-28.2
+## Migrering till kontraktsversion 2026-07-29.1
 
 - läs och bevara `energy_direction` i Public Contract, quote och kundansökningssvar;
 - hantera `production_pricing` och `self_billing` för produktionsavtal;

@@ -56,3 +56,10 @@
 | VM-052 | New migration checksum | VERIFIED | `20260728190000...` matches manifest |
 | VM-053 | Historical migration integrity | BLOCKED | `20260728170000...` immutable checksum drift |
 | VM-054 | Channel post-apply and scenarios A-H | BLOCKED | Requires trusted history and authorized PostgreSQL/API environment |
+| VM-055 | Commercial model TypeScript | VERIFIED | App and test targets pass |
+| VM-056 | Commercial unit/full tests | VERIFIED | 57 files / 365 tests |
+| VM-057 | Commercial static regression | VERIFIED | Admin/quote/internal/snapshot/billing chain |
+| VM-058 | API/OpenAPI/docs | VERIFIED | Version `2026-07-29.1`; all parity checks pass |
+| VM-059 | Commercial production build | VERIFIED | Clean Next.js build completed |
+| VM-060 | New commercial migration checksum | VERIFIED | `20260729200000...` exact manifest match |
+| VM-061 | Commercial PostgreSQL apply/post-apply | BLOCKED | Requires BLK-003 recovery and authorized staging |

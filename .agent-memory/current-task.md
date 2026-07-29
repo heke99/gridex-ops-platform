@@ -1,57 +1,36 @@
 # Current task
 
-Last updated: 2026-07-28T15:08:00+02:00  
+Last updated: 2026-07-29T15:56:55+02:00  
 Branch: UNVERIFIED (uploaded archive excludes `.git`)  
 Last verified commit: null
 
 ## Active phase
 
-PHASE-30 — canonical contract-channel database verification and release proof.
+PHASE-31 — canonical contract commercial selection, snapshot and billing completion.
 
 ## Completed locally
 
-- Implemented channel grants, common readiness, granular RBAC and one
-  canonical application service for internal, website and API.
-- Rebuilt strict canonical admin/publication projections and graph integrity.
-- Added the public DTO allowlist and API/OpenAPI version `2026-07-28.2`.
-- Added forward migration `20260728190000...`, post-apply inspection and
-  targeted static/behavior regressions.
-- Verified app/test/script/contract TypeScript targets, 361 tests, full
-  go-live suites, API docs, lint and production build.
-
-- Audited the active live export against delivery 93.
-- Implemented `20260728170000_live_schema_code_canonical_sync.sql`.
-- Added read-only preflight, rollback-only post-apply and live-schema/code
-  regression.
-- Repaired runtime, OpenAPI and canonical database paths.
-- Verified 319 migrations / 223 groups, 357 tests, typecheck, lint, API docs,
-  P0/go-live regressions, SQL parse and production build.
-- Produced `GRIDEX_LIVE_SCHEMA_CODE_SYNC_REPORT_2026-07-28.md` and
-  `GRIDEX_LIVE_REPAIR_RUNBOOK_2026-07-28.md`.
+- Replaced free-text fixed-area and optional-fee authoring with structured, type-driven price-option/component editing and stable references.
+- Added one validated `gridex_contract_pricing_v6_selection` model for admin, public feed, quote, internal customer selection, signed snapshots and billing.
+- Added exact quote identity/hash fields for option, area row, invoice method and mandatory/customer/conditional components.
+- Removed the website onboarding compatibility-snapshot reduction. V6 contracts freeze the quote's exact base and price components.
+- Added an atomic internal customer-contract command using the same selection resolver and immutable contract-price snapshot.
+- Extended billing lifecycle semantics and fail-closed v6 snapshot identity.
+- Added forward migration `20260729200000...`, deterministic fixed-price backfill, review queue, RLS, tenant/version guards and trace columns.
+- Synchronized runtime/OpenAPI/docs to `2026-07-29.1`.
+- Verified TypeScript, lint, 365 tests, API docs, focused commercial regressions and a clean production build.
 
 ## Exact next action
 
-Recover `20260728170000_live_schema_code_canonical_sync.sql` byte-for-byte from
-the trusted applied source so its SHA-256 is
-`881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482`.
-Do not update the manifest instead. After `npm run db:migrations:check` is
-green, apply `20260728190000...` to staging, run
-`gridex-contract-channel-publication-post-apply.sql`, scenarios A-H and both
-external endpoint checks. Promote only after every result is green.
+Recover `20260728170000_live_schema_code_canonical_sync.sql` byte-for-byte from the trusted applied source so its SHA-256 is `881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482`. Then require a green migration check, apply pending forward migrations through `20260729200000...` in staging, run both channel and commercial post-apply SQL, and execute website plus internal option/component/invoice parity scenarios.
 
 ## Blockers
 
-- The exact trusted bytes for historical migration `20260728170000...` are
-  absent from the uploaded and prior available archives.
-- No authorized staging/live database connection is present in this workspace.
-- Provider sandbox/credentials and deployment target are unavailable.
-- The uploaded archive has no Git metadata.
-- Historical remote/local migrations are not a canonical chain; do not run
-  `db push`.
+- The exact trusted bytes for historical migration `20260728170000...` are not present in the supplied or previously available archives.
+- No authorized PostgreSQL staging/live connection is available.
+- The new migration could not be applied to clean and upgraded databases in this workspace.
+- Provider sandbox/credentials, deployment target and Git metadata are absent.
 
 ## Do not repeat
 
-Do not report local/static success as a production apply. Do not rewrite the
-historical checksum, run `db push`, replay old migrations, mark the complete
-local history as applied, restore direct core/legacy execution, or guess
-missing provider environments.
+Do not change the historical manifest checksum, use `db push`, replay the noncanonical history, claim a database apply from static verification, or permit v6 billing to fall back to loose offer scalars.

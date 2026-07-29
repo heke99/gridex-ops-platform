@@ -230,7 +230,10 @@
     "gridex:contract-security-energy-direction-regression": "node scripts/gridex-contract-security-energy-direction-regression.cjs",
     "gridex:contract-channel-publication-regression": "node scripts/gridex-contract-channel-publication-regression.cjs",
     "gridex:contract-channel-publication-post-apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/gridex-contract-channel-publication-post-apply.sql",
-    "verify:contract-channel-publication:static": "npm run typecheck && vitest run __tests__/contract-channel-publication-completion.test.ts && npm run gridex:contract-channel-publication-regression && npm run api:docs"
+    "verify:contract-channel-publication:static": "npm run typecheck && vitest run __tests__/contract-channel-publication-completion.test.ts && npm run gridex:contract-channel-publication-regression && npm run api:docs",
+    "gridex:contract-commercial-selection-regression": "node scripts/gridex-contract-commercial-selection-regression.cjs",
+    "gridex:contract-commercial-selection-post-apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/gridex-contract-commercial-selection-post-apply.sql",
+    "verify:contract-commercial-selection:static": "npm run db:migrations:check && npm run typecheck && npm run typecheck:tests && vitest run __tests__/contract-commercial-selection.test.ts && npm run gridex:contract-commercial-selection-regression && npm run api:docs && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

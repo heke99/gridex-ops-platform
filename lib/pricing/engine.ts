@@ -116,6 +116,34 @@ function normalizePricingSnapshot(
     const snapshotJson = isObject(snapshot.snapshot_json)
       ? snapshot.snapshot_json
       : {};
+    const schemaVersion =
+      stringValue(snapshot.snapshot_schema_version) ??
+      stringValue(snapshotJson.snapshot_schema) ??
+      stringValue(snapshotJson.schema_version);
+    if (
+      schemaVersion === "gridex_contract_pricing_v6_selection" &&
+      (
+        !(
+          stringValue(snapshot.price_option_reference) ??
+          stringValue(snapshotJson.price_option_reference)
+        ) ||
+        !(
+          stringValue(snapshot.invoice_delivery_method) ??
+          stringValue(snapshotJson.invoice_delivery_method)
+        ) ||
+        (stringValue(snapshotJson.contract_type) === "fixed" &&
+          !(
+            stringValue(snapshot.area_price_reference) ??
+            stringValue(snapshotJson.area_price_reference)
+          )) ||
+        !Array.isArray(snapshot.base_price_components_snapshot) ||
+        !Array.isArray(snapshot.price_components_snapshot)
+      )
+    ) {
+      throw new Error(
+        "contract_pricing_v6_selection_identity_incomplete",
+      );
+    }
     return {
       ...underlaySnapshot,
       ...snapshotJson,
@@ -162,6 +190,17 @@ function underlayToInput(
   const priceArea = isPriceArea(priceAreaRaw) ? priceAreaRaw : null;
 
   if (!period) throw new Error("Fakturaperiod saknas på underlaget.");
+  const periodStart =
+    stringValue(underlay.billing_period_start) ?? period.start;
+  const contractStart =
+    stringValue(contract?.starts_at) ??
+    stringValue(contract?.actual_start_at);
+  const firstContractPeriod =
+    Boolean(contractStart) &&
+    contractStart!.slice(0, 7) === periodStart.slice(0, 7);
+  const anniversaryMonth =
+    Boolean(contractStart) &&
+    contractStart!.slice(5, 7) === periodStart.slice(5, 7);
 
   return {
     companyId,
@@ -194,12 +233,16 @@ function underlayToInput(
         ? value
         : "invoice";
     })(),
-    periodStart: stringValue(underlay.billing_period_start) ?? period.start,
+    periodStart,
     periodEnd: stringValue(underlay.billing_period_end) ?? period.end,
-    activeFrom:
-      stringValue(contract?.starts_at) ??
-      stringValue(contract?.actual_start_at),
+    activeFrom: contractStart,
     activeTo: stringValue(contract?.ends_at),
+    siteCount: 1,
+    invoiceCreated: true,
+    isFirstContractPeriod: firstContractPeriod,
+    isFirstSitePeriod: firstContractPeriod,
+    annualChargeDue: anniversaryMonth,
+    contractEvent: stringValue(payload.contract_event),
     pricingSnapshot: normalizePricingSnapshot(underlay, snapshot),
   };
 }

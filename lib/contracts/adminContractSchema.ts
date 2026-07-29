@@ -1,6 +1,14 @@
 import { z } from "zod";
 
 import { slugifyContract } from "@/lib/contracts/slug";
+import {
+  commercialComponentSchema,
+  commercialModelSchema,
+  priceOptionSchema,
+  type CommercialPriceComponent,
+  type ContractPriceOption,
+  type InvoiceDeliveryMethod,
+} from "@/lib/pricing/commercialModel";
 
 export const CONTRACT_LIFECYCLE_STATUSES = [
   "draft",
@@ -85,6 +93,24 @@ function nullableInteger(value: string, label: string): number | null {
 function booleanValue(formData: FormData, key: string): boolean {
   const value = formData.get(key);
   return value === "on" || value === "true" || value === "1";
+}
+
+function nullableCalendarDate(value: string, label: string): string | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) throw new Error(`${label} måste anges som YYYY-MM-DD.`);
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new Error(`${label} finns inte i kalendern.`);
+  }
+  return value;
 }
 
 function booleanToken(value: string, fallback: boolean): boolean {
@@ -204,6 +230,9 @@ export type ParsedAdminContractForm = {
   validTo: string | null;
   optionalFees: StructuredOptionalFee[];
   rawOptionalFeeLines: string;
+  priceOptions: ContractPriceOption[];
+  commercialComponents: CommercialPriceComponent[];
+  invoiceDeliveryMethods: InvoiceDeliveryMethod[];
   priceAreas: string;
   portfolioId: string;
   portfolioSettlementTiming: string;
@@ -223,6 +252,28 @@ export type ParsedAdminContractForm = {
   productionSettlementMode: string;
   visibility: Record<string, boolean>;
 };
+
+function parseJsonArray(
+  value: string,
+  label: string,
+): unknown[] {
+  if (!value) throw new Error(`${label} saknas.`);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(`${label} innehåller ogiltig JSON.`);
+  }
+  if (!Array.isArray(parsed)) throw new Error(`${label} måste vara en lista.`);
+  return parsed;
+}
+
+function firstComponentAmount(
+  components: CommercialPriceComponent[],
+  code: string,
+): number | null {
+  return components.find((component) => component.component_code === code)?.amount ?? null;
+}
 
 export function parseAdminContractForm(formData: FormData): ParsedAdminContractForm {
   const companyId = raw(formData, "company_id");
@@ -263,8 +314,14 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
   if (automaticRenewal && (automaticRenewalTermMonths === null || automaticRenewalTermMonths < 1))
     throw new Error("Automatisk förlängning kräver en förlängningsperiod på minst en månad.");
 
-  const validFrom = raw(formData, "valid_from") || null;
-  const validTo = raw(formData, "valid_to") || null;
+  const validFrom = nullableCalendarDate(
+    raw(formData, "valid_from"),
+    "Giltig från",
+  );
+  const validTo = nullableCalendarDate(
+    raw(formData, "valid_to"),
+    "Giltig till",
+  );
   if (validFrom && validTo && validTo < validFrom)
     throw new Error("Slutdatum får inte ligga före startdatum.");
 
@@ -316,6 +373,73 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
   const vatRate = nullableNumber(raw(formData, "vat_rate"), "Moms") ?? 25;
   if (vatRate < 0 || vatRate > 100) throw new Error("Moms måste vara mellan 0 och 100 procent.");
 
+  const priceOptions = z
+    .array(priceOptionSchema)
+    .min(1, "Minst ett prisalternativ krävs.")
+    .max(40)
+    .parse(parseJsonArray(raw(formData, "price_options_json"), "Prisalternativ"));
+  const commercialComponents = z
+    .array(commercialComponentSchema)
+    .max(200)
+    .parse(
+      parseJsonArray(
+        raw(formData, "commercial_components_json"),
+        "Priskomponenter",
+      ),
+    );
+  const invoiceDeliveryMethods = z
+    .array(z.enum(["email", "e_invoice", "paper", "direct_debit"]))
+    .min(1, "Minst ett faktureringssätt krävs.")
+    .parse(
+      parseJsonArray(
+        raw(formData, "invoice_delivery_methods_json"),
+        "Faktureringssätt",
+      ),
+    );
+  commercialModelSchema.parse({
+    schema_version: "gridex_contract_pricing_v6_selection",
+    price_options: priceOptions,
+    components: commercialComponents,
+    invoice_delivery_methods: invoiceDeliveryMethods,
+  });
+  if (priceOptions.some((option) => option.contract_type !== contractType)) {
+    throw new Error(
+      "Alla prisalternativ måste tillhöra den valda avtalstypen.",
+    );
+  }
+  if (
+    contractType !== "fixed" &&
+    priceOptions.some((option) => option.area_prices.length > 0)
+  ) {
+    throw new Error(
+      "Endast fastprisavtal får innehålla fasta områdespriser.",
+    );
+  }
+  const optionReferences = new Set(
+    priceOptions.map((option) => option.price_option_reference),
+  );
+  for (const component of commercialComponents) {
+    const invalidOption = component.conditions.price_option_references.find(
+      (reference) => !optionReferences.has(reference),
+    );
+    if (invalidOption) {
+      throw new Error(
+        `Komponenten ${component.component_reference} hänvisar till ett prisalternativ som inte finns.`,
+      );
+    }
+  }
+  const canonicalMonthlyFee = firstComponentAmount(
+    commercialComponents,
+    "monthly_fee",
+  );
+  const canonicalInvoiceFee = firstComponentAmount(
+    commercialComponents,
+    "invoice_administration_fee",
+  );
+  const canonicalGreenFee = commercialComponents.find(
+    (component) => component.component_code === "green_energy_fee",
+  );
+
   return {
     id: raw(formData, "id") || null,
     companyId,
@@ -341,14 +465,28 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     adminFeeSek: nullableNumber(raw(formData, "admin_fee_sek"), "Administrativ avgift"),
     breakFeeSek: nullableNumber(raw(formData, "break_fee_sek"), "Brytavgift"),
     vatRate,
-    fixedPriceOrePerKwh: nullableNumber(raw(formData, "fixed_price_ore_per_kwh"), "Gemensamt fast pris"),
-    fixedPricesByArea: raw(formData, "fixed_prices_by_area"),
+    fixedPriceOrePerKwh:
+      contractType === "fixed" &&
+      priceOptions[0]?.area_prices.length === 1
+        ? priceOptions[0].area_prices[0].amount
+        : null,
+    fixedPricesByArea:
+      contractType === "fixed"
+        ? priceOptions[0].area_prices
+            .map((row) => `${row.price_area} | ${row.amount}`)
+            .join("\n")
+        : "",
     spotMarkupOrePerKwh: nullableNumber(raw(formData, "spot_markup_ore_per_kwh"), "Spotpåslag"),
     variableFeeOrePerKwh: nullableNumber(raw(formData, "variable_fee_ore_per_kwh"), "Rörlig avgift"),
-    monthlyFeeSek: nullableNumber(raw(formData, "monthly_fee_sek"), "Månadsavgift"),
-    invoiceFeeSek,
-    greenFeeMode: greenFeeModeRaw as ParsedAdminContractForm["greenFeeMode"],
-    greenFeeValue: nullableNumber(raw(formData, "green_fee_value"), "Miljöavgift"),
+    monthlyFeeSek: canonicalMonthlyFee,
+    invoiceFeeSek: canonicalInvoiceFee ?? invoiceFeeSek,
+    greenFeeMode:
+      canonicalGreenFee?.unit === "sek_month"
+        ? "sek_month"
+        : canonicalGreenFee?.unit === "ore_per_kwh"
+          ? "ore_per_kwh"
+          : "none",
+    greenFeeValue: canonicalGreenFee?.amount ?? null,
     bindingMonths,
     noticeMonths,
     automaticRenewal,
@@ -359,6 +497,9 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     validTo,
     optionalFees: parseStructuredOptionalFees(rawOptionalFeeLines, defaultOptionalFeeVisibility),
     rawOptionalFeeLines,
+    priceOptions,
+    commercialComponents,
+    invoiceDeliveryMethods,
     priceAreas: raw(formData, "price_areas") || raw(formData, "price_area"),
     portfolioId: raw(formData, "portfolio_id"),
     portfolioSettlementTiming: raw(formData, "portfolio_settlement_timing") || "after_month_close",

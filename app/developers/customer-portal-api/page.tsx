@@ -323,7 +323,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-07-28.2"
+  "contract_schema_version": "2026-07-29.1"
 }`;
 
 const marketReferenceExample = `{
@@ -413,6 +413,10 @@ if (!resolution.data.capabilities.quote_ready) {
 const quote = await gridex.post("/api/v1/website/quote", {
   resolution_id: resolution.data.resolution_id,
   offer_reference: contract.offer_reference,
+  price_option_reference: contract.pricing.price_options[0].price_option_reference,
+  invoice_delivery_method: "email",
+  selected_component_references: [],
+  site_count: 1,
   annual_consumption_kwh: annualConsumptionKwh,
   customer_type: "private",
   start_date: "2026-09-01"

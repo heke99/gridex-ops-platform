@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-07-28.2",
+    "version": "2026-07-29.1",
     "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
@@ -130,7 +130,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-28.2"
+                  "const": "2026-07-29.1"
                 },
                 "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
               }
@@ -150,7 +150,7 @@
                       "$ref": "#/components/schemas/TenantMeta",
                       "properties": {
                         "contract_schema_version": {
-                          "const": "2026-07-28.2"
+                          "const": "2026-07-29.1"
                         }
                       },
                       "required": [
@@ -283,7 +283,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-28.2"
+                  "const": "2026-07-29.1"
                 },
                 "description": "Version of the strict public API contract DTO. Changes invalidate ETag."
               }
@@ -311,7 +311,7 @@
                           ],
                           "properties": {
                             "contract_schema_version": {
-                              "const": "2026-07-28.2"
+                              "const": "2026-07-29.1"
                             }
                           }
                         }
@@ -963,7 +963,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-28.2"
+                  "const": "2026-07-29.1"
                 }
               }
             },
@@ -998,7 +998,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-28.2"
+                  "const": "2026-07-29.1"
                 }
               }
             },
@@ -1126,7 +1126,7 @@
                     "next_update_at": "2026-07-24T16:15:00+02:00"
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-07-28.2"
+                  "contract_schema_version": "2026-07-29.1"
                 }
               }
             }
@@ -1724,7 +1724,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-28.2"
+            "const": "2026-07-29.1"
           },
           "configuration": {
             "type": "object",
@@ -3565,6 +3565,32 @@
               "null"
             ]
           },
+          "component_reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+          },
+          "selection_policy": {
+            "type": "string",
+            "enum": [
+              "mandatory",
+              "customer_optional",
+              "admin_optional",
+              "conditional"
+            ]
+          },
+          "lifecycle": {
+            "type": "string",
+            "enum": [
+              "recurring",
+              "per_invoice",
+              "per_site",
+              "once_per_contract",
+              "once_per_site",
+              "annual",
+              "consumption_based",
+              "event_only"
+            ]
+          },
           "component_type": {
             "type": [
               "string",
@@ -3679,7 +3705,68 @@
             ]
           }
         },
-        "additionalProperties": true
+        "additionalProperties": false
+      },
+      "ContractPriceOption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "price_option_reference",
+          "option_code",
+          "customer_name",
+          "contract_type",
+          "binding_months",
+          "notice_months",
+          "auto_renew_enabled",
+          "area_prices"
+        ],
+        "properties": {
+          "price_option_reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+          },
+          "option_code": {
+            "type": "string"
+          },
+          "customer_name": {
+            "type": "string"
+          },
+          "contract_type": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "variable_monthly",
+              "variable_hourly",
+              "variable_quarterly",
+              "portfolio",
+              "mixed"
+            ]
+          },
+          "binding_months": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "notice_months": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "auto_renew_enabled": {
+            "type": "boolean"
+          },
+          "renewal_term_months": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "area_prices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FixedAreaPrice"
+            }
+          }
+        }
       },
       "WebsiteQuoteRequest": {
         "type": "object",
@@ -3715,6 +3802,31 @@
             "type": "string",
             "format": "uuid",
             "description": "Tenantbunden OPS-resolution. Dess price_area och grid_area_code är canonical."
+          },
+          "price_option_reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+          },
+          "invoice_delivery_method": {
+            "type": "string",
+            "enum": [
+              "email",
+              "e_invoice",
+              "paper",
+              "direct_debit"
+            ]
+          },
+          "selected_component_references": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+            }
+          },
+          "site_count": {
+            "type": "integer",
+            "minimum": 1
           }
         },
         "additionalProperties": false
@@ -3810,6 +3922,58 @@
                 "type": "null"
               }
             ]
+          },
+          "price_option_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "area_price_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invoice_delivery_method": {
+            "type": "string",
+            "enum": [
+              "email",
+              "e_invoice",
+              "paper",
+              "direct_debit"
+            ]
+          },
+          "selected_component_references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mandatory_component_references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "conditional_component_references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "resolved_base_components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "resolved_price_components": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricingComponent"
+            }
           }
         },
         "additionalProperties": true
@@ -4654,7 +4818,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-28.2"
+            "const": "2026-07-29.1"
           }
         },
         "additionalProperties": false
@@ -5410,7 +5574,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-28.2",
+  "x-contract-schema-version": "2026-07-29.1",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

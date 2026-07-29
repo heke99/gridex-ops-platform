@@ -96,3 +96,15 @@
 - Confirmed the historical `20260728170000...` checksum drift cannot be
   repaired from the supplied artifacts; production remains NO-GO pending the
   trusted original plus database scenarios A-H.
+
+## 2026-07-29
+
+- Read the complete commercial contract/price/quote/snapshot/billing assignment and traced the actual admin, SQL, API, onboarding and billing paths.
+- Searched supplied and prior available archives for the trusted historical migration; all available copies contain the same drifting bytes.
+- Implemented the v6 option/component model, type-driven admin editor and strict server validation.
+- Added server-owned selection to website quote and internal customer creation.
+- Fixed the reduced website contract snapshot and added database quote binding.
+- Added billing fail-closed identity and lifecycle charging semantics.
+- Added forward migration, backfill/review, RLS, trace fields, post-apply and regressions; synchronized API/docs at `2026-07-29.1`.
+- Verified 365 tests, TypeScript, changed-file lint, API docs, focused regression and a clean production build.
+- Preserved the historical checksum blocker and made no database-apply claim.

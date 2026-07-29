@@ -436,3 +436,17 @@ Files changed: canonical SQL/view/functions, server service/actions/UI, public D
 Migrations: `20260728190000_contract_channel_permission_publication_completion.sql`
 Last updated: 2026-07-28
 Exact next subtask: restore immutable `20260728170000...`, require green migration check, apply `20260728190000...` in staging and run post-apply plus scenarios A-H
+
+## WP-031: Canonical commercial option/component selection
+Status: IMPLEMENTED_STATIC_VERIFIED_DATABASE_BLOCKED
+Phase: PHASE-31
+Priority: P0
+Depends on: WP-030
+Affected domains: admin contracts, internal customer contracts, public API, quote, immutable snapshots, billing, migrations
+Acceptance criteria: one type-driven option/component model; server-owned selection; exact quote/contract/billing parity; stable references; forward-only tenant-safe schema
+Required verification: clean/upgraded PostgreSQL apply, post-apply, two-tenant/concurrency, internal and website quote-to-invoice scenarios
+Evidence: TypeScript/lint pass; 365 tests; API docs `2026-07-29.1`; focused regression; production build
+Files changed: admin editors/actions, commercial resolver/calculator, quote/onboarding/internal customer/billing, OpenAPI/docs/tests/scripts/memory
+Migrations: `20260729200000_contract_commercial_selection_completion.sql`
+Last updated: 2026-07-29
+Exact next subtask: restore immutable `20260728170000...`, apply through `20260729200000...` in staging and run both post-apply suites plus option/component/invoice parity scenarios

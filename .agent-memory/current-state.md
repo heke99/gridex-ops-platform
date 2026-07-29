@@ -1,51 +1,18 @@
 # Current state
 
-Last updated: 2026-07-28T15:08:00+02:00
+Last updated: 2026-07-29T15:56:55+02:00
 
-- PHASE-30 canonical contract-channel permission/publication completion:
-  IMPLEMENTED and LOCALLY VERIFIED, DATABASE VERIFICATION BLOCKED.
-- Added one canonical grant/readiness/publish/unpublish service for internal,
-  website and API across both admin surfaces.
-- Rebuilt the strict admin read model with mandatory grants, channel status,
-  validity and independent per-channel availability.
-- Added explicit API publication permission, API scope readiness, shared
-  website/API DTO mapping and schema version `2026-07-28.2`.
-- Added the forward migration
-  `20260728190000_contract_channel_permission_publication_completion.sql`,
-  final-schema introspection and 43-control channel regression.
-- TypeScript targets, 56 files/361 tests, API/OpenAPI, 212 go-live controls,
-  518 lifecycle controls, lint and production build pass locally.
-- The new migration checksum is registered and exact.
-- Migration integrity is BLOCKED only because historical
-  `20260728170000_live_schema_code_canonical_sync.sql` differs from its
-  registered checksum. No attached version contains the trusted original.
-- No database was available to apply the migration or execute production
-  scenarios A-H. Release remains NO-GO until the historical file is restored,
-  migration integrity is green, final schema inspection passes and A-H plus
-  endpoint verification pass in staging.
-
-- PHASE-29 live-schema/code canonical synchronization: IMPLEMENTED and
-  LOCALLY VERIFIED.
-- Compared delivery 93 with the exported active live schema, 23 live lint
-  errors, active function definitions, views, triggers, grants, indexes, RLS
-  and recorded remote migration history.
-- Added one fail-closed forward migration:
-  `20260728170000_live_schema_code_canonical_sync.sql`.
-- All 41 exact active-function patches match the exported live definitions.
-- All 23 live-lint function errors are covered.
-- Static code/schema analysis verifies 4,759 literal writes, 3,679 query-field
-  accesses and 120 literal RPC calls against live plus repair.
-- Migration history now has 319 files, 223 version groups and verified
-  checksums. Historical remote/local provenance remains noncanonical.
-- Contract P0 regression passes 126 controls; go-live static suites pass.
-- TypeScript passes.
-- Full Vitest passes: 55 files, 357 tests.
-- ESLint passes with 0 errors and 124 existing unused-code warnings.
-- Public API/OpenAPI checks pass at `2026-07-28.1`.
-- Production Next.js build completes.
-- SQL parser accepts the repair migration (141 statements), preflight (12)
-  and post-apply (14).
-- Production database application is not performed: the workspace has no
-  authorized production connection. Production remains NO-GO until preflight,
-  apply, post-apply, live lint and smoke tests pass.
-- Git provenance remains unavailable because the archive excludes `.git`.
+- PHASE-31 commercial contract model: IMPLEMENTED and LOCALLY VERIFIED; DATABASE VERIFICATION BLOCKED.
+- Canonical schema is `gridex_contract_pricing_v6_selection`.
+- Price options and SE-area rows have stable references and belong to one product/price-plan version.
+- Components carry stable code/reference, selection policy, conditions, lifecycle, invoice line and accounting classification.
+- Admin offer authoring is genuinely type-driven; hidden fields from another contract type are unmounted.
+- Website quote and internal customer registration use the same resolver.
+- Quote hash v3 covers exact selection and resolved component arrays while historical v2 quotes remain verifiable.
+- Website and internal customer contracts freeze exact base/price components.
+- Billing reads the immutable contract snapshot and fails closed on incomplete v6 identity; once/annual/invoice lifecycle gates are explicit.
+- API/OpenAPI/docs are synchronized at `2026-07-29.1`.
+- Verification: app/test TypeScript pass; changed runtime ESLint has zero errors; 57 files/365 tests pass; API contract/parity/version/examples pass; focused regression passes; Next.js production build passes.
+- New migration SHA-256 is `59c19820866d186567914b12fcf831cc94c769ba200038034fbc4e172603d80c` and is registered exactly.
+- Migration integrity remains blocked only by pre-existing immutable `20260728170000...` drift (`a743...` actual versus `881e...` expected).
+- Release remains NO-GO until trusted historical recovery and authorized clean/upgraded staging apply, post-apply and end-to-end parity tests pass.

@@ -28,7 +28,10 @@ export type WebsiteQuoteRecord = {
   geodata_version: string | null
   market_reference: Record<string, unknown>
   quote_hash: string | null
-  quote_hash_version: 'v1_snapshot_only' | 'v2_full_quote'
+  quote_hash_version:
+    | 'v1_snapshot_only'
+    | 'v2_full_quote'
+    | 'v3_commercial_selection'
   resolution_binding_status: 'verified' | 'legacy_unverified'
   postal_code: string | null
   annual_consumption_kwh: number
@@ -37,6 +40,14 @@ export type WebsiteQuoteRecord = {
   market_sources: unknown
   assumptions: unknown
   pricing_snapshot_schema_version: string
+  price_option_reference: string | null
+  area_price_reference: string | null
+  invoice_delivery_method: string | null
+  selected_component_references: string[]
+  mandatory_component_references: string[]
+  conditional_component_references: string[]
+  resolved_base_components: unknown[]
+  resolved_price_components: unknown[]
   quote_snapshot: Record<string, unknown>
   valid_until: string
   status: 'active' | 'consumed' | 'expired' | 'revoked'
@@ -114,6 +125,14 @@ function fullQuoteIntegrityPayload(input: {
   assumptions: unknown
   pricingSnapshotSchemaVersion: string
   quoteSnapshot: Record<string, unknown>
+  priceOptionReference?: string | null
+  areaPriceReference?: string | null
+  invoiceDeliveryMethod?: string | null
+  selectedComponentReferences?: string[]
+  mandatoryComponentReferences?: string[]
+  conditionalComponentReferences?: string[]
+  resolvedBaseComponents?: unknown[]
+  resolvedPriceComponents?: unknown[]
   validUntil: string
 }): Record<string, unknown> {
   return {
@@ -144,9 +163,42 @@ function fullQuoteIntegrityPayload(input: {
     market_sources: input.marketSources,
     assumptions: input.assumptions,
     pricing_snapshot_schema_version: input.pricingSnapshotSchemaVersion,
+    price_option_reference: input.priceOptionReference ?? null,
+    area_price_reference: input.areaPriceReference ?? null,
+    invoice_delivery_method: input.invoiceDeliveryMethod ?? null,
+    selected_component_references:
+      input.selectedComponentReferences ?? [],
+    mandatory_component_references:
+      input.mandatoryComponentReferences ?? [],
+    conditional_component_references:
+      input.conditionalComponentReferences ?? [],
+    resolved_base_components: input.resolvedBaseComponents ?? [],
+    resolved_price_components: input.resolvedPriceComponents ?? [],
     quote_snapshot: input.quoteSnapshot,
     valid_until: input.validUntil,
   }
+}
+
+function quoteIntegrityPayloadForVersion(
+  version: WebsiteQuoteRecord["quote_hash_version"],
+  input: Parameters<typeof fullQuoteIntegrityPayload>[0],
+): Record<string, unknown> {
+  const payload = fullQuoteIntegrityPayload(input)
+  if (version === 'v2_full_quote') {
+    for (const key of [
+      'price_option_reference',
+      'area_price_reference',
+      'invoice_delivery_method',
+      'selected_component_references',
+      'mandatory_component_references',
+      'conditional_component_references',
+      'resolved_base_components',
+      'resolved_price_components',
+    ]) {
+      delete payload[key]
+    }
+  }
+  return payload
 }
 
 export async function persistWebsiteQuote(input: {
@@ -170,10 +222,20 @@ export async function persistWebsiteQuote(input: {
   marketReference?: Record<string, unknown>
   resolutionBindingStatus?: 'verified' | 'legacy_unverified'
   quoteSnapshot: Record<string, unknown>
+  priceOptionReference?: string | null
+  areaPriceReference?: string | null
+  invoiceDeliveryMethod?: string | null
+  selectedComponentReferences?: string[]
+  mandatoryComponentReferences?: string[]
+  conditionalComponentReferences?: string[]
+  resolvedBaseComponents?: unknown[]
+  resolvedPriceComponents?: unknown[]
 }): Promise<{ quoteReference: string; validUntil: string }> {
   const quoteReference = newQuoteReference()
   const validUntil = new Date(Date.now() + quoteLifetimeMinutes() * 60_000).toISOString()
-  const immutableQuoteHash = quoteHash(fullQuoteIntegrityPayload({
+  const immutableQuoteHash = quoteHash(quoteIntegrityPayloadForVersion(
+    'v3_commercial_selection',
+    {
     quoteReference,
     companyId: input.client.company_id,
     offerReference: input.offerReference,
@@ -200,9 +262,18 @@ export async function persistWebsiteQuote(input: {
     marketSources: input.marketSources,
     assumptions: input.assumptions,
     pricingSnapshotSchemaVersion: input.pricingSnapshotSchemaVersion,
+    priceOptionReference: input.priceOptionReference,
+    areaPriceReference: input.areaPriceReference,
+    invoiceDeliveryMethod: input.invoiceDeliveryMethod,
+    selectedComponentReferences: input.selectedComponentReferences,
+    mandatoryComponentReferences: input.mandatoryComponentReferences,
+    conditionalComponentReferences: input.conditionalComponentReferences,
+    resolvedBaseComponents: input.resolvedBaseComponents,
+    resolvedPriceComponents: input.resolvedPriceComponents,
     quoteSnapshot: input.quoteSnapshot,
     validUntil,
-  }))
+    },
+  ))
   const { data: inserted, error } = await supabaseService.from('website_contract_quotes').insert({
     company_id: input.client.company_id,
     api_client_id: input.client.id,
@@ -225,7 +296,7 @@ export async function persistWebsiteQuote(input: {
     geodata_version: input.geodataVersion ?? null,
     market_reference: input.marketReference ?? {},
     quote_hash: immutableQuoteHash,
-    quote_hash_version: 'v2_full_quote',
+    quote_hash_version: 'v3_commercial_selection',
     resolution_binding_status: input.resolutionBindingStatus ?? 'legacy_unverified',
     postal_code: input.postalCode ?? null,
     annual_consumption_kwh: input.annualConsumptionKwh,
@@ -234,6 +305,17 @@ export async function persistWebsiteQuote(input: {
     market_sources: input.marketSources ?? [],
     assumptions: input.assumptions ?? [],
     pricing_snapshot_schema_version: input.pricingSnapshotSchemaVersion,
+    price_option_reference: input.priceOptionReference ?? null,
+    area_price_reference: input.areaPriceReference ?? null,
+    invoice_delivery_method: input.invoiceDeliveryMethod ?? null,
+    selected_component_references:
+      input.selectedComponentReferences ?? [],
+    mandatory_component_references:
+      input.mandatoryComponentReferences ?? [],
+    conditional_component_references:
+      input.conditionalComponentReferences ?? [],
+    resolved_base_components: input.resolvedBaseComponents ?? [],
+    resolved_price_components: input.resolvedPriceComponents ?? [],
     quote_snapshot: input.quoteSnapshot,
     valid_until: validUntil,
     status: 'active',
@@ -343,8 +425,10 @@ export async function validateWebsiteQuote(input: {
   const canonicalPriceArea = canonicalResolution?.priceArea ?? input.priceArea
   const canonicalGridAreaCode = canonicalResolution?.gridAreaCode ?? input.gridAreaCode ?? null
   const computedQuoteHash =
-    quote.quote_hash_version === 'v2_full_quote'
-      ? quoteHash(fullQuoteIntegrityPayload({
+    quote.quote_hash_version !== 'v1_snapshot_only'
+      ? quoteHash(quoteIntegrityPayloadForVersion(
+          quote.quote_hash_version,
+          {
           quoteReference: quote.quote_reference,
           companyId: quote.company_id,
           offerReference: quote.offer_reference,
@@ -371,9 +455,18 @@ export async function validateWebsiteQuote(input: {
           marketSources: quote.market_sources,
           assumptions: quote.assumptions,
           pricingSnapshotSchemaVersion: quote.pricing_snapshot_schema_version,
+          priceOptionReference: quote.price_option_reference,
+          areaPriceReference: quote.area_price_reference,
+          invoiceDeliveryMethod: quote.invoice_delivery_method,
+          selectedComponentReferences: quote.selected_component_references,
+          mandatoryComponentReferences: quote.mandatory_component_references,
+          conditionalComponentReferences: quote.conditional_component_references,
+          resolvedBaseComponents: quote.resolved_base_components,
+          resolvedPriceComponents: quote.resolved_price_components,
           quoteSnapshot: quote.quote_snapshot,
           validUntil: quote.valid_until,
-        }))
+          },
+        ))
       : quoteHash(quote.quote_snapshot)
   if (!quote.quote_hash || quote.quote_hash !== computedQuoteHash) {
     throw new WebsiteQuoteValidationError({

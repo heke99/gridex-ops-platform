@@ -6162,13 +6162,48 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
   });
   assertCanonicalSnapshot(compatibilitySnapshot);
   const exactPricing = input.publicOffer.pricing_snapshot ?? {};
+  const quoteIsSelectionSnapshot =
+    input.websiteQuote?.pricing_snapshot_schema_version ===
+      "gridex_contract_pricing_v6_selection" ||
+    input.websiteQuote?.quote_snapshot?.snapshot_schema ===
+      "gridex_contract_pricing_v6_selection";
+  if (
+    quoteIsSelectionSnapshot &&
+    (!input.websiteQuote?.price_option_reference ||
+      !input.websiteQuote.invoice_delivery_method ||
+      !Array.isArray(input.websiteQuote.resolved_base_components) ||
+      !Array.isArray(input.websiteQuote.resolved_price_components) ||
+      (selected.contractType === "fixed" &&
+        !input.websiteQuote.area_price_reference))
+  ) {
+    throw new WebsiteApplicationError({
+      message:
+        "Offerten saknar exakt prisalternativ, områdesrad, faktureringssätt eller lösta komponenter.",
+      status: 409,
+      code: "quote_commercial_selection_incomplete",
+      field: "quote_reference",
+      stage: "contract_create",
+    });
+  }
   const selectedAreaBaseComponents = selectBaseComponentsForPriceArea(
     exactPricing,
     input.readiness.priceArea,
   );
-  const frozenBaseComponents = selectedAreaBaseComponents.length > 0
-    ? selectedAreaBaseComponents
-    : compatibilitySnapshot.basePriceComponents;
+  const frozenBaseComponents = quoteIsSelectionSnapshot
+    ? input.websiteQuote!.resolved_base_components
+    : selectedAreaBaseComponents.length > 0
+      ? selectedAreaBaseComponents
+      : compatibilitySnapshot.basePriceComponents;
+  const exactCatalogPriceComponents = Array.isArray(
+    exactPricing.price_components,
+  )
+    ? exactPricing.price_components
+    : Array.isArray(exactPricing.price_components_snapshot)
+      ? exactPricing.price_components_snapshot
+      : null;
+  const frozenPriceComponents = quoteIsSelectionSnapshot
+    ? input.websiteQuote!.resolved_price_components
+    : exactCatalogPriceComponents ?? compatibilitySnapshot.priceComponents;
   const quoteSnapshot = input.websiteQuote?.quote_snapshot ?? null;
   const legalSnapshot = websiteLegalVersionsSnapshot(input.legalVersions);
   const poaLegal = input.legalVersions.find((version) => version.type === "power_of_attorney") ?? null;
@@ -6342,6 +6377,14 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         market_reference: input.websiteQuote?.market_reference ?? {},
         selected_area_price_ore_per_kwh: selected.fixedPriceOrePerKwh,
         selected_price_area: input.readiness.priceArea,
+        price_option_reference:
+          input.websiteQuote?.price_option_reference ?? null,
+        area_price_reference:
+          input.websiteQuote?.area_price_reference ?? null,
+        invoice_delivery_method:
+          input.websiteQuote?.invoice_delivery_method ?? null,
+        selected_component_references:
+          input.websiteQuote?.selected_component_references ?? [],
         energy_direction: selected.energyDirection,
         production_pricing: selected.energyDirection === "production"
           ? (input.publicOffer.pricing_snapshot?.production ?? null)
@@ -6364,7 +6407,7 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
       campaign_version_id: selected.campaignVersionId,
       pricing_model: compatibilitySnapshot.pricingModel,
       base_price_components_snapshot: frozenBaseComponents,
-      price_components_snapshot: compatibilitySnapshot.priceComponents,
+      price_components_snapshot: frozenPriceComponents,
       snapshot_json: {
         ...exactPricing,
         source: "website_customer_applications",
@@ -6378,7 +6421,24 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
         public_contract_offer_id: selected.publicContractOfferId,
         pricing_model: compatibilitySnapshot.pricingModel,
         base_price_components_snapshot: frozenBaseComponents,
-        price_components_snapshot: compatibilitySnapshot.priceComponents,
+        price_components_snapshot: frozenPriceComponents,
+        snapshot_schema: quoteIsSelectionSnapshot
+          ? "gridex_contract_pricing_v6_selection"
+          : (exactPricing.snapshot_schema ??
+            exactPricing.schema_version ??
+            "gridex_contract_pricing_v5"),
+        price_option_reference:
+          input.websiteQuote?.price_option_reference ?? null,
+        area_price_reference:
+          input.websiteQuote?.area_price_reference ?? null,
+        invoice_delivery_method:
+          input.websiteQuote?.invoice_delivery_method ?? null,
+        selected_component_references:
+          input.websiteQuote?.selected_component_references ?? [],
+        mandatory_component_references:
+          input.websiteQuote?.mandatory_component_references ?? [],
+        conditional_component_references:
+          input.websiteQuote?.conditional_component_references ?? [],
         requested_start_date: requestedStartDate,
         quote_reference: input.websiteQuote?.quote_reference ?? null,
         quote_hash: input.websiteQuote?.quote_hash ?? null,

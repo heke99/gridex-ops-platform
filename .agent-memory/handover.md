@@ -1,36 +1,26 @@
 # Handover
 
-Last updated: 2026-07-28T15:08:00+02:00
+Last updated: 2026-07-29T15:56:55+02:00
 
 ## Verified locally
 
-- 41/41 exact patches match the exported active live function definitions.
-- 23/23 live-lint errors are covered.
-- 357/357 tests, TypeScript, API/OpenAPI and production build pass.
-- ESLint has 0 errors and 124 existing unused-code warnings.
-- Migration integrity passes for 319 files / 223 version groups.
-- Repair migration, preflight and post-apply parse successfully.
-- Canonical contract-channel regression passes 43 controls.
-- Contract go-live and lifecycle regressions pass 212 and 518 controls.
-- API/OpenAPI/docs pass at `2026-07-28.2`.
-- Full Vitest passes 56 files / 361 tests.
+- Canonical commercial selection unit suite: 5/5.
+- Full Vitest: 57 files / 365 tests.
+- App and test TypeScript targets: pass.
+- Changed runtime ESLint: zero errors.
+- Commercial static regression: pass.
+- API/OpenAPI/docs parity: `2026-07-29.1`, all checks pass.
+- Production Next.js build: pass.
+- New migration checksum matches the manifest.
 
 ## Implemented but not database-verified
 
-`20260728190000_contract_channel_permission_publication_completion.sql` and
-its post-apply/schema-invariant verification. See
-`GRIDEX_CONTRACT_CHANNEL_PUBLICATION_COMPLETION_2026-07-28.md`.
+`20260729200000_contract_commercial_selection_completion.sql`, including option/area tables, component extensions, quote v3 immutability, atomic offer v3, atomic internal customer selection, website snapshot binding, publication guard, legacy backfill/review and invoice trace columns.
 
 ## Active blockers
 
-The checked-in `20260728170000...` bytes do not match the registered immutable
-checksum, and no trusted original is available in the supplied artifacts. No
-authorized production database, provider sandbox, deployment target or Git
-metadata is available.
+Historical `20260728170000...` checksum drift is still a release blocker. No authorized database, provider sandbox, deployment target or Git metadata is available. PostgreSQL clean/upgrade apply and post-apply are therefore not claimed.
 
-## Exact next action
+## Exact continuation
 
-Restore `20260728170000...` from the trusted applied artifact, require a green
-migration check, then follow the channel-completion report against staging.
-Stop on any apply/post-apply/scenario/API failure. Production remains NO-GO
-until scenarios A-H and final endpoint verification pass.
+Restore the historical migration from the trusted applied artifact, run `npm run db:migrations:check`, apply through `20260729200000...` in staging, then run channel and commercial post-apply scripts plus fixed 12/24/36 × SE1–SE4, paper/e-invoice/email, manipulation, cross-tenant and internal-selection-to-invoice scenarios.

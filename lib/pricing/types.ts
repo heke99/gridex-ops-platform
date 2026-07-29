@@ -103,6 +103,8 @@ export type CalculationType =
   | "percent_of_monthly_fixed";
 
 export type PriceComponent = {
+  componentReference?: string | null;
+  componentCode?: string | null;
   componentType: PriceComponentType | string;
   name: string;
   description?: string | null;
@@ -116,6 +118,39 @@ export type PriceComponent = {
   priority?: number | null;
   validFrom?: string | null;
   validTo?: string | null;
+  selectionPolicy?:
+    | "mandatory"
+    | "customer_optional"
+    | "admin_optional"
+    | "conditional";
+  calculationInclusion?: "included" | "excluded" | "conditional";
+  selected?: boolean;
+  selectionSource?:
+    | "mandatory"
+    | "customer"
+    | "admin"
+    | "condition"
+    | "default";
+  eligible?: boolean;
+  lifecycle?:
+    | "recurring"
+    | "per_invoice"
+    | "per_site"
+    | "once_per_contract"
+    | "once_per_site"
+    | "annual"
+    | "consumption_based"
+    | "event_only";
+  periodizationRule?:
+    | "none"
+    | "active_days"
+    | "full_month"
+    | "anniversary";
+  invoiceDeliveryMethod?:
+    | "email"
+    | "e_invoice"
+    | "paper"
+    | "direct_debit";
   metadata?: Record<string, unknown>;
 };
 
@@ -143,6 +178,12 @@ export type BillingUnderlayInput = {
   periodEnd: string;
   activeFrom?: string | null;
   activeTo?: string | null;
+  siteCount?: number;
+  invoiceCreated?: boolean;
+  isFirstContractPeriod?: boolean;
+  isFirstSitePeriod?: boolean;
+  annualChargeDue?: boolean;
+  contractEvent?: string | null;
   pricingSnapshot?: Record<string, unknown> | null;
 };
 

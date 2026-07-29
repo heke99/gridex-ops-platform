@@ -9,6 +9,10 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { calculateOfferQuote, OfferQuoteError } from '@/lib/pricing/offerQuote'
 import { canonicalApiError } from '@/lib/api/apiError'
+import {
+  INVOICE_DELIVERY_METHODS,
+  type InvoiceDeliveryMethod,
+} from '@/lib/pricing/commercialModel'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -29,6 +33,26 @@ function numeric(body: Record<string, unknown>, ...keys: string[]): number | nul
     if (Number.isFinite(parsed)) return parsed
   }
   return null
+}
+
+function stringArray(
+  body: Record<string, unknown>,
+  key: string,
+): string[] {
+  const value = body[key]
+  if (value === undefined) return []
+  if (
+    !Array.isArray(value) ||
+    value.some((entry) => typeof entry !== 'string' || !entry.trim())
+  ) {
+    throw new OfferQuoteError(
+      `${key} måste vara en lista med stabila referenser.`,
+      'invalid_quote_input',
+      400,
+      key,
+    )
+  }
+  return value.map((entry) => String(entry).trim())
 }
 
 function retryableErrorCode(code: string): boolean {
@@ -107,6 +131,10 @@ export async function POST(request: NextRequest) {
       'customer_type',
       'annual_consumption_kwh',
       'start_date',
+      'price_option_reference',
+      'invoice_delivery_method',
+      'selected_component_references',
+      'site_count',
     ])
     const unknownFields = Object.keys(body).filter((key) => !allowedFields.has(key))
     if (unknownFields.length > 0) {
@@ -122,6 +150,20 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       )
     }
+    const invoiceDeliveryMethod = text(body, 'invoice_delivery_method')
+    if (
+      invoiceDeliveryMethod &&
+      !INVOICE_DELIVERY_METHODS.includes(
+        invoiceDeliveryMethod as InvoiceDeliveryMethod,
+      )
+    ) {
+      throw new OfferQuoteError(
+        'invoice_delivery_method är ogiltigt.',
+        'invalid_invoice_delivery_method',
+        400,
+        'invoice_delivery_method',
+      )
+    }
     const result = await calculateOfferQuote({
       client: auth.client,
       offerReference: text(body, 'offer_reference') ?? '',
@@ -133,6 +175,14 @@ export async function POST(request: NextRequest) {
       customerType: text(body, 'customer_type'),
       gridAreaCode: null,
       postalCode: null,
+      priceOptionReference: text(body, 'price_option_reference'),
+      invoiceDeliveryMethod:
+        (invoiceDeliveryMethod as InvoiceDeliveryMethod | null) ?? null,
+      selectedComponentReferences: stringArray(
+        body,
+        'selected_component_references',
+      ),
+      siteCount: numeric(body, 'site_count') ?? 1,
     })
 
     await logIntegrationApiRequest({

@@ -8,7 +8,7 @@ import PortfolioPricingEditor, {
   type PortfolioOption,
 } from "@/components/admin/contracts/PortfolioPricingEditor";
 import PricingCalculationBaseField from "@/components/admin/contracts/PricingCalculationBaseField";
-import { fixedAreaPricesAsAdminText } from "@/lib/pricing/fixedAreaPricing";
+import CommercialPricingEditor from "@/components/admin/contracts/CommercialPricingEditor";
 
 function snapshotValue(
   offer: ContractOfferRow | null,
@@ -41,24 +41,6 @@ function asString(value: unknown, fallback = ""): string {
 
 function asBoolean(value: unknown, fallback = false): boolean {
   return typeof value === "boolean" ? value : fallback;
-}
-
-function optionalFeesText(offer: ContractOfferRow | null): string {
-  const rows = Array.isArray(offer?.optional_fee_lines)
-    ? offer.optional_fee_lines
-    : [];
-  return rows
-    .map((row, index) => {
-      const label = String(row.label ?? row.name ?? `Avgift ${index + 1}`);
-      const amount = String(row.amount ?? row.value ?? "");
-      const unit = String(row.unit ?? "sek_contract");
-      const visible = row.website_visibility === true ? "ja" : "nej";
-      const calculationBase = String(row.calculation_base ?? "");
-      const vat = String(row.vat_treatment ?? "standard");
-      const sortOrder = String(row.sort_order ?? 900 + index);
-      return [label, amount, unit, visible, calculationBase, vat, sortOrder].join(" | ");
-    })
-    .join("\n");
 }
 
 function typedWeights(contractType: ContractType) {
@@ -100,11 +82,6 @@ export default function ContractOfferAdminForm({
   const priceAreas = Array.isArray(snapshotValue(offer, "price_areas"))
     ? (snapshotValue(offer, "price_areas") as unknown[]).map(String)
     : ["SE1", "SE2", "SE3", "SE4"];
-  const fixedAreaPrices = fixedAreaPricesAsAdminText(
-    offer?.commercial_snapshot ?? null,
-    offer?.fixed_price_ore_per_kwh ?? null,
-    priceAreas,
-  );
 
   return (
     <form action={saveContractOfferAction} className="mt-6 space-y-5">
@@ -180,82 +157,108 @@ export default function ContractOfferAdminForm({
       <textarea name="description" defaultValue={offer?.description ?? ""} rows={3} placeholder="Beskrivning" className="w-full rounded-2xl border border-slate-300 px-4 py-3" />
 
       <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-        <h3 className="font-black text-slate-950">Pris och publik synlighet</h3>
-        <p className="mt-1 text-xs leading-5 text-slate-600">Dold på avtalskort betyder inte borttagen. Avgiften finns fortsatt i offert, snapshot, avtal och fakturering.</p>
+        <h3 className="font-black text-slate-950">
+          Typstyrd energiprissättning
+        </h3>
+        <p className="mt-1 text-xs leading-5 text-slate-600">
+          Endast fälten för vald avtalstyp skickas till servern. Typbyte
+          avmonterar föregående prismodell så att dolda värden inte kan följa
+          med.
+        </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <WebsitePricingField
-            name="fixed_price_ore_per_kwh"
-            placeholder="Gemensamt fastpris/fallback öre per kWh"
-            visibilityName="show_fixed_price_on_website"
-            visibilityLabel={
-              contractType === "fixed"
-                ? "Fastpriset visas alltid för kunden"
-                : "Visa på hemsidans avtalskort"
-            }
-            visibilityLocked={contractType === "fixed"}
-            defaultValue={offer?.fixed_price_ore_per_kwh}
-            defaultVisible={
-              contractType === "fixed" ||
-              asBoolean(
-                snapshotValue(offer, "show_fixed_price_on_website"),
-                true,
-              )
-            }
-          />
-          {(contractType === "fixed" || contractType === "mixed") && (
-            <label className="grid gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 p-3 text-sm font-semibold text-indigo-950 md:col-span-2">
-              Fastpris per elområde
-              <textarea
-                name="fixed_prices_by_area"
-                defaultValue={fixedAreaPrices}
-                rows={4}
-                placeholder={"SE1 | 112,00\nSE2 | 115,00\nSE3 | 128,00\nSE4 | 140,00"}
-                className="rounded-xl border border-indigo-200 bg-white px-4 py-3 font-mono text-sm"
+          {contractType === "fixed" ? (
+            <div className="rounded-2xl border border-indigo-200 bg-white p-4 text-sm text-indigo-950 md:col-span-2">
+              Fastpriset anges per elområde och bindningsalternativ i den
+              kanoniska editorn nedan. Inget rörligt spotfält sparas.
+              <input
+                type="hidden"
+                name="show_fixed_price_on_website"
+                value="true"
               />
-              <span className="text-xs font-normal leading-5 text-indigo-800">
-                Ett canonicalt avtal publiceras en gång. Varje rad anger endast vilket fastpris som väljs och låses för kundens verifierade SE-område. Det gemensamma fältet ovan används bara som fallback.
-              </span>
-            </label>
+            </div>
+          ) : (
+            <>
+              <WebsitePricingField
+                name="spot_markup_ore_per_kwh"
+                placeholder="Spotpåslag öre/kWh"
+                visibilityName="show_spot_markup_on_website"
+                defaultValue={offer?.spot_markup_ore_per_kwh}
+                defaultVisible={asBoolean(
+                  snapshotValue(offer, "show_spot_markup_on_website"),
+                  true,
+                )}
+              />
+              <WebsitePricingField
+                name="variable_fee_ore_per_kwh"
+                placeholder="Rörlig avgift öre/kWh"
+                visibilityName="show_variable_fee_on_website"
+                defaultValue={offer?.variable_fee_ore_per_kwh}
+                defaultVisible={asBoolean(
+                  snapshotValue(offer, "show_variable_fee_on_website"),
+                )}
+              />
+            </>
           )}
-          <WebsitePricingField name="spot_markup_ore_per_kwh" placeholder="Spotpåslag öre/kWh" visibilityName="show_spot_markup_on_website" defaultValue={offer?.spot_markup_ore_per_kwh} defaultVisible={asBoolean(snapshotValue(offer, "show_spot_markup_on_website"), true)} />
-          <WebsitePricingField name="variable_fee_ore_per_kwh" placeholder="Rörlig avgift öre/kWh" visibilityName="show_variable_fee_on_website" defaultValue={offer?.variable_fee_ore_per_kwh} defaultVisible={asBoolean(snapshotValue(offer, "show_variable_fee_on_website"))} />
-          <WebsitePricingField name="monthly_fee_sek" placeholder="Månadsavgift kr" visibilityName="show_monthly_fee_on_website" defaultValue={offer?.monthly_fee_sek} defaultVisible={asBoolean(snapshotValue(offer, "show_monthly_fee_on_website"), true)} />
-          <WebsitePricingField name="invoice_fee_sek" label="Fakturaavgift, kr per faktura" placeholder="0 om avgiftsfritt" visibilityName="show_invoice_fee_on_website" helpText="Avgiften används alltid i offert, avtal och fakturering. Synlighetsvalet styr endast avtalskortet." defaultValue={offer?.invoice_fee_sek} defaultVisible={asBoolean(snapshotValue(offer, "show_invoice_fee_on_website"), true)} required={false} />
-          <WebsitePricingField name="electricity_certificate_ore_per_kwh" placeholder="Elcertifikat öre/kWh" visibilityName="show_electricity_certificate_on_website" defaultValue={asString(snapshotValue(offer, "electricity_certificate_ore_per_kwh"))} defaultVisible={asBoolean(snapshotValue(offer, "show_electricity_certificate_on_website"))} />
-          <label className="grid gap-2 rounded-2xl border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-700">
-            Miljöavgiftens enhet
-            <select name="green_fee_mode" defaultValue={offer?.green_fee_mode ?? "none"} className="rounded-xl border border-slate-300 px-4 py-3 text-sm">
-              <option value="none">Ingen miljöavgift</option><option value="sek_month">kr/månad</option><option value="ore_per_kwh">öre/kWh</option>
-            </select>
-          </label>
-          <WebsitePricingField name="green_fee_value" placeholder="Miljöavgift" visibilityName="show_green_fee_on_website" defaultValue={offer?.green_fee_value} defaultVisible={asBoolean(snapshotValue(offer, "show_green_fee_on_website"))} />
+          <WebsitePricingField
+            name="electricity_certificate_ore_per_kwh"
+            placeholder="Elcertifikat öre/kWh"
+            visibilityName="show_electricity_certificate_on_website"
+            defaultValue={asString(
+              snapshotValue(offer, "electricity_certificate_ore_per_kwh"),
+            )}
+            defaultVisible={asBoolean(
+              snapshotValue(
+                offer,
+                "show_electricity_certificate_on_website",
+              ),
+            )}
+          />
         </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">Spotintervall
+        {contractType !== "fixed" && (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">Spotintervall
             <select name="spot_interval_resolution" defaultValue={asString(snapshotValue(offer, "spot_interval_resolution"), "monthly")} className="rounded-2xl border border-slate-300 bg-white px-4 py-3">
-              <option value="monthly">Månadspris</option><option value="hourly">Timpris</option><option value="quarterly">Kvartspris</option>
+              {contractType === "variable_monthly" && <option value="monthly">Månadspris</option>}
+              {contractType === "variable_hourly" && <option value="hourly">Timpris</option>}
+              {contractType === "variable_quarterly" && <option value="quarterly">Kvartspris</option>}
+              {(contractType === "portfolio" || contractType === "mixed") && (
+                <>
+                  <option value="monthly">Månadspris</option>
+                  <option value="hourly">Timpris</option>
+                  <option value="quarterly">Kvartspris</option>
+                </>
+              )}
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-slate-700">Prisområden
             <input name="price_areas" defaultValue={priceAreas.join(",")} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
           </label>
-        </div>
+          </div>
+        )}
       </section>
 
-      <PortfolioPricingEditor
-        key={formKey}
-        portfolios={portfolios}
-        defaultPortfolioId={asString(snapshotValue(offer, "portfolio_id"))}
-        defaultSpotWeight={defaultWeights.spot}
-        defaultPortfolioWeight={defaultWeights.portfolio}
-        defaultFixedWeight={defaultWeights.fixed}
-        defaultManagementFeeAmount={asString(snapshotValue(offer, "portfolio_management_fee_amount"))}
-        defaultManagementFeeUnit={asString(snapshotValue(offer, "portfolio_management_fee_unit"), "ore_per_kwh")}
-        defaultManagementFeeCalculationBase={asString(snapshotValue(offer, "portfolio_management_fee_calculation_base"), "portfolio_cost")}
-        defaultManagementFeeVisible={asBoolean(snapshotValue(offer, "show_portfolio_management_fee_on_website"))}
-        defaultPortfolioPriceVisible={asBoolean(snapshotValue(offer, "show_portfolio_price_on_website"), true)}
-        defaultSettlementTiming={asString(snapshotValue(offer, "portfolio_settlement_timing"), "after_month_close")}
-        defaultEstimateRule={asString(snapshotValue(offer, "portfolio_estimate_rule"), "none")}
+      {(contractType === "portfolio" || contractType === "mixed") && (
+        <PortfolioPricingEditor
+          key={formKey}
+          portfolios={portfolios}
+          defaultPortfolioId={asString(snapshotValue(offer, "portfolio_id"))}
+          defaultSpotWeight={defaultWeights.spot}
+          defaultPortfolioWeight={defaultWeights.portfolio}
+          defaultFixedWeight={defaultWeights.fixed}
+          defaultManagementFeeAmount={asString(snapshotValue(offer, "portfolio_management_fee_amount"))}
+          defaultManagementFeeUnit={asString(snapshotValue(offer, "portfolio_management_fee_unit"), "ore_per_kwh")}
+          defaultManagementFeeCalculationBase={asString(snapshotValue(offer, "portfolio_management_fee_calculation_base"), "portfolio_cost")}
+          defaultManagementFeeVisible={asBoolean(snapshotValue(offer, "show_portfolio_management_fee_on_website"))}
+          defaultPortfolioPriceVisible={asBoolean(snapshotValue(offer, "show_portfolio_price_on_website"), true)}
+          defaultSettlementTiming={asString(snapshotValue(offer, "portfolio_settlement_timing"), "after_month_close")}
+          defaultEstimateRule={asString(snapshotValue(offer, "portfolio_estimate_rule"), "none")}
+        />
+      )}
+
+      <CommercialPricingEditor
+        key={`commercial:${formKey}`}
+        contractType={contractType}
+        snapshot={offer?.commercial_snapshot ?? null}
       />
 
       <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
@@ -277,18 +280,11 @@ export default function ContractOfferAdminForm({
             </select>
           </label>
         </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <WebsitePricingField name="start_fee_sek" placeholder="Startavgift kr" visibilityName="show_start_fee_on_website" defaultValue={offer?.start_fee_sek} />
-          <WebsitePricingField name="admin_fee_sek" placeholder="Administrativ avgift kr" visibilityName="show_admin_fee_on_website" defaultValue={offer?.admin_fee_sek} />
-          <WebsitePricingField name="break_fee_sek" placeholder="Brytavgift kr" visibilityName="show_break_fee_on_website" defaultValue={offer?.break_fee_sek} />
-        </div>
-        <label className="mt-4 grid gap-2 text-sm font-semibold text-slate-700">Övriga avgifter – namn | belopp | enhet | synlig | beräkningsbas | moms | sortering
-          <textarea name="optional_fee_lines" rows={5} defaultValue={optionalFeesText(offer)} placeholder="Pappersfaktura | 39 | sek_invoice | ja | invoice | standard | 910" className="rounded-2xl border border-amber-200 bg-white px-4 py-3 font-mono text-xs" />
-        </label>
-        <label className="mt-3 flex items-center justify-between rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-          Visa övriga avgifter på avtalskortet som standard
-          <input type="checkbox" name="show_optional_fees_on_website" defaultChecked={asBoolean(snapshotValue(offer, "show_optional_fees_on_website"))} />
-        </label>
+        <p className="mt-4 text-xs leading-5 text-amber-900">
+          Start-, administrations-, bryt-, pappersfaktura- och övriga avgifter
+          skapas som separata komponenter ovan. Därmed kan samma kod aldrig
+          betyda både engångsavgift och avgift per faktura.
+        </p>
       </section>
 
       <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">

@@ -115,3 +115,14 @@ Status: VERIFIED LOCALLY
   212 go-live controls, 518 lifecycle controls, lint and production build.
 - Recorded the pre-existing `20260728170000...` checksum drift as a release
   blocker; no database apply or A-H scenario was claimed.
+
+## 2026-07-29 canonical commercial selection completion
+
+- Added stable 12/24/36-capable price options and per-option SE-area rows.
+- Replaced free-text optional fees with structured policy/condition/lifecycle components.
+- Unified website and internal selection, quote hash v3, signed snapshots and billing under one v6 model.
+- Added atomic service-only offer and internal customer commands, tenant/RLS guards, deterministic backfill and review evidence.
+- Fixed exact component freezing and fail-closed billing identity.
+- Synchronized API/OpenAPI/docs to `2026-07-29.1`.
+- Verified 57 files/365 tests, TypeScript, lint, API docs, focused regression and production build.
+- Database apply remains blocked by the immutable historical drift and absent authorized staging connection.

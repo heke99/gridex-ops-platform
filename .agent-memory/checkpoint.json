@@ -1,77 +1,78 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-07-28T15:08:00+02:00",
+  "updated_at": "2026-07-29T15:56:55+02:00",
   "branch": null,
   "last_verified_commit": null,
-  "active_phase": "PHASE-30",
-  "active_task": "WP-030",
-  "active_subtask": "Restore immutable migration, then database-verify channel publication",
+  "active_phase": "PHASE-31",
+  "active_task": "WP-031",
+  "active_subtask": "Restore immutable migration, then database-verify commercial selection",
   "status": "BLOCKED",
   "implemented_not_database_verified": [
-    "20260728190000 canonical channel permission/publication completion",
-    "strict canonical channel read model",
-    "shared website/API external DTO schema 2026-07-28.2",
-    "read-only final-schema and invariant verification"
+    "20260729200000 canonical option/component selection completion",
+    "website quote v3 and exact contract snapshot binding",
+    "atomic internal customer commercial selection",
+    "billing v6 identity and lifecycle gates",
+    "external API schema 2026-07-29.1"
   ],
   "active_blockers": [
     "20260728170000 checksum differs from its registered immutable checksum and the original bytes are unavailable",
     "Uploaded archive excludes Git metadata",
     "Authorized PostgreSQL staging/production connection is unavailable",
-    "Production scenarios A-H and endpoint verification are not executable locally"
+    "Clean/upgraded apply and end-to-end invoice parity are not executable locally"
   ],
   "verification": [
     {
       "name": "typecheck",
       "status": "VERIFIED",
-      "evidence": "app, test, script and contract-patch TypeScript targets pass"
+      "evidence": "app and test TypeScript targets pass"
     },
     {
       "name": "tests",
       "status": "VERIFIED",
-      "evidence": "56 files, 361 tests pass"
+      "evidence": "57 files, 365 tests pass"
     },
     {
       "name": "lint",
       "status": "VERIFIED",
-      "evidence": "0 errors; 124 existing unused-code warnings"
+      "evidence": "changed runtime files pass with zero errors"
     },
     {
-      "name": "migration integrity",
-      "status": "BLOCKED",
-      "evidence": "Only 20260728170000 drifts; new 20260728190000 checksum is registered and exact"
-    },
-    {
-      "name": "contract channel static regression",
+      "name": "commercial regression",
       "status": "VERIFIED",
-      "evidence": "43/43 canonical grant/publication/read-model/API controls pass"
-    },
-    {
-      "name": "contract go-live regression",
-      "status": "VERIFIED",
-      "evidence": "212 go-live and 518 lifecycle controls pass"
+      "evidence": "admin, quote, internal, snapshot and billing chain controls pass"
     },
     {
       "name": "API/OpenAPI",
       "status": "VERIFIED",
-      "evidence": "contract, runtime parity, examples and version 2026-07-28.2 pass"
+      "evidence": "contract, parity, examples and version 2026-07-29.1 pass"
     },
     {
       "name": "production build",
       "status": "VERIFIED",
-      "evidence": "Next.js build completes"
+      "evidence": "clean Next.js build completes"
     },
     {
-      "name": "PostgreSQL apply/postflight/scenarios A-H",
+      "name": "new migration checksum",
+      "status": "VERIFIED",
+      "evidence": "20260729200000 SHA-256 matches manifest"
+    },
+    {
+      "name": "migration integrity",
       "status": "BLOCKED",
-      "evidence": "Requires immutable migration restoration and an authorized database"
+      "evidence": "only historical 20260728170000 drift remains"
+    },
+    {
+      "name": "PostgreSQL apply/postflight/E2E",
+      "status": "BLOCKED",
+      "evidence": "requires immutable migration recovery and authorized database"
     }
   ],
-  "next_action": "Restore 20260728170000 from the exact trusted applied artifact, require a green migration check, then apply 20260728190000 in staging and run post-apply plus scenarios A-H",
-  "resume_from": "GRIDEX_CONTRACT_CHANNEL_PUBLICATION_COMPLETION_2026-07-28.md",
+  "next_action": "Restore 20260728170000 from the exact trusted applied artifact, require a green migration check, then apply through 20260729200000 in staging and run post-apply plus quote/internal/billing parity scenarios",
+  "resume_from": "scripts/gridex-contract-commercial-selection-post-apply.sql",
   "context_notes": [
     "Do not change the manifest checksum to hide 20260728170000 drift",
-    "Do not apply 20260728190000 until npm run db:migrations:check is green",
-    "Production remains NO-GO until final schema introspection, A-H and endpoint checks pass",
-    "The local production build used Node 24; repeat on declared Node 22 in release CI"
+    "Do not apply pending migrations until npm run db:migrations:check is green",
+    "V6 billing must use the locked exact component snapshot",
+    "Repeat release build with declared production Node 22"
   ]
 }

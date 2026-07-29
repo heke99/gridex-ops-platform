@@ -361,8 +361,31 @@ function validateIntervalCoverage(
 
 function snapshotPayload(snapshot: JsonRecord | null): JsonRecord {
   if (!snapshot) return {};
+  const snapshotJson = object(snapshot.snapshot_json);
+  const schemaVersion =
+    text(snapshot.snapshot_schema_version) ??
+    text(snapshotJson.snapshot_schema) ??
+    text(snapshotJson.schema_version);
+  if (schemaVersion === "gridex_contract_pricing_v6_selection") {
+    const contractType = text(snapshotJson.contract_type);
+    if (
+      !text(snapshot.price_option_reference) &&
+        !text(snapshotJson.price_option_reference) ||
+      !text(snapshot.invoice_delivery_method) &&
+        !text(snapshotJson.invoice_delivery_method) ||
+      (contractType === "fixed" &&
+        !text(snapshot.area_price_reference) &&
+        !text(snapshotJson.area_price_reference)) ||
+      !Array.isArray(snapshot.base_price_components_snapshot) ||
+      !Array.isArray(snapshot.price_components_snapshot)
+    ) {
+      throw new Error(
+        "Kundavtalets v6-prissnapshot saknar prisalternativ, områdesrad, faktureringssätt eller exakta komponenter.",
+      );
+    }
+  }
   return {
-    ...object(snapshot.snapshot_json),
+    ...snapshotJson,
     contract_price_snapshot_id: text(snapshot.id),
     pricing_model:
       text(snapshot.pricing_model) ??

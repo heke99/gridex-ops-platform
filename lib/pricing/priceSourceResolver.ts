@@ -153,7 +153,25 @@ function normalizePriceComponent(
   if (!name || amount === null || !calculationType || !componentType)
     return null;
   const metadata = isObject(row.metadata) ? row.metadata : {};
+  const selectionPolicy =
+    stringValue(row.selection_policy) ??
+    stringValue(metadata.selection_policy);
+  const calculationInclusion =
+    stringValue(row.calculation_inclusion) ??
+    stringValue(metadata.calculation_inclusion);
+  const lifecycle =
+    stringValue(row.lifecycle) ?? stringValue(metadata.lifecycle);
+  const selectionSource =
+    stringValue(row.selection_source) ??
+    stringValue(metadata.selection_source);
   return {
+    componentReference:
+      stringValue(row.component_reference) ??
+      stringValue(metadata.component_reference) ??
+      stringValue(metadata.component_key),
+    componentCode:
+      stringValue(row.component_code) ??
+      stringValue(metadata.component_code),
     componentType,
     name,
     description: stringValue(row.description),
@@ -173,6 +191,72 @@ function normalizePriceComponent(
     priority: numberValue(row.priority),
     validFrom: stringValue(row.valid_from),
     validTo: stringValue(row.valid_to),
+    selectionPolicy:
+      selectionPolicy === "mandatory" ||
+      selectionPolicy === "customer_optional" ||
+      selectionPolicy === "admin_optional" ||
+      selectionPolicy === "conditional"
+        ? selectionPolicy
+        : undefined,
+    calculationInclusion:
+      calculationInclusion === "included" ||
+      calculationInclusion === "excluded" ||
+      calculationInclusion === "conditional"
+        ? calculationInclusion
+        : undefined,
+    selected:
+      typeof row.selected === "boolean"
+        ? row.selected
+        : typeof metadata.selected === "boolean"
+          ? metadata.selected
+          : undefined,
+    selectionSource:
+      selectionSource === "mandatory" ||
+      selectionSource === "customer" ||
+      selectionSource === "admin" ||
+      selectionSource === "condition" ||
+      selectionSource === "default"
+        ? selectionSource
+        : undefined,
+    eligible:
+      typeof row.eligible === "boolean"
+        ? row.eligible
+        : metadata.eligibility === "eligible"
+          ? true
+          : metadata.eligibility === "ineligible"
+            ? false
+            : undefined,
+    lifecycle:
+      lifecycle === "recurring" ||
+      lifecycle === "per_invoice" ||
+      lifecycle === "per_site" ||
+      lifecycle === "once_per_contract" ||
+      lifecycle === "once_per_site" ||
+      lifecycle === "annual" ||
+      lifecycle === "consumption_based" ||
+      lifecycle === "event_only"
+        ? lifecycle
+        : undefined,
+    periodizationRule:
+      stringValue(row.periodization_rule) === "active_days" ||
+      stringValue(row.periodization_rule) === "full_month" ||
+      stringValue(row.periodization_rule) === "anniversary"
+        ? (stringValue(row.periodization_rule) as
+            | "active_days"
+            | "full_month"
+            | "anniversary")
+        : "none",
+    invoiceDeliveryMethod:
+      stringValue(row.invoice_delivery_method) === "email" ||
+      stringValue(row.invoice_delivery_method) === "e_invoice" ||
+      stringValue(row.invoice_delivery_method) === "paper" ||
+      stringValue(row.invoice_delivery_method) === "direct_debit"
+        ? (stringValue(row.invoice_delivery_method) as
+            | "email"
+            | "e_invoice"
+            | "paper"
+            | "direct_debit")
+        : undefined,
     metadata: isObject(row.metadata) ? row.metadata : {},
   };
 }
@@ -257,7 +341,11 @@ function normalizedVatRate(value: unknown, fallback = 0.25): number {
 }
 
 function componentKey(component: PriceComponent): string {
-  const explicit = stringValue(component.metadata?.component_key);
+  const explicit =
+    component.componentReference ??
+    component.componentCode ??
+    stringValue(component.metadata?.component_reference) ??
+    stringValue(component.metadata?.component_key);
   return (
     explicit ??
     `${component.componentType}:${component.name.trim().toLowerCase()}:${component.unit ?? component.calculationType}`

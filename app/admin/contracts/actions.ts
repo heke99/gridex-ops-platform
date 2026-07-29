@@ -11,6 +11,7 @@ import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
 import { commonFixedPriceOrePerKwh } from "@/lib/pricing/fixedAreaPricing";
 import { buildCanonicalContractPricingCommand } from "@/lib/pricing/canonicalInvoiceFee";
+import { commercialComponentAsPriceComponent } from "@/lib/pricing/commercialModel";
 import { toSafeContractErrorPersisted } from "@/lib/errors/safeActionErrors";
 import { parseAdminContractForm } from "@/lib/contracts/adminContractSchema";
 import { requireContractPermissionAction } from "@/lib/contracts/permissions";
@@ -276,6 +277,46 @@ async function saveContractOfferActionImpl(
     },
     invoiceFeeSek: input.invoiceFeeSek,
   });
+  const canonicalCommercialComponents = input.commercialComponents.map(
+    (component) =>
+      commercialComponentAsPriceComponent(component, {
+        selected:
+          component.selection_policy === "mandatory" ||
+          component.selection_policy === "conditional" ||
+          component.default_selected,
+        selectionSource:
+          component.selection_policy === "mandatory"
+            ? "mandatory"
+            : component.selection_policy === "conditional"
+              ? "condition"
+              : "default",
+        eligible: true,
+        siteCount: 1,
+        invoiceDeliveryMethod: input.invoiceDeliveryMethods[0],
+      }),
+  );
+  const canonicalCommercialSnapshot = {
+    ...canonicalPricingCommand.pricing_snapshot,
+    snapshot_schema: "gridex_contract_pricing_v6_selection",
+    schema_version: "gridex_contract_pricing_v6_selection",
+    price_options: input.priceOptions,
+    commercial_components: input.commercialComponents,
+    // The price plan remains the one canonical engine. Selection metadata is
+    // retained on each component and resolved to an exact subset at quote time.
+    price_components: [
+      ...(Array.isArray(
+        canonicalPricingCommand.pricing_snapshot.price_components,
+      )
+        ? canonicalPricingCommand.pricing_snapshot.price_components
+        : []),
+      ...canonicalCommercialComponents,
+    ],
+    invoice_delivery_methods: input.invoiceDeliveryMethods,
+    default_price_option_reference:
+      input.priceOptions.length === 1
+        ? input.priceOptions[0].price_option_reference
+        : null,
+  };
 
   const payload = {
     name: input.name,
@@ -330,12 +371,12 @@ async function saveContractOfferActionImpl(
   };
 
   const { data: commandData, error: commandError } = await contractMutationServiceClient().rpc(
-    "gridex_upsert_internal_contract_offer_v2",
+    "gridex_upsert_internal_contract_offer_v3",
     {
       p_company_id: companyId,
       p_offer_id: input.id,
       p_payload: payload,
-      p_pricing_snapshot: canonicalPricingCommand.pricing_snapshot,
+      p_pricing_snapshot: canonicalCommercialSnapshot,
       p_actor_user_id: actor.userId,
     },
   );
@@ -362,7 +403,9 @@ async function saveContractOfferActionImpl(
     };
     contract_product_id?: string;
     contract_product_version_id?: string;
-    tenant_contract_assignment_id?: string;
+      tenant_contract_assignment_id?: string;
+      price_option_references?: string[];
+      component_references?: string[];
     company_id?: string;
     created_new_version?: boolean;
   };
@@ -375,6 +418,9 @@ async function saveContractOfferActionImpl(
     !command.contract_product_id ||
     !command.contract_product_version_id ||
     !command.tenant_contract_assignment_id ||
+    command.price_option_references?.length !== input.priceOptions.length ||
+    command.component_references?.length !==
+      input.commercialComponents.length ||
     command.company_id !== companyId ||
     command.offer.company_id !== companyId
   ) {

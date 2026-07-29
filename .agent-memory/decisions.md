@@ -46,3 +46,20 @@ applied. Production convergence uses the single fail-closed
 `20260728170000_live_schema_code_canonical_sync.sql` repair. Only that version
 may be registered after green post-apply and lint. A new canonical baseline is
 derived later from the verified post-apply schema.
+
+## ADR-007 — One commercial selection model
+
+Status: IMPLEMENTED_STATIC_VERIFIED
+
+`gridex_contract_pricing_v6_selection` is the single contract pricing model
+from admin authoring through public feed, website quote, internal customer
+selection, signed snapshot and billing. Selection is server-resolved from
+stable references. V6 paths may not reduce to compatibility scalars.
+
+## ADR-008 — Quote/contract snapshot identity
+
+Status: IMPLEMENTED_STATIC_VERIFIED
+
+The immutable identity includes product/price-plan version, price option,
+SE-area row when fixed, invoice delivery method, selected/mandatory/conditional
+component references and exact resolved base/price component arrays.

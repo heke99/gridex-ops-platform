@@ -54,3 +54,11 @@ must pass.
   live plus the repair migration.
 - Typecheck, tests, API docs and production build pass. The new migration
   checksum is exact; the single historical drift remains explicit.
+
+## BLK-007 — Commercial selection database proof
+
+Status: BLOCKED_BY_ENVIRONMENT. The forward-only option/component migration,
+quote-v3 immutability, atomic internal selection and snapshot guards are
+implemented and locally verified. Clean/upgraded apply, post-apply,
+concurrency and tenant isolation require an authorized staging database after
+BLK-003 is resolved.

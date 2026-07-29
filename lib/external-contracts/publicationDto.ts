@@ -1,4 +1,4 @@
-export const API_CONTRACT_RESPONSE_SCHEMA_VERSION = "2026-07-28.2" as const;
+export const API_CONTRACT_RESPONSE_SCHEMA_VERSION = "2026-07-29.1" as const;
 
 export type ExternalContractChannel = "website" | "api";
 
@@ -61,12 +61,10 @@ function pricingFrom(
   removeIdentifierKeys: boolean,
 ): Record<string, unknown> {
   const explicit = record(publication.pricing);
-  if (Object.keys(explicit).length > 0) {
-    return sanitize(explicit, removeIdentifierKeys) as Record<string, unknown>;
-  }
   const snapshotPricing = record(commercial.pricing);
   const allowed: Record<string, unknown> = {
     ...snapshotPricing,
+    ...explicit,
   };
   for (const key of [
     "monthly_fee_sek",
@@ -88,8 +86,26 @@ function pricingFrom(
     "portfolio_method",
     "production",
     "interval_resolution",
+    "price_options",
+    "commercial_components",
+    "invoice_delivery_methods",
+    "snapshot_schema",
   ]) {
     if (commercial[key] !== undefined) allowed[key] = commercial[key];
+  }
+  const commercialComponents = Array.isArray(commercial.commercial_components)
+    ? commercial.commercial_components
+    : null;
+  if (commercialComponents) {
+    allowed.component_catalog = commercialComponents;
+    allowed.calculation_components = commercialComponents.filter((value) => {
+      const component = record(value);
+      return component.informational_only !== true;
+    });
+    allowed.display_components = commercialComponents.filter((value) => {
+      const component = record(value);
+      return component.website_published === true;
+    });
   }
   return sanitize(allowed, removeIdentifierKeys) as Record<string, unknown>;
 }

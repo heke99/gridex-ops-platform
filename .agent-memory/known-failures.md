@@ -58,3 +58,20 @@ Status: FIX_IMPLEMENTED_STATIC_VERIFIED
 All 23 lint errors are covered and all 41 exact function patches match the
 exported definitions. Production closure requires applying the migration and a
 green postflight.
+
+## KF-009 — Reduced compatibility components in signed website snapshot
+
+Status: FIX_IMPLEMENTED_STATIC_VERIFIED
+
+Website onboarding previously wrote
+`compatibilitySnapshot.priceComponents` instead of the quote's exact resolved
+components. V6 now requires and freezes the quote arrays, and database binding
+rejects mismatches.
+
+## KF-010 — Internal catalog contract copied loose scalars
+
+Status: FIX_IMPLEMENTED_STATIC_VERIFIED
+
+Internal customer registration now selects a stable option, verified SE row,
+invoice method and allowed components, then commits the customer contract and
+immutable price snapshot atomically through a service-only RPC.

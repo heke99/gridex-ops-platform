@@ -24,6 +24,13 @@ import {
   resolutionSnapshot,
   type BoundEnergyResolution,
 } from "@/lib/energy/resolutionBinding";
+import {
+  CommercialSelectionError,
+  CONTRACT_TYPES,
+  commercialModelFromSnapshot,
+  resolveCommercialSelection,
+  type InvoiceDeliveryMethod,
+} from "@/lib/pricing/commercialModel";
 
 
 function textValue(value: unknown): string | null {
@@ -65,9 +72,13 @@ export class OfferQuoteError extends Error {
 
 function dateOnly(value: string | null | undefined): string {
   const candidate = value?.trim() ?? "";
+  const [year, month, day] = candidate.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(candidate) ||
-    Number.isNaN(new Date(`${candidate}T00:00:00Z`).getTime())
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
   ) {
     throw new OfferQuoteError(
       "Startdatum måste anges som YYYY-MM-DD.",
@@ -116,6 +127,11 @@ export async function calculateOfferQuote(input: {
   customerType?: string | null;
   gridAreaCode?: string | null;
   postalCode?: string | null;
+  priceOptionReference?: string | null;
+  invoiceDeliveryMethod?: InvoiceDeliveryMethod | null;
+  selectedComponentReferences?: string[];
+  adminSelectedComponentReferences?: string[];
+  siteCount?: number;
 }) {
   const offerReference = input.offerReference.trim();
   if (!offerReference)
@@ -218,6 +234,90 @@ export async function calculateOfferQuote(input: {
       404,
       "offer_reference",
     );
+  const offerPricingSnapshot = offer.pricing_snapshot ?? {};
+  const commercialModel = commercialModelFromSnapshot(offerPricingSnapshot);
+  if (
+    canonicalSnapshotSchema(offerPricingSnapshot) ===
+      "gridex_contract_pricing_v6_selection" &&
+    !commercialModel
+  ) {
+    throw new OfferQuoteError(
+      "Den publicerade avtalsversionens kommersiella modell är ofullständig.",
+      "commercial_model_invalid",
+      422,
+      "offer_reference",
+    );
+  }
+  const invoiceDeliveryMethod =
+    input.invoiceDeliveryMethod ??
+    commercialModel?.invoice_delivery_methods[0] ??
+    "email";
+  if (
+    commercialModel &&
+    !commercialModel.invoice_delivery_methods.includes(invoiceDeliveryMethod)
+  ) {
+    throw new OfferQuoteError(
+      "Valt faktureringssätt erbjuds inte för avtalet.",
+      "invoice_delivery_method_not_available",
+      422,
+      "invoice_delivery_method",
+    );
+  }
+  const siteCount = Math.trunc(input.siteCount ?? 1);
+  if (!Number.isSafeInteger(siteCount) || siteCount < 1) {
+    throw new OfferQuoteError(
+      "site_count måste vara ett heltal större än 0.",
+      "invalid_site_count",
+      400,
+      "site_count",
+    );
+  }
+  let commercialSelection: ReturnType<
+    typeof resolveCommercialSelection
+  > | null = null;
+  if (commercialModel) {
+    if (
+      !CONTRACT_TYPES.includes(
+        offer.contract_type as (typeof CONTRACT_TYPES)[number],
+      )
+    ) {
+      throw new OfferQuoteError(
+        "Avtalstypen stöds inte av den kommersiella modellen.",
+        "commercial_contract_type_invalid",
+        422,
+        "offer_reference",
+      );
+    }
+    try {
+      commercialSelection = resolveCommercialSelection({
+        model: commercialModel,
+        contractType:
+          offer.contract_type as (typeof CONTRACT_TYPES)[number],
+        priceOptionReference: input.priceOptionReference ?? null,
+        priceArea: canonicalPriceArea,
+        customerType,
+        invoiceDeliveryMethod,
+        selectedComponentReferences:
+          input.selectedComponentReferences ?? [],
+        adminSelectedComponentReferences:
+          input.adminSelectedComponentReferences ?? [],
+        annualConsumptionKwh,
+        siteCount,
+        startDate,
+        salesChannel: "website",
+      });
+    } catch (error) {
+      if (error instanceof CommercialSelectionError) {
+        throw new OfferQuoteError(
+          error.message,
+          error.code,
+          422,
+          error.field,
+        );
+      }
+      throw error;
+    }
+  }
   const allowedPriceAreas = new Set((offer.price_areas ?? []).map((area) => area.toUpperCase()));
   if (allowedPriceAreas.size > 0 && !allowedPriceAreas.has(canonicalPriceArea)) {
     throw new OfferQuoteError(
@@ -227,12 +327,16 @@ export async function calculateOfferQuote(input: {
       "price_area",
     );
   }
-  const selectedFixedPriceOrePerKwh = fixedPriceOreForArea(
-    offer.pricing_snapshot,
-    canonicalPriceArea,
-    offer.fixed_price_ore_per_kwh,
-    offer.price_areas ?? [],
-  );
+  const selectedFixedPriceOrePerKwh =
+    commercialSelection?.areaPrice?.unit === "sek_per_kwh"
+      ? commercialSelection.areaPrice.amount * 100
+      : commercialSelection?.areaPrice?.amount ??
+        fixedPriceOreForArea(
+          offer.pricing_snapshot,
+          canonicalPriceArea,
+          offer.fixed_price_ore_per_kwh,
+          offer.price_areas ?? [],
+        );
   if (offer.contract_type === "fixed" && selectedFixedPriceOrePerKwh === null) {
     throw new OfferQuoteError(
       `Fastpris saknas för ${canonicalPriceArea} i den publicerade avtalsversionen.`,
@@ -285,16 +389,47 @@ export async function calculateOfferQuote(input: {
 
   const monthlyConsumptionKwh = annualConsumptionKwh / 12;
   const exactSnapshot = offer.pricing_snapshot ?? {};
-  const exactBaseComponents = Array.isArray(exactSnapshot.base_components)
+  const catalogBaseComponents = Array.isArray(exactSnapshot.base_components)
     ? exactSnapshot.base_components
     : Array.isArray(exactSnapshot.base_price_components_snapshot)
       ? exactSnapshot.base_price_components_snapshot
       : canonical.basePriceComponents;
-  const exactPriceComponents = Array.isArray(exactSnapshot.price_components)
-    ? exactSnapshot.price_components
-    : Array.isArray(exactSnapshot.price_components_snapshot)
-      ? exactSnapshot.price_components_snapshot
-      : canonical.priceComponents;
+  const selectedAreaPrice = commercialSelection?.areaPrice ?? null;
+  const exactBaseComponents =
+    offer.contract_type === "fixed" &&
+    commercialSelection &&
+    selectedAreaPrice
+      ? catalogBaseComponents.map((value) => {
+          const component = value as Record<string, unknown>;
+          const sourceType = component.source_type ?? component.sourceType;
+          return sourceType === "fixed"
+            ? {
+                ...component,
+                fixed_price_sek_per_kwh:
+                  selectedFixedPriceOrePerKwh === null
+                    ? null
+                    : selectedFixedPriceOrePerKwh / 100,
+                fixedPriceSekPerKwh:
+                  selectedFixedPriceOrePerKwh === null
+                    ? null
+                    : selectedFixedPriceOrePerKwh / 100,
+                price_area: canonicalPriceArea,
+                priceArea: canonicalPriceArea,
+                price_option_reference:
+                  commercialSelection.priceOption.price_option_reference,
+                price_row_reference:
+                  selectedAreaPrice.price_row_reference,
+              }
+            : component;
+        })
+      : catalogBaseComponents;
+  const exactPriceComponents =
+    commercialSelection?.components ??
+    (Array.isArray(exactSnapshot.price_components)
+      ? exactSnapshot.price_components
+      : Array.isArray(exactSnapshot.price_components_snapshot)
+        ? exactSnapshot.price_components_snapshot
+        : canonical.priceComponents);
   const snapshotSchema = canonicalSnapshotSchema(exactSnapshot);
   const pricingInterval = quotePricingInterval(offer.contract_type, exactSnapshot);
   const pricingSnapshot = {
@@ -318,6 +453,8 @@ export async function calculateOfferQuote(input: {
     periodStart,
     periodEnd,
     activeFrom: startDate,
+    siteCount,
+    invoiceCreated: true,
     pricingSnapshot,
   };
 
@@ -465,6 +602,10 @@ export async function calculateOfferQuote(input: {
             price_area: canonicalPriceArea,
             energy_price_ore_per_kwh: selectedFixedPriceOrePerKwh,
             unit: "ore_per_kwh",
+            price_option_reference:
+              commercialSelection?.priceOption.price_option_reference ?? null,
+            price_row_reference:
+              commercialSelection?.areaPrice?.price_row_reference ?? null,
           },
     },
     selected_area_price: selectedFixedPriceOrePerKwh === null
@@ -473,6 +614,10 @@ export async function calculateOfferQuote(input: {
           price_area: canonicalPriceArea,
           energy_price_ore_per_kwh: selectedFixedPriceOrePerKwh,
           unit: "ore_per_kwh",
+          price_option_reference:
+            commercialSelection?.priceOption.price_option_reference ?? null,
+          price_row_reference:
+            commercialSelection?.areaPrice?.price_row_reference ?? null,
         },
     input: {
       resolution_id: boundResolution?.id ?? null,
@@ -483,6 +628,12 @@ export async function calculateOfferQuote(input: {
       estimated_monthly_consumption_kwh: monthlyConsumptionKwh,
       start_date: startDate,
       billing_month: billingMonth,
+      site_count: siteCount,
+      price_option_reference:
+        commercialSelection?.priceOption.price_option_reference ?? null,
+      invoice_delivery_method: invoiceDeliveryMethod,
+      selected_component_references:
+        commercialSelection?.selectedComponentReferences ?? [],
     },
     resolution: boundResolution ? resolutionSnapshot(boundResolution) : null,
     market_reference: sourceValues.spotSource ?? null,
@@ -538,6 +689,31 @@ export async function calculateOfferQuote(input: {
     assumptions,
     pricing_snapshot_schema_version: snapshotSchema,
     snapshot_schema: snapshotSchema,
+    price_option_reference:
+      commercialSelection?.priceOption.price_option_reference ?? null,
+    area_price_reference:
+      commercialSelection?.areaPrice?.price_row_reference ?? null,
+    invoice_delivery_method: invoiceDeliveryMethod,
+    selected_component_references:
+      commercialSelection?.selectedComponentReferences ?? [],
+    mandatory_component_references:
+      commercialSelection?.mandatoryComponentReferences ?? [],
+    conditional_component_references:
+      commercialSelection?.conditionalComponentReferences ?? [],
+    resolved_base_components: exactBaseComponents,
+    resolved_price_components: exactPriceComponents,
+    pricing_snapshot: {
+      ...pricingSnapshot,
+      price_option_reference:
+        commercialSelection?.priceOption.price_option_reference ?? null,
+      area_price_reference:
+        commercialSelection?.areaPrice?.price_row_reference ?? null,
+      invoice_delivery_method: invoiceDeliveryMethod,
+      selected_component_references:
+        commercialSelection?.selectedComponentReferences ?? [],
+      base_price_components_snapshot: exactBaseComponents,
+      price_components_snapshot: exactPriceComponents,
+    },
   };
 
   const persisted = await persistWebsiteQuote({
@@ -561,6 +737,19 @@ export async function calculateOfferQuote(input: {
     marketReference: sourceValues.spotSource ?? {},
     resolutionBindingStatus: boundResolution ? "verified" : "legacy_unverified",
     quoteSnapshot: quotePayload,
+    priceOptionReference:
+      commercialSelection?.priceOption.price_option_reference ?? null,
+    areaPriceReference:
+      commercialSelection?.areaPrice?.price_row_reference ?? null,
+    invoiceDeliveryMethod,
+    selectedComponentReferences:
+      commercialSelection?.selectedComponentReferences ?? [],
+    mandatoryComponentReferences:
+      commercialSelection?.mandatoryComponentReferences ?? [],
+    conditionalComponentReferences:
+      commercialSelection?.conditionalComponentReferences ?? [],
+    resolvedBaseComponents: exactBaseComponents,
+    resolvedPriceComponents: exactPriceComponents,
   });
 
   return {
