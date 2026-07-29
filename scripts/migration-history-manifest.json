@@ -335,11 +335,12 @@
     "20260727166000_atomic_quote_application_onboarding_commit.sql": "2a55d8f9015c7dc74a2c53b560b4987fea1d25de3ebb7d1235d71ad78c0c7e81",
     "20260727167000_customer_contract_state_machine_and_active_invariant.sql": "485b4628640770ec8f371bb2c61f2ad311c2d0795c6fdf2c0fbd715f6d29ab3b",
     "20260728170000_live_schema_code_canonical_sync.sql": "881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482",
+    "20260728190000_contract_channel_permission_publication_completion.sql": "dd0583262a7b0cc74a35ed79397fdd060776b9949f2cc826018c2e9b3f0e7f3e",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2"
   },
-  "generatedAt": "2026-07-27T20:58:00.000000Z",
+  "generatedAt": "2026-07-28T13:08:00.000000Z",
   "schemaVersion": 1
 }

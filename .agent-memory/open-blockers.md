@@ -8,16 +8,25 @@ uploaded archive and its SHA-256.
 
 ## BLK-002 — Production apply and postflight
 
-Status: READY_FOR_AUTHORIZED_OPERATOR. The single forward migration, preflight
-and post-apply are implemented and statically verified, but this workspace has
-no authorized production database connection. Production remains NO-GO.
+Status: BLOCKED. The channel-completion forward migration and post-apply are
+implemented and statically verified, but this workspace has no authorized
+database connection. Production remains NO-GO.
 
 ## BLK-003 — Noncanonical historical migration chain
 
-Status: REQUIRES_POST_APPLY_BASELINE. Remote history contains only nine
-historical entries with versions/content that do not match the current local
-files, while newer objects exist live. Do not run `db push`. Build a fresh
-baseline from the verified post-apply schema.
+Status: RELEASE_BLOCKER. The file
+`20260728170000_live_schema_code_canonical_sync.sql` hashes to
+`a743f580168fa2e5de28a9814f151ca0fdc1649517c84490afd093a72340afc4`,
+but its immutable manifest value is
+`881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482`.
+Restore the file from the trusted applied artifact. Never change the manifest
+to conceal drift and do not run `db push`.
+
+## BLK-006 — Contract-channel production scenarios
+
+Status: BLOCKED_BY_ENVIRONMENT. Scenarios A-H, final PostgreSQL definitions,
+two-tenant isolation, concurrency and external website/API feed verification
+require an authorized staging database and API clients.
 
 ## BLK-004 — Provider runtime verification
 
@@ -43,4 +52,5 @@ must pass.
 - All 41 exact active-definition patches match the live export.
 - Runtime database paths, static writes, filters and literal RPC calls match
   live plus the repair migration.
-- Typecheck, tests, API docs, migration integrity and production build pass.
+- Typecheck, tests, API docs and production build pass. The new migration
+  checksum is exact; the single historical drift remains explicit.

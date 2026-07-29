@@ -835,16 +835,6 @@ export function publicOfferReference(
   return reference;
 }
 
-function isCurrentlyValid(
-  row: Pick<PublicContractOffer, "valid_from" | "valid_to">,
-): boolean {
-  const today = new Date().toISOString().slice(0, 10);
-  return (
-    (!row.valid_from || row.valid_from <= today) &&
-    (!row.valid_to || row.valid_to >= today)
-  );
-}
-
 function customerTypeAllowed(
   offer: PublicContractOffer,
   customerType?: string | null,
@@ -1817,7 +1807,7 @@ export async function listPublicContractOffers(input: {
   for (const offer of offers) {
     if (graphIntegrity.get(offer.id)?.canonical_graph_consistent !== true)
       continue;
-    if (!isCurrentlyValid(offer) || !customerTypeAllowed(offer, input.customerType))
+    if (!customerTypeAllowed(offer, input.customerType))
       continue;
     const publicationVersionId = clean(offer.contract_publication_version_id);
     if (!publicationVersionId || readinessByVersion.get(publicationVersionId)?.isReady !== true)
@@ -1978,8 +1968,6 @@ export async function diagnosePublicContractOffers(input: {
         : row.is_public !== true
     )
       blockers.push("Erbjudandet är inte publicerat");
-    if (!isCurrentlyValid(offer))
-      blockers.push("Erbjudandet ligger utanför sin giltighetsperiod");
     if (!customerTypeAllowed(offer, input.customerType))
       blockers.push("Erbjudandet matchar inte vald kundtyp");
 

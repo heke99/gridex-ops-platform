@@ -6,6 +6,10 @@ import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/int
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import { supabaseService } from '@/lib/supabase/service'
 import { ifNoneMatchMatches, loadPublicationRevision } from '@/lib/website/publicContractApi'
+import {
+  API_CONTRACT_RESPONSE_SCHEMA_VERSION,
+  mapContractPublicationToPublicDto,
+} from '@/lib/external-contracts/publicationDto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,7 +52,14 @@ export async function GET(request: NextRequest) {
   const auth = await requireIntegrationApiAccess(request, ['api_contracts.read'])
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
-    return customerPortalJson({ error: { code: auth.errorCode, message: auth.error, request_id: requestId } }, { status: auth.status })
+    const headers = new Headers()
+    if (auth.retryAfterSeconds) {
+      headers.set('Retry-After', String(auth.retryAfterSeconds))
+    }
+    return customerPortalJson(
+      { error: { code: auth.errorCode, message: auth.error, request_id: requestId } },
+      { status: auth.status, headers },
+    )
   }
 
   try {
@@ -59,6 +70,7 @@ export async function GET(request: NextRequest) {
     const headers = {
       'Cache-Control': 'private, max-age=0, must-revalidate',
       ETag: revision.etag,
+      'X-Gridex-Contract-Version': API_CONTRACT_RESPONSE_SCHEMA_VERSION,
       'X-RateLimit-Limit': String(auth.rateLimit.limit),
       'X-RateLimit-Remaining': String(auth.rateLimit.remaining),
       ...(auth.rateLimit.resetAt ? { 'X-RateLimit-Reset': auth.rateLimit.resetAt } : {}),
@@ -79,7 +91,13 @@ export async function GET(request: NextRequest) {
       p_customer_type: normalized.value,
     })
     if (error) throw error
-    const contracts = ((data ?? []) as Array<{ data?: Record<string, unknown> }>).map((row) => row.data ?? row)
+    const contracts = ((data ?? []) as Array<{ data?: Record<string, unknown> }>).map(
+      (row) =>
+        mapContractPublicationToPublicDto({
+          publication: row.data ?? row,
+          channel: 'api',
+        }),
+    )
 
     await logIntegrationApiRequest({
       client: auth.client,
@@ -102,6 +120,7 @@ export async function GET(request: NextRequest) {
         meta: {
           tenant_reference: tenant.tenant_reference,
           api_version: 'v1',
+          contract_schema_version: API_CONTRACT_RESPONSE_SCHEMA_VERSION,
           channel: 'api',
           publication_revision: revision.revision,
           publication_updated_at: revision.updatedAt,

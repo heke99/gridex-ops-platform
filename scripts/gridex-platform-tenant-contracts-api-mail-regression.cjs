@@ -28,10 +28,10 @@ contains(migration, /gridex_tenant_email_dispatch_readiness_v/, 'Automatmail-rea
 contains(migration, /contract_price_snapshots[\s\S]*public_contract_offer_id/, 'Snapshot sparar publicerat avtal')
 
 contains('app/admin/companies/[id]/page.tsx', /TenantPlatformControls/, 'Bolagskortet visar avtal/API/mail-kontroller')
-contains('app/admin/companies/[id]/TenantPlatformControls.tsx', /saveTenantPublicContractOfferAction/, 'Avtal skapas via bolagets kort')
+contains('app/admin/companies/[id]/TenantPlatformControls.tsx', /href=\{`\/admin\/contracts\?company_id=\$\{companyId\}`\}[\s\S]*Hantera interna avtal/, 'Bolagskortet delegerar skapande till canonical avtalsadmin')
 contains('app/admin/companies/[id]/TenantPlatformControls.tsx', /spot_weight_percent[\s\S]*portfolio_weight_percent/, 'Bolagskortets avtalsformulär har mix/procentfält')
 contains('supabase/migrations/20260727030000_contract_operation_readiness_completion.sql', /gridex_validate_contract_readiness_v2[\s\S]*v_spot_weight\+v_portfolio_weight\+v_fixed_weight<>100/, 'Canonical readiness blockerar fel portföljmix')
-contains('app/admin/companies/[id]/tenant-platform-actions.ts', /requireContractPermissionAction[\s\S]*assertUserCanOperateCompany[\s\S]*gridex_publish_contract_channel[\s\S]*p_actor_user_id:\s*actor\.userId/, 'Tenant och verklig actor valideras före canonical publicerings-RPC')
+contains('app/admin/contracts/actions.ts', /requireContractPermissionAction[\s\S]*assertUserCanOperateCompany[\s\S]*publishContractChannel\(\{[\s\S]*actorUserId:\s*actor\.userId/, 'Tenant och verklig actor valideras före canonical publiceringstjänst')
 contains('supabase/migrations/20260727030000_contract_operation_readiness_completion.sql', /insert into public\.audit_logs[\s\S]*contract\.channel\.published/, 'Canonical kanalpublicering audit-loggas med avtalsevent')
 
 contains('lib/integrations/apiClientScopes.ts', /INTEGRATION_API_PERMISSION_GROUPS/, 'API-scopes är grupperade i vanliga ord')

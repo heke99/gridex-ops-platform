@@ -422,3 +422,17 @@ Files changed: 57 source/test/doc/migration files plus report/runbook and memory
 Migrations: `20260728170000_live_schema_code_canonical_sync.sql`
 Last updated: 2026-07-28
 Exact next subtask: execute `GRIDEX_LIVE_REPAIR_RUNBOOK_2026-07-28.md` with an authorized operator, then create a canonical baseline from the verified post-apply export
+
+## WP-030: Canonical contract-channel permission and publication
+Status: BLOCKED_PENDING_DATABASE_PROOF
+Phase: PHASE-30
+Priority: P0
+Depends on: WP-029
+Affected domains: contract grants, channel publication, admin UI, external DTO, API/OpenAPI, migration integrity
+Acceptance criteria: strict grants/status/availability; one service; fail-closed RPC; shared DTO; immutable history; final schema and scenarios A-H green
+Required verification: green migration integrity, PostgreSQL apply/introspection, concurrency, two-tenant, website/API endpoint scenarios A-H
+Evidence: 43 dedicated controls, 212 go-live controls, 518 lifecycle controls, 361 tests, TypeScript, API docs, lint and build pass locally
+Files changed: canonical SQL/view/functions, server service/actions/UI, public DTO/routes, OpenAPI/docs, tests/scripts/memory
+Migrations: `20260728190000_contract_channel_permission_publication_completion.sql`
+Last updated: 2026-07-28
+Exact next subtask: restore immutable `20260728170000...`, require green migration check, apply `20260728190000...` in staging and run post-apply plus scenarios A-H

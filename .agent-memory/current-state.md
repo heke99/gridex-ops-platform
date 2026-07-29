@@ -1,6 +1,28 @@
 # Current state
 
-Last updated: 2026-07-28T11:28:30+02:00
+Last updated: 2026-07-28T15:08:00+02:00
+
+- PHASE-30 canonical contract-channel permission/publication completion:
+  IMPLEMENTED and LOCALLY VERIFIED, DATABASE VERIFICATION BLOCKED.
+- Added one canonical grant/readiness/publish/unpublish service for internal,
+  website and API across both admin surfaces.
+- Rebuilt the strict admin read model with mandatory grants, channel status,
+  validity and independent per-channel availability.
+- Added explicit API publication permission, API scope readiness, shared
+  website/API DTO mapping and schema version `2026-07-28.2`.
+- Added the forward migration
+  `20260728190000_contract_channel_permission_publication_completion.sql`,
+  final-schema introspection and 43-control channel regression.
+- TypeScript targets, 56 files/361 tests, API/OpenAPI, 212 go-live controls,
+  518 lifecycle controls, lint and production build pass locally.
+- The new migration checksum is registered and exact.
+- Migration integrity is BLOCKED only because historical
+  `20260728170000_live_schema_code_canonical_sync.sql` differs from its
+  registered checksum. No attached version contains the trusted original.
+- No database was available to apply the migration or execute production
+  scenarios A-H. Release remains NO-GO until the historical file is restored,
+  migration integrity is green, final schema inspection passes and A-H plus
+  endpoint verification pass in staging.
 
 - PHASE-29 live-schema/code canonical synchronization: IMPLEMENTED and
   LOCALLY VERIFIED.

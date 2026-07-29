@@ -49,3 +49,10 @@
 | VM-045 | Current production build | VERIFIED | Next.js build completed |
 | VM-046 | Production repair apply/postflight | BLOCKED | Requires authorized operator/database |
 | VM-047 | Historical canonical baseline | PENDING | Must derive from verified post-apply export |
+| VM-048 | Contract channel grants/publication | STATIC VERIFIED | 43/43 dedicated controls |
+| VM-049 | Contract go-live/lifecycle | VERIFIED LOCALLY | 212 go-live and 518 lifecycle controls |
+| VM-050 | Current full tests | VERIFIED | 56 files; 361 tests |
+| VM-051 | Current API/OpenAPI | VERIFIED | Version `2026-07-28.2`; parity/docs checks pass |
+| VM-052 | New migration checksum | VERIFIED | `20260728190000...` matches manifest |
+| VM-053 | Historical migration integrity | BLOCKED | `20260728170000...` immutable checksum drift |
+| VM-054 | Channel post-apply and scenarios A-H | BLOCKED | Requires trusted history and authorized PostgreSQL/API environment |

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-07-28.1",
+    "version": "2026-07-28.2",
     "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
@@ -130,7 +130,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-28.1"
+                  "const": "2026-07-28.2"
                 },
                 "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
               }
@@ -150,7 +150,7 @@
                       "$ref": "#/components/schemas/TenantMeta",
                       "properties": {
                         "contract_schema_version": {
-                          "const": "2026-07-28.1"
+                          "const": "2026-07-28.2"
                         }
                       },
                       "required": [
@@ -245,6 +245,9 @@
         ],
         "summary": "List contracts published to the api channel",
         "description": "Scope: api_contracts.read. This endpoint is independent of the website channel and has its own tenant+channel publication revision.",
+        "x-required-scopes": [
+          "api_contracts.read"
+        ],
         "parameters": [
           {
             "name": "customer_type",
@@ -271,6 +274,20 @@
         "responses": {
           "200": {
             "description": "API channel feed",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-07-28.2"
+                },
+                "description": "Version of the strict public API contract DTO. Changes invalidate ETag."
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -279,11 +296,26 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/PublicContract"
+                        "$ref": "#/components/schemas/ApiPublicContract"
                       }
                     },
                     "meta": {
-                      "$ref": "#/components/schemas/TenantMeta"
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/TenantMeta"
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "contract_schema_version"
+                          ],
+                          "properties": {
+                            "contract_schema_version": {
+                              "const": "2026-07-28.2"
+                            }
+                          }
+                        }
+                      ]
                     }
                   }
                 }
@@ -296,8 +328,23 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "410": {
+            "$ref": "#/components/responses/TenantGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/TenantPaused"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
           }
         }
       }
@@ -916,7 +963,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-28.1"
+                  "const": "2026-07-28.2"
                 }
               }
             },
@@ -951,7 +998,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-28.1"
+                  "const": "2026-07-28.2"
                 }
               }
             },
@@ -1079,7 +1126,7 @@
                     "next_update_at": "2026-07-24T16:15:00+02:00"
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-07-28.1"
+                  "contract_schema_version": "2026-07-28.2"
                 }
               }
             }
@@ -1677,7 +1724,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-28.1"
+            "const": "2026-07-28.2"
           },
           "configuration": {
             "type": "object",
@@ -1809,6 +1856,73 @@
           "business"
         ],
         "description": "Canonical values. company is temporarily accepted as a deprecated alias for business until 2026-10-31."
+      },
+      "ApiPublicContract": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "offer_reference",
+          "name",
+          "description",
+          "contract_type",
+          "energy_direction",
+          "customer_type",
+          "pricing",
+          "valid_from",
+          "valid_to",
+          "channel"
+        ],
+        "properties": {
+          "offer_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_type": {
+            "type": "string"
+          },
+          "energy_direction": {
+            "$ref": "#/components/schemas/EnergyDirection"
+          },
+          "customer_type": {
+            "enum": [
+              "private",
+              "business",
+              "both"
+            ]
+          },
+          "pricing": {
+            "type": "object",
+            "description": "Public pricing data only. Internal identifiers and canonical snapshots are removed recursively.",
+            "additionalProperties": true
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "channel": {
+            "const": "api"
+          }
+        }
       },
       "PublicContract": {
         "type": "object",
@@ -4540,7 +4654,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-28.1"
+            "const": "2026-07-28.2"
           }
         },
         "additionalProperties": false
@@ -5236,6 +5350,54 @@
           }
         }
       },
+      "TenantGone": {
+        "description": "Tenant is terminated and no longer serves external API traffic",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "TenantPaused": {
+        "description": "Tenant is paused and external API traffic is temporarily locked",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "API client rate limit exceeded",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "The canonical API contract feed could not be built",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
       "Conflict": {
         "description": "Expired, consumed or mismatched quote/idempotency state",
         "content": {
@@ -5248,7 +5410,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-28.1",
+  "x-contract-schema-version": "2026-07-28.2",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

@@ -11,6 +11,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
+import {
+  publishContractChannel,
+  unpublishContractChannel,
+} from "@/lib/contracts/channelPublication";
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -147,7 +151,9 @@ async function publishCanonicalWebsiteContractImpl(
   const publicOfferId = text(formData, "id") || null;
   if (!companyIdInput) throw new Error("Bolag saknas.");
 
-  const actor = await requireContractPermissionAction("contracts.publish");
+  const actor = await requireContractPermissionAction(
+    "contracts.publish.website",
+  );
   await requireContractPermissionAction("pricing.publish");
   const companyId = await assertUserCanOperateCompany(
     actor.userId,
@@ -169,18 +175,13 @@ async function publishCanonicalWebsiteContractImpl(
     throw new Error("Avtalsversionen saknar canonical produktkoppling.");
   }
 
-  const { data, error } = await supabaseService.rpc(
-    "gridex_publish_contract_channel",
-    {
-      p_company_id: companyId,
-      p_offer_id: source.id,
-      p_channel: "website",
-      p_actor_user_id: actor.userId,
-    },
-  );
-  if (error) throw error;
-  const result = assertLifecycleResult(data as LifecycleResult | null, "Publiceringskommandot returnerade inget giltigt resultat.");
-  if (result.changed === false) {
+  const command = await publishContractChannel({
+    companyId,
+    offerId: source.id,
+    channel: "website",
+    actorUserId: actor.userId,
+  });
+  if (!command.changed) {
     revalidateContractSurfaces(companyId);
     return { success: `${source.name} var redan publicerad på hemsidan.` };
   }
@@ -193,7 +194,7 @@ async function publishCanonicalWebsiteContractImpl(
     action: "contract.channel.website.published",
     label: "Canonical avtalsversion publicerad på hemsidan",
     oldValues: null,
-    newValues: result,
+    newValues: command.rpc,
     source: "company_card_contracts_tab",
     billable: false,
     metadata: {
@@ -244,20 +245,12 @@ async function unpublishCanonicalWebsiteContractImpl(
     publicOfferId,
   });
 
-  const { data, error } = await supabaseService.rpc(
-    "gridex_unpublish_contract_channel",
-    {
-      p_company_id: companyId,
-      p_offer_id: source.id,
-      p_channel: "website",
-      p_actor_user_id: actor.userId,
-    },
-  );
-  if (error) throw error;
-  const result = assertLifecycleResult(data as LifecycleResult | null, "Avpubliceringskommandot returnerade inget giltigt resultat.");
-  if (result.changed === false && !result.already_unpublished) {
-    throw new Error("Avpubliceringen påverkade inga rader.");
-  }
+  const command = await unpublishContractChannel({
+    companyId,
+    offerId: source.id,
+    channel: "website",
+    actorUserId: actor.userId,
+  });
 
   await logAdminActionAndUsage({
     companyId,
@@ -267,7 +260,7 @@ async function unpublishCanonicalWebsiteContractImpl(
     action: "contract.channel.website.unpublished",
     label: "Hemsidekanal avpublicerad",
     oldValues: null,
-    newValues: result,
+    newValues: command.rpc,
     source: "company_card_contracts_tab",
     billable: false,
     metadata: {

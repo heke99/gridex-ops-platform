@@ -1,6 +1,6 @@
 # Handover
 
-Last updated: 2026-07-28T11:28:30+02:00
+Last updated: 2026-07-28T15:08:00+02:00
 
 ## Verified locally
 
@@ -10,22 +10,27 @@ Last updated: 2026-07-28T11:28:30+02:00
 - ESLint has 0 errors and 124 existing unused-code warnings.
 - Migration integrity passes for 319 files / 223 version groups.
 - Repair migration, preflight and post-apply parse successfully.
+- Canonical contract-channel regression passes 43 controls.
+- Contract go-live and lifecycle regressions pass 212 and 518 controls.
+- API/OpenAPI/docs pass at `2026-07-28.2`.
+- Full Vitest passes 56 files / 361 tests.
 
 ## Implemented but not database-verified
 
-`20260728170000_live_schema_code_canonical_sync.sql` and the associated
-preflight/post-apply scripts. See
-`GRIDEX_LIVE_SCHEMA_CODE_SYNC_REPORT_2026-07-28.md`.
+`20260728190000_contract_channel_permission_publication_completion.sql` and
+its post-apply/schema-invariant verification. See
+`GRIDEX_CONTRACT_CHANNEL_PUBLICATION_COMPLETION_2026-07-28.md`.
 
 ## Active blockers
 
-No authorized production database, provider sandbox, deployment target or Git
-metadata is available. The historical remote/local migration chain is
-noncanonical.
+The checked-in `20260728170000...` bytes do not match the registered immutable
+checksum, and no trusted original is available in the supplied artifacts. No
+authorized production database, provider sandbox, deployment target or Git
+metadata is available.
 
 ## Exact next action
 
-Follow `GRIDEX_LIVE_REPAIR_RUNBOOK_2026-07-28.md` against the correct production
-project. Stop on any preflight/apply/post-apply/lint failure. Register only the
-new repair version after all checks pass. Then export the verified post-apply
-schema and prepare a clean canonical baseline in staging.
+Restore `20260728170000...` from the trusted applied artifact, require a green
+migration check, then follow the channel-completion report against staging.
+Stop on any apply/post-apply/scenario/API failure. Production remains NO-GO
+until scenarios A-H and final endpoint verification pass.

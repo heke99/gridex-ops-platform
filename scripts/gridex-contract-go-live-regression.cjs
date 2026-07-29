@@ -5,6 +5,7 @@ const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const migration = read("supabase/migrations/20260720233000_contract_product_lifecycle_go_live_completion.sql");
 const actions = read("app/admin/contracts/actions.ts");
+const channelPublication = read("lib/contracts/channelPublication.ts");
 const tenantActions = read("app/admin/companies/[id]/tenant-platform-actions.ts");
 const tenantControls = read("app/admin/companies/[id]/TenantPlatformControls.tsx");
 const stagingRoundtrip = read("scripts/gridex-contract-staging-roundtrip.mjs");
@@ -222,12 +223,17 @@ includesAll(deleteControl, [
 includesAll(actions, [
   "requireContractPermissionAction",
   "gridex_publish_internal_contract_version",
-  "gridex_publish_contract_channel",
+  "publishContractChannel",
   "gridex_cleanup_unused_contract_drafts",
   "revalidateContractSurfaces",
   "public-contracts:",
   "quote-contracts:",
 ], "server permission and cache contract");
+includesAll(channelPublication, [
+  "gridex_publish_contract_channel",
+  "gridex_unpublish_contract_channel",
+  "gridex_validate_contract_channel_readiness",
+], "canonical channel application service owns publication RPCs");
 check(!/from\("tenant_contract_channels"\)[\s\S]{0,120}\.upsert/.test(actions), "channel UI cannot bypass canonical publication RPC");
 check(!form.includes('<option value="published">'), "form cannot publish by changing a status field");
 check(schema.includes("CONTRACT_EDITABLE_LIFECYCLE_STATUSES"), "shared schema only accepts draft/ready from editable form");
@@ -327,7 +333,7 @@ includesAll(liveSchemaCheck, [
 check(db.includes('.not("lifecycle_status", "in", "(archived,superseded)")'), "archived/superseded hidden by default");
 check(runtime.includes('code: "offer_reference_mismatch"'), "canonical API mismatch code");
 check(runtime.includes('legacy_code: "offer_selector_mismatch"'), "legacy error code retained only as compatibility detail");
-check(openapi.info.version === "2026-07-28.1", "OpenAPI current version");
+check(openapi.info.version === "2026-07-28.2", "OpenAPI current version");
 check(JSON.stringify(openapi).includes("offer_reference_mismatch"), "OpenAPI documents canonical mismatch code");
 
 includesAll(migration, [

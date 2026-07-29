@@ -59,8 +59,12 @@ excludes(
   "Canonical avtalsadministration",
 );
 contains(
-  "app/admin/companies/[id]/tenant-platform-actions.ts",
-  ["gridex_publish_contract_channel", "source_contract_offer_id", 'p_channel: "website"'],
+  "app/admin/companies/[id]/TenantPlatformControls.tsx",
+  [
+    "publishContractChannelAction",
+    'name="channel" value="website"',
+    'name="return_surface" value="company"',
+  ],
   "Bolagssidans kanalpublicering",
 );
 excludes(
@@ -239,7 +243,7 @@ excludes(
 checks += 1;
 const openapi = JSON.parse(read("docs/openapi/website-integration-v1.json"));
 if (
-  openapi?.info?.version !== "2026-07-28.1" ||
+  openapi?.info?.version !== "2026-07-28.2" ||
   !openapi?.paths?.["/api/v1/website/portfolio-prices"]?.get
 ) {
   failures.push("OpenAPI: portföljendpoint eller dokumentationsversion saknas");

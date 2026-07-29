@@ -85,3 +85,14 @@
 - Produced the complete report and Docker-free production runbook.
 - Recorded that production is still NO-GO until authorized apply, postflight,
   live lint and smoke tests pass.
+- Implemented canonical channel permission, readiness, publication and
+  availability for internal, website and API.
+- Unified both admin surfaces, separated grants from publish, hardened the
+  external DTO and aligned API/OpenAPI/ETag at `2026-07-28.2`.
+- Added the forward channel-completion migration, final-schema inspection and
+  dedicated regression coverage.
+- Verified 361 tests, all TypeScript targets, API docs, go-live/lifecycle
+  regressions, lint and production build.
+- Confirmed the historical `20260728170000...` checksum drift cannot be
+  repaired from the supplied artifacts; production remains NO-GO pending the
+  trusted original plus database scenarios A-H.

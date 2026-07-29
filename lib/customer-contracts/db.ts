@@ -12,6 +12,190 @@ import type {
 } from "./types";
 import { deriveContractEndsAt } from "./lifecycle";
 
+export class ContractReadModelError extends Error {
+  readonly code: string;
+
+  constructor(code: string) {
+    super(code);
+    this.name = "ContractReadModelError";
+    this.code = code;
+  }
+}
+
+function requiredString(
+  row: Record<string, unknown>,
+  field: string,
+): string {
+  const value = row[field];
+  if (typeof value !== "string" || !value.trim()) {
+    throw new ContractReadModelError(
+      `canonical_contract_offer_missing_${field}`,
+    );
+  }
+  return value;
+}
+
+function requiredBoolean(
+  row: Record<string, unknown>,
+  field: string,
+): boolean {
+  const value = row[field];
+  if (typeof value !== "boolean") {
+    throw new ContractReadModelError(
+      `canonical_contract_offer_missing_${field}`,
+    );
+  }
+  return value;
+}
+
+function requiredNumber(
+  row: Record<string, unknown>,
+  field: string,
+): number {
+  const value = row[field];
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new ContractReadModelError(
+      `canonical_contract_offer_missing_${field}`,
+    );
+  }
+  return value;
+}
+
+function requiredNullableString(
+  row: Record<string, unknown>,
+  field: string,
+): string | null {
+  if (!Object.prototype.hasOwnProperty.call(row, field)) {
+    throw new ContractReadModelError(
+      `canonical_contract_offer_missing_${field}`,
+    );
+  }
+  const value = row[field];
+  if (value !== null && typeof value !== "string") {
+    throw new ContractReadModelError(
+      `canonical_contract_offer_invalid_${field}`,
+    );
+  }
+  return value;
+}
+
+function requiredReadiness(
+  row: Record<string, unknown>,
+  field: "internal_readiness" | "website_readiness" | "api_readiness",
+): ContractOfferRow[typeof field] {
+  const value = row[field];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new ContractReadModelError(
+      `canonical_contract_offer_missing_${field}`,
+    );
+  }
+  const readiness = value as Record<string, unknown>;
+  if (
+    typeof readiness.ready !== "boolean" ||
+    !Array.isArray(readiness.blockers)
+  ) {
+    throw new ContractReadModelError(
+      `canonical_contract_offer_invalid_${field}`,
+    );
+  }
+  return {
+    ready: readiness.ready,
+    blockers: readiness.blockers.map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        throw new ContractReadModelError(
+          `canonical_contract_offer_invalid_${field}_blocker`,
+        );
+      }
+      const blocker = item as Record<string, unknown>;
+      if (
+        typeof blocker.code !== "string" ||
+        typeof blocker.message !== "string"
+      ) {
+        throw new ContractReadModelError(
+          `canonical_contract_offer_invalid_${field}_blocker`,
+        );
+      }
+      return { code: blocker.code, message: blocker.message };
+    }),
+  };
+}
+
+export function mapCanonicalContractOfferRow(
+  raw: unknown,
+): ContractOfferRow {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new ContractReadModelError("canonical_contract_offer_invalid_row");
+  }
+  const row = raw as Record<string, unknown>;
+  const mandatoryStrings = [
+    "id",
+    "contract_offer_id",
+    "company_id",
+    "name",
+    "slug",
+    "status",
+    "offer_status",
+    "lifecycle_status",
+    "assignment_status",
+    "internal_channel_status",
+    "website_channel_status",
+    "api_channel_status",
+  ] as const;
+  for (const field of mandatoryStrings) requiredString(row, field);
+
+  return {
+    ...(row as ContractOfferRow),
+    id: requiredString(row, "id"),
+    contract_offer_id: requiredString(row, "contract_offer_id"),
+    company_id: requiredString(row, "company_id"),
+    assignment_id: requiredNullableString(row, "assignment_id"),
+    internal_channel_valid_from: requiredNullableString(
+      row,
+      "internal_channel_valid_from",
+    ),
+    internal_channel_valid_to: requiredNullableString(
+      row,
+      "internal_channel_valid_to",
+    ),
+    website_channel_valid_from: requiredNullableString(
+      row,
+      "website_channel_valid_from",
+    ),
+    website_channel_valid_to: requiredNullableString(
+      row,
+      "website_channel_valid_to",
+    ),
+    api_channel_valid_from: requiredNullableString(
+      row,
+      "api_channel_valid_from",
+    ),
+    api_channel_valid_to: requiredNullableString(
+      row,
+      "api_channel_valid_to",
+    ),
+    internal_sales_allowed: requiredBoolean(row, "internal_sales_allowed"),
+    website_publication_allowed: requiredBoolean(
+      row,
+      "website_publication_allowed",
+    ),
+    api_publication_allowed: requiredBoolean(row, "api_publication_allowed"),
+    currently_sellable: requiredBoolean(row, "currently_sellable"),
+    internally_sellable_now: requiredBoolean(
+      row,
+      "internally_sellable_now",
+    ),
+    website_available_now: requiredBoolean(row, "website_available_now"),
+    api_available_now: requiredBoolean(row, "api_available_now"),
+    active_publication_version_count: requiredNumber(
+      row,
+      "active_publication_version_count",
+    ),
+    internal_readiness: requiredReadiness(row, "internal_readiness"),
+    website_readiness: requiredReadiness(row, "website_readiness"),
+    api_readiness: requiredReadiness(row, "api_readiness"),
+  };
+}
+
 export type LatestCustomerContractSummary = {
   contract_name: string;
   status: CustomerContractRow["status"];
@@ -370,7 +554,7 @@ export async function listContractOffers(
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data ?? []) as ContractOfferRow[];
+  return (data ?? []).map(mapCanonicalContractOfferRow);
 }
 
 export async function getContractOfferById(
@@ -386,7 +570,7 @@ export async function getContractOfferById(
   const { data, error } = await query.maybeSingle();
 
   if (error) throw error;
-  return (data as ContractOfferRow | null) ?? null;
+  return data ? mapCanonicalContractOfferRow(data) : null;
 }
 
 export async function getPreviousContractOfferVersion(input: {
@@ -414,7 +598,7 @@ export async function getPreviousContractOfferVersion(input: {
     .maybeSingle();
 
   if (error) throw error;
-  return (data as ContractOfferRow | null) ?? null;
+  return data ? mapCanonicalContractOfferRow(data) : null;
 }
 
 export async function listCustomerContractsByCustomerId(

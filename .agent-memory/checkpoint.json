@@ -1,34 +1,34 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-07-28T11:28:30+02:00",
+  "updated_at": "2026-07-28T15:08:00+02:00",
   "branch": null,
   "last_verified_commit": null,
-  "active_phase": "PHASE-29",
-  "active_task": "WP-029",
-  "active_subtask": "Controlled production apply and post-apply proof",
-  "status": "READY_FOR_CONTROLLED_APPLY",
+  "active_phase": "PHASE-30",
+  "active_task": "WP-030",
+  "active_subtask": "Restore immutable migration, then database-verify channel publication",
+  "status": "BLOCKED",
   "implemented_not_database_verified": [
-    "20260728170000 live schema/code canonical synchronization",
-    "read-only live repair preflight",
-    "rollback-only post-apply verification",
-    "canonical migration baseline cutover"
+    "20260728190000 canonical channel permission/publication completion",
+    "strict canonical channel read model",
+    "shared website/API external DTO schema 2026-07-28.2",
+    "read-only final-schema and invariant verification"
   ],
   "active_blockers": [
+    "20260728170000 checksum differs from its registered immutable checksum and the original bytes are unavailable",
     "Uploaded archive excludes Git metadata",
-    "Authorized production database connection is unavailable",
-    "Provider sandbox and credentials are unavailable",
-    "Historical remote/local migration history is noncanonical"
+    "Authorized PostgreSQL staging/production connection is unavailable",
+    "Production scenarios A-H and endpoint verification are not executable locally"
   ],
   "verification": [
     {
       "name": "typecheck",
       "status": "VERIFIED",
-      "evidence": "tsc --noEmit -p tsconfig.app.json passes"
+      "evidence": "app, test, script and contract-patch TypeScript targets pass"
     },
     {
       "name": "tests",
       "status": "VERIFIED",
-      "evidence": "55 files, 357 tests pass"
+      "evidence": "56 files, 361 tests pass"
     },
     {
       "name": "lint",
@@ -37,23 +37,23 @@
     },
     {
       "name": "migration integrity",
-      "status": "VERIFIED",
-      "evidence": "319 files, 223 version groups, checksums verified"
+      "status": "BLOCKED",
+      "evidence": "Only 20260728170000 drifts; new 20260728190000 checksum is registered and exact"
     },
     {
-      "name": "live definition patch simulation",
+      "name": "contract channel static regression",
       "status": "VERIFIED",
-      "evidence": "41/41 exact patches match; 23/23 lint errors covered"
+      "evidence": "43/43 canonical grant/publication/read-model/API controls pass"
     },
     {
-      "name": "code/schema path scan",
+      "name": "contract go-live regression",
       "status": "VERIFIED",
-      "evidence": "4759 writes, 3679 accesses and 120 literal RPC calls verified"
+      "evidence": "212 go-live and 518 lifecycle controls pass"
     },
     {
       "name": "API/OpenAPI",
       "status": "VERIFIED",
-      "evidence": "contract, runtime parity, examples and version 2026-07-28.1 pass"
+      "evidence": "contract, runtime parity, examples and version 2026-07-28.2 pass"
     },
     {
       "name": "production build",
@@ -61,17 +61,17 @@
       "evidence": "Next.js build completes"
     },
     {
-      "name": "PostgreSQL production apply/postflight",
+      "name": "PostgreSQL apply/postflight/scenarios A-H",
       "status": "BLOCKED",
-      "evidence": "No authorized database connection in workspace"
+      "evidence": "Requires immutable migration restoration and an authorized database"
     }
   ],
-  "next_action": "Run the Docker-free controlled apply runbook against the correct production project",
-  "resume_from": "GRIDEX_LIVE_REPAIR_RUNBOOK_2026-07-28.md",
+  "next_action": "Restore 20260728170000 from the exact trusted applied artifact, require a green migration check, then apply 20260728190000 in staging and run post-apply plus scenarios A-H",
+  "resume_from": "GRIDEX_CONTRACT_CHANNEL_PUBLICATION_COMPLETION_2026-07-28.md",
   "context_notes": [
-    "Do not run db push against the noncanonical historical chain",
-    "Register only 20260728170000 after green post-apply and lint",
-    "Production remains NO-GO until apply and smoke tests pass",
-    "Create a fresh canonical baseline only from the verified post-apply schema"
+    "Do not change the manifest checksum to hide 20260728170000 drift",
+    "Do not apply 20260728190000 until npm run db:migrations:check is green",
+    "Production remains NO-GO until final schema introspection, A-H and endpoint checks pass",
+    "The local production build used Node 24; repeat on declared Node 22 in release CI"
   ]
 }

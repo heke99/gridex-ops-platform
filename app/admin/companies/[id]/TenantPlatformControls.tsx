@@ -16,9 +16,10 @@ import {
   permissionGroupLabelsForScopes,
 } from "@/lib/integrations/apiClientScopes";
 import {
-  saveTenantPublicContractOfferAction,
-  unpublishTenantPublicContractOfferAction,
-} from "./tenant-platform-actions";
+  publishContractChannelAction,
+  setContractChannelPermissionAction,
+  unpublishContractChannelAction,
+} from "@/app/admin/contracts/actions";
 import {
   repairCompanyEmailAutomationAction,
   toggleCompanyEmailEventRuleAction,
@@ -580,7 +581,8 @@ export default async function TenantPlatformControls({
       contract.lifecycle_status === "published" &&
       contract.is_active !== false &&
       Boolean(contract.contract_product_id) &&
-      Boolean(contract.contract_product_version_id),
+      Boolean(contract.contract_product_version_id) &&
+      contract.website_readiness.ready,
   );
   const emailProviderConfigured = Boolean(process.env.RESEND_API_KEY);
   const platformFallbackConfigured = Boolean(
@@ -811,6 +813,82 @@ export default async function TenantPlatformControls({
                   {contract.valid_to ?? "tills vidare"} · senast ändrad{" "}
                   {formatDate(contract.updated_at)}
                 </p>
+                <div className="mt-3 grid gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-700 sm:grid-cols-3">
+                  <div>
+                    <strong>Intern</strong>
+                    <div>Behörighet: {contract.internal_sales_allowed ? "Ja" : "Nej"}</div>
+                    <div>Kanal: {contract.internal_channel_status}</div>
+                    <div>Teckningsbar nu: {contract.internally_sellable_now ? "Ja" : "Nej"}</div>
+                  </div>
+                  <div>
+                    <strong>Hemsida</strong>
+                    <div>Behörighet: {contract.website_publication_allowed ? "Ja" : "Nej"}</div>
+                    <div>Kanal: {contract.website_channel_status}</div>
+                    <div>Tillgänglig nu: {contract.website_available_now ? "Ja" : "Nej"}</div>
+                  </div>
+                  <div>
+                    <strong>API</strong>
+                    <div>Behörighet: {contract.api_publication_allowed ? "Ja" : "Nej"}</div>
+                    <div>Kanal: {contract.api_channel_status}</div>
+                    <div>Externt tillgänglig: {contract.api_available_now ? "Ja" : "Nej"}</div>
+                    {contract.api_channel_status === "active" &&
+                    !contract.api_available_now ? (
+                      <div className="mt-1 text-amber-800">
+                        Aktiv API-klient med <code>api_contracts.read</code> saknas
+                        eller publiceringsgrafen är inte komplett.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                {!contract.website_publication_allowed && contract.assignment_id ? (
+                  <form action={setContractChannelPermissionAction} className="mt-3">
+                    <input type="hidden" name="company_id" value={companyId} />
+                    <input type="hidden" name="assignment_id" value={contract.assignment_id} />
+                    <input type="hidden" name="channel" value="website" />
+                    <input type="hidden" name="allowed" value="true" />
+                    <input type="hidden" name="return_surface" value="company" />
+                    <input type="hidden" name="reason" value="Aktiverad från bolagets canonical avtalsvy" />
+                    <button className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800">
+                      Ge hemsidebehörighet
+                    </button>
+                  </form>
+                ) : null}
+                {contract.website_publication_allowed ? (
+                  <form
+                    action={
+                      contract.website_channel_status === "active"
+                        ? unpublishContractChannelAction
+                        : publishContractChannelAction
+                    }
+                    className="mt-3"
+                  >
+                    <input type="hidden" name="company_id" value={companyId} />
+                    <input type="hidden" name="id" value={contract.id} />
+                    <input type="hidden" name="channel" value="website" />
+                    <input type="hidden" name="return_surface" value="company" />
+                    <button
+                      disabled={
+                        contract.website_channel_status !== "active" &&
+                        !contract.website_readiness.ready
+                      }
+                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {contract.website_channel_status === "active"
+                        ? "Avpublicera hemsidekanalen"
+                        : "Publicera hemsidekanalen"}
+                    </button>
+                    {contract.website_channel_status !== "active" &&
+                    !contract.website_readiness.ready ? (
+                      <p className="mt-1 text-xs font-semibold text-amber-800">
+                        Blockerad: {contract.website_readiness.blockers[0]?.message ?? "kanalen är inte redo"}
+                      </p>
+                    ) : null}
+                  </form>
+                ) : (
+                  <p className="mt-2 text-xs font-semibold text-amber-800">
+                    Hemsidans publiceringsknapp är blockerad: publiceringsbehörighet saknas.
+                  </p>
+                )}
                 {selectedDiagnostic?.error ? (
                   <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-800">
                     {selectedDiagnostic.error}
@@ -894,14 +972,16 @@ export default async function TenantPlatformControls({
             fakturering.
           </div>
           <form
-            action={saveTenantPublicContractOfferAction}
+            action={publishContractChannelAction}
             className="mt-5 grid min-w-0 gap-3"
           >
             <input type="hidden" name="company_id" value={companyId} />
+            <input type="hidden" name="channel" value="website" />
+            <input type="hidden" name="return_surface" value="company" />
             <label className="grid gap-2 text-xs font-black text-slate-700">
               Publicerad avtalsversion
               <select
-                name="source_contract_offer_id"
+                name="id"
                 required
                 defaultValue=""
                 className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold"
@@ -1137,14 +1217,11 @@ export default async function TenantPlatformControls({
                     )}
                     {offer.source_contract_offer_id &&
                     (offer.is_public || offer.website_enabled) ? (
-                      <form action={unpublishTenantPublicContractOfferAction}>
+                      <form action={unpublishContractChannelAction}>
                         <input type="hidden" name="company_id" value={companyId} />
-                        <input type="hidden" name="id" value={offer.id} />
-                        <input
-                          type="hidden"
-                          name="source_contract_offer_id"
-                          value={offer.source_contract_offer_id}
-                        />
+                        <input type="hidden" name="id" value={offer.source_contract_offer_id} />
+                        <input type="hidden" name="channel" value="website" />
+                        <input type="hidden" name="return_surface" value="company" />
                         <button className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-900 hover:bg-amber-100">
                           Avpublicera endast webbkanalen
                         </button>
@@ -1202,6 +1279,8 @@ export default async function TenantPlatformControls({
           {apiClients.map((client) => {
             const origins = valueList(client.allowed_origins);
             const scopes = valueList(client.scopes);
+            const hasApiContractReadScope =
+              scopes.includes("api_contracts.read");
             return (
               <article
                 key={client.id}
@@ -1223,6 +1302,17 @@ export default async function TenantPlatformControls({
                         : "red",
                     client.status,
                   )}
+                </div>
+                <div
+                  className={`mt-3 rounded-xl border p-3 text-xs font-semibold ${
+                    hasApiContractReadScope
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                      : "border-amber-200 bg-amber-50 text-amber-900"
+                  }`}
+                >
+                  <strong>Hämta API-publicerade avtal</strong>
+                  <div>Scope: <code>api_contracts.read</code></div>
+                  <div>Status: {hasApiContractReadScope ? "Tilldelad" : "Saknas"}</div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {permissionGroupLabelsForScopes(scopes).map((label) => (

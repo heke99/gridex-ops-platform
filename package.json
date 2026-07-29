@@ -227,7 +227,10 @@
     "gridex:market-price-api-regression": "node scripts/gridex-market-price-api-regression.cjs",
     "verify:market-price-api:static": "npm run db:migrations:check && npm run gridex:market-price-api-regression && npm run gridex:canonical-market-flow-regression && npm run gridex:single-api-key-integration-regression && npm run api:docs",
     "verify:market-price-api": "npm run verify:market-price-api:static && npm run typecheck && npm run test:canonical-market-flow && npm run build",
-    "gridex:contract-security-energy-direction-regression": "node scripts/gridex-contract-security-energy-direction-regression.cjs"
+    "gridex:contract-security-energy-direction-regression": "node scripts/gridex-contract-security-energy-direction-regression.cjs",
+    "gridex:contract-channel-publication-regression": "node scripts/gridex-contract-channel-publication-regression.cjs",
+    "gridex:contract-channel-publication-post-apply": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/gridex-contract-channel-publication-post-apply.sql",
+    "verify:contract-channel-publication:static": "npm run typecheck && vitest run __tests__/contract-channel-publication-completion.test.ts && npm run gridex:contract-channel-publication-regression && npm run api:docs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

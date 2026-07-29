@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { normalizeExternalCustomerType } from '@/lib/customers/externalCustomerType'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { API_CONTRACT_RESPONSE_SCHEMA_VERSION } from '@/lib/external-contracts/publicationDto'
 
 export type PublicContractsQuery = {
   customerType: 'private' | 'business' | null
@@ -72,7 +73,10 @@ export async function loadPublicationRevision(companyId: string, channel: 'websi
   if (error) throw error
   const revision = Number(data?.revision ?? 0)
   const token = String(data?.revision_token ?? 'initial')
-  const representationVersion = channel === 'website' ? PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION : 'api-v1'
+  const representationVersion =
+    channel === 'website'
+      ? PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION
+      : API_CONTRACT_RESPONSE_SCHEMA_VERSION
   const opaque = createHash('sha256').update(`${companyId}:${channel}:${revision}:${token}:${representationVersion}`).digest('base64url').slice(0, 32)
   return {
     revision,

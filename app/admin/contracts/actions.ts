@@ -17,6 +17,12 @@ import { requireContractPermissionAction } from "@/lib/contracts/permissions";
 import { contractLifecycleError, type ContractLifecycleRpcResult } from "@/lib/contracts/lifecycleErrors";
 import { archiveContractProduct, deleteContractProduct } from "@/lib/contracts/adminMutations";
 import { contractChannelLabel } from "@/lib/contracts/lifecycle";
+import {
+  publishContractChannel,
+  setContractChannelPermission,
+  unpublishContractChannel,
+} from "@/lib/contracts/channelPublication";
+import type { ContractPublicationChannel } from "@/lib/customer-contracts/types";
 
 function contractMutationServiceClient() {
   const requestId = randomUUID();
@@ -30,18 +36,37 @@ function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
 }
 
+function contractChannel(value: string): ContractPublicationChannel {
+  if (value === "internal" || value === "website" || value === "api") {
+    return value;
+  }
+  throw new Error("Ogiltig avtalskanal.");
+}
+
 function redirectBack(params: {
   companyId?: string | null;
   offerId?: string | null;
+  surface?: "contracts" | "company";
   success?: string;
   error?: string;
 }): never {
   const search = new URLSearchParams();
-  if (params.companyId) search.set("company_id", params.companyId);
-  if (params.offerId) search.set("edit_offer", params.offerId);
   if (params.success) search.set("success", params.success);
   if (params.error) search.set("error", params.error);
+  if (params.surface === "company" && params.companyId) {
+    redirect(
+      `/admin/companies/${params.companyId}${search.size ? `?${search.toString()}` : ""}#tenant-internal-contracts`,
+    );
+  }
+  if (params.companyId) search.set("company_id", params.companyId);
+  if (params.offerId) search.set("edit_offer", params.offerId);
   redirect(`/admin/contracts?${search.toString()}`);
+}
+
+function actionSurface(formData: FormData): "contracts" | "company" {
+  return getString(formData, "return_surface") === "company"
+    ? "company"
+    : "contracts";
 }
 
 async function errorMessage(
@@ -604,14 +629,15 @@ async function updateTenantContractChannelActionImpl(
   if (!companyId || !assignmentId) {
     throw new Error("Bolag eller avtalstilldelning saknas.");
   }
-  if (!["internal", "website", "api", "partner", "phone"].includes(channel)) {
-    throw new Error("Ogiltig försäljningskanal.");
-  }
+  const canonicalChannel = contractChannel(channel);
   if (!["active", "paused", "ended"].includes(status)) {
     throw new Error("Ogiltig kanalstatus.");
   }
 
-  const requiredPermission = status === "active" ? "contracts.publish" : "contracts.pause";
+  const requiredPermission =
+    status === "active"
+      ? `contracts.publish.${canonicalChannel}`
+      : "contracts.pause";
   const actor = await requireContractPermissionAction(requiredPermission);
   if (status === "active") {
     await requireContractPermissionAction("pricing.publish");
@@ -623,19 +649,14 @@ async function updateTenantContractChannelActionImpl(
 
   const { data: assignment, error: assignmentError } = await supabaseService
     .from("tenant_contract_assignments")
-    .select("id,company_id,contract_product_version_id,website_publication_allowed,internal_sales_allowed")
+    .select(
+      "id,company_id,contract_product_version_id,website_publication_allowed,internal_sales_allowed,api_publication_allowed",
+    )
     .eq("id", assignmentId)
     .eq("company_id", companyId)
     .maybeSingle();
   if (assignmentError) throw assignmentError;
   if (!assignment) throw new Error("Avtalstilldelningen hittades inte.");
-  if (channel === "website" && !assignment.website_publication_allowed && status === "active") {
-    throw new Error("Superadmin har inte tillåtit hemsidepublicering för avtalet.");
-  }
-  if (channel === "internal" && !assignment.internal_sales_allowed && status === "active") {
-    throw new Error("Superadmin har inte tillåtit intern försäljning för avtalet.");
-  }
-
   const { data: offer, error: offerError } = await supabaseService
     .from("contract_offers")
     .select("id,lifecycle_status")
@@ -650,21 +671,38 @@ async function updateTenantContractChannelActionImpl(
     throw new Error("Endast en publicerad eller pausad avtalsversion kan aktiveras i en kanal.");
   }
 
-  const command = status === "active"
-    ? "gridex_publish_contract_channel"
-    : status === "ended"
-      ? "gridex_end_contract_channel"
-      : "gridex_unpublish_contract_channel";
-  const { data, error } = await contractMutationServiceClient().rpc(command, {
-    p_company_id: companyId,
-    p_offer_id: offer.id,
-    p_channel: channel,
-    p_actor_user_id: actor.userId,
-  });
-  if (error) throw error;
-  const result = data as ContractLifecycleRpcResult | null;
-  if (!result?.ok) {
-    throw contractLifecycleFailure(result, "Kanaländringen kunde inte genomföras atomärt.");
+  if (status === "active") {
+    await publishContractChannel({
+      companyId,
+      offerId: offer.id,
+      channel: canonicalChannel,
+      actorUserId: actor.userId,
+    });
+  } else if (status === "paused") {
+    await unpublishContractChannel({
+      companyId,
+      offerId: offer.id,
+      channel: canonicalChannel,
+      actorUserId: actor.userId,
+    });
+  } else {
+    const { data, error } = await contractMutationServiceClient().rpc(
+      "gridex_end_contract_channel",
+      {
+        p_company_id: companyId,
+        p_offer_id: offer.id,
+        p_channel: canonicalChannel,
+        p_actor_user_id: actor.userId,
+      },
+    );
+    if (error) throw error;
+    const result = data as ContractLifecycleRpcResult | null;
+    if (!result?.ok) {
+      throw contractLifecycleFailure(
+        result,
+        "Kanalen kunde inte avslutas atomärt.",
+      );
+    }
   }
 
   revalidateContractSurfaces(companyId);
@@ -754,73 +792,136 @@ export async function publishContractVersionAction(formData: FormData) {
 
 export async function publishContractChannelAction(formData: FormData) {
   const companyId = getString(formData, "company_id") || null;
-  const channel = getString(formData, "channel") || "website";
+  const channelInput = getString(formData, "channel") || "website";
+  const surface = actionSurface(formData);
+  let channel: ContractPublicationChannel;
   try {
-    const actor = await requireContractPermissionAction("contracts.publish");
+    channel = contractChannel(channelInput);
+    const actor = await requireContractPermissionAction(
+      `contracts.publish.${channel}`,
+    );
     await requireContractPermissionAction("pricing.publish");
     if (!companyId) throw new Error("Bolag saknas.");
     await assertUserCanOperateCompany(actor.userId, companyId);
     await requireCompanyOperationalForWrites(companyId);
     const offerId = getString(formData, "id");
     if (!offerId) throw new Error("Avtal saknas.");
-    const { data, error } = await contractMutationServiceClient().rpc("gridex_publish_contract_channel", {
-      p_company_id: companyId,
-      p_offer_id: offerId,
-      p_channel: channel,
-      p_actor_user_id: actor.userId,
+    await publishContractChannel({
+      companyId,
+      offerId,
+      channel,
+      actorUserId: actor.userId,
     });
-    if (error) throw error;
-    const result = data as ContractLifecycleRpcResult | null;
-    if (!result?.ok) throw contractLifecycleFailure(result, "Kanalen kunde inte publiceras.");
     revalidateContractSurfaces(companyId);
   } catch (error) {
     redirectBack({
       companyId,
+      surface,
       error: await errorMessage(error, {
-        action: "publish_contract_channel",
+        action: "contract_channel_publish_failed",
         companyId,
-        metadata: { offerId: getString(formData, "id") || null },
-      }),
-    });
-  }
-  redirectBack({ companyId, success: `${contractChannelLabel(channel)} publicerades från samma canonical avtalsversion.` });
-}
-
-export async function unpublishContractChannelAction(formData: FormData) {
-  const companyId = getString(formData, "company_id") || null;
-  const channel = getString(formData, "channel") || "website";
-  try {
-    const actor = await requireContractPermissionAction("contracts.pause");
-    if (!companyId) throw new Error("Bolag saknas.");
-    await assertUserCanOperateCompany(actor.userId, companyId);
-    const offerId = getString(formData, "id");
-    if (!offerId) throw new Error("Avtal saknas.");
-    const { data, error } = await contractMutationServiceClient().rpc("gridex_unpublish_contract_channel", {
-      p_company_id: companyId,
-      p_offer_id: offerId,
-      p_channel: channel,
-      p_actor_user_id: actor.userId,
-    });
-    if (error) throw error;
-    const result = data as ContractLifecycleRpcResult | null;
-    if (!result?.ok) throw contractLifecycleFailure(result, "Kanalen kunde inte avpubliceras.");
-    if (result.changed === false && !result.already_unpublished) {
-      throw contractLifecycleFailure(result, "Avpubliceringen påverkade inga rader.");
-    }
-    revalidateContractSurfaces(companyId);
-  } catch (error) {
-    redirectBack({
-      companyId,
-      error: await errorMessage(error, {
-        action: "unpublish_contract_channel",
-        companyId,
-        metadata: { offerId: getString(formData, "id") || null },
+        metadata: {
+          offerId: getString(formData, "id") || null,
+          channel: channelInput,
+        },
       }),
     });
   }
   redirectBack({
     companyId,
+    surface,
+    success: `${contractChannelLabel(channel)} publicerades från samma canonical avtalsversion.`,
+  });
+}
+
+export async function unpublishContractChannelAction(formData: FormData) {
+  const companyId = getString(formData, "company_id") || null;
+  const channelInput = getString(formData, "channel") || "website";
+  const surface = actionSurface(formData);
+  let channel: ContractPublicationChannel;
+  try {
+    channel = contractChannel(channelInput);
+    const actor = await requireContractPermissionAction("contracts.pause");
+    if (!companyId) throw new Error("Bolag saknas.");
+    await assertUserCanOperateCompany(actor.userId, companyId);
+    const offerId = getString(formData, "id");
+    if (!offerId) throw new Error("Avtal saknas.");
+    await unpublishContractChannel({
+      companyId,
+      offerId,
+      channel,
+      actorUserId: actor.userId,
+    });
+    revalidateContractSurfaces(companyId);
+  } catch (error) {
+    redirectBack({
+      companyId,
+      surface,
+      error: await errorMessage(error, {
+        action: "unpublish_contract_channel",
+        companyId,
+        metadata: {
+          offerId: getString(formData, "id") || null,
+          channel: channelInput,
+        },
+      }),
+    });
+  }
+  redirectBack({
+    companyId,
+    surface,
     success: `${contractChannelLabel(channel)} avpublicerades. Publiceringsbehörigheten finns kvar.`,
+  });
+}
+
+export async function setContractChannelPermissionAction(formData: FormData) {
+  const companyId = getString(formData, "company_id") || null;
+  const channelInput = getString(formData, "channel");
+  const allowed = getString(formData, "allowed") === "true";
+  const surface = actionSurface(formData);
+  let channel: ContractPublicationChannel;
+  try {
+    channel = contractChannel(channelInput);
+    const actor = await requireContractPermissionAction(
+      "contracts.permissions.manage",
+    );
+    if (!companyId) throw new Error("Bolag saknas.");
+    const scopedCompanyId = await assertUserCanOperateCompany(
+      actor.userId,
+      companyId,
+    );
+    const assignmentId = getString(formData, "assignment_id");
+    if (!assignmentId) throw new Error("Avtalstilldelning saknas.");
+    await setContractChannelPermission({
+      companyId: scopedCompanyId,
+      assignmentId,
+      channel,
+      allowed,
+      actorUserId: actor.userId,
+      reason: getString(formData, "reason") || null,
+    });
+    revalidateContractSurfaces(scopedCompanyId);
+  } catch (error) {
+    redirectBack({
+      companyId,
+      surface,
+      error: await errorMessage(error, {
+        action: "set_contract_channel_permission",
+        companyId,
+        metadata: {
+          assignmentId: getString(formData, "assignment_id") || null,
+          channel: channelInput,
+          allowed,
+        },
+      }),
+    });
+  }
+  redirectBack({
+    companyId,
+    surface,
+    success: allowed
+      ? `${contractChannelLabel(channel)} fick publiceringsbehörighet. Publicera kanalen som ett separat steg.`
+      : `${contractChannelLabel(channel)} förlorade publiceringsbehörigheten. Kanalstatus ändrades inte.`,
   });
 }
 

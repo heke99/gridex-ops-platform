@@ -95,3 +95,23 @@ Status: VERIFIED LOCALLY
 - Verified 357 tests, TypeScript, lint with 0 errors, API docs, 319/223
   migration history, P0/go-live suites, SQL parse and production build.
 - Produced the complete Swedish audit report and Docker-free apply runbook.
+
+## 2026-07-28 canonical contract-channel completion
+
+- Added explicit, idempotent internal/website/API channel grants separated from
+  publication, with shared readiness and granular permissions.
+- Routed both admin surfaces through one actor- and tenant-bound canonical
+  service with post-commit state verification and failure audit.
+- Made grants, channel state, validity and availability mandatory in the
+  canonical TypeScript/SQL read model; missing database columns now fail
+  closed instead of becoming `false`.
+- Rebuilt website and API publication projections from the same immutable
+  publication graph and added graph/date/hash/single-active-version checks.
+- Added a strict external DTO allowlist, API scope `api_contracts.read`,
+  documented errors and response/ETag/OpenAPI version `2026-07-28.2`.
+- Added forward migration `20260728190000...`, post-apply introspection,
+  dedicated behavior tests and a 43-control static regression.
+- Verified 56 files/361 tests, all relevant TypeScript targets, API docs,
+  212 go-live controls, 518 lifecycle controls, lint and production build.
+- Recorded the pre-existing `20260728170000...` checksum drift as a release
+  blocker; no database apply or A-H scenario was claimed.

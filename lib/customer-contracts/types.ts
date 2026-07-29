@@ -25,6 +25,25 @@ export type ContractLifecycleStatus =
   | "archived"
   | "superseded";
 
+export type ContractPublicationChannel = "internal" | "website" | "api";
+
+export type ContractChannelStatus =
+  | "missing"
+  | "draft"
+  | "active"
+  | "paused"
+  | "unpublished"
+  | "ended"
+  | "archived";
+
+export type ContractChannelReadiness = {
+  ready: boolean;
+  blockers: Array<{
+    code: string;
+    message: string;
+  }>;
+};
+
 export type CustomerContractStatus =
   | "draft"
   | "pending_signature"
@@ -37,11 +56,15 @@ export type CustomerContractStatus =
 
 export type ContractOfferRow = {
   id: string;
-  company_id?: string | null;
+  contract_offer_id: string;
+  company_id: string;
+  assignment_id: string | null;
   name: string;
   slug: string;
   status: ContractOfferStatus;
-  lifecycle_status?: ContractLifecycleStatus;
+  offer_status: ContractOfferStatus;
+  lifecycle_status: ContractLifecycleStatus;
+  assignment_status: "active" | "paused" | "ended" | "missing";
   version_series_id?: string | null;
   supersedes_offer_id?: string | null;
   superseded_at?: string | null;
@@ -54,13 +77,26 @@ export type ContractOfferRow = {
   canonical_version_number?: number | null;
   canonical_version_status?: string | null;
   canonical_content_sha256?: string | null;
-  currently_sellable?: boolean;
-  internal_sales_allowed?: boolean;
-  website_publication_allowed?: boolean;
-  internal_channel_status?: "active" | "paused" | "ended" | "missing" | string;
-  website_channel_status?: "active" | "paused" | "ended" | "missing" | string;
-  api_channel_status?: "active" | "paused" | "ended" | "missing" | string;
-  active_publication_version_count?: number;
+  currently_sellable: boolean;
+  internally_sellable_now: boolean;
+  website_available_now: boolean;
+  api_available_now: boolean;
+  internal_sales_allowed: boolean;
+  website_publication_allowed: boolean;
+  api_publication_allowed: boolean;
+  internal_channel_status: ContractChannelStatus;
+  website_channel_status: ContractChannelStatus;
+  api_channel_status: ContractChannelStatus;
+  internal_channel_valid_from: string | null;
+  internal_channel_valid_to: string | null;
+  website_channel_valid_from: string | null;
+  website_channel_valid_to: string | null;
+  api_channel_valid_from: string | null;
+  api_channel_valid_to: string | null;
+  active_publication_version_count: number;
+  internal_readiness: ContractChannelReadiness;
+  website_readiness: ContractChannelReadiness;
+  api_readiness: ContractChannelReadiness;
   readiness?: { status?: string; can_publish?: boolean; blockers?: string[] } | null;
   deletion_preview?: {
     ok?: boolean;

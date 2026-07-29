@@ -74,13 +74,13 @@ const portalData = read('lib/customer-portal/apiData.ts')
 check(/public_contract_offer_id/.test(portalData) && /offer_reference/.test(portalData) && /signature_snapshot_sha256/.test(portalData), 'Kundportalens avtal exponerar kanonisk offer- och signaturkoppling')
 
 const docsPage = read('app/developers/customer-portal-api/page.tsx')
-for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_reference_mismatch', 'signature_snapshot_sha256', '2026-07-28.1']) {
+for (const term of ['diagnostics=1', 'can_send_agreement_confirmation', 'offer_reference_mismatch', 'signature_snapshot_sha256', '2026-07-28.2']) {
   check(docsPage.includes(term), `Publika dokumentationssidan innehåller ${term}`)
 }
 const websiteDocs = read('docs/openapi/website-integration-v1.json')
 const portalDocs = read('docs/openapi/customer-portal-v1.json')
 check(/offer_reference_mismatch/.test(websiteDocs) && /diagnostics/.test(websiteDocs), 'Website OpenAPI dokumenterar strikt offer_reference och diagnostik')
-check(/signature_snapshot_sha256/.test(portalDocs) && /2026-07-28\.1/.test(portalDocs), 'Customer portal OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion')
+check(/signature_snapshot_sha256/.test(portalDocs) && /2026-07-28\.2/.test(portalDocs), 'Customer portal OpenAPI dokumenterar signeringshash och aktuell dokumentationsversion')
 
 if (failed) process.exit(1)
 console.log('Gridex contract API/signature/visibility regression passed.')

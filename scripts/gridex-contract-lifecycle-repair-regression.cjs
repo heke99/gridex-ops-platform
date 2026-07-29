@@ -17,6 +17,7 @@ const graphMigration = read("supabase/migrations/20260721170000_contract_graph_a
 const adminRepository = read("lib/contracts/adminRepository.ts");
 const adminActions = read("lib/contracts/adminActions.ts");
 const deleteControl = read("components/admin/contracts/ContractDeleteControl.tsx");
+const channelPublication = read("lib/contracts/channelPublication.ts");
 
 const migrationsDirectory = path.join(root, "supabase/migrations");
 const migrationFiles = fs
@@ -167,8 +168,16 @@ includesAll(actions, [
   "unpublishContractChannelAction",
   "ContractLifecycleRpcResult",
   "contractLifecycleFailure",
-  "result.changed === false",
+  "publishContractChannel",
+  "unpublishContractChannel",
 ], "admin actions validate domain results");
+includesAll(channelPublication, [
+  "gridex_publish_contract_channel",
+  "gridex_unpublish_contract_channel",
+  "rpc.ok !== true",
+  "contract_channel_post_commit_verification_failed",
+  "contract_channel_unpublish_verification_failed",
+], "canonical channel service rejects false success and verifies committed state");
 includesAll(page, [
   "Avpublicera från hemsida",
   "Avpublicera från API",
@@ -202,7 +211,6 @@ includesAll(deleteControl, [
 check(!tenantControls.includes("&edit=${offer.source_contract_offer_id}"), "legacy edit query parameter removed");
 includesAll(tenantActions, [
   "assertLifecycleResult",
-  "result.changed === false",
   "contractLifecycleError",
   "deleteContractProduct",
   "archiveContractProduct",
@@ -245,7 +253,9 @@ includesAll(types, [
   "can_delete?: boolean",
   "business_blockers?: Record<string, number>",
   "removable_system_dependencies?: Record<string, number>",
-  "website_channel_status?",
+  "internal_channel_status:",
+  "website_channel_status:",
+  "api_channel_status:",
 ], "shared TypeScript contract includes lifecycle response");
 includesAll(dbTest, [
   "gridex_unpublish_contract_channel",

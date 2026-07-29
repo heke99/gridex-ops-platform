@@ -13,6 +13,7 @@ import {
   PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
   requestId,
 } from '@/lib/website/publicContractApi'
+import { mapContractPublicationToPublicDto } from '@/lib/external-contracts/publicationDto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -64,7 +65,12 @@ export async function GET(request: NextRequest) {
     }
 
     const offers = await listPublicContractOffers({ client: auth.client, customerType: query.customerType })
-    const data = offers.map(publicContractResponse)
+    const data = offers.map((offer) =>
+      mapContractPublicationToPublicDto({
+        publication: publicContractResponse(offer),
+        channel: 'website',
+      }),
+    )
     const diagnostics = query.diagnostics
       ? await diagnosePublicContractOffers({ client: auth.client, customerType: query.customerType })
       : null
