@@ -97,3 +97,12 @@ sync, public-reference DTOs, portal pagination and atomic move-out pass local
 static, type, test, API and build gates. Clean/upgrade PostgreSQL apply, move-out
 replay/concurrency, two-tenant denial and deployed `2026-07-30.2` manifest hash
 parity require an authorized staging environment and deployment.
+
+## BLK-013 — Canonical price-option database and deployment proof
+
+Status: RELEASE_BLOCKER. Forward migration `20260730220000...`, publication-
+bound options, default/selection policy, public DTOs, immutable commercial
+assertions and release `2026-07-30.3` pass local static, type, test, API and
+build gates. Clean/upgrade PostgreSQL apply, post-apply, two-tenant denial,
+quote/application concurrency and deployed manifest hash parity require an
+authorized staging environment, Gridex Web source and deployment.

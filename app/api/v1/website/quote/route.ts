@@ -150,9 +150,30 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       )
     }
+    const requiredCommercialFields = [
+      'invoice_delivery_method',
+      'selected_component_references',
+      'site_count',
+    ].filter(
+      (key) => !Object.prototype.hasOwnProperty.call(body, key),
+    )
+    if (requiredCommercialFields.length > 0) {
+      return customerPortalJson(
+        errorBody({
+          code: 'missing_field',
+          message:
+            'Förfrågan saknar obligatoriska kommersiella fält.',
+          requestId,
+          field: requiredCommercialFields[0],
+          details: { missing_fields: requiredCommercialFields },
+          retryable: false,
+        }),
+        { status: 400 },
+      )
+    }
     const invoiceDeliveryMethod = text(body, 'invoice_delivery_method')
     if (
-      invoiceDeliveryMethod &&
+      !invoiceDeliveryMethod ||
       !INVOICE_DELIVERY_METHODS.includes(
         invoiceDeliveryMethod as InvoiceDeliveryMethod,
       )
@@ -182,7 +203,7 @@ export async function POST(request: NextRequest) {
         body,
         'selected_component_references',
       ),
-      siteCount: numeric(body, 'site_count') ?? 1,
+      siteCount: numeric(body, 'site_count') ?? Number.NaN,
     })
 
     await logIntegrationApiRequest({

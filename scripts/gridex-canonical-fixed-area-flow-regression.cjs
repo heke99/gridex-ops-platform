@@ -47,10 +47,15 @@ excludes('lib/pricing/contractPricingVersioning.ts', [
   'Fastpris ska vara samma öre/kWh i alla prisområden',
 ], 'Olika SE-priser får inte förbjudas eller tvingas till ett gemensamt pris')
 includes('components/admin/contracts/ContractOfferAdminForm.tsx', [
-  'fixed_prices_by_area',
-  'SE1 | 112,00',
-  'Ett canonicalt avtal',
-], 'Admin ska redigera områdespriser på samma avtal')
+  'CommercialPricingEditor',
+  'snapshot={offer?.commercial_snapshot ?? null}',
+], 'Adminformuläret ska använda den canonicala prisalternativseditorn')
+includes('components/admin/contracts/CommercialPricingEditor.tsx', [
+  'const AREAS = ["SE1", "SE2", "SE3", "SE4"]',
+  'price_options_json',
+  'row.price_area',
+  'row.price_row_reference',
+], 'Admin ska redigera SE1–SE4-rader under samma prisalternativ och avtal')
 includes('lib/website/publicContracts.ts', [
   'area_pricing: areaPricing',
   'commonFixedPriceOrePerKwh',
@@ -94,11 +99,12 @@ includes('app/api/public/energy-area/route.ts', ['status: 410', 'public_energy_a
 includes('lib/website/customerApplications.ts', [
   'external_customer_reference',
   'validateWebsiteQuote',
-  'markWebsiteQuoteConsumed',
   'selectBaseComponentsForPriceArea',
   'base_price_components_snapshot: frozenBaseComponents',
+  'price_option_reference:',
+  'area_price_reference:',
   'onboardCustomerGraph',
-], 'Kundansökan ska binda external reference, quote och vald prisrad till canonical graph')
+], 'Kundansökan ska binda external reference, quote, prisalternativ och vald prisrad till den atomiska canonical graphen')
 includes('lib/website/customerApplications.ts', [
   'dispatchInitialWebsiteApplicationEmails',
   'contract.application_received',
@@ -136,16 +142,16 @@ includes('supabase/migrations/20260723120000_canonical_fixed_area_quote_flow.sql
 ], 'Migrationen ska återaktivera endast etablerade scopes och lägga till audit/read model')
 
 // Runtime/API/docs version alignment.
-includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-07-30.2'"], 'Canonical runtime contract version ska vara 2026-07-30.2')
+includes('lib/integrations/websiteIntegrationContract.ts', ["WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-07-30.3'"], 'Canonical runtime contract version ska vara 2026-07-30.3')
 includes('lib/website/publicContractApi.ts', ['WEBSITE_INTEGRATION_CONTRACT_VERSION'], 'Public contract runtime ska använda den canonicala kontraktsversionen')
 includes('app/developers/customer-portal-api/page.tsx', [
-  '2026-07-30.2',
+  '2026-07-30.3',
   'area_pricing',
   '/api/v1/website/quote',
 ], 'Utvecklarsidan ska beskriva canonical area pricing och quote')
 for (const rel of ['docs/openapi/website-integration-v1.json']) {
   const spec = json(rel)
-  check(spec.info?.version === '2026-07-30.2', `${rel} ska ha version 2026-07-30.2`)
+  check(spec.info?.version === '2026-07-30.3', `${rel} ska ha version 2026-07-30.3`)
   check(Boolean(spec.paths?.['/api/v1/website/quote']?.post?.responses?.['201']), `${rel} ska dokumentera aktiv quote 201`)
   check(Boolean(spec.paths?.['/api/v1/website/quote/validate']?.post?.responses?.['200']), `${rel} ska dokumentera aktiv quote validation 200`)
   check(Boolean(spec.paths?.['/api/v1/website/energy-area/resolve']?.post?.responses?.['200']), `${rel} ska dokumentera aktiv resolver 200`)

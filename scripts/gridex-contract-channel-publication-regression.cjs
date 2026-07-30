@@ -149,7 +149,9 @@ check(
   "website and API use the shared external DTO mapper",
 );
 check(
-  /API_CONTRACT_RESPONSE_SCHEMA_VERSION = "2026-07-28\.2"/.test(dto) &&
+  dto.includes(
+    `API_CONTRACT_RESPONSE_SCHEMA_VERSION = "${openapi.info.version}"`,
+  ) &&
     /X-Gridex-Contract-Version/.test(apiRoute) &&
     /contract_schema_version/.test(apiRoute),
   "API DTO version drives header and response metadata",

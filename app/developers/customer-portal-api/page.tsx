@@ -325,7 +325,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-07-30.2"
+  "contract_schema_version": "2026-07-30.3"
 }`;
 
 const marketReferenceExample = `{
@@ -412,10 +412,18 @@ if (!resolution.data.capabilities.quote_ready) {
   return
 }
 
+const defaultPriceOption = contract.price_options.find(
+  option => option.default
+)
+const selectedPriceOption = defaultPriceOption?.selection_required
+  ? await askCustomerToChoose(contract.price_options)
+  : defaultPriceOption
+if (!selectedPriceOption) throw new Error("Publicerat standardalternativ saknas")
+
 const quote = await gridex.post("/api/v1/website/quote", {
   resolution_id: resolution.data.resolution_id,
   offer_reference: contract.offer_reference,
-  price_option_reference: contract.pricing.price_options[0].price_option_reference,
+  price_option_reference: selectedPriceOption.price_option_reference,
   invoice_delivery_method: "email",
   selected_component_references: [],
   site_count: 1,
@@ -455,6 +463,10 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
     "external_customer_id": "CUSTOMER-12345",
     "offer_reference": "offer_...",
     "quote_reference": "quote_...",
+    "price_option_reference": "fixed-12-months",
+    "invoice_delivery_method": "email",
+    "selected_component_references": [],
+    "site_count": 1,
     "resolution_id": "uuid",
     "annual_consumption_kwh": 5000,
     "start_date": "2026-09-01",
@@ -487,7 +499,7 @@ const applicationExample = `curl -X POST "${apiBaseUrl}/website/customer-applica
     "legal_acceptances": [
       {
         "requirement_code": "general_consumer_terms",
-        "document_id": "<document-uuid-from-legal-bundle>",
+        "document_reference": "<stable-document-reference-from-legal-bundle>",
         "document_version": "2026-07-30-v1",
         "document_hash": "<64-character-sha256-from-legal-bundle>",
         "accepted": true,

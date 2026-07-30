@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-07-30.2",
+    "version": "2026-07-30.3",
     "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
@@ -130,7 +130,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-30.2"
+                  "const": "2026-07-30.3"
                 },
                 "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
               }
@@ -150,7 +150,7 @@
                       "$ref": "#/components/schemas/TenantMeta",
                       "properties": {
                         "contract_schema_version": {
-                          "const": "2026-07-30.2"
+                          "const": "2026-07-30.3"
                         }
                       },
                       "required": [
@@ -283,7 +283,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-30.2"
+                  "const": "2026-07-30.3"
                 },
                 "description": "Version of the strict public API contract DTO. Changes invalidate ETag."
               }
@@ -311,7 +311,7 @@
                           ],
                           "properties": {
                             "contract_schema_version": {
-                              "const": "2026-07-30.2"
+                              "const": "2026-07-30.3"
                             }
                           }
                         }
@@ -419,9 +419,17 @@
                       "monthly_vat": 250,
                       "monthly_inc_vat": 1250
                     },
-                    "lines": []
+                    "lines": [],
+                    "price_option_reference": "price_option_example",
+                    "area_price_reference": null,
+                    "invoice_delivery_method": "email",
+                    "selected_component_references": [],
+                    "mandatory_component_references": [],
+                    "conditional_component_references": [],
+                    "site_count": 1
                   },
-                  "request_id": "0153b491-b4be-444d-b9a4-56573af449e8"
+                  "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
+                  "contract_schema_version": "2026-07-30.3"
                 }
               }
             }
@@ -547,7 +555,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.2"
+                      "const": "2026-07-30.3"
                     }
                   }
                 }
@@ -940,7 +948,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-30.2"
+                  "const": "2026-07-30.3"
                 }
               }
             },
@@ -975,7 +983,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-30.2"
+                  "const": "2026-07-30.3"
                 }
               }
             },
@@ -1103,7 +1111,7 @@
                     "next_update_at": "2026-07-24T16:15:00+02:00"
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-07-30.2"
+                  "contract_schema_version": "2026-07-30.3"
                 }
               }
             }
@@ -1298,7 +1306,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.2"
+                      "const": "2026-07-30.3"
                     }
                   }
                 }
@@ -1503,7 +1511,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.2"
+                      "const": "2026-07-30.3"
                     }
                   }
                 }
@@ -1765,7 +1773,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           },
           "configuration": {
             "type": "object",
@@ -1908,6 +1916,7 @@
           "contract_type",
           "energy_direction",
           "customer_type",
+          "price_options",
           "pricing",
           "valid_from",
           "valid_to",
@@ -1915,201 +1924,16 @@
         ],
         "properties": {
           "offer_reference": {
-            "type": "string",
-            "minLength": 1
+            "type": "string"
           },
           "name": {
-            "type": "string",
-            "minLength": 1
+            "type": "string"
           },
           "description": {
             "type": [
               "string",
               "null"
             ]
-          },
-          "contract_type": {
-            "type": "string"
-          },
-          "energy_direction": {
-            "$ref": "#/components/schemas/EnergyDirection"
-          },
-          "customer_type": {
-            "enum": [
-              "private",
-              "business",
-              "both"
-            ]
-          },
-          "pricing": {
-            "type": "object",
-            "description": "Public pricing data only. Internal identifiers and canonical snapshots are removed recursively.",
-            "additionalProperties": true
-          },
-          "valid_from": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "valid_to": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "channel": {
-            "const": "api"
-          }
-        }
-      },
-      "PublicContract": {
-        "type": "object",
-        "required": [
-          "offer_reference",
-          "name",
-          "contract_type",
-          "energy_direction",
-          "customer_type",
-          "pricing"
-        ],
-        "properties": {
-          "offer_reference": {
-            "type": "string"
-          },
-          "customer_type": {
-            "enum": [
-              "private",
-              "business",
-              "both"
-            ]
-          },
-          "pricing": {
-            "type": "object",
-            "required": [
-              "visibility",
-              "calculation_components",
-              "display_components",
-              "calculation_contract",
-              "summary_components"
-            ],
-            "properties": {
-              "fixed_price": {
-                "$ref": "#/components/schemas/ContractPriceValue",
-                "description": "Compatibility value only when all SE-area prices are equal; otherwise null."
-              },
-              "monthly_fee": {
-                "$ref": "#/components/schemas/ContractPriceValue"
-              },
-              "invoice_fee": {
-                "$ref": "#/components/schemas/ContractPriceValue"
-              },
-              "markup": {
-                "$ref": "#/components/schemas/ContractPriceValue"
-              },
-              "variable_fee": {
-                "$ref": "#/components/schemas/ContractPriceValue"
-              },
-              "vat_rate": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "market_price_responsibility": {
-                "type": "string",
-                "enum": [
-                  "ops_quote",
-                  "not_applicable"
-                ]
-              },
-              "visibility": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "boolean"
-                }
-              },
-              "calculation_components": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PricingComponent"
-                }
-              },
-              "components": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PricingComponent"
-                },
-                "description": "Compatibility alias for calculation_components."
-              },
-              "display_components": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PricingComponent"
-                }
-              },
-              "base_components": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              },
-              "calculation_contract": {
-                "type": "object",
-                "required": [
-                  "includes_all_applicable_components",
-                  "hidden_components_must_be_calculated",
-                  "market_price_supplied_by_ops"
-                ],
-                "properties": {
-                  "includes_all_applicable_components": {
-                    "const": true
-                  },
-                  "hidden_components_must_be_calculated": {
-                    "const": true
-                  },
-                  "market_price_supplied_by_ops": {
-                    "type": "boolean"
-                  }
-                },
-                "additionalProperties": false
-              },
-              "summary_components": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PricingComponent"
-                },
-                "description": "Komponenter som får ingå som separata rader i en fullständig prissammanställning. Dolda komponenter finns fortfarande i calculation_components och totalsumman."
-              },
-              "area_pricing": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/FixedAreaPrice"
-                },
-                "description": "Canonical area-price matrix for the same offer."
-              },
-              "energy_direction": {
-                "$ref": "#/components/schemas/EnergyDirection"
-              },
-              "production_pricing": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/ProductionPricing"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            },
-            "additionalProperties": true
-          },
-          "legal": {
-            "type": "object",
-            "additionalProperties": true
           },
           "contract_type": {
             "type": "string",
@@ -2122,119 +1946,300 @@
               "mixed"
             ]
           },
-          "fixed_price_ore_per_kwh": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "description": "Compatibility scalar. Returned only when every available SE area has the same fixed price; otherwise null. Use area_pricing."
-          },
-          "monthly_fee_sek": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "description": "Always returned when applicable; visibility never removes it from API calculation data."
-          },
-          "invoice_fee_sek": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "description": "Always returned when applicable; visibility never removes it from API calculation data."
-          },
-          "area_pricing": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FixedAreaPrice"
-            },
-            "description": "SE1-SE4 prices belonging to this one canonical product/version. They are not separate offers."
-          },
-          "name": {
-            "type": "string"
-          },
-          "public_name": {
-            "type": "string"
-          },
-          "description": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "product_code": {
-            "type": "string"
-          },
           "energy_direction": {
             "$ref": "#/components/schemas/EnergyDirection"
           },
-          "production_pricing": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ProductionPricing"
-              },
-              {
-                "type": "null"
-              }
+          "customer_type": {
+            "type": "string",
+            "enum": [
+              "private",
+              "business",
+              "both"
             ]
           },
-          "customer_types": {
+          "price_options": {
             "type": "array",
+            "minItems": 1,
             "items": {
-              "type": "string",
-              "enum": [
-                "private",
-                "business"
-              ]
+              "$ref": "#/components/schemas/ContractPriceOption"
+            }
+          },
+          "pricing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "visibility",
+              "calculation_components",
+              "display_components",
+              "calculation_contract",
+              "summary_components"
+            ],
+            "properties": {
+              "monthly_fee": {},
+              "invoice_fee": {},
+              "markup": {},
+              "spot_markup": {},
+              "variable_fee": {},
+              "fixed_price": {},
+              "area_pricing": {},
+              "green_fee": {},
+              "spot_share": {},
+              "portfolio_share": {},
+              "fixed_share": {},
+              "public_price_text": {},
+              "visibility": {},
+              "price_areas": {},
+              "vat_rate": {},
+              "market_price_responsibility": {},
+              "calculation_contract": {},
+              "interval_resolution": {},
+              "energy_direction": {},
+              "production_pricing": {},
+              "base_components": {},
+              "calculation_components": {},
+              "components": {},
+              "display_components": {},
+              "summary_components": {},
+              "electricity_certificate": {},
+              "start_fee": {},
+              "administration_fee": {},
+              "break_fee": {},
+              "portfolio_price": {},
+              "portfolio_monthly_prices": {},
+              "portfolio_method": {},
+              "portfolio_indications": {},
+              "portfolio_management_fee": {},
+              "discount": {}
             }
           },
           "valid_from": {
             "type": [
               "string",
               "null"
-            ],
-            "format": "date"
+            ]
           },
           "valid_to": {
             "type": [
               "string",
               "null"
-            ],
-            "format": "date"
+            ]
           },
-          "price_areas": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "website",
+              "api"
+            ]
+          }
+        }
+      },
+      "PublicContract": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "offer_reference",
+          "name",
+          "contract_type",
+          "energy_direction",
+          "customer_type",
+          "price_options",
+          "pricing",
+          "legal",
+          "channel"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "deprecated": true,
+            "description": "Deprecated compatibility alias. Contains the same stable external value as offer_reference and never a database UUID."
+          },
+          "offer_reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+          },
+          "contract_offer_id": {
+            "type": "string",
+            "deprecated": true,
+            "description": "Deprecated compatibility alias. Contains the same stable external value as offer_reference and never a database UUID."
+          },
+          "publication_reference": {
+            "type": "string",
+            "deprecated": true,
+            "description": "Deprecated compatibility alias. Contains the same stable external value as offer_reference and never a database UUID."
+          },
+          "offer_code": {},
+          "code": {},
+          "product_code": {},
+          "name": {},
+          "public_name": {},
+          "description": {},
+          "public_description": {},
+          "contract_type": {},
+          "energy_direction": {},
+          "type": {},
+          "billing_model": {},
+          "area_pricing": {
             "type": "array",
+            "deprecated": true,
+            "description": "Deprecated presentation-only area pricing. Use top-level price_options[].area_prices for canonical commercial selection.",
             "items": {
-              "type": "string",
-              "enum": [
-                "SE1",
-                "SE2",
-                "SE3",
-                "SE4"
-              ]
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "price_area",
+                "energy_price_ore_per_kwh",
+                "unit",
+                "vat_included",
+                "vat_rate"
+              ],
+              "properties": {
+                "price_area": {
+                  "type": "string",
+                  "enum": [
+                    "SE1",
+                    "SE2",
+                    "SE3",
+                    "SE4"
+                  ]
+                },
+                "energy_price_ore_per_kwh": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string",
+                  "const": "ore_per_kwh"
+                },
+                "vat_included": {
+                  "type": "boolean"
+                },
+                "vat_rate": {
+                  "type": "number"
+                }
+              }
             }
           },
-          "binding_months": {
-            "type": [
-              "integer",
-              "null"
-            ]
+          "customer_type": {},
+          "customer_types": {},
+          "production_pricing": {},
+          "portfolio_price_ore_per_kwh": {},
+          "portfolio_management_fee": {},
+          "monthly_fee_sek": {},
+          "invoice_fee_sek": {},
+          "markup_ore_per_kwh": {},
+          "spot_markup_ore_per_kwh": {},
+          "variable_fee_ore_per_kwh": {},
+          "fixed_price_ore_per_kwh": {},
+          "green_fee_mode": {},
+          "green_fee_value": {},
+          "terms_version": {},
+          "terms_url": {},
+          "public_price_text": {},
+          "binding_months": {},
+          "notice_months": {},
+          "website_cta_enabled": {},
+          "price_areas": {},
+          "automatic_renewal": {},
+          "power_of_attorney_required": {},
+          "vat_rate": {},
+          "mix": {},
+          "withdrawal_version": {},
+          "legal_versions": {},
+          "valid_from": {},
+          "valid_to": {},
+          "is_public": {},
+          "is_active": {},
+          "sort_order": {},
+          "channel": {},
+          "price_options": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/ContractPriceOption"
+            }
           },
-          "notice_months": {
-            "type": [
-              "integer",
-              "null"
-            ]
+          "pricing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "visibility",
+              "calculation_components",
+              "display_components",
+              "calculation_contract",
+              "summary_components"
+            ],
+            "properties": {
+              "monthly_fee": {},
+              "invoice_fee": {},
+              "markup": {},
+              "spot_markup": {},
+              "variable_fee": {},
+              "fixed_price": {},
+              "area_pricing": {},
+              "green_fee": {},
+              "spot_share": {},
+              "portfolio_share": {},
+              "fixed_share": {},
+              "public_price_text": {},
+              "visibility": {},
+              "price_areas": {},
+              "vat_rate": {},
+              "market_price_responsibility": {},
+              "calculation_contract": {},
+              "interval_resolution": {},
+              "energy_direction": {},
+              "production_pricing": {},
+              "base_components": {},
+              "calculation_components": {},
+              "components": {},
+              "display_components": {},
+              "summary_components": {},
+              "electricity_certificate": {},
+              "start_fee": {},
+              "administration_fee": {},
+              "break_fee": {},
+              "portfolio_price": {},
+              "portfolio_monthly_prices": {},
+              "portfolio_method": {},
+              "portfolio_indications": {},
+              "portfolio_management_fee": {},
+              "discount": {}
+            }
           },
-          "automatic_renewal": {
-            "type": "boolean"
+          "pricing_snapshot": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {},
+              "contract_type": {},
+              "energy_direction": {},
+              "customer_type": {},
+              "price_areas": {},
+              "valid_from": {},
+              "valid_to": {},
+              "binding_months": {},
+              "notice_months": {},
+              "automatic_renewal": {},
+              "power_of_attorney_required": {},
+              "base_components": {},
+              "price_components": {},
+              "display_price_components": {},
+              "summary_price_components": {},
+              "website_visibility": {},
+              "market_price_responsibility": {},
+              "calculation_contract": {},
+              "portfolio_method": {},
+              "portfolio_monthly_prices": {},
+              "public_price_text": {},
+              "vat_rate": {},
+              "vat_rate_percent": {},
+              "interval_resolution": {},
+              "production": {}
+            }
           },
-          "power_of_attorney_required": {
-            "type": "boolean"
+          "legal": {
+            "$ref": "#/components/schemas/WebsiteLegalBlock"
           }
-        },
-        "additionalProperties": true,
-        "description": "Complete machine-readable calculation contract. Pricing fields and calculation_components include hidden charges. display_components is the presentation-only subset."
+        }
       },
       "QuoteRequest": {
         "type": "object",
@@ -2352,7 +2357,11 @@
           "customer_type",
           "resolution_id",
           "annual_consumption_kwh",
-          "start_date"
+          "start_date",
+          "price_option_reference",
+          "invoice_delivery_method",
+          "selected_component_references",
+          "site_count"
         ],
         "properties": {
           "quote_reference": {
@@ -2402,6 +2411,30 @@
               "null"
             ],
             "format": "uuid"
+          },
+          "price_option_reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+          },
+          "invoice_delivery_method": {
+            "type": "string",
+            "enum": [
+              "email",
+              "e_invoice",
+              "paper",
+              "direct_debit"
+            ]
+          },
+          "selected_component_references": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "site_count": {
+            "type": "integer",
+            "minimum": 1
           }
         },
         "additionalProperties": false
@@ -2423,7 +2456,11 @@
           "legal_acceptances",
           "quote_reference",
           "resolution_id",
-          "legal_bundle_version"
+          "legal_bundle_version",
+          "price_option_reference",
+          "invoice_delivery_method",
+          "selected_component_references",
+          "site_count"
         ],
         "properties": {
           "external_customer_id": {
@@ -2668,6 +2705,31 @@
           },
           "legal_bundle_version": {
             "type": "string"
+          },
+          "price_option_reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+          },
+          "invoice_delivery_method": {
+            "type": "string",
+            "enum": [
+              "email",
+              "e_invoice",
+              "paper",
+              "direct_debit"
+            ]
+          },
+          "selected_component_references": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+            }
+          },
+          "site_count": {
+            "type": "integer",
+            "minimum": 1
           }
         },
         "additionalProperties": false,
@@ -2847,7 +2909,10 @@
           "blocking_reasons",
           "grid_owner_verification_issues",
           "warnings",
-          "supplier_switch"
+          "supplier_switch",
+          "selected_component_references",
+          "mandatory_component_references",
+          "conditional_component_references"
         ],
         "properties": {
           "customer_id": {
@@ -3129,6 +3194,52 @@
                 "type": "null"
               }
             ]
+          },
+          "price_option_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "area_price_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invoice_delivery_method": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "site_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "selected_component_references": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "mandatory_component_references": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "conditional_component_references": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
           }
         },
         "additionalProperties": false,
@@ -3334,7 +3445,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           }
         }
       },
@@ -3802,9 +3913,17 @@
           "option_code",
           "customer_name",
           "contract_type",
+          "customer_type",
           "binding_months",
           "notice_months",
           "auto_renew_enabled",
+          "renewal_term_months",
+          "default",
+          "selection_required",
+          "valid_from",
+          "valid_to",
+          "earliest_start_date",
+          "latest_start_date",
           "area_prices"
         ],
         "properties": {
@@ -3813,7 +3932,8 @@
             "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
           },
           "option_code": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
           },
           "customer_name": {
             "type": "string"
@@ -3827,6 +3947,14 @@
               "variable_quarterly",
               "portfolio",
               "mixed"
+            ]
+          },
+          "customer_type": {
+            "type": "string",
+            "enum": [
+              "private",
+              "business",
+              "both"
             ]
           },
           "binding_months": {
@@ -3847,10 +3975,44 @@
             ],
             "minimum": 1
           },
+          "default": {
+            "type": "boolean"
+          },
+          "selection_required": {
+            "type": "boolean"
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "earliest_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "latest_start_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
           "area_prices": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/FixedAreaPrice"
+              "$ref": "#/components/schemas/ContractPriceOptionAreaPrice"
             }
           }
         }
@@ -3862,7 +4024,10 @@
           "customer_type",
           "resolution_id",
           "annual_consumption_kwh",
-          "start_date"
+          "start_date",
+          "invoice_delivery_method",
+          "selected_component_references",
+          "site_count"
         ],
         "properties": {
           "offer_reference": {
@@ -3907,8 +4072,7 @@
             "type": "array",
             "uniqueItems": true,
             "items": {
-              "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+              "type": "string"
             }
           },
           "site_count": {
@@ -3924,7 +4088,14 @@
           "quote_reference",
           "offer_reference",
           "valid_until",
-          "input"
+          "input",
+          "price_option_reference",
+          "area_price_reference",
+          "invoice_delivery_method",
+          "selected_component_references",
+          "mandatory_component_references",
+          "conditional_component_references",
+          "site_count"
         ],
         "properties": {
           "quote_reference": {
@@ -4061,28 +4232,47 @@
             "items": {
               "$ref": "#/components/schemas/PricingComponent"
             }
-          }
+          },
+          "pricing_interval": {},
+          "estimate_method": {},
+          "source_period": {},
+          "source_window": {},
+          "market_sources": {},
+          "warnings": {},
+          "assumptions": {},
+          "pricing_snapshot_schema_version": {},
+          "snapshot_schema": {},
+          "site_count": {},
+          "pricing_snapshot": {}
         },
-        "additionalProperties": true
+        "additionalProperties": false
       },
       "WebsiteQuoteResponse": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "data",
-          "request_id"
+          "request_id",
+          "contract_schema_version"
         ],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/WebsiteQuoteData"
           },
-          "quote": {
-            "$ref": "#/components/schemas/WebsiteQuoteData"
-          },
           "request_id": {
             "type": "string"
+          },
+          "correlation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "const": "2026-07-30.3"
           }
-        },
-        "additionalProperties": true
+        }
       },
       "WebsiteQuoteValidationRequest": {
         "$ref": "#/components/schemas/QuoteValidationRequest"
@@ -4905,7 +5095,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           }
         },
         "additionalProperties": false
@@ -5207,7 +5397,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -5220,12 +5410,14 @@
           "module_key",
           "version",
           "title",
-          "origin"
+          "origin",
+          "document_reference",
+          "legal_bundle_version_id"
         ],
         "properties": {
           "id": {
             "type": "string",
-            "description": "Opaque immutable legal document identifier."
+            "format": "uuid"
           },
           "module_key": {
             "type": "string"
@@ -5257,7 +5449,7 @@
               "string",
               "null"
             ],
-            "description": "Opaque immutable bundle version identifier."
+            "format": "uuid"
           },
           "url": {
             "type": [
@@ -5265,6 +5457,9 @@
               "null"
             ],
             "format": "uri"
+          },
+          "document_reference": {
+            "type": "string"
           }
         }
       },
@@ -5274,7 +5469,9 @@
         "required": [
           "required_modules",
           "module_versions",
-          "immutable"
+          "immutable",
+          "legal_bundle_reference",
+          "legal_bundle_version_id"
         ],
         "properties": {
           "terms_version": {
@@ -5307,41 +5504,12 @@
               "null"
             ]
           },
-          "terms_version_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "privacy_policy_version_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "withdrawal_version_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "price_terms_version_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "power_of_attorney_version_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "legal_bundle_version_id": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "format": "uuid"
           },
           "terms_url": {
             "type": [
@@ -5407,6 +5575,42 @@
             "items": {
               "$ref": "#/components/schemas/LegalBundleDocument"
             }
+          },
+          "terms_document_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "privacy_policy_document_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "withdrawal_document_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price_terms_document_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "power_of_attorney_document_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "legal_bundle_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -5521,7 +5725,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           }
         }
       },
@@ -5652,7 +5856,14 @@
           "geodata_version",
           "market_reference",
           "energy_direction",
-          "selected_area_price"
+          "selected_area_price",
+          "price_option_reference",
+          "area_price_reference",
+          "invoice_delivery_method",
+          "selected_component_references",
+          "mandatory_component_references",
+          "conditional_component_references",
+          "site_count"
         ],
         "properties": {
           "valid": {
@@ -5693,6 +5904,52 @@
           "energy_direction": {
             "$ref": "#/components/schemas/EnergyDirection"
           },
+          "price_option_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "area_price_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invoice_delivery_method": {
+            "type": "string",
+            "enum": [
+              "email",
+              "e_invoice",
+              "paper",
+              "direct_debit"
+            ]
+          },
+          "selected_component_references": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "mandatory_component_references": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "conditional_component_references": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "site_count": {
+            "type": "integer",
+            "minimum": 1
+          },
           "selected_area_price": {
             "type": [
               "object",
@@ -5726,7 +5983,7 @@
                   "null"
                 ]
               },
-              "price_row_reference": {
+              "area_price_reference": {
                 "type": [
                   "string",
                   "null"
@@ -5738,7 +5995,7 @@
               "energy_price_ore_per_kwh",
               "unit",
               "price_option_reference",
-              "price_row_reference"
+              "area_price_reference"
             ]
           }
         }
@@ -5926,23 +6183,23 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           },
           "runtime_contract_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           },
           "released_at": {
             "type": "string",
@@ -5982,7 +6239,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           },
           "url": {
             "type": "string",
@@ -6041,6 +6298,55 @@
           "document_url": {
             "type": "string",
             "format": "uri"
+          }
+        }
+      },
+      "ContractPriceOptionAreaPrice": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "area_price_reference",
+          "price_area",
+          "energy_price_ore_per_kwh",
+          "unit",
+          "valid_from",
+          "valid_to"
+        ],
+        "properties": {
+          "area_price_reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{2,99}$"
+          },
+          "price_area": {
+            "type": "string",
+            "enum": [
+              "SE1",
+              "SE2",
+              "SE3",
+              "SE4"
+            ]
+          },
+          "energy_price_ore_per_kwh": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "unit": {
+            "type": "string",
+            "const": "ore_per_kwh"
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
           }
         }
       }
@@ -6136,7 +6442,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-30.2",
+  "x-contract-schema-version": "2026-07-30.3",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

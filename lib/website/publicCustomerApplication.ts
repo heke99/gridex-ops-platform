@@ -11,6 +11,10 @@ const PUBLIC_SCALAR_FIELDS = [
   'quote_reference',
   'quote_valid_until',
   'quote_bound',
+  'price_option_reference',
+  'area_price_reference',
+  'invoice_delivery_method',
+  'site_count',
   'energy_direction',
   'status',
   'created_customer',
@@ -38,6 +42,9 @@ const PUBLIC_ARRAY_FIELDS = [
   'missing_fields',
   'blocking_reasons',
   'grid_owner_verification_issues',
+  'selected_component_references',
+  'mandatory_component_references',
+  'conditional_component_references',
   'warnings',
 ] as const
 

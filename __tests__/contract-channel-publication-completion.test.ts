@@ -117,6 +117,7 @@ describe("canonical contract channel completion", () => {
       contract_type: "variable_monthly",
       energy_direction: "consumption",
       customer_type: "private",
+      price_options: [],
       pricing: {
         monthly_fee_sek: 49,
         nested: {},
@@ -130,8 +131,8 @@ describe("canonical contract channel completion", () => {
     );
   });
 
-  it("keeps runtime, ETag metadata and OpenAPI on schema 2026-07-30.2", () => {
-    expect(API_CONTRACT_RESPONSE_SCHEMA_VERSION).toBe("2026-07-30.2");
+  it("keeps runtime, ETag metadata and OpenAPI on schema 2026-07-30.3", () => {
+    expect(API_CONTRACT_RESPONSE_SCHEMA_VERSION).toBe("2026-07-30.3");
     const specification = JSON.parse(
       readFileSync(
         resolve("docs/openapi/website-integration-v1.json"),

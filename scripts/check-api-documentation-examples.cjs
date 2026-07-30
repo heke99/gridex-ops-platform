@@ -2,6 +2,91 @@
 const fs = require('node:fs')
 const website = JSON.parse(fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8'))
 const failures = []
+
+function resolveSchema(schema) {
+  if (!schema?.$ref) return schema
+  const prefix = '#/components/schemas/'
+  if (!schema.$ref.startsWith(prefix)) return schema
+  return website.components.schemas[schema.$ref.slice(prefix.length)]
+}
+
+function schemaErrors(value, unresolvedSchema, location) {
+  const schema = resolveSchema(unresolvedSchema)
+  if (!schema || typeof schema !== 'object') return []
+  if (Array.isArray(schema.allOf)) {
+    return schema.allOf.flatMap((branch) =>
+      schemaErrors(value, branch, location),
+    )
+  }
+  if (Array.isArray(schema.oneOf) || Array.isArray(schema.anyOf)) {
+    const branches = schema.oneOf ?? schema.anyOf
+    if (branches.some((branch) => schemaErrors(value, branch, location).length === 0)) {
+      return []
+    }
+    return [`${location} does not match any documented schema branch.`]
+  }
+  const types = Array.isArray(schema.type)
+    ? schema.type
+    : schema.type
+      ? [schema.type]
+      : []
+  const actualType =
+    value === null
+      ? 'null'
+      : Array.isArray(value)
+        ? 'array'
+        : typeof value
+  const typeMatches =
+    types.length === 0 ||
+    types.includes(actualType) ||
+    (types.includes('integer') &&
+      actualType === 'number' &&
+      Number.isInteger(value))
+  if (!typeMatches) {
+    return [`${location} must be ${types.join(' or ')}, got ${actualType}.`]
+  }
+  if (schema.const !== undefined && value !== schema.const) {
+    return [`${location} must equal ${JSON.stringify(schema.const)}.`]
+  }
+  if (Array.isArray(schema.enum) && !schema.enum.includes(value)) {
+    return [`${location} is outside the documented enum.`]
+  }
+  if (actualType === 'object') {
+    const errors = []
+    const properties = schema.properties ?? {}
+    for (const field of schema.required ?? []) {
+      if (!Object.prototype.hasOwnProperty.call(value, field)) {
+        errors.push(`${location} missing required field ${field}.`)
+      }
+    }
+    if (schema.additionalProperties === false) {
+      for (const field of Object.keys(value)) {
+        if (!Object.prototype.hasOwnProperty.call(properties, field)) {
+          errors.push(`${location} contains undocumented field ${field}.`)
+        }
+      }
+    }
+    for (const [field, item] of Object.entries(value)) {
+      if (properties[field]) {
+        errors.push(
+          ...schemaErrors(item, properties[field], `${location}.${field}`),
+        )
+      }
+    }
+    return errors
+  }
+  if (actualType === 'array' && schema.items) {
+    return value.flatMap((item, index) =>
+      schemaErrors(item, schema.items, `${location}[${index}]`),
+    )
+  }
+  return []
+}
+
+function validateExample(example, schema, location) {
+  failures.push(...schemaErrors(example, schema, location))
+}
+
 const current = website.paths?.['/api/v1/website/market-price/current']?.post
 const currentExample = current?.responses?.['200']?.content?.['application/json']?.example
 if (!currentExample?.data) failures.push('Current market-price response example is missing.')
@@ -13,6 +98,13 @@ for (const field of [
   if (!(field in (currentExample?.data ?? {}))) failures.push(`Current market-price example missing ${field}.`)
 }
 const quoteExample = website.paths?.['/api/v1/website/quote']?.post?.responses?.['201']?.content?.['application/json']?.example
+validateExample(
+  quoteExample,
+  website.paths['/api/v1/website/quote'].post.responses['201'].content[
+    'application/json'
+  ].schema,
+  'Quote response example',
+)
 const marketReference = quoteExample?.data?.market_reference
 for (const field of [
   'price_sek_per_kwh', 'price_ore_per_kwh', 'requested_days', 'included_days',

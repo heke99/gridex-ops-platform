@@ -53,8 +53,120 @@ else if (!current.scopes.includes('website_market_prices.read')) {
   failures.push('Current market-price OpenAPI scope must be website_market_prices.read.')
 }
 
+const website = specs[0]
+const reachableSchemas = new Set()
+function collectSchemaRefs(value) {
+  if (!value || typeof value !== 'object') return
+  if (typeof value.$ref === 'string') {
+    const prefix = '#/components/schemas/'
+    if (value.$ref.startsWith(prefix)) {
+      const name = value.$ref.slice(prefix.length)
+      if (!reachableSchemas.has(name)) {
+        reachableSchemas.add(name)
+        collectSchemaRefs(website.components.schemas[name])
+      }
+    }
+  }
+  for (const nested of Object.values(value)) collectSchemaRefs(nested)
+}
+collectSchemaRefs(website.paths)
+
+const centralStrictSchemas = [
+  'PublicContract',
+  'ApiPublicContract',
+  'ContractPriceOption',
+  'ContractPriceOptionAreaPrice',
+  'WebsiteQuoteRequest',
+  'QuoteValidationRequest',
+  'WebsiteQuoteData',
+  'WebsiteQuoteValidationData',
+  'CustomerApplicationRequest',
+  'WebsiteCustomerApplicationData',
+  'WebsiteLegalBlock',
+  'LegalBundleDocument',
+]
+for (const name of centralStrictSchemas) {
+  const schema = website.components.schemas[name]
+  if (!schema) {
+    failures.push(`Central schema missing: ${name}`)
+    continue
+  }
+  if (schema.additionalProperties !== false) {
+    failures.push(`Central schema must reject unknown fields: ${name}`)
+  }
+  if (!reachableSchemas.has(name)) {
+    failures.push(`Central schema is unreachable from paths: ${name}`)
+  }
+}
+
+function requireProperties(schemaName, fields) {
+  const schema = website.components.schemas[schemaName]
+  for (const field of fields) {
+    if (!schema?.properties?.[field]) {
+      failures.push(`${schemaName} missing property ${field}`)
+    }
+  }
+}
+const commercialAssertions = [
+  'price_option_reference',
+  'invoice_delivery_method',
+  'selected_component_references',
+  'site_count',
+]
+requireProperties('WebsiteQuoteRequest', commercialAssertions)
+requireProperties('QuoteValidationRequest', commercialAssertions)
+requireProperties('CustomerApplicationRequest', commercialAssertions)
+requireProperties('WebsiteQuoteData', [
+  ...commercialAssertions,
+  'area_price_reference',
+  'mandatory_component_references',
+  'conditional_component_references',
+])
+requireProperties('PublicContract', ['price_options', 'pricing', 'legal'])
+requireProperties('ApiPublicContract', ['price_options', 'pricing'])
+requireProperties('ContractPriceOption', [
+  'customer_type',
+  'default',
+  'selection_required',
+  'area_prices',
+])
+requireProperties('LegalBundleDocument', [
+  'id',
+  'document_reference',
+  'legal_bundle_version_id',
+])
+
+const runtimeSources = {
+  quote: fs.readFileSync('app/api/v1/website/quote/route.ts', 'utf8'),
+  validate: fs.readFileSync(
+    'app/api/v1/website/quote/validate/route.ts',
+    'utf8',
+  ),
+  application: fs.readFileSync(
+    'lib/website/customerApplications.ts',
+    'utf8',
+  ),
+  publication: fs.readFileSync(
+    'lib/external-contracts/publicationDto.ts',
+    'utf8',
+  ),
+}
+for (const field of commercialAssertions) {
+  for (const [surface, source] of Object.entries(runtimeSources)) {
+    if (surface === 'publication') continue
+    if (!source.includes(field)) {
+      failures.push(`Runtime ${surface} missing commercial assertion ${field}`)
+    }
+  }
+}
+if (runtimeSources.publication.includes('pricing.price_options')) {
+  failures.push('Publication mapper must expose price_options only at top level.')
+}
+
 if (failures.length) {
   console.error(failures.map((failure) => `- ${failure}`).join('\n'))
   process.exit(1)
 }
-console.log(`OpenAPI/runtime parity OK (${registry.length} registry routes, ${operations.length} OpenAPI operations).`)
+console.log(
+  `OpenAPI/runtime parity OK (${registry.length} registry routes, ${operations.length} OpenAPI operations, ${reachableSchemas.size} reachable schemas).`,
+)

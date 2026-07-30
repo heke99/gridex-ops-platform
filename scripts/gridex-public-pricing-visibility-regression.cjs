@@ -10,7 +10,10 @@ const must = (condition, message) => {
 
 const pricing = read('lib/pricing/contractPricingVersioning.ts')
 const api = read('lib/website/publicContracts.ts')
-const ui = read('app/admin/contracts/page.tsx') + read('components/admin/contracts/ContractOfferAdminForm.tsx')
+const ui =
+  read('app/admin/contracts/page.tsx') +
+  read('components/admin/contracts/ContractOfferAdminForm.tsx') +
+  read('components/admin/contracts/CommercialPricingEditor.tsx')
 const actions = read('app/admin/contracts/actions.ts')
 const originalMigration = read('supabase/migrations/20260718001000_public_pricing_component_website_visibility.sql')
 const boundaryMigration = read('supabase/migrations/20260722233000_external_tenant_pricing_boundary.sql')
@@ -23,8 +26,15 @@ must(/calculation_inclusion:\s*"included"/.test(pricing), 'price components expl
 must(/website:/.test(pricing), 'price components carry explicit website visibility mode')
 must(/quote_breakdown:\s*true/.test(pricing), 'fees remain available to internal breakdowns')
 must(/contract_document:\s*true/.test(pricing), 'fees remain in contract documents')
-must(/show_invoice_fee_on_website/.test(ui), 'admin can toggle invoice fee presentation')
-must(/show_variable_fee_on_website/.test(ui), 'admin can toggle variable fee presentation')
+must(
+  /commercial_components_json/.test(ui) &&
+    /component\.website_published/.test(ui),
+  'admin can toggle presentation per canonical price component',
+)
+must(
+  /component\.informational_only/.test(ui),
+  'admin separates informational rows from calculated components',
+)
 must(/websiteCardVisibility/.test(actions), 'admin presentation is persisted in immutable version')
 must(/customer_types:\s*customerTypes/.test(api), 'API expands customer_type both')
 must(/calculationComponents/.test(api), 'API builds complete calculation components')
@@ -38,7 +48,12 @@ must(/schemaVersion\s*<\s*3/.test(api), 'legacy snapshots retain historic visibi
 must(/offer\.contract_type === "fixed"/.test(api), 'fixed agreements force fixed-price disclosure in public API')
 must(/market_price_supplied_by_ops:\s*offer\.contract_type !== "fixed"/.test(api), 'fixed agreements do not claim a separate OPS market price')
 must(/input\.contractType === "fixed"/.test(pricing), 'new fixed-price versions force fixed-price disclosure')
-must(/visibilityLocked=\{contractType === "fixed"\}/.test(ui), 'admin cannot hide fixed kWh price on fixed agreements')
+must(
+  /contractType === "fixed"/.test(ui) &&
+    /option\.area_prices\.map/.test(ui) &&
+    /name="show_fixed_price_on_website"\s+value="true"/.test(ui),
+  'admin cannot hide canonical fixed SE-area price rows',
+)
 must(/website_card_visible boolean not null default true/.test(originalMigration), 'database retains legacy card visibility')
 must(/calculation_inclusion text not null default 'included'/.test(boundaryMigration), 'database stores calculation inclusion')
 must(/website_summary_visible boolean not null default true/.test(boundaryMigration), 'database stores summary visibility')

@@ -20,7 +20,34 @@ export type WebsitePricingComponent = {
   calculation_inclusion: CalculationInclusion
   website_visibility: WebsiteVisibilityMode
   website_card_visible?: boolean
-  [key: string]: unknown
+}
+
+export type ContractPriceOptionAreaPrice = {
+  area_price_reference: string
+  price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4'
+  energy_price_ore_per_kwh: number
+  unit: 'ore_per_kwh'
+  valid_from: string | null
+  valid_to: string | null
+}
+
+export type ContractPriceOption = {
+  price_option_reference: string
+  option_code: string
+  customer_name: string
+  contract_type: string
+  customer_type: ExternalCustomerType | 'both'
+  binding_months: number
+  notice_months: number
+  auto_renew_enabled: boolean
+  renewal_term_months: number | null
+  default: boolean
+  selection_required: boolean
+  valid_from: string | null
+  valid_to: string | null
+  earliest_start_date: string | null
+  latest_start_date: string | null
+  area_prices: ContractPriceOptionAreaPrice[]
 }
 
 export type WebsitePublicContractPricing = {
@@ -41,7 +68,6 @@ export type WebsitePublicContractPricing = {
     hidden_components_must_be_calculated: true
     market_price_supplied_by_ops: boolean
   }
-  [key: string]: unknown
 }
 
 export type WebsitePublicContract = {
@@ -51,10 +77,10 @@ export type WebsitePublicContract = {
   fixed_price_ore_per_kwh: number | null
   monthly_fee_sek: number | null
   invoice_fee_sek: number | null
+  price_options: ContractPriceOption[]
   pricing: WebsitePublicContractPricing
   price_areas: string[]
   legal: Record<string, unknown>
-  [key: string]: unknown
 }
 
 export type ExternalApiMeta = {
@@ -130,28 +156,46 @@ export type WebsiteQuoteRequest = {
   offer_reference: OfferReference | string
   customer_type: ExternalCustomerType | 'company'
   resolution_id: string
-  price_area?: 'SE1' | 'SE2' | 'SE3' | 'SE4'
   annual_consumption_kwh: number
   start_date: string
-  grid_area_code?: string | null
-  postal_code?: string | null
+  price_option_reference?: string
+  invoice_delivery_method: 'email' | 'e_invoice' | 'paper' | 'direct_debit'
+  selected_component_references: string[]
+  site_count: number
+}
+
+export type CommercialSelection = {
+  price_option_reference: string
+  area_price_reference: string | null
+  invoice_delivery_method: 'email' | 'e_invoice' | 'paper' | 'direct_debit'
+  selected_component_references: string[]
+  mandatory_component_references: string[]
+  conditional_component_references: string[]
+  site_count: number
 }
 
 export type WebsiteQuoteResponse = {
   data: {
     quote_reference: QuoteReference | string
     offer_reference: OfferReference | string
+    price_option_reference: string
+    area_price_reference: string | null
     valid_until: string
     resolution_id: string
     market_reference?: MarketReference
     selected_area_price: null | {
+      area_price_reference: string
       price_area: 'SE1' | 'SE2' | 'SE3' | 'SE4'
       energy_price_ore_per_kwh: number
       unit: 'ore_per_kwh'
     }
+    invoice_delivery_method: CommercialSelection['invoice_delivery_method']
+    selected_component_references: string[]
+    mandatory_component_references: string[]
+    conditional_component_references: string[]
+    site_count: number
     estimate: Record<string, number>
     lines: Array<Record<string, unknown>>
-    [key: string]: unknown
   }
   request_id: string
 }
@@ -159,6 +203,37 @@ export type WebsiteQuoteResponse = {
 export type WebsiteQuoteValidationRequest = WebsiteQuoteRequest & {
   quote_reference: QuoteReference | string
   application_id?: string | null
+}
+
+export type LegalBundleDocument = {
+  id: string
+  document_reference: string
+  module_key: string
+  version: string
+  title: string
+  published_at: string | null
+  content_sha256: string | null
+  origin: string
+  legal_bundle_version_id: string
+  url: string | null
+}
+
+export type LegalRequirement = {
+  requirement_code: string
+  document_reference: string
+  document_version: string
+  document_hash: string
+  document_url: string
+  required: true
+}
+
+export type LegalAcceptance = {
+  requirement_code: string
+  document_reference: string
+  document_version: string
+  document_hash: string
+  accepted: true
+  accepted_at: string
 }
 
 export type WebsiteEnergyAreaResolveRequest = {
@@ -219,8 +294,13 @@ export type WebsiteCustomerApplicationBinding = {
   offer_reference: OfferReference | string
   /** Canonical OPS quote created from the same resolution. Always top-level. */
   quote_reference: QuoteReference | string
+  price_option_reference: string
   /** Tenant-bound OPS energy resolution used by the quote. Always top-level. */
   resolution_id: string
+  legal_bundle_version: string
+  invoice_delivery_method: CommercialSelection['invoice_delivery_method']
+  selected_component_references: string[]
+  site_count: number
   annual_consumption_kwh: number
   start_date: string
   customer_type: ExternalCustomerType | 'company'

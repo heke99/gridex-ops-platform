@@ -298,6 +298,14 @@ const ApplicationSchema = z.object({
   price_plan_version_id: OPTIONAL_TEXT,
   quote_reference: OPTIONAL_TEXT,
   quoteReference: OPTIONAL_TEXT,
+  price_option_reference: z.string().trim().min(3).max(100).optional(),
+  invoice_delivery_method: z
+    .enum(["email", "e_invoice", "paper", "direct_debit"])
+    .optional(),
+  selected_component_references: z
+    .array(z.string().trim().min(3).max(100))
+    .optional(),
+  site_count: z.coerce.number().int().min(1).optional(),
   resolution_id: OPTIONAL_TEXT,
   resolutionId: OPTIONAL_TEXT,
   contract_offer_id: OPTIONAL_TEXT,
@@ -579,6 +587,16 @@ function applicationBusinessKeyHash(
     site_identity: siteIdentity,
     offer_identity: offerIdentity,
     requested_start_date: requestedStartDate,
+    price_option_reference:
+      normalizedBusinessToken(input.price_option_reference) ??
+      "unspecified-price-option",
+    invoice_delivery_method:
+      normalizedBusinessToken(input.invoice_delivery_method) ??
+      "unspecified-invoice-delivery",
+    selected_component_references: [
+      ...(input.selected_component_references ?? []),
+    ].sort(),
+    site_count: input.site_count ?? 1,
   });
 }
 
@@ -927,6 +945,10 @@ const TOP_LEVEL_PAYLOAD_FIELDS = new Set([
   "price_area_code",
   "price_plan_id",
   "price_plan_version_id",
+  "price_option_reference",
+  "invoice_delivery_method",
+  "selected_component_references",
+  "site_count",
   "quoteReference",
   "quote_reference",
   "price_version",
@@ -6415,6 +6437,15 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
       public_contract_offer_id: selected.publicContractOfferId,
       offer_reference: publicOfferReference(input.publicOffer),
       quote_reference: input.websiteQuote?.quote_reference ?? null,
+      price_option_reference:
+        input.websiteQuote?.price_option_reference ?? null,
+      area_price_reference:
+        input.websiteQuote?.area_price_reference ?? null,
+      invoice_delivery_method:
+        input.websiteQuote?.invoice_delivery_method ?? null,
+      selected_component_references:
+        input.websiteQuote?.selected_component_references ?? [],
+      site_count: input.websiteQuote?.site_count ?? 1,
       legal_versions_snapshot: legalSnapshot,
       signature_snapshot: {},
       is_distance_agreement: true,
@@ -6462,6 +6493,7 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
           input.websiteQuote?.invoice_delivery_method ?? null,
         selected_component_references:
           input.websiteQuote?.selected_component_references ?? [],
+        site_count: input.websiteQuote?.site_count ?? 1,
         energy_direction: selected.energyDirection,
         production_pricing: selected.energyDirection === "production"
           ? (input.publicOffer.pricing_snapshot?.production ?? null)
@@ -6516,6 +6548,7 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
           input.websiteQuote?.mandatory_component_references ?? [],
         conditional_component_references:
           input.websiteQuote?.conditional_component_references ?? [],
+        site_count: input.websiteQuote?.site_count ?? 1,
         requested_start_date: requestedStartDate,
         quote_reference: input.websiteQuote?.quote_reference ?? null,
         quote_hash: input.websiteQuote?.quote_hash ?? null,
@@ -6564,6 +6597,15 @@ async function onboardCanonicalWebsiteCustomerGraph(input: {
           quote_hash_version: input.websiteQuote.quote_hash_version,
           application_id: input.applicationRowId,
           offer_reference: input.offerReference,
+          price_option_reference:
+            input.websiteQuote.price_option_reference,
+          area_price_reference:
+            input.websiteQuote.area_price_reference,
+          invoice_delivery_method:
+            input.websiteQuote.invoice_delivery_method,
+          selected_component_references:
+            input.websiteQuote.selected_component_references,
+          site_count: input.websiteQuote.site_count,
         }
       : null,
     power_of_attorney: input.structuredPoa?.accepted
@@ -6764,6 +6806,54 @@ export async function processWebsiteCustomerApplication(input: {
   }
 
   let body = parsed.data;
+  if (!body.price_option_reference) {
+    return failureResponse(
+      new WebsiteApplicationError({
+        message:
+          "price_option_reference krävs och måste vara samma stabila referens som i den accepterade quoten.",
+        status: 422,
+        code: "price_option_reference_required",
+        field: "price_option_reference",
+        stage: "validation",
+      }),
+    );
+  }
+  if (!body.invoice_delivery_method) {
+    return failureResponse(
+      new WebsiteApplicationError({
+        message:
+          "invoice_delivery_method krävs och måste vara samma val som i den accepterade quoten.",
+        status: 422,
+        code: "invoice_delivery_method_required",
+        field: "invoice_delivery_method",
+        stage: "validation",
+      }),
+    );
+  }
+  if (!Array.isArray(body.selected_component_references)) {
+    return failureResponse(
+      new WebsiteApplicationError({
+        message:
+          "selected_component_references krävs som en array, även när inga valfria komponenter har valts.",
+        status: 422,
+        code: "selected_component_references_required",
+        field: "selected_component_references",
+        stage: "validation",
+      }),
+    );
+  }
+  if (!body.site_count) {
+    return failureResponse(
+      new WebsiteApplicationError({
+        message:
+          "site_count krävs och måste vara ett heltal större än noll.",
+        status: 422,
+        code: "site_count_required",
+        field: "site_count",
+        stage: "validation",
+      }),
+    );
+  }
   const authUserId = clean(body.auth_user_id);
   const customerPortalUserId = clean(body.customer_portal_user_id);
   if (
@@ -7318,6 +7408,10 @@ export async function processWebsiteCustomerApplication(input: {
           postalCode: clean(body.site?.postal_code),
           annualConsumptionKwh: requestedAnnualConsumption(body),
           startDate: readiness.requestedStartDate,
+          priceOptionReference: body.price_option_reference,
+          invoiceDeliveryMethod: body.invoice_delivery_method,
+          selectedComponentReferences: body.selected_component_references,
+          siteCount: body.site_count,
           applicationId: applicationRowId,
         });
       } catch (error) {
@@ -7580,6 +7674,19 @@ export async function processWebsiteCustomerApplication(input: {
       quote_reference: websiteQuote?.quote_reference ?? null,
       quote_valid_until: websiteQuote?.valid_until ?? null,
       quote_bound: Boolean(websiteQuote),
+      price_option_reference:
+        websiteQuote?.price_option_reference ?? body.price_option_reference,
+      area_price_reference: websiteQuote?.area_price_reference ?? null,
+      invoice_delivery_method:
+        websiteQuote?.invoice_delivery_method ?? body.invoice_delivery_method,
+      selected_component_references:
+        websiteQuote?.selected_component_references ??
+        body.selected_component_references,
+      mandatory_component_references:
+        websiteQuote?.mandatory_component_references ?? [],
+      conditional_component_references:
+        websiteQuote?.conditional_component_references ?? [],
+      site_count: websiteQuote?.site_count ?? body.site_count,
       energy_direction: publicOffer?.energy_direction ?? null,
       price_plan_id:
         contract?.price_plan_id ??

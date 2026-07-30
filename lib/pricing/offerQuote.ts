@@ -235,7 +235,29 @@ export async function calculateOfferQuote(input: {
       "offer_reference",
     );
   const offerPricingSnapshot = offer.pricing_snapshot ?? {};
-  const commercialModel = commercialModelFromSnapshot(offerPricingSnapshot);
+  const canonicalPriceOptions = offer.price_options?.map((option, index) => ({
+            ...option,
+            internal_description: null,
+            status: "active" as const,
+            sort_order: index,
+            version_number: 1,
+            metadata: {},
+            area_prices: option.area_prices.map((area) => ({
+              price_row_reference: area.area_price_reference,
+              price_area: area.price_area,
+              amount: area.energy_price_ore_per_kwh,
+              unit: area.unit,
+              vat_treatment: "standard" as const,
+              valid_from: area.valid_from,
+              valid_to: area.valid_to,
+              metadata: {},
+            })),
+          }));
+  const commercialModel = commercialModelFromSnapshot(
+    canonicalPriceOptions?.length
+      ? { ...offerPricingSnapshot, price_options: canonicalPriceOptions }
+      : offerPricingSnapshot,
+  );
   if (
     canonicalSnapshotSchema(offerPricingSnapshot) ===
       "gridex_contract_pricing_v6_selection" &&
@@ -604,7 +626,7 @@ export async function calculateOfferQuote(input: {
             unit: "ore_per_kwh",
             price_option_reference:
               commercialSelection?.priceOption.price_option_reference ?? null,
-            price_row_reference:
+            area_price_reference:
               commercialSelection?.areaPrice?.price_row_reference ?? null,
           },
     },
@@ -616,7 +638,7 @@ export async function calculateOfferQuote(input: {
           unit: "ore_per_kwh",
           price_option_reference:
             commercialSelection?.priceOption.price_option_reference ?? null,
-          price_row_reference:
+          area_price_reference:
             commercialSelection?.areaPrice?.price_row_reference ?? null,
         },
     input: {
@@ -700,6 +722,8 @@ export async function calculateOfferQuote(input: {
       commercialSelection?.mandatoryComponentReferences ?? [],
     conditional_component_references:
       commercialSelection?.conditionalComponentReferences ?? [],
+    site_count: siteCount,
+    pricing: pricingSnapshot,
     resolved_base_components: exactBaseComponents,
     resolved_price_components: exactPriceComponents,
     pricing_snapshot: {
@@ -750,6 +774,7 @@ export async function calculateOfferQuote(input: {
       commercialSelection?.conditionalComponentReferences ?? [],
     resolvedBaseComponents: exactBaseComponents,
     resolvedPriceComponents: exactPriceComponents,
+    siteCount,
   });
 
   return {

@@ -66,6 +66,9 @@ function model(): CanonicalCommercialModel {
       price_option_reference: `fixed_${months}_months`,
       option_code: `fixed_${months}`,
       customer_name: `${months} månader`,
+      customer_type: "both",
+      default: index === 1,
+      selection_required: true,
       internal_description: null,
       contract_type: "fixed",
       binding_months: months,
@@ -181,6 +184,24 @@ describe("canonical commercial selection", () => {
     );
     expect(selection.areaPrice?.price_row_reference).toBe("fixed_24_se3");
     expect(selection.areaPrice?.amount).toBe(112);
+  });
+
+  it("never treats array position as a choice", () => {
+    expect(() =>
+      resolveCommercialSelection({
+        model: model(),
+        contractType: "fixed",
+        priceOptionReference: null,
+        priceArea: "SE3",
+        customerType: "private",
+        invoiceDeliveryMethod: "email",
+        selectedComponentReferences: [],
+        annualConsumptionKwh: 12_000,
+        siteCount: 1,
+        startDate: "2026-09-01",
+        salesChannel: "website",
+      }),
+    ).toThrow(/prisalternativ måste väljas uttryckligen/i);
   });
 
   it("includes paper fee only for paper invoice", () => {

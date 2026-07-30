@@ -63,3 +63,13 @@ Status: IMPLEMENTED_STATIC_VERIFIED
 The immutable identity includes product/price-plan version, price option,
 SE-area row when fixed, invoice delivery method, selected/mandatory/conditional
 component references and exact resolved base/price component arrays.
+
+## ADR-009 — Publication-bound price-option identity
+
+Status: IMPLEMENTED_STATIC_VERIFIED
+
+Every public price option is bound to one immutable publication version.
+Templates may remain unbound, but publication materializes exact copies.
+Customer type, default and selection-required are canonical columns, and array
+position is never a selection rule. Quote, validate and application must assert
+the same stable option, area, invoice, component and site-count identity.

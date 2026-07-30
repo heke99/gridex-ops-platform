@@ -8,6 +8,9 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const migration = read(
   "supabase/migrations/20260729200000_contract_commercial_selection_completion.sql",
 );
+const publicationMigration = read(
+  "supabase/migrations/20260730220000_canonical_price_option_publication_api_completion.sql",
+);
 const quote = read("lib/pricing/offerQuote.ts");
 const onboarding = read("lib/website/customerApplications.ts");
 const billing = read("lib/billing/underlayEngine.ts");
@@ -30,6 +33,23 @@ for (const token of [
   "resolved_price_components",
 ]) {
   assert.ok(migration.includes(token), `migration missing ${token}`);
+}
+for (const token of [
+  "contract_publication_version_id",
+  "customer_type",
+  "is_default",
+  "selection_required",
+  "gridex_validate_price_option_publication_v1",
+  "price_option_reference_missing",
+  "fixed_price_area_missing",
+  "gridex_onboard_customer_graph_quote_commit_v2",
+  "website_quote_commercial_assertion_mismatch",
+  "site_count",
+]) {
+  assert.ok(
+    publicationMigration.includes(token),
+    `publication migration missing ${token}`,
+  );
 }
 assert.ok(
   quote.includes("resolveCommercialSelection"),
@@ -67,7 +87,19 @@ for (const field of [
 ]) {
   assert.ok(quoteRequest[field], `OpenAPI quote request missing ${field}`);
 }
-assert.equal(openapi.info.version, "2026-07-30.2");
+const publicContract = openapi.components.schemas.PublicContract;
+assert.equal(publicContract.additionalProperties, false);
+assert.ok(publicContract.required.includes("price_options"));
+assert.equal(publicContract.properties.pricing.additionalProperties, false);
+assert.equal(
+  openapi.components.schemas.WebsiteLegalBlock.additionalProperties,
+  false,
+);
+assert.equal(
+  openapi.components.schemas.WebsiteQuoteData.additionalProperties,
+  false,
+);
+assert.equal(openapi.info.version, "2026-07-30.3");
 
 console.log(
   "contract-commercial-selection-regression: option/component/snapshot chain verified",

@@ -82,6 +82,7 @@ export function publicPortalContract(
     end_date: text(row.ends_at),
     signed_at: text(row.signed_at),
     withdrawal_deadline_at: text(row.withdrawal_deadline_at),
+    signature_snapshot_sha256: text(row.signature_snapshot_sha256),
     price_area: text(row.price_area_used),
     monthly_fee_sek: numberOrNull(row.monthly_fee_sek),
     invoice_fee_sek: numberOrNull(row.invoice_fee_sek),

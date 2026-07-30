@@ -27,7 +27,7 @@ separata tillstånd.
 - Website och API använder samma externa DTO-mapper. API-svaret har en strikt
   allowlist och innehåller inte interna UUID:n eller interna snapshots.
 - API/OpenAPI/ETag/header/metadata är synkroniserade på
-  `2026-07-30.2`.
+  `2026-07-30.3`.
 - Svensk kalendergiltighet ägs av PostgreSQL med `Europe/Stockholm`; frontend
   gör inte en konkurrerande UTC-datumfiltrering.
 - Publication graph verifierar grant, assignment, kanal, publication,
@@ -48,7 +48,7 @@ separata tillstånd.
 | Contract go-live | 212 kontroller godkända |
 | Contract lifecycle | 518 kontroller godkända |
 | Tenant/contracts/API/mail | Godkänd |
-| API/OpenAPI/docs/paritet | Godkänd, version `2026-07-30.2` |
+| API/OpenAPI/docs/paritet | Godkänd, version `2026-07-30.3` |
 | ESLint | 0 fel, 124 befintliga varningar |
 | Next.js produktionsbygge | Godkänt |
 | Ny migrationschecksumma | Godkänd |

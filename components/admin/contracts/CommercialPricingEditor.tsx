@@ -29,6 +29,9 @@ function newOption(
     price_option_reference: reference,
     option_code: `option_${index + 1}`,
     customer_name: `Prisalternativ ${index + 1}`,
+    customer_type: "both",
+    default: index === 0,
+    selection_required: index > 0,
     internal_description: null,
     contract_type: contractType,
     binding_months: 0,
@@ -278,6 +281,54 @@ export default function CommercialPricingEditor({
             <div className="mt-3 flex flex-wrap gap-4 text-xs font-semibold text-slate-700">
               <label className="flex items-center gap-2">
                 <input
+                  type="radio"
+                  name="default_price_option"
+                  checked={option.default}
+                  onChange={() =>
+                    setOptions((current) =>
+                      current.map((candidate, candidateIndex) => ({
+                        ...candidate,
+                        default: candidateIndex === optionIndex,
+                      })),
+                    )
+                  }
+                />
+                Standardalternativ
+              </label>
+              <label className="flex items-center gap-2">
+                Kundtyp
+                <select
+                  value={option.customer_type}
+                  onChange={(event) =>
+                    patchOption(optionIndex, {
+                      customer_type: event.target
+                        .value as ContractPriceOption["customer_type"],
+                    })
+                  }
+                  className="rounded-lg border border-slate-300 px-2 py-1"
+                >
+                  <option value="both">Privat och företag</option>
+                  <option value="private">Privat</option>
+                  <option value="business">Företag</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={option.selection_required}
+                  onChange={(event) =>
+                    setOptions((current) =>
+                      current.map((candidate) => ({
+                        ...candidate,
+                        selection_required: event.target.checked,
+                      })),
+                    )
+                  }
+                />
+                Kunden måste välja
+              </label>
+              <label className="flex items-center gap-2">
+                <input
                   type="checkbox"
                   checked={option.auto_renew_enabled}
                   onChange={(event) =>
@@ -354,13 +405,29 @@ export default function CommercialPricingEditor({
               type="button"
               disabled={options.length === 1}
               onClick={() =>
-                setOptions((current) =>
-                  current.filter(
+                setOptions((current) => {
+                  const remaining = current.filter(
                     (candidate) =>
                       candidate.price_option_reference !==
                       option.price_option_reference,
-                  ),
-                )
+                  );
+                  if (remaining.length === 1) {
+                    return [
+                      {
+                        ...remaining[0],
+                        default: true,
+                        selection_required: false,
+                      },
+                    ];
+                  }
+                  if (
+                    remaining.length > 0 &&
+                    !remaining.some((candidate) => candidate.default)
+                  ) {
+                    remaining[0] = { ...remaining[0], default: true };
+                  }
+                  return remaining;
+                })
               }
               className="mt-3 rounded-lg border border-rose-200 px-3 py-1 text-xs font-bold text-rose-700 disabled:opacity-40"
             >
@@ -373,8 +440,15 @@ export default function CommercialPricingEditor({
         type="button"
         onClick={() =>
           setOptions((current) => [
-            ...current,
-            newOption(contractType, current.length),
+            ...current.map((option) => ({
+              ...option,
+              selection_required: true,
+            })),
+            {
+              ...newOption(contractType, current.length),
+              default: false,
+              selection_required: true,
+            },
           ])
         }
         className="mt-3 rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white"

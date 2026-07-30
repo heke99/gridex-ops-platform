@@ -92,3 +92,8 @@
 | VM-088 | Current API/OpenAPI release | VERIFIED LOCALLY | `2026-07-30.2`; compatibility and exact local manifest SHA parity pass |
 | VM-089 | Current TypeScript/tests/lint/build | VERIFIED LOCALLY | All TS targets; 58/58 files and 373/373 tests; 0-error lint; Next.js build |
 | VM-090 | Customer Portal staging/live E2E | BLOCKED | No authorized DB, deployment, tenant fixtures, API keys or provider/webhook environment |
+| VM-091 | Canonical price-option migration | STATIC VERIFIED | `20260730220000...` SHA-256 `0ab350f0...`; migration history 325/229 passes |
+| VM-092 | Canonical price-option flow | VERIFIED LOCALLY | Commercial-selection, channel-publication, fixed-area and go-live static suites pass |
+| VM-093 | Current API/OpenAPI release | VERIFIED LOCALLY | `2026-07-30.3`; reachability, fixture parity, docs, compatibility and exact local manifest SHA parity pass |
+| VM-094 | Current TypeScript/tests/lint/build | VERIFIED LOCALLY | All TS targets; 58/58 files and 376/376 tests; 0-error lint; Next.js build |
+| VM-095 | Price-option staging/live E2E | BLOCKED | No authorized DB, deployment, Gridex Web, tenant fixtures, API keys or provider/webhook environment |

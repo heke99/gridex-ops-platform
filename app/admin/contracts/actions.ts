@@ -299,7 +299,16 @@ async function saveContractOfferActionImpl(
     ...canonicalPricingCommand.pricing_snapshot,
     snapshot_schema: "gridex_contract_pricing_v6_selection",
     schema_version: "gridex_contract_pricing_v6_selection",
-    price_options: input.priceOptions,
+    price_options: input.priceOptions.map((option) => ({
+      ...option,
+      customer_type: option.customer_type ?? input.customerType,
+      metadata: {
+        ...option.metadata,
+        customer_type: option.customer_type ?? input.customerType,
+        is_default: option.default,
+        selection_required: option.selection_required,
+      },
+    })),
     commercial_components: input.commercialComponents,
     // The price plan remains the one canonical engine. Selection metadata is
     // retained on each component and resolved to an exact subset at quote time.
@@ -313,9 +322,8 @@ async function saveContractOfferActionImpl(
     ],
     invoice_delivery_methods: input.invoiceDeliveryMethods,
     default_price_option_reference:
-      input.priceOptions.length === 1
-        ? input.priceOptions[0].price_option_reference
-        : null,
+      input.priceOptions.find((option) => option.default)
+        ?.price_option_reference ?? null,
   };
 
   const payload = {

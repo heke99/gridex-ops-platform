@@ -1,38 +1,38 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-07-30T18:08:00+02:00",
+  "updated_at": "2026-07-30T23:59:00+02:00",
   "branch": null,
   "last_verified_commit": null,
-  "active_phase": "PHASE-34",
-  "active_task": "WP-034",
-  "active_subtask": "Apply, deploy and environment-verify Customer Portal/API completion",
+  "active_phase": "PHASE-35",
+  "active_task": "WP-035",
+  "active_subtask": "Apply, deploy and environment-verify canonical price options",
   "status": "BLOCKED",
   "implemented_not_environment_verified": [
-    "strict canonical customer sync contract",
-    "tenant-safe identity normalization and stable public references",
-    "atomic idempotent move-out command",
-    "portal pagination and completeness projection",
-    "v3 quote onboarding compatibility",
-    "2026-07-30.2 OpenAPI compatibility and release gates"
+    "publication-bound canonical price options",
+    "default, selection-required and customer-type publication policy",
+    "top-level public-contract price_options",
+    "immutable quote, validate and application commercial assertions",
+    "legal document identity and closed public schemas",
+    "2026-07-30.3 OpenAPI compatibility and release gates"
   ],
   "active_blockers": [
     "Authorized PostgreSQL clean/staging/production connection is unavailable",
     "Three allowlisted duplicate migration timestamps require authoritative applied-ledger provenance",
-    "Clean and upgraded database apply through 20260730153000 are not run",
+    "Clean and upgraded database apply through 20260730220000 are not run",
     "Gridex Web source repository was not supplied",
-    "2026-07-30.2 deployment and exact live manifest hashes are unverified",
+    "2026-07-30.3 deployment and exact live manifest hashes are unverified",
     "Staging API keys, two-tenant fixtures and provider/webhook credentials are unavailable"
   ],
   "verification": [
     {
-      "name": "historical migration checksum",
-      "status": "VERIFIED",
-      "evidence": "20260728170000 SHA-256 equals registered 881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482"
-    },
-    {
       "name": "migration integrity",
       "status": "VERIFIED",
-      "evidence": "324 files; 228 version groups; checksums verified"
+      "evidence": "325 files; 229 version groups; checksums verified"
+    },
+    {
+      "name": "price-option migration checksum",
+      "status": "VERIFIED",
+      "evidence": "20260730220000 SHA-256 equals registered 0ab350f0da6648a497a80aeaedc1688eb5ae88e6279d6ab486526c070ff8c505"
     },
     {
       "name": "typecheck",
@@ -42,7 +42,7 @@
     {
       "name": "tests",
       "status": "VERIFIED",
-      "evidence": "58 files, 373 tests pass"
+      "evidence": "58 files, 376 tests pass"
     },
     {
       "name": "lint",
@@ -52,22 +52,22 @@
     {
       "name": "API/OpenAPI/docs",
       "status": "VERIFIED",
-      "evidence": "contract, parity, version, examples, shared-component, compatibility and local release gates pass at 2026-07-30.2"
+      "evidence": "contract, parity, version, examples, shared-component, compatibility and local release gates pass at 2026-07-30.3"
     },
     {
       "name": "production build",
       "status": "VERIFIED",
-      "evidence": "Next.js 16.2.6 production build passes locally"
+      "evidence": "Next.js 16.2.6 production build passes locally with temporary 4096 MB Node heap"
     },
     {
       "name": "PostgreSQL clean and upgrade apply",
       "status": "BLOCKED",
-      "evidence": "no authorized database/CLI; historical intermediate rewrite needs runtime proof"
+      "evidence": "no authorized database/CLI; post-apply and runtime concurrency require PostgreSQL"
     },
     {
       "name": "live OpenAPI parity",
       "status": "BLOCKED",
-      "evidence": "2026-07-30.2 was not deployed from this workspace"
+      "evidence": "2026-07-30.3 was not deployed from this workspace"
     },
     {
       "name": "Gridex Web, two-tenant, provider and webhook E2E",
@@ -75,10 +75,10 @@
       "evidence": "source repository, environment and credentials unavailable"
     }
   ],
-  "next_action": "Resolve duplicate migration versions from the applied ledger, apply through 20260730153000 on clean and upgraded Node 22 staging, deploy OPS, validate exact live hashes, then synchronize and verify Gridex Web plus full two-tenant/move-out/provider scenarios",
-  "resume_from": "supabase/migrations/20260730153000_customer_portal_api_production_completion.sql",
+  "next_action": "Resolve duplicate migration versions from the applied ledger, apply through 20260730220000 on clean and upgraded Node 22 staging, run the post-apply, deploy OPS, validate exact live hashes, then synchronize and verify Gridex Web plus full two-tenant/application/provider scenarios",
+  "resume_from": "supabase/migrations/20260730220000_canonical_price_option_publication_api_completion.sql",
   "context_notes": [
-    "Never rewrite the restored 20260728170000 file or its manifest checksum",
+    "Never rewrite historical migration bytes or registered checksums",
     "Do not rename an applied duplicate migration without authoritative ledger evidence",
     "Do not mark live compatibility ready until exact served-byte hashes pass",
     "Repeat release verification with declared production Node 22"

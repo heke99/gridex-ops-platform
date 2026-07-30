@@ -1,25 +1,26 @@
 # Current task
 
-Last updated: 2026-07-30T18:08:00+02:00  
-Branch: UNVERIFIED (uploaded archive excludes `.git`)  
+Last updated: 2026-07-30T23:59:00+02:00
+Branch: UNVERIFIED (uploaded archive excludes `.git`)
 Last verified commit: null
 
 ## Active phase
 
-PHASE-34 — canonical Customer Portal sync, public references, atomic move-out and OpenAPI release completion.
+PHASE-35 — canonical publication-bound price options, immutable website commercial selection and OpenAPI release completion.
 
 ## Completed locally
 
-- Added strict customer sync parsing and tenant-safe identity normalization.
-- Added stable public references and removed internal IDs from portal/application DTOs.
-- Added the atomic, idempotent external-reference move-out database command.
-- Added portal pagination/completeness handling and repaired v3 quote onboarding compatibility.
-- Regenerated both OpenAPI documents at `2026-07-30.2` and added compatibility/release verification scripts.
-- Verified all TypeScript profiles, 373 tests, API/docs/parity/compatibility/release, migration/error/tenant gates, zero-error lint and production build.
+- Bound canonical price options to exact publication versions and added default/selection/customer-type rules.
+- Materialized deterministic publication copies, review-backed backfill and publish-time validation.
+- Exposed top-level `price_options` and bound quote, validate and application assertions end to end.
+- Harmonized legal document identity and closed public request/response schemas.
+- Regenerated both OpenAPI documents at `2026-07-30.3` and strengthened reachability, fixture and documentation checks.
+- Restored portal contract signature evidence parity found by the final go-live regression.
+- Verified all TypeScript profiles, 376 tests, API/docs/parity/compatibility/release, migration/error/tenant gates, zero-error lint and production build.
 
 ## Exact next action
 
-Review the three allowlisted duplicate migration version groups against the actual staging/production migration ledger. Do not rename any applied migration without that proof. Then use Node 22, run clean-database and upgraded-database applies through `20260730153000`, deploy OPS, verify the live release manifest against the two served files, synchronize the separate Gridex Web repository and execute two-tenant, move-out replay, quote concurrency, webhook replay/idempotency and provider delivery scenarios.
+Review the three allowlisted duplicate migration version groups against the actual staging/production migration ledger. Do not rename any applied migration without that proof. Then use Node 22, run clean-database and upgraded-database applies through `20260730220000`, execute the canonical price-option post-apply SQL, deploy OPS, verify the live release manifest against the two served files, synchronize the separate Gridex Web repository and execute two-tenant, quote concurrency, application replay, webhook replay/idempotency and provider delivery scenarios.
 
 ## Blockers
 
@@ -28,8 +29,8 @@ Review the three allowlisted duplicate migration version groups against the actu
 - Duplicate version groups `20260612193000`, `20260616123000` and `20260727150000` are allowlisted; safe resolution requires authoritative applied-ledger provenance.
 - Gridex Web source was not supplied, so its runtime sync/build cannot be changed or verified.
 - Staging API keys, isolated tenant fixtures, webhook receiver/secret and provider sandbox credentials are unavailable.
-- The `2026-07-30.2` deployment and exact live manifest hash parity are unverified.
+- The `2026-07-30.3` deployment and exact live manifest hash parity are unverified.
 
 ## Do not repeat
 
-Do not modify trusted historical migration bytes or manifest checksums, rename applied duplicate migrations without ledger proof, claim database/staging/Web/provider verification from static checks, or mark production `GO` until the new migration, exact deployed manifest and full environment gates pass.
+Do not modify trusted historical migration bytes or manifest checksums, rename applied duplicate migrations without ledger proof, claim database/staging/Web/provider verification from static checks, or mark production `GO` until the price-option migration, post-apply, exact deployed manifest and full environment gates pass.

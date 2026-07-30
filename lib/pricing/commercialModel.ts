@@ -114,10 +114,15 @@ export const priceOptionSchema = z
     customer_name: z.string().trim().min(1).max(160),
     internal_description: z.string().trim().max(1_000).nullable().default(null),
     contract_type: z.enum(CONTRACT_TYPES),
+    customer_type: z
+      .enum(["private", "business", "both"])
+      .default("both"),
     binding_months: z.number().int().min(0).max(240),
     notice_months: z.number().int().min(0).max(36),
     auto_renew_enabled: z.boolean(),
     renewal_term_months: z.number().int().min(1).max(120).nullable(),
+    default: z.boolean().default(false),
+    selection_required: z.boolean().default(false),
     valid_from: nullableDate.default(null),
     valid_to: nullableDate.default(null),
     earliest_start_date: nullableDate.default(null),
@@ -395,6 +400,26 @@ export const commercialModelSchema = z
         message: "Prisalternativens koder måste vara unika.",
       });
     }
+    const defaultOptions = model.price_options.filter((option) => option.default);
+    if (defaultOptions.length !== 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["price_options"],
+        message: "Exakt ett prisalternativ måste vara standardalternativ.",
+      });
+    }
+    if (
+      new Set(
+        model.price_options.map((option) => option.selection_required),
+      ).size !== 1
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["price_options"],
+        message:
+          "Alla prisalternativ i erbjudandet måste ha samma valpolicy.",
+      });
+    }
     const componentReferences = model.components.map(
       (component) => component.component_reference,
     );
@@ -428,10 +453,40 @@ function asRecord(value: unknown): Record<string, unknown> {
 export function commercialModelFromSnapshot(
   snapshot: Record<string, unknown> | null | undefined,
 ): CanonicalCommercialModel | null {
+  const rawOptions = Array.isArray(snapshot?.price_options)
+    ? snapshot.price_options
+    : [];
+  const defaultReference =
+    typeof snapshot?.default_price_option_reference === "string"
+      ? snapshot.default_price_option_reference
+      : null;
+  const normalizedOptions = rawOptions.map((value) => {
+    const option = asRecord(value);
+    const metadata = asRecord(option.metadata);
+    const reference =
+      typeof option.price_option_reference === "string"
+        ? option.price_option_reference
+        : "";
+    return {
+      ...option,
+      customer_type:
+        option.customer_type ?? snapshot?.customer_type ?? "both",
+      default:
+        option.default ??
+        metadata.is_default ??
+        (defaultReference
+          ? reference === defaultReference
+          : rawOptions.length === 1),
+      selection_required:
+        option.selection_required ??
+        metadata.selection_required ??
+        rawOptions.length > 1,
+    };
+  });
   const parsed = commercialModelSchema.safeParse({
     schema_version:
       snapshot?.snapshot_schema ?? snapshot?.schema_version ?? "",
-    price_options: snapshot?.price_options ?? [],
+    price_options: normalizedOptions,
     components:
       snapshot?.commercial_components ??
       snapshot?.price_components ??
@@ -638,19 +693,34 @@ export function resolveCommercialSelection(input: {
   mandatoryComponentReferences: string[];
   conditionalComponentReferences: string[];
 } {
-  const option =
-    input.model.price_options.find(
-      (candidate) =>
-        candidate.price_option_reference === input.priceOptionReference,
-    ) ??
-    (input.priceOptionReference === null &&
-    input.model.price_options.length === 1
+  const explicitlySelected = input.priceOptionReference !== null;
+  const option = explicitlySelected
+    ? input.model.price_options.find(
+        (candidate) =>
+          candidate.price_option_reference === input.priceOptionReference,
+      ) ?? null
+    : input.model.price_options.length === 1 &&
+        input.model.price_options[0].selection_required === false
       ? input.model.price_options[0]
-      : null);
+      : null;
   if (!option) {
     throw new CommercialSelectionError(
-      "Prisalternativet saknas eller tillhör inte erbjudandet.",
-      "price_option_not_found",
+      input.priceOptionReference === null
+        ? "Ett prisalternativ måste väljas uttryckligen."
+        : "Prisalternativet saknas eller tillhör inte erbjudandet.",
+      input.priceOptionReference === null
+        ? "price_option_required"
+        : "price_option_not_found",
+      "price_option_reference",
+    );
+  }
+  if (
+    option.customer_type !== "both" &&
+    option.customer_type !== input.customerType
+  ) {
+    throw new CommercialSelectionError(
+      "Prisalternativet stödjer inte vald kundtyp.",
+      "price_option_customer_type_mismatch",
       "price_option_reference",
     );
   }

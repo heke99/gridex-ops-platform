@@ -143,3 +143,16 @@
   build.
 - Preserved NO-GO for duplicate migration provenance, PostgreSQL apply,
   deployment/live hashes, missing Gridex Web and full staging/provider E2E.
+- Completed publication-bound canonical price options, deterministic
+  backfill/review, publish validation and the immutable quote/application
+  assertion chain.
+- Added top-level public `price_options`, aligned legal document identity and
+  strengthened schema reachability, runtime fixture, documentation and release
+  checks at `2026-07-30.3`.
+- Final go-live verification found and repaired portal contract
+  `signature_snapshot_sha256` DTO/OpenAPI drift.
+- Verified 325 migrations/229 groups, all TypeScript targets, 58 files/376
+  tests, API docs/parity/compatibility/release, 0-error lint and production
+  build with a temporary 4096 MB Node heap.
+- Preserved NO-GO for migration-ledger provenance, PostgreSQL apply/post-apply,
+  deployment/live hashes, missing Gridex Web and full environment E2E.

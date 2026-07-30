@@ -464,3 +464,17 @@ Files changed: customer API routes/services/DTOs, website intake/publication DTO
 Migrations: `20260730153000_customer_portal_api_production_completion.sql`
 Last updated: 2026-07-30
 Exact next subtask: resolve duplicate migration provenance, apply through `20260730153000` on clean and upgraded Node 22 staging, deploy and run the full environment matrix
+
+## WP-035: Canonical price-option and website API completion
+Status: IMPLEMENTED_STATIC_VERIFIED_DATABASE_BLOCKED
+Phase: PHASE-35
+Priority: P0
+Depends on: WP-034
+Affected domains: contract publication, price options, quote, application, legal, OpenAPI release
+Acceptance criteria: publication-bound canonical options; exact default/selection policy; top-level public price options; immutable commercial assertion chain; strict runtime/OpenAPI/docs parity
+Required verification: clean/upgraded PostgreSQL apply, post-apply, two-tenant isolation, quote/application replay and concurrency, deployment and exact live hashes
+Evidence: all TypeScript targets, 58 files/376 tests, API docs/parity/compatibility/release, 325/229 migration integrity, zero-error lint and production build pass
+Files changed: contract admin/runtime/DTOs, quote/application/legal flow, OpenAPI/docs/tests/scripts/memory
+Migrations: `20260730220000_canonical_price_option_publication_api_completion.sql`
+Last updated: 2026-07-30
+Exact next subtask: resolve duplicate migration provenance, apply through `20260730220000` on clean and upgraded Node 22 staging, run the post-apply, deploy and run the full environment matrix

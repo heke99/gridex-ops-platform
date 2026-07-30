@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-07-30.2'
+const version = '2026-07-30.3'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
@@ -166,17 +166,539 @@ application.properties.legal_bundle_version = string
 application.properties.legal_acceptances = {
   $ref: '#/components/schemas/LegalAcceptances',
 }
+application.properties.price_option_reference = {
+  type: 'string',
+  pattern: '^[a-z0-9][a-z0-9_-]{2,99}$',
+}
+application.properties.invoice_delivery_method = {
+  type: 'string',
+  enum: ['email', 'e_invoice', 'paper', 'direct_debit'],
+}
+application.properties.selected_component_references = {
+  type: 'array',
+  uniqueItems: true,
+  items: {
+    type: 'string',
+    pattern: '^[a-z0-9][a-z0-9_-]{2,99}$',
+  },
+}
+application.properties.site_count = { type: 'integer', minimum: 1 }
 delete application.properties.legalAcceptances
 delete application.properties.consents
 application.required = Array.from(new Set([
   ...(application.required ?? []),
   'legal_bundle_version',
   'legal_acceptances',
+  'price_option_reference',
+  'invoice_delivery_method',
+  'selected_component_references',
+  'site_count',
 ]))
 application.dependentRequired = {
   ...(application.dependentRequired ?? {}),
   auth_user_id: ['customer_portal_user_id'],
   customer_portal_user_id: ['auth_user_id'],
+}
+const stableReference = {
+  type: 'string',
+  pattern: '^[a-z0-9][a-z0-9_-]{2,99}$',
+}
+const stringArray = {
+  type: 'array',
+  uniqueItems: true,
+  items: string,
+}
+const applicationData =
+  website.components.schemas.WebsiteCustomerApplicationData
+if (applicationData) {
+  applicationData.additionalProperties = false
+  applicationData.properties.price_option_reference = nullableString
+  applicationData.properties.area_price_reference = nullableString
+  applicationData.properties.invoice_delivery_method = nullableString
+  applicationData.properties.site_count = {
+    type: ['integer', 'null'],
+    minimum: 1,
+  }
+  for (const field of [
+    'selected_component_references',
+    'mandatory_component_references',
+    'conditional_component_references',
+  ]) {
+    applicationData.properties[field] = stringArray
+  }
+  applicationData.required = Array.from(new Set([
+    ...(applicationData.required ?? []),
+    'selected_component_references',
+    'mandatory_component_references',
+    'conditional_component_references',
+  ]))
+}
+const nullableDate = { type: ['string', 'null'], format: 'date' }
+const contractType = {
+  type: 'string',
+  enum: [
+    'fixed',
+    'variable_monthly',
+    'variable_hourly',
+    'variable_quarterly',
+    'portfolio',
+    'mixed',
+  ],
+}
+const customerType = {
+  type: 'string',
+  enum: ['private', 'business', 'both'],
+}
+const invoiceDeliveryMethod = {
+  type: 'string',
+  enum: ['email', 'e_invoice', 'paper', 'direct_debit'],
+}
+const permissiveObject = { type: 'object', additionalProperties: true }
+
+website.components.schemas.ContractPriceOptionAreaPrice = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'area_price_reference',
+    'price_area',
+    'energy_price_ore_per_kwh',
+    'unit',
+    'valid_from',
+    'valid_to',
+  ],
+  properties: {
+    area_price_reference: stableReference,
+    price_area: { type: 'string', enum: ['SE1', 'SE2', 'SE3', 'SE4'] },
+    energy_price_ore_per_kwh: { type: 'number', exclusiveMinimum: 0 },
+    unit: { type: 'string', const: 'ore_per_kwh' },
+    valid_from: nullableDate,
+    valid_to: nullableDate,
+  },
+}
+website.components.schemas.ContractPriceOption = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'price_option_reference',
+    'option_code',
+    'customer_name',
+    'contract_type',
+    'customer_type',
+    'binding_months',
+    'notice_months',
+    'auto_renew_enabled',
+    'renewal_term_months',
+    'default',
+    'selection_required',
+    'valid_from',
+    'valid_to',
+    'earliest_start_date',
+    'latest_start_date',
+    'area_prices',
+  ],
+  properties: {
+    price_option_reference: stableReference,
+    option_code: stableReference,
+    customer_name: string,
+    contract_type: contractType,
+    customer_type: customerType,
+    binding_months: { type: 'integer', minimum: 0 },
+    notice_months: { type: 'integer', minimum: 0 },
+    auto_renew_enabled: { type: 'boolean' },
+    renewal_term_months: { type: ['integer', 'null'], minimum: 1 },
+    default: { type: 'boolean' },
+    selection_required: { type: 'boolean' },
+    valid_from: nullableDate,
+    valid_to: nullableDate,
+    earliest_start_date: nullableDate,
+    latest_start_date: nullableDate,
+    area_prices: {
+      type: 'array',
+      items: {
+        $ref: '#/components/schemas/ContractPriceOptionAreaPrice',
+      },
+    },
+  },
+}
+
+const legalDocument = website.components.schemas.LegalBundleDocument
+legalDocument.additionalProperties = false
+legalDocument.properties.id = uuid
+legalDocument.properties.document_reference = string
+legalDocument.properties.legal_bundle_version_id = nullableUuid
+legalDocument.required = Array.from(new Set([
+  ...(legalDocument.required ?? []),
+  'id',
+  'document_reference',
+  'legal_bundle_version_id',
+]))
+
+const legalBlock = website.components.schemas.WebsiteLegalBlock
+for (const field of [
+  'terms_document_reference',
+  'privacy_policy_document_reference',
+  'withdrawal_document_reference',
+  'price_terms_document_reference',
+  'power_of_attorney_document_reference',
+  'legal_bundle_reference',
+]) {
+  legalBlock.properties[field] = nullableString
+}
+for (const staleAlias of [
+  'terms_version_id',
+  'privacy_policy_version_id',
+  'withdrawal_version_id',
+  'price_terms_version_id',
+  'power_of_attorney_version_id',
+]) {
+  delete legalBlock.properties[staleAlias]
+}
+legalBlock.properties.legal_bundle_version_id = nullableUuid
+legalBlock.additionalProperties = false
+legalBlock.required = Array.from(new Set([
+  ...(legalBlock.required ?? []),
+  'legal_bundle_reference',
+  'legal_bundle_version_id',
+]))
+
+const pricingProperties = Object.fromEntries(
+  [
+    'monthly_fee',
+    'invoice_fee',
+    'markup',
+    'spot_markup',
+    'variable_fee',
+    'fixed_price',
+    'area_pricing',
+    'green_fee',
+    'spot_share',
+    'portfolio_share',
+    'fixed_share',
+    'public_price_text',
+    'visibility',
+    'price_areas',
+    'vat_rate',
+    'market_price_responsibility',
+    'calculation_contract',
+    'interval_resolution',
+    'energy_direction',
+    'production_pricing',
+    'base_components',
+    'calculation_components',
+    'components',
+    'display_components',
+    'summary_components',
+    'electricity_certificate',
+    'start_fee',
+    'administration_fee',
+    'break_fee',
+    'portfolio_price',
+    'portfolio_monthly_prices',
+    'portfolio_method',
+    'portfolio_indications',
+    'portfolio_management_fee',
+    'discount',
+  ].map((field) => [field, {}]),
+)
+const publicPricing = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'visibility',
+    'calculation_components',
+    'display_components',
+    'calculation_contract',
+    'summary_components',
+  ],
+  properties: pricingProperties,
+}
+
+const pricingSnapshot = {
+  type: 'object',
+  additionalProperties: false,
+  properties: Object.fromEntries(
+    [
+      'schema_version',
+      'contract_type',
+      'energy_direction',
+      'customer_type',
+      'price_areas',
+      'valid_from',
+      'valid_to',
+      'binding_months',
+      'notice_months',
+      'automatic_renewal',
+      'power_of_attorney_required',
+      'base_components',
+      'price_components',
+      'display_price_components',
+      'summary_price_components',
+      'website_visibility',
+      'market_price_responsibility',
+      'calculation_contract',
+      'portfolio_method',
+      'portfolio_monthly_prices',
+      'public_price_text',
+      'vat_rate',
+      'vat_rate_percent',
+      'interval_resolution',
+      'production',
+    ].map((field) => [field, {}]),
+  ),
+}
+
+const publicContractProperties = Object.fromEntries(
+  [
+    'id',
+    'offer_reference',
+    'contract_offer_id',
+    'publication_reference',
+    'offer_code',
+    'code',
+    'product_code',
+    'name',
+    'public_name',
+    'description',
+    'public_description',
+    'contract_type',
+    'energy_direction',
+    'type',
+    'billing_model',
+    'area_pricing',
+    'customer_type',
+    'customer_types',
+    'production_pricing',
+    'portfolio_price_ore_per_kwh',
+    'portfolio_management_fee',
+    'monthly_fee_sek',
+    'invoice_fee_sek',
+    'markup_ore_per_kwh',
+    'spot_markup_ore_per_kwh',
+    'variable_fee_ore_per_kwh',
+    'fixed_price_ore_per_kwh',
+    'green_fee_mode',
+    'green_fee_value',
+    'terms_version',
+    'terms_url',
+    'public_price_text',
+    'binding_months',
+    'notice_months',
+    'website_cta_enabled',
+    'price_areas',
+    'automatic_renewal',
+    'power_of_attorney_required',
+    'vat_rate',
+    'mix',
+    'withdrawal_version',
+    'legal_versions',
+    'valid_from',
+    'valid_to',
+    'is_public',
+    'is_active',
+    'sort_order',
+    'channel',
+  ].map((field) => [field, {}]),
+)
+for (const field of ['id', 'contract_offer_id', 'publication_reference']) {
+  publicContractProperties[field] = {
+    type: 'string',
+    deprecated: true,
+    description:
+      'Deprecated compatibility alias. Contains the same stable external value as offer_reference and never a database UUID.',
+  }
+}
+publicContractProperties.offer_reference = stableReference
+publicContractProperties.area_pricing = {
+  type: 'array',
+  deprecated: true,
+  description:
+    'Deprecated presentation-only area pricing. Use top-level price_options[].area_prices for canonical commercial selection.',
+  items: {
+    type: 'object',
+    additionalProperties: false,
+    required: [
+      'price_area',
+      'energy_price_ore_per_kwh',
+      'unit',
+      'vat_included',
+      'vat_rate',
+    ],
+    properties: {
+      price_area: { type: 'string', enum: ['SE1', 'SE2', 'SE3', 'SE4'] },
+      energy_price_ore_per_kwh: { type: 'number' },
+      unit: { type: 'string', const: 'ore_per_kwh' },
+      vat_included: { type: 'boolean' },
+      vat_rate: { type: 'number' },
+    },
+  },
+}
+publicContractProperties.price_options = {
+  type: 'array',
+  minItems: 1,
+  items: { $ref: '#/components/schemas/ContractPriceOption' },
+}
+publicContractProperties.pricing = publicPricing
+publicContractProperties.pricing_snapshot = pricingSnapshot
+publicContractProperties.legal = {
+  $ref: '#/components/schemas/WebsiteLegalBlock',
+}
+website.components.schemas.PublicContract = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'offer_reference',
+    'name',
+    'contract_type',
+    'energy_direction',
+    'customer_type',
+    'price_options',
+    'pricing',
+    'legal',
+    'channel',
+  ],
+  properties: publicContractProperties,
+}
+
+website.components.schemas.ApiPublicContract = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'offer_reference',
+    'name',
+    'description',
+    'contract_type',
+    'energy_direction',
+    'customer_type',
+    'price_options',
+    'pricing',
+    'valid_from',
+    'valid_to',
+    'channel',
+  ],
+  properties: {
+    offer_reference: string,
+    name: string,
+    description: nullableString,
+    contract_type: contractType,
+    energy_direction: {
+      $ref: '#/components/schemas/EnergyDirection',
+    },
+    customer_type: customerType,
+    price_options: {
+      type: 'array',
+      minItems: 1,
+      items: { $ref: '#/components/schemas/ContractPriceOption' },
+    },
+    pricing: publicPricing,
+    valid_from: nullableString,
+    valid_to: nullableString,
+    channel: { type: 'string', enum: ['website', 'api'] },
+  },
+}
+
+const quoteRequest = website.components.schemas.WebsiteQuoteRequest
+quoteRequest.additionalProperties = false
+quoteRequest.properties.price_option_reference = stableReference
+quoteRequest.properties.invoice_delivery_method = invoiceDeliveryMethod
+quoteRequest.properties.selected_component_references = stringArray
+quoteRequest.properties.site_count = { type: 'integer', minimum: 1 }
+quoteRequest.required = Array.from(new Set([
+  ...(quoteRequest.required ?? []),
+  'invoice_delivery_method',
+  'selected_component_references',
+  'site_count',
+]))
+
+const quoteValidationRequest =
+  website.components.schemas.QuoteValidationRequest
+quoteValidationRequest.additionalProperties = false
+quoteValidationRequest.properties.price_option_reference = stableReference
+quoteValidationRequest.properties.invoice_delivery_method =
+  invoiceDeliveryMethod
+quoteValidationRequest.properties.selected_component_references = stringArray
+quoteValidationRequest.properties.site_count = {
+  type: 'integer',
+  minimum: 1,
+}
+quoteValidationRequest.required = Array.from(new Set([
+  ...(quoteValidationRequest.required ?? []),
+  'price_option_reference',
+  'invoice_delivery_method',
+  'selected_component_references',
+  'site_count',
+]))
+
+const quoteData = website.components.schemas.WebsiteQuoteData
+quoteData.additionalProperties = false
+for (const field of [
+  'status',
+  'selected_area_price',
+  'input',
+  'resolution',
+  'market_reference',
+  'estimate',
+  'lines',
+  'energy_direction',
+  'production_pricing',
+  'pricing_interval',
+  'estimate_method',
+  'source_period',
+  'source_window',
+  'market_data_timestamp',
+  'is_binding',
+  'market_sources',
+  'warnings',
+  'assumptions',
+  'pricing_snapshot_schema_version',
+  'snapshot_schema',
+  'price_option_reference',
+  'area_price_reference',
+  'invoice_delivery_method',
+  'selected_component_references',
+  'mandatory_component_references',
+  'conditional_component_references',
+  'site_count',
+  'pricing',
+  'resolved_base_components',
+  'resolved_price_components',
+  'pricing_snapshot',
+]) {
+  quoteData.properties[field] ??= {}
+}
+quoteData.required = Array.from(new Set([
+  ...(quoteData.required ?? []),
+  'price_option_reference',
+  'area_price_reference',
+  'invoice_delivery_method',
+  'selected_component_references',
+  'mandatory_component_references',
+  'conditional_component_references',
+  'site_count',
+]))
+website.components.schemas.WebsiteQuoteResponse = envelope({
+  $ref: '#/components/schemas/WebsiteQuoteData',
+})
+setResponse(
+  website,
+  '/api/v1/website/quote',
+  { $ref: '#/components/schemas/WebsiteQuoteResponse' },
+  'post',
+  '201',
+)
+const quoteResponseContent =
+  website.paths['/api/v1/website/quote'].post.responses['201'].content[
+    'application/json'
+  ]
+const quoteExample = quoteResponseContent.example
+if (quoteExample?.data) {
+  quoteExample.data.price_option_reference ??= 'price_option_example'
+  quoteExample.data.area_price_reference ??= null
+  quoteExample.data.invoice_delivery_method ??= 'email'
+  quoteExample.data.selected_component_references ??= []
+  quoteExample.data.mandatory_component_references ??= []
+  quoteExample.data.conditional_component_references ??= []
+  quoteExample.data.site_count ??= 1
+  quoteExample.contract_schema_version = version
 }
 
 website.components.schemas.WebsitePortfolioPriceData = {
@@ -246,6 +768,13 @@ website.components.schemas.WebsiteQuoteValidationData = {
     'market_reference',
     'energy_direction',
     'selected_area_price',
+    'price_option_reference',
+    'area_price_reference',
+    'invoice_delivery_method',
+    'selected_component_references',
+    'mandatory_component_references',
+    'conditional_component_references',
+    'site_count',
   ],
   properties: {
     valid: { type: 'boolean' },
@@ -258,6 +787,13 @@ website.components.schemas.WebsiteQuoteValidationData = {
     geodata_version: nullableString,
     market_reference: { $ref: '#/components/schemas/MarketReference' },
     energy_direction: { $ref: '#/components/schemas/EnergyDirection' },
+    price_option_reference: nullableString,
+    area_price_reference: nullableString,
+    invoice_delivery_method: invoiceDeliveryMethod,
+    selected_component_references: stringArray,
+    mandatory_component_references: stringArray,
+    conditional_component_references: stringArray,
+    site_count: { type: 'integer', minimum: 1 },
     selected_area_price: {
       type: ['object', 'null'],
       additionalProperties: false,
@@ -269,14 +805,14 @@ website.components.schemas.WebsiteQuoteValidationData = {
         energy_price_ore_per_kwh: { type: 'number' },
         unit: { type: 'string', const: 'ore_per_kwh' },
         price_option_reference: nullableString,
-        price_row_reference: nullableString,
+        area_price_reference: nullableString,
       },
       required: [
         'price_area',
         'energy_price_ore_per_kwh',
         'unit',
         'price_option_reference',
-        'price_row_reference',
+        'area_price_reference',
       ],
     },
   },
@@ -562,6 +1098,7 @@ portal.components.schemas.CustomerContract = {
     end_date: nullableString,
     signed_at: nullableString,
     withdrawal_deadline_at: nullableString,
+    signature_snapshot_sha256: nullableString,
     price_area: nullableString,
     monthly_fee_sek: { type: ['number', 'null'] },
     invoice_fee_sek: { type: ['number', 'null'] },

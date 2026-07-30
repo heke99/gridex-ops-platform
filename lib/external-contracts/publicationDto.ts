@@ -1,4 +1,4 @@
-export const API_CONTRACT_RESPONSE_SCHEMA_VERSION = "2026-07-30.2" as const;
+export const API_CONTRACT_RESPONSE_SCHEMA_VERSION = "2026-07-30.3" as const;
 
 export type ExternalContractChannel = "website" | "api";
 
@@ -86,7 +86,6 @@ function pricingFrom(
     "portfolio_method",
     "production",
     "interval_resolution",
-    "price_options",
     "commercial_components",
     "invoice_delivery_methods",
     "snapshot_schema",
@@ -151,6 +150,9 @@ export function mapContractPublicationToPublicDto(input: {
       "consumption",
     customer_type:
       text(publication.customer_type, commercial.customer_type) ?? "both",
+    price_options: Array.isArray(publication.price_options)
+      ? sanitize(publication.price_options, input.channel === "api")
+      : [],
     pricing: pricingFrom(
       publication,
       commercial,

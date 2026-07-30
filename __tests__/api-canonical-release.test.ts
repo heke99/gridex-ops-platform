@@ -4,6 +4,7 @@ import customerPortalOpenApi from '@/docs/openapi/customer-portal-v1.json'
 import websiteOpenApi from '@/docs/openapi/website-integration-v1.json'
 import { parseCustomerEventPayload } from '@/lib/customer-portal/customerEvents'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
+import { publicPortalContract } from '@/lib/customer-portal/publicDto'
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 import { buildPublicWebhookPayload } from '@/lib/integrations/webhooks'
@@ -11,7 +12,7 @@ import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/website
 
 describe('canonical public API release', () => {
   it('publishes one version and a release-manifest operation', () => {
-    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-07-30.2')
+    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-07-30.3')
     expect(websiteOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(customerPortalOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(websiteOpenApi.paths['/api/v1/openapi/release-manifest.json']?.get).toBeDefined()
@@ -49,6 +50,21 @@ describe('canonical public API release', () => {
     expect(websiteOpenApi.components.schemas.WebsiteCustomerEventRequest.additionalProperties).toBe(false)
     expect(portalPaths['/api/v1/customer-portal/sync'].post.requestBody.content['application/json'].schema.additionalProperties).toBe(false)
     expect(JSON.stringify(portalPaths['/api/v1/customer-portal/sync'])).not.toContain('CustomerInvoice')
+  })
+
+  it('keeps the portal contract signature evidence aligned with OpenAPI', () => {
+    const signatureHash = 'a'.repeat(64)
+    const contract = publicPortalContract('tenant-1', {
+      customer_contract_reference: 'contract-1',
+      status: 'signed',
+      signature_snapshot_sha256: signatureHash,
+    })
+
+    expect(contract.signature_snapshot_sha256).toBe(signatureHash)
+    expect(
+      customerPortalOpenApi.components.schemas.CustomerContract.properties
+        .signature_snapshot_sha256,
+    ).toEqual({ type: ['string', 'null'] })
   })
 
   it('normalizes legacy route failures into one canonical error envelope', async () => {

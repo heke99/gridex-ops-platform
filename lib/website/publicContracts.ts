@@ -26,6 +26,34 @@ export type PublicLegalTextVersion = {
   origin?: string | null;
 };
 
+export type PublicContractPriceOptionAreaPrice = {
+  area_price_reference: string;
+  price_area: "SE1" | "SE2" | "SE3" | "SE4";
+  energy_price_ore_per_kwh: number;
+  unit: "ore_per_kwh";
+  valid_from: string | null;
+  valid_to: string | null;
+};
+
+export type PublicContractPriceOption = {
+  price_option_reference: string;
+  option_code: string;
+  customer_name: string;
+  contract_type: string;
+  customer_type: "private" | "business" | "both";
+  binding_months: number;
+  notice_months: number;
+  auto_renew_enabled: boolean;
+  renewal_term_months: number | null;
+  default: boolean;
+  selection_required: boolean;
+  valid_from: string | null;
+  valid_to: string | null;
+  earliest_start_date: string | null;
+  latest_start_date: string | null;
+  area_prices: PublicContractPriceOptionAreaPrice[];
+};
+
 export type PublicContractOffer = {
   id: string;
   company_id: string;
@@ -83,6 +111,7 @@ export type PublicContractOffer = {
   price_areas?: string[];
   automatic_renewal?: boolean;
   power_of_attorney_required?: boolean;
+  price_options?: PublicContractPriceOption[];
 };
 
 // Builds the extended legal block exposed to tenant websites. OPS is the source
@@ -204,6 +233,7 @@ export function buildPublicLegalBlock(input: {
     urlForVersion(byAcceptanceType.get(type));
 
   const moduleVersions = input.legalVersions.map((version) => ({
+    id: version.id,
     document_reference: publicReference("legal_document", input.companyId, version.id),
     module_key: version.type,
     version: version.version,
@@ -211,6 +241,7 @@ export function buildPublicLegalBlock(input: {
     published_at: version.published_at,
     content_sha256: version.content_sha256 ?? null,
     origin: version.origin ?? "canonical_bundle_document",
+    legal_bundle_version_id: version.legal_bundle_version_id ?? null,
     url: urlForVersion(version),
   }));
 
@@ -245,6 +276,9 @@ export function buildPublicLegalBlock(input: {
         ?.legal_bundle_version_id;
       return id ? publicReference("legal_bundle", input.companyId, id) : null;
     })(),
+    legal_bundle_version_id:
+      input.legalVersions.find((version) => version.legal_bundle_version_id)
+        ?.legal_bundle_version_id ?? null,
     immutable: moduleVersions.length > 0,
   };
 }
@@ -1053,6 +1087,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
     type: offer.contract_type,
     billing_model: offer.billing_model,
     area_pricing: areaPricing,
+    price_options: offer.price_options ?? [],
     customer_type: offer.customer_type,
     customer_types: customerTypes,
     pricing: {
@@ -1701,6 +1736,298 @@ type PortfolioPricingRows = {
   settlements: Array<Record<string, unknown>>;
 };
 
+export type PublicPriceOptionDiagnostic = {
+  code: string;
+  severity: "blocker" | "warning";
+  offer_reference: string;
+  price_option_reference: string | null;
+  price_area: string | null;
+};
+
+type PublishedPriceOptions = {
+  options: PublicContractPriceOption[];
+  diagnostics: PublicPriceOptionDiagnostic[];
+};
+
+function stockholmDate(): string {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Stockholm",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function dateIsActive(
+  today: string,
+  validFrom: string | null,
+  validTo: string | null,
+): boolean {
+  return (!validFrom || validFrom <= today) && (!validTo || validTo >= today);
+}
+
+async function loadPublishedPriceOptions(
+  companyId: string,
+  offers: PublicContractOffer[],
+): Promise<Map<string, PublishedPriceOptions>> {
+  const publicationIds = Array.from(
+    new Set(
+      offers
+        .map((offer) => clean(offer.contract_publication_version_id))
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+  if (publicationIds.length === 0) return new Map();
+
+  const optionQuery = await supabaseService
+    .from("contract_price_options")
+    .select(
+      "id,company_id,contract_product_version_id,price_plan_version_id,contract_publication_version_id,option_reference,option_code,customer_name,contract_type,customer_type,binding_months,notice_months,auto_renew_enabled,renewal_term_months,is_default,selection_required,valid_from,valid_to,earliest_start_date,latest_start_date,status,sort_order",
+    )
+    .eq("company_id", companyId)
+    .in("contract_publication_version_id", publicationIds)
+    .order("sort_order", { ascending: true })
+    .order("option_reference", { ascending: true });
+  if (optionQuery.error) throw optionQuery.error;
+
+  const optionRows = (optionQuery.data ?? []) as Array<Record<string, unknown>>;
+  const optionIds = optionRows.map((row) => String(row.id));
+  const areaRows =
+    optionIds.length === 0
+      ? []
+      : await (async () => {
+          const result = await supabaseService
+            .from("contract_price_option_area_prices")
+            .select(
+              "contract_price_option_id,price_row_reference,price_area,amount,unit,valid_from,valid_to,status",
+            )
+            .eq("company_id", companyId)
+            .in("contract_price_option_id", optionIds)
+            .order("price_area", { ascending: true });
+          if (result.error) throw result.error;
+          return (result.data ?? []) as Array<Record<string, unknown>>;
+        })();
+
+  const areasByOption = new Map<string, Array<Record<string, unknown>>>();
+  for (const row of areaRows) {
+    const optionId = String(row.contract_price_option_id);
+    areasByOption.set(optionId, [...(areasByOption.get(optionId) ?? []), row]);
+  }
+
+  const today = stockholmDate();
+  const byPublication = new Map<string, PublishedPriceOptions>();
+  for (const offer of offers) {
+    const publicationId = clean(offer.contract_publication_version_id);
+    if (!publicationId) continue;
+    const offerReference = publicOfferReference(offer);
+    const diagnostics: PublicPriceOptionDiagnostic[] = [];
+    const validOptions: PublicContractPriceOption[] = [];
+    const rows = optionRows.filter(
+      (row) => String(row.contract_publication_version_id) === publicationId,
+    );
+
+    if (rows.length === 0) {
+      diagnostics.push({
+        code: "price_option_missing",
+        severity: "blocker",
+        offer_reference: offerReference,
+        price_option_reference: null,
+        price_area: null,
+      });
+    }
+
+    const seenReferences = new Set<string>();
+    for (const row of rows) {
+      const optionReference = clean(row.option_reference);
+      const code = (issue: string, priceArea: string | null = null) =>
+        diagnostics.push({
+          code: issue,
+          severity: "blocker",
+          offer_reference: offerReference,
+          price_option_reference: optionReference,
+          price_area: priceArea,
+        });
+      if (!optionReference) {
+        code("price_option_reference_missing");
+        continue;
+      }
+      if (seenReferences.has(optionReference)) {
+        code("price_option_reference_duplicate");
+        continue;
+      }
+      seenReferences.add(optionReference);
+      if (clean(row.status) !== "active") {
+        code(
+          clean(row.status) === "paused"
+            ? "price_option_paused"
+            : "price_option_inactive",
+        );
+        continue;
+      }
+      const validFrom = clean(row.valid_from);
+      const validTo = clean(row.valid_to);
+      if (validFrom && validFrom > today) {
+        code("price_option_not_yet_valid");
+        continue;
+      }
+      if (validTo && validTo < today) {
+        code("price_option_expired");
+        continue;
+      }
+      if (
+        clean(row.contract_product_version_id) !==
+        clean(offer.contract_product_version_id)
+      ) {
+        code("price_option_offer_mismatch");
+        continue;
+      }
+      if (
+        clean(row.price_plan_version_id) !==
+        clean(offer.price_plan_version_id)
+      ) {
+        code("price_option_publication_mismatch");
+        continue;
+      }
+      const customerType = clean(row.customer_type);
+      if (
+        !customerType ||
+        !["private", "business", "both"].includes(customerType) ||
+        (offer.customer_type !== "both" &&
+          customerType !== "both" &&
+          customerType !== offer.customer_type)
+      ) {
+        code("price_option_customer_type_mismatch");
+        continue;
+      }
+      if (clean(row.contract_type) !== offer.contract_type) {
+        code("price_option_contract_type_mismatch");
+        continue;
+      }
+
+      const publicAreas: PublicContractPriceOptionAreaPrice[] = [];
+      const seenAreas = new Set<string>();
+      for (const areaRow of areasByOption.get(String(row.id)) ?? []) {
+        const priceArea = clean(areaRow.price_area);
+        if (!priceArea || !["SE1", "SE2", "SE3", "SE4"].includes(priceArea)) {
+          code("price_area_price_unit_invalid", priceArea);
+          continue;
+        }
+        if (seenAreas.has(priceArea)) {
+          code("price_area_price_duplicate", priceArea);
+          continue;
+        }
+        seenAreas.add(priceArea);
+        if (clean(areaRow.status) !== "active") {
+          code("price_area_price_inactive", priceArea);
+          continue;
+        }
+        const areaValidFrom = clean(areaRow.valid_from);
+        const areaValidTo = clean(areaRow.valid_to);
+        if (!dateIsActive(today, areaValidFrom, areaValidTo)) {
+          code("price_area_price_expired", priceArea);
+          continue;
+        }
+        const amount = numberOrNull(areaRow.amount);
+        const unit = clean(areaRow.unit);
+        if (amount === null || amount <= 0 || !["ore_per_kwh", "sek_per_kwh"].includes(unit ?? "")) {
+          code("price_area_price_unit_invalid", priceArea);
+          continue;
+        }
+        const areaReference = clean(areaRow.price_row_reference);
+        if (!areaReference) {
+          code("price_area_price_missing", priceArea);
+          continue;
+        }
+        publicAreas.push({
+          area_price_reference: areaReference,
+          price_area: priceArea as PublicContractPriceOptionAreaPrice["price_area"],
+          energy_price_ore_per_kwh:
+            unit === "sek_per_kwh" ? amount * 100 : amount,
+          unit: "ore_per_kwh",
+          valid_from: areaValidFrom,
+          valid_to: areaValidTo,
+        });
+      }
+      if (offer.contract_type === "fixed") {
+        const requiredAreas =
+          offer.price_areas && offer.price_areas.length > 0
+            ? offer.price_areas
+            : ["SE1", "SE2", "SE3", "SE4"];
+        const missingAreas = requiredAreas.filter(
+          (area) => !publicAreas.some((row) => row.price_area === area),
+        );
+        for (const area of missingAreas) code("price_area_price_missing", area);
+        if (missingAreas.length > 0) continue;
+      }
+
+      validOptions.push({
+        price_option_reference: optionReference,
+        option_code: clean(row.option_code) ?? optionReference,
+        customer_name: clean(row.customer_name) ?? optionReference,
+        contract_type: offer.contract_type,
+        customer_type: customerType as PublicContractPriceOption["customer_type"],
+        binding_months: numberOrNull(row.binding_months) ?? 0,
+        notice_months: numberOrNull(row.notice_months) ?? 0,
+        auto_renew_enabled: row.auto_renew_enabled === true,
+        renewal_term_months: numberOrNull(row.renewal_term_months),
+        default: row.is_default === true,
+        selection_required: row.selection_required === true,
+        valid_from: validFrom,
+        valid_to: validTo,
+        earliest_start_date: clean(row.earliest_start_date),
+        latest_start_date: clean(row.latest_start_date),
+        area_prices: publicAreas,
+      });
+    }
+
+    if (validOptions.length > 0) {
+      const defaults = validOptions.filter((option) => option.default);
+      if (defaults.length === 0) {
+        diagnostics.push({
+          code: "price_option_default_missing",
+          severity: "blocker",
+          offer_reference: offerReference,
+          price_option_reference: null,
+          price_area: null,
+        });
+      } else if (defaults.length > 1) {
+        diagnostics.push({
+          code: "price_option_default_duplicate",
+          severity: "blocker",
+          offer_reference: offerReference,
+          price_option_reference: null,
+          price_area: null,
+        });
+      }
+      if (
+        new Set(validOptions.map((option) => option.selection_required)).size >
+        1
+      ) {
+        diagnostics.push({
+          code: "price_option_selection_policy_inconsistent",
+          severity: "blocker",
+          offer_reference: offerReference,
+          price_option_reference: null,
+          price_area: null,
+        });
+      }
+    }
+    const globalBlocker = diagnostics.some(
+      (item) =>
+        [
+          "price_option_default_missing",
+          "price_option_default_duplicate",
+          "price_option_selection_policy_inconsistent",
+        ].includes(item.code),
+    );
+    byPublication.set(publicationId, {
+      options: globalBlocker ? [] : validOptions,
+      diagnostics,
+    });
+  }
+  return byPublication;
+}
+
 function portfolioPricingKey(portfolioId: string, pricePlanVersionId: string) {
   return `${portfolioId}:${pricePlanVersionId}`;
 }
@@ -1851,7 +2178,13 @@ export async function listPublicContractOffers(input: {
   const offers = ((primary.data ?? []) as Array<Record<string, unknown>>)
     .filter(isWebsitePublishedRow)
     .map(mapOfferRow);
-  const [graphIntegrity, readinessByVersion, legalByBundle, portfolioByOffer] =
+  const [
+    graphIntegrity,
+    readinessByVersion,
+    legalByBundle,
+    portfolioByOffer,
+    priceOptionsByPublication,
+  ] =
     await Promise.all([
       loadPublicationGraphIntegrity(
         input.client.company_id,
@@ -1860,6 +2193,7 @@ export async function listPublicContractOffers(input: {
       loadPublicationReadinessByVersion(input.client.company_id, offers),
       loadLegalVersionsByBundle(input.client.company_id, offers),
       loadPortfolioPricingByOffer(input.client.company_id, offers),
+      loadPublishedPriceOptions(input.client.company_id, offers),
     ]);
 
   const result: PublicContractOffer[] = [];
@@ -1871,6 +2205,8 @@ export async function listPublicContractOffers(input: {
     const publicationVersionId = clean(offer.contract_publication_version_id);
     if (!publicationVersionId || readinessByVersion.get(publicationVersionId)?.isReady !== true)
       continue;
+    const publishedOptions = priceOptionsByPublication.get(publicationVersionId);
+    if (!publishedOptions || publishedOptions.options.length === 0) continue;
     const invoiceFeeReadiness = assessCanonicalInvoiceFee({
       rowAmount: offer.invoice_fee_sek,
       snapshot: offer.pricing_snapshot,
@@ -1886,6 +2222,7 @@ export async function listPublicContractOffers(input: {
       ...offer,
       tenant_slug: tenantSlug ?? null,
       legal_versions: legalVersions ?? undefined,
+      price_options: publishedOptions.options,
       pricing_snapshot: {
         ...(offer.pricing_snapshot ?? {}),
         portfolio_monthly_prices: portfolioPricing.historicalFinal,
@@ -1959,6 +2296,10 @@ export type PublicContractOfferDiagnostic = {
   graph: Omit<PublicationGraphIntegrity, "public_contract_offer_id"> | null;
   pricing_readiness: {
     invoice_fee: CanonicalInvoiceFeeReadiness;
+    price_options: {
+      ready: boolean;
+      diagnostics: PublicPriceOptionDiagnostic[];
+    };
   };
   readiness: {
     canonical_graph_consistent: boolean;
@@ -2000,13 +2341,19 @@ export async function diagnosePublicContractOffers(input: {
 
   const rows = (query.data ?? []) as Array<Record<string, unknown>>;
   const offers = rows.map(mapOfferRow);
-  const [graphIntegrity, readinessByVersion, legalByBundle] = await Promise.all([
+  const [
+    graphIntegrity,
+    readinessByVersion,
+    legalByBundle,
+    priceOptionsByPublication,
+  ] = await Promise.all([
     loadPublicationGraphIntegrity(
       input.client.company_id,
       offers.map((offer) => offer.id),
     ),
     loadPublicationReadinessByVersion(input.client.company_id, offers),
     loadLegalVersionsByBundle(input.client.company_id, offers),
+    loadPublishedPriceOptions(input.client.company_id, offers),
   ]);
   const diagnostics: PublicContractOfferDiagnostic[] = [];
   for (let index = 0; index < rows.length; index += 1) {
@@ -2043,6 +2390,32 @@ export async function diagnosePublicContractOffers(input: {
     blockers.push(
       ...readiness.blockers.filter((blocker) => !blockers.includes(blocker)),
     );
+    const priceOptionReadiness = publicationVersionId
+      ? priceOptionsByPublication.get(publicationVersionId) ?? {
+          options: [],
+          diagnostics: [{
+            code: "price_option_missing",
+            severity: "blocker" as const,
+            offer_reference: publicOfferReference(offer),
+            price_option_reference: null,
+            price_area: null,
+          }],
+        }
+      : {
+          options: [],
+          diagnostics: [{
+            code: "price_option_publication_mismatch",
+            severity: "blocker" as const,
+            offer_reference: publicOfferReference(offer),
+            price_option_reference: null,
+            price_area: null,
+          }],
+        };
+    blockers.push(
+      ...priceOptionReadiness.diagnostics
+        .filter((diagnostic) => diagnostic.severity === "blocker")
+        .map((diagnostic) => diagnostic.code),
+    );
     const invoiceFeeReadiness = assessCanonicalInvoiceFee({
       rowAmount: offer.invoice_fee_sek,
       snapshot: offer.pricing_snapshot,
@@ -2060,7 +2433,9 @@ export async function diagnosePublicContractOffers(input: {
 
     const legalReady = hasExactCanonicalLegalVersions(strictLegal);
     const invoiceFeeReady = invoiceFeeReadiness.status === "ready";
-    const pricingReady = readiness.isReady && invoiceFeeReady;
+    const priceOptionsReady = priceOptionReadiness.options.length > 0;
+    const pricingReady =
+      readiness.isReady && invoiceFeeReady && priceOptionsReady;
     const applicationAcceptanceReady =
       legalReady &&
       (!offer.power_of_attorney_required ||
@@ -2096,7 +2471,13 @@ export async function diagnosePublicContractOffers(input: {
             successor_chain_valid: graph.successor_chain_valid,
           }
         : null,
-      pricing_readiness: { invoice_fee: invoiceFeeReadiness },
+      pricing_readiness: {
+        invoice_fee: invoiceFeeReadiness,
+        price_options: {
+          ready: priceOptionsReady,
+          diagnostics: priceOptionReadiness.diagnostics,
+        },
+      },
       readiness: {
         canonical_graph_consistent: graph?.canonical_graph_consistent === true,
         forward_publication_link_valid:

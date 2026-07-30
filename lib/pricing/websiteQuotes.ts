@@ -46,6 +46,7 @@ export type WebsiteQuoteRecord = {
   selected_component_references: string[]
   mandatory_component_references: string[]
   conditional_component_references: string[]
+  site_count: number
   resolved_base_components: unknown[]
   resolved_price_components: unknown[]
   quote_snapshot: Record<string, unknown>
@@ -133,6 +134,7 @@ function fullQuoteIntegrityPayload(input: {
   conditionalComponentReferences?: string[]
   resolvedBaseComponents?: unknown[]
   resolvedPriceComponents?: unknown[]
+  siteCount?: number
   validUntil: string
 }): Record<string, unknown> {
   return {
@@ -172,6 +174,7 @@ function fullQuoteIntegrityPayload(input: {
       input.mandatoryComponentReferences ?? [],
     conditional_component_references:
       input.conditionalComponentReferences ?? [],
+    site_count: input.siteCount ?? 1,
     resolved_base_components: input.resolvedBaseComponents ?? [],
     resolved_price_components: input.resolvedPriceComponents ?? [],
     quote_snapshot: input.quoteSnapshot,
@@ -194,6 +197,7 @@ function quoteIntegrityPayloadForVersion(
       'conditional_component_references',
       'resolved_base_components',
       'resolved_price_components',
+      'site_count',
     ]) {
       delete payload[key]
     }
@@ -230,6 +234,7 @@ export async function persistWebsiteQuote(input: {
   conditionalComponentReferences?: string[]
   resolvedBaseComponents?: unknown[]
   resolvedPriceComponents?: unknown[]
+  siteCount?: number
 }): Promise<{ quoteReference: string; validUntil: string }> {
   const quoteReference = newQuoteReference()
   const validUntil = new Date(Date.now() + quoteLifetimeMinutes() * 60_000).toISOString()
@@ -270,6 +275,7 @@ export async function persistWebsiteQuote(input: {
     conditionalComponentReferences: input.conditionalComponentReferences,
     resolvedBaseComponents: input.resolvedBaseComponents,
     resolvedPriceComponents: input.resolvedPriceComponents,
+    siteCount: input.siteCount,
     quoteSnapshot: input.quoteSnapshot,
     validUntil,
     },
@@ -316,6 +322,7 @@ export async function persistWebsiteQuote(input: {
       input.conditionalComponentReferences ?? [],
     resolved_base_components: input.resolvedBaseComponents ?? [],
     resolved_price_components: input.resolvedPriceComponents ?? [],
+    site_count: input.siteCount ?? 1,
     quote_snapshot: input.quoteSnapshot,
     valid_until: validUntil,
     status: 'active',
@@ -356,6 +363,15 @@ function sameNumber(left: unknown, right: unknown): boolean {
   return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) < 0.0001
 }
 
+function sameStringArray(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false
+  const normalizedLeft = [...left].sort()
+  const normalizedRight = [...right].sort()
+  return normalizedLeft.every(
+    (value, index) => value === normalizedRight[index],
+  )
+}
+
 export async function validateWebsiteQuote(input: {
   client: IntegrationApiClient
   quoteReference: string
@@ -369,6 +385,10 @@ export async function validateWebsiteQuote(input: {
   annualConsumptionKwh: number | null
   startDate: string | null
   applicationId?: string | null
+  priceOptionReference?: string | null
+  invoiceDeliveryMethod?: string | null
+  selectedComponentReferences?: string[] | null
+  siteCount?: number | null
 }): Promise<WebsiteQuoteRecord> {
   const { data, error } = await supabaseService
     .from('website_contract_quotes')
@@ -463,6 +483,7 @@ export async function validateWebsiteQuote(input: {
           conditionalComponentReferences: quote.conditional_component_references,
           resolvedBaseComponents: quote.resolved_base_components,
           resolvedPriceComponents: quote.resolved_price_components,
+          siteCount: quote.site_count,
           quoteSnapshot: quote.quote_snapshot,
           validUntil: quote.valid_until,
           },
@@ -486,7 +507,7 @@ export async function validateWebsiteQuote(input: {
       .update({ status: 'expired', updated_at: new Date().toISOString() })
       .eq('id', quote.id)
       .eq('status', 'active')
-    throw new WebsiteQuoteValidationError({ message: 'Quote har gått ut. Hämta ett nytt pris.', code: 'quote_expired', status: 409 })
+    throw new WebsiteQuoteValidationError({ message: 'Quote har gått ut. Hämta ett nytt pris.', code: 'quote_expired', status: 422 })
   }
   if (quote.status === 'consumed' && quote.consumed_application_id !== (input.applicationId ?? null)) {
     throw new WebsiteQuoteValidationError({
@@ -521,6 +542,58 @@ export async function validateWebsiteQuote(input: {
   if ((quote.price_book_id ?? null) !== (input.publicOffer.price_book_id ?? null)) mismatches.push('price_book_id')
   if ((quote.legal_bundle_version_id ?? null) !== (input.publicOffer.legal_bundle_version_id ?? null)) mismatches.push('legal_bundle_version_id')
   if (quote.energy_direction !== input.publicOffer.energy_direction) mismatches.push('energy_direction')
+
+  if (
+    input.priceOptionReference !== undefined &&
+    input.priceOptionReference !== null &&
+    quote.price_option_reference !== input.priceOptionReference
+  ) {
+    throw new WebsiteQuoteValidationError({
+      message: 'Prisalternativet matchar inte den immutable quoten.',
+      code: 'price_option_quote_mismatch',
+      status: 409,
+      field: 'price_option_reference',
+    })
+  }
+  if (
+    input.invoiceDeliveryMethod !== undefined &&
+    input.invoiceDeliveryMethod !== null &&
+    quote.invoice_delivery_method !== input.invoiceDeliveryMethod
+  ) {
+    throw new WebsiteQuoteValidationError({
+      message: 'Fakturaleveransen matchar inte den immutable quoten.',
+      code: 'invoice_delivery_quote_mismatch',
+      status: 409,
+      field: 'invoice_delivery_method',
+    })
+  }
+  if (
+    input.selectedComponentReferences !== undefined &&
+    input.selectedComponentReferences !== null &&
+    !sameStringArray(
+      quote.selected_component_references,
+      input.selectedComponentReferences,
+    )
+  ) {
+    throw new WebsiteQuoteValidationError({
+      message: 'Valda priskomponenter matchar inte den immutable quoten.',
+      code: 'selected_components_quote_mismatch',
+      status: 409,
+      field: 'selected_component_references',
+    })
+  }
+  if (
+    input.siteCount !== undefined &&
+    input.siteCount !== null &&
+    quote.site_count !== input.siteCount
+  ) {
+    throw new WebsiteQuoteValidationError({
+      message: 'Antalet anläggningar matchar inte den immutable quoten.',
+      code: 'site_count_quote_mismatch',
+      status: 409,
+      field: 'site_count',
+    })
+  }
 
   if (mismatches.length > 0) {
     throw new WebsiteQuoteValidationError({

@@ -13,6 +13,9 @@ const dbLifecycleTest = read("scripts/gridex-contract-db-lifecycle-test.sql");
 const liveSchemaCheck = read("scripts/gridex-contract-live-schema-check.cjs");
 const page = read("app/admin/contracts/page.tsx");
 const form = read("components/admin/contracts/ContractOfferAdminForm.tsx");
+const commercialEditor = read(
+  "components/admin/contracts/CommercialPricingEditor.tsx",
+);
 const schema = read("lib/contracts/adminContractSchema.ts");
 const db = read("lib/customer-contracts/db.ts");
 const runtime = read("lib/website/customerApplications.ts");
@@ -200,9 +203,15 @@ includesAll(form, [
   "discount_months",
   "automatic_renewal_term_months",
   "power_of_attorney_mode",
-  "optional_fee_lines",
   "max_customers",
 ], "complete admin form");
+includesAll(commercialEditor, [
+  "price_options_json",
+  "commercial_components_json",
+  "invoice_delivery_methods_json",
+  "default_price_option",
+  "selection_required",
+], "canonical commercial editor");
 
 includesAll(page, [
   "Stäng för ny försäljning",
@@ -333,7 +342,7 @@ includesAll(liveSchemaCheck, [
 check(db.includes('.not("lifecycle_status", "in", "(archived,superseded)")'), "archived/superseded hidden by default");
 check(runtime.includes('code: "offer_reference_mismatch"'), "canonical API mismatch code");
 check(runtime.includes('legacy_code: "offer_selector_mismatch"'), "legacy error code retained only as compatibility detail");
-check(openapi.info.version === "2026-07-30.2", "OpenAPI current version");
+check(openapi.info.version === "2026-07-30.3", "OpenAPI current version");
 check(JSON.stringify(openapi).includes("offer_reference_mismatch"), "OpenAPI documents canonical mismatch code");
 
 includesAll(migration, [

@@ -159,3 +159,21 @@ Status: VERIFIED LOCALLY
 - Synchronized runtime, OpenAPI and docs at `2026-07-30.2` and added compatibility/release gates.
 - Verified 324 migrations/228 groups, 58 files/373 tests, all TypeScript targets, API gates, zero-error lint and production build.
 - Database apply, deployment, live hashes, Gridex Web and environment E2E remain blocked and are not claimed.
+
+## 2026-07-30 canonical price-option/API completion
+
+- Bound price options to exact publication versions with customer type,
+  default and explicit-selection rules.
+- Added deterministic backfill, review evidence, publish-time validation and
+  immutable publication copies without rewriting historical migrations.
+- Exposed canonical top-level `price_options` and bound quote, validate and
+  application assertions to the same immutable selection.
+- Harmonized legal document identity and strengthened OpenAPI reachability,
+  runtime fixture, example and release-identity checks.
+- Restored portal contract signature-hash DTO/OpenAPI parity discovered by the
+  final go-live regression.
+- Synchronized both OpenAPI documents at `2026-07-30.3`.
+- Verified 325 migrations/229 groups, all TypeScript profiles, 58 files/376
+  tests, API gates, zero-error lint and production build.
+- Database apply, post-apply, deployment, live hashes, Gridex Web and
+  environment E2E remain blocked and are not claimed.

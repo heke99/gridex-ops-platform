@@ -28,6 +28,10 @@ const ALLOWED_FIELDS = new Set([
   'grid_area_code',
   'postal_code',
   'application_id',
+  'price_option_reference',
+  'invoice_delivery_method',
+  'selected_component_references',
+  'site_count',
 ])
 
 function text(body: Record<string, unknown>, key: string): string | null {
@@ -40,6 +44,26 @@ function numeric(body: Record<string, unknown>, key: string): number | null {
   if (value === null || value === undefined || value === '') return null
   const parsed = typeof value === 'number' ? value : Number(String(value).replace(',', '.'))
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function stringArray(
+  body: Record<string, unknown>,
+  key: string,
+): string[] | null {
+  const value = body[key]
+  if (value === undefined) return null
+  if (
+    !Array.isArray(value) ||
+    value.some((entry) => typeof entry !== 'string' || !entry.trim())
+  ) {
+    throw new WebsiteQuoteValidationError({
+      message: `${key} måste vara en lista med stabila referenser.`,
+      code: 'invalid_quote_assertion',
+      status: 400,
+      field: key,
+    })
+  }
+  return value.map((entry) => String(entry).trim())
 }
 
 function retryableErrorCode(code: string): boolean {
@@ -102,6 +126,33 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       )
     }
+    const requiredFields = [
+      'quote_reference',
+      'offer_reference',
+      'customer_type',
+      'resolution_id',
+      'annual_consumption_kwh',
+      'start_date',
+      'price_option_reference',
+      'invoice_delivery_method',
+      'selected_component_references',
+      'site_count',
+    ].filter(
+      (key) => !Object.prototype.hasOwnProperty.call(body, key),
+    )
+    if (requiredFields.length > 0) {
+      return customerPortalJson(
+        responseError({
+          code: 'missing_field',
+          message: 'Payloaden saknar obligatoriska quote-assertioner.',
+          requestId,
+          field: requiredFields[0],
+          details: { missing_fields: requiredFields },
+          retryable: false,
+        }),
+        { status: 400 },
+      )
+    }
     const quoteReference = text(body, 'quote_reference') ?? ''
     const offerReference = text(body, 'offer_reference') ?? ''
     const normalizedCustomerType = normalizeExternalCustomerType(text(body, 'customer_type'))
@@ -146,6 +197,13 @@ export async function POST(request: NextRequest) {
       annualConsumptionKwh: numeric(body, 'annual_consumption_kwh'),
       startDate: text(body, 'start_date'),
       applicationId: text(body, 'application_id'),
+      priceOptionReference: text(body, 'price_option_reference'),
+      invoiceDeliveryMethod: text(body, 'invoice_delivery_method'),
+      selectedComponentReferences: stringArray(
+        body,
+        'selected_component_references',
+      ),
+      siteCount: numeric(body, 'site_count'),
     })
 
     await logIntegrationApiRequest({
@@ -169,6 +227,16 @@ export async function POST(request: NextRequest) {
           market_reference: quote.market_reference,
           energy_direction: quote.energy_direction,
           selected_area_price: (quote.quote_snapshot as Record<string, unknown>).selected_area_price ?? null,
+          price_option_reference: quote.price_option_reference,
+          area_price_reference: quote.area_price_reference,
+          invoice_delivery_method: quote.invoice_delivery_method,
+          selected_component_references:
+            quote.selected_component_references,
+          mandatory_component_references:
+            quote.mandatory_component_references,
+          conditional_component_references:
+            quote.conditional_component_references,
+          site_count: quote.site_count,
         },
         request_id: requestId,
       },

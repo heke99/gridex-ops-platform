@@ -75,3 +75,12 @@ Status: FIX_IMPLEMENTED_STATIC_VERIFIED
 Internal customer registration now selects a stable option, verified SE row,
 invoice method and allowed components, then commits the customer contract and
 immutable price snapshot atomically through a service-only RPC.
+
+## KF-011 — Portal signature evidence contract drift
+
+Status: FIXED_VERIFIED
+
+The portal database projection selected `signature_snapshot_sha256` and the
+developer guide documented it, but the public DTO and Customer Portal OpenAPI
+omitted it. The final go-live regression exposed the mismatch. DTO, release
+generator, OpenAPI and a direct regression now agree.

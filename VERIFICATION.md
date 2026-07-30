@@ -1,50 +1,52 @@
 # Verifiering och produktionsgrind
 
-Statusvärdena är `PASS`, `FAIL`, `BLOCKED` eller `NOT RUN`. `PASS` används
-endast där kommandot faktiskt kördes i det levererade källträdet.
+Statusvärden: `PASS`, `BLOCKED` eller `NOT RUN`. `PASS` används endast för
+kommandon som faktiskt kördes i det levererade källträdet.
 
 | Kontroll | Status | Evidens |
 | --- | --- | --- |
-| Historisk migration återställd | PASS | SHA-256 `881e1bc552b6a6295b6bc993cec82e55a25c56f0d5cdf525a784e33d2222d482` |
-| Tidigare forward-reparation registrerad | PASS | `20260730130000...`, SHA-256 `3e204b00fa33badbfdc7a11c0304df3bc5385b16e0854e40af2df1c06b32b50b` |
-| Customer Portal/API-migration registrerad | PASS | `20260730153000...`, SHA-256 `b5a9f323400a4e3592f3e392bf94695161969c1d5b0ba8d99cace9821338d740` |
-| `npm run db:migrations:check` | PASS | 324 filer, 228 versionsgrupper, checksummor verifierade |
-| Unika migrationstimestamps globalt | BLOCKED | Tre äldre dubbla versionsgrupper är allowlistade; kräver faktisk applied-ledger före säker rename |
+| `npm ci` | PASS | Installerat från befintlig lockfil med separat skrivbar npm-cache |
+| `npm run db:migrations:check` | PASS | 325 filer, 229 versionsgrupper, checksummor verifierade |
+| Prisalternativsmigrationens checksumma | PASS | `0ab350f0da6648a497a80aeaedc1688eb5ae88e6279d6ab486526c070ff8c505` |
+| Unika migrationstimestamps globalt | BLOCKED | Tre äldre allowlistade dubletter kräver authoritative applied-ledger före säker rename |
 | Fresh database apply | NOT RUN | Ingen Supabase CLI/auktoriserad PostgreSQL-miljö |
 | Upgrade database apply | NOT RUN | Ingen auktoriserad stagingdatabas |
+| Prisalternativ post-apply | NOT RUN | Kräver applicerad migration i PostgreSQL |
 | `npm run typecheck` | PASS | App-profil |
-| `npm run typecheck:scripts` | PASS | Script-profil |
+| `npm run typecheck:scripts` | PASS | Scriptprofil |
 | `npm run typecheck:tests` | PASS | Testprofil |
 | `npm run typecheck:ediel-consolidation` | PASS | EDIEL-profil |
 | `npm run typecheck:contract-go-live` | PASS | Kontraktsprofil |
-| `npm test` | PASS | 58 testfiler, 373 tester |
+| `npm test` | PASS | 58 testfiler, 376 tester |
 | `npm run lint` | PASS | 0 fel, 124 befintliga varningar |
 | `npm run api:docs` | PASS | Contract, runtime parity, version, exempel och shared boundaries |
+| `npm run api:compatibility` | PASS | Kompatibilitetsgrind för `2026-07-30.3` |
+| `npm run api:release:verify` | PASS | Båda lokala kontrakten och manifestets SHA-256 matchar |
 | `npm run api:error-boundaries` | PASS | 87 routes skannade |
 | `npm run api:performance-tenant-gates` | PASS | Tenant-/prestandagrind grön |
-| `npm run build` | PASS | Next.js 16.2.6 produktionsbuild |
-| Exakt lokal OpenAPI-hashning | PASS | Website `920a774c...`; Portal `03712339...` |
-| Lokal release-verifiering | PASS | `2026-07-30.2`; båda lokala kontrakten och manifestets SHA-256 matchar |
-| Live release-manifest HTTP/version | NOT RUN | Patchen är inte driftsatt från denna arbetsmiljö |
-| Live release-manifest SHA-paritet | NOT RUN | Kräver deployment och `GRIDEX_API_BASE_URL` |
+| `npm run verify:contract-commercial-selection:static` | PASS | Migration, typer, 6 tester, regression, API och build |
+| `npm run verify:contract-channel-publication:static` | PASS | 4 tester, 43 publiceringskontroller och API |
+| `npm run verify:canonical-fixed-area-flow` | PASS | 30 kontroller, 19 tester och build |
+| `npm run verify:contract-go-live:static` | PASS | Go-live/lifecycle, 41 tester och samtliga kontraktsregressioner |
+| `npm run build` | PASS | Next.js 16.2.6; körd med temporär `NODE_OPTIONS=--max-old-space-size=4096` |
+| Website OpenAPI SHA-256 | PASS | `fdabd8196ae94482cd22928bf624b69ffe6a246e47b0781d698ec1701c80d6b2` |
+| Customer Portal OpenAPI SHA-256 | PASS | `93d4cb523515948dae2f168b8cab629e1ef1d8238ddb8322b8ca75aa8a46d1f9` |
+| Live release-manifest/version/hash | NOT RUN | Patchen är inte driftsatt |
 | Två tenants/isolation | NOT RUN | API-nycklar och isolerade fixtures saknas |
-| Quote concurrency/atomic consumption | NOT RUN | Auktoriserad databas och fixtures saknas |
-| Webhook signatur/replay/idempotency round trip | NOT RUN | Receiver, secret och stagingmiljö saknas |
-| Provider delivery | NOT RUN | Provider-sandbox/credentials saknas |
+| Quote/application concurrency och replay | NOT RUN | Auktoriserad databas och fixtures saknas |
+| Webhook/provider round trip | NOT RUN | Receiver, secret, provider-sandbox och credentials saknas |
 | Gridex Web sync/typecheck/lint/build | BLOCKED | Gridex Web-källkod saknades i underlaget |
 
 ## Kvarvarande releaseblockerare
 
-1. Jämför de dubbla migrationsversionerna `20260612193000`,
-   `20260616123000` och `20260727150000` med staging/produktions
-   `schema_migrations`. Döp inte om redan applicerade filer utan denna evidens.
-2. Kör fresh och upgrade apply genom `20260730153000`. Den återställda
-   historiska migrationens sekventiella function-text-rewrite måste bevisas i
-   PostgreSQL; statisk checksumkontroll räcker inte.
-3. Deploya OPS och kräv att manifestets hash exakt motsvarar båda nedladdade
-   OpenAPI-filerna.
-4. Leverera aktuellt Gridex Web-repo, synkronisera specs/types och kör dess
-   typecheck, lint, tester och build.
-5. Kör full två-tenant-, quote-concurrency-, webhook- och provider-matris.
+1. Matcha dublettversionerna `20260612193000`, `20260616123000` och
+   `20260727150000` mot staging/produktions `schema_migrations`.
+2. Kör fresh och upgrade apply genom `20260730220000` och kör post-apply SQL.
+3. Deploya OPS och kräv exakt versions- och SHA-paritet för manifestet och båda
+   serverade OpenAPI-filerna.
+4. Synkronisera det aktuella Gridex Web-repot och kör dess fulla verifiering.
+5. Kör två-tenant-, quote/application-concurrency-, webhook- och provider-
+   scenarier i staging.
 
-Produktionsstatus är därför **NO-GO** trots att alla lokala kodgrindar passerar.
+Produktionsstatus är därför **NO-GO**, trots att alla lokala kodgrindar
+passerar.

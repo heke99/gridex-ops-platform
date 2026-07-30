@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal and Website API",
-    "version": "2026-07-30.2",
+    "version": "2026-07-30.3",
     "description": "Canonical V1 contract for the authenticated customer portal and customer self-service APIs. Website checkout, public contracts, energy-area resolution, current market price and quote are documented exclusively in website-integration-v1.json."
   },
   "servers": [
@@ -148,7 +148,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.2"
+                      "const": "2026-07-30.3"
                     }
                   }
                 }
@@ -944,7 +944,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.2"
+                      "const": "2026-07-30.3"
                     }
                   }
                 }
@@ -978,7 +978,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.2"
+                      "const": "2026-07-30.3"
                     }
                   }
                 }
@@ -1743,7 +1743,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.2"
+                      "const": "2026-07-30.3"
                     }
                   }
                 }
@@ -1946,7 +1946,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-30.2"
+                  "const": "2026-07-30.3"
                 }
               }
             },
@@ -2646,7 +2646,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -2711,6 +2711,12 @@
             ]
           },
           "withdrawal_deadline_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_snapshot_sha256": {
             "type": [
               "string",
               "null"
@@ -3183,7 +3189,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           },
           "configuration": {
             "type": "object",
@@ -3431,7 +3437,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -3601,7 +3607,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.2"
+            "const": "2026-07-30.3"
           }
         }
       },
@@ -4040,7 +4046,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-30.2",
+  "x-contract-schema-version": "2026-07-30.3",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

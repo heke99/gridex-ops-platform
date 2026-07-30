@@ -158,8 +158,19 @@ check(Boolean(publicPath?.responses?.['304']), 'OpenAPI documents ETag 304')
 check(diagnosticPath?.['x-required-scopes']?.includes('website_contracts.diagnostics'), 'OpenAPI diagnostics scope matches runtime')
 check(!openapi.components.schemas.WebsiteQuoteData?.deprecated && openapi.paths['/api/v1/website/quote']?.post?.responses?.['201'], 'OpenAPI documents canonical quote bound to the published offer')
 const publicContractProperties = openapi.components.schemas.PublicContract?.properties ?? {}
-check(!Object.prototype.hasOwnProperty.call(publicContractProperties, 'contract_offer_id'), 'OpenAPI does not expose internal contract_offer_id')
-check(!Object.prototype.hasOwnProperty.call(publicContractProperties, 'publication_reference'), 'OpenAPI does not expose internal publication_reference')
+check(
+  publicContractProperties.contract_offer_id?.deprecated === true,
+  'OpenAPI marks stable contract_offer_id compatibility alias deprecated',
+)
+check(
+  publicContractProperties.publication_reference?.deprecated === true,
+  'OpenAPI marks stable publication_reference compatibility alias deprecated',
+)
+check(
+  /contract_offer_id: offerReference/.test(publicContracts) &&
+    /publication_reference: offerReference/.test(publicContracts),
+  'deprecated identity aliases never expose database UUIDs',
+)
 
 if (failures.length) {
   console.error(`Contract single-source regression failed (${failures.length}/${checks}):`)

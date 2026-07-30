@@ -87,6 +87,33 @@ function offer(
 }
 
 describe("public contract calculation and website visibility", () => {
+  it("exposes canonical price options only at the contract top level", () => {
+    const priceOptions = [
+      {
+        price_option_reference: "portfolio_default",
+        option_code: "portfolio_default",
+        customer_name: "Portfölj standard",
+        contract_type: "portfolio" as const,
+        customer_type: "both" as const,
+        binding_months: 0,
+        notice_months: 1,
+        auto_renew_enabled: false,
+        renewal_term_months: null,
+        default: true,
+        selection_required: false,
+        valid_from: null,
+        valid_to: null,
+        earliest_start_date: null,
+        latest_start_date: null,
+        area_prices: [],
+      },
+    ];
+    const response = publicContractResponse(offer({ price_options: priceOptions }));
+
+    expect(response.price_options).toEqual(priceOptions);
+    expect(response.pricing).not.toHaveProperty("price_options");
+  });
+
   it("always returns hidden fees to the tenant calculation contract", () => {
     const source = offer();
     const response = publicContractResponse(source);
