@@ -85,6 +85,7 @@ async function logPortalAccess(input: {
 
 const CONTRACT_SELECT = [
   'id',
+  'customer_contract_reference',
   'customer_id',
   'site_id',
   'customer_site_id',
@@ -211,7 +212,7 @@ export async function listPortalContracts(context: PortalCustomerContext, route 
   return result.data ?? []
 }
 
-const SITE_SELECT = 'id,customer_id,status,site_name,facility_id,normalized_facility_id,site_type,street,postal_code,city,country,price_area_code,grid_area_code,grid_owner_id,resolution_status,move_in_date,move_out_date,annual_consumption_kwh,metadata,created_at'
+const SITE_SELECT = 'id,facility_reference,customer_id,status,site_name,facility_id,normalized_facility_id,site_type,street,postal_code,city,country,price_area_code,grid_area_code,grid_owner_id,resolution_status,move_in_date,move_out_date,annual_consumption_kwh,metadata,created_at'
 const SITE_LEGACY_SELECT = 'id,customer_id,status,site_name,facility_id,site_type,street,postal_code,city,country,price_area_code,grid_owner_id,move_in_date,move_out_date,annual_consumption_kwh,created_at'
 const SITE_MINIMAL_SELECT = 'id,customer_id,status,site_name,facility_id,street,postal_code,city,country,price_area_code,created_at'
 

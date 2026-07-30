@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { publicWebsiteCustomerApplicationData } from '@/lib/website/publicCustomerApplication'
+import { publicReference } from '@/lib/integrations/publicReferences'
 
 describe('public website application DTO', () => {
   it('keeps opaque public resources and removes internal implementation IDs', () => {
+    const companyId = 'company-tenant-id'
     const data = publicWebsiteCustomerApplicationData({
       customer_id: 'customer-public-id',
       customer_number: 'DX-100025',
@@ -25,13 +27,25 @@ describe('public website application DTO', () => {
         gridOwnerId: 'internal-grid-owner-id',
         raw: { provider_payload: true },
       },
-    })
+    }, companyId)
 
     expect(data).toMatchObject({
-      customer_id: 'customer-public-id',
       customer_number: 'DX-100025',
-      application_id: 'application-public-id',
-      contract_id: 'contract-public-id',
+      customer_reference: publicReference(
+        'customer',
+        companyId,
+        'customer-public-id',
+      ),
+      application_reference: publicReference(
+        'application',
+        companyId,
+        'application-public-id',
+      ),
+      contract_reference: publicReference(
+        'contract',
+        companyId,
+        'contract-public-id',
+      ),
       supplier_switch: {
         request_id: null,
         status: 'not_created',
@@ -49,6 +63,11 @@ describe('public website application DTO', () => {
       'provider_connection_id',
       'energy_resolution',
       'can_start_switch',
+      'customer_id',
+      'application_id',
+      'contract_id',
+      'customer_site_id',
+      'metering_point_id',
     ]) {
       expect(data).not.toHaveProperty(internalField)
     }

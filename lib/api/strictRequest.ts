@@ -58,8 +58,20 @@ export function requireIdempotencyKey(request: NextRequest): string {
   return key
 }
 
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .filter(([, nested]) => nested !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, nested]) => `${JSON.stringify(key)}:${canonicalJson(nested)}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value) ?? 'null'
+}
+
 function payloadHash(payload: unknown): string {
-  return createHash('sha256').update(JSON.stringify(payload)).digest('hex')
+  return createHash('sha256').update(canonicalJson(payload)).digest('hex')
 }
 
 export async function claimPortalWriteIdempotency(input: {
@@ -115,6 +127,38 @@ export async function claimPortalWriteIdempotency(input: {
       statusCode: Number(existing.data.response_status ?? 200),
       responseBody: existing.data.response_body,
     }
+  }
+  if (
+    String(existing.data.status) === 'failed' &&
+    input.operation === '/api/v1/customer/move-out'
+  ) {
+    const retried = await supabaseService
+      .from('customer_portal_write_idempotency')
+      .update({
+        status: 'processing',
+        error_code: null,
+        response_status: null,
+        response_body: null,
+        started_at: now,
+        completed_at: null,
+        updated_at: now,
+      })
+      .eq('id', existing.data.id)
+      .eq('company_id', input.companyId)
+      .eq('status', 'failed')
+      .select('id')
+      .maybeSingle()
+    if (retried.error) throw retried.error
+    if (retried.data) {
+      return { replay: false, recordId: String(retried.data.id) }
+    }
+  }
+  if (String(existing.data.status) === 'failed') {
+    throw new ApiInputError(
+      'Ett tidigare anrop med samma Idempotency-Key misslyckades. Kontrollera resursens status innan en ny nyckel används.',
+      'idempotency_previous_attempt_failed',
+      409,
+    )
   }
   throw new ApiInputError('Ett identiskt anrop behandlas redan.', 'idempotency_in_progress', 409)
 }

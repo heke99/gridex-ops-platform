@@ -140,7 +140,10 @@ export async function POST(request: NextRequest) {
     const responseBody = result.ok
       ? {
           ...result.body,
-          data: publicWebsiteCustomerApplicationData(result.body.data),
+          data: publicWebsiteCustomerApplicationData(
+            result.body.data,
+            auth.client.company_id,
+          ),
           request_id: requestId,
           correlation_id: requestId,
         }

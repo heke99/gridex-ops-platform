@@ -32,6 +32,10 @@ import {
   hasContractPricePlan,
   removeFalsePricePlanBlockers,
 } from '@/lib/customer-portal/status'
+import {
+  publicPortalBundleRows,
+  publicPortalCustomer,
+} from '@/lib/customer-portal/publicDto'
 import { startRouteTimer } from '@/lib/performance/timing'
 
 export const runtime = 'nodejs'
@@ -231,6 +235,24 @@ async function buildBundleResponse(input: {
       applications: websiteApplications,
     })
     const displayName = displayNameFromCustomer(input.identity.customer, input.identity.email ?? null)
+    const publicRows = publicPortalBundleRows(input.client.company_id, {
+      contracts,
+      sites,
+      meteringPoints,
+      invoices,
+      meteringValues,
+      documents,
+      legalAcceptances,
+      powersOfAttorney,
+      notifications,
+      events,
+      applications: websiteApplications,
+    })
+    const publicCustomer = publicPortalCustomer(input.identity.customer, {
+      external_customer_id: input.identity.external_customer_id,
+      customer_number: input.identity.customer_number,
+      email: input.identity.email,
+    })
 
     await logCustomerPortalSuccess({
       request: input.request,
@@ -269,25 +291,17 @@ async function buildBundleResponse(input: {
     return customerPortalJson({
       data: {
         customer: {
-          ...input.identity.customer,
-          customer_id: input.identity.customer_id,
-          external_customer_id: input.identity.external_customer_id,
-          customer_number: input.identity.customer_number ?? input.identity.customer.customer_number ?? null,
-          email: input.identity.email ?? input.identity.customer.email ?? null,
+          ...publicCustomer,
           display_name: displayName,
           portal_identity: {
-            id: input.identity.id,
             external_customer_id: input.identity.external_customer_id,
             customer_number: input.identity.customer_number,
-            auth_user_id: input.identity.auth_user_id,
-            customer_portal_user_id: input.identity.customer_portal_user_id,
             match_strength: input.identity.match_strength,
-            match_method: input.identity.match_method,
             provider: input.identity.provider,
           },
         },
         profile: {
-          customer_id: input.identity.customer_id,
+          customer_reference: publicCustomer.customer_reference,
           customer_number: input.identity.customer_number ?? input.identity.customer.customer_number ?? null,
           external_customer_id: input.identity.external_customer_id,
           display_name: displayName,
@@ -297,17 +311,17 @@ async function buildBundleResponse(input: {
           last_name: input.identity.customer.last_name ?? null,
           phone: input.identity.customer.phone ?? null,
         },
-        contracts,
-        sites,
-        metering_points: meteringPoints,
-        invoices,
-        metering_values: meteringValues,
-        documents,
-        legal_acceptances: legalAcceptances,
-        powers_of_attorney: powersOfAttorney,
-        notifications,
-        events,
-        website_applications: websiteApplications,
+        contracts: publicRows.contracts,
+        sites: publicRows.sites,
+        metering_points: publicRows.meteringPoints,
+        invoices: publicRows.invoices,
+        metering_values: publicRows.meteringValues,
+        documents: publicRows.documents,
+        legal_acceptances: publicRows.legalAcceptances,
+        powers_of_attorney: publicRows.powersOfAttorney,
+        notifications: publicRows.notifications,
+        events: publicRows.events,
+        website_applications: publicRows.applications,
         customer_status: customerStatus,
         data_quality: {
           status: customerStatus.severity === 'success' ? 'complete' : customerStatus.severity === 'blocking' ? 'needs_action' : 'review',

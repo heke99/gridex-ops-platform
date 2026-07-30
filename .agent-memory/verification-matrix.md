@@ -84,3 +84,11 @@
 | VM-080 | Live manifest exact hash parity | BLOCKED | HTTP/version available; deployed advertised hashes differ from served raw bytes |
 | VM-081 | Clean/upgrade PostgreSQL replay | BLOCKED | No authorized DB/CLI and historical intermediate rewrite needs runtime proof |
 | VM-082 | Gridex Web synchronization | BLOCKED | Gridex Web source not supplied |
+| VM-083 | Canonical customer sync contract | VERIFIED LOCALLY | Strict parser/runtime/OpenAPI/docs and full tests pass |
+| VM-084 | Public reference boundary | VERIFIED LOCALLY | Portal/application DTO regressions reject internal IDs |
+| VM-085 | Atomic move-out | STATIC VERIFIED | External-reference RPC, route, migration checksum and tests pass |
+| VM-086 | Portal pagination/completeness | VERIFIED LOCALLY | Runtime/OpenAPI parity and full tests pass |
+| VM-087 | Current migration history | PARTIAL | 324 files/228 groups/checksums pass; three allowlisted duplicate timestamps require ledger proof |
+| VM-088 | Current API/OpenAPI release | VERIFIED LOCALLY | `2026-07-30.2`; compatibility and exact local manifest SHA parity pass |
+| VM-089 | Current TypeScript/tests/lint/build | VERIFIED LOCALLY | All TS targets; 58/58 files and 373/373 tests; 0-error lint; Next.js build |
+| VM-090 | Customer Portal staging/live E2E | BLOCKED | No authorized DB, deployment, tenant fixtures, API keys or provider/webhook environment |

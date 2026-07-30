@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import { supabaseService } from "@/lib/supabase/service";
+import { publicReference } from "@/lib/integrations/publicReferences";
 import {
   reserveApplicationNumber,
 } from "@/lib/customer-numbers/customerNumbers";
@@ -251,7 +252,7 @@ const PowerOfAttorneySchema = z
 
 const LegalAcceptanceSchema = z.object({
   requirement_code: z.string().trim().min(1),
-  document_id: z.string().uuid(),
+  document_reference: z.string().trim().min(20).max(100),
   document_version: z.string().trim().min(1),
   document_hash: z.string().regex(/^[a-f0-9]{64}$/i),
   accepted: z.literal(true),
@@ -1550,7 +1551,11 @@ async function assertWebsiteLegalAcceptances(input: {
   if (input.legalAcceptances) {
     if (
       !input.legalBundleVersion ||
-      input.legalBundleVersion !== input.publicOffer.legal_bundle_version_id
+      input.legalBundleVersion !== publicReference(
+        "legal_bundle",
+        input.companyId,
+        input.publicOffer.legal_bundle_version_id,
+      )
     ) {
       throw new WebsiteApplicationError({
         message: "Juridikpaketet har ändrats. Hämta och visa det aktuella paketet innan kunden godkänner igen.",
@@ -1582,7 +1587,11 @@ async function assertWebsiteLegalAcceptances(input: {
       return (
         !acceptance ||
         acceptance.accepted !== true ||
-        acceptance.document_id !== version.id ||
+        acceptance.document_reference !== publicReference(
+          "legal_document",
+          input.companyId,
+          version.id,
+        ) ||
         acceptance.document_version !== version.version ||
         acceptance.document_hash.toLowerCase() !==
           String(version.content_sha256 ?? "").toLowerCase()
@@ -1609,25 +1618,14 @@ async function assertWebsiteLegalAcceptances(input: {
     return legalVersions;
   }
 
-  // Compatibility for already reserved applications created before the
-  // document-bound acceptance array was introduced. New public clients only
-  // receive and send the dynamic legal_acceptances contract.
-  const requirements = requiredWebsiteLegalAcceptances(input.publicOffer);
-  const missingConsents = requirements.filter(
-    (item) => !consentAccepted(input.consents, item.aliases),
-  );
-  if (missingConsents.length > 0) {
-    throw new WebsiteApplicationError({
-      message: `Kunden måste godkänna ${missingConsents.map((item) => item.label).join(", ")} innan ansökan kan skickas.`,
-      status: 422,
-      code: "legal_acceptance_missing",
-      field: missingConsents[0]?.field ?? "consents",
-      stage: "legal_acceptance",
-      hint: "Skicka separata consent-flaggor för villkor, integritet, ångerrätt, fullmakt och prisvillkor.",
-    });
-  }
-
-  return legalVersions;
+  throw new WebsiteApplicationError({
+    message: "Explicit dokumentbunden acceptans krävs för varje publicerat juridikkrav.",
+    status: 422,
+    code: "legal_acceptance_missing",
+    field: "legal_acceptances",
+    stage: "legal_acceptance",
+    hint: "Hämta legal-bundle och skicka bundle_version samt en acceptansrad per returnerat krav.",
+  });
 }
 
 type CustomerLegalAcceptanceEvidenceInput = {

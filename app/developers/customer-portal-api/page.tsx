@@ -325,7 +325,7 @@ const currentMarketPriceExample = `curl -X POST "${apiBaseUrl}/website/market-pr
     "next_update_at": "2026-07-24T16:15:00+02:00"
   },
   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-  "contract_schema_version": "2026-07-30.1"
+  "contract_schema_version": "2026-07-30.2"
 }`;
 
 const marketReferenceExample = `{

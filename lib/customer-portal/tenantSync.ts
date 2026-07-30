@@ -5,16 +5,16 @@ import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import type { LinkedPortalIdentity } from '@/lib/customer-portal/externalApi'
 import { isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
+import { publicReference } from '@/lib/integrations/publicReferences'
 
 type JsonRecord = Record<string, unknown>
 
 type TenantDocumentInput = {
-  external_document_id?: string
+  document_reference?: string
   document_type?: string
   title?: string
   status?: string
-  file_url?: string
-  public_url?: string
+  secure_url?: string
   file_name?: string
   mime_type?: string
   file_size_bytes?: number
@@ -26,41 +26,23 @@ type TenantDocumentInput = {
 }
 
 type TenantLegalAcceptanceInput = {
-  external_acceptance_id?: string
-  acceptance_type?: string
-  legal_text_version_id?: string
-  legal_text_version?: string
-  version?: string
-  contract_id?: string
-  contract_application_id?: string
-  accepted_at?: string
-  accepted_ip?: string
-  accepted_ip_hash?: string
-  accepted_user_agent?: string
-  source?: string
-  snapshot?: JsonRecord
+  document_reference: string
+  document_code: string
+  document_version: string
+  document_hash: string
+  accepted: true
+  accepted_at: string
   metadata?: JsonRecord
 }
 
 type TenantPowerOfAttorneyInput = {
-  scope?: string
-  status?: string
-  signed_at?: string
-  accepted_at?: string
+  power_of_attorney_reference?: string
+  document_reference: string
+  scope: string[]
+  accepted: true
+  accepted_at: string
   valid_from?: string
   valid_to?: string
-  reference?: string
-  legal_text_version_id?: string
-  legal_text_version?: string
-  version?: string
-  contract_id?: string
-  customer_site_id?: string
-  site_id?: string
-  metering_point_id?: string
-  accepted_ip?: string
-  accepted_ip_hash?: string
-  accepted_user_agent?: string
-  document?: TenantDocumentInput
   metadata?: JsonRecord
 }
 
@@ -77,14 +59,13 @@ type TenantFacilityAddressInput = {
 }
 
 type TenantFacilityDataInput = {
+  facility_reference?: string
   facility_id?: string
   metering_point_id?: string
   meter_point_id?: string
   grid_owner_id?: string
   grid_area_code?: string
   price_area_code?: string
-  customer_site_id?: string
-  site_id?: string
   move_in_date?: string
   requested_start_date?: string
   verified_at?: string
@@ -104,16 +85,21 @@ export type TenantCustomerSyncPayload = {
   email?: string
   customer_number?: string
   external_customer_id?: string
-  contract_id?: string
-  customer_site_id?: string
-  site_id?: string
-  metering_point_id?: string
-  contract_application_id?: string
-  application_id?: string
+  authenticated_user_reference?: string
+  profile?: {
+    first_name?: string
+    last_name?: string
+    full_name?: string
+    company_name?: string
+    phone?: string
+    invoice_email?: string
+    language_code?: string
+    timezone?: string
+  }
   documents?: TenantDocumentInput[]
   legal_acceptances?: TenantLegalAcceptanceInput[]
   power_of_attorney?: TenantPowerOfAttorneyInput
-  facility_data?: TenantFacilityDataInput
+  facility_data?: TenantFacilityDataInput[]
   metadata?: JsonRecord
 }
 
@@ -122,13 +108,15 @@ type SyncRefs = {
   siteId: string | null
   meteringPointId: string | null
   applicationId: string | null
+  legalBundleVersionId: string | null
 }
 
 type SyncSummary = {
   documents: { created: number; updated: number; skipped: number }
   legal_acceptances: { created: number; existing: number; skipped: number }
   powers_of_attorney: { created: number; updated: number; skipped: number }
-  facility_data: { updated: boolean; metering_point_created: boolean; skipped: boolean }
+  profile: { updated: boolean; skipped: boolean }
+  facility_data: { processed: number; updated: number; metering_point_created: number; skipped: number }
   events: string[]
 }
 
@@ -136,19 +124,8 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function isUuid(value: string | null | undefined): value is string {
-  return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
-}
-
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {}
-}
-
-function toIso(value: unknown): string {
-  const raw = clean(value)
-  if (!raw) return new Date().toISOString()
-  const date = new Date(raw)
-  return Number.isFinite(date.getTime()) ? date.toISOString() : new Date().toISOString()
 }
 
 function normalizeAcceptanceType(value: unknown): 'terms' | 'privacy_policy' | 'withdrawal_info' | 'price_snapshot' | 'power_of_attorney' | null {
@@ -160,31 +137,21 @@ function normalizeAcceptanceType(value: unknown): 'terms' | 'privacy_policy' | '
   return null
 }
 
-function legalVersionType(acceptanceType: string): string {
-  if (acceptanceType === 'withdrawal_info') return 'withdrawal'
-  if (acceptanceType === 'price_snapshot') return 'price_terms'
-  return acceptanceType
-}
-
 function nonNull<T extends JsonRecord>(input: T): JsonRecord {
   return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined))
 }
 
-async function getLatestRefs(client: IntegrationApiClient, identity: LinkedPortalIdentity, payload: TenantCustomerSyncPayload): Promise<SyncRefs> {
-  const explicitContractId = clean(payload.contract_id)
-  const explicitSiteId = clean(payload.customer_site_id) ?? clean(payload.site_id)
-  const explicitMeteringPointId = clean(payload.metering_point_id)
-  const explicitApplicationId = clean(payload.contract_application_id) ?? clean(payload.application_id)
+async function getLatestRefs(client: IntegrationApiClient, identity: LinkedPortalIdentity): Promise<SyncRefs> {
+  let contractId: string | null = null
+  let siteId: string | null = null
+  let meteringPointId: string | null = null
+  let applicationId: string | null = null
+  let legalBundleVersionId: string | null = null
 
-  let contractId = explicitContractId
-  let siteId = explicitSiteId
-  let meteringPointId = explicitMeteringPointId
-  let applicationId = explicitApplicationId
-
-  if (!contractId || !siteId || !meteringPointId) {
+  {
     const contract = await supabaseService
       .from('customer_contracts')
-      .select('id,customer_site_id,site_id,metering_point_id,website_application_id')
+      .select('id,customer_site_id,site_id,metering_point_id,website_application_id,legal_bundle_version_id')
       .eq('company_id', client.company_id)
       .eq('customer_id', identity.customer_id)
       .order('created_at', { ascending: false })
@@ -195,6 +162,7 @@ async function getLatestRefs(client: IntegrationApiClient, identity: LinkedPorta
       siteId = siteId ?? clean(contract.data.customer_site_id) ?? clean(contract.data.site_id)
       meteringPointId = meteringPointId ?? clean(contract.data.metering_point_id)
       applicationId = applicationId ?? clean(contract.data.website_application_id)
+      legalBundleVersionId = clean(contract.data.legal_bundle_version_id)
     } else if (contract.error && !isMissingPortalSchemaError(contract.error)) {
       throw contract.error
     }
@@ -219,64 +187,76 @@ async function getLatestRefs(client: IntegrationApiClient, identity: LinkedPorta
     }
   }
 
-  return { contractId, siteId, meteringPointId, applicationId }
+  return { contractId, siteId, meteringPointId, applicationId, legalBundleVersionId }
 }
 
-async function resolveLegalTextVersionId(companyId: string, acceptanceType: string, input: TenantLegalAcceptanceInput | TenantPowerOfAttorneyInput): Promise<string | null> {
-  const direct = clean(input.legal_text_version_id)
-  if (isUuid(direct)) return direct
+type ResolvedLegalDocument = {
+  id: string
+  acceptanceType: 'terms' | 'privacy_policy' | 'withdrawal_info' | 'price_snapshot' | 'power_of_attorney'
+  legalTextVersionId: string | null
+  documentCode: string
+  documentVersion: string
+  documentHash: string
+  title: string | null
+}
 
-  const version = clean(input.legal_text_version) ?? clean(input.version)
-  if (!version) return null
-
+async function resolveLegalDocument(input: {
+  companyId: string
+  refs: SyncRefs
+  documentReference: string
+  expectedCode?: string
+  expectedVersion?: string
+  expectedHash?: string
+}): Promise<ResolvedLegalDocument> {
+  if (!input.refs.legalBundleVersionId) throw new Error('LEGAL_BUNDLE_NOT_RESOLVED')
   const result = await supabaseService
-    .from('legal_text_versions')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('type', legalVersionType(acceptanceType))
-    .eq('version', version)
-    .limit(1)
-    .maybeSingle()
+    .from('legal_bundle_version_documents')
+    .select('id,module_key,legacy_legal_text_version_id,title,content_sha256,template_version')
+    .eq('legal_bundle_version_id', input.refs.legalBundleVersionId)
+  if (result.error) throw result.error
+  const document = (result.data ?? []).find((row) =>
+    publicReference('legal_document', input.companyId, row.id) === input.documentReference)
+  if (!document) throw new Error('LEGAL_DOCUMENT_REFERENCE_INVALID')
 
-  if (result.error) {
-    if (isMissingPortalSchemaError(result.error)) return null
-    throw result.error
+  const documentCode = clean(document.module_key)
+  const documentVersion = clean(document.template_version)
+  const documentHash = clean(document.content_sha256)?.toLowerCase()
+  const acceptanceType = normalizeAcceptanceType(documentCode)
+  if (!documentCode || !documentVersion || !documentHash || !acceptanceType) {
+    throw new Error('LEGAL_DOCUMENT_NOT_ACCEPTABLE')
   }
-  return clean(result.data?.id)
+  if (
+    (input.expectedCode && input.expectedCode !== documentCode) ||
+    (input.expectedVersion && input.expectedVersion !== documentVersion) ||
+    (input.expectedHash && input.expectedHash.toLowerCase() !== documentHash)
+  ) {
+    throw new Error('LEGAL_DOCUMENT_EVIDENCE_MISMATCH')
+  }
+  return {
+    id: document.id,
+    acceptanceType,
+    legalTextVersionId: clean(document.legacy_legal_text_version_id),
+    documentCode,
+    documentVersion,
+    documentHash,
+    title: clean(document.title),
+  }
 }
 
 async function findExistingLegalAcceptance(input: {
   companyId: string
   customerId: string
   contractId: string | null
-  acceptanceType: string
-  legalTextVersionId: string | null
-  externalAcceptanceId: string | null
+  documentReference: string
 }): Promise<string | null> {
-  if (input.externalAcceptanceId) {
-    const byExternal = await supabaseService
-      .from('customer_legal_acceptances')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('customer_id', input.customerId)
-      .contains('metadata', { external_acceptance_id: input.externalAcceptanceId })
-      .limit(1)
-      .maybeSingle()
-    if (!byExternal.error && byExternal.data?.id) return clean(byExternal.data.id)
-    if (byExternal.error && !isMissingPortalSchemaError(byExternal.error)) throw byExternal.error
-  }
-
   let query = supabaseService
     .from('customer_legal_acceptances')
     .select('id')
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
-    .eq('acceptance_type', input.acceptanceType)
+    .contains('metadata', { document_reference: input.documentReference })
     .limit(1)
-
   query = input.contractId ? query.eq('contract_id', input.contractId) : query.is('contract_id', null)
-  query = input.legalTextVersionId ? query.eq('legal_text_version_id', input.legalTextVersionId) : query.is('legal_text_version_id', null)
-
   const result = await query.maybeSingle()
   if (!result.error && result.data?.id) return clean(result.data.id)
   if (result.error && !isMissingPortalSchemaError(result.error)) throw result.error
@@ -290,19 +270,21 @@ async function syncLegalAcceptance(input: {
   acceptance: TenantLegalAcceptanceInput
   baseMetadata: JsonRecord
 }): Promise<'created' | 'existing' | 'skipped'> {
-  const acceptanceType = normalizeAcceptanceType(input.acceptance.acceptance_type)
-  if (!acceptanceType) return 'skipped'
-
-  const legalTextVersionId = await resolveLegalTextVersionId(input.client.company_id, acceptanceType, input.acceptance)
-  const contractId = clean(input.acceptance.contract_id) ?? input.refs.contractId
-  const externalAcceptanceId = clean(input.acceptance.external_acceptance_id)
+  if (input.acceptance.accepted !== true) return 'skipped'
+  const legalDocument = await resolveLegalDocument({
+    companyId: input.client.company_id,
+    refs: input.refs,
+    documentReference: input.acceptance.document_reference,
+    expectedCode: input.acceptance.document_code,
+    expectedVersion: input.acceptance.document_version,
+    expectedHash: input.acceptance.document_hash,
+  })
+  const contractId = input.refs.contractId
   const existingId = await findExistingLegalAcceptance({
     companyId: input.client.company_id,
     customerId: input.identity.customer_id,
     contractId,
-    acceptanceType,
-    legalTextVersionId,
-    externalAcceptanceId,
+    documentReference: input.acceptance.document_reference,
   })
   if (existingId) return 'existing'
 
@@ -310,20 +292,23 @@ async function syncLegalAcceptance(input: {
     company_id: input.client.company_id,
     customer_id: input.identity.customer_id,
     contract_id: contractId,
-    contract_application_id: clean(input.acceptance.contract_application_id) ?? input.refs.applicationId,
-    acceptance_type: acceptanceType,
-    legal_text_version_id: legalTextVersionId,
-    accepted_at: toIso(input.acceptance.accepted_at),
-    accepted_ip: clean(input.acceptance.accepted_ip),
-    accepted_ip_hash: clean(input.acceptance.accepted_ip_hash),
-    accepted_user_agent: clean(input.acceptance.accepted_user_agent),
-    source: clean(input.acceptance.source) ?? 'website',
-    snapshot: asRecord(input.acceptance.snapshot),
+    contract_application_id: input.refs.applicationId,
+    acceptance_type: legalDocument.acceptanceType,
+    legal_text_version_id: legalDocument.legalTextVersionId,
+    accepted_at: input.acceptance.accepted_at,
+    source: 'customer_portal',
+    snapshot: {
+      document_code: legalDocument.documentCode,
+      document_version: legalDocument.documentVersion,
+      document_hash: legalDocument.documentHash,
+      document_title: legalDocument.title,
+    },
     metadata: {
       ...input.baseMetadata,
       ...asRecord(input.acceptance.metadata),
-      external_acceptance_id: externalAcceptanceId,
-      legal_text_version: clean(input.acceptance.legal_text_version) ?? clean(input.acceptance.version),
+      document_reference: input.acceptance.document_reference,
+      legal_bundle_version_id: input.refs.legalBundleVersionId,
+      legal_bundle_document_id: legalDocument.id,
     },
   })
 
@@ -338,16 +323,16 @@ async function syncLegalAcceptance(input: {
 async function findExistingDocument(input: {
   companyId: string
   customerId: string
-  externalDocumentId: string | null
+  documentReference: string | null
   publicUrl: string | null
 }): Promise<string | null> {
-  if (input.externalDocumentId) {
+  if (input.documentReference) {
     const byExternal = await supabaseService
       .from('customer_documents')
       .select('id')
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
-      .contains('metadata', { external_document_id: input.externalDocumentId })
+      .contains('metadata', { document_reference: input.documentReference })
       .limit(1)
       .maybeSingle()
     if (!byExternal.error && byExternal.data?.id) return clean(byExternal.data.id)
@@ -378,15 +363,14 @@ async function writeDocument(input: {
   baseMetadata: JsonRecord
 }): Promise<'created' | 'updated' | 'skipped'> {
   const documentType = clean(input.document.document_type) ?? 'customer_document'
-  const publicUrl = clean(input.document.file_url) ?? clean(input.document.public_url)
-  const externalDocumentId = clean(input.document.external_document_id)
-  const existingId = await findExistingDocument({ companyId: input.client.company_id, customerId: input.identity.customer_id, externalDocumentId, publicUrl })
+  const publicUrl = clean(input.document.secure_url)
+  const documentReference = clean(input.document.document_reference)
+  const existingId = await findExistingDocument({ companyId: input.client.company_id, customerId: input.identity.customer_id, documentReference, publicUrl })
   const now = new Date().toISOString()
   const metadata = {
     ...input.baseMetadata,
     ...asRecord(input.document.metadata),
-    external_document_id: externalDocumentId,
-    accepted_at: clean(input.document.accepted_at),
+    document_reference: documentReference,
   }
 
   const fullPayload = nonNull({
@@ -402,8 +386,6 @@ async function writeDocument(input: {
     file_name: clean(input.document.file_name),
     mime_type: clean(input.document.mime_type),
     file_size_bytes: input.document.file_size_bytes,
-    storage_key: clean(input.document.storage_key) ?? clean(input.document.storage_path),
-    storage_bucket: clean(input.document.storage_bucket),
     source: 'tenant_api',
     source_system: 'tenant_api',
     metadata,
@@ -491,22 +473,30 @@ async function writePowerOfAttorney(input: {
   poa: TenantPowerOfAttorneyInput
   baseMetadata: JsonRecord
 }): Promise<'created' | 'updated' | 'skipped'> {
-  const scope = clean(input.poa.scope) ?? 'supplier_switch'
-  const contractId = clean(input.poa.contract_id) ?? input.refs.contractId
-  const siteId = clean(input.poa.customer_site_id) ?? clean(input.poa.site_id) ?? input.refs.siteId
-  const meteringPointId = clean(input.poa.metering_point_id) ?? input.refs.meteringPointId
-  const reference = clean(input.poa.reference) ?? (input.refs.applicationId ? `POA-${input.refs.applicationId}` : null)
-  const acceptanceType = 'power_of_attorney'
-  const legalTextVersionId = await resolveLegalTextVersionId(input.client.company_id, acceptanceType, input.poa)
-  const acceptedAt = toIso(input.poa.accepted_at ?? input.poa.signed_at)
-  const status = clean(input.poa.status) ?? 'signed'
+  if (input.poa.accepted !== true) return 'skipped'
+  const scope = input.poa.scope.join(',')
+  const contractId = input.refs.contractId
+  const siteId = input.refs.siteId
+  const meteringPointId = input.refs.meteringPointId
+  const reference = clean(input.poa.power_of_attorney_reference)
+  const legalDocument = await resolveLegalDocument({
+    companyId: input.client.company_id,
+    refs: input.refs,
+    documentReference: input.poa.document_reference,
+  })
+  if (legalDocument.acceptanceType !== 'power_of_attorney') {
+    throw new Error('POWER_OF_ATTORNEY_DOCUMENT_REQUIRED')
+  }
+  const acceptedAt = input.poa.accepted_at
+  const status = 'signed'
   const now = new Date().toISOString()
   const existingId = await findExistingPowerOfAttorney({ companyId: input.client.company_id, customerId: input.identity.customer_id, reference, contractId, scope })
   const metadata = {
     ...input.baseMetadata,
     ...asRecord(input.poa.metadata),
     contract_application_id: input.refs.applicationId,
-    legal_text_version: clean(input.poa.legal_text_version),
+    document_reference: input.poa.document_reference,
+    legal_bundle_document_id: legalDocument.id,
     external_customer_id: input.identity.external_customer_id,
   }
 
@@ -519,19 +509,22 @@ async function writePowerOfAttorney(input: {
     metering_point_id: meteringPointId,
     scope,
     status,
-    signed_at: toIso(input.poa.signed_at ?? input.poa.accepted_at),
+    signed_at: acceptedAt,
     accepted_at: acceptedAt,
     valid_from: clean(input.poa.valid_from) ?? acceptedAt.slice(0, 10),
     valid_to: clean(input.poa.valid_to),
-    legal_text_version_id: legalTextVersionId,
-    fullmakt_snapshot: { ...asRecord(input.poa.metadata), document: input.poa.document ?? null },
-    accepted_ip: clean(input.poa.accepted_ip),
-    accepted_ip_hash: clean(input.poa.accepted_ip_hash),
-    accepted_user_agent: clean(input.poa.accepted_user_agent),
-    accepted_source: 'website',
+    legal_text_version_id: legalDocument.legalTextVersionId,
+    fullmakt_snapshot: {
+      ...asRecord(input.poa.metadata),
+      document_reference: input.poa.document_reference,
+      document_code: legalDocument.documentCode,
+      document_version: legalDocument.documentVersion,
+      document_hash: legalDocument.documentHash,
+    },
+    accepted_source: 'customer_portal',
     reference,
     scope_summary: {
-      [scope]: true,
+      scopes: input.poa.scope,
       contract_id: contractId,
       customer_site_id: siteId,
       metering_point_id: meteringPointId,
@@ -547,7 +540,7 @@ async function writePowerOfAttorney(input: {
     metering_point_id: meteringPointId,
     scope,
     status,
-    signed_at: toIso(input.poa.signed_at ?? input.poa.accepted_at),
+    signed_at: acceptedAt,
     valid_from: clean(input.poa.valid_from) ?? acceptedAt.slice(0, 10),
     valid_to: clean(input.poa.valid_to),
     reference,
@@ -561,7 +554,7 @@ async function writePowerOfAttorney(input: {
       : await supabaseService.from('powers_of_attorney').insert({ ...payload, created_at: now }).select('id').maybeSingle()
     if (!result.error) return existingId ? 'updated' : 'created'
     if (!isMissingPortalSchemaError(result.error)) {
-      if (result.error.code === '23514' && payload.status === status && status !== 'draft') {
+      if (result.error.code === '23514' && payload.status === status) {
         const retry = { ...payload, status: 'draft', metadata: { ...metadata, desired_status: status, status_constraint_retry: true } }
         const retryResult = existingId
           ? await supabaseService.from('powers_of_attorney').update(retry).eq('id', existingId).eq('company_id', input.client.company_id).select('id').maybeSingle()
@@ -587,7 +580,21 @@ async function syncFacilityData(input: {
 
   const facilityId = clean(facility.facility_id)
   const meteringPointId = clean(facility.metering_point_id) ?? clean(facility.meter_point_id)
-  const requestedSiteId = clean(facility.customer_site_id) ?? clean(facility.site_id) ?? input.refs.siteId
+  const facilityReference = clean(facility.facility_reference)
+  let requestedSiteId = input.refs.siteId
+  if (facilityReference) {
+    const siteResult = await supabaseService
+      .from('customer_sites')
+      .select('id')
+      .eq('company_id', input.client.company_id)
+      .eq('customer_id', input.identity.customer_id)
+      .eq('facility_reference', facilityReference)
+      .limit(1)
+      .maybeSingle()
+    if (siteResult.error) throw siteResult.error
+    if (!siteResult.data?.id) throw new Error('FACILITY_REFERENCE_NOT_FOUND')
+    requestedSiteId = siteResult.data.id
+  }
   const address = asRecord(facility.address)
   const addressStreet = clean(address.street) ?? clean(facility.street)
   const addressPostalCode = clean(address.postal_code) ?? clean(address.postalCode) ?? clean(facility.postal_code) ?? clean(facility.postalCode)
@@ -722,6 +729,45 @@ async function syncFacilityData(input: {
   return { updated: Boolean(siteUpdate.data?.id) || Boolean(site.address), metering_point_created: created, skipped: false }
 }
 
+async function syncCustomerProfile(input: {
+  client: IntegrationApiClient
+  identity: LinkedPortalIdentity
+  profile: TenantCustomerSyncPayload['profile']
+}): Promise<{ updated: boolean; skipped: boolean }> {
+  if (!input.profile || Object.keys(input.profile).length === 0) {
+    return { updated: false, skipped: true }
+  }
+  const existing = await supabaseService
+    .from('customers')
+    .select('metadata')
+    .eq('company_id', input.client.company_id)
+    .eq('id', input.identity.customer_id)
+    .maybeSingle()
+  if (existing.error) throw existing.error
+  const payload = nonNull({
+    first_name: clean(input.profile.first_name),
+    last_name: clean(input.profile.last_name),
+    full_name: clean(input.profile.full_name),
+    company_name: clean(input.profile.company_name),
+    phone: clean(input.profile.phone),
+    invoice_email: clean(input.profile.invoice_email),
+    preferred_language: clean(input.profile.language_code),
+    metadata: input.profile.timezone
+      ? { ...asRecord(existing.data?.metadata), portal_timezone: input.profile.timezone }
+      : undefined,
+    updated_at: new Date().toISOString(),
+  })
+  const result = await supabaseService
+    .from('customers')
+    .update(payload)
+    .eq('company_id', input.client.company_id)
+    .eq('id', input.identity.customer_id)
+    .select('id')
+    .maybeSingle()
+  if (result.error) throw result.error
+  return { updated: Boolean(result.data?.id), skipped: false }
+}
+
 async function emitSyncEvent(input: {
   client: IntegrationApiClient
   identity: LinkedPortalIdentity
@@ -756,12 +802,13 @@ export async function syncTenantCustomerRecords(input: {
   identity: LinkedPortalIdentity
   payload: TenantCustomerSyncPayload
 }) {
-  const refs = await getLatestRefs(input.client, input.identity, input.payload)
+  const refs = await getLatestRefs(input.client, input.identity)
   const summary: SyncSummary = {
     documents: { created: 0, updated: 0, skipped: 0 },
     legal_acceptances: { created: 0, existing: 0, skipped: 0 },
     powers_of_attorney: { created: 0, updated: 0, skipped: 0 },
-    facility_data: { updated: false, metering_point_created: false, skipped: true },
+    profile: { updated: false, skipped: true },
+    facility_data: { processed: 0, updated: 0, metering_point_created: 0, skipped: 0 },
     events: [],
   }
   const baseMetadata = {
@@ -773,6 +820,12 @@ export async function syncTenantCustomerRecords(input: {
     ...(input.payload.metadata ?? {}),
   }
 
+  summary.profile = await syncCustomerProfile({
+    client: input.client,
+    identity: input.identity,
+    profile: input.payload.profile,
+  })
+
   const acceptances = Array.isArray(input.payload.legal_acceptances) ? input.payload.legal_acceptances : []
   for (const acceptance of acceptances) {
     const result = await syncLegalAcceptance({ client: input.client, identity: input.identity, refs, acceptance, baseMetadata })
@@ -781,33 +834,8 @@ export async function syncTenantCustomerRecords(input: {
 
   if (input.payload.power_of_attorney) {
     const poa = input.payload.power_of_attorney
-    const poaAcceptance: TenantLegalAcceptanceInput = {
-      acceptance_type: 'power_of_attorney',
-      legal_text_version_id: poa.legal_text_version_id,
-      legal_text_version: poa.legal_text_version,
-      contract_id: poa.contract_id ?? refs.contractId ?? undefined,
-      contract_application_id: refs.applicationId ?? undefined,
-      accepted_at: poa.accepted_at ?? poa.signed_at,
-      accepted_ip: poa.accepted_ip,
-      accepted_ip_hash: poa.accepted_ip_hash,
-      accepted_user_agent: poa.accepted_user_agent,
-      metadata: poa.metadata,
-    }
-    const legalResult = await syncLegalAcceptance({ client: input.client, identity: input.identity, refs, acceptance: poaAcceptance, baseMetadata })
-    summary.legal_acceptances[legalResult === 'created' ? 'created' : legalResult === 'existing' ? 'existing' : 'skipped']++
-
     const poaResult = await writePowerOfAttorney({ client: input.client, identity: input.identity, refs, poa, baseMetadata })
     summary.powers_of_attorney[poaResult === 'created' ? 'created' : poaResult === 'updated' ? 'updated' : 'skipped']++
-    if (poa.document) {
-      const documentResult = await writeDocument({
-        client: input.client,
-        identity: input.identity,
-        refs,
-        document: { document_type: 'power_of_attorney', title: 'Signerad fullmakt', ...poa.document },
-        baseMetadata,
-      })
-      summary.documents[documentResult === 'created' ? 'created' : documentResult === 'updated' ? 'updated' : 'skipped']++
-    }
     if (poaResult !== 'skipped') {
       await emitSyncEvent({ client: input.client, identity: input.identity, type: 'power_of_attorney.signed', refs, events: summary.events })
     }
@@ -822,18 +850,24 @@ export async function syncTenantCustomerRecords(input: {
     }
   }
 
-  summary.facility_data = await syncFacilityData({ client: input.client, identity: input.identity, refs, facility: input.payload.facility_data, baseMetadata })
-  if (!summary.facility_data.skipped) {
-    await emitSyncEvent({
-      client: input.client,
-      identity: input.identity,
-      type: summary.facility_data.metering_point_created ? 'facility_data.verified' : 'facility_data.received',
-      refs,
-      events: summary.events,
-    })
+  for (const facility of input.payload.facility_data ?? []) {
+    const facilityResult = await syncFacilityData({ client: input.client, identity: input.identity, refs, facility, baseMetadata })
+    summary.facility_data.processed += 1
+    if (facilityResult.updated) summary.facility_data.updated += 1
+    if (facilityResult.metering_point_created) summary.facility_data.metering_point_created += 1
+    if (facilityResult.skipped) summary.facility_data.skipped += 1
+    if (!facilityResult.skipped) {
+      await emitSyncEvent({
+        client: input.client,
+        identity: input.identity,
+        type: facilityResult.metering_point_created ? 'facility_data.verified' : 'facility_data.received',
+        refs,
+        events: summary.events,
+      })
+    }
   }
 
-  if (!refs.meteringPointId && !input.payload.facility_data?.metering_point_id) {
+  if (!refs.meteringPointId && !(input.payload.facility_data ?? []).some((item) => item.metering_point_id)) {
     await emitSyncEvent({ client: input.client, identity: input.identity, type: 'contract.needs_facility_data', refs, events: summary.events })
   }
 

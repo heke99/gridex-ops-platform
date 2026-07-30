@@ -6,6 +6,11 @@ import {
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
 import { listPortalPowersOfAttorney, portalContextFromResolved } from '@/lib/customer-portal/apiData'
+import {
+  pagePublicItems,
+  publicPageInput,
+  publicPortalPowerOfAttorney,
+} from '@/lib/customer-portal/publicDto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,7 +29,13 @@ export async function GET(request: NextRequest) {
     })
     const rows = await listPortalPowersOfAttorney(portalContext)
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: rows.length })
-    return customerPortalJson({ data: rows })
+    const page = pagePublicItems(
+      rows.map((row) =>
+        publicPortalPowerOfAttorney(context.client.company_id, row),
+      ),
+      publicPageInput(request.nextUrl.searchParams),
+    )
+    return customerPortalJson({ data: page.items, page: page.page })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

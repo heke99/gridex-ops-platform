@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-07-30.1'
+const version = '2026-07-30.2'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
@@ -97,7 +97,7 @@ website.components.schemas.LegalAcceptance = {
   additionalProperties: false,
   required: [
     'requirement_code',
-    'document_id',
+    'document_reference',
     'document_version',
     'document_hash',
     'accepted',
@@ -105,7 +105,7 @@ website.components.schemas.LegalAcceptance = {
   ],
   properties: {
     requirement_code: string,
-    document_id: uuid,
+    document_reference: string,
     document_version: string,
     document_hash: { type: 'string', pattern: '^[a-fA-F0-9]{64}$' },
     accepted: { type: 'boolean', const: true },
@@ -125,7 +125,7 @@ website.components.schemas.WebsiteLegalRequirement = {
     'title',
     'description',
     'required',
-    'document_id',
+    'document_reference',
     'document_version',
     'document_hash',
     'document_url',
@@ -135,7 +135,7 @@ website.components.schemas.WebsiteLegalRequirement = {
     title: string,
     description: string,
     required: { type: 'boolean', const: true },
-    document_id: uuid,
+    document_reference: string,
     document_version: string,
     document_hash: { type: 'string', pattern: '^[a-fA-F0-9]{64}$' },
     document_url: { type: 'string', format: 'uri' },
@@ -162,7 +162,7 @@ legalBundleResponse.required = Array.from(
 const application = website.components.schemas.CustomerApplicationRequest
 application.properties.customer_portal_user_id = uuid
 application.properties.auth_user_id = uuid
-application.properties.legal_bundle_version = uuid
+application.properties.legal_bundle_version = string
 application.properties.legal_acceptances = {
   $ref: '#/components/schemas/LegalAcceptances',
 }
@@ -503,10 +503,22 @@ website.components.schemas.OpenApiReleaseManifest = {
 website.components.schemas.OpenApiReleaseSpecification = {
   type: 'object',
   additionalProperties: false,
-  required: ['url', 'sha256'],
+  required: [
+    'contract_name',
+    'contract_version',
+    'url',
+    'sha256',
+    'compatibility',
+  ],
   properties: {
+    contract_name: string,
+    contract_version: contractVersion,
     url: { type: 'string', format: 'uri' },
     sha256: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+    compatibility: {
+      type: 'string',
+      enum: ['backward-compatible', 'breaking'],
+    },
   },
 }
 website.paths['/api/v1/openapi/release-manifest.json'] = {
@@ -534,6 +546,54 @@ portal.components.parameters.CustomerPortalUserId = {
   schema: uuid,
 }
 portal.components.schemas.ErrorResponse = portal.components.schemas.ApiError
+portal.components.schemas.CustomerContract = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['contract_reference', 'status'],
+  properties: {
+    contract_reference: string,
+    contract_number: nullableString,
+    offer_reference: nullableString,
+    contract_name: nullableString,
+    contract_type: nullableString,
+    energy_direction: string,
+    status: string,
+    start_date: nullableString,
+    end_date: nullableString,
+    signed_at: nullableString,
+    withdrawal_deadline_at: nullableString,
+    price_area: nullableString,
+    monthly_fee_sek: { type: ['number', 'null'] },
+    invoice_fee_sek: { type: ['number', 'null'] },
+    fixed_price_ore_per_kwh: { type: ['number', 'null'] },
+    markup_ore_per_kwh: { type: ['number', 'null'] },
+    binding_months: { type: ['number', 'null'] },
+    notice_months: { type: ['number', 'null'] },
+    auto_renew_enabled: { type: 'boolean' },
+    created_at: nullableString,
+  },
+}
+portal.components.schemas.CustomerInvoice = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['invoice_reference', 'status'],
+  properties: {
+    invoice_reference: string,
+    invoice_number: nullableString,
+    period_start: nullableString,
+    period_end: nullableString,
+    total_kwh: { type: ['number', 'null'] },
+    amount_ex_vat: { type: ['number', 'null'] },
+    vat_amount: { type: ['number', 'null'] },
+    amount_inc_vat: { type: ['number', 'null'] },
+    currency: string,
+    issued_at: nullableString,
+    due_date: nullableString,
+    paid_at: nullableString,
+    status: string,
+    created_at: nullableString,
+  },
+}
 portal.components.schemas.WebsiteVisibilityMode = {
   type: 'string',
   enum: ['visible', 'hidden', 'summary_only'],
@@ -661,6 +721,200 @@ portal.components.schemas.ClosedPortalMutationRequest = {
     metadata: { type: 'object' },
   },
 }
+
+const identifierProperties = {
+  email: { type: 'string', format: 'email', maxLength: 320 },
+  customer_number: { type: 'string', maxLength: 100 },
+  external_customer_id: { type: 'string', maxLength: 200 },
+  authenticated_user_reference: { type: 'string', maxLength: 200 },
+}
+portal.components.schemas.CustomerSyncRequest = {
+  type: 'object',
+  additionalProperties: false,
+  anyOf: Object.keys(identifierProperties).map((key) => ({ required: [key] })),
+  properties: {
+    ...identifierProperties,
+    profile: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        first_name: string,
+        last_name: string,
+        full_name: string,
+        company_name: string,
+        phone: string,
+        invoice_email: { type: 'string', format: 'email' },
+        language_code: string,
+        timezone: string,
+      },
+    },
+    facility_data: {
+      type: 'array',
+      maxItems: 20,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          facility_reference: string,
+          facility_id: string,
+          metering_point_id: string,
+          move_in_date: { type: 'string', format: 'date' },
+          requested_start_date: { type: 'string', format: 'date' },
+          address: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              street: string,
+              postal_code: string,
+              city: string,
+              country: string,
+              care_of: string,
+              apartment_number: string,
+            },
+          },
+          metadata: { type: 'object' },
+        },
+      },
+    },
+    documents: {
+      type: 'array',
+      maxItems: 100,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          document_reference: string,
+          document_type: string,
+          title: string,
+          status: string,
+          secure_url: { type: 'string', format: 'uri' },
+          file_name: string,
+          mime_type: string,
+          file_size_bytes: { type: 'integer', minimum: 0 },
+          metadata: { type: 'object' },
+        },
+      },
+    },
+    legal_acceptances: {
+      type: 'array',
+      maxItems: 100,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'document_reference',
+          'document_code',
+          'document_version',
+          'document_hash',
+          'accepted',
+          'accepted_at',
+        ],
+        properties: {
+          document_reference: string,
+          document_code: string,
+          document_version: string,
+          document_hash: { type: 'string', pattern: '^[a-fA-F0-9]{64}$' },
+          accepted: { type: 'boolean', const: true },
+          accepted_at: dateTime,
+          metadata: { type: 'object' },
+        },
+      },
+    },
+    power_of_attorney: {
+      type: 'object',
+      additionalProperties: false,
+      required: [
+        'document_reference',
+        'scope',
+        'accepted',
+        'accepted_at',
+      ],
+      properties: {
+        power_of_attorney_reference: string,
+        document_reference: string,
+        scope: { type: 'array', minItems: 1, items: string },
+        accepted: { type: 'boolean', const: true },
+        accepted_at: dateTime,
+        valid_from: { type: 'string', format: 'date' },
+        valid_to: { type: 'string', format: 'date' },
+        metadata: { type: 'object' },
+      },
+    },
+    metadata: { type: 'object' },
+  },
+}
+portal.components.schemas.CustomerMoveOutRequest = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['facility_reference', 'requested_move_out_date'],
+  properties: {
+    ...identifierProperties,
+    customer_contract_reference: string,
+    facility_reference: string,
+    requested_move_out_date: { type: 'string', format: 'date' },
+    reason: string,
+    new_address: { type: 'object' },
+    contact_details: { type: 'object' },
+    metadata: { type: 'object' },
+  },
+}
+setRequest(
+  portal,
+  '/api/v1/customer/sync',
+  { $ref: '#/components/schemas/CustomerSyncRequest' },
+)
+setRequest(
+  portal,
+  '/api/v1/customer/move-out',
+  { $ref: '#/components/schemas/CustomerMoveOutRequest' },
+)
+portal.components.schemas.CustomerSyncData = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['status', 'customer_reference', 'summary'],
+  properties: {
+    status: { type: 'string', const: 'synced' },
+    customer_reference: nullableString,
+    customer_number: nullableString,
+    external_customer_id: nullableString,
+    summary: { type: 'object' },
+  },
+}
+portal.components.schemas.CustomerMoveOutData = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'completion_reference',
+    'customer_reference',
+    'facility_reference',
+    'requested_move_out_date',
+    'status',
+    'replayed',
+  ],
+  properties: {
+    completion_reference: string,
+    customer_reference: string,
+    facility_reference: string,
+    contract_reference: nullableString,
+    requested_move_out_date: { type: 'string', format: 'date' },
+    status: { type: 'string', const: 'submitted' },
+    replayed: { type: 'boolean' },
+  },
+}
+setResponse(
+  portal,
+  '/api/v1/customer/sync',
+  envelope({ $ref: '#/components/schemas/CustomerSyncData' }),
+  'post',
+)
+setResponse(
+  portal,
+  '/api/v1/customer/move-out',
+  envelope({ $ref: '#/components/schemas/CustomerMoveOutData' }),
+  'post',
+)
+portal.paths['/api/v1/customer/move-out'].post.responses['201'] =
+  portal.paths['/api/v1/customer/move-out'].post.responses['200']
 
 function explicitlyPermissive(schema) {
   return schema?.type === 'object' && (

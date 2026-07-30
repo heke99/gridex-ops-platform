@@ -1,5 +1,5 @@
 
-## 2026-07-28 – Live schema/code canonical synchronization and API contract 2026-07-30.1
+## 2026-07-28 – Live schema/code canonical synchronization and API contract 2026-07-30.2
 
 - Added one fail-closed forward-only repair based on the exported production
   schema, active function definitions and live database lint.
@@ -7,7 +7,7 @@
   invoice export, signature recovery, terminal channel lifecycle and internal
   wrapper privileges.
 - Website and customer portal OpenAPI, runtime constants, documentation and
-  regression controls now report `2026-07-30.1`.
+  regression controls now report `2026-07-30.2`.
 
 ## 2026-07-27 – Contract security, production direction and API contract 2026-07-27.1
 

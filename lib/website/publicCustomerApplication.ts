@@ -1,14 +1,10 @@
+import { publicReference } from '@/lib/integrations/publicReferences'
+
 const PUBLIC_SCALAR_FIELDS = [
-  'customer_id',
   'customer_number',
-  'application_id',
   'application_number',
   'external_customer_id',
   'external_customer_reference',
-  'customer_site_id',
-  'site_id',
-  'metering_point_id',
-  'contract_id',
   'contract_number',
   'contract_status',
   'offer_reference',
@@ -26,7 +22,6 @@ const PUBLIC_SCALAR_FIELDS = [
   'calculated_earliest_start_date',
   'grid_area_code',
   'price_area_code',
-  'resolution_id',
   'resolution_status',
   'resolution_confidence',
   'grid_owner_verification_status',
@@ -36,9 +31,7 @@ const PUBLIC_SCALAR_FIELDS = [
   'signed_at',
   'withdrawal_deadline_at',
   'signature_snapshot_sha256',
-  'workflow_id',
   'workflow_state',
-  'continuation_job_id',
 ] as const
 
 const PUBLIC_ARRAY_FIELDS = [
@@ -129,7 +122,10 @@ function publicSupplierSwitch(input: Record<string, unknown>): Record<string, un
  * operations and repair. The HTTP boundary exposes only documented,
  * tenant-bound public resource IDs and business state.
  */
-export function publicWebsiteCustomerApplicationData(value: unknown): Record<string, unknown> {
+export function publicWebsiteCustomerApplicationData(
+  value: unknown,
+  companyId?: string,
+): Record<string, unknown> {
   const input = record(value) ?? {}
   const output: Record<string, unknown> = {}
   for (const key of PUBLIC_SCALAR_FIELDS) {
@@ -137,6 +133,18 @@ export function publicWebsiteCustomerApplicationData(value: unknown): Record<str
   }
   for (const key of PUBLIC_ARRAY_FIELDS) {
     output[key] = publicStringArray(input[key])
+  }
+  if (companyId) {
+    const references = [
+      ['customer_reference', 'customer', input.customer_id],
+      ['application_reference', 'application', input.application_id],
+      ['facility_reference', 'facility', input.customer_site_id ?? input.site_id],
+      ['metering_point_reference', 'metering_point', input.metering_point_id],
+      ['contract_reference', 'contract', input.contract_id],
+    ] as const
+    for (const [field, kind, id] of references) {
+      if (text(id)) output[field] = publicReference(kind, companyId, id)
+    }
   }
 
   const nextAction = publicNextAction(input.next_action)

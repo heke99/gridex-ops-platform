@@ -8,6 +8,11 @@ import {
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
 import { isMissingSchemaError } from '@/lib/customer-portal/apiData'
+import {
+  pagePublicItems,
+  publicPageInput,
+  publicPortalMeteringValue,
+} from '@/lib/customer-portal/publicDto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -69,7 +74,13 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return customerPortalJson({ data: data ?? [] })
+    const page = pagePublicItems(
+      (data ?? []).map((row) =>
+        publicPortalMeteringValue(context.client.company_id, row),
+      ),
+      publicPageInput(request.nextUrl.searchParams),
+    )
+    return customerPortalJson({ data: page.items, page: page.page })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

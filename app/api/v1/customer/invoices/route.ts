@@ -6,6 +6,11 @@ import {
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
 import { listPortalInvoices, portalContextFromResolved } from '@/lib/customer-portal/apiData'
+import {
+  pagePublicItems,
+  publicPageInput,
+  publicPortalInvoice,
+} from '@/lib/customer-portal/publicDto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,7 +29,13 @@ export async function GET(request: NextRequest) {
     })
     const invoices = await listPortalInvoices(portalContext)
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: invoices.length })
-    return customerPortalJson({ data: invoices })
+    const page = pagePublicItems(
+      invoices.map((row) =>
+        publicPortalInvoice(context.client.company_id, row),
+      ),
+      publicPageInput(request.nextUrl.searchParams),
+    )
+    return customerPortalJson({ data: page.items, page: page.page })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

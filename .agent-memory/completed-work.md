@@ -148,3 +148,14 @@ Status: VERIFIED LOCALLY
 - Regenerated both OpenAPI documents with closed canonical error and publication-webhook schemas.
 - Verified 323 migrations/227 groups, 58 files/373 tests, all TypeScript profiles, API/docs/parity, error/tenant gates, zero-error lint and production build.
 - Production remains NO-GO pending migration-ledger resolution, clean/upgrade apply, deployment/live hashes, missing Web source and full environment E2E.
+
+## 2026-07-30 Customer Portal/API production completion
+
+- Added one strict customer sync request contract and tenant-safe identity normalization.
+- Replaced public portal/application internal IDs with stable tenant-bound references.
+- Added paginated portal projections and fail-closed bundle completeness.
+- Added external-reference, idempotent and atomic move-out with case/event/outbox/audit state.
+- Repaired v3 commercial quote acceptance in the atomic onboarding command.
+- Synchronized runtime, OpenAPI and docs at `2026-07-30.2` and added compatibility/release gates.
+- Verified 324 migrations/228 groups, 58 files/373 tests, all TypeScript targets, API gates, zero-error lint and production build.
+- Database apply, deployment, live hashes, Gridex Web and environment E2E remain blocked and are not claimed.

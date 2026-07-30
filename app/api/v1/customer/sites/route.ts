@@ -6,6 +6,12 @@ import {
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
 import { listPortalMeteringPoints, listPortalSites, portalContextFromResolved } from '@/lib/customer-portal/apiData'
+import {
+  pagePublicItems,
+  publicPageInput,
+  publicPortalMeteringPoint,
+  publicPortalSite,
+} from '@/lib/customer-portal/publicDto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,7 +38,27 @@ export async function GET(request: NextRequest) {
       resultCount: sites.length,
       metadata: { metering_points: meteringPoints.length },
     })
-    return customerPortalJson({ data: { sites, metering_points: meteringPoints } })
+    const pageInput = publicPageInput(request.nextUrl.searchParams)
+    const publicSites = pagePublicItems(
+      sites.map((row) => publicPortalSite(context.client.company_id, row)),
+      pageInput,
+    )
+    const publicMeteringPoints = pagePublicItems(
+      meteringPoints.map((row) =>
+        publicPortalMeteringPoint(context.client.company_id, row),
+      ),
+      pageInput,
+    )
+    return customerPortalJson({
+      data: {
+        sites: publicSites.items,
+        metering_points: publicMeteringPoints.items,
+      },
+      page: {
+        sites: publicSites.page,
+        metering_points: publicMeteringPoints.page,
+      },
+    })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

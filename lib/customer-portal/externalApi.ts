@@ -8,6 +8,7 @@ import {
 import { portalIdentifiersFromRequest, resolvePortalCustomer, type CustomerPortalIdentifiers } from '@/lib/customer-portal/customerResolver'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { canonicalApiError, normalizeApiBlockers } from '@/lib/api/apiError'
+import { ApiInputError } from '@/lib/api/strictRequest'
 
 export type LinkedPortalIdentity = {
   id: string | null
@@ -257,6 +258,115 @@ export function handleCustomerPortalRouteError(input: {
   startedAt: number
   error: unknown
 }) {
+  if (input.error instanceof ApiInputError) {
+    void logIntegrationApiRequest({
+      client: input.client ?? null,
+      request: input.request,
+      statusCode: input.error.status,
+      startedAt: input.startedAt,
+      errorCode: input.error.code,
+      metadata: { field: input.error.field },
+    })
+    return customerPortalJson(
+      canonicalApiError({
+        code: input.error.code,
+        message: input.error.message,
+        requestId: randomUUID(),
+        field: input.error.field,
+      }),
+      { status: input.error.status },
+    )
+  }
+  const databaseError = input.error as {
+    code?: string
+    message?: string
+  } | null
+  const databaseMessage = databaseError?.message ?? ''
+  const mappedDatabaseError = [
+    {
+      pattern: /LEGAL_BUNDLE_NOT_RESOLVED/i,
+      status: 409,
+      code: 'LEGAL_BUNDLE_NOT_READY',
+      message: 'Kundens aktiva legala dokumentpaket kunde inte fastställas.',
+    },
+    {
+      pattern: /LEGAL_DOCUMENT_REFERENCE_INVALID|LEGAL_DOCUMENT_NOT_ACCEPTABLE/i,
+      status: 422,
+      code: 'LEGAL_DOCUMENT_INVALID',
+      message: 'Dokumentreferensen ingår inte i kundens aktiva legala dokumentpaket.',
+    },
+    {
+      pattern: /LEGAL_DOCUMENT_EVIDENCE_MISMATCH/i,
+      status: 409,
+      code: 'LEGAL_EVIDENCE_MISMATCH',
+      message: 'Dokumentets kod, version eller hash stämmer inte med publicerad version.',
+    },
+    {
+      pattern: /POWER_OF_ATTORNEY_DOCUMENT_REQUIRED/i,
+      status: 422,
+      code: 'POWER_OF_ATTORNEY_DOCUMENT_REQUIRED',
+      message: 'Fullmakten måste hänvisa till ett publicerat fullmaktsdokument.',
+    },
+    {
+      pattern: /FACILITY_REFERENCE_NOT_FOUND/i,
+      status: 404,
+      code: 'RESOURCE_NOT_FOUND',
+      message: 'Anläggningsreferensen hittades inte för kunden.',
+    },
+    {
+      pattern: /customer_move_out_customer_not_found/i,
+      status: 404,
+      code: 'RESOURCE_NOT_FOUND',
+      message: 'Kunden hittades inte för aktuell tenant.',
+    },
+    {
+      pattern: /customer_move_out_facility_not_found/i,
+      status: 404,
+      code: 'RESOURCE_NOT_FOUND',
+      message: 'Anläggningen hittades inte för kunden.',
+    },
+    {
+      pattern: /customer_move_out_contract_not_found/i,
+      status: 404,
+      code: 'RESOURCE_NOT_FOUND',
+      message: 'Avtalet hittades inte för kunden.',
+    },
+    {
+      pattern: /customer_move_out_contract_status_invalid/i,
+      status: 409,
+      code: 'MOVE_OUT_NOT_ALLOWED',
+      message: 'Avtalets status tillåter inte flyttanmälan.',
+    },
+    {
+      pattern: /customer_move_out_date_invalid/i,
+      status: 422,
+      code: 'MOVE_OUT_DATE_INVALID',
+      message: 'Utflyttningsdatumet följer inte affärsreglerna.',
+    },
+    {
+      pattern: /customer_move_out_idempotency_conflict/i,
+      status: 409,
+      code: 'IDEMPOTENCY_CONFLICT',
+      message: 'Idempotency-Key har redan använts med ett annat innehåll.',
+    },
+  ].find((candidate) => candidate.pattern.test(databaseMessage))
+  if (mappedDatabaseError) {
+    void logIntegrationApiRequest({
+      client: input.client ?? null,
+      request: input.request,
+      statusCode: mappedDatabaseError.status,
+      startedAt: input.startedAt,
+      errorCode: mappedDatabaseError.code,
+    })
+    return customerPortalJson(
+      canonicalApiError({
+        code: mappedDatabaseError.code,
+        message: mappedDatabaseError.message,
+        requestId: randomUUID(),
+      }),
+      { status: mappedDatabaseError.status },
+    )
+  }
   console.error('[customer-portal-api] route failed', { route: input.request.nextUrl.pathname, error: input.error })
   void logIntegrationApiRequest({
     client: input.client ?? null,

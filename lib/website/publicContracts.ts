@@ -13,6 +13,7 @@ import {
   commonFixedPriceOrePerKwh,
   fixedAreaPricesFromSnapshot,
 } from "@/lib/pricing/fixedAreaPricing";
+import { publicReference } from "@/lib/integrations/publicReferences";
 
 export type PublicLegalTextVersion = {
   id: string;
@@ -160,6 +161,7 @@ export function selectLegalVersionForAcceptance(
 // module_versions point to exact legal_bundle_version_documents ids. The five
 // historical keys are retained as aliases for older website clients.
 export function buildPublicLegalBlock(input: {
+  companyId: string;
   legalVersions: PublicLegalTextVersion[];
   termsVersionFallback?: string | null;
   withdrawalVersionFallback?: string | null;
@@ -188,8 +190,10 @@ export function buildPublicLegalBlock(input: {
     type: LegacyLegalAcceptanceType,
     fallback?: string | null,
   ) => byAcceptanceType.get(type)?.version ?? fallback ?? null;
-  const versionId = (type: LegacyLegalAcceptanceType) =>
-    byAcceptanceType.get(type)?.id ?? null;
+  const documentReference = (type: LegacyLegalAcceptanceType) => {
+    const id = byAcceptanceType.get(type)?.id;
+    return id ? publicReference("legal_document", input.companyId, id) : null;
+  };
   const required = (type: LegacyLegalAcceptanceType) =>
     Boolean(byAcceptanceType.get(type));
   const urlForVersion = (version: PublicLegalTextVersion | null | undefined) =>
@@ -200,14 +204,13 @@ export function buildPublicLegalBlock(input: {
     urlForVersion(byAcceptanceType.get(type));
 
   const moduleVersions = input.legalVersions.map((version) => ({
-    id: version.id,
+    document_reference: publicReference("legal_document", input.companyId, version.id),
     module_key: version.type,
     version: version.version,
     title: version.title,
     published_at: version.published_at,
     content_sha256: version.content_sha256 ?? null,
     origin: version.origin ?? "canonical_bundle_document",
-    legal_bundle_version_id: version.legal_bundle_version_id ?? null,
     url: urlForVersion(version),
   }));
 
@@ -225,11 +228,11 @@ export function buildPublicLegalBlock(input: {
     withdrawal_required: required("withdrawal"),
     price_terms_required: required("price_terms"),
     power_of_attorney_required: required("power_of_attorney"),
-    terms_version_id: versionId("terms"),
-    privacy_policy_version_id: versionId("privacy_policy"),
-    withdrawal_version_id: versionId("withdrawal"),
-    price_terms_version_id: versionId("price_terms"),
-    power_of_attorney_version_id: versionId("power_of_attorney"),
+    terms_document_reference: documentReference("terms"),
+    privacy_policy_document_reference: documentReference("privacy_policy"),
+    withdrawal_document_reference: documentReference("withdrawal"),
+    price_terms_document_reference: documentReference("price_terms"),
+    power_of_attorney_document_reference: documentReference("power_of_attorney"),
     terms_url: url("terms"),
     privacy_policy_url: url("privacy_policy"),
     withdrawal_url: url("withdrawal"),
@@ -237,9 +240,11 @@ export function buildPublicLegalBlock(input: {
     power_of_attorney_url: url("power_of_attorney"),
     required_modules: moduleVersions.map((version) => version.module_key),
     module_versions: moduleVersions,
-    legal_bundle_version_id:
-      input.legalVersions.find((version) => version.legal_bundle_version_id)
-        ?.legal_bundle_version_id ?? null,
+    legal_bundle_reference: (() => {
+      const id = input.legalVersions.find((version) => version.legal_bundle_version_id)
+        ?.legal_bundle_version_id;
+      return id ? publicReference("legal_bundle", input.companyId, id) : null;
+    })(),
     immutable: moduleVersions.length > 0,
   };
 }
@@ -971,6 +976,7 @@ export function publicContractResponse(offer: PublicContractOffer) {
       ? ["private", "business"]
       : [offer.customer_type];
   const legalBlock = buildPublicLegalBlock({
+    companyId: offer.company_id,
     legalVersions,
     termsVersionFallback: offer.terms_version,
     withdrawalVersionFallback: withdrawalVersion,
@@ -1275,7 +1281,7 @@ export type WebsiteLegalBundle = {
     title: string;
     description: string;
     required: true;
-    document_id: string;
+    document_reference: string;
     document_version: string;
     document_hash: string;
     document_url: string;
@@ -1332,6 +1338,18 @@ export async function buildWebsiteLegalBundle(
       "Avtalet saknar en låst canonical juridikversion.",
     );
   }
+  const bundleVersionReference = publicReference(
+    "legal_bundle",
+    client.company_id,
+    offer.legal_bundle_version_id,
+  );
+  if (!bundleVersionReference) {
+    throw new WebsiteLegalBundleError(
+      500,
+      "legal_bundle_reference_invalid",
+      "Juridikversionens externa referens kunde inte skapas.",
+    );
+  }
 
   const [companyLegalVersions, productVersion] = await Promise.all([
     listBundleLegalVersions({
@@ -1354,7 +1372,11 @@ export async function buildWebsiteLegalBundle(
   }
   const tenantSlug = await loadCompanySlugById(client.company_id);
   const versions = companyLegalVersions ?? [];
-  const legal = buildPublicLegalBlock({ legalVersions: versions, tenantSlug });
+  const legal = buildPublicLegalBlock({
+    companyId: client.company_id,
+    legalVersions: versions,
+    tenantSlug,
+  });
   const requiredTypes = Array.isArray(
     productVersion.data.required_legal_modules,
   )
@@ -1373,11 +1395,11 @@ export async function buildWebsiteLegalBundle(
     const version = moduleVersions.find(
       (item) => clean(item.module_key) === requirementCode,
     );
-    const documentId = clean(version?.id);
+    const documentReference = clean(version?.document_reference);
     const documentVersion = clean(version?.version);
     const documentHash = clean(version?.content_sha256);
     const documentUrl = clean(version?.url);
-    if (!version || !documentId || !documentVersion || !documentHash || !documentUrl) {
+    if (!version || !documentReference || !documentVersion || !documentHash || !documentUrl) {
       return [];
     }
     return [{
@@ -1385,7 +1407,7 @@ export async function buildWebsiteLegalBundle(
       title: clean(version.title) ?? requirementCode,
       description: clean(version.title) ?? requirementCode,
       required: true as const,
-      document_id: documentId,
+      document_reference: documentReference,
       document_version: documentVersion,
       document_hash: documentHash,
       document_url: documentUrl,
@@ -1421,7 +1443,7 @@ export async function buildWebsiteLegalBundle(
 
   return {
     offer_reference: offerReference,
-    bundle_version: offer.legal_bundle_version_id,
+    bundle_version: bundleVersionReference,
     required_types: requiredTypes,
     present_types: presentTypes,
     requirements,

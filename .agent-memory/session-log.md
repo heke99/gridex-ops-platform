@@ -134,3 +134,12 @@
 - Confirmed live HTTP/version availability but not hash parity. Kept production
   NO-GO for duplicate migration provenance, database replay, missing Web source
   and full environment E2E.
+- Completed strict customer sync, tenant-bound public references, portal
+  pagination/completeness and atomic external-reference move-out.
+- Added and registered `20260730153000...`, repaired v3 quote onboarding, and
+  synchronized API/OpenAPI/docs at `2026-07-30.2`.
+- Verified 324 migrations/228 groups, every TypeScript target, 58 files/373
+  tests, API docs/parity/compatibility/release, zero-error lint and production
+  build.
+- Preserved NO-GO for duplicate migration provenance, PostgreSQL apply,
+  deployment/live hashes, missing Gridex Web and full staging/provider E2E.

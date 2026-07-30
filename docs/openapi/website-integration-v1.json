@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website and Partner Integration API",
-    "version": "2026-07-30.1",
+    "version": "2026-07-30.2",
     "description": "Canonical V1 contract for tenant context, public contracts, tenant-bound energy-area resolution, current normalized spot price, OPS-owned quote and website applications. public-contracts is a product feed, market-price/current is the current market interval, and quote is the complete customer calculation. Tenant backends never select company_id or calculate price, fees or VAT locally."
   },
   "servers": [
@@ -130,7 +130,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-30.1"
+                  "const": "2026-07-30.2"
                 },
                 "description": "Version of the machine-readable public contract representation. Changes invalidate ETag."
               }
@@ -150,7 +150,7 @@
                       "$ref": "#/components/schemas/TenantMeta",
                       "properties": {
                         "contract_schema_version": {
-                          "const": "2026-07-30.1"
+                          "const": "2026-07-30.2"
                         }
                       },
                       "required": [
@@ -283,7 +283,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-07-30.1"
+                  "const": "2026-07-30.2"
                 },
                 "description": "Version of the strict public API contract DTO. Changes invalidate ETag."
               }
@@ -311,7 +311,7 @@
                           ],
                           "properties": {
                             "contract_schema_version": {
-                              "const": "2026-07-30.1"
+                              "const": "2026-07-30.2"
                             }
                           }
                         }
@@ -547,7 +547,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.1"
+                      "const": "2026-07-30.2"
                     }
                   }
                 }
@@ -940,7 +940,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-30.1"
+                  "const": "2026-07-30.2"
                 }
               }
             },
@@ -975,7 +975,7 @@
               },
               "X-Gridex-Contract-Version": {
                 "schema": {
-                  "const": "2026-07-30.1"
+                  "const": "2026-07-30.2"
                 }
               }
             },
@@ -1103,7 +1103,7 @@
                     "next_update_at": "2026-07-24T16:15:00+02:00"
                   },
                   "request_id": "0153b491-b4be-444d-b9a4-56573af449e8",
-                  "contract_schema_version": "2026-07-30.1"
+                  "contract_schema_version": "2026-07-30.2"
                 }
               }
             }
@@ -1298,7 +1298,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.1"
+                      "const": "2026-07-30.2"
                     }
                   }
                 }
@@ -1503,7 +1503,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-07-30.1"
+                      "const": "2026-07-30.2"
                     }
                   }
                 }
@@ -1765,7 +1765,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-07-30.1"
+            "const": "2026-07-30.2"
           },
           "configuration": {
             "type": "object",
@@ -2667,8 +2667,7 @@
             "format": "uuid"
           },
           "legal_bundle_version": {
-            "type": "string",
-            "format": "uuid"
+            "type": "string"
           }
         },
         "additionalProperties": false,
@@ -3335,7 +3334,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.1"
+            "const": "2026-07-30.2"
           }
         }
       },
@@ -4906,7 +4905,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.1"
+            "const": "2026-07-30.2"
           }
         },
         "additionalProperties": false
@@ -5208,7 +5207,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.1"
+            "const": "2026-07-30.2"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -5522,7 +5521,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-07-30.1"
+            "const": "2026-07-30.2"
           }
         }
       },
@@ -5531,7 +5530,7 @@
         "additionalProperties": false,
         "required": [
           "requirement_code",
-          "document_id",
+          "document_reference",
           "document_version",
           "document_hash",
           "accepted",
@@ -5541,9 +5540,8 @@
           "requirement_code": {
             "type": "string"
           },
-          "document_id": {
-            "type": "string",
-            "format": "uuid"
+          "document_reference": {
+            "type": "string"
           },
           "document_version": {
             "type": "string"
@@ -5928,23 +5926,23 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-07-30.1"
+            "const": "2026-07-30.2"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-07-30.1"
+            "const": "2026-07-30.2"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-07-30.1"
+            "const": "2026-07-30.2"
           },
           "runtime_contract_version": {
             "type": "string",
-            "const": "2026-07-30.1"
+            "const": "2026-07-30.2"
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-07-30.1"
+            "const": "2026-07-30.2"
           },
           "released_at": {
             "type": "string",
@@ -5972,10 +5970,20 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
+          "contract_name",
+          "contract_version",
           "url",
-          "sha256"
+          "sha256",
+          "compatibility"
         ],
         "properties": {
+          "contract_name": {
+            "type": "string"
+          },
+          "contract_version": {
+            "type": "string",
+            "const": "2026-07-30.2"
+          },
           "url": {
             "type": "string",
             "format": "uri"
@@ -5983,6 +5991,13 @@
           "sha256": {
             "type": "string",
             "pattern": "^[a-f0-9]{64}$"
+          },
+          "compatibility": {
+            "type": "string",
+            "enum": [
+              "backward-compatible",
+              "breaking"
+            ]
           }
         }
       },
@@ -5994,7 +6009,7 @@
           "title",
           "description",
           "required",
-          "document_id",
+          "document_reference",
           "document_version",
           "document_hash",
           "document_url"
@@ -6013,9 +6028,8 @@
             "type": "boolean",
             "const": true
           },
-          "document_id": {
-            "type": "string",
-            "format": "uuid"
+          "document_reference": {
+            "type": "string"
           },
           "document_version": {
             "type": "string"
@@ -6122,7 +6136,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-07-30.1",
+  "x-contract-schema-version": "2026-07-30.2",
   "x-gridex-tenant-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"

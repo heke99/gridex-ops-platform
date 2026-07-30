@@ -1,5 +1,11 @@
 import { NextRequest } from 'next/server'
-import { executeIdempotentPortalWrite, readJsonObject, requireIsoDate } from '@/lib/api/strictRequest'
+import {
+  ApiInputError,
+  executeIdempotentPortalWrite,
+  readJsonObject,
+  requireIdempotencyKey,
+  requireIsoDate,
+} from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   customerPortalJson,
@@ -7,7 +13,6 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import { createPortalCompletionCase } from '@/lib/customer-portal/db'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -28,6 +33,46 @@ export async function POST(request: NextRequest) {
 
   try {
     const payload = record(await readJsonObject(request))
+    const allowedFields = new Set([
+      'email',
+      'customer_number',
+      'external_customer_id',
+      'customer_contract_reference',
+      'facility_reference',
+      'requested_move_out_date',
+      'reason',
+      'new_address',
+      'contact_details',
+      'metadata',
+    ])
+    const unknownFields = Object.keys(payload).filter(
+      (field) => !allowedFields.has(field),
+    )
+    if (unknownFields.length > 0) {
+      throw new ApiInputError(
+        'Flyttanmälan innehåller fält som inte ingår i API-kontraktet.',
+        'unknown_field',
+        400,
+        unknownFields[0],
+      )
+    }
+    const idempotencyKey = requireIdempotencyKey(request)
+    const facilityReference = clean(payload.facility_reference)
+    if (!facilityReference) {
+      throw new ApiInputError(
+        'facility_reference krävs.',
+        'facility_reference_required',
+        422,
+        'facility_reference',
+      )
+    }
+    const moveOutDate = requireIsoDate(
+      payload.requested_move_out_date,
+      'requested_move_out_date',
+    )
+    const newAddress = record(payload.new_address)
+    const contactDetails = record(payload.contact_details)
+    const metadata = record(payload.metadata)
     const result = await executeIdempotentPortalWrite<Record<string, unknown>>({
       request,
       companyId: context.client.company_id,
@@ -36,55 +81,32 @@ export async function POST(request: NextRequest) {
       operation: '/api/v1/customer/move-out',
       payload,
       execute: async () => {
-        const siteId = clean(payload.site_id) ?? clean(payload.customer_site_id)
-        const moveOutDate = requireIsoDate(clean(payload.move_out_date) ?? clean(payload.moveOutDate), 'move_out_date')
-
-        if (siteId) {
-          const update = await supabaseService
-            .from('customer_sites')
-            .update({
-              move_out_date: moveOutDate,
-              status: 'pending_move',
-              resolution_status: 'address_change_pending',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('company_id', context.client.company_id)
-            .eq('customer_id', context.identity.customer_id)
-            .eq('id', siteId)
-            .select('id')
-            .maybeSingle()
-          if (update.error) throw update.error
-          if (!update.data) {
-            return { statusCode: 404, body: { error: 'Anläggningen hittades inte för kunden.', code: 'customer_site_not_found' } }
-          }
-        }
-
         const { data, error } = await supabaseService
-          .from('customer_portal_completions')
-          .insert({
-            company_id: context.client.company_id,
-            customer_id: context.identity.customer_id,
-            site_id: siteId,
-            completion_type: 'move_out',
-            status: siteId ? 'accepted' : 'submitted',
-            submitted_payload: payload,
-            result_payload: siteId ? { customer_site_id: siteId, move_out_date: moveOutDate } : null,
+          .rpc('gridex_submit_customer_move_out_v1', {
+            p_command: {
+              company_id: context.client.company_id,
+              customer_id: context.identity.customer_id,
+              api_client_id: context.client.id,
+              idempotency_key: idempotencyKey,
+              facility_reference: facilityReference,
+              customer_contract_reference:
+                clean(payload.customer_contract_reference),
+              requested_move_out_date: moveOutDate,
+              reason: clean(payload.reason),
+              new_address: newAddress,
+              contact_details: contactDetails,
+              metadata,
+            },
           })
-          .select('id,status,created_at')
-          .single()
         if (error) throw error
-
-        if (!siteId) {
-          await createPortalCompletionCase({
-            companyId: context.client.company_id,
-            customerId: context.identity.customer_id,
-            completionId: String(data.id),
-            completionType: 'move_out',
-            payload,
-          })
+        const response =
+          data && typeof data === 'object' && !Array.isArray(data)
+            ? (data as Record<string, unknown>)
+            : {}
+        return {
+          statusCode: response.replayed === true ? 200 : 201,
+          body: { data: response },
         }
-
-        return { statusCode: 200, body: { data } }
       },
     })
 

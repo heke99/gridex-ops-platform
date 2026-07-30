@@ -11,7 +11,7 @@ import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/website
 
 describe('canonical public API release', () => {
   it('publishes one version and a release-manifest operation', () => {
-    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-07-30.1')
+    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-07-30.2')
     expect(websiteOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(customerPortalOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(websiteOpenApi.paths['/api/v1/openapi/release-manifest.json']?.get).toBeDefined()

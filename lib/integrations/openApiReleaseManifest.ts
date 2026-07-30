@@ -8,7 +8,7 @@ import {
 } from '@/lib/integrations/websiteIntegrationContract'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
-export const OPENAPI_RELEASED_AT = '2026-07-30T00:00:00.000Z' as const
+export const OPENAPI_RELEASED_AT = '2026-07-30T15:30:00.000Z' as const
 
 function sha256(document: unknown): string {
   return createHash('sha256')
@@ -27,12 +27,18 @@ export function buildOpenApiReleaseManifest() {
     released_at: OPENAPI_RELEASED_AT,
     specifications: {
       website: {
+        contract_name: 'website-integration-v1',
+        contract_version: version,
         url: WEBSITE_INTEGRATION_OPENAPI_URL,
         sha256: sha256(websiteIntegrationOpenApi),
+        compatibility: 'breaking',
       },
       customer_portal: {
+        contract_name: 'customer-portal-v1',
+        contract_version: version,
         url: CUSTOMER_PORTAL_OPENAPI_URL,
         sha256: sha256(customerPortalOpenApi),
+        compatibility: 'breaking',
       },
     },
   } as const

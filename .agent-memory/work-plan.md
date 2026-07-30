@@ -450,3 +450,17 @@ Files changed: admin editors/actions, commercial resolver/calculator, quote/onbo
 Migrations: `20260729200000_contract_commercial_selection_completion.sql`
 Last updated: 2026-07-29
 Exact next subtask: restore immutable `20260728170000...`, apply through `20260729200000...` in staging and run both post-apply suites plus option/component/invoice parity scenarios
+
+## WP-034: Customer Portal/API production completion
+Status: IMPLEMENTED_STATIC_VERIFIED_DATABASE_BLOCKED
+Phase: PHASE-34
+Priority: P0
+Depends on: WP-031
+Affected domains: customer sync, portal DTOs, move-out, quote onboarding, OpenAPI release
+Acceptance criteria: one strict sync contract; no internal public IDs; paginated fail-closed portal; atomic external-reference move-out; exact runtime/OpenAPI/release parity
+Required verification: clean/upgraded PostgreSQL apply, two-tenant isolation, move-out replay/concurrency, deployment and exact live hashes
+Evidence: all TypeScript targets, 58 files/373 tests, API docs/parity/compatibility/release, 324/228 migration integrity, zero-error lint and production build pass
+Files changed: customer API routes/services/DTOs, website intake/publication DTOs, OpenAPI/docs/tests/scripts/memory
+Migrations: `20260730153000_customer_portal_api_production_completion.sql`
+Last updated: 2026-07-30
+Exact next subtask: resolve duplicate migration provenance, apply through `20260730153000` on clean and upgraded Node 22 staging, deploy and run the full environment matrix

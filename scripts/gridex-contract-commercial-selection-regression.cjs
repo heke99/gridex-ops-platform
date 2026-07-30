@@ -67,7 +67,7 @@ for (const field of [
 ]) {
   assert.ok(quoteRequest[field], `OpenAPI quote request missing ${field}`);
 }
-assert.equal(openapi.info.version, "2026-07-30.1");
+assert.equal(openapi.info.version, "2026-07-30.2");
 
 console.log(
   "contract-commercial-selection-regression: option/component/snapshot chain verified",

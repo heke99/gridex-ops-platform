@@ -89,3 +89,11 @@ the restored `20260728170000...` intermediate function-rewrite sequence.
 Status: BLOCKED_BY_INPUT. The supplied archive contains only Gridex Ops. No Web
 patch, type generation, build or live client synchronization is claimed until
 the current Gridex Web repository/archive is supplied.
+
+## BLK-012 — Customer Portal/API database and deployment proof
+
+Status: RELEASE_BLOCKER. Forward migration `20260730153000...`, strict customer
+sync, public-reference DTOs, portal pagination and atomic move-out pass local
+static, type, test, API and build gates. Clean/upgrade PostgreSQL apply, move-out
+replay/concurrency, two-tenant denial and deployed `2026-07-30.2` manifest hash
+parity require an authorized staging environment and deployment.
