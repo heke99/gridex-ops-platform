@@ -1,3 +1,4 @@
+//api/v1/openapi/release-manifest.json/route
 import { NextRequest } from 'next/server'
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
 import { openApiDocumentResponse } from '@/lib/integrations/openApiResponse'
